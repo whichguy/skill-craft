@@ -58,7 +58,9 @@ Numbers only. `export.py RUN_DIR` writes `<RUN_DIR>/review-export/`: one file pe
 and one compact `review-export.json` to commit with the learnings entry (it leaves out the `packets` documents: each
 visit's packet text, megabytes, read from the run directory, which is their record). `test/shiploop_e2e/run.py` and `iterate.py`
 run it for you. A `metrics.json` with no `unmeasured` record is refused: regrade the finished run first, as the
-message says. Add `--key KEY` to keep the key the page already has for a run.
+message says. Add `--key KEY` to keep the key the page already has for a run. Each visit's row also carries its summary,
+whether its result file exists and which items its packet text carried (the stage card). After the engine's stage table
+changes, `export.py --stages` rewrites `defaults/stages.json`, the catalog the cards read; a test fails when it drifts.
 
 ## advise RUN_DIR_OR_KEY
 
@@ -98,8 +100,8 @@ token; an open finding with no `effect` (the page shows it as "not rated").
    (`{docs: {collection: {id: {data}}}}`) and run `export.py --defaults --live FILE --page-url URL --out DIR` (URL: this
    page's artifact URL, which the page cannot read itself; the prompt's head prints it); on an empty page,
    `--defaults --page-url URL --out DIR`. The script merges, never you: it keeps every revision, refuses a page revision the
-   defaults lack (copy it into `defaults/` first), and writes only documents the defaults name, with their
-   `writes.json`. `set` each with `if_version` where it exists. Never overwrite or delete an owner-added document, or
+   defaults lack (copy it into `defaults/` first), and writes only documents the defaults name (the stage catalog,
+   `config/stages`, among them), with their `writes.json`. `set` each with `if_version` where it exists. Never overwrite or delete an owner-added document, or
    any document you did not write.
 3. **The run.** Upload the `writes.json` of `export RUN_DIR` the same way, except an existing `backchain` document: it
    may hold hand verdicts the exporter cannot rebuild (`luna1-plan` and `luna1-step-plan` do), so never `set` a

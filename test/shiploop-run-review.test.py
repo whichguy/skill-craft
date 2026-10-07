@@ -246,7 +246,9 @@ class RunReviewTest(unittest.TestCase):
         run = self.docs(target)["runs"]["codex-gpt-6-luna-1.16.1-battleship-20261003"]
         self.assertEqual(run["stages"][-1], {"stage": "brand-new-stage", "outcome": "done", "min": 10.0,
                                              "action": IDS["extra"], "packetBytes": 100, "packetDoc": True,
-                                             "resultBytes": run["stages"][-1]["resultBytes"]})
+                                             "resultBytes": run["stages"][-1]["resultBytes"], "resultFile": True,
+                                             "summary": "x",  # the fixture's packet text carries none of the labels
+                                             "carried": {label: False for label, _, _ in export.CARRIED}})
         self.assertEqual(run["phases"][3], "running")
         self.assertIn("brand-new-stage", (target / "facts.md").read_text())
 
@@ -260,7 +262,8 @@ class RunReviewTest(unittest.TestCase):
         spec.loader.exec_module(stage_spec)
         listed = [stage for _, stages in export.PHASES for stage in stages]
         self.assertEqual(len(listed), len(set(listed)))
-        self.assertEqual(set(listed), set(stage_spec.STAGES))
+        # PHASES lists the first name of an alias group, so this holds before and after the engine renames select-work
+        self.assertEqual(set(listed), {export.stage_names(stage)[0] for stage in stage_spec.STAGES})
         orders = [export.STAGE_PHASE[stage] for stage in stage_spec.STAGES]
         self.assertEqual(orders, sorted(orders), "a phase must not start before an earlier phase's stages end")
         phases = sorted((e for e in json.loads((SKILL_ROOT / "defaults" / "expectations.json").read_text())
@@ -339,8 +342,10 @@ class RunReviewTest(unittest.TestCase):
             self.assertEqual(written, {k: v for k, v in entry.items() if k != "key"})
         for doc_id in ("page", "prompt"):
             self.assertEqual(json.loads((target / "docs" / "config" / f"{doc_id}.json").read_text()), config[doc_id])
+        stages = json.loads((SKILL_ROOT / "defaults" / "stages.json").read_text())["stages"]
+        self.assertEqual(json.loads((target / "docs" / "config" / "stages.json").read_text()), {"stages": stages})
         writes = json.loads((target / "writes.json").read_text())
-        self.assertEqual(len(writes), len(entries) + 2)
+        self.assertEqual(len(writes), len(entries) + 3)  # the expectations, config/page, config/prompt and config/stages
         self.assertTrue(all(set(w) == {"op", "collection", "doc_id", "file_path"} and w["op"] == "set" for w in writes))
 
     def test_writes_json_lists_every_document_in_a_stable_order_with_absolute_paths(self):
@@ -512,15 +517,20 @@ class RunReviewTest(unittest.TestCase):
         named = set(re.findall(r"\*\*`(\w+)/", text))
         self.assertEqual(named - set(export.SCHEMA), set())
         self.assertIn("config", named)
-        # Every field a SCHEMA.md table names is known to the validator for that collection.
-        collection = None
+        # Every field a SCHEMA.md table names is known to the validator for that collection. The table under config/stages
+        # holds the fields of one catalog entry; a markdown heading ends a collection's tables.
+        fields = None
         for line in text.splitlines():
-            heading = re.match(r"\*\*`(\w+)/", line)
-            if heading:
+            heading = re.match(r"\*\*`(\w+)/(\w*)", line)
+            if line.startswith("#"):
+                fields = None
+            elif heading:
                 collection = heading.group(1)
-            elif collection and line.startswith("| `"):
+                fields = (export.SCHEMA["config"]["stages"][0][1] if heading.group(2) == "stages"
+                          else export.SCHEMA[collection])
+            elif fields is not None and line.startswith("| `"):
                 for field in re.findall(r"`(\w+)`", line.split("|")[1]):
-                    self.assertIn(field, export.SCHEMA[collection], f"{collection}.{field}")
+                    self.assertIn(field, fields, field)
 
 
 # ---------------------------------------------------------------- what a visit is, and the run's measures (R12)
@@ -2490,7 +2500,9 @@ class DefaultsUpgradeTests(unittest.TestCase):
         docs, notes = export.upgrade_docs(self.live)
         cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
         self.assertIn("concatPreamble", self.live["config"]["prompt"])
-        self.assertEqual(docs["config"], {"prompt": cfg["prompt"]})  # config/page holds the page's URL: left alone
+        stages = json.loads((DEFAULTS_DIR / "stages.json").read_text(encoding="utf-8"))["stages"]
+        # config/page holds the page's URL: left alone; config/stages is the derived catalog, always the defaults'
+        self.assertEqual(docs["config"], {"prompt": cfg["prompt"], "stages": {"stages": stages}})
         self.assertEqual(set(docs["expectations"]), set(self.defaults))
         self.assertFalse([k for k in docs["expectations"] if k.startswith("iter-")])
         self.assertEqual(set(docs), {"expectations", "config"})
@@ -2500,7 +2512,7 @@ class DefaultsUpgradeTests(unittest.TestCase):
             "defaults' text",
             "config/prompt: replaced by the defaults (fields the defaults do not have are dropped)"])
         bare = {"expectations": {}, "config": {}}
-        self.assertEqual(export.upgrade_docs(bare)[0]["config"], cfg)  # a page with no settings gets both
+        self.assertEqual(export.upgrade_docs(bare)[0]["config"], {**cfg, "stages": {"stages": stages}})  # a page with no settings gets all three
 
     def test_a_page_revision_the_defaults_lack_refuses_the_upgrade_and_names_each_document(self):
         live = copy.deepcopy(self.live)
@@ -2522,7 +2534,7 @@ class DefaultsUpgradeTests(unittest.TestCase):
         self.assertIn("note: expectations/group-principles", out.getvalue())
         writes = json.loads((self.tmp / "up" / "writes.json").read_text())
         self.assertEqual(sorted((w["collection"], w["doc_id"]) for w in writes),
-                         sorted([("config", "prompt")] + [("expectations", k) for k in self.defaults]))
+                         sorted([("config", "prompt"), ("config", "stages")] + [("expectations", k) for k in self.defaults]))
         bad = self.tmp / "bad.json"
         bad.write_text(json.dumps({"docs": {"expectations": {"P1": {"text": "a bare document, not a row"}}}}))
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
@@ -3079,7 +3091,7 @@ class ReviewBundleCheckTests(unittest.TestCase):
             with self.subTest(args=args), contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as raised:
                 export.main(args)
             self.assertEqual(raised.exception.code, 2)
-            self.assertIn("give one of RUN_DIR, --defaults, --check FILE or --docs FILE", err.getvalue())
+            self.assertIn("give one of RUN_DIR, --defaults, --stages, --check FILE or --docs FILE", err.getvalue())
 
 
 LUNA_REVIEW = EVIDENCE_DIR / "luna1.review.json"
@@ -4324,6 +4336,319 @@ class GeneralReviewBundleTests(unittest.TestCase):
         general = run_logic("cardsFor(Object.assign({filter:'general'},%s))" % json.dumps(state))
         self.assertEqual([o["id"] for o in general["done"]], ["a26"])
         self.assertEqual([o["id"] for c in general["cards"] for o in c["options"]], [])
+
+
+# ---------------------------------------------------------------- R20a: the stage catalog, the card fields and the stage card
+
+STAGES_JSON = DEFAULTS_DIR / "stages.json"
+FIXTURES = ROOT / "test" / "fixtures" / "run-review"
+ENGINE_SPEC_PATH = ROOT / "skills" / "shiploop" / "scripts" / "shiploop_stage_spec.py"
+CARD_FIELDS = ("summary", "summaryTruncated", "resultFile", "carried", "packetImprove")
+MODES = (None, "stage", "none", "not recorded", "a mode the engine adds later")
+
+
+def engine_spec():
+    return export.load_stage_spec(ENGINE_SPEC_PATH)
+
+
+class StageCatalogTests(unittest.TestCase):
+    """The catalog is derived from the engine's stage table, never written by hand, and its exit-check rule is exact."""
+
+    def setUp(self):
+        self.spec = engine_spec()
+        self.catalog = export.stage_catalog(self.spec)
+        self.by_name = {e["stage"]: e for e in self.catalog}
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def test_the_committed_catalog_equals_what_the_engines_stage_table_yields(self):
+        committed = json.loads(STAGES_JSON.read_text(encoding="utf-8"))
+        self.assertEqual(committed["stages"], self.catalog, "stage table changed: run export.py --stages")
+        self.assertEqual([e["stage"] for e in committed["stages"]], list(self.spec.STAGES))  # graph order, every stage once
+        for entry in self.catalog:  # nothing is hand-written: the purpose is the row's goal as the engine states it
+            self.assertEqual(entry["purpose"], self.spec.STAGE_SPEC[entry["stage"]].goal)
+            self.assertEqual(entry["reads"], list(self.spec.STAGE_SPEC[entry["stage"]].reads))
+
+    def test_the_stages_command_rewrites_the_committed_file_byte_for_byte(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(export.main(["--stages", "--out", str(self.tmp)]), 0)
+        written = self.tmp / "stages.json"
+        self.assertEqual(out.getvalue().strip(), str(written.resolve()))
+        self.assertEqual(written.read_bytes(), STAGES_JSON.read_bytes())
+
+    def test_the_stages_command_names_a_missing_engine_table_and_refuses_a_second_mode(self):
+        with self.assertRaises(export.ExportError) as raised:
+            export.write_stages(self.tmp, spec_path=self.tmp / "no-such-spec.py")
+        self.assertIn("missing", str(raised.exception))
+        self.assertIn("stage table of the shiploop skill", str(raised.exception))
+        with contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit):
+            export.main(["--stages", "--defaults"])
+        self.assertIn("give one of", err.getvalue())
+
+    def entry(self, stage: str) -> dict:
+        """The catalog entry of a stage under either name of an alias group, so the engine's rename changes nothing here."""
+        return next(e for e in self.catalog if e["stage"] in export.stage_names(stage))
+
+    def test_each_exit_check_class_has_a_real_stage_and_the_rule_reads_only_the_rows_own_fields(self):
+        self.assertEqual({n: self.entry(n)["exitCheck"] for n in
+                          ("implement", "test-green", "verify", "intake", "select-work", "document", "release",
+                           "spec", "plan", "step-plan", "carry-forward", "release-plan")},
+                         {"implement": "script-run", "test-green": "script-run", "verify": "script-run",
+                          "intake": "model judgement", "select-work": "model judgement", "document": "model judgement",
+                          "release": "model judgement", "spec": "review loop", "plan": "review loop",
+                          "step-plan": "review loop", "carry-forward": "review loop", "release-plan": "review loop"})
+        for stage in self.spec.STAGES:
+            row = self.spec.STAGE_SPEC[stage]
+            self.assertEqual(self.by_name[stage]["exitCheck"],
+                             "script-run" if row.complete_runs else "review loop" if row.improve else "model judgement", stage)
+        # the rule on its own, including the precedence no engine row exercises today
+        self.assertEqual([export.exit_check(r, i) for r, i in (((), None), ((), "always"), ((), "last-item"),
+                                                               (("lint-gate",), None), (("lint-gate",), "always"))],
+                         ["model judgement", "review loop", "review loop", "script-run", "script-run"])
+        self.assertEqual({e["exitCheck"] for e in self.catalog}, set(export.EXIT_CHECKS))
+        self.assertFalse([s for s in self.spec.STAGES if self.spec.STAGE_SPEC[s].complete_runs
+                          and self.spec.STAGE_SPEC[s].improve], "a stage with both would be script-run by rule, not by an example")
+
+    def test_the_mode_none_case_follows_the_engines_own_reviewed_stages(self):
+        self.assertEqual({e["stage"] for e in self.catalog if e.get("planningChoice")}, set(self.spec.PLANNING_CHOICE_STAGES))
+        for stage in self.spec.PLANNING_CHOICE_STAGES:  # only a stage the Improve rule `always` covers can be the option's
+            self.assertEqual(self.by_name[stage]["improve"], "always", stage)
+        last_item = {e["stage"] for e in self.catalog if e.get("improve") == "last-item"}
+        for mode in self.spec.PLANNING_REVIEW_MODES:
+            reviewed = {e["stage"] for e in self.catalog if export.effective_exit_check(e, mode) == "review loop"}
+            self.assertEqual(reviewed, set(self.spec.reviewed_stages(mode)) | last_item, mode)
+        for stage in ("spec", "test-strategy", "plan", "step-plan", "test-spec"):
+            self.assertEqual([export.effective_exit_check(self.by_name[stage], m) for m in MODES],
+                             ["review loop", "review loop", "model judgement", "review loop", "review loop"], stage)
+        for stage in ("carry-forward", "system-test-author", "release-plan", "implement", "intake"):
+            self.assertEqual({export.effective_exit_check(self.by_name[stage], m) for m in MODES},
+                             {self.by_name[stage]["exitCheck"]}, stage)  # the option does not touch these
+
+    def test_catalog_entries_validate_and_the_defaults_documents_carry_them(self):
+        docs = export.defaults_docs()
+        self.assertEqual(docs["config"]["stages"], {"stages": self.catalog})
+        self.assertEqual(export.validate_doc("config", docs["config"]["stages"]), [])
+        bad = {"stages": [dict(self.catalog[0], exitCheck="by hand"), {"stage": "x"}]}
+        problems = "\n".join(export.validate_doc("config", bad))
+        self.assertIn("'by hand' is not one of", problems)
+        self.assertIn("missing required field 'purpose'", problems)
+
+    def test_a_page_whose_catalog_differs_is_replaced_and_told_so_and_a_page_with_none_gets_it_quietly(self):
+        live = export.read_live(SNAPSHOT)
+        docs, notes = export.upgrade_docs(live)
+        self.assertEqual(docs["config"]["stages"], {"stages": self.catalog})
+        self.assertFalse([n for n in notes if "config/stages" in n])  # the saved page has none: nothing is replaced
+        live["config"]["stages"] = {"stages": [{"stage": "old", "purpose": "p", "exitCheck": "script-run", "reads": []}]}
+        _, notes = export.upgrade_docs(live)
+        self.assertTrue([n for n in notes if n.startswith("config/stages: replaced by the defaults")])
+        live["config"]["stages"] = {"stages": self.catalog}
+        self.assertFalse([n for n in export.upgrade_docs(live)[1] if "config/stages" in n])
+
+    def test_schema_md_documents_the_catalog_the_rule_the_aliases_and_every_marker(self):
+        schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ("`config/stages`", "`export.py --stages`", "`defaults/stages.json`", "script-run", "review loop",
+                       "model judgement", "`planningChoice`", "`STAGE_ALIASES`", "get-next-work-item",
+                       "not found in the packet text", "`summaryTruncated`", "`packetImprove`"):
+            self.assertIn(phrase, schema, phrase)
+        for label, description, _ in export.CARRIED:
+            self.assertIn(f"`{label}` | {description}", schema.replace("\\|", "|"), label)  # the table escapes the pipes
+
+
+class StageAliasTests(unittest.TestCase):
+    """select-work and get-next-work-item are one group, resolved once, so old evidence and new runs both render."""
+
+    def test_both_names_resolve_to_the_same_group_phase_and_catalog_entry(self):
+        self.assertEqual(export.STAGE_ALIASES, (("select-work", "get-next-work-item"),))
+        self.assertEqual(export.stage_names("select-work"), export.stage_names("get-next-work-item"))
+        self.assertEqual(export.stage_names("spec"), ("spec",))
+        self.assertEqual(export.STAGE_PHASE["select-work"], export.STAGE_PHASE["get-next-work-item"])
+        self.assertEqual(export.PHASES[export.STAGE_PHASE["get-next-work-item"]][0], "Plan")
+        # the table goes both ways: a table that lists the new name gives the old one the same value
+        self.assertEqual(export._with_aliases({"get-next-work-item": 7, "spec": 1}),
+                         {"get-next-work-item": 7, "select-work": 7, "spec": 1})
+
+    def test_a_run_whose_rows_carry_either_name_exports_the_same_phases_and_lists_no_unknown_stage(self):
+        results = []
+        for stage in ("select-work", "get-next-work-item"):
+            accepts = [(a, stage if a == "select-work" else s, m, o) for a, s, m, o in ACCEPTS]
+            tmp = tempfile.TemporaryDirectory()
+            self.addCleanup(tmp.cleanup)
+            docs, facts = export.build_run(make_run(Path(tmp.name), accepts, loops=False))
+            run = next(iter(docs["runs"].values()))
+            self.assertIn(stage, [r["stage"] for r in run["stages"]])
+            self.assertNotIn("not in the phase table", "\n".join(facts))
+            results.append(run["phases"])
+        self.assertEqual(results[0], results[1])
+
+# A packet text is one real line of each marker, in order, taken verbatim from a real packet of its era: the Luna run on
+# ShipLoop 1.16.1 (skill-validate) and the Sonnet run on 1.22.0 (implement). The whole sets were counted by the journal entry.
+def packet_fixture(name: str) -> str:
+    return (FIXTURES / name).read_text(encoding="utf-8")
+
+
+def carried_of(text: str) -> dict:
+    return export.carried_markers(text)
+
+
+class CardRowFieldsTests(unittest.TestCase):
+    """The stage row's summary, result file and packet checklist, from the run's own records."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def row(self, out: Path, stage: str) -> dict:
+        docs, _ = export.build_run(out)
+        return next(r for r in docs["runs"][self.KEY]["stages"] if r["stage"] == stage)
+
+    def set_summary(self, out: Path, name: str, summary) -> None:
+        def change(state):
+            for entry in state["history"]:
+                if entry["action"] == IDS[name]:
+                    if summary is None:
+                        entry.pop("summary")
+                    else:
+                        entry["summary"] = summary
+        path = run_dir_of(out) / "state.md"
+        value = json.loads(re.search(r"```shiploop-state\n(.*?)\n```", path.read_text(), re.S).group(1))
+        change(value)
+        record(path, value)
+
+    def test_the_summary_is_the_accepted_text_cut_at_300_characters_with_a_flag_only_when_cut(self):
+        out = make_run(self.tmp, loops=False)
+        self.set_summary(out, "spec", "s" * 300)
+        self.set_summary(out, "plan", "p" * 301)
+        self.set_summary(out, "intake", "  padded  ")
+        spec, plan, intake = (self.row(out, s) for s in ("spec", "plan", "intake"))
+        self.assertEqual((spec["summary"], "summaryTruncated" in spec), ("s" * 300, False))
+        self.assertEqual((plan["summary"], plan["summaryTruncated"]), ("p" * 300, True))
+        self.assertEqual(intake["summary"], "padded")
+        self.assertEqual(export.validate_doc("runs", export.build_run(out)[0]["runs"][self.KEY]), [])
+
+    def test_a_visit_with_no_history_summary_falls_back_to_its_result_record_and_with_neither_has_none(self):
+        out = make_run(self.tmp, loops=False)
+        self.set_summary(out, "spec", None)  # the fixture's result record says "s"
+        self.assertEqual(self.row(out, "spec")["summary"], "s")
+        self.set_summary(out, "plan", None)
+        (run_dir_of(out) / "results" / f"{IDS['plan']}.md").unlink()
+        row = self.row(out, "plan")
+        self.assertNotIn("summary", row)
+        self.assertNotIn("summaryTruncated", row)
+
+    def test_the_result_file_is_true_when_it_exists_false_when_it_does_not_and_the_size_stays_its_own(self):
+        out = make_run(self.tmp, loops=False)
+        (run_dir_of(out) / "results" / f"{IDS['spec']}.md").unlink()
+        spec, plan = self.row(out, "spec"), self.row(out, "plan")
+        self.assertIs(spec["resultFile"], False)
+        self.assertNotIn("resultBytes", spec)  # a size only for a file that exists
+        self.assertEqual((plan["resultFile"], plan["resultBytes"] > 0), (True, True))
+
+    def test_the_real_packet_lines_of_each_era_carry_every_label_and_removing_a_labels_lines_flips_only_that_label(self):
+        labels = [label for label, _, _ in export.CARRIED]
+        for name in ("packet-lines-1161.txt", "packet-lines-1220.txt"):
+            text = packet_fixture(name)
+            self.assertEqual(carried_of(text), {label: True for label in labels}, name)
+            for label, _, rules in export.CARRIED:
+                rxs = [re.compile(rx, re.M) for rule in rules for group in rule for rx in group]
+                kept = "\n".join(l for l in text.split("\n") if not any(rx.search(l) for rx in rxs))
+                got = carried_of(kept)
+                self.assertFalse(got[label], f"{name} {label}")
+                # a line may serve two labels (the blocked line carries the recovery sentence and, in 1.22.0, the shape)
+                self.assertGreaterEqual(sum(got.values()), len(labels) - 2, f"{name} {label}")
+
+    def test_the_two_eras_differ_only_in_the_blocked_by_sentence_and_the_purpose_marker(self):
+        old, new = packet_fixture("packet-lines-1161.txt"), packet_fixture("packet-lines-1220.txt")
+        self.assertIn("A blocked result adds blocked_by", old)
+        self.assertNotIn("A blocked result adds blocked_by", new)
+        self.assertIn('blocked: {"outcome": "blocked"', new)
+        self.assertNotIn("Step S1 (1 of 3)", old)  # the implement packet's step line is the purpose marker's second pattern
+        # recovery needs both sentences: the blocked_by one alone is not enough
+        only = "\n".join(l for l in old.split("\n") if not l.startswith("A blocked result adds"))
+        self.assertFalse(carried_of(only)["recovery"])
+        no_goal = "\n".join(l for l in new.split("\n") if not l.startswith("Goal: "))
+        self.assertTrue(carried_of(no_goal)["purpose"])  # the Step line alone says the purpose of an implement packet
+
+    def test_a_checked_by_line_is_an_additional_way_for_checked_to_be_found_and_nothing_needs_it(self):
+        old, new = packet_fixture("packet-lines-1161.txt"), packet_fixture("packet-lines-1220.txt")
+        for text in (old, new):  # packets that predate the line keep the old pair of markers
+            self.assertNotIn("Checked by:", text)
+            self.assertTrue(carried_of(text)["checked"])
+        without = "\n".join(l for l in new.split("\n") if not l.startswith(("Done when (", "Improve: ")))
+        self.assertFalse(carried_of(without)["checked"])
+        with_line = without + "\nChecked by: the lint gate and the focused test command\n"
+        got = carried_of(with_line)
+        self.assertTrue(got["checked"])
+        self.assertEqual(got, {label: True for label, _, _ in export.CARRIED})  # the two dropped lines served no other label
+        only = carried_of("Checked by: a review loop\n")
+        self.assertEqual([k for k, v in only.items() if v], ["checked"])
+        self.assertFalse(carried_of("The result is Checked by: nobody\n")["checked"])  # a line starting with it, not a mention
+        half = "\n".join(l for l in new.split("\n") if not l.startswith("Done when ("))
+        self.assertFalse(carried_of(half)["checked"])  # the old rule still needs both of its groups
+
+    def test_a_row_gets_carried_from_the_whole_packet_text_and_a_packet_with_a_late_marker_counts(self):
+        out = make_run(self.tmp, loops=False)
+        packet = run_dir_of(out) / "packets" / f"{IDS['implement']}.md"
+        text = packet_fixture("packet-lines-1220.txt").replace("\nImprove: ", "\n" + "filler\n" * 40_000 + "Improve: ")
+        packet.write_text(text, encoding="utf-8")
+        self.assertGreater(len(text.encode()), export.MAX_PACKET_TEXT)  # past the document's cut: still read whole
+        row = self.row(out, "implement")
+        self.assertEqual(row["carried"], {label: True for label, _, _ in export.CARRIED})
+        self.assertIs(row["packetDoc"], True)
+        self.assertNotIn("packetImprove", row)
+
+    def test_an_improve_childs_packet_is_marked_and_no_label_is_read_from_it(self):
+        out = make_run(self.tmp, loops=False)
+        (run_dir_of(out) / "packets" / f"{IDS['spec']}.md").write_text(
+            packet_fixture("packet-lines-1220-improve.txt"), encoding="utf-8")
+        row = self.row(out, "spec")
+        self.assertIs(row["packetImprove"], True)
+        self.assertNotIn("carried", row)
+        self.assertIs(row["packetDoc"], True)  # the packet box still shows the file that exists
+        self.assertEqual(export.validate_doc("runs", export.build_run(out)[0]["runs"][self.KEY]), [])
+
+    def test_carried_is_absent_when_the_packet_text_was_not_readable_or_there_was_no_packet(self):
+        out = make_run(self.tmp, loops=False)
+        run = run_dir_of(out)
+        (run / "packets" / f"{IDS['spec']}.md").write_bytes(b"\xff\xfe not utf-8 \x80")
+        (run / "packets" / f"{IDS['plan']}.md").unlink()
+        docs, facts = export.build_run(out)
+        rows = {r["stage"]: r for r in docs["runs"][self.KEY]["stages"]}
+        for stage in ("spec", "plan"):
+            self.assertNotIn("carried", rows[stage], stage)
+            self.assertNotIn("packetImprove", rows[stage], stage)
+        self.assertIn("carried", rows["intake"])  # the fixture's other packets are readable text: every label false, none invented
+        self.assertEqual(set(rows["intake"]["carried"].values()), {False})
+        self.assertIn("producer packets read", "\n".join(facts))
+
+    def test_facts_count_the_labels_the_packets_carried_and_the_improve_packets_not_read(self):
+        out = make_run(self.tmp, loops=False)
+        run = run_dir_of(out)
+        (run / "packets" / f"{IDS['spec']}.md").write_text(packet_fixture("packet-lines-1220-improve.txt"), encoding="utf-8")
+        (run / "packets" / f"{IDS['intake']}.md").write_text(packet_fixture("packet-lines-1161.txt"), encoding="utf-8")
+        line = next(l for l in export.build_run(out)[1] if l.startswith("- Packet text carried"))
+        self.assertIn(f"producer packets read {len(ACCEPTS) - 1}; 1 visits keep only an Improve child's packet", line)
+        self.assertIn("where 1, purpose 1, operates 1, checked 1, produces 1, recovery 1, inputs 1", line)
+
+    def test_validate_doc_rejects_wrong_shapes_for_the_card_fields(self):
+        run, _ = export.build_run(make_run(self.tmp, loops=False))
+        run = run["runs"][self.KEY]
+        bad = dict(run, stages=[dict(run["stages"][0], summary=3, summaryTruncated="yes", resultFile=1, carried={"where": "yes"},
+                                     packetImprove="no")])
+        problems = "\n".join(export.validate_doc("runs", bad))
+        for needle in ("stages[0].summary: expected a string", "stages[0].summaryTruncated: expected a boolean",
+                       "stages[0].resultFile: expected a boolean", "stages[0].carried.where: expected a boolean",
+                       "stages[0].packetImprove: expected a boolean"):
+            self.assertIn(needle, problems)
+
+    def test_the_committed_evidence_still_validates_without_any_card_field(self):  # a guard: it passes before this change too
+        for name in EVIDENCE_RUNS:
+            for run in json.loads((EVIDENCE_DIR / name).read_text())["docs"]["runs"].values():
+                self.assertEqual(export.validate_doc("runs", run), [], name)
 
 
 if __name__ == "__main__":

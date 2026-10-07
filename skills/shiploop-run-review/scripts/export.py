@@ -5,6 +5,7 @@
   export.py --defaults [--live FILE] [--page-url URL] [--out DIR]
   export.py --check FILE
   export.py --docs FILE [--out DIR]
+  export.py --stages [--out DIR]
 
 RUN_DIR is an output directory of test/shiploop_e2e/run.py. The export reads only
 the run's own records (metrics.json, result.json, invocation.json and the ShipLoop
@@ -31,6 +32,9 @@ snapshot) it writes the defaults over that page instead, keeping what the owner 
 there (upgrade_docs): every page revision must already be in the defaults, documents
 the defaults do not name are never written, and config/page is written only when absent or when --page-url
 is given: it sets config/page.artifactUrl (a page cannot read its own URL, so publish supplies it).
+--stages rewrites defaults/stages.json (or DIR/stages.json) from the stage table of the sibling shiploop skill
+(skills/shiploop/scripts/shiploop_stage_spec.py), the one source of every stage's purpose, exit check and readers; a
+test fails when the committed file differs from what the table yields. Run it after the engine's stage table changes.
 Stdlib only; no network and no model calls.
 """
 
@@ -56,6 +60,8 @@ MAX_FIGURE_ITEMS = 6
 MAX_PACKET_TEXT = 150_000  # bytes of a packet file kept in its document; a longer file is cut at a line boundary
 MAX_DOC_BYTES = 256 * 1024  # the page database's limit for one serialized document
 MAX_CLIP = 200  # characters of a work item title or a step task kept in the run document
+MAX_SUMMARY = 300  # characters of a visit's accepted summary kept on its stage row
+EXIT_CHECKS = ("script-run", "model judgement", "review loop")
 FIGURE_KINDS = ("bars",)
 FIGURE_TONES = ("expected", "saw", "limit")
 
@@ -73,7 +79,29 @@ PHASES = (
     ("System test", ("system-test-author", "system-test", "product-acceptance")),
     ("Release", ("release-plan", "release-check", "release", "release-verify", "operations", "handoff")),
 )
-STAGE_PHASE = {stage: order for order, (_, stages) in enumerate(PHASES) for stage in stages}
+# select-work is being renamed get-next-work-item in the engine. The engine refuses a saved run that carries the old
+# name, so a new run never needs this table: it exists only so committed historical evidence, the page's database and
+# exports of old run directories (which this exporter still re-exports) render under either name. One group, one place:
+# STAGE_PHASE below and the page's stage lookup resolve a name through it, nothing else mentions the alias.
+STAGE_ALIASES = (("select-work", "get-next-work-item"),)
+
+
+def stage_names(stage: str) -> tuple[str, ...]:
+    """Every name `stage` goes by: its alias group, or itself alone."""
+    return next((group for group in STAGE_ALIASES if stage in group), (stage,))
+
+
+def _with_aliases(table: dict) -> dict:
+    """`table` (stage -> value) with each alias group's other names given the value of the one it lists."""
+    out = dict(table)
+    for group in STAGE_ALIASES:
+        found = next((table[name] for name in group if name in table), None)
+        if found is not None:
+            out.update({name: found for name in group})
+    return out
+
+
+STAGE_PHASE = _with_aliases({stage: order for order, (_, stages) in enumerate(PHASES) for stage in stages})
 # The inner-loop stages ShipLoop runs after `implement` (shiploop_stage_spec.INNER; a test keeps them equal). A work item
 # that has any of them accepted has left implement.
 AFTER_IMPLEMENT = ("test-green", "test-refine", "regression", "document", "skill-assess", "skill-validate",
@@ -132,7 +160,13 @@ SCHEMA = {
                               # which work item, steps-loop pass and step a visit belongs to (SCHEMA.md); packetDoc is
                               # true only when a packets/<runKey>--<action> document was written for the visit.
                               "workitem": (S, False), "loop": (N, False), "step": (S, False),
-                              "packetDoc": (B, False)}), False),
+                              "packetDoc": (B, False),
+                              # the stage card (SCHEMA.md "The stage card"): the accepted summary cut at MAX_SUMMARY
+                              # characters, whether results/<action>.md exists, which of the CARRIED labels the packet
+                              # text carried (absent when the text was unreadable or is an Improve child's packet) and
+                              # whether the packet file is the Improve child's, not the producer's.
+                              "summary": (S, False), "summaryTruncated": (B, False), "resultFile": (B, False),
+                              "carried": (("map", B), False), "packetImprove": (B, False)}), False),
         # The plan's work items and how each went through the steps loop, from state.md and results/ only. Absent, with
         # a reason in `unmeasured.workItems`, when the records cannot tell; stepsPlanned and stepsExecuted are absent,
         # with a reason under their own name, when any item's steps or pairing is unknown. Never a zero for those.
@@ -186,7 +220,13 @@ SCHEMA = {
         "ref": (S, False),
     },
     # config/page and config/prompt share the collection; every field is a string.
-    "config": {"title": (S, False), "artifactUrl": (S, False), "constraints": (S, False), "closing": (S, False)},
+    # config/stages is the stage catalog (defaults/stages.json, SCHEMA.md "Stage catalog"), a derived replica of the engine's table.
+    "config": {"title": (S, False), "artifactUrl": (S, False), "constraints": (S, False), "closing": (S, False),
+               "stages": (("items", {"stage": (S, True), "purpose": (S, True),
+                                     "exitCheck": (("enum", EXIT_CHECKS), True),
+                                     "completeRuns": (("list", S), False),
+                                     "improve": (("enum", ("always", "last-item")), False),
+                                     "planningChoice": (B, False), "reads": (("list", S), True)}), False)},
     # packets/<runKey>--<action>: the text of one visit's packet file, read by the page on demand. Never in the
     # committed review-export.json (megabytes); the run directory is the record.
     "packets": {"run": (S, True), "action": (S, True), "stage": (S, False), "bytes": (N, True),
@@ -1077,8 +1117,50 @@ def work_items(state: dict, history: list[dict], results: Path,
     return items, reasons, marks
 
 
-def _packet_doc(run_key: str, action: str, stage: str, path: Path) -> dict | None:
-    """The packets/<runKey>--<action> document for one packet file, or None when the file cannot be read as UTF-8.
+# What a producer packet's text carries (the tenet: context is cleared between any two stages, so a packet restates how
+# its stage operates and how it is checked). One row per label of the stage card's checklist: (label, what is looked for,
+# rules). A label is found when ANY rule holds; a rule holds when every one of its groups has a pattern matching a line of
+# the packet text. So a rule is a tuple of groups, a group a tuple of alternative patterns: `checked` is found by the old
+# pair (the Done when list AND the Improve line) or, alone, by a 'Checked by:' line (a later engine prints it; no packet on
+# disk has one yet, and nothing depends on it). The patterns are the lines the navigator prints (_goal_lines,
+# _first_callback_lines, _result_contract_lines, _improve_line, the run rules) and were checked against the packets of every
+# run on disk, ShipLoop 1.16.1 to 1.22.0: one place to change when the engine's wording does. "not found in the packet
+# text" is a statement about the text, not about what the model needed.
+CARRIED = (
+    ("where", "the progress line 'ShipLoop navigator | <stage> | revision N'",
+     (((r"^ShipLoop navigator \| \S+ \| revision \d+",),),)),
+    ("purpose", "a 'Goal:' line, or the implement packet's 'Step S1 (1 of 3)' line",
+     (((r"^Goal: ", r"^Step \S+ \(\d+ of \d+\)"),),)),
+    ("operates", "the 'Current stage guidance:' rules or the 'Considerations for this stage:' list",
+     (((r"^Current stage guidance:", r"^Considerations for this stage:"),),)),
+    ("checked", "the 'Done when (' list and the 'Improve:' line that says whether a review loop follows, or a 'Checked by:' line",
+     (((r"^Done when \(",), (r"^Improve: ",)),
+      ((r"^Checked by:",),))),
+    ("produces", "the 'Result template:' and the 'Allowed outcomes:' line",
+     (((r"^Result template:",), (r"^Allowed outcomes:",)),)),
+    ("recovery", "the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line "
+                 "from 1.22.0) and the sentence that a problem the run can fix itself is repaired in the stage, not blocked",
+     (((r"^A blocked result adds blocked_by", r'^blocked: \{"outcome": "blocked"'),
+       (r"a problem this run can fix itself is repaired in this stage, not blocked",)),)),
+    ("inputs", "the 'Results this stage builds on' list",
+     (((r"^Results this stage builds on",),),)),
+)
+CARRIED_RX = tuple((label, tuple(tuple(tuple(re.compile(rx, re.M) for rx in group) for group in rule) for rule in rules))
+                   for label, _, rules in CARRIED)
+# The packet file of an action is rewritten at every printing, so a visit that started an Improve child keeps the
+# child's last packet, which starts with this line; the producer's own packet is gone. Such a file is not read for labels.
+IMPROVE_PACKET = re.compile(r"^Current action: Improve the completed ", re.M)
+
+
+def carried_markers(text: str) -> dict[str, bool]:
+    """{label: whether the packet text carries it} for every CARRIED label (the page prints each as a tick or a cross)."""
+    return {label: any(all(any(rx.search(text) for rx in group) for group in rule) for rule in rules)
+            for label, rules in CARRIED_RX}
+
+
+def _packet_doc(run_key: str, action: str, stage: str, path: Path) -> tuple[dict, str] | None:
+    """(the packets/<runKey>--<action> document for one packet file, the whole file's text), or None when the file
+    cannot be read as UTF-8.
 
     `bytes` and `sha256` are the whole file's. A file over MAX_PACKET_TEXT bytes keeps its first MAX_PACKET_TEXT bytes cut
     at a line boundary (a hard cut only when that part holds no newline), and one whose document would pass the page
@@ -1102,24 +1184,30 @@ def _packet_doc(run_key: str, action: str, stage: str, path: Path) -> dict | Non
     doc["shownBytes"] = shown
     if shown < len(raw):
         doc["truncated"] = True
-    return doc
+    return doc, raw.decode("utf-8")
 
 
 def packet_docs(run_key: str, packets: Path, stages: list[dict]) -> tuple[dict[str, dict], int]:
     """({doc id: packets document}, the packet files that could not be read) for every visit that has a packet file.
     A visit with no file (skipped, seeded or never printed) gets none; a visit's row gets `packetDoc` true when its
-    document was written."""
+    document was written, and from the whole file's text `carried` (carried_markers), or `packetImprove` true when the
+    file is the Improve child's packet and no label is read."""
     found, unreadable = {}, 0
     for row in stages:
         action = row.get("action")
         if not isinstance(action, str) or "packetBytes" not in row or not re.fullmatch(r"[A-Za-z0-9._-]+", action):
             continue
-        doc = _packet_doc(run_key, action, row["stage"], packets / f"{action}.md")
-        if doc is None:
+        read = _packet_doc(run_key, action, row["stage"], packets / f"{action}.md")
+        if read is None:
             unreadable += 1
             continue
+        doc, text = read
         found[f"{run_key}--{action}"] = doc
         row["packetDoc"] = True
+        if IMPROVE_PACKET.search(text):
+            row["packetImprove"] = True  # another packet's file: the producer labels would read false for no fault of its own
+        else:
+            row["carried"] = carried_markers(text)
     return found, unreadable
 
 
@@ -1191,6 +1279,14 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         for field, path in (("packetBytes", packets / f"{action}.md"), ("resultBytes", results / f"{action}.md")):
             if path.is_file():
                 row[field] = path.stat().st_size
+        if isinstance(action, str):
+            row["resultFile"] = (results / f"{action}.md").is_file()  # false: the accepted result is read from state.md
+        said = entry.get("summary") if isinstance(entry.get("summary"), str) else (
+            body.get("summary") if record is not None and isinstance(body.get("summary"), str) else "")
+        if said.strip():
+            row["summary"] = said.strip()[:MAX_SUMMARY]
+            if len(said.strip()) > MAX_SUMMARY:
+                row["summaryTruncated"] = True
         if action in seeded_ids:
             row["seeded"] = True
         elif issued and isinstance(action, str) and "packetBytes" not in row:
@@ -1333,6 +1429,17 @@ def _plan_line(run) -> str:
             + total("stepsPlanned", "steps planned") + ", " + total("stepsExecuted", "executed"))
 
 
+def _carried_line(run) -> str:
+    """The packet checklist as one facts line: how many packets were read, how many are an Improve child's, and per label how
+    many of the producer packets carried it."""
+    rows = run["stages"]
+    read = [r["carried"] for r in rows if "carried" in r]
+    improve = sum(1 for r in rows if r.get("packetImprove"))
+    return (f"- Packet text carried (producer packets read {len(read)}; {improve} visits keep only an Improve child's packet, "
+            "not read): " + (", ".join(f"{label} {sum(1 for c in read if c.get(label))}" for label, _, _ in CARRIED)
+                             if read else "no label counted"))
+
+
 def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, loops, unknown, from_state,
            seeded_note, option, packet_set, unreadable) -> list[str]:
     stages = run["stages"]
@@ -1385,6 +1492,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
              f"- Packet documents: {len(packet_set)} written, {sum(d['bytes'] for d in packet_set.values()) / 1024:.1f} KB "
              f"of packet files, {sum(1 for d in packet_set.values() if d.get('truncated'))} truncated; "
              f"{unreadable} packet files unreadable (no document written)",
+             _carried_line(run),
              f"- Planning review option (state.md): {run['planningReview']}",
              f"- Backchain passes option (state.md): {option}",
              "- Backchain loops: " + ("; ".join(
@@ -1460,14 +1568,96 @@ def export_run(run_out: Path, key: str | None = None, name: str | None = None, o
     return write_export(out or run_out / "review-export", docs, facts, compact=True, prune_prefix=run_key)
 
 
+# ---------------------------------------------------------------- the stage catalog (--stages, defaults/stages.json)
+
+ENGINE_STAGE_SPEC = SKILL_ROOT.parent / "shiploop" / "scripts" / "shiploop_stage_spec.py"
+STAGES_FILE = "stages.json"
+STAGES_NOTE = ("generated by export.py --stages from skills/shiploop/scripts/shiploop_stage_spec.py; "
+               "do not edit by hand, a test fails on drift")
+
+
+def exit_check(complete_runs, improve) -> str:
+    """The kind of check that ends a stage, from its stage row's own fields (SCHEMA.md "Stage catalog").
+
+    `script-run`: the row has `complete_runs`, so the script runs a gate or the recorded commands (lint gate, test loop,
+    the focused or every test command, the quality loop's terminal check) before it accepts done. Else `review loop`:
+    the row has an `improve` rule (`always`, or `last-item`), so an Improve child reviews the result before the graph
+    advances. Else `model judgement`: the model decides against the row's `done_when` and nothing script-run or reviewed
+    follows. A row with both is `script-run`; no row has both today (a test says so). The mode is not here: see
+    effective_exit_check."""
+    return "script-run" if complete_runs else "review loop" if improve else "model judgement"
+
+
+def effective_exit_check(entry: dict, planning_review: str | None) -> str:
+    """A catalog entry's exit check in a run that recorded `planning_review` (None or `not recorded`: the entry's own).
+    Under `none` the engine starts no Improve child at the five planning stages (`planningChoice`), so a stage whose
+    only check was that review is `model judgement` there; `stage`, an unknown value and no record leave it as it is."""
+    if planning_review == PLANNING_NONE and entry.get("planningChoice") and entry["exitCheck"] == "review loop":
+        return "model judgement"
+    return entry["exitCheck"]
+
+
+def load_stage_spec(path: Path | None = None):
+    """The sibling shiploop skill's stage table, loaded as a module of its own (it imports nothing from ShipLoop)."""
+    import importlib.util
+    path = Path(path or ENGINE_STAGE_SPEC)
+    if not path.is_file():
+        raise ExportError(f"missing {path}: --stages reads the stage table of the shiploop skill beside this one")
+    name = "run_review_engine_stage_spec"
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module  # dataclasses look their module up while the class is built
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop(name, None)
+    return module
+
+
+def stage_catalog(spec) -> list[dict]:
+    """One entry per engine stage, in graph order, from the stage table `spec` (never hand-written): `purpose` is the
+    row's goal as the engine states it, `exitCheck` is exit_check of its fields, `completeRuns` and `improve` say why
+    (omitted when empty), `planningChoice` is true for the stages `planning_review none` covers, and `reads` lists the
+    results the stage reads first (`item:<stage>` means this work item's). A stage's readers are the inverse of `reads`."""
+    entries = []
+    for name in spec.STAGES:
+        row = spec.STAGE_SPEC[name]
+        entry = {"stage": name, "purpose": row.goal, "exitCheck": exit_check(row.complete_runs, row.improve)}
+        if row.complete_runs:
+            entry["completeRuns"] = list(row.complete_runs)
+        if row.improve:
+            entry["improve"] = row.improve
+        if name in spec.PLANNING_CHOICE_STAGES:
+            entry["planningChoice"] = True
+        entry["reads"] = list(row.reads)
+        entries.append(entry)
+    return entries
+
+
+def write_stages(out: Path | None = None, spec_path: Path | None = None) -> Path:
+    """Write defaults/stages.json (or OUT/stages.json) from the engine's stage table: one entry per line, so a change reads as a diff."""
+    entries = stage_catalog(load_stage_spec(spec_path))
+    problems = [p for e in entries for p in _type_problem(("items", SCHEMA["config"]["stages"][0][1]), [e], e["stage"])]
+    if problems:
+        raise ExportError("the stage catalog violates SCHEMA.md:\n  " + "\n  ".join(problems))
+    target = Path(out).expanduser().resolve() if out is not None else DEFAULTS
+    target.mkdir(parents=True, exist_ok=True)
+    path = target / STAGES_FILE
+    path.write_text('{"generated": ' + json.dumps(STAGES_NOTE) + ',\n"stages": [\n'
+                    + ",\n".join(json.dumps(e, ensure_ascii=False) for e in entries) + "\n]}\n", encoding="utf-8")
+    return path
+
+
 def defaults_docs() -> dict[str, dict[str, dict]]:
     expectations = _read_json(DEFAULTS / "expectations.json")
     config = _read_json(DEFAULTS / "config.json")
+    stages = _read_json(DEFAULTS / STAGES_FILE)
     docs: dict[str, dict[str, dict]] = {"expectations": {}, "config": {}}
     for entry in expectations:
         docs["expectations"][entry["key"]] = {k: v for k, v in entry.items() if k != "key"}
     for doc_id, doc in config.items():
         docs["config"][doc_id] = doc
+    docs["config"]["stages"] = {"stages": stages["stages"]}  # the derived catalog, a replica like the expectations
     return docs
 
 
@@ -1505,6 +1695,9 @@ def upgrade_docs(live: dict[str, dict[str, dict]], page_url: str | None = None) 
     docs["config"]["prompt"] = defaults["config"]["prompt"]
     if pages["config"].get("prompt") not in (None, docs["config"]["prompt"]):
         notes.append("config/prompt: replaced by the defaults (fields the defaults do not have are dropped)")
+    docs["config"]["stages"] = defaults["config"]["stages"]  # derived from the engine's table: always the defaults'
+    if pages["config"].get("stages") not in (None, docs["config"]["stages"]):
+        notes.append("config/stages: replaced by the defaults (the stage catalog is derived from the engine's stage table)")
     have = pages["config"].get("page")
     if page_url is None:
         if have is None:
@@ -1713,6 +1906,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--page-url", metavar="URL",
                         help="with --defaults: the artifact's own URL, set as config/page.artifactUrl (the prompt's "
                              "head prints it; a page cannot read its own URL)")
+    parser.add_argument("--stages", action="store_true",
+                        help="rewrite defaults/stages.json (or OUT/stages.json with --out) from the shiploop skill's stage table")
     parser.add_argument("--check", type=Path, metavar="FILE", help="validate a review bundle (exit 2 on a failure)")
     parser.add_argument("--docs", type=Path, metavar="FILE",
                         help="check a review bundle, then write its documents and writes.json under --out")
@@ -1721,8 +1916,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--order", type=int, help="sort key (default the run's start, epoch seconds)")
     parser.add_argument("--out", type=Path, help="export directory (default RUN_DIR/review-export; for --docs a new temporary directory)")
     args = parser.parse_args(argv)
-    if [args.run_dir is not None, args.defaults, args.check is not None, args.docs is not None].count(True) != 1:
-        parser.error("give one of RUN_DIR, --defaults, --check FILE or --docs FILE")
+    if [args.run_dir is not None, args.defaults, args.stages, args.check is not None, args.docs is not None].count(True) != 1:
+        parser.error("give one of RUN_DIR, --defaults, --stages, --check FILE or --docs FILE")
     if args.live is not None and not args.defaults:
         parser.error("--live goes with --defaults")
     if args.page_url is not None and not args.defaults:
@@ -1732,8 +1927,12 @@ def main(argv: list[str] | None = None) -> int:
             return check_file(args.check)[0]
         if args.docs is not None:
             return write_docs(args.docs, args.out)
-        path = export_defaults(args.out, args.live, args.page_url) if args.defaults else export_run(
-            args.run_dir, args.key, args.name, args.order, args.out)
+        if args.stages:
+            path = write_stages(args.out)
+        elif args.defaults:
+            path = export_defaults(args.out, args.live, args.page_url)
+        else:
+            path = export_run(args.run_dir, args.key, args.name, args.order, args.out)
     except ExportError as exc:
         print(f"export: {exc}", file=sys.stderr)
         return 2
