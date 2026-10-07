@@ -875,6 +875,11 @@ function columnDetail(model,k,run,findings,catalog){
 function packetId(run,row){
   return run&&typeof run.key==="string"&&row&&row.packetDoc===true&&typeof row.action==="string"?run.key+"--"+row.action:"";
 }
+/* The id of the packets document of a visit's Improve child's packet (`<runKey>--<action>-improve`; the layout of an engine after
+   ShipLoop 1.22.0 keeps it beside the producer packet), or "" when the export wrote none. */
+function improvePacketId(run,row){
+  return run&&typeof run.key==="string"&&row&&row.improvePacketDoc===true&&typeof row.action==="string"?run.key+"--"+row.action+"-improve":"";
+}
 /* What the packet box says about a loaded document: its size and digest, and when it is cut, how much of it shows. */
 function packetMeta(d){
   var bytes=d&&isCount(d.bytes)?d.bytes:null,sha=d&&typeof d.sha256==="string"&&d.sha256?"sha256 "+d.sha256.slice(0,12):"",out=[];
@@ -961,10 +966,18 @@ function carriedItems(row,info){
         found===false?"not found in the packet text ("+l[2]+"). This says what the exported text lacks, not whether the model needed it.":"not recorded in this export"};
   });
 }
-/* The first n non-empty lines of a packet's text (the card's head; the full text stays in the Packet box). */
+/* Where a packet's head starts: the index of its first line beginning "ShipLoop navigator |" (the part the engine prints; an inline
+   run's file opens with a delegation preamble before it), or -1 when it has none. */
+function packetHeadStart(text){
+  var lines=String(text===undefined||text===null?"":text).split("\n");
+  for(var i=0;i<lines.length;i++)if(lines[i].indexOf("ShipLoop navigator |")===0)return i;
+  return -1;
+}
+/* The first n non-empty lines of a packet's text from its "ShipLoop navigator |" line (so Goal, Done when, Checked by and the
+   callback show), or from its first line when it has no such line (the card's head; the full text stays in the Packet box). */
 function packetHeadLines(text,n){
-  var out=[],lines=String(text===undefined||text===null?"":text).split("\n");
-  for(var i=0;i<lines.length&&out.length<n;i++){var l=lines[i].replace(/\s+$/,"");if(l.trim()!=="")out.push(l);}
+  var out=[],lines=String(text===undefined||text===null?"":text).split("\n"),from=Math.max(0,packetHeadStart(text));
+  for(var i=from;i<lines.length&&out.length<n;i++){var l=lines[i].replace(/\s+$/,"");if(l.trim()!=="")out.push(l);}
   return out;
 }
 /* One visit as a stage card: {visit, title, stage, kind, purpose, check:{kind,why}|null, outcome,
@@ -978,10 +991,11 @@ function stageCard(run,i,catalog){
   var purpose=info&&typeof info.purpose==="string"&&info.purpose?info.purpose.charAt(0).toUpperCase()+info.purpose.slice(1):"";
   /* sent: the packet */
   var sent={bytes:isCount(r.packetBytes)?r.packetBytes:null,bytesLabel:r.packetImprove===true?"Packet file kept (the Improve child's)":"Packet size",
+    improveBytes:isCount(r.improvePacketBytes)?r.improvePacketBytes:null,improvePacket:improvePacketId(run,r)?{id:improvePacketId(run,r)}:null,
     note:"",carried:null,carriedNote:"",packet:packetId(run,r)?{id:packetId(run,r)}:null};
   if(kind==="skipped")sent.note="No packet was issued: the engine found this stage not applicable to the item.";
   else if(kind==="seeded")sent.note="The harness recorded this visit itself, so no packet was sent for it.";
-  else if(r.packetImprove===true)sent.carriedNote="The packet file kept for this visit is the Improve child's: the engine rewrites one file per action, so the producer's own packet is not available and no checklist is shown.";
+  else if(r.packetImprove===true)sent.carriedNote="The packet file kept for this visit is the Improve child's: an engine of ShipLoop 1.22.0 or earlier rewrote one file per action, so the producer's own packet is not available and no checklist is shown.";
   else{
     sent.carried=carriedItems(r,info);
     if(!sent.carried&&sent.bytes!==null)sent.carriedNote="Whether the packet carried each item is not recorded in this export (export the run again).";
@@ -1385,9 +1399,9 @@ function renderPlan(run){
   var m=h("p","msg",planMsg);m.setAttribute("aria-live","polite");box.appendChild(m);
 }
 /* The Packet box of a tapped visit: closed until opened, then one `get` of packets/<runKey>--<action>. */
-function packetBox(p){
+function packetBox(p,label){
   var st=packetState[p.id]||(packetState[p.id]={open:false,status:""}),det=h("details","pkt"),body=h("div");
-  det.appendChild(h("summary","","Packet"));det.appendChild(body);packetBody[p.id]=body;
+  det.appendChild(h("summary","",label||"Packet"));det.appendChild(body);packetBody[p.id]=body;
   fillPacket(p.id);
   det.open=st.open===true;
   det.ontoggle=function(){st.open=det.open===true;if(st.open&&!st.status)loadPacket(p.id);};
@@ -1415,8 +1429,9 @@ function packetHead(p){
 function fillHead(id){
   var box=packetHeads[id],st=packetState[id];if(!box||!st)return;clear(box);
   if(st.status==="ready"){
-    var lines=packetHeadLines(st.doc.text,12);
-    box.appendChild(h("div","meta","Packet head: the first "+plural(lines.length,"non-empty line")+" of the packet (the whole text is in the Packet box below)"));
+    var lines=packetHeadLines(st.doc.text,12),navigator=packetHeadStart(st.doc.text)>=0;
+    box.appendChild(h("div","meta","Packet head: "+(navigator?"the first "+plural(lines.length,"non-empty line")+" from the 'ShipLoop navigator |' line (the whole text, with what comes before that line, is in the Packet box below)"
+      :"the first "+plural(lines.length,"non-empty line")+" of the packet (the whole text is in the Packet box below)")));
     var pre=h("pre","pkt-head");pre.textContent=lines.join("\n");box.appendChild(pre);
   }
   else if(st.status==="loading")box.appendChild(h("p","msg","Loading the packet."));
@@ -1458,7 +1473,10 @@ function renderCard(dc,c){
   var s=h("div","sc-block sc-sent"),n0;
   s.appendChild(h("h4","","Sent: the packet"));n0=s.children.length;
   if(c.sent.note)s.appendChild(h("p","sub",c.sent.note));
-  if(c.sent.bytes!==null)s.appendChild(factsEl([[c.sent.bytesLabel,kbText(c.sent.bytes)]]));
+  var sizes=[];
+  if(c.sent.bytes!==null)sizes.push([c.sent.bytesLabel,kbText(c.sent.bytes)]);
+  if(c.sent.improveBytes!==null)sizes.push(["Improve child's packet file",kbText(c.sent.improveBytes)]);
+  if(sizes.length)s.appendChild(factsEl(sizes));
   if(c.sent.carried){
     s.appendChild(h("div","meta","What the packet text carried"));
     var cl=h("div","chips sc-carried");
@@ -1473,6 +1491,7 @@ function renderCard(dc,c){
   }
   if(c.sent.carriedNote)s.appendChild(h("p","msg",c.sent.carriedNote));
   if(c.sent.packet&&live&&db){s.appendChild(packetHead(c.sent.packet));s.appendChild(packetBox(c.sent.packet));}
+  if(c.sent.improvePacket&&live&&db)s.appendChild(packetBox(c.sent.improvePacket,"Improve child's packet"));  /* closed; the same loader and cache */
   if(s.children.length===n0)s.appendChild(h("p","sub","Nothing about the packet is recorded in this export."));
   dc.appendChild(s);
   var d=h("div","sc-block sc-done");d.appendChild(h("h4","","Done: how the visit went"));d.appendChild(factsEl(c.done.lines));dc.appendChild(d);

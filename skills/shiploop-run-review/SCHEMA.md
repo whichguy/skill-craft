@@ -306,8 +306,11 @@ and, when it differs, as secondary text, and is what every other part of the pag
 
 - **Sent: the packet.** The stage's purpose and the exit-check chip (from the catalog, with the reason), the packet size, the
   checklist above as ticks and crosses with the tooltip "not found in the packet text" (for a visit with `packetImprove`, old
-  layout, a note instead, and none for a skipped or seeded visit), the packet head and the Packet box. The head is the first 12
-  non-empty lines of the visit's `packets` document, loaded on demand by the same single `get` and cache as the Packet box.
+  layout, a note instead, and none for a skipped or seeded visit), the packet head and the Packet box, and, only when the row has
+  `improvePacketDoc`, a second closed box "Improve child's packet" with its size. The head is the first 12 non-empty lines of the
+  visit's producer `packets` document counted from its first line beginning `ShipLoop navigator |` (the delegation preamble before
+  it is left out; a packet with no such line shows its first 12 non-empty lines), and every packet text is loaded on demand by
+  the same single `get` and cache.
 - **Done: how the visit went.** Outcome, minutes and their share of the run, work item, steps-loop pass and step, the item's
   revise count, Improve passes and minutes for the visit, refusals, and context where measured. Refusals are a run-level count
   (`failures` carry a verb and a line, no action), so the card says "not recorded per visit" and prints the run's figure

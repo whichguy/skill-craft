@@ -5376,5 +5376,141 @@ class ImprovePacketLayoutTests(unittest.TestCase):
         self.assertEqual(export.validate_doc("runs", run), [])
 
 
+def new_layout_run() -> dict:
+    """CARD_RUN with its spec visit (column 1) in the new layout: the producer packet intact, an Improve child's file beside it."""
+    run = json.loads(json.dumps(CARD_RUN))
+    spec = run["stages"][1]
+    del spec["packetImprove"]
+    spec.update({"improvePacketDoc": True, "improvePacketBytes": 52_000, "carried": ALL_CARRIED})
+    return run
+
+
+PRODUCER_TEXT = "\n".join(["Continue in this context.", "Delegation: inline.", "", "ShipLoop navigator | spec | revision 5",
+                           "Callback for this stage: run it", "Goal: Define required behavior and acceptance criteria.",
+                           "Done when (confirm each):", "- every request outcome maps to a criterion",
+                           "Checked by: nothing automatic.", *[f"line {n}" for n in range(1, 30)]]) + "\n"
+IMPROVE_TEXT = "ShipLoop navigator | spec | revision 5\nCurrent action: Improve the completed spec result.\n<script>alert(1)</script>\n"
+NEW_DOCS = {"packets/cr--nav-a2": {"run": "cr", "action": "nav-a2", "stage": "spec", "bytes": len(PRODUCER_TEXT), "shownBytes": len(PRODUCER_TEXT),
+                                   "sha256": "ab" * 32, "text": PRODUCER_TEXT},
+            "packets/cr--nav-a2-improve": {"run": "cr", "action": "nav-a2", "stage": "spec", "bytes": len(IMPROVE_TEXT), "shownBytes": len(IMPROVE_TEXT),
+                                           "sha256": "cd" * 32, "text": IMPROVE_TEXT, "kind": "improve"}}
+
+
+class ImprovePacketCardTests(unittest.TestCase):
+    """The card for a new-layout visit: the checklist is real, and the Improve child's packet is a second, closed, on-demand box."""
+
+    def probe(self, expression: str, run: dict | None = None, docs: dict | None = None, db: bool = True):
+        setup = card_setup(run or new_layout_run(), "PACKET_DOCS=" + json.dumps(NEW_DOCS if docs is None else docs) + ";")
+        if not db:
+            setup = setup.replace("live=true;", "db=null;live=false;")
+        return page_probe(expression, setup=setup)
+
+    def test_the_ids_and_the_card_data_name_the_second_document_and_keep_a_real_checklist(self):
+        self.assertEqual(run_logic('[improvePacketId({key:"k"},{improvePacketDoc:true,action:"nav-a"}),improvePacketId({key:"k"},{action:"nav-a"}),'
+                                   'improvePacketId({key:"k"},{improvePacketDoc:false,action:"nav-a"}),improvePacketId({},{improvePacketDoc:true,action:"nav-a"})]'),
+                         ["k--nav-a-improve", "", "", ""])
+        c = card(new_layout_run(), 1)
+        self.assertEqual((c["sent"]["improvePacket"], c["sent"]["improveBytes"], c["sent"]["packet"]),
+                         ({"id": "cr--nav-a2-improve"}, 52_000, {"id": "cr--nav-a2"}))
+        self.assertEqual(c["sent"]["bytesLabel"], "Packet size")  # the size is the producer packet's
+        self.assertEqual(c["sent"]["carriedNote"], "")
+        self.assertEqual([i["found"] for i in c["sent"]["carried"]], [True] * len(export.CARRIED))
+        old = card(CARD_RUN, 1)  # the old layout of the same visit
+        self.assertEqual((old["sent"]["improvePacket"], old["sent"]["improveBytes"], old["sent"]["carried"]), (None, None, None))
+        self.assertIn("1.22.0 or earlier", old["sent"]["carriedNote"])
+
+    def test_the_card_shows_the_checklist_both_sizes_and_a_second_closed_box_for_the_improve_childs_packet(self):
+        out = self.probe('setCol(1);var boxes=byClass("seqdetail","pkt");[boxes.map(function(b){return b.children[0].textContent+":"+b.open;}),'
+                         'textOf("seqdetail"),byClass("seqdetail","chip").map(function(c){return c.textContent;}),DB_CALLS.length]')
+        boxes, text, chips, calls = out
+        self.assertEqual(boxes, ["Packet:false", "Improve child's packet:false"])
+        self.assertIn("Packet size45.1 KB", text)
+        self.assertIn("Improve child's packet file50.8 KB", text)
+        self.assertNotIn("The packet file kept for this visit is the Improve child's", text)
+        self.assertEqual([c for c in chips if c.startswith("✗")], [])
+        self.assertEqual(sum(1 for c in chips if c.startswith("✓")), len(export.CARRIED))
+        self.assertEqual(calls, 0)  # nothing is read until the viewer asks
+
+    def test_opening_the_improve_box_does_one_get_of_its_own_document_and_never_again_and_shows_text_not_markup(self):
+        out = self.probe('setCol(1);var boxes=byClass("seqdetail","pkt"),b=boxes[1];b.open=true;b.ontoggle();var once=DB_CALLS.slice();'
+                         'b.open=false;b.ontoggle();b.open=true;b.ontoggle();renderAll();var again=byClass("seqdetail","pkt")[1];'
+                         '[once,DB_CALLS.length,again.open,byClass(again,"pkt-text")[0].textContent,'
+                         'walk(REG.seqdetail,function(e){return e.tagName==="script";}).length,byClass("seqdetail","pkt-head").length]')
+        once, calls, kept, text, scripts, heads = out
+        self.assertEqual(once, [["get", "packets/cr--nav-a2-improve"]])
+        self.assertEqual((calls, kept, scripts, heads), (1, True, 0, 0))  # no head for the Improve packet; the producer's head is its own
+        self.assertEqual(text, IMPROVE_TEXT)
+
+    def test_the_producer_packet_and_its_head_load_by_their_own_one_get_independent_of_the_improve_box(self):
+        out = self.probe('setCol(1);byClass("seqdetail","btn").filter(function(b){return b.textContent==="Show the packet head";})[0].onclick();'
+                         'var a=DB_CALLS.slice();var boxes=byClass("seqdetail","pkt");boxes[0].open=true;boxes[0].ontoggle();boxes[1].open=true;boxes[1].ontoggle();'
+                         '[a,DB_CALLS.slice(),byClass("seqdetail","pkt-head")[0].textContent.split("\\n")]')
+        self.assertEqual(out[0], [["get", "packets/cr--nav-a2"]])
+        self.assertEqual(out[1], [["get", "packets/cr--nav-a2"], ["get", "packets/cr--nav-a2-improve"]])  # the box reused the head's get
+        self.assertEqual(out[2][0], "ShipLoop navigator | spec | revision 5")  # (c): the head starts at the navigator line
+
+    def test_a_visit_without_the_second_document_has_one_box_and_without_a_database_none(self):  # a guard: it passes before this change too
+        run = new_layout_run()
+        del run["stages"][1]["improvePacketDoc"]
+        self.assertEqual(self.probe('setCol(1);byClass("seqdetail","pkt").map(function(b){return b.children[0].textContent;})', run=run), ["Packet"])
+        self.assertEqual(self.probe('setCol(1);byClass("seqdetail","pkt").length', db=False), 0)
+        old = self.probe('setCol(1);[byClass("seqdetail","pkt").map(function(b){return b.children[0].textContent;}),textOf("seqdetail")]', run=CARD_RUN)
+        self.assertEqual(old[0], ["Packet"])  # old layout: the one file that exists, the Improve child's, shown as a plain Packet box
+        self.assertIn("Packet file kept (the Improve child's)", old[1])
+
+    def test_a_missing_improve_document_reads_not_uploaded_and_a_failed_read_says_so(self):
+        out = self.probe('setCol(1);var b=byClass("seqdetail","pkt")[1];b.open=true;b.ontoggle();textOf("seqdetail")', docs={})
+        self.assertIn("packet not uploaded for this run", out)
+        failed = self.probe('db.doc=function(p){return {get:function(){return sync({code:"unavailable"},true);}};};setCol(1);'
+                            'var b=byClass("seqdetail","pkt")[1];b.open=true;b.ontoggle();textOf("seqdetail")')
+        self.assertIn("Could not read the packet.", failed)
+
+    def test_the_page_still_has_one_packet_fetch_path(self):  # a guard: it passes before this change too
+        page = script_text()
+        self.assertEqual(re.findall(r'db\.doc\("packets/"\+id\)\.get\(\)', page), ['db.doc("packets/"+id).get()'])
+        self.assertNotIn('collection("packets")', page)
+
+
+class PacketHeadStartTests(unittest.TestCase):
+    """The head starts at the first line beginning 'ShipLoop navigator |', so Goal, Done when, Checked by and the callback show."""
+
+    PREAMBLE = "\n".join(["Continue in this context and execute the prompt.", "", "Delegation: inline. Execute this INNER stage in this conversation,",
+                          "including the get-next-work-item stage that opens each work item.", "", "", "ShipLoop navigator | implement | revision 37",
+                          "Callback for this stage: python3 shiploop complete", "Goal: Make the planned change.",
+                          "Done when (confirm each before calling done):", "- every step is confirmed", "- the lint gate is clean",
+                          "Checked by: ShipLoop lints this item's changes.", "Considerations for this stage:", "- Develop: x",
+                          "- Test: y", "- Tools: z", "Write the structured result to: /x"]) + "\n"
+
+    def test_the_head_is_twelve_non_empty_lines_from_the_navigator_line_and_the_preamble_is_left_out(self):
+        head = run_logic("packetHeadLines(%s,12)" % json.dumps(self.PREAMBLE))
+        self.assertEqual(head[0], "ShipLoop navigator | implement | revision 37")
+        self.assertEqual(len(head), 12)
+        for wanted in ("Goal: Make the planned change.", "Done when (confirm each before calling done):", "Checked by: ShipLoop lints this item's changes."):
+            self.assertIn(wanted, head)
+        self.assertNotIn("Delegation: inline. Execute this INNER stage in this conversation,", head)
+        self.assertEqual(head[-1], "Write the structured result to: /x")  # the twelfth non-empty line from the navigator line
+
+    def test_a_packet_with_no_navigator_line_falls_back_to_its_first_twelve_non_empty_lines_and_a_mention_mid_line_does_not_count(self):
+        text = "\n".join(["", "first", "", "see the ShipLoop navigator | line below", *[f"line {n}" for n in range(1, 20)]])
+        self.assertEqual(run_logic("packetHeadLines(%s,12)" % json.dumps(text)), ["first", "see the ShipLoop navigator | line below"] + [f"line {n}" for n in range(1, 11)])
+        self.assertEqual(run_logic('[packetHeadStart(%s),packetHeadStart(%s),packetHeadStart(""),packetHeadStart(null)]'
+                                   % (json.dumps(text), json.dumps(self.PREAMBLE))), [-1, 6, -1, -1])
+        self.assertEqual(run_logic('packetHeadLines("ShipLoop navigator | a\\nb",12)'), ["ShipLoop navigator | a", "b"])  # a first line is the start too
+        self.assertEqual(run_logic('[packetHeadLines("",12),packetHeadLines(undefined,12)]'), [[], []])
+
+    def test_the_card_says_which_start_it_used(self):
+        def probe(text: str) -> str:
+            doc = {"run": "cr", "action": "nav-a6", "stage": "implement", "bytes": len(text), "shownBytes": len(text), "sha256": "ab" * 32, "text": text}
+            return page_probe('setCol(4);byClass("seqdetail","btn").filter(function(b){return b.textContent==="Show the packet head";})[0].onclick();'
+                              'byClass("seqdetail","pkt-headbox")[0].textContent',
+                              setup=card_setup(extra="PACKET_DOCS=" + json.dumps({"packets/cr--nav-a6": doc}) + ";"))
+        with_line, without = probe(self.PREAMBLE), probe("one\ntwo\nthree\n")
+        self.assertIn("from the 'ShipLoop navigator |' line", with_line)
+        self.assertIn("with what comes before that line", with_line)
+        self.assertNotIn("Delegation: inline.", with_line.split("Packet box below)")[1])
+        self.assertNotIn("from the 'ShipLoop navigator |' line", without)
+        self.assertIn("the first 3 non-empty lines of the packet", without)
+
+
 if __name__ == "__main__":
     unittest.main()
