@@ -1588,7 +1588,10 @@ browser, a device, an account, a service): ShipLoop then also runs the project's
 regression commands at system-test and refuses if any of that row's `ids` appears
 in their output, because the default suite must pass without the host tool.
 ShipLoop runs every one itself when system-test reports done and refuses
-unless each passes. When no system test applies, give an empty list with
+unless each passes. Run each system command once while authoring: a command that
+cannot pass here is changed to observe the same requirement another way, or
+reported as unachievable (blocked, blocked_by access, naming the requirement it
+leaves unverified); a command recorded as not run is not an end state. When no system test applies, give an empty list with
 `system_commands_na` and the reason.
 Reopen the Run-wide test strategy source. From accepted history, select the
 latest done test-decision record for every relevant completed item: step-plan,

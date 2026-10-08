@@ -2243,5 +2243,30 @@ class SettledFactTests(unittest.TestCase):
         self.assertIn("access gap", text)
 
 
+class CaseEndStateTests(unittest.TestCase):
+    """Owner rule (2026-10-08): a test is authored and executed, and a case completes only when it is validated, re-validated
+    another way, or declared unachievable. A case written but not run, or recorded `not run`, is not an end state."""
+
+    STAGES = ("test-author", "test-green", "regression", "system-test-author", "system-test")
+
+    def test_the_stage_rows_state_the_three_end_states(self) -> None:
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_stage_spec as spec
+        for stage in self.STAGES:
+            with self.subTest(stage):
+                text = " ".join((spec.stage(stage).test or "").split())
+                self.assertIn("validated", text)
+                self.assertIn("another way", text)
+                self.assertIn("unachievable", text)
+                self.assertIn("not an end state", text)
+
+    def test_the_system_test_author_runs_each_command_once_while_authoring(self) -> None:
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_prompts as prompts
+        text = " ".join(prompts.DUTIES["system-test-author"].split())
+        self.assertIn("run each system command once", text.lower())
+        self.assertIn("unachievable", text)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
