@@ -97,6 +97,16 @@ class Stage:
 
 _PLANNING = "Keep this stage's decisions, constraints and source locators in its result and evidence_refs."
 
+# Owner rule (2026-10-08): a test is authored and executed.  Every planned case ends in one of three states, with its
+# evidence, and "written" or "not run" is not one of them.
+CASE_END_STATES = (
+    "Every case ends in one of three states: validated (executed, and the observation matches the expectation), "
+    "validated another way (the first method could not observe it, so the method changed and the new one was executed "
+    "and passed; the result says what changed and why), or unachievable (a named reason, and the requirement it leaves "
+    "unverified; report blocked with blocked_by access, or revise or replan when the plan is wrong). A case that is "
+    "written but not run, or recorded as not run, is not an end state."
+)
+
 _ROWS = (
     # ------------------------------------------------------------------ prelude
     Stage(
@@ -199,7 +209,7 @@ _ROWS = (
     ),
     # ------------------------------------------------------------------ inner
     Stage(
-        "select-work", "inner",
+        "get-next-work-item", "inner",
         goal="confirm this work item is still the right next item",
         done_when=(
             "the item's prerequisites are accepted done",
@@ -256,7 +266,7 @@ _ROWS = (
             "each case in the test spec has a test the focused command runs",
             "the tests are wired into the suite and repeatable",
         ),
-        test="Write the tests the spec calls for; never weaken an assertion to fit an expected implementation.",
+        test="Write the tests the spec calls for; never weaken an assertion to fit an expected implementation. " + CASE_END_STATES,
         tools="Tests follow the repository's test framework and lint rules.",
         edits=frozenset({"tests"}),
         complete_runs=("test-probe",),
@@ -298,7 +308,7 @@ _ROWS = (
         done_when=(
             "every focused command passes on the bound Until Loop and when ShipLoop reruns it",
         ),
-        test="Loop on the focused commands until they pass.",
+        test="Loop on the focused commands until they pass. " + CASE_END_STATES,
         tools="The lint gate runs before ShipLoop's own test run.",
         edits=frozenset({"code", "tests"}),
         entry_runs=("test-loop-contract",),
@@ -327,7 +337,7 @@ _ROWS = (
             "every recorded command passes on the bound Until Loop and when ShipLoop reruns it",
             "nothing that passed at baseline fails now",
         ),
-        test="Run the retained suites; fix the code, not the checks.",
+        test="Run the retained suites; fix the code, not the checks. " + CASE_END_STATES,
         tools="The lint gate runs before ShipLoop's own test run.",
         edits=frozenset({"code", "tests"}),
         entry_runs=("test-loop-contract",),
@@ -436,7 +446,7 @@ _ROWS = (
         "system-test-author", "outer",
         goal="prepare end-to-end and system tests",
         done_when=("every system-level criterion has a system test, or a planned check with its due stage",),
-        test="Author end-to-end and system tests against real boundaries.",
+        test="Author end-to-end and system tests against real boundaries, and run each once while authoring. " + CASE_END_STATES,
         deploy="Plan which tests run against the deployed target.",
         edits=frozenset({"tests"}),
         improve="always",
@@ -447,7 +457,7 @@ _ROWS = (
         "system-test", "outer",
         goal="run end-to-end and system tests on the real candidate",
         done_when=("every due system test ran on the real candidate, with its output recorded",),
-        test="Run system tests on the assembled candidate; a local pass does not replace a required deployed check.",
+        test="Run system tests on the assembled candidate; a local pass does not replace a required deployed check. " + CASE_END_STATES,
         tools="On done, ShipLoop runs every system command system-test-author recorded.",
         complete_runs=("test-rerun",),
         reads=("spec", "system-test-author"),

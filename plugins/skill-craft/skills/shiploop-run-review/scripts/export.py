@@ -5,6 +5,7 @@
   export.py --defaults [--live FILE] [--page-url URL] [--out DIR]
   export.py --check FILE
   export.py --docs FILE [--out DIR]
+  export.py --stages [--out DIR]
 
 RUN_DIR is an output directory of test/shiploop_e2e/run.py. The export reads only
 the run's own records (metrics.json, result.json, invocation.json and the ShipLoop
@@ -13,7 +14,7 @@ run directory) and writes only under --out (default RUN_DIR/review-export):
   docs/<collection>/<id>.json  one file per document
   writes.json                  the documents as ArtifactData `set` operations
   facts.md                     plain numbers for the reviewer
-  review-export.json           every document in one compact file, to commit
+  review-export.json           every document but the packets in one compact file, to commit
 
 A missing metrics.json, timeline.json or results/ is an error naming the file
 (exit 2), never an empty export. The same input gives byte-identical output.
@@ -31,6 +32,9 @@ snapshot) it writes the defaults over that page instead, keeping what the owner 
 there (upgrade_docs): every page revision must already be in the defaults, documents
 the defaults do not name are never written, and config/page is written only when absent or when --page-url
 is given: it sets config/page.artifactUrl (a page cannot read its own URL, so publish supplies it).
+--stages rewrites defaults/stages.json (or DIR/stages.json) from the stage table of the sibling shiploop skill
+(skills/shiploop/scripts/shiploop_stage_spec.py), the one source of every stage's purpose, exit check and readers; a
+test fails when the committed file differs from what the table yields. Run it after the engine's stage table changes.
 Stdlib only; no network and no model calls.
 """
 
@@ -53,29 +57,62 @@ MAX_COMPACT_BYTES = 200_000
 MAX_KNOWLEDGE = 40
 MAX_FAILURE_LINE = 240
 MAX_FIGURE_ITEMS = 6
+MAX_PACKET_TEXT = 150_000  # bytes of a packet file kept in its document; a longer file is cut at a line boundary
+MAX_DOC_BYTES = 256 * 1024  # the page database's limit for one serialized document
+MAX_CLIP = 200  # characters of a work item title or a step task kept in the run document
+MAX_SUMMARY = 300  # characters of a visit's accepted summary kept on its stage row
+EXIT_CHECKS = ("script-run", "model judgement", "review loop")
 FIGURE_KINDS = ("bars",)
 FIGURE_TONES = ("expected", "saw", "limit")
 
 # Stage -> phase. The phase orders match defaults/expectations.json (phase-<order>); the stage names
 # are shiploop_stage_spec.STAGES, and a test checks that every stage there is listed here once.
 # carry-forward ("record lessons and revise the remaining queue") runs once per work item before
-# the next select-work, so it belongs to Integrate, not System test.
+# the next get-next-work-item, so it belongs to Integrate, not System test.
 PHASES = (
     ("Understand", ("intake", "discovery", "research")),
     ("Specify", ("spec", "test-strategy")),
-    ("Plan", ("plan", "prepare", "select-work", "step-plan")),
+    ("Plan", ("plan", "prepare", "get-next-work-item", "step-plan")),
     ("Build", ("test-spec", "baseline", "test-author", "test-red", "implement", "test-green", "test-refine")),
     ("Prove", ("regression", "document", "skill-assess", "skill-validate", "static-checks", "verify")),
     ("Integrate", ("integrate", "integration-verify", "carry-forward")),
     ("System test", ("system-test-author", "system-test", "product-acceptance")),
     ("Release", ("release-plan", "release-check", "release", "release-verify", "operations", "handoff")),
 )
-STAGE_PHASE = {stage: order for order, (_, stages) in enumerate(PHASES) for stage in stages}
+# The engine renamed select-work to get-next-work-item and refuses a saved run that carries the old name, so a new run
+# never needs this table: it exists only so committed historical evidence (runs of ShipLoop 1.22.0 and earlier), the page's
+# database and exports of old run directories (which this exporter still re-exports) render under either name. The first
+# name of a group is canonical (the engine's; PHASES lists it); the rest are history. One group, one place: STAGE_PHASE
+# below and the page's stage lookup resolve a name through it, nothing else mentions the old name.
+STAGE_ALIASES = (("get-next-work-item", "select-work"),)
+
+
+def stage_names(stage: str) -> tuple[str, ...]:
+    """Every name `stage` goes by: its alias group, or itself alone."""
+    return next((group for group in STAGE_ALIASES if stage in group), (stage,))
+
+
+def _with_aliases(table: dict) -> dict:
+    """`table` (stage -> value) with each alias group's other names given the value of the one it lists."""
+    out = dict(table)
+    for group in STAGE_ALIASES:
+        found = next((table[name] for name in group if name in table), None)
+        if found is not None:
+            out.update({name: found for name in group})
+    return out
+
+
+STAGE_PHASE = _with_aliases({stage: order for order, (_, stages) in enumerate(PHASES) for stage in stages})
+# The inner-loop stages ShipLoop runs after `implement` (shiploop_stage_spec.INNER; a test keeps them equal). A work item
+# that has any of them accepted has left implement.
+AFTER_IMPLEMENT = ("test-green", "test-refine", "regression", "document", "skill-assess", "skill-validate",
+                   "static-checks", "verify", "integrate", "integration-verify", "carry-forward")
 # ShipLoop run status -> the page's run status.
 RUN_STATUS = {"active": "active", "paused": "paused", "blocked": "blocked", "halted": "failed", "done": "done"}
 # Upload order: what the page shows first (runs and their loops), the replicas published from defaults/, then the
-# review (the arc), the findings it raises and the options that resolve them. Every SCHEMA collection is listed.
-COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "reviews", "observations", "actions")
+# review (the arc), the findings it raises and the options that resolve them, then the packets (megabytes: their own
+# upload batches, last, so the page shows the run before they arrive). Every SCHEMA collection is listed.
+COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "reviews", "observations", "actions", "packets")
 
 # ---------------------------------------------------------------- the contract, as data (SCHEMA.md)
 # A field spec is (type, required). Types: "string", "number", "boolean", "iso", "any-scalar",
@@ -108,6 +145,9 @@ SCHEMA = {
         "improvePasses": (N, False), "improveMin": (N, False), "calls": (N, False), "contextPeak": (N, False),
         "contextWindow": (N, False), "compactions": (N, False),
         "wallMin": (N, False), "host": (S, False), "model": (S, False), "effort": (S, False), "case": (S, False),
+        # The run's `planning_review` option as state.md recorded it, text as written ("not recorded" when the key is
+        # absent: never a default), and, only for the recorded value `none`, what that means for the Improve numbers.
+        "planningReview": (S, False), "improveScope": (S, False),
         "status": (("enum", ("done", "active", "paused", "blocked", "failed")), False),
         "startedAt": (ISO, False), "endedAt": (ISO, False),
         "verdicts": (("map", B), False),
@@ -117,7 +157,31 @@ SCHEMA = {
         "stages": (("items", {"stage": (S, True), "outcome": (S, True), "min": (N, False), "turns": (N, False),
                               "packetBytes": (N, False), "resultBytes": (N, False), "action": (S, False),
                               "skipped": (B, False), "seeded": (B, False), "improve": (("map", N), False),
-                              "context": (("map", N), False)}), False),
+                              "context": (("map", N), False),
+                              # which work item, steps-loop pass and step a visit belongs to (SCHEMA.md); packetDoc is
+                              # true only when a packets/<runKey>--<action> document was written for the visit.
+                              "workitem": (S, False), "loop": (N, False), "step": (S, False),
+                              "packetDoc": (B, False),
+                              # the stage card (SCHEMA.md "The stage card"): the accepted summary cut at MAX_SUMMARY
+                              # characters, whether results/<action>.md exists, which of the CARRIED labels the packet
+                              # text carried (absent when the text was unreadable or is an Improve child's packet) and
+                              # whether the packet file is the Improve child's, not the producer's.
+                              "summary": (S, False), "summaryTruncated": (B, False), "resultFile": (B, False),
+                              "carried": (("map", B), False), "packetImprove": (B, False),
+                              # an Improve child's own packet file packets/<action>-improve.md (the layout after ShipLoop 1.22.0): its
+                              # size, and true when a packets document `<runKey>--<action>-improve` was written for it.
+                              "improvePacketBytes": (N, False), "improvePacketDoc": (B, False)}), False),
+        # The plan's work items and how each went through the steps loop, from state.md and results/ only. Absent, with
+        # a reason in `unmeasured.workItems`, when the records cannot tell; stepsPlanned and stepsExecuted are absent,
+        # with a reason under their own name, when any item's steps or pairing is unknown. Never a zero for those.
+        "workItems": (("items", {
+            "id": (S, True), "title": (S, False), "titleTruncated": (B, False),
+            "origin": (("enum", ("plan", "replan", "carry-forward")), False),
+            "stepPlans": (N, True), "loops": (N, True), "revises": (N, True), "repeats": (N, True),
+            "implementVisits": (("map", N), True), "stepsPlanned": (N, False), "stepsExecuted": (N, False),
+            "steps": (("items", {"id": (S, True), "task": (S, True), "truncated": (B, False),
+                                 "action": (S, False)}), False)}), False),
+        "stepsPlanned": (N, False), "stepsExecuted": (N, False),
         "knowledge": (("map", N), False),
         "failures": (("items", {"verb": (S, True), "line": (S, True)}), False),
         "evidence": (S, False),
@@ -160,7 +224,19 @@ SCHEMA = {
         "ref": (S, False),
     },
     # config/page and config/prompt share the collection; every field is a string.
-    "config": {"title": (S, False), "artifactUrl": (S, False), "constraints": (S, False), "closing": (S, False)},
+    # config/stages is the stage catalog (defaults/stages.json, SCHEMA.md "Stage catalog"), a derived replica of the engine's table.
+    "config": {"title": (S, False), "artifactUrl": (S, False), "constraints": (S, False), "closing": (S, False),
+               "stages": (("items", {"stage": (S, True), "purpose": (S, True),
+                                     "exitCheck": (("enum", EXIT_CHECKS), True),
+                                     "completeRuns": (("list", S), False),
+                                     "improve": (("enum", ("always", "last-item")), False),
+                                     "planningChoice": (B, False), "reads": (("list", S), True)}), False)},
+    # packets/<runKey>--<action>: the text of one visit's packet file, read by the page on demand. Never in the
+    # committed review-export.json (megabytes); the run directory is the record.
+    # `kind` is `improve` on the document of an Improve child's packet (id <runKey>--<action>-improve) and absent on a producer's.
+    "packets": {"run": (S, True), "action": (S, True), "stage": (S, False), "bytes": (N, True),
+                "shownBytes": (N, False), "sha256": (S, True), "text": (S, True), "truncated": (B, False),
+                "kind": (("enum", ("improve",)), False)},
 }
 
 
@@ -257,13 +333,22 @@ def _fields_problems(fields: dict, doc: dict, where: str) -> list[str]:
     return problems
 
 
+def _serialized_bytes(doc: dict) -> int:
+    """The size of a document as the page database counts it: compact JSON, UTF-8."""
+    return len(json.dumps(doc, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
+
+
 def validate_doc(collection: str, doc) -> list[str]:
     """SCHEMA.md's required fields and types for one document ([] when it conforms)."""
     if collection not in SCHEMA:
         return [f"unknown collection {collection!r}"]
     if not isinstance(doc, dict):
         return [f"{collection}: a document must be an object"]
-    return _fields_problems(SCHEMA[collection], doc, collection)
+    problems = _fields_problems(SCHEMA[collection], doc, collection)
+    if collection == "packets" and not problems and _serialized_bytes(doc) > MAX_DOC_BYTES:
+        problems.append(f"packets: the serialized document is {_serialized_bytes(doc)} bytes, over the page "
+                        f"database's {MAX_DOC_BYTES} limit for one document")
+    return problems
 
 
 def extra_fields(collection: str, doc: dict) -> list[str]:
@@ -515,11 +600,19 @@ def _start_record(run_dir: Path, loop: Path) -> Path | None:
     return None
 
 
-def _backchain_option(state: dict) -> str:
-    """The run's `backchain_passes` as state.md recorded it: the text as written (one, converge or none, or whatever
-    else the record holds), and "not recorded" when the key is absent. Never a default."""
-    value = state.get("backchain_passes")
+def _recorded_option(state: dict, key: str) -> str:
+    """A run-level option as state.md recorded it (`backchain_passes`: one, converge or none; `planning_review`: stage or
+    none): the text as written, whatever else the record holds shown as it is, and "not recorded" when the key is absent.
+    Never a default."""
+    value = state.get(key)
     return NOT_RECORDED if value is None else value if isinstance(value, str) else json.dumps(value)
+
+
+# The one value of `planning_review` whose behaviour the page may state: no Improve child starts at the planning stages
+# (`PLANNING_CHOICE_STAGES` in shiploop_stage_spec.py). `stage` is the other registered value; any other value is shown
+# as written and claims nothing. The sentence is the exporter's own, printed in facts.md and kept in the run document.
+PLANNING_NONE = "none"
+IMPROVE_SCOPE_NONE = "planning stages skipped by design (planning_review none)"
 
 
 def _digest_at(record, path: tuple[str, ...], key: str) -> str | None:
@@ -889,6 +982,257 @@ def _seeded(seeded, history: list[dict]) -> tuple[set[str], str | None]:
     return {h["action"] for h in history[:len(names)] if isinstance(h.get("action"), str)}, None
 
 
+def _clip(text: str) -> tuple[str, bool]:
+    """(the first MAX_CLIP characters of a work item title or a step task, whether it was cut)."""
+    return (text[:MAX_CLIP], True) if len(text) > MAX_CLIP else (text, False)
+
+
+def _result_body(results: Path, state: dict, action) -> dict:
+    """The accepted result of one action: results/<action>.md, else state.md's `accepted` map ({} when neither has it)."""
+    record = _record(results / f"{action}.md")
+    body = record.get("result") if record is not None else None
+    if not isinstance(body, dict):
+        accepted = state.get("accepted")
+        body = accepted.get(action) if isinstance(accepted, dict) else None
+    return body if isinstance(body, dict) else {}
+
+
+def _plan_steps(body: dict) -> list[dict] | None:
+    """The [{id, task, truncated?}] a step-plan result lists (None when it lists no readable steps)."""
+    raw = body.get("steps")
+    if not (isinstance(raw, list) and all(isinstance(s, dict) and isinstance(s.get("id"), str)
+                                          and isinstance(s.get("task"), str) for s in raw)):
+        return None
+    steps = []
+    for entry in raw:
+        task, cut = _clip(entry["task"])
+        steps.append({"id": entry["id"], "task": task, **({"truncated": True} if cut else {})})
+    return steps
+
+
+def _produced(history: list[dict], results: Path, state: dict) -> dict[str, str]:
+    """{work item id: the stage that produced it}: `plan`, `replan` (an outer stage's corrective item) or
+    `carry-forward`, from the work_items of each accepted result that carries some (the first producer wins)."""
+    found: dict[str, str] = {}
+    for entry in history:
+        stage, outcome = entry.get("stage"), entry.get("outcome")
+        origin = "replan" if outcome == "replan" else stage if stage in ("plan", "carry-forward") and outcome == "done" else None
+        if origin is None:
+            continue
+        items = _result_body(results, state, entry.get("action")).get("work_items")
+        for item in items if isinstance(items, list) else []:
+            if isinstance(item, dict) and isinstance(item.get("id"), str):
+                found.setdefault(item["id"], origin)
+    return found
+
+
+def work_items(state: dict, history: list[dict], results: Path,
+               seeded_ids: set[str]) -> tuple[list[dict] | None, dict[str, str], dict[int, dict]]:
+    """(the run's work items, the reason for each measure that is unknown, the marks of each history row).
+
+    Every number comes from state.md (its work_items queue and history) and the accepted results, never from
+    summary text. Per item (SCHEMA.md): `stepPlans` is the item's accepted step-plan visits of any outcome; `loops` is
+    the times it went through the steps loop, 1 once it has any visit plus one per accepted `revise` (each sends it back
+    to step-plan); `implementVisits` counts the item's implement visits by outcome. `steps` are the steps of the latest
+    accepted (done) step plan. On the inline route ShipLoop issues one implement packet per step, in order, and only a
+    done visit moves on (shiploop_navigator.implement_progress): so the k-th done implement visit after that plan
+    executed step k, and an unfinished plan leaves the later steps with `action` None. A visit's mark is its work item,
+    its loop and, for an implement visit, the step the packet named (the plan then in force, the steps already done).
+    The records cannot tell which visit ran which step on another route, or when the counts do not line up with one
+    packet per step: then the item has no `stepsExecuted` and its steps no `action`, and the reason is under
+    `stepsExecuted`. `workItems` is None, with its reason, when the queue or history cannot be read or the plan visit
+    was recorded by the E2E seed (the work items are then the harness's)."""
+    queue = state.get("work_items")
+    if not isinstance(queue, list) or not all(isinstance(q, dict) and isinstance(q.get("id"), str) for q in queue):
+        return None, {"workItems": "state.md has no work_items queue of {id, title}"}, {}
+    if any(h.get("stage") == "plan" and h.get("action") in seeded_ids for h in history):
+        return None, {"workItems": "the plan visit was recorded by the E2E seed, so the work items are the harness's "
+                                   "one synthetic item, not the model's planning"}, {}
+    if any("workitem" not in h for h in history):
+        return None, {"workItems": "state.md history rows carry no workitem, so visits cannot be assigned to work "
+                                   "items"}, {}
+    route = state.get("delegation")
+    inline = route == "inline"
+    why_route = ("this run's delegation is ask-agent: ShipLoop issues one implement packet for the whole step plan, so "
+                 "no visit is tied to a step" if route == "ask-agent" else "state.md records no delegation route")
+    produced = _produced(history, results, state)
+    rows_of: dict[str, list[tuple[int, dict]]] = {}
+    for index, entry in enumerate(history):
+        if isinstance(entry.get("workitem"), str):
+            rows_of.setdefault(entry["workitem"], []).append((index, entry))
+    items, marks, unknown = [], {}, {"stepsPlanned": [], "stepsExecuted": []}
+    for queued in queue:
+        item_id = queued["id"]
+        rows = rows_of.get(item_id, [])
+        title, cut = _clip(queued["title"]) if isinstance(queued.get("title"), str) else (None, False)
+        counts = {name: 0 for name in ("done", "repeat", "revise", "replan", "blocked")}
+        for _, entry in rows:
+            if entry.get("stage") == "implement" and entry.get("outcome") in counts:
+                counts[entry["outcome"]] += 1
+        revises = sum(1 for _, e in rows if e.get("outcome") == "revise")
+        doc: dict = {"id": item_id, "stepPlans": sum(1 for _, e in rows if e.get("stage") == "step-plan"),
+                     "loops": 1 + revises if rows else 0, "revises": revises,
+                     "repeats": sum(1 for _, e in rows if e.get("outcome") == "repeat"), "implementVisits": counts}
+        if title is not None:
+            doc["title"] = title
+        if cut:
+            doc["titleTruncated"] = True
+        if item_id in produced:
+            doc["origin"] = produced[item_id]
+        # Walk the item's visits in order: the plan in force, the implement visits done under it.
+        steps, executed, loop, readable, left_implement = None, [], 1, True, False
+        for index, entry in rows:
+            mark = {"workitem": item_id, "loop": loop}
+            stage, outcome = entry.get("stage"), entry.get("outcome")
+            if stage == "step-plan" and outcome == "done":
+                steps = _plan_steps(_result_body(results, state, entry.get("action")))
+                readable, executed, left_implement = steps is not None, [], False
+            elif steps is not None:
+                left_implement = left_implement or stage in AFTER_IMPLEMENT
+                if stage == "implement" and inline:
+                    if len(executed) < len(steps):
+                        mark["step"] = steps[len(executed)]["id"]
+                    if outcome == "done":
+                        executed.append(entry.get("action"))
+            if outcome == "revise":
+                loop += 1
+            marks[index] = mark
+        if steps is None and not readable:
+            unknown["stepsPlanned"].append(f"{item_id}: its latest step plan lists no readable steps")
+            unknown["stepsExecuted"].append(f"{item_id}: its latest step plan lists no readable steps")
+        else:
+            steps = steps or []
+            doc["stepsPlanned"] = len(steps)
+            problem = None
+            if not inline:
+                problem = why_route
+            elif len(executed) > len(steps):
+                problem = (f"{len(executed)} done implement visits follow a plan of {len(steps)} steps, so one packet "
+                           "per step did not hold")
+            elif len(executed) < len(steps) and left_implement:
+                problem = (f"it moved past implement with {len(executed)} done implement visits for {len(steps)} steps, "
+                           "so one packet per step did not hold")
+            if problem:
+                unknown["stepsExecuted"].append(f"{item_id}: {problem}")
+            else:
+                doc["stepsExecuted"] = len(executed)
+            doc["steps"] = [dict(step, **({} if problem else {"action": executed[k] if k < len(executed) else None}))
+                            for k, step in enumerate(steps)]
+        items.append(doc)
+    reasons = {name: "; ".join(why) for name, why in unknown.items() if why}
+    return items, reasons, marks
+
+
+# What a producer packet's text carries (the tenet: context is cleared between any two stages, so a packet restates how
+# its stage operates and how it is checked). One row per label of the stage card's checklist: (label, what is looked for,
+# rules). A label is found when ANY rule holds; a rule holds when every one of its groups has a pattern matching a line of
+# the packet text. So a rule is a tuple of groups, a group a tuple of alternative patterns: `checked` is found by the old
+# pair (the Done when list AND the Improve line) or, alone, by a 'Checked by:' line (a later engine prints it; no packet on
+# disk has one yet, and nothing depends on it). The patterns are the lines the navigator prints (_goal_lines,
+# _first_callback_lines, _result_contract_lines, _improve_line, the run rules) and were checked against the packets of every
+# run on disk, ShipLoop 1.16.1 to 1.22.0: one place to change when the engine's wording does. "not found in the packet
+# text" is a statement about the text, not about what the model needed.
+CARRIED = (
+    ("where", "the progress line 'ShipLoop navigator | <stage> | revision N'",
+     (((r"^ShipLoop navigator \| \S+ \| revision \d+",),),)),
+    ("purpose", "a 'Goal:' line, or the implement packet's 'Step S1 (1 of 3)' line",
+     (((r"^Goal: ", r"^Step \S+ \(\d+ of \d+\)"),),)),
+    ("operates", "the 'Current stage guidance:' rules or the 'Considerations for this stage:' list",
+     (((r"^Current stage guidance:", r"^Considerations for this stage:"),),)),
+    ("checked", "the 'Done when (' list and the 'Improve:' line that says whether a review loop follows, or a 'Checked by:' line",
+     (((r"^Done when \(",), (r"^Improve: ",)),
+      ((r"^Checked by:",),))),
+    ("produces", "the 'Result template:' and the 'Allowed outcomes:' line",
+     (((r"^Result template:",), (r"^Allowed outcomes:",)),)),
+    ("recovery", "the blocked_by sentence ('A blocked result adds blocked_by' up to 1.21.0, a 'blocked: {...}' shape line "
+                 "from 1.22.0) and the sentence that a problem the run can fix itself is repaired in the stage, not blocked",
+     (((r"^A blocked result adds blocked_by", r'^blocked: \{"outcome": "blocked"'),
+       (r"a problem this run can fix itself is repaired in this stage, not blocked",)),)),
+    ("inputs", "the 'Results this stage builds on' list",
+     (((r"^Results this stage builds on",),),)),
+)
+CARRIED_RX = tuple((label, tuple(tuple(tuple(re.compile(rx, re.M) for rx in group) for group in rule) for rule in rules))
+                   for label, _, rules in CARRIED)
+# Two layouts of a visit's packet files. Old (ShipLoop 1.22.0 and earlier): one file per action, rewritten at every
+# printing, so a visit that started an Improve child keeps only the child's last packet, which has this line, and the
+# producer's own packet is gone; such a file is not read for labels (`packetImprove`). New: the producer's packet stays
+# in packets/<action>.md and an Improve child's packets go to packets/<action>-improve.md, so the producer packet is
+# intact and is what `carried` reads. A visit is told by its files: a `-improve.md` beside the producer file is the new layout.
+IMPROVE_PACKET = re.compile(r"^Current action: Improve the completed ", re.M)
+IMPROVE_SUFFIX = "-improve"
+
+
+def carried_markers(text: str) -> dict[str, bool]:
+    """{label: whether the packet text carries it} for every CARRIED label (the page prints each as a tick or a cross)."""
+    return {label: any(all(any(rx.search(text) for rx in group) for group in rule) for rule in rules)
+            for label, rules in CARRIED_RX}
+
+
+def _packet_doc(run_key: str, action: str, stage: str, path: Path, kind: str | None = None) -> tuple[dict, str] | None:
+    """(the packets/<runKey>--<action> document for one packet file, the whole file's text), or None when the file
+    cannot be read as UTF-8. `kind` "improve" marks the document of an Improve child's packet file.
+
+    `bytes` and `sha256` are the whole file's. A file over MAX_PACKET_TEXT bytes keeps its first MAX_PACKET_TEXT bytes cut
+    at a line boundary (a hard cut only when that part holds no newline), and one whose document would pass the page
+    database's per-document limit once serialized is cut further, 10% at a time: `truncated` is then true and
+    `shownBytes` says how much text the document holds."""
+    try:
+        raw = path.read_bytes()
+        raw.decode("utf-8")
+    except (OSError, UnicodeError):
+        return None
+    head = raw[:MAX_PACKET_TEXT]
+    if len(raw) > MAX_PACKET_TEXT and b"\n" in head:
+        head = head[:head.rindex(b"\n") + 1]
+    text = head.decode("utf-8", errors="ignore")
+    doc = {"run": run_key, "action": action, "stage": stage, "bytes": len(raw),
+           "sha256": hashlib.sha256(raw).hexdigest(), "text": text, **({"kind": kind} if kind else {})}
+    while _serialized_bytes(doc) > MAX_DOC_BYTES - 1024 and doc["text"]:
+        keep = doc["text"][:int(len(doc["text"]) * 0.9)]
+        doc["text"] = keep[:keep.rindex("\n") + 1] if "\n" in keep else keep
+    shown = len(doc["text"].encode("utf-8"))
+    doc["shownBytes"] = shown
+    if shown < len(raw):
+        doc["truncated"] = True
+    return doc, raw.decode("utf-8")
+
+
+def packet_docs(run_key: str, packets: Path, stages: list[dict]) -> tuple[dict[str, dict], int]:
+    """({doc id: packets document}, the packet files that could not be read) for every visit that has a packet file.
+    A visit with no file (skipped, seeded or never printed) gets none. The producer file `<action>.md` gives the document
+    `<runKey>--<action>` and the row's `packetDoc` true, and from the whole file's text `carried` (carried_markers). An
+    Improve child's file `<action>-improve.md` (new layout) gives a second document `<runKey>--<action>-improve` with `kind`
+    `improve` and the row's `improvePacketDoc` true; the producer file is then intact, so `carried` is read from it. With no
+    such file (old layout) a producer file that is the Improve child's packet (it has the child's first lines) is marked
+    `packetImprove` instead and no label is read from it."""
+    found, unreadable = {}, 0
+    for row in stages:
+        action = row.get("action")
+        if not isinstance(action, str) or not re.fullmatch(r"[A-Za-z0-9._-]+", action):
+            continue
+        new_layout = "improvePacketBytes" in row
+        if "packetBytes" in row:
+            read = _packet_doc(run_key, action, row["stage"], packets / f"{action}.md")
+            if read is None:
+                unreadable += 1
+            else:
+                doc, text = read
+                found[f"{run_key}--{action}"] = doc
+                row["packetDoc"] = True
+                if not new_layout and IMPROVE_PACKET.search(text):
+                    row["packetImprove"] = True  # old layout: the producer labels would read false for no fault of its own
+                else:
+                    row["carried"] = carried_markers(text)
+        if new_layout:
+            read = _packet_doc(run_key, action, row["stage"], packets / f"{action}{IMPROVE_SUFFIX}.md", "improve")
+            if read is None:
+                unreadable += 1
+            else:
+                found[f"{run_key}--{action}{IMPROVE_SUFFIX}"] = read[0]
+                row["improvePacketDoc"] = True
+    return found, unreadable
+
+
 def build_run(out: Path, key: str | None = None, name: str | None = None,
               order: int | None = None) -> tuple[dict[str, dict[str, dict]], list[str]]:
     """({collection: {id: document}}, facts.md lines) for one run output directory."""
@@ -954,12 +1298,21 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         row = {"stage": stage, "outcome": outcome, "min": None if minutes is None else round(minutes, 1)}
         if isinstance(action, str):
             row["action"] = action
-        for field, path in (("packetBytes", packets / f"{action}.md"), ("resultBytes", results / f"{action}.md")):
+        for field, path in (("packetBytes", packets / f"{action}.md"), ("improvePacketBytes", packets / f"{action}{IMPROVE_SUFFIX}.md"),
+                            ("resultBytes", results / f"{action}.md")):
             if path.is_file():
                 row[field] = path.stat().st_size
+        if isinstance(action, str):
+            row["resultFile"] = (results / f"{action}.md").is_file()  # false: the accepted result is read from state.md
+        said = entry.get("summary") if isinstance(entry.get("summary"), str) else (
+            body.get("summary") if record is not None and isinstance(body.get("summary"), str) else "")
+        if said.strip():
+            row["summary"] = said.strip()[:MAX_SUMMARY]
+            if len(said.strip()) > MAX_SUMMARY:
+                row["summaryTruncated"] = True
         if action in seeded_ids:
             row["seeded"] = True
-        elif issued and isinstance(action, str) and "packetBytes" not in row:
+        elif issued and isinstance(action, str) and "packetBytes" not in row and "improvePacketBytes" not in row:
             row["skipped"] = True  # packets were issued, and none for this visit: the engine skipped it
         figures = {k: v for k, v in (children.get(action) or {}).items() if v is not None}
         if figures:
@@ -1002,6 +1355,10 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     improve, improve_why = _improve_totals(children)
     measures, unmeasured = _model_measures(metrics, unmeasured)
     unmeasured.update(improve_why)
+    items, plan_why, marks = work_items(state, history, results, seeded_ids)
+    unmeasured.update(plan_why)
+    for index, mark in marks.items():  # one stage row per history entry, in order
+        stages[index].update(mark)
     if visit_context_why:  # set only when no visit has a context
         unmeasured["visitContext"] = visit_context_why
     checkouts = [out / "work", run_dir.parent / "worktree"]
@@ -1013,7 +1370,17 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
            "imp": f"{len(children)} children" + (f", {improve['improvePasses']} review passes"
                                                  if improve.get("improvePasses") else ""),
            "stages": stages, "unmeasured": unmeasured, **improve, **measures,
-           "knowledge": knowledge, "evidence": str(out)}
+           "knowledge": knowledge, "evidence": str(out),
+           "planningReview": _recorded_option(state, "planning_review")}
+    if run["planningReview"] == PLANNING_NONE:
+        # The Improve totals above are what the improve/ directories hold, measured, and stay as they are. Under none the
+        # engine starts no child at the five planning stages, so those stages have none by design: the scope says so.
+        run["improveScope"] = IMPROVE_SCOPE_NONE
+    if items is not None:
+        run["workItems"] = items
+        for field in ("stepsPlanned", "stepsExecuted"):  # a sum over an unknown part is unknown
+            if all(field in item for item in items):
+                run[field] = sum(item[field] for item in items)
     if "shiploop_failures" not in unmeasured:  # a host that cannot see the failures reports no count, not 0
         run["refusals"] = len(failures)
         run["failures"] = [{"verb": str(f.get("verb")), "line": str(f.get("line") or "")[:MAX_FAILURE_LINE]}
@@ -1037,10 +1404,11 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     if verdicts:
         run["verdicts"] = verdicts
 
-    docs: dict[str, dict[str, dict]] = {"runs": {key: run}, "backchain": {}}
+    packet_set, unreadable = packet_docs(key, packets, stages)
+    docs: dict[str, dict[str, dict]] = {"runs": {key: run}, "backchain": {}, "packets": packet_set}
     loops = []
     scratch = run_dir / "scratch"
-    option = _backchain_option(state)
+    option = _recorded_option(state, "backchain_passes")
     stage_of = {row["action"]: row["stage"] for row in stages if "action" in row}
     for loop in [*(find_loops(scratch) if scratch.is_dir() else []), *find_backchain_loops(run_dir)]:
         try:
@@ -1061,15 +1429,43 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         docs["backchain"][doc_id] = doc
 
     facts = _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, docs["backchain"],
-                   unknown, from_state, seeded_note, option)
+                   unknown, from_state, seeded_note, option, packet_set, unreadable)
     return docs, facts
 
 
 _MATCH_WORD = {True: "yes", False: "no", "unknown": "unknown"}
 
 
+def _plan_line(run) -> str:
+    """The run's work items and steps loop as one facts line (a measure the run lacks reads "not measured" and why)."""
+    unmeasured, items = run["unmeasured"], run.get("workItems")
+    if items is None:
+        return f"- Work items and steps loop: not measured ({unmeasured.get('workItems', 'no reason recorded')})"
+    added = sum(1 for item in items if item.get("origin") == "replan")
+    done = sum(item["implementVisits"].get("done", 0) for item in items)
+
+    def total(field, label):
+        return f"{label} {run[field]}" if field in run else f"{label} not measured ({unmeasured.get(field, 'no reason recorded')})"
+    return (f"- Work items: {len(items)}" + (f" ({added} added by replan)" if added else "")
+            + f"; {sum(i['stepPlans'] for i in items)} step plans; {sum(i['loops'] for i in items)} passes through the "
+              f"steps loop ({sum(i['revises'] for i in items)} revises); {done} done implement visits; "
+            + total("stepsPlanned", "steps planned") + ", " + total("stepsExecuted", "executed"))
+
+
+def _carried_line(run) -> str:
+    """The packet checklist as one facts line: how many packets were read, how many are an Improve child's, and per label how
+    many of the producer packets carried it."""
+    rows = run["stages"]
+    read = [r["carried"] for r in rows if "carried" in r]
+    improve = sum(1 for r in rows if r.get("packetImprove"))
+    separate = sum(1 for r in rows if "improvePacketBytes" in r)
+    return (f"- Packet text carried (producer packets read {len(read)}; {separate} visits have a separate Improve packet file; "
+            f"{improve} visits (old layout) keep only an Improve child's packet, not read): " + (", ".join(f"{label} {sum(1 for c in read if c.get(label))}" for label, _, _ in CARRIED)
+                             if read else "no label counted"))
+
+
 def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, loops, unknown, from_state,
-           seeded_note, option) -> list[str]:
+           seeded_note, option, packet_set, unreadable) -> list[str]:
     stages = run["stages"]
     totals: dict[str, list] = {}
     for row in stages:
@@ -1099,7 +1495,8 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
              f"- Improve: {run['imp']}" + (f"; most passes in one child: {most}" if most else "")
              + (f"; {run['improveMin']} min bind to receipt" if "improveMin" in run
                 else f"; minutes not measured ({unmeasured['improveMin']})")
-             + ("" if "improvePasses" in run else f"; passes not measured ({unmeasured['improvePasses']})"),
+             + ("" if "improvePasses" in run else f"; passes not measured ({unmeasured['improvePasses']})")
+             + (f"; {run['improveScope']}" if "improveScope" in run else ""),
              "- Model calls (main thread only): " + "; ".join(
                  f"{label} {run[field]:,}" if field in run else f"{label} not measured ({unmeasured[field]})"
                  for field, label in (("calls", "calls"), ("contextPeak", "context peak"),
@@ -1115,6 +1512,13 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
                 f"; largest {largest[0]} {largest[1] / 1024:.1f} KB" if largest else ""),
              f"- Packets {sum(r.get('packetBytes', 0) for r in stages) / 1024:.1f} KB, results "
              f"{sum(r.get('resultBytes', 0) for r in stages) / 1024:.1f} KB over {len(stages)} accepted actions",
+             _plan_line(run),
+             f"- Packet documents: {len(packet_set)} written, {sum(d['bytes'] for d in packet_set.values()) / 1024:.1f} KB "
+             f"of packet files, {sum(1 for d in packet_set.values() if d.get('truncated'))} truncated; "
+             f"{unreadable} packet files unreadable (no document written); "
+             f"{sum(1 for d in packet_set.values() if d.get('kind') == 'improve')} of the documents are an Improve child's packet",
+             _carried_line(run),
+             f"- Planning review option (state.md): {run['planningReview']}",
              f"- Backchain passes option (state.md): {option}",
              "- Backchain loops: " + ("; ".join(
                  f"{d['loop']} {next((f['v'] for f in d['facts'] if f['k'] == 'Passes'), '?')} passes, "
@@ -1152,7 +1556,9 @@ def write_export(out: Path, docs: dict[str, dict[str, dict]], facts: list[str] |
               for i, d in sorted(items.items()) if extra_fields(c, d)]
     if facts is not None and extras:
         facts = [*facts, f"- Fields the contract does not name: {'; '.join(extras)}"]
-    bundle = json.dumps({"schema": SCHEMA_ID, "docs": docs}, sort_keys=True, separators=(",", ":")) + "\n"
+    # The packets are megabytes of the run directory's own files: they are written below and uploaded, never committed.
+    bundle = json.dumps({"schema": SCHEMA_ID, "docs": {c: d for c, d in docs.items() if c != "packets"}},
+                        sort_keys=True, separators=(",", ":")) + "\n"
     if compact and len(bundle.encode("utf-8")) > MAX_COMPACT_BYTES:
         raise ExportError(f"review-export.json would be {len(bundle.encode('utf-8'))} bytes, over {MAX_COMPACT_BYTES}")
     out = out.expanduser().resolve()
@@ -1187,14 +1593,96 @@ def export_run(run_out: Path, key: str | None = None, name: str | None = None, o
     return write_export(out or run_out / "review-export", docs, facts, compact=True, prune_prefix=run_key)
 
 
+# ---------------------------------------------------------------- the stage catalog (--stages, defaults/stages.json)
+
+ENGINE_STAGE_SPEC = SKILL_ROOT.parent / "shiploop" / "scripts" / "shiploop_stage_spec.py"
+STAGES_FILE = "stages.json"
+STAGES_NOTE = ("generated by export.py --stages from skills/shiploop/scripts/shiploop_stage_spec.py; "
+               "do not edit by hand, a test fails on drift")
+
+
+def exit_check(complete_runs, improve) -> str:
+    """The kind of check that ends a stage, from its stage row's own fields (SCHEMA.md "Stage catalog").
+
+    `script-run`: the row has `complete_runs`, so the script runs a gate or the recorded commands (lint gate, test loop,
+    the focused or every test command, the quality loop's terminal check) before it accepts done. Else `review loop`:
+    the row has an `improve` rule (`always`, or `last-item`), so an Improve child reviews the result before the graph
+    advances. Else `model judgement`: the model decides against the row's `done_when` and nothing script-run or reviewed
+    follows. A row with both is `script-run`; no row has both today (a test says so). The mode is not here: see
+    effective_exit_check."""
+    return "script-run" if complete_runs else "review loop" if improve else "model judgement"
+
+
+def effective_exit_check(entry: dict, planning_review: str | None) -> str:
+    """A catalog entry's exit check in a run that recorded `planning_review` (None or `not recorded`: the entry's own).
+    Under `none` the engine starts no Improve child at the five planning stages (`planningChoice`), so a stage whose
+    only check was that review is `model judgement` there; `stage`, an unknown value and no record leave it as it is."""
+    if planning_review == PLANNING_NONE and entry.get("planningChoice") and entry["exitCheck"] == "review loop":
+        return "model judgement"
+    return entry["exitCheck"]
+
+
+def load_stage_spec(path: Path | None = None):
+    """The sibling shiploop skill's stage table, loaded as a module of its own (it imports nothing from ShipLoop)."""
+    import importlib.util
+    path = Path(path or ENGINE_STAGE_SPEC)
+    if not path.is_file():
+        raise ExportError(f"missing {path}: --stages reads the stage table of the shiploop skill beside this one")
+    name = "run_review_engine_stage_spec"
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module  # dataclasses look their module up while the class is built
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop(name, None)
+    return module
+
+
+def stage_catalog(spec) -> list[dict]:
+    """One entry per engine stage, in graph order, from the stage table `spec` (never hand-written): `purpose` is the
+    row's goal as the engine states it, `exitCheck` is exit_check of its fields, `completeRuns` and `improve` say why
+    (omitted when empty), `planningChoice` is true for the stages `planning_review none` covers, and `reads` lists the
+    results the stage reads first (`item:<stage>` means this work item's). A stage's readers are the inverse of `reads`."""
+    entries = []
+    for name in spec.STAGES:
+        row = spec.STAGE_SPEC[name]
+        entry = {"stage": name, "purpose": row.goal, "exitCheck": exit_check(row.complete_runs, row.improve)}
+        if row.complete_runs:
+            entry["completeRuns"] = list(row.complete_runs)
+        if row.improve:
+            entry["improve"] = row.improve
+        if name in spec.PLANNING_CHOICE_STAGES:
+            entry["planningChoice"] = True
+        entry["reads"] = list(row.reads)
+        entries.append(entry)
+    return entries
+
+
+def write_stages(out: Path | None = None, spec_path: Path | None = None) -> Path:
+    """Write defaults/stages.json (or OUT/stages.json) from the engine's stage table: one entry per line, so a change reads as a diff."""
+    entries = stage_catalog(load_stage_spec(spec_path))
+    problems = [p for e in entries for p in _type_problem(("items", SCHEMA["config"]["stages"][0][1]), [e], e["stage"])]
+    if problems:
+        raise ExportError("the stage catalog violates SCHEMA.md:\n  " + "\n  ".join(problems))
+    target = Path(out).expanduser().resolve() if out is not None else DEFAULTS
+    target.mkdir(parents=True, exist_ok=True)
+    path = target / STAGES_FILE
+    path.write_text('{"generated": ' + json.dumps(STAGES_NOTE) + ',\n"stages": [\n'
+                    + ",\n".join(json.dumps(e, ensure_ascii=False) for e in entries) + "\n]}\n", encoding="utf-8")
+    return path
+
+
 def defaults_docs() -> dict[str, dict[str, dict]]:
     expectations = _read_json(DEFAULTS / "expectations.json")
     config = _read_json(DEFAULTS / "config.json")
+    stages = _read_json(DEFAULTS / STAGES_FILE)
     docs: dict[str, dict[str, dict]] = {"expectations": {}, "config": {}}
     for entry in expectations:
         docs["expectations"][entry["key"]] = {k: v for k, v in entry.items() if k != "key"}
     for doc_id, doc in config.items():
         docs["config"][doc_id] = doc
+    docs["config"]["stages"] = {"stages": stages["stages"]}  # the derived catalog, a replica like the expectations
     return docs
 
 
@@ -1232,6 +1720,9 @@ def upgrade_docs(live: dict[str, dict[str, dict]], page_url: str | None = None) 
     docs["config"]["prompt"] = defaults["config"]["prompt"]
     if pages["config"].get("prompt") not in (None, docs["config"]["prompt"]):
         notes.append("config/prompt: replaced by the defaults (fields the defaults do not have are dropped)")
+    docs["config"]["stages"] = defaults["config"]["stages"]  # derived from the engine's table: always the defaults'
+    if pages["config"].get("stages") not in (None, docs["config"]["stages"]):
+        notes.append("config/stages: replaced by the defaults (the stage catalog is derived from the engine's stage table)")
     have = pages["config"].get("page")
     if page_url is None:
         if have is None:
@@ -1337,6 +1828,8 @@ def check_bundle(bundle) -> tuple[list[str], list[str]]:
         else:
             failures.append(f"bundle: docs.{collection} must map document ids to documents")
     failures += _validate_all(docs)
+    if docs.get("packets"):
+        failures.append("bundle: packets documents are not part of a review bundle (the run directory is their record)")
 
     findings, options = _documents(docs, "observations"), _documents(docs, "actions")
     links = {oid: [x for x in o["findings"] if isinstance(x, str)] if isinstance(o.get("findings"), list) else []
@@ -1438,6 +1931,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--page-url", metavar="URL",
                         help="with --defaults: the artifact's own URL, set as config/page.artifactUrl (the prompt's "
                              "head prints it; a page cannot read its own URL)")
+    parser.add_argument("--stages", action="store_true",
+                        help="rewrite defaults/stages.json (or OUT/stages.json with --out) from the shiploop skill's stage table")
     parser.add_argument("--check", type=Path, metavar="FILE", help="validate a review bundle (exit 2 on a failure)")
     parser.add_argument("--docs", type=Path, metavar="FILE",
                         help="check a review bundle, then write its documents and writes.json under --out")
@@ -1446,8 +1941,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--order", type=int, help="sort key (default the run's start, epoch seconds)")
     parser.add_argument("--out", type=Path, help="export directory (default RUN_DIR/review-export; for --docs a new temporary directory)")
     args = parser.parse_args(argv)
-    if [args.run_dir is not None, args.defaults, args.check is not None, args.docs is not None].count(True) != 1:
-        parser.error("give one of RUN_DIR, --defaults, --check FILE or --docs FILE")
+    if [args.run_dir is not None, args.defaults, args.stages, args.check is not None, args.docs is not None].count(True) != 1:
+        parser.error("give one of RUN_DIR, --defaults, --stages, --check FILE or --docs FILE")
     if args.live is not None and not args.defaults:
         parser.error("--live goes with --defaults")
     if args.page_url is not None and not args.defaults:
@@ -1457,8 +1952,12 @@ def main(argv: list[str] | None = None) -> int:
             return check_file(args.check)[0]
         if args.docs is not None:
             return write_docs(args.docs, args.out)
-        path = export_defaults(args.out, args.live, args.page_url) if args.defaults else export_run(
-            args.run_dir, args.key, args.name, args.order, args.out)
+        if args.stages:
+            path = write_stages(args.out)
+        elif args.defaults:
+            path = export_defaults(args.out, args.live, args.page_url)
+        else:
+            path = export_run(args.run_dir, args.key, args.name, args.order, args.out)
     except ExportError as exc:
         print(f"export: {exc}", file=sys.stderr)
         return 2

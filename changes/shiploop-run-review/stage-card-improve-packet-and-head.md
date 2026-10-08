@@ -1,4 +1,0 @@
----
-bump: patch
----
-The stage card follows the engine's two packet files per visit. When a run's row has the Improve child's packet document, the Sent block shows its size and a second closed box "Improve child's packet", loaded on demand by the same single read and cache as the Packet box; the packet checklist beside it is then a real one for every reviewed stage. A run of the old layout (ShipLoop 1.22.0 and earlier) still says its packet file is the Improve child's and shows no checklist. The packet head on the card now starts at the first line beginning "ShipLoop navigator |", so its twelve lines show Goal, Done when, Checked by and the callback for an inline run instead of the delegation preamble; a packet with no such line shows its first twelve non-empty lines as before. The page needs one republish.

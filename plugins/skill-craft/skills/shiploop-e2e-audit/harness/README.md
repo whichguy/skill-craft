@@ -400,8 +400,9 @@ freshness.
 `run.py check`, `run.py run`, and every one-case live suite preflight both
 selected skills: ShipLoop and Improve. For each, the gate compares three
 identities: the newest committed source skill on `whichguy/skill-craft` branch
-`main`, the released `plugins/<leaf>` and its `./plugins/<leaf>` entry in
-`.claude-plugin/marketplace.json` on the same `main`, and the actual selected
+`main`, the skill's released copy under `plugins/skill-craft` and that plugin's single
+`./plugins/skill-craft` entry in `.claude-plugin/marketplace.json` on the same `main`
+(its version is the bundle's, not the skill's), and the actual selected
 local skill. A pending `changes/<leaf>/` note stops the gate until `release.py`
 publishes it. The gate reads the fresh remote head into a temporary bare Git
 repository. It compares file bytes and executable modes, including published plugin metadata;
@@ -414,7 +415,7 @@ this consumer evaluation path.
 | Status | Meaning and effect |
 | --- | --- |
 | `ready` | Current source, published package and selected installation agree; launch may proceed. |
-| `unpublished-source` | Source has unreleased changes: `plugins/<leaf>` lags `skills/<leaf>`, or a `changes/<leaf>/` note is pending; no builder launch. |
+| `unpublished-source` | Source has unreleased changes: `plugins/skill-craft/skills/<leaf>` lags `skills/<leaf>`, or a `changes/<leaf>/` note is pending; no builder launch. |
 | `installed-stale` | Selected local skill differs from the published current package; no builder launch. |
 | `freshness-unverified` | Network/Git/catalog/package verification failed; no builder launch. |
 

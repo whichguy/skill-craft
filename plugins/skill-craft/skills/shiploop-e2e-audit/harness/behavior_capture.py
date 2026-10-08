@@ -31,7 +31,7 @@ _MAX_EVENT_LINE_BYTES = 1024 * 1024
 _STAGES = frozenset(
     {
         "intake", "discovery", "research", "spec", "test-strategy", "plan",
-        "prepare", "select-work", "step-plan", "test-spec", "baseline",
+        "prepare", "get-next-work-item", "step-plan", "test-spec", "baseline",
         "test-author", "test-red", "implement", "test-green", "test-refine",
         "regression", "document", "skill-assess", "skill-validate",
         "static-checks", "verify", "integrate", "integration-verify",

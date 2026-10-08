@@ -1,16 +1,23 @@
-# ShipLoop navigator 0.54.0
+# ShipLoop navigator 0.55.0
+
+> **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
+> its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
+> does so even when the previous packet said the same thing. Repetition from one packet to the next is how a cleared model is grounded;
+> the only repetition to remove is inside one packet. Make a packet smaller only by dropping what that stage does not need, and prove
+> the result by clearing the context at a stage boundary and inside a stage and comparing the redone work. SPEC S-6 states the rule.
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
 runs record `delegation: inline`, so that conversation also executes every
-assignment. It clears once per work item at the `select-work` packet (through a
-callable host reset, or the printed pause plus a host `/clear` or fresh
-conversation and the Recovery and Resume commands), continues each later INNER stage in the
-same context, and runs each bound Improve invocation through the selected
-Improve skill in the exact Child workspace without Ask Agent, native workers, an
-extra worktree or `host-owner.md`; its reviews and checks run there too, with no
-reviewer or test-runner agent unless the user asks for independent review. The
-boundary is per work item because a model
-cannot clear its own conversation: in the [clear-ledger study](https://github.com/whichguy/skill-craft/blob/59be9b8232e34dc00ae777052a608a13967ffab2/docs/shiploop-clear-ledger-experiments-2026-09-21.md#live-ledger-study-september-21-2026)
+assignment, continues every INNER stage in the same context, and runs each bound
+Improve invocation through the selected Improve skill in the exact Child workspace
+without Ask Agent, native workers, an extra worktree or `host-owner.md`; its
+reviews and checks run there too, with no reviewer or test-runner agent unless
+the user asks for independent review. No packet or hook clears the conversation:
+the packets say not to pause for a clear, because a model cannot clear its own
+conversation, and a host that clears or compacts anyway (or a crash) is resumed
+from the Recovery and Resume commands every packet prints, which is why each
+packet stands alone (the tenet above). In the
+[clear-ledger study](https://github.com/whichguy/skill-craft/blob/59be9b8232e34dc00ae777052a608a13967ffab2/docs/shiploop-clear-ledger-experiments-2026-09-21.md#live-ledger-study-september-21-2026)
 each packet-text variant produced a verified fresh entry in 0 of 2 cases, while
 external host `/clear` worked in 3 of 3 resets.
 
@@ -156,7 +163,7 @@ accepted on its own checks and the script selects the next producer directly
 are accepted on ShipLoop's checks at `complete` too, and only `system-test-author`, `release-plan`
 and the last `carry-forward` follow this sequence. The 34 producers' full flat
 order is: `intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`,
-`prepare`; then, for each ready item, `select-work`, `step-plan`, `test-spec`,
+`prepare`; then, for each ready item, `get-next-work-item`, `step-plan`, `test-spec`,
 `baseline`, `test-author`, `test-red`, `implement`, `test-green`, `test-refine`,
 `regression`, `document`, `skill-assess`, `skill-validate`, `static-checks`,
 `verify`, `integrate`, `integration-verify`, `carry-forward`; then
@@ -174,8 +181,9 @@ make traversal continue.
 stay in the product repository. `discovery` inspects the local index before
 planning; each `step-plan` rereads it for skills learned by earlier items.
 Prefer unchanged reuse with supported inputs/defaults, then a compatible local
-update, or a separate skill when contracts differ. `skill-assess` captures new
-learnings; `skill-validate` checks changed and retained uses. Carry selected-skill
+update, or a separate skill when contracts differ. `skill-assess` decides, for the item's
+declared paths, whether to reuse, update or create a skill and makes the warranted
+skill edits; `skill-validate` checks changed and retained uses. Carry selected-skill
 references into Improve's host-authored contract and maintain the repository index
 at `carry-forward`. This uses ordinary evidence/plan notes and work-item context;
 it adds no global installation or skill-specific runtime schema. Fresh-reader
@@ -528,6 +536,10 @@ This last transfer is a host duty, not an automatic semantic guarantee.
 uses the same outcome/source/test mapping in the relevant planning and review
 packets. It is ShipLoop's planning checklist, not a second standalone planning
 run; a Backchain call uses only the `source-aware-native` route.
+The plan packet's Backchain loop takes one review/fix/check pass by default
+(`--backchain-passes one`; `converge` takes two consecutive trivial reviews, `none` takes no whole loop), and
+`--planning-review stage|none` turns the per-stage planning reviews on or off; both are fixed for the run
+(SKILL.md, *Backchain passes option* and *Planning review option*).
 Keep product-document links portable across worktree return; verify destination
 files and anchors, distinguish planned tests from evidence, and repair affected
 links together when an authorized change moves a destination. Improve/Until Loop
@@ -542,7 +554,7 @@ action. At an Improve checkpoint the script parks that action while its actual
 Improve child runs.
 
 After `carry-forward` is accepted (and, for the last item, its Improve child is
-imported), the script selects the next item's `select-work`, or returns
+imported), the script selects the next item's `get-next-work-item`, or returns
 ownership to `system-test-author` after the final item. The
 [navigator ownership guide](references/navigator.md#one-shared-inner-graph-and-per-item-records)
 explains the shared cursor boundary. ShipLoop stores the actual child binding

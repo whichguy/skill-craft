@@ -39,7 +39,7 @@ The child can change the result it imports, so a reviewed `done` can become
 
 The 34 producer stages are fixed by the navigator catalog: prelude `intake`,
 `discovery`, `research`, `spec`, `test-strategy`, `plan`, `prepare`; inner
-`select-work`, `step-plan`, `test-spec`, `baseline`, `test-author`, `test-red`,
+`get-next-work-item`, `step-plan`, `test-spec`, `baseline`, `test-author`, `test-red`,
 `implement`, `test-green`, `test-refine`, `regression`, `document`,
 `skill-assess`, `skill-validate`, `static-checks`, `verify`, `integrate`,
 `integration-verify`, `carry-forward`; and outer `system-test-author`,
@@ -72,7 +72,7 @@ flowchart TD
   end
   prepare --> SW
   subgraph INNER[Inner loop: once per work item, the item record owns the cursor]
-    SW[select-work] --> SP[step-plan ✦ records test commands] --> TS[test-spec ✦] --> BL[baseline → test-author → test-red]
+    SW[get-next-work-item] --> SP[step-plan ✦ records test commands] --> TS[test-spec ✦] --> BL[baseline → test-author → test-red]
     BL --> IM[implement ⛔ lint gate, pass-or-stop]
     IM --> TG[test-green ⟳⛔ test loop]
     TG --> TR[test-refine ⛔ test rerun, pass-or-stop]
@@ -268,7 +268,7 @@ Active INNER packets begin with a context prefix selected by the run's
 delegation. Paused, blocked, halted and completed packets do not carry it.
 
 Under `delegation: inline`, the default for new runs, every INNER producer
-packet, including the `select-work` packet that opens each work item, begins
+packet, including the `get-next-work-item` packet that opens each work item, begins
 with **Continue in this context and execute the prompt.** Execute it in this
 conversation without clearing, pausing for a clear or delegating (see
 [context boundaries](#context-boundaries)). This
@@ -437,7 +437,7 @@ work items, while completed work-item records remain durable history; optional
 V3's plan template explicitly includes `work_items`. Return the complete ordered
 queue when the plan has multiple implementation increments; a note alone does
 not populate it. Omission remains compatible when the existing queue represents
-the whole approved plan. The script visits queue order serially; `select-work`
+the whole approved plan. The script visits queue order serially; `get-next-work-item`
 revalidates the selected item's prerequisite evidence rather than selecting
 among dependency-ready alternatives. Keep independent branches and file/resource
 conflicts distinct from causal dependencies in the linked plan notes.
@@ -537,7 +537,7 @@ adds a timer, state field or traversal rule.
 
 ## One shared INNER graph and per-item records
 
-The flat SDLC path from `select-work` through `carry-forward` is one shared INNER
+The flat SDLC path from `get-next-work-item` through `carry-forward` is one shared INNER
 graph, not a graph copy per work item. Root owns the run's global `status`,
 `status_reason`, ordered queue, and `work_index`. While an item is active, root
 is parked at `stage: inner-loop` with `action: null`; the active item's entry in
@@ -568,8 +568,8 @@ This compact state is illustrative rather than a complete persisted schema:
   "inner_loops": {
     "W1": {"stage": "done", "action": null},
     "W2": {
-      "stage": "select-work",
-      "action": {"id": "W2-select-work-1", "stage": "select-work"}
+      "stage": "get-next-work-item",
+      "action": {"id": "W2-get-next-work-item-1", "stage": "get-next-work-item"}
     }
   }
 }
@@ -577,7 +577,7 @@ This compact state is illustrative rather than a complete persisted schema:
 
 No record exists for a future W3 until ShipLoop enters it. At an accepted W1
 `carry-forward`, one locked transaction marks W1 `done`/`null`, advances the
-selection, and creates W2 at `select-work`; if W1 is final, it instead restores
+selection, and creates W2 at `get-next-work-item`; if W1 is final, it instead restores
 root ownership at `system-test-author`. W1 remains retained after W2 becomes active.
 Calling `next` after a context reset reprints W2's same effective action rather
 than advancing it. An identical accepted W1 replay after W2 selection is

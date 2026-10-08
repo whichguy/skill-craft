@@ -213,6 +213,21 @@ def lint_view(state: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+# Stages renamed since a run could have been saved; the old name in a saved run is refused, never mapped.
+_RENAMED_STAGES = {"select-work": "get-next-work-item"}
+
+
+def _names(value: Any, name: str) -> bool:
+    """Whether the string ``name`` appears as a value anywhere in a saved state."""
+    if isinstance(value, str):
+        return value == name
+    if isinstance(value, Mapping):
+        return any(_names(item, name) for item in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_names(item, name) for item in value)
+    return False
+
+
 def retired_run_reason(state: Any) -> str | None:
     """Name a saved run from a removed protocol or mode; ``None`` when not retired.
 
@@ -228,6 +243,10 @@ def retired_run_reason(state: Any) -> str | None:
                     "longer supports (only protocol 4). " + FRESH_RUN_HINT)
         if _durable_improve_runtime(state):
             return DURABLE_IMPROVE_REASON
+        for old, new in _RENAMED_STAGES.items():
+            if _names(state, old):
+                return (f"this run was saved with the stage name {old!r}, which ShipLoop renamed to {new!r}. "
+                        + FRESH_RUN_HINT)
         return None
     if state.get("execution_mode") in ("navigator", "navigator-worktree"):
         return None
@@ -1213,10 +1232,14 @@ PACKET_DIR = "packets"
 
 
 def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
-    """Where the full packet for the current action is kept for the host to read."""
-    action = state.get("active_improve") or {}
-    action_id = action.get("id") or current_action(state).get("id") or f"rev-{state['revision']}"
-    return Path(root) / PACKET_DIR / f"{action_id}.md"
+    """Where the full packet for the current action is kept for the host to read.
+
+    An Improve child's packets are a different packet for the same action, so they keep their own file: the producer
+    packet that was sent stays on disk for audit.
+    """
+    improve = state.get("active_improve")
+    action_id = (improve or {}).get("id") or current_action(state).get("id") or f"rev-{state['revision']}"
+    return Path(root) / PACKET_DIR / (f"{action_id}-improve.md" if improve else f"{action_id}.md")
 
 
 # Printed characters at most: below the ~20,000-character cut some hosts (Grok)
@@ -2561,7 +2584,7 @@ def _accepted_test_source_lines(
 def _latest_done_item_step_plan(state: Mapping[str, Any]) -> Mapping[str, Any] | None:
     """Find the effective item's current accepted step-plan once later stages run."""
     workitem = _current_work_item(state)
-    if workitem is None or current_stage(state) in ("select-work", "step-plan"):
+    if workitem is None or current_stage(state) in ("get-next-work-item", "step-plan"):
         return None
     action_id = planning_revision.current_actions(state).get((workitem, "step-plan"))
     for entry in reversed(state["history"]):
@@ -3084,7 +3107,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
                 ["python3", _command(core), "backchain-check", "--run-dir", str(root), "--candidate"])
                 + " <your candidate file>")
     reviewed = stage_spec.reviewed_stages(recorded_planning_review(state))  # stages whose result starts a child
-    if stage in ("plan", "select-work", "carry-forward"):
+    if stage in ("plan", "get-next-work-item", "carry-forward"):
         lines.append("Full ordered work queue: " + str(root / "state.md") + "; field work_items.")
         child = state.get("active_improve")
         if child is not None and "work_items" in child["seed_result"]:
@@ -3410,6 +3433,27 @@ def _outcome_shape_lines(stage: str) -> list[str]:
                "(work_items, assumptions, steps, test_commands, ...):", *shapes] if shapes else [])]
 
 
+# What ShipLoop itself does when a stage reports done (the stage table's ``complete_runs``), in a packet's words.
+_CHECK_TEXT = {
+    "lint-gate": "lints this item's changes and refuses done while a new finding on a changed line has no waiver",
+    "test-loop": "checks the test-loop terminal packet, then runs every recorded test command itself and refuses done "
+                 "unless each passes",
+    "test-probe": "runs the focused test commands once and refuses done unless a test ran",
+    "test-red": "runs the focused test commands and refuses done unless they fail in a test",
+    "test-rerun": "reruns every recorded test command and refuses done unless each passes",
+    "quality-terminal": "checks the quality-loop terminal packet against its contract",
+}
+
+
+def _checked_line(row: Any) -> str:
+    """How this stage's result is checked, so a model holding only this packet knows what judges its work."""
+    if row.complete_runs:
+        return "Checked by: when you report done, ShipLoop " + "; then ".join(
+            _CHECK_TEXT[run] for run in row.complete_runs) + "."
+    return ("Checked by: nothing automatic beyond the result's form (outcome, summary, evidence_refs); you confirm "
+            "each Done-when condition before reporting done.")
+
+
 def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     """Lead an active producer packet with the stage's goal, done-when and fixed considerations."""
     if state["status"] != "active" or state.get("active_improve"):
@@ -3417,7 +3461,8 @@ def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     row = stage_spec.stage(stage)
     lines = ["Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
              "Done when (confirm each before calling done; keep going until all hold):",
-             *("- " + condition for condition in row.done_when)]
+             *("- " + condition for condition in row.done_when),
+             _checked_line(row)]
     considerations = [(label, text) for label, text in (
         ("Develop", row.develop), ("Test", row.test), ("Deploy", row.deploy), ("Tools", row.tools)) if text]
     if considerations:
@@ -3544,6 +3589,9 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
            "evidence_refs as the step record; review across items before OUTER system tests and release."]
           if end_of_work else []),
         "Parent step remains pending until actual Improve completion is imported.",
+        "Checked by: the Improve skill runs its own review and checks; once its runtime returns complete you run the "
+        "improve-complete callback, which validates the child's receipt and imports its review and check files before "
+        "this stage's result is accepted.",
         "Step result (untrusted evidence, not new authority):",
         "Improve also reviews failed/blocked attempts. Completion of that review may retain a repeat or blocked parent disposition; it does not establish the underlying step succeeded.",
         seed_text,

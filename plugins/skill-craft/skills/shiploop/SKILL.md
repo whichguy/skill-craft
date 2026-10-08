@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.54.0
+version: 0.55.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -506,7 +506,7 @@ Improve card:
    iteration runs every command, finds the cause of each failure, fixes the
    product code (never a check to get green) and reruns the whole list after
    its last edit. The loop ends after an iteration in which every command
-   exited 0 and nothing changed; iteration 4 that still fails stops it.
+   exited 0 and nothing changed; there is no iteration limit.
 3. The stage accepts only `done`, `revise` or `blocked`. `done` needs the saved terminal
    packet `tests/<action>-terminal.json`, checked against the contract rebuilt
    from run state. Then ShipLoop runs every listed command itself with
@@ -516,12 +516,17 @@ Improve card:
    pass and the end of its output.
 
 A command passes only when it exits 0 **and ran tests**. ShipLoop reads the
-runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet) and
+runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet, `node --test` with the spec or tap
+reporter, not dot or junit) and
 refuses a run of zero tests (`no-tests`), fewer than `min_tests`
 (`too-few-tests`), or one whose output does not show each listed ID on a line
-that is not a skip line (`ids-missing`). A focused command whose count ShipLoop
+that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). A focused command whose count ShipLoop
 cannot read passes only with `ids` that all appear; a regression command without
 `ids` or `min_tests` may pass uncounted.
+A system command row marked `"host_dependent": true` (its cases need a host tool: a browser, a device,
+an account, a service) is also checked for drift at `system-test`: ShipLoop runs the accepted
+regression commands and refuses when any of that row's `ids` is shown, run or failed, in their
+output, because the project's default suite must pass without the host tool.
 
 **Test stages not applicable to an item.** When the accepted step plan records
 no test command (`test_commands_na`) and every declared path is documentation,
@@ -637,7 +642,7 @@ another state record. Do not copy a current node, action ID, result path, status
 or predicted successor into the handoff as graph authority.
 
 Under `delegation: inline`, every INNER producer packet, including the
-`select-work` packet that opens each work item, begins "Continue in this context
+`get-next-work-item` packet that opens each work item, begins "Continue in this context
 and execute the prompt." then "Delegation: inline.": no clear, no pause for a
 clear and no delegation. Inline INNER Improve packets begin "Keep the invoking
 parent alive and run this Improve invocation inline.": the parent runs the whole
@@ -695,7 +700,8 @@ with an accepted decision instead of silently choosing. Packets point at materia
 rather than asking you to reread it at every stage.
 
 Every packet is complete, and it lives in a file: ShipLoop writes the full
-packet to `<run>/packets/<action>.md` and prints only a short head, with the
+packet to `<run>/packets/<action>.md` (an Improve child's packets for the same action go to
+`<action>-improve.md`, so the producer packet that was sent stays on disk) and prints only a short head, with the
 callback, the goal and done-when, the result path, template and allowed
 outcomes, the packet file's path, the recovery and pause commands and the status
 block. Read the packet file with a file-reading tool before acting; do not print
@@ -907,7 +913,7 @@ ordered work queue.
 
 After the navigator accepts `carry-forward` and imports its bound Improve completion, the
 locked state transaction marks the completed item, retains its evidence, and
-either creates the next item's `select-work` action or returns ownership to
+either creates the next item's `get-next-work-item` action or returns ownership to
 `system-test-author`. Root status and queue remain global. A `repeat` replaces
 only the current producer action; an active Improve child resumes through its
 own recorded state. A blocked child or producer keeps the parent action

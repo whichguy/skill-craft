@@ -79,7 +79,7 @@ INLINE_STAGE_CONTEXT = """\
 Continue in this context and execute the prompt.
 
 Delegation: inline. Execute this INNER stage in this conversation, including the
-select-work stage that opens each work item. Do not clear, pause for a clear, or
+get-next-work-item stage that opens each work item. Do not clear, pause for a clear, or
 hand it to Ask Agent or a native worker: no packet, script or hook output can
 clear a host conversation, and the host's own compaction manages its context.
 This conversation is the only writer and alone submits ShipLoop callbacks. After
@@ -124,7 +124,7 @@ STAGES = PRELUDE + INNER + OUTER
 STAGE_PURPOSE = {name: row.goal for name, row in stage_spec.STAGE_SPEC.items()}
 
 INNER_GROUPS = (
-    ("Plan", ("select-work", "step-plan")),
+    ("Plan", ("get-next-work-item", "step-plan")),
     ("Tests first", ("test-spec", "baseline", "test-author", "test-red")),
     ("Build", ("implement", "test-green", "test-refine")),
     ("Check", ("regression", "document", "skill-assess", "skill-validate",
@@ -214,7 +214,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
         ("Workspace and return guidance", "workspace-lifecycle.md#entry-identity-and-storage"),
     ),
-    "select-work": (
+    "get-next-work-item": (
         ("Cold-start evidence guidance", "execution-planning.md#cold-start-evidence"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
     ),
@@ -720,11 +720,11 @@ Do:
 1. Read the bound Until Loop card in full once per context and follow it. Start
    the run with the printed command. Do not edit, retype or extend the contract.
 2. Execute each returned iteration exactly as its work says, then call its done
-   command. Save every returned packet from stdout to the printed latest-packet
-   path, so a reset can recover the run through its next_argv. Continue until
-   the runtime returns complete or stopped.
-3. Save the terminal packet, byte for byte from stdout, to the printed terminal
-   path and list that path in evidence_refs.
+   command. The runtime writes every packet it returns to the printed receipt,
+   so after a reset its next_argv resumes the run; do not write or edit the
+   receipt. Continue until the runtime returns complete or stopped.
+3. List the printed receipt path in evidence_refs: its last packet is the
+   terminal one, written by the runtime.
 Report: done when the loop completed; revise when it stopped blocked because a
 failure is unachievable as planned (the item goes back to its step plan, with the
 failing command as evidence); blocked, with blocked_by, only when the user, an access grant or
@@ -971,6 +971,14 @@ Use Service discovery guidance for affected cache authorization/invalidation,
 remote reconciliation, async recovery and observability checks. Map each relevant
 contract to independent outcomes and its real observation boundary; fixture
 results do not prove live permissions, event delivery or operator log access.
+Settle these now, so later stages do not guess. For each command, say which test
+ids it may print. A host-dependent case (it needs a host browser, a device, an
+account or a service) names its tool and is probed now by doing the case's first
+step (for a browser, load a local page and read its title back), not its version;
+a probe that fails is an access gap to record now, in the strategy, with the
+requirement it leaves unobserved. The case stays out of the project's default
+test command: give it its own opt-in command or flag, so a plain run of the
+default test command passes without the host tool.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -988,6 +996,9 @@ State and data assessment. Map each applicable obligation to its responsible wor
 item, prerequisites, observing test and relevant release/recovery conditions, or
 retain a reasoned exclusion or unresolved need. Preserve the mapping in existing
 plan notes, item context and evidence_refs; a completed template is not proof.
+For each work item, state the module format its files use (for example CommonJS or ESM,
+with or without a package.json) and the loadable seam its tests import, so a test
+can load before the implementation exists.
 """ + DESIGN_BASIS_DUTY + "\n\n" + """After creating the initial steps, submit this producer result to its mandatory
 actual Improve handoff. The plan remains a draft until
 that loop completes; dependent work waits. Link the created plan and any execution
@@ -1087,7 +1098,7 @@ observation, then rerun the original initial check against unchanged product and
 tests before dependent feature edits. Do not replace it with an easier route or
 describe the blocked baseline as passed.
 """,
-    "select-work": """\
+    "get-next-work-item": """\
 Revalidate the current script-selected work item in queue order. Confirm its
 dependencies, scope, owner, relevant lessons, expected outcomes, and prerequisites
 are current. The script does not choose among dependency-ready items. If this
@@ -1139,7 +1150,8 @@ runs them itself before accepting each stage, so each must be runnable from the
 repository root. ShipLoop reads the runner's summary and refuses a run that
 executed no test, because a filter that matches nothing exits 0 in most runners.
 Give each focused command the `ids` of the test-spec cases it must run, and a
-runner flag that prints test names (for example Jest `--verbose`, pytest `-v`),
+runner flag that prints test names (for example Jest `--verbose`, pytest `-v`, `node --test` with its default
+spec or the tap reporter, never dot or junit),
 so the output shows them; add `min_tests` when a command must run at least that
 many. An empty list needs `test_commands_na` with the reason.
 Record the files this item will change in `paths` (repository-relative files or
@@ -1469,11 +1481,11 @@ Do:
 1. Read the bound Until Loop card in full once per context and follow it. Start
    the run with the printed command. Do not edit, retype or extend the contract.
 2. Execute each returned iteration exactly as its work says, then call its done
-   command. Save every returned packet from stdout to the printed latest-packet
-   path, so a reset can recover the run through its next_argv. Continue until
-   the runtime returns complete or stopped.
-3. Save the terminal packet, byte for byte from stdout, to the printed terminal
-   path and list that path in evidence_refs.
+   command. The runtime writes every packet it returns to the printed receipt,
+   so after a reset its next_argv resumes the run; do not write or edit the
+   receipt. Continue until the runtime returns complete or stopped.
+3. List the printed receipt path in evidence_refs: its last packet is the
+   terminal one, written by the runtime.
 Report: done when the loop completed; revise when it stopped blocked because a
 finding shows the item's goal is wrong as planned, naming it (the item goes back
 to its step plan);
@@ -1571,8 +1583,15 @@ Record the system tests in `system_commands` (same shape as a step plan's
 test_commands; suite `focused`, `regression` or `check`). A command that is not a
 test runner (a shell pipeline, a grep, a curl probe) is suite `check`, judged by its
 exit code; `focused` and `regression` are for runners whose output ShipLoop can
-count. ShipLoop runs every one itself when system-test reports done and refuses
-unless each passes. When no system test applies, give an empty list with
+count. Mark a row `"host_dependent": true` when its cases need a host tool (a
+browser, a device, an account, a service): ShipLoop then also runs the project's
+regression commands at system-test and refuses if any of that row's `ids` appears
+in their output, because the default suite must pass without the host tool.
+ShipLoop runs every one itself when system-test reports done and refuses
+unless each passes. Run each system command once while authoring: a command that
+cannot pass here is changed to observe the same requirement another way, or
+reported as unachievable (blocked, blocked_by access, naming the requirement it
+leaves unverified); a command recorded as not run is not an end state. When no system test applies, give an empty list with
 `system_commands_na` and the reason.
 Reopen the Run-wide test strategy source. From accepted history, select the
 latest done test-decision record for every relevant completed item: step-plan,
@@ -1772,7 +1791,7 @@ IMPROVE_SCOPES = {
     "test-strategy": "independent test/risk strategy and required test boundaries",
     "plan": "the newly created steps and dependency graph, readiness/done conditions, and correction routes",
     "prepare": "environment readiness evidence or its justified N/A disposition",
-    "select-work": "the ready-item selection and prerequisite assessment",
+    "get-next-work-item": "the ready-item selection and prerequisite assessment",
     "step-plan": "the newly created bounded steps and any parallel or serial execution graph, conventions, checks, and diagnostic obligations",
     "test-spec": "test-first cases, independent oracles, and RED/GREEN definitions",
     "baseline": "baseline commands, observations, initial-baseline applicability, and pre-existing failure classification",

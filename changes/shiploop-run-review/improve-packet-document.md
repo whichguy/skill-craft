@@ -1,4 +1,0 @@
----
-bump: patch
----
-The export reads the engine's new packet layout, in which an Improve child's packets go to their own file `packets/<action>-improve.md` and the producer packet that was sent stays intact in `packets/<action>.md`. A visit with both files gets its producer packet document as before and a second document `<runKey>--<action>-improve` (`kind` `improve`), and its stage row gets `improvePacketBytes` and `improvePacketDoc`; the packet checklist (`carried`) is read from the producer packet, so a reviewed stage's checklist is now a real one. A run of the old layout (ShipLoop 1.22.0 and earlier: one file per action, the child's packet replacing the producer's) is read as before and its visit keeps the `packetImprove` mark. `facts.md` counts both. SCHEMA.md documents both layouts and points to the E2E session's record register of 2026-10-07 as the place where record kinds are classified.
