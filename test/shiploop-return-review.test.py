@@ -394,6 +394,23 @@ class ReviewReturnTests(ReturnReviewCase):
         self.assertEqual(sum(value == "keep" for value in self.dispositions(root).values()), 200)
         self.assertIn("Verified workspace return", self.do_return(root).stdout)
 
+    def test_an_unsafe_or_empty_path_is_refused_with_the_undecided_paths_and_the_command_not_the_generic_trailer(self) -> None:
+        root, worktree, _ = self.candidate("unsafe paths")
+        self.plan_return(root)
+        before = (root / "return-plan.md").read_bytes()
+        self.assertIn("relative to the execution checkout", navigator.REVIEW_RETURN_RULE)
+        for words in (("--keep", str(worktree / "app.js")), ("--exclude", "../app.js"), ("--keep", "")):
+            with self.subTest(words=words):
+                refused = self.review(root, *words, code=2).stderr
+                lines = refused.splitlines()
+                self.assertTrue(lines[0].startswith("ShipLoop workspace blocked: "), lines[0])
+                self.assertIn("relative to the execution checkout", lines[0])
+                self.assertIn("Undecided (3): app.js, docs/guide.md, scratch.log.", refused)
+                self.assertIn("Run: " + self.review_command(root) + " --keep <paths> --exclude <paths>", refused)
+                self.assertIn(navigator.REVIEW_RETURN_RULE, refused)
+                self.assertNotIn("Preserve the workspace", refused)  # nothing was put at risk by a mistyped path
+                self.assertEqual((root / "return-plan.md").read_bytes(), before)
+
     def test_plan_return_and_review_return_take_the_workspace_lock(self) -> None:
         # A writer verb now sits beside plan_return, so neither may run while another ShipLoop command holds the workspace.
         import fcntl
@@ -567,6 +584,21 @@ class ReturnRouteTests(ReturnReviewCase):
             self.sh(self.recipe(root, "restore --source"))
             self.assertEqual(self.git("rev-parse", "HEAD^{tree}").stdout, base_tree)  # added files are gone too
             self.assertEqual(self.git("status", "--porcelain=v1", "--untracked-files=all").stdout, "")
+        with self.subTest("fast-forward, later commits on top, keeping their changes: reverse only the run's files"):
+            self.fresh_repo("rb-keep source")
+            root, worktree = self.prepare("rb-keep")
+            self.write(worktree, "app.js")
+            self.commit(worktree)
+            self.review_all(root)
+            self.assertEqual(workspace.execute_return(root)["kind"], "fast-forward-merge")
+            (self.repo / "later.txt").write_text("a later commit by the user\n", encoding="utf-8")
+            self.git("add", "later.txt")
+            self.git("commit", "-qm", "user work on top")
+            head = self.git("rev-parse", "HEAD").stdout
+            self.sh(self.recipe(root, "apply -R").replace("<kept paths>", "app.js"))
+            self.assertFalse((self.repo / "app.js").exists())
+            self.assertTrue((self.repo / "later.txt").is_file())  # what the later commit changed stays
+            self.assertEqual(self.git("rev-parse", "HEAD").stdout, head)  # and the reversal is left uncommitted
         with self.subTest("working-tree return after an excluded committed path: reverse the kept diff"):
             self.fresh_repo("rb-wt source")
             root, worktree = self.prepare("rb-wt")
@@ -612,6 +644,16 @@ class ReturnRouteTests(ReturnReviewCase):
         self.assertNotIn(second["source_before"]["head"], lines)
         self.sh(self.recipe(root, "reset --keep"))
         self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), manifest["source_head"])
+
+    def test_the_restore_recipe_says_it_also_undoes_the_later_commits_and_when_the_diff_recipe_is_better(self) -> None:
+        # `restore --source` makes the tree equal to the pre-return tree, so it undoes what later commits changed too.
+        root, _ = self.prepare("rb-wording")
+        lines = workspace.rollback_lines(root)
+        line = next(item for item in lines if "restore --source" in item)
+        for part in ("later commits on top", "also undoes what those later commits changed",
+                     "to keep their changes, reverse only the run's files with the last recipe instead"):
+            self.assertIn(part, line)
+        self.assertLess(lines.index(line), next(index for index, item in enumerate(lines) if "apply -R" in item))
 
     def test_the_rollback_names_no_absolute_run_path_but_the_source_checkout_for_its_git_calls(self) -> None:
         root, worktree = self.prepare("rb-paths")

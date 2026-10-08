@@ -1405,7 +1405,10 @@ def _decisions(rows: Sequence[Mapping[str, Any]], keep: Iterable[str], exclude: 
     unknown: List[str] = []
     for action, names in (("keep", keep), ("exclude", exclude)):
         for raw in names:
-            name = _safe_rel(raw, label=f"--{action} path (relative to the execution checkout)")
+            try:
+                name = _safe_rel(raw, label=f"--{action} path (relative to the execution checkout)")
+            except WorkspaceError as exc:
+                raise ReviewRefused(str(exc), undecided) from exc
             found = False
             for row in rows:
                 path = row["path"]
@@ -1509,12 +1512,15 @@ def rollback_lines(workspace_root: Path) -> List[str]:
         lines += [
             f"- A fast-forward, with {manifest['source_branch']} checked out and nothing committed after the "
             f"returned commits: `{git} reset --keep {head}`",
-            f"- A fast-forward with later commits on top (needs a clean working tree and discards uncommitted "
-            f"edits): `{git} restore --source={head} --staged --worktree :/ && {git} commit -m "
+            "- A fast-forward with later commits on top. This makes the tree equal to the one before the return, so it "
+            "also undoes what those later commits changed (to keep their changes, reverse only the run's files with "
+            "the last recipe instead); it needs a clean working tree and discards uncommitted edits: "
+            f"`{git} restore --source={head} --staged --worktree :/ && {git} commit -m "
             "'Roll back the ShipLoop return'`",
         ]
-    lines.append(f"- A working-tree return (needs the run branch {run} and commit {base} to still exist; <kept paths> "
-                 f"are the keep rows of the return plan): `{git} diff --binary {base} {run} -- <kept paths> | "
+    lines.append(f"- A working-tree return, or only the run's files after a fast-forward (needs the run branch {run} and "
+                 f"commit {base} to still exist; <kept paths> are the keep rows of the return plan; the reversal is left "
+                 f"uncommitted): `{git} diff --binary {base} {run} -- <kept paths> | "
                  f"{git} apply -R`")
     return lines
 

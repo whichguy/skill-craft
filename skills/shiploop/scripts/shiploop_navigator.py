@@ -2513,8 +2513,8 @@ def review_return_command(core: Any, workspace_root: Path) -> str:
 
 # What --keep and --exclude mean, said once for the packet and for the verb's own output.
 REVIEW_RETURN_RULE = ("--keep is for product code, tests, configuration and durable knowledge; --exclude is for "
-                      "transient output (logs, dumps, scratch files, run artifacts). A directory decides every "
-                      "undecided path beneath it.")
+                      "transient output (logs, dumps, scratch files, run artifacts). Paths are relative to the "
+                      "execution checkout, as the plan lists them; a directory decides every undecided path beneath it.")
 
 
 def _reference_dir(core: Any) -> Path:

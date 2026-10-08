@@ -138,7 +138,8 @@ return is not evidence that a hosted consumer has been updated.
    like credentials, then binds a Markdown path review to the candidate and prints
    the tally, every undecided path and the `review-return` command. Decide **every**
    path with `workspace review-return --workspace-root EXTERNAL --keep PATH... --exclude PATH...`:
-   `keep` for intended lasting work, `exclude` for transient work. A directory decides
+   `keep` for intended lasting work, `exclude` for transient work. Paths are relative
+   to the execution checkout, as the plan lists them. A directory decides
    every undecided path beneath it and the most specific name wins. Each command's
    output is held to ShipLoop's one print limit, so a very long list is cut at a path
    and the rest counted, and the last line is always the next command. Never edit
@@ -282,14 +283,17 @@ the execution worktree is removed.
   changes. The returned commits stay on the run branch.
 - **Fast-forward, later commits on top:** with a clean working tree,
   `git restore --source=<source_head> --staged --worktree :/` followed by a commit
-  restores the recorded tree (files the run added are removed) and keeps the later
-  history. It discards uncommitted edits. `git revert <source_head>..HEAD` is not a
+  makes the tree equal to the one before the return (files the run added are removed)
+  and keeps the later history, but it also undoes what those later commits changed,
+  and it discards uncommitted edits. To keep their changes, reverse only the run's
+  files with the working-tree recipe below. `git revert <source_head>..HEAD` is not a
   recipe: it stops on an integrate merge commit in the run's history.
 - **Working-tree return** (a dirty start, or a clean start whose plan excluded a
-  committed path): `git diff --binary <baseline_commit> <run branch> -- <kept paths>`
+  committed path), or only the run's files after a fast-forward:
+  `git diff --binary <baseline_commit> <run branch> -- <kept paths>`
   piped to `git apply -R`, both run with `git -C <source repo>`. `<kept paths>` are the
-  keep rows of `return-plan.md`. It needs the run branch and the baseline commit to
-  still exist; ShipLoop never removes them.
+  keep rows of `return-plan.md`. The reversal is left uncommitted. It needs the run
+  branch and the baseline commit to still exist; ShipLoop never removes them.
 
 A tree id in a receipt (`expected_source.working_tree`) is not a rollback anchor: no
 ref points at it, so `git gc` can remove it.
