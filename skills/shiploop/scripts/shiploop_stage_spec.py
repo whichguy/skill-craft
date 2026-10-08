@@ -291,7 +291,7 @@ _ROWS = (
         "implement", "inner",
         goal="make the planned change",
         done_when=(
-            "every step's completion criterion is confirmed by its Confirm by after the last edit",
+            "each completion criterion this step's work covers is confirmed after the last edit",
             "the lint gate reports no unwaived new finding on changed lines",
         ),
         develop="Make the planned change in the execution checkout, one reviewed step at a time, matching the house style.",

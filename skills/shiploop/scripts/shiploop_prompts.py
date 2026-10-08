@@ -974,11 +974,15 @@ results do not prove live permissions, event delivery or operator log access.
 Settle these now, so later stages do not guess. For each command, say which test
 ids it may print. A host-dependent case (it needs a host browser, a device, an
 account or a service) names its tool and is probed now by doing the case's first
-step (for a browser, load a local page and read its title back), not its version;
-a probe that fails is an access gap to record now, in the strategy, with the
-requirement it leaves unobserved. The case stays out of the project's default
-test command: give it its own opt-in command or flag, so a plain run of the
-default test command passes without the host tool.
+step, not its version. If the product does not exist yet, probe against a stand-in,
+not the product's own address (a request to it fails whatever the tool can do): for
+a browser, write a one-line page in this run's scratch directory, open it by
+`file:` URL or from a throwaway static server you stop afterwards, and read its
+title back with the tool as the case will use it; for an account or a service, make
+a harmless read the tool can make today. A probe that fails is an access gap to
+record now, in the strategy, with the requirement it leaves unobserved. The case
+stays out of the project's default test command: give it its own opt-in command or
+flag, so a plain run of the default test command passes without the host tool.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -1170,8 +1174,11 @@ the two-people test: two people running it separately would be forced to agree.
 State whether the condition must be exercised or whether inspection is
 sufficient. Give content criteria (docs, changelogs, test coverage) a
 command-checkable confirmation, such as a search for required terms, so they are
-re-observed rather than recalled. Mark a criterion that no available check can
-confirm as `Confirm by: unconfirmable here — <what would confirm it>` rather
+re-observed rather than recalled. A `criteria` entry needs a command that
+confirms it (above), so a condition no command can confirm is not listed there:
+record it as an open item in this result's summary (who does what, and what they
+report back). Elsewhere (a plan note, a graph step's done item) mark such a
+criterion as `Confirm by: unconfirmable here — <what would confirm it>` rather
 than dropping it.
 When the item adds or moves code or stored data, reopen the plan's Namespace
 and data map and the current tree of each environment it touches. Name each
@@ -1943,6 +1950,15 @@ def backchain_skills_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
+def installed_improve_card() -> Path:
+    """The Improve card installed beside ShipLoop in this plugin install, by file location (never a name or PATH search).
+
+    The same skills directory as the Backchain and Until Loop resources.  Whether it is usable is
+    ``shiploop_standalone_improve.resolve_skill``'s decision, not this function's.
+    """
+    return backchain_skills_root() / "improve" / "SKILL.md"
+
+
 def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
     """Resolve the fixed Backchain/Until Loop resources from this plugin install."""
     skills_root = backchain_skills_root()
@@ -2088,6 +2104,19 @@ binding marker in the child request.
 """
 
 
+# Printed with the one-pass gate only: its "Write the child's start contract ... verbatim" reads as an order, and the
+# `converge` gate text has no such sentence.  Says what the script enforces (nothing refuses a plan without the child)
+# and what it cannot see; the dependency audit is the planning guide's duty either way.
+_BACKCHAIN_PLAN_CHOICE = """\
+The `plan`/`draft` request is your choice: nothing refuses a plan without it, and ShipLoop
+cannot see whether the child ran. The planning guide's dependency audit is not optional on
+either route. Say in this result's `summary` which route you took and why. The start
+contract below applies only if you request the child. The printed `backchain-check` reads
+a candidate graph in Backchain's plan schema (Backchain SKILL.md, "Plan document shape"),
+not a prose plan.
+"""
+
+
 def _one_pass(backchain_passes: str) -> bool:
     """Whether a Backchain child's gate text is the one-pass text (every mode but `converge`).
 
@@ -2120,7 +2149,8 @@ Through `source-aware-native`, the current stage host may
 request exactly one action `{action}` / stage `{operation}` within the packet's
 scope. Backchain invokes the selected actual Until Loop for its dependency-specific
 review/fix/check cycle using `Backchain standalone Until Loop binding: <binding-id>`.
-""" + (_BACKCHAIN_PLAN_GATE_ONE if _one_pass(backchain_passes) else _BACKCHAIN_PLAN_GATE_CONVERGE) + """\
+""" + (_BACKCHAIN_PLAN_CHOICE + _BACKCHAIN_PLAN_GATE_ONE if _one_pass(backchain_passes)
+       else _BACKCHAIN_PLAN_GATE_CONVERGE) + """\
 Backchain returns opaque actual Until Loop terminal evidence only after the child reports
 `complete` and its exact receipt is saved. A nonterminal, unresolved, or incompatible
 child leaves this parent action incomplete and must not be submitted as a completed parent

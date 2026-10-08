@@ -207,8 +207,9 @@ route; unavailable remote checks remain unrun even when local tests pass.
 
 At initialization, `--improve-skill=ABSOLUTE_SELECTED_SKILL_CARD` may bind the
 actual card (`--planning-review none` requires it: no planning child binds the card before the first item's
-quality and test loops read it). If omitted, the first checkpoint remains pending until the packet
-instructs the owner to use `improve-bind --action ... --skill-card ...`. The
+quality and test loops read it). If omitted, `init` records the card installed beside ShipLoop when it
+validates, and the first checkpoint's packet prints the command `improve-bind --action ... --skill-card ...`
+with that path; where none validates the checkpoint stays pending on a marked blank. The
 packet is authoritative for argument values and recovery. It then supplies one
 actual Improve handoff; a recorded child is resumed through its own state, and
 `improve-complete` imports its last review pass(es) and check output once, with
@@ -224,7 +225,8 @@ the selected Until Loop runtime remains child-execution authority.
 The canonical Improve package bundles Until Loop **0.5.0**, pinned to
 upstream commit `5df2a2feef4d80b93ca3c8a749d7d265c082d376`. Its default child uses
 `scripts/until_loop_ephemeral.py`; the package provenance manifest records the
-copied source hashes. The explicit selected card determines this binding. An
+copied source hashes. The selected card (the explicit `--improve-skill`, else the card installed
+beside ShipLoop and recorded at `init`) determines this binding. An
 ambient same-named skill or an older `scripts/until-loop` on `PATH` cannot select
 the child runtime. Changing an external Until Loop installation alone does not
 refresh Improve's bundled copy.

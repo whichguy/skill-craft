@@ -240,6 +240,10 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(unavailable.stdout, "")
                 self.assertIn("could not run", unavailable.stderr)
                 self.assertIn("this is not a finding", unavailable.stderr)
+                # A model that checked a prose plan learned the schema by reading this checker's source (batch 1009
+                # BC1); the message names the document that defines it instead.
+                self.assertIn('Backchain SKILL.md, "Plan document shape"', unavailable.stderr)
+                self.assertIn("not a prose plan", unavailable.stderr)
         missing = self.check(self.base / "absent.json", "--run-dir", str(self.run))
         self.assertEqual((missing.returncode, missing.stdout), (3, ""))
         self.assertEqual(len(list((self.run / "backchain" / self.action).iterdir())), 4)

@@ -469,6 +469,49 @@ class RefusalRouteTests(RealCliCase):
         opening.write_text(opening.read_text(encoding="utf-8").replace("...", "Python 3."), encoding="utf-8")
         self.assertEqual(json.loads(self.accepted(start))["status"], "active")
 
+    def test_a_condition_no_command_can_confirm_leaves_criteria_by_the_exit_the_refusal_names(self) -> None:
+        """Batch 1009 S1: the step plan used to tell the model to mark such a criterion `Confirm by: unconfirmable here`
+        in `criteria`, which the gate refuses (a passing command ShipLoop runs is the only confirmation).  The packet
+        and the refusal now name the same exit: the condition is not a criterion, it is an open item in the summary."""
+        run, head = self.new_run("step-plan")
+        command, path, action = printed_callback(head)
+        packet = " ".join(full_packet_text(head).split())
+        exit_sentence = re.search(r"[^.]*no command can confirm[^.]*\.", packet)
+        self.assertIsNotNone(exit_sentence, "the step plan packet says what to do with a condition no command can confirm")
+        self.assertIn("open item", exit_sentence.group(0))
+        good = self.fill_done(head)
+        person_only = {"id": "C2", "text": "A person signs off the layout. Confirm by: unconfirmable here - needs a person."}
+        write_block(path, {**good, "criteria": [*good["criteria"], person_only]})
+        reply = self.refused(command, run)
+        self.assertIn("uncovered: C2", reply)
+        self.assertIn("open item", reply)
+        # The correction is read from the reply: the ids it lists as uncovered leave `criteria`, and the condition
+        # is recorded as an open item in the summary instead.
+        uncovered = re.search(r"uncovered: ([^\n;]+?)(?:[.;]|$)", reply, re.MULTILINE).group(1).split(", ")
+        kept = [row for row in good["criteria"] + [person_only] if row["id"] not in uncovered]
+        write_block(path, {**good, "criteria": kept,
+                           "summary": good["summary"] + " Open item: a person signs off the layout and reports back."})
+        self.accepted(command)
+        self.assertEqual([row["id"] for row in self.recorded(run, action)["criteria"]], ["C1"])
+
+    def test_the_implement_packet_does_not_ask_for_a_field_the_accepted_plan_does_not_hold(self) -> None:
+        """Batch 1009 S1: an item that records no test command has no `criteria` and no `Confirm by` text, yet the
+        implement Done-when told the model to confirm each criterion by its `Confirm by`.  The row names no field
+        and no route (a recorded command exists only for an item that has tests); the accepted plan decides how."""
+        run, head = self.new_run("step-plan", **{"planning-review": "none"})
+        command, path, _ = printed_callback(head)
+        good = self.fill_done(head)
+        write_block(path, {**{key: value for key, value in good.items() if key not in ("criteria", "test_commands")},
+                           "paths": ["README.md"], "test_commands": [], "test_commands_na": "documentation only"})
+        implement = self.accepted(command)
+        self.assertIn("| implement |", implement.splitlines()[0])
+        done_when = implement.split("Done when", 1)[1].split("Checked by:", 1)[0]
+        done_when = " ".join(done_when.split())
+        self.assertIn("completion criterion", done_when)
+        self.assertNotIn("Confirm by", done_when)
+        self.assertNotIn("recorded", done_when)
+        self.assertIn("after the last edit", done_when)
+
 
 def printed_shapes(head: str) -> dict[str, str]:
     """The line the head prints for each outcome other than done: {"repeat": '{"outcome": ...}', ...}."""
