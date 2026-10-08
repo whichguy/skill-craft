@@ -368,6 +368,23 @@ class ReviewReturnTests(ReturnReviewCase):
         self.assertIn("Verified workspace return", self.do_return(root).stdout)
 
 
+    def test_plan_return_and_review_return_take_the_workspace_lock(self) -> None:
+        # A writer verb now sits beside plan_return, so neither may run while another ShipLoop command holds the workspace.
+        import fcntl
+        root, _, _ = self.candidate("locked")
+        workspace.plan_return(root)
+        before = (root / "return-plan.md").read_bytes()
+        with (root / ".workspace.lock").open("rb") as holder:
+            fcntl.flock(holder, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            with self.assertRaisesRegex(workspace.WorkspaceError, "busy"):
+                workspace.plan_return(root)
+            with self.assertRaisesRegex(workspace.WorkspaceError, "busy"):
+                workspace.review_return(root, keep=["app.js"])
+        self.assertEqual((root / "return-plan.md").read_bytes(), before)
+        workspace.review_return(root, keep=["app.js"])  # control: the same call works once the lock is free
+        self.assertEqual(self.dispositions(root)["app.js"], "keep")
+
+
 class ReturnRouteTests(ReturnReviewCase):
     """The route a return takes, said before it happens, and the rollback that undoes each route."""
 
@@ -410,6 +427,23 @@ class ReturnRouteTests(ReturnReviewCase):
             self.write(worktree, "fix.js")
             self.commit(worktree, "a fix after the return")
             self.review_all(root, exclude=("scratch.log",))
+            self.assertEqual(workspace.expected_return(root), "working-tree-return")
+            self.assertEqual(workspace.execute_return(root)["kind"], "working-tree-return")
+        with self.subTest("a follow-up keeps the route of the return it follows, even when the plan would now allow another"):
+            # The excluded committed path makes the first return a working-tree return; keeping it afterwards makes
+            # every history path kept, which a first return would fast-forward.  A follow-up still applies to the
+            # source working tree, and expected_return must say so (the prior-kind rule, not the fresh rule).
+            self.fresh_repo("route source")
+            root, worktree = self.prepare("route")
+            self.write(worktree, "app.js")
+            self.write(worktree, "scratch.log")
+            self.commit(worktree)
+            self.review_all(root, exclude=("scratch.log",))
+            self.assertEqual(workspace.execute_return(root)["kind"], "working-tree-return")
+            self.write(worktree, "fix.js")
+            self.commit(worktree, "a fix after the return")
+            workspace.plan_return(root)
+            workspace.review_return(root, keep=["fix.js", "scratch.log"])
             self.assertEqual(workspace.expected_return(root), "working-tree-return")
             self.assertEqual(workspace.execute_return(root)["kind"], "working-tree-return")
         with self.subTest("dirty start: working-tree return"):
