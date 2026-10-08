@@ -26,7 +26,7 @@ failed on the base for exactly `test-spec` and `release-plan` (4 failures: the c
 after. The round-1 Battleship run met the `release-plan` refusal twice (analysis.json, candidate K1).
 End state: validated. Unmeasured: that a live run now writes the file at release-plan without a refusal.
 
-## W1: five wording defects (this commit; status: firm that the text changed, unmeasured that a model behaves differently)
+## W1: five wording defects (commit 2b2f4513; status: firm that the text changed, unmeasured that a model behaves differently)
 
 (a) discovery's first Done-when has an outcome for a repository with no suite (recorded as missing
 coverage; both round-1 discovery results improvised it). (b) intake asks for a recorded default and research
@@ -40,3 +40,16 @@ The pins prove the wording changed (validated); whether a model behaves differen
 needs a live run. **Not built, by the audit:** (c), the release-plan Improve guard, which contradicts a
 recorded owner decision (`test_improve_retains_coding_and_release_capabilities_with_stage_authority`); both
 round-1 release-plan Improve children ended on one trivial pass, so nothing broke. It needs the owner's yes.
+
+## I2: the Improve parent packet restates the goal and Done-when (this commit; status: firm that the packet carries them, unmeasured that reviews improve)
+
+`_goal_lines` returned `[]` for an active Improve child, so the packet a cleared model re-reads while the
+child runs had no Goal and no Done-when, only a generic line, although the child's frozen exit condition
+already carried them (the gap was the parent, MAIN TENET / S-6). Now it prints "Reviewing the returned
+<stage> result. Goal: ..." and the stage's done_when under "a done result must meet each". The audit's
+wording corrections: the result is "returned", not "accepted" (the parent stays pending until
+improve-complete), and the heading is true for the blocked and repeat results that also start a child.
+`_improve_line` adds one sentence that the review checks the result against the Done-when above. Tests:
+`test/shiploop-packet-completeness.test.py` (all 8 Improve packets carry Goal and every done_when line;
+the 7 reviewed producers say so; 15 failures before), `test/shiploop-rehydration.test.py` (the dry run and a
+blocked seed; 2 failures before), `test/shiploop-improve-schedule.test.py` (1 before). End state: validated.

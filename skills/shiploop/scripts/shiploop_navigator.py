@@ -3561,10 +3561,17 @@ def _checked_line(row: Any) -> str:
 
 
 def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
-    """Lead an active producer packet with the stage's goal, done-when and fixed considerations."""
-    if state["status"] != "active" or state.get("active_improve"):
+    """Lead an active packet with the stage's goal and done-when; a producer also gets its checks and considerations."""
+    if state["status"] != "active":
         return []
     row = stage_spec.stage(stage)
+    if state.get("active_improve"):
+        # The parent packet a cleared model re-reads while the child runs: what the review judges the result against.
+        # The result is returned, not accepted (the parent step stays pending), and may be blocked or repeat, so the
+        # conditions are the ones a done result must meet.
+        return ["Reviewing the returned " + stage + " result. Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
+                "Done when (a done result must meet each; correct the result, never the condition):",
+                *("- " + condition for condition in row.done_when)]
     lines = ["Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
              "Done when (confirm each before calling done; keep going until all hold):",
              *("- " + condition for condition in row.done_when),
@@ -3635,7 +3642,7 @@ def _improve_line(state: Mapping[str, Any], stage: str) -> str:
     mode = recorded_planning_review(state)
     if stage in stage_spec.reviewed_stages(mode):
         when = ("Every " + stage + " result, including blocked and repeat, starts this action's "
-                "Improve child.")
+                "Improve child. That review checks the result against the Done-when conditions above.")
     elif stage in stage_spec.PLANNING_CHOICE_STAGES:
         when = ("no Improve child starts after this result in this run (planning_review: " + mode
                 + "); ShipLoop's own checks at complete are the only gate before the graph advances.")
