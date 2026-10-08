@@ -178,7 +178,10 @@ _DURATION_SECONDS = {
     "test/shiploop-stopped-improve.test.py": 1.27,
     "test/shiploop-actual-improve-cli.test.py": 45.762,
     "test/shiploop-local-skills.test.py": 1.983,
-    "test/shiploop-navigator-dry-run.test.py": 3.603,
+    # 3.603 was written when the dry run walked fewer scenarios.  Local wall seconds, 2026-10-08, the faster of two serial
+    # runs at load average 3.8 to 6.0: 32 tests, 12.7 s (the other run 12.99 s).  Batch 1009 B1a added a test that
+    # reads every bind command of every scenario under both delegations.  Under QUICK_MAX_SECONDS.
+    "test/shiploop-navigator-dry-run.test.py": 12.7,
     "test/shiploop-cross-run.test.py": 20.313,
     "test/shiploop-chain-git.test.py": 27.248,
     "test/shiploop-chain-lifecycle.test.py": 803.023,
@@ -201,7 +204,10 @@ _DURATION_SECONDS = {
     "test/experiments/shiploop_chain/test_grok_trace.py": 0.178,
     "test/shiploop-consumer-delivery-cli.test.py": 4.374,
     "test/shiploop-delegation.test.py": 3.445,
-    "test/shiploop-improve-schedule.test.py": 0.2,
+    # 0.2 was written at a handful of tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load
+    # average 3.8 to 6.0: 33 tests, 14.0 s (the other run 16.2 s).  The real-CLI classes (`none`, installed card, no
+    # installed card) run `init` and the walk to the spec result per test.  Under QUICK_MAX_SECONDS.
+    "test/shiploop-improve-schedule.test.py": 14.0,
     "test/shiploop-lint.test.py": 36.0,
     "test/shiploop-quality.test.py": 5.0,
     # 3.0 was written when the suite had a fraction of its tests.  Local wall seconds, 2026-10-08, the faster of two
@@ -224,7 +230,9 @@ _DURATION_SECONDS = {
     # locally against 64 s, so 61.0 scaled by 84.5/64 is 81.  Still an estimate, still under QUICK_MAX_SECONDS (120).
     "test/shiploop-e2e.test.py": 81.0,
     "test/shiploop-run-review.test.py": 0.2,
-    "test/shiploop-callback-contract.test.py": 56.0,  # measured alone 2026-10-08: 27 tests, 56 s
+    # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average 3.8
+    # to 6.0: 29 tests, 60.6 s (the other run 61.5 s).  Under QUICK_MAX_SECONDS.
+    "test/shiploop-callback-contract.test.py": 60.6,
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
