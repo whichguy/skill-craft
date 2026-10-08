@@ -857,7 +857,9 @@ def main(core: Any, argv: Optional[List[str]] = None) -> int:
               "this is not a finding", file=sys.stderr)
         return EXIT_UNAVAILABLE
     except CheckUnavailable as exc:
-        print(f"ShipLoop backchain-check could not run: {exc}; this is not a finding", file=sys.stderr)
+        # Only a candidate that is not JSON reaches here (an unreadable file is the OSError case above).
+        print(f"ShipLoop backchain-check could not run: {exc}; this is not a finding. The candidate is a Backchain plan "
+              "graph in JSON (Backchain SKILL.md, \"Plan document shape\"), not a prose plan", file=sys.stderr)
         return EXIT_UNAVAILABLE
     sys.stdout.write(receipt_text(record_))
     root, action, reason = _current_action(core, args.run_dir)

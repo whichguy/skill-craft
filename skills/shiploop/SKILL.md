@@ -401,7 +401,9 @@ run option `backchain_passes` (default `one`): how many passes the Backchain
 planning child may take. `one` is one review/fix/check cycle, `converge` is two
 consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`. The `one`
 plan packet prints the gate and an exit condition, which the host copies into the child's
-start contract; the `converge` plan packet prints the two-review gate, and the host takes its
+start contract, and says the child is the host's choice (nothing refuses a plan without it
+and ShipLoop cannot see whether it ran) and that the result's summary names the route taken;
+the `converge` plan packet prints the two-review gate, and the host takes its
 exit condition from Backchain's convergence reference. In `none` the plan packet prints the
 read-only audit route the other Backchain stages print (the one resource it needs and the
 loop-resource status line), says no whole `plan`/`draft` is requested in this run, and

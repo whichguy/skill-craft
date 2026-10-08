@@ -70,3 +70,58 @@ two skill stages is the faithful default, so this is an efficiency item. The tem
 8af12178: "a copied placeholder would be a false opt-out") and a guard test pins that. Reopen only if a later live set shows
 a host that never records `skill_na` on repositories with no skill index; the follow-up is then a gate-required choice or an
 observation-derived default, not a template placeholder.
+
+## BC1: the plan packet says the Backchain child is a choice, and the graph check names its schema
+
+Status: interim (the text is built and pinned; whether it changes what models do is unmeasured).
+
+Question. The one-pass plan packet says the host "may request exactly one action `plan` / stage `draft`" and, a few lines
+later, "Write the child's start contract ... verbatim". Lenses disagreed on whether the child is required (F5 and F11 read it
+as permissive, F12 as required). The printed `backchain-check` is unconditional yet accepts only a Backchain-schema JSON graph.
+
+Evidence. Both round-1 Sonnet plans had one work item and skipped the child, and said so in the accepted summary
+(battleship: "The whole-operation Backchain Until Loop child was not run: linear 4-step graph"; checkers:
+"backchain-check expects a JSON graph so it was not applicable to this one-item markdown plan"). Checkers got "could not run: not
+JSON" (event 139) and recorded "not applicable"; battleship read `shiploop_backchain_graph.py` (events 170-180) to learn the
+schema, which only Backchain SKILL.md "Plan document shape" documents. Source: round-1 analysis lenses (stage-fidelity F11,
+tenet-packets F5 and F7, waste W-PLAN-DETOUR, checkers F12 and EV-7).
+
+Decision. Say what the script enforces and nothing more: the child is the host's choice, nothing refuses a plan without it,
+ShipLoop cannot see whether it ran, the planning guide's dependency audit is not optional on either route, the result's
+summary names the route taken, and the printed `backchain-check` reads a Backchain plan graph (named by its SKILL.md section),
+not a prose plan. The graph-check failure for a candidate that is not JSON names the same section.
+
+Audit corrections applied. (1) The failure message does not list `goal, initial_state, steps`: that is 3 of the 5 required
+top-level keys (`parallel_groups` and `unresolved` too) and a graph with exactly those three fails 8 invariants; it points at
+the section. (2) "The documented owner position" is overstated. The sources are an observation ("Backchain is optional and
+unchecked", `docs/shiploop-backchain-validator-comparison-plan-2026-10-04.md`: Luna ran two loops, four Sonnet runs ran none)
+and a validator-increment risk row marked Accepted; the same plan's decision table keeps "require it at plan above a measured
+size" open pending its I4 and I5 comparison. The packet and the references therefore describe today's behaviour ("nothing
+refuses a plan without it"), not a policy. This text change confounds plan-stage baselines across versions. (3) The retained
+audit statement is `backchain-planning.md` "Retain the audit in ordinary plan notes ...", not the interaction-design duty's
+"Keep these as ordinary notes, not new result fields".
+
+Mode decision (the audit left it open). The lead prints only with the one-pass gate. That gate holds the imperative ("Write
+the child's start contract ... verbatim") that reads as an order; the `converge` gate text has no such sentence, and an owner
+who passes `--backchain-passes converge` has chosen the heavier route, which a statement that the child is optional would
+dilute. The audit stages and a `none` run offer no whole child. A guard test pins all of that.
+
+Not built. A structured `backchain` result field. A prototype broke the plan fixtures of at least 9 test files (quality,
+callback-contract, actual-improve-cli, assumptions, improve-schedule, test-loop, lint, full-runtime) and would add a gate, a
+Checked-by clause, a template key, a context-index line and about 215 characters to the plan head, for a claim that cannot be
+verified under S-9 because no script reads the child's Until Loop state. Revisit only if the next Run Review needs
+declared-versus-observed and the prose route proves unreliable. Making the child required (an invented policy; the Luna
+one-pass child cost 23.5 minutes against the 30-minute planning ceiling; its value is unmeasured, `docs/planning-time-analysis-2026-10-06.md`).
+
+Tests. `test/shiploop-navigator-dry-run.test.py` `BackchainStageTextTests`: the one-pass plan packet carries each of seven
+phrases once, through the library text and through the dry-run CLI route, and the choice precedes the gate it qualifies
+(red on the unmodified tree); a guard that audit stages, converge and none do not print it. `test/shiploop-backchain-check.test.py`
+`test_exit_codes_follow_lint`: every not-JSON input names "Backchain SKILL.md, "Plan document shape"" and "not a prose plan"
+(red on the unmodified tree). `BACKCHAIN_CHECK` (131 bytes, pinned) is untouched. The text sits after the status block, so the
+kept head does not move.
+
+Unknowns. Reach: the lead sits deep in a large plan packet and models read little of it (W-PLAN-DETOUR and W-PACKET-USE: 2 of
+44 packets read in full; the checkers model read a slice and a grep), so the failure message is the surer channel. Whether
+Luna or Grok skip the 23.5-minute child now: read the next looped Luna run for whether the child ran, its summary reason and
+the plan-stage minutes. Whether models write the route in `summary`: scan the next two accepted plan summaries (both Sonnet
+runs did unprompted); if prose proves unreliable, build the structured field.

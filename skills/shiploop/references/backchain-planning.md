@@ -260,6 +260,11 @@ reports, under the skills root it names (`backchain/` and `improve/runtime/until
 whether every file listed above is present for a `repair`/`revise` request or which are
 MISSING, and a MISSING file blocks that route for that named resource.
 
+The whole `plan`/`draft` request is the host's choice: nothing refuses a plan without it
+and ShipLoop cannot see whether it ran; the default (`one`) plan packet asks the plan's
+`summary` to name the route taken. The dependency audit above is not optional on either
+route.
+
 Record the binding id, candidate and receipt locators in ordinary run notes,
 `evidence_refs` and compact work-item `context`, and keep Backchain's
 `review.convergence` record (`terminal_receipt`, `domain_evidence`, `planning_gaps`,

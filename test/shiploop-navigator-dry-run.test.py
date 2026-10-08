@@ -537,6 +537,39 @@ class BackchainStageTextTests(unittest.TestCase):
                 self.assertEqual(one.replace(self.POINTER + ". ", ""), converge)
 
 
+    # Batch 1009 BC1: the one-pass plan packet said "may request" and, a few lines later, "Write the child's start
+    # contract ... verbatim", and models read the child as required or optional by chance; both Sonnet round-1 runs
+    # skipped it and ran the printed backchain-check on a prose plan.  The packet says what the script enforces.
+    CHOICE = ("The `plan`/`draft` request is your choice",
+              "nothing refuses a plan without it",
+              "ShipLoop cannot see whether the child ran",
+              "dependency audit is not optional on either route",
+              "Say in this result's `summary` which route you took and why",
+              "The start contract below applies only if you request the child",
+              "reads a candidate graph in Backchain's plan schema (Backchain SKILL.md, \"Plan document shape\"), not a prose plan")
+
+    def test_the_one_pass_plan_packet_says_the_child_is_a_choice_and_the_audit_is_not(self):
+        flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="one").split())
+        packet = " ".join(self.packets[self.LOOP_STAGE].split())
+        for phrase in self.CHOICE:
+            with self.subTest(phrase=phrase):
+                self.assertEqual(flat.count(phrase), 1)
+                self.assertEqual(packet.count(phrase), 1)  # the dry-run CLI route prints it, once
+        # It sits before the gate it qualifies, so a reader meets "optional" before "write the contract verbatim".
+        self.assertLess(flat.index(self.CHOICE[0]), flat.index("Write the child's start contract"))
+
+    def test_the_choice_is_said_only_where_the_one_pass_gate_is_printed(self):
+        """GUARD (passes on the unchanged tree): converge is the owner choosing the heavier route and its gate text has no
+        'write verbatim' sentence to qualify; the audit stages and a `none` run offer no whole child at all."""
+        quiet = {f"{stage} (one)": guidance._backchain_guidance(stage, backchain_passes="one") for stage in self.AUDIT_STAGES}
+        quiet["plan (converge)"] = guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="converge")
+        quiet["plan (none)"] = guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="none")
+        for label, text in quiet.items():
+            with self.subTest(label):
+                flat = " ".join(text.split())
+                self.assertNotIn("your choice", flat)
+                self.assertNotIn("nothing refuses a plan without it", flat)
+
     NONE_SENTENCE = "No whole `plan`/`draft` is requested in this run"
     # The six resources only a whole loop reads; the seventh, the caller contract, serves the read-only audit.
     LOOP_ONLY_LABELS = ("Backchain SKILL.md", "Backchain references/convergence.md",

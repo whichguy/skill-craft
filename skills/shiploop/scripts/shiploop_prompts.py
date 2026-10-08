@@ -2082,6 +2082,19 @@ binding marker in the child request.
 """
 
 
+# Printed with the one-pass gate only: its "Write the child's start contract ... verbatim" reads as an order, and the
+# `converge` gate text has no such sentence.  Says what the script enforces (nothing refuses a plan without the child)
+# and what it cannot see; the dependency audit is the planning guide's duty either way.
+_BACKCHAIN_PLAN_CHOICE = """\
+The `plan`/`draft` request is your choice: nothing refuses a plan without it, and ShipLoop
+cannot see whether the child ran. The planning guide's dependency audit is not optional on
+either route. Say in this result's `summary` which route you took and why. The start
+contract below applies only if you request the child. The printed `backchain-check` reads
+a candidate graph in Backchain's plan schema (Backchain SKILL.md, "Plan document shape"),
+not a prose plan.
+"""
+
+
 def _one_pass(backchain_passes: str) -> bool:
     """Whether a Backchain child's gate text is the one-pass text (every mode but `converge`).
 
@@ -2114,7 +2127,8 @@ Through `source-aware-native`, the current stage host may
 request exactly one action `{action}` / stage `{operation}` within the packet's
 scope. Backchain invokes the selected actual Until Loop for its dependency-specific
 review/fix/check cycle using `Backchain standalone Until Loop binding: <binding-id>`.
-""" + (_BACKCHAIN_PLAN_GATE_ONE if _one_pass(backchain_passes) else _BACKCHAIN_PLAN_GATE_CONVERGE) + """\
+""" + (_BACKCHAIN_PLAN_CHOICE + _BACKCHAIN_PLAN_GATE_ONE if _one_pass(backchain_passes)
+       else _BACKCHAIN_PLAN_GATE_CONVERGE) + """\
 Backchain returns opaque actual Until Loop terminal evidence only after the child reports
 `complete` and its exact receipt is saved. A nonterminal, unresolved, or incompatible
 child leaves this parent action incomplete and must not be submitted as a completed parent
