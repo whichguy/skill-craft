@@ -56,7 +56,14 @@ The verb comes from the command alone, else it is `unknown`; a script's verb is 
   arm is not Claude-only. Effect on history, measured on the four recorded Grok runs: the old and new lists are identical for
   v1210, v1230 and r1; v1220 reads 3 where it read 2, because a compound command (`$CLI workspace plan-return ...` then a failing
   `curl`, exit 1) names its verb only once `$CLI` is expanded; it is the same over-count Claude has. Baseline printouts compare
-  glue, not failures, so no printed comparison changes.
+  glue, not failures, so no printed comparison changes. *Superseded 2026-10-08 for the Codex hosts (review of this commit):* this
+  check compared the four Grok runs only. The dedupe kept the call ids it had counted and never cleared one, and Codex restarts its
+  ids in every session (v1210 Luna: 1,542 `tool_call` events, 486 distinct ids, 337 of them used more than once), so a later
+  failure that reused an id was dropped (v1210 read 9 under that version, the same as under the old rule, because it lost one
+  failure to a reused id and gained one anchored refusal). `ToolLog.call` now clears the id, and the old and new lists were compared on every recorded run of every host:
+  identical on `battleship-luna` and `v1200-battleship-luna`, v1161 Luna records the refusal line where it recorded `AssertionError`
+  (the model's own failing assert, printed just before the refusal), v1210 Luna reads 10 where it read 9 (one anchored refusal whose
+  command names no verb: `unknown`). See "Review of H1a to H1d" below.
 - *Variables are expanded for Grok and Codex commands too*, one function for all hosts (only a command that assigns a variable
   before using it is affected).
 
@@ -68,7 +75,9 @@ is attributed to the ShipLoop call in it). Exits shown on 18 of the 82. r1 Battl
 has an exit), glue 1 (`git -C $WT add` and `commit`), `/tmp/bs.pid` the one shared `/tmp` write, 120 stage tool calls. r1 Checkers: 4
 failures (1 `complete`, 2 `unknown`, 1 `workspace`), glue 2, 105 tool calls. Old figures this replaces: both runs read `[]`, `[]`
 and null per-stage tool calls. The Batch 1003 table of `LEARNINGS.md` is corrected with its reason (hello 6, seat-reservations 16,
-battleship 13, battleship-scoring 10 failures; glue 0, 3, 10, 0).
+battleship 13, battleship-scoring 10 failures; glue 0, 3, 10, 0). *Superseded 2026-10-08 for seat-reservations' glue: 2, not 3.*
+The third was a write under `W=$B/../worktree`, the product worktree beside the run directory, which matched the run directory's
+prefix until the expansion resolved `/run/..` (see "Review of H1a to H1d").
 
 **Pre-change baseline rows (resolves M1's open question 4).** The four Claude rows in `baselines.jsonl` (2026-10-04, 10-06, 10-07,
 10-08) hold null for `model_glue`, `shiploop_failures` and `tmp_writes` and name them, with `stage_tool_calls`, in `unmeasured`. So
@@ -84,8 +93,10 @@ builds such a row and checks the printed line.
 - Background Bash tasks arrive as `system/task_started` and `task_notification` events (3 in r1 Battleship); none ran a ShipLoop
   command. A background ShipLoop call would be unseen.
 - A result the host saved to a file (`<persisted-output>`, about 5 in older runs) starts with neither prefix within its preview, so a
-  failing command with a large output is invisible. All counts are lower bounds for this reason, and for the loop case (a looping
-  command with several ShipLoop calls is one failure: battleship-scoring has 19 refusal lines in 8 results).
+  failing command with a large output is invisible. The glue and script-run counts are lower bounds for this reason, and
+  `shiploop_failures` is a heuristic (it misses a saved-to-file result and a looping command with several ShipLoop calls, which is
+  one failure: battleship-scoring has 19 refusal lines in 8 results, and it can over-count a compound command; corrected
+  2026-10-08, the review asked that the failure count not be called a lower bound).
 - Model glue still counts commands: a script the model wrote that wraps the CLI hides its ShipLoop calls from every count here
   (14 of the 15 recorded runs wrote one). The README says so; H1b lists the scripts.
 - Compactions, truncated outputs, cancelled tool calls and knowledge reads stay unmeasured for Claude (no `compact_boundary` in any
@@ -234,3 +245,26 @@ full count, which it is not for a Claude run; the SPEC row and `summary_lines` s
 **Owner calls left open.** Whether the model-written scripts that wrap the CLI should be counted as glue in SPEC S-4 and S-5 (the
 journal keeps `model_glue`'s definition so Grok baselines stay comparable and shows the scripts beside it); whether the exporter
 should show `scratch_scripts`.
+
+## Review of H1a to H1d: what the adversarial review found and what was done (2026-10-08)
+
+Basis: the five commits above, reviewed by a second reader who ran the suite at each commit tree, mutated about 45 rules of
+`metrics.py` and `run.py`, and recomputed old against new on every recorded host. Fixes: `73ababfd` (code and tests) and the docs commit after it.
+Every finding was addressed and none skipped; the third row differs from the review's proposed fix, as it says.
+
+| Finding | Status | What was done |
+|---|---|---|
+| Major: the failure dedupe keys on the host's call id and never clears it, so a Codex call that reuses an id (every session restarts at `item_0`) is dropped | firm (reproduced by a pair of Codex sessions; recorded v1210 Luna 9 against 10) | `ToolLog.call` clears the id (`self.failed.discard(call_id)`). `test_a_host_that_numbers_its_calls_again_in_each_session_has_every_failure_counted` failed first (one failure for two calls) and passes; a Grok call whose completed update repeats stays one failure. The old against new comparison was rerun on every recorded Grok, Codex and Claude run (the paragraph on the failure rule in `test/shiploop_e2e/README.md` and "Superseded" above). |
+| Minor: five rules no test pins (the slice from the refusal's own line; `scratch_scripts` lists only scripts that ran; a script outside `scratch/` listed when it wraps the CLI; `claude_exit` anchored at the result start; the `failed shiploop` print in `run.main`) | firm (each mutant failed a test after the change; the first run left it green) | One test each: `test_a_refusal_is_recorded_from_its_own_line_not_from_an_earlier_line_of_the_models_output` (an earlier `KeyError` line; the comment of the first test claimed the same with a fixture that had no such line and was corrected), `test_a_script_is_listed_only_when_a_call_ran_it_and_outside_scratch_only_when_it_wraps_the_cli`, `test_an_exit_line_quoted_in_the_middle_of_a_result_is_not_the_hosts_exit`, `GradeOnlyTest.test_a_regrade_names_a_refusal_whose_exit_the_host_did_not_show`. Each was shown failing by mutating its rule back (summarised in the commit message of `73ababfd`). |
+| Minor: expanded values are not normalised, so `W=$B/../worktree` (the product worktree) matched the run directory's prefix and counted as a write into a ShipLoop-owned path | firm (recomputed with the resolution switched off and on: batch-sonnet seat-reservations glue 3 to 2, v1161-hello 3 to 1; the other Batch 1003 cells and `20261003/seat-reservations` do not move) | `expand_variables` resolves each `/segment/..` the expansion leaves, in values and in command text alike (the review proposed normalising assigned values only, which leaves `rm -rf $R/../worktree/__pycache__` as glue; v1161-hello reads 2 that way, 1 here, and the third write was product space too). A path that leaves the run directory and re-enters it stays glue. LEARNINGS' Batch 1003 cell is corrected (16, 2). |
+| Minor: the commit messages cite `9c867ad1` (the dangling pre-amend H1c) and name `06f2a012` as the plan that admitted M1 | firm | The five H1 messages were reworded in place (the commits were unpushed; the tree is identical to the one reviewed, checked with `git diff` against a backup ref): the related-commit lines now cite the commits that exist in this series (`c7a8187d` H1a, `8a9732ea` H1c, `3aa2b43f` H1b, `4e656d23` H1d, docs `826ddbb6`) and `f9096bb1` as the plan that admitted M1 (`06f2a012` holds its corrections after execution). The H1a message also records the Codex facts and the call-id defect, as "Corrected after review". |
+| Minor: the README and journal call `shiploop_failures` a lower bound although a compound command over-counts | firm | Reworded: failures are heuristic (can be high or low), glue and script runs are lower bounds. |
+| Minor: LEARNINGS lists `idone.py` among the CLI wrappers; the `ea21092e` bullet describes a path this change removed | firm | `idone.py` is named as a script that wraps the Until Loop's done command; the bullet is marked superseded with the date and the reason. |
+
+**What the review did not need.** The suite's `suite_catalog` timing pin (81.0 s) holds: the review measured about the same runtime
+(108 s against 108 to 119 s). Every commit stands alone (the suite passed at each of the four feature commit trees).
+
+**Learning.** A change to a classifier every host shares has to be compared old against new on a recorded run of every host, not on
+the host that motivated it: the four Grok runs agreed, and the Codex runs held the loss. And a gain can hide a loss in a total:
+v1210 read 9 under the old rule and 9 under the first version of the new one (one failure dropped, one anchored refusal added); it
+reads 10 now.

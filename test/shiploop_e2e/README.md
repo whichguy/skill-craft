@@ -326,7 +326,10 @@ ran green is a green pass.
   `tool_calls` on all three. Until 2026-10-08 it read only Grok's shape, so Claude's four
   were unmeasured; a Claude baseline row from before then holds null and names them in
   `unmeasured`, so the next row prints "not measured -> N" and never "0 -> N". The counts
-  are heuristic lower bounds, not exact: read the listed commands.
+  are heuristic, not exact: read the listed commands. `shiploop_failures` can over-count a
+  compound command (the exit of the whole command is the ShipLoop call's) and under-count a
+  loop, a result the host saved to a file or a variable it could not expand; `model_glue` and
+  the script run counts are lower bounds.
   - A ShipLoop failure is one tool result, counted once. Either its text has a line that
     begins `ShipLoop navigator: `, `ShipLoop blocked: ` or `ShipLoop workspace blocked: `
     (whatever exit the host showed: the model pipes the CLI through `head`, `grep` or `sed`,
@@ -339,14 +342,22 @@ ran green is a green pass.
     a failure of verb `next` with no line: a setup failure, not a refusal. The recorded `line` starts at the refusal's own line. A document
     line that begins with a prefix would count; the same words inside a line do not.
     The rule is the same on every host. Grok sends running updates with a placeholder exit 0
-    and the output so far, so only its completed update is read. Before 2026-10-08 Grok and
-    Codex counted only the nonzero-exit arm on commands that named the CLI literally; on
-    the four recorded Grok runs the two rules give the same list, except one more failure in
-    v1220 (a compound command whose `$CLI workspace` verb shows once variables are expanded).
+    and the output so far, so only its completed update is read. A failure is counted once
+    per call: Codex numbers its calls again in each session (the recorded v1210 Luna run has
+    1,542 `tool_call` events and 486 distinct ids), so a reused id is a new call. Before
+    2026-10-08 Grok and Codex counted only the nonzero-exit arm on commands that named the CLI
+    literally. On the four recorded Grok runs the two rules give the same list, except one more
+    failure in v1220 (a compound command whose `$CLI workspace` verb shows once variables are
+    expanded). On the recorded Codex runs they differ in two: v1161 Luna records the refusal
+    line where it recorded the first line matching an error word in the model's output
+    (`AssertionError`), and v1210 Luna gains one anchored refusal whose command names no
+    verb (verb `unknown`, 10 failures against 9).
   - Shell variables are expanded per command first (`RUN=...; ... $RUN/scratch/x.sh`;
     Claude's tool calls did not share variables), so the glue and `/tmp` detectors see the
     paths. An assignment whose value is still unresolved (`R=$?` inside a quoted `sh -c`) is
-    not recorded and cannot replace the real one.
+    not recorded and cannot replace the real one. A `/segment/..` the expansion leaves is
+    resolved (`$RUN/../worktree` is the product worktree beside the run directory, not a path
+    inside it), and a path that goes out of the run directory and back in is the run directory.
   - `model_glue` counts commands (SPEC S-4, S-5). A script the model wrote that wraps the
     CLI hides the ShipLoop calls inside it from every count here: the verb, the glue write and
     often the failure's verb. 14 of the 15 recorded Claude runs wrote and ran one
