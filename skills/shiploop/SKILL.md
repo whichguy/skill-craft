@@ -523,6 +523,10 @@ refuses a run of zero tests (`no-tests`), fewer than `min_tests`
 that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). A focused command whose count ShipLoop
 cannot read passes only with `ids` that all appear; a regression command without
 `ids` or `min_tests` may pass uncounted.
+A system command row marked `"host_dependent": true` (its cases need a host tool: a browser, a device,
+an account, a service) is also checked for drift at `system-test`: ShipLoop runs the accepted
+regression commands and refuses when any of that row's `ids` is shown, run or failed, in their
+output, because the project's default suite must pass without the host tool.
 
 **Test stages not applicable to an item.** When the accepted step plan records
 no test command (`test_commands_na`) and every declared path is documentation,

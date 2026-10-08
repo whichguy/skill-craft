@@ -260,6 +260,88 @@ class NodeTestRunnerTests(unittest.TestCase):
         self.assertEqual(status(focused, 0, "pass-dot.txt"), "uncounted")
 
 
+class HostDependentDriftTests(unittest.TestCase):
+    """B2: a system case that needs a host tool (a browser) must not run in the project's default suite.
+
+    The delivered Battleship repo's plain `node --test` ran two Chrome cases and needed macOS Chrome, and every gate passed
+    it.  A system row marks `host_dependent`; at system-test ShipLoop also runs the accepted regression commands and
+    refuses when a marked id is shown (run, pass or fail) in their output."""
+
+    SYSTEM = {"command": "node --test test/system.test.js", "suite": "focused", "ids": ["TC-4", "TC-15"],
+              "host_dependent": True}
+    REGRESSION = {"command": "node --test", "suite": "regression", "min_tests": 2}
+
+    def state(self, repo: Path) -> dict:
+        return {
+            "repo": str(repo), "work_items": [{"id": "W1"}],
+            "history": [
+                {"action": "a-sys", "stage": "system-test-author", "workitem": None, "outcome": "done"},
+                {"action": "a-plan", "stage": "step-plan", "workitem": "W1", "outcome": "done"}],
+            "accepted": {
+                "a-sys": {"outcome": "done", "system_commands": [self.SYSTEM]},
+                "a-plan": {"outcome": "done", "test_commands": [self.REGRESSION]}}}
+
+    def run_system_test(self, default_suite_output: str):
+        import tempfile
+        calls = []
+
+        def runner(argv, cwd, timeout, input_bytes=b"", env=None):
+            command = argv[-1]
+            calls.append(command)
+            if command == self.SYSTEM["command"]:
+                return "ok", 0, node("pass-spec.txt").replace("TC-1 ", "TC-4 ").replace("TC-2 ", "TC-15 ").encode(), b""
+            return "ok", 0, default_suite_output.encode(), b""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "tests").mkdir()
+            writes, refusal = test_loop.verify(root, self.state(root), "", "a-run", "system-test", runner=runner)
+        return calls, writes, refusal
+
+    def test_a_marked_id_shown_by_the_default_suite_is_refused_with_the_remedy(self) -> None:
+        shows = "✔ TC-4 opens the page in Chrome (30ms)\n✔ TC-9 rules (1ms)\nℹ tests 2\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\n"
+        calls, writes, refusal = self.run_system_test(shows)
+        self.assertEqual(calls, [self.SYSTEM["command"], self.REGRESSION["command"]])
+        self.assertIn("TC-4", refusal)
+        self.assertIn("host-dependent", refusal)
+        self.assertIn("opt-in", refusal)
+        record = next(iter(writes.values()))
+        self.assertIn("host-dependent-in-default-suite", record)
+
+    def test_the_default_suite_that_skips_or_omits_the_marked_ids_passes(self) -> None:
+        for name, output in (
+                ("omitted", "✔ TC-9 rules (1ms)\n✔ TC-10 rules (1ms)\nℹ tests 2\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\n"),
+                ("skipped", "﹣ TC-4 needs Chrome (0.1ms) # set BROWSER=1\n✔ TC-9 rules (1ms)\n✔ TC-10 (1ms)\n"
+                            "ℹ tests 3\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 1\n")):
+            with self.subTest(name):
+                _calls, _writes, refusal = self.run_system_test(output)
+                self.assertEqual(refusal, "")
+
+    def test_without_a_marked_row_the_default_suite_is_not_run_at_system_test(self) -> None:
+        import tempfile
+        state_calls = []
+
+        def runner(argv, cwd, timeout, input_bytes=b"", env=None):
+            state_calls.append(argv[-1])
+            return "ok", 0, node("pass-spec.txt").encode(), b""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "tests").mkdir()
+            state = self.state(root)
+            state["accepted"]["a-sys"]["system_commands"] = [dict(self.SYSTEM)]
+            del state["accepted"]["a-sys"]["system_commands"][0]["host_dependent"]
+            _writes, refusal = test_loop.verify(root, state, "", "a-run", "system-test", runner=runner)
+        self.assertEqual(state_calls, [self.SYSTEM["command"]])
+
+    def test_host_dependent_is_a_boolean_true_and_nothing_else(self) -> None:
+        row = {"command": "x", "suite": "focused", "ids": ["TC-1"], "host_dependent": True}
+        self.assertTrue(test_loop.normalise_commands([row])[0]["host_dependent"])
+        for bad in (False, "yes", 1):
+            with self.subTest(bad=bad), self.assertRaises(test_loop.TestLoopError):
+                test_loop.normalise_commands([dict(row, host_dependent=bad)])
+
+
 class CommandSchemaTests(unittest.TestCase):
     def test_ids_and_min_tests_are_validated(self):
         rows = test_loop.normalise_commands([

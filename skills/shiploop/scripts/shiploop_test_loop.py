@@ -59,7 +59,7 @@ MAX_REFUSED_RUNS = 7
 # focused and regression commands run tests; a check (for example a search that a
 # document names a required term) is judged by its exit code alone.
 SUITES = ("focused", "regression", "check")
-COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria"})
+COMMAND_KEYS = frozenset({"command", "suite", "ids", "min_tests", "criteria", "host_dependent"})
 # Statuses that count as passing.  ``passed-uncounted`` (exit 0, output not
 # recognised) is allowed only for a regression command without ids or min_tests.
 PASSING = ("passed", "passed-uncounted")
@@ -105,8 +105,10 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
 
     Each entry is ``{"command": str, "suite": focused|regression|check}`` plus
     optional ``ids`` (test IDs the command must visibly run), ``min_tests``
-    (int >= 1) and ``criteria`` (the step plan's criterion IDs it confirms).  A
-    ``check`` is judged by its exit code, so it takes no ids or min_tests.
+    (int >= 1), ``criteria`` (the step plan's criterion IDs it confirms) and
+    ``host_dependent`` (true: its cases need a host tool, so no default suite may
+    run them; see ``default_suite_drift``).  A ``check`` is judged by its exit
+    code, so it takes no ids or min_tests.
     """
     _need(isinstance(value, list), "test_commands must be a list")
     commands: List[Dict[str, Any]] = []
@@ -140,6 +142,9 @@ def normalise_commands(value: Any) -> List[Dict[str, Any]]:
                 for item in criteria) and len(set(criteria)) == len(criteria),
                 "a test command's criteria must be a nonempty list of distinct criterion IDs")
             row["criteria"] = [item.strip() for item in criteria]
+        if "host_dependent" in entry:
+            _need(entry["host_dependent"] is True, "a test command's host_dependent must be true when given")
+            row["host_dependent"] = True
         commands.append(row)
     return commands
 
@@ -472,6 +477,14 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
         return ("ran no tests" + seen + ": the selection matched nothing, or the suite failed before any test "
                 "ran. A run with no executed test is not evidence. Fix the filter, the test names or the setup "
                 + target + "; running the whole suite instead does not satisfy this.")
+    if status == DRIFT_STATUS:
+        return ("is the project's default suite, and its output shows the host-dependent case"
+                + ("s " if len(run.get("host_dependent_ids_shown") or ()) > 1 else " ")
+                + ", ".join(run.get("host_dependent_ids_shown") or ())
+                + ", which the system tests mark as needing a host tool. A plain run of the default suite must pass on a "
+                "host without that tool: give each such case its own opt-in command or make it skip unless an opt-in "
+                "setting is present, in the test files (the recorded commands cannot change at this stage), then submit "
+                "done again.")
     if status == "too-few-tests":
         return ("ran fewer tests than the step plan requires (at least " + str(run.get("min_tests")) + ")"
                 + seen + ".")
@@ -622,6 +635,38 @@ def remedy_open(root: Path, action: str) -> bool:
     return refused_runs(root, action) >= MAX_REFUSED_RUNS or latest_attempt_could_not_run(root, action)
 
 
+DRIFT_STATUS = "host-dependent-in-default-suite"
+
+
+def default_suite_drift(state: Mapping[str, Any], rows: List[Dict[str, Any]], run_one: Callable[[str], Optional[Tuple[int, str]]]
+                        ) -> List[Dict[str, Any]]:
+    """Run the accepted regression commands and report any host-dependent id they show.
+
+    A system row marked ``host_dependent`` names cases that need a host tool (a browser, a device, an account).  The
+    project's default suite must pass without that tool, so none of those ids may be shown, run or failed, by a
+    regression command.  ``run_one(command)`` returns ``(exit, output)`` or ``None`` when the command did not start.
+    """
+    marked = [test_id for row in rows if row.get("host_dependent") for test_id in row.get("ids") or ()]
+    if not marked:
+        return []
+    seen: List[str] = []
+    drift: List[Dict[str, Any]] = []
+    for item in state.get("work_items", ()):
+        _action, result = _step_plan(state, str(item.get("id")))
+        for row in result.get("test_commands") or ():
+            if row["suite"] != "regression" or row["command"] in seen:
+                continue
+            seen.append(row["command"])
+            ran = run_one(row["command"])
+            if ran is None:
+                continue
+            code, output = ran
+            shown = counts.named(output, marked)["shown"]
+            drift.append({**row, "exit": code, "seconds": 0.0, "stdout": _tail(output.encode()), "stderr": "",
+                          "host_dependent_ids_shown": shown, "status": DRIFT_STATUS if shown else "passed"})
+    return drift
+
+
 def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str, *,
            runner: Optional[Runner] = None, env: Optional[Mapping[str, str]] = None,
            clock: Optional[Callable[[], float]] = None,
@@ -692,6 +737,18 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
             output = out.decode("utf-8", "replace") + "\n" + err.decode("utf-8", "replace")
             run.update(judge(row, code, output, red=red or (probe and code != 0)))
         runs.append(run)
+    if stage == "system-test":
+        def run_one(command: str) -> Optional[Tuple[int, str]]:
+            left = deadline - clock()
+            if left <= 1.0:
+                return None
+            try:
+                _status, code, out, err = runner(["/bin/sh", "-c", command], repo, min(command_timeout, left),
+                                                 input_bytes=b"", env=environment)
+            except OSError:
+                return None
+            return (code if code is not None else -1), out.decode("utf-8", "replace") + "\n" + err.decode("utf-8", "replace")
+        runs += default_suite_drift(state, commands, run_one)
     good = ("red",) if red else ("red", "passed") if probe else PASSING
     disposition = _disposition(runs, good)
     record = {
@@ -780,6 +837,7 @@ __all__ = (
     "STAGES",
     "UNAVAILABLE",
     "VERIFY_STAGES",
+    "default_suite_drift",
     "TestLoopError",
     "build_contract",
     "check_terminal",

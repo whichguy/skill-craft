@@ -2228,6 +2228,11 @@ class SettledFactTests(unittest.TestCase):
         self.assertIn("module format", text)
         self.assertIn("loadable seam", text)
 
+    def test_system_test_author_marks_host_dependent_rows(self) -> None:
+        text = self.duty("system-test-author")
+        self.assertIn('"host_dependent": true', text)
+        self.assertIn("regression", text)
+
     def test_test_strategy_keeps_host_dependent_cases_out_of_the_default_suite_command(self) -> None:
         text = self.duty("test-strategy")
         self.assertIn("host-dependent", text)
