@@ -386,8 +386,12 @@ class PacketContractTests(DelegationStateTests):
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
                 text = " ".join(nav.guidance.prompt("integrate", delegation=route).split())
-                self.assertIn("confirm its finish commit is an ancestor of the execution checkout HEAD", text)
-                self.assertIn("assemble or commit this item's candidate in the execution checkout", text)
+                # ShipLoop commits the declared files when integrate is accepted; no route tells the model to commit.
+                self.assertIn("confirm this item's candidate is assembled in the execution checkout", text.lower())
+                self.assertNotIn("assemble or commit", text)
+                # A chain exists only when delegation is ask-agent, so only that route confirms its finish commit.
+                self.assertEqual("confirm its finish commit is an ancestor of the execution checkout HEAD" in text,
+                                 route == "ask-agent")
 
     def test_final_result_must_list_the_reviewed_queue(self):
         receipt = {"summary": "Synthetic receipt; no review claim."}

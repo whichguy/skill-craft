@@ -645,6 +645,13 @@ returned result when a return is recorded, else in the work area, and its record
 which). An empty list needs its `_na` reason. The run records under `tests/` are the
 evidence; a result's summary is not.
 
+A request outcome no executed check observed is neither confirmed nor hidden: a
+done `product-acceptance` lists it in `unverified` (outcome, reason, check, owner,
+due stage), and `[]` says every outcome was observed. ShipLoop refuses a missing
+list, an incomplete or placeholder entry and a due stage that is not a later
+stage; it cannot judge that the list is complete. It prints each entry at its
+due stage and the whole list at `handoff` and in the report.
+
 ### Tests pass or the step stops
 
 `implement`, `test-refine` and `integration-verify` carry the same loop in their

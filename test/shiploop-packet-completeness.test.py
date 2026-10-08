@@ -85,10 +85,20 @@ class PacketCompletenessTests(unittest.TestCase):
                 continue
             with self.subTest(stage):
                 self.assertIn("Current action: Improve the completed " + stage + " result.", packet)  # purpose
+                row = stage_spec.stage(stage)                         # what the review judges the result against
+                self.assertIn("Goal: " + row.goal[0].upper() + row.goal[1:] + ".", packet)
+                for condition in row.done_when:
+                    self.assertIn("- " + condition, packet)
                 self.assertIn("Load the actual Improve skill", packet)  # how it operates: the selected skill runs the review
                 line = next((line for line in packet.splitlines() if line.startswith("Checked by: ")), "")
                 self.assertIn("improve-complete", line)               # what it produces and how that is checked
                 self.assertIn("Recovery", packet)
+
+    def test_a_reviewed_producer_says_its_done_when_is_what_the_review_checks(self) -> None:
+        for (stage, kind), packet in sorted(self.found.items()):
+            if kind == "producer" and stage in stage_spec.reviewed_stages("stage"):
+                with self.subTest(stage):
+                    self.assertIn("That review checks the result against the Done-when conditions above.", packet)
 
     def test_a_producer_names_the_script_checks_its_stage_row_declares(self) -> None:
         for (stage, kind), packet in sorted(self.found.items()):
@@ -115,6 +125,8 @@ class PacketCompletenessTests(unittest.TestCase):
         "consumer_checks": {"release-plan"},
         "consumer_entry": {"release-plan"},
         "docs/shiploop": {"prepare", "test-spec", "release-plan"},
+        "unverified": {"product-acceptance"},
+        "due_stage": {"product-acceptance"},
     }
 
     def test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses(self) -> None:

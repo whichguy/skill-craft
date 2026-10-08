@@ -2411,5 +2411,60 @@ class CaseEndStateTests(unittest.TestCase):
         self.assertIn("unachievable", text)
 
 
+class UnattendedWordingTests(unittest.TestCase):
+    """SPEC S-14: a stage row asks for nothing an unattended run cannot do, and one packet never contradicts itself."""
+
+    def test_the_prelude_rows_ask_for_a_default_or_an_open_item_and_none_for_a_person_or_a_suite_that_may_not_exist(self) -> None:
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_stage_spec as spec
+        rows = {name: " ".join(spec.stage(name).done_when) for name in ("intake", "discovery", "research")}
+        self.assertNotIn("put to the user", rows["research"])
+        self.assertIn("recorded as an open item with who can grant it", rows["research"])
+        self.assertNotIn("the user now", rows["intake"])
+        self.assertIn("a recorded default", rows["intake"])
+        self.assertIn("none exists and that is recorded as missing coverage", rows["discovery"])
+
+    def test_the_integrate_guidance_leaves_the_commit_to_shiploop_and_binds_no_chain_inline(self) -> None:
+        for route in ("inline", "ask-agent"):
+            with self.subTest(route=route):
+                text = normalized(prompts.prompt("integrate", delegation=route))
+                self.assertNotIn("assemble or commit", text)  # the stage row says ShipLoop commits; the duty does not ask
+                self.assertEqual("bound chain" in text, route == "ask-agent")  # a chain exists only when delegation is ask-agent
+
+    def test_the_improve_packet_never_calls_its_own_review_independent(self) -> None:
+        # The same packet says the trivial passes are self-passes, not independent reviewers.
+        for stage in ("spec", "plan", "step-plan", "carry-forward"):
+            with self.subTest(stage=stage):
+                self.assertNotIn("independent broader review", normalized(prompts.improve_prompt(stage)))
+
+
+class UnverifiedWordingTests(unittest.TestCase):
+    """Product-acceptance states the three end states of a request outcome and where an unobserved one is listed."""
+
+    def test_the_row_and_the_duty_name_the_list_and_the_three_end_states(self) -> None:
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_stage_spec as spec
+        done = normalized(" ".join(spec.stage("product-acceptance").done_when))
+        self.assertIn("listed in unverified with its reason, owner and due stage", done)
+        duty = normalized(prompts.DUTIES["product-acceptance"])
+        for phrase in ("observed by an executed check", "observed another way", "unachievable here or not yet due",
+                       "listed in `unverified`", "while the run continues", "Carry in the open items an earlier stage recorded",
+                       "has no end state"):
+            self.assertIn(phrase, duty)
+        self.assertNotIn("blocked_by access", duty)  # S-14: a person-only outcome does not stop the run
+
+    def test_the_skill_card_and_the_system_test_reference_say_what_the_gate_refuses_and_where_it_prints(self) -> None:
+        # S-3: the card agrees with the script. The four faults are the ones the stage's Checked-by line names.
+        skill = normalized((SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8"))
+        for phrase in ("a done `product-acceptance` lists it in `unverified`",
+                       "(outcome, reason, check, owner, due stage)", "`[]` says every outcome was observed",
+                       "ShipLoop refuses a missing list, an incomplete or placeholder entry and a due stage that is "
+                       "not a later stage", "it cannot judge that the list is complete",
+                       "prints each entry at its due stage and the whole list at `handoff` and in the report"):
+            self.assertIn(phrase, skill)
+        reference = normalized((REFERENCES / "system-tests.md").read_text(encoding="utf-8"))
+        self.assertIn("listed in its `unverified` result with the stage that reports it", reference)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

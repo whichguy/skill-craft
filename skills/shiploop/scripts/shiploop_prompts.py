@@ -1556,7 +1556,7 @@ user work and keep run-time state, raw logs, credentials, and generated artifact
 out of product commits and returns.  Do not infer a merge, commit, push, or
 deployment from a plan or command attempt.  If implement used a bound chain,
 confirm its finish commit is an ancestor of the execution checkout HEAD and
-record it; otherwise assemble or commit this item's candidate in the execution
+record it; otherwise confirm this item's candidate is assembled in the execution
 checkout under workspace and repository policy, or record a justified no-op.
 The original branch is returned only at the final workspace return.
 """,
@@ -1680,6 +1680,15 @@ consumer boundary.
 Reconcile new and preserved behavior against the selected prior baseline and
 incoming spec. Check durable knowledge and remaining gaps; a recovered description
 or planned check alone does not establish product acceptance.
+Every request outcome ends in one of three states: observed by an executed check;
+observed another way (the first method could not, so the method changed and the new
+check ran and passed); or unachievable here or not yet due, listed in `unverified`
+with its reason, owner and due stage while the run continues. A list entry is the
+outcome, the named reason, what its owner does and reports to settle it, the owner,
+and the later stage that reports it (handoff, or the stage whose external effect it
+gates). Carry in the open items an earlier stage recorded (system-test). Before
+listing an outcome, try another way to observe it. An outcome stated only in the
+summary has no end state; an empty list says every request outcome was observed.
 """,
     "release-plan": """\
 Record the post-release consumer checks as commands in `consumer_checks` (same
@@ -2064,7 +2073,7 @@ substitutes. A forbidden revision, nonterminal child or unresolved finding stays
 incomplete and is not submitted as a completed parent action.
 """
 _BACKCHAIN_IMPROVE_OWNER = """\
-Improve is an independent broader review. It reads Backchain findings and the
+Improve is a broader review than Backchain's diagnostic. It reads Backchain findings and the
 returned candidate as ordinary inputs; it does not request or count Backchain
 passes, and creates no `active_backchain` child, nested Until Loop, retry
 dispatcher or new callback. For a dependency diagnostic use a one-pass Backchain
@@ -2190,6 +2199,15 @@ def _require_planning_review(planning_review: str) -> None:
 # Inline runs replace only the chain-specific paragraphs of these duties; the
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
+    "integrate": ("""\
+If implement used a bound chain,
+confirm its finish commit is an ancestor of the execution checkout HEAD and
+record it; otherwise confirm this item's candidate is assembled in the execution
+checkout under workspace and repository policy, or record a justified no-op.
+""", """\
+Confirm this item's candidate is assembled in the execution checkout under
+workspace and repository policy, or record a justified no-op.
+"""),
     "step-plan": ("""\
 Give each change that does not need another its own step with deps [] (for
 example, two modules that do not use each other) and join them in a later step

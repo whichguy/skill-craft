@@ -5,12 +5,14 @@ Real Git repositories in temporary directories.
 """
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
@@ -27,6 +29,11 @@ def git(repo: Path, *args: str) -> str:
 
 class KnowledgeTests(unittest.TestCase):
     def setUp(self) -> None:
+        # Real-git tests must not read the machine's Git configuration: a CI runner's global config carries git-lfs
+        # filters, which the workspace refuses (as in shiploop-workspace and shiploop-test-loop).
+        isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+        isolated.start()
+        self.addCleanup(isolated.stop)
         temp = tempfile.TemporaryDirectory(prefix="shiploop-knowledge-")
         self.addCleanup(temp.cleanup)
         self.repo = Path(temp.name).resolve() / "repo"
@@ -34,6 +41,8 @@ class KnowledgeTests(unittest.TestCase):
         git(self.repo, "init", "-q")
         git(self.repo, "config", "user.email", "k@example.invalid")
         git(self.repo, "config", "user.name", "K")
+        git(self.repo, "config", "commit.gpgsign", "false")
+        git(self.repo, "config", "core.hooksPath", os.devnull)
         (self.repo / "app.py").write_text("x = 1\n")
         git(self.repo, "add", "-A")
         git(self.repo, "commit", "-qm", "base")
@@ -49,6 +58,16 @@ class KnowledgeTests(unittest.TestCase):
         self.assertIn("ShipLoop refuses a spec that loses an earlier ID", lines)
         self.assertNotIn("On done ShipLoop checks", lines)
         self.assertIn("On done ShipLoop checks these files", "\n".join(knowledge.stage_lines(self.state, "prepare")))
+
+    def test_a_close_packet_lists_every_file_its_refusal_names(self) -> None:
+        # The refusal is the gate's own text: whatever it asks for must already be in the stage's packet.
+        for stage in knowledge.CLOSES:
+            with self.subTest(stage):
+                named = [line[2:] for line in knowledge.check(self.state, stage).splitlines() if line.startswith("- /")]
+                self.assertTrue(named)
+                listed = "\n".join(knowledge.stage_lines(self.state, stage))
+                for path in named:
+                    self.assertIn(path, listed)
 
     def test_a_close_needs_its_files_and_commits_only_the_home(self) -> None:
         refusal = knowledge.check(self.state, "prepare")

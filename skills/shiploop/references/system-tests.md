@@ -75,8 +75,8 @@ independent cases merely because they appear in one catalog.
 - A required pre-release case must pass at `system-test` before
   `product-acceptance` can declare pre-release readiness.
 - A required post-release case stays pending with its owner through
-  `product-acceptance` and is observed at `release-verify` after the authorized
-  release.
+  `product-acceptance`, listed in its `unverified` result with the stage that
+  reports it, and is observed at `release-verify` after the authorized release.
 
 Unknown target identity, unavailable access, missing authorization, or an
 unresolved real boundary is not "not applicable". Record the blocker in the

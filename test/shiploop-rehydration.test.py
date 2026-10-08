@@ -173,9 +173,30 @@ class GoalFirstTests(unittest.TestCase):
             if step["command"] == "produce":
                 state = nav.apply(state, action, step["result"])
             else:
-                self.assertNotIn("Done when (confirm each", nav.render(dry_run.CORE, dry_run.RUN, state))
+                improve = nav.render(dry_run.CORE, dry_run.RUN, state)
+                self.assertNotIn("Done when (confirm each", improve)  # the producer's heading: this packet is the review's
+                for condition in spec.stage(stage).done_when:         # and it states what the review judges against
+                    self.assertIn("- " + condition, improve)
                 state = nav.finish_improve(state, action, step["receipt"], step.get("final_result"))
         self.assertEqual(len(seen), 34)
+
+
+    def test_the_improve_packet_for_a_blocked_result_does_not_claim_the_result_meets_the_done_when(self) -> None:
+        import shiploop_stage_spec as spec
+        state = nav.new_state("/simulation-only/repo", "Blocked review fixture.", delegation=nav.DEFAULT_DELEGATION)
+        for step in dry_run.activity():
+            stage = nav.current_stage(state)
+            if stage in spec.reviewed_stages("stage"):
+                break
+            state = nav.apply(state, nav.current_action(state)["id"], step["result"])
+        blocked = nav.apply(state, nav.current_action(state)["id"],
+                            {"outcome": "blocked", "blocked_by": "external", "summary": "Synthetic block.",
+                             "evidence_refs": ["synthetic://evidence"]})
+        self.assertIsNotNone(blocked["active_improve"])
+        packet = nav.render(dry_run.CORE, dry_run.RUN, blocked)
+        self.assertIn("Reviewing the returned " + stage + " result. Goal: ", packet)
+        self.assertIn("Done when (a done result must meet each", packet)
+        self.assertNotIn("accepted " + stage + " result", packet)  # the parent step stays pending until improve-complete
 
 
 class EvidenceGateTests(unittest.TestCase):

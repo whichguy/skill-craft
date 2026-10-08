@@ -720,6 +720,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 result["evidence_refs"] = [self._run_quality_loop(shiploop, run, action_id)]
         if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
             result["assumptions"] = []
+        if stage == "product-acceptance" and result.get("outcome") == "done" and "unverified" not in result:
+            result["unverified"] = []
         if stage in knowledge_support.knowledge.CLOSES:
             knowledge_support.write(state)
         if stage == "test-red" and result.get("outcome") == "done" and "red_na" not in result:
