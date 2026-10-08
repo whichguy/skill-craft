@@ -1317,6 +1317,8 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """
     timeline = load_timeline(root)
     scratch_dir(root).mkdir(exist_ok=True)
+    # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
+    (Path(root) / "notes").mkdir(exist_ok=True)
     text = render(core, root, state, timeline=timeline)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)

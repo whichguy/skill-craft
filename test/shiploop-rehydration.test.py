@@ -8,6 +8,8 @@ script's own records.  A result may not cite a local file that does not exist.
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 from pathlib import Path
@@ -107,6 +109,24 @@ class PacketTests(unittest.TestCase):
                      "open it first if it exists", "nothing was logged"):
             self.assertIn(part, line)
         self.assertNotIn("open it first after a reset)", line)  # the unconditional promise of a file
+
+    def test_emit_creates_the_notes_directory_the_packet_names(self) -> None:
+        # Every packet names a pass log under <run>/notes and the evidence gate refuses a result that cites a file
+        # that is not there, so a model that has to mkdir first loses a call (Battleship intake, events 30-34).
+        # ShipLoop creates the directory beside scratch/; it still never creates the log (the rule line above).
+        state = drive_to("implement")
+        action = nav.current_action(state)["id"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "run"
+            root.mkdir()
+            with contextlib.redirect_stdout(io.StringIO()):
+                nav.emit(dry_run.CORE, root, state)
+            self.assertTrue((root / "scratch").is_dir())
+            self.assertTrue((root / "notes").is_dir())
+            log = context_index.pass_log_path(root, action)
+            self.assertEqual(log.parent, root / "notes")
+            self.assertFalse(log.exists())  # the directory only: the log stays the model's to create
+            log.write_text("Checked the first pass; the second is left.\n")
 
     def test_the_packet_and_the_index_do_not_depend_on_whether_the_log_exists(self) -> None:
         # GUARD, green before and after: a packet is written once at action start and re-read after a loss, so
