@@ -107,6 +107,9 @@ behaviour).**
   the suite commands") and pinned by `test/shiploop-navigator-contract.test.py`, which is untouched.
 - `docs/record-register-2026-10-07.md`: a "Dispositions, 2026-10-08" section, and the "byte-compares" wording
   corrected to parsed equality on planning-return paths.
+- Review fix: the run counts first written into that "Test commands" paragraph (29 command rows, 22 in a
+  `docs/shiploop` file and 7 in none, the Sonnet 1.23.0 strategy file with no fence) were moved to the register's
+  test-commands bullet. A reference that hosts load states the rule, not one run's measurements, which go stale there.
 - Tests (`test/shiploop-rehydration.test.py`): a wording-level test that the packet line is conditional
   (failed first; not a refusal route, so the "route not wording" rule does not apply), the index pin updated,
   and a guard that two renders around the creation of a non-empty or empty log are byte-identical for the
@@ -389,6 +392,8 @@ only, and a guard test pins `classify`, `behavioural`, `order` and `non_behaviou
   a list, with the hard wraps fixed.
 - **Named in the Checked-by lines** (P1 section above): decided, not left implicit.
 - A vacuous `assertLess` on two local list indexes in `test/shiploop-revise.test.py` was removed.
+- The batch-1007 plan's B6 row ("Deferred ... Revisit with a second product") is marked superseded, with this date and
+  the reason, in `docs/shiploop-batch-1007-plan-2026-10-07.md`.
 
 **What disappears with the model stage.** The `## Skill disposition` section in `docs/shiploop/features/*/plan.md`
 and the `knowledge after skill-assess` commit seen in the Grok 1.23.0 run (worktree commit 07d1829). No

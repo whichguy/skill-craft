@@ -53,11 +53,7 @@ entry points and is the durable catalog later runs inherit (committed under
 `consumer_checks` where recorded) is the per-item run list ShipLoop itself
 executes (`test_loop.stage_commands`). A command in one and not the other is not
 detected, and neither is a strategy file that keeps its commands outside a
-fenced block, as its duty asks (the Sonnet 1.23.0 strategy file has no fence).
-Measured on four first-feature runs: 29 distinct ledger command rows, 22 of them
-in some `docs/shiploop` file and 7 in none (consumer checks, one-line checks and
-two focused commands), none contradicting the ledger; a second feature that
-inherits the strategy file is unmeasured.
+fenced block, as its duty asks.
 
 The planning basis travels the same way. Prelude planning packets (discovery
 through plan) name the current accepted intake-through-test-strategy results as

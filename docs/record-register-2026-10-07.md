@@ -143,7 +143,10 @@ findings again. Status of each:
   in system-test-author. The eight losses cost one rerun (`node restart-check.mjs`, event 13496). Whether "no log
   needed" is the right conclusion is unknown, and Claude's compaction count is unmeasured on that host.
 - **Test commands: documented, not enforced (firm for four first-feature runs).** 29 distinct (kind, suite, command)
-  ledger rows; 22 appear in a `docs/shiploop` file, 7 in none; no document names a command the ledger did not run.
+  ledger rows; 22 appear in a `docs/shiploop` file, 7 in none (consumer checks, one-line checks and two focused
+  commands); no document names a command the ledger did not run, so none contradicts it. The Sonnet 1.23.0 strategy
+  file keeps its commands outside a fenced block, though the test-strategy duty asks for one (moved here from
+  `references/state-files.md` 2026-10-08, which keeps the authority statement and none of these counts).
   The remedy "docs point at state.md" fails: `state.md` is in `.shiploop-runs/<id>/run`, outside the repository, while
   the knowledge home is committed for later runs, and no run ever opens `state.md`. Refusing a step plan whose command
   the strategy file lacks would be a new refusal on every run for a gap that never hurt one. The relationship is now in
