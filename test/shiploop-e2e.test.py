@@ -4127,5 +4127,57 @@ class UnfinishedRunBaselineTest(PrintedCase):
         self.assertEqual(len(self.baselines.read_text().splitlines()), 1)
 
 
+class KeepAwakeTest(unittest.TestCase):
+    """A host session runs under `caffeinate -d -i` on macOS, so the display stays on for the whole run.
+
+    On 2026-10-07 the display was off from 06:04 to 10:10 (pmset log) and headless Chrome never loaded a page in the
+    Grok run's window, 09:25 to 10:12; on 2026-10-06, with the display on, the same host loaded it. The correlation is
+    unproven as a cause (a display woken by `caffeinate -u -d` still hung once), so this removes the variable and
+    claims nothing more. -i, the earlier hold, keeps the machine from idle-sleeping."""
+
+    ARGV = [sys.executable, "-c", "print('hi')"]
+
+    def test_on_macos_the_session_is_wrapped_to_hold_the_display_and_the_system_awake(self):
+        with mock.patch.object(sys, "platform", "darwin"), mock.patch.object(run.shutil, "which", return_value="/usr/bin/caffeinate"):
+            self.assertEqual(run.keep_awake(self.ARGV), ["/usr/bin/caffeinate", "-d", "-i", *self.ARGV])
+
+    def test_elsewhere_or_without_the_tool_the_argv_is_unchanged(self):
+        with mock.patch.object(sys, "platform", "linux"), mock.patch.object(run.shutil, "which", return_value="/usr/bin/caffeinate"):
+            self.assertEqual(run.keep_awake(self.ARGV), self.ARGV)
+        with mock.patch.object(sys, "platform", "darwin"), mock.patch.object(run.shutil, "which", return_value=None):
+            self.assertEqual(run.keep_awake(self.ARGV), self.ARGV)
+
+    def launched(self, platform: str) -> tuple[list | None, str]:
+        """Run one session through run.launch with a recording caffeinate first on PATH."""
+        with tempfile.TemporaryDirectory() as temp:
+            temp = Path(temp)
+            tool = temp / "bin" / "caffeinate"
+            tool.parent.mkdir()
+            tool.write_text(f"#!{sys.executable}\nimport json, os, sys\n"
+                            "open(os.environ['CAFFEINATE_LOG'], 'w').write(json.dumps(sys.argv[1:]))\n"
+                            "args = sys.argv[1:]\nwhile args and args[0].startswith('-'):\n    args = args[1:]\n"
+                            "os.execv(args[0], args)\n")
+            tool.chmod(tool.stat().st_mode | stat.S_IXUSR)
+            out = temp / "out"
+            (out / "work").mkdir(parents=True)
+            log = temp / "caffeinate.log"
+            with mock.patch.dict(os.environ, {"PATH": f"{tool.parent}{os.pathsep}{os.environ['PATH']}",
+                                              "CAFFEINATE_LOG": str(log)}), \
+                    mock.patch.object(sys, "platform", platform):
+                result = run.launch(self.ARGV, out / "work", out, dict(os.environ), 60, watch=False)
+            self.assertEqual((result["status"], result["returncode"]), ("exited", 0))
+            return (json.loads(log.read_text()) if log.exists() else None), (out / "events.jsonl").read_text()
+
+    def test_a_session_started_by_launch_runs_under_the_wrapper_on_macos_and_the_host_still_runs(self):
+        argv, events = self.launched("darwin")
+        self.assertEqual(argv, ["-d", "-i", *self.ARGV])
+        self.assertEqual(events.strip(), "hi")
+
+    def test_a_session_started_by_launch_elsewhere_is_not_wrapped_and_still_runs(self):
+        argv, events = self.launched("linux")
+        self.assertIsNone(argv, "caffeinate was not run")
+        self.assertEqual(events.strip(), "hi")
+
+
 if __name__ == "__main__":
     unittest.main()

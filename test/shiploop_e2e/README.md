@@ -395,6 +395,10 @@ while a Codex run is live (Codex replaces the plugin at session start). A multi-
 is the one case where a detached `nohup` launch is a deliberate, stated exception; watch it with a periodic status
 snapshot of its output directory.
 
+On macOS each host session runs under `caffeinate -d -i`, which keeps the display on and the machine from
+idle-sleeping for the whole session; elsewhere nothing is wrapped. The display hold removes one variable from the
+runs where a model-driven headless Chrome never loaded a page (see LEARNINGS, 2026-10-08).
+
 A task kill before the deadline stops the harness where it stands and no harness code runs: nothing is written
 afterwards (no termination record, no `result.json`, no baseline row), and nothing looks for what the host left
 behind. Give the run its records afterwards with `--resume-run <output directory> --grade-only`. A

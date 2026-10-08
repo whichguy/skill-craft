@@ -341,6 +341,19 @@ class LiveView:
         self.emit(f"tool  {name}: " + " ".join(str(detail).split())[:140])
 
 
+def keep_awake(argv: list[str]) -> list[str]:
+    """The host's argv, run under `caffeinate -d -i` on macOS and unchanged elsewhere.
+
+    A run takes an hour or more. -i keeps the machine from idle-sleeping, which otherwise freezes the host mid-stage
+    and stretches every stage timing. -d keeps the display on: on 2026-10-07 the display was off from 06:04 to 10:10
+    (pmset log), the whole window in which headless Chrome never loaded a page for the Grok run, and on 2026-10-06,
+    display on, the same host loaded it. That is a correlation, not a proven cause (a display woken with
+    `caffeinate -u -d` still hung once), so this removes a variable and claims nothing more.
+    """
+    caffeinate = shutil.which("caffeinate") if sys.platform == "darwin" else None
+    return [caffeinate, "-d", "-i", *argv] if caffeinate else argv
+
+
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
            first: bool = True, fresh: bool = True, translate=None, stop_when=None, stop_file: Path | None = None) -> dict:
     """Run one host session. `stop_when`, polled every POLL_SECONDS, kills the session (status "interrupted").
@@ -367,11 +380,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     else:
         with events_path.open("rb") as existing:
             line = sum(1 for _ in existing)
-    # A run takes an hour or more; on macOS keep the machine from idle-sleeping, which
-    # otherwise freezes the host mid-stage and stretches every stage timing.
-    caffeinate = shutil.which("caffeinate")
-    if caffeinate:
-        argv = [caffeinate, "-i", *argv]
+    argv = keep_awake(argv)
     with events_path.open(mode) as events, (out / "stderr.txt").open(mode) as stderr, \
             (out / "timeline.jsonl").open("w" if first else "a") as stamps:
         proc = subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
