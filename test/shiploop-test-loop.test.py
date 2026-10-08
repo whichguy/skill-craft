@@ -164,6 +164,9 @@ class TestLoopTests(unittest.TestCase):
         action = nav.current_action(state)["id"]
         if nav.current_stage(state) == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
             result = dict(result, assumptions=[])
+        if nav.current_stage(state) == "product-acceptance" and result.get("outcome") == "done" \
+                and "unverified" not in result:
+            result = dict(result, unverified=[])
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps(result, "result"))

@@ -467,7 +467,8 @@ _ROWS = (
         "product-acceptance", "outer",
         goal="assess the product against the original outcome",
         done_when=(
-            "every request outcome is verified, or pending with its owner and due stage",
+            "every request outcome was observed by an executed check, or is listed in unverified with its reason, "
+            "owner and due stage",
             "missing product work is routed as replan",
         ),
         test="Assess the product against the original outcome, not only the spec.",

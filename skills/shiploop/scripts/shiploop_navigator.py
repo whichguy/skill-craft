@@ -26,6 +26,7 @@ from typing import Any
 from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
+import shiploop_unverified as unverified
 import shiploop_prompts as guidance
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
@@ -56,7 +57,7 @@ _RESULT_KEYS = frozenset((
     "outcome", "summary", "headline", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
-    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps", "skill_na",
+    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps", "skill_na", "unverified",
 ))
 # A bare "carry on" is not an answer to the question a blocked run is waiting on.
 _NOT_AN_ANSWER = frozenset((
@@ -81,7 +82,7 @@ AWAITING_SHAPE = (
 _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
-    "red_na", "skill_na", "lint_waivers",
+    "red_na", "skill_na", "lint_waivers", "unverified",
 )
 _STATE_KEYS = frozenset(
     (
@@ -727,6 +728,15 @@ def _canonical_result(
         try:
             result["assumptions"] = assumptions.canonical(value["assumptions"], stage)
         except assumptions.AssumptionError as exc:
+            raise NavigatorError(str(exc)) from exc
+    if "unverified" in value:
+        # Shape only: the exact fields, the placeholder and the due stage are checked at the CLI gates, because
+        # validate() re-canonicalises every accepted result on load and an edit of the field set must not refuse a saved run.
+        _need(stage in unverified.STAGES and outcome == "done",
+              "unverified is allowed only on a done " + ", ".join(sorted(unverified.STAGES)) + " result")
+        try:
+            result["unverified"] = unverified.canonical(value["unverified"])
+        except unverified.UnverifiedError as exc:
             raise NavigatorError(str(exc)) from exc
     if "delivery_assessment" in value:
         _need(delivery_contract,
@@ -1833,6 +1843,18 @@ def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: A
         raise NavigatorError(str(exc)) from exc
 
 
+def _check_submitted_unverified(stage: str, result: Any) -> None:
+    """Refuse a submitted done product-acceptance result without a usable unverified list.
+
+    CLI gates only, like the assumption list: the pure graph functions check the shape when the field is
+    present and do not require it, so simulations and saved runs are unaffected.
+    """
+    try:
+        unverified.check_submitted(stage, result)
+    except unverified.UnverifiedError as exc:
+        raise NavigatorError(str(exc)) from exc
+
+
 def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve_record: Any = None) -> dict[str, Any]:
     """Accept one current result and return a new state without persisting it."""
     validate(state)
@@ -2565,6 +2587,8 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
             {"id": "A3", "assumption": "...", "disposition": "open", "check": "...",
              "reason": "...", "consumer": "W1"},
         ]
+    if stage in unverified.STAGES:
+        result["unverified"] = [dict(unverified.TEMPLATE_ROW)]
     assessment = consumer_delivery.template_assessment(state, stage)
     if assessment is not None:
         result["delivery_assessment"] = assessment
@@ -3096,6 +3120,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         "",
         *narrative_lines(state, timeline),
         progress_guidance,
+        # After the status block's END, so variable-length lists never compete with the kept head.
+        *_unverified_lines(state, stage),
     ]
     lines += _run_rules(core, root, state)
     lines.extend(
@@ -3543,6 +3569,9 @@ def _stage_gates(stage: str) -> list[str]:
         gates.append("skill_na beside a skill file in paths")
     if stage == item_scope.SKILL_NA_DIFF_STAGE:
         gates.append("a skill file changed after the step plan recorded skill_na (report revise)")
+    if stage in unverified.STAGES:
+        gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
+                     "or a due_stage that is not a later stage")
     if stage in knowledge.CLOSES:
         gates.append("a docs/shiploop file this stage must have written, missing or empty")
     return gates
@@ -3584,6 +3613,54 @@ def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     if considerations:
         lines.append("Considerations for this stage:")
         lines.extend(f"- {label}: {text}" for label, text in considerations)
+    return lines
+
+
+def _unverified_row(row: Mapping[str, Any]) -> str:
+    """One entry as a line; the stored shape is loose (shape-only canonical), so a missing field prints empty."""
+    text = {name: _bounded_packet_text(str(row.get(name, ""))) for name in unverified.FIELDS}
+    return ("- " + text["outcome"] + " | reason: " + text["reason"] + " | owner: " + text["owner"]
+            + " | to settle: " + text["check"] + " | due: " + text["due_stage"])
+
+
+def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """What the run left unverified, printed from state by the stages that account for it or report it.
+
+    Product-acceptance and the handoff print the plan's assumptions still recorded open; the stage an entry is due
+    at prints that entry; the handoff prints the whole list.  Nothing is recalled by the model, and no Improve
+    child's packet carries it.
+    """
+    if state["status"] != "active" or state.get("active_improve"):
+        return []
+    lines: list[str] = []
+    if stage in ("product-acceptance", "handoff"):
+        still_open = unverified.open_assumptions(state)
+        if still_open:
+            lines.append("Plan assumptions recorded open at planning (the ledger does not update dispositions): "
+                         "account for each in your summary, settled by a named result or listed as unverified.")
+            lines.extend("- " + str(row["id"]) + " (consumer " + str(row["consumer"]) + "): "
+                         + _bounded_packet_text(str(row["assumption"])) + " | check that would settle it: "
+                         + _bounded_packet_text(str(row["check"])) for row in still_open)
+    if stage == "handoff":
+        action, entries = unverified.accepted_list(state)
+        if entries:
+            lines.append("Product-acceptance listed these request outcomes as unverified (ShipLoop's report lists "
+                         "them too):")
+            lines.extend(_unverified_row(row) for row in entries)
+        elif entries is None:
+            lines.append("No unverified list is recorded for product-acceptance (unmeasured, not zero).")
+        else:
+            lines.append("Product-acceptance listed no unverified request outcome (its accepted result, field "
+                         "unverified).")
+        lines.append("That is product-acceptance's list only: open items another stage recorded are in that "
+                     "stage's own result; read them before stating the limits.")
+    elif stage in unverified.due_stages():
+        due = unverified.due_entries(state, stage)
+        if due:
+            lines.append("Request outcomes product-acceptance listed as unverified and due at " + stage + " (observe "
+                         "each here if this stage can and say so in the result; otherwise it stays listed for the "
+                         "handoff):")
+            lines.extend(_unverified_row(row) for row in due)
     return lines
 
 
@@ -4078,8 +4155,8 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
         ]
     delivery_section = consumer_delivery.html_section(state)
     leftover_section = _leftovers_section(_leftovers(root, state))
-    report_tail = ["</tbody></table>", *progress_section, *workspace_section, *leftover_section,
-                   delivery_section, "</body></html>"]
+    report_tail = ["</tbody></table>", *progress_section, *unverified.html_section(state), *workspace_section,
+                   *leftover_section, delivery_section, "</body></html>"]
     return "\n".join(
         [
             "<!doctype html>",
@@ -4646,6 +4723,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         if state["status"] == "active" and action_id not in state["accepted"]:
             _check_submitted_evidence(submitted)
             _check_submitted_assumptions(state, current_stage(state), submitted)
+            _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_submitted_skill_na(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)

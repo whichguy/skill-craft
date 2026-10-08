@@ -63,6 +63,17 @@ RESULTS = {
                      "consumer_entry": {"how": "open built.txt", "sources": ["built.txt"]}},
 }
 
+# Request outcomes no executed check observed, as product-acceptance lists them: one reported at the handoff, one at the
+# stage whose external effect it gates.
+UNVERIFIED_ENTRY = {"outcome": "the exported file opens in the customer's reader",
+                    "reason": "this host has no copy of that reader",
+                    "check": "open the exported file in the reader and report what shows",
+                    "owner": "the user", "due_stage": "handoff"}
+UNVERIFIED_EARLY = dict(UNVERIFIED_ENTRY, outcome="the deployed page loads for a signed-in user",
+                        reason="no sign-in is available to this run", due_stage="release-check")
+OPEN_ASSUMPTION = {"id": "A1", "assumption": "the export is checked by file tests only", "disposition": "open",
+                   "check": "open the export in the reader", "reason": "no reader here", "consumer": "W1"}
+
 
 def write_block(path: Path, value: object) -> None:
     """Write a result file: Markdown whose one shiploop-state fence holds the JSON."""
@@ -184,6 +195,7 @@ class RealCliCase(unittest.TestCase):
             "work_items": [{"id": "W1", "title": "Build it", "context": "All of it."}],
             "assumptions": [{"id": "A1", "assumption": "x holds", "disposition": "evidenced",
                              "evidence": [str(self.evidence)]}],
+            "unverified": [],
             **{key: value for result in RESULTS.values() for key, value in result.items()
                if key not in ("outcome", "summary")},
         }
@@ -329,6 +341,22 @@ class RefusalRouteTests(RealCliCase):
             ("a consumer_entry source that is not in the repository", "release-plan",
              lambda block: {**block, "consumer_entry": {"how": "open it", "sources": ["nowhere/missing.py"]}},
              "consumer_entry sources do not exist in the repository"),
+            ("no unverified list", "product-acceptance",
+             lambda block: {k: v for k, v in block.items() if k != "unverified"},
+             "a done product-acceptance result must list unverified"),
+            ("an unverified entry without an owner", "product-acceptance",
+             lambda block: {**block, "unverified": [{key: value for key, value in UNVERIFIED_ENTRY.items()
+                                                      if key != "owner"}]},
+             "unverified[0] needs exactly outcome, reason, check, owner, due_stage"),
+            ("an unverified entry that keeps one template placeholder", "product-acceptance",
+             lambda block: {**block, "unverified": [dict(UNVERIFIED_ENTRY, check="<what the owner does and reports>")]},
+             "unverified[0].check is still a template placeholder"),
+            ("an unverified entry whose field holds two placeholders", "product-acceptance",
+             lambda block: {**block, "unverified": [dict(UNVERIFIED_ENTRY, owner="<who> or <who else>")]},
+             "unverified[0].owner is still a template placeholder"),
+            ("an unverified due stage that is not a later stage", "product-acceptance",
+             lambda block: {**block, "unverified": [dict(UNVERIFIED_ENTRY, due_stage="system-test")]},
+             "is not a later stage"),
         ]
         for label, stage, break_it, fragment in cases:
             with self.subTest(label):
@@ -340,6 +368,16 @@ class RefusalRouteTests(RealCliCase):
                 write_block(path, good)
                 self.accept_after_the_knowledge_files(command, run)
                 self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        with self.subTest("the unverified template row copied unchanged"):
+            run, head = self.new_run("product-acceptance")
+            command, path, action = printed_callback(head)
+            template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+            self.assertEqual(len(template["unverified"]), 1)  # the head prints one example row to replace or delete
+            write_block(path, dict(self.fill_done(head), unverified=template["unverified"]))
+            self.assertIn("still a template placeholder", self.refused(command, run))
+            write_block(path, dict(self.fill_done(head), unverified=[UNVERIFIED_ENTRY]))
+            self.accepted(command)
+            self.assertEqual(self.recorded(run, action)["unverified"], [UNVERIFIED_ENTRY])
         with self.subTest("a skill file in paths beside skill_na"):
             # The exit the refusal names is the same plan without skill_na, the skill file still in paths.  The document
             # stage's half of this fault (a skill file changed after skill_na) needs a real item diff and is paired in
@@ -489,6 +527,115 @@ def first_object(text: str) -> dict:
 def allowed_outcomes(head: str) -> list[str]:
     line = next(row for row in head.splitlines() if row.startswith("Allowed outcomes: "))
     return [part.strip().split(" ", 1)[0].rstrip(".") for part in line.removeprefix("Allowed outcomes: ").split(" | ")]
+
+
+class UnverifiedRouteTests(RealCliCase):
+    """What the run leaves unverified is listed once, at product-acceptance, and reaches the stage that reports it."""
+
+    FIELDS = ("outcome", "reason", "check", "owner", "due_stage")
+
+    def full_packet(self, head: str) -> str:
+        return Path(re.search(r"^Full packet: (\S+)$", head, re.M).group(1)).read_text(encoding="utf-8")
+
+    def at(self, stage: str, **accepted: dict) -> tuple[Path, str]:
+        """A run positioned at ``stage`` whose earlier stages were accepted with these extra result fields."""
+        with mock.patch.dict(RESULTS, accepted):
+            return self.new_run(stage)
+
+    def test_product_acceptance_prints_the_assumptions_recorded_open_and_records_the_list_it_accepts(self) -> None:
+        run, head = self.at("product-acceptance", plan={"assumptions": [OPEN_ASSUMPTION]})
+        packet = self.full_packet(head)
+        self.assertIn("Plan assumptions recorded open at planning", packet)
+        self.assertIn("A1 (consumer W1): the export is checked by file tests only", packet)
+        self.assertIn("check that would settle it: open the export in the reader", packet)
+        # The ledger never updates a disposition, so the line states what was recorded, not that it is still true.
+        self.assertIn("the ledger does not update dispositions", packet)
+        command, path, action = printed_callback(head)
+        write_block(path, dict(self.fill_done(head), unverified=[UNVERIFIED_ENTRY, UNVERIFIED_EARLY]))
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["unverified"], [UNVERIFIED_ENTRY, UNVERIFIED_EARLY])
+
+    def test_the_stage_an_entry_is_due_at_prints_it_and_the_handoff_prints_every_entry(self) -> None:
+        listed = {"product-acceptance": {"unverified": [UNVERIFIED_ENTRY, UNVERIFIED_EARLY]}}
+        _, head = self.at("release-plan", **listed)
+        self.assertNotIn(UNVERIFIED_EARLY["outcome"], self.full_packet(head))  # not due yet
+        _, head = self.at("release-check", **listed)
+        due = self.full_packet(head)
+        for field in self.FIELDS:
+            self.assertIn(UNVERIFIED_EARLY[field], due)
+        self.assertNotIn(UNVERIFIED_ENTRY["outcome"], due)  # that one is due at the handoff, not here
+        _, head = self.at("handoff", **listed)
+        handoff = self.full_packet(head)
+        for entry in (UNVERIFIED_ENTRY, UNVERIFIED_EARLY):
+            for field in self.FIELDS:
+                self.assertIn(entry[field], handoff)
+        # The check is what the owner does and reports to settle the outcome; it is not a person who reports.
+        self.assertIn(" | owner: the user | to settle: open the exported file in the reader and report what shows"
+                      " | due: handoff", handoff)
+        # The handoff duty (list each open item as unverified, with who reports what) is stated once in the packet,
+        # by the stage's duties; the lines that print the list state facts, not a second instruction.
+        self.assertEqual(" ".join(handoff.split()).count("as unverified, with who reports what"), 1)
+
+    def test_the_handoff_tells_none_listed_from_no_list_recorded_and_scopes_both_to_product_acceptance(self) -> None:
+        _, head = self.at("handoff", **{"product-acceptance": {"unverified": []}})
+        none_listed = self.full_packet(head)
+        self.assertIn("Product-acceptance listed no unverified request outcome", none_listed)
+        _, head = self.at("handoff")  # product-acceptance accepted without the field, as a run saved before it was
+        not_recorded = self.full_packet(head)
+        self.assertIn("No unverified list is recorded for product-acceptance (unmeasured, not zero)", not_recorded)
+        self.assertNotIn("listed no unverified", not_recorded)
+        for packet in (none_listed, not_recorded):
+            # An empty or absent list says nothing about the open items another stage recorded in its own result.
+            self.assertIn("another stage recorded", packet)
+
+    def test_the_report_lists_the_outcomes_and_tells_none_listed_from_not_recorded(self) -> None:
+        import html
+        marked = dict(UNVERIFIED_ENTRY, outcome="the <b>export</b> opens")
+        for label, accepted, expected in (
+                ("entries", {"unverified": [marked]}, [html.escape(marked[field]) for field in self.FIELDS]),
+                ("none listed", {"unverified": []}, ["none listed"]),
+                ("not recorded", {}, ["not recorded"])):
+            with self.subTest(label):
+                run, _ = self.at("handoff", **{"product-acceptance": accepted})
+                report = self.cli("report", "--run-dir", str(run)).stdout
+                self.assertIn("<h2>Unverified request outcomes</h2>", report)
+                for text in expected:
+                    self.assertIn(text, report)
+                self.assertNotIn("<b>export</b>", report)  # model-written text is escaped
+
+    def test_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it(self) -> None:
+        # validate() re-canonicalises every accepted result on load, so the stored shape must be loose enough that
+        # a later edit of the field set never refuses a saved run; the CLI gate holds the exact shape.
+        run, head = self.new_run("product-acceptance")
+        state = self.state(run)
+        earlier_shape = [{"outcome": "o", "reason": "r"}]
+        accepted = nav.apply(state, nav.current_action(state)["id"], {**DONE, "unverified": earlier_shape})
+        nav.validate(accepted)
+        command, path, _ = printed_callback(head)
+        write_block(path, dict(self.fill_done(head), unverified=earlier_shape))
+        self.assertIn("needs exactly outcome, reason, check, owner, due_stage", self.refused(command, run))
+        # And a packet that prints a loaded entry of an earlier shape must not depend on fields it lacks.
+        _, handoff = self.at("handoff", **{"product-acceptance": {"unverified": earlier_shape}})
+        self.assertIn("- o | reason: r | owner: ", self.full_packet(handoff))
+
+    def test_text_that_only_contains_angle_brackets_is_not_a_placeholder(self) -> None:
+        run, head = self.new_run("product-acceptance")
+        command, path, action = printed_callback(head)
+        entry = dict(UNVERIFIED_ENTRY, outcome="the <canvas> element draws the board", reason="the <canvas> is not "
+                     "reachable from this host")
+        write_block(path, dict(self.fill_done(head), unverified=[entry]))
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["unverified"], [entry])
+
+    def test_unverified_is_refused_off_its_stage_and_on_a_result_that_is_not_done(self) -> None:
+        state = nav.new_state(str(self.repo), "Off-stage fixture.")
+        with self.assertRaisesRegex(nav.NavigatorError, "allowed only on a done product-acceptance result"):
+            nav.apply(state, nav.current_action(state)["id"], {**DONE, "unverified": []})
+        run, _ = self.new_run("product-acceptance")
+        state = self.state(run)
+        blocked = {"outcome": "blocked", "blocked_by": "external", "summary": "A service is down.", "unverified": []}
+        with self.assertRaisesRegex(nav.NavigatorError, "a blocked result does not carry unverified"):
+            nav.apply(state, nav.current_action(state)["id"], blocked)
 
 
 class OutcomeShapeTests(RealCliCase):

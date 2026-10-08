@@ -1673,6 +1673,15 @@ consumer boundary.
 Reconcile new and preserved behavior against the selected prior baseline and
 incoming spec. Check durable knowledge and remaining gaps; a recovered description
 or planned check alone does not establish product acceptance.
+Every request outcome ends in one of three states: observed by an executed check;
+observed another way (the first method could not, so the method changed and the new
+check ran and passed); or unachievable here or not yet due, listed in `unverified`
+with its reason, owner and due stage while the run continues. A list entry is the
+outcome, the named reason, what its owner does and reports to settle it, the owner,
+and the later stage that reports it (handoff, or the stage whose external effect it
+gates). Carry in the open items an earlier stage recorded (system-test). Before
+listing an outcome, try another way to observe it. An outcome stated only in the
+summary has no end state; an empty list says every request outcome was observed.
 """,
     "release-plan": """\
 Record the post-release consumer checks as commands in `consumer_checks` (same

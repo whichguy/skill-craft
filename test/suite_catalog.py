@@ -226,7 +226,9 @@ _DURATION_SECONDS = {
     # locally against 64 s, so 61.0 scaled by 84.5/64 is 81.  Still an estimate, still under QUICK_MAX_SECONDS (120).
     "test/shiploop-e2e.test.py": 81.0,
     "test/shiploop-run-review.test.py": 0.2,
-    "test/shiploop-callback-contract.test.py": 56.0,  # measured alone 2026-10-08: 27 tests, 56 s
+    # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
+    # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
+    "test/shiploop-callback-contract.test.py": 69.1,
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
