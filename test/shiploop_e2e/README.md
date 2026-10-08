@@ -425,7 +425,8 @@ kill at 1798 s (2026-10-03) and 120.3 minutes (2026-10-05). Pass `--timeout` (se
 deadline starts after preflight and install, and when it is spent the harness still runs the product checks (180 s
 each, again against an unreturned worktree) and the review export before it exits. A spent deadline is a clean
 ending: the harness writes metrics.json, result.json and the export, writes no baseline row, and prints the command
-that continues the run. Run that command as the next task: `--resume-run <output directory>` continues the run in
+that continues the run (once ShipLoop has written its state; a host killed before that cannot be resumed, so start the
+case again). Run that command as the next task: `--resume-run <output directory>` continues the run in
 place (the output directory is reused; `--output` is ignored on a resume). A resume refuses to start while
 `origin/main`'s CI has failed, and a Codex resume across a release is refused, so do not run `scripts/release.py`
 while a Codex run is live (Codex replaces the plugin at session start). A multi-hour host such as Codex at max effort
