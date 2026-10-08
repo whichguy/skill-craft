@@ -2266,6 +2266,36 @@ class SettledFactTests(unittest.TestCase):
         self.assertIn("not its version", text)
         self.assertIn("access gap", text)
 
+    def test_test_strategy_probes_a_host_tool_against_a_stand_in_because_the_product_does_not_exist_yet(self) -> None:
+        """Batch 1009 P4 (round 1, Grok `none` run): the strategy's browser probe was a curl to the product's address
+        (connection refused), a server that cannot exist before the product does, and it concluded "no browser"; the
+        real access gap surfaced about 40 minutes later at system-test-author and cost 21 minutes of Chrome flag
+        iteration.  A probe has to be answerable now, so it runs against a page the stage writes itself."""
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_prompts as prompts
+        text = self.duty("test-strategy")
+        for phrase in (
+            "The product does not exist yet, so probe against a stand-in",
+            "not the product's own address",
+            "write a one-line page in this run's scratch directory",
+            "`file:` URL or from a throwaway static server you stop afterwards",
+            "read its title back with the tool as the case will use it",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+        # The earlier obligations stay: the probe is the case's first step, a failed probe is a recorded access gap,
+        # and the case keeps its own opt-in command.
+        for kept in ("is probed now by doing the case's first step, not its version",
+                     "is an access gap to record now, in the strategy, with the requirement it leaves unobserved",
+                     "give it its own opt-in command or flag"):
+            with self.subTest(kept=kept):
+                self.assertIn(kept, text)
+        # and a host reads it in the packet it is given, under either delegation
+        for delegation in (prompts.INLINE, prompts.ASK_AGENT):
+            with self.subTest(delegation=delegation):
+                packet = " ".join(prompts.prompt("test-strategy", delegation=delegation).split())
+                self.assertEqual(packet.count("probe against a stand-in"), 1)
+
 
 class ConsumerCheckLocationTests(unittest.TestCase):
     """Batch 1008, B3: release-verify's consumer checks run in a clean copy of the returned result when a return is

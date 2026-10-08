@@ -974,11 +974,15 @@ results do not prove live permissions, event delivery or operator log access.
 Settle these now, so later stages do not guess. For each command, say which test
 ids it may print. A host-dependent case (it needs a host browser, a device, an
 account or a service) names its tool and is probed now by doing the case's first
-step (for a browser, load a local page and read its title back), not its version;
-a probe that fails is an access gap to record now, in the strategy, with the
-requirement it leaves unobserved. The case stays out of the project's default
-test command: give it its own opt-in command or flag, so a plain run of the
-default test command passes without the host tool.
+step, not its version. The product does not exist yet, so probe against a stand-in,
+not the product's own address (a request to it fails whatever the tool can do): for
+a browser, write a one-line page in this run's scratch directory, open it by
+`file:` URL or from a throwaway static server you stop afterwards, and read its
+title back with the tool as the case will use it; for an account or a service, make
+a harmless read the tool can make today. A probe that fails is an access gap to
+record now, in the strategy, with the requirement it leaves unobserved. The case
+stays out of the project's default test command: give it its own opt-in command or
+flag, so a plain run of the default test command passes without the host tool.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required

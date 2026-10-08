@@ -187,3 +187,36 @@ rule is arguable; it is pre-existing and documented, and the choice of refusing 
 The audit ran `resolve_skill` on every skill-craft layout on this machine (not re-run here): the Claude cache (1.0.0 to 1.24.0),
 Claude marketplaces, the Codex cache (1.24.0), Cursor local, Grok installed-plugins and marketplace cache, and the OpenCode
 symlink; the old claudecraft plugin's improve card is rejected, which supports resolving by location and not by name.
+
+## P4: the test-strategy probe runs against a stand-in page
+
+Status: interim (the duty text is built and pinned; whether a host now surfaces its access gap in planning is unmeasured).
+
+Question. The 2026-10-07 Grok run's strategy probe was `Chrome --version` and the gap surfaced at W2 implement, about 50 minutes in
+(`test/shiploop_e2e/LEARNINGS.md`, "The Grok block, what is proven"). The duty was then changed to ask for a probe that "loads a
+local page and reads its title back". Did that wording work?
+
+Evidence. In the 2026-10-08 round-1 Grok `none` run (`/Users/dadleet/e2e-runs/20261008/r1-battleship-grok-none`, its
+`.shiploop-runs/*/worktree/docs/shiploop/test-strategy.md`, section "What is out of the default suite") the probe was: "`curl` to
+`http://127.0.0.1:3000/` exited 7 (connection refused). No page title could be read. This session has no browser MCP. TC-16 stays
+unobserved until system test, after a local server exists." At test-strategy time there is no product and no server, so the request
+fails whatever the browser can do; the strategy concluded "no browser", and the access gap that mattered (headless Chrome stayed on
+`about:blank` in the Grok host) surfaced at `system-test-author` after a 21-minute, 71-turn Chrome flag iteration (LEARNINGS
+2026-10-08 and commit 847fa64e). The earlier fix had named the right probe (load a local page and read its title) but not that the
+page has to be one the stage writes itself.
+
+Change. `DUTIES['test-strategy']`, the paragraph "Settle these now": the case is probed by doing its first step, not its version;
+the product does not exist yet, so the probe runs against a stand-in and not the product's own address; for a browser, a one-line
+page written in the run's scratch directory (a directory every packet prints), opened by `file:` URL or from a throwaway static
+server stopped afterwards, with its title read back by the tool as the case will use it; for an account or a service, a harmless
+read the tool can make today. A failed probe is still an access gap recorded now with the requirement it leaves unobserved, and the
+case still keeps its own opt-in command. The paragraph is after the status block, so the kept head does not grow
+(`test/shiploop-status-display.test.py` passes); `CaseEndStateTests` and the other `SettledFactTests` pins pass unchanged.
+
+Test, fail first. `SettledFactTests.test_test_strategy_probes_a_host_tool_against_a_stand_in_because_the_product_does_not_exist_yet`
+in `test/shiploop-guidance.test.py` pins the stand-in obligations, the obligations that must stay, and the rendered packet under both
+delegations (eight subtests red on the unmodified tree).
+
+Not verified. Whether a host now writes the stand-in page and records the access gap during planning; read the next Grok and Luna
+`test-strategy.md` files (the probe line and the "What is out of the default suite" section) for a probe that loaded a page and read
+its title. A host with no way to open any page still records the gap; the change moves when it is learned, not whether it can be fixed.
