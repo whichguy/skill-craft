@@ -61,6 +61,17 @@ change. The case and checks come from the earlier run, and the result is graded
 as usual. The original `invocation.json` is kept, and each resume is recorded
 beside it as `invocation-resume-<host>-<time>.json`.
 
+The prompt of a resume names the ShipLoop CLI of the plugin the run started on
+(`<plugin dir>/skills/shiploop/scripts/shiploop`, whichever host or source built it)
+as `python3 "<cli>" next --run-dir "<dir>"`. There is no bare-command form: a resume
+whose CLI file is gone is refused before a host starts. The harness prints the exact
+command that continues the run, harness flags included (`--timeout`, `--max-resumes`,
+`--max-budget-usd`, `--permission-mode`, `--effort`, and `--plugin-dir` for a checkout
+build), when a run starts and again when it ends with ShipLoop still active, so a later
+session that finds only the task log has it even if the harness was killed.
+`invocation.json` keeps the host's argv and not those flags, so a resume without them
+would run with the default `--timeout` (10800 s).
+
 
 **Start with [SPEC.md](SPEC.md).** It is the standing specification every run,
 review and fix is judged against: the purpose of this loop (verify ShipLoop, not
@@ -152,7 +163,25 @@ engine's status and the stage it never accepted. `unknown` is kept rather than a
 guess, a ShipLoop refusal is never reported as the cause, and the printed report
 has a `stopped` line. A harness killed together with its host writes none of
 it (the observer is gone); only the engine's own state survives, and a later
-`--resume-run` records what that resume observed.
+`--resume-run` records what that resume observed. `--resume-run <output directory>
+--grade-only` writes metrics.json, result.json and the Run Review export from what is
+on disk, starting no host, for a run in any status that has a ShipLoop state (`process`
+says `not observed` and `termination` says no host ran). Stop the host first, or confirm
+none is alive: against a live host it records a mid-run snapshot and replaces result.json.
+It never continues or answers a run (SPEC S-14), and it writes no baseline row.
+
+To end a run on purpose, create the file `<output directory>/stop`. The harness kills the
+host (its whole process group), never relaunches it, consumes the file, records
+`process.status: stopped` with no process verdict (the host did not fail) and
+`resume_stop: stopped by <output>/stop`, writes the records and the export, writes no baseline
+row, and exits non-zero (a suite reads exit 0 as a pass). A stale file is removed at the start of
+every `--resume-run`, and a stop never answers a blocked or awaiting run. A stop that names a
+stage (`--stop-at`) is deferred until planning probes are routine (the pending plan's RC2 and
+RC3); an external watcher that creates the file when a stage's row appears covers it meanwhile.
+
+A baseline row is written only for a run that starts from the beginning and ends with ShipLoop
+no longer active. A resumed or seeded run, and a run left active (a deadline, a stop, a spent
+resume budget), writes none: its turns, cost and stages are a fragment.
 
 While a run is going, `python3 test/shiploop_e2e/progress.py <output>` prints
 what changed since its last call (new accepted stages with turns and minutes,
@@ -352,15 +381,23 @@ uses it on purpose. Publish (`scripts/release.py`, then
 
 ### Launching long runs
 
-Launch a run as a Claude Desktop background task (`run_in_background`) so it can be tracked; a background task is
-killed after 18-30 minutes, taking the host with it, so relaunch with `--resume-run <output directory>` and the
-run continues in place (the output directory is reused; `--output` is ignored on a resume). A resume refuses to
-start while `origin/main`'s CI has failed, and a Codex resume across a release is refused. A multi-hour host such
-as Codex at max effort is the one case where a detached `nohup` launch is a deliberate, stated exception; watch it
-with a periodic status snapshot of its output directory.
+Launch a run as a Claude Desktop background task (`run_in_background`) so it can be tracked. A task is killed at the
+timeout it was given, taking the harness and its host with it, so the limit is whatever the launcher set and not a
+platform constant: the dated observations are 10 minutes (2026-10-03, the tool's 600000 ms maximum), a 30-minute
+kill at 1798 s (2026-10-03) and 120.3 minutes (2026-10-05). Pass `--timeout` (seconds) below it, with margin: the
+deadline starts after preflight and install, and when it is spent the harness still runs the product checks (180 s
+each, again against an unreturned worktree) and the review export before it exits. A spent deadline is a clean
+ending: the harness writes metrics.json, result.json and the export, writes no baseline row, and prints the command
+that continues the run. Run that command as the next task: `--resume-run <output directory>` continues the run in
+place (the output directory is reused; `--output` is ignored on a resume). A resume refuses to start while
+`origin/main`'s CI has failed, and a Codex resume across a release is refused, so do not run `scripts/release.py`
+while a Codex run is live (Codex replaces the plugin at session start). A multi-hour host such as Codex at max effort
+is the one case where a detached `nohup` launch is a deliberate, stated exception; watch it with a periodic status
+snapshot of its output directory.
 
-A task kill stops the harness where it stands and no harness code runs: nothing is written afterwards (no
-termination record, no `result.json`, no baseline row), and nothing looks for what the host left behind. A
+A task kill before the deadline stops the harness where it stands and no harness code runs: nothing is written
+afterwards (no termination record, no `result.json`, no baseline row), and nothing looks for what the host left
+behind. Give the run its records afterwards with `--resume-run <output directory> --grade-only`. A
 model's background server can outlive its run by far more than the task limit: two (`python server.py` and
 `node server.js`) were found alive about 27 hours after their runs, parent pid 1, listening on all interfaces,
 and were stopped by hand. Claude Code gives each Bash call its own process group; the harness's kill is a

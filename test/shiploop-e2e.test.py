@@ -19,10 +19,13 @@ import shutil
 import os
 from pathlib import Path
 import re
+import shlex
 import stat
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import unittest
 from unittest import mock
 
@@ -83,6 +86,9 @@ print(json.dumps({{"type": "assistant", "message": {{"content": [{{"type": "tool
                   "input": {{"command": "shiploop next"}}}}]}}}}))
 if mode in ("done", "no-skill"):
     product()
+if mode == "active":
+    Path(".shiploop").mkdir(exist_ok=True)
+    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
 if mode == "chain-hang":
     sys.path.insert(0, {str(ROOT / 'skills/shiploop/scripts')!r})
     import shiploop_chain_ledger as ledger, time
@@ -94,6 +100,8 @@ if mode == "chain-hang":
             ledger.append_event(str(chain / "events"), f"e{{number}}", kind, data)
     if "This session ended" not in argv[argv.index("-p") + 1]:
         child.mkdir(parents=True)
+        # The run is active while its chain worker is in flight, as a real run's state.md says.
+        store.write_record(chain.parent.parent / "state.md", {{"status": "active", "stage": "implement", "revision": 3}})
         store.write_record(chain / "binding.md", {{"dispatcher_run": str(child), "mode": "parallel"}})
         ledger_events(("launched_result", {{"attempt": "A-1"}}), ("launched_result", {{"attempt": "B-1"}}))
         time.sleep(120)  # killed by --interrupt-at long before this ends
@@ -153,13 +161,18 @@ elif mode == "early" and not resumed:
     pass  # the first session ends before ShipLoop writes any state
 elif mode == "early":
     product()
-elif mode == "hang":
+elif mode in ("hang", "hang-active"):
+    if mode == "hang-active":
+        Path(".shiploop").mkdir(exist_ok=True)
+        store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
     print(json.dumps({{"type": "session", "sessionId": "sess-1"}}), flush=True)
     import time
-    time.sleep(600)  # killed by --timeout
-elif mode in ("resume", "stuck", "anon", "crash-resumed"):
+    time.sleep(600)  # killed by --timeout or by a requested stop
+elif mode in ("resume", "stuck", "stuck-stop", "anon", "crash-resumed"):
     Path(".shiploop").mkdir(exist_ok=True)
     store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
+    if mode == "stuck-stop":
+        (Path.cwd().parent / "stop").write_text("")  # a person asks for a stop as this session ends
 end = {{"type": "end", "stopReason": "cancelled", "sessionId": "sess-1", "num_turns": 4, "total_cost_usd": 0.01}}
 if mode == "anon":
     del end["sessionId"]  # the host never named its session: there is nothing to resume
@@ -233,6 +246,10 @@ class HarnessCase(unittest.TestCase):
         self.plugin = self.tmp / "build" / "plugins" / "skill-craft"
         (self.plugin / ".claude-plugin").mkdir(parents=True)
         (self.plugin / ".claude-plugin" / "plugin.json").write_text("{}")
+        # The CLI file a resume prompt names (run.shiploop_cli): a plugin build always carries one.
+        self.cli = self.plugin / "skills" / "shiploop" / "scripts" / "shiploop"
+        self.cli.parent.mkdir(parents=True)
+        self.cli.write_text("")
         self.log = self.tmp / "fake-log.json"
         self.baselines = self.tmp / "baselines.jsonl"  # never the committed file
         os.environ["FAKE_LOG"] = str(self.log)
@@ -376,17 +393,25 @@ class ClaudeResumePromptTest(unittest.TestCase):
     def test_a_claude_resume_names_the_run_s_own_marketplace_cli(self):
         with tempfile.TemporaryDirectory() as temp:
             out = Path(temp)
-            cli = out / "marketplace/plugins/skill-craft/skills/shiploop/scripts/shiploop"
-            cli.parent.mkdir(parents=True)
-            cli.write_text("#!/bin/sh\n")
-            prompt = run.resume_prompt(out, "/r/run", hosts.host("claude"))
+            plugin = out / "marketplace/plugins/skill-craft"
+            cli = run.shiploop_cli(plugin)
+            self.assertEqual(cli, plugin / "skills/shiploop/scripts/shiploop")
+            prompt = run.resume_prompt("/r/run", cli)
             self.assertIn(f'python3 "{cli}" next --run-dir "/r/run"', prompt)
             self.assertNotIn("`shiploop next", prompt)
 
-    def test_without_an_installed_marketplace_build_the_bare_command_remains(self):
-        with tempfile.TemporaryDirectory() as temp:
-            prompt = run.resume_prompt(Path(temp), "/r/run", hosts.host("claude"))
-            self.assertIn("`shiploop next --run-dir \"/r/run\"`", prompt)
+    def test_a_resume_names_the_cli_it_is_given_for_any_build_and_has_no_bare_command(self):
+        # A checkout build (v1220 and v1230 Sonnet) keeps its CLI under <output>/build, not <output>/marketplace.
+        cli = run.shiploop_cli(Path("/out/build/plugins/skill-craft"))
+        prompt = run.resume_prompt("/r/run", cli)
+        self.assertIn('python3 "/out/build/plugins/skill-craft/skills/shiploop/scripts/shiploop" next --run-dir "/r/run"',
+                      prompt)
+        self.assertNotIn("`shiploop next", prompt)
+
+    def test_a_resume_before_any_run_exists_names_no_command(self):
+        prompt = run.resume_prompt(None, Path("/p/cli"))
+        self.assertIn("ended before the ShipLoop run was started", prompt)
+        self.assertNotIn("next --run-dir", prompt)
 
 
 class ImproveReviewsMetricTest(unittest.TestCase):
@@ -486,6 +511,7 @@ class SeedTest(HarnessCase):
         self.assertTrue(packet.stdout.startswith("ShipLoop navigator | step-plan |"), packet.stdout[:200])
 
     def test_seeded_run_opens_at_the_run_and_writes_no_baseline(self):
+        shutil.rmtree(self.plugin / "skills")  # the real skills, and so the real CLI, replace the fixture's stub
         (self.plugin / "skills").symlink_to(ROOT / "skills")
         code, result = self.invoke("claude", "nothing", "--seed-at", "step-plan")
         self.assertEqual(code, 1, result)
@@ -1918,8 +1944,9 @@ class CodexRunTest(HarnessCase):
         events = (out / "events.jsonl").read_text()
         self.assertIn('"sessionId": "sess-1"', events)          # the Grok session is kept
         self.assertIn('"sessionId": "codex-thread-1"', events)  # the Codex session is appended
-        rows = [json.loads(line) for line in self.baselines.read_text().splitlines()]
-        self.assertEqual(len(rows), 1, "only the original run writes a baseline row; a resume does not")
+        # The original run ended with its engine active, so it wrote no row (SPEC: a baseline row is a finished
+        # run's), and a resume never writes one.
+        self.assertFalse(self.baselines.exists(), "neither the unfinished original nor its resume writes a baseline row")
 
     def test_resume_run_refuses_a_run_that_is_neither_active_nor_done(self):
         code, finished = self.invoke("grok", "done")
@@ -2381,7 +2408,7 @@ class TerminationThroughMainTest(PrintedCase):
         t = result["termination"]
         self.assertEqual((t["sessions"], t["resumes"], t["resume_stop"]), (3, 2, "resume budget spent (2)"))
         self.assertEqual((t["engine_status"], t["engine_unaccepted_stage"]), ("active", "test-refine"))
-        self.assertEqual(self.last_row()["termination"], t)
+        self.assertFalse(self.baselines.exists(), "a run left active is not a baseline, so no row carries its termination")
         self.assertEqual(self.stopped(printed),
                          "  stopped   host exited rc=0; session stops cancelled, cancelled, cancelled; "
                          "no further resume: resume budget spent (2); engine active with test-refine never accepted")
@@ -2538,7 +2565,7 @@ class ResumedRunRecordTest(PrintedCase):
         self.assertTrue((out / "metrics.json").is_file())
         self.assertEqual(len(list(out.glob("invocation-resume-*.json"))), 1)
         rows = self.baselines.read_text().splitlines() if self.baselines.exists() else []
-        self.assertEqual(len(rows), 1, "only the original run writes a baseline row; a regrade does not")
+        self.assertEqual(rows, [], "the original run was left active and so wrote no baseline row; a regrade writes none")
 
     def test_a_regrade_with_no_record_says_no_host_ran_and_fabricates_no_exit(self):
         out = self.stopped_run()
@@ -3758,6 +3785,346 @@ class ContextTokensTest(unittest.TestCase):
         self.assertEqual(collect_stream([{"type": "assistant", "message": {"content": []}}], [])["tokens"],
                          {"input_peak": None})
         self.assertEqual(collect_stream(codex_stream(3), [])["tokens"], {"input_peak": None})
+
+
+class ResumeCliThroughMainTest(PrintedCase):
+    """The prompt that continues a run names the ShipLoop CLI of the plugin the run started on, through run.main.
+
+    A Claude run built from a checkout was continued with a bare `shiploop next` (ClaudeHost.plugin_cli looked only
+    under <output>/marketplace); a run continued on another host used the first host's installed copy or nothing."""
+
+    def setUp(self):
+        super().setUp()
+        (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
+        patched = mock.patch.object(run, "POLL_SECONDS", 0.2, create=True)  # the interrupt test waits on the poll
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def resume(self, out: Path, host: str, plugin: Path | None = None, *extra: str) -> None:
+        released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False,
+                    "catalog_version": "9.9.9", "shiploop_version": None, "unreleased": [], "ci": "success"}
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(run, "released_versions", return_value=released):
+            run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
+                      "--plugin-dir", str(plugin or self.plugin), "--baseline", str(self.baselines),
+                      "--max-resumes", "0", *extra])
+
+    def test_a_claude_checkout_run_is_continued_with_its_own_cli_in_the_prompt(self):
+        code, first, _ = self.invoke_printed("claude", "active")
+        self.assertEqual(first["shiploop"]["status"], "active")
+        self.log.unlink()
+        os.environ["FAKE_MODE"] = "active"
+        self.resume(Path(first["output"]), "claude")
+        argv = self.seen()["argv"]
+        prompt = argv[argv.index("-p") + 1]
+        self.assertIn("This session ended while the ShipLoop run was still active", prompt)
+        self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)
+        self.assertNotIn("`shiploop next", prompt)
+
+    def test_a_run_continued_on_another_host_keeps_the_cli_it_started_on(self):
+        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        other = self.tmp / "other" / "plugins" / "skill-craft"
+        (other / ".claude-plugin").mkdir(parents=True)
+        (other / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
+        other_cli = run.shiploop_cli(other)
+        other_cli.parent.mkdir(parents=True)
+        other_cli.write_text("")
+        self.log.unlink()
+        os.environ["FAKE_MODE"] = "stuck"
+        self.resume(Path(first["output"]), "codex", other)
+        prompt = self.seen()["prompt"]
+        self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)  # the first host's install, not the new one
+        self.assertNotIn(str(other_cli), prompt)
+
+    def test_the_resume_after_an_interrupt_names_the_cli_the_run_started_on(self):
+        code, result, _ = self.invoke_printed("claude", "chain-hang", "--interrupt-at", "chain-launched")
+        self.assertEqual(code, 0, result)
+        argv = self.seen()["argv"]
+        prompt = argv[argv.index("-p") + 1]
+        self.assertIn("This session ended while the ShipLoop run was still active", prompt)
+        self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)
+
+    def test_a_resume_whose_plugin_cli_is_gone_is_refused_before_any_host_starts(self):
+        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        self.cli.unlink()
+        self.log.unlink()
+        Path(str(self.log) + ".sessions").unlink()
+        os.environ["FAKE_MODE"] = "stuck"
+        with self.assertRaisesRegex(SystemExit, "ShipLoop CLI.*is gone"):
+            self.resume(Path(first["output"]), "grok")
+        self.assertFalse(self.log.exists(), "no host was started")
+
+    def test_a_regrade_never_needs_the_cli(self):
+        code, first, _ = self.invoke_printed("grok", "done")
+        self.cli.unlink()
+        self.resume(Path(first["output"]), "grok")  # done: graded again, no host, no prompt
+        self.assertTrue(json.loads((Path(first["output"]) / "result.json").read_text())["process"]["regraded"])
+
+
+class RunCliTest(unittest.TestCase):
+    """run.run_cli: one rule for the CLI a run uses, for the seed and for every resume prompt."""
+
+    def test_claude_loads_its_plugin_dir_so_the_plugin_dir_is_its_cli(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            for plugin in (out / "marketplace/plugins/skill-craft", out / "build/plugins/skill-craft"):
+                self.assertEqual(run.run_cli("claude", out, plugin), plugin / "skills/shiploop/scripts/shiploop")
+
+    def test_grok_and_codex_use_the_copy_they_installed_and_fall_back_to_the_plugin_dir(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            build = out / "build/plugins/skill-craft"
+            self.assertEqual(run.run_cli("grok", out, build), run.shiploop_cli(build))
+            grok_copy = out / "home/.grok/installed-plugins/skill-craft-1234/skills/shiploop/scripts/shiploop"
+            grok_copy.parent.mkdir(parents=True)
+            grok_copy.write_text("")
+            self.assertEqual(run.run_cli("grok", out, build), grok_copy)
+            codex_copy = out / "home/.codex/plugins/cache/whichguy/skill-craft/1.0.0/skills/shiploop/scripts/shiploop"
+            codex_copy.parent.mkdir(parents=True)
+            codex_copy.write_text("")
+            self.assertEqual(run.run_cli("codex", out, build), codex_copy)
+
+
+class StopFileTest(PrintedCase):
+    """A requested stop (<output>/stop) ends the host with its records written, and is never a pass."""
+
+    def setUp(self):
+        super().setUp()
+        patched = mock.patch.object(run, "POLL_SECONDS", 0.2, create=True)
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def sessions(self) -> list[dict]:
+        return [json.loads(line) for line in Path(str(self.log) + ".sessions").read_text().splitlines()]
+
+    def stop_when_the_host_runs(self, out: Path) -> None:
+        def ask():
+            for _ in range(400):
+                if self.log.exists():
+                    break
+                time.sleep(0.05)
+            (out / "stop").write_text("")
+        threading.Thread(target=ask, daemon=True).start()
+
+    def main(self, out: Path, *extra: str) -> tuple[int, dict, str]:
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), mock.patch.object(
+                run, "review_export", return_value="review export: fake") as exporter:
+            code = run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines),
+                             "--timeout", "30", *extra])
+        self.exporter = exporter
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue()
+
+    def test_the_stop_file_ends_the_host_and_the_records_are_written_without_a_relaunch(self):
+        os.environ["FAKE_MODE"] = "hang-active"
+        out = self.tmp / "out-stop"
+        self.stop_when_the_host_runs(out)
+        code, result, printed = self.main(out)
+        self.assertEqual(code, 1, "a requested stop is not a finished run: it must never exit 0")
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["sessions"], t["engine_status"]), ("stopped", 1, "active"))
+        self.assertEqual(t["resume_stop"], f"stopped by {out.resolve() / 'stop'}")
+        self.assertEqual(len(self.sessions()), 1, "a stopped host is not relaunched")
+        self.assertFalse((out / "stop").exists(), "the request is consumed when it is acted on")
+        self.assertTrue((out / "metrics.json").is_file())
+        self.exporter.assert_called_once()
+        self.assertFalse(self.baselines.exists(), "a stopped run is not a baseline")
+        self.assertFalse((out / "mismatch.md").exists(), "a requested stop is not a mismatch to explain")
+        self.assertRegex(printed, r"(?m)^STOPPED  shiploop e2e case=")
+        self.assertIn("host stopped rc=-9", printed)
+
+    def test_a_stop_requested_as_a_session_ends_stops_the_resume_loop(self):
+        os.environ["FAKE_MODE"] = "stuck-stop"
+        out = self.tmp / "out-stop-between"
+        code, result, printed = self.main(out)
+        self.assertEqual(code, 1)
+        self.assertEqual(len(self.sessions()), 1, "the loop would otherwise resume up to the cap")
+        self.assertEqual(result["termination"]["resume_stop"], f"stopped by {out.resolve() / 'stop'}")
+        self.assertFalse((out / "stop").exists())
+        self.assertRegex(printed, r"(?m)^STOPPED  shiploop e2e case=")
+
+    def test_a_stale_stop_file_does_not_stop_a_later_resume(self):
+        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        (out / "stop").write_text("")  # left over from a stop nobody consumed
+        os.environ["FAKE_MODE"] = "done"
+        with contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")
+        self.assertNotEqual(result["process"]["status"], "stopped")
+        self.assertFalse((out / "stop").exists())
+
+    def test_a_stop_never_answers_a_blocked_run(self):
+        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        shutil.rmtree(out / "work" / ".shiploop")
+        (out / "work" / ".shiploop").mkdir()
+        run.store.write_record(out / "work" / ".shiploop" / "state.md",
+                               {"status": "blocked", "stage": "test-refine", "status_reason": "waiting for a person"})
+        (out / "stop").write_text("")
+        self.log.unlink(missing_ok=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        result = json.loads((out / "result.json").read_text())
+        self.assertFalse(self.log.exists(), "no host was started for a blocked run")
+        self.assertEqual(result["shiploop"]["status"], "blocked")
+        self.assertNotEqual(result["termination"].get("process_status"), "stopped")
+        self.assertFalse((out / "stop").exists(), "the request was cleared at the start, not acted on")
+
+
+class GradeOnlyTest(PrintedCase):
+    """--resume-run <dir> --grade-only: records from what is on disk, no host, for a run whose harness was killed."""
+
+    def killed_harness_run(self) -> Path:
+        code, result, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        out = Path(result["output"])
+        for name in ("result.json", "metrics.json"):  # a task kill gives the harness no chance to write them
+            (out / name).unlink()
+        shutil.rmtree(out / "review-export", ignore_errors=True)
+        self.log.unlink()
+        return out
+
+    def grade_only(self, out: Path, *extra: str) -> tuple[int, dict, str]:
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), mock.patch.object(
+                run, "review_export", return_value="review export: fake") as exporter:
+            code = run.main([*extra, "--resume-run", str(out), "--grade-only", "--plugin-dir", str(self.plugin),
+                             "--baseline", str(self.baselines)])
+        self.exporter = exporter
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue()
+
+    def test_an_active_run_whose_harness_was_killed_is_graded_without_a_host(self):
+        out = self.killed_harness_run()
+        recorded = json.loads((out / "invocation.json").read_text())
+        rows = self.baselines.read_text() if self.baselines.exists() else ""
+        code, result, printed = self.grade_only(out)
+        self.assertEqual(code, 1, "an unfinished run is not a pass")
+        self.assertFalse(self.log.exists(), "no host process was started")
+        self.assertTrue((out / "metrics.json").is_file())
+        self.exporter.assert_called_once()
+        self.assertTrue(result["process"]["regraded"])
+        self.assertEqual(result["shiploop"]["status"], "active")
+        self.assertEqual((result["host"], result["model"], result["effort"]),
+                         (recorded["host"], recorded["model"], recorded["effort"]))
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["engine_status"], t["engine_unaccepted_stage"]),
+                         (run.NOT_OBSERVED, "active", "test-refine"))
+        self.assertEqual(self.baselines.read_text() if self.baselines.exists() else "", rows,
+                         "a grade-only writes no baseline row")
+        self.assertIn("no host ran (regraded); engine active", printed)
+
+    def test_a_paused_run_is_graded_under_the_flag_and_refused_without_it(self):
+        out = self.killed_harness_run()
+        shutil.rmtree(out / "work" / ".shiploop")
+        (out / "work" / ".shiploop").mkdir()
+        run.store.write_record(out / "work" / ".shiploop" / "state.md", {"status": "paused", "stage": "spec",
+                                                                        "status_reason": "paused for a person"})
+        with contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(SystemExit, "needs an active, blocked or finished"):
+                run.main(["--resume-run", str(out), "--plugin-dir", str(self.plugin)])
+        code, result, _ = self.grade_only(out)
+        self.assertEqual(result["shiploop"]["status"], "paused")
+        self.assertFalse(self.log.exists())
+
+    def test_the_flag_needs_a_run_to_grade_and_a_run_with_no_state_is_still_refused(self):
+        with self.assertRaisesRegex(SystemExit, "--grade-only needs --resume-run"):
+            run.main(["--grade-only", "--host", "grok", "--output", str(self.tmp / "never")])
+        self.assertFalse((self.tmp / "never").exists())
+        code, result, _ = self.invoke_printed("grok", "nothing", "--max-resumes", "0")
+        out = Path(result["output"])
+        with self.assertRaisesRegex(SystemExit, "needs an active, blocked or finished"):
+            run.main(["--resume-run", str(out), "--grade-only", "--plugin-dir", str(self.plugin)])
+
+
+class ResumeCommandTest(PrintedCase):
+    """The harness prints the exact command that continues the run, before any host spend and again when it is left active.
+
+    invocation.json keeps the host argv but not the harness flags, so a command with only --resume-run would fall
+    back to the default --timeout (10800 s), which is above the limit of a launching task."""
+
+    def commands(self, printed: str) -> list[list[str]]:
+        lines = [ln for ln in printed.splitlines() if "--resume-run" in ln]
+        return [shlex.split(ln[ln.index("python3 "):]) for ln in lines]
+
+    def test_the_start_and_the_end_print_the_exact_command_that_continues_the_run(self):
+        code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "0", "--timeout", "900",
+                                                    "--permission-mode", "plan")
+        found = self.commands(printed)
+        self.assertEqual(len(found), 2, "before the host starts, and again for a run left active")
+        self.assertEqual(found[0], found[1])
+        self.assertLess(printed.index("--resume-run"), printed.index("tool  run_terminal_command"))
+        argv = found[0]
+        self.assertEqual((argv[0], Path(argv[1])), ("python3", Path(run.__file__).resolve()))
+        parsed = run.parser().parse_args(argv[2:])
+        self.assertEqual(parsed.resume_run, Path(result["output"]))
+        self.assertEqual((parsed.host, parsed.model, parsed.effort), ("grok", "grok-4.7", "medium"))
+        self.assertEqual((parsed.timeout, parsed.max_resumes, parsed.max_budget_usd, parsed.permission_mode),
+                         (900, 0, 40.0, "plan"))
+        self.assertEqual(parsed.grok_bin, str(self.fakes["grok"]))
+        self.assertEqual(parsed.plugin_dir, self.plugin)
+
+    def test_a_finished_run_prints_it_once_and_a_host_without_an_effort_prints_none(self):
+        code, result, printed = self.invoke_printed("claude", "done")
+        found = self.commands(printed)
+        self.assertEqual(len(found), 1, "nothing to continue at the end")
+        self.assertNotIn("--effort", found[0])
+        self.assertEqual(run.parser().parse_args(found[0][2:]).host, "claude")
+
+    def test_the_printed_command_continues_the_run_in_place(self):
+        code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        argv = self.commands(printed)[0][2:]
+        os.environ["FAKE_MODE"] = "done"
+        self.log.unlink()
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
+                run, "released_versions", return_value={
+                    "origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False,
+                    "catalog_version": None, "shiploop_version": None, "unreleased": [], "ci": "success"}):
+            run.main([*argv, "--baseline", str(self.baselines)])
+        resumed = json.loads((Path(result["output"]) / "result.json").read_text())
+        self.assertEqual(resumed["termination"]["resume_stop"], "ShipLoop run is done")
+        self.assertEqual(resumed["output"], result["output"])
+
+
+class UnfinishedRunBaselineTest(PrintedCase):
+    """No baseline row for a run whose engine is still active when the harness ends."""
+
+    def setUp(self):
+        super().setUp()
+        patched = mock.patch.object(run, "POLL_SECONDS", 0.2, create=True)  # a deadline is noticed on the next poll
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def test_a_run_left_active_by_a_spent_resume_budget_writes_no_row(self):
+        code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "1")
+        self.assertEqual(result["termination"]["engine_status"], "active")
+        self.assertFalse(self.baselines.exists())
+        self.assertIn("baseline  nothing compared: the run is not finished (its engine is still active)", printed)
+
+    def test_a_deadline_ends_with_the_records_leaves_the_run_resumable_and_writes_no_row(self):
+        # The README's recipe for a task with a limit: --timeout below it, so the harness finalizes.
+        code, result, printed = self.invoke_printed("grok", "hang-active", "--timeout", "2")
+        out = Path(result["output"])
+        self.assertEqual(code, 1)
+        self.assertTrue((out / "metrics.json").is_file())
+        self.assertRegex(printed, r"review export")
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["resume_stop"], t["engine_status"]),
+                         ("timeout", "run deadline spent", "active"))
+        self.assertFalse(self.baselines.exists(), "the first segment of a long run is not a baseline")
+
+    def test_a_finished_run_still_writes_its_row(self):
+        code, result, _ = self.invoke_printed("grok", "done")
+        self.assertEqual(code, 0)
+        self.assertEqual(len(self.baselines.read_text().splitlines()), 1)
+
+    def test_a_run_with_no_engine_state_at_all_still_writes_its_row(self):
+        code, result, _ = self.invoke_printed("grok", "nothing")
+        self.assertEqual(result["termination"]["engine_status"], "unknown")
+        self.assertEqual(len(self.baselines.read_text().splitlines()), 1)
 
 
 if __name__ == "__main__":

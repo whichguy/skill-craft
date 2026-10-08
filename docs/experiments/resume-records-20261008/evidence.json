@@ -1,0 +1,107 @@
+{
+ "harness_runs_2026-10-04_to_2026-10-07": [
+  {
+   "run": "20261004/v1180-hello-sonnet",
+   "result.json": true,
+   "metrics.json": true,
+   "review-export": true
+  },
+  {
+   "run": "20261004/v1190-hello-sonnet",
+   "result.json": true,
+   "metrics.json": true,
+   "review-export": true
+  },
+  {
+   "run": "20261004/v1190-hello-sonnet-2",
+   "result.json": true,
+   "metrics.json": true,
+   "review-export": true
+  },
+  {
+   "run": "20261004/v1200-battleship-luna",
+   "result.json": false,
+   "metrics.json": false,
+   "review-export": false
+  },
+  {
+   "run": "20261004/v1200-hello-sonnet",
+   "result.json": true,
+   "metrics.json": true,
+   "review-export": true
+  },
+  {
+   "run": "20261005/v1210-battleship-grok-medium",
+   "result.json": false,
+   "metrics.json": false,
+   "review-export": false
+  },
+  {
+   "run": "20261005/v1210-battleship-luna-xhigh",
+   "result.json": false,
+   "metrics.json": false,
+   "review-export": false
+  },
+  {
+   "run": "20261006/v1220-battleship-grok-medium-none",
+   "result.json": true,
+   "metrics.json": true,
+   "review-export": true
+  },
+  {
+   "run": "20261006/v1220-battleship-sonnet",
+   "result.json": true,
+   "metrics.json": true,
+   "review-export": true
+  },
+  {
+   "run": "20261007/v1230-battleship-grok-none",
+   "result.json": true,
+   "metrics.json": true,
+   "review-export": true
+  },
+  {
+   "run": "20261007/v1230-battleship-sonnet",
+   "result.json": true,
+   "metrics.json": true,
+   "review-export": true
+  }
+ ],
+ "claude_checkout_resume_prompt": {
+  "20261007/v1230-battleship-sonnet": {
+   "host": "claude",
+   "source": "checkout",
+   "old": "This session ended while the ShipLoop run was still active. Continue it now: run `shiploop next --run-dir \"/Users/dadleet/e2e-runs/20261007/v1230-battleship-sonnet/.shiploop-runs/work-20261007-153319-f1996a/run\"` and follow the packet it prints, to the end of the run. Never end the turn while a ShipLoop command is still running.",
+   "new": "This session ended while the ShipLoop run was still active. Continue it now: run `python3 \"/Users/dadleet/e2e-runs/20261007/v1230-battleship-sonnet/build/plugins/skill-craft/skills/shiploop/scripts/shiploop\" next --run-dir \"/Users/dadleet/e2e-runs/20261007/v1230-battleship-sonnet/.shiploop-runs/work-20261007-153319-f1996a/run\"` and follow the packet it prints, to the end of the run. Never end the turn while a ShipLoop command is still running."
+  },
+  "20261007/v1230-battleship-grok-none": {
+   "host": "grok",
+   "source": "checkout",
+   "old": "This session ended while the ShipLoop run was still active. Continue it now: run `python3 \"/Users/dadleet/e2e-runs/20261007/v1230-battleship-grok-none/home/.grok/installed-plugins/skill-craft-5521a64d/skills/shiploop/scripts/shiploop\" next --run-dir \"/Users/dadleet/e2e-runs/20261007/v1230-battleship-grok-none/.shiploop-runs/work-20261007-153345-c5f8ed/run\"` and follow the packet it prints, to the end of the run. Never end the turn while a ShipLoop command is still running.",
+   "new": "This session ended while the ShipLoop run was still active. Continue it now: run `python3 \"/Users/dadleet/e2e-runs/20261007/v1230-battleship-grok-none/home/.grok/installed-plugins/skill-craft-5521a64d/skills/shiploop/scripts/shiploop\" next --run-dir \"/Users/dadleet/e2e-runs/20261007/v1230-battleship-grok-none/.shiploop-runs/work-20261007-153345-c5f8ed/run\"` and follow the packet it prints, to the end of the run. Never end the turn while a ShipLoop command is still running."
+  }
+ },
+ "luna_xhigh_relaunch_gaps_seconds": [
+  7208,
+  7208,
+  7211
+ ],
+ "luna_xhigh_first_next_of_fresh_sessions": [
+  {
+   "events_line_0_based": 592,
+   "run_dir_argument": "/Users/dadleet/e2e-runs/20261005/20261005/v1210-battleship-luna-xhigh/.shiploop-runs/work-20261005-044509-c4c5ac/run"
+  },
+  {
+   "events_line_0_based": 1210,
+   "run_dir_argument": "/Users/dadleet/e2e-runs/20261005/1210-battleship-luna-xhigh/.shiploop-runs/work-20261005-044509-c4c5ac/run"
+  },
+  {
+   "events_line_0_based": 2130,
+   "run_dir_argument": "/Users/dadleet/e2e-runs/20261005/v1210-battleship-luna-xhigh/.shiploop-runs/work-20261005-044509-c4c5ac/run"
+  },
+  {
+   "events_line_0_based": 2631,
+   "run_dir_argument": "/Users/dadleet/e2e-runs/20261005/./v1210-battleship-luna-xhigh/.shiploop-runs/work-20261005-044509-c4c5ac/run"
+  }
+ ]
+}
