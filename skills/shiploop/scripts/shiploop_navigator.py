@@ -1394,10 +1394,8 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
         stop = {"kind": status, "text": _status_text(state["status_reason"], 200)}
 
     ahead: list[dict[str, str]] = []
-    remaining = 0
     if phase == "preparation":
         pending = [node for node in prelude if (None, node) not in done and node != stage]
-        remaining = len(pending) + 1
         ahead = [{"label": node, "text": guidance.STAGE_PURPOSE[node]} for node in pending[:2]]
         rest = pending[2:]
         ahead.append({"label": "then " + ", ".join(rest + ["the work items", "release"]) if rest
@@ -1412,10 +1410,8 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
         if len(upcoming) > 3:
             ahead.append({"label": f"{len(upcoming) - 3} more work items", "text": ""})
         ahead.append({"label": "then release", "text": ", ".join(outer[:3]) + ", \u2026"})
-        remaining = sum(1 for node in inner if (owner, node) not in done) + len(inner) * len(upcoming)
     elif phase == "outer":
         pending = [node for node in outer if (None, node) not in done and node != stage]
-        remaining = len(pending) + 1
         ahead = [{"label": node, "text": guidance.STAGE_PURPOSE[node]} for node in pending[:3]]
         if len(pending) > 3:
             ahead.append({"label": "then " + ", ".join(pending[3:]), "text": ""})
@@ -1424,9 +1420,7 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     if timeline:
         stamps = [timeline["accepted"][entry["action"]] for entry in state["history"]
                   if entry["action"] in timeline.get("accepted", {})]
-        scope = {"preparation": "preparation", "inner": "the work items", "outer": "release"}.get(phase, "")
-        pace = {"started": timeline.get("started"), "stamps": stamps,
-                "remaining_steps": remaining if status == "active" else 0, "scope": scope}
+        pace = {"started": timeline.get("started"), "stamps": stamps}
 
     last = state["history"][-1] if state["history"] else None
     milestone = (status != "active" or last is None or last["stage"] in prelude

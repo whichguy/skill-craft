@@ -7,6 +7,7 @@ plus one real `init`/`next` through the CLI; no host or Improve runtime runs.
 
 from __future__ import annotations
 
+import datetime
 import importlib.util
 import json
 import os
@@ -113,18 +114,35 @@ class NarrativeTests(unittest.TestCase):
                 self.assertEqual(facts["ahead"], [])
                 self.assertNotIn("Now", narrative.markdown(facts))
 
-    def test_pace_needs_two_steps_and_labels_the_estimate(self) -> None:
+    def test_pace_states_what_was_recorded_and_never_forecasts(self) -> None:
         self.assertIsNone(narrative.pace_line({"started": "2026-01-01T10:00:00Z", "stamps": []}))
-        one = narrative.pace_line({"started": "2026-01-01T10:00:00Z", "stamps": ["2026-01-01T10:04:00Z"],
-                                   "remaining_steps": 5, "scope": "preparation"})
+        one = narrative.pace_line({"started": "2026-01-01T10:00:00Z", "stamps": ["2026-01-01T10:04:00Z"]})
         self.assertEqual(one, "1 step in 4 min")
-        two = narrative.pace_line({"started": "2026-01-01T10:00:00Z",
-                                   "stamps": ["2026-01-01T10:04:00Z", "2026-01-01T10:10:00Z"],
-                                   "remaining_steps": 4, "scope": "preparation"})
-        self.assertEqual(two, "2 steps in 10 min · about 20 min left in preparation at this run's pace "
-                              "(an estimate, not a promise)")
+        two = {"started": "2026-01-01T10:00:00Z", "stamps": ["2026-01-01T10:04:00Z", "2026-01-01T10:10:00Z"]}
+        self.assertEqual(narrative.pace_line(two), "2 steps in 10 min")
+        # A forecast is not the display's to make: even a caller that still passes the old keys gets no "left".
+        self.assertEqual(narrative.pace_line({**two, "remaining_steps": 4, "scope": "preparation"}), "2 steps in 10 min")
         self.assertEqual(narrative.duration(20), "under a minute")
         self.assertEqual(narrative.duration(3 * 3600 + 5 * 60), "3 h 5 min")
+
+    def test_the_packet_narrative_of_every_scope_records_the_pace_and_never_forecasts_the_time_left(self) -> None:
+        # Preparation, work items and release are all averages of unequal steps (a recorded preparation's stages ran
+        # from 0.8 to 9.6 minutes, another's from 2.5 to 121); a forecast read 2.4 to 6.8 times short at its first
+        # showing in five recorded preparations.
+        prepared = self.driver.advance_to(self.driver.state(), "research")
+        working = self.driver.advance_to(self.driver.advance_to(self.driver.planned(ROWS), "test-author"), "implement")
+        releasing = self.driver.advance_to(self.driver.advance_to(self.driver.planned(ROWS), "carry-forward"),
+                                           "system-test-author")
+        for scope, state in (("preparation", prepared), ("work items", working), ("release", releasing)):
+            with self.subTest(scope):
+                begin = datetime.datetime(2026, 1, 1, 10, 0, tzinfo=datetime.timezone.utc)
+                stamps = {row["action"]: (begin + datetime.timedelta(minutes=2 * (n + 1))).strftime("%Y-%m-%dT%H:%M:%SZ")
+                          for n, row in enumerate(state["history"])}
+                lines = navigator.narrative_lines(state, {"started": "2026-01-01T10:00:00Z", "accepted": stamps})
+                text = "\n".join(lines)
+                self.assertRegex(text, r"\*\*⏱ Pace\*\* — \d+ steps in \d+ (min|h)[^\n·]*(\n|$)")
+                self.assertNotIn("left in", text)
+                self.assertNotIn("estimate", text)
 
     def test_host_text_is_cleaned(self) -> None:
         state = self.driver.produce(self.driver.state(),

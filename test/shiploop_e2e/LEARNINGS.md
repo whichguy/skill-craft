@@ -1571,3 +1571,23 @@ Luna's per-stage Improve shares are spec 44.49, test-strategy 61.06, plan 56.92,
 
 Verification: `test/shiploop-e2e.test.py` over `PlanningClockTest`, `PlanningImproveSplitTest`, `PlanningTokensTest`, `PlanningPlumbingTest` and `RecordedRunReproductionTest`, all fail on the previous harness (no `planning` key) and pass here.
 
+## The narrative's Pace row records and no longer forecasts — 2026-10-08 — status: firm for the forecast errors (recomputed from the packets of five recorded runs, `docs/experiments/planning-measures-20261008/pace-forecast.json`, rerun with `pace_forecast.py`); whether removing the number changes any model or user behaviour is unmeasured
+
+What it was: ShipLoop 0.55.0 and earlier printed "N steps in X min · about Y min left in <scope> at this run's pace (an estimate, not a promise)", Y being the observed average per step times the steps left in the phase (preparation, the work items, release). The packet carries it at every milestone, so the model sees it and shows it to the user.
+
+What the recorded runs say [M, forecast read from the Pace rows in `run/packets/*.md`, actual from `timeline.json`, minutes]:
+
+| Run | Preparation, first forecast (after step 2): forecast vs actual | Larger-scope examples |
+|---|---|---|
+| Grok medium 1.21.0 | 8 vs 54.5 (6.8x short) | work-item scope not finished |
+| Grok `none` 1.22.0 | 6 vs 14.7 (2.4x) | work items 88 vs 44.4 (2.0x over), release 13 vs 30.2 (2.3x short) |
+| Sonnet 1.22.0 | 1 vs 5.6 (5.6x) | work items 15 vs 8.3 |
+| Grok `none` 1.23.0 | 6 vs 14.4 (2.4x) | work items 24 vs 48 and 5 vs 13.1 at later steps |
+| Sonnet 1.23.0 | 1 vs 4.4 (4.4x) | work items 12 vs 10.6, 5 vs 5.1 (close), release 5 vs 4.5 (close) |
+
+Preparation is the worst case (its stages differ in size: 0.78 to 9.55 min on Grok `none` 1.23.0, 2.45 to 121 on Luna xhigh, `stages` rows of the planning block) and the last preparation packet over-forecasts (3 vs 0.8). The earlier design note that the work-item and release forecasts "were within roughly 30%" holds for Sonnet 1.23.0 only and is **superseded** by this table: the audit of 2026-10-08 found them 40 to 62% short (Grok `none` 1.23.0) and 2 times over (Grok `none` 1.22.0).
+
+Decision, 2026-10-08, built as its own commit so it can be dropped alone: all three scopes record and none forecasts. Why not preparation only: choosing where a forecast is "wrong enough" needs a threshold nobody has calibrated, and the formula (average of unequal steps times steps left) has the same flaw in every scope. SPEC S-15 asks for "the observed pace", not a forecast. The `remaining` computation and the formatter branch are deleted, not zeroed. The status block, the hook's compact text and `status.md` never carried Pace, so they are unchanged. Not measured: whether the model or a user acts differently without the number (low prior: the row stays); a paired probe is the only way to know. S-6 holds: the row still tells a model holding only this packet where the run stands, and nothing that states a stage's purpose, operation, check, product or recovery moved.
+
+Version skew in the evidence script: it splits scopes with this checkout's `navigator.graph`, so a 1.21.0 history's `select-work` rows (renamed `get-next-work-item`) fall outside every group; the scope ends it reads (`prepare`, the last inner stage, the final accept) are unaffected.
+
