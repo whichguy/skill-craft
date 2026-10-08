@@ -3100,6 +3100,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
         "test-spec included, is accepted": "the none text of COMMON: it says which stages hand off and which do not",
         "no Improve child reviews them in this run": "the none text of the step-plan duty: says no child reviews the steps",
         "No Improve child reviews this result in this run": "the none text of the step-plan duty: says no child reviews it",
+        "No Improve child reviews `skill_na` in this run": "the none text of the step-plan duty: says no child reviews skill_na",
         "Improve follows its own selected context and ownership policy": "the chain-precedence rule on an ask-agent "
         "packet: whose context an Improve invocation uses, not a child at this stage",
         "Do not embed an Improve review campaign in this result": "forbids a nested review inside the producer; promises no child",

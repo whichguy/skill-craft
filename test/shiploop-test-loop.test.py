@@ -117,6 +117,11 @@ test at test/widgets.test.js:4:1
 """
 
 
+# What a step plan records when no repo-local skill is selected, created or changed for the item.
+SKILL_NA = "No repo-local skill applies: README.md is the index and names none."
+NOT_APPLICABLE = "Not applicable to this item"
+
+
 def git(repo: Path, *args: str) -> str:
     return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout
 
@@ -464,6 +469,120 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(nav.current_stage(self.state()), "document")
         later = [row["stage"] for row in self.state()["history"][-3:]]
         self.assertEqual(later, ["test-green", "test-refine", "regression"])
+
+    NO_SKILL = {**NO_TESTS, "skill_na": SKILL_NA}
+
+    def test_an_item_that_records_no_skill_work_leaves_both_skill_stages_out(self):
+        """The step plan opts out with skill_na; the script records skill-assess and skill-validate itself."""
+        self.start()
+        self.drive_to("document", step_plan=self.NO_SKILL)
+        self.complete(DONE)
+        state = self.state()
+        self.assertEqual(nav.current_stage(state), "static-checks")
+        self.assertEqual([row["stage"] for row in state["history"][-3:]], ["document", "skill-assess", "skill-validate"])
+        # Both groups are script rows here: the seven test stages (no test command) and the two skill stages.
+        left_out = [row for row in state["history"] if row["stage"] in item_scope.TEST_STAGES
+                    or row["stage"] in ("skill-assess", "skill-validate")]
+        self.assertEqual(len(left_out), 9)
+        for row in left_out:
+            with self.subTest(stage=row["stage"]):
+                self.assertTrue(row["summary"].startswith(NOT_APPLICABLE), row["summary"])
+                self.assertEqual(state["accepted"][row["action"]]["evidence_refs"], [])
+                self.assertTrue((self.run_dir / "results" / (row["action"] + ".md")).is_file())
+                self.assertFalse((self.run_dir / "packets" / (row["action"] + ".md")).exists())
+        for row in state["history"][-2:]:
+            self.assertIn(SKILL_NA.rstrip("."), row["summary"])  # the step plan's own reason, not the script's
+
+    def test_without_skill_na_both_skill_stages_are_issued_and_run_as_before(self):
+        """GUARD, green before and after: the base path is unchanged."""
+        self.start()
+        self.drive_to("document", step_plan=self.NO_TESTS)
+        self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "skill-assess")
+        self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "skill-validate")
+        self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "static-checks")
+        for row in self.state()["history"][-3:-1]:
+            self.assertFalse(row["summary"].startswith(NOT_APPLICABLE), row["summary"])
+
+    def test_the_test_stages_and_the_skill_stages_are_independent(self):
+        """With real test commands the test stages run for real while the skill stages are still left out."""
+        self.start()
+        self.drive_to("document", step_plan={"test_commands": COMMANDS, "paths": ["a.py"], "skill_na": SKILL_NA})
+        self.complete(DONE)
+        state = self.state()
+        self.assertEqual(nav.current_stage(state), "static-checks")
+        by_stage = {row["stage"]: row for row in state["history"] if row["workitem"] == "W1"}
+        for stage in ("test-green", "regression"):
+            self.assertFalse(by_stage[stage]["summary"].startswith(NOT_APPLICABLE), stage)
+        for stage in ("skill-assess", "skill-validate"):
+            self.assertTrue(by_stage[stage]["summary"].startswith(NOT_APPLICABLE), stage)
+
+    def test_skill_na_beside_a_skill_file_in_paths_is_refused_and_the_plan_without_it_is_accepted(self):
+        self.start()
+        self.drive_to("step-plan")
+        plan = dict(DONE, steps=[{"id": "S1", "task": "Make the planned change."}], **self.NO_TESTS)
+        skill_file = ".claude/skills/review/SKILL.md"
+        self.assert_refused(dict(plan, skill_na=SKILL_NA, paths=[*plan["paths"], skill_file]),
+                            r"(?s)skill_na.*\.claude/skills/review/SKILL\.md.*resubmit the step plan without skill_na")
+        with self.assertRaises(nav.NavigatorError) as caught:
+            self.complete(dict(plan, skill_na=SKILL_NA, paths=[*plan["paths"], "AGENTS.md"]))
+        self.assertNotIn("out of paths", str(caught.exception))  # the file would be left uncommitted: not an exit
+        self.complete(plan)  # the named exit; both skill stages then run
+        self.finish_improve()
+        self.drive_to("document", step_plan=self.NO_TESTS)
+        self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "skill-assess")
+
+    def test_skill_na_on_a_document_result_is_refused_with_its_remedy(self):
+        self.start()
+        self.drive_to("document", step_plan=self.NO_SKILL)
+        self.assert_refused(dict(DONE, skill_na=SKILL_NA), "skill_na is allowed only on a done step-plan result")
+        self.complete(DONE)  # the remedy: the same result without it
+        self.assertEqual(nav.current_stage(self.state()), "static-checks")
+
+    def test_skill_na_on_a_blocked_step_plan_is_named_by_the_stray_field_rule(self):
+        self.start()
+        self.drive_to("step-plan")
+        blocked = {"outcome": "blocked", "blocked_by": "external", "summary": "A service is down."}
+        self.assert_refused(dict(blocked, skill_na=SKILL_NA), "a blocked result does not carry skill_na")
+        self.complete(blocked)  # a step-plan result, blocked too, starts its Improve child
+        self.assertEqual(self.state()["active_improve"]["seed_result"]["outcome"], "blocked")
+
+    def test_a_revised_step_plan_without_skill_na_issues_the_skill_stages_again(self):
+        self.start()
+        self.drive_to("document", step_plan=self.NO_SKILL)
+        self.complete(dict(DONE, outcome="revise", summary="The change needs a skill after all."))
+        self.assertEqual(nav.current_stage(self.state()), "step-plan")
+        self.drive_to("document", step_plan=self.NO_TESTS)  # the latest accepted done plan decides
+        self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "skill-assess")
+
+    def test_a_skill_file_changed_after_skill_na_refuses_document_and_revise_is_the_way_out(self):
+        self.start()
+        self.drive_to("document", step_plan=self.NO_SKILL)
+        skill = self.repo / ".claude" / "skills" / "review" / "SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text("---\nname: review\n---\n")
+        self.assert_refused(DONE, r"(?s)skill_na.*- \.claude/skills/review/SKILL\.md.*report revise")
+        self.complete(dict(DONE, outcome="revise", summary="The item added a skill; plan it."))
+        self.assertEqual(nav.current_stage(self.state()), "step-plan")
+
+    def test_a_document_edit_to_agents_md_is_not_a_skill_change(self):
+        """AGENTS.md is declared-path surface only: the document stage is told to maintain it."""
+        self.start()
+        self.drive_to("document", step_plan=self.NO_SKILL)
+        (self.repo / "AGENTS.md").write_text("# Notes for agents\n")
+        self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "static-checks")
+
+    def test_document_is_refused_when_the_changes_cannot_be_read(self):
+        self.start()
+        self.drive_to("document", step_plan=self.NO_SKILL)
+        with mock.patch.object(item_scope, "changed_paths", return_value=None):
+            self.assert_refused(DONE, r"(?s)skill_na.*cannot read the item's changes.*report revise")
+        self.complete(DONE)
 
     def test_implement_outside_the_declared_non_code_paths_is_refused(self):
         self.start()
@@ -948,6 +1067,37 @@ class TestLoopTests(unittest.TestCase):
                              capture_output=True, check=True, timeout=30).stdout
         saved = self.run_dir / "quality" / (self.action() + "-terminal.json")
         self.assertEqual(json.loads(saved.read_text()), json.loads(raw))
+
+
+class ItemScopeSkillSurfaceTests(unittest.TestCase):
+    """The skill-surface lists are data in the path-classes catalog, never a path class."""
+
+    # Declared in the test, with neutral names: a path component must match exactly (no substring matches).
+    DECLARED_FLAGGED = ["skills/a/SKILL.md", "docs/x/SKILL.md", "agents/a.md", "AGENTS.md", "CLAUDE.md", "GEMINI.md",
+                        ".claude/commands/a.md", ".codex/config.toml", ".mcp.json", "a/skills/b.py", "skills/"]
+    DECLARED_CLEAR = ["a.py", "test/a.test.js", "README.md", "src/skillset.py", "lib/agentsmith.js", "*", "**/*.js",
+                      "src/*/a.js", "docs/shiploop/skills/plan.md", "skill.md"]
+    OBSERVED_FLAGGED = ["skills/a/SKILL.md", "docs/x/SKILL.md", "agents/a.md", ".claude/commands/a.md",
+                        ".codex/config.toml", "a/skills/b.py"]
+    # The document stage is told to maintain these, so an edit to one is not a skill change.
+    OBSERVED_CLEAR = ["AGENTS.md", "CLAUDE.md", "GEMINI.md", ".mcp.json", "README.md", "a.py",
+                      "docs/shiploop/skills/plan.md"]
+
+    def test_the_declared_and_the_observed_skill_surface(self):
+        self.assertEqual(item_scope.skill_surface(self.DECLARED_FLAGGED), self.DECLARED_FLAGGED)
+        self.assertEqual(item_scope.skill_surface(self.DECLARED_CLEAR), [])
+        self.assertEqual(item_scope.skill_surface(self.OBSERVED_FLAGGED, "observed"), self.OBSERVED_FLAGGED)
+        self.assertEqual(item_scope.skill_surface(self.OBSERVED_CLEAR, "observed"), [])
+
+    def test_the_skill_surface_is_not_a_path_class(self):
+        """GUARD, green before and after: a class before docs would flip skills/x/scripts/run.py or skills/x/SKILL.md."""
+        self.assertEqual(item_scope.classify("skills/x/scripts/run.py"), "code")
+        self.assertEqual(item_scope.classify("skills/x/SKILL.md"), "docs")
+        self.assertEqual(item_scope.behavioural(["skills/x/SKILL.md"]), [])
+        catalog = json.loads(item_scope.CATALOG.read_text(encoding="utf-8"))
+        self.assertEqual(catalog["order"], ["test", "metadata-nav", "docs", "config"])
+        self.assertEqual(catalog["non_behavioural"], ["metadata-nav", "docs", "config"])
+        self.assertEqual(sorted(catalog["classes"]), ["config", "docs", "metadata-nav", "test"])
 
 
 class VerifyLimitTests(unittest.TestCase):

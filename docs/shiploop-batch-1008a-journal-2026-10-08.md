@@ -260,3 +260,109 @@ new Done-when bullet of the REVISE entry was shortened and the step-plan clause 
 step-plan packet ends it at 7819 and the next item's at 7864. **The margin of the redo packet is 40 characters, so the next addition to the head of
 a step-plan packet must shorten something else or raise `WINDOW` deliberately;** the window is a host fact I
 could not verify, so I did not raise it.
+
+## B6: skill-assess and skill-validate recorded by the script when not applicable (2026-10-08)
+
+**Built (status: firm that the routes behave as tested; unknown whether any host adopts `skill_na`). Lowest
+priority of the batch: drop it first if time is short, with no loss to correctness.** A done step-plan result
+may carry `skill_na`, the reason no repo-local skill is selected, created or changed for the item. The script
+then records `skill-assess` and `skill-validate` as "Not applicable to this item" with the step plan's own
+reason, a history row and a result file, and no packet or model turn (`_record_not_applicable` now covers
+`item_scope.LEFT_OUT_STAGES`, the test stages and the skill stages, each group proved separately by
+`item_scope.left_out`). Code: `shiploop_item_scope.py` (`no_skill_item`, `skill_surface`,
+`skill_scope_refusal`), `shiploop_navigator.py` (`skill_na` in `_canonical_result`, `_check_submitted_skill_na`
+at both CLI gates, the `document` gate, `_record_not_applicable`), the `skill_surface` data in
+`references/path-classes.json`, the step-plan duty in `shiploop_prompts.py` (with its none-mode swap), and the
+`SKILL.md`, README, `navigator.md` and `testing-and-documentation.md` passages. No state key is added: `skill_na`
+is an optional result key, so a saved run without it is unchanged and one with it is refused by an older engine
+as an unsupported field.
+
+**Evidence for it (firm, selection-biased).** 44 of 44 skill-assess and skill-validate visits (22 item visits in
+17 recorded run ledgers under `/Users/dadleet/e2e-runs`, five products: hello, seat-reservations, Node
+Battleship, battleship-scoring, Google Apps Script Battleship) ended done with a no-skill or N/A disposition;
+none cites a skill-surface file in `evidence_refs`; no product worktree holds a `SKILL.md`, `AGENTS.md` or
+`CLAUDE.md` (22 directories). That is wider than the one-product evidence behind the earlier deferral, but every
+harness case is a small one-off app with no skill index, so it says nothing about skill-rich repositories.
+Cost per item in the four named runs: 16, 51, 68, 8, 48 and 50 s (mean 40 s), 1 to 7 turns per stage (the audit
+corrected 2 to 7; a run's total is 2 to 19 turns), 0.76 to 1.96 percent of summed stage seconds; Luna 1.16.1
+spent 5.8 min on one item; each stage packet is 27 to 37 KB. Tokens per stage are unmeasured (`metrics.json` stage
+rows carry seconds, turns and tool calls), so the token saving is unknown, not zero. The plan's "9 of 9 visits"
+and "1.6 min per item" do not reproduce from the four named runs (the two 2026-10-07 runs hold 3 item visits).
+The decision is already made twice before skill-assess (discovery and step-plan reopen the index and record fit
+or no fit), and in the Grok 1.23.0 run the step plan's `plan.md` already said "No repo skill applies" before
+skill-assess rewrote it.
+
+**Why a separate catalog key and not a path class (firm).** A class before `docs` and listed non-behavioural
+would make `skills/x/scripts/run.py` (code today) skip the test stages; a class before `docs` and not listed
+would make `skills/x/SKILL.md` (docs today) require them. `skill_surface` is data read by `skill_surface()`
+only, and a guard test pins `classify`, `behavioural`, `order` and `non_behavioural` unchanged.
+
+**Audit corrections applied.**
+- **Not a proof like `no_test_item`, so it is checked twice.** `no_test_item` is a proof because
+  `scope_refusal` checks the real diff at `implement`; a skip that rests on the model's `skill_na` and its
+  own `paths` list has no observation. Added: the observed-diff refusal at `document` (`skill_scope_refusal`;
+  `changed_paths` returning None refuses, fail-closed; the way out is `revise`, which spends one of the
+  item's two revisions and reruns the test pipeline, so the early step-plan refusal is the cheap one). The
+  observed list is strict skill files only: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `.mcp.json` are in the
+  declared list alone, because the document stage is told to maintain `AGENTS.md`. Reason: `paths`
+  under-declaration is routine, not adversarial: `README.md` and/or `SHIPLOOP.md` were changed but undeclared in
+  4 of 4 named runs ("Not committed" notice). For skill files it is unobserved (0 of 44), so the honest label
+  is "unobserved for skill files, routine for other files".
+- **One exit, not two.** The design also offered "take the skill path out of `paths`". `commit_item` commits
+  declared paths only, so that leaves a real file uncommitted (and `scope_refusal` names it "not declared" on a
+  no-test item). Only "resubmit without `skill_na`" is offered, and a test asserts the other is not.
+- **`skill_surface` shrunk.** The declared check is `_matches` on the entry's own text; the glob-subset analysis
+  (wildcards in the final component, catalog literal names placed in the directory) is dropped, since the
+  observed-diff check is the backstop. A wildcard such as `*` or `**/*.js` is therefore not flagged at
+  step-plan (the pure table test says so); directory-only entries (`skills/`) are flagged; matching is case
+  sensitive.
+- **Both CLI gates.** The new refusal runs at `complete` and at `improve-complete`, because step-plan is
+  Improve-reviewed under the default `planning_review stage` and the child's `final_result` can carry `skill_na`.
+  A route test drives the real child (`test/shiploop-actual-improve-cli.test.py`); with the call site removed
+  that test fails, with it restored it passes.
+- **Remit wording.** `DUTIES["skill-assess"]` also decides helper, MCP and library reuse; the step-plan
+  paragraph says `skill_na` waives that late assessment too and asks it to name the inspected index (the rule
+  "no fit needs a reason and the inspected sources" in `testing-and-documentation.md` still holds). It stands
+  alone (S-6): meaning, how it is checked, that Improve reviews it, and what to do after each refusal. It is not
+  in `_result_template`, where a placeholder copied verbatim would be a false opt-out, and a pin asserts that.
+  Found by the suite, not the design: under `--planning-review none` step-plan has no Improve child, so the
+  sentence "Improve reviews `skill_na`" would promise one; it has a row in `_NO_REVIEW_SWAPS` and an allowlist
+  entry in `test/shiploop-navigator-contract.test.py`, and `SKILL.md` qualifies it with "Under the default
+  `stage` planning review".
+- **Docs.** README's "`skill-validate`, preparation, release, and operations still produce a reviewed result"
+  sentence, `navigator.md` ("always visited" twice; the W2 `skill-assess` example now says for an item without
+  `skill_na`) and the iteration-documentation passage were changed together; the change note and the docs cite
+  section titles, not line numbers.
+- **Tests, with economy.** The route tests run on the NO_TESTS-style plan (script-skipped test stages) so they do
+  not pay for the real Until Loop at every test stage; one default-plan test (real test loops) keeps the claim that
+  the test group and the skill group are independent. The design's "saved state without `skill_na` loads
+  unchanged" test is dropped (tautological: no code touches a state without the key). Size is `m`, not `s`.
+
+**What disappears with the model stage.** The `## Skill disposition` section in `docs/shiploop/features/*/plan.md`
+and the `knowledge after skill-assess` commit seen in the Grok 1.23.0 run (worktree commit 07d1829). No
+`stage_spec` reads entry, knowledge gate or later duty reads them (only skill-validate reads `item:skill-assess`),
+so the no-fit rationale now lives only in the ledger row and the step plan's linked note. The knowledge commit for
+a left-out pair is labelled "after skill-validate". The pace and "remaining steps" estimate in the narrative counts
+every inner stage of future items, including stages the script records instantly; it was already skewed by the
+test-stage skip and B6 adds two script rows per item. It is an estimate and is documented, not fixed.
+
+**Unknowns left open (no thresholds proposed).**
+- Adoption: will Sonnet, Grok and Luna add `skill_na` when it is described in prose only? Mixed evidence: the Grok
+  1.23.0 step plan recorded "No repo skill applies" in `plan.md`; the Sonnet 1.23.0 step plan recorded no skill
+  rationale at all despite the existing prompt. Settle with the next live Battleship pair: count items whose
+  step-plan result carries `skill_na` and items whose skill rows are script rows. If a host never adopts it, the
+  follow-up is a separate decision (a gate-required choice at the CLI gate, or an observation-derived default),
+  not a shim here.
+- A repository with an established non-standard skill layout (`playbooks/`, `prompts/`) is invisible to the lists;
+  only the declaration covers it. Extending them is a data edit. `README.md` is not treated as a skill index.
+- Whether skill-assess in a no-skill repo ever prompted a creation (0 of 44 visits created a skill file) is
+  unprovable counterfactually; discovery and step-plan still ask for fit or no fit, and omitting `skill_na` keeps
+  the stage available.
+- How an Improve reviewer treats `skill_na` in a revised final_result is unobserved (the gate and a kept key are
+  tested; reviewer behaviour is not).
+- Whether the `document` stage ever edits a skill file after a plan declared `skill_na` (0 of 44): now guarded, and
+  a late refusal costs a revise.
+
+**For the Run Review session (skills/shiploop-run-review is not edited here).** The new rows keep the prefix
+"Not applicable to this item" that `test/shiploop_e2e/metrics.py` and Run Review key on (asserted in the first
+test); Run Review marks a visit skipped by packet absence.

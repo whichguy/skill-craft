@@ -769,6 +769,25 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(tuple(observed), LOCAL_SKILL_ROUTE_STAGES)
         self.assertEqual(improved, ["step-plan"])
 
+    def test_the_step_plan_packet_states_the_skill_na_rule_and_its_template_does_not_print_it(self) -> None:
+        """skill_na is an explicit choice: a placeholder in the template would be a false opt-out when copied."""
+        state = self.state()
+        while navigator.current_stage(state) != "step-plan":
+            extra: dict[str, object] = {}
+            if navigator.current_stage(state) == "plan":
+                extra["work_items"] = [{"id": "W1", "title": "Fixture item"}]
+            state, _action_id = self.complete_stage(state, **extra)
+        _recovered, packet = self.cold_packet(state)
+        template = packet.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0]
+        self.assertNotIn("skill_na", template)
+        flat = normalized(packet)
+        for clause in ("record `skill_na`", "skill-assess and skill-validate as not applicable",
+                       "Omit `skill_na` when the item selects, uses, creates or changes a skill",
+                       "refuses `skill_na` beside a skill file in `paths`",
+                       "resubmit the step plan without `skill_na`", "Improve reviews `skill_na`",
+                       "late helper, MCP and library reuse assessment"):
+            self.assertIn(clause, flat)
+
     def test_coding_guide_is_selective_in_cold_producer_and_improve_packets(self) -> None:
         """Route locators, not every card body; retain the same owner on recovery."""
         state = self.state()

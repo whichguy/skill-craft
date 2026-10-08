@@ -539,6 +539,27 @@ child. `implement`'s `done` is then refused if the item's real diff touches code
 or any path outside `paths`, so the step plan is revised and the stages run.
 Anything short of that proof runs every test stage.
 
+**Skill stages not applicable to an item.** A done `step-plan` result may carry
+`skill_na`, its reason that no repo-local skill is selected, created or changed,
+naming the index it inspected. ShipLoop then records `skill-assess` and
+`skill-validate` as not applicable to that item instead of issuing them: each keeps
+a history row and a result file whose text starts "Not applicable to this item" and
+carries that reason, and the late helper, MCP and library reuse assessment
+`skill-assess` would have made is waived. Under the default `stage` planning review, Improve
+reviews `skill_na` with the rest of the step plan. It is the model's declaration, so it is
+checked twice. A step plan
+that lists a skill file in `paths` (the catalog's `skill_surface`: `SKILL.md`,
+`skills/` and `agents/` trees, the host agent-config directories, `AGENTS.md`,
+`CLAUDE.md`, `GEMINI.md`, `.mcp.json`) is refused at `complete` and at
+`improve-complete`; the way out is the step plan without `skill_na`, because removing
+the file from `paths` would leave it uncommitted. And `document`'s `done` is refused
+when the item's real diff touches a skill file (not `AGENTS.md`, which `document`
+maintains); the way out is `revise`, which spends one of the item's two revisions.
+Without `skill_na`, or after either refusal, both stages run as before. Known gaps:
+the lists are a package catalog, so a repository with a non-standard skill layout is
+covered only by the declaration; `README.md` is not treated as a skill index; an
+undeclared skill edit is observed only at `document`.
+
 `test-red` is script-checked too: on `done` ShipLoop runs the focused commands and
 expects each to fail inside a test (at least one failing test, every listed ID
 shown). A green run, a zero-test run or a failure before any test ran (syntax,

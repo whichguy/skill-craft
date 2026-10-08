@@ -1194,6 +1194,18 @@ defaults. Record the selection or no-fit rationale in the linked plan/evidence
 note; retain the entrypoint, effective inputs/default sources, product contract,
 validation locators and revalidation condition in ordinary evidence_refs. Keep
 later decision changes in these notes, not edits to the script-owned work queue.
+If, after reopening that index, no repo-local skill is selected, created or changed
+for this item, record `skill_na` (the no-fit reason, naming the index you inspected)
+and list no skill file in `paths`: ShipLoop then records skill-assess and
+skill-validate as not applicable to this item without issuing them, which also
+waives their late helper, MCP and library reuse assessment. Omit `skill_na` when the
+item selects, uses, creates or changes a skill.
+Improve reviews `skill_na` with the rest of this result.
+ShipLoop refuses `skill_na` beside a skill file in `paths` (a SKILL.md, a skills/ or
+agents/ tree, AGENTS.md, CLAUDE.md, GEMINI.md, .mcp.json or a host agent-config
+directory) and refuses `document`'s done when the item's real diff touches a skill
+file; after the first refusal resubmit the step plan without `skill_na`, after the
+second report revise and do the same. Both stages then run.
 Label every pinned value that exists so a check can replay an exact path (fixed
 dice, seed data, a sample click) as a source-check fixture, and name the runtime
 control separately (for example, two die values the player can change, with the
@@ -2289,6 +2301,8 @@ reviews them in this run."""),
     ("step-plan", """\
 The next review is the packet's automatic Improve handoff immediately after this producer result, before
 implementation.""", "No Improve child reviews this result in this run."),
+    ("step-plan", "Improve reviews `skill_na` with the rest of this result.",
+     "No Improve child reviews `skill_na` in this run."),
 )
 
 

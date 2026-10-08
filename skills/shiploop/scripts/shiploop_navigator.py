@@ -56,7 +56,7 @@ _RESULT_KEYS = frozenset((
     "outcome", "summary", "headline", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
-    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps",
+    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps", "skill_na",
 ))
 # A bare "carry on" is not an answer to the question a blocked run is waiting on.
 _NOT_AN_ANSWER = frozenset((
@@ -81,7 +81,7 @@ AWAITING_SHAPE = (
 _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
-    "red_na", "lint_waivers",
+    "red_na", "skill_na", "lint_waivers",
 )
 _STATE_KEYS = frozenset(
     (
@@ -709,6 +709,12 @@ def _canonical_result(
         _need(stage == test_loop.RED_STAGE and outcome == "done",
               "red_na is allowed only on a done test-red result")
         result["red_na"] = _text(value["red_na"], "red_na")
+    if "skill_na" in value:
+        # Shape only: the clash with a skill file in paths is checked at the CLI gates, because validate()
+        # re-canonicalises every accepted result on load and a catalog edit must not refuse a saved run.
+        _need(stage == stage_spec.REVISE_TO and outcome == "done",
+              "skill_na is allowed only on a done step-plan result")
+        result["skill_na"] = _text(value["skill_na"], "skill_na")
     if "lint_waivers" in value:
         _need(stage in lint.GATE_STAGES and outcome == "done",
               "lint_waivers are allowed only on a done " + ", ".join(lint.GATE_STAGES) + " result")
@@ -1169,22 +1175,25 @@ def _begin_inner_loop(state: dict[str, Any]) -> None:
     }
 
 
-def _record_not_applicable_tests(state: dict[str, Any], stage: str) -> str:
-    """Record the item's test stages as not applicable when the script can prove it; return the next stage.
+def _record_not_applicable(state: dict[str, Any], stage: str) -> str:
+    """Record the item's left-out stages as not applicable when the script can prove it; return the next stage.
 
-    Proof (``item_scope.no_test_item``): the final accepted step plan records no
-    test command with a reason and declares only non-code paths.  After
-    implement, its done was already refused unless the real diff stayed inside
-    those paths.  Every left-out stage keeps a history row and a result file.
+    Two groups, each proved separately (``item_scope.left_out``).  Test stages: the final accepted step plan
+    records no test command with a reason and declares only non-code paths; after implement, its done was
+    already refused unless the real diff stayed inside those paths.  Skill stages: the final accepted step plan
+    declares skill_na; its paths were refused if they list a skill file, and document's done was refused if the
+    real diff touched one.  Every left-out stage keeps a history row and a result file.
     """
     item = _current_work_item(state)
-    reason = item_scope.no_test_item(state, item) if item else None
-    while reason and stage in item_scope.TEST_STAGES:
+    while item and stage in item_scope.LEFT_OUT_STAGES:
+        reason = item_scope.left_out(state, item, stage)
+        if not reason:
+            break
         action_id = _new_action(stage)["id"]
         state["inner_loops"][item] = {"stage": stage, "action": action_id}
         _record_acceptance(state, action_id, stage, {
             "outcome": "done",
-            "summary": "Not applicable to this item: " + reason + ". ShipLoop recorded this stage without "
+            "summary": item_scope.NOT_APPLICABLE + ": " + reason + ". ShipLoop recorded this stage without "
                        "running it.",
             "evidence_refs": [],
         })
@@ -1651,6 +1660,28 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
     _need(problem is None, problem or "")
 
 
+def _check_submitted_skill_na(stage: str, result: Any) -> None:
+    """Refuse a submitted done step plan that declares skill_na and also lists a skill file in its paths.
+
+    CLI gates only (see ``_canonical_result``).  The one way out is the plan without ``skill_na``: removing the
+    skill path from ``paths`` instead would leave the changed file uncommitted (``item_scope.commit_item``
+    commits declared paths only), so it is not offered.
+    """
+    if stage != "step-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    if "skill_na" not in result:
+        return
+    try:
+        listed = item_scope.skill_surface(item_scope.normalise_paths(result.get("paths")))
+    except item_scope.ItemScopeError as exc:
+        raise NavigatorError(str(exc)) from exc
+    _need(not listed,
+          "skill_na says no repo-local skill is selected, created or changed, but paths lists a skill file: "
+          + ", ".join(listed) + ". To proceed, resubmit the step plan without skill_na: both skill stages then "
+          "run on those files, and the files stay in paths so they are committed with the item. Then run the "
+          "same complete command again.")
+
+
 def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
     """Refuse a submitted done release-plan that names no consumer entry, or whose entry files are missing."""
     if stage != "release-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done":
@@ -1922,7 +1953,7 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
     if _is_inner_root(updated):
         next_stage = _next_stage(stage, updated)
         _need(next_stage in graph(updated)[1], "inner loop cannot advance outside its graph")
-        next_stage = _record_not_applicable_tests(updated, next_stage)
+        next_stage = _record_not_applicable(updated, next_stage)
         _replace_inner_action(updated, next_stage)
         validate(updated)
         return updated
@@ -4537,6 +4568,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["seed_result"] if final_result is None else final_result)
                     _check_submitted_test_commands(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_skill_na(
+                        child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_consumer_entry(
                         state["repo"], child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -4607,6 +4640,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_evidence(submitted)
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
+            _check_submitted_skill_na(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             _check_submitted_recorded_commands(current_stage(state), submitted)
             _check_submitted_awaiting(submitted)
@@ -4623,6 +4657,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             if (cursor_stage == "implement" and cursor_item and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 refusal = item_scope.scope_refusal(root, state, cursor_item)
+                _need(not refusal, refusal)
+            if (cursor_stage == "document" and cursor_item and isinstance(submitted, Mapping)
+                    and submitted.get("outcome") == "done"):
+                refusal = item_scope.skill_scope_refusal(root, state, cursor_item)
                 _need(not refusal, refusal)
         updated = apply(state, action_id, submitted)
         if updated != state:

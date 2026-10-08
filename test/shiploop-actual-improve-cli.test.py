@@ -161,7 +161,7 @@ class ImproveCliFixture(unittest.TestCase):
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(card)
 
-    def _start_parent_at_stage(self, stage, evidence_refs, card=CARD):
+    def _start_parent_at_stage(self, stage, evidence_refs, card=CARD, producer_extra=None):
         """Create a real CLI parent at a target stage after synthetic setup only.
 
         The pure navigator transitions below deliberately do not claim preceding
@@ -207,6 +207,7 @@ class ImproveCliFixture(unittest.TestCase):
             self.producer["test_commands_na"] = "Synthetic fixture; no test commands."
             self.producer["paths"] = ["src/**"]
             self.producer["steps"] = [{"id": "S1", "task": "Make the planned change."}]
+        self.producer.update(producer_extra or {})
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
@@ -1290,6 +1291,28 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.packet_path.unlink()
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
         self.assertEqual(before, (self.run / "state.md").read_bytes())
+
+    def test_a_reviewed_step_plan_that_pairs_skill_na_with_a_skill_file_is_refused_at_improve_complete(self):
+        """The Improve child may revise the step plan; the gate that checks the producer result checks its final_result."""
+        reason = "No repo-local skill applies: README.md is the index and names none."
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)], producer_extra={"skill_na": reason})
+        self.finish_ephemeral()
+        contradictory = dict(self.producer, paths=["src/**", ".claude/skills/review/SKILL.md"])
+        completion, _receipt = self.completion_receipt(final_result=contradictory)
+        before = (self.run / "state.md").read_bytes()
+        refused = self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
+                              *completion, status=2)
+        self.assertIn("skill_na", refused.stderr)
+        self.assertIn(".claude/skills/review/SKILL.md", refused.stderr)
+        self.assertIn("resubmit the step plan without skill_na", refused.stderr)
+        self.assertEqual(before, (self.run / "state.md").read_bytes())
+        # The named exit: the final result without skill_na is accepted by the same command.
+        plain = {key: value for key, value in contradictory.items() if key != "skill_na"}
+        completion, _receipt = self.completion_receipt(final_result=plain)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion)
+        resumed = store.read_record(self.run / "state.md")
+        self.assertEqual(navigator.current_stage(resumed), "test-spec")
+        self.assertNotIn("skill_na", resumed["accepted"][self.action])
 
     def test_a_wrong_result_path_is_refused_with_the_expected_path(self):
         """Batch 1.12.1: Luna passed the worktree as --result; the refusal now names the path to use."""
