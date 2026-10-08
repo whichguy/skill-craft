@@ -329,8 +329,9 @@ the original branch receives nothing after an individual item. System checks
 and outer Improve evaluate the assembled candidate before final return.
 
 At the planned final integration boundary, the packet supplies `workspace
-plan-return` and `workspace return`. Review the candidate-bound Markdown plan's
-path dispositions: keep intended code/tests/configuration and maintained project
+plan-return`, `workspace review-return` and `workspace return`. Decide every path of
+the candidate-bound Markdown plan with `review-return --keep/--exclude`, never by
+editing the file: keep intended code/tests/configuration and maintained project
 knowledge; exclude transient output. The helper blocks pending/stale decisions,
 known runtime paths, source drift and unsafe merges. For a clean start it also
 checks reachable commit paths, so committing then deleting a runtime artifact
@@ -937,6 +938,7 @@ line after the header is the one legal callback. The command surface is:
 # Start a navigator protocol 4 run
 shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
 shiploop workspace plan-return --workspace-root ROOT
+shiploop workspace review-return --workspace-root ROOT [--keep PATH...] [--exclude PATH...]
 shiploop workspace return      --workspace-root ROOT
 shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
 # Reread the current packet; never advances

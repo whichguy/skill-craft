@@ -170,8 +170,13 @@ def check(state: Mapping[str, Any], stage: str) -> str:
     missing = [path for path in required if not (repo / path).is_file() or not (repo / path).read_text(
         encoding="utf-8", errors="replace").strip()]
     if missing:
-        return ("ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. "
-                "Before " + stage + " is done, write:\n" + "".join("- " + str(repo / p) + "\n" for p in missing)
+        # Line 1 is what a model that reads only the first line of a refusal needs: the action and the files.  The
+        # paths are absolute because the shell's directory is the original checkout, while these files belong in
+        # this execution checkout.  The `- /abs` lines stay one per line for the callback contract to follow.
+        paths = [str(repo / p) for p in missing]
+        return ("Before " + stage + " is done, write: " + ", ".join(paths) + "\n"
+                "ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. "
+                "The files, one per line:\n" + "".join("- " + p + "\n" for p in paths)
                 + "See the packet's knowledge-home lines for what each file holds.")
     leaks = []
     screened = sorted((repo / HOME).rglob("*.md")) + ([repo / INDEX] if (repo / INDEX).is_file() else [])

@@ -1724,6 +1724,10 @@ child is active. Use an authorized delivery route from the execution checkout if
 If source return itself is required before consumer checks can run, record the
 ordering conflict for reconciliation and retain an incomplete disposition; never
 claim earlier checks observed a future return-triggered effect.
+In an isolated run, write the rollback for the source return the packet states
+(its return route and rollback recipes come from workspace.md): that route's SHAs and
+branch names as plain `git` commands, never this run's absolute paths, and never a
+rollback for another route.
 """,
     "release-check": """\
 Verify final release-candidate readiness without performing the release.  Check
@@ -1736,6 +1740,11 @@ Run the dry-run form of the planned deploy (for example `sf project deploy valid
 and each post-release confirm command once, against current target state, and
 record both outputs. A confirm command whose output cannot tell the result present
 from absent is fixed here, before the real deploy, not discovered after it.
+In an isolated run, run the packet's plan-return and review-return commands now as a
+dry run of the return (plan-return may commit leftover product files to the run
+branch; the decisions you record are kept for the plan made at release), compare the
+expected return review-return reports with the rollback in release-plan.md, and
+correct that file when they differ; after any such correction run plan-return again.
 """,
     "release": """\
 Perform the planned release only when the exact target, operation, authority, and

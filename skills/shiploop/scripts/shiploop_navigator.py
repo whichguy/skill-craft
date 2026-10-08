@@ -1317,6 +1317,8 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """
     timeline = load_timeline(root)
     scratch_dir(root).mkdir(exist_ok=True)
+    # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
+    (Path(root) / "notes").mkdir(exist_ok=True)
     text = render(core, root, state, timeline=timeline)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)
@@ -2503,6 +2505,18 @@ def _command(core: Any) -> str:
     return str(Path(package_root) / "scripts" / "shiploop") if package_root else "shiploop"
 
 
+def review_return_command(core: Any, workspace_root: Path) -> str:
+    """The review-return command with its decisions left blank: ShipLoop names the verb, the model supplies the judgement."""
+    return (shlex.join(["python3", _command(core), "workspace", "review-return", "--workspace-root",
+                        str(workspace_root)]) + " --keep <paths> --exclude <paths>")
+
+
+# What --keep and --exclude mean, said once for the packet and for the verb's own output.
+REVIEW_RETURN_RULE = ("--keep is for product code, tests, configuration and durable knowledge; --exclude is for "
+                      "transient output (logs, dumps, scratch files, run artifacts). Paths are relative to the "
+                      "execution checkout, as the plan lists them; a directory decides every undecided path beneath it.")
+
+
 def _reference_dir(core: Any) -> Path:
     package_root = getattr(core, "PACKAGE_ROOT", None)
     if package_root:
@@ -2803,6 +2817,22 @@ def _workspace_return_packet_lines(root: Path, state: Mapping[str, Any]) -> list
         "workspace return status."
     )
     return lines
+
+
+def _return_route_lines(workspace_root: Path, *, rollback: bool) -> list[str]:
+    """How this run's return will go, derived from workspace.md (S-5: the script says what a model would guess).
+
+    Release planning and release checking add the rollback, because the plan written there is durable knowledge that
+    later runs inherit.  An unreadable workspace.md is reported as unknown: never guessed, never left out.
+    """
+    try:
+        import shiploop_workspace as workspace
+    except ImportError:  # pragma: no cover - supports package-style local imports.
+        from . import shiploop_workspace as workspace  # type: ignore
+    try:
+        return [workspace.route_sentence(workspace_root), *(workspace.rollback_lines(workspace_root) if rollback else ())]
+    except workspace.WorkspaceError as exc:
+        return [f"Return route unknown: workspace.md cannot be read ({exc}); do not guess how the return will go."]
 
 
 def _accepted_done(state: Mapping[str, Any]) -> tuple[dict[tuple[str | None, str], str], int]:
@@ -3119,10 +3149,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             "To review the final candidate for return:",
             shlex.join(["python3", _command(core), "workspace", "plan-return",
                         "--workspace-root", str(workspace_root)]),
-            "Review every return-plan disposition, retaining product code/tests and "
-            "durable knowledge but excluding transient output.",
+            "Record each undecided path with " + review_return_command(core, workspace_root) + ". "
+            + REVIEW_RETURN_RULE,
+            *_return_route_lines(workspace_root, rollback=stage in ("release-plan", "release-check")),
             "Handoff completion requires a current script-verified return receipt. "
-            "A dirty-source working-tree return is not a Git merge or commit. "
             "No automatic push, cleanup, or publication is implied.",
         ])
         if stage in ("release", "handoff") and state["status"] == "active":
