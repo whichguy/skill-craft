@@ -309,6 +309,7 @@ on quickly before the breadth of everything is checked.
 | S-7 | truncated outputs, peak context, compactions, packet head size |
 | S-9, S-10 | `script_verifications` (ShipLoop's own verify records), Improve children; a zero-test pass fails |
 | S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner's 30-minute planning rule is read from it, and it is the one place these figures are computed |
+| S-12 | `claude_code_version` in metrics.json and result.json (added 2026-10-08): the host CLI build the sessions ran on, so two runs of one prompt on different builds (the Sonnet pair of 2026-10-06 and 2026-10-07 ran on 2.1.291 and 2.1.292) are not read as a controlled comparison. Null where the host's events do not carry it |
 | S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew) |
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
 | S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered; a requested stop (`<output>/stop`, added 2026-10-08) ends the host and is recorded as `stopped`, and never answers a blocked or awaiting run |
@@ -426,15 +427,21 @@ stands at the commit under test.
   given a bare `shiploop next` (the marketplace route lost 13 turns to the same
   prompt, fixed in 7c1f1014); the command the harness prints for continuing a run
   carries the harness flags too, because a resume that falls back to the default
-  `--timeout` can outlive the task that launched it.
+  `--timeout` can outlive the task that launched it. It is printed only where
+  those flags are the run's own: not by a regrade (`--grade-only`), whose flags
+  are the grader's, and not for a run that wrote no ShipLoop state, which
+  `--resume-run` refuses.
 - **Every ending leaves its records** (amended 2026-10-08; anchor S-14, a run
   is judged from files, and S-9). A run the harness ends (a deadline, a
   requested stop, a spent resume budget) writes metrics.json, result.json and the
   Run Review export through the same path as a finished run, and a run whose
   harness was killed can be given them afterwards by `--resume-run <dir>
   --grade-only`, which starts no host. A requested stop (the file
-  `<output>/stop`) kills the host, is never relaunched and is recorded as
-  `stopped` with no process verdict (the host did not fail); it exits non-zero,
+  `<output>/stop`) ends the host, is never relaunched and is recorded as
+  `stopped` with no process verdict (the host did not fail) however the request
+  is found: it killed a running session, or it was found as a session ended on
+  its own, or between two sessions (the last session keeps its own status in
+  `process.sessions`); it exits non-zero,
   because the run is not finished and a suite reads exit 0 as a pass. A stop
   never answers a blocked or awaiting run (S-14). Basis: 3 of the 11 harness
   runs from 2026-10-04 to 2026-10-07 (v1200-battleship-luna,
@@ -443,13 +450,18 @@ stands at the commit under test.
   ended on their own have all three. A stop that names a stage (`--stop-at`) is
   not part of this amendment: it stays deferred until planning probes are routine.
 - **A baseline row is a finished run's** (amended 2026-10-08; anchor S-12, one
-  meaning for a baseline). No row is written for a resumed or seeded run, or for
-  a run whose engine is still active when the harness ends (a deadline, a stop,
-  a spent resume budget): its turns, cost and stages are a fragment, and the
-  last row of a driver is what the next run is compared with. Basis: the
+  meaning for a baseline). No row is written for a resumed or seeded run, for a
+  run whose engine is still active when the harness ends (a deadline, a stop, a
+  spent resume budget), or for a run whose host the harness killed, by the
+  deadline or by a stop, before ShipLoop wrote any state (process status
+  `timeout` or `stopped`, engine status `unknown`): its turns, cost and stages
+  are a fragment, and the last row of a driver is what the next run is compared
+  with. A host that ends on its own, even with no engine state, is a finished
+  run and keeps its row, since its own ending is what the row records. Basis: the
   existing `hang` fake with `--timeout 3` appended a row with process status
   `timeout` and engine status `unknown`, which `scan_baseline` then offered as the
-  last comparable row.
+  last comparable row (the first form of this rule covered only an active engine
+  and let that row through; corrected the same day).
 - Start from an empty directory, or for a follow-on case, from a clean copy of
   an earlier run's checkout. The harness leaves no files of its own behind.
 - Case products are disposable probes. The repository a run builds (and any

@@ -1516,6 +1516,7 @@ def main(argv: list[str] | None = None) -> int:
         if state.get("status") != "active" and not regrade:
             raise SystemExit(f"--resume-run needs an active, blocked or finished ShipLoop run; found "
                              f"{state.get('status')!r} in {out}")
+        # The one CLI value every prompt of this invocation names (a record with no plugin_dir yields a path that is not a file).
         resumed_cli = run_cli(earlier["host"], out, Path(earlier.get("plugin_dir") or out / "missing-plugin"))
         if not regrade and not resumed_cli.is_file():
             raise SystemExit(f"--resume-run: the ShipLoop CLI this run started on is gone: {resumed_cli}. A resume "
@@ -1602,8 +1603,7 @@ def main(argv: list[str] | None = None) -> int:
     seeded = earlier.get("seeded") if resumed else None
     interrupt_at = earlier.get("interrupt_at") if resumed else args.interrupt_at
     # The CLI of the host and plugin the run started on (a resume on another host keeps it): every prompt below names it.
-    the_cli = (run_cli(earlier["host"], out, Path(earlier["plugin_dir"])) if resumed
-               else run_cli(host.name, out, plugin_dir))
+    the_cli = resumed_cli if resumed else run_cli(host.name, out, plugin_dir)
     if args.seed_at and not resumed:
         seeded = seed_run(the_cli, work, out, prompt, args.seed_at)
         if not args.quiet:
@@ -1717,6 +1717,9 @@ def main(argv: list[str] | None = None) -> int:
             stop_file.unlink(missing_ok=True)  # consumed: the request is answered, a later resume starts clean
             if resume_stop == "host is not resumable":
                 resume_stop = f"stopped by {stop_file}"  # the stop, not the host kind, is why this one is over
+            # However the request arrived (it killed the host, or it was found as a session ended on its own), the run
+            # ends stopped; the last session keeps its own status in `sessions`.
+            process = dict(process, status="stopped")
         process = dict(process, sessions=sessions, resumes=len(sessions) - 1 if sessions else None)
         # A requested stop is not a host failure: no process verdict (None, which no verdict list counts).
         process["pass"] = None if process["status"] == "stopped" else process["status"] == "exited"
@@ -1787,9 +1790,9 @@ def main(argv: list[str] | None = None) -> int:
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
               "expectations": expectations,
-              "metrics": {k: run_metrics[k] for k in ("turns", "model_calls", "window_tokens", "cost_usd",
-                                                      "unreported_sessions", "compactions", "truncated_outputs",
-                                                      "improve_children", "stages", "unmeasured")}
+              "metrics": {k: run_metrics[k] for k in ("claude_code_version", "turns", "model_calls", "window_tokens",
+                                                      "cost_usd", "unreported_sessions", "compactions",
+                                                      "truncated_outputs", "improve_children", "stages", "unmeasured")}
               # None, not 0, where the host's events cannot show the thing counted.
               | {"script_verifications": run_metrics["script_verifications"],
                  "model_glue": metrics.count(run_metrics, "model_glue"),
@@ -1804,9 +1807,11 @@ def main(argv: list[str] | None = None) -> int:
     style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name, metrics.planning_review(engine))
     # A baseline measures one host running a case from the start to its end; a resumed run is not one, and neither is
-    # a run the harness leaves with its engine still active (a deadline, a requested stop, a spent resume budget):
-    # its turns, cost and stages are a fragment, and the next run would be compared with it (SPEC).
-    unfinished = engine.get("status") == "active"
+    # a run the harness ended: its engine still active (a deadline, a requested stop, a spent resume budget) or its host
+    # killed by the deadline or a stop before ShipLoop wrote any state (engine unknown). The turns, cost and stages are a
+    # fragment, and the next run would be compared with it (SPEC). A host that ends by itself is a finished run's row.
+    engine_active = engine.get("status") == "active"
+    unfinished = engine_active or process["status"] in ("timeout", "stopped")
     baseline_file = args.baseline if not (resumed or seeded or unfinished) else None
     before, rows_for_case = (scan_baseline(baseline_file, name, versions["source"], args.host, args.model,
                                            args.effort, row["planning_review"]) if baseline_file else (None, 0))
@@ -1904,10 +1909,17 @@ def main(argv: list[str] | None = None) -> int:
     elif resumed or seeded:
         print("  baseline  nothing compared: a resumed or seeded run is not a baseline")
     else:
-        print("  baseline  nothing compared: the run is not finished (its engine is still active), so it is not a baseline")
-    if unfinished:
+        why = ("its engine is still active" if engine_active else
+               f"the harness ended the host: {process['status']}; engine {engine.get('status') or 'unknown'}")
+        print(f"  baseline  nothing compared: the run is not finished ({why}), so it is not a baseline")
+    if engine_active and not regrade:
         # The exact command, flags included, for whoever finds only this log (SPEC: a resume names what the run uses).
+        # Only an active engine can be resumed: --resume-run refuses a run that never wrote ShipLoop state.
         print(f"  resume    {resume_command(out, args)}")
+    elif engine_active:
+        # A regrade's flags are the grading invocation's (the default --timeout is above any task limit), not the run's.
+        print("  resume    use the command printed when the run started, with --timeout below the launcher's limit "
+              "(this regrade's own flags are not the run's)")
     if not result["pass"] and not stop_seen:
         failed = [(verdict, want, got) for ok, verdict, want, got in (
             (invoked["pass"], "invoked", "the host registers the invoked ShipLoop skill", "not registered"),

@@ -338,7 +338,7 @@ PLANNING_NO_END = "the stage that ends the window has no readable accept stamp"
 PLANNING_SEEDED = ("a planning stage was accepted before the host's first event (the harness records a seeded run's "
                    "early stages itself), so the window is not the host's work")
 PLANNING_RECREATED = ("the window's stages carry one stamp (the engine gives every action one timeline stamp when it "
-                      "recreates a lost timeline.json) or run backwards, so no duration can be read")
+                      "recreates a lost timeline.json) or do not move past the start, so no duration can be read")
 PLANNING_NO_RUNNER_TIMELINE = "the harness wrote no runner timeline (timeline.jsonl), so the host clock cannot be placed"
 PLANNING_NO_IMPROVE_RESULTS = "state.md records no improve_results, so a run with Improve children cannot be told from one without"
 CLAUDE_OUTPUT_TOKENS = ("this host's per-message output counts are streaming snapshots (about 1/17 of the session's own "
@@ -414,8 +414,8 @@ def planning_window(run_dir: Path | None, state: dict, accepted: list[dict], sta
     first_event = min(stamps.values()) if stamps else None
     reason = (PLANNING_NO_START if started is None else PLANNING_NO_END if end is None
               else PLANNING_SEEDED if first_event is not None and any(r["t"] < first_event for r in stamped)
-              else PLANNING_RECREATED if end < started or (len(stamped) > 1 and (
-                  len({r["t"] for r in stamped}) == 1 or end - started <= 0)) else None)
+              else PLANNING_RECREATED if end <= started or (len(stamped) > 1 and len({r["t"] for r in stamped}) == 1)
+              else None)
     if reason:
         unmeasured["window"] = reason
         return block, None, f"the planning window is not measured: {reason}"
@@ -496,6 +496,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     claude_calls = usage_events = 0
     usage_rows: list[tuple] = []  # (t, output, reasoning) of Grok's per-call usage events: the planning window's tokens
     reported: set[int] = set()  # context windows the result events reported
+    versions: set[str] = set()  # Claude Code builds that opened a session: the host CLI changes between runs of one prompt
     # A session that reports no per-call usage (Codex) contributes its own turn count.
     unreported, calls_in_session = 0, 0
     for number, event in events(out / "events.jsonl"):
@@ -505,6 +506,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             calls_in_session += 1
         if kind == "available_commands" or (kind == "system" and event.get("subtype") == "init"):
             starts += 1  # Codex and Grok open a session with available_commands, Claude with system/init
+            if isinstance(event.get("claude_code_version"), str):
+                versions.add(event["claude_code_version"])
         if kind == "usage":
             grok = True
             usage_events += 1
@@ -616,6 +619,9 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     improve = run_dir / "improve" if run_dir else None
     return {
         "tmp_writes": sorted(shared),
+        # The host CLI build the sessions ran on (Claude's init event; sessions on two builds name both), None where the
+        # host's events do not carry it. Two runs of one prompt on different builds are not a controlled pair.
+        "claude_code_version": ", ".join(sorted(versions)) or None,
         "sessions": sessions,
         # Unknown, not 0, when no call and no ended session reported a count (a Codex session killed before its
         # end event); a session that never reported beside one that did makes it a lower bound (unreported_sessions).

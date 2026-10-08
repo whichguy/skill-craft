@@ -70,7 +70,10 @@ command that continues the run, harness flags included (`--timeout`, `--max-resu
 build), when a run starts and again when it ends with ShipLoop still active, so a later
 session that finds only the task log has it even if the harness was killed.
 `invocation.json` keeps the host's argv and not those flags, so a resume without them
-would run with the default `--timeout` (10800 s).
+would run with the default `--timeout` (10800 s). For that reason a regrade (`--grade-only`)
+prints no command at its end, only a pointer to the one printed when the run started (its own
+flags are the grader's), and a run that wrote no ShipLoop state prints the start line only
+(`--resume-run` refuses it).
 
 
 **Start with [SPEC.md](SPEC.md).** It is the standing specification every run,
@@ -150,12 +153,14 @@ Grok events carry no time) and ShipLoop's run directory:
   bind to receipt and the Run Review page's stage minutes stay the exporter's; this block is the harness's own
   figure for the owner's rule, and a regrade of a copied run directory reads wrong Improve seconds (file times).
   An open window reports `through` (the last stamped stage) and is never 0; a seeded run, a recreated
-  `timeline.json` (one stamp for every action) and a timeline with no start are unmeasured as a whole. `tokens` is the
+  `timeline.json` (one stamp for every action, or a window whose end does not move past the start, even with a
+  single accepted row) and a timeline with no start are unmeasured as a whole. `tokens` is the
   window's output and reasoning tokens on the host clock where the host's per-call counts are exact: Grok's usage
   events, and Codex's rollout `token_usage_record`s (a compaction request counts, a repeated response id counts
   once, sub-agent output is `subagent_output` beside the main figure); Claude's are unmeasured. The reasons for
   anything missing sit inside the block, not in the top-level `unmeasured` map. A window that spans host kills
-  (Luna xhigh had four resumes in 375 minutes) is wall clock and includes the gaps;
+  (Luna xhigh: three resumes inside its 375-minute window, four in the 588-minute run) is wall clock and includes
+  the gaps;
 - sessions and how each ended (`sessions`: its stop, turns, cost and the host's own
   `usage`, kept as the host wrote it and never summed), turns, peak context (a call's
   input, cache reads and cache writes; null when no call reported its context), cost
@@ -165,6 +170,10 @@ Grok events carry no time) and ShipLoop's run directory:
   the printed cost says so; it is a field of `metrics.json` and `result.json`, not a
   baseline key), auto-compactions, host-truncated outputs, test runs and Improve
   children (the directories ShipLoop made, not their `-bind.md` receipts);
+- the host CLI build the sessions ran on (`claude_code_version`, from Claude's init event; sessions on two
+  builds name both, null where the host's events do not carry it; also in `result.json`'s `metrics`). Two runs of
+  one prompt on different builds are not a controlled pair: the Sonnet runs of 2026-10-06 and 2026-10-07 ran on
+  2.1.291 and 2.1.292, which no record named before;
 - every `shiploop` command that exited non-zero, with its failing line;
 - which `docs/shiploop/` files the model read.
 
@@ -192,14 +201,20 @@ To end a run on purpose, create the file `<output directory>/stop`. The harness 
 host (its whole process group), never relaunches it, consumes the file, records
 `process.status: stopped` with no process verdict (the host did not fail) and
 `resume_stop: stopped by <output>/stop`, writes the records and the export, writes no baseline
-row, and exits non-zero (a suite reads exit 0 as a pass). A stale file is removed at the start of
+row, and exits non-zero (a suite reads exit 0 as a pass). The run reads as stopped however the
+file is found: killing a running session, or found as a session ended on its own or between two
+sessions (the host exited 0, yet `process.status` is `stopped`; that session's own status stays in
+`process.sessions`). A host that is never resumed (Claude) does not look for the file after its
+only session ended; the next `--resume-run` removes it. A stale file is removed at the start of
 every `--resume-run`, and a stop never answers a blocked or awaiting run. A stop that names a
 stage (`--stop-at`) is deferred until planning probes are routine (the pending plan's RC2 and
 RC3); an external watcher that creates the file when a stage's row appears covers it meanwhile.
 
 A baseline row is written only for a run that starts from the beginning and ends with ShipLoop
-no longer active. A resumed or seeded run, and a run left active (a deadline, a stop, a spent
-resume budget), writes none: its turns, cost and stages are a fragment.
+no longer active. A resumed or seeded run, a run left active (a deadline, a stop, a spent
+resume budget) and a run whose host the deadline or a stop killed before ShipLoop wrote any state
+write none: their turns, cost and stages are a fragment. A host that ends on its own, even with no
+ShipLoop state, still writes its row.
 
 While a run is going, `python3 test/shiploop_e2e/progress.py <output>` prints
 what changed since its last call (new accepted stages with turns and minutes,

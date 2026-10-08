@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import contextlib
 import datetime
+import importlib.util
 import io
 import json
 import shutil
@@ -79,7 +80,7 @@ argv = sys.argv[1:]
 Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{"argv": argv, "cwd_listing": os.listdir(".")}}))
 mode = os.environ.get("FAKE_MODE")
 plugin = argv[argv.index("--plugin-dir") + 1] if "--plugin-dir" in argv else None
-print(json.dumps({{"type": "system", "subtype": "init", "model": "fake-model",
+print(json.dumps({{"type": "system", "subtype": "init", "model": "fake-model", "claude_code_version": "0.0.1-fake",
                   "slash_commands": [] if mode == "no-skill" else ["skill-craft:shiploop"],
                   "plugins": [{{"name": "skill-craft", "path": plugin}}] if plugin else []}}), flush=True)
 print(json.dumps({{"type": "assistant", "message": {{"content": [{{"type": "tool_use", "name": "Bash",
@@ -161,14 +162,14 @@ elif mode == "early" and not resumed:
     pass  # the first session ends before ShipLoop writes any state
 elif mode == "early":
     product()
-elif mode in ("hang", "hang-active"):
+elif mode in ("hang", "hang-active") or (mode == "hang-resumed" and resumed):
     if mode == "hang-active":
         Path(".shiploop").mkdir(exist_ok=True)
         store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
     print(json.dumps({{"type": "session", "sessionId": "sess-1"}}), flush=True)
     import time
     time.sleep(600)  # killed by --timeout or by a requested stop
-elif mode in ("resume", "stuck", "stuck-stop", "anon", "crash-resumed"):
+elif mode in ("resume", "stuck", "stuck-stop", "hang-resumed", "anon", "crash-resumed"):
     Path(".shiploop").mkdir(exist_ok=True)
     store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
     if mode == "stuck-stop":
@@ -3842,6 +3843,18 @@ class ResumeCliThroughMainTest(PrintedCase):
         self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)
         self.assertNotIn("`shiploop next", prompt)
 
+    def test_a_resume_inside_the_run_names_the_cli_the_run_started_on(self):
+        # The resume loop (a Grok or Codex session that ended while ShipLoop was active) is the third call site that
+        # builds this prompt, beside the first resume and the resume after an interrupt.
+        code, result, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "1")
+        sessions = [json.loads(line) for line in Path(str(self.log) + ".sessions").read_text().splitlines()]
+        self.assertEqual(len(sessions), 2)
+        self.assertIsNotNone(sessions[1]["resumed"])
+        command = f'python3 "{self.cli}" next --run-dir "'
+        self.assertIn(command, sessions[1]["prompt"])
+        self.assertIn(command, (Path(result["output"]) / "resume-1.txt").read_text())
+        self.assertNotIn("`shiploop next", sessions[1]["prompt"])
+
     def test_a_run_continued_on_another_host_keeps_the_cli_it_started_on(self):
         code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
         other = self.tmp / "other" / "plugins" / "skill-craft"
@@ -3918,10 +3931,12 @@ class StopFileTest(PrintedCase):
     def sessions(self) -> list[dict]:
         return [json.loads(line) for line in Path(str(self.log) + ".sessions").read_text().splitlines()]
 
-    def stop_when_the_host_runs(self, out: Path) -> None:
+    def stop_when_the_host_runs(self, out: Path, session: int = 1) -> None:
+        """Create the stop file once the fake host has started its `session`th session (1 = the first)."""
         def ask():
+            sessions = Path(str(self.log) + ".sessions")
             for _ in range(400):
-                if self.log.exists():
+                if sessions.exists() and len(sessions.read_text().splitlines()) >= session:
                     break
                 time.sleep(0.05)
             (out / "stop").write_text("")
@@ -3956,7 +3971,7 @@ class StopFileTest(PrintedCase):
         self.assertRegex(printed, r"(?m)^STOPPED  shiploop e2e case=")
         self.assertIn("host stopped rc=-9", printed)
 
-    def test_a_stop_requested_as_a_session_ends_stops_the_resume_loop(self):
+    def test_a_stop_requested_as_a_session_ends_stops_the_resume_loop_and_reads_as_stopped_everywhere(self):
         os.environ["FAKE_MODE"] = "stuck-stop"
         out = self.tmp / "out-stop-between"
         code, result, printed = self.main(out)
@@ -3965,6 +3980,39 @@ class StopFileTest(PrintedCase):
         self.assertEqual(result["termination"]["resume_stop"], f"stopped by {out.resolve() / 'stop'}")
         self.assertFalse((out / "stop").exists())
         self.assertRegex(printed, r"(?m)^STOPPED  shiploop e2e case=")
+        # The host ended by itself (exit 0) as the request arrived, yet the run reads as stopped in every record, the
+        # same as a killed host (SPEC: a requested stop has no process verdict); the session keeps its own status.
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        self.assertEqual(result["termination"]["process_status"], "stopped")
+        self.assertEqual([s["status"] for s in result["process"]["sessions"]], ["exited"])
+        self.assertIn("host stopped rc=0", printed)
+        self.assertFalse(self.baselines.exists(), "a stopped run is not a baseline")
+
+    def test_a_stop_during_a_resumed_session_reads_as_stopped_and_is_not_relaunched(self):
+        os.environ["FAKE_MODE"] = "hang-resumed"
+        out = self.tmp / "out-stop-resumed"
+        self.stop_when_the_host_runs(out, session=2)
+        code, result, printed = self.main(out, "--timeout", "120")  # a resume needs more than 60 s of the run deadline left
+        self.assertEqual(code, 1)
+        self.assertEqual(len(self.sessions()), 2, "one session, one resume, and no third launch")
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        self.assertEqual([s["status"] for s in result["process"]["sessions"]], ["exited", "stopped"])
+        self.assertEqual(result["termination"]["resume_stop"], f"stopped by {out.resolve() / 'stop'}")
+        self.assertRegex(printed, r"(?m)^STOPPED  shiploop e2e case=")
+        self.assertFalse((out / "stop").exists())
+
+    def test_a_stop_before_any_engine_state_exists_writes_no_baseline_row_and_no_resume_command(self):
+        # The host was killed before ShipLoop wrote any state, so the engine status is unknown: still not a finished run.
+        os.environ["FAKE_MODE"] = "hang"
+        out = self.tmp / "out-stop-no-state"
+        self.stop_when_the_host_runs(out)
+        code, result, printed = self.main(out)
+        self.assertEqual(code, 1)
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["engine_status"]), ("stopped", "unknown"))
+        self.assertFalse(self.baselines.exists(), "the row would be offered as the last comparable row")
+        self.assertIn("baseline  nothing compared: the run is not finished", printed)
+        self.assertEqual(printed.count("--resume-run"), 1, "only the start line: a run with no engine state cannot be resumed")
 
     def test_a_stale_stop_file_does_not_stop_a_later_resume(self):
         code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
@@ -4039,6 +4087,18 @@ class GradeOnlyTest(PrintedCase):
                          "a grade-only writes no baseline row")
         self.assertIn("no host ran (regraded); engine active", printed)
 
+    def test_a_regrade_prints_no_resume_command_because_its_flags_are_not_the_runs(self):
+        # The grading invocation's --timeout is the default (10800 s, above any task limit); presenting it as the exact
+        # command that continues the run would send a resume to be killed with no records.
+        out = self.killed_harness_run()
+        code, result, printed = self.grade_only(out)
+        self.assertEqual(result["shiploop"]["status"], "active")
+        self.assertNotIn("--resume-run", printed)
+        self.assertNotRegex(printed, r"--timeout \d+")
+        line = next(ln for ln in printed.splitlines() if ln.startswith("  resume"))
+        self.assertIn("printed when the run started", line)
+        self.assertIn("--timeout below the launcher's limit", line)
+
     def test_a_paused_run_is_graded_under_the_flag_and_refused_without_it(self):
         out = self.killed_harness_run()
         shutil.rmtree(out / "work" / ".shiploop")
@@ -4074,7 +4134,7 @@ class ResumeCommandTest(PrintedCase):
 
     def test_the_start_and_the_end_print_the_exact_command_that_continues_the_run(self):
         code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "0", "--timeout", "900",
-                                                    "--permission-mode", "plan")
+                                                    "--permission-mode", "plan", "--max-budget-usd", "12.5")
         found = self.commands(printed)
         self.assertEqual(len(found), 2, "before the host starts, and again for a run left active")
         self.assertEqual(found[0], found[1])
@@ -4085,7 +4145,7 @@ class ResumeCommandTest(PrintedCase):
         self.assertEqual(parsed.resume_run, Path(result["output"]))
         self.assertEqual((parsed.host, parsed.model, parsed.effort), ("grok", "grok-4.7", "medium"))
         self.assertEqual((parsed.timeout, parsed.max_resumes, parsed.max_budget_usd, parsed.permission_mode),
-                         (900, 0, 40.0, "plan"))
+                         (900, 0, 12.5, "plan"))  # each non-default, so dropping any flag from the command fails here
         self.assertEqual(parsed.grok_bin, str(self.fakes["grok"]))
         self.assertEqual(parsed.plugin_dir, self.plugin)
 
@@ -4125,6 +4185,7 @@ class UnfinishedRunBaselineTest(PrintedCase):
         self.assertEqual(result["termination"]["engine_status"], "active")
         self.assertFalse(self.baselines.exists())
         self.assertIn("baseline  nothing compared: the run is not finished (its engine is still active)", printed)
+        self.assertEqual(printed.count("--resume-run"), 2, "the start line and the end line carry the command")
 
     def test_a_deadline_ends_with_the_records_leaves_the_run_resumable_and_writes_no_row(self):
         # The README's recipe for a task with a limit: --timeout below it, so the harness finalizes.
@@ -4143,10 +4204,56 @@ class UnfinishedRunBaselineTest(PrintedCase):
         self.assertEqual(code, 0)
         self.assertEqual(len(self.baselines.read_text().splitlines()), 1)
 
-    def test_a_run_with_no_engine_state_at_all_still_writes_its_row(self):
+    def test_a_host_killed_at_the_deadline_before_any_engine_state_writes_no_row(self):
+        # The audit's reproduction: the existing `hang` fake, --timeout 3, engine status unknown. It appended a row with
+        # process status timeout, which scan_baseline then offered as the last comparable row.
+        code, result, printed = self.invoke_printed("grok", "hang", "--timeout", "3")
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["engine_status"]), ("timeout", "unknown"))
+        self.assertFalse(self.baselines.exists(), "a host the deadline killed is not a finished run")
+        self.assertIn("baseline  nothing compared: the run is not finished (the harness ended the host: timeout; "
+                      "engine unknown), so it is not a baseline", printed)
+        self.assertEqual(printed.count("--resume-run"), 1,
+                         "a run with no engine state is refused by --resume-run, so only the start line carries a command")
+
+    def test_a_later_run_is_not_compared_with_the_killed_one(self):
+        self.invoke_printed("grok", "hang", "--timeout", "3")
+        code, result, printed = self.invoke_printed("grok", "done")
+        self.assertEqual(code, 0, result)
+        self.assertIn("baseline  nothing compared: no earlier row for hello", printed)
+
+    def test_a_host_that_ends_by_itself_with_no_engine_state_still_writes_its_row(self):
+        # Its own exit is the ending the row records, unlike a deadline or a stop the harness imposed.
         code, result, _ = self.invoke_printed("grok", "nothing")
-        self.assertEqual(result["termination"]["engine_status"], "unknown")
+        self.assertEqual((result["termination"]["engine_status"], result["termination"]["process_status"]),
+                         ("unknown", "exited"))
         self.assertEqual(len(self.baselines.read_text().splitlines()), 1)
+
+
+class ClaudeCodeVersionTest(PrintedCase):
+    """The host CLI build is recorded with the run: the two Sonnet runs of 2026-10-06 and 2026-10-07 ran one prompt on
+    Claude Code 2.1.291 and 2.1.292, a variable no record of the harness named until now (only the init event held it)."""
+
+    def init(self, version=None) -> dict:
+        return {"type": "system", "subtype": "init", "model": "m", **({} if version is None else {"claude_code_version": version})}
+
+    def test_the_init_event_s_version_is_recorded_in_the_metrics(self):
+        m = collect_stream([self.init("2.1.292"), *claude_stream(["echo a"])], [])
+        self.assertEqual(m["claude_code_version"], "2.1.292")
+
+    def test_sessions_on_two_builds_name_both_and_a_host_without_a_version_records_none(self):
+        both = collect_stream([self.init("2.1.291"), *claude_stream(["echo a"]), self.init("2.1.292"),
+                               *claude_stream(["echo b"])], [])
+        self.assertEqual(both["claude_code_version"], "2.1.291, 2.1.292")
+        self.assertIsNone(collect_stream([self.init(), *claude_stream(["echo a"])], [])["claude_code_version"])
+        self.assertIsNone(collect_stream(codex_stream(2), [])["claude_code_version"])
+
+    def test_a_run_through_main_leaves_the_version_in_metrics_json_and_result_json(self):
+        code, result, _ = self.invoke_printed("claude", "done")
+        self.assertEqual(json.loads((Path(result["output"]) / "metrics.json").read_text())["claude_code_version"], "0.0.1-fake")
+        self.assertEqual(result["metrics"]["claude_code_version"], "0.0.1-fake")
+        code, grok, _ = self.invoke_printed("grok", "done")
+        self.assertIsNone(grok["metrics"]["claude_code_version"])
 
 
 class KeepAwakeTest(unittest.TestCase):
@@ -4269,6 +4376,17 @@ class PlanningClockTest(PlanningBlockCase):
         plan = self.planning(rows, started=1160.0, improve={})
         self.assertIsNone(plan["window"]["seconds"])
         self.assertIn("one stamp", plan["unmeasured"]["window"])
+
+    def test_a_recreated_timeline_with_one_accepted_row_is_unmeasured_not_a_measured_zero(self):
+        # One accepted row whose stamp equals the start: not a duration, and an open window is never 0.
+        plan = self.planning([("a-intake", "intake", "done", 1160)], started=1160.0, improve={})
+        self.assertFalse(plan["window"]["closed"])
+        self.assertIsNone(plan["window"]["seconds"])
+        self.assertIsNone(plan["window"]["host_seconds"])
+        self.assertIn("one stamp", plan["unmeasured"]["window"])
+        closed = self.planning([("a-ts", "test-spec", "done", 1160)], started=1160.0, improve={})
+        self.assertIsNone(closed["window"]["seconds"])
+        self.assertIn("one stamp", closed["unmeasured"]["window"])
 
     def test_a_timeline_with_no_start_is_unmeasured(self):
         plan = self.planning(improve={}, started=False)
@@ -4491,6 +4609,55 @@ class RecordedRunReproductionTest(unittest.TestCase):
         self.assertEqual((round(plan["window"]["seconds"] / 60, 2), plan["improve"]["children"],
                           round(plan["improve"]["seconds"] / 60, 2)), (6.47, 5, 2.57))
         self.assertIn("snapshot", plan["tokens"]["unmeasured"])
+
+
+class SonnetCostDecompositionTest(unittest.TestCase):
+    """The Sonnet cost rise of the batch-1007 live pair, rebuilt from the committed export (the folders are outside the repo).
+
+    `inputs` of docs/experiments/batch-1007-live-20261007/cost-decomposition.json holds what cost_decomposition.py read
+    from the two run folders; `recomputed` must equal `decompose(inputs)`, so the LEARNINGS entry that cites it can be
+    checked by a script run instead of being taken from a model-judged account (journal rule)."""
+
+    DIR = ROOT / "docs" / "experiments" / "batch-1007-live-20261007"
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location("cost_decomposition", self.DIR / "cost_decomposition.py")
+        self.script = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.script)
+        self.data = json.loads((self.DIR / "cost-decomposition.json").read_text())
+
+    def test_the_recomputed_figures_are_the_arithmetic_on_the_committed_inputs(self):
+        self.assertEqual(self.script.decompose(self.data["inputs"]), self.data["recomputed"])
+
+    def test_the_fitted_rates_reproduce_both_recorded_session_costs(self):
+        for name, cost in (("old", 6.5405192), ("new", 9.6542784)):
+            self.assertAlmostEqual(self.script.cost(self.data["inputs"][name]["usage"]), cost, places=7)
+            self.assertLess(self.data["recomputed"][name]["fit_error_usd"], 1e-6)
+
+    def test_the_rise_is_the_sum_of_its_components_and_most_of_it_is_cache_reads_of_the_extra_calls(self):
+        r = self.data["recomputed"]
+        self.assertAlmostEqual(sum(r["rise_by_component_usd"].values()), r["rise_usd"], places=3)
+        self.assertEqual(r["rise_usd"], 3.1138)
+        self.assertGreater(r["rise_by_component_usd"]["cache_read_input_tokens"], 0.8 * r["rise_usd"])
+        q = r["quadratic"]
+        self.assertEqual((q["first_calls_of_the_new_run"], q["extra_calls"]), (133, 34))
+        self.assertEqual(q["cache_read_tokens_of_those_calls"] + q["cache_read_tokens_of_extra_calls"],
+                         self.data["inputs"]["new"]["usage"]["cache_read_input_tokens"])
+        self.assertGreater(q["share_of_the_increase_in_the_extra_calls"], 0.8)
+
+    def test_the_two_runs_are_not_a_controlled_pair(self):
+        old, new = self.data["inputs"]["old"], self.data["inputs"]["new"]
+        self.assertNotEqual(old["claude_code_version"], new["claude_code_version"])
+        self.assertEqual(old["versions"]["plugin_version"], new["versions"]["plugin_version"])
+        self.assertNotEqual(old["versions"]["local_head"], new["versions"]["local_head"])
+
+    def test_decompose_splits_the_cache_reads_of_a_longer_run_at_the_length_of_the_shorter(self):
+        usage = lambda cr: {"input_tokens": 0, "cache_creation_input_tokens": 0, "cache_read_input_tokens": cr, "output_tokens": 0}  # noqa: E731
+        old = {"cost_usd": 1.0, "usage": usage(30), "cache_read_per_call": [10, 20], "context_per_call": [10, 20]}
+        new = {"cost_usd": 2.0, "usage": usage(70), "cache_read_per_call": [10, 20, 40], "context_per_call": [10, 20, 40]}
+        q = self.script.decompose({"old": old, "new": new})["quadratic"]
+        self.assertEqual((q["cache_read_tokens_of_those_calls"], q["cache_read_tokens_of_extra_calls"]), (30, 40))
+        self.assertEqual((q["against_the_old_run"], q["share_of_the_increase_in_the_extra_calls"]), (0.0, 1.0))
 
 
 if __name__ == "__main__":
