@@ -1,0 +1,75 @@
+{
+  "about": "Compact record of the measurements behind the DOCCHECK decision of batch 1008 (no new document checker; the Checked-by line and the unparsable-result message). Figures are the design agent's, with the independent audit's confirmations and corrections applied. Source of the full texts: docs/experiments/batch-1008-design-audit-20261008/design-audit.json, entry DOCCHECK. Journal: docs/shiploop-batch-1008a-journal-2026-10-08.md.",
+  "end_state": "validated another way: the classification was run once on 2026-10-08 and its output is committed here. The classifier script was not kept, so the repository cannot re-run it: a test pins this file's presence and shape, not its figures. The audit re-counted the shell calls and the link-regex scripts by its own method and agreed; it did not re-derive the per-purpose split.",
+  "caveats": [
+    "One run per figure (n=1). The Luna figures are ShipLoop 1.21.0 at xhigh.",
+    "Every minute figure is the time from the previous tool result to the script's call, so it includes the model's thinking: it is an upper bound for the cost of the script, not the script's own run time.",
+    "The per-purpose split depends on the classifier's precedence rule (loop and backchain glue, then document authoring, then document check); the 8.9 minutes of document checks moves with that rule. The audit's own count of the markdown-link scripts (43, about 15.4 minutes by the same bound, about 4 percent of the window) supports 'no new checker' under any classification.",
+    "Run folders are under /Users/dadleet/e2e-runs, outside the repository."
+  ],
+  "luna_xhigh_1210": {
+    "run": "/Users/dadleet/e2e-runs/20261005/v1210-battleship-luna-xhigh",
+    "planning_window_minutes": 375.0,
+    "window_ends": "the first test-spec accept",
+    "shell_calls": 904,
+    "inline_scripts": 196,
+    "inline_scripts_by_purpose": [
+      {"purpose": "loop and backchain glue (Improve and Backchain)", "scripts": 68, "minutes": 44.8},
+      {"purpose": "document authoring and edit", "scripts": 52, "minutes": 37.5},
+      {"purpose": "other read and probe", "scripts": 34, "minutes": 13.7},
+      {"purpose": "result and state reads", "scripts": 20, "minutes": 10.4},
+      {"purpose": "document checks", "scripts": 22, "minutes": 8.9,
+       "of_which": [
+         {"purpose": "links, anchors, whitespace", "scripts": 15, "minutes": 6.6},
+         {"purpose": "ids and content", "scripts": 7, "minutes": 2.3}]}
+    ],
+    "scripts_that_failed_or_flagged": 18,
+    "scripts_with_a_markdown_link_regex": {
+      "count": 43,
+      "read_only": 24,
+      "read_only_minutes": 5.8,
+      "distinct_slug_implementations": 5,
+      "broken_link_anchor_or_whitespace_reported": 0,
+      "audit_total_minutes_upper_bound": 15.4,
+      "audit_share_of_window_percent": 4,
+      "findings_that_were_product_content_assertions": ["missing: Content-Type: application/json", "PORT unset", "missing valid fleet boundary"]
+    }
+  },
+  "named_runs_planning_windows": [
+    {"run": "20261007 v1230-battleship-grok-none", "minutes": 19, "bash_calls": 27, "inline_scripts": 8, "document_check_scripts": 0},
+    {"run": "20261006 grok-medium-none", "minutes": 20, "bash_calls": 30, "inline_scripts": 16, "document_check_scripts": 0},
+    {"run": "20261007 sonnet", "minutes": 6, "bash_calls": 53, "inline_scripts": 31, "document_check_scripts": "3 to 4 counts-only passes"},
+    {"run": "20261006 sonnet", "minutes": 7, "bash_calls": 46, "inline_scripts": 26, "document_check_scripts": "3 to 4 counts-only passes"}
+  ],
+  "delivered_knowledge_homes": {
+    "homes": 6,
+    "spec_r_ids_missing_from_test_strategy": "0 of 6",
+    "spec_r_ids_missing_from_plan": "2 of 6 (both are range notation, 'R-1..R-9' and 'R-1..R-10'; a mention is not coverage)",
+    "trailing_whitespace_lines": 0,
+    "broken_anchors": 0,
+    "broken_relative_file_links": "1 of 6 (the Grok 1.23.0 docs/shiploop/README.md links ../SHIPLOOP.md; it ships in a file ShipLoop commits itself)",
+    "strategy_commands_among_accepted_step_plan_test_commands": "6 of 6"
+  },
+  "unparsable_result_refusals_on_the_heavy_route": {
+    "run_folders_with_one_or_more": "3 of 16 under /Users/dadleet/e2e-runs",
+    "per_run": [
+      {"run": "20261004 v1190-hello-sonnet", "refusals": 1},
+      {"run": "20261004 v1200-hello-sonnet", "refusals": 2, "events": [124, 135], "note": "the design said three; the audit found two"},
+      {"run": "20261007 v1230-battleship-grok-none", "refusals": 1, "cost_minutes": 0.2}
+    ]
+  },
+  "hand_written_re_implementations_of_owned_gates_before_the_change": {
+    "note": "Baseline counts for the next live pair; report counts only (unmeasured is unknown, never zero).",
+    "sonnet_1230": {"criteria_coverage": 1, "step_deps": 1, "result_json_pre_check": 1},
+    "grok_1230": {"result_json_pre_check": 2, "step_plan_criteria_coverage": 1},
+    "grok_medium_1210": {"criteria_coverage": 3, "credential_screen": "5 or more", "result_json_pre_check": 6},
+    "luna_1210": {"evidence_exists": "3 or more", "result_json_pre_check": 11},
+    "zero_shiploop_failures_in_both_sonnet_runs": true
+  },
+  "stages_whose_checked_by_line_said_nothing_automatic": {"of": 34, "without_complete_runs": 23, "confirmed_by": "audit, importing shiploop_stage_spec"},
+  "superseded_figure": {
+    "what": "ledger lever L11 of docs/experiments/shiploop-planning-time-20261005/ledger-account-final.json: about 100 model-written check scripts, 73.8 minutes, 121 responses, 35 to 55 minutes savable",
+    "superseded": "2026-10-08",
+    "reason": "its raw per-response analyses were not kept and it could not be re-derived. The re-derivation above agrees instead with docs/pending-work-plan-2026-10-06.md (13 of 162 scripts, 7.5 minutes)."
+  }
+}

@@ -178,8 +178,13 @@ count by the audit agrees on 904 shell calls and 43 scripts with a markdown-link
 same upper bound, roughly 4 percent of the window), so "no new checker" holds under any classification.
 The four named runs: the Grok none runs have no document-check script at all; the Sonnet stage-mode runs
 have 3 to 4 counts-only passes. Evidence: `docs/experiments/batch-1008-design-audit-20261008/design-audit.json`
-(key DOCCHECK). The compact classifier output was not committed because its script was not kept (end state:
-unachievable here, not written-but-not-run); the live pair below is where it would be re-measured.
+(key DOCCHECK) and the classifier's output, `docs/experiments/docheck-20261008/evidence.json` (added after the
+review; the per-purpose split, the 43 link scripts, the six knowledge homes, the three heavy-route runs and the
+hand-written-check baselines, with the audit's corrections). End state: validated another way, run once and
+output committed. The classifier script itself was not kept, so the repository cannot re-run it and
+`test_the_doccheck_evidence_and_the_batch_1008_design_audit_are_in_the_repository` (`test/shiploop-e2e.test.py`)
+pins presence and shape, not the figures; the live pair below is where they would be re-measured. The ledger lever
+L11 is marked superseded, with this date, in `docs/experiments/shiploop-planning-time-20261005/README.md`.
 
 **What generic checks would have found (firm).** Of 43 Luna scripts with a markdown-link regex (24
 read-only, 5.8 min, 5 distinct `slug()` implementations) none reported a broken link, anchor or trailing

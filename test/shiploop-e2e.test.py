@@ -904,6 +904,25 @@ class FastPlanningRecordTest(unittest.TestCase):
                      "run-doc-luna-xhigh-v1210.json", "run-doc-grok-medium-v1210.json"):
             json.loads((evidence / name).read_text())
 
+    def test_the_doccheck_evidence_and_the_batch_1008_design_audit_are_in_the_repository(self):
+        # The DOCCHECK figures were produced by a classifier that was not kept, so this pins presence and shape: the
+        # committed output, the audit entries the journal cites, and the dated note that supersedes the ledger's L11.
+        journal = (ROOT / "docs" / "shiploop-batch-1008a-journal-2026-10-08.md").read_text()
+        audit = ROOT / "docs" / "experiments" / "batch-1008-design-audit-20261008" / "design-audit.json"
+        evidence = ROOT / "docs" / "experiments" / "docheck-20261008" / "evidence.json"
+        for path in (audit, evidence):
+            self.assertIn(str(path.relative_to(ROOT)), journal)
+        entries = {row["key"]: row for row in json.loads(audit.read_text())}
+        for key in ("DOCCHECK", "REGISTER", "B6", "REVISE"):
+            self.assertEqual(sorted(entries[key]), ["audit", "design", "key", "title"], key)
+        data = json.loads(evidence.read_text())
+        luna = data["luna_xhigh_1210"]
+        self.assertEqual(sum(row["scripts"] for row in luna["inline_scripts_by_purpose"]), luna["inline_scripts"])
+        for key in ("end_state", "caveats", "superseded_figure"):
+            self.assertTrue(data[key], key)
+        ledger_readme = ROOT / "docs" / "experiments" / "shiploop-planning-time-20261005" / "README.md"
+        self.assertIn("Superseded 2026-10-08: lever L11", ledger_readme.read_text())
+
     def test_the_ci_audit_evidence_is_in_the_repository(self):
         evidence = ROOT / "docs" / "experiments" / "ci-audit-20261005"
         for name in ("README.md", "ci-audit-final.json", "name-collision-trace.json", "dump_selection.py"):
