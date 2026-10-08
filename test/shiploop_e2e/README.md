@@ -61,6 +61,20 @@ change. The case and checks come from the earlier run, and the result is graded
 as usual. The original `invocation.json` is kept, and each resume is recorded
 beside it as `invocation-resume-<host>-<time>.json`.
 
+The prompt of a resume names the ShipLoop CLI of the plugin the run started on
+(`<plugin dir>/skills/shiploop/scripts/shiploop`, whichever host or source built it)
+as `python3 "<cli>" next --run-dir "<dir>"`. There is no bare-command form: a resume
+whose CLI file is gone is refused before a host starts. The harness prints the exact
+command that continues the run, harness flags included (`--timeout`, `--max-resumes`,
+`--max-budget-usd`, `--permission-mode`, `--effort`, and `--plugin-dir` for a checkout
+build), when a run starts and again when it ends with ShipLoop still active, so a later
+session that finds only the task log has it even if the harness was killed.
+`invocation.json` keeps the host's argv and not those flags, so a resume without them
+would run with the default `--timeout` (10800 s). For that reason a regrade (`--grade-only`)
+prints no command at its end, only a pointer to the one printed when the run started (its own
+flags are the grader's), and a run that wrote no ShipLoop state prints the start line only
+(`--resume-run` refuses it).
+
 
 **Start with [SPEC.md](SPEC.md).** It is the standing specification every run,
 review and fix is judged against: the purpose of this loop (verify ShipLoop, not
@@ -127,6 +141,26 @@ Grok events carry no time) and ShipLoop's run directory:
   `incomplete` row for it. No cost and no token count is split per stage; cost stays
   whole-run. "Reading per-stage figures" below says what these numbers can and
   cannot tell you;
+- the planning window (`planning`, SPEC's S-10 carve-out of 2026-10-05: planning takes no more than 30
+  minutes): intake to the first accepted `test-spec` with outcome done (a `revise` row does not close it), on two
+  labelled clocks, the engine's (`window.seconds`, from `timeline.json` `started`) and the host's
+  (`window.host_seconds`, from the runner's first event; `before_engine_seconds` is the difference, 92.8 s on the
+  Grok `none` run of 1.22.0). `stages` lists each accepted visit in the window with its seconds and
+  `improve_seconds`, which runs from the Improve child's bind file (`improve/<action>-bind.md`, so it needs the
+  run directory's file times) to the accept stamp; 0.0 means the engine ran no child for that action, an action with
+  a child but no readable bind file is null with its reason. `improve` totals the children and their seconds and
+  `producer_seconds` is the window minus them, so the two add up to the window. The exporter's `improveMin` runs
+  bind to receipt and the Run Review page's stage minutes stay the exporter's; this block is the harness's own
+  figure for the owner's rule, and a regrade of a copied run directory reads wrong Improve seconds (file times).
+  An open window reports `through` (the last stamped stage) and is never 0; a seeded run, a recreated
+  `timeline.json` (one stamp for every action, or a window whose end does not move past the start, even with a
+  single accepted row) and a timeline with no start are unmeasured as a whole. `tokens` is the
+  window's output and reasoning tokens on the host clock where the host's per-call counts are exact: Grok's usage
+  events, and Codex's rollout `token_usage_record`s (a compaction request counts, a repeated response id counts
+  once, sub-agent output is `subagent_output` beside the main figure); Claude's are unmeasured. The reasons for
+  anything missing sit inside the block, not in the top-level `unmeasured` map. A window that spans host kills
+  (Luna xhigh: three resumes inside its 375-minute window, four in the 588-minute run) is wall clock and includes
+  the gaps;
 - sessions and how each ended (`sessions`: its stop, turns, cost and the host's own
   `usage`, kept as the host wrote it and never summed), turns, peak context (a call's
   input, cache reads and cache writes; null when no call reported its context), cost
@@ -136,6 +170,10 @@ Grok events carry no time) and ShipLoop's run directory:
   the printed cost says so; it is a field of `metrics.json` and `result.json`, not a
   baseline key), auto-compactions, host-truncated outputs, test runs and Improve
   children (the directories ShipLoop made, not their `-bind.md` receipts);
+- the host CLI build the sessions ran on (`claude_code_version`, from Claude's init event; sessions on two
+  builds name both, null where the host's events do not carry it; also in `result.json`'s `metrics`). Two runs of
+  one prompt on different builds are not a controlled pair: the Sonnet runs of 2026-10-06 and 2026-10-07 ran on
+  2.1.291 and 2.1.292, which no record named before;
 - every `shiploop` command that exited non-zero, with its failing line;
 - which `docs/shiploop/` files the model read.
 
@@ -152,7 +190,31 @@ engine's status and the stage it never accepted. `unknown` is kept rather than a
 guess, a ShipLoop refusal is never reported as the cause, and the printed report
 has a `stopped` line. A harness killed together with its host writes none of
 it (the observer is gone); only the engine's own state survives, and a later
-`--resume-run` records what that resume observed.
+`--resume-run` records what that resume observed. `--resume-run <output directory>
+--grade-only` writes metrics.json, result.json and the Run Review export from what is
+on disk, starting no host, for a run in any status that has a ShipLoop state (`process`
+says `not observed` and `termination` says no host ran). Stop the host first, or confirm
+none is alive: against a live host it records a mid-run snapshot and replaces result.json.
+It never continues or answers a run (SPEC S-14), and it writes no baseline row.
+
+To end a run on purpose, create the file `<output directory>/stop`. The harness kills the
+host (its whole process group), never relaunches it, consumes the file, records
+`process.status: stopped` with no process verdict (the host did not fail) and
+`resume_stop: stopped by <output>/stop`, writes the records and the export, writes no baseline
+row, and exits non-zero (a suite reads exit 0 as a pass). The run reads as stopped however the
+file is found: killing a running session, or found as a session ended on its own or between two
+sessions (the host exited 0, yet `process.status` is `stopped`; that session's own status stays in
+`process.sessions`). A host that is never resumed (Claude) does not look for the file after its
+only session ended; the next `--resume-run` removes it. A stale file is removed at the start of
+every `--resume-run`, and a stop never answers a blocked or awaiting run. A stop that names a
+stage (`--stop-at`) is deferred until planning probes are routine (the pending plan's RC2 and
+RC3); an external watcher that creates the file when a stage's row appears covers it meanwhile.
+
+A baseline row is written only for a run that starts from the beginning and ends with ShipLoop
+no longer active. A resumed or seeded run, a run left active (a deadline, a stop, a spent
+resume budget) and a run whose host the deadline or a stop killed before ShipLoop wrote any state
+write none: their turns, cost and stages are a fragment. A host that ends on its own, even with no
+ShipLoop state, still writes its row.
 
 While a run is going, `python3 test/shiploop_e2e/progress.py <output>` prints
 what changed since its last call (new accepted stages with turns and minutes,
@@ -276,11 +338,15 @@ product hang; it does not say the product is wrong.
   Without rollouts the figures are null and `unmeasured` names them with that reason.
   Recorded Luna 1.16.1 run (168 MB, read in 0.6 s): 2,565 main-thread calls, peak 251,867
   of 258,400, 34 compactions, and 314 sub-agent calls.
-- No output-token figure is built from events: a Claude message's output count is a
-  streaming snapshot (it summed to about 1/17 of the session's own total on a recorded
-  run), and Codex has none per call. A session's tokens are the host's own `usage` in
-  `sessions`. Cost and turns add up across the sessions that reported; a session killed
-  before it reported is counted in `unreported_sessions`, not estimated.
+- No output-token figure is built per stage, and none from Claude's events: a Claude
+  message's output count is a streaming snapshot (it summed to about 1/17 of the session's own
+  total on a recorded run), and Codex has none per call in its event stream. The planning window's
+  tokens (above) are the exception for Grok and Codex, whose per-call counts equal the host's own
+  totals (Grok: the usage events of a whole run equal the `end` events' sums; Codex: the per-call
+  sums of the rollouts equal each thread's last cumulative total, compaction requests included).
+  A session's tokens are the host's own `usage` in `sessions`. Cost and turns add up across the
+  sessions that reported; a session killed before it reported is counted in
+  `unreported_sessions`, not estimated.
 - The Run Review page's stage minutes come from the exporter's own accept-to-accept
   computation (`skills/shiploop-run-review/scripts/export.py`), not from
   `metrics.json`. The first stage differs: the exporter starts at the engine's
@@ -352,15 +418,28 @@ uses it on purpose. Publish (`scripts/release.py`, then
 
 ### Launching long runs
 
-Launch a run as a Claude Desktop background task (`run_in_background`) so it can be tracked; a background task is
-killed after 18-30 minutes, taking the host with it, so relaunch with `--resume-run <output directory>` and the
-run continues in place (the output directory is reused; `--output` is ignored on a resume). A resume refuses to
-start while `origin/main`'s CI has failed, and a Codex resume across a release is refused. A multi-hour host such
-as Codex at max effort is the one case where a detached `nohup` launch is a deliberate, stated exception; watch it
-with a periodic status snapshot of its output directory.
+Launch a run as a Claude Desktop background task (`run_in_background`) so it can be tracked. A task is killed at the
+timeout it was given, taking the harness and its host with it, so the limit is whatever the launcher set and not a
+platform constant: the dated observations are 10 minutes (2026-10-03, the tool's 600000 ms maximum), a 30-minute
+kill at 1798 s (2026-10-03) and 120.3 minutes (2026-10-05). Pass `--timeout` (seconds) below it, with margin: the
+deadline starts after preflight and install, and when it is spent the harness still runs the product checks (180 s
+each, again against an unreturned worktree) and the review export before it exits. A spent deadline is a clean
+ending: the harness writes metrics.json, result.json and the export, writes no baseline row, and prints the command
+that continues the run (once ShipLoop has written its state; a host killed before that cannot be resumed, so start the
+case again). Run that command as the next task: `--resume-run <output directory>` continues the run in
+place (the output directory is reused; `--output` is ignored on a resume). A resume refuses to start while
+`origin/main`'s CI has failed, and a Codex resume across a release is refused, so do not run `scripts/release.py`
+while a Codex run is live (Codex replaces the plugin at session start). A multi-hour host such as Codex at max effort
+is the one case where a detached `nohup` launch is a deliberate, stated exception; watch it with a periodic status
+snapshot of its output directory.
 
-A task kill stops the harness where it stands and no harness code runs: nothing is written afterwards (no
-termination record, no `result.json`, no baseline row), and nothing looks for what the host left behind. A
+On macOS each host session runs under `caffeinate -d -i`, which keeps the display on and the machine from
+idle-sleeping for the whole session; elsewhere nothing is wrapped. The display hold removes one variable from the
+runs where a model-driven headless Chrome never loaded a page (see LEARNINGS, 2026-10-08).
+
+A task kill before the deadline stops the harness where it stands and no harness code runs: nothing is written
+afterwards (no termination record, no `result.json`, no baseline row), and nothing looks for what the host left
+behind. Give the run its records afterwards with `--resume-run <output directory> --grade-only`. A
 model's background server can outlive its run by far more than the task limit: two (`python server.py` and
 `node server.js`) were found alive about 27 hours after their runs, parent pid 1, listening on all interfaces,
 and were stopped by hand. Claude Code gives each Bash call its own process group; the harness's kill is a

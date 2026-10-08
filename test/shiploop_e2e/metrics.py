@@ -330,6 +330,154 @@ def total_cost(sessions: list[dict]) -> float | None:
     return round(sum(costs), 4)
 
 
+# Why a planning figure is missing, recorded inside the `planning` block (never in the top-level `unmeasured` map).
+PLANNING_NOT_YET = "no stage has been accepted yet, so there is no planning window"
+PLANNING_NO_START = ("timeline.json records no start time (a run from before the pace line, or no timeline.json), so "
+                     "the engine clock cannot be read")
+PLANNING_NO_END = "the stage that ends the window has no readable accept stamp"
+PLANNING_SEEDED = ("a planning stage was accepted before the host's first event (the harness records a seeded run's "
+                   "early stages itself), so the window is not the host's work")
+PLANNING_RECREATED = ("the window's stages carry one stamp (the engine gives every action one timeline stamp when it "
+                      "recreates a lost timeline.json) or do not move past the start, so no duration can be read")
+PLANNING_NO_RUNNER_TIMELINE = "the harness wrote no runner timeline (timeline.jsonl), so the host clock cannot be placed"
+PLANNING_NO_IMPROVE_RESULTS = "state.md records no improve_results, so a run with Improve children cannot be told from one without"
+CLAUDE_OUTPUT_TOKENS = ("this host's per-message output counts are streaming snapshots (about 1/17 of the session's own "
+                        "total on a recorded run); only the whole-run usage is exact")
+NO_HOST_USAGE = "the host's events carry no per-call output counts and no rollouts were read"
+
+
+def run_started(run_dir: Path | None) -> float | None:
+    """When the engine says the run started (timeline.json `started`, the clock the narrative's pace line uses), or None."""
+    if run_dir is None or not (run_dir / "timeline.json").is_file():
+        return None
+    try:
+        raw = json.loads((run_dir / "timeline.json").read_text(errors="replace"))
+    except ValueError:
+        return None
+    return _epoch(raw.get("started")) if isinstance(raw, dict) else None
+
+
+def _improve_seconds(run_dir: Path | None, results: object, row: dict) -> tuple[float | None, str | None]:
+    """(seconds an Improve child spent on this accepted action, why it is unknown): its bind file's time to the accept.
+
+    0.0 is a measurement: no child ran for the action (it has no entry in state.md's improve_results). Accept stamps
+    are whole seconds, truncated, and a bind file's mtime is fractional, so the accept can read up to one second
+    before the bind (-0.33 s on a recorded Sonnet run): that is 0.0, and a larger negative is unreadable, not a duration.
+    """
+    if not isinstance(results, dict):
+        return None, PLANNING_NO_IMPROVE_RESULTS
+    if row["action"] not in results:
+        return 0.0, None
+    if row["t"] is None:
+        return None, f"the {row['stage']} Improve child's accept stamp is unreadable"
+    try:
+        bound = (run_dir / "improve" / f"{row['action']}-bind.md").stat().st_mtime
+    except (OSError, TypeError):
+        return None, f"the {row['stage']} Improve child has no improve/<action>-bind.md to start its time from"
+    gap = row["t"] - bound
+    if gap < -1.0:
+        return None, f"the {row['stage']} accept stamp is more than a second before its Improve child's bind file"
+    return round(max(gap, 0.0), 1), None
+
+
+def planning_window(run_dir: Path | None, state: dict, accepted: list[dict], stamps: dict) -> tuple[dict, tuple | None, str]:
+    """The planning window and its Improve share, from ShipLoop's own records: (block, token bounds, why no bounds).
+
+    The window runs from the engine's start (timeline.json `started`) to the first accepted `test-spec` with outcome
+    done, the owner's planning rule (S-10 carve-out, 2026-10-05); a `revise` row does not close it. It is read on two
+    labelled clocks: the engine's (`seconds`) and the host's (`host_seconds`, from the runner's first event), whose
+    difference is `before_engine_seconds`. An open window reports `through`, the stage of its last stamped row, and is
+    never 0. Anything that cannot be read is None with its reason in `unmeasured`, and a window the stamps cannot
+    support (a seeded run, a recreated timeline, a missing start) is unmeasured as a whole. Each row of `stages` is one
+    accepted visit with its seconds and `improve_seconds`, which runs from the Improve child's bind file to the accept
+    (the exporter's `improveMin` runs to the receipt instead, so the two differ by the receipt's write time).
+
+    Readers: `summary_lines` and progress.py print the totals; the rows are for the owner's reading of metrics.json
+    (is the planning window under 30 minutes, and where did it go) and for the Run Review page.
+    """
+    unmeasured: dict[str, str] = {}
+    window = {"closed": False, "through": None, "seconds": None, "host_seconds": None, "before_engine_seconds": None}
+    block = {"window": window, "stages": [], "improve": None, "producer_seconds": None, "unmeasured": unmeasured}
+    rows: list[dict] = []
+    for row in accepted:
+        rows.append(row)
+        if row["stage"] == "test-spec" and row["outcome"] == "done":
+            window["closed"] = True
+            break
+    if not rows:
+        unmeasured["window"] = PLANNING_NOT_YET
+        return block, None, PLANNING_NOT_YET
+    stamped = [r for r in rows if r["t"] is not None]
+    last = rows[-1] if window["closed"] else (stamped[-1] if stamped else rows[-1])
+    window["through"] = last["stage"]
+    end, started = last["t"], run_started(run_dir)
+    first_event = min(stamps.values()) if stamps else None
+    reason = (PLANNING_NO_START if started is None else PLANNING_NO_END if end is None
+              else PLANNING_SEEDED if first_event is not None and any(r["t"] < first_event for r in stamped)
+              else PLANNING_RECREATED if end <= started or (len(stamped) > 1 and len({r["t"] for r in stamped}) == 1)
+              else None)
+    if reason:
+        unmeasured["window"] = reason
+        return block, None, f"the planning window is not measured: {reason}"
+    window["seconds"] = round(end - started, 1)
+    if first_event is None:
+        unmeasured["host_seconds"] = PLANNING_NO_RUNNER_TIMELINE
+    else:
+        window["host_seconds"] = round(end - first_event, 1)
+        window["before_engine_seconds"] = round(window["host_seconds"] - window["seconds"], 1)
+    results = state.get("improve_results")
+    previous, known, spent, children = started, True, 0.0, 0
+    for row in rows:
+        seconds = None if row["t"] is None or previous is None else round(row["t"] - previous, 1)
+        previous = row["t"]
+        improve, why = _improve_seconds(run_dir, results, row)
+        if why:
+            unmeasured.setdefault("improve", why)
+        known = known and improve is not None
+        spent += improve or 0.0
+        children += isinstance(results, dict) and row["action"] in results
+        block["stages"].append({"stage": row["stage"], "outcome": row["outcome"], "action": row["action"],
+                                "seconds": seconds, "improve_seconds": improve})
+    if isinstance(results, dict):
+        block["improve"] = {"children": children, "seconds": round(spent, 1) if known else None}
+        if known:
+            block["producer_seconds"] = round(window["seconds"] - spent, 1)
+    if not window["closed"]:
+        return block, None, f"the planning window is still open (through {window['through']})"
+    if first_event is None:
+        return block, None, PLANNING_NO_RUNNER_TIMELINE
+    return block, (first_event - 1, end), ""
+
+
+def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], grok: bool, claude: bool,
+                    context: dict | None) -> dict:
+    """The planning window's output and reasoning tokens, where the host's per-call counts are exact, on the host clock.
+
+    Grok writes each call's usage in the stream (the window's sum of 87 events equalled the host's own totals on a
+    recorded run); Codex only in its rollout files (rollouts.window_tokens, compaction requests included); Claude's
+    per-message counts are streaming snapshots, so it is unmeasured. The window is the host's: from its first event, so
+    it also holds the minutes before the engine started (`before_engine_seconds`). Nothing here ever reads as 0.
+    """
+    if bounds is None:
+        return {"unmeasured": why}
+    low, high = bounds
+    if grok:
+        inside = [(out, reasoning) for t, out, reasoning in usage_rows if t is not None and low < t <= high]
+        if not inside or any(out is None for out, _ in inside):
+            return {"unmeasured": "no Grok usage event with an output count falls in the planning window"}
+        return {"output": sum(out for out, _ in inside),
+                "reasoning": None if any(r is None for _, r in inside) else sum(r for _, r in inside),
+                "clock": "host", "source": "usage events"}
+    if claude:
+        return {"unmeasured": CLAUDE_OUTPUT_TOKENS}
+    if context is None:
+        return {"unmeasured": NO_HOST_USAGE}
+    got = context.get("tokens") if "unmeasured" not in context else context
+    if got is None or "unmeasured" in got:
+        return {"unmeasured": (got or {}).get("unmeasured", NO_HOST_USAGE)}
+    return {**got, "clock": "host", "source": "rollout token_usage_records"}
+
+
 def collect(out: Path, run_dir: Path | None = None) -> dict:
     stamps = timeline(out / "timeline.jsonl")
     calls: dict[str, dict] = {}
@@ -346,7 +494,9 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     starts = 0  # sessions the host began, to tell how many never reported an end
     messages: set[str] = set()  # Claude message ids seen: one API call writes one assistant event per content block
     claude_calls = usage_events = 0
+    usage_rows: list[tuple] = []  # (t, output, reasoning) of Grok's per-call usage events: the planning window's tokens
     reported: set[int] = set()  # context windows the result events reported
+    versions: set[str] = set()  # Claude Code builds that opened a session: the host CLI changes between runs of one prompt
     # A session that reports no per-call usage (Codex) contributes its own turn count.
     unreported, calls_in_session = 0, 0
     for number, event in events(out / "events.jsonl"):
@@ -356,10 +506,15 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             calls_in_session += 1
         if kind == "available_commands" or (kind == "system" and event.get("subtype") == "init"):
             starts += 1  # Codex and Grok open a session with available_commands, Claude with system/init
+            if isinstance(event.get("claude_code_version"), str):
+                versions.add(event["claude_code_version"])
         if kind == "usage":
             grok = True
             usage_events += 1
             turns.append({"t": t, "input": context_tokens(event.get("usage"))})
+            used = event.get("usage") if isinstance(event.get("usage"), dict) else {}
+            usage_rows.append((t, *(v if isinstance(v, int) and not isinstance(v, bool) else None
+                                    for v in (used.get("output_tokens"), used.get("reasoning_tokens")))))
         elif kind == "assistant":  # Claude: one event per content block of a message
             # `turns` keeps counting events (baselines.jsonl holds that definition); a model call is a message, counted at
             # its first event, and an event with no id is its own call.
@@ -421,6 +576,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     state = engine_state(run_dir)
     accepted, pending = stage_results(run_dir, state), pending_stage(state)
     windows = stage_windows(accepted, stamps, pending)
+    planning, bounds, why_not_tokens = planning_window(run_dir, state, accepted, stamps)
     # Counters this host's events cannot show are recorded as unmeasured with the reason,
     # never as 0: a zero would read as a measurement and pass every comparison.
     unmeasured: dict[str, str] = {}
@@ -441,7 +597,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     peak = max((x["input"] for x in turns if x["input"] is not None), default=None)
     context = None
     if model_calls is None:
-        context = rollouts.rollout_context(out, [None if w is None else [w[0], w[1]] for w in windows])
+        context = rollouts.rollout_context(out, [None if w is None else [w[0], w[1]] for w in windows],
+                                           tokens_window=bounds)
         if "unmeasured" not in context:
             model_calls, window_tokens, peak = context["calls"], context["window"], context["peak"]
             compactions = context["compactions"]
@@ -453,6 +610,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     if window_tokens is None:
         unmeasured["window_tokens"] = (f"{NO_WINDOW}; {why_not}" if why_not else
                                        NO_ROLLOUT_WINDOW if context else NO_WINDOW)
+    planning["tokens"] = planning_tokens(bounds, why_not_tokens, usage_rows, grok, bool(claude_calls), context)
     stages = per_stage(accepted, turns, calls, stamps, pending, unmeasured)
     if context and "unmeasured" not in context:
         for row, figures in zip(stages, context["perStage"]):
@@ -461,6 +619,9 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     improve = run_dir / "improve" if run_dir else None
     return {
         "tmp_writes": sorted(shared),
+        # The host CLI build the sessions ran on (Claude's init event; sessions on two builds name both), None where the
+        # host's events do not carry it. Two runs of one prompt on different builds are not a controlled pair.
+        "claude_code_version": ", ".join(sorted(versions)) or None,
         "sessions": sessions,
         # Unknown, not 0, when no call and no ended session reported a count (a Codex session killed before its
         # end event); a session that never reported beside one that did makes it a lower bound (unreported_sessions).
@@ -489,6 +650,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in reads if "docs/shiploop" in r}),
         "narrative": narrative(out, run_dir),
         "stages": stages,
+        "planning": planning,
     }
 
 
@@ -763,6 +925,34 @@ def stage_text(row: dict) -> str:
     return f"{row['stage']} {row['turns']}t/{minutes}" if row.get("turns") is not None else f"{row['stage']} {minutes}"
 
 
+def _min(seconds: float) -> str:
+    return f"{seconds / 60:.1f}"
+
+
+def planning_text(plan: dict) -> str:
+    """The planning block as one printed line: the window on both clocks, the Improve share and the window's output tokens."""
+    window = plan["window"]
+    if window["seconds"] is None:
+        return "planning window not measured: " + plan["unmeasured"]["window"]
+    clocks = f"{_min(window['seconds'])} min engine" + (
+        f" / {_min(window['host_seconds'])} min host" if window["host_seconds"] is not None else "")
+    parts = [f"planning window {'closed at test-spec' if window['closed'] else 'open through ' + str(window['through'])}: {clocks}"]
+    improve = plan["improve"]
+    if improve and improve["seconds"] is not None and plan["producer_seconds"] is not None:
+        parts.append(f"Improve {_min(improve['seconds'])} min in {improve['children']} "
+                     f"{'child' if improve['children'] == 1 else 'children'}, other {_min(plan['producer_seconds'])} min")
+    else:
+        parts.append("Improve not measured")
+    tokens = plan["tokens"]
+    if "output" in tokens:
+        reasoning = tokens.get("reasoning")
+        share = f"{round(100 * reasoning / tokens['output'])}% reasoning, " if reasoning is not None and tokens["output"] else ""
+        parts.append(f"output tokens {tokens['output']:,} ({share}{tokens['clock']} clock)")
+    else:
+        parts.append("output tokens not measured")
+    return "; ".join(parts)
+
+
 def summary_lines(metrics: dict, top: int = 5) -> list[str]:
     """A few lines for the printed report: the costliest stages and the problems."""
 
@@ -783,6 +973,8 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
              + (f" ({metrics['improve_reviews']['passes']} review passes, at most "
                 f"{metrics['improve_reviews']['max_passes']} in one child)"
                 if metrics.get("improve_reviews", {}).get("passes") else "")]
+    if metrics.get("planning"):
+        lines.append(planning_text(metrics["planning"]))
     story = metrics.get("narrative") or {}
     if story.get("emitted") or story.get("results"):
         lines.append(f"narrative shown {story['shown']}/{story['emitted']} (verbatim {story['verbatim']})"

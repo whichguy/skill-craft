@@ -171,7 +171,11 @@ class Host:
         return None
 
     def plugin_cli(self, home: Path) -> Path | None:
-        """The ShipLoop CLI of the plugin installed in the isolated profile, if any."""
+        """The ShipLoop CLI of the copy of the plugin this host installed into its isolated profile, if it makes one.
+
+        Grok and Codex install a copy and load it, so their packets name that copy. Claude loads --plugin-dir itself,
+        so it has no second copy and the plugin dir is its CLI (run.run_cli).
+        """
         return None
 
     def translator(self):
@@ -246,11 +250,6 @@ class ClaudeHost(Host):
 
     def __init__(self, binary: str = "claude"):
         self.binary = binary
-
-    def plugin_cli(self, home):
-        """The CLI of the marketplace build the run loads with --plugin-dir (<output>/marketplace/...)."""
-        cli = home.parent / "marketplace" / "plugins" / "skill-craft" / "skills" / "shiploop" / "scripts" / "shiploop"
-        return cli if cli.is_file() else None
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
              max_budget_usd=10.0, plugin_dir=None, resume=None):
