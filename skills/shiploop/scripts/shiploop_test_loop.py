@@ -414,7 +414,12 @@ def judge(row: Mapping[str, Any], code: Optional[int], output: str, *, red: bool
     uncounted, every listed ID shown) and no refusal for zero tests.
     """
     if row.get("suite") == "check" and not red:
-        return {"counts": None, "ids_missing": [], "status": "passed" if code == 0 else "failed"}
+        # Judged by its exit code, but output that shows a test runner's summary is counted: a runner recorded as a
+        # check must not pass by running nothing (a release-verify `node --test` did so with counts null).
+        tally = counts.count(output, code)
+        if code == 0 and tally is not None and tally["ran"] == 0:
+            return {"counts": tally, "ids_missing": [], "status": "no-tests"}
+        return {"counts": tally, "ids_missing": [], "status": "passed" if code == 0 else "failed"}
     tally = counts.count(output, code)
     ids = list(row.get("ids") or ())
     names = counts.named(output, ids) if ids else {"shown": [], "missing": []}

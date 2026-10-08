@@ -2233,6 +2233,9 @@ class SettledFactTests(unittest.TestCase):
         self.assertIn("host-dependent", text)
         self.assertIn("probe", text)
         self.assertIn("default test command", text)
+        # Live finding (Grok 2026-10-07): `Chrome --version` passed as the probe, then the page never loaded.
+        self.assertIn("not its version", text)
+        self.assertIn("access gap", text)
 
 
 if __name__ == "__main__":

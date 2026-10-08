@@ -235,6 +235,19 @@ class NodeTestRunnerTests(unittest.TestCase):
         self.assertEqual(counts.named("--- PASS: TC-5 (0.00s)\n", ["TC-5"])["shown"], ["TC-5"])
         self.assertEqual(counts.named("    \u2713 TC-5 pending cell\n", ["TC-5"])["shown"], ["TC-5"])
 
+    def test_a_test_runner_recorded_as_suite_check_is_still_refused_when_it_ran_nothing(self):
+        """Live finding (Sonnet 2026-10-07, release-verify): `node --test` was recorded as suite `check`, judged by exit
+        code alone with counts null; zero tests would have passed. Output that shows a runner summary is counted."""
+        check = {"command": "node --test", "suite": "check"}
+        zero = "ℹ tests 0\nℹ suites 0\nℹ pass 0\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\n"
+        self.assertEqual(test_loop.judge(check, 0, zero)["status"], "no-tests")
+        ran = test_loop.judge(check, 0, node("pass-spec.txt"))
+        self.assertEqual((ran["status"], ran["counts"]["ran"]), ("passed", 2))
+        self.assertEqual(test_loop.judge(check, 1, node("fail-spec.txt"))["status"], "failed")
+        # a command that is not a test runner is still judged by its exit code
+        self.assertEqual(test_loop.judge(check, 0, "")["status"], "passed")
+        self.assertEqual(test_loop.judge(check, 1, "")["status"], "failed")
+
     def test_the_judge_refuses_a_node_load_failure_and_accepts_the_real_runs(self):
         focused = {"command": "node --test", "suite": "focused"}
         status = lambda row, code, name, **kw: test_loop.judge(row, code, node(name), **kw)["status"]  # noqa: E731

@@ -1,0 +1,55 @@
+{
+ "question": "Did earlier runs silently pass tests with null validation, and is anything still unvalidated?",
+ "date": "2026-10-08",
+ "before_this_batch_runs_2026_10_06": {
+  "sonnet_v1220": {
+   "focused_or_regression_runs": 34,
+   "counts_null": 34,
+   "min_tests_set_but_never_enforced": 27,
+   "uncounted_refusals": 1
+  },
+  "grok_v1220": {
+   "focused_or_regression_runs": 30,
+   "counts_null": 30,
+   "min_tests_set_but_never_enforced": 30,
+   "ids_missing_refusal": 1,
+   "note": "the refusal was a passing test titled 'pending cell'"
+  }
+ },
+ "this_batch_runs_2026_10_07": {
+  "sonnet": {
+   "counted_runs": "all focused and regression runs (14,15,29,33,36 tests...)",
+   "counts_null": 0,
+   "min_tests_enforced": true
+  },
+  "grok": {
+   "focused_passed": 12,
+   "focused_red": 4,
+   "regression_passed": 10,
+   "counts_null": 0
+  }
+ },
+ "still_judged_by_exit_code_only_suite_check": {
+  "sonnet": {
+   "check_runs": 9,
+   "runner_summaries_hidden_in_check": 2,
+   "detail": "release-verify node --test (39 tests) and node --test test/system.test.js (3 tests) recorded as suite check with counts null"
+  },
+  "grok": {
+   "check_runs": 10,
+   "existence_or_grep_only": 10,
+   "detail": "test -f browser.mjs; grep README; browser.mjs itself had never passed when these gates passed"
+  }
+ },
+ "grok_blocked_at_system_test": {
+  "product_checked_outside_the_grok_host": {
+   "node_test": "19 pass 0 fail",
+   "restart_check": "exit 0, id 404 after restart",
+   "browser_check_as_written": "fails: reads #status right after a click that fires an async fetch (race), then tests the Enter result with a case-sensitive /miss|hit|sunk/ against 'Hit.'",
+   "browser_check_after_two_line_patch": "exit 0, wide and narrow shots show miss/hit/sunk"
+  },
+  "chrome_probe_at_test_strategy": "Chrome --version only (installed), then 'Chrome is installed' in the strategy",
+  "first_sign_of_blank_page": "W2 implement, about 50 min in; deferred to system-test; blocked at 101 min",
+  "cause_in_grok_host": "unproven: the page stayed about:blank and server.js saw no request; Chrome loads a local page headless from this machine's shell; the 10-06 Grok run drove Chrome with near-identical flags successfully"
+ }
+}

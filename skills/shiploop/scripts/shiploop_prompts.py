@@ -973,9 +973,12 @@ contract to independent outcomes and its real observation boundary; fixture
 results do not prove live permissions, event delivery or operator log access.
 Settle these now, so later stages do not guess. For each command, say which test
 ids it may print. A host-dependent case (it needs a host browser, a device, an
-account or a service) names its tool, is probed now to show the tool exists, and
-stays out of the project's default test command: give it its own opt-in command
-or flag, so a plain run of the default test command passes without the host tool.
+account or a service) names its tool and is probed now by doing the case's first
+step (for a browser, load a local page and read its title back), not its version;
+a probe that fails is an access gap to record now, in the strategy, with the
+requirement it leaves unobserved. The case stays out of the project's default
+test command: give it its own opt-in command or flag, so a plain run of the
+default test command passes without the host tool.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
