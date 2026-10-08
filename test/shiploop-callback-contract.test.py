@@ -262,6 +262,34 @@ class RefusalRouteTests(RealCliCase):
                 write_block(path, block)
                 self.accepted(command)
 
+    def test_a_result_file_that_does_not_parse_is_a_rejected_request_and_the_fixed_file_is_accepted(self) -> None:
+        # A model-written file that is not a result block is a fault in the file, not lost state: the reply names
+        # the file, the parser's reason and the same command to run again, and never the lost-state recovery text.
+        bad = {
+            "no fence": ('{"outcome": "done", "summary": "x"}\n', "found 0"),
+            "trailing comma": ('```shiploop-state\n{"outcome": "done", "summary": "x",}\n```\n',
+                               "Illegal trailing comma"),
+            "unterminated fence": ('```shiploop-state\n{"outcome": "done", "summary": "x"}\n',
+                                   "unterminated shiploop-state fence"),
+            "duplicate key": ('```shiploop-state\n{"outcome": "done", "summary": "x", "summary": "y"}\n```\n',
+                              "duplicate JSON key"),
+        }
+        for label, (text, reason) in bad.items():
+            with self.subTest(label):
+                run, head = self.new_run()
+                command, path, action = printed_callback(head)
+                path.write_text(text, encoding="utf-8")
+                reply = self.refused(command, run)
+                self.assertIn(str(path), reply)
+                self.assertIn(reason, reply)
+                self.assertIn("fix the result file and run the same command again", reply)
+                self.assertIn("the rejected request did not advance the graph", reply)
+                self.assertNotIn("Request failure: no in-memory result", reply)
+                self.assertNotIn("Durable cursor recovery", reply)
+                write_block(path, self.done_fields())
+                self.accepted(command)
+                self.assertIn(action, self.state(run)["accepted"])
+
     def test_a_blocked_result_with_done_fields_is_refused_once_with_every_field_named(self) -> None:
         run, head = self.new_run("plan")
         command, path, _ = printed_callback(head)

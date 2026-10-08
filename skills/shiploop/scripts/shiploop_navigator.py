@@ -4153,7 +4153,13 @@ def _submitted_result(root: Path, args: Any, *, suffix: str = "") -> Any:
         _need(not parent.is_symlink(), "navigator result path contains a symlink")
         if parent == Path(root):
             break
-    record = store.read_record(path)
+    try:
+        record = store.read_record(path)
+    except store.StorageError as exc:
+        # The host wrote this file: a block that does not parse is a fault in it, not lost state, so it
+        # takes the rejected-request route and not the durable-cursor recovery one (which stays for real
+        # storage faults).  Shared with improve-reconcile, so the verb is not named.
+        raise NavigatorError(f"{exc}; fix the result file and run the same command again") from exc
     _reject_credentials(record, "navigator result")
     return record
 

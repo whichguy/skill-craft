@@ -159,3 +159,58 @@ compaction, and none in a quality or regression loop.
   feature inherits the strategy file? n=0.
 - A packet-text change moves the baseline of any byte-identity comparison of dry-run packets (the LEARNINGS
   practice of comparing dry-run packets before and after a prompt change); no test pins it.
+
+## DOCCHECK: no new document checker; two small messages (2026-10-08)
+
+**Measured, and what it decides (status: firm for the counts of the one run, interim for the conclusion;
+n=1, ShipLoop 1.21.0, Luna xhigh).** The lever the backlog called "script-owned document checks instead of
+model-written check scripts" is mostly not document checks. In the Luna xhigh 1.21.0 run
+(`/Users/dadleet/e2e-runs/20261005/v1210-battleship-luna-xhigh`; planning window 375.0 min to the first
+test-spec accept, 904 shell calls) the 196 inline scripts split into Improve and Backchain loop glue 68 =
+44.8 min, document authoring 52 = 37.5, other read and probe 34 = 13.7, result and state reads 20 = 10.4, and
+pure document checks 22 = 8.9 min (links, anchors, whitespace 15 = 6.6; ids and content 7 = 2.3). That agrees
+with `docs/pending-work-plan-2026-10-06.md` (13 of 162 scripts, 7.5 min), and it supersedes the ledger lever
+L11 ("about 100 scripts, 73.8 min, 35 to 55 savable"), whose raw per-response analyses were not kept and which
+cannot be re-derived. Caveats: each figure is time from the previous tool result to the call, so it includes
+the model's thinking and is an upper bound; the 8.9 depends on the classifier's precedence (glue, then
+authoring, then check) and the classifier was not preserved, so this is not re-runnable here. An independent
+count by the audit agrees on 904 shell calls and 43 scripts with a markdown-link regex (about 15.4 min by the
+same upper bound, roughly 4 percent of the window), so "no new checker" holds under any classification.
+The four named runs: the Grok none runs have no document-check script at all; the Sonnet stage-mode runs
+have 3 to 4 counts-only passes. Evidence: `docs/experiments/batch-1008-design-audit-20261008/design-audit.json`
+(key DOCCHECK). The compact classifier output was not committed because its script was not kept (end state:
+unachievable here, not written-but-not-run); the live pair below is where it would be re-measured.
+
+**What generic checks would have found (firm).** Of 43 Luna scripts with a markdown-link regex (24
+read-only, 5.8 min, 5 distinct `slug()` implementations) none reported a broken link, anchor or trailing
+whitespace; the only gaps found were product-specific content assertions a script cannot own. Six delivered
+knowledge homes: 0 trailing-whitespace lines, 0 broken anchors, 1 broken relative file link (the Grok 1.23.0
+`docs/shiploop/README.md` links `../SHIPLOOP.md`, which should be `../../SHIPLOOP.md`; that run had no review
+pass). **Known gap, not fixed:** it ships in a file ShipLoop itself commits. Re-open owning relative-file link
+existence in `knowledge_home.check` (files under `docs/shiploop` and `SHIPLOOP.md` only, never anchors) on any
+measured escape of a broken link, and a requirement-ID or criterion traceability check on any measured
+escape whose origin is a planning document, and only over a structured field, never prose search (plans
+write "R-1..R-9" and a mention is not coverage). No thresholds are proposed.
+
+**P2: an unparsable result file takes the rejected-request route (built; firm).** `_submitted_result` let
+`store.StorageError` from `read_record` reach `shiploop_protocol.main`'s heavy branch ("Request failure: no
+in-memory result ... Durable cursor recovery ... Do not infer a next action"), the text made for lost state.
+A file the model just wrote that has no fence, a trailing comma, an unterminated fence or a duplicate key is a
+fault in that file. It now raises `NavigatorError` carrying the parser's reason and "fix the result file and
+run the same command again", so it takes the light route that already serves the sibling failures in the
+same function. The heavy branch stays for real storage faults. The route is tested through the real CLI in
+`test/shiploop-callback-contract.test.py` (four bad files, each refused with state unchanged and then fixed
+and accepted). Heavy-route refusals on a malformed model-written result occurred in 3 of 16 run folders under
+`/Users/dadleet/e2e-runs`: v1190-hello-sonnet (1), v1200-hello-sonnet (2, events 124 and 135, not 3 as the
+design said) and v1230-battleship-grok-none (1, about 0.2 min). The saving is small; the point is that the
+text no longer tells the model to stop inferring a next action over a typo it can fix.
+- `improve-reconcile` shares this function, so the message names no verb ("run the same command again").
+  Its route is not tested (it needs a stopped Improve child): a stated gap, not "covered by construction".
+- Same class, left alone, occurring in none of 16 folders: the `--final-result` read in
+  `_derived_improve_receipt` (a shared helper for model-written record reads would cover both and is
+  not much larger than this change; decide deliberately), and the handoff refusal "handoff requires a
+  verified workspace return: <commands>" (`workspace_completion_guard` raises `ProtocolError`, so it prints
+  "Do not infer a next action" though it names the commands to run).
+- Unowned, not credited to this item: `improve-complete` requires a `checks.md` that nothing parses, and in
+  planning reviews the model fills it with counts or `tests 0` summaries (4 of the 8 `checks.md` files in the
+  Sonnet 1.23.0 run). The next live pair should count it as its own family.
