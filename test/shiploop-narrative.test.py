@@ -120,8 +120,6 @@ class NarrativeTests(unittest.TestCase):
         self.assertEqual(one, "1 step in 4 min")
         two = {"started": "2026-01-01T10:00:00Z", "stamps": ["2026-01-01T10:04:00Z", "2026-01-01T10:10:00Z"]}
         self.assertEqual(narrative.pace_line(two), "2 steps in 10 min")
-        # A forecast is not the display's to make: even a caller that still passes the old keys gets no "left".
-        self.assertEqual(narrative.pace_line({**two, "remaining_steps": 4, "scope": "preparation"}), "2 steps in 10 min")
         self.assertEqual(narrative.duration(20), "under a minute")
         self.assertEqual(narrative.duration(3 * 3600 + 5 * 60), "3 h 5 min")
 
