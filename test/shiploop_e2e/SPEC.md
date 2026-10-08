@@ -303,11 +303,11 @@ on quickly before the breadth of everything is checked.
 
 | Clause | Evidence the harness records (result.json, metrics.json, review) |
 |---|---|
-| S-1, S-2 | ShipLoop command failures and refusals; resumed sessions continue from `next`; no state edits outside ShipLoop verbs |
-| S-4, S-5 | host-cancelled tool calls; `model_glue` (model `git commit`/`add`, shell writes into ShipLoop-owned paths, hand-built loop contracts) |
+| S-1, S-2 | ShipLoop command failures and refusals (`shiploop_failures`: a tool result with a line that begins a ShipLoop refusal prefix, or a nonzero exit of a command that names a ShipLoop verb; read on every host, from Claude's `tool_result` blocks too, where a refusal behind a pipe shows no exit); resumed sessions continue from `next`; no state edits outside ShipLoop verbs |
+| S-4, S-5 | host-cancelled tool calls; `model_glue` (model `git commit`/`add`, shell writes into ShipLoop-owned paths, hand-built loop contracts), counted per command on every host: a script the model wrote that wraps the CLI hides its ShipLoop calls from it, so Claude's `tool_use.scratch_scripts` lists those scripts and their runs beside it, and a Claude glue of 0 is a lower bound |
 | S-6 | runs survive compaction and session resumes without losing their place |
-| S-7 | truncated outputs, peak context, compactions, packet head size |
-| S-9, S-10 | `script_verifications` (ShipLoop's own verify records), Improve children; a zero-test pass fails |
+| S-7 | truncated outputs, peak context, compactions, packet head size; for Claude, per-stage `context` (model calls, peak, share of the window) and `tool_use.packets` (packet bytes on disk, printed heads and Reads, whole or ranged) |
+| S-9, S-10 | `script_verifications` (ShipLoop's own verify records, with the count that ran red, which a test-red record or a probe passes by design), Improve children; a zero-test pass fails |
 | S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner's 30-minute planning rule is read from it, and it is the one place these figures are computed |
 | S-12 | `claude_code_version` in metrics.json and result.json (added 2026-10-08): the host CLI build the sessions ran on, so two runs of one prompt on different builds (the Sonnet pair of 2026-10-06 and 2026-10-07 ran on 2.1.291 and 2.1.292) are not read as a controlled comparison. Null where the host's events do not carry it |
 | S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew) |

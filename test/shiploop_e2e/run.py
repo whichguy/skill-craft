@@ -1349,21 +1349,14 @@ def stage_diff_lines(before: list | None, now: list | None, top: int = 5) -> lis
     return lines
 
 
-def shared_tmp_writes(outputs: list[Path], unmeasured: dict[str, str] | None = None) -> dict[str, list[str]]:
+def shared_tmp_writes(outputs: list[Path]) -> dict[str, list[str]]:
     """Each literal /tmp path that more than one of these runs wrote, with the runs that wrote it.
 
-    A run whose host's events cannot show its writes (Claude's tool calls are blocks the collector does
-    not read) is not a run that wrote nothing: it is left out of the comparison, and when the caller
-    passes ``unmeasured`` it is named there with the reason, so an empty result never reads as clean for it.
+    Every host's tool calls are read (Claude's tool_use blocks too), so a run that wrote nothing is a measured none.
     """
     writers: dict[str, list[str]] = {}
     for out in outputs:
-        run_metrics = metrics.collect(out)
-        if "tmp_writes" in (run_metrics.get("unmeasured") or {}):
-            if unmeasured is not None:
-                unmeasured[out.name] = run_metrics["unmeasured"]["tmp_writes"]
-            continue
-        for name in run_metrics.get("tmp_writes") or []:
+        for name in metrics.collect(out).get("tmp_writes") or []:
             writers.setdefault(name, []).append(out.name)
     return {name: runs for name, runs in sorted(writers.items()) if len(runs) > 1}
 
@@ -1451,18 +1444,13 @@ def run_suite(args, argv: list[str]) -> int:
     with ThreadPoolExecutor(max_workers=workers) as pool:
         rows = [row for chain_rows in pool.map(run_chain, chains) for row in chain_rows]
     summary = gate_rows + sorted(rows, key=lambda row: order.index(row["case"]))
-    unchecked: dict[str, str] = {}
-    shared = shared_tmp_writes([Path(row["output"]) for row in summary if row.get("output")], unchecked)
+    shared = shared_tmp_writes([Path(row["output"]) for row in summary if row.get("output")])
     if shared:
         # Concurrent runs that wrote the same /tmp name may have read each other's files (plan P13).
         print("suite " + args.suite + ": /tmp names written by more than one case (their evidence is suspect): "
               + "; ".join(f"{name} ({', '.join(cases_)})" for name, cases_ in shared.items()), flush=True)
-    if unchecked:
-        print("suite " + args.suite + ": /tmp collisions not checked for " + ", ".join(unchecked) + ": "
-              + "; ".join(sorted(set(unchecked.values()))), flush=True)
     (base / "suite-result.json").write_text(json.dumps({"suite": args.suite, "cases": summary,
-                                                        "shared_tmp_writes": shared,
-                                                        "tmp_writes_unmeasured": unchecked}, indent=2) + "\n")
+                                                        "shared_tmp_writes": shared}, indent=2) + "\n")
     print(f"suite {args.suite}: " + ", ".join(
         f"{row['case']} {'SKIP' if 'skipped' in row else 'PASS' if row['pass'] else 'FAIL'}" for row in summary))
     return 0 if all(row.get("pass") for row in summary) else 1
@@ -1875,7 +1863,7 @@ def main(argv: list[str] | None = None) -> int:
     for line in metrics.summary_lines(run_metrics):
         print(f"  metrics   {line}")
     for failure in run_metrics["shiploop_failures"][:5]:
-        print(f"  failed    shiploop {failure['verb']} exit {failure['exit']}: {failure['line']}")
+        print(f"  failed    shiploop {failure['verb']} {metrics.failure_text(failure)}: {failure['line']}")
     if follow_on:
         print(f"  follow-on of {follow_on['prior_case']} ({follow_on['prior']}): turns {metrics.turns_text(run_metrics)} vs "
               f"{'not reported' if follow_on['prior_turns'] is None else follow_on['prior_turns']}, cost {metrics.money(run_metrics['cost_usd'])} vs "

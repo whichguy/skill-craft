@@ -85,6 +85,9 @@ print(json.dumps({{"type": "system", "subtype": "init", "model": "fake-model", "
                   "plugins": [{{"name": "skill-craft", "path": plugin}}] if plugin else []}}), flush=True)
 print(json.dumps({{"type": "assistant", "message": {{"content": [{{"type": "tool_use", "name": "Bash",
                   "input": {{"command": "shiploop next"}}}}]}}}}))
+if os.environ.get("FAKE_COMMAND"):  # one more tool call, for a test that needs the run to do something
+    print(json.dumps({{"type": "assistant", "message": {{"content": [{{"type": "tool_use", "name": "Bash",
+                      "input": {{"command": os.environ["FAKE_COMMAND"]}}}}]}}}}))
 if mode in ("done", "no-skill"):
     product()
 if mode == "active":
@@ -1623,7 +1626,7 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(m["compactions"], 1)
         self.assertEqual(m["truncated_outputs"], 2)
         self.assertEqual(m["script_verifications"],
-                         {"records": 0, "passed": 0, "could_not_run": 0, "commands": 0})
+                         {"records": 0, "passed": 0, "could_not_run": 0, "commands": 0, "red": 0})
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
         self.assertEqual(m["asked_user"], ["Which port?"])
         self.assertEqual(m["improve_children"], 1)
@@ -1892,7 +1895,7 @@ class MetricsTest(unittest.TestCase):
             (tests / "nav-2-verify1.md").write_text('{"passed": false, "runs": [{"command": "c"}]}')
             (tests / "nav-2-contract.json").write_text("{}")
             self.assertEqual(metrics.verifications(Path(tmp) / "run"),
-                             {"records": 2, "passed": 1, "could_not_run": 0, "commands": 3})
+                             {"records": 2, "passed": 1, "could_not_run": 0, "commands": 3, "red": 0})
 
     def test_progress_reports_only_what_is_new_and_never_a_run_marker(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2209,6 +2212,47 @@ def claude_stream(commands: list[str]) -> list[dict]:
     return stream
 
 
+# Claude calls recorded in the round-1 Sonnet runs, cut to a compact extract (docs/experiments/claude-tool-blocks-20261008).
+TOOL_BLOCKS = ROOT / "docs" / "experiments" / "claude-tool-blocks-20261008"
+
+
+def recorded_calls(*names: str, run: str = "battleship") -> list[dict]:
+    """The recorded Claude events (a message's thinking event, its tool_use and the tool_result) of the named calls,
+    in the order they were recorded. ``run`` is battleship or checkers."""
+    file = f"{run}-sonnet-calls.jsonl"
+    manifest = json.loads((TOOL_BLOCKS / "manifest.json").read_text())[file]
+    events = [json.loads(line) for line in (TOOL_BLOCKS / file).read_text().splitlines()]
+    return [events[n] for n in sorted({n for name in names for n in manifest[name]["lines"]})]
+
+
+def recorded_command(name: str, run: str = "battleship") -> str:
+    """The shell command of one recorded Bash call."""
+    return next(b["input"]["command"] for e in recorded_calls(name, run=run) if e["type"] == "assistant"
+                for b in e["message"]["content"] if b["type"] == "tool_use")
+
+
+def with_command(events: list[dict], command: str) -> list[dict]:
+    """The same recorded events with the Bash command of their tool_use replaced (its result is kept as recorded)."""
+    events = json.loads(json.dumps(events))
+    for e in events:
+        for b in e["message"]["content"] if e["type"] == "assistant" else []:
+            if b["type"] == "tool_use":
+                b["input"]["command"] = command
+    return events
+
+
+def with_result(events: list[dict], text: str) -> list[dict]:
+    """The same recorded events with the text of their last tool_result replaced."""
+    events = json.loads(json.dumps(events))
+    last = [b for e in events if e["type"] == "user" for b in e["message"]["content"]][-1]
+    last["content"] = text
+    return events
+
+
+CLAUDE_END = {"type": "result", "subtype": "success", "is_error": False, "terminal_reason": "completed",
+              "stop_reason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}
+
+
 class HostCoverageTest(unittest.TestCase):
     """A counter the host's events cannot show is unmeasured, never a zero that passes a comparison."""
 
@@ -2236,21 +2280,23 @@ class HostCoverageTest(unittest.TestCase):
         self.assertGreater(incomplete[0]["tool_calls"], 0)
         self.assertIsNone(incomplete[0]["turns"])
 
-    def test_a_claude_stream_marks_the_counters_it_cannot_read_as_unmeasured(self):
+    def test_a_claude_stream_measures_its_tool_calls_and_leaves_the_grok_only_counters_unmeasured(self):
         stream = claude_stream(["git add -A && git commit -m x", "shiploop complete --run-dir r"] * 3)
         m = collect_stream(stream, self.ACCEPTED)
-        for name in ("model_glue", "shiploop_failures", "cancelled_tool_calls", "tmp_writes",
-                     "stage_tool_calls"):
+        for name in ("cancelled_tool_calls", "knowledge_reads", "compactions", "truncated_outputs"):
             self.assertIn(name, m["unmeasured"], name)
+        for name in ("model_glue", "shiploop_failures", "tmp_writes", "stage_tool_calls"):
+            self.assertNotIn(name, m["unmeasured"], name)
         self.assertNotIn("stage_turns", m["unmeasured"])
-        self.assertEqual(m["model_glue"], [], "the lists stay: they are lower bounds, and the exporter reads them")
-        self.assertTrue(all(r["tool_calls"] is None and r["turns"] is not None for r in m["stages"]))
+        self.assertEqual(len(m["model_glue"]), 3, "three git commands by the model")
+        self.assertEqual(m["shiploop_failures"], [], "'error: refused' is no ShipLoop refusal line and carries no exit code")
+        self.assertEqual([(r["tool_calls"], r["turns"] is not None) for r in m["stages"]], [(3, True), (3, True)])
         self.assertEqual(m["tokens"], {"input_peak": 10})
-        self.assertIsNone(metrics.count(m, "model_glue"))
+        self.assertEqual(metrics.count(m, "model_glue"), 3)
         self.assertEqual(metrics.count({"unmeasured": {}, "model_glue": [1, 2]}, "model_glue"), 2)
         first = metrics.summary_lines(m)[0]
-        self.assertIn("model glue not measured", first)
-        self.assertIn("ShipLoop command failures not measured", first)
+        self.assertIn("model glue 3", first)
+        self.assertIn("ShipLoop command failures 0", first)
         self.assertIn("cancelled tool calls not measured", first)
 
     def test_a_grok_shaped_stream_measures_every_counter(self):
@@ -2301,6 +2347,327 @@ class HostCoverageTest(unittest.TestCase):
         # The in-progress stage is the item's own, not the navigator's pseudo-label.
         self.assertIn("stage implement", text)
         self.assertNotIn("stage inner-loop", text)
+
+
+class ClaudeToolBlocksTest(unittest.TestCase):
+    """Claude's tool_use and tool_result blocks go through the one classifier Grok's tool_call events do: failures, model
+    glue, /tmp writes and per-stage tool calls are measured. The calls are recorded ones, from the round-1 Sonnet runs
+    (docs/experiments/claude-tool-blocks-20261008, cut by its extract.py); a few are rewritten, as the test says."""
+
+    def collect(self, events: list[dict], accepted: list | None = None, **kw) -> dict:
+        accepted = accepted or [("A1", "intake", "done", 100.0 + len(events) + 2)]
+        return collect_stream([*events, CLAUDE_END], accepted, **kw)
+
+    def failures(self, *names: str) -> list[dict]:
+        return self.collect(recorded_calls(*names))["shiploop_failures"]
+
+    def test_a_refusal_behind_a_pipe_is_a_shiploop_failure_with_its_verb_and_no_exit(self):
+        found = self.failures("refusal-behind-head")
+        self.assertEqual([(f["verb"], f["exit"]) for f in found], [("complete", None)], "the host showed no exit code")
+        # The result also holds the shell's own "no such file" line before the refusal: the refusal is the line recorded.
+        self.assertTrue(found[0]["line"].startswith(
+            "ShipLoop navigator: evidence_refs cite files that do not exist: "), found)
+        knowledge = self.failures("refusal-knowledge-file")
+        self.assertEqual([(f["verb"], f["exit"]) for f in knowledge], [("complete", None)])
+        self.assertTrue(knowledge[0]["line"].startswith("ShipLoop navigator: ShipLoop keeps this run's planning knowledge"))
+
+    def test_the_workspace_block_is_a_refusal_line_and_the_script_prints_it(self):
+        found = self.failures("workspace-blocked-plan", "workspace-blocked-status")
+        self.assertEqual([(f["verb"], f["exit"]) for f in found], [("workspace", None)] * 2)
+        self.assertEqual([f["line"] for f in found],
+                         ["ShipLoop workspace blocked: return plan has unresolved path dispositions",
+                          "ShipLoop workspace blocked: return plan has an invalid status"])
+        source = " ".join((ROOT / "skills/shiploop/scripts/shiploop_protocol.py").read_text().split())
+        self.assertIn('f"ShipLoop workspace blocked: {exc}"', source, "the prefix is copied from the script's own text")
+        self.assertRegex("ShipLoop workspace blocked: x", metrics.REFUSAL_LINE)
+
+    def test_a_prefix_inside_a_line_and_a_failed_command_that_is_not_shiploop_are_not_failures(self):
+        refusal = "ShipLoop navigator: result requires outcome and summary"
+        for text in ("quoted: " + refusal, "  " + refusal, "# " + refusal):
+            with self.subTest(text):
+                events = with_result(recorded_calls("sed-a-packet"), "before\n" + text + "\nafter\n")
+                self.assertEqual(self.collect(events)["shiploop_failures"], [])
+        # Recorded `Exit code 1` results of commands that name no ShipLoop verb: a sed of a SKILL.md, and the model's own
+        # helper script failing on a missing file (the body it wrote, earlier, names no verb). A host refusal is no ShipLoop one.
+        self.assertEqual(self.failures("exit-1-not-shiploop"), [])
+        self.assertEqual(self.failures("write-idone", "run-idone-exit-1"), [])
+        self.assertEqual(self.failures("edit-tool-error"), [])
+
+    def test_the_anchored_line_alone_decides_a_refusal_whatever_command_produced_it(self):
+        events = with_result(recorded_calls("sed-a-packet"), "ShipLoop navigator: x\nmore\n")
+        self.assertEqual(self.collect(events)["shiploop_failures"], [{"verb": "unknown", "exit": None, "line": "ShipLoop navigator: x"}])
+
+    def test_a_nonzero_exit_of_a_shiploop_command_keeps_its_exit_code(self):
+        command = ("CLI=/runs/r1/build/plugins/skill-craft/skills/shiploop/scripts/shiploop\n"
+                   "python3 $CLI complete --run-dir=/runs/r1/run")
+        found = self.collect(with_command(recorded_calls("exit-1-not-shiploop"), command))["shiploop_failures"]
+        self.assertEqual([(f["verb"], f["exit"]) for f in found], [("complete", 1)])
+        # Through a script the model wrote, whose body names the verb: the exit is kept, the verb is not guessed.
+        events = [*recorded_calls("write-and-run-sub"), *with_result(recorded_calls("run-sub-piped"), "Exit code 2\nboom")]
+        found = self.collect(events)["shiploop_failures"]
+        self.assertEqual([(f["verb"], f["exit"], f["line"]) for f in found], [("unknown", 2, "")])
+
+    def test_one_failure_is_one_tool_result_however_many_refusal_lines_it_holds(self):
+        text = "ShipLoop navigator: first\nShipLoop navigator: second\n"
+        found = self.collect(with_result(recorded_calls("refusal-knowledge-file"), text))["shiploop_failures"]
+        self.assertEqual([f["line"] for f in found], ["ShipLoop navigator: first"])
+
+    def test_a_refusal_is_recorded_from_its_own_line_not_from_an_earlier_line_of_the_models_output(self):
+        # An earlier line that names an error ("KeyError", "required") is the model's own script failing, not why ShipLoop
+        # refused; failure_line alone would pick it. The line recorded starts at the refusal line.
+        refusal = "ShipLoop navigator: result requires outcome and summary"
+        text = "Traceback (most recent call last):\nKeyError: 'outcome'\n" + refusal + "\nmore\n"
+        found = self.collect(with_result(recorded_calls("sed-a-packet"), text))["shiploop_failures"]
+        self.assertEqual([f["line"] for f in found], [refusal])
+        # With no refusal line the whole text is read: a nonzero exit of a ShipLoop command keeps its first error line.
+        command = "CLI=/runs/r1/build/plugins/skill-craft/skills/shiploop/scripts/shiploop\npython3 $CLI next --run-dir=/runs/r1/run"
+        events = with_command(with_result(recorded_calls("sed-a-packet"), "Exit code 1\nKeyError: 'x'\n"), command)
+        self.assertEqual([(f["exit"], f["line"]) for f in self.collect(events)["shiploop_failures"]], [(1, "KeyError: 'x'")])
+
+    def test_an_exit_line_quoted_in_the_middle_of_a_result_is_not_the_hosts_exit(self):
+        # The host's `Exit code N` is the first line of the result; a result that quotes one later (a document, a log) is
+        # not a failed command.
+        self.assertEqual(metrics.claude_exit("Exit code 2\nboom"), 2)
+        self.assertIsNone(metrics.claude_exit("fine\nExit code 1 means the run is blocked\n"))
+        self.assertIsNone(metrics.claude_exit("fine"))
+        command = "CLI=/runs/r1/build/plugins/skill-craft/skills/shiploop/scripts/shiploop\npython3 $CLI next --run-dir=/runs/r1/run"
+        events = with_command(with_result(recorded_calls("sed-a-packet"), "packet text\nExit code 1 is quoted here\n"), command)
+        self.assertEqual(self.collect(events)["shiploop_failures"], [])
+
+    def test_a_host_that_numbers_its_calls_again_in_each_session_has_every_failure_counted(self):
+        # Codex ids restart at item_0 in every session (the recorded Luna run v1210 has 1542 tool_call events and 486
+        # distinct ids). A failure is counted once per call, so a second call that reuses an id is a failure of its own.
+        cli = "python3 x/shiploop next --run-dir r"
+        refusal = "ShipLoop navigator: no ShipLoop run directory"
+        first = codex_session([codex_command(0, cli, refusal + "\n", 2)])
+        second = codex_session([codex_command(0, cli, refusal + "\n", 2)], thread="t2")
+        found = collect_stream([*first, *second], [])["shiploop_failures"]
+        self.assertEqual([(f["verb"], f["exit"], f["line"]) for f in found], [("next", 2, refusal)] * 2)
+        # One call is still one failure when the host repeats its update (Grok), even with an id that came back.
+        update = {"type": "tool_call_update", "toolCallId": "g", "status": "completed",
+                  "rawOutput": {"exit_code": 2, "output_for_prompt": refusal + "\n"}}
+        grok = [{"type": "tool_call", "toolCallId": "g", "rawInput": {"command": cli}}, update, update]
+        self.assertEqual(len(collect_stream(grok, [])["shiploop_failures"]), 1)
+
+    def test_the_same_rule_reads_a_grok_and_a_codex_stream(self):
+        refusal = "ShipLoop blocked: the run directory is not readable"
+        cli = "python3 x/shiploop next --run-dir r | head"
+        grok = [{"type": "tool_call", "toolCallId": "a", "rawInput": {"command": cli}},
+                {"type": "tool_call_update", "toolCallId": "a", "status": "completed",
+                 "rawOutput": {"exit_code": 0, "output_for_prompt": refusal + "\n"}},
+                {"type": "tool_call", "toolCallId": "b", "rawInput": {"command": cli}},
+                {"type": "tool_call_update", "toolCallId": "b", "status": "completed",
+                 "rawOutput": {"exit_code": 0, "output_for_prompt": "fine\n"}}]
+        codex = codex_session([codex_command(0, cli, refusal + "\n", 0), codex_command(1, cli, "fine\n", 0)])
+        for label, stream in (("grok", grok), ("codex", codex)):
+            with self.subTest(label):
+                self.assertEqual(collect_stream(stream, [])["shiploop_failures"],
+                                 [{"verb": "next", "exit": 0, "line": refusal}])
+
+    def test_a_grok_call_is_read_from_its_final_update_not_the_running_one(self):
+        # The shape of a recorded Grok call (v1210, a refused `complete`): running updates carry a placeholder exit 0 and the
+        # output so far, the completed update the real exit 2. One call, one failure, with the exit the host reported last.
+        cli = "python3 x/shiploop complete --run-dir r"
+        refusal = "ShipLoop navigator: result requires outcome and summary"
+        stream = [{"type": "tool_call", "toolCallId": "a", "rawInput": {"command": cli}},
+                  {"type": "tool_call_update", "toolCallId": "a", "status": "in_progress",
+                   "rawOutput": {"exit_code": 0, "output_for_prompt": ""}},
+                  {"type": "tool_call_update", "toolCallId": "a", "status": "in_progress",
+                   "rawOutput": {"exit_code": 0, "output_for_prompt": refusal + "\n"}},
+                  {"type": "tool_call_update", "toolCallId": "a", "status": "completed",
+                   "rawOutput": {"exit_code": 2, "output_for_prompt": refusal + "\n"}}]
+        self.assertEqual(collect_stream(stream, [])["shiploop_failures"], [{"verb": "complete", "exit": 2, "line": refusal}])
+
+    def test_model_glue_and_tmp_writes_see_through_command_variables(self):
+        names = list(json.loads((TOOL_BLOCKS / "manifest.json").read_text())["battleship-sonnet-calls.jsonl"])
+        m = self.collect(recorded_calls(*names))
+        # Recorded: one git commit by the model (`git -C $WT add` and `commit`); the notes, inbox and scratch writes are
+        # what the packets ask for, so they are no glue.
+        self.assertEqual([g["reasons"] for g in m["model_glue"]], [["git commit/add by the model"]])
+        self.assertEqual(m["tmp_writes"], [])
+        for name in ("stage_tool_calls", "model_glue", "tmp_writes", "shiploop_failures"):
+            self.assertNotIn(name, m["unmeasured"], name)
+        derived = ("RUN=/runs/r1/.shiploop-runs/work-1/run\ncat > $RUN/state.md <<EOF\nx\nEOF\n"
+                   "T=/tmp/bs.pid; echo 1 > $T\necho 2 > /tmp/bs.log")
+        m = self.collect(with_command(recorded_calls("sed-a-packet"), derived))
+        self.assertEqual([g["reasons"] for g in m["model_glue"]], [["shell write into a ShipLoop-owned path"]])
+        self.assertEqual(m["tmp_writes"], ["/tmp/bs.log", "/tmp/bs.pid"])
+
+    def test_an_assignment_inside_a_quoted_sh_c_does_not_replace_the_real_one(self):
+        command = recorded_command("assignment-shadowed-by-sh-c", run="checkers")
+        variables = metrics.shell_variables(command)
+        # `R=<run dir>` is assigned first; the quoted sh -c then says `R=$?` and `P=$!`, which are not values.
+        self.assertEqual(variables["R"], "/runs/r2/.shiploop-runs/work-1/run")
+        self.assertNotIn("P", variables)
+        self.assertIn(" /runs/r2/.shiploop-runs/work-1/run/scratch/sub.sh ", " " + metrics.expand_variables(command, variables))
+        self.assertEqual(metrics.shell_variables("A=$B/x; B=/y; C=$B/z"), {"B": "/y", "C": "/y/z"},
+                         "a value that names a variable not yet assigned is not recorded")
+
+    def test_a_path_through_the_run_directory_to_its_sibling_is_the_product_worktree_not_a_shiploop_path(self):
+        # Recorded in Batch 1003 (seat-reservations, v1161-hello): `W=$R/../worktree` then writes under $W. The worktree
+        # beside the run directory is product space; before the path was resolved it matched the run directory's prefix.
+        run = "/runs/r1/.shiploop-runs/work-1/run"
+        sibling = (f"B={run}; W=$B/../worktree; F=$W/docs/shiploop/features/x\n"
+                   "cat >> $W/docs/shiploop/environment.md <<'EOF'\nruntime facts\nEOF\n"
+                   "printf 'learned' >> $F/plan.md\nrm -rf $B/../worktree/__pycache__")
+        self.assertEqual(self.collect(with_command(recorded_calls("sed-a-packet"), sibling))["model_glue"], [])
+        # A path that leaves the run directory and comes back into it is still the run directory.
+        back = f"B={run}; cat > $B/../run/state.md <<'EOF'\nx\nEOF"
+        glue = self.collect(with_command(recorded_calls("sed-a-packet"), back))["model_glue"]
+        self.assertEqual([g["reasons"] for g in glue], [["shell write into a ShipLoop-owned path"]])
+        self.assertEqual(metrics.expand_variables("$A/b/../c /d/e/f/../../g /h/i/.. /../j", {"A": "/x"}),
+                         "/x/c /d/g /h /../j", "a segment is dropped with its `..`; one that leads the path is left as written")
+        self.assertEqual(metrics.shell_variables("B=/x/run; W=$B/../worktree")["W"], "/x/worktree")
+
+    def test_compactions_cancelled_calls_and_knowledge_reads_stay_unmeasured_for_claude(self):
+        compact = {"type": "system", "subtype": "compact_boundary", "compact_metadata": {"trigger": "auto"}}
+        m = self.collect([compact, *recorded_calls("read-packet-whole", "refusal-behind-head")])
+        for name in ("compactions", "cancelled_tool_calls", "knowledge_reads", "truncated_outputs"):
+            self.assertIn(name, m["unmeasured"], name)
+        self.assertEqual((m["cancelled_tool_calls"], m["knowledge_reads"]), ([], []))
+
+    def test_the_run_review_export_shows_a_claude_runs_refusals_and_glue(self):
+        # The exporter (skills/shiploop-run-review, unmodified) reads shiploop_failures and model_glue from metrics.json and
+        # omits a count only when `unmeasured` names it: a Claude run's refusals and glue now reach the page.
+        names = list(json.loads((TOOL_BLOCKS / "manifest.json").read_text())["battleship-sonnet-calls.jsonl"])
+        events = [*recorded_calls(*names), CLAUDE_END]
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "graded"
+            out.mkdir()
+            written = write_stream_run(out, events, [("A1", "intake", "done", 110.0), ("A2", "spec", "done", 140.0)])
+            (out / ".shiploop-runs" / "work-1").mkdir(parents=True)
+            run_dir = written.rename(out / ".shiploop-runs" / "work-1" / "run")  # where the exporter looks for it
+            (run_dir / "results").mkdir()
+            found = metrics.collect(out, run_dir)
+            (out / "metrics.json").write_text(json.dumps(found))
+            self.assertTrue(run.review_export(out).startswith("review export: "), run.review_export(out))
+            bundle = json.loads((out / "review-export" / "review-export.json").read_text())
+        exported = next(iter(bundle["docs"]["runs"].values()))
+        self.assertEqual(exported["refusals"], len(found["shiploop_failures"]))
+        self.assertGreater(exported["refusals"], 0)
+        self.assertEqual(exported["glue"], len(found["model_glue"]))
+        for name in ("shiploop_failures", "model_glue"):
+            self.assertNotIn(name, exported["unmeasured"], name)
+        self.assertEqual([stage["context"]["calls"] for stage in exported["stages"]], [found["stages"][0]["context"]["calls"],
+                                                                                       found["stages"][1]["context"]["calls"]])
+        self.assertNotIn("visitContext", exported["unmeasured"])
+
+    def test_stage_rows_count_model_calls_and_their_peak_context_not_events(self):
+        # Claude writes one event per content block: 30 assistant events here are 16 messages, and a stage's calls are the
+        # messages whose first event falls in its window. The context window is the one the result event names.
+        ended = dict(CLAUDE_END, modelUsage={"claude-sonnet-5-5": {"contextWindow": 1000000}})
+        names = list(json.loads((TOOL_BLOCKS / "manifest.json").read_text())["battleship-sonnet-calls.jsonl"])
+        events = [*recorded_calls(*names), ended]
+        m = collect_stream(events, [("A1", "intake", "done", 115.0), ("A2", "spec", "done", 130.0),
+                                    ("A3", "plan", "done", 200.0)])
+        self.assertEqual([r["context"] for r in m["stages"]],
+                         [{"calls": 6, "peak": 103290, "peakPct": 10.3}, {"calls": 4, "peak": 184145, "peakPct": 18.4},
+                          {"calls": 6, "peak": 231581, "peakPct": 23.2}])
+        self.assertEqual([r["turns"] for r in m["stages"]], [11, 9, 10], "turns keep counting events")
+        self.assertEqual([r["tool_calls"] for r in m["stages"]], [6, 5, 6])
+        self.assertEqual(m["model_calls"], 16)
+        self.assertEqual(sum(r["context"]["calls"] for r in m["stages"]), 16, "the last stage ends after the last event")
+        self.assertEqual(m["tokens"]["input_peak"], 231581)
+        # A call after the last accepted stage is in no window, so the stages hold fewer calls than the run.
+        cut = collect_stream(events, [("A1", "intake", "done", 115.0), ("A2", "spec", "done", 130.0)])
+        self.assertEqual(sum(r["context"]["calls"] for r in cut["stages"]), 10)
+        self.assertEqual(cut["model_calls"], 16)
+        # A stage the timeline cannot place has no context, and a run with no window figure has no percentage.
+        unplaced = collect_stream([*events[:-1], CLAUDE_END], [("A1", "intake", "done", 115.0)], timed=False)
+        self.assertTrue(all("context" not in r for r in unplaced["stages"]), unplaced["stages"])
+        self.assertIsNone(collect_stream([*events[:-1], CLAUDE_END], [("A1", "intake", "done", 115.0)])["stages"][0]["context"]["peakPct"])
+
+    def all_calls(self) -> list[dict]:
+        return recorded_calls(*json.loads((TOOL_BLOCKS / "manifest.json").read_text())["battleship-sonnet-calls.jsonl"])
+
+    def test_the_tool_use_block_counts_calls_by_tool_and_the_characters_they_returned(self):
+        use = self.collect(self.all_calls())["tool_use"]
+        self.assertEqual((use["calls"], use["by_tool"], use["result_chars"]), (17, {"Bash": 13, "Edit": 1, "Read": 3}, 5753))
+        none = self.collect([{"type": "assistant", "message": {"id": "m1", "usage": {"input_tokens": 1}, "content": [
+            {"type": "text", "text": "hello"}]}}])["tool_use"]
+        self.assertEqual((none["calls"], none["by_tool"], none["result_chars"], none["scratch_scripts"]), (0, {}, 0, []),
+                         "a Claude stream with no tool call is a measured none")
+
+    def test_scratch_scripts_list_what_the_model_wrote_and_how_many_calls_ran_it(self):
+        run = "/runs/r1/.shiploop-runs/work-1/run/scratch/"
+        found = self.collect(self.all_calls())["tool_use"]["scratch_scripts"]
+        # sub.sh is written and run in one call, then run in another; idone.py is run once; istart.sh once (its heredoc
+        # holds `improve-start`). The notes and inbox files the model also wrote with heredocs are documents, not scripts.
+        self.assertEqual(found, [{"path": run + "idone.py", "bytes": 443, "wraps_shiploop": False, "runs": 1},
+                                 {"path": run + "istart.sh", "bytes": 943, "wraps_shiploop": True, "runs": 1},
+                                 {"path": run + "sub.sh", "bytes": 548, "wraps_shiploop": True, "runs": 2}])
+        # Runs are tool calls: two invocation lines in one call are one run; a path used as an argument or as a
+        # `--result=` value, and a script never invoked, are not runs.
+        derived = ("RUN=/runs/r1/.shiploop-runs/work-1/run\n$RUN/scratch/sub.sh a b\ncd /x && $RUN/scratch/sub.sh c d\n"
+                   "ls -l $RUN/scratch/sub.sh\ncat $RUN/scratch/sub.sh | head -3\n"
+                   "python3 $CLI complete --result=$RUN/scratch/sub.sh")
+        events = [*recorded_calls("write-and-run-sub"), *with_command(recorded_calls("run-sub-piped"), derived)]
+        scripts = self.collect(events)["tool_use"]["scratch_scripts"]
+        self.assertEqual([(s["path"].rsplit("/", 1)[1], s["runs"]) for s in scripts], [("sub.sh", 2)])
+
+    def test_a_script_is_listed_only_when_a_call_ran_it_and_outside_scratch_only_when_it_wraps_the_cli(self):
+        run = "/runs/r1/.shiploop-runs/work-1/run"
+        write = ("RUN=" + run + "\ncat > $RUN/scratch/never.sh <<'EOF'\n#!/bin/sh\necho never run\nEOF\n"
+                 "cat > /runs/r1/helper.sh <<'EOF'\n#!/bin/sh\npython3 /runs/r1/build/scripts/shiploop complete --run-dir=$1\nEOF\n"
+                 "cat > /runs/r1/plain.sh <<'EOF'\n#!/bin/sh\necho plain\nEOF\n"
+                 "/runs/r1/helper.sh a")
+        scripts = self.collect(with_command(recorded_calls("sed-a-packet"), write))["tool_use"]["scratch_scripts"]
+        # never.sh was written in the scratch folder and never run, plain.sh does not wrap the CLI and lives outside scratch;
+        # helper.sh wraps the CLI, so it is listed wherever it lives.
+        self.assertEqual([(s["path"], s["wraps_shiploop"], s["runs"]) for s in scripts], [("/runs/r1/helper.sh", True, 1)])
+        # Run, the scratch script that does not wrap the CLI is listed too (idone.py in the recorded run).
+        ran = write + "\n$RUN/scratch/never.sh\n/runs/r1/plain.sh"
+        scripts = self.collect(with_command(recorded_calls("sed-a-packet"), ran))["tool_use"]["scratch_scripts"]
+        self.assertEqual([(s["path"].rsplit("/", 1)[1], s["wraps_shiploop"], s["runs"]) for s in scripts],
+                         [("never.sh", False, 1), ("helper.sh", True, 1)], "plain.sh is outside scratch and wraps nothing")
+
+    def test_packet_use_counts_printed_heads_reads_and_the_packets_on_disk(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            events = [*self.all_calls(), CLAUDE_END]
+            run_dir = write_stream_run(out, events, [("A1", "intake", "done", 150.0)])
+            self.assertIsNone(metrics.collect(out, run_dir)["tool_use"]["packets"]["on_disk"], "no packets folder")
+            (run_dir / "packets").mkdir()
+            for name, size in (("nav-1.md", 1000), ("nav-2.md", 2500), ("nav-3.md", 40)):
+                (run_dir / "packets" / name).write_text("x" * size)
+            (run_dir / "packets" / "ignored.json").write_text("{}")
+            packets = metrics.collect(out, run_dir)["tool_use"]["packets"]
+        # Printed: results that show a packet head (ShipLoop navigator | stage |) from calls that do not name a packet file.
+        self.assertEqual(packets["printed"], {"replies": 3, "chars": 322 + 322 + 249})
+        self.assertEqual(packets["read"]["read_tool"], [
+            {"packet": "nav-b5efb9acc5be4d4a95a7c8ccc924f360", "whole": True, "chars": 323},
+            {"packet": "nav-80a00f1aba124ef8923838789237eba9", "whole": False, "chars": 322},
+            {"packet": "nav-80a00f1aba124ef8923838789237eba9", "whole": False, "chars": 322}])
+        self.assertEqual(packets["read"]["shell"], {"calls": 1, "chars": 399})
+        self.assertEqual(packets["on_disk"], {"files": 3, "bytes": 3540})
+
+    def test_other_hosts_have_no_tool_use_block(self):
+        grok = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
+                {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "ls"}}]
+        for label, stream in (("grok", grok), ("codex", codex_stream(3))):
+            m = collect_stream(stream, [])
+            self.assertIsNone(m["tool_use"], label)
+            self.assertNotIn("tool_use", m["unmeasured"], "no host but Claude ever had this block: nothing to name")
+
+    def test_the_summary_says_what_the_model_ran_beside_the_glue_count(self):
+        lines = metrics.summary_lines(self.collect(self.all_calls()))
+        use = next(line for line in lines if line.startswith("tool use (main thread):"))
+        for text in ("17 calls (Bash 13, Read 3, Edit 1)", "5,753 result chars", "sub.sh 2 runs (wraps ShipLoop)",
+                     "idone.py 1 run", "istart.sh 1 run (wraps ShipLoop)", "not counted in model glue",
+                     "3 printed packet replies (893 chars)", "3 packet Reads (1 whole)", "1 shell command on packets (399 chars)"):
+            self.assertIn(text, use)
+        self.assertFalse(any(line.startswith("tool use") for line in metrics.summary_lines(collect_stream(codex_stream(2), []))))
+
+    def test_progress_names_a_claude_refusal_and_does_not_print_an_exit_that_was_not_shown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in recorded_calls("refusal-behind-head")))
+            text = progress.report(out)
+        self.assertIn("ShipLoop complete failed (exit not shown): ShipLoop navigator: evidence_refs cite files", text)
+        self.assertNotIn("exit None", text)
+        self.assertEqual(metrics.failure_text({"verb": "next", "exit": 2, "line": ""}), "exit 2")
+        self.assertEqual(metrics.failure_text({"verb": "next", "exit": None, "line": ""}), "exit not shown")
+
 
 
 class StageDiffTest(unittest.TestCase):
@@ -2505,16 +2872,28 @@ class TerminationThroughMainTest(PrintedCase):
 
 
 class MeasuredHostPrintingTest(PrintedCase):
-    def test_claude_runs_say_which_counters_they_cannot_show_and_never_compare_them_as_zeros(self):
+    def test_claude_runs_measure_their_tool_calls_and_still_say_which_counters_they_cannot_show(self):
         code, first, printed = self.invoke_printed("claude", "done")
         self.assertEqual(code, 0, first)
-        for name in ("model_glue", "shiploop_failures", "cancelled_tool_calls", "tmp_writes"):
-            self.assertIsNone(first["metrics"][name], name)
-            self.assertIn(name, first["metrics"]["unmeasured"])
-        self.assertIn("model glue not measured", printed)
-        self.assertEqual(self.last_row()["model_glue"], None)
+        self.assertIsNone(first["metrics"]["cancelled_tool_calls"])
+        self.assertIn("cancelled_tool_calls", first["metrics"]["unmeasured"])
+        for name in ("model_glue", "shiploop_failures", "tmp_writes"):
+            self.assertEqual(first["metrics"][name], 0, name)
+            self.assertNotIn(name, first["metrics"]["unmeasured"], name)
+        self.assertIn("model glue 0", printed)
+        self.assertIn("cancelled tool calls not measured", printed)
+        self.assertEqual(self.last_row()["model_glue"], 0)
         code, second, printed = self.invoke_printed("claude", "done")
-        self.assertIn("glue not measured -> not measured", printed)
+        self.assertIn("glue 0 -> 0", printed)
+
+    def test_a_claude_row_from_before_the_tool_blocks_were_read_compares_as_not_measured(self):
+        code, first, printed = self.invoke_printed("claude", "done")
+        row = json.loads(self.baselines.read_text().splitlines()[-1])
+        old = dict(row, model_glue=None, shiploop_failures=None, tmp_writes=None,
+                   unmeasured=sorted({*row["unmeasured"], "model_glue", "shiploop_failures", "tmp_writes", "stage_tool_calls"}))
+        self.baselines.write_text(json.dumps(old) + "\n")
+        code, second, printed = self.invoke_printed("claude", "done")
+        self.assertIn("glue not measured -> 0", printed)
 
 
 class ReportedCostThroughMainTest(PrintedCase):
@@ -3152,7 +3531,7 @@ class CouldNotRunCountTest(unittest.TestCase):
     def test_could_not_run_records_are_counted_apart_from_failures_and_passes(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(metrics.verifications(self.records(tmp)),
-                             {"records": 3, "passed": 1, "could_not_run": 1, "commands": 3})
+                             {"records": 3, "passed": 1, "could_not_run": 1, "commands": 3, "red": 0})
 
     def test_the_report_and_the_progress_line_show_the_could_not_run_count(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3163,6 +3542,38 @@ class CouldNotRunCountTest(unittest.TestCase):
             m = metrics.collect(out, run_dir)
             self.assertIn("script verifications 1/3 passed (1 could not run)", metrics.summary_lines(m)[0])
             self.assertIn("1 could not run", progress.report(out))
+
+
+class RedRecordCountTest(unittest.TestCase):
+    """A record that passed because its commands ran red is counted apart from the green passes (r1 Battleship: 2 of the
+    10 passed records). The count reads what ran (a run whose status is `red`), not what the record expected."""
+
+    def verify(self, records: dict) -> dict:
+        with tempfile.TemporaryDirectory() as tmp:
+            tests = Path(tmp) / "run" / "tests"
+            tests.mkdir(parents=True)
+            for name, record in records.items():
+                (tests / f"{record['action']}-verify1.md").write_text(run.store.dumps(record, "ShipLoop test-loop verification"))
+            return metrics.verifications(Path(tmp) / "run")
+
+    def test_records_whose_commands_ran_red_are_counted_apart_from_green_passes(self):
+        records = json.loads((TOOL_BLOCKS / "verify-records.json").read_text())
+        self.assertEqual(self.verify(records), {"records": 3, "passed": 3, "could_not_run": 0, "commands": 5, "red": 2})
+        # The test-author probe accepts red or passed (`expect: a test ran`): one that ran green is a green pass.
+        probe = json.loads(json.dumps(records))
+        for each in probe["test-author"]["runs"]:
+            each["status"], each["exit"] = "passed", 0
+        self.assertEqual(self.verify(probe)["red"], 1)
+
+    def test_the_report_names_the_red_records_without_calling_them_expected(self):
+        m = collect_stream(codex_stream(1), [])
+        m["script_verifications"] = {"records": 10, "passed": 10, "could_not_run": 0, "commands": 20, "red": 2}
+        line = metrics.summary_lines(m)[0]
+        self.assertIn("script verifications 10/10 passed (2 ran red)", line)
+        m["script_verifications"] = {"records": 10, "passed": 9, "could_not_run": 1, "commands": 20, "red": 0}
+        self.assertIn("script verifications 9/10 passed (1 could not run)", metrics.summary_lines(m)[0])
+        self.assertNotIn("ran red", metrics.summary_lines(m)[0])
+        self.assertNotIn("expected", metrics.summary_lines(m)[0])
 
 
 class RetentionIdCountTest(unittest.TestCase):
@@ -3726,8 +4137,7 @@ class CliSummaryRecordTest(PrintedCase):
 
 
 class SuiteTmpCheckHostTest(HarnessCase):
-    """The suite's /tmp collision check says it could not look, rather than 'clean', for a host whose events
-    cannot show writes (review 2: shared_tmp_writes)."""
+    """The suite's /tmp collision check reads the writes of every host's runs, Claude's included."""
 
     @staticmethod
     def claude_writer(out: Path, target: str) -> Path:
@@ -3746,22 +4156,18 @@ class SuiteTmpCheckHostTest(HarnessCase):
         (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
         return out
 
-    def test_claude_runs_are_not_checked_clean(self):
+    def test_two_claude_runs_that_write_the_same_tmp_name_collide(self):
         outs = [self.claude_writer(self.tmp / name, "/tmp/shared-notes.txt") for name in ("a", "b")]
-        unchecked: dict = {}
-        self.assertEqual(run.shared_tmp_writes(outs, unchecked), {})
-        self.assertEqual(sorted(unchecked), ["a", "b"])
-        self.assertIn("tool_use", unchecked["a"])
+        self.assertEqual(run.shared_tmp_writes(outs), {"/tmp/shared-notes.txt": ["a", "b"]})
 
-    def test_a_run_that_cannot_be_checked_does_not_hide_a_collision_between_two_that_can(self):
+    def test_a_collision_is_found_across_hosts(self):
         outs = [self.claude_writer(self.tmp / "a", "/tmp/shared-notes.txt"),
                 self.grok_writer(self.tmp / "b", "/tmp/shared-notes.txt"),
-                self.grok_writer(self.tmp / "c", "/tmp/shared-notes.txt")]
-        unchecked: dict = {}
-        self.assertEqual(run.shared_tmp_writes(outs, unchecked), {"/tmp/shared-notes.txt": ["b", "c"]})
-        self.assertEqual(sorted(unchecked), ["a"])
+                self.grok_writer(self.tmp / "c", "/tmp/shared-notes.txt"),
+                self.claude_writer(self.tmp / "d", "/tmp/own-notes.txt")]
+        self.assertEqual(run.shared_tmp_writes(outs), {"/tmp/shared-notes.txt": ["a", "b", "c"]})
 
-    def test_a_claude_suite_prints_and_records_that_the_check_could_not_run(self):
+    def test_a_claude_suite_names_a_tmp_collision_and_records_no_unchecked_run(self):
         cases = {"first": {"style": "s", "prompt": "p", "checks": []},
                  "second": {"style": "t", "prompt": "p", "checks": []}}
         for attr, data in (("CASES", cases), ("SUITES", {"wide": {"kind": "breadth", "cases": ["first", "second"]}})):
@@ -3771,6 +4177,8 @@ class SuiteTmpCheckHostTest(HarnessCase):
             setattr(run, attr, path)
             self.addCleanup(setattr, run, attr, saved)
         os.environ["FAKE_MODE"] = "done"
+        os.environ["FAKE_COMMAND"] = "echo x > /tmp/shared-notes.txt"
+        self.addCleanup(os.environ.pop, "FAKE_COMMAND", None)
         out, printed = self.tmp / "suite-out", io.StringIO()
         with contextlib.redirect_stdout(printed):
             code = run.main(["--suite", "wide", "--host", "claude", "--claude-bin", str(self.fakes["claude"]),
@@ -3778,9 +4186,10 @@ class SuiteTmpCheckHostTest(HarnessCase):
                              "--baseline", str(self.baselines)])
         self.assertEqual(code, 0, printed.getvalue())
         result = json.loads((out / "suite-result.json").read_text())
-        self.assertEqual(result["shared_tmp_writes"], {})
-        self.assertEqual(sorted(result["tmp_writes_unmeasured"]), ["first", "second"])
-        self.assertIn("/tmp collisions not checked for first, second", printed.getvalue())
+        self.assertEqual(result["shared_tmp_writes"], {"/tmp/shared-notes.txt": ["first", "second"]})
+        self.assertNotIn("tmp_writes_unmeasured", result)
+        self.assertIn("/tmp names written by more than one case", printed.getvalue())
+        self.assertNotIn("not checked", printed.getvalue())
 
 
 
@@ -4105,6 +4514,15 @@ class GradeOnlyTest(PrintedCase):
         self.assertEqual(self.baselines.read_text() if self.baselines.exists() else "", rows,
                          "a grade-only writes no baseline row")
         self.assertIn("no host ran (regraded); engine active", printed)
+
+    def test_a_regrade_names_a_refusal_whose_exit_the_host_did_not_show(self):
+        # A Claude refusal behind `| head` has no exit; the printed line says so, and does not print "exit None".
+        out = self.killed_harness_run()
+        (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in recorded_calls("refusal-behind-head")))
+        code, result, printed = self.grade_only(out)
+        line = next(ln for ln in printed.splitlines() if ln.startswith("  failed    shiploop"))
+        self.assertTrue(line.startswith("  failed    shiploop complete exit not shown: ShipLoop navigator: evidence_refs cite"), line)
+        self.assertNotIn("exit None", printed)
 
     def test_a_regrade_prints_no_resume_command_because_its_flags_are_not_the_runs(self):
         # The grading invocation's --timeout is the default (10800 s, above any task limit); presenting it as the exact

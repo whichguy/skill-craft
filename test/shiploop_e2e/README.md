@@ -282,7 +282,12 @@ paths and verbs, never by a case's tools. `script_verifications` also counts
 timeout, a command that could not be spawned, or one skipped when the invocation's
 budget ran out). They refuse their stage without counting as product failures. A
 non-zero count means the run could not tell, because of an environment problem or a
-product hang; it does not say the product is wrong.
+product hang; it does not say the product is wrong. It also counts `red`: the records in
+which a command ran red (a run whose own status is `red`). A test-red record, or the
+test-author probe, passes because red is what it accepts, so `passed` includes it ("10/10
+passed" on r1 Battleship holds 2 such records, and the report says "2 ran red"). What ran
+is counted and not what the record expected: the probe accepts red or passed, and one that
+ran green is a green pass.
 
 ### Reading per-stage figures
 
@@ -303,8 +308,7 @@ product hang; it does not say the product is wrong.
   reports nothing leaves the field null and names it, with the reason, in `unmeasured`
   (Grok reports no window; a Codex run has no call count in its events).
 - A host reports what it reports. A counter its events cannot show is null in
-  `metrics.json`, `result.json` and the baseline row (the ShipLoop command failure and
-  model glue lists stay in `metrics.json` as lower bounds) and is named, with the
+  `metrics.json`, `result.json` and the baseline row and is named, with the
   reason, in `unmeasured`, so a later run compares it as not measured and never as
   0 -> 0. Codex emits no per-call usage in its events, so per-stage turns are unmeasured
   for it; its calls, context window and compactions are read from its rollout files
@@ -313,13 +317,71 @@ product hang; it does not say the product is wrong.
   are unmeasured on both, and compactions are unmeasured on Claude and on a Codex run
   whose rollouts are gone (Codex prints "cancelled 0" in a failing `node --test` summary
   and its file changes are writes: the Grok-only detectors used to count those as
-  refusals and reads). Claude's tool calls are `tool_use` blocks the
-  collector does not read, so its stage tool calls, ShipLoop command failures, model
-  glue and `/tmp` writes are unmeasured too. Whole-run turns are null when no call and
+  refusals and reads). Whole-run turns are null when no call and
   no ended session reported a count (a Codex session killed before its end event), and
-  a lower bound when a session never reported (`unreported_sessions`). The suite's
-  `/tmp` collision check leaves a run with unmeasured writes out, names it in
-  `suite-result.json` as `tmp_writes_unmeasured` and prints that it did not check it.
+  a lower bound when a session never reported (`unreported_sessions`).
+- Every host's tool calls go through one classifier (`metrics.ToolLog`): Grok's `tool_call`
+  events, Codex's after the translator, and Claude's `tool_use` and `tool_result` blocks.
+  It gives `shiploop_failures`, `model_glue`, `tmp_writes`, `asked_user` and each stage's
+  `tool_calls` on all three. Until 2026-10-08 it read only Grok's shape, so Claude's four
+  were unmeasured; a Claude baseline row from before then holds null and names them in
+  `unmeasured`, so the next row prints "not measured -> N" and never "0 -> N". The counts
+  are heuristic, not exact: read the listed commands. `shiploop_failures` can over-count a
+  compound command (the exit of the whole command is the ShipLoop call's) and under-count a
+  loop, a result the host saved to a file or a variable it could not expand; `model_glue` and
+  the script run counts are lower bounds.
+  - A ShipLoop failure is one tool result, counted once. Either its text has a line that
+    begins `ShipLoop navigator: `, `ShipLoop blocked: ` or `ShipLoop workspace blocked: `
+    (whatever exit the host showed: the model pipes the CLI through `head`, `grep` or `sed`,
+    which hides it, so all 5 refusals of the round-1 Sonnet Battleship run had exit 0), or
+    the host showed a nonzero exit and the command names a ShipLoop verb, directly or
+    through a script the model wrote earlier in a heredoc whose body does. Claude shows an
+    exit only as a leading `Exit code N`, so a refusal behind a pipe has `exit` null (printed
+    "exit not shown"). The verb comes from the command, else it is `unknown` (a script's
+    verb is not guessed). An `Exit code 127` of a bare `shiploop` (not on the PATH) counts as
+    a failure of verb `next` with no line: a setup failure, not a refusal. The recorded `line` starts at the refusal's own line. A document
+    line that begins with a prefix would count; the same words inside a line do not.
+    The rule is the same on every host. Grok sends running updates with a placeholder exit 0
+    and the output so far, so only its completed update is read. A failure is counted once
+    per call: Codex numbers its calls again in each session (the recorded v1210 Luna run has
+    1,542 `tool_call` events and 486 distinct ids), so a reused id is a new call. Before
+    2026-10-08 Grok and Codex counted only the nonzero-exit arm on commands that named the CLI
+    literally. On the four recorded Grok runs the two rules give the same list, except one more
+    failure in v1220 (a compound command whose `$CLI workspace` verb shows once variables are
+    expanded). On the recorded Codex runs they differ in two: v1161 Luna records the refusal
+    line where it recorded the first line matching an error word in the model's output
+    (`AssertionError`), and v1210 Luna gains one anchored refusal whose command names no
+    verb (verb `unknown`, 10 failures against 9).
+  - Shell variables are expanded per command first (`RUN=...; ... $RUN/scratch/x.sh`;
+    Claude's tool calls did not share variables), so the glue and `/tmp` detectors see the
+    paths. An assignment whose value is still unresolved (`R=$?` inside a quoted `sh -c`) is
+    not recorded and cannot replace the real one. A `/segment/..` the expansion leaves is
+    resolved (`$RUN/../worktree` is the product worktree beside the run directory, not a path
+    inside it), and a path that goes out of the run directory and back in is the run directory.
+  - `model_glue` counts commands (SPEC S-4, S-5). A script the model wrote that wraps the
+    CLI hides the ShipLoop calls inside it from every count here: the verb, the glue write and
+    often the failure's verb. 14 of the 15 recorded Claude runs wrote and ran one
+    (`tool_use.scratch_scripts`, below, lists them). A glue of 0 on Claude is a lower bound.
+  - `tool_use` is a record of what the model ran, Claude only (it is None on Grok and Codex and
+    is not named in `unmeasured`: those hosts never had this block). `calls`, `by_tool` and
+    `result_chars` count the tool_use blocks and what their results returned.
+    `scratch_scripts` lists the scripts the model wrote with a heredoc (`cat > PATH <<'EOF'`)
+    that live in the run's `scratch/` folder or call the ShipLoop CLI and were then run, each
+    with its `bytes`, `wraps_shiploop` and `runs`: the number of tool calls that run it (two
+    lines in one call are one run; a path used as an argument is none), a lower bound, since a
+    `cd` into the folder, a loop or an indirect call is missed (r1 Checkers: sub.sh 29 runs by
+    this rule against 30 by hand). `packets` says how the model met the packets: `on_disk`
+    ({files, bytes} of the run's packets folder, None when it has none), `printed` (results
+    that show a packet head, `ShipLoop navigator | stage |`, from calls that do not name a
+    packet file: the model ran the CLI and its reply carried the packet), and `read`, with
+    `read_tool` (each Read of a packet file: its name, `whole` when it had no offset or limit,
+    and the characters returned) and `shell` (calls that name a packet file, and the characters
+    they returned). r1 Battleship: 44 packet files, 1,707,162 bytes on disk; 44 printed
+    replies, 37,367 characters; 4 packet Reads, 2 whole (28,595 and 21,636 characters); 23 shell
+    commands on packets, 64,249 characters. `summary_lines` prints one line when it is present.
+  - Only the main thread is read: a sub-agent's tool calls, if a run used one, are absent
+    (none of the 15 recorded Claude runs did), and a result the host saved to a file shows
+    only its preview.
 - A Codex run's per-call context comes from `rollouts.py`, which streams the run-owned
   `home/.codex/sessions/**/rollout-*.jsonl` one line at a time (a half-written last line
   of a live run is skipped). A call is a `token_usage_record` that is not a compaction
@@ -338,6 +400,15 @@ product hang; it does not say the product is wrong.
   Without rollouts the figures are null and `unmeasured` names them with that reason.
   Recorded Luna 1.16.1 run (168 MB, read in 0.6 s): 2,565 main-thread calls, peak 251,867
   of 258,400, 34 compactions, and 314 sub-agent calls.
+- A Claude run's stage rows carry `context` {calls, peak, peakPct} too, the shape the Codex
+  rollouts give (without compactions, which Claude leaves unmeasured). `calls` are the
+  messages (unique `message.id`) whose first event falls in the stage's window, `peak` is the
+  largest input side (input, cache reads and cache writes) of any event in it, and `peakPct`
+  is that as a percentage of the context window the result events report. `turns` still
+  counts events, so the two differ (r1 Battleship: 120 calls, 206 stage turns). A call after
+  the last accepted stage is in no row: the rows hold 119 of the 120 calls of r1 Battleship
+  and 104 of the 105 of r1 Checkers. A stage the script recorded itself (skill-assess, say)
+  has 0 calls and no peak. It is a record; no verdict reads it.
 - No output-token figure is built per stage, and none from Claude's events: a Claude
   message's output count is a streaming snapshot (it summed to about 1/17 of the session's own
   total on a recorded run), and Codex has none per call in its event stream. The planning window's

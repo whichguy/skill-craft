@@ -75,13 +75,51 @@ def glue_reasons(command: str) -> list[str]:
     if GLUE_CONTRACT.search(command) and CONTRACT_WRITE.search(command):
         reasons.append("hand-built loop contract")
     return reasons
+
+
+# Shell variables a command assigns before it uses them (Claude's multi-line commands: `RUN=...`, `CLI="$SKILL_ROOT/scripts/shiploop"`).
+# Read per command: no recorded run carried a variable from one tool call to the next. An assignment at a line start or after a
+# `;` counts; a heredoc body is a document, not a command. Single-quoted, double-quoted and bare values, no command substitution.
+ASSIGNMENT = re.compile(r"""(?:^|;[ \t]*)(?:export\s+)?([A-Za-z_]\w*)=(?:"([^"\n]*)"|'([^'\n]*)'|([^\s;&|<>()`"']*))[ \t]*(?=;|$)""",
+                        re.M)
+SHELL_VARIABLE = re.compile(r"\$(?:\{(\w+)\}|(\w+))")
+# A path segment and the `..` that undoes it: `<dir>/run/../worktree` is `<dir>/worktree`, the product worktree beside the run
+# directory, which SHIPLOOP_OWNED must not match through the run directory's prefix. A leading `..` has no segment to drop.
+PARENT_STEP = re.compile(r"/(?!\.\.?(?=[/\s\"'`;&|<>()]|$))[^/\s\"'`;&|<>()=$]+/\.\.(?=[/\s\"'`;&|<>()]|$)")
+
+
+def expand_variables(text: str, known: dict[str, str]) -> str:
+    """The text with each `$NAME` and `${NAME}` that ``known`` assigns replaced, and each `/segment/..` that leaves behind
+    removed; any other variable is left as written."""
+    text = SHELL_VARIABLE.sub(lambda m: known.get(m.group(1) or m.group(2), m.group(0)), text)
+    while (shorter := PARENT_STEP.sub("", text)) != text:
+        text = shorter
+    return text
+
+
+def shell_variables(command: str, known: dict[str, str] | None = None) -> dict[str, str]:
+    """The variables a command assigns, each value resolved against the ones assigned before it (``known`` first).
+
+    An assignment whose value is still not plain text after expansion (`$?`, `$!`, `$(...)`, a variable not assigned) is
+    not recorded, so `sh -c '...; R=$?; ...'` quoted inside a command cannot replace the `R=<run directory>` before it.
+    """
+    found = dict(known or {})
+    for m in ASSIGNMENT.finditer(shell_text(command)):
+        value = expand_variables(next(g for g in m.groups()[1:] if g is not None), found)
+        if "$" not in value:
+            found[m.group(1)] = value
+    return found
+
+
 FAILURE_LINE = re.compile(r"error|refus|reject|required|must|invalid", re.I)
 MARKER = re.compile(r"SHIPLOOP-RUN")
 # What a refused ShipLoop command prints (shiploop_protocol.py): the refusal's own line, which begins with one of
 # these prefixes and often has none of FAILURE_LINE's words ("result requires outcome and summary"), then fixed
 # trailer lines the script adds to every refusal. A trailer says "rejected", so matching it first named no refusal
 # (8 of the 13 refusals of the Luna 1.16.1 run); the script's text is pinned by test/shiploop-e2e.test.py.
-REFUSAL_LINE = re.compile(r"^ShipLoop (?:navigator|blocked): ")
+# The same line is what makes a tool result a failure on every host, whatever exit code the host showed: the model pipes
+# the CLI through head, grep or sed, which hides the exit (all 5 refusals of the round-1 Sonnet Battleship run).
+REFUSAL_LINE = re.compile(r"^ShipLoop (?:navigator|blocked|workspace blocked): ", re.M)
 TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
                           r"Request failure: no in-memory result|Durable cursor recovery: )")
 
@@ -133,6 +171,169 @@ def visible(raw) -> str:
             if isinstance(raw.get(key), str):
                 return raw[key]
     return ""
+
+
+def tool_results(event: dict):
+    """(tool call id, text) of each tool result in one event, for Claude (a `user` event's tool_result blocks) and Grok."""
+    if event.get("type") == "tool_call_update" and isinstance(event.get("rawOutput"), dict):
+        yield event.get("toolCallId"), visible(event["rawOutput"])
+    elif event.get("type") == "user":
+        for block in (event.get("message") or {}).get("content") or []:
+            if isinstance(block, dict) and block.get("type") == "tool_result":
+                content = block.get("content")
+                if isinstance(content, list):
+                    content = "".join(str(part.get("text") or "") for part in content if isinstance(part, dict))
+                yield block.get("tool_use_id"), str(content or "")
+
+
+def claude_exit(shown: str) -> int | None:
+    """The exit code Claude's Bash result begins with (`Exit code 2`), or None: the host shows none for an exit of 0."""
+    found = re.match(r"Exit code (\d+)", shown)
+    return int(found.group(1)) if found else None
+
+
+def failure_text(failure: dict) -> str:
+    """One recorded failure's exit for a printed line; a refusal behind a pipe has none, because the host showed none."""
+    return "exit not shown" if failure.get("exit") is None else f"exit {failure['exit']}"
+
+
+# A file a command writes with a heredoc (`cat > PATH <<'EOF' ... EOF`, `tee PATH <<EOF`): the body is the real file.
+WRITTEN_FILE = re.compile(r"(?:\bcat\s*>>?|\btee(?:\s+-a)?)\s*(?P<path>[^\s<>|;&]+)\s*<<-?\s*['\"]?(?P<tag>\w+)['\"]?[^\n]*\n"
+                          r"(?P<body>.*?)\n[ \t]*(?P=tag)[ \t]*(?:\n|$)", re.S)
+# A script the model wrote that ShipLoop's own run directory keeps (its scratch folder), or that calls the ShipLoop CLI.
+MODEL_SCRIPT_HOME = "/run/scratch/"
+
+
+def written_scripts(command: str, known: dict[str, str]) -> list[dict]:
+    """The model-written scripts a command creates with a heredoc: {path, body, wraps, bytes}, variables expanded.
+
+    A file counts when it lives in the run's scratch folder or its body calls the ShipLoop CLI (a verb after the script's
+    own `shiploop`, or the CLI's `scripts/shiploop` path): the product files a heredoc writes are not scripts here, and a
+    path that still holds a variable after expansion cannot be matched to a later call, so it is left out. ``bytes`` is
+    the size of the body as written.
+    """
+    found = []
+    for m in WRITTEN_FILE.finditer(command):
+        path = expand_variables(m.group("path").strip("\"'"), known)
+        body = expand_variables(m.group("body"), shell_variables(m.group("body"), known))
+        wraps = bool(SHIPLOOP_COMMAND.search(body)) or "scripts/shiploop" in body
+        if "$" not in path and (MODEL_SCRIPT_HOME in path or wraps):
+            found.append({"path": path, "body": body, "wraps": wraps, "bytes": len(m.group("body").encode())})
+    return found
+
+
+def invocation(path: str):
+    """A pattern for a command line that runs the script at ``path``: it stands where a command does (a line start, after
+    `;`, `&`, `|`, `(`, `then` or `do`, behind VAR=value words) or right after an interpreter. A path that is an
+    argument (`ls -l PATH`, `--result=PATH`) is not a run."""
+    return re.compile(r"(?:^|[;&|(`]|\$\(|\b(?:then|do|else)\b|\b(?:python3?|bash|sh|zsh|node)[ \t]+(?:-\S+[ \t]+)*)"
+                      r"[ \t]*(?:\w+=\S*[ \t]+)*[\"']?" + re.escape(path) + r"(?=[\s;&|)\"'`]|$)", re.M)
+
+
+def plural(count: int, noun: str) -> str:
+    return f"{count} {noun}{'' if count == 1 else 's'}"
+
+
+class ToolLog:
+    """The tool calls of one host stream and what each returned, classified once for every host: Grok's `tool_call` and
+    `tool_call_update` events, Codex's after the harness translator, and Claude's `tool_use` and `tool_result` blocks.
+
+    A ShipLoop failure is one tool result, counted once, in either of two cases. Its text has a line that begins with a
+    refusal prefix (REFUSAL_LINE), whatever exit code the host showed or hid: the model pipes the CLI through head, grep
+    or sed. Or the host showed a nonzero exit and the command names a ShipLoop verb, directly or through a script the
+    model wrote earlier whose body does. The verb is read from the command alone, else it is `unknown`. Both arms are
+    heuristics: a line of a document that begins with a prefix would count, a compound command's exit is attributed to
+    the ShipLoop call in it, a looping command counts once, and a result the host saved to a file is not read.
+    """
+
+    def __init__(self) -> None:
+        self.calls: dict = {}  # call id -> {"t", "command" as written, "expanded", "invoked": expanded + wrapper bodies}
+        self.shared: set[str] = set()  # literal /tmp paths written (plan P13)
+        self.glue: list[dict] = []
+        self.asked: list[str] = []
+        self.reads: list[str] = []
+        self.failures: list[dict] = []
+        self.failed: set = set()  # call ids already counted: Grok repeats an update for one call, which is a failure once
+        self.scripts: dict[str, dict] = {}  # path -> {body, wraps, bytes, runs, pattern}: the model-written scripts so far
+        self.by_tool: dict[str, int] = {}  # Claude only below: what the model called, what came back, how it used packets
+        self.result_chars = 0
+        self.packets = {"printed": [0, 0], "shell": [0, 0], "read_tool": []}
+
+    def call(self, t, call_id, tool: str, arg: dict) -> None:
+        """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written."""
+        self.failed.discard(call_id)  # Codex numbers its calls again in each session: a reused id is a new call
+        if ASK_PERSON.search(tool):  # SPEC S-14: an unattended run never asks a person
+            self.asked.append(" ".join(str(arg.get("question") or arg or "").split())[:160])
+        command = str(arg.get("command") or "")
+        known = shell_variables(command) if command else {}
+        expanded = expand_variables(command, known)
+        for found in written_scripts(command, known):
+            script = self.scripts.setdefault(found["path"], {"runs": 0})
+            script.update(body=found["body"], wraps=found["wraps"], bytes=found["bytes"], pattern=invocation(found["path"]))
+        wrappers = "".join("\n" + script["body"] for path, script in self.scripts.items() if path in expanded)
+        shell = shell_text(expanded)
+        for script in self.scripts.values():  # a run is a tool call that runs the script, however many lines do
+            script["runs"] += bool(script["pattern"].search(shell))
+        target = arg.get("target_file") or arg.get("file_path") or arg.get("path")
+        self.by_tool[tool] = self.by_tool.get(tool, 0) + 1
+        self.calls[call_id if call_id is not None else f"#{len(self.calls)}"] = {
+            "t": t, "command": command, "expanded": expanded, "invoked": expanded + wrappers, "tool": tool,
+            "packet": "/packets/" in expanded or "/packets/" in str(target or ""),
+            "whole": "offset" not in arg and "limit" not in arg, "file": str(target or "")}
+        if command:
+            reasons = glue_reasons(expanded)
+            self.shared.update(tmp_writes(expanded))
+            if reasons:
+                self.glue.append({"reasons": reasons, "command": " ".join(command.split())[:200]})
+        if target:
+            self.reads.append(str(target))
+            if WRITE_TOOL.search(tool) and str(target).startswith("/tmp/"):
+                self.shared.add(str(target))
+
+    def measure(self, call_id, shown: str) -> None:
+        """What one tool result held, for a stream whose results arrive once and whole (Claude's): characters, and how the
+        model met the packets: a printed head (a ShipLoop reply shown by a call that does not name a packet file), a Read
+        of a packet file, or a shell command that names one."""
+        call = self.calls.get(call_id) or {}
+        self.result_chars += len(shown)
+        if call.get("packet") and call.get("tool") == "Read":
+            self.packets["read_tool"].append({"packet": Path(call["file"]).stem, "whole": call["whole"], "chars": len(shown)})
+        elif call.get("packet") and call.get("command"):
+            self.packets["shell"][0] += 1
+            self.packets["shell"][1] += len(shown)
+        elif PACKET_STAGE.search(shown):
+            self.packets["printed"][0] += 1
+            self.packets["printed"][1] += len(shown)
+
+    def tool_use(self, run_dir: Path | None) -> dict:
+        """The record-only `tool_use` block of a Claude run (main thread): calls, results, scripts and packets.
+
+        ``scratch_scripts`` are the model-written scripts that were run, with the number of tool calls that ran each;
+        ``packets.on_disk`` is what the run directory holds, None when it has no packets folder.
+        """
+        folder = run_dir / "packets" if run_dir else None
+        files = [p for p in sorted(folder.glob("*.md")) if p.is_file()] if folder and folder.is_dir() else None
+        return {"calls": sum(self.by_tool.values()), "by_tool": dict(sorted(self.by_tool.items())),
+                "result_chars": self.result_chars,
+                "scratch_scripts": [{"path": path, "bytes": s["bytes"], "wraps_shiploop": s["wraps"], "runs": s["runs"]}
+                                    for path, s in sorted(self.scripts.items()) if s["runs"]],
+                "packets": {"on_disk": None if files is None else {"files": len(files), "bytes": sum(p.stat().st_size for p in files)},
+                            "printed": dict(zip(("replies", "chars"), self.packets["printed"])),
+                            "read": {"read_tool": self.packets["read_tool"],
+                                     "shell": dict(zip(("calls", "chars"), self.packets["shell"]))}}}
+
+    def result(self, call_id, shown: str, code: int | None) -> None:
+        """One tool result, with the exit code the host showed (None when it showed none)."""
+        refusal = REFUSAL_LINE.search(shown)
+        call = self.calls.get(call_id) or {}
+        exited = code not in (None, 0) and SHIPLOOP_COMMAND.search(call.get("invoked", ""))
+        if call_id in self.failed or not (refusal or exited):
+            return
+        self.failed.add(call_id)
+        verb = SHIPLOOP_COMMAND.search(call.get("expanded", ""))
+        # From the refusal's own line on: the model's shell errors before it are not why ShipLoop refused.
+        self.failures.append({"verb": verb.group("verb") if verb else "unknown", "exit": code,
+                              "line": failure_line(shown[refusal.start():] if refusal else shown)})
 
 
 def engine_state(run_dir: Path | None) -> dict:
@@ -278,10 +479,6 @@ NO_MODEL_CALLS = ("the host's events carry no per-call usage (no Claude assistan
 NO_WINDOW = ("no result event named one context window in its modelUsage (the host reports none, the session ended "
              "before it reported, or several models reported different windows)")
 NO_ROLLOUT_WINDOW = "no main-thread token_count record in the rollouts reported a model_context_window"
-CLAUDE_TOOL_BLOCKS = ("this host's tool calls arrive as Claude tool_use / tool_result blocks, which collect() does "
-                      "not read, so a count of 0 is a lower bound and not a measurement")
-# What follows from reading only Grok-shaped tool_call events when the stream is Claude's.
-CLAUDE_BLIND = ("stage_tool_calls", "shiploop_failures", "model_glue", "tmp_writes")
 # Counters read only from an event shape Grok writes. A stream with no per-call usage events (Claude's, or Codex's
 # through the translator) is not Grok's, so there a 0 means the signal is missing, not that nothing happened, and a
 # list stays empty rather than hold what a look-alike matched (Codex prints "cancelled 0" in a failing node --test
@@ -480,16 +677,11 @@ def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], gro
 
 def collect(out: Path, run_dir: Path | None = None) -> dict:
     stamps = timeline(out / "timeline.jsonl")
-    calls: dict[str, dict] = {}
-    shared: set[str] = set()
+    tools = ToolLog()
     turns: list[dict] = []
-    sessions, failures, compactions = [], [], 0
-    glue: list[dict] = []
-    asked: list[str] = []
+    sessions, compactions = [], 0
     truncated: set = set()
     cancelled: list[str] = []
-    reads: list[str] = []
-    tool_blocks = 0  # Claude tool_use blocks: calls this collector cannot classify
     grok = False  # per-call `usage` events: the one stream shape the Grok-only counters below can be read from
     starts = 0  # sessions the host began, to tell how many never reported an end
     messages: set[str] = set()  # Claude message ids seen: one API call writes one assistant event per content block
@@ -519,46 +711,33 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             # `turns` keeps counting events (baselines.jsonl holds that definition); a model call is a message, counted at
             # its first event, and an event with no id is its own call.
             message_id = (event.get("message") or {}).get("id")
-            if not isinstance(message_id, str) or not message_id or message_id not in messages:
+            first = not isinstance(message_id, str) or not message_id or message_id not in messages
+            if first:
                 claude_calls += 1
                 if isinstance(message_id, str) and message_id:
                     messages.add(message_id)
             for block in (event.get("message") or {}).get("content") or []:
-                tool_blocks += isinstance(block, dict) and block.get("type") == "tool_use"
-                if isinstance(block, dict) and block.get("type") == "tool_use" and ASK_PERSON.search(str(block.get("name"))):
-                    asked.append(" ".join(str(block.get("input") or "").split())[:160])
-            turns.append({"t": t, "input": context_tokens((event.get("message") or {}).get("usage"))})
+                if isinstance(block, dict) and block.get("type") == "tool_use":
+                    tools.call(t, block.get("id"), str(block.get("name") or ""),
+                               block["input"] if isinstance(block.get("input"), dict) else {})
+            turns.append({"t": t, "input": context_tokens((event.get("message") or {}).get("usage")), "call": first})
+        elif kind == "user":  # Claude: the tool_result blocks, whose text may begin with the host's `Exit code N`
+            for call_id, shown in tool_results(event):
+                tools.measure(call_id, shown)
+                tools.result(call_id, shown, claude_exit(shown))
         elif kind == "tool_call":
             arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
-            tool = str(event.get("toolName") or event.get("title") or "")
-            if ASK_PERSON.search(tool):  # SPEC S-14: an unattended run never asks a person
-                asked.append(" ".join(str(arg.get("question") or arg or "").split())[:160])
-            command = str(arg.get("command") or "")
-            calls[event.get("toolCallId")] = {"t": t, "command": command}
-            reasons = glue_reasons(command) if command else []
-            shared.update(tmp_writes(command) if command else [])
-            if reasons:
-                glue.append({"reasons": reasons, "command": " ".join(command.split())[:200]})
-            target = arg.get("target_file") or arg.get("file_path") or arg.get("path")
-            if target:
-                reads.append(str(target))
-                if WRITE_TOOL.search(tool) and str(target).startswith("/tmp/"):
-                    shared.add(str(target))
+            tools.call(t, event.get("toolCallId"), str(event.get("toolName") or event.get("title") or ""), arg)
         elif kind == "tool_call_update" and event.get("status") == "failed" and "cancelled" in json.dumps(
                 event.get("content") or "").lower():
             # Grok's headless permission check refused the call; the turn ends with it.
-            cancelled.append(((calls.get(event.get("toolCallId")) or {}).get("command") or "")[:160])
+            cancelled.append((tools.calls.get(event.get("toolCallId")) or {}).get("command", "")[:160])
         elif kind == "tool_call_update" and isinstance(event.get("rawOutput"), dict):
-            raw = event["rawOutput"]
-            if raw.get("truncated"):  # Grok repeats the update; count each call once
+            if event["rawOutput"].get("truncated"):  # Grok repeats the update; count each call once
                 truncated.add(event.get("toolCallId"))
-            call = calls.get(event.get("toolCallId")) or {}
-            match = SHIPLOOP_COMMAND.search(call.get("command", ""))
-            code = raw.get("exit_code")
-            if match and code not in (None, 0) and not call.get("failed"):
-                call["failed"] = True
-                shown = visible(raw)
-                failures.append({"verb": match.group("verb"), "exit": code, "line": failure_line(shown)})
+            if event.get("status") != "in_progress":  # Grok's running updates carry a placeholder exit 0 and the output so far
+                for call_id, shown in tool_results(event):
+                    tools.result(call_id, shown, event["rawOutput"].get("exit_code"))
         elif kind == "auto_compact_completed":
             compactions += 1
         elif kind in ("end", "result"):
@@ -586,9 +765,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         unmeasured.update({name: f"only Grok's events carry this signal ({signal}); this host's do not, so a "
                                  f"count of 0 is a missing signal and not a measurement"
                            for name, signal in GROK_SIGNALS.items()})
-        cancelled, reads = [], []
-    if tool_blocks:
-        unmeasured.update({name: CLAUDE_TOOL_BLOCKS for name in CLAUDE_BLIND})
+        cancelled, tools.reads = [], []
     # Model calls: what the host's own events show (Claude's unique messages, Grok's usage events). The context window
     # is the one the result events agree on. A host with no per-call events (Codex) keeps them only in its rollout
     # files: a run that mixes hosts is read as the host that wrote per-call events, as for the counters above.
@@ -611,14 +788,14 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         unmeasured["window_tokens"] = (f"{NO_WINDOW}; {why_not}" if why_not else
                                        NO_ROLLOUT_WINDOW if context else NO_WINDOW)
     planning["tokens"] = planning_tokens(bounds, why_not_tokens, usage_rows, grok, bool(claude_calls), context)
-    stages = per_stage(accepted, turns, calls, stamps, pending, unmeasured)
+    stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
     if context and "unmeasured" not in context:
         for row, figures in zip(stages, context["perStage"]):
             if figures is not None:
                 row["context"] = figures
     improve = run_dir / "improve" if run_dir else None
     return {
-        "tmp_writes": sorted(shared),
+        "tmp_writes": sorted(tools.shared),
         # The host CLI build the sessions ran on (Claude's init event; sessions on two builds name both), None where the
         # host's events do not carry it. Two runs of one prompt on different builds are not a controlled pair.
         "claude_code_version": ", ".join(sorted(versions)) or None,
@@ -640,14 +817,17 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "compactions": None if "compactions" in unmeasured else compactions,
         "truncated_outputs": None if "truncated_outputs" in unmeasured else len(truncated),
         "cancelled_tool_calls": cancelled,
-        "shiploop_failures": failures,
+        "shiploop_failures": tools.failures,
+        # Claude's tool_use / tool_result blocks only (main thread): what the model ran and how it used the packets. A
+        # record, never a verdict; None on the hosts whose events this harness has no such reading of.
+        "tool_use": tools.tool_use(run_dir) if claude_calls and not grok else None,
         "script_verifications": verifications(run_dir),
-        "model_glue": glue,
-        "asked_user": asked,
+        "model_glue": tools.glue,
+        "asked_user": tools.asked,
         # Directories only: each child also leaves a `<name>-bind.md` beside its directory.
         "improve_children": sum(1 for p in improve.iterdir() if p.is_dir()) if improve and improve.is_dir() else 0,
         "improve_reviews": improve_reviews(run_dir),
-        "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in reads if "docs/shiploop" in r}),
+        "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in tools.reads if "docs/shiploop" in r}),
         "narrative": narrative(out, run_dir),
         "stages": stages,
         "planning": planning,
@@ -660,17 +840,8 @@ STATE_BLOCK = re.compile(r"```shiploop-state\n(?P<json>.*?)\n```", re.S)
 
 
 def _tool_output(event: dict) -> tuple[str | None, str]:
-    """(tool call id, text) of one tool result event, for Claude and Grok streams."""
-    if event.get("type") == "tool_call_update" and isinstance(event.get("rawOutput"), dict):
-        return event.get("toolCallId"), visible(event["rawOutput"])
-    if event.get("type") == "user":
-        for block in (event.get("message") or {}).get("content") or []:
-            if isinstance(block, dict) and block.get("type") == "tool_result":
-                content = block.get("content")
-                if isinstance(content, list):
-                    content = "".join(str(part.get("text") or "") for part in content if isinstance(part, dict))
-                return block.get("tool_use_id"), str(content or "")
-    return None, ""
+    """(tool call id, text) of the first tool result in one event, for Claude and Grok streams."""
+    return next(tool_results(event), (None, ""))
 
 
 def _assistant_text(event: dict) -> str:
@@ -739,15 +910,19 @@ def verifications(run_dir: Path | None) -> dict:
     about the product (it timed out, could not start, or was skipped on budget).
     Those refuse their stage without being evidence against it, so a run with
     any of them is reporting an environment problem, not a product one.
+    ``red`` counts the records in which a command ran red (a run whose own status is `red`): a test-red record, or a
+    test-author probe, passes because red is what it accepts, so ``passed`` includes it. What ran is counted, not what
+    the record expected: a probe accepts red or passed, and one that ran green is a green pass.
     """
     records = sorted(run_dir.rglob("*-verify*.md")) if run_dir and run_dir.is_dir() else []
-    passed = commands = could_not_run = 0
+    passed = commands = could_not_run = red = 0
     for path in records:
         text = path.read_text(errors="replace")
         passed += bool(re.search(r'"passed"\s*:\s*true', text))
         could_not_run += bool(re.search(r'"disposition"\s*:\s*"could-not-run"', text))
+        red += bool(re.search(r'"status"\s*:\s*"red"', text))
         commands += len(re.findall(r'"command"\s*:', text))
-    return {"records": len(records), "passed": passed, "could_not_run": could_not_run, "commands": commands}
+    return {"records": len(records), "passed": passed, "could_not_run": could_not_run, "commands": commands, "red": red}
 
 
 def current_stage(state: dict) -> str | None:
@@ -836,7 +1011,7 @@ def stage_windows(accepted: list[dict], stamps: dict, pending: str | None = None
 
 
 def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict,
-              pending: str | None = None, unmeasured: dict | None = None) -> list[dict]:
+              pending: str | None = None, unmeasured: dict | None = None, context_window: int | None = None) -> list[dict]:
     """Turns, tool calls and time between one accepted action and the next.
 
     Needs the runner's timeline; without it only the order and outcome are known.
@@ -850,6 +1025,11 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
     A counter the host does not report (``unmeasured`` names it, or a stage
     count that needs per-call usage when the host has none) is ``None`` in the
     row, never 0.
+
+    Where the turns carry a ``call`` flag (Claude: the first event of a message) a timed row also has ``context``
+    {calls, peak, peakPct}, the shape Codex's rollouts give: the messages that began in the window, the largest input
+    side any of its events reported, and that peak as a percentage of ``context_window`` (None when none was reported).
+    ``turns`` keeps counting events, and a call after the last accepted stage is in no row.
 
     Limits, not fixed: engine stamps are whole seconds (truncated) while runner times
     carry milliseconds, so the turn that submits a stage's result lands in the next
@@ -867,8 +1047,7 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
         unmeasured.add("stage_turns")
 
     def counted(window: list[dict], tools: list) -> dict:
-        return {"turns": None if "stage_turns" in unmeasured else len(window),
-                "tool_calls": None if "stage_tool_calls" in unmeasured else len(tools)}
+        return {"turns": None if "stage_turns" in unmeasured else len(window), "tool_calls": len(tools)}
 
     labels = [(a["stage"], a.get("outcome")) for a in accepted] + ([(pending, None)] if pending else [])
     rows = []
@@ -880,7 +1059,12 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
         after, until, since = window
         events = [x for x in turns if x["t"] is not None and after < x["t"] <= until]
         tools = [c for c in calls.values() if c["t"] is not None and after < c["t"] <= until]
-        rows.append({**base, "seconds": round(until - since, 1), **counted(events, tools)})
+        row = {**base, "seconds": round(until - since, 1), **counted(events, tools)}
+        if any("call" in x for x in turns):
+            peak = max((x["input"] for x in events if x["input"] is not None), default=None)
+            row["context"] = {"calls": sum(x["call"] for x in events), "peak": peak,
+                              "peakPct": rollouts.share(peak, context_window)}
+        rows.append(row)
     return rows
 
 
@@ -953,6 +1137,24 @@ def planning_text(plan: dict) -> str:
     return "; ".join(parts)
 
 
+def tool_use_text(use: dict) -> str:
+    """The `tool_use` block as one printed line, saying that model glue does not count the ShipLoop calls in the scripts."""
+    mix = ", ".join(f"{name} {n}" for name, n in sorted(use["by_tool"].items(), key=lambda item: (-item[1], item[0])))
+    scripts = sorted(use["scratch_scripts"], key=lambda s: (-s["runs"], s["path"]))
+    made = ", ".join(f"{Path(s['path']).name} {plural(s['runs'], 'run')}" + (" (wraps ShipLoop)" if s["wraps_shiploop"] else "")
+                     for s in scripts)
+    packets = use["packets"]
+    read, disk = packets["read"], packets["on_disk"]
+    replies = packets["printed"]["replies"]
+    return (f"tool use (main thread): {plural(use['calls'], 'call')} ({mix or 'none'}), {use['result_chars']:,} result chars; "
+            + (f"scripts the model wrote and ran: {made} (their ShipLoop calls are not counted in model glue)" if made
+               else "no script the model wrote was run")
+            + f"; packets: {replies} printed packet {'reply' if replies == 1 else 'replies'} ({packets['printed']['chars']:,} chars), "
+              f"{plural(len(read['read_tool']), 'packet Read')} ({sum(r['whole'] for r in read['read_tool'])} whole), "
+              f"{plural(read['shell']['calls'], 'shell command')} on packets ({read['shell']['chars']:,} chars), "
+            + ("none on disk" if disk is None else f"{plural(disk['files'], 'packet file')} on disk ({disk['bytes']:,} bytes)"))
+
+
 def summary_lines(metrics: dict, top: int = 5) -> list[str]:
     """A few lines for the printed report: the costliest stages and the problems."""
 
@@ -960,14 +1162,16 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
         found = count(metrics, name)
         return "not measured" if found is None else str(found)
 
+    checks = metrics["script_verifications"]
+    notes = ([f"{checks['could_not_run']} could not run"] if checks.get("could_not_run") else []) \
+        + ([f"{checks['red']} ran red"] if checks.get("red") else [])
     lines = [f"turns {turns_text(metrics)}, cost {cost_text(metrics)}, sessions {len(metrics['sessions'])} "
              f"({', '.join(str(s['stop']) for s in metrics['sessions']) or 'none ended'}), "
              f"compactions {shown('compactions')}, truncated outputs {shown('truncated_outputs')}, "
              f"cancelled tool calls {shown('cancelled_tool_calls')}, "
              f"ShipLoop command failures {shown('shiploop_failures')}, "
              f"script verifications {metrics['script_verifications']['passed']}/{metrics['script_verifications']['records']} passed"
-             + (f" ({metrics['script_verifications']['could_not_run']} could not run)"
-                if metrics["script_verifications"].get("could_not_run") else "") + ", "
+             + (f" ({', '.join(notes)})" if notes else "") + ", "
              f"model glue {shown('model_glue')}, asked a person {len(metrics['asked_user'])}, "
              f"Improve children {metrics['improve_children']}"
              + (f" ({metrics['improve_reviews']['passes']} review passes, at most "
@@ -975,6 +1179,8 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
                 if metrics.get("improve_reviews", {}).get("passes") else "")]
     if metrics.get("planning"):
         lines.append(planning_text(metrics["planning"]))
+    if metrics.get("tool_use"):
+        lines.append(tool_use_text(metrics["tool_use"]))
     story = metrics.get("narrative") or {}
     if story.get("emitted") or story.get("results"):
         lines.append(f"narrative shown {story['shown']}/{story['emitted']} (verbatim {story['verbatim']})"

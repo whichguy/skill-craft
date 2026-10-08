@@ -158,6 +158,9 @@ Steps 1-4: `git -C <repo> revert <sha>`; the journal section is edited with a re
 2. An Until Loop wrapper verb (S-5) for the 7 of 62 script-path errors: not planned; wanted?
 3. Land the journal commit before or after the f3 merge with origin/main (step 2)?
 4. Does baselines.jsonl need an explicit "failures unmeasured" marker for pre-M1 Claude rows? Decide at M1 admission.
+   **Resolved 2026-10-08 (M1 built, `docs/shiploop-batch-1009h-journal-2026-10-08.md`): no marker.** The four Claude rows already hold
+   null for `model_glue`, `shiploop_failures` and `tmp_writes` and name them in `unmeasured`, so the next row prints "not measured -> N",
+   never "0 -> N" (a test builds such a row and checks the printed line).
 
 ## Corrections after execution (2026-10-04)
 

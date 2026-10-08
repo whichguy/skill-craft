@@ -528,11 +528,18 @@ Marketplace skill-craft 1.16.0 (ShipLoop 0.48.0).
 
 | Case | Verdicts | Turns | Improve children / review passes (max per child) | ShipLoop failures, glue |
 |---|---|---|---|---|
-| hello | all pass | 210 | 16 / 12 (3) | 0, 0 |
-| seat-reservations | all pass, 2 work items | 423 | 24 / 25 (3) | 0, 0 |
-| battleship | all pass | 353 | 20 / 24 (3) | 0, 0 |
-| battleship-scoring (follow-on of battleship) | all verdicts pass; 1 stored check reads FAIL (see below) | 320 | 16 / 18 (3) | 0, 0 |
+| hello | all pass | 210 | 16 / 12 (3) | 6, 0 (was 0, 0) |
+| seat-reservations | all pass, 2 work items | 423 | 24 / 25 (3) | 16, 2 (was 0, 0) |
+| battleship | all pass | 353 | 20 / 24 (3) | 13, 10 (was 0, 0) |
+| battleship-scoring (follow-on of battleship) | all verdicts pass; 1 stored check reads FAIL (see below) | 320 | 16 / 18 (3) | 10, 0 (was 0, 0) |
 
+- Corrected 2026-10-08 (M1, `docs/shiploop-batch-1009h-journal-2026-10-08.md`): the last column read 0, 0 because `metrics.collect`
+  did not read Claude's tool blocks (item 7 of "Callback path typos across the 1003 batch", below), so those zeros were "not measured", not "none". The
+  figures now shown are `metrics.collect` over the same run folders (`20261003/batch-sonnet/<case>`, turns 210, 423, 353 and 320
+  match this table). They are heuristic counts of tool results, lower bounds for glue (a script the model wrote that wraps the CLI
+  hides its calls); the old column is kept as "was". Corrected again the same day (review of the H1 commits): seat-reservations'
+  glue read 3, one of which wrote `$W/docs/shiploop/environment.md` with `W=$B/../worktree`, the product worktree beside the run
+  directory, which matched the run directory's prefix until the expansion resolved `/run/..`; the glue is 2.
 - seat-reservations' second work item came from two failed system-test verifications (and one expected red test); ShipLoop queued the
   fix, then the system test passed: the outer loop caught what the inner loop missed.
 - battleship-scoring kept all 8 earlier requirement ids and added R-9 and R-10; the one failing stored check is a harness defect (the
@@ -862,7 +869,7 @@ Question: does ShipLoop need to change how a callback is printed or parsed, give
 5. [M] Recovery: 10 of 11 path-class failures were repaired by the next call, one by +2 (Until Loop `done`, event 3067, 22.6 s). Total 110.2 s, 0.16% of the 18.83 h at the cutoff; the 3 failed callbacks cost 22.7 s, the 4 spaced commands 28.4 s, the 7 Until Loop script paths 81.8 s.
    - No state change: a mistyped run dir exits before `run_lock` ("no ShipLoop run directory", event 4857), a spaced `--result` value splits into an unrecognized argument and exits in argparse (usage, events 3999 and 5526), an Until Loop `next` with a spaced `--state` answers `state_change: unchanged` and the same unrecognized-arguments error (event 4285), a bad script path never runs. No stray ` v1161-battleship-luna` directory exists under the runs root.
 6. [M] `_callback` (`shiploop_navigator.py`) is the one builder. `--result`, `--opening` and `--message` are `required=True` in `shiploop_protocol.py` and refused unless equal to the derived path (`_submitted_result`, the improve-commit, improve-start and improve-reconcile checks), so they carry no information. `run_dir_from_arg` (`scripts/shiploop`) walks up for `.shiploop` only, so `--run-dir` cannot be inferred for workspace runs. The printed result path is 131-157 characters in all nine runs (`result_path_len`). A typical layout prints 111, and a 355-character callback (234 without `--result`) [I: assumed layout].
-7. [M] The failure metric is blind for Claude. `metrics.collect` reads only ACP `tool_call_update` events, so `metrics.json` has `shiploop_failures` of length 0 for all 7 Claude runs, against 15 failing commands in the export plus 28 refusals behind exit 0 in recognised ShipLoop commands (40 counting wrapper scripts that the CLI pattern does not recognise). The "Batch 1003 - Sonnet 5.5 results" table above says "0, 0" for four rows that hold 13 failures. Claude counts are lower bounds. The exporter already reads `metrics.shiploop_failures`, so M1 puts the one classifier in `metrics.collect`; the "0" cells are corrected by edit with a reason under M1, not here.
+7. [M] The failure metric is blind for Claude. `metrics.collect` reads only ACP `tool_call_update` events, so `metrics.json` has `shiploop_failures` of length 0 for all 7 Claude runs, against 15 failing commands in the export plus 28 refusals behind exit 0 in recognised ShipLoop commands (40 counting wrapper scripts that the CLI pattern does not recognise). The "Batch 1003 - Sonnet 5.5 results" table above says "0, 0" for four rows that hold 13 failures. Claude counts are lower bounds. The exporter already reads `metrics.shiploop_failures`, so M1 puts the one classifier in `metrics.collect`; the "0" cells are corrected by edit with a reason under M1, not here. **Superseded, 2026-10-08:** M1 is built (`metrics.ToolLog`, journal `docs/shiploop-batch-1009h-journal-2026-10-08.md`); the "0" cells above carry their corrected figures and the reason.
 
 **Decision: defer the engine change (Item C: drop the derivable `--result`, `--opening` and `--message` flags from the callback).**
 - Grounds: KISS (no break beyond a recoverable one-call cost) and Change admission's "cost more than it saves": Item C costs a release plus 18 test and fixture files to save about 28 s in an 18 h Luna run. Batch discipline also holds: no engine change while a run is live, one release.
@@ -1151,7 +1158,7 @@ Base: the integration branch at `ed005f11`. Commits: Grok-only counters `1a35bc5
 - *Fixed, same commit: `cancelled_tool_calls` counts any failing command whose output contains "cancelled" (2 findings).* It is one of the four. The Grok half of the findings could not be reproduced (no Grok stream is recorded); the Codex half is fixed by not reading the Grok detector on a Codex stream at all.
 - *Fixed, `40f349c8`: whole-run turns are a measured 0 for a killed Codex session.* `turns` is null unless a call or an ended session reported a count; with a session that never reported beside one that did it is a lower bound, printed "N (lower bound)" through `metrics.turns_text`.
 - *Fixed, `7741df81`: `summarize_events` still records cost 0 and stop "success" (8 findings).* Chain B's `total_cost` had already fixed the cost and the process line (`8de0bcb5`, `cost_text`); left, and fixed: the stop reason now comes from `metrics.session_stop` and `num_turns` is null when no session reported one.
-- *Fixed, `ea21092e`: `shared_tmp_writes` ignores `unmeasured["tmp_writes"]` (4 findings).* A run with unmeasured writes is left out of the comparison, named in `suite-result.json` as `tmp_writes_unmeasured`, and printed as not checked.
+- *Fixed, `ea21092e`: `shared_tmp_writes` ignores `unmeasured["tmp_writes"]` (4 findings).* A run with unmeasured writes is left out of the comparison, named in `suite-result.json` as `tmp_writes_unmeasured`, and printed as not checked. *Superseded 2026-10-08: Claude's `/tmp` writes are measured now, so nothing marks `tmp_writes` unmeasured and the path was removed; see "The Claude tool-block reading".*
 - *Fixed, `3a84d137`, beyond the list: an error result dropped its subtype (3 findings in `session_stop`).* Pinned by tests only; the recorded runs hold only subtype "success".
 - *Fixed, `fa1ea772`, added by the coordinator: `context_tokens` left out `cache_creation_input_tokens`.*
 - *Rejected, with evidence:* deriving the Claude tool-call marking from assistant events rather than `tool_use` blocks (part of one finding): a Claude stream with no `tool_use` block has no tool call to miss, so its tool-call counters are true zeros; the Grok-only marking no longer depends on tool calls at all. Reading Claude's `system/compact_boundary`: the SDK names it, but no recorded run contains one, so the shape is unverified. Tightening the cancelled detector's substring: no recorded Grok stream exists to check a narrower text against.
@@ -1619,3 +1626,41 @@ Supersedes "(3) The Sonnet cost rise is unexplained" of the 2026-10-07 entry abo
 **CI lesson.** The 1.24.0 release commit failed `full / shiploop-2` in CI: five errors in `ReleaseVerifyReturnedResultTests` because the CI runner's global Git config carries git-lfs filters, which the workspace refuses; the tests passed on this machine, in the implementers' reruns and in the reviewers' reruns because none of them used a CI-like global Git config. Fixed in `abc47622` (the test isolates `GIT_CONFIG_*`; reproduced first with a config defining the lfs filter). **Rule for new real-git tests: isolate Git config.** Every release should be followed by a CI check before it is described as done; the quick-tier CI of the fix commit passed but the full tier of the release commit was not rerun.
 
 **What the analysis found (the next batch).** Faithful strengths: script-owned evidence held in both Sonnet runs (10 verification records, 29 commands, counted, no skips), release-verify observed the returned result, loops found real defects, honest limits were disclosed. Candidates implemented in the next batch: the return review is a hand edit of a script-owned file; rollback text written before the return kind is known; step-plan "Confirm by" contract disagreements; unverified outcomes and open assumptions have no structured home; Improve packets do not restate the goal and done-when; knowledge-close demands files the packet does not list; `improve-bind` prints a placeholder path; the Backchain child's required status is ambiguous; `run/notes/` is never created; the harness cannot read Claude-host tool calls. Held for a second run: release-check discrimination, implement/baseline script runs, min_tests ratchet, plan-document location, document-stage paths, `skill_na` template visibility (1 of 2 uptake).
+
+## The Claude tool-block reading: failures, glue, /tmp writes, per-stage context and the scripts the model ran — 2026-10-08 — status: firm for the figures (recomputed over the 15 recorded Claude runs and the two round-1 runs, regraded in scratch copies); not yet seen on a Claude Code build after 2.1.294
+
+The harness was blind for Claude for one reason: `metrics.collect` read only Grok's event shape (item 7 of "Callback path typos across
+the 1003 batch"; M1 of `docs/shiploop-callback-typos-plan-2026-10-04.md`). It now reads Claude's `tool_use` and `tool_result` blocks
+through the one classifier Grok's `tool_call` events use (`metrics.ToolLog`), and the round-1 lenses no longer need to mine
+`events.jsonl` by hand. Journal and the audit's corrections: `docs/shiploop-batch-1009h-journal-2026-10-08.md`; recorded calls:
+`docs/experiments/claude-tool-blocks-20261008/`.
+
+- **A refusal is recognised by its own line, not by an exit code.** The model pipes the CLI through `head`, `grep` or `sed`, so all 5
+  refusals of the round-1 Sonnet Battleship run have no exit at all. Over 15 recorded Claude runs: 72 results with a refusal line at
+  a line start, all genuine ShipLoop output (a command guard on top would have dropped 9 of them, a real knowledge-file refusal
+  among them), plus 10 exit-only failures (7 `Exit code 127` of a bare `shiploop`). `ShipLoop workspace blocked:` is a third prefix.
+- **Grok's exit 0 is not a hidden refusal.** The audit read 5 anchored lines at exit 0 in three Grok runs as hidden refusals; they are
+  `in_progress` updates (a placeholder exit 0) of calls whose `completed` update carries exit 2. The classifier reads Grok's completed
+  update only; the old and new lists agree on four recorded Grok runs except v1220 (+1, a compound command whose `$CLI workspace`
+  verb shows once variables are expanded).
+- **Shell variables are expanded per command**, and an assignment still unresolved (`R=$?`, quoted inside a `sh -c`) is not recorded.
+- **Glue is a lower bound for Claude.** 14 of 15 recorded runs wrote and ran helper scripts that wrap the CLI (r1 Battleship: sub.sh 30
+  runs, istart.sh 7; idone.py, 17 runs, wraps the Until Loop's done command and not the CLI);
+  `tool_use.scratch_scripts` lists them beside `model_glue`, which keeps its definition.
+- **A failure is counted once per call, not once per id.** Codex numbers its calls again in every session (the recorded Luna run v1210:
+  1,542 `tool_call` events, 486 distinct ids, 337 of them used more than once), and the first version of the shared classifier kept the ids it had counted,
+  so a later failure that reused one was dropped silently. The review found it with a synthetic pair and a recorded run (9 against 10
+  failures on v1210); the compatibility check that said "old and new lists agree" had compared four Grok runs only. Checking a change
+  to a shared classifier means every host that has a recorded run, not the one that motivated it. Codex differences against 847fa64e:
+  v1161 Luna records the refusal line instead of `AssertionError` (the model's own failing assert printed just before it), v1210 Luna
+  gains one refusal whose command names no verb.
+- **`shiploop_failures` is heuristic, glue and script runs are lower bounds.** A compound command's exit is attributed to the ShipLoop call
+  in it (v1220 Grok +1), so the failure count can be high as well as low.
+- **Packets, printed versus read (r1 Battleship):** 44 packet files, 1,707,162 bytes; 44 printed replies, 37,367 characters; 4 packet
+  Reads, 2 whole (28,595 and 21,636 characters); 23 shell commands on packets, 64,249 characters.
+- **`passed 10` held two red records** (the test-red record and the test-author probe); `script_verifications.red` says so.
+- **Stage context for Claude:** `{calls, peak, peakPct}` per stage; 119 of the 120 calls of r1 Battleship fall in a stage window.
+- **Dropped, with reasons:** Claude compactions (no recorded `compact_boundary`), truncated outputs, knowledge reads, cancelled calls,
+  `improve_reviews.identical` (the required pair of clean passes is not waste).
+- **Known limits:** main thread only; a result saved to a file is unread; a document line that starts with a prefix would count;
+  script runs are lower bounds (r1 Checkers: 29 against 30 by hand for sub.sh).
