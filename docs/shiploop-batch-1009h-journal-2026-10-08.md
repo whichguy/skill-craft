@@ -92,7 +92,7 @@ builds such a row and checks the printed line.
   of the 15 streams; the only context drops fall at a `system/init`, a session start; the others each need a second reader).
 
 **Related commits.** 1a35bc50 (Grok-only counters are unmeasured elsewhere; the `GROK_SIGNALS` precedent), 8444e11d (the planning
-block's recorded-extract tests, the pattern the fixtures follow), 06f2a012 (the callback plan that admitted M1), 847fa64e (the
+block's recorded-extract tests, the pattern the fixtures follow), f9096bb1 (the plan that admitted M1) and 06f2a012 (its corrections after execution), 847fa64e (the
 round-1 analysis that found every lens hand-mining `events.jsonl`).
 
 ## H1c: Claude stage rows carry the context the Codex rows carry (2026-10-08)
@@ -120,3 +120,41 @@ records them itself, with no peak). r1 Checkers: 36 rows, peak 235,247, one 0-ca
 **Not verified / unmeasured.** Compactions stay unmeasured for Claude: no `compact_boundary` in any of the 15 recorded streams, and
 the only context drops (5 older runs, 7 drops by the audit's scan) fall at a `system/init`, a session start, with no positive control.
 The exporter's SCHEMA rows that say only a Codex run has per-visit context are stale; see the hand-off at the end of this journal.
+
+## H1b: the `tool_use` block, what the model ran and how it met the packets (2026-10-08)
+
+**Built (status: firm for the counts on the two round-1 runs and the fixture-exact tests; the scripts' run counts are lower bounds).**
+`metrics.json` of a Claude run gains a record-only `tool_use` block (main thread): `calls`, `by_tool`, `result_chars`;
+`scratch_scripts` [{path, bytes, wraps_shiploop, runs}]; `packets` {on_disk {files, bytes} or None, printed {replies, chars},
+read {read_tool [{packet, whole, chars}], shell {calls, chars}}}. It is None on Grok and Codex (their events have no such block,
+and naming it in `unmeasured` would have put a new name in every Grok and Codex baseline row and broken five exact-set pins for a
+block those hosts never had). `summary_lines` prints one line when the block is present and says that model glue does not count
+the ShipLoop calls inside the scripts. Code: `ToolLog.measure`, `ToolLog.tool_use`, `written_scripts`, `invocation`,
+`tool_use_text`. Tests: five in `ClaudeToolBlocksTest`, every figure computed from the fixture by an independent loop before the code
+(script bytes 443, 943 and 548; printed 3 replies of 322, 322 and 249 characters; three packet Reads; one shell read of 399
+characters), and each failed with `KeyError: 'tool_use'` before the change.
+
+**Corrections from the audit that changed the build.**
+- *`runs` is a count of tool calls that run the script, not invocation lines.* The lens counts calls; the prototype counted lines
+  (r1 Checkers 27, 25, 3, 1 against the lens's 30, 10, 4, 1). With the variable fix and call-counting the Checkers figures are
+  sub.sh 29, ih.sh 10, loopdone.sh 3, loop.sh 1, and r1 Battleship sub.sh 30, idone.py 17, istart.sh 7. The design's "reproduced
+  every lens figure" is withdrawn for the script counts: Battleship's match, one Checkers call each of sub.sh and loopdone.sh is
+  missed (a path reached some way the pattern does not read), so the count stays a lower bound.
+- *`printed.piped` is dropped.* The audit found it the least reliable part (three misses) and no reader asks for it. The block keeps
+  the exact parts: calls, by_tool, result_chars, `on_disk`, `read_tool` rows, and the printed and shell counts.
+- *No `unmeasured['tool_use']` for other hosts* (the audit's correction 6, above).
+- *Where glue and the scripts meet.* The audit asked that a reader of `model_glue` see that it excludes wrapper scripts. The summary
+  line, the README bullet and the SPEC row say so; the Run Review page cannot show `scratch_scripts` (another session owns it), so
+  the hand-off below proposes run fields.
+
+**Evidence (all recomputed over the recorded run folders).** r1 Battleship: 120 calls (Bash 115, Read 4, Edit 1), 222,269 result
+characters, 44 packet files and 1,707,162 bytes on disk, 44 printed replies (37,367 characters), 4 packet Reads of which 2 whole
+(28,595 and 21,636 characters), 23 shell commands on packets (64,249 characters). r1 Checkers: 105 calls (Bash 101, Read 3, Skill 1),
+209,381 characters, 45 files and 1,737,466 bytes, 37 printed replies (61,305), 2 packet Reads both whole, 30 shell commands (64,886).
+All figures agree with what the round-1 lenses hand-mined. Over the 15 recorded Claude runs, 14 wrote and ran at least one helper
+script (14 of them one that wraps the CLI); the exception is the oldest battleship-scoring run.
+
+**Not verified.** A script written with the Write tool or with a redirect before the heredoc (`cat <<EOF > path`) is not listed; a
+product script is not listed unless it lives under `scratch/` or calls the CLI; Grok and Codex have no `tool_use` (a Grok reading
+could be added to the same `ToolLog` later). Whether the owner wants the scripts counted as glue in SPEC S-4 and S-5 is an owner
+call: `model_glue` keeps its definition so Grok baselines stay comparable, and the scripts are shown beside it.

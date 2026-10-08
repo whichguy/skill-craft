@@ -2524,6 +2524,71 @@ class ClaudeToolBlocksTest(unittest.TestCase):
         self.assertTrue(all("context" not in r for r in unplaced["stages"]), unplaced["stages"])
         self.assertIsNone(collect_stream([*events[:-1], CLAUDE_END], [("A1", "intake", "done", 115.0)])["stages"][0]["context"]["peakPct"])
 
+    def all_calls(self) -> list[dict]:
+        return recorded_calls(*json.loads((TOOL_BLOCKS / "manifest.json").read_text())["battleship-sonnet-calls.jsonl"])
+
+    def test_the_tool_use_block_counts_calls_by_tool_and_the_characters_they_returned(self):
+        use = self.collect(self.all_calls())["tool_use"]
+        self.assertEqual((use["calls"], use["by_tool"], use["result_chars"]), (17, {"Bash": 13, "Edit": 1, "Read": 3}, 5753))
+        none = self.collect([{"type": "assistant", "message": {"id": "m1", "usage": {"input_tokens": 1}, "content": [
+            {"type": "text", "text": "hello"}]}}])["tool_use"]
+        self.assertEqual((none["calls"], none["by_tool"], none["result_chars"], none["scratch_scripts"]), (0, {}, 0, []),
+                         "a Claude stream with no tool call is a measured none")
+
+    def test_scratch_scripts_list_what_the_model_wrote_and_how_many_calls_ran_it(self):
+        run = "/runs/r1/.shiploop-runs/work-1/run/scratch/"
+        found = self.collect(self.all_calls())["tool_use"]["scratch_scripts"]
+        # sub.sh is written and run in one call, then run in another; idone.py is run once; istart.sh once (its heredoc
+        # holds `improve-start`). The notes and inbox files the model also wrote with heredocs are documents, not scripts.
+        self.assertEqual(found, [{"path": run + "idone.py", "bytes": 443, "wraps_shiploop": False, "runs": 1},
+                                 {"path": run + "istart.sh", "bytes": 943, "wraps_shiploop": True, "runs": 1},
+                                 {"path": run + "sub.sh", "bytes": 548, "wraps_shiploop": True, "runs": 2}])
+        # Runs are tool calls: two invocation lines in one call are one run; a path used as an argument or as a
+        # `--result=` value, and a script never invoked, are not runs.
+        derived = ("RUN=/runs/r1/.shiploop-runs/work-1/run\n$RUN/scratch/sub.sh a b\ncd /x && $RUN/scratch/sub.sh c d\n"
+                   "ls -l $RUN/scratch/sub.sh\ncat $RUN/scratch/sub.sh | head -3\n"
+                   "python3 $CLI complete --result=$RUN/scratch/sub.sh")
+        events = [*recorded_calls("write-and-run-sub"), *with_command(recorded_calls("run-sub-piped"), derived)]
+        scripts = self.collect(events)["tool_use"]["scratch_scripts"]
+        self.assertEqual([(s["path"].rsplit("/", 1)[1], s["runs"]) for s in scripts], [("sub.sh", 2)])
+
+    def test_packet_use_counts_printed_heads_reads_and_the_packets_on_disk(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            events = [*self.all_calls(), CLAUDE_END]
+            run_dir = write_stream_run(out, events, [("A1", "intake", "done", 150.0)])
+            self.assertIsNone(metrics.collect(out, run_dir)["tool_use"]["packets"]["on_disk"], "no packets folder")
+            (run_dir / "packets").mkdir()
+            for name, size in (("nav-1.md", 1000), ("nav-2.md", 2500), ("nav-3.md", 40)):
+                (run_dir / "packets" / name).write_text("x" * size)
+            (run_dir / "packets" / "ignored.json").write_text("{}")
+            packets = metrics.collect(out, run_dir)["tool_use"]["packets"]
+        # Printed: results that show a packet head (ShipLoop navigator | stage |) from calls that do not name a packet file.
+        self.assertEqual(packets["printed"], {"replies": 3, "chars": 322 + 322 + 249})
+        self.assertEqual(packets["read"]["read_tool"], [
+            {"packet": "nav-b5efb9acc5be4d4a95a7c8ccc924f360", "whole": True, "chars": 323},
+            {"packet": "nav-80a00f1aba124ef8923838789237eba9", "whole": False, "chars": 322},
+            {"packet": "nav-80a00f1aba124ef8923838789237eba9", "whole": False, "chars": 322}])
+        self.assertEqual(packets["read"]["shell"], {"calls": 1, "chars": 399})
+        self.assertEqual(packets["on_disk"], {"files": 3, "bytes": 3540})
+
+    def test_other_hosts_have_no_tool_use_block(self):
+        grok = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
+                {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "ls"}}]
+        for label, stream in (("grok", grok), ("codex", codex_stream(3))):
+            m = collect_stream(stream, [])
+            self.assertIsNone(m["tool_use"], label)
+            self.assertNotIn("tool_use", m["unmeasured"], "no host but Claude ever had this block: nothing to name")
+
+    def test_the_summary_says_what_the_model_ran_beside_the_glue_count(self):
+        lines = metrics.summary_lines(self.collect(self.all_calls()))
+        use = next(line for line in lines if line.startswith("tool use (main thread):"))
+        for text in ("17 calls (Bash 13, Read 3, Edit 1)", "5,753 result chars", "sub.sh 2 runs (wraps ShipLoop)",
+                     "idone.py 1 run", "istart.sh 1 run (wraps ShipLoop)", "not counted in model glue",
+                     "3 printed packet replies (893 chars)", "3 packet Reads (1 whole)", "1 shell command on packets (399 chars)"):
+            self.assertIn(text, use)
+        self.assertFalse(any(line.startswith("tool use") for line in metrics.summary_lines(collect_stream(codex_stream(2), []))))
+
     def test_progress_names_a_claude_refusal_and_does_not_print_an_exit_that_was_not_shown(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)

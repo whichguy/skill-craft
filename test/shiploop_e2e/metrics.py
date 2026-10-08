@@ -197,12 +197,13 @@ WRITTEN_FILE = re.compile(r"(?:\bcat\s*>>?|\btee(?:\s+-a)?)\s*(?P<path>[^\s<>|;&
 MODEL_SCRIPT_HOME = "/run/scratch/"
 
 
-def written_scripts(command: str, known: dict[str, str]) -> list[tuple[str, str, bool]]:
-    """(path, body, wraps ShipLoop) of each heredoc file in a command that is a model-written script, variables expanded.
+def written_scripts(command: str, known: dict[str, str]) -> list[dict]:
+    """The model-written scripts a command creates with a heredoc: {path, body, wraps, bytes}, variables expanded.
 
     A file counts when it lives in the run's scratch folder or its body calls the ShipLoop CLI (a verb after the script's
     own `shiploop`, or the CLI's `scripts/shiploop` path): the product files a heredoc writes are not scripts here, and a
-    path that still holds a variable after expansion cannot be matched to a later call, so it is left out.
+    path that still holds a variable after expansion cannot be matched to a later call, so it is left out. ``bytes`` is
+    the size of the body as written.
     """
     found = []
     for m in WRITTEN_FILE.finditer(command):
@@ -210,8 +211,20 @@ def written_scripts(command: str, known: dict[str, str]) -> list[tuple[str, str,
         body = expand_variables(m.group("body"), shell_variables(m.group("body"), known))
         wraps = bool(SHIPLOOP_COMMAND.search(body)) or "scripts/shiploop" in body
         if "$" not in path and (MODEL_SCRIPT_HOME in path or wraps):
-            found.append((path, body, wraps))
+            found.append({"path": path, "body": body, "wraps": wraps, "bytes": len(m.group("body").encode())})
     return found
+
+
+def invocation(path: str):
+    """A pattern for a command line that runs the script at ``path``: it stands where a command does (a line start, after
+    `;`, `&`, `|`, `(`, `then` or `do`, behind VAR=value words) or right after an interpreter. A path that is an
+    argument (`ls -l PATH`, `--result=PATH`) is not a run."""
+    return re.compile(r"(?:^|[;&|(`]|\$\(|\b(?:then|do|else)\b|\b(?:python3?|bash|sh|zsh|node)[ \t]+(?:-\S+[ \t]+)*)"
+                      r"[ \t]*(?:\w+=\S*[ \t]+)*[\"']?" + re.escape(path) + r"(?=[\s;&|)\"'`]|$)", re.M)
+
+
+def plural(count: int, noun: str) -> str:
+    return f"{count} {noun}{'' if count == 1 else 's'}"
 
 
 class ToolLog:
@@ -234,7 +247,10 @@ class ToolLog:
         self.reads: list[str] = []
         self.failures: list[dict] = []
         self.failed: set = set()  # Grok repeats an update for one call; a call is a failure once
-        self.scripts: dict[str, dict] = {}  # path -> {"body", "wraps"}: the model-written scripts seen so far
+        self.scripts: dict[str, dict] = {}  # path -> {body, wraps, bytes, runs, pattern}: the model-written scripts so far
+        self.by_tool: dict[str, int] = {}  # Claude only below: what the model called, what came back, how it used packets
+        self.result_chars = 0
+        self.packets = {"printed": [0, 0], "shell": [0, 0], "read_tool": []}
 
     def call(self, t, call_id, tool: str, arg: dict) -> None:
         """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written."""
@@ -243,21 +259,60 @@ class ToolLog:
         command = str(arg.get("command") or "")
         known = shell_variables(command) if command else {}
         expanded = expand_variables(command, known)
-        for path, body, wraps in written_scripts(command, known):
-            self.scripts[path] = {"body": body, "wraps": wraps}
+        for found in written_scripts(command, known):
+            script = self.scripts.setdefault(found["path"], {"runs": 0})
+            script.update(body=found["body"], wraps=found["wraps"], bytes=found["bytes"], pattern=invocation(found["path"]))
         wrappers = "".join("\n" + script["body"] for path, script in self.scripts.items() if path in expanded)
+        shell = shell_text(expanded)
+        for script in self.scripts.values():  # a run is a tool call that runs the script, however many lines do
+            script["runs"] += bool(script["pattern"].search(shell))
+        target = arg.get("target_file") or arg.get("file_path") or arg.get("path")
+        self.by_tool[tool] = self.by_tool.get(tool, 0) + 1
         self.calls[call_id if call_id is not None else f"#{len(self.calls)}"] = {
-            "t": t, "command": command, "expanded": expanded, "invoked": expanded + wrappers}
+            "t": t, "command": command, "expanded": expanded, "invoked": expanded + wrappers, "tool": tool,
+            "packet": "/packets/" in expanded or "/packets/" in str(target or ""),
+            "whole": "offset" not in arg and "limit" not in arg, "file": str(target or "")}
         if command:
             reasons = glue_reasons(expanded)
             self.shared.update(tmp_writes(expanded))
             if reasons:
                 self.glue.append({"reasons": reasons, "command": " ".join(command.split())[:200]})
-        target = arg.get("target_file") or arg.get("file_path") or arg.get("path")
         if target:
             self.reads.append(str(target))
             if WRITE_TOOL.search(tool) and str(target).startswith("/tmp/"):
                 self.shared.add(str(target))
+
+    def measure(self, call_id, shown: str) -> None:
+        """What one tool result held, for a stream whose results arrive once and whole (Claude's): characters, and how the
+        model met the packets: a printed head (a ShipLoop reply shown by a call that does not name a packet file), a Read
+        of a packet file, or a shell command that names one."""
+        call = self.calls.get(call_id) or {}
+        self.result_chars += len(shown)
+        if call.get("packet") and call.get("tool") == "Read":
+            self.packets["read_tool"].append({"packet": Path(call["file"]).stem, "whole": call["whole"], "chars": len(shown)})
+        elif call.get("packet") and call.get("command"):
+            self.packets["shell"][0] += 1
+            self.packets["shell"][1] += len(shown)
+        elif PACKET_STAGE.search(shown):
+            self.packets["printed"][0] += 1
+            self.packets["printed"][1] += len(shown)
+
+    def tool_use(self, run_dir: Path | None) -> dict:
+        """The record-only `tool_use` block of a Claude run (main thread): calls, results, scripts and packets.
+
+        ``scratch_scripts`` are the model-written scripts that were run, with the number of tool calls that ran each;
+        ``packets.on_disk`` is what the run directory holds, None when it has no packets folder.
+        """
+        folder = run_dir / "packets" if run_dir else None
+        files = [p for p in sorted(folder.glob("*.md")) if p.is_file()] if folder and folder.is_dir() else None
+        return {"calls": sum(self.by_tool.values()), "by_tool": dict(sorted(self.by_tool.items())),
+                "result_chars": self.result_chars,
+                "scratch_scripts": [{"path": path, "bytes": s["bytes"], "wraps_shiploop": s["wraps"], "runs": s["runs"]}
+                                    for path, s in sorted(self.scripts.items()) if s["runs"]],
+                "packets": {"on_disk": None if files is None else {"files": len(files), "bytes": sum(p.stat().st_size for p in files)},
+                            "printed": dict(zip(("replies", "chars"), self.packets["printed"])),
+                            "read": {"read_tool": self.packets["read_tool"],
+                                     "shell": dict(zip(("calls", "chars"), self.packets["shell"]))}}}
 
     def result(self, call_id, shown: str, code: int | None) -> None:
         """One tool result, with the exit code the host showed (None when it showed none)."""
@@ -660,6 +715,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             turns.append({"t": t, "input": context_tokens((event.get("message") or {}).get("usage")), "call": first})
         elif kind == "user":  # Claude: the tool_result blocks, whose text may begin with the host's `Exit code N`
             for call_id, shown in tool_results(event):
+                tools.measure(call_id, shown)
                 tools.result(call_id, shown, claude_exit(shown))
         elif kind == "tool_call":
             arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
@@ -754,6 +810,9 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "truncated_outputs": None if "truncated_outputs" in unmeasured else len(truncated),
         "cancelled_tool_calls": cancelled,
         "shiploop_failures": tools.failures,
+        # Claude's tool_use / tool_result blocks only (main thread): what the model ran and how it used the packets. A
+        # record, never a verdict; None on the hosts whose events this harness has no such reading of.
+        "tool_use": tools.tool_use(run_dir) if claude_calls and not grok else None,
         "script_verifications": verifications(run_dir),
         "model_glue": tools.glue,
         "asked_user": tools.asked,
@@ -1066,6 +1125,24 @@ def planning_text(plan: dict) -> str:
     return "; ".join(parts)
 
 
+def tool_use_text(use: dict) -> str:
+    """The `tool_use` block as one printed line, saying that model glue does not count the ShipLoop calls in the scripts."""
+    mix = ", ".join(f"{name} {n}" for name, n in sorted(use["by_tool"].items(), key=lambda item: (-item[1], item[0])))
+    scripts = sorted(use["scratch_scripts"], key=lambda s: (-s["runs"], s["path"]))
+    made = ", ".join(f"{Path(s['path']).name} {plural(s['runs'], 'run')}" + (" (wraps ShipLoop)" if s["wraps_shiploop"] else "")
+                     for s in scripts)
+    packets = use["packets"]
+    read, disk = packets["read"], packets["on_disk"]
+    replies = packets["printed"]["replies"]
+    return (f"tool use (main thread): {plural(use['calls'], 'call')} ({mix or 'none'}), {use['result_chars']:,} result chars; "
+            + (f"scripts the model wrote and ran: {made} (their ShipLoop calls are not counted in model glue)" if made
+               else "no script the model wrote was run")
+            + f"; packets: {replies} printed packet {'reply' if replies == 1 else 'replies'} ({packets['printed']['chars']:,} chars), "
+              f"{plural(len(read['read_tool']), 'packet Read')} ({sum(r['whole'] for r in read['read_tool'])} whole), "
+              f"{plural(read['shell']['calls'], 'shell command')} on packets ({read['shell']['chars']:,} chars), "
+            + ("none on disk" if disk is None else f"{plural(disk['files'], 'packet file')} on disk ({disk['bytes']:,} bytes)"))
+
+
 def summary_lines(metrics: dict, top: int = 5) -> list[str]:
     """A few lines for the printed report: the costliest stages and the problems."""
 
@@ -1088,6 +1165,8 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
                 if metrics.get("improve_reviews", {}).get("passes") else "")]
     if metrics.get("planning"):
         lines.append(planning_text(metrics["planning"]))
+    if metrics.get("tool_use"):
+        lines.append(tool_use_text(metrics["tool_use"]))
     story = metrics.get("narrative") or {}
     if story.get("emitted") or story.get("results"):
         lines.append(f"narrative shown {story['shown']}/{story['emitted']} (verbatim {story['verbatim']})"

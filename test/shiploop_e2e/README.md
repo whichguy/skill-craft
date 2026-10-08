@@ -344,8 +344,25 @@ product hang; it does not say the product is wrong.
     not recorded and cannot replace the real one.
   - `model_glue` counts commands (SPEC S-4, S-5). A script the model wrote that wraps the
     CLI hides the ShipLoop calls inside it from every count here: the verb, the glue write and
-    often the failure's verb. 14 of the 15 recorded Claude runs wrote one. A glue of 0 on
-    Claude is a lower bound.
+    often the failure's verb. 14 of the 15 recorded Claude runs wrote and ran one
+    (`tool_use.scratch_scripts`, below, lists them). A glue of 0 on Claude is a lower bound.
+  - `tool_use` is a record of what the model ran, Claude only (it is None on Grok and Codex and
+    is not named in `unmeasured`: those hosts never had this block). `calls`, `by_tool` and
+    `result_chars` count the tool_use blocks and what their results returned.
+    `scratch_scripts` lists the scripts the model wrote with a heredoc (`cat > PATH <<'EOF'`)
+    that live in the run's `scratch/` folder or call the ShipLoop CLI and were then run, each
+    with its `bytes`, `wraps_shiploop` and `runs`: the number of tool calls that run it (two
+    lines in one call are one run; a path used as an argument is none), a lower bound, since a
+    `cd` into the folder, a loop or an indirect call is missed (r1 Checkers: sub.sh 29 runs by
+    this rule against 30 by hand). `packets` says how the model met the packets: `on_disk`
+    ({files, bytes} of the run's packets folder, None when it has none), `printed` (results
+    that show a packet head, `ShipLoop navigator | stage |`, from calls that do not name a
+    packet file: the model ran the CLI and its reply carried the packet), and `read`, with
+    `read_tool` (each Read of a packet file: its name, `whole` when it had no offset or limit,
+    and the characters returned) and `shell` (calls that name a packet file, and the characters
+    they returned). r1 Battleship: 44 packet files, 1,707,162 bytes on disk; 44 printed
+    replies, 37,367 characters; 4 packet Reads, 2 whole (28,595 and 21,636 characters); 23 shell
+    commands on packets, 64,249 characters. `summary_lines` prints one line when it is present.
   - Only the main thread is read: a sub-agent's tool calls, if a run used one, are absent
     (none of the 15 recorded Claude runs did), and a result the host saved to a file shows
     only its preview.
