@@ -271,7 +271,9 @@ class ImproveScheduleTests(unittest.TestCase):
                                  "Callback for this Improve child"):
                     self.assertNotIn(callback, packet)
 
-    def test_a_recorded_card_is_the_value_the_packet_prints_and_its_body_line_says_where_it_came_from(self):
+    def test_a_recorded_card_is_the_value_the_packet_prints_and_its_body_line_names_no_origin(self):
+        """The recorded value may have come from `--improve-skill`, from `init`'s installed-card lookup or from an earlier
+        `improve-bind`, so the line says only that the card is the recorded one."""
         run = Path("/simulation-only/run")
         recorded = advance_to(nav.new_state("/simulation-only/repo", "Schedule fixture.", improve_skill=str(CARD)), "spec")
         waiting = nav.apply(recorded, nav.current_action(recorded)["id"], DONE)
@@ -280,9 +282,11 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertTrue(lead.startswith("Next command (bind the selected Improve card"), lead)
         self.assertIn("--skill-card=" + str(CARD), lead)
         lines = packet.splitlines()
-        body = lines[next(i for i, line in enumerate(lines)
-                          if line.startswith("Bind the Improve card recorded for this run")) + 1]
+        said = next(i for i, line in enumerate(lines) if line.startswith("Bind the Improve card recorded for this run"))
+        body = lines[said + 1]
         self.assertTrue(lead.endswith(": " + body), (lead, body))
+        for origin in ("--improve-skill", "installed beside"):
+            self.assertNotIn(origin, lines[said])
         self.assertNotIn("No Improve card is recorded", packet)
         self.assertNotIn(nav.IMPROVE_CARD_BLANK, packet)
 
@@ -646,6 +650,17 @@ class InstalledCardCliTests(CliRunCase):
         _lead, argv = self.printed_bind(self.to_the_bind(run))
         self.assertIn("--skill-card=" + str(elsewhere / "SKILL.md"), argv)
         self.assertNotIn("--skill-card=" + str(CARD), argv)
+
+
+    def test_the_help_does_not_promise_a_default_that_planning_review_none_refuses(self):
+        """`--improve-skill` has no default under `none`: the run is refused without it.  A help line that said
+        "default: the card installed beside ShipLoop" promised what the script refuses."""
+        self.env["COLUMNS"] = "1000"  # argparse wraps (and may break at a hyphen) to the terminal width
+        for argv in (("init",), ("workspace", "start")):
+            text = " ".join(self.cli(*argv, "--help").stdout.split())
+            self.assertIn("a stage run without it records the card installed beside ShipLoop", text, argv)
+            self.assertIn("required with --planning-review none", text, argv)
+            self.assertNotIn("(default: the card installed beside ShipLoop)", text, argv)
 
 
 class NoInstalledCardCliTests(CliRunCase):

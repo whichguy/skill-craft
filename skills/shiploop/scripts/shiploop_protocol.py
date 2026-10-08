@@ -95,12 +95,17 @@ def _require_card_for_unreviewed_planning(requested: "str | None", card: str) ->
         raise ProtocolError(f"the selected Improve card cannot be resolved: {exc}") from exc
 
 
+# Not "default": under --planning-review none there is none, and the run is refused without the flag.
+IMPROVE_SKILL_HELP = ("absolute selected Improve SKILL.md (a stage run without it records the card installed beside "
+                      "ShipLoop; required with --planning-review none)")
+
+
 def _new_run_card(explicit: str) -> str:
     """The Improve card a new run records: the one selected with ``--improve-skill``, else the one installed beside ShipLoop.
 
     The installed card is found by file location in this plugin install and accepted only when
     ``resolve_skill`` validates it, so no name or PATH search is involved.  Where none resolves the run records
-    nothing and the first bind is a stage's own checkpoint, as before.
+    nothing; under ``stage`` the first bind is then the spec checkpoint's packet, which prints a marked blank.
     """
     if explicit:
         return explicit
@@ -126,8 +131,7 @@ def workspace_command(core, argv):
     start.add_argument("--include-untracked", action="append", default=[])
     start.add_argument("--exclude", action="append", default=[])
     start.add_argument("--delivery-contract", action="store_true")
-    start.add_argument("--improve-skill", default="",
-                       help="absolute selected Improve SKILL.md (default: the card installed beside ShipLoop)")
+    start.add_argument("--improve-skill", default="", help=IMPROVE_SKILL_HELP)
     start.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                        help="new run: inline (default) or ask-agent delegation")
     start.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
@@ -454,8 +458,7 @@ def main(core, argv=None):
             sub.add_argument("--bound-plan", default="")
             sub.add_argument("--execution-mode", choices=("navigator", "navigator-worktree"), default="navigator",
                              help="navigator-worktree is created by workspace start; existing runs retain their recorded mode")
-            sub.add_argument("--improve-skill", default="",
-                             help="absolute selected Improve SKILL.md (default: the card installed beside ShipLoop)")
+            sub.add_argument("--improve-skill", default="", help=IMPROVE_SKILL_HELP)
             sub.add_argument("--delivery-contract", action="store_true",
                              help="opt a new run in to consumer-delivery declaration checks")
             sub.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
