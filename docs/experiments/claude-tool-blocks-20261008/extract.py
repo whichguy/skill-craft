@@ -9,7 +9,8 @@ user events with their message ids, tool_use ids and per-message usage, in the r
 the run folder prefix is rewritten (/runs/r1 for Battleship, /runs/r2 for Checkers; the work-directory stamp becomes
 work-1, and any other user name becomes `user`), so none is kept; thinking signatures are dropped; a result over 800 characters is cut to its first
 300 characters plus every line that begins `ShipLoop ` (a refusal's own line), with the cut marked. manifest.json names
-each call, its source event numbers, the lines it occupies here and the original and kept result sizes. The tests
+each call, its lines here and its original (uncut, unrewritten) and kept result sizes; verify-records.json holds three
+test-loop records of the Battleship run, two of which ran red. The tests
 expect the figures of these cut results; the figures of the uncut runs are in the journal.
 """
 import json
@@ -120,6 +121,29 @@ def extract(folder: str, alias: str, wanted: dict[str, int]) -> tuple[list[dict]
     return [event for _, event in picked], manifest, text
 
 
+# The three test-loop records of r1 Battleship the verification tests read: the test-red record (`expect: red`, both commands
+# ran red and the record passed), the test-author probe (`expect: a test ran`, which accepts red or passed, and ran red), and a
+# green system-test record. Stdout and stderr are cut to 200 characters, the working directory and time are dropped.
+VERIFY = {"test-red": "nav-70f6c0cd", "test-author": "nav-dfe0a994", "system-test": "nav-8c62dc57"}
+
+
+def verify_records() -> dict:
+    tests = next((RUNS / "20261008" / "r1-battleship-sonnet" / ".shiploop-runs").glob("*/run")) / "tests"
+    found = {}
+    for number, (stage, prefix) in enumerate(VERIFY.items(), 1):
+        path = next(tests.glob(f"{prefix}*-verify1.md"))
+        record = json.loads(re.search(r"```shiploop-state\n(.*?)\n```", path.read_text(), re.S).group(1))
+        runs = [{k: (rewrite_text(v)[:200] if k in ("stdout", "stderr") else v) for k, v in run.items()}
+                for run in record["runs"]]
+        found[stage] = {**{k: v for k, v in record.items() if k not in ("cwd", "created_at", "runs")},
+                        "action": f"a{number}", "runs": runs}
+    return found
+
+
+def rewrite_text(text: str) -> str:
+    return rewrite(text, "r1-battleship-sonnet", "r1")
+
+
 def main() -> None:
     manifest = {}
     for file, folder, alias, wanted in (("battleship-sonnet-calls.jsonl", "r1-battleship-sonnet", "r1", BATTLESHIP),
@@ -129,6 +153,7 @@ def main() -> None:
         manifest[file] = found
         print(file, len(text), "bytes")
     (HERE / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
+    (HERE / "verify-records.json").write_text(json.dumps(verify_records(), indent=1) + "\n")
 
 
 if __name__ == "__main__":

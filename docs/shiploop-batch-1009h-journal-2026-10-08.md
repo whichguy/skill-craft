@@ -158,3 +158,32 @@ script (14 of them one that wraps the CLI); the exception is the oldest battlesh
 product script is not listed unless it lives under `scratch/` or calls the CLI; Grok and Codex have no `tool_use` (a Grok reading
 could be added to the same `ToolLog` later). Whether the owner wants the scripts counted as glue in SPEC S-4 and S-5 is an owner
 call: `model_glue` keeps its definition so Grok baselines stay comparable, and the scripts are shown beside it.
+
+## H1d: records that passed because they ran red are counted apart (2026-10-08)
+
+**Built (status: firm for the two records and the tests; the figure is a count of records, not a verdict).**
+`script_verifications` gains `red`: the records in which a command's own status is `red`, and `summary_lines` prints
+"script verifications 10/10 passed (2 ran red)". `ShipLoop-run checks` in `progress.py` is unchanged (a live monitor has nothing
+to do with the figure). Tests: `RedRecordCountTest` over `docs/experiments/claude-tool-blocks-20261008/verify-records.json` (three
+records of r1 Battleship, cut by `extract.py`: the test-red record, the test-author probe and a green system-test record) and the
+three exact-dict assertions on `verifications()` that gained the key. Each failed before the change.
+
+**Corrections from the audit that changed the build.**
+- *Counted by what ran, not by what the record expected.* The design counted records whose `expect` is `red` or `a test ran`. The
+  test-author probe's `expect: a test ran` accepts red **or** passed (`good = ("red", "passed")` for a probe in
+  `shiploop_test_loop.py`), so a probe whose commands ran green would be mislabelled "expected not green". The count reads the run's
+  status instead; a test derives a green probe from the recorded one (statuses changed to `passed`) and expects 1 red, not 2. In
+  r1 Battleship both flagged records are red with exit 1, so the figure 2 stands.
+- *Named for what it counts and printed without "expected".* The field is `red`, the line says "2 ran red".
+- *`improve_reviews.identical` is dropped.* Improve stops on two consecutive no-change passes, so a child that changed anything ends
+  with two passes that found nothing, by contract. The audit read the notes: Checkers children 226f, 7e78 and 64cc and Battleship d1d54ff
+  each end with that pair, and 370f's pair differs only in wording (not re-read here; the argument does not depend on them). Identical text measures the model copying a note, not wasted passes, and the name
+  invites the wrong reading ("drop the second pass"). `improve_reviews` keeps passes, seconds and bytes; a waste signal, if wanted,
+  would come from changed versus unchanged passes in a separate admission. The design's "bind-to-complete seconds for every child"
+  was already dropped (`planning.stages[].improve_seconds` covers the five planning children).
+
+**Evidence.** r1 Battleship has 10 verify records, all `passed`; 2 of them ran red (`nav-70f6c0cd...` the test-red record, exit 1
+twice, `expect: red`; `nav-dfe0a994...` the test-author probe, exit 1 twice, `expect: a test ran`). The other 8 are green.
+
+**Not verified.** Whether any other case or host has a red record that did not pass (a failing test-red); the count includes it
+whatever its disposition, which is what "ran red" says.

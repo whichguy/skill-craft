@@ -1626,7 +1626,7 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(m["compactions"], 1)
         self.assertEqual(m["truncated_outputs"], 2)
         self.assertEqual(m["script_verifications"],
-                         {"records": 0, "passed": 0, "could_not_run": 0, "commands": 0})
+                         {"records": 0, "passed": 0, "could_not_run": 0, "commands": 0, "red": 0})
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
         self.assertEqual(m["asked_user"], ["Which port?"])
         self.assertEqual(m["improve_children"], 1)
@@ -1895,7 +1895,7 @@ class MetricsTest(unittest.TestCase):
             (tests / "nav-2-verify1.md").write_text('{"passed": false, "runs": [{"command": "c"}]}')
             (tests / "nav-2-contract.json").write_text("{}")
             self.assertEqual(metrics.verifications(Path(tmp) / "run"),
-                             {"records": 2, "passed": 1, "could_not_run": 0, "commands": 3})
+                             {"records": 2, "passed": 1, "could_not_run": 0, "commands": 3, "red": 0})
 
     def test_progress_reports_only_what_is_new_and_never_a_run_marker(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3461,7 +3461,7 @@ class CouldNotRunCountTest(unittest.TestCase):
     def test_could_not_run_records_are_counted_apart_from_failures_and_passes(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(metrics.verifications(self.records(tmp)),
-                             {"records": 3, "passed": 1, "could_not_run": 1, "commands": 3})
+                             {"records": 3, "passed": 1, "could_not_run": 1, "commands": 3, "red": 0})
 
     def test_the_report_and_the_progress_line_show_the_could_not_run_count(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3472,6 +3472,38 @@ class CouldNotRunCountTest(unittest.TestCase):
             m = metrics.collect(out, run_dir)
             self.assertIn("script verifications 1/3 passed (1 could not run)", metrics.summary_lines(m)[0])
             self.assertIn("1 could not run", progress.report(out))
+
+
+class RedRecordCountTest(unittest.TestCase):
+    """A record that passed because its commands ran red is counted apart from the green passes (r1 Battleship: 2 of the
+    10 passed records). The count reads what ran (a run whose status is `red`), not what the record expected."""
+
+    def verify(self, records: dict) -> dict:
+        with tempfile.TemporaryDirectory() as tmp:
+            tests = Path(tmp) / "run" / "tests"
+            tests.mkdir(parents=True)
+            for name, record in records.items():
+                (tests / f"{record['action']}-verify1.md").write_text(run.store.dumps(record, "ShipLoop test-loop verification"))
+            return metrics.verifications(Path(tmp) / "run")
+
+    def test_records_whose_commands_ran_red_are_counted_apart_from_green_passes(self):
+        records = json.loads((TOOL_BLOCKS / "verify-records.json").read_text())
+        self.assertEqual(self.verify(records), {"records": 3, "passed": 3, "could_not_run": 0, "commands": 5, "red": 2})
+        # The test-author probe accepts red or passed (`expect: a test ran`): one that ran green is a green pass.
+        probe = json.loads(json.dumps(records))
+        for each in probe["test-author"]["runs"]:
+            each["status"], each["exit"] = "passed", 0
+        self.assertEqual(self.verify(probe)["red"], 1)
+
+    def test_the_report_names_the_red_records_without_calling_them_expected(self):
+        m = collect_stream(codex_stream(1), [])
+        m["script_verifications"] = {"records": 10, "passed": 10, "could_not_run": 0, "commands": 20, "red": 2}
+        line = metrics.summary_lines(m)[0]
+        self.assertIn("script verifications 10/10 passed (2 ran red)", line)
+        m["script_verifications"] = {"records": 10, "passed": 9, "could_not_run": 1, "commands": 20, "red": 0}
+        self.assertIn("script verifications 9/10 passed (1 could not run)", metrics.summary_lines(m)[0])
+        self.assertNotIn("ran red", metrics.summary_lines(m)[0])
+        self.assertNotIn("expected", metrics.summary_lines(m)[0])
 
 
 class RetentionIdCountTest(unittest.TestCase):

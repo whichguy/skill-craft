@@ -1,0 +1,178 @@
+{
+ "test-red": {
+  "action": "a1",
+  "disposition": "passed",
+  "expect": "red",
+  "passed": true,
+  "schema": "shiploop-test-loop/v1",
+  "stage": "test-red",
+  "work_item": "W1",
+  "runs": [
+   {
+    "command": "node --test test/game.test.js",
+    "counts": {
+     "failed": 17,
+     "ran": 18,
+     "runners": [
+      "node"
+     ]
+    },
+    "criteria": [
+     "C1"
+    ],
+    "exit": 1,
+    "ids": [
+     "TC-6",
+     "TC-7",
+     "TC-8",
+     "TC-9",
+     "TC-10",
+     "TC-11"
+    ],
+    "ids_missing": [],
+    "min_tests": 8,
+    "seconds": 0.124,
+    "status": "red",
+    "stderr": "",
+    "stdout": "[... 11091 chars]\nest:1201:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)\n      at Test.postRun (node:internal/test_runner/test:1330:19)\n      at Test.run (node:inter",
+    "suite": "focused"
+   },
+   {
+    "command": "node --test test/server.test.js",
+    "counts": {
+     "failed": 20,
+     "ran": 23,
+     "runners": [
+      "node"
+     ]
+    },
+    "criteria": [
+     "C2",
+     "C3"
+    ],
+    "exit": 1,
+    "ids": [
+     "TC-1",
+     "TC-2",
+     "TC-3",
+     "TC-4",
+     "TC-5",
+     "TC-9",
+     "TC-10",
+     "TC-13"
+    ],
+    "ids_missing": [],
+    "min_tests": 10,
+    "seconds": 5.318,
+    "status": "red",
+    "stderr": "",
+    "stdout": "[... 18078 chars]\n    at Test.run (node:internal/test_runner/test:1201:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)\n      at Test.postRun (node:internal/test_runner",
+    "suite": "focused"
+   }
+  ]
+ },
+ "test-author": {
+  "action": "a2",
+  "disposition": "passed",
+  "expect": "a test ran",
+  "passed": true,
+  "schema": "shiploop-test-loop/v1",
+  "stage": "test-author",
+  "work_item": "W1",
+  "runs": [
+   {
+    "command": "node --test test/game.test.js",
+    "counts": {
+     "failed": 17,
+     "ran": 18,
+     "runners": [
+      "node"
+     ]
+    },
+    "criteria": [
+     "C1"
+    ],
+    "exit": 1,
+    "ids": [
+     "TC-6",
+     "TC-7",
+     "TC-8",
+     "TC-9",
+     "TC-10",
+     "TC-11"
+    ],
+    "ids_missing": [],
+    "min_tests": 8,
+    "seconds": 0.125,
+    "status": "red",
+    "stderr": "",
+    "stdout": "[... 11102 chars]\nst:1201:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)\n      at Test.postRun (node:internal/test_runner/test:1330:19)\n      at Test.run (node:intern",
+    "suite": "focused"
+   },
+   {
+    "command": "node --test test/server.test.js",
+    "counts": {
+     "failed": 20,
+     "ran": 23,
+     "runners": [
+      "node"
+     ]
+    },
+    "criteria": [
+     "C2",
+     "C3"
+    ],
+    "exit": 1,
+    "ids": [
+     "TC-1",
+     "TC-2",
+     "TC-3",
+     "TC-4",
+     "TC-5",
+     "TC-9",
+     "TC-10",
+     "TC-13"
+    ],
+    "ids_missing": [],
+    "min_tests": 10,
+    "seconds": 5.322,
+    "status": "red",
+    "stderr": "",
+    "stdout": "[... 18069 chars]\n4)\n      at Test.run (node:internal/test_runner/test:1201:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)\n      at Test.postRun (node:internal/test_r",
+    "suite": "focused"
+   }
+  ]
+ },
+ "system-test": {
+  "action": "a3",
+  "disposition": "passed",
+  "passed": true,
+  "schema": "shiploop-test-loop/v1",
+  "stage": "system-test",
+  "work_item": "",
+  "runs": [
+   {
+    "command": "node --test test/system.test.js",
+    "counts": {
+     "failed": 0,
+     "ran": 2,
+     "runners": [
+      "node"
+     ]
+    },
+    "exit": 0,
+    "ids": [
+     "ST-1",
+     "ST-2"
+    ],
+    "ids_missing": [],
+    "min_tests": 2,
+    "seconds": 0.405,
+    "status": "passed",
+    "stderr": "",
+    "stdout": "\u2714 ST-1 a full game over HTTP: 17 ship cells, 5 sunk ships, gameOver exactly on the last sinking (176.007792ms)\n\u2714 ST-2 two games are independent and the page is served by the same process (113.675791ms",
+    "suite": "focused"
+   }
+  ]
+ }
+}

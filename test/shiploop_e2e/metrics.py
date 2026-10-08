@@ -902,15 +902,19 @@ def verifications(run_dir: Path | None) -> dict:
     about the product (it timed out, could not start, or was skipped on budget).
     Those refuse their stage without being evidence against it, so a run with
     any of them is reporting an environment problem, not a product one.
+    ``red`` counts the records in which a command ran red (a run whose own status is `red`): a test-red record, or a
+    test-author probe, passes because red is what it accepts, so ``passed`` includes it. What ran is counted, not what
+    the record expected: a probe accepts red or passed, and one that ran green is a green pass.
     """
     records = sorted(run_dir.rglob("*-verify*.md")) if run_dir and run_dir.is_dir() else []
-    passed = commands = could_not_run = 0
+    passed = commands = could_not_run = red = 0
     for path in records:
         text = path.read_text(errors="replace")
         passed += bool(re.search(r'"passed"\s*:\s*true', text))
         could_not_run += bool(re.search(r'"disposition"\s*:\s*"could-not-run"', text))
+        red += bool(re.search(r'"status"\s*:\s*"red"', text))
         commands += len(re.findall(r'"command"\s*:', text))
-    return {"records": len(records), "passed": passed, "could_not_run": could_not_run, "commands": commands}
+    return {"records": len(records), "passed": passed, "could_not_run": could_not_run, "commands": commands, "red": red}
 
 
 def current_stage(state: dict) -> str | None:
@@ -1150,14 +1154,16 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
         found = count(metrics, name)
         return "not measured" if found is None else str(found)
 
+    checks = metrics["script_verifications"]
+    notes = ([f"{checks['could_not_run']} could not run"] if checks.get("could_not_run") else []) \
+        + ([f"{checks['red']} ran red"] if checks.get("red") else [])
     lines = [f"turns {turns_text(metrics)}, cost {cost_text(metrics)}, sessions {len(metrics['sessions'])} "
              f"({', '.join(str(s['stop']) for s in metrics['sessions']) or 'none ended'}), "
              f"compactions {shown('compactions')}, truncated outputs {shown('truncated_outputs')}, "
              f"cancelled tool calls {shown('cancelled_tool_calls')}, "
              f"ShipLoop command failures {shown('shiploop_failures')}, "
              f"script verifications {metrics['script_verifications']['passed']}/{metrics['script_verifications']['records']} passed"
-             + (f" ({metrics['script_verifications']['could_not_run']} could not run)"
-                if metrics["script_verifications"].get("could_not_run") else "") + ", "
+             + (f" ({', '.join(notes)})" if notes else "") + ", "
              f"model glue {shown('model_glue')}, asked a person {len(metrics['asked_user'])}, "
              f"Improve children {metrics['improve_children']}"
              + (f" ({metrics['improve_reviews']['passes']} review passes, at most "

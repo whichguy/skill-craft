@@ -282,7 +282,12 @@ paths and verbs, never by a case's tools. `script_verifications` also counts
 timeout, a command that could not be spawned, or one skipped when the invocation's
 budget ran out). They refuse their stage without counting as product failures. A
 non-zero count means the run could not tell, because of an environment problem or a
-product hang; it does not say the product is wrong.
+product hang; it does not say the product is wrong. It also counts `red`: the records in
+which a command ran red (a run whose own status is `red`). A test-red record, or the
+test-author probe, passes because red is what it accepts, so `passed` includes it ("10/10
+passed" on r1 Battleship holds 2 such records, and the report says "2 ran red"). What ran
+is counted and not what the record expected: the probe accepts red or passed, and one that
+ran green is a green pass.
 
 ### Reading per-stage figures
 
