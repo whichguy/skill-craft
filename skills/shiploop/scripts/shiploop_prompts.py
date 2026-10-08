@@ -1170,8 +1170,11 @@ the two-people test: two people running it separately would be forced to agree.
 State whether the condition must be exercised or whether inspection is
 sufficient. Give content criteria (docs, changelogs, test coverage) a
 command-checkable confirmation, such as a search for required terms, so they are
-re-observed rather than recalled. Mark a criterion that no available check can
-confirm as `Confirm by: unconfirmable here — <what would confirm it>` rather
+re-observed rather than recalled. A `criteria` entry needs a command that
+confirms it (above), so a condition no command can confirm is not listed there:
+record it as an open item in this result's summary (who does what, and what they
+report back). Elsewhere (a plan note, a graph step's done item) mark such a
+criterion as `Confirm by: unconfirmable here — <what would confirm it>` rather
 than dropping it.
 When the item adds or moves code or stored data, reopen the plan's Namespace
 and data map and the current tree of each environment it touches. Name each

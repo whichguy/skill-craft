@@ -631,12 +631,13 @@ criterion. `step-plan` lists the item's `criteria` and names, in each test
 command's `criteria`, the ones that command confirms; ShipLoop refuses a step plan
 with an uncovered criterion. Content with no test runner gets a `check` command
 (suite `check`, judged by exit code), for example a `grep` that a README documents a
-flag. `verify` reruns every recorded command. `system-test-author` records
-`system_commands` and `release-plan` records `consumer_checks`; ShipLoop runs them
-when `system-test` and `release-verify` report done and refuses unless each passes
-(`release-verify` runs them in a copy of the returned result when a return is
-recorded, else in the work area, and its record says which). An empty list needs its
-`_na` reason. The run records under `tests/` are the
+flag. A condition no command can confirm is not a criterion: the step plan records it
+as an open item in its summary. `verify` reruns every recorded command.
+`system-test-author` records `system_commands` and `release-plan` records
+`consumer_checks`; ShipLoop runs them when `system-test` and `release-verify` report
+done and refuses unless each passes (`release-verify` runs them in a copy of the
+returned result when a return is recorded, else in the work area, and its record says
+which). An empty list needs its `_na` reason. The run records under `tests/` are the
 evidence; a result's summary is not.
 
 ### Tests pass or the step stops

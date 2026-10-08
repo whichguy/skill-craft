@@ -1554,7 +1554,9 @@ def _normalise_criteria(value: Any, commands: list) -> list[dict[str, str]]:
     _need(not unknown, "test_commands name criteria that are not listed: " + ", ".join(unknown))
     uncovered = [criterion for criterion in ids if criterion not in named]
     _need(not uncovered, "every criterion needs a test command that confirms it (a check command is enough "
-          "for documents or other non-test content); uncovered: " + ", ".join(uncovered))
+          "for documents or other non-test content). A condition no command can confirm is not a criterion: take it "
+          "out of criteria and record it as an open item in the summary (who does what, and what they report back); "
+          "uncovered: " + ", ".join(uncovered))
     return rows
 
 

@@ -1095,6 +1095,7 @@ class NavigatorContractTests(unittest.TestCase):
             "two people running it separately would be forced to agree",
             "State whether the condition must be exercised or whether inspection is sufficient.",
             "command-checkable confirmation, such as a search for required terms",
+            "a condition no command can confirm is not listed there: record it as an open item in this result's summary",
             "`Confirm by: unconfirmable here — <what would confirm it>` rather than dropping it",
             "confirm that the oracle agrees with the task",
         )
