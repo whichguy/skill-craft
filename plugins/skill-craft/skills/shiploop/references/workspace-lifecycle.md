@@ -161,11 +161,53 @@ return is not evidence that a hosted consumer has been updated.
    before its exact callback. Handoff's `done` is rejected without a current
    verified receipt. Script checks do not replace semantic review or tests.
 
+### Which checkout release-verify observes
+
+`release-verify` is the stage whose done-when is "observed where consumers use
+it". On done, ShipLoop reruns the consumer checks `release-plan` recorded, and
+where they run depends on the run:
+
+- **A completed return is recorded** (the return receipt has status `returned`):
+  in a clean copy of the returned result, never the user's checkout. ShipLoop
+  reads the tree the receipt records (the head tree of a fast-forward, the
+  working-tree snapshot of a working-tree or no-change return) and writes it,
+  through a private Git index that touches no repository, into `consumer-check`
+  under the workspace root. Every check runs with that directory as its working
+  directory and the workspace root as Git's ceiling, so a parent repository is not
+  found. The copy is made fresh on each attempt and kept after a refusal so you can
+  reproduce there. A receipt or manifest ShipLoop cannot read is not "no return":
+  the attempt is `could-not-run`, which does not count toward the 7 refused runs.
+- **No completed return yet**: the checks run in the work area, and the packet, the
+  test record (`observed`) and the handoff say that they did not observe the user's
+  checkout. The run is not refused: `workspace return` is allowed only at `release`
+  and `handoff`, so `release-verify` can precede the return and cannot make it.
+- **An in-place run** has no workspace: the checks run in the checkout, as before.
+
+The user's checkout is not used because ShipLoop runs these commands unprompted, up
+to seven times, and any file one of them writes there (a cache, a log, a build
+directory) makes the strict clean-status receipt non-current. ShipLoop then refuses
+the source as drifted, no ShipLoop route clears it, and this card forbids deleting
+the user's files to force it. The work area is the run's own to clean.
+
+Limits: the copy has no Git history (a check that needs `git log`, a tag or
+`git diff` cannot run there), holds no ignored or unmanaged file (installed
+dependencies, build output, local configuration), and a command that names the
+checkout by an absolute path runs there, not in the copy; write paths relative to
+the copy and put what a fresh consumer needs into the check itself. A check that
+fails only in the copy is refused with the copy's location, its usual causes (a path
+the plan excluded, an ignored or unmanaged file, a commit made after the return) and
+the one exit the stage has: `replan` with a corrective work item, so `release`
+returns the fix and `release-verify` observes it.
+
 ### Follow-up return
 
 A check that runs after the return, such as a post-deploy browser check, can
-find a defect that needs a product fix. Commit that fix in the execution
-checkout, rerun its checks, then run `plan-return` and `return` again. The new
+find a defect that needs a product fix. Where the check runs at a stage that may
+return (`release`, `handoff`), commit that fix in the execution
+checkout, rerun its checks, then run `plan-return` and `return` again. At
+`release-verify` the stage cannot return (`workspace return` is allowed only at
+`release` and `handoff`) and its copy still holds the old tree: report `replan` with
+a corrective work item, and the next `release` returns the fix. The new
 plan still reviews every path from the baseline. The follow-up starts from the
 source state the previous receipt recorded, not from the preparation baseline:
 
@@ -210,7 +252,9 @@ than getting overwritten or silently accepted as a new baseline.
 
 No automatic cleanup: keep the worktree, private branch, run report and receipts
 available for inspection/recovery. Cleanup is a separate authorized operation,
-only after checking no unique work remains. Never delete user source files to
+only after checking no unique work remains. The `consumer-check` copy likewise
+stays in the workspace root (outside the product and the run records, and never
+returned) until the workspace is removed. Never delete user source files to
 force a clean return. A repeated return must reconcile its receipt and actual
 source/candidate effects; it must not apply the patch twice. A follow-up return
 applies only the change since the previous receipt's recorded result.

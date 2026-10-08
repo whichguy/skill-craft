@@ -423,7 +423,10 @@ and research do not create product files. Plan documentation outputs and checks 
 
 `document` records the documentation disposition for the current item, and
 `skill-assess` and `skill-validate` record the reusable-skill decision and its
-checks. An assessment is required; needless edits or skill creation are not.
+checks. An assessment is required; needless edits or skill creation are not. When
+the step plan finds no repo-local skill to select, create or change, it records
+`skill_na` with the no-fit reason and the index inspected, and ShipLoop records both
+stages as not applicable instead of issuing them; otherwise both are issued.
 Update or explicitly assess relevant README and interface documentation before
 actual verification, and complete `skill-validate` when a skill is selected.
 

@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.55.0
+# ShipLoop navigator 0.56.0
 
 > **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
 > its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
@@ -170,8 +170,9 @@ order is: `intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`,
 `system-test-author`, `system-test`, `product-acceptance`, `release-plan`,
 `release-check`, `release`, `release-verify`, `operations`, and `handoff`.
 
-`skill-validate`, preparation, release, and operations still produce a reviewed
-result when they are inapplicable; they record a concrete N/A disposition rather
+Preparation, release, and operations still produce a reviewed result when they are
+inapplicable, and so do `skill-assess` and `skill-validate` unless the item's step
+plan records `skill_na` (below); they record a concrete N/A disposition rather
 than disappearing from the graph. `test-red` records an expected failure for the
 specified missing behavior and must not make production edits to turn it green.
 Release and verification never replay an uncertain external operation merely to
@@ -188,6 +189,11 @@ references into Improve's host-authored contract and maintain the repository ind
 at `carry-forward`. This uses ordinary evidence/plan notes and work-item context;
 it adds no global installation or skill-specific runtime schema. Fresh-reader
 reuse remains untested until a reader actually finds and applies the local skill.
+A step plan that finds no repo-local skill to select, create or change records
+`skill_na` with the no-fit reason; ShipLoop then records `skill-assess` and
+`skill-validate` as not applicable to that item, and refuses `skill_na` beside a
+skill file in `paths` or a `document` that touches one (see "Skill stages not
+applicable to an item" in the [skill guide](SKILL.md)).
 
 Testing builds a [repeatable repository suite](references/repeatable-test-suites.md).
 Initial planning selects or revalidates the harness and focused/smoke/full commands.

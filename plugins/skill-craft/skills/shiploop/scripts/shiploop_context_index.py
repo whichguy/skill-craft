@@ -144,6 +144,16 @@ def pass_log_path(root: Path, action_id: str) -> Path:
     return Path(root) / "notes" / (action_id + ".md")
 
 
+# A packet is written once, when its action starts, and a context lost mid-stage re-reads that file; the
+# context index is regenerated only at save.  Neither can say whether the host has created the log by then,
+# so both carry this one conditional rule and never read the log.
+PASS_LOG_RULE = (
+    "optional, never a completion gate; ShipLoop does not create it. Create it when the pass starts and "
+    "append after each pass what you checked and what is left. After a reset, open it first if it exists; "
+    "if it does not, nothing was logged, and your scratch files and the worktree changes show how far this "
+    "stage got")
+
+
 def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     """What a fresh context needs to resume the current action mid-stage."""
     action = _current_action(state)
@@ -153,7 +163,7 @@ def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     row = stage_spec.stage(stage)
     lines = ["## In progress", "",
              f"- Action {action_id} ({stage}); result file {root / 'inbox' / (action_id + '.md')}",
-             f"- Pass log (what each pass checked and what is left): {pass_log_path(root, action_id)}"]
+             f"- Pass log ({PASS_LOG_RULE}): {pass_log_path(root, action_id)}"]
     loop_dir = ("tests" if "test-loop" in row.complete_runs
                 else "quality" if "quality-terminal" in row.complete_runs else None)
     if loop_dir:

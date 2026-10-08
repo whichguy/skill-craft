@@ -1194,6 +1194,19 @@ defaults. Record the selection or no-fit rationale in the linked plan/evidence
 note; retain the entrypoint, effective inputs/default sources, product contract,
 validation locators and revalidation condition in ordinary evidence_refs. Keep
 later decision changes in these notes, not edits to the script-owned work queue.
+If, after reopening that index, no repo-local skill is selected, created or changed
+for this item, record `skill_na` (the no-fit reason, naming the index you inspected)
+and list no skill file in `paths`: ShipLoop then records skill-assess and
+skill-validate as not applicable to this item without issuing them, which also
+waives their late helper, MCP and library reuse assessment. Omit `skill_na` when the
+item selects, uses, creates or changes a skill.
+Improve reviews `skill_na` with the rest of this result.
+ShipLoop refuses `skill_na` in two places. At this step plan, beside a skill file in
+`paths` (a SKILL.md, a skills/ or agents/ tree, AGENTS.md, CLAUDE.md, GEMINI.md,
+.mcp.json or a host agent-config directory): resubmit the step plan without
+`skill_na`. At `document`, when the item's real diff touches a skill file (AGENTS.md,
+CLAUDE.md, GEMINI.md and .mcp.json edits there are fine): report revise, then
+resubmit the step plan without `skill_na`. Both skill stages then run.
 Label every pinned value that exists so a check can replay an exact path (fixed
 dice, seed data, a sample click) as a source-check fixture, and name the runtime
 control separately (for example, two die values the player can change, with the
@@ -1664,10 +1677,16 @@ or planned check alone does not establish product acceptance.
     "release-plan": """\
 Record the post-release consumer checks as commands in `consumer_checks` (same
 shape; a `check` command is judged by its exit code). ShipLoop runs every one
-itself when release-verify reports done and refuses unless each passes. A check
-only a person can make is recorded in the plan as an open item for that person
-(who, where, what to report), not as a command; when no command applies, give an
-empty list with `consumer_checks_na` and the reason.
+itself when release-verify reports done and refuses unless each passes. In an
+isolated run that has a completed return it runs them in a clean copy of the
+returned result (no Git history, nothing the return plan excluded, no ignored or
+unmanaged file); with none recorded yet it runs them in the work area and says so.
+Write paths relative to the directory the command starts in (the copy or the work
+area), put what a fresh consumer needs (an install, a build) into the check itself,
+and never write into the user's checkout by absolute path. A check only a person
+can make is recorded in the plan as an open item for that person (who, where, what
+to report), not as a command; when no command applies, give an empty list with
+`consumer_checks_na` and the reason.
 Create an authorized release/recovery plan: target and candidate identity,
 permission, prerequisites, user impact, rollback, monitoring, pre/post-release
 checks, and stop conditions. List every operation the user-visible outcome needs as
@@ -1740,6 +1759,11 @@ operation receipt, and real consumer behavior.  A blocked or unknown post-releas
 check remains incomplete; preserve prior receipts and do not re-release blindly.
 For local-only work, verify the current local candidate and consumer behavior;
 external activation N/A does not make these checks N/A.
+In an isolated run this stage cannot return, so a defect the checks find in the
+delivered result is fixed through replan (one corrective work item), after which
+release returns it again. Anything you run yourself inside the user's checkout must
+leave it exactly as the return left it; a file written there makes the return
+receipt stale and blocks handoff.
 For a browser surface, identify the usable consumer entry after authentication,
 account/target, visible feature and actual action/outcome for each required clause.
 Retain non-secret routing state; require app chrome/branding only when specified.
@@ -1769,6 +1793,9 @@ failure as an incident. Preserve required audit failure and recovery policy.
 Prepare an honest final handoff with source, test, integration, release, consumer,
 and operational status; evidence locators; limits; blockers; follow-up work; and
 revalidation needs.  List each open item as unverified, with who reports what.
+Report where release-verify's consumer checks ran (or that none did), from the packet's
+"Consumer checks (release-verify)" line; checks that ran in the work area did not
+observe the user's checkout, so list that as a limit.
 Reconcile durable project documentation and product-return receipts where
 applicable.  Do not transform an intent, stale green result, or conversational
 summary into completion evidence.
@@ -2289,6 +2316,8 @@ reviews them in this run."""),
     ("step-plan", """\
 The next review is the packet's automatic Improve handoff immediately after this producer result, before
 implementation.""", "No Improve child reviews this result in this run."),
+    ("step-plan", "Improve reviews `skill_na` with the rest of this result.",
+     "No Improve child reviews `skill_na` in this run."),
 )
 
 

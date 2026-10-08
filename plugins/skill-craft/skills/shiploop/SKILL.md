@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.55.0
+version: 0.56.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -539,6 +539,32 @@ child. `implement`'s `done` is then refused if the item's real diff touches code
 or any path outside `paths`, so the step plan is revised and the stages run.
 Anything short of that proof runs every test stage.
 
+**Skill stages not applicable to an item.** A done `step-plan` result may carry
+`skill_na`, its reason that no repo-local skill is selected, created or changed,
+naming the index it inspected. ShipLoop then records `skill-assess` and
+`skill-validate` as not applicable to that item instead of issuing them: each keeps
+a history row and a result file whose text starts "Not applicable to this item" and
+carries that reason, and the late helper, MCP and library reuse assessment
+`skill-assess` would have made is waived. Under the default `stage` planning review,
+Improve reviews `skill_na` with the rest of the step plan.
+
+`skill_na` is the model's declaration, so ShipLoop checks it twice:
+
+- A step plan that lists a skill file in `paths` is refused at `complete` and at
+  `improve-complete`. The skill files are the catalog's `skill_surface` (`SKILL.md`,
+  `skills/` and `agents/` trees, the host agent-config directories, `AGENTS.md`,
+  `CLAUDE.md`, `GEMINI.md`, `.mcp.json`). The way out is the step plan without
+  `skill_na`, because removing the file from `paths` would leave it uncommitted.
+- `document`'s `done` is refused when the item's real diff touches a skill file.
+  This check leaves out `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `.mcp.json`, because
+  `document` is told to maintain the agent-instruction files. The way out is `revise`,
+  which spends one of the item's two revisions; the redone step plan omits `skill_na`.
+
+Without `skill_na`, or after either refusal, both stages run as before. Known gaps:
+the lists are a package catalog, so a repository with a non-standard skill layout is
+covered only by the declaration; `README.md` is not treated as a skill index; an
+undeclared skill edit is observed only at `document`.
+
 `test-red` is script-checked too: on `done` ShipLoop runs the focused commands and
 expects each to fail inside a test (at least one failing test, every listed ID
 shown). A green run, a zero-test run or a failure before any test ran (syntax,
@@ -561,7 +587,12 @@ at `test-refine`, `static-checks` (after its quality-loop check) and
 `integration-verify`, ShipLoop runs every recorded command and refuses unless
 each passes. The outer `system-test` and `release-verify` rerun their own
 recorded commands the same way, from `system-test-author` and `release-plan`.
-There is no loop at those stages; the packet lists the commands.
+There is no loop at those stages; the packet lists the commands. At
+`release-verify` of an isolated run the commands run in a clean copy of the result
+the workspace return delivered (made fresh from the return receipt into
+`consumer-check` under the workspace root, never in your checkout); with no
+completed return yet they run in the work area, and the test record (`observed`)
+and the handoff say so.
 Each action allows 7 refused runs; after that ShipLoop no longer accepts `done`,
 so a failing command takes the stage's own remedy — back to the step plan with
 `revise` at an INNER stage, or corrective work items with `replan` at
@@ -602,8 +633,10 @@ with an uncovered criterion. Content with no test runner gets a `check` command
 (suite `check`, judged by exit code), for example a `grep` that a README documents a
 flag. `verify` reruns every recorded command. `system-test-author` records
 `system_commands` and `release-plan` records `consumer_checks`; ShipLoop runs them
-when `system-test` and `release-verify` report done and refuses unless each passes.
-An empty list needs its `_na` reason. The run records under `tests/` are the
+when `system-test` and `release-verify` report done and refuses unless each passes
+(`release-verify` runs them in a copy of the returned result when a return is
+recorded, else in the work area, and its record says which). An empty list needs its
+`_na` reason. The run records under `tests/` are the
 evidence; a result's summary is not.
 
 ### Tests pass or the step stops
@@ -630,7 +663,10 @@ and a question. A script-run loop has no iteration limit: it runs until its
 exit condition holds. One that stops blocked because the item's goal proved wrong
 reports `revise`; a cancelled loop is refused, because a user's stop is the
 packet's `pause` command. The per-item
-count is kept in `state.md` `revisions`.
+count is kept in `state.md` `revisions`. The redone step-plan packet names the
+item's previous step plan and the result that sent it back (both under
+`results/`) and asks for an amendment: its Done-when has the summary say which
+rows are new or changed and which are carried over.
 
 ## Durable handoff
 

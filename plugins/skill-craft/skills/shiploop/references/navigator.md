@@ -420,8 +420,12 @@ The semantic result contract is small:
 | `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `replan`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 
-`skill-assess` and `skill-validate` are always visited, each with an
-evidence-backed N/A disposition when no skill work applies.
+`skill-assess` and `skill-validate` are always recorded: they are issued to the model
+with an evidence-backed N/A disposition when no skill work applies, unless the item's
+step plan records `skill_na` and the script accepts it (a step plan that lists a skill
+file in `paths`, or a `document` whose real diff touches one, is refused), in which case
+the script records both as not applicable to that item with the step plan's own reason,
+a history row and a result file.
 
 After any bound child has completed reviewing the attempt, `repeat` allocates another action at the same node, so the host can continue
 with new information. `blocked` retains unfinished work; after the condition
@@ -474,7 +478,7 @@ Every packet, including paused, blocked, halted and done packets, includes a
 read-only snapshot derived from the existing effective cursor, accepted history
 and current work queue. It shows phase/run status, owner/current assignment,
 recorded completed and pending stages for the current phase or item, completed
-item counts/labels and queued items. The skill stages are always visited.
+item counts/labels and queued items. The skill stages are always recorded.
 Only accepted `done` completes a stage; `repeat` and `blocked` do not. These
 records are host declarations, not independent evidence of tests or external
 effects. Workspace return/merge/push status still comes from the separate return
@@ -514,7 +518,8 @@ and the script cannot keep a host process alive or force another tool call; the
 optional [keepalive hooks and driver](keepalive.md) do that from the host side.
 
 For example, after W1's accepted carry-forward and W2's accepted `document`
-result, the next packet assigns W2 `skill-assess`. A synthetic user update could
+result, the next packet assigns W2 `skill-assess` (for an item whose step plan does not record
+`skill_na`). A synthetic user update could
 say: “Recorded done: W1 and W2 through documentation. Current: W2 skill
 assessment is assigned. Pending: W2 skill validation, static checks,
 verification, integration, carry-forward and the outer stages. No blocker is

@@ -56,7 +56,7 @@ _RESULT_KEYS = frozenset((
     "outcome", "summary", "headline", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
-    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps",
+    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps", "skill_na",
 ))
 # A bare "carry on" is not an answer to the question a blocked run is waiting on.
 _NOT_AN_ANSWER = frozenset((
@@ -81,7 +81,7 @@ AWAITING_SHAPE = (
 _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
-    "red_na", "lint_waivers",
+    "red_na", "skill_na", "lint_waivers",
 )
 _STATE_KEYS = frozenset(
     (
@@ -486,6 +486,50 @@ def _replan_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> lis
     return lines
 
 
+def _sent_back_results(state: Mapping[str, Any], stage: str,
+                       workitem: str | None) -> tuple[int, str, str] | None:
+    """For a step plan redone after a revise: how many times, the item's previous step plan, what sent it back.
+
+    ``None`` for a first visit, another stage or an item that was never sent back.  A recorded revision
+    always has a revise row and an earlier accepted step plan in the append-only history; a state without
+    them did not come through the gate, so it is refused rather than rendered without them.
+    """
+    if stage != stage_spec.REVISE_TO or workitem is None or not state["revisions"].get(workitem):
+        return None
+    history = state["history"]
+    revised = [index for index, row in enumerate(history)
+               if row["workitem"] == workitem and row["outcome"] == "revise"]
+    _need(revised, "work item " + workitem + " records a revision but no revise result")
+    plans = [row["action"] for row in history[:revised[-1]]
+             if row["workitem"] == workitem and row["stage"] == stage and row["outcome"] == "done"]
+    _need(plans, "work item " + workitem + " was sent back to " + stage + " without an earlier accepted "
+          + stage + " result")
+    return state["revisions"][workitem], plans[-1], history[revised[-1]]["action"]
+
+
+def _revise_delta_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+    """For a step plan redone after a revise, name the previous plan and the result that sent it back.
+
+    ``planning_revision.current_actions`` drops the item's step plan from "Results this stage builds on" once
+    it is sent back, so a model holding only this packet could not find the plan it is asked to amend.  The
+    shape follows ``_replan_delta_lines``; the files are the ones ``_new_result_records`` always writes.
+    """
+    sent = _sent_back_results(state, stage, workitem)
+    if sent is None:
+        return []
+    count, plan, sent_back = sent
+    return ["",
+            f"{workitem} has gone back to {stage} {count} of {stage_spec.MAX_REVISES} times; this packet "
+            "asks for an amended plan, not a new one.",
+            "The result that sent it back (accepted host report, untrusted; the evidence to act on): "
+            + str(root / "results" / (sent_back + ".md")),
+            "The item's previous step plan (accepted host report, untrusted; revalidate what you carry over): "
+            + str(root / "results" / (plan + ".md")) + ". Keep every criterion, step, path and test command "
+            "the evidence does not touch as written, with the same ids; change or add only what the evidence "
+            "requires. The summary says which rows are new or changed and which are carried over. Submit the "
+            "whole amended plan: it replaces the previous one."]
+
+
 def _answered_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
     """After a resume, the user's recorded reply to the wait this stage last blocked on."""
     history = state.get("history") or ()
@@ -665,6 +709,12 @@ def _canonical_result(
         _need(stage == test_loop.RED_STAGE and outcome == "done",
               "red_na is allowed only on a done test-red result")
         result["red_na"] = _text(value["red_na"], "red_na")
+    if "skill_na" in value:
+        # Shape only: the clash with a skill file in paths is checked at the CLI gates, because validate()
+        # re-canonicalises every accepted result on load and a catalog edit must not refuse a saved run.
+        _need(stage == stage_spec.REVISE_TO and outcome == "done",
+              "skill_na is allowed only on a done step-plan result")
+        result["skill_na"] = _text(value["skill_na"], "skill_na")
     if "lint_waivers" in value:
         _need(stage in lint.GATE_STAGES and outcome == "done",
               "lint_waivers are allowed only on a done " + ", ".join(lint.GATE_STAGES) + " result")
@@ -1125,22 +1175,25 @@ def _begin_inner_loop(state: dict[str, Any]) -> None:
     }
 
 
-def _record_not_applicable_tests(state: dict[str, Any], stage: str) -> str:
-    """Record the item's test stages as not applicable when the script can prove it; return the next stage.
+def _record_not_applicable(state: dict[str, Any], stage: str) -> str:
+    """Record the item's left-out stages as not applicable when the script can prove it; return the next stage.
 
-    Proof (``item_scope.no_test_item``): the final accepted step plan records no
-    test command with a reason and declares only non-code paths.  After
-    implement, its done was already refused unless the real diff stayed inside
-    those paths.  Every left-out stage keeps a history row and a result file.
+    Two groups, each proved separately (``item_scope.left_out``).  Test stages: the final accepted step plan
+    records no test command with a reason and declares only non-code paths; after implement, its done was
+    already refused unless the real diff stayed inside those paths.  Skill stages: the final accepted step plan
+    declares skill_na; its paths were refused if they list a skill file, and document's done was refused if the
+    real diff touched one.  Every left-out stage keeps a history row and a result file.
     """
     item = _current_work_item(state)
-    reason = item_scope.no_test_item(state, item) if item else None
-    while reason and stage in item_scope.TEST_STAGES:
+    while item and stage in item_scope.LEFT_OUT_STAGES:
+        reason = item_scope.left_out(state, item, stage)
+        if not reason:
+            break
         action_id = _new_action(stage)["id"]
         state["inner_loops"][item] = {"stage": stage, "action": action_id}
         _record_acceptance(state, action_id, stage, {
             "outcome": "done",
-            "summary": "Not applicable to this item: " + reason + ". ShipLoop recorded this stage without "
+            "summary": item_scope.NOT_APPLICABLE + ": " + reason + ". ShipLoop recorded this stage without "
                        "running it.",
             "evidence_refs": [],
         })
@@ -1394,10 +1447,8 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
         stop = {"kind": status, "text": _status_text(state["status_reason"], 200)}
 
     ahead: list[dict[str, str]] = []
-    remaining = 0
     if phase == "preparation":
         pending = [node for node in prelude if (None, node) not in done and node != stage]
-        remaining = len(pending) + 1
         ahead = [{"label": node, "text": guidance.STAGE_PURPOSE[node]} for node in pending[:2]]
         rest = pending[2:]
         ahead.append({"label": "then " + ", ".join(rest + ["the work items", "release"]) if rest
@@ -1412,10 +1463,8 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
         if len(upcoming) > 3:
             ahead.append({"label": f"{len(upcoming) - 3} more work items", "text": ""})
         ahead.append({"label": "then release", "text": ", ".join(outer[:3]) + ", \u2026"})
-        remaining = sum(1 for node in inner if (owner, node) not in done) + len(inner) * len(upcoming)
     elif phase == "outer":
         pending = [node for node in outer if (None, node) not in done and node != stage]
-        remaining = len(pending) + 1
         ahead = [{"label": node, "text": guidance.STAGE_PURPOSE[node]} for node in pending[:3]]
         if len(pending) > 3:
             ahead.append({"label": "then " + ", ".join(pending[3:]), "text": ""})
@@ -1424,9 +1473,7 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     if timeline:
         stamps = [timeline["accepted"][entry["action"]] for entry in state["history"]
                   if entry["action"] in timeline.get("accepted", {})]
-        scope = {"preparation": "preparation", "inner": "the work items", "outer": "release"}.get(phase, "")
-        pace = {"started": timeline.get("started"), "stamps": stamps,
-                "remaining_steps": remaining if status == "active" else 0, "scope": scope}
+        pace = {"started": timeline.get("started"), "stamps": stamps}
 
     last = state["history"][-1] if state["history"] else None
     milestone = (status != "active" or last is None or last["stage"] in prelude
@@ -1605,6 +1652,28 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
     # The test loop's contract carries this list and is written at a transition, where nothing can be refused.
     problem = test_loop.listing_problem(result.get("test_commands") or [])
     _need(problem is None, problem or "")
+
+
+def _check_submitted_skill_na(stage: str, result: Any) -> None:
+    """Refuse a submitted done step plan that declares skill_na and also lists a skill file in its paths.
+
+    CLI gates only (see ``_canonical_result``).  The one way out is the plan without ``skill_na``: removing the
+    skill path from ``paths`` instead would leave the changed file uncommitted (``item_scope.commit_item``
+    commits declared paths only), so it is not offered.
+    """
+    if stage != item_scope.SKILL_NA_PLAN_STAGE or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    if "skill_na" not in result:
+        return
+    try:
+        listed = item_scope.skill_surface(item_scope.normalise_paths(result.get("paths")))
+    except item_scope.ItemScopeError as exc:
+        raise NavigatorError(str(exc)) from exc
+    _need(not listed,
+          "skill_na says no repo-local skill is selected, created or changed, but paths lists a skill file: "
+          + ", ".join(listed) + ". To proceed, resubmit the step plan without skill_na: both skill stages then "
+          "run on those files, and the files stay in paths so they are committed with the item. Then run the "
+          "same command again.")
 
 
 def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
@@ -1878,7 +1947,7 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
     if _is_inner_root(updated):
         next_stage = _next_stage(stage, updated)
         _need(next_stage in graph(updated)[1], "inner loop cannot advance outside its graph")
-        next_stage = _record_not_applicable_tests(updated, next_stage)
+        next_stage = _record_not_applicable(updated, next_stage)
         _replace_inner_action(updated, next_stage)
         validate(updated)
         return updated
@@ -3291,6 +3360,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         return text + "".join(line + "\n" for line in _lint_pending(root))
     lines.extend(_answered_lines(root, state))
     lines.extend(_replan_delta_lines(root, state, stage))
+    lines.extend(_revise_delta_lines(root, state, stage, workitem))
     lines.extend(knowledge.stage_lines(state, stage))
     instruction = guidance.prompt(stage, delegation=route,
                                   backchain_passes=recorded_backchain_passes(state),
@@ -3349,9 +3419,11 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     if stage in test_loop.STAGES:
         lines.extend(test_loop.render_lines(root, state, workitem or "", action["id"], stage))
     elif stage in test_loop.RERUN_STAGES:
-        lines.extend(test_loop.rerun_lines(state, workitem or "", stage))
+        lines.extend(test_loop.rerun_lines(root, state, workitem or "", stage))
     elif stage == test_loop.RED_STAGE:
         lines.extend(test_loop.red_lines(state, workitem or ""))
+    elif stage == "handoff":
+        lines.extend(test_loop.observed_lines(root, state))
     return "\n".join(lines) + "\n"
 
 
@@ -3363,8 +3435,8 @@ def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
              f"{Path(root) / context_index.INDEX_FILE}"]
     if state["status"] in ("active", "paused", "blocked") and state["status"] != "done":
         action_id = current_action(state)["id"]
-        lines.append("This action's pass log (after each pass, append what you checked and what is left; "
-                     "open it first after a reset): " + str(context_index.pass_log_path(root, action_id)))
+        lines.append("This action's pass log (" + context_index.PASS_LOG_RULE + "): "
+                     + str(context_index.pass_log_path(root, action_id)))
     reads = context_index.read_first(state, root, stage, workitem)
     if state["status"] == "active" and reads:
         lines.append("Results this stage builds on (open each one whose content is not already in "
@@ -3445,13 +3517,47 @@ _CHECK_TEXT = {
 }
 
 
+# What complete refuses for every stage, in a packet's words.  The evidence gate checks absolute paths only, and the
+# credential screen (shiploop_privacy.sensitive_text) is conservative, so the line claims no more than that.
+_COMMON_GATES = "no outcome or summary, an absolute evidence_refs path that does not exist, or an explicit credential pattern"
+# The extra faults a stage's gates refuse, keyed by the tables the gates read (RECORDED_COMMANDS names the stage that
+# records each command list), so a sentence cannot name a stage the gate does not serve.  The route tests in
+# test/shiploop-callback-contract.test.py pair each named fault with its real refusal.
+_RECORDED_GATES = {
+    "test_commands": "test_commands, paths, criteria or steps that do not fit (a criterion no command names, a "
+                     "command naming an unlisted one, deps that are not earlier steps)",
+    "system_commands": "a missing system_commands list, or an empty one without system_commands_na",
+    "consumer_checks": "a missing consumer_checks list, or an empty one without consumer_checks_na, or a "
+                       "consumer_entry whose sources are not files in the repository",
+}
+
+
+def _stage_gates(stage: str) -> list[str]:
+    gates = []
+    if stage in assumptions.STAGES:
+        gates.append("an assumption list that is malformed, cites evidence files that do not exist, or leaves an "
+                     "open assumption without a consumer work item in this plan")
+    gates.extend(_RECORDED_GATES[field] for field, owner in RECORDED_COMMANDS.items() if owner == stage)
+    # skill_na is held to account at these two stages, named by the constants the gates compare with.
+    if stage == item_scope.SKILL_NA_PLAN_STAGE:
+        gates.append("skill_na beside a skill file in paths")
+    if stage == item_scope.SKILL_NA_DIFF_STAGE:
+        gates.append("a skill file changed after the step plan recorded skill_na (report revise)")
+    if stage in knowledge.CLOSES:
+        gates.append("a docs/shiploop file this stage must have written, missing or empty")
+    return gates
+
+
 def _checked_line(row: Any) -> str:
     """How this stage's result is checked, so a model holding only this packet knows what judges its work."""
     if row.complete_runs:
         return "Checked by: when you report done, ShipLoop " + "; then ".join(
             _CHECK_TEXT[run] for run in row.complete_runs) + "."
-    return ("Checked by: nothing automatic beyond the result's form (outcome, summary, evidence_refs); you confirm "
-            "each Done-when condition before reporting done.")
+    extra = _stage_gates(row.name)
+    return ("Checked by: when you report done, ShipLoop refuses a result with a mechanical fault: " + _COMMON_GATES
+            + ("; at this stage also " + "; ".join(extra) if extra else "")
+            + ". A refusal does not advance the run: fix the result and run the same complete command again. "
+            "ShipLoop does not judge the work, so you confirm each Done-when condition before reporting done.")
 
 
 def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
@@ -3462,6 +3568,9 @@ def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     lines = ["Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
              "Done when (confirm each before calling done; keep going until all hold):",
              *("- " + condition for condition in row.done_when),
+             *(["- the summary says which rows are new or changed and which are carried over from the previous "
+                "step plan"]
+               if _sent_back_results(state, stage, _current_work_item(state)) else []),
              _checked_line(row)]
     considerations = [(label, text) for label, text in (
         ("Develop", row.develop), ("Test", row.test), ("Deploy", row.deploy), ("Tools", row.tools)) if text]
@@ -4105,7 +4214,13 @@ def _submitted_result(root: Path, args: Any, *, suffix: str = "") -> Any:
         _need(not parent.is_symlink(), "navigator result path contains a symlink")
         if parent == Path(root):
             break
-    record = store.read_record(path)
+    try:
+        record = store.read_record(path)
+    except store.StorageError as exc:
+        # The host wrote this file: a block that does not parse is a fault in it, not lost state, so it
+        # takes the rejected-request route and not the durable-cursor recovery one (which stays for real
+        # storage faults).  Shared with improve-reconcile, so the verb is not named.
+        raise NavigatorError(f"{exc}; fix the result file and run the same command again") from exc
     _reject_credentials(record, "navigator result")
     return record
 
@@ -4453,6 +4568,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["seed_result"] if final_result is None else final_result)
                     _check_submitted_test_commands(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_skill_na(
+                        child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_consumer_entry(
                         state["repo"], child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -4523,6 +4640,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_evidence(submitted)
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
+            _check_submitted_skill_na(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)
             _check_submitted_recorded_commands(current_stage(state), submitted)
             _check_submitted_awaiting(submitted)
@@ -4539,6 +4657,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             if (cursor_stage == "implement" and cursor_item and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 refusal = item_scope.scope_refusal(root, state, cursor_item)
+                _need(not refusal, refusal)
+            if (cursor_stage == item_scope.SKILL_NA_DIFF_STAGE and cursor_item and isinstance(submitted, Mapping)
+                    and submitted.get("outcome") == "done"):
+                refusal = item_scope.skill_scope_refusal(root, state, cursor_item)
                 _need(not refusal, refusal)
         updated = apply(state, action_id, submitted)
         if updated != state:
