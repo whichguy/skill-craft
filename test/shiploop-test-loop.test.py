@@ -1161,6 +1161,11 @@ class ReleaseVerifyReturnedResultTests(unittest.TestCase):
     run_quality_loop = TestLoopTests.run_quality_loop
 
     def setUp(self) -> None:
+        # The workspace refuses a repository with custom Git filters; a CI runner's global config carries git-lfs
+        # filters, so these real-git tests must not read the machine's Git configuration (as the workspace suite does).
+        isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+        isolated.start()
+        self.addCleanup(isolated.stop)
         temp = tempfile.TemporaryDirectory(prefix="shiploop-release-verify-")
         self.addCleanup(temp.cleanup)
         base = Path(temp.name).resolve()
@@ -1170,6 +1175,8 @@ class ReleaseVerifyReturnedResultTests(unittest.TestCase):
         git(self.source, "branch", "-M", "main")
         git(self.source, "config", "user.email", "loop@example.invalid")
         git(self.source, "config", "user.name", "Loop Test")
+        git(self.source, "config", "commit.gpgsign", "false")
+        git(self.source, "config", "core.hooksPath", os.devnull)
         (self.source / "a.py").write_text("x = 1\n")
         (self.source / "check.sh").write_text(CHECK)
         git(self.source, "add", "-A")
