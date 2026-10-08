@@ -91,3 +91,71 @@ redo of one of those stages.
 
 **For the Run Review session (skills/shiploop-run-review is not edited here).** The redo packet grows by
 about 600 bytes. The change adds no export field; a stage card must not parse these lines.
+
+## REGISTER: one true pass-log rule, test-command authority documented (2026-10-08)
+
+**Built (status: firm that the text is static and the same in both places; interim for whether it changes
+behaviour).**
+- `context_index.PASS_LOG_RULE`, used by the packet line (`_context_index_lines` in
+  `shiploop_navigator.py`) and the context index "In progress" line (`_in_progress_lines`). Neither reads
+  the log, so both stay true at the moment of recovery. It tells the pass to create the log when it starts
+  (the batch plan's decision), to append after each pass what was checked and what is left, and a reset to
+  open it first if it exists; if it does not, nothing was logged and the scratch files and worktree show
+  how far the stage got.
+- `references/state-files.md`: one `notes/` row, and the `inbox/` and `results/` roles; a "Test commands"
+  paragraph in "Test decisions in `state.md`", stated in the terms of the test-strategy duty ("one file owns
+  the suite commands") and pinned by `test/shiploop-navigator-contract.test.py`, which is untouched.
+- `docs/record-register-2026-10-07.md`: a "Dispositions, 2026-10-08" section, and the "byte-compares" wording
+  corrected to parsed equality on planning-return paths.
+- Tests (`test/shiploop-rehydration.test.py`): a wording-level test that the packet line is conditional
+  (failed first; not a refusal route, so the "route not wording" rule does not apply), the index pin updated,
+  and a guard that two renders around the creation of a non-empty or empty log are byte-identical for the
+  packet and the index (green before and after: it keeps a future change from reading the host-written log).
+
+**Why the design changed (audit, firm).** The design printed "none yet" or "open it first" by looking for the
+file at render time. A packet is written once, at action start (`navigator.emit`), and only `next` rewrites
+it. After a context loss the model re-reads the packet file: 5 of 11 Grok compactions began that way with no
+`next` (SPEC S-6 cites the same evidence). A mid-stage log, the behaviour the aid wants to induce, would
+leave "none yet" on disk. `_in_progress_lines` also states the log, is regenerated only at save, and could
+not be kept true at all. A render-time existence check would also make a derived view depend on a
+host-written file outside `state.md`.
+
+**Dropped.**
+- The loop-contract change (remove the pass-log row from `test_loop.build_contract`, `quality.build_contract`
+  and the `listing_problem` list). The contract file is written once, at the transition into the action
+  (`transition_writes` via `_lint_transition`); `next` never rewrites it and the printed `Start:` feeds that file
+  to the runtime. A loop started before a release would produce a terminal packet whose context still carries the
+  row, `check_loop_packet` refuses it, and restarting re-feeds the same stale file, so the refusal has no working
+  exit; the guard case in the design started from a freshly built contract and could not see that. It would save
+  about 240 bytes of a 3.3 to 5.0 KB contract and contradicts the tenet's "repetition across packets is
+  grounding". Re-open only with a real exit (ShipLoop rewriting the contract on `next`, a new write path) and a
+  test that writes the old-shaped file to disk; the note would then be minor.
+- Enforcing that docs match the ledger, or pointing docs at `state.md`; and removing the inbox or results copy.
+  See the register's dispositions for the numbers.
+- The compact evidence file `docs/experiments/batch-1007-live-20261007/records-single-source.json`. The
+  per-run analysis was done in the design agent's scratch space and its script was not kept, so it cannot be
+  regenerated or validated here. The figures (13 context losses, 29 command rows, first-write positions) are in
+  `docs/experiments/batch-1008-design-audit-20261008/design-audit.json` (key REGISTER) with the audit's
+  corrections, and the corrected numbers are in the register. End state: unachievable in this change, not
+  written-but-not-run.
+
+**Audit corrections to the evidence (applied in the register).** Event 10305 is a same-context existence check,
+not a post-reset read (one post-reset read, not two); cancellation 11926 and compaction 12067 were in
+carry-forward W2, not system-test-author; the 1.22.0 write-to-complete gap is 7 to 39 events, not 2 to 18;
+`planning_context.collect` runs only on planning-return paths. The S-6 probe claim "met for the contract change
+by the 1.23.0 kills" is dropped with the contract change: the only loss inside a loop stage was one test-green
+compaction, and none in a quality or regression loop.
+
+**Unknowns left open.**
+- Does the create-at-start instruction get followed, and on which host? Settle with the next paired Sonnet and
+  Grok runs: rerun the events analysis (first-write position as a share of the stage's events). The cost to
+  weigh is about one extra write per action (38 to 47 per run). Sonnet has written none in 84 actions.
+- Does an existing mid-stage log reduce redone work after a reset? Needs a log first; probe with a
+  clear-the-context inside a long Grok stage (implement, plan or carry-forward ran 9.6 to 14.5 minutes).
+- Share of recoveries that re-read the packet file versus run `next`, per host: 5 of 11 packet-first on Grok,
+  Claude unmeasured.
+- The 7 ledger command rows in no prose file mean the "plans point at the strategy file" duty is not met for
+  per-item commands; documenting it records the gap and does not close it. Do test commands drift when a second
+  feature inherits the strategy file? n=0.
+- A packet-text change moves the baseline of any byte-identity comparison of dry-run packets (the LEARNINGS
+  practice of comparing dry-run packets before and after a prompt change); no test pins it.

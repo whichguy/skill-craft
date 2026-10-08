@@ -50,7 +50,9 @@ class IndexTests(unittest.TestCase):
             root = Path(temporary)
             text = context_index.render(state, root, "test-green")
             self.assertIn("## In progress", text)
-            self.assertIn(f"Pass log (what each pass checked and what is left): {root / 'notes' / (action + '.md')}", text)
+            line = next(line for line in text.splitlines() if line.startswith("- Pass log"))
+            self.assertTrue(line.endswith(f": {root / 'notes' / (action + '.md')}"), line)
+            self.assertIn("if it exists", line)
             self.assertIn(str(root / "tests" / (action + "-terminal.json")), text)
             self.assertNotIn("-latest.json", text)  # nothing writes it; the receipt is the one loop record
             self.assertLess(text.index("## In progress"), text.index("## Request"))
@@ -92,6 +94,36 @@ class PacketTests(unittest.TestCase):
         self.assertIn(str(dry_run.RUN / "notes" / (action + ".md")), packet)
         paused = nav.control(state, "pause", "The user asked to stop for now.")
         self.assertIn(str(dry_run.RUN / "notes" / (action + ".md")), nav.render(dry_run.CORE, dry_run.RUN, paused))
+
+    def test_the_pass_log_line_tells_the_pass_to_create_it_and_a_reset_to_open_it_only_if_it_exists(self) -> None:
+        # Wording-level check, not a refusal route: the packet file is written once, when the action starts,
+        # and a context lost mid-stage re-reads that file, so the line must be true whether or not the host
+        # has created the log by then.
+        state = drive_to("implement")
+        line = next(line for line in nav.render(dry_run.CORE, dry_run.RUN, state).splitlines()
+                    if line.startswith("This action's pass log"))
+        for part in ("optional", "ShipLoop does not create it", "Create it when the pass starts",
+                     "append after each pass what you checked and what is left",
+                     "open it first if it exists", "nothing was logged"):
+            self.assertIn(part, line)
+        self.assertNotIn("open it first after a reset)", line)  # the unconditional promise of a file
+
+    def test_the_packet_and_the_index_do_not_depend_on_whether_the_log_exists(self) -> None:
+        # GUARD, green before and after: a packet is written once at action start and re-read after a loss, so
+        # nothing in the render may read the host-written log; two renders around its creation are identical.
+        state = drive_to("implement")
+        action = nav.current_action(state)["id"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            before = nav.render(dry_run.CORE, root, state)
+            index_before = context_index.render(state, root, nav.current_stage(state))
+            log = context_index.pass_log_path(root, action)
+            log.parent.mkdir(parents=True)
+            log.write_text("Checked the first pass; the second is left.\n")
+            self.assertEqual(nav.render(dry_run.CORE, root, state), before)
+            self.assertEqual(context_index.render(state, root, nav.current_stage(state)), index_before)
+            log.write_text("")
+            self.assertEqual(nav.render(dry_run.CORE, root, state), before)
 
 
 class GoalFirstTests(unittest.TestCase):

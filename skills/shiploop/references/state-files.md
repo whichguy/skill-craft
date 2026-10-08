@@ -11,10 +11,9 @@ inside its Markdown file, and there is no writable JSON mirror.
 | File or directory | Authority / purpose |
 |---|---|
 | `state.md` | The navigator state: protocol version, execution mode, run ID and revision, repository and original prompt, current stage/action/status, work queue and `work_index`, per-item `inner_loops`, accepted results and history, the selected Improve card, the active Improve child and imported Improve records, chain bindings, the run's `delegation`, the required run-level `lint` option (`fix`, `report` or `off`; a saved run without it is refused) and the required run-level `backchain_passes` option (`one`, `converge` or `none`; a saved run without it is refused) and the required run-level `planning_review` option (`stage` or `none`; a saved run without it is refused). Protocol 4 adds `planning_reconciliations`, and state version 4 adds `revisions` (how many times each work item went back to `step-plan`, at most 2). |
-| `notes/<action>.md` | The pass log for one action: after each pass the host appends what it checked and what is left. Every packet names it and the context index lists it under "In progress", so a context lost mid-stage resumes from the last pass. It is a recovery aid, not evidence: ShipLoop's own test-run records are the evidence. |
-| `inbox/<action>.md` | Where the host writes the current action's result before running the printed callback. It is input, not accepted state. |
-| `results/<action>.md` | The accepted producer result for one action, written by the script's transaction. |
-| `notes/` | Host-authored run notes named in results' `evidence_refs`, including the canonical `notes/environment-lifecycle.md`. |
+| `notes/` | Host-written run notes; ShipLoop never creates one. Notes named in results' `evidence_refs` include the canonical `notes/environment-lifecycle.md`. `notes/<action>.md` is the optional pass log: the host creates it when a pass starts and appends what each pass checked and what is left. Every packet names this action's pass log with the same conditional rule (open it first after a reset if it exists; if it does not, nothing was logged) and the context index lists it under "In progress"; neither reads the file, so neither can say whether it exists. It is a recovery aid, never a completion gate and never evidence: ShipLoop's own test-run records are the evidence, and a test-loop or quality-loop stage keeps its iteration state in the Until Loop receipt. |
+| `inbox/<action>.md` | Where the host writes the current action's result before running the printed callback. It is input, not accepted state. It stays after acceptance for two uses: replay (a repeated `complete` of the same action is compared with `accepted`) and the pending draft after a kill. It is refused as a planning dependency because it is mutable. |
+| `results/<action>.md` | The accepted result for one action, written by the script in the same transaction as `state.md`, and the "Read first" copy a packet points at. `state.md` `accepted[<action>]` stays the authority: on a planning-return path `planning_context.collect` fails when the file's parsed content differs from state (parsed equality, not bytes; an ordinary run does not check it). |
 | `improve/<action>/` | The imported Improve child record for one parent action: its receipt, terminal packet, the trivial-pass review files (two, or one for an unchanged first pass) and copied evidence. |
 | `workspace.md`, `return-plan.md`, `return-receipt.md` | For workspace runs (in the workspace root): the original checkout, branch and baseline, the reviewed return plan and the guarded return receipt that completion requires. |
 | `report.html` | Derived report written for done and halted runs; not workflow state. For a worktree run it lists, read live from Git, the branches and worktrees the run left in the source repository with the command to remove each; ShipLoop never removes them itself. |
@@ -45,6 +44,20 @@ rewriting the item's initial context. These are untrusted host reports to
 revalidate, not a new test-state schema or a passing-check receipt. Follow
 [test decision handoffs](repeatable-test-suites.md#carry-test-decisions-through-stages)
 to retain fixture, suite and local/remote choices through later work.
+
+Test commands have two homes with different jobs, and no script compares them.
+The strategy file the `test-strategy` stage names owns the repository's suite
+entry points and is the durable catalog later runs inherit (committed under
+`docs/shiploop`); plans point at it rather than restating them. The accepted
+`step-plan` result's `test_commands` (with `system_commands` and
+`consumer_checks` where recorded) is the per-item run list ShipLoop itself
+executes (`test_loop.stage_commands`). A command in one and not the other is not
+detected, and neither is a strategy file that keeps its commands outside a
+fenced block, as its duty asks (the Sonnet 1.23.0 strategy file has no fence).
+Measured on four first-feature runs: 29 distinct ledger command rows, 22 of them
+in some `docs/shiploop` file and 7 in none (consumer checks, one-line checks and
+two focused commands), none contradicting the ledger; a second feature that
+inherits the strategy file is unmeasured.
 
 The planning basis travels the same way. Prelude planning packets (discovery
 through plan) name the current accepted intake-through-test-strategy results as

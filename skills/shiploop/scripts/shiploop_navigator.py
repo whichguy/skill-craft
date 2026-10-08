@@ -3408,8 +3408,8 @@ def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
              f"{Path(root) / context_index.INDEX_FILE}"]
     if state["status"] in ("active", "paused", "blocked") and state["status"] != "done":
         action_id = current_action(state)["id"]
-        lines.append("This action's pass log (after each pass, append what you checked and what is left; "
-                     "open it first after a reset): " + str(context_index.pass_log_path(root, action_id)))
+        lines.append("This action's pass log (" + context_index.PASS_LOG_RULE + "): "
+                     + str(context_index.pass_log_path(root, action_id)))
     reads = context_index.read_first(state, root, stage, workitem)
     if state["status"] == "active" and reads:
         lines.append("Results this stage builds on (open each one whose content is not already in "

@@ -32,7 +32,7 @@ Counts are files in the real run. "Opened" is from the host log.
 | `context-index.md` | navigator.save: context_index.render | none | "open it when you need the global picture, for example after compaction" (navigator._context_index_lines) | DERIVED + RECOVERY AID | 1 (77 KB) | yes: 2 grep + 2 read_file, once, after compaction 4 |
 | `callback-attempts` | protocol._count_callback_attempt | protocol._callback_attempts (status JSON `progress` counter for the keepalive hook) | none | AUTHORITATIVE for the keepalive counter only | 1 (value 60) | 0 |
 | `packets/<action>.md` | navigator.emit (store.atomic_write_text) | none; `next` rewrites it | "Read the full packet before acting" (navigator.packet_head); recovery line "reprints this head and rewrites the full packet" | DERIVED + RECOVERY AID | 53 (2.1 MB) | 44 distinct files, 58 read_file + 55 grep; reopened within the first five calls after all 5 compactions (first call after 3 of them) |
-| `results/<action>.md` | navigator.save: _new_result_records, _result_record | planning_context.collect (byte-compares to state.accepted), context_index.read_first (path only) | "open each one whose content is not already in your context" (navigator._context_index_lines, "Read first") | DERIVED (copy of state.accepted[action]) | 52 (224 KB) | 14 calls (5 read_file, 9 grep) |
+| `results/<action>.md` | navigator.save: _new_result_records, _result_record | planning_context.collect (compares the parsed record with state.accepted on planning-return paths; corrected 2026-10-08, it was written as a byte comparison), context_index.read_first (path only) | "open each one whose content is not already in your context" (navigator._context_index_lines, "Read first") | DERIVED (copy of state.accepted[action]) | 52 (224 KB) | 14 calls (5 read_file, 9 grep) |
 | `inbox/<action>.md` | host writes; save adds `inbox/.keep` | navigator._submitted_result (via _result_input_path), idempotent replay compare | "the result file is named below" (navigator._first_callback_lines) | INPUT, consumed once | 55 + `.keep` (240 KB) | model wrote 56 times, read 3 |
 | `inbox/<action>-improve-notes.md` | host writes | navigator.improve-complete (`_optional_text_file`) | notes path is in the improve-complete callback (navigator._render_improve) | INPUT | 3 | model wrote 3 |
 | `notes/<action>.md` | host writes | progress_data.build_snapshot (draft preview); context_index.pass_log_path (path only) | "open it first after a reset" (navigator._context_index_lines); contract resource "append what each iteration checked" (quality.build_contract, test_loop.build_contract) | RECOVERY AID (model-authored) | 8 logs for 52 actions | 0 reads; 8 writes, each within 8 events of that action's result |
@@ -108,8 +108,50 @@ Recovery aids confirmed in place and kept: `packets/`, `context-index.md`, `note
 | Fact class | Authoritative | Derived, archived or competing |
 |---|---|---|
 | Graph position (stage, action, work item, status) | `state.md` (`stage`, `action`, `work_index`, `inner_loops`, `status`) via navigator.save | derived: `status.md`, `context-index.md` "In progress", `packets/<action>.md`, `progress.html`, `report.html`. `timeline.json` is time only; `callback-attempts` is only a keepalive counter. No competing copy found |
-| Accepted results | `state.md` `accepted` + `history` | derived: `results/<action>.md` (byte-checked by planning_context.collect), `context-index.md` summaries, `report.html` rows. Input copy: `inbox/<action>.md` stays after acceptance and is read only for idempotent replay, so each accepted result exists three times on disk (240 KB inbox, 224 KB results, `state.md`). Improve records: `state.improve_results` is authoritative, `improve/<id>/receipt.md` is its archive (equality enforced by planning_context._collect_improve_artifacts) |
+| Accepted results | `state.md` `accepted` + `history` | derived: `results/<action>.md` (parsed-equality check in planning_context.collect on planning-return paths only; corrected 2026-10-08), `context-index.md` summaries, `report.html` rows. Input copy: `inbox/<action>.md` stays after acceptance and is read only for idempotent replay, so each accepted result exists three times on disk (240 KB inbox, 224 KB results, `state.md`). Improve records: `state.improve_results` is authoritative, `improve/<id>/receipt.md` is its archive (equality enforced by planning_context._collect_improve_artifacts) |
 | Test commands | `state.md` accepted `step-plan` `test_commands` (also `system_commands`, `consumer_checks`), read by test_loop._step_plan and stage_commands | derived: `results/<step-plan>.md` (what contracts point at), `tests/<id>-contract.json`. Competing prose: `docs/shiploop/test-strategy.md` and `features/<f>/test-spec.md` also list commands; scripts check presence and credentials only, nothing enforces that they match the accepted commands |
 | Loop progress | `state.md` (`inner_loops`, `revisions`, `active_improve`, `improve_results`) for position; `tests/<id>-verifyN.md` file count for the refused-run cap (no mirror in state); runtime-owned `tests|quality/<id>-terminal.json` and the live `.shiploop-improve/.../packet.json` for the Until Loop's own iteration state | derived: `context-index.md`, `progress.html`. Recovery: `notes/<action>.md`, `until-loop/` |
 | Return state | `workspace.md` (status, baseline), `return-plan.md` (dispositions), `return-receipt.md` (script-verified receipt that handoff requires) | derived: `report.html` workspace section (read live from Git). No copy in `state.md` |
 | Knowledge (spec, environment, test strategy, outcome) | `docs/shiploop/*` and `SHIPLOOP.md` in Git, committed by knowledge_home.commit; `worktree/` and `work/` hold the same commits after return | `state.md` holds summaries of the accepted `spec` and `plan` results, not the documents. `notes/environment-lifecycle.md` is a pointer to `environment.md` by design (535 B in this run) |
+
+## Dispositions, 2026-10-08
+
+Batch 1008 (item REGISTER, `docs/shiploop-batch-1008a-journal-2026-10-08.md`) audited the three "single source"
+findings again. Status of each:
+
+- **Pass log: the packet promised a file that is rarely there (firm), the recovery value of a mid-stage log is
+  unknown.** Built: one static conditional rule, `context_index.PASS_LOG_RULE`, printed by the packet line and by
+  the context index "In progress" line. It never reads the file, because a packet is written once at action start
+  and a context lost mid-stage re-reads that file: in the two Grok runs 5 of 11 compactions began with a re-read of
+  `packets/<action>.md` and no `next` (1.22.0 events 1681, 8659, 10303; 1.23.0 events 4314, 10128), and `next` came
+  first only at 1.23.0 event 14668. A line that depended on the file would say "none yet" on disk for the whole stage.
+  The rule also tells the pass to create the log when it starts (batch plan decision). The design held that start
+  instruction because its cost is unmeasured (about one write per action, 38 to 47 per run on the host that did not
+  write logs); the first paired Sonnet and Grok runs after the build settle it by the share of logs first written
+  before the stage's midpoint (this register found 83 to 100 percent of events, so far closing summaries).
+  Dropped: refusing `complete` without a log (a recovery aid never gates completion, 95a4648d), a script-made stub
+  (47 abandoned files), and removing the loop-contract pass-log row (the contract file is written once at the
+  transition, so a loop started before a release would be refused with no working exit; saves 240 bytes).
+- **Recovery numbers added (firm for the 1.23.0 and 1.22.0 Grok runs, Sonnet unmeasured).** 1.23.0 Grok:
+  6 compactions (events 1722, 4314, 6693, 10128, 12067, 14668) and 2 host cancellations (11926 and 13415), 8 in-stage
+  context losses, no log present for the action in progress at any of them; 1.22.0 Grok: 5 compactions, none with
+  a log. First write of each action log is at 83 to 100 percent of its stage's events (9 logs in 1.23.0, 8 in 1.22.0,
+  7 to 39 events before the `complete`). Sonnet wrote none: 0 of 38 and 0 of 46 actions. Corrections to the first
+  count: event 10305 was a same-context existence check 177 events after compaction 10128 (the model had said it
+  would append the log later), so the only post-reset log read is event 14736, 66 events after compaction 14668, and
+  it found nothing; cancellation 11926 and compaction 12067 fell in carry-forward W2 and its Improve child, only 13415
+  in system-test-author. The eight losses cost one rerun (`node restart-check.mjs`, event 13496). Whether "no log
+  needed" is the right conclusion is unknown, and Claude's compaction count is unmeasured on that host.
+- **Test commands: documented, not enforced (firm for four first-feature runs).** 29 distinct (kind, suite, command)
+  ledger rows; 22 appear in a `docs/shiploop` file, 7 in none; no document names a command the ledger did not run.
+  The remedy "docs point at state.md" fails: `state.md` is in `.shiploop-runs/<id>/run`, outside the repository, while
+  the knowledge home is committed for later runs, and no run ever opens `state.md`. Refusing a step plan whose command
+  the strategy file lacks would be a new refusal on every run for a gap that never hurt one. The relationship is now in
+  `references/state-files.md` ("Test decisions in `state.md`") in the terms of the test-strategy duty: the strategy file
+  owns suite entry points, the step-plan result is the per-item run list ShipLoop executes, nothing compares them, and
+  the duty's "fenced code block" rule is not followed or checked either. A second feature on an inherited strategy file
+  is unmeasured (n=0); re-open on a measured stale or contradictory command.
+- **Result copies: kept, roles documented (firm).** `inbox/<action>.md` is a live recovery aid: after the 1.23.0
+  host kill at event 11926 the resumed model re-read its inbox file (11973) and re-submitted (12001, exit 0).
+  `results/<action>.md` is the model-facing "Read first" copy; its parsed content is compared with state only on
+  planning-return paths (`planning_context.collect`), not on an ordinary run. About 240 KB of disk is not a defect.
