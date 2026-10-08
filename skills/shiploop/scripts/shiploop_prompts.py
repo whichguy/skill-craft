@@ -974,7 +974,7 @@ results do not prove live permissions, event delivery or operator log access.
 Settle these now, so later stages do not guess. For each command, say which test
 ids it may print. A host-dependent case (it needs a host browser, a device, an
 account or a service) names its tool and is probed now by doing the case's first
-step, not its version. The product does not exist yet, so probe against a stand-in,
+step, not its version. If the product does not exist yet, probe against a stand-in,
 not the product's own address (a request to it fails whatever the tool can do): for
 a browser, write a one-line page in this run's scratch directory, open it by
 `file:` URL or from a throwaway static server you stop afterwards, and read its

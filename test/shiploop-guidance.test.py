@@ -2275,7 +2275,7 @@ class SettledFactTests(unittest.TestCase):
         import shiploop_prompts as prompts
         text = self.duty("test-strategy")
         for phrase in (
-            "The product does not exist yet, so probe against a stand-in",
+            "If the product does not exist yet, probe against a stand-in",
             "not the product's own address",
             "write a one-line page in this run's scratch directory",
             "`file:` URL or from a throwaway static server you stop afterwards",
@@ -2295,6 +2295,8 @@ class SettledFactTests(unittest.TestCase):
             with self.subTest(delegation=delegation):
                 packet = " ".join(prompts.prompt("test-strategy", delegation=delegation).split())
                 self.assertEqual(packet.count("probe against a stand-in"), 1)
+        # The sentence is conditional: a run on an existing product that is already running does not meet it as a fact.
+        self.assertNotIn("The product does not exist yet", text)
 
 
 class ConsumerCheckLocationTests(unittest.TestCase):
