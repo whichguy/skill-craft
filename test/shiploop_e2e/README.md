@@ -367,6 +367,15 @@ product hang; it does not say the product is wrong.
   Without rollouts the figures are null and `unmeasured` names them with that reason.
   Recorded Luna 1.16.1 run (168 MB, read in 0.6 s): 2,565 main-thread calls, peak 251,867
   of 258,400, 34 compactions, and 314 sub-agent calls.
+- A Claude run's stage rows carry `context` {calls, peak, peakPct} too, the shape the Codex
+  rollouts give (without compactions, which Claude leaves unmeasured). `calls` are the
+  messages (unique `message.id`) whose first event falls in the stage's window, `peak` is the
+  largest input side (input, cache reads and cache writes) of any event in it, and `peakPct`
+  is that as a percentage of the context window the result events report. `turns` still
+  counts events, so the two differ (r1 Battleship: 120 calls, 206 stage turns). A call after
+  the last accepted stage is in no row: the rows hold 119 of the 120 calls of r1 Battleship
+  and 104 of the 105 of r1 Checkers. A stage the script recorded itself (skill-assess, say)
+  has 0 calls and no peak. It is a record; no verdict reads it.
 - No output-token figure is built per stage, and none from Claude's events: a Claude
   message's output count is a streaming snapshot (it summed to about 1/17 of the session's own
   total on a recorded run), and Codex has none per call in its event stream. The planning window's

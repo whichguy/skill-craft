@@ -648,7 +648,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             # `turns` keeps counting events (baselines.jsonl holds that definition); a model call is a message, counted at
             # its first event, and an event with no id is its own call.
             message_id = (event.get("message") or {}).get("id")
-            if not isinstance(message_id, str) or not message_id or message_id not in messages:
+            first = not isinstance(message_id, str) or not message_id or message_id not in messages
+            if first:
                 claude_calls += 1
                 if isinstance(message_id, str) and message_id:
                     messages.add(message_id)
@@ -656,7 +657,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
                 if isinstance(block, dict) and block.get("type") == "tool_use":
                     tools.call(t, block.get("id"), str(block.get("name") or ""),
                                block["input"] if isinstance(block.get("input"), dict) else {})
-            turns.append({"t": t, "input": context_tokens((event.get("message") or {}).get("usage"))})
+            turns.append({"t": t, "input": context_tokens((event.get("message") or {}).get("usage")), "call": first})
         elif kind == "user":  # Claude: the tool_result blocks, whose text may begin with the host's `Exit code N`
             for call_id, shown in tool_results(event):
                 tools.result(call_id, shown, claude_exit(shown))
@@ -723,7 +724,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         unmeasured["window_tokens"] = (f"{NO_WINDOW}; {why_not}" if why_not else
                                        NO_ROLLOUT_WINDOW if context else NO_WINDOW)
     planning["tokens"] = planning_tokens(bounds, why_not_tokens, usage_rows, grok, bool(claude_calls), context)
-    stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured)
+    stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
     if context and "unmeasured" not in context:
         for row, figures in zip(stages, context["perStage"]):
             if figures is not None:
@@ -939,7 +940,7 @@ def stage_windows(accepted: list[dict], stamps: dict, pending: str | None = None
 
 
 def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict,
-              pending: str | None = None, unmeasured: dict | None = None) -> list[dict]:
+              pending: str | None = None, unmeasured: dict | None = None, context_window: int | None = None) -> list[dict]:
     """Turns, tool calls and time between one accepted action and the next.
 
     Needs the runner's timeline; without it only the order and outcome are known.
@@ -953,6 +954,11 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
     A counter the host does not report (``unmeasured`` names it, or a stage
     count that needs per-call usage when the host has none) is ``None`` in the
     row, never 0.
+
+    Where the turns carry a ``call`` flag (Claude: the first event of a message) a timed row also has ``context``
+    {calls, peak, peakPct}, the shape Codex's rollouts give: the messages that began in the window, the largest input
+    side any of its events reported, and that peak as a percentage of ``context_window`` (None when none was reported).
+    ``turns`` keeps counting events, and a call after the last accepted stage is in no row.
 
     Limits, not fixed: engine stamps are whole seconds (truncated) while runner times
     carry milliseconds, so the turn that submits a stage's result lands in the next
@@ -982,7 +988,12 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
         after, until, since = window
         events = [x for x in turns if x["t"] is not None and after < x["t"] <= until]
         tools = [c for c in calls.values() if c["t"] is not None and after < c["t"] <= until]
-        rows.append({**base, "seconds": round(until - since, 1), **counted(events, tools)})
+        row = {**base, "seconds": round(until - since, 1), **counted(events, tools)}
+        if any("call" in x for x in turns):
+            peak = max((x["input"] for x in events if x["input"] is not None), default=None)
+            row["context"] = {"calls": sum(x["call"] for x in events), "peak": peak,
+                              "peakPct": rollouts.share(peak, context_window)}
+        rows.append(row)
     return rows
 
 

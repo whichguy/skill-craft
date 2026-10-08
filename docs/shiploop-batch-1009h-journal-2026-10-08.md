@@ -94,3 +94,29 @@ builds such a row and checks the printed line.
 **Related commits.** 1a35bc50 (Grok-only counters are unmeasured elsewhere; the `GROK_SIGNALS` precedent), 8444e11d (the planning
 block's recorded-extract tests, the pattern the fixtures follow), 06f2a012 (the callback plan that admitted M1), 847fa64e (the
 round-1 analysis that found every lens hand-mining `events.jsonl`).
+
+## H1c: Claude stage rows carry the context the Codex rows carry (2026-10-08)
+
+**Built (status: firm for the figures on the two round-1 runs and the fixture-exact tests; no run has been judged by it).** A timed
+stage row of a Claude run gets `context` {calls, peak, peakPct}, the shape the unmodified exporter's `_visit_context` already reads
+for Codex (`rollouts.rollout_context` perStage, minus compactions). `calls` are the messages whose first event falls in the window,
+`peak` the largest input side (input, cache reads, cache writes) of an event in it, `peakPct` the peak over the context window the
+result events report (`per_stage(..., context_window)`; `rollouts.share` is now public because both hosts use it). `turns` keeps its
+events-based definition because `baselines.jsonl` stores it. Test:
+`ClaudeToolBlocksTest.test_stage_rows_count_model_calls_and_their_peak_context_not_events`, over the 47 recorded events (30 assistant
+events, 16 messages, three cut windows whose expected figures were computed from the fixture by a separate loop before the code
+existed); the through-exporter test also checks that `visitContext` leaves the page's unmeasured map and every stage has its calls.
+
+**Corrections from the audit that changed the build.** The design's test said "the sum of `context.calls` equals `model_calls`". That is
+false on real runs: calls after the last accepted stage are in no window (119 of 120 on r1 Battleship, 104 of 105 on r1 Checkers; the
+stage rows' tool calls still sum to all 120 and 105, so the one message no window holds has no tool_use block). The
+test asserts equality only on a synthetic cut whose last accept follows the last event, and "fewer" on a cut that ends early.
+
+**Evidence.** r1 Battleship: 37 stage rows, all with a context; the heaviest stage peak 236,029 of a 1,000,000 window (the run's
+`input_peak` is 237,430, from a call after the last accepted stage); stages 0 calls: skill-assess and skill-validate (the script
+records them itself, with no peak). r1 Checkers: 36 rows, peak 235,247, one 0-call stage (integrate). Stage `turns` sums: 206 and 184
+(the "turns 184 vs model_calls 105" of the Checkers lens).
+
+**Not verified / unmeasured.** Compactions stay unmeasured for Claude: no `compact_boundary` in any of the 15 recorded streams, and
+the only context drops (5 older runs, 7 drops by the audit's scan) fall at a `system/init`, a session start, with no positive control.
+The exporter's SCHEMA rows that say only a Codex run has per-visit context are stale; see the hand-off at the end of this journal.

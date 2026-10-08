@@ -117,7 +117,8 @@ def _read(path: Path) -> dict:
             "windows": windows, "tokens": tokens}
 
 
-def _share(peak: int | None, window: int | None) -> float | None:
+def share(peak: int | None, window: int | None) -> float | None:
+    """A peak as a percentage of the context window (one decimal), or None when either is not known."""
     return round(100 * peak / window, 1) if peak is not None and window else None
 
 
@@ -180,7 +181,7 @@ def rollout_context(out: Path, windows: list | None = None, tokens_window: tuple
 
     def figures(t_calls: list[tuple], t_compactions: list[float | None]) -> dict:
         peak = max((total for _, total in t_calls if total is not None), default=None)
-        return {"calls": len(t_calls), "peak": peak, "peakPct": _share(peak, window),
+        return {"calls": len(t_calls), "peak": peak, "peakPct": share(peak, window),
                 "compactions": len(t_compactions)}
 
     own = [t for t, is_main in compactions if is_main]

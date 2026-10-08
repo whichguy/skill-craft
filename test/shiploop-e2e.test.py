@@ -2495,6 +2495,34 @@ class ClaudeToolBlocksTest(unittest.TestCase):
         self.assertEqual(exported["glue"], len(found["model_glue"]))
         for name in ("shiploop_failures", "model_glue"):
             self.assertNotIn(name, exported["unmeasured"], name)
+        self.assertEqual([stage["context"]["calls"] for stage in exported["stages"]], [found["stages"][0]["context"]["calls"],
+                                                                                       found["stages"][1]["context"]["calls"]])
+        self.assertNotIn("visitContext", exported["unmeasured"])
+
+    def test_stage_rows_count_model_calls_and_their_peak_context_not_events(self):
+        # Claude writes one event per content block: 30 assistant events here are 16 messages, and a stage's calls are the
+        # messages whose first event falls in its window. The context window is the one the result event names.
+        ended = dict(CLAUDE_END, modelUsage={"claude-sonnet-5-5": {"contextWindow": 1000000}})
+        names = list(json.loads((TOOL_BLOCKS / "manifest.json").read_text())["battleship-sonnet-calls.jsonl"])
+        events = [*recorded_calls(*names), ended]
+        m = collect_stream(events, [("A1", "intake", "done", 115.0), ("A2", "spec", "done", 130.0),
+                                    ("A3", "plan", "done", 200.0)])
+        self.assertEqual([r["context"] for r in m["stages"]],
+                         [{"calls": 6, "peak": 103290, "peakPct": 10.3}, {"calls": 4, "peak": 184145, "peakPct": 18.4},
+                          {"calls": 6, "peak": 231581, "peakPct": 23.2}])
+        self.assertEqual([r["turns"] for r in m["stages"]], [11, 9, 10], "turns keep counting events")
+        self.assertEqual([r["tool_calls"] for r in m["stages"]], [6, 5, 6])
+        self.assertEqual(m["model_calls"], 16)
+        self.assertEqual(sum(r["context"]["calls"] for r in m["stages"]), 16, "the last stage ends after the last event")
+        self.assertEqual(m["tokens"]["input_peak"], 231581)
+        # A call after the last accepted stage is in no window, so the stages hold fewer calls than the run.
+        cut = collect_stream(events, [("A1", "intake", "done", 115.0), ("A2", "spec", "done", 130.0)])
+        self.assertEqual(sum(r["context"]["calls"] for r in cut["stages"]), 10)
+        self.assertEqual(cut["model_calls"], 16)
+        # A stage the timeline cannot place has no context, and a run with no window figure has no percentage.
+        unplaced = collect_stream([*events[:-1], CLAUDE_END], [("A1", "intake", "done", 115.0)], timed=False)
+        self.assertTrue(all("context" not in r for r in unplaced["stages"]), unplaced["stages"])
+        self.assertIsNone(collect_stream([*events[:-1], CLAUDE_END], [("A1", "intake", "done", 115.0)])["stages"][0]["context"]["peakPct"])
 
     def test_progress_names_a_claude_refusal_and_does_not_print_an_exit_that_was_not_shown(self):
         with tempfile.TemporaryDirectory() as tmp:
