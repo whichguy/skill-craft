@@ -127,6 +127,11 @@ class PacketTests(unittest.TestCase):
             self.assertEqual(log.parent, root / "notes")
             self.assertFalse(log.exists())  # the directory only: the log stays the model's to create
             log.write_text("Checked the first pass; the second is left.\n")
+        # The reference row says what the script now does, so a reader does not mkdir what already exists.
+        reference = (ROOT / "skills" / "shiploop" / "references" / "state-files.md").read_text(encoding="utf-8")
+        row = next(line for line in reference.splitlines() if line.startswith("| `notes/` |"))
+        self.assertIn("ShipLoop creates the empty directory", row)
+        self.assertNotIn("ShipLoop never creates", row)
 
     def test_the_packet_and_the_index_do_not_depend_on_whether_the_log_exists(self) -> None:
         # GUARD, green before and after: a packet is written once at action start and re-read after a loss, so
