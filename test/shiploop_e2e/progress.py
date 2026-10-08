@@ -82,7 +82,7 @@ def report(out: Path) -> str:
     if blind:
         lines.append("  not measured on this host (nothing printed for these is not a clean result): " + ", ".join(blind))
     for failure in m["shiploop_failures"][memo.get("failures", 0):]:
-        lines.append(f"  ShipLoop {failure['verb']} failed (exit {failure['exit']}): {failure['line']}")
+        lines.append(f"  ShipLoop {failure['verb']} failed ({metrics.failure_text(failure)}): {failure['line']}")
     for key, label in (("truncated_outputs", "host truncated outputs"), ("compactions", "compactions"),
                        ("improve_children", "Improve children")):
         if m[key] is not None and m[key] > memo.get(key, 0):  # None: this host cannot show it

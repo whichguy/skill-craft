@@ -528,11 +528,16 @@ Marketplace skill-craft 1.16.0 (ShipLoop 0.48.0).
 
 | Case | Verdicts | Turns | Improve children / review passes (max per child) | ShipLoop failures, glue |
 |---|---|---|---|---|
-| hello | all pass | 210 | 16 / 12 (3) | 0, 0 |
-| seat-reservations | all pass, 2 work items | 423 | 24 / 25 (3) | 0, 0 |
-| battleship | all pass | 353 | 20 / 24 (3) | 0, 0 |
-| battleship-scoring (follow-on of battleship) | all verdicts pass; 1 stored check reads FAIL (see below) | 320 | 16 / 18 (3) | 0, 0 |
+| hello | all pass | 210 | 16 / 12 (3) | 6, 0 (was 0, 0) |
+| seat-reservations | all pass, 2 work items | 423 | 24 / 25 (3) | 16, 3 (was 0, 0) |
+| battleship | all pass | 353 | 20 / 24 (3) | 13, 10 (was 0, 0) |
+| battleship-scoring (follow-on of battleship) | all verdicts pass; 1 stored check reads FAIL (see below) | 320 | 16 / 18 (3) | 10, 0 (was 0, 0) |
 
+- Corrected 2026-10-08 (M1, `docs/shiploop-batch-1009h-journal-2026-10-08.md`): the last column read 0, 0 because `metrics.collect`
+  did not read Claude's tool blocks (item 7 of "Callback path typos across the 1003 batch", below), so those zeros were "not measured", not "none". The
+  figures now shown are `metrics.collect` over the same run folders (`20261003/batch-sonnet/<case>`, turns 210, 423, 353 and 320
+  match this table). They are heuristic counts of tool results, lower bounds for glue (a script the model wrote that wraps the CLI
+  hides its calls); the old column is kept as "was".
 - seat-reservations' second work item came from two failed system-test verifications (and one expected red test); ShipLoop queued the
   fix, then the system test passed: the outer loop caught what the inner loop missed.
 - battleship-scoring kept all 8 earlier requirement ids and added R-9 and R-10; the one failing stored check is a harness defect (the
@@ -862,7 +867,7 @@ Question: does ShipLoop need to change how a callback is printed or parsed, give
 5. [M] Recovery: 10 of 11 path-class failures were repaired by the next call, one by +2 (Until Loop `done`, event 3067, 22.6 s). Total 110.2 s, 0.16% of the 18.83 h at the cutoff; the 3 failed callbacks cost 22.7 s, the 4 spaced commands 28.4 s, the 7 Until Loop script paths 81.8 s.
    - No state change: a mistyped run dir exits before `run_lock` ("no ShipLoop run directory", event 4857), a spaced `--result` value splits into an unrecognized argument and exits in argparse (usage, events 3999 and 5526), an Until Loop `next` with a spaced `--state` answers `state_change: unchanged` and the same unrecognized-arguments error (event 4285), a bad script path never runs. No stray ` v1161-battleship-luna` directory exists under the runs root.
 6. [M] `_callback` (`shiploop_navigator.py`) is the one builder. `--result`, `--opening` and `--message` are `required=True` in `shiploop_protocol.py` and refused unless equal to the derived path (`_submitted_result`, the improve-commit, improve-start and improve-reconcile checks), so they carry no information. `run_dir_from_arg` (`scripts/shiploop`) walks up for `.shiploop` only, so `--run-dir` cannot be inferred for workspace runs. The printed result path is 131-157 characters in all nine runs (`result_path_len`). A typical layout prints 111, and a 355-character callback (234 without `--result`) [I: assumed layout].
-7. [M] The failure metric is blind for Claude. `metrics.collect` reads only ACP `tool_call_update` events, so `metrics.json` has `shiploop_failures` of length 0 for all 7 Claude runs, against 15 failing commands in the export plus 28 refusals behind exit 0 in recognised ShipLoop commands (40 counting wrapper scripts that the CLI pattern does not recognise). The "Batch 1003 - Sonnet 5.5 results" table above says "0, 0" for four rows that hold 13 failures. Claude counts are lower bounds. The exporter already reads `metrics.shiploop_failures`, so M1 puts the one classifier in `metrics.collect`; the "0" cells are corrected by edit with a reason under M1, not here.
+7. [M] The failure metric is blind for Claude. `metrics.collect` reads only ACP `tool_call_update` events, so `metrics.json` has `shiploop_failures` of length 0 for all 7 Claude runs, against 15 failing commands in the export plus 28 refusals behind exit 0 in recognised ShipLoop commands (40 counting wrapper scripts that the CLI pattern does not recognise). The "Batch 1003 - Sonnet 5.5 results" table above says "0, 0" for four rows that hold 13 failures. Claude counts are lower bounds. The exporter already reads `metrics.shiploop_failures`, so M1 puts the one classifier in `metrics.collect`; the "0" cells are corrected by edit with a reason under M1, not here. **Superseded, 2026-10-08:** M1 is built (`metrics.ToolLog`, journal `docs/shiploop-batch-1009h-journal-2026-10-08.md`); the "0" cells above carry their corrected figures and the reason.
 
 **Decision: defer the engine change (Item C: drop the derivable `--result`, `--opening` and `--message` flags from the callback).**
 - Grounds: KISS (no break beyond a recoverable one-call cost) and Change admission's "cost more than it saves": Item C costs a release plus 18 test and fixture files to save about 28 s in an 18 h Luna run. Batch discipline also holds: no engine change while a run is live, one release.
