@@ -34,6 +34,7 @@ sys.path.insert(0, str(SCRIPTS))
 import shiploop_loop_contract as loop_contract  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
+import shiploop_test_loop as test_loop  # noqa: E402
 
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
 TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continuation_assessment": "allowed",
@@ -159,6 +160,12 @@ class RealCliCase(unittest.TestCase):
             action, here = nav.current_action(state)["id"], nav.current_stage(state)
             if here == "implement":
                 (repo / "built.txt").write_text("hello\n")  # the work the stage's step did
+            if here == "release-verify":
+                # The gate's own test record, which a real run has by handoff and the handoff packet reads.
+                writes, _refusal = test_loop.verify(run, state, "", action, "release-verify")
+                for relative, text in writes.items():
+                    (run / relative).parent.mkdir(parents=True, exist_ok=True)
+                    (run / relative).write_text(text, encoding="utf-8")
             state = nav.apply(state, action, {**DONE, **RESULTS.get(here, {})})
             if state.get("active_improve") is not None:
                 state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})

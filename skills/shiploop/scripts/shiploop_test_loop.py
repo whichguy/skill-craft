@@ -19,6 +19,12 @@ always accepted; ``repeat`` never is, because the loop, not the graph, repeats.
 Commands are shell strings the step plan recorded; ShipLoop runs them with
 ``/bin/sh -c`` in the run's repository (owner decision 2026-09-25), bounded per
 command and per stage.  Rendering reads files and never runs a command.
+
+One exception: ``release-verify`` is the stage whose done-when is "observed where
+consumers use it".  In an isolated run with a completed return it runs the
+consumer checks in a clean copy of exactly the tree that return delivered (never
+the user's checkout, never the work area); without a completed return it runs in
+the work area and says so (see ``observation``).
 """
 
 from __future__ import annotations
@@ -37,6 +43,7 @@ import shiploop_quality as quality
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
 import shiploop_test_counts as counts
+import shiploop_workspace as workspace
 
 STAGES = stage_spec.with_complete_run("test-loop")
 # The expected-RED control: ShipLoop runs the focused commands and expects a test failure.
@@ -329,19 +336,129 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
     return lines
 
 
-def rerun_lines(state: Mapping[str, Any], work_item: str, stage: str) -> List[str]:
-    """Packet lines for a rerun stage: the commands ShipLoop runs before accepting done."""
+def observation(root: Path, state: Mapping[str, Any], stage: str) -> Optional[Dict[str, Any]]:
+    """Where this stage's recorded commands observe the product, or None for a stage with no such question.
+
+    Only ``release-verify`` asks (its done-when is "observed where consumers use it"); every other stage runs
+    in the work area as before.  ``where`` is ``in-place`` (no isolated workspace: the checkout), ``returned-result``
+    (a completed return is recorded: a clean copy of the tree it delivered, with the receipt's facts), ``work-area``
+    (an isolated run with no completed return: release-verify can precede the return and cannot make it, so it runs
+    in the work area and is labelled, never refused) or ``unknown`` (the return state cannot be read now; ``reason``
+    says why).  Never raises: the packet shows it, and ``verify`` turns ``unknown`` into a could-not-run attempt
+    rather than silently falling back to the work area.
+    """
+    if stage != "release-verify":
+        return None
+    if state.get("execution_mode") != "navigator-worktree":
+        return {"where": "in-place"}
+    try:
+        found = workspace.returned_result(Path(root).parent)
+    except (workspace.WorkspaceError, OSError, KeyError, TypeError) as exc:
+        return {"where": "unknown", "reason": str(exc)}
+    if found is None:
+        return {"where": "work-area", "reason": "no completed return is recorded"}
+    return {"where": "returned-result", **found}
+
+
+def _where(observed: Optional[Mapping[str, Any]], repo: Any) -> str:
+    """The place a stage's commands run, in the words the packet, the refusal and the handoff line share."""
+    where = (observed or {}).get("where")
+    if where == "returned-result":
+        return ("a clean copy of the result returned to " + str(observed["source"]) + " (" + str(observed["kind"])
+                + " at " + str(observed["head"])[:12] + "; receipt " + str(observed["receipt"]) + "), made fresh at "
+                + str(observed["copy"]) + " on each done")
+    if where == "work-area":
+        return "the work area " + str(repo)
+    if where == "unknown":
+        return "a place not currently known (the return state cannot be read: " + str(observed["reason"]) + ")"
+    return str(repo)
+
+
+def _copy_refusal(observed: Mapping[str, Any]) -> str:
+    """The reply to a release-verify command that failed in the returned-result copy, and the one exit the stage has."""
+    ahead = ("The work area is ahead of the return now (its HEAD is not the returned head "
+             + str(observed["head"])[:12] + "), so a commit made after the return is the likely cause. "
+             if observed.get("ahead") else "")
+    return ("The copy at " + str(observed["copy"]) + " holds exactly the returned tree and is kept so you can reproduce "
+            "there. A check that passes in the work area and fails here usually means one of: a path the return plan "
+            "excluded (" + str(observed["plan"]) + "); an ignored or unmanaged file the check needs (installed "
+            "dependencies, build output, local configuration); or a commit made after the return, which the copy does "
+            "not hold. " + ahead + "This stage cannot edit the commands or return. Report outcome replan with one "
+            "corrective work item whose context names the failing command and its cause, so release returns the fix "
+            "and release-verify observes it (an excluded path: the return plan must keep it; an ignored or unmanaged "
+            "file: the check must bring it, for example by installing it first; a later commit: release must return "
+            "it again). If the cause is not about what was delivered (a busy port, a missing tool), fix it and submit "
+            "done again.")
+
+
+def _place_reply(stage: str, refused: int) -> str:
+    """The reply when the place the commands were to run in could not be made or read: no command started."""
+    remedy = _remedy(stage)
+    return ("No command started, so nothing here says anything about the product: this attempt does not count toward "
+            "the " + str(MAX_REFUSED_RUNS) + " refused runs (still at " + str(refused) + "). Nothing is accepted on "
+            "unrun tests. The cause is the return state or the copy path named above, not this item's code, test or "
+            "fixture: repair what it names (a lock another ShipLoop command holds, a path ShipLoop asks you to "
+            "remove) and submit done again"
+            + ("; if it cannot be repaired, report " + remedy + " with the corrective work_items the outer loop must "
+               "run (ShipLoop's own record of this attempt is the evidence)" if remedy else "")
+            + ". Report blocked only for what the user, an access grant or an outside dependency must supply.")
+
+
+def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str) -> List[str]:
+    """Packet lines for a rerun stage: the commands ShipLoop runs before accepting done.
+
+    ``root`` is the run directory; at ``release-verify`` the line names where the commands run (``observation``),
+    computed afresh at every render, and the note under the list says what that place does and does not hold.
+    """
     commands, _reason = stage_commands(state, stage, work_item)
     if not commands:
         return []
     # The outer stages rerun commands another stage recorded, and have no step plan.
     recorded_by = OUTER_SOURCES[stage][0] if stage in OUTER_SOURCES else "the step plan"
+    observed = observation(root, state, stage)
+    where = observed["where"] if observed else ""
+    notes = {
+        "returned-result": "Where they run: the copy holds exactly the returned tree, so it has no Git history, nothing "
+                           "the return plan excluded and no ignored or unmanaged file (installed dependencies, build "
+                           "output). A command that names the checkout by an absolute path runs there, not in the copy.",
+        "work-area": "Where they run: no completed return is recorded, so these commands run in the work area and do "
+                     "not observe the user's checkout; the handoff reports that.",
+        "unknown": "Where they run: the return state cannot be read now, so done is refused without counting until it "
+                   "can be; retry done then, or report replan if it cannot be repaired.",
+    }
     return (["", "Test rerun: on done, ShipLoop runs every test command " + recorded_by + " recorded from "
-             + str(state["repo"]) + " and refuses unless each passes (at most " + str(MAX_REFUSED_RUNS)
+             + _where(observed, state["repo"]) + " and refuses unless each passes (at most " + str(MAX_REFUSED_RUNS)
              + " refused runs, then " + _remedy_sentence(stage) + "; a command that times out, cannot "
              "start or is skipped on budget refuses the stage without counting):"]
             + ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)]
-            + [COUNT_RULE])
+            + [COUNT_RULE] + ([notes[where]] if where in notes else []))
+
+
+def observed_lines(root: Path, state: Mapping[str, Any]) -> List[str]:
+    """Handoff packet line: where release-verify's consumer checks last ran, from ShipLoop's own test record.
+
+    A cleared handoff model cannot know it, and a run that never observed the user's checkout must say so.  Handoff
+    follows release-verify in every run, so the line is always printed once release-verify is accepted: from the
+    ``observed`` key every release-verify test record carries (a record without it, or none where release-plan
+    recorded commands, is a defect and raises), or, when release-plan recorded no consumer check and so ShipLoop
+    wrote no record, as the statement that none ran with the plan's own reason.
+    """
+    action = next((row.get("action") for row in reversed(state.get("history", ()))
+                   if row.get("stage") == "release-verify" and row.get("workitem") is None
+                   and row.get("outcome") == "done"), None)
+    if action is None:
+        return []
+    commands, reason = stage_commands(state, "release-verify", "")
+    if not commands:
+        return ["Consumer checks (release-verify) did not run: release-plan recorded no consumer check"
+                + (" (" + reason.rstrip(".") + ")." if reason else ".")]
+    path = Path(root) / verify_path(str(action), _verify_count(root, str(action)))
+    observed = store.read_record(path)["observed"]
+    line = "Consumer checks (release-verify) ran in " + _where(observed, state["repo"]) + "."
+    if observed.get("where") == "work-area":
+        line += (" No completed return was recorded then, so they did not observe the user's checkout: list that as a "
+                 "limit.")
+    return [line + " Record: " + str(path) + "."]
 
 
 def red_lines(state: Mapping[str, Any], work_item: str) -> List[str]:
@@ -709,9 +826,29 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     clock = clock or time.monotonic
     repo = Path(str(state["repo"]))
     environment = dict(os.environ if env is None else env)
+    # Where the commands run is decided before the stage clock starts, so the export does not spend their budget.
+    cwd, failure = repo, ""
+    observed = observation(root, state, stage)
+    if observed and observed["where"] == "returned-result":
+        try:
+            copy = workspace.export_returned_result(Path(root).parent)
+            cwd = Path(copy["path"])
+            observed = {"where": "returned-result", **{key: value for key, value in copy.items() if key != "path"}}
+            # No parent repository above the copy is discoverable: a command's `git` must not reach the user's tree.
+            environment["GIT_CEILING_DIRECTORIES"] = os.pathsep.join(
+                part for part in (str(cwd.parent), environment.get("GIT_CEILING_DIRECTORIES", "")) if part)
+        except workspace.WorkspaceError as exc:
+            failure = str(exc)
+    elif observed and observed["where"] == "unknown":
+        failure = str(observed["reason"])
     deadline = clock() + budget
     runs: List[Dict[str, Any]] = []
     for row in commands:
+        if failure:
+            # The place the commands were to run in cannot be made or read: no command started, which says nothing about
+            # the product (could-not-run, an existing exit), and is never answered by running in the work area instead.
+            runs.append({**row, "status": "error", "exit": None, "seconds": 0.0, "stdout": "", "stderr": failure})
+            continue
         left = deadline - clock()
         if left <= 1.0:
             runs.append({**row, "status": "skipped", "exit": None, "seconds": 0.0, "stdout": "",
@@ -720,7 +857,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
             continue
         started = clock()
         try:
-            status, code, out, err = runner(["/bin/sh", "-c", row["command"]], repo,
+            status, code, out, err = runner(["/bin/sh", "-c", row["command"]], cwd,
                                             min(command_timeout, left), input_bytes=b"", env=environment)
         except OSError as exc:
             status, code, out, err = "error", None, b"", (type(exc).__name__ + ": " + str(exc)).encode()
@@ -754,9 +891,11 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     record = {
         "schema": SCHEMA, "action": action, "stage": stage, "work_item": work_item,
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "cwd": str(repo), "passed": disposition == "passed", "disposition": disposition,
+        "cwd": str(cwd), "passed": disposition == "passed", "disposition": disposition,
         "runs": runs,
     }
+    if observed is not None:
+        record["observed"] = observed
     if stage == RED_STAGE:
         record["expect"] = "red" if red else "green (red_na: " + str(red_na) + ")"
     elif probe:
@@ -766,14 +905,23 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     if record["passed"]:
         return writes, ""
     failing = [run for run in runs if run["status"] not in good]
-    lines = ["ShipLoop test run: " + stage + " is not done. ShipLoop ran the " + str(len(runs))
-             + " listed command" + ("" if len(runs) == 1 else "s") + " from " + str(repo) + " and "
-             + str(len(failing)) + (" did not fail as expected:" if red
-                                    else " did not show a usable test run:" if probe else " did not pass:")]
+    listed = str(len(runs)) + " listed command" + ("" if len(runs) == 1 else "s")
+    if failure:
+        # The place was never made or read, so no command ran anywhere: do not say they ran "from" it.
+        lines = ["ShipLoop test run: " + stage + " is not done. ShipLoop could not start the " + listed
+                 + ", so none ran:"]
+    else:
+        lines = ["ShipLoop test run: " + stage + " is not done. ShipLoop ran the " + listed + " from "
+                 + _where(observed, repo) + " and " + str(len(failing))
+                 + (" did not fail as expected:" if red
+                    else " did not show a usable test run:" if probe else " did not pass:")]
     for run in failing:
         lines.append("- [" + run["suite"] + "] " + run["command"] + " -> " + _explain(run, stage))
         tail = (run["stdout"] + "\n" + run["stderr"]).strip().splitlines()[-15:]
         lines += ["    | " + line for line in tail]
+    if failure:
+        lines.append(_place_reply(stage, refused) + " Full output: " + str(root / relative) + ".")
+        return writes, "\n".join(lines)
     if disposition == "could-not-run":
         # This attempt does not spend one of the refused runs, so the gate that would
         # otherwise force the stage's remedy cannot fire on it.  Name the routes out
@@ -821,6 +969,9 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
                      "countable. Refused runs for this action: " + str(refused + 1) + " of "
                      + str(MAX_REFUSED_RUNS) + "; replan does not wait for them. Full output: "
                      + str(root / relative) + ".")
+    elif observed is not None and observed["where"] == "returned-result" and disposition == "failed":
+        # The generic reply ("fix the code") has no way out here: this stage cannot edit the commands or return.
+        lines.append(_copy_refusal(observed) + " " + attempts + " Full output: " + str(root / relative) + ".")
     else:
         lines.append("Fix the code so every command passes (never change a check to get green), then submit "
                      "done again. " + attempts + " Full output: " + str(root / relative) + ".")
@@ -844,6 +995,8 @@ __all__ = (
     "contract_path",
     "judge",
     "normalise_commands",
+    "observation",
+    "observed_lines",
     "red_lines",
     "render_lines",
     "rerun_lines",

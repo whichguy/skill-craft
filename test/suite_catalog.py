@@ -161,7 +161,12 @@ _DURATION_SECONDS = {
     "test/shiploop-packet-completeness.test.py": 0.1,
     "test/experiments/shiploop_ui_allocation/test_evidence.py": 0.602,
     "test/shiploop-auth-readiness.test.py": 29.207,
-    "test/shiploop-workspace.test.py": 19.448,
+    # 19.448 was written at 59 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average 4.7 to
+    # 6.8: 77 tests, 140.3 s (the other run 149.1 s; user plus system CPU 122 s).  The release-verify copy change (batch
+    # 1008 B3) grew it from 85 s (59 tests) to this.  Above QUICK_MAX_SECONDS, so the quick tier no longer selects it: an
+    # edit to the workspace module runs it at the release commit or by name, not on a push.  The ceiling is the owner's
+    # to move or the suite is to be split; neither is done here.
+    "test/shiploop-workspace.test.py": 140.3,
     "test/shiploop-chain.test.py": 191.262,
     "test/shiploop-chain-async.test.py": 35.083,
     "test/experiments/shiploop_chain/test_trace.py": 0.701,
@@ -199,7 +204,9 @@ _DURATION_SECONDS = {
     "test/shiploop-improve-schedule.test.py": 0.2,
     "test/shiploop-lint.test.py": 36.0,
     "test/shiploop-quality.test.py": 5.0,
-    "test/shiploop-test-loop.test.py": 3.0,
+    # 3.0 was written when the suite had a fraction of its tests.  Local wall seconds, 2026-10-08, the faster of two
+    # serial runs at load average 4.7 to 6.8: 67 tests, 79.0 s (the other run 83.0 s).  Under QUICK_MAX_SECONDS.
+    "test/shiploop-test-loop.test.py": 79.0,
     "test/shiploop-test-counts.test.py": 0.2,
     "test/shiploop-backchain-check.test.py": 1.0,
     "test/shiploop-improve-changes.test.py": 1.5,

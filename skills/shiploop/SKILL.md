@@ -587,7 +587,12 @@ at `test-refine`, `static-checks` (after its quality-loop check) and
 `integration-verify`, ShipLoop runs every recorded command and refuses unless
 each passes. The outer `system-test` and `release-verify` rerun their own
 recorded commands the same way, from `system-test-author` and `release-plan`.
-There is no loop at those stages; the packet lists the commands.
+There is no loop at those stages; the packet lists the commands. At
+`release-verify` of an isolated run the commands run in a clean copy of the result
+the workspace return delivered (made fresh from the return receipt into
+`consumer-check` under the workspace root, never in your checkout); with no
+completed return yet they run in the work area, and the test record (`observed`)
+and the handoff say so.
 Each action allows 7 refused runs; after that ShipLoop no longer accepts `done`,
 so a failing command takes the stage's own remedy — back to the step plan with
 `revise` at an INNER stage, or corrective work items with `replan` at
@@ -628,8 +633,10 @@ with an uncovered criterion. Content with no test runner gets a `check` command
 (suite `check`, judged by exit code), for example a `grep` that a README documents a
 flag. `verify` reruns every recorded command. `system-test-author` records
 `system_commands` and `release-plan` records `consumer_checks`; ShipLoop runs them
-when `system-test` and `release-verify` report done and refuses unless each passes.
-An empty list needs its `_na` reason. The run records under `tests/` are the
+when `system-test` and `release-verify` report done and refuses unless each passes
+(`release-verify` runs them in a copy of the returned result when a return is
+recorded, else in the work area, and its record says which). An empty list needs its
+`_na` reason. The run records under `tests/` are the
 evidence; a result's summary is not.
 
 ### Tests pass or the step stops

@@ -9,8 +9,10 @@ run-local artifacts when the candidate comes back.
 
 from __future__ import annotations
 
+import copy
 import os
 from pathlib import Path
+import shlex
 import shutil
 import stat
 import subprocess
@@ -35,6 +37,7 @@ if str(SCRIPTS) not in sys.path:
 
 import shiploop_store as store  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_test_loop as test_loop  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
 
 
@@ -2168,6 +2171,543 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(state["execution_mode"], "navigator-worktree")
         self.assertIsNone(state["active_improve"])
         self.assertIn("ShipLoop navigator | intake", started.stdout)
+
+    # -- release-verify observes the result the return delivered (batch 1008, item B3) -----------------------------
+    #
+    # Before: release-verify reran the recorded consumer checks in the work area, which holds files the return
+    # excluded, ignored files and later commits, so a check could pass on a tree the user never received.  Now, in an
+    # isolated run that has a completed return, the checks run in a clean copy of exactly the tree the return receipt
+    # records.  The user's checkout is never the place they run: any file a check wrote there would make the strict
+    # clean-status receipt non-current and strand the run at handoff.
+
+    def _working_tree_return(self, name: str) -> tuple[Path, Path]:
+        """A returned run whose plan excludes an untracked file: the work area holds it, the result does not."""
+        record = self._prepare(name=name)
+        root = self.base / name
+        worktree = self._worktree(record)
+        (worktree / "app.txt").write_text("product\n", encoding="utf-8")
+        self._commit_all(worktree, "product")
+        (worktree / "data.json").write_text("{}\n", encoding="utf-8")  # untracked, excluded from the return
+        self._plan(root)
+        self._resolve_plan(root, exclude={"data.json"})
+        self.assertEqual(self._execute(root)["kind"], "working-tree-return")
+        return root, worktree
+
+    @staticmethod
+    def _consumer_state(worktree: Path, *commands: str) -> dict:
+        """A worktree run's state whose done release-plan recorded ``commands`` as consumer checks."""
+        return {
+            "repo": str(worktree), "execution_mode": "navigator-worktree",
+            "history": [{"stage": "release-plan", "workitem": None, "action": "A-rp", "outcome": "done"}],
+            "accepted": {"A-rp": {"outcome": "done", "summary": "Synthetic release plan.",
+                                  "consumer_checks": [{"command": command, "suite": "check"} for command in commands]}},
+        }
+
+    def _verify_release(self, root: Path, state: dict, action: str = "A-rv") -> tuple[dict, str]:
+        """Run ShipLoop's own release-verify rerun for real; persist its record; return (record, refusal)."""
+        run = root / "run"
+        with mock.patch.dict(os.environ, self.env, clear=False):
+            writes, refusal = test_loop.verify(run, state, "", action, "release-verify")
+        for relative, text in writes.items():
+            store.atomic_write_text(run / relative, text)
+        record = store.read_record(run / test_loop.verify_path(action, test_loop._verify_count(run, action)))
+        return record, refusal
+
+    def _tree_listing(self, worktree: Path, tree: str) -> dict[str, tuple[str, bytes]]:
+        """``git ls-tree -r`` of a tree as {path: (mode, blob bytes)}."""
+        def run(*args: str) -> bytes:
+            return subprocess.run([str(GIT), "-C", str(worktree), *args], capture_output=True, check=True,
+                                  env=self.env).stdout
+
+        found: dict[str, tuple[str, bytes]] = {}
+        for entry in run("ls-tree", "-r", "-z", "--full-tree", tree).split(b"\0"):
+            if not entry:
+                continue
+            header, _, path = entry.partition(b"\t")
+            mode, _kind, sha = header.decode().split()
+            found[path.decode()] = (mode, run("cat-file", "blob", sha))
+        return found
+
+    def _assert_copy_holds(self, copy: Path, tree: str, worktree: Path) -> None:
+        """The copy is exactly the tree: same paths, modes, symlinks and bytes, and no Git metadata."""
+        actual: dict[str, tuple[str, bytes]] = {}
+        for path in sorted(copy.rglob("*")):
+            relative = path.relative_to(copy).as_posix()
+            if path.is_symlink():
+                actual[relative] = ("120000", os.readlink(path).encode())
+            elif path.is_file():
+                executable = stat.S_IMODE(path.stat().st_mode) & 0o100
+                actual[relative] = ("100755" if executable else "100644", path.read_bytes())
+        self.assertEqual(actual, self._tree_listing(worktree, tree))
+        self.assertFalse((copy / ".git").exists())
+
+    def test_release_verify_refuses_a_check_that_passes_only_in_the_work_area(self) -> None:
+        """The B3 fixture: a file the return excluded makes the check pass in the work area and fail on the result."""
+        root, worktree = self._working_tree_return("passes only in the work area")
+        state = self._consumer_state(worktree, "test -f data.json", "test -f app.txt")
+        control = subprocess.run("test -f data.json", shell=True, cwd=worktree)
+        self.assertEqual(control.returncode, 0, "control: the work area does hold the excluded file")
+
+        record, refusal = self._verify_release(root, state)
+
+        self.assertTrue(refusal, "a check that fails on the returned result must refuse done")
+        self.assertIn("result returned to", refusal)
+        self.assertIn("replan", refusal)
+        self.assertFalse(record["passed"])
+        self.assertEqual(record["disposition"], "failed")
+        self.assertEqual(record["observed"]["where"], "returned-result")
+        self.assertEqual(record["observed"]["kind"], "working-tree-return")
+        self.assertEqual([run["status"] for run in record["runs"]], ["failed", "passed"])
+        self.assertEqual(Path(record["cwd"]), (root / "consumer-check").resolve())
+
+    def test_release_verify_with_no_completed_return_runs_in_the_work_area_and_records_it(self) -> None:
+        """Release-verify can precede the return and cannot make it, so it must not refuse: it labels the run."""
+        for phase in ("prepared", "planned", "plan resolved"):
+            with self.subTest(phase=phase):
+                name = "no return " + phase
+                record = self._prepare(name=name)
+                root, worktree = self.base / name, self._worktree(record)
+                (worktree / "data.json").write_text("{}\n", encoding="utf-8")
+                if phase != "prepared":
+                    self._plan(root)
+                if phase == "plan resolved":
+                    self._resolve_plan(root)
+                state = self._consumer_state(worktree, "test -f data.json")
+
+                verified, refusal = self._verify_release(root, state)
+                packet = "\n".join(test_loop.rerun_lines(root / "run", state, "", "release-verify"))
+
+                self.assertEqual(refusal, "")
+                self.assertTrue(verified["passed"])
+                self.assertEqual(verified["observed"]["where"], "work-area")
+                self.assertIn("no completed return", verified["observed"]["reason"])
+                self.assertEqual(Path(verified["cwd"]), worktree)
+                self.assertIn("recorded from the work area", packet)
+                self.assertIn("do not observe the user's checkout", packet)
+                self.assertNotIn("cannot return", packet, "the release-verify duty says it; one statement per packet")
+                self.assertFalse((root / "consumer-check").exists())
+
+    def test_release_verify_copy_never_changes_the_source_the_object_database_or_the_work_area(self) -> None:
+        """The safety property: whatever a check writes, the user's checkout and the work area are not touched."""
+        root, worktree = self._returned_once("copy is read only")
+        receipt = store.read_record(root / "return-receipt.md")
+        write = ("echo log > run.log && echo x > polluted.txt && mkdir -p __pycache__ && "
+                 "echo y > __pycache__/m.pyc && mkdir -p out && echo z > out/build.txt")
+        state = self._consumer_state(worktree, write)
+        worktree_index = Path(self.git("rev-parse", "--path-format=absolute", "--git-path", "index",
+                                       cwd=worktree).stdout.strip())
+        porcelain = ("status", "--porcelain=v1", "--untracked-files=all")
+        source_before, objects_before = self._source_snapshot(), self._common_object_snapshot()
+        index_before = worktree_index.read_bytes()
+        files_before = self._file_tree(worktree)
+        status_before = self.git(*porcelain, cwd=worktree).stdout
+
+        record, refusal = self._verify_release(root, state)
+
+        self.assertEqual(refusal, "")
+        self.assertTrue(record["passed"])
+        self._assert_source_unchanged(source_before)
+        self.assertEqual(self._common_object_snapshot(), objects_before)
+        self.assertEqual(worktree_index.read_bytes(), index_before)
+        self.assertEqual(self._file_tree(worktree), files_before)
+        self.assertEqual(self.git(*porcelain, cwd=worktree).stdout, status_before)
+        self.assertEqual(self._call(workspace.completed_receipt, root, self.repo), receipt)
+        for written in ("run.log", "polluted.txt", "__pycache__/m.pyc", "out/build.txt"):
+            self.assertTrue((root / "consumer-check" / written).is_file(), written)
+            self.assertFalse((worktree / written).exists(), written)
+            self.assertFalse((self.repo / written).exists(), written)
+        self.assertEqual([p.name for p in root.iterdir() if p.name.startswith(".workspace-index-")], [])
+
+    def test_export_holds_the_receipt_tree_for_each_return_kind(self) -> None:
+        def fast_forward() -> tuple[Path, Path]:
+            record = self._prepare(name="export fast-forward")
+            root, worktree = self.base / "export fast-forward", self._worktree(record)
+            (worktree / "app.txt").write_text("product\n", encoding="utf-8")
+            (worktree / "run.sh").write_text("#!/bin/sh\necho run\n", encoding="utf-8")
+            (worktree / "run.sh").chmod(0o755)
+            os.symlink("app.txt", worktree / "current")
+            self._commit_all(worktree, "product with a script and a link")
+            self._plan(root)
+            self._resolve_plan(root)
+            self.assertIsNone(self._call(workspace.returned_result, root), "nothing is returned yet")
+            self.assertEqual(self._execute(root)["kind"], "fast-forward-merge")
+            return root, worktree
+
+        def working_tree() -> tuple[Path, Path]:
+            self._seed_dirty_source()
+            record = self._prepare(include_untracked=("selected-input.txt",), name="export working-tree")
+            root, worktree = self.base / "export working-tree", self._worktree(record)
+            (worktree / "feature.py").write_text("def feature():\n    return 1\n", encoding="utf-8")
+            self._commit_all(worktree, "feature")
+            (worktree / "worker.log").write_text("private scratch\n", encoding="utf-8")
+            self._plan(root)
+            self._resolve_plan(root, exclude={"worker.log"})
+            self.assertEqual(self._execute(root)["kind"], "working-tree-return")
+            return root, worktree
+
+        def no_change_clean() -> tuple[Path, Path]:
+            record = self._prepare(name="export no-change")
+            root = self.base / "export no-change"
+            self._plan(root)
+            self._resolve_plan(root)
+            self.assertEqual(self._execute(root)["kind"], "no-change-return")
+            return root, self._worktree(record)
+
+        def no_change_dirty() -> tuple[Path, Path]:
+            self._seed_dirty_source()
+            record = self._prepare(include_untracked=("selected-input.txt",), name="export no-change dirty")
+            root, worktree = self.base / "export no-change dirty", self._worktree(record)
+            self._plan(root)
+            self._resolve_plan(root)
+            self.assertEqual(self._execute(root)["kind"], "no-change-return")
+            return root, worktree
+
+        for kind, build in (("fast-forward-merge", fast_forward), ("working-tree-return", working_tree),
+                            ("no-change-return", no_change_clean), ("no-change-return", no_change_dirty)):
+            with self.subTest(kind=kind, build=build.__name__):
+                root, worktree = build()
+                found = self._call(workspace.returned_result, root)
+                self.assertEqual(found["kind"], kind)
+                self.assertFalse(found["ahead"])
+                self.assertEqual(found["head"], self.git("rev-parse", "HEAD", cwd=worktree).stdout.strip())
+                info = self._call(workspace.export_returned_result, root)
+                copy = Path(info["path"])
+                self.assertEqual(copy, (root / "consumer-check").resolve())
+                self.assertEqual(info["tree"], found["tree"])
+                self._assert_copy_holds(copy, found["tree"], worktree)
+                if build is working_tree:
+                    self.assertEqual((copy / "selected-input.txt").read_text(), "selected untracked input\n")
+                    self.assertEqual((copy / "tracked-staged.txt").read_text(), "captured staged input\n")
+                    self.assertEqual((copy / "tracked-unstaged.txt").read_text(), "captured unstaged input\n")
+                    self.assertTrue((copy / "feature.py").is_file())
+                    for absent in ("worker.log", "not-selected.txt", "credentials/token.secret"):
+                        self.assertFalse((copy / absent).exists(), absent)
+                if build is fast_forward:
+                    self.assertTrue(os.access(copy / "run.sh", os.X_OK))
+                    self.assertEqual(os.readlink(copy / "current"), "app.txt")
+                if build is no_change_dirty:
+                    self.assertEqual((copy / "selected-input.txt").read_text(), "selected untracked input\n")
+
+    def test_export_is_read_only_and_ignores_export_ignore_attributes(self) -> None:
+        """The copy is the receipt tree converted as a normal checkout, not as `git archive` would export it."""
+        record = self._prepare(name="export read only")
+        root, worktree = self.base / "export read only", self._worktree(record)
+        (worktree / ".gitattributes").write_text("test/ export-ignore\ncrlf.txt text eol=crlf\n", encoding="utf-8")
+        (worktree / "test").mkdir()
+        (worktree / "test" / "case.txt").write_text("a test the copy must keep\n", encoding="utf-8")
+        (worktree / "crlf.txt").write_bytes(b"a\nb\n")
+        self._commit_all(worktree, "attributes")
+        self._plan(root)
+        self._resolve_plan(root)
+        self._execute(root)
+        worktree_index = Path(self.git("rev-parse", "--path-format=absolute", "--git-path", "index",
+                                       cwd=worktree).stdout.strip())
+        porcelain = ("status", "--porcelain=v1", "--untracked-files=all")
+        source_before, objects_before = self._source_snapshot(), self._common_object_snapshot()
+        index_before, status_before = worktree_index.read_bytes(), self.git(*porcelain, cwd=worktree).stdout
+        files_before = self._file_tree(worktree)
+
+        info = self._call(workspace.export_returned_result, root)
+
+        copy = Path(info["path"])
+        self.assertEqual((copy / "test" / "case.txt").read_text(), "a test the copy must keep\n")
+        self.assertEqual((copy / "crlf.txt").read_bytes(), b"a\r\nb\r\n")
+        self._assert_source_unchanged(source_before)
+        self.assertEqual(self._common_object_snapshot(), objects_before)
+        self.assertEqual(worktree_index.read_bytes(), index_before)
+        self.assertEqual(self.git(*porcelain, cwd=worktree).stdout, status_before)
+        self.assertEqual(self._file_tree(worktree), files_before)
+        self.assertEqual([p.name for p in root.iterdir() if p.name.startswith(".workspace-index-")], [])
+
+    def test_export_replaces_its_own_copy_and_refuses_anything_else_at_that_path(self) -> None:
+        root, worktree = self._returned_once("export destination")
+        copy = root / "consumer-check"
+        copy.mkdir()
+        (copy / "stale.txt").write_text("from an earlier attempt\n", encoding="utf-8")
+        self._call(workspace.export_returned_result, root)
+        self.assertFalse((copy / "stale.txt").exists())
+        self.assertTrue((copy / "app.txt").is_file())
+
+        outside = self.base / "outside"
+        outside.mkdir()
+        (outside / "keep.txt").write_text("not mine\n", encoding="utf-8")
+        shutil.rmtree(copy)
+        os.symlink(outside, copy)
+        with self.assertRaisesRegex(workspace.WorkspaceError, "symlink"):
+            self._call(workspace.export_returned_result, root)
+        self.assertTrue(copy.is_symlink())
+        self.assertEqual((outside / "keep.txt").read_text(), "not mine\n")
+
+        copy.unlink()
+        copy.write_text("a regular file\n", encoding="utf-8")
+        with self.assertRaisesRegex(workspace.WorkspaceError, "not a directory"):
+            self._call(workspace.export_returned_result, root)
+        self.assertEqual(copy.read_text(), "a regular file\n")
+
+    def test_export_failure_is_could_not_run_and_the_named_route_is_accepted(self) -> None:
+        root, worktree = self._returned_once("export failure")
+        state = self._consumer_state(worktree, "test -f app.txt")
+        with mock.patch.object(workspace, "export_returned_result", side_effect=workspace.WorkspaceError("export boom")):
+            record, refusal = self._verify_release(root, state)
+        self.assertEqual(record["disposition"], "could-not-run")
+        self.assertEqual({run["status"] for run in record["runs"]}, {"error"})
+        self.assertIn("export boom", refusal)
+        self.assertIn("replan", refusal)
+        self.assertIn("could not start the 1 listed command, so none ran", refusal)
+        self.assertNotIn("ran the 1 listed command", refusal)
+        for wrong in ("yours to fix here", "Fix the code"):
+            self.assertNotIn(wrong, refusal, "no command started: nothing in the item's code, test or fixture is at fault")
+        self.assertEqual(test_loop._remedy("release-verify"), "replan")
+        self.assertTrue(test_loop.remedy_open(root / "run", "A-rv"), "ShipLoop's own record opens the named route")
+        self.assertEqual(test_loop.refused_runs(root / "run", "A-rv"), 0, "could-not-run is not a refused run")
+
+    def test_a_return_state_that_cannot_be_read_is_could_not_run_never_a_work_area_fallback(self) -> None:
+        """A corrupt receipt or a missing manifest is a defect to surface; display never raises over it."""
+        for label, damage in (("corrupt receipt", lambda root: (root / "return-receipt.md").write_text("not a record\n")),
+                              ("absent manifest", lambda root: (root / "workspace.md").unlink())):
+            with self.subTest(label):
+                name = "unreadable " + label.replace(" ", "-")
+                record = self._prepare(name=name)
+                root, worktree = self.base / name, self._worktree(record)
+                (worktree / (name + ".txt")).write_text("product\n", encoding="utf-8")  # the source moved on already
+                self._commit_all(worktree, "product")
+                self._plan(root)
+                self._resolve_plan(root)
+                self.assertEqual(self._execute(root)["kind"], "fast-forward-merge")
+                state = self._consumer_state(worktree, "true")
+                damage(root)
+
+                record, refusal = self._verify_release(root, state)
+                packet = "\n".join(test_loop.rerun_lines(root / "run", state, "", "release-verify"))
+
+                self.assertEqual(record["observed"]["where"], "unknown")
+                self.assertEqual(record["disposition"], "could-not-run")
+                self.assertEqual({run["status"] for run in record["runs"]}, {"error"})
+                self.assertIn("could not start the 1 listed command, so none ran", refusal)
+                self.assertNotIn("ran the 1 listed command", refusal)
+                self.assertNotIn("yours to fix here", refusal)
+                self.assertNotIn("Fix the code", refusal)
+                self.assertIn("replan", refusal)
+                self.assertIn("not currently known", packet)
+
+    def test_a_copy_refusal_that_is_not_about_the_delivery_can_be_retried_with_done(self) -> None:
+        root, worktree = self._returned_once("retry after a non-delivery cause")
+        marker = self.base / "needs-this-marker"
+        state = self._consumer_state(worktree, "test -f " + shlex.quote(str(marker)))
+
+        first, refusal = self._verify_release(root, state)
+        self.assertTrue(refusal)
+        self.assertIn("result returned to", refusal)
+        self.assertIn("submit done again", refusal)
+        self.assertEqual(test_loop.refused_runs(root / "run", "A-rv"), 1)
+
+        marker.write_text("present\n", encoding="utf-8")
+        second, refusal = self._verify_release(root, state)
+        self.assertEqual(refusal, "")
+        self.assertTrue(second["passed"])
+        self.assertTrue((root / "run" / test_loop.verify_path("A-rv", 2)).is_file())
+        self.assertEqual(test_loop.refused_runs(root / "run", "A-rv"), 1)
+
+    def test_an_ignored_file_a_check_needs_is_named_as_a_cause_and_a_check_that_brings_it_passes(self) -> None:
+        record = self._prepare(name="ignored but needed")
+        root, worktree = self.base / "ignored but needed", self._worktree(record)
+        (worktree / "app.txt").write_text("product\n", encoding="utf-8")
+        self._commit_all(worktree, "product")
+        (worktree / "local.secret").write_text("installed locally\n", encoding="utf-8")  # ignored by .gitignore
+        self._plan(root)
+        self._resolve_plan(root)
+        self.assertEqual(self._execute(root)["kind"], "fast-forward-merge")
+        self.assertEqual(subprocess.run("test -f local.secret", shell=True, cwd=worktree).returncode, 0)
+
+        record, refusal = self._verify_release(root, self._consumer_state(worktree, "test -f local.secret"))
+        self.assertEqual(record["disposition"], "failed")
+        self.assertIn("ignored or unmanaged file", refusal)
+        self.assertIn("installed dependencies, build output", refusal)
+
+        again, refusal = self._verify_release(
+            root, self._consumer_state(worktree, "touch local.secret && test -f local.secret"), "A-rv2")
+        self.assertEqual(refusal, "")
+        self.assertTrue(again["passed"])
+
+    def test_the_copy_is_not_inside_a_parent_repository(self) -> None:
+        """A workspace under some other repository must not let a check's `git` reach it from the copy."""
+        self.git("init", "-q", cwd=self.base)
+        root, worktree = self._returned_once("inside a parent repo")
+        probe = "if git rev-parse --show-toplevel >/dev/null 2>&1; then exit 1; fi"
+        self.assertEqual(subprocess.run(probe, shell=True, cwd=worktree, env=self.env).returncode, 1,
+                         "control: the work area is itself a repository")
+
+        record, refusal = self._verify_release(root, self._consumer_state(worktree, probe))
+
+        self.assertEqual(refusal, "")
+        self.assertTrue(record["passed"])
+        unguarded = subprocess.run("git rev-parse --show-toplevel", shell=True, cwd=root / "consumer-check",
+                                   env=self.env, capture_output=True, text=True)
+        self.assertEqual(unguarded.returncode, 0, "control: without the ceiling git finds the parent repository")
+
+    def test_the_result_follows_the_newest_receipt_after_a_knowledge_follow_up(self) -> None:
+        root, worktree = self._returned_once("follow-up receipt")
+        (worktree / "docs" / "shiploop").mkdir(parents=True)
+        (worktree / "docs" / "shiploop" / "outcome.md").write_text("learned\n", encoding="utf-8")
+        head = self._commit_all(worktree, "docs(shiploop): knowledge at release-verify")
+        self.assertIsNotNone(self._call(workspace.follow_up_knowledge_return, root))
+
+        found = self._call(workspace.returned_result, root)
+        self.assertEqual(found["head"], head)
+        self.assertEqual(found["tree"], self.git("rev-parse", "HEAD^{tree}", cwd=worktree).stdout.strip())
+        self.assertFalse(found["ahead"])
+        record, refusal = self._verify_release(root, self._consumer_state(worktree, "test -f docs/shiploop/outcome.md"))
+        self.assertEqual(refusal, "")
+        self.assertTrue(record["passed"])
+
+    def test_a_commit_after_the_return_is_named_as_not_in_the_copy_and_returns_with_the_next_release(self) -> None:
+        root, worktree = self._returned_once("commit after the return")
+        (worktree / "app.txt").write_text("fixed\n", encoding="utf-8")
+        self._commit_all(worktree, "fix found after the return")
+        state = self._consumer_state(worktree, "grep -q fixed app.txt")
+        self.assertTrue(self._call(workspace.returned_result, root)["ahead"])
+
+        record, refusal = self._verify_release(root, state)
+
+        self.assertEqual(record["disposition"], "failed")
+        self.assertTrue(record["observed"]["ahead"])
+        self.assertIn("work area is ahead of the return", refusal)
+        self.assertIn("replan", refusal)
+        self.assertIn("release must return it again", refusal)
+        # The exit it names: after release returns the fix again, the same check passes on the copy.
+        self._plan(root)
+        self._resolve_plan(root)
+        self.assertEqual(self._execute(root)["kind"], "fast-forward-merge")
+        again, refusal = self._verify_release(root, state, "A-rv2")
+        self.assertEqual(refusal, "")
+        self.assertTrue(again["passed"])
+
+    # -- the hardening around the copy: what returned_result and export_returned_result refuse ------------------------
+    #
+    # The tree id in a receipt is handed to Git as an argument and the copy is built from it, so each guard below
+    # has a test that fails when the guard is removed (checked by deleting each in a scratch copy).
+
+    def test_a_receipt_that_cannot_be_trusted_is_refused_before_git_or_the_copy_sees_it(self) -> None:
+        root, worktree = self._returned_once("untrusted receipt")
+        receipt_path = root / "return-receipt.md"
+        good = store.read_record(receipt_path)
+        state = self._consumer_state(worktree, "true")
+        self.assertEqual(self._call(workspace.returned_result, root)["tree"], good["expected_source"]["tree"],
+                         "control: the unchanged receipt is read")
+        evil = self.base / "evil"
+        cases = (
+            ("an unknown kind", lambda r: r.update(kind="squash-merge"), "unsupported schema or kind"),
+            ("an unknown schema", lambda r: r.update(schema="something-else"), "unsupported schema or kind"),
+            ("a tree id that is an option", lambda r: r["expected_source"].update(tree="--output=" + str(evil)),
+             "no valid result tree"),
+            ("a tree id that is not an object id", lambda r: r["expected_source"].update(tree="HEAD"),
+             "no valid result tree"),
+            ("no tree for its kind", lambda r: r.update(kind="working-tree-return"), "no valid result tree"),
+            ("a candidate head that is not an object id", lambda r: r["candidate_fingerprint"].update(head="main"),
+             "no valid result tree or candidate head"),
+        )
+        for label, change, pattern in cases:
+            with self.subTest(label):
+                damaged = copy.deepcopy(good)
+                change(damaged)
+                store.write_record(receipt_path, damaged, "ShipLoop return receipt")
+                with self.assertRaisesRegex(workspace.WorkspaceError, pattern):
+                    self._call(workspace.returned_result, root)
+                with self.assertRaisesRegex(workspace.WorkspaceError, pattern):
+                    self._call(workspace.export_returned_result, root)
+                record, refusal = self._verify_release(root, state)
+                self.assertEqual(record["observed"]["where"], "unknown")
+                self.assertRegex(record["observed"]["reason"], pattern)
+                self.assertEqual(record["disposition"], "could-not-run")
+                self.assertFalse((root / "consumer-check").exists())
+                self.assertFalse(evil.exists())
+                self.assertEqual([p.name for p in root.iterdir() if p.name.startswith(".workspace-index-")], [])
+        store.write_record(receipt_path, good, "ShipLoop return receipt")
+
+    def test_the_returned_result_is_not_read_while_the_workspace_is_busy_or_mid_transaction(self) -> None:
+        import fcntl
+
+        root, worktree = self._returned_once("busy workspace")
+        state = self._consumer_state(worktree, "true")
+        lock = root / ".workspace.lock"
+        self.assertTrue(lock.is_file(), "control: the workspace has its lock file")
+        self.assertEqual(self._call(workspace.returned_result, root)["kind"], "fast-forward-merge", "control")
+        with lock.open("rb") as holder:
+            fcntl.flock(holder, fcntl.LOCK_EX | fcntl.LOCK_NB)  # another ShipLoop command holds the workspace
+            with self.assertRaisesRegex(workspace.WorkspaceError, "busy"):
+                self._call(workspace.returned_result, root)
+            with self.assertRaisesRegex(workspace.WorkspaceError, "busy"):
+                self._call(workspace.export_returned_result, root)
+            record, refusal = self._verify_release(root, state)
+        self.assertEqual(record["observed"]["where"], "unknown")
+        self.assertEqual(record["disposition"], "could-not-run")
+        self.assertIn("busy", record["observed"]["reason"])
+        self.assertIn("could not start", refusal)
+        self.assertFalse((root / "consumer-check").exists())
+
+        journal = root / store.JOURNAL_NAME
+        journal.write_text("a transaction that did not finish\n", encoding="utf-8")
+        with self.assertRaisesRegex(workspace.WorkspaceError, "pending transaction"):
+            self._call(workspace.returned_result, root)
+        journal.unlink()
+        self.assertEqual(self._call(workspace.returned_result, root)["kind"], "fast-forward-merge")
+
+    def test_a_worktree_that_is_not_the_one_the_manifest_binds_is_refused(self) -> None:
+        root, worktree = self._returned_once("moved branch")
+        self.git("checkout", "-q", "-b", "elsewhere", cwd=worktree)
+        with self.assertRaisesRegex(workspace.WorkspaceError, "branch no longer matches"):
+            self._call(workspace.returned_result, root)
+        record, _refusal = self._verify_release(root, self._consumer_state(worktree, "true"))
+        self.assertEqual(record["observed"]["where"], "unknown")
+        self.assertEqual(record["disposition"], "could-not-run")
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can remove a read-only directory")
+    def test_a_previous_copy_that_cannot_be_removed_is_could_not_run_not_a_crash(self) -> None:
+        root, worktree = self._returned_once("unremovable copy")
+        previous = root / "consumer-check"
+        (previous / "cache").mkdir(parents=True)
+        (previous / "cache" / "entry").write_text("a build cache\n", encoding="utf-8")
+        (previous / "cache").chmod(0o500)  # a read-only directory a check left behind
+        self.addCleanup((previous / "cache").chmod, 0o700)
+        with self.assertRaisesRegex(workspace.WorkspaceError, "cannot replace the previous copy"):
+            self._call(workspace.export_returned_result, root)
+
+        record, refusal = self._verify_release(root, self._consumer_state(worktree, "true"))
+
+        self.assertEqual(record["disposition"], "could-not-run")
+        self.assertEqual({run["status"] for run in record["runs"]}, {"error"})
+        self.assertIn("cannot replace the previous copy", refusal)
+        self.assertTrue((previous / "cache" / "entry").exists(), "nothing was half-removed")
+
+    def test_a_failed_copy_leaves_no_partial_directory_and_no_index(self) -> None:
+        root, worktree = self._returned_once("failed copy")
+        destination = root / "consumer-check"
+        real_git, seen = workspace._git, []
+
+        def checkout_index_fails_after_writing(repo, *args, **kwargs):
+            result = real_git(repo, *args, **kwargs)
+            if args and args[0] == "checkout-index":
+                seen.append((destination / "app.txt").is_file())  # the copy was really written before the failure
+                return subprocess.CompletedProcess(result.args, 1, result.stdout, b"fatal: simulated failure")
+            return result
+
+        with mock.patch.object(workspace, "_git", side_effect=checkout_index_fails_after_writing):
+            with self.assertRaisesRegex(workspace.WorkspaceError, "git checkout-index failed.*simulated failure"):
+                self._call(workspace.export_returned_result, root)
+        self.assertEqual(seen, [True])
+        self.assertFalse(destination.exists(), "a partial copy would pass for the returned result")
+        self.assertEqual([p.name for p in root.iterdir() if p.name.startswith(".workspace-index-")], [])
+
+        # A tree object that is not in the repository fails in read-tree, before anything is written.
+        receipt_path = root / "return-receipt.md"
+        good = store.read_record(receipt_path)
+        missing = copy.deepcopy(good)
+        missing["expected_source"]["tree"] = "0" * 40
+        store.write_record(receipt_path, missing, "ShipLoop return receipt")
+        with self.assertRaisesRegex(workspace.WorkspaceError, "git read-tree failed"):
+            self._call(workspace.export_returned_result, root)
+        self.assertFalse(destination.exists())
+        self.assertEqual([p.name for p in root.iterdir() if p.name.startswith(".workspace-index-")], [])
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
