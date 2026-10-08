@@ -486,6 +486,50 @@ def _replan_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> lis
     return lines
 
 
+def _sent_back_results(state: Mapping[str, Any], stage: str,
+                       workitem: str | None) -> tuple[int, str, str] | None:
+    """For a step plan redone after a revise: how many times, the item's previous step plan, what sent it back.
+
+    ``None`` for a first visit, another stage or an item that was never sent back.  A recorded revision
+    always has a revise row and an earlier accepted step plan in the append-only history; a state without
+    them did not come through the gate, so it is refused rather than rendered without them.
+    """
+    if stage != stage_spec.REVISE_TO or workitem is None or not state["revisions"].get(workitem):
+        return None
+    history = state["history"]
+    revised = [index for index, row in enumerate(history)
+               if row["workitem"] == workitem and row["outcome"] == "revise"]
+    _need(revised, "work item " + workitem + " records a revision but no revise result")
+    plans = [row["action"] for row in history[:revised[-1]]
+             if row["workitem"] == workitem and row["stage"] == stage and row["outcome"] == "done"]
+    _need(plans, "work item " + workitem + " was sent back to " + stage + " without an earlier accepted "
+          + stage + " result")
+    return state["revisions"][workitem], plans[-1], history[revised[-1]]["action"]
+
+
+def _revise_delta_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+    """For a step plan redone after a revise, name the previous plan and the result that sent it back.
+
+    ``planning_revision.current_actions`` drops the item's step plan from "Results this stage builds on" once
+    it is sent back, so a model holding only this packet could not find the plan it is asked to amend.  The
+    shape follows ``_replan_delta_lines``; the files are the ones ``_new_result_records`` always writes.
+    """
+    sent = _sent_back_results(state, stage, workitem)
+    if sent is None:
+        return []
+    count, plan, sent_back = sent
+    return ["",
+            f"{workitem} has gone back to {stage} {count} of {stage_spec.MAX_REVISES} times; this packet "
+            "asks for an amended plan, not a new one.",
+            "The result that sent it back (accepted host report, untrusted; the evidence to act on): "
+            + str(root / "results" / (sent_back + ".md")),
+            "The item's previous step plan (accepted host report, untrusted; revalidate what you carry over): "
+            + str(root / "results" / (plan + ".md")) + ". Keep every criterion, step, path and test command "
+            "the evidence does not touch as written, with the same ids; change or add only what the evidence "
+            "requires. The summary says which rows are new or changed and which are carried over. Submit the "
+            "whole amended plan: it replaces the previous one."]
+
+
 def _answered_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
     """After a resume, the user's recorded reply to the wait this stage last blocked on."""
     history = state.get("history") or ()
@@ -3291,6 +3335,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         return text + "".join(line + "\n" for line in _lint_pending(root))
     lines.extend(_answered_lines(root, state))
     lines.extend(_replan_delta_lines(root, state, stage))
+    lines.extend(_revise_delta_lines(root, state, stage, workitem))
     lines.extend(knowledge.stage_lines(state, stage))
     instruction = guidance.prompt(stage, delegation=route,
                                   backchain_passes=recorded_backchain_passes(state),
@@ -3462,6 +3507,9 @@ def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     lines = ["Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
              "Done when (confirm each before calling done; keep going until all hold):",
              *("- " + condition for condition in row.done_when),
+             *(["- the summary says which criteria, steps, paths and test commands are new or changed and "
+                "which are carried over from the item's previous step plan, named in the full packet"]
+               if _sent_back_results(state, stage, _current_work_item(state)) else []),
              _checked_line(row)]
     considerations = [(label, text) for label, text in (
         ("Develop", row.develop), ("Test", row.test), ("Deploy", row.deploy), ("Tools", row.tools)) if text]

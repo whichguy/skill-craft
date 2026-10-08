@@ -630,7 +630,10 @@ and a question. A script-run loop has no iteration limit: it runs until its
 exit condition holds. One that stops blocked because the item's goal proved wrong
 reports `revise`; a cancelled loop is refused, because a user's stop is the
 packet's `pause` command. The per-item
-count is kept in `state.md` `revisions`.
+count is kept in `state.md` `revisions`. The redone step-plan packet names the
+item's previous step plan and the result that sent it back (both under
+`results/`) and asks for an amendment: its Done-when has the summary say which
+rows are new or changed and which are carried over.
 
 ## Durable handoff
 
