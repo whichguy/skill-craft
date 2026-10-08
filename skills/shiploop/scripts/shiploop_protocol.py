@@ -95,6 +95,56 @@ def _require_card_for_unreviewed_planning(requested: "str | None", card: str) ->
         raise ProtocolError(f"the selected Improve card cannot be resolved: {exc}") from exc
 
 
+def _listed(paths, prefix=""):
+    """Paths as one comma-separated text that keeps ``prefix`` plus itself within the printed-output limit.
+
+    A longer list is cut at a path, and the rest is counted: a directory decides every undecided path beneath it.
+    """
+    whole = ", ".join(paths)
+    if len(prefix) + len(whole) <= navigator.PRINT_LIMIT:
+        return whole
+
+    def more(count):
+        return f", and {count} more (a directory decides every undecided path beneath it)"
+
+    room = navigator.PRINT_LIMIT - len(prefix) - len(more(len(paths)))
+    shown, used = [], 0
+    for path in paths:
+        if used + len(path) + 2 > room:
+            break
+        shown.append(path)
+        used += len(path) + 2
+    return ", ".join(shown) + more(len(paths) - len(shown))
+
+
+def _recorded_line(reviewed):
+    """What a review-return call recorded, for the model that has to confirm it."""
+    kept, excluded = reviewed["kept"], reviewed["excluded"]
+    if not kept and not excluded:
+        return "No decision was recorded (no --keep or --exclude path was named)."
+    parts = []
+    if kept:
+        parts.append("kept " + _listed(kept, "Recorded: kept "))
+    if excluded:
+        parts.append("excluded " + _listed(excluded, "excluded "))
+    return "Recorded: " + "; ".join(parts) + "."
+
+
+def _review_lines(core, root, summary):
+    """The plan's tally, the excludes a review decided, and what is still undecided with the command that decides it."""
+    lines = [f"Return plan {root / 'return-plan.md'}: {summary['total']} paths, {summary['keep']} keep, "
+             f"{summary['exclude']} exclude, {len(summary['pending'])} undecided."]
+    if summary["reviewed_excludes"]:
+        head = "Excluded by review: "
+        lines.append(head + _listed(summary["reviewed_excludes"], head) + ".")
+    if summary["pending"]:
+        head = f"Undecided ({len(summary['pending'])}): "
+        lines += [head + _listed(summary["pending"], head) + ".",
+                  "Decide them with: " + navigator.review_return_command(core, root),
+                  navigator.REVIEW_RETURN_RULE]
+    return lines
+
+
 def workspace_command(core, argv):
     """One CLI family; workspace effects stay outside the opaque navigator."""
     import shiploop_workspace as workspace
@@ -118,9 +168,13 @@ def workspace_command(core, argv):
                        help="new run: Backchain planning child passes, one (default), converge or none")
     start.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
                        help="new run: which planning results start an Improve child, stage (default) or none")
-    for name in ("plan-return", "return"):
+    for name in ("plan-return", "review-return", "return"):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
+        if name == "review-return":
+            for decision in ("keep", "exclude"):
+                child.add_argument("--" + decision, action="append", nargs="+", default=[], metavar="PATH",
+                                   help=f"paths (or directories) to {decision}, relative to the execution checkout")
     args = parser.parse_args(argv)
     import shiploop_grants as grants
     rerun = ["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"), "workspace", *argv]
@@ -191,27 +245,34 @@ def workspace_command(core, argv):
             if args.planning_review:
                 init += ["--planning-review", args.planning_review]
             return main(core, init)
-        if args.operation == "plan-return":
+        if args.operation in ("plan-return", "review-return"):
             # Like every run-bound verb, refuse a retired or unloadable run
             # before touching its workspace.
             saved = store.read_record(root / "run" / "state.md")
             navigator.validate(saved)
             workspace.assert_binding(root, Path(saved["repo"]))
-            leftover = workspace.commit_leftovers(root)
-            if leftover.commit:
-                print("Committed files left uncommitted in the candidate: " + ", ".join(leftover.paths)
-                      + f" ({leftover.commit[:12]}).")
-            if leftover.skipped:
-                print(shiploop_git.skipped_notice(leftover.skipped))
-            workspace.plan_return(root)
-            print(f"Review all keep/exclude dispositions in {root / 'return-plan.md'}.")
-            print("Keep only intended product changes and durable knowledge, not run artifacts.")
-            print("Return policy: fast-forward only for a clean starting checkout and a "
-                  "clean committed candidate with all reviewed paths kept; otherwise return "
-                  "only the kept working-tree delta, without a Git merge or commit.")
-            print("When reviewed, run:")
-            print(shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
-                              "workspace", "return", "--workspace-root", str(root)]))
+            if args.operation == "plan-return":
+                leftover = workspace.commit_leftovers(root)
+                if leftover.commit:
+                    print("ShipLoop committed these files that were left uncommitted (no action needed): "
+                          + ", ".join(leftover.paths) + f" ({leftover.commit[:12]}).")
+                if leftover.skipped:
+                    print(shiploop_git.skipped_notice(leftover.skipped))
+                workspace.plan_return(root, fresh=leftover.skipped)
+                recorded, summary = [], workspace.plan_summary(root)
+            else:
+                reviewed = workspace.review_return(root, [name for group in args.keep for name in group],
+                                                   [name for group in args.exclude for name in group])
+                recorded, summary = [_recorded_line(reviewed)], reviewed["summary"]
+            for line in [*recorded, *_review_lines(core, root, summary)]:
+                print(line)
+            if args.operation == "plan-return":
+                print("Return policy: fast-forward only for a clean starting checkout and a "
+                      "clean committed candidate with all reviewed paths kept; otherwise return "
+                      "only the kept working-tree delta, without a Git merge or commit.")
+            print(("Nothing is undecided; run: " if not summary["pending"] else "When nothing is undecided, run: ")
+                  + shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
+                                "workspace", "return", "--workspace-root", str(root)]))
         else:
             saved = store.read_record(root / "run" / "state.md")
             navigator.validate(saved)
@@ -239,6 +300,19 @@ def workspace_command(core, argv):
     except grants.GrantError as exc:
         print(grants.report(exc, shlex.join(rerun)), file=sys.stderr)
         return grants.EXIT_GRANT_NEEDED
+    except workspace.ReviewRefused as exc:
+        # Line 1 carries the verb, the count and the paths: hosts and models read refusals through `head` and `cut`.
+        if isinstance(exc, workspace.PendingDispositions):
+            head = f"ShipLoop workspace blocked: review-return is needed for {len(exc.undecided)} undecided return paths: "
+            print(head + _listed(exc.undecided, head), file=sys.stderr)
+        else:
+            print(f"ShipLoop workspace blocked: {exc}", file=sys.stderr)
+            if exc.undecided:
+                head = f"Undecided ({len(exc.undecided)}): "
+                print(head + _listed(exc.undecided, head) + ".", file=sys.stderr)
+        print("Run: " + navigator.review_return_command(core, root), file=sys.stderr)
+        print(navigator.REVIEW_RETURN_RULE + " Then run workspace return again.", file=sys.stderr)
+        return 2
     except (workspace.WorkspaceError, ProtocolError, store.StorageError, OSError, ValueError) as exc:
         print(f"ShipLoop workspace blocked: {exc}", file=sys.stderr)
         print("Preserve the workspace and source checkout; do not force, stash, reset, "
@@ -256,8 +330,9 @@ def workspace_completion_guard(root, previous, updated):
             if receipt is None:
                 cli = shlex.quote(str(Path(__file__).resolve().parent / "shiploop"))
                 where = shlex.quote(str(root.parent))
-                commands = (f"python3 {cli} workspace plan-return --workspace-root {where}, review the plan, "
-                            f"then python3 {cli} workspace return --workspace-root {where}")
+                commands = (f"python3 {cli} workspace plan-return --workspace-root {where}, record every decision "
+                            f"with python3 {cli} workspace review-return --workspace-root {where} --keep <paths> "
+                            f"--exclude <paths>, then python3 {cli} workspace return --workspace-root {where}")
                 if workspace.returned_before(root.parent):
                     need(False, "handoff requires a current workspace return, and the recorded one is stale: "
                          "the candidate or source changed after it (for example ShipLoop's own docs/shiploop/ "

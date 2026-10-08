@@ -31,7 +31,7 @@ EXTERNAL/
   workspace.md       original checkout/branch and baseline; script-owned
   worktree/          execution checkout for all product changes
   run/               navigator state, prompts/results, notes, HTML report
-  return-plan.md     candidate-bound path review; host supplies dispositions
+  return-plan.md     candidate-bound path review; decisions recorded by review-return
   return-receipt.md  script-owned actual integration outcome
 ```
 
@@ -135,10 +135,20 @@ return is not evidence that a hosted consumer has been updated.
    It first commits product files still uncommitted in the candidate (for
    example a system test written after the last work item) onto the run branch,
    never run evidence, protected paths, caller exclusions or files that look
-   like credentials, then binds a Markdown path review to the candidate. Review **every**
-   disposition: `keep` for intended lasting work, `exclude` for transient work.
-   Pending decisions or an attempt to keep a forbidden runtime path block return.
-   Changed candidates require a fresh plan; do not edit hashes to bypass it.
+   like credentials, then binds a Markdown path review to the candidate and prints
+   the tally, every undecided path and the `review-return` command. Decide **every**
+   path with `workspace review-return --workspace-root EXTERNAL --keep PATH... --exclude PATH...`:
+   `keep` for intended lasting work, `exclude` for transient work. A directory decides
+   every undecided path beneath it and the most specific name wins. Never edit
+   `return-plan.md` or its status: the verb records the decisions, refuses by name a keep
+   of a forbidden runtime path or caller-excluded path and an exclude of ShipLoop's
+   knowledge, and records nothing when it refuses. Undecided paths block return, whose
+   first line names them and the verb. A changed candidate requires a fresh `plan-return`
+   (the refusal says so); do not edit hashes to bypass it. The fresh plan keeps the
+   keep/exclude decision already recorded for the same path (rows carry no content
+   digest, so a changed file keeps its earlier decision; a file ShipLoop skipped as
+   credential-like is decided again), leaves new paths undecided, and names the
+   excludes a review decided, so a model without its earlier context can see them.
 2. Run `workspace return --workspace-root EXTERNAL` only after that review,
    current checks, and any required authority. The helper rechecks branch,
    baseline, source state, candidate and plan before mutating the source.
@@ -208,7 +218,8 @@ checkout, rerun its checks, then run `plan-return` and `return` again. At
 `release-verify` the stage cannot return (`workspace return` is allowed only at
 `release` and `handoff`) and its copy still holds the old tree: report `replan` with
 a corrective work item, and the next `release` returns the fix. The new
-plan still reviews every path from the baseline. The follow-up starts from the
+plan still lists every path from the baseline; decisions already recorded for a path
+carry over and new paths are decided with `review-return`. The follow-up starts from the
 source state the previous receipt recorded, not from the preparation baseline:
 
 - After a **working-tree return**, the helper moves the source working tree

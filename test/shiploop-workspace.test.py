@@ -2079,7 +2079,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         state = self._advance_to_handoff(store.read_record(run / "state.md"))
         navigator.save(run, state)
         planned = self.cli("workspace", "plan-return", "--workspace-root", str(root))
-        self.assertIn("Review all keep/exclude dispositions", planned.stdout)
+        self.assertIn("Decide them with: ", planned.stdout)  # the review-return template, not a hand edit of the plan
+        self.assertIn("1 undecided", planned.stdout)
         self._resolve_plan(root)
         returned = self.cli("workspace", "return", "--workspace-root", str(root))
         self.assertIn("Verified workspace return", returned.stdout)

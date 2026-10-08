@@ -2505,6 +2505,18 @@ def _command(core: Any) -> str:
     return str(Path(package_root) / "scripts" / "shiploop") if package_root else "shiploop"
 
 
+def review_return_command(core: Any, workspace_root: Path) -> str:
+    """The review-return command with its decisions left blank: ShipLoop names the verb, the model supplies the judgement."""
+    return (shlex.join(["python3", _command(core), "workspace", "review-return", "--workspace-root",
+                        str(workspace_root)]) + " --keep <paths> --exclude <paths>")
+
+
+# What --keep and --exclude mean, said once for the packet and for the verb's own output.
+REVIEW_RETURN_RULE = ("--keep is for product code, tests, configuration and durable knowledge; --exclude is for "
+                      "transient output (logs, dumps, scratch files, run artifacts). A directory decides every "
+                      "undecided path beneath it.")
+
+
 def _reference_dir(core: Any) -> Path:
     package_root = getattr(core, "PACKAGE_ROOT", None)
     if package_root:
@@ -3121,8 +3133,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             "To review the final candidate for return:",
             shlex.join(["python3", _command(core), "workspace", "plan-return",
                         "--workspace-root", str(workspace_root)]),
-            "Review every return-plan disposition, retaining product code/tests and "
-            "durable knowledge but excluding transient output.",
+            "Record each undecided path with " + review_return_command(core, workspace_root) + ". "
+            + REVIEW_RETURN_RULE,
             "Handoff completion requires a current script-verified return receipt. "
             "A dirty-source working-tree return is not a Git merge or commit. "
             "No automatic push, cleanup, or publication is implied.",

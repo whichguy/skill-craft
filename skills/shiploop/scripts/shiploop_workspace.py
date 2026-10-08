@@ -11,8 +11,9 @@ The public functions are intentionally small:
 
 ``prepare``
     Capture a source checkout and create ``<workspace-root>/worktree``.
-``plan_return``
-    Write a reviewed-path return plan without changing the source checkout.
+``plan_return`` / ``review_return``
+    Write a reviewed-path return plan without changing the source checkout, then
+    record the host's keep/exclude decisions in it (the host never edits the file).
 ``execute_return``
     Apply the approved delta or perform a safe fast-forward merge; after a
     verified return, carry later product changes as a follow-up return.
@@ -60,6 +61,21 @@ class WorkspaceError(RuntimeError):
     """The workspace cannot safely be prepared, returned, or recovered."""
 
 
+class ReviewRefused(WorkspaceError):
+    """A return plan cannot be reviewed as asked; ``undecided`` lists the paths still to decide, for the caller to show."""
+
+    def __init__(self, message: str, undecided: Iterable[str] = ()) -> None:
+        super().__init__(message)
+        self.undecided = list(undecided)
+
+
+class PendingDispositions(ReviewRefused):
+    """The return plan still holds paths nobody decided; the caller names them and the verb that decides them."""
+
+    def __init__(self, undecided: Iterable[str]) -> None:
+        super().__init__("return plan has unresolved path dispositions", undecided)
+
+
 SCHEMA = "shiploop-workspace"
 PLAN_SCHEMA = "shiploop-workspace-return-plan"
 RECEIPT_SCHEMA = "shiploop-workspace-return-receipt"
@@ -85,6 +101,8 @@ _RETURN_KINDS = ("fast-forward-merge", "working-tree-return", "no-change-return"
 
 __all__ = [
     "CONSUMER_COPY",
+    "PendingDispositions",
+    "ReviewRefused",
     "WorkspaceError",
     "assert_binding",
     "completed_receipt",
@@ -93,8 +111,10 @@ __all__ = [
     "execute_return",
     "export_returned_result",
     "plan_return",
+    "plan_summary",
     "prepare",
     "returned_result",
+    "review_return",
 ]
 
 
@@ -1109,8 +1129,13 @@ def _candidate_matches_snapshot(manifest: Mapping[str, Any], receipt: Mapping[st
 
 
 def _plan_rows(
-    changes: Mapping[str, str], history: Sequence[str], excluded: Sequence[str]
+    changes: Mapping[str, str],
+    history: Sequence[str],
+    excluded: Sequence[str],
+    decided: Optional[Mapping[str, str]] = None,
 ) -> List[Dict[str, Any]]:
+    """One row per candidate path.  Rules decide protected, caller-excluded and knowledge paths; a path no rule
+    decides is ``pending`` unless ``decided`` carries an earlier keep/exclude for the same path."""
     rows = []
     for path in sorted(set(changes).union(history)):
         rows.append(
@@ -1121,10 +1146,20 @@ def _plan_rows(
                 "in_history": path in history,
                 # ShipLoop's committed knowledge home always returns with the candidate.
                 "disposition": ("exclude" if (_forbidden(path) or _matches_exclusion(path, excluded))
-                                else "keep" if knowledge_home.in_home(path) else "pending"),
+                                else "keep" if knowledge_home.in_home(path)
+                                else (decided or {}).get(path, "pending")),
             }
         )
     return rows
+
+
+def _recorded_decisions(root: Path) -> Dict[str, str]:
+    """The keep/exclude decisions the last return plan holds, by path; a plan that cannot be read holds none."""
+    try:
+        paths = _record(root, RETURN_PLAN, "return plan")["paths"]
+        return {row["path"]: row["disposition"] for row in paths if row["disposition"] in ("keep", "exclude")}
+    except (WorkspaceError, KeyError, TypeError):
+        return {}
 
 
 def _reject_added_path_collisions(
@@ -1190,8 +1225,14 @@ def commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:
         _fail(str(exc))
 
 
-def plan_return(workspace_root: Path) -> Dict[str, Any]:
-    """Generate the exact reviewed return surface; no source mutation occurs."""
+@_locked_existing_root
+def plan_return(workspace_root: Path, fresh: Iterable[str] = ()) -> Dict[str, Any]:
+    """Generate the exact reviewed return surface; no source mutation occurs.
+
+    A new plan reviews every path again, but a path the last plan decided keep or exclude keeps that decision (the
+    same path; rows carry no content digest) so a model that lost its context does not decide twice.  ``fresh``
+    names paths whose earlier decision must not carry, such as a file ``commit_leftovers`` skipped as credential-like.
+    """
     root = _resolved_directory(Path(workspace_root), label="workspace root")
     manifest = _manifest(root)
     if manifest["status"] == "blocked":
@@ -1207,6 +1248,8 @@ def plan_return(workspace_root: Path) -> Dict[str, Any]:
     ):
         _fail("source checkout drifted since preparation; return is blocked")
     candidate, changes, history = _candidate(manifest, root)
+    skipped = set(fresh)
+    decided = {path: value for path, value in _recorded_decisions(root).items() if path not in skipped}
     plan: Dict[str, Any] = {
         "schema": PLAN_SCHEMA,
         "version": VERSION,
@@ -1214,7 +1257,7 @@ def plan_return(workspace_root: Path) -> Dict[str, Any]:
         "return_policy": RETURN_POLICY,
         "source_fingerprint": initial,
         "candidate_fingerprint": candidate,
-        "paths": _plan_rows(changes, history, manifest["excluded"]),
+        "paths": _plan_rows(changes, history, manifest["excluded"], decided),
     }
     manifest["status"] = "return-planned"
     manifest["candidate_fingerprint"] = candidate
@@ -1229,7 +1272,8 @@ def plan_return(workspace_root: Path) -> Dict[str, Any]:
 
 
 def _validate_plan(
-    root: Path, manifest: Mapping[str, Any], plan: Mapping[str, Any], candidate: Mapping[str, Any], changes: Mapping[str, str], history: Sequence[str]
+    root: Path, manifest: Mapping[str, Any], plan: Mapping[str, Any], candidate: Mapping[str, Any], changes: Mapping[str, str], history: Sequence[str],
+    *, allow_pending: bool = False,
 ) -> List[Dict[str, Any]]:
     required = {"schema", "version", "status", "return_policy", "source_fingerprint", "candidate_fingerprint", "paths"}
     if set(plan) != required or plan.get("schema") != PLAN_SCHEMA or plan.get("version") != VERSION:
@@ -1241,7 +1285,8 @@ def _validate_plan(
     if not _fingerprint_equal(plan.get("source_fingerprint", {}), manifest["initial_fingerprint"]):
         _fail("return plan is bound to another source state")
     if not _fingerprint_equal(plan.get("candidate_fingerprint", {}), candidate):
-        _fail("return plan is stale because candidate state changed")
+        _fail("return plan is stale because candidate state changed; run plan-return again (decisions already "
+              "recorded are kept)")
     expected = _plan_rows(changes, history, manifest["excluded"])
     supplied = plan.get("paths")
     if not isinstance(supplied, list) or len(supplied) != len(expected):
@@ -1263,17 +1308,103 @@ def _validate_plan(
         if disposition not in {"pending", "keep", "exclude"}:
             _fail("return plan has an invalid disposition")
         if _matches_exclusion(path, manifest["excluded"]) and disposition != "exclude":
-            _fail("return plan cannot keep a caller-excluded path")
+            _fail(f"return plan cannot keep a caller-excluded path: {path}")
         if _forbidden(path) and disposition != "exclude":
-            _fail("return plan cannot keep a protected runtime path")
+            _fail(f"return plan cannot keep a protected runtime path: {path}")
         if knowledge_home.in_home(path) and disposition == "exclude" and not _matches_exclusion(
                 path, manifest["excluded"]):
-            _fail("return plan cannot exclude ShipLoop's knowledge (docs/shiploop/, SHIPLOOP.md); later runs "
-                  "inherit it")
+            _fail(f"return plan cannot exclude {path}: it is ShipLoop's knowledge (docs/shiploop/, SHIPLOOP.md), "
+                  "which later runs inherit")
         rows.append(dict(item))
-    if any(row["disposition"] == "pending" for row in rows):
-        _fail("return plan has unresolved path dispositions")
+    undecided = [row["path"] for row in rows if row["disposition"] == "pending"]
+    if undecided and not allow_pending:
+        raise PendingDispositions(sorted(undecided))
     return sorted(rows, key=lambda row: row["path"])
+
+
+def _summarize(plan: Mapping[str, Any], caller_excluded: Sequence[str]) -> Dict[str, Any]:
+    """Counts by disposition, the undecided paths, and the excludes a review (not a rule) decided."""
+    rows = plan["paths"]
+    return {
+        "total": len(rows),
+        "keep": sum(row["disposition"] == "keep" for row in rows),
+        "exclude": sum(row["disposition"] == "exclude" for row in rows),
+        "pending": [row["path"] for row in rows if row["disposition"] == "pending"],
+        "reviewed_excludes": [row["path"] for row in rows if row["disposition"] == "exclude"
+                              and not _forbidden(row["path"]) and not _matches_exclusion(row["path"], caller_excluded)],
+    }
+
+
+def plan_summary(workspace_root: Path) -> Dict[str, Any]:
+    """What the current return plan holds, read without changing anything (see ``_summarize``)."""
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    return _summarize(_record(root, RETURN_PLAN, "return plan"), _manifest(root)["excluded"])
+
+
+def _decisions(rows: Sequence[Mapping[str, Any]], keep: Iterable[str], exclude: Iterable[str]) -> Dict[str, str]:
+    """The disposition each named path or directory decides.
+
+    A name decides the plan row it equals, whatever that row holds now, and the still-undecided rows beneath it when
+    it is a directory.  The most specific name wins (``--keep src --exclude src/tmp``); the same name in both lists,
+    or a name that is no row and holds none, is refused with the undecided paths so the caller can correct it.
+    """
+    undecided = [row["path"] for row in rows if row["disposition"] == "pending"]
+    chosen: Dict[str, Tuple[int, str]] = {}
+    clashes: set = set()
+    unknown: List[str] = []
+    for action, names in (("keep", keep), ("exclude", exclude)):
+        for raw in names:
+            name = _safe_rel(raw, label=f"--{action} path (relative to the execution checkout)")
+            found = False
+            for row in rows:
+                path = row["path"]
+                if path != name and not path.startswith(name + "/"):
+                    continue
+                found = True
+                if path != name and row["disposition"] != "pending":
+                    continue
+                if path not in chosen or len(name) > chosen[path][0]:
+                    chosen[path] = (len(name), action)
+                elif len(name) == chosen[path][0] and chosen[path][1] != action:
+                    clashes.add(path)
+            if not found:
+                unknown.append(name)
+    if unknown:
+        raise ReviewRefused("not a path in the return plan: " + ", ".join(unknown), undecided)
+    if clashes:
+        raise ReviewRefused("named in both --keep and --exclude: " + ", ".join(sorted(clashes)), undecided)
+    return {path: action for path, (_, action) in chosen.items()}
+
+
+@_locked_existing_root
+def review_return(workspace_root: Path, keep: Iterable[str] = (), exclude: Iterable[str] = ()) -> Dict[str, Any]:
+    """Record keep/exclude decisions in the return plan, so the host supplies judgement and never edits the file.
+
+    The decisions are checked against the plan exactly as the return checks it (protected runtime paths, caller
+    exclusions and ShipLoop's knowledge are refused by name), and a refusal records nothing.  The plan's status is
+    the script's own label: ``ready`` once nothing is undecided.  Returns the decisions this call recorded
+    (``kept``, ``excluded``) and the plan's ``summary``.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    manifest = _manifest(root)
+    if manifest["status"] != "return-planned":
+        _fail("no return plan is awaiting review; run plan-return first")
+    plan = _record(root, RETURN_PLAN, "return plan")
+    candidate, changes, history = _candidate(manifest, root)
+    rows = _validate_plan(root, manifest, plan, candidate, changes, history, allow_pending=True)
+    chosen = _decisions(rows, keep, exclude)
+    for row in rows:
+        row["disposition"] = chosen.get(row["path"], row["disposition"])
+    reviewed = {**plan, "paths": rows,
+                "status": "pending" if any(row["disposition"] == "pending" for row in rows) else "ready"}
+    _validate_plan(root, manifest, reviewed, candidate, changes, history, allow_pending=True)
+    if chosen:
+        _write(root, {RETURN_PLAN: (reviewed, "ShipLoop return plan")})
+    return {
+        "kept": sorted(path for path, action in chosen.items() if action == "keep"),
+        "excluded": sorted(path for path, action in chosen.items() if action == "exclude"),
+        "summary": _summarize(reviewed if chosen else plan, manifest["excluded"]),
+    }
 
 
 def _candidate_tree_with_kept_untracked(
@@ -1788,15 +1919,11 @@ def follow_up_knowledge_return(workspace_root: Path) -> Optional[Dict[str, Any]]
         "utf-8", "surrogateescape").splitlines() if line and not _forbidden(line[3:])]
     if not changed or dirty or not all(knowledge_home.in_home(path) for path in changed):
         return None
-    # The new plan reviews the whole delta again: paths the last reviewed plan decided keep that
-    # decision; the only new paths are knowledge, which the plan keeps.
-    reviewed = {row["path"]: row["disposition"] for row in _record(root, RETURN_PLAN, "return plan")["paths"]}
+    # The new plan reviews the whole delta again: paths the last reviewed plan decided keep that decision
+    # (plan_return carries it); the only new paths are knowledge, which the plan keeps.
     plan = plan_return(root)
-    for row in plan["paths"]:
-        if row["disposition"] == "pending":
-            if reviewed.get(row["path"], "pending") == "pending":
-                return None
-            row["disposition"] = reviewed[row["path"]]
+    if any(row["disposition"] == "pending" for row in plan["paths"]):
+        return None
     plan["status"] = "ready"
     _write(root, {RETURN_PLAN: (plan, "ShipLoop return plan")})
     return execute_return(root)
