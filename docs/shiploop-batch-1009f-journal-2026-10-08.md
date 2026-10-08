@@ -47,11 +47,24 @@ exit. Red on the unmodified tree at the packet assertion and, once the packet wa
 `test_commands_na` driven to implement through the CLI has a Done-when that names neither `Confirm by` nor a recorded
 command. Red on the unmodified tree. One authoring pin in `test/shiploop-navigator-contract.test.py` for the new sentence.
 
+Message order (F1 coordination, added after the review). The G2 audit asked S1 and F1 (remedy first in refusals) to agree on
+the order of `_normalise_criteria`'s message before either lands. F1 is not in this branch. S1's order is: the rule, the
+remedy (the open-item exit), then `uncovered: <ids>` last. The ids stay at the end, where the existing assertions look
+(`uncovered: C2`), and the remedy already precedes them. If F1 lands it may move the remedy sentence to the front of the
+message without changing any substring a test asserts; nothing here has to change for that.
+
 Not verified. Whether models given the exit record a person-only condition as an open item rather than a vacuous `true` or
 `test -f` command: read the next live runs' step-plan results (count, no threshold). Whether a handoff model finds the open
 item (it depends on the model reading the ledger). Whether the checkers-style miss (a step plan with no Confirm-by clause)
 causes a wrong confirmation downstream: none observed in two runs; both verify receipts key on criterion id plus bound
 command.
+
+Evidence export (added after the review, because the run folders live only under /Users/dadleet/e2e-runs).
+`docs/experiments/batch-1009f-step-plan-criteria-20261008/evidence.json` holds, for the three runs below, the step-plan
+`criteria` blocks as submitted, the criteria whose text carries `Confirm by` (checkers 0 of 7; battleship Sonnet 5 of 5; Grok 7
+of 7), the criteria each test command binds (every criterion in all three runs), `skill_na` recorded or not, the
+`step-plan`, `skill-assess` and `skill-validate` stage rows, and the summed stage seconds and turns of each run. It was written
+by a throwaway script from the run folders' result files and `metrics.json`; the numbers in this entry and in S2 match it.
 
 Evidence. Round-1 runs `r1-checkers-sonnet` (results/nav-bf8832119c2c4776b0e3c8a0bb4c3e73.md: 7 criteria, 0 `Confirm by`,
 all bound through `test_commands[].criteria`) and `r1-battleship-sonnet` (nav-9fe188b40bb54af2acaddee7cfd54f20.md: C1-C3 with
@@ -66,7 +79,8 @@ Status: firm (a decision, not a change).
 `skill_na` uptake with prose-only guidance is 2 of 3 live step plans (battleship Sonnet yes, checkers Sonnet no, Grok
 battleship yes in a run that did not finish, `result.json` pass false). The one miss cost skill-assess 4.0 s with 2 turns and
 skill-validate 3.0 s with 1 turn of 776.0 summed stage seconds and 185 turns; tokens per stage are unmeasured. Running the
-two skill stages is the faithful default, so this is an efficiency item. The template deliberately omits the key (commit
+two skill stages is the faithful default, so this is an efficiency item (rows in
+`docs/experiments/batch-1009f-step-plan-criteria-20261008/evidence.json`). The template deliberately omits the key (commit
 8af12178: "a copied placeholder would be a false opt-out") and a guard test pins that. Reopen only if a later live set shows
 a host that never records `skill_na` on repositories with no skill index; the follow-up is then a gate-required choice or an
 observation-derived default, not a template placeholder.
@@ -182,11 +196,20 @@ Unknowns. The quality and test-loop terminal gates read `improve_skill` and skip
 first item instead of only after `spec` binds; in real stage runs the bind happens at `spec` anyway and no suite depended on the
 skipped gate. A hard-linked install fails `_safe_file` (`st_nlink` must be 1) and falls to the honest blank; none observed. Codex's
 plugin cache holds one version, so a mid-run plugin update removes both the CLI path and the recorded card (every packet command
-already points into that directory). The retained lazy bind (a blank plus a sentence) is the one place the one-supported-version
-rule is arguable; it is pre-existing and documented, and the choice of refusing `stage` init when nothing resolves is the owner's.
+already points into that directory). See "Open owner decision" below for the retained
+lazy bind.
 The audit ran `resolve_skill` on every skill-craft layout on this machine (not re-run here): the Claude cache (1.0.0 to 1.24.0),
 Claude marketplaces, the Codex cache (1.24.0), Cursor local, Grok installed-plugins and marketplace cache, and the OpenCode
 symlink; the old claudecraft plugin's improve card is rejected, which supports resolving by location and not by name.
+
+Open owner decision (B1a, recorded after the review; no OK has been given). Where `init` finds no usable card and no
+`--improve-skill` is given, a `stage` run still starts and its spec checkpoint prints a marked blank plus the place ShipLoop looks.
+The alternative is to refuse that `init`, as `none` already does, so a card is always recorded before the first packet. The blank
+is kept for one reason only: an install with no usable sibling Improve skill can still start a stage run, because under `stage` a
+planning child (the spec checkpoint) binds the card before anything reads it. It is not kept for a run saved before init-time
+resolution: this repository ships no migration for those, and a saved run loads unchanged because no state key was added. The
+owner (Jim) decides; if refusal is chosen, the change is `_require_card_for_unreviewed_planning` applied to every mode, with the
+message split described under B1b, and the blank branch, `IMPROVE_CARD_BLANK` and the not-recorded sentence are deleted.
 
 ## P4: the test-strategy probe runs against a stand-in page
 
@@ -206,7 +229,8 @@ fails whatever the browser can do; the strategy concluded "no browser", and the 
 page has to be one the stage writes itself.
 
 Change. `DUTIES['test-strategy']`, the paragraph "Settle these now": the case is probed by doing its first step, not its version;
-the product does not exist yet, so the probe runs against a stand-in and not the product's own address; for a browser, a one-line
+if the product does not exist yet, the probe runs against a stand-in and not the product's own address (the adversarial review
+of this branch pointed out that the first wording stated it as a fact, which a brownfield run on a running product makes false); for a browser, a one-line
 page written in the run's scratch directory (a directory every packet prints), opened by `file:` URL or from a throwaway static
 server stopped afterwards, with its title read back by the tool as the case will use it; for an account or a service, a harmless
 read the tool can make today. A failed probe is still an access gap recorded now with the requirement it leaves unobserved, and the
@@ -214,9 +238,33 @@ case still keeps its own opt-in command. The paragraph is after the status block
 (`test/shiploop-status-display.test.py` passes); `CaseEndStateTests` and the other `SettledFactTests` pins pass unchanged.
 
 Test, fail first. `SettledFactTests.test_test_strategy_probes_a_host_tool_against_a_stand_in_because_the_product_does_not_exist_yet`
-in `test/shiploop-guidance.test.py` pins the stand-in obligations, the obligations that must stay, and the rendered packet under both
+in `test/shiploop-guidance.test.py` pins the stand-in obligations (the conditional "If the product does not exist yet" and its absence as a flat statement), the obligations that must stay, and the rendered packet under both
 delegations (eight subtests red on the unmodified tree).
 
 Not verified. Whether a host now writes the stand-in page and records the access gap during planning; read the next Grok and Luna
 `test-strategy.md` files (the probe line and the "What is out of the default suite" section) for a probe that loaded a page and read
 its title. A host with no way to open any page still records the gap; the change moves when it is learned, not whether it can be fixed.
+
+## Adversarial review of this branch (2026-10-08), and what each finding became
+
+Status: firm for the items marked fixed (each was reproduced or read in the tree, then changed with its test); the owner decision
+is open. The review found no blocker or major finding; seven minors, all addressed. Related commits: 84d4d9da (S1), 4c2a8a98
+(BC1), 0d7a35dd (B1a), 482fff76 (P4); origin/main 847fa64e.
+
+| # | Finding | Result |
+|---|---------|--------|
+| 1 | `--improve-skill` help said "default: the card installed beside ShipLoop"; under `--planning-review none` there is no default | Fixed. One constant, `IMPROVE_SKILL_HELP` in `shiploop_protocol.py`, serves `init` and `workspace start`: "a stage run without it records the card installed beside ShipLoop; required with --planning-review none". Pinned by `InstalledCardCliTests.test_the_help_does_not_promise_a_default_that_planning_review_none_refuses`, which reads both `--help` outputs (red before: the text was absent). |
+| 2 | `suite_catalog._DURATION_SECONDS` pins stale for callback-contract, improve-schedule, navigator-dry-run | Fixed with measured seconds, test counts and the date: callback-contract 29 tests, 60.6 s (was 56.0 at 27); improve-schedule 33 tests, 14.0 s (was 0.2); navigator-dry-run 32 tests, 12.7 s (was 3.603). Faster of two serial runs at load average 3.8 to 6.0. All three stay under QUICK_MAX_SECONDS (120). No membership change, so `test-groups` pins are unchanged (21 tests pass). |
+| 3 | The Backchain change note omitted the audit's correction 6 | Fixed: one sentence added to `changes/shiploop/backchain-child-is-a-choice.md`: the text describes today's behaviour, requiring the child at plan stays open pending the validator comparison, plan-stage timings are not comparable across this version. |
+| 4 | P4 stated "The product does not exist yet" as a universal fact | Fixed: "If the product does not exist yet, probe against a stand-in ...". The pin was updated and a negative pin keeps the flat statement out. Change note reworded to match. |
+| 5 | `IMPROVE_CARD_BLANK` comment justified the blank by "a saved run that predates init-time resolution", a compatibility rationale; the audit's open decision was unrecorded | Fixed: the comment now gives the true reason (no usable sibling card), the `_new_run_card` docstring lost "as before", and the B1a entry records the open owner decision with who decides. Nothing was built to migrate old runs. |
+| 6 | F1 coordination unrecorded; compact evidence export of the criteria blocks missing | Fixed: S1 entry names the message order; `docs/experiments/batch-1009f-step-plan-criteria-20261008/evidence.json` (7.0 KB) exports the three criteria blocks, bindings and stage rows. |
+| 7 | The recorded-card bind line claimed the card came from `--improve-skill` or the installed lookup; an `improve-bind --skill-card X` at a later checkpoint can record another | Fixed: "Bind the Improve card recorded for this run using this command:" names no origin. The test (renamed `..._names_no_origin`) asserts neither "--improve-skill" nor "installed beside" is in that sentence (red before). |
+
+Skipped: no finding was skipped. Two items outside the findings stay with the session that owns `skills/shiploop-run-review/**`:
+`test/fixtures/run-review/state-stage.md` (`improve_skill: ''`) and the "none resolves the card at init" wording in
+`test/shiploop-run-review.test.py`. They were already listed as a coordination item under B1a and are not touched here.
+
+Not verified here. The effect of any of this on a live run (the same unknowns as before). The status-display kept head was not
+touched: the three text edits are in a duty paragraph after the status block, a bind sentence in a different packet, and a
+help string; the suite is part of the quick tier below.

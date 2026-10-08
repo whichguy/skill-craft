@@ -1,0 +1,217 @@
+{
+ "purpose": "Evidence for batch 1009f S1 (step-plan criteria without a Confirm-by command) and S2 (skill_na uptake): the step-plan result's criteria blocks of the three round-1 runs, with the stage rows the skill stages cost.",
+ "source": "/Users/dadleet/e2e-runs/20261008/<run>/.shiploop-runs/*/run/results/<result> and <run>/metrics.json (stages)",
+ "runs": {
+  "r1-checkers-sonnet": {
+   "host": "Claude Sonnet",
+   "case": "checkers",
+   "result_file": "nav-bf8832119c2c4776b0e3c8a0bb4c3e73.md",
+   "criteria": [
+    {
+     "id": "C1",
+     "text": "Initial position, man/king steps, single jumps with removal and promotion follow R-4, R-7, R-8, R-10"
+    },
+    {
+     "id": "C2",
+     "text": "Mandatory jump and multi-jump continuation keeping the turn follow R-9"
+    },
+    {
+     "id": "C3",
+     "text": "Illegal moves return ok:false with turn and board unchanged (R-6)"
+    },
+    {
+     "id": "C4",
+     "text": "Winner is set when opponent has no pieces or no legal move and later moves are refused (R-11)"
+    },
+    {
+     "id": "C5",
+     "text": "HTTP API: GET /api/new, POST /api/move legal/illegal/malformed/unknown-game, turn flip, PORT env (R-1,R-3,R-5,R-6)"
+    },
+    {
+     "id": "C6",
+     "text": "GET / serves 200 html titled Checkers with board and API hooks (R-2)"
+    },
+    {
+     "id": "C7",
+     "text": "server.js uses a separate rules module and the whole suite runs under node --test (R-12)"
+    }
+   ],
+   "criteria_with_confirm_by_text": [],
+   "criteria_bound_by_a_test_command": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7"
+   ],
+   "criteria_bound_by_no_command": [],
+   "skill_na_recorded": false,
+   "stage_rows": [
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 29.0,
+     "turns": 7
+    },
+    {
+     "stage": "skill-assess",
+     "outcome": "done",
+     "seconds": 4.0,
+     "turns": 2
+    },
+    {
+     "stage": "skill-validate",
+     "outcome": "done",
+     "seconds": 3.0,
+     "turns": 1
+    }
+   ],
+   "all_stages_seconds_summed": 776.0,
+   "all_stages_turns": 185
+  },
+  "r1-battleship-sonnet": {
+   "host": "Claude Sonnet",
+   "case": "battleship",
+   "result_file": "nav-9fe188b40bb54af2acaddee7cfd54f20.md",
+   "criteria": [
+    {
+     "id": "C1",
+     "text": "game.js places the 5-ship fleet (5,4,3,3,2) legally and reports miss/hit/sunk/gameOver and invalid shots per spec R-5,R-6,R-7,R-8. Confirm by:  (exercised); pass when exit 0 and TC-6..TC-11 each run and pass."
+    },
+    {
+     "id": "C2",
+     "text": "server.js serves GET /api/new and POST /api/fire with the specified JSON, errors, 404/405/413 and listens on PORT (R-1,R-3,R-4,R-7,R-10). Confirm by:  (exercised, includes spawning node server.js); pass when exit 0 and TC-1,2,4,5,9,10,13 run and pass."
+    },
+    {
+     "id": "C3",
+     "text": "GET / returns an HTML page titled Battleship with a 10x10 grid wired to /api/new and /api/fire (R-2). Confirm by:  (TC-3); pass when TC-3 runs and passes."
+    },
+    {
+     "id": "C4",
+     "text": "README documents how to run and test. Confirm by: grep -q 'node server.js' README.md && grep -q 'node --test' README.md; pass when exit 0."
+    },
+    {
+     "id": "C5",
+     "text": "Whole suite passes with plain node --test and covers all checks (R-9). Confirm by: node --test (exercised); pass when exit 0 and at least 25 tests run including TC-12."
+    }
+   ],
+   "criteria_with_confirm_by_text": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5"
+   ],
+   "criteria_bound_by_a_test_command": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5"
+   ],
+   "criteria_bound_by_no_command": [],
+   "skill_na_recorded": true,
+   "stage_rows": [
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 37.0,
+     "turns": 5
+    },
+    {
+     "stage": "skill-assess",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0
+    },
+    {
+     "stage": "skill-validate",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0
+    }
+   ],
+   "all_stages_seconds_summed": 819.9,
+   "all_stages_turns": 207
+  },
+  "r1-battleship-grok-none": {
+   "host": "Grok, --planning-review none",
+   "case": "battleship",
+   "result_file": "nav-f9010cf5ef344cd89fb0c0fbd72fd730.md",
+   "criteria": [
+    {
+     "id": "C1",
+     "text": "Unset and empty PORT resolve to 3000, and a non-integer PORT fails before listen. Confirm by: node --test --test-reporter spec test/rules.test.js; pass when TC-1 and TC-2 appear on non-skip lines and the command exits 0."
+    },
+    {
+     "id": "C2",
+     "text": "rules.js places lengths 5, 4, 3, 3, and 2 without overlap and classifies miss, hit, sunk, and last-ship game over. Confirm by: node --test --test-reporter spec test/rules.test.js; pass when TC-3, TC-4, TC-5, TC-6, and TC-7 appear on non-skip lines and the command exits 0."
+    },
+    {
+     "id": "C3",
+     "text": "A repeated cell, an out-of-range cell, a non-integer coordinate, and a shot after the game is over leave the board unchanged. Confirm by: node --test --test-reporter spec test/rules.test.js; pass when TC-8 appears on a non-skip line and the command exits 0."
+    },
+    {
+     "id": "C4",
+     "text": "GET /api/new returns only an id, and POST /api/fire returns miss, hit, or sunk with gameOver true only on the last sink. Confirm by: node --test --test-reporter spec test/http.test.js; pass when TC-9 and TC-10 appear on non-skip lines and the command exits 0."
+    },
+    {
+     "id": "C5",
+     "text": "Bad HTTP fires return 400, other routes return 404, coordinates stay hidden, the page has the title and 100 buttons, and two game ids stay isolated. Confirm by: node --test --test-reporter spec test/http.test.js; pass when TC-11, TC-12, TC-13, TC-14, and TC-15 appear on non-skip lines and the command exits 0."
+    },
+    {
+     "id": "C6",
+     "text": "README.md tells a person to start the game with node server.js. Confirm by: grep -q 'node server.js' README.md; pass when the command exits 0."
+    },
+    {
+     "id": "C7",
+     "text": "placeFleet, classifyShot, and the HTTP handler check their arguments and each carries a Contract comment. Confirm by: the rejection cases TC-8 and TC-11 plus grep -q 'Contract:' rules.js and server.js; pass when those tests exit 0 and both greps exit 0."
+    }
+   ],
+   "criteria_with_confirm_by_text": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7"
+   ],
+   "criteria_bound_by_a_test_command": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7"
+   ],
+   "criteria_bound_by_no_command": [],
+   "skill_na_recorded": true,
+   "stage_rows": [
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 69.0,
+     "turns": 4
+    },
+    {
+     "stage": "skill-assess",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0
+    },
+    {
+     "stage": "skill-validate",
+     "outcome": "done",
+     "seconds": 0.0,
+     "turns": 0
+    }
+   ],
+   "all_stages_seconds_summed": 4536.4,
+   "all_stages_turns": 301
+  }
+ }
+}
