@@ -28,8 +28,16 @@ Counting rule (read from the Luna 1.16.1 battleship run, 168 MB, and tested on a
   whole run, under ``subagents`` (calls, peak, compactions), because a stage window cannot tell a sub-agent's
   work from the thread that waited for it.
 
-Records are read one line at a time and only calls, compactions and the window are kept (a few thousand small
-tuples), so memory does not grow with the file. A line that is not JSON (the half-written last line of a rollout
+Output tokens (the planning window, ``rollout_context(..., tokens_window=...)``). ``usage`` also carries
+``output_tokens`` and ``reasoning_output_tokens`` for the request alone. Unlike the context rule above, a
+compaction request is a model request that produced output, so its tokens count: summing every main-thread record
+equals the thread's last cumulative ``thread_token_usage`` on all 5 threads of the Luna 1.21.0 run (1,135 records, no
+repeated ``response_id``), while leaving the 10 requests of the planning window out gave 1,116,758 output tokens
+against 1,153,899 (their 37,141 carry no reasoning). A repeated ``response_id`` is counted once. Sub-agent
+requests are summed apart (``subagent_output``), never inside the main figure.
+
+Records are read one line at a time and only calls, compactions, the window and the token rows are kept (a few
+thousand small tuples), so memory does not grow with the file. A line that is not JSON (the half-written last line of a rollout
 a live run is still writing) is skipped.
 """
 
@@ -42,6 +50,7 @@ from pathlib import Path
 NO_ROLLOUTS = ("no rollout-*.jsonl under home/.codex/sessions: Codex records per-call usage and compactions only "
                "in those files, not in its events")
 NO_CALLS = "the rollouts hold no main-thread token_usage_record, so no call was recorded"
+NO_TOKENS = "no main-thread token_usage_record with an output_tokens count falls in the planning window"
 
 
 def rollout_files(out: Path) -> list[Path]:
@@ -77,6 +86,7 @@ def _number(value: object) -> int | None:
 def _read(path: Path) -> dict:
     """One rollout's calls, compactions and window: {"calls": [(t, total, main)], "compactions": [(t, main)], ...}."""
     usage: list[tuple] = []  # (response id, t, total, main) in file order
+    tokens: list[tuple] = []  # (response id, t, output, reasoning, main): every request, compaction requests included
     compactions: list[tuple] = []  # (compaction_response_id, t)
     windows = {True: None, False: None}  # the last window a token_count reported, by thread kind
     current = None  # whether the latest token_usage_record was the main thread's: a token_count follows its call
@@ -90,6 +100,8 @@ def _read(path: Path) -> dict:
             used = payload.get("usage") if isinstance(payload.get("usage"), dict) else {}
             usage.append((payload.get("response_id"), _epoch(record.get("timestamp")),
                           _number(used.get("total_tokens")), current))
+            tokens.append((payload.get("response_id"), usage[-1][1], _number(used.get("output_tokens")),
+                           _number(used.get("reasoning_output_tokens")), current))
         elif kind == "compacted":
             compactions.append((payload.get("compaction_response_id"), _epoch(record.get("timestamp"))))
         elif kind == "event_msg" and payload.get("type") == "token_count" and current is not None:
@@ -102,14 +114,42 @@ def _read(path: Path) -> dict:
     return {"calls": [(t, total, main) for response, t, total, main in usage if response not in requests],
             # Own compactions only: the request is in this file, and says which thread was compacted.
             "compactions": [(t, kind_of[response]) for response, t in compactions if response in requests],
-            "windows": windows}
+            "windows": windows, "tokens": tokens}
 
 
 def _share(peak: int | None, window: int | None) -> float | None:
     return round(100 * peak / window, 1) if peak is not None and window else None
 
 
-def rollout_context(out: Path, windows: list | None = None) -> dict:
+def window_tokens(rows: list[tuple], start: float, end: float) -> dict:
+    """The main thread's output and reasoning tokens for the requests with start < t <= end.
+
+    ``rows`` are (response id, t, output, reasoning, main) from every file. A response id seen again is counted
+    once. Reasoning is None unless every counted record carries it. Sub-agent output is reported apart. A counted
+    record with no output count makes the figure unmeasured: a sum over fewer records is not the window's.
+    """
+    seen: set = set()
+    counted: list[tuple] = []
+    side = 0
+    for response, t, output, reasoning, main in rows:
+        if response is not None:
+            if response in seen:
+                continue
+            seen.add(response)
+        if t is None or not start < t <= end:
+            continue
+        if not main:
+            side += output or 0
+            continue
+        counted.append((output, reasoning))
+    if not counted or any(output is None for output, _ in counted):
+        return {"unmeasured": NO_TOKENS}
+    return {"output": sum(output for output, _ in counted),
+            "reasoning": None if any(r is None for _, r in counted) else sum(r for _, r in counted),
+            "subagent_output": side}
+
+
+def rollout_context(out: Path, windows: list | None = None, tokens_window: tuple | None = None) -> dict:
     """The run's context, main thread first, or ``{"unmeasured": reason}`` when no rollout can show it.
 
     ``out`` is the run's output directory (the one holding events.jsonl and home/). ``windows`` is one
@@ -117,16 +157,19 @@ def rollout_context(out: Path, windows: list | None = None) -> dict:
     belongs to a window when start < t <= end, the rule the harness uses for turns. Returns ``window`` (the
     model context window a main-thread token_count reported), ``calls``, ``peak`` (the largest total_tokens of a
     call), ``peakPct`` (peak as a percentage of the window), ``compactions``, ``subagents`` and ``perStage``
-    (one {calls, peak, peakPct, compactions} per window, or None where the window was None).
+    (one {calls, peak, peakPct, compactions} per window, or None where the window was None). With
+    ``tokens_window`` (start, end) it also returns ``tokens``: ``window_tokens`` over every file, read in this pass.
     """
     files = rollout_files(out)
     if not files:
         return {"unmeasured": NO_ROLLOUTS}
     calls: list[tuple] = []
     compactions: list[tuple] = []
+    token_rows: list[tuple] = []
     window = None
     for path in files:
         found = _read(path)
+        token_rows += found["tokens"]
         calls += found["calls"]
         compactions += found["compactions"]
         window = found["windows"][True] or window
@@ -147,4 +190,5 @@ def rollout_context(out: Path, windows: list | None = None) -> dict:
     return {"window": window, **figures(main, own), "perStage": per_stage,
             "subagents": {"calls": sum(1 for _, _, is_main in calls if not is_main),
                           "peak": max(side, default=None),
-                          "compactions": sum(1 for _, is_main in compactions if not is_main)}}
+                          "compactions": sum(1 for _, is_main in compactions if not is_main)},
+            **({"tokens": window_tokens(token_rows, *tokens_window)} if tokens_window else {})}

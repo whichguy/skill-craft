@@ -6,7 +6,8 @@
 Remembers what it already reported in <output>/.progress.json and prints one
 block: counters, then only what is new (accepted stages with their turns and
 minutes, ShipLoop command failures, truncations, compactions, ended sessions,
-the model's latest remark, and once which counters the host cannot show). It never
+the model's latest remark, once which counters the host cannot show, and once the
+planning window when it closes). It never
 prints packet text or run markers, so a ShipLoop keepalive in the watching session
 cannot bind to the run.
 """
@@ -72,6 +73,10 @@ def report(out: Path) -> str:
     stages = [s for s in m["stages"] if not s.get("incomplete")][memo.get("stages", 0):]
     if stages:
         lines.append("  accepted: " + ", ".join(metrics.stage_text(s) for s in stages))
+    # The planning window is reported once, when it closes: the live record of the owner's 30-minute planning rule.
+    closed = m["planning"]["window"]["closed"]
+    if closed and not memo.get("planning"):
+        lines.append("  " + metrics.planning_text(m["planning"]))
     # A counter this host's events cannot show prints nothing below, so say so once: silence is not a clean result.
     blind = sorted(set(m["unmeasured"]) - set(memo.get("unmeasured") or []) - {"stage_turns"})
     if blind:
@@ -104,7 +109,7 @@ def report(out: Path) -> str:
                                      "sessions": len(m["sessions"]), "cancelled": len(m["cancelled_tool_calls"]),
                                      **{k: m[k] or 0 for k in ("truncated_outputs", "compactions",
                                                                "improve_children")},
-                                     "unmeasured": sorted(m["unmeasured"]),
+                                     "unmeasured": sorted(m["unmeasured"]), "planning": closed,
                                      "verified": m["script_verifications"]["records"],
                                      "glue": len(m["model_glue"])}))
     return "\n".join(lines)

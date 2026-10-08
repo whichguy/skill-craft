@@ -213,7 +213,9 @@ _DURATION_SECONDS = {
     # 2 s poll sleep in run.launch() with a wait.  Estimate, not a GitHub reading: 64.5 s idle locally after the fix,
     # scaled by the measured GitHub/local ratio of this suite (303/322); the quick run that selected it finished in
     # 3m16s.  Replace it with the suite's own GitHub seconds once the runner prints per-suite time.
-    "test/shiploop-e2e.test.py": 61.0,
+    # 2026-10-08: 247 -> 305 tests (resume, stop and records, the planning block); 77 s idle locally against 64 s, so
+    # 61.0 scaled by 77/64 is 73.  Still an estimate, still under QUICK_MAX_SECONDS (120).
+    "test/shiploop-e2e.test.py": 73.0,
     "test/shiploop-run-review.test.py": 0.2,
     "test/shiploop-callback-contract.test.py": 60.0,
 }

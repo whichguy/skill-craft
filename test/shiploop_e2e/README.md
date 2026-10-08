@@ -138,6 +138,24 @@ Grok events carry no time) and ShipLoop's run directory:
   `incomplete` row for it. No cost and no token count is split per stage; cost stays
   whole-run. "Reading per-stage figures" below says what these numbers can and
   cannot tell you;
+- the planning window (`planning`, SPEC's S-10 carve-out of 2026-10-05: planning takes no more than 30
+  minutes): intake to the first accepted `test-spec` with outcome done (a `revise` row does not close it), on two
+  labelled clocks, the engine's (`window.seconds`, from `timeline.json` `started`) and the host's
+  (`window.host_seconds`, from the runner's first event; `before_engine_seconds` is the difference, 92.8 s on the
+  Grok `none` run of 1.22.0). `stages` lists each accepted visit in the window with its seconds and
+  `improve_seconds`, which runs from the Improve child's bind file (`improve/<action>-bind.md`, so it needs the
+  run directory's file times) to the accept stamp; 0.0 means the engine ran no child for that action, an action with
+  a child but no readable bind file is null with its reason. `improve` totals the children and their seconds and
+  `producer_seconds` is the window minus them, so the two add up to the window. The exporter's `improveMin` runs
+  bind to receipt and the Run Review page's stage minutes stay the exporter's; this block is the harness's own
+  figure for the owner's rule, and a regrade of a copied run directory reads wrong Improve seconds (file times).
+  An open window reports `through` (the last stamped stage) and is never 0; a seeded run, a recreated
+  `timeline.json` (one stamp for every action) and a timeline with no start are unmeasured as a whole. `tokens` is the
+  window's output and reasoning tokens on the host clock where the host's per-call counts are exact: Grok's usage
+  events, and Codex's rollout `token_usage_record`s (a compaction request counts, a repeated response id counts
+  once, sub-agent output is `subagent_output` beside the main figure); Claude's are unmeasured. The reasons for
+  anything missing sit inside the block, not in the top-level `unmeasured` map. A window that spans host kills
+  (Luna xhigh had four resumes in 375 minutes) is wall clock and includes the gaps;
 - sessions and how each ended (`sessions`: its stop, turns, cost and the host's own
   `usage`, kept as the host wrote it and never summed), turns, peak context (a call's
   input, cache reads and cache writes; null when no call reported its context), cost
@@ -305,11 +323,15 @@ product hang; it does not say the product is wrong.
   Without rollouts the figures are null and `unmeasured` names them with that reason.
   Recorded Luna 1.16.1 run (168 MB, read in 0.6 s): 2,565 main-thread calls, peak 251,867
   of 258,400, 34 compactions, and 314 sub-agent calls.
-- No output-token figure is built from events: a Claude message's output count is a
-  streaming snapshot (it summed to about 1/17 of the session's own total on a recorded
-  run), and Codex has none per call. A session's tokens are the host's own `usage` in
-  `sessions`. Cost and turns add up across the sessions that reported; a session killed
-  before it reported is counted in `unreported_sessions`, not estimated.
+- No output-token figure is built per stage, and none from Claude's events: a Claude
+  message's output count is a streaming snapshot (it summed to about 1/17 of the session's own
+  total on a recorded run), and Codex has none per call in its event stream. The planning window's
+  tokens (above) are the exception for Grok and Codex, whose per-call counts equal the host's own
+  totals (Grok: the usage events of a whole run equal the `end` events' sums; Codex: the per-call
+  sums of the rollouts equal each thread's last cumulative total, compaction requests included).
+  A session's tokens are the host's own `usage` in `sessions`. Cost and turns add up across the
+  sessions that reported; a session killed before it reported is counted in
+  `unreported_sessions`, not estimated.
 - The Run Review page's stage minutes come from the exporter's own accept-to-accept
   computation (`skills/shiploop-run-review/scripts/export.py`), not from
   `metrics.json`. The first stage differs: the exporter starts at the engine's

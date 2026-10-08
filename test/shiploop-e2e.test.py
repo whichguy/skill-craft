@@ -1256,12 +1256,14 @@ class CheckHygieneTest(unittest.TestCase):
             self.assertFalse(dropped["pass"], "a dropped earlier id still fails")
 
 def write_engine_records(run_dir: Path, accepted: list, *, status: str = "done",
-                         stage: str | None = None, inner: dict | None = None) -> None:
+                         stage: str | None = None, inner: dict | None = None,
+                         started: float | bool | None = None) -> None:
     """Write the state.md and timeline.json a run would leave behind.
 
     ``accepted`` is (action, stage, outcome, epoch-or-None); an action with None
     gets no acceptance stamp, which is how an unreadable or recreated timeline
-    looks to the reader.
+    looks to the reader. ``started`` is the engine's start (default: the first stamp);
+    False leaves it out, as in a run from before the pace line.
     """
     run_dir.mkdir(parents=True, exist_ok=True)
     state = {"navigator_protocol_version": 4, "status": status,
@@ -1276,8 +1278,9 @@ def write_engine_records(run_dir: Path, accepted: list, *, status: str = "done",
     def stamp(epoch: float) -> str:
         return datetime.datetime.fromtimestamp(epoch, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+    begin = min((t for *_x, t in accepted if t is not None), default=0) if started is None else started
     (run_dir / "timeline.json").write_text(json.dumps(
-        {"started": stamp(min((t for *_x, t in accepted if t is not None), default=0)),
+        {**({} if begin is False else {"started": stamp(begin)}),
          "accepted": {a: stamp(t) for a, _s, _o, t in accepted if t is not None}}, indent=2) + "\n")
 
 
@@ -2124,22 +2127,39 @@ class FanoutGradeTest(unittest.TestCase):
         self.assertFalse(result["pass"])
         self.assertFalse(result["complete"])
 
-def collect_stream(stream: list, accepted: list, *, status: str = "done", stage: str | None = None,
-                   inner: dict | None = None, first_event: float = 100.0, extra: dict | None = None,
-                   rollout_files: list[list[str]] | None = None) -> dict:
-    """metrics.collect over a hand-built host stream, one second between events, ShipLoop records beside it.
+def write_stream_run(out: Path, stream: list, accepted: list, *, status: str = "done", stage: str | None = None,
+                     inner: dict | None = None, first_event: float = 100.0,
+                     rollout_files: list[list[str]] | None = None, started: float | bool | None = None,
+                     binds: dict | None = None, timed: bool = True) -> Path:
+    """The files of a run in `out`: the host stream with its runner timeline, ShipLoop's records and Codex rollouts.
 
-    ``rollout_files`` are Codex rollouts (one list of lines each) written under the run's own CODEX_HOME."""
-    with tempfile.TemporaryDirectory() as tmp:
-        out = Path(tmp)
-        for number, lines in enumerate(rollout_files or []):
-            write_rollout(out, f"{number}", lines)
-        run_dir = out / "run"
-        (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+    ``binds`` maps an action id to the modification time of its Improve child's `improve/<action>-bind.md`;
+    ``timed=False`` leaves out the runner's timeline.jsonl. Returns the ShipLoop run directory."""
+    for number, lines in enumerate(rollout_files or []):
+        write_rollout(out, f"{number}", lines)
+    run_dir = out / "run"
+    (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+    if timed:
         (out / "timeline.jsonl").write_text("".join(
             json.dumps({"line": n, "t": first_event + n}) + "\n"
             for n, e in enumerate(stream) if e.get("type") not in ("text", "thought")))
-        write_engine_records(run_dir, accepted, status=status, stage=stage, inner=inner)
+    write_engine_records(run_dir, accepted, status=status, stage=stage, inner=inner, started=started)
+    for action, mtime in (binds or {}).items():
+        bind = run_dir / "improve" / f"{action}-bind.md"
+        bind.parent.mkdir(parents=True, exist_ok=True)
+        bind.write_text("bound\n")
+        os.utime(bind, (mtime, mtime))
+    return run_dir
+
+
+def collect_stream(stream: list, accepted: list, **kw) -> dict:
+    """metrics.collect over a hand-built host stream, one second between events, ShipLoop records beside it.
+
+    ``rollout_files`` are Codex rollouts (one list of lines each) written under the run's own CODEX_HOME;
+    the other keywords are write_stream_run's."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp)
+        run_dir = write_stream_run(out, stream, accepted, **kw)
         return metrics.collect(out, run_dir)
 
 
@@ -3220,10 +3240,12 @@ def rollout_line(kind: str, t: float, payload: dict) -> str:
     return json.dumps({"timestamp": stamp.replace("+00:00", "Z"), "type": kind, "payload": payload})
 
 
-def usage_line(t: float, thread: str, session: str, response: str, total: int) -> str:
+def usage_line(t: float, thread: str, session: str, response: str, total: int, output: int = 100,
+               reasoning: int | None = None) -> str:
     return rollout_line("token_usage_record", t, {
         "thread_id": thread, "session_id": session, "response_id": response,
-        "usage": {"input_tokens": total - 100, "output_tokens": 100, "total_tokens": total}})
+        "usage": {"input_tokens": total - output, "output_tokens": output, "total_tokens": total,
+                  **({} if reasoning is None else {"reasoning_output_tokens": reasoning})}})
 
 
 def count_line(t: float, window: int, total: int, *, after_compaction: bool = False) -> str:
@@ -4177,6 +4199,298 @@ class KeepAwakeTest(unittest.TestCase):
         argv, events = self.launched("linux")
         self.assertIsNone(argv, "caffeinate was not run")
         self.assertEqual(events.strip(), "hi")
+
+
+def grok_usage(count: int, output: int = 100, reasoning: int = 40) -> list[dict]:
+    """`count` per-call usage events, the shape Grok writes (and the Codex translator does not)."""
+    return [{"type": "usage", "usage": {"input_tokens": 1000, "output_tokens": output, "reasoning_tokens": reasoning}}
+            for _ in range(count)]
+
+
+# A planning window: the host's first event is at 1000, the engine starts at 1030, and the first accepted test-spec is 400 s
+# after the host began (370 s after the engine did). The implement row is after the window.
+PLANNING_ROWS = [("a-intake", "intake", "done", 1160), ("a-spec", "spec", "done", 1250),
+                 ("a-ts", "test-spec", "done", 1400), ("a-impl", "implement", "done", 1500)]
+
+
+class PlanningBlockCase(unittest.TestCase):
+    """metrics.collect's `planning` block, built from files a run left behind."""
+
+    def planning(self, rows=PLANNING_ROWS, *, stream=None, started=1030.0, improve=None, binds=None, **kw) -> dict:
+        inner = {} if improve is None else {"improve_results": improve}
+        m = collect_stream(grok_usage(3) if stream is None else stream, rows, status="active", first_event=1000.0,
+                           started=started, inner=inner, binds=binds, **kw)
+        return m["planning"]
+
+
+class PlanningClockTest(PlanningBlockCase):
+    def test_the_window_runs_from_the_engine_start_to_the_first_done_test_spec(self):
+        plan = self.planning(improve={})
+        self.assertEqual(plan["window"], {"closed": True, "through": "test-spec", "seconds": 370.0,
+                                          "host_seconds": 400.0, "before_engine_seconds": 30.0})
+        self.assertEqual([(r["stage"], r["outcome"], r["seconds"]) for r in plan["stages"]],
+                         [("intake", "done", 130.0), ("spec", "done", 90.0), ("test-spec", "done", 150.0)])
+        self.assertEqual(plan["unmeasured"].get("window"), None)
+
+    def test_a_revised_test_spec_does_not_close_the_window(self):
+        rows = [("a-intake", "intake", "done", 1160), ("a-ts1", "test-spec", "revise", 1300),
+                ("a-ts2", "test-spec", "done", 1500)]
+        plan = self.planning(rows, improve={})
+        self.assertEqual((plan["window"]["closed"], plan["window"]["seconds"]), (True, 470.0))
+        self.assertEqual([r["outcome"] for r in plan["stages"]], ["done", "revise", "done"])
+
+    def test_a_run_that_never_reached_test_spec_is_open_and_says_through_which_stage(self):
+        plan = self.planning(PLANNING_ROWS[:2], improve={})
+        self.assertEqual(plan["window"], {"closed": False, "through": "spec", "seconds": 220.0,
+                                          "host_seconds": 250.0, "before_engine_seconds": 30.0})
+        self.assertGreater(plan["window"]["seconds"], 0, "an open window is never reported as 0")
+
+    def test_a_run_with_no_accepted_stage_has_no_window_and_says_why(self):
+        plan = self.planning([], improve={})
+        self.assertIsNone(plan["window"]["seconds"])
+        self.assertIn("no stage has been accepted", plan["unmeasured"]["window"])
+
+    def test_an_unstamped_stage_inside_the_window_leaves_its_own_seconds_unknown_not_the_window_shorter(self):
+        rows = [("a-intake", "intake", "done", 1160), ("a-spec", "spec", "done", None), ("a-ts", "test-spec", "done", 1400)]
+        plan = self.planning(rows, improve={})
+        self.assertEqual(plan["window"]["seconds"], 370.0, "the window needs only the start and the end stamp")
+        self.assertEqual([r["seconds"] for r in plan["stages"]], [130.0, None, None])
+
+    def test_a_seeded_run_has_no_planning_window(self):
+        # The harness recorded the early stages itself, before the host's first event (1000).
+        rows = [("a-intake", "intake", "done", 900), ("a-ts", "test-spec", "done", 1400)]
+        plan = self.planning(rows, improve={})
+        self.assertIsNone(plan["window"]["seconds"])
+        self.assertIn("before the host", plan["unmeasured"]["window"])
+
+    def test_a_recreated_timeline_reads_as_unmeasured_never_as_a_zero_window(self):
+        # The engine gives every historical action one stamp when it recreates a lost timeline.json.
+        rows = [("a-intake", "intake", "done", 1160), ("a-spec", "spec", "done", 1160), ("a-ts", "test-spec", "done", 1160)]
+        plan = self.planning(rows, started=1160.0, improve={})
+        self.assertIsNone(plan["window"]["seconds"])
+        self.assertIn("one stamp", plan["unmeasured"]["window"])
+
+    def test_a_timeline_with_no_start_is_unmeasured(self):
+        plan = self.planning(improve={}, started=False)
+        self.assertIsNone(plan["window"]["seconds"])
+        self.assertIn("no start time", plan["unmeasured"]["window"])
+
+    def test_the_host_clock_is_unknown_without_the_runner_timeline_and_the_engine_clock_stands(self):
+        plan = self.planning(improve={}, timed=False)
+        self.assertEqual((plan["window"]["seconds"], plan["window"]["host_seconds"], plan["window"]["before_engine_seconds"]),
+                         (370.0, None, None))
+        self.assertIn("runner", plan["unmeasured"]["host_seconds"])
+
+
+class PlanningImproveSplitTest(PlanningBlockCase):
+    def test_improve_seconds_run_from_the_bind_file_to_the_accept_for_an_action_with_an_improve_result(self):
+        plan = self.planning(improve={"a-spec": {"summary": "reviewed"}}, binds={"a-spec": 1190.4})
+        self.assertEqual([(r["stage"], r["improve_seconds"]) for r in plan["stages"]],
+                         [("intake", 0.0), ("spec", 59.6), ("test-spec", 0.0)])
+        self.assertEqual(plan["improve"], {"children": 1, "seconds": 59.6})
+
+    def test_producer_seconds_plus_improve_seconds_equal_the_window(self):
+        plan = self.planning(improve={"a-spec": {}, "a-ts": {}}, binds={"a-spec": 1190.0, "a-ts": 1300.0})
+        self.assertEqual(plan["improve"], {"children": 2, "seconds": 160.0})
+        self.assertEqual(plan["producer_seconds"] + plan["improve"]["seconds"], plan["window"]["seconds"])
+
+    def test_a_none_run_has_a_measured_zero_improve_share_in_the_window(self):
+        plan = self.planning(improve={})
+        self.assertEqual(plan["improve"], {"children": 0, "seconds": 0.0})
+        self.assertEqual(plan["producer_seconds"], plan["window"]["seconds"])
+
+    def test_an_improve_result_with_no_bind_file_makes_improve_unknown_not_zero(self):
+        plan = self.planning(improve={"a-spec": {}})
+        self.assertEqual(plan["improve"], {"children": 1, "seconds": None})
+        self.assertIsNone(plan["producer_seconds"])
+        self.assertEqual(plan["window"]["seconds"], 370.0)
+        self.assertIn("bind", plan["unmeasured"]["improve"])
+        self.assertIsNone(next(r for r in plan["stages"] if r["stage"] == "spec")["improve_seconds"])
+
+    def test_a_state_with_no_improve_results_makes_improve_unknown(self):
+        plan = self.planning()  # no improve_results key in state.md
+        self.assertIsNone(plan["improve"])
+        self.assertIn("improve_results", plan["unmeasured"]["improve"])
+
+    def test_an_accept_stamp_within_a_second_below_the_bind_time_is_whole_second_truncation_not_a_negative(self):
+        # Accept stamps are truncated to whole seconds; the bind file's mtime is fractional. Seen on a real Sonnet run: -0.33 s.
+        plan = self.planning(improve={"a-spec": {}}, binds={"a-spec": 1250.9})
+        self.assertEqual(next(r for r in plan["stages"] if r["stage"] == "spec")["improve_seconds"], 0.0)
+        self.assertEqual(plan["improve"]["seconds"], 0.0)
+
+    def test_a_stamp_more_than_a_second_below_the_bind_time_is_unmeasured_and_never_reaches_producer_seconds(self):
+        plan = self.planning(improve={"a-spec": {}}, binds={"a-spec": 1253.0})
+        self.assertIsNone(next(r for r in plan["stages"] if r["stage"] == "spec")["improve_seconds"])
+        self.assertIsNone(plan["improve"]["seconds"])
+        self.assertIsNone(plan["producer_seconds"])
+        self.assertIn("before", plan["unmeasured"]["improve"])
+
+
+class PlanningTokensTest(PlanningBlockCase):
+    ROWS = [("a-intake", "intake", "done", 1002), ("a-ts", "test-spec", "done", 1005), ("a-impl", "implement", "done", 1008)]
+
+    def test_a_grok_window_sums_the_usage_events_inside_the_host_window_and_names_the_clock(self):
+        # Events are stamped 1000 to 1009; the window ends at 1005, so events 0 to 5 are inside it.
+        plan = self.planning(self.ROWS, stream=grok_usage(10), started=1001.0, improve={})
+        self.assertEqual(plan["tokens"], {"output": 600, "reasoning": 240, "clock": "host", "source": "usage events"})
+
+    def test_a_grok_window_that_covers_the_run_equals_the_sum_of_every_usage_event(self):
+        plan = self.planning([("a-ts", "test-spec", "done", 1500)], stream=grok_usage(10), started=1001.0, improve={})
+        self.assertEqual((plan["tokens"]["output"], plan["tokens"]["reasoning"]), (1000, 400))
+
+    def test_a_grok_run_with_no_runner_timeline_has_unmeasured_tokens(self):
+        plan = self.planning(self.ROWS, stream=grok_usage(10), started=1001.0, improve={}, timed=False)
+        self.assertIn("runner", plan["tokens"]["unmeasured"])
+        self.assertNotIn("output", plan["tokens"])
+
+    def test_an_open_window_has_no_token_figure(self):
+        plan = self.planning(self.ROWS[:1], stream=grok_usage(10), started=1001.0, improve={})
+        self.assertIn("open", plan["tokens"]["unmeasured"])
+
+    def test_a_claude_run_has_no_window_tokens_and_says_why(self):
+        plan = self.planning(self.ROWS, stream=claude_stream(["echo hi"]), started=1001.0, improve={})
+        self.assertIn("snapshot", plan["tokens"]["unmeasured"])
+
+    def rollouts(self) -> list[list[str]]:
+        root = [usage_line(1001, "root", "root", "r1", 1000, output=100, reasoning=40),
+                usage_line(1010, "root", "root", "r2", 2000, output=200, reasoning=80),
+                usage_line(1011, "root", "root", "r2", 2000, output=200, reasoning=80),  # the same response repeated
+                usage_line(1020, "root", "root", "rq1", 9000, output=50, reasoning=0),   # a compaction request
+                compacted_line(1020.01, "rq1"),
+                usage_line(1040, "root", "root", "r3", 3000, output=300, reasoning=100),
+                usage_line(1060, "root", "root", "r4", 3500, output=400, reasoning=150)]  # after the window
+        sub = [usage_line(1030, "sub", "root", "s1", 5000, output=70, reasoning=30)]
+        return [root, sub]
+
+    def test_a_codex_window_counts_each_response_once_includes_compaction_requests_and_reports_sub_agents_apart(self):
+        rows = [("a-intake", "intake", "done", 1002), ("a-ts", "test-spec", "done", 1050), ("a-impl", "implement", "done", 1100)]
+        plan = self.planning(rows, stream=codex_stream(3), started=1001.0, improve={}, rollout_files=self.rollouts())
+        # 100 + 200 + 50 (the compaction request) + 300; r2 once; r4 is after the window; the sub-agent's 70 is beside.
+        self.assertEqual(plan["tokens"], {"output": 650, "reasoning": 220, "subagent_output": 70, "clock": "host",
+                                          "source": "rollout token_usage_records"})
+
+    def test_a_codex_run_with_no_rollouts_has_unmeasured_tokens(self):
+        rows = [("a-ts", "test-spec", "done", 1050)]
+        plan = self.planning(rows, stream=codex_stream(3), started=1001.0, improve={})
+        self.assertIn("rollout", plan["tokens"]["unmeasured"])
+
+
+class PlanningPlumbingTest(HarnessCase):
+    def test_collect_leaves_the_top_level_unmeasured_map_alone(self):
+        m = collect_stream(grok_usage(3), PLANNING_ROWS, status="active", first_event=1000.0, started=False)
+        self.assertIn("window", m["planning"]["unmeasured"])
+        self.assertFalse([name for name in m["unmeasured"] if "planning" in name], m["unmeasured"])
+
+    def test_a_run_written_by_the_harness_carries_the_planning_block_in_metrics_json(self):
+        code, result = self.invoke("grok", "done")
+        out = Path(result["output"])
+        written = json.loads((out / "metrics.json").read_text())
+        self.assertIn("planning", written)
+        self.assertEqual(set(written["planning"]), {"window", "stages", "improve", "producer_seconds", "tokens", "unmeasured"})
+        self.assertNotIn("planning", result["metrics"], "result.json keeps its explicit subset; metrics.json is the evidence")
+
+    def test_summary_lines_name_the_window_the_improve_share_and_the_tokens_right_after_the_counters(self):
+        m = collect_stream(grok_usage(10), [("a-intake", "intake", "done", 1002), ("a-spec", "spec", "done", 1003),
+                                            ("a-ts", "test-spec", "done", 1005)],
+                           status="active", first_event=1000.0, started=1001.0,
+                           inner={"improve_results": {"a-spec": {}}}, binds={"a-spec": 1002.0})
+        lines = metrics.summary_lines(m)
+        self.assertTrue(lines[0].startswith("turns "))
+        self.assertEqual(lines[1], "planning window closed at test-spec: 0.1 min engine / 0.1 min host; Improve 0.0 min in 1 child, "
+                                   "other 0.1 min; output tokens 600 (40% reasoning, host clock)")
+
+    def test_summary_lines_say_when_the_window_could_not_be_measured(self):
+        m = collect_stream(grok_usage(3), PLANNING_ROWS, status="active", first_event=1000.0, started=False)
+        self.assertEqual(metrics.summary_lines(m)[1],
+                         "planning window not measured: " + m["planning"]["unmeasured"]["window"])
+
+    def test_progress_prints_the_planning_line_once_when_the_window_closes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            write_stream_run(out, grok_usage(10), PLANNING_ROWS[:1], status="active", first_event=1000.0, started=1030.0,
+                             inner={"improve_results": {}})
+            self.assertNotIn("planning window", progress.report(out))  # still open: nothing to print
+            write_stream_run(out, grok_usage(10), PLANNING_ROWS, status="active", first_event=1000.0, started=1030.0,
+                             inner={"improve_results": {}})
+            first, second = progress.report(out), progress.report(out)
+            self.assertIn("planning window closed at test-spec: 6.2 min engine / 6.7 min host", first)
+            self.assertNotIn("planning window", second)
+
+
+class RecordedRunReproductionTest(unittest.TestCase):
+    """The planning block reproduces the figures of recorded runs (validated another way: real-run extracts).
+
+    The extracts under docs/experiments/planning-measures-20261008/ hold the accepted rows, stamps, Improve bind times and
+    per-call token rows of three recorded planning windows (no run text); `extract.py` rebuilds them from the run folders.
+    The expected figures are the ones the 2026-10-05 planning-time account reported (Luna xhigh: window 374.95 min, 203.35
+    in Improve children; Grok `none`: 20.5 min on the engine clock, 22.05 on the host's), recomputed on 2026-10-08."""
+
+    EXTRACTS = ROOT / "docs" / "experiments" / "planning-measures-20261008"
+
+    def planning(self, name: str) -> dict:
+        data = json.loads((self.EXTRACTS / f"{name}.json").read_text())
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = out / "run"
+            write_engine_records(run_dir, [(r["action"], r["stage"], r["outcome"], r["t"]) for r in data["rows"]],
+                                 status="active", inner={"improve_results": {a: {} for a in data["improve"]}},
+                                 started=data["started"])
+            for action, mtime in data["improve"].items():
+                bind = run_dir / "improve" / f"{action}-bind.md"
+                bind.parent.mkdir(parents=True, exist_ok=True)
+                bind.write_text("bound\n")
+                os.utime(bind, (mtime, mtime))
+            first = {"type": "available_commands", "commands": []}
+            events, stamps = [first], [data["first_event"]]
+            if data["host"] == "grok":
+                for t, output, reasoning in data["usage"]:
+                    events.append({"type": "usage", "usage": {"output_tokens": output, "reasoning_tokens": reasoning}})
+                    stamps.append(t)
+            if data["host"] == "claude":
+                events.append({"type": "assistant", "message": {"id": "m0", "content": [{"type": "text", "text": "x"}]}})
+                stamps.append(data["first_event"] + 1)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+            (out / "timeline.jsonl").write_text("".join(json.dumps({"line": n, "t": t}) + "\n" for n, t in enumerate(stamps)))
+            if data["host"] == "codex":
+                lines = []
+                for number, (t, output, reasoning, thread, request) in enumerate(data["rollouts"]):
+                    lines.append(usage_line(t, "root" if thread == "main" else "sub", "root", f"r{number}", output + 1000,
+                                            output=output, reasoning=reasoning))
+                    if request:
+                        lines.append(compacted_line(t + 0.01, f"r{number}"))
+                write_rollout(out, "0", lines)
+            return metrics.collect(out, run_dir)["planning"]
+
+    def test_the_luna_xhigh_extract_reproduces_374_95_203_35_and_171_6_and_the_five_stage_improve_shares(self):
+        plan = self.planning("luna-xhigh-1.21.0")
+        window = plan["window"]
+        self.assertEqual((window["closed"], round(window["seconds"] / 60, 2), round(window["host_seconds"] / 60, 2)),
+                         (True, 374.95, 375.93))
+        self.assertEqual((plan["improve"]["children"], round(plan["improve"]["seconds"] / 60, 2),
+                          round(plan["producer_seconds"] / 60, 1)), (5, 203.35, 171.6))
+        shares = {r["stage"]: round(r["improve_seconds"] / 60, 2) for r in plan["stages"] if r["improve_seconds"]}
+        self.assertEqual(shares, {"spec": 44.49, "test-strategy": 61.06, "plan": 56.92, "step-plan": 26.7, "test-spec": 14.17})
+
+    def test_the_luna_xhigh_tokens_include_the_compaction_requests_of_the_window(self):
+        tokens = self.planning("luna-xhigh-1.21.0")["tokens"]
+        # Leaving the 10 requests of the window out gives 1,116,758: their 37,141 output tokens carry no reasoning.
+        self.assertEqual((tokens["output"], tokens["reasoning"], tokens["subagent_output"]), (1153899, 682569, 0))
+        self.assertEqual(round(100 * tokens["reasoning"] / tokens["output"], 1), 59.2)
+
+    def test_the_grok_none_extract_reproduces_20_5_engine_22_05_host_and_86986_tokens_at_43_percent_reasoning(self):
+        plan = self.planning("grok-none-1.22.0")
+        window = plan["window"]
+        self.assertEqual((round(window["seconds"] / 60, 2), round(window["host_seconds"] / 60, 2), window["before_engine_seconds"]),
+                         (20.5, 22.05, 92.8))
+        self.assertEqual(plan["improve"], {"children": 0, "seconds": 0.0})
+        self.assertEqual(plan["tokens"], {"output": 86986, "reasoning": 37770, "clock": "host", "source": "usage events"})
+        self.assertEqual(round(100 * 37770 / 86986, 1), 43.4)
+
+    def test_the_sonnet_extract_reproduces_6_47_minutes_and_2_57_in_five_improve_children_with_no_token_figure(self):
+        plan = self.planning("sonnet-1.23.0")
+        self.assertEqual((round(plan["window"]["seconds"] / 60, 2), plan["improve"]["children"],
+                          round(plan["improve"]["seconds"] / 60, 2)), (6.47, 5, 2.57))
+        self.assertIn("snapshot", plan["tokens"]["unmeasured"])
 
 
 if __name__ == "__main__":
