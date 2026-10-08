@@ -2364,7 +2364,7 @@ class ClaudeToolBlocksTest(unittest.TestCase):
     def test_a_refusal_behind_a_pipe_is_a_shiploop_failure_with_its_verb_and_no_exit(self):
         found = self.failures("refusal-behind-head")
         self.assertEqual([(f["verb"], f["exit"]) for f in found], [("complete", None)], "the host showed no exit code")
-        # The model's own shell error earlier in the same output is not the line that is recorded.
+        # The result also holds the shell's own "no such file" line before the refusal: the refusal is the line recorded.
         self.assertTrue(found[0]["line"].startswith(
             "ShipLoop navigator: evidence_refs cite files that do not exist: "), found)
         knowledge = self.failures("refusal-knowledge-file")
@@ -2411,6 +2411,43 @@ class ClaudeToolBlocksTest(unittest.TestCase):
         text = "ShipLoop navigator: first\nShipLoop navigator: second\n"
         found = self.collect(with_result(recorded_calls("refusal-knowledge-file"), text))["shiploop_failures"]
         self.assertEqual([f["line"] for f in found], ["ShipLoop navigator: first"])
+
+    def test_a_refusal_is_recorded_from_its_own_line_not_from_an_earlier_line_of_the_models_output(self):
+        # An earlier line that names an error ("KeyError", "required") is the model's own script failing, not why ShipLoop
+        # refused; failure_line alone would pick it. The line recorded starts at the refusal line.
+        refusal = "ShipLoop navigator: result requires outcome and summary"
+        text = "Traceback (most recent call last):\nKeyError: 'outcome'\n" + refusal + "\nmore\n"
+        found = self.collect(with_result(recorded_calls("sed-a-packet"), text))["shiploop_failures"]
+        self.assertEqual([f["line"] for f in found], [refusal])
+        # With no refusal line the whole text is read: a nonzero exit of a ShipLoop command keeps its first error line.
+        command = "CLI=/runs/r1/build/plugins/skill-craft/skills/shiploop/scripts/shiploop\npython3 $CLI next --run-dir=/runs/r1/run"
+        events = with_command(with_result(recorded_calls("sed-a-packet"), "Exit code 1\nKeyError: 'x'\n"), command)
+        self.assertEqual([(f["exit"], f["line"]) for f in self.collect(events)["shiploop_failures"]], [(1, "KeyError: 'x'")])
+
+    def test_an_exit_line_quoted_in_the_middle_of_a_result_is_not_the_hosts_exit(self):
+        # The host's `Exit code N` is the first line of the result; a result that quotes one later (a document, a log) is
+        # not a failed command.
+        self.assertEqual(metrics.claude_exit("Exit code 2\nboom"), 2)
+        self.assertIsNone(metrics.claude_exit("fine\nExit code 1 means the run is blocked\n"))
+        self.assertIsNone(metrics.claude_exit("fine"))
+        command = "CLI=/runs/r1/build/plugins/skill-craft/skills/shiploop/scripts/shiploop\npython3 $CLI next --run-dir=/runs/r1/run"
+        events = with_command(with_result(recorded_calls("sed-a-packet"), "packet text\nExit code 1 is quoted here\n"), command)
+        self.assertEqual(self.collect(events)["shiploop_failures"], [])
+
+    def test_a_host_that_numbers_its_calls_again_in_each_session_has_every_failure_counted(self):
+        # Codex ids restart at item_0 in every session (the recorded Luna run v1210 has 1542 tool_call events and 486
+        # distinct ids). A failure is counted once per call, so a second call that reuses an id is a failure of its own.
+        cli = "python3 x/shiploop next --run-dir r"
+        refusal = "ShipLoop navigator: no ShipLoop run directory"
+        first = codex_session([codex_command(0, cli, refusal + "\n", 2)])
+        second = codex_session([codex_command(0, cli, refusal + "\n", 2)], thread="t2")
+        found = collect_stream([*first, *second], [])["shiploop_failures"]
+        self.assertEqual([(f["verb"], f["exit"], f["line"]) for f in found], [("next", 2, refusal)] * 2)
+        # One call is still one failure when the host repeats its update (Grok), even with an id that came back.
+        update = {"type": "tool_call_update", "toolCallId": "g", "status": "completed",
+                  "rawOutput": {"exit_code": 2, "output_for_prompt": refusal + "\n"}}
+        grok = [{"type": "tool_call", "toolCallId": "g", "rawInput": {"command": cli}}, update, update]
+        self.assertEqual(len(collect_stream(grok, [])["shiploop_failures"]), 1)
 
     def test_the_same_rule_reads_a_grok_and_a_codex_stream(self):
         refusal = "ShipLoop blocked: the run directory is not readable"
@@ -2465,6 +2502,22 @@ class ClaudeToolBlocksTest(unittest.TestCase):
         self.assertIn(" /runs/r2/.shiploop-runs/work-1/run/scratch/sub.sh ", " " + metrics.expand_variables(command, variables))
         self.assertEqual(metrics.shell_variables("A=$B/x; B=/y; C=$B/z"), {"B": "/y", "C": "/y/z"},
                          "a value that names a variable not yet assigned is not recorded")
+
+    def test_a_path_through_the_run_directory_to_its_sibling_is_the_product_worktree_not_a_shiploop_path(self):
+        # Recorded in Batch 1003 (seat-reservations, v1161-hello): `W=$R/../worktree` then writes under $W. The worktree
+        # beside the run directory is product space; before the path was resolved it matched the run directory's prefix.
+        run = "/runs/r1/.shiploop-runs/work-1/run"
+        sibling = (f"B={run}; W=$B/../worktree; F=$W/docs/shiploop/features/x\n"
+                   "cat >> $W/docs/shiploop/environment.md <<'EOF'\nruntime facts\nEOF\n"
+                   "printf 'learned' >> $F/plan.md\nrm -rf $B/../worktree/__pycache__")
+        self.assertEqual(self.collect(with_command(recorded_calls("sed-a-packet"), sibling))["model_glue"], [])
+        # A path that leaves the run directory and comes back into it is still the run directory.
+        back = f"B={run}; cat > $B/../run/state.md <<'EOF'\nx\nEOF"
+        glue = self.collect(with_command(recorded_calls("sed-a-packet"), back))["model_glue"]
+        self.assertEqual([g["reasons"] for g in glue], [["shell write into a ShipLoop-owned path"]])
+        self.assertEqual(metrics.expand_variables("$A/b/../c /d/e/f/../../g /h/i/.. /../j", {"A": "/x"}),
+                         "/x/c /d/g /h /../j", "a segment is dropped with its `..`; one that leads the path is left as written")
+        self.assertEqual(metrics.shell_variables("B=/x/run; W=$B/../worktree")["W"], "/x/worktree")
 
     def test_compactions_cancelled_calls_and_knowledge_reads_stay_unmeasured_for_claude(self):
         compact = {"type": "system", "subtype": "compact_boundary", "compact_metadata": {"trigger": "auto"}}
@@ -2552,6 +2605,22 @@ class ClaudeToolBlocksTest(unittest.TestCase):
         scripts = self.collect(events)["tool_use"]["scratch_scripts"]
         self.assertEqual([(s["path"].rsplit("/", 1)[1], s["runs"]) for s in scripts], [("sub.sh", 2)])
 
+    def test_a_script_is_listed_only_when_a_call_ran_it_and_outside_scratch_only_when_it_wraps_the_cli(self):
+        run = "/runs/r1/.shiploop-runs/work-1/run"
+        write = ("RUN=" + run + "\ncat > $RUN/scratch/never.sh <<'EOF'\n#!/bin/sh\necho never run\nEOF\n"
+                 "cat > /runs/r1/helper.sh <<'EOF'\n#!/bin/sh\npython3 /runs/r1/build/scripts/shiploop complete --run-dir=$1\nEOF\n"
+                 "cat > /runs/r1/plain.sh <<'EOF'\n#!/bin/sh\necho plain\nEOF\n"
+                 "/runs/r1/helper.sh a")
+        scripts = self.collect(with_command(recorded_calls("sed-a-packet"), write))["tool_use"]["scratch_scripts"]
+        # never.sh was written in the scratch folder and never run, plain.sh does not wrap the CLI and lives outside scratch;
+        # helper.sh wraps the CLI, so it is listed wherever it lives.
+        self.assertEqual([(s["path"], s["wraps_shiploop"], s["runs"]) for s in scripts], [("/runs/r1/helper.sh", True, 1)])
+        # Run, the scratch script that does not wrap the CLI is listed too (idone.py in the recorded run).
+        ran = write + "\n$RUN/scratch/never.sh\n/runs/r1/plain.sh"
+        scripts = self.collect(with_command(recorded_calls("sed-a-packet"), ran))["tool_use"]["scratch_scripts"]
+        self.assertEqual([(s["path"].rsplit("/", 1)[1], s["wraps_shiploop"], s["runs"]) for s in scripts],
+                         [("never.sh", False, 1), ("helper.sh", True, 1)], "plain.sh is outside scratch and wraps nothing")
+
     def test_packet_use_counts_printed_heads_reads_and_the_packets_on_disk(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
@@ -2598,6 +2667,7 @@ class ClaudeToolBlocksTest(unittest.TestCase):
         self.assertNotIn("exit None", text)
         self.assertEqual(metrics.failure_text({"verb": "next", "exit": 2, "line": ""}), "exit 2")
         self.assertEqual(metrics.failure_text({"verb": "next", "exit": None, "line": ""}), "exit not shown")
+
 
 
 class StageDiffTest(unittest.TestCase):
@@ -4444,6 +4514,15 @@ class GradeOnlyTest(PrintedCase):
         self.assertEqual(self.baselines.read_text() if self.baselines.exists() else "", rows,
                          "a grade-only writes no baseline row")
         self.assertIn("no host ran (regraded); engine active", printed)
+
+    def test_a_regrade_names_a_refusal_whose_exit_the_host_did_not_show(self):
+        # A Claude refusal behind `| head` has no exit; the printed line says so, and does not print "exit None".
+        out = self.killed_harness_run()
+        (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in recorded_calls("refusal-behind-head")))
+        code, result, printed = self.grade_only(out)
+        line = next(ln for ln in printed.splitlines() if ln.startswith("  failed    shiploop"))
+        self.assertTrue(line.startswith("  failed    shiploop complete exit not shown: ShipLoop navigator: evidence_refs cite"), line)
+        self.assertNotIn("exit None", printed)
 
     def test_a_regrade_prints_no_resume_command_because_its_flags_are_not_the_runs(self):
         # The grading invocation's --timeout is the default (10800 s, above any task limit); presenting it as the exact

@@ -83,11 +83,18 @@ def glue_reasons(command: str) -> list[str]:
 ASSIGNMENT = re.compile(r"""(?:^|;[ \t]*)(?:export\s+)?([A-Za-z_]\w*)=(?:"([^"\n]*)"|'([^'\n]*)'|([^\s;&|<>()`"']*))[ \t]*(?=;|$)""",
                         re.M)
 SHELL_VARIABLE = re.compile(r"\$(?:\{(\w+)\}|(\w+))")
+# A path segment and the `..` that undoes it: `<dir>/run/../worktree` is `<dir>/worktree`, the product worktree beside the run
+# directory, which SHIPLOOP_OWNED must not match through the run directory's prefix. A leading `..` has no segment to drop.
+PARENT_STEP = re.compile(r"/(?!\.\.?(?=[/\s\"'`;&|<>()]|$))[^/\s\"'`;&|<>()=$]+/\.\.(?=[/\s\"'`;&|<>()]|$)")
 
 
 def expand_variables(text: str, known: dict[str, str]) -> str:
-    """The text with each `$NAME` and `${NAME}` that ``known`` assigns replaced; any other is left as written."""
-    return SHELL_VARIABLE.sub(lambda m: known.get(m.group(1) or m.group(2), m.group(0)), text)
+    """The text with each `$NAME` and `${NAME}` that ``known`` assigns replaced, and each `/segment/..` that leaves behind
+    removed; any other variable is left as written."""
+    text = SHELL_VARIABLE.sub(lambda m: known.get(m.group(1) or m.group(2), m.group(0)), text)
+    while (shorter := PARENT_STEP.sub("", text)) != text:
+        text = shorter
+    return text
 
 
 def shell_variables(command: str, known: dict[str, str] | None = None) -> dict[str, str]:
@@ -246,7 +253,7 @@ class ToolLog:
         self.asked: list[str] = []
         self.reads: list[str] = []
         self.failures: list[dict] = []
-        self.failed: set = set()  # Grok repeats an update for one call; a call is a failure once
+        self.failed: set = set()  # call ids already counted: Grok repeats an update for one call, which is a failure once
         self.scripts: dict[str, dict] = {}  # path -> {body, wraps, bytes, runs, pattern}: the model-written scripts so far
         self.by_tool: dict[str, int] = {}  # Claude only below: what the model called, what came back, how it used packets
         self.result_chars = 0
@@ -254,6 +261,7 @@ class ToolLog:
 
     def call(self, t, call_id, tool: str, arg: dict) -> None:
         """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written."""
+        self.failed.discard(call_id)  # Codex numbers its calls again in each session: a reused id is a new call
         if ASK_PERSON.search(tool):  # SPEC S-14: an unattended run never asks a person
             self.asked.append(" ".join(str(arg.get("question") or arg or "").split())[:160])
         command = str(arg.get("command") or "")
