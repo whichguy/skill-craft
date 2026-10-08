@@ -130,25 +130,27 @@ def _recorded_line(reviewed):
     return "Recorded: " + "; ".join(parts) + "."
 
 
-def _review_lines(core, root, summary, expected=None):
-    """The plan's tally, the excludes a review decided, and what is still undecided with the command that decides it.
+def _review_lines(core, root, summary, expected=None, policy=None):
+    """The plan's tally, the excludes a review decided, and the next command, which is always the last line.
 
-    ``expected`` is the route a return would take once nothing is undecided: a line for the model to compare with the
-    rollback it wrote at release-plan.
+    While paths are undecided the next command is the review that decides them; with none left it is the return, after
+    ``expected``, the route a return would take, for the model to compare with the rollback it wrote at release-plan.
     """
     lines = [f"Return plan {root / 'return-plan.md'}: {summary['total']} paths, {summary['keep']} keep, "
              f"{summary['exclude']} exclude, {len(summary['pending'])} undecided."]
+    if policy:
+        lines.append(policy)
     if summary["reviewed_excludes"]:
         head = "Excluded by review: "
         lines.append(head + _listed(summary["reviewed_excludes"], head) + ".")
     if summary["pending"]:
         head = f"Undecided ({len(summary['pending'])}): "
-        lines += [head + _listed(summary["pending"], head) + ".",
-                  "Decide them with: " + navigator.review_return_command(core, root),
-                  navigator.REVIEW_RETURN_RULE]
-    elif expected:
+        return [*lines, head + _listed(summary["pending"], head) + ".", navigator.REVIEW_RETURN_RULE,
+                "Decide them with: " + navigator.review_return_command(core, root)]
+    if expected:
         lines.append(f"Expected return: {expected}; the return itself still refuses a moved source or a collision.")
-    return lines
+    return [*lines, "Nothing is undecided; run: " + shlex.join(
+        ["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"), "workspace", "return", "--workspace-root", str(root)])]
 
 
 def workspace_command(core, argv):
@@ -272,15 +274,11 @@ def workspace_command(core, argv):
                 recorded, summary = [_recorded_line(reviewed)], reviewed["summary"]
             kind = None if summary["pending"] else workspace.expected_return(root)
             expected = None if kind is None else f"{kind} ({workspace.ROUTE_TEXT[kind]})"
-            for line in [*recorded, *_review_lines(core, root, summary, expected)]:
+            policy = ("Return policy: fast-forward only for a clean starting checkout and a clean committed candidate "
+                      "with all reviewed paths kept; otherwise return only the kept working-tree delta, without a "
+                      "Git merge or commit." if args.operation == "plan-return" else None)
+            for line in [*recorded, *_review_lines(core, root, summary, expected, policy)]:
                 print(line)
-            if args.operation == "plan-return":
-                print("Return policy: fast-forward only for a clean starting checkout and a "
-                      "clean committed candidate with all reviewed paths kept; otherwise return "
-                      "only the kept working-tree delta, without a Git merge or commit.")
-            print(("Nothing is undecided; run: " if not summary["pending"] else "When nothing is undecided, run: ")
-                  + shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
-                                "workspace", "return", "--workspace-root", str(root)]))
         else:
             saved = store.read_record(root / "run" / "state.md")
             navigator.validate(saved)

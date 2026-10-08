@@ -5,6 +5,7 @@ Real Git repositories in temporary directories.
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import tempfile
@@ -64,6 +65,24 @@ class KnowledgeTests(unittest.TestCase):
         self.assertTrue(all(name.startswith("docs/shiploop/") for name in files[1:] if name))
         self.assertIn("app.py", git(self.repo, "diff", "--cached", "--name-only"))
         self.assertEqual(knowledge.commit(self.state, "test-spec").commit, "")  # nothing changed
+
+    def test_the_missing_file_refusal_puts_the_action_and_the_absolute_paths_on_its_first_line(self) -> None:
+        # A model reads a refusal through `head -1` or `cut -c1-250`: the first line must say what to write, and where.
+        # Absolute, because the shell's directory is the original checkout while the files belong in the execution one
+        # (a relative path written from there lands in the user's repository).  The `- /abs` lines stay: the callback
+        # contract suite follows them, and so does a model that reads on.
+        refusal = knowledge.check(self.state, "prepare")
+        lines = refusal.splitlines()
+        feature = knowledge.feature_dir(self.state)
+        names = [knowledge.HOME + "/README.md", knowledge.HOME + "/spec.md", knowledge.HOME + "/environment.md",
+                 knowledge.HOME + "/test-strategy.md", feature + "/spec.md", feature + "/plan.md"]
+        absolute = [str(self.repo / name) for name in names]
+        self.assertEqual(lines[0], "Before prepare is done, write: " + ", ".join(absolute))
+        self.assertIn(absolute[0], lines[0][:250])
+        self.assertNotIn(" docs/shiploop/", lines[0])  # no relative path that could be written from the wrong directory
+        self.assertEqual(re.findall(r"^- (/\S+)$", refusal, re.M), absolute)
+        self.assertIn("keeps this run's planning knowledge in the repository", refusal)
+        self.assertTrue(refusal.endswith("See the packet's knowledge-home lines for what each file holds."))
 
     def test_the_living_spec_keeps_every_committed_requirement_id(self) -> None:
         support.write(self.state)

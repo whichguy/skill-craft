@@ -1744,7 +1744,7 @@ In an isolated run, run the packet's plan-return and review-return commands now 
 dry run of the return (plan-return may commit leftover product files to the run
 branch; the decisions you record are kept for the plan made at release), compare the
 expected return review-return reports with the rollback in release-plan.md, and
-correct that file when they differ.
+correct that file when they differ; after any such correction run plan-return again.
 """,
     "release": """\
 Perform the planned release only when the exact target, operation, authority, and

@@ -1329,7 +1329,8 @@ def _validate_plan(
     if set(plan) != required or plan.get("schema") != PLAN_SCHEMA or plan.get("version") != VERSION:
         _fail("return plan has an unsupported schema")
     if plan.get("status") not in {"pending", "ready"}:
-        _fail("return plan has an invalid status")
+        _fail(f"return plan has an invalid status {plan.get('status')!r}; the allowed values are 'pending' and "
+              "'ready', and neither is edited by hand: record decisions with workspace review-return")
     if plan.get("return_policy") != RETURN_POLICY:
         _fail("return plan policy was edited")
     if not _fingerprint_equal(plan.get("source_fingerprint", {}), manifest["initial_fingerprint"]):

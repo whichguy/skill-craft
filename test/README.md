@@ -357,6 +357,16 @@ workspace-mode handoff gate. It never merges the source checkout running the
 test. [Workspace experiments](experiments/shiploop_workspace/README.md) explain
 why starting at HEAD and deleting transient files at the tip were insufficient.
 
+`python3 test/shiploop-return-review.test.py` drives the real CLI through how a
+model reviews and returns an isolated run: the blocked return names its undecided
+paths and the `review-return` verb on its first line, one verb records the
+decisions (no hand edit of `return-plan.md`), a fresh plan keeps them, and each
+return kind is predicted before it happens and undone by the rollback recipe the
+packet prints (the recipes are run through `sh` against real Git). It is a
+separate suite because the workspace suite is above `QUICK_MAX_SECONDS`; its
+Git calls ignore the machine's Git configuration, as a CI runner's carries
+git-lfs filters that the workspace refuses.
+
 The three `shiploop-chain{,-git,-ledger}.test.py` suites belong to the ordinary
 ShipLoop aggregate. They exercise the public bridge with the repository's
 `skills/plan-dispatcher` package, disposable real Git worktrees, eager fan-out and

@@ -186,7 +186,8 @@ class ReviewReturnTests(ReturnReviewCase):
         self.assertIn("Decide them with: " + self.review_command(root) + " --keep <paths> --exclude <paths>", planned)
         self.assertIn("A directory decides every undecided path beneath it", planned)
         self.assertIn("Return policy: fast-forward only", planned)
-        self.assertIn("workspace return --workspace-root", planned.splitlines()[-1])
+        # A cleared context needs the next command last: while paths are undecided that is the review, not the return.
+        self.assertTrue(planned.splitlines()[-1].startswith("Decide them with: "), planned.splitlines()[-1])
         self.assertNotIn("Review all keep/exclude dispositions", planned)
 
     def test_review_return_records_decisions_and_the_return_then_succeeds_without_a_hand_edit(self) -> None:
@@ -214,7 +215,8 @@ class ReviewReturnTests(ReturnReviewCase):
         reviewed = self.review(root, "--keep", "app.js").stdout
         self.assertIn("1 keep, 0 exclude, 2 undecided", reviewed)
         self.assertIn("Undecided (2): docs/guide.md, scratch.log.", reviewed)
-        self.assertIn("Decide them with: " + self.review_command(root), reviewed)
+        self.assertEqual(reviewed.splitlines()[-1], "Decide them with: " + self.review_command(root)
+                         + " --keep <paths> --exclude <paths>")
         self.assertEqual(self.plan(root)["status"], "pending")
         blocked = self.do_return(root, code=2)
         self.assertIn("2 undecided return paths: docs/guide.md, scratch.log", blocked.stderr.splitlines()[0])
@@ -319,6 +321,32 @@ class ReviewReturnTests(ReturnReviewCase):
         with mock.patch.dict(os.environ, self.env):
             plan = workspace.plan_return(root)
         self.assertEqual({row["disposition"] for row in plan["paths"]}, {"pending"})
+
+    def test_a_hand_edited_status_is_refused_naming_the_allowed_values_and_the_verb(self) -> None:
+        # Battleship invented the status 'reviewed' and then grepped the engine source for the allowed ones.
+        root, _, _ = self.candidate("bad status")
+        self.plan_return(root)
+        plan = self.plan(root)
+        plan["status"] = "reviewed"
+        store.write_record(root / "return-plan.md", plan, "ShipLoop return plan")
+        first = self.do_return(root, code=2).stderr.splitlines()[0]
+        for part in ("return plan has an invalid status 'reviewed'", "pending", "ready", "review-return"):
+            self.assertIn(part, first)
+
+    def test_the_handoff_refusal_names_plan_return_then_review_return_then_return(self) -> None:
+        root, _, run = self.candidate("handoff text")
+        action = navigator.current_action(store.read_record(run / "state.md"))
+        result = run / "inbox" / f"{action['id']}.md"
+        store.write_record(result, {"outcome": "done", "summary": "Rejected without a return."}, "ShipLoop navigator result")
+        refused = self.cli("complete", "--run-dir", str(run), "--action", action["id"], "--result", str(result), code=2)
+        text = refused.stderr
+        self.assertIn("handoff requires a verified workspace return", text)
+        parts = ("workspace plan-return --workspace-root", "workspace review-return --workspace-root",
+                 "--keep <paths> --exclude <paths>", "workspace return --workspace-root")
+        for part in parts:
+            self.assertIn(part, text)
+        positions = [text.index(part) for part in parts]
+        self.assertEqual(positions, sorted(positions))
 
     def test_a_very_long_undecided_list_is_bounded_and_a_directory_decides_the_rest(self) -> None:
         root, worktree = self.start("many paths")
@@ -536,6 +564,20 @@ class ReturnRouteTests(ReturnReviewCase):
     def render(self, root: Path, stage: str) -> str:
         run = root / "run"
         return navigator.render(None, run, advance_to(store.read_record(run / "state.md"), stage))
+
+    def test_the_release_duties_tell_the_model_to_use_the_route_the_packet_states(self) -> None:
+        # Wording-level check: the duty text is what makes a model write and verify the rollback it is shown.
+        root, _ = self.start("duties")
+        plan = " ".join(self.render(root, "release-plan").split())  # the duty text is wrapped
+        check = " ".join(self.render(root, "release-check").split())
+        self.assertEqual(plan.count("write the rollback for the source return the packet states"), 1)
+        self.assertNotIn("run the packet's plan-return and review-return commands now", plan)
+        for part in ("run the packet's plan-return and review-return commands now as a dry run of the return",
+                     "plan-return may commit leftover product files to the run branch",
+                     "compare the expected return review-return reports with the rollback in release-plan.md",
+                     "after any such correction run plan-return again"):
+            self.assertEqual(check.count(part), 1, part)
+        self.assertNotIn("write the rollback for the source return the packet states", check)
 
     def test_worktree_packets_state_the_run_route_from_workspace_md_and_only_release_plan_and_check_carry_the_rollback(self) -> None:
         clean_root, _ = self.start("packet clean")

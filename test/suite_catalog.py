@@ -168,7 +168,7 @@ _DURATION_SECONDS = {
     # edit to the workspace module runs it at the release commit or by name, not on a push.  The ceiling is the owner's
     # to move or the suite is to be split; neither is done here.
     "test/shiploop-workspace.test.py": 140.3,
-    "test/shiploop-return-review.test.py": 65.5,  # measured alone 2026-10-08: 17 tests, 65.5 s (36.8 s at 11 tests)
+    "test/shiploop-return-review.test.py": 81.5,  # measured alone 2026-10-08: 20 tests, 81.5 s (36.8 s at 11, 65.5 s at 17)
     "test/shiploop-chain.test.py": 191.262,
     "test/shiploop-chain-async.test.py": 35.083,
     "test/experiments/shiploop_chain/test_trace.py": 0.701,
