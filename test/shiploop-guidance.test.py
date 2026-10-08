@@ -2379,5 +2379,31 @@ class CaseEndStateTests(unittest.TestCase):
         self.assertIn("unachievable", text)
 
 
+class UnattendedWordingTests(unittest.TestCase):
+    """SPEC S-14: a stage row asks for nothing an unattended run cannot do, and one packet never contradicts itself."""
+
+    def test_the_prelude_rows_ask_for_a_default_or_an_open_item_and_none_for_a_person_or_a_suite_that_may_not_exist(self) -> None:
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_stage_spec as spec
+        rows = {name: " ".join(spec.stage(name).done_when) for name in ("intake", "discovery", "research")}
+        self.assertNotIn("put to the user", rows["research"])
+        self.assertIn("recorded as an open item with who can grant it", rows["research"])
+        self.assertNotIn("the user now", rows["intake"])
+        self.assertIn("a recorded default", rows["intake"])
+        self.assertIn("none exists and that is recorded as missing coverage", rows["discovery"])
+
+    def test_the_integrate_guidance_leaves_the_commit_to_shiploop_and_binds_no_chain_inline(self) -> None:
+        for route in ("inline", "ask-agent"):
+            with self.subTest(route=route):
+                text = normalized(prompts.prompt("integrate", delegation=route))
+                self.assertNotIn("assemble or commit", text)  # the stage row says ShipLoop commits; the duty does not ask
+                self.assertEqual("bound chain" in text, route == "ask-agent")  # a chain exists only when delegation is ask-agent
+
+    def test_the_improve_packet_never_calls_its_own_review_independent(self) -> None:
+        # The same packet says the trivial passes are self-passes, not independent reviewers.
+        for stage in ("spec", "plan", "step-plan", "carry-forward"):
+            with self.subTest(stage=stage):
+                self.assertNotIn("independent broader review", normalized(prompts.improve_prompt(stage)))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

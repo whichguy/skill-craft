@@ -114,7 +114,7 @@ _ROWS = (
         goal="confirm the request, boundaries and open questions",
         done_when=(
             "every sentence of the request maps to an outcome, a boundary or an open question",
-            "each open question names who answers it (the user now, or discovery) and what it blocks",
+            "each open question names who answers it (discovery, or a recorded default) and what it blocks",
             "the result says where the outcome will be visible, and when",
         ),
         deploy="Name where the result must become usable; a request that names the target is the grant.",
@@ -124,7 +124,7 @@ _ROWS = (
         goal="inspect the current repository, environment and baseline tests",
         done_when=(
             "the existing suite (full, or smoke if full is impractical) ran on the unchanged checkout, "
-            "with command, exit code and output recorded",
+            "with command, exit code and output recorded, or none exists and that is recorded as missing coverage",
             "every open question from intake is answered with a source or kept as an unknown with an owner",
             "conventions, runtimes, reusable code and delivery boundaries are recorded with source locators",
         ),
@@ -140,7 +140,7 @@ _ROWS = (
         goal="resolve the unknowns that matter with evidence",
         done_when=(
             "every consequential unknown is resolved with evidence, or recorded with an owner and the gate it blocks",
-            "each proven access need has been put to the user",
+            "each proven access need is recorded as an open item with who can grant it and the gate it blocks",
         ),
         develop="For each need, evaluate reusing an existing part unchanged, composing parts, or augmenting one "
                 "before building new; record the choice and, for augment or new, why the earlier options do not fit.",

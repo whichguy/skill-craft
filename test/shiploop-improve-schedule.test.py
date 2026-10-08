@@ -144,6 +144,7 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIn("improve-complete", packet)
         self.assertIn("Planning review focus", packet)
         self.assertIn("self-passes by this same executor, not independent reviewers", packet)
+        self.assertNotIn("independent broader review", packet)  # one packet never calls the same review both
         self.assertNotIn("Capture separate durable review files", packet)
         text = " ".join(packet.split())
         # P12: the child writes review-<n>.md per pass; improve-complete picks the passes itself.

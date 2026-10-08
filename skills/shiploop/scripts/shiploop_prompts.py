@@ -1549,7 +1549,7 @@ user work and keep run-time state, raw logs, credentials, and generated artifact
 out of product commits and returns.  Do not infer a merge, commit, push, or
 deployment from a plan or command attempt.  If implement used a bound chain,
 confirm its finish commit is an ancestor of the execution checkout HEAD and
-record it; otherwise assemble or commit this item's candidate in the execution
+record it; otherwise confirm this item's candidate is assembled in the execution
 checkout under workspace and repository policy, or record a justified no-op.
 The original branch is returned only at the final workspace return.
 """,
@@ -2039,7 +2039,7 @@ substitutes. A forbidden revision, nonterminal child or unresolved finding stays
 incomplete and is not submitted as a completed parent action.
 """
 _BACKCHAIN_IMPROVE_OWNER = """\
-Improve is an independent broader review. It reads Backchain findings and the
+Improve is a broader review than Backchain's diagnostic. It reads Backchain findings and the
 returned candidate as ordinary inputs; it does not request or count Backchain
 passes, and creates no `active_backchain` child, nested Until Loop, retry
 dispatcher or new callback. For a dependency diagnostic use a one-pass Backchain
@@ -2151,6 +2151,15 @@ def _require_planning_review(planning_review: str) -> None:
 # Inline runs replace only the chain-specific paragraphs of these duties; the
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
+    "integrate": ("""\
+If implement used a bound chain,
+confirm its finish commit is an ancestor of the execution checkout HEAD and
+record it; otherwise confirm this item's candidate is assembled in the execution
+checkout under workspace and repository policy, or record a justified no-op.
+""", """\
+Confirm this item's candidate is assembled in the execution checkout under
+workspace and repository policy, or record a justified no-op.
+"""),
     "step-plan": ("""\
 Give each change that does not need another its own step with deps [] (for
 example, two modules that do not use each other) and join them in a later step

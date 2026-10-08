@@ -13,7 +13,7 @@ applied and listed in "Audit corrections").
 more faithful to its stages, SPEC (`test/shiploop_e2e/SPEC.md`) and the main tenet, and stays generic: no
 sample-app text, threshold or guard.
 
-## K1: a packet lists every file its close will require (this commit)
+## K1: a packet lists every file its close will require (commit 3a7bc9f4)
 
 **Built (status: firm that the packet and the gate now name the same files).** `STAGE_FILES` (what a packet
 prints) and `CLOSES` (what `knowledge.check` refuses without) were two hand-kept tables and two entries had
@@ -25,3 +25,18 @@ takes the refusal text of the real gate for every close and requires each named 
 failed on the base for exactly `test-spec` and `release-plan` (4 failures: the class and its subclass), passes
 after. The round-1 Battleship run met the `release-plan` refusal twice (analysis.json, candidate K1).
 End state: validated. Unmeasured: that a live run now writes the file at release-plan without a refusal.
+
+## W1: five wording defects (this commit; status: firm that the text changed, unmeasured that a model behaves differently)
+
+(a) discovery's first Done-when has an outcome for a repository with no suite (recorded as missing
+coverage; both round-1 discovery results improvised it). (b) intake asks for a recorded default and research
+for an open item with who can grant it, not for a person (S-14, COMMON). (d) the integrate duty says
+"confirm ... assembled", not "assemble or commit" (ShipLoop commits; the stage row says so), and an inline
+run no longer reads the bound-chain sentence. (e) `_BACKCHAIN_IMPROVE_OWNER` no longer calls Improve
+"independent" in a packet that says its passes are self-passes. Tests (fail first, then pass):
+`UnattendedWordingTests` in `test/shiploop-guidance.test.py` (7 failing subtests), the integrate test in
+`test/shiploop-delegation.test.py` (both routes), the Improve text in `test/shiploop-improve-schedule.test.py`.
+The pins prove the wording changed (validated); whether a model behaves differently is unachievable here and
+needs a live run. **Not built, by the audit:** (c), the release-plan Improve guard, which contradicts a
+recorded owner decision (`test_improve_retains_coding_and_release_capabilities_with_stage_authority`); both
+round-1 release-plan Improve children ended on one trivial pass, so nothing broke. It needs the owner's yes.
