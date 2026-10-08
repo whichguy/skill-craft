@@ -290,6 +290,69 @@ class RefusalRouteTests(RealCliCase):
                 self.accepted(command)
                 self.assertIn(action, self.state(run)["accepted"])
 
+    def test_each_result_fault_the_checked_line_names_is_refused_and_the_corrected_result_is_accepted(self) -> None:
+        # Guard, green before and after the Checked-by wording: every fault the line of a stage without a script-run
+        # check names is a real refusal at that stage, and the corrected result is accepted by the same command. If a
+        # gate is removed or renamed, the line would over-promise and this fails.
+        token = "ghp_" + "Ab1" * 8  # not a credential: a made-up string of the shape the screen refuses
+        cases = [
+            ("an absolute evidence_refs path that does not exist", "intake",
+             lambda block: {**block, "evidence_refs": [str(self.base / "no-such-note.md")]},
+             "evidence_refs cite files that do not exist"),
+            ("an explicit credential pattern", "intake",
+             lambda block: {**block, "summary": "The key is " + token},
+             "appears to contain a credential secret"),
+            ("an open assumption whose consumer is not in the plan", "plan",
+             lambda block: {**block, "assumptions": [{"id": "A2", "assumption": "y holds", "disposition": "open",
+                                                      "check": "run y", "reason": "later", "consumer": "W9"}]},
+             "is not a work item in this plan"),
+            ("a criterion no test command names", "step-plan",
+             lambda block: {**block, "criteria": [*block["criteria"], {"id": "C2", "text": "an unnamed criterion"}]},
+             "every criterion needs a test command that confirms it"),
+            ("a step whose dependency is a later step", "step-plan",
+             lambda block: {**block, "steps": [{"id": "S1", "task": "first", "deps": ["S2"]},
+                                               {"id": "S2", "task": "second", "deps": []}]},
+             "step deps must name earlier steps"),
+            ("no system_commands list", "system-test-author",
+             lambda block: {k: v for k, v in block.items() if k != "system_commands"},
+             "a done system-test-author result must list system_commands"),
+            ("no consumer_checks list", "release-plan",
+             lambda block: {k: v for k, v in block.items() if k != "consumer_checks"},
+             "a done release-plan result must list consumer_checks"),
+            ("a consumer_entry source that is not in the repository", "release-plan",
+             lambda block: {**block, "consumer_entry": {"how": "open it", "sources": ["nowhere/missing.py"]}},
+             "consumer_entry sources do not exist in the repository"),
+        ]
+        for label, stage, break_it, fragment in cases:
+            with self.subTest(label):
+                run, head = self.new_run(stage)
+                command, path, action = printed_callback(head)
+                good = self.fill_done(head)
+                write_block(path, break_it(good))
+                self.assertIn(fragment, self.refused(command, run))
+                write_block(path, good)
+                self.accept_after_the_knowledge_files(command, run)
+                self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        with self.subTest("the docs/shiploop files a close requires"):
+            run, head = self.new_run("test-spec")
+            command, path, action = printed_callback(head)
+            write_block(path, self.fill_done(head))
+            reply = self.refused(command, run)
+            self.assertIn("keeps this run's planning knowledge in the repository", reply)
+            self.accept_after_the_knowledge_files(command, run)
+            self.assertEqual(self.recorded(run, action)["outcome"], "done")
+
+    def accept_after_the_knowledge_files(self, command: str, run: Path) -> None:
+        """Run ``command``; at a stage that closes the knowledge home, first write the files its refusal names."""
+        result = self.run_printed(command)
+        if result.returncode != 0:
+            reply = result.stdout + result.stderr
+            self.assertIn("keeps this run's planning knowledge in the repository", reply)
+            for named in re.findall(r"^- (/\S+)$", reply, re.M):  # the files the refusal names, and nothing else
+                Path(named).parent.mkdir(parents=True, exist_ok=True)
+                Path(named).write_text("What this file records.\n", encoding="utf-8")
+            self.accepted(command)
+
     def test_a_blocked_result_with_done_fields_is_refused_once_with_every_field_named(self) -> None:
         run, head = self.new_run("plan")
         command, path, _ = printed_callback(head)

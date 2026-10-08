@@ -3490,13 +3490,43 @@ _CHECK_TEXT = {
 }
 
 
+# What complete refuses for every stage, in a packet's words.  The evidence gate checks absolute paths only, and the
+# credential screen (shiploop_privacy.sensitive_text) is conservative, so the line claims no more than that.
+_COMMON_GATES = ("a result without outcome and summary, an evidence_refs path that is absolute and does not exist, "
+                 "or an explicit credential pattern")
+# The extra faults a stage's gates refuse, keyed by the tables the gates read (RECORDED_COMMANDS names the stage that
+# records each command list), so a sentence cannot name a stage the gate does not serve.  The route tests in
+# test/shiploop-callback-contract.test.py pair each named fault with its real refusal.
+_RECORDED_GATES = {
+    "test_commands": "test_commands, paths, criteria or steps that do not fit (a criterion no command names, a "
+                     "command naming an unlisted criterion, deps that are not earlier steps)",
+    "system_commands": "a missing system_commands list, or an empty one without system_commands_na",
+    "consumer_checks": "a missing consumer_checks list, or an empty one without consumer_checks_na, or a "
+                       "consumer_entry whose sources are not files in the repository",
+}
+
+
+def _stage_gates(stage: str) -> list[str]:
+    gates = []
+    if stage in assumptions.STAGES:
+        gates.append("an assumption list that is malformed, cites evidence files that do not exist, or leaves an "
+                     "open assumption without a consumer work item in this plan")
+    gates.extend(_RECORDED_GATES[field] for field, owner in RECORDED_COMMANDS.items() if owner == stage)
+    if stage in knowledge.CLOSES:
+        gates.append("a docs/shiploop file this stage must have written, missing or empty")
+    return gates
+
+
 def _checked_line(row: Any) -> str:
     """How this stage's result is checked, so a model holding only this packet knows what judges its work."""
     if row.complete_runs:
         return "Checked by: when you report done, ShipLoop " + "; then ".join(
             _CHECK_TEXT[run] for run in row.complete_runs) + "."
-    return ("Checked by: nothing automatic beyond the result's form (outcome, summary, evidence_refs); you confirm "
-            "each Done-when condition before reporting done.")
+    extra = _stage_gates(row.name)
+    return ("Checked by: when you report done, ShipLoop refuses a result with a mechanical fault: " + _COMMON_GATES
+            + ("; at this stage also " + "; ".join(extra) if extra else "")
+            + ". A refusal does not advance the run: fix the result and run the same complete command again. "
+            "ShipLoop does not judge the work, so you confirm each Done-when condition before reporting done.")
 
 
 def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
@@ -3507,8 +3537,8 @@ def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     lines = ["Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
              "Done when (confirm each before calling done; keep going until all hold):",
              *("- " + condition for condition in row.done_when),
-             *(["- the summary says which criteria, steps, paths and test commands are new or changed and "
-                "which are carried over from the item's previous step plan, named in the full packet"]
+             *(["- the summary says which rows are new or changed and which are carried over from the previous "
+                "step plan"]
                if _sent_back_results(state, stage, _current_work_item(state)) else []),
              _checked_line(row)]
     considerations = [(label, text) for label, text in (

@@ -214,3 +214,49 @@ text no longer tells the model to stop inferring a next action over a typo it ca
 - Unowned, not credited to this item: `improve-complete` requires a `checks.md` that nothing parses, and in
   planning reviews the model fills it with counts or `tests 0` summaries (4 of the 8 `checks.md` files in the
   Sonnet 1.23.0 run). The next live pair should count it as its own family.
+
+**P1: the Checked-by line of a stage with no script-run check names the faults `complete` refuses (built;
+firm that line and gates agree, unknown whether it changes behaviour).** 23 of 34 stages have no
+`complete_runs`, and their packet said "Checked by: nothing automatic beyond the result's form". That is
+false for the gates that exist, and it invites a model to re-implement them: the result JSON shape
+(`_canonical_result`), evidence-file existence (`_check_submitted_evidence`), the credential screen
+(`_reject_credentials`), the plan's assumption list (`_check_submitted_assumptions`), a step plan's test
+commands, criteria, paths and steps (`_check_submitted_test_commands`, `_normalise_criteria`,
+`_normalise_steps`), `consumer_entry` sources (`_check_submitted_consumer_entry`), the recorded command lists
+(`_check_submitted_recorded_commands`) and the knowledge closes (`knowledge_home.check`). By hand in the
+named runs: criteria coverage and step deps in Luna 1.21.0, Grok medium 1.21.0 and both 1.23.0 runs; evidence
+existence in two; credential screens (5 or more) in Grok medium 1.21.0; a result-JSON pre-check before
+`complete` in all six runs (Grok 1.23.0 chains 3 of its 5 into the `complete` call, so their marginal cost is
+about zero). `_checked_line` now builds one line (the keepalive suite requires one `Checked by:` line) from
+`_COMMON_GATES` plus `_stage_gates`, which reads the tables the gates read (`assumptions.STAGES`,
+`RECORDED_COMMANDS`, `knowledge.CLOSES`) so a stage cannot be named that the gate does not serve.
+- Audit corrections applied: it was not folded into a pending note (the line shipped in 1.23.0, so a new
+  note); the text says "absolute" because `_check_submitted_evidence` checks only paths that start with `/`
+  (a relative reference to a missing file is accepted; reproduced in a scratch run); it says "an explicit
+  credential pattern", because the screen's own docstring says a false result is not a guarantee; it does not
+  name "a fault named in the stage's knowledge lines" (no gate or test); and it names the non-form gates the
+  design missed (release-plan's `consumer_entry`, the recorded command lists, the knowledge closes).
+- Tests: `test/shiploop-packet-completeness.test.py` declares which stages may carry which gate word and checks
+  all 23 lines (failed on all 23 before); `test/shiploop-callback-contract.test.py` pairs each named fault
+  with its real refusal and an accepted correction through the CLI (eight faults plus the knowledge close),
+  green before and after as a guard: remove a gate and the line over-promises, and this fails.
+- A fault the line does not name is the status quo, not a regression: `implement` is refused by
+  `item_scope.scope_refusal` for changes outside the step plan's paths, but its `complete_runs` text lists only
+  the lint gate (same defect class, `_CHECK_TEXT`, recorded and not changed); `release-verify`'s knowledge close
+  likewise; a newly added gate is not named automatically.
+- Not measured: whether an accurate line reduces hand-written re-implementations of owned gates. Settle with the
+  next live pair (Sonnet checks on, Grok none) by counting inline scripts in the planning window for five
+  families (result-json pre-check, criteria coverage, step deps, evidence-exists, credential screen) and report
+  counts only. Baselines read: Sonnet 1.23.0 1 coverage, 1 deps, 1 result-json; Grok 1.23.0 2 result-json, 1
+  coverage; Grok medium 1.21.0 coverage 3, credential 5 or more, result-json 6; Luna 1.21.0 evidence-exists 3 or
+  more, result-json 11. The Sonnet hand-written pre-checks prevented no refusals (zero `shiploop_failures` in
+  both Sonnet runs): habit or `checks.md` filler.
+
+**Kept-head window (found while building P1, firm).** `test/shiploop-status-display.test.py` holds the status
+block inside the first 8000 characters of every dry-run packet (`shiploop_status_hook.WINDOW`, the head Claude
+Code keeps of oversized Bash output). The longer step-plan line pushed the ask-agent redo packet to 8045, so the
+new Done-when bullet of the REVISE entry was shortened and the step-plan clause tightened; the heaviest packet
+(ask-agent, step-plan after a revise) now ends the block at 7960 (measured with `graph-dry-run --scenario all --delegation ask-agent`); the first-visit ask-agent
+step-plan packet ends it at 7819 and the next item's at 7864. **The margin of the redo packet is 40 characters, so the next addition to the head of
+a step-plan packet must shorten something else or raise `WINDOW` deliberately;** the window is a host fact I
+could not verify, so I did not raise it.

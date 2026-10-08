@@ -215,7 +215,7 @@ _DURATION_SECONDS = {
     # 3m16s.  Replace it with the suite's own GitHub seconds once the runner prints per-suite time.
     "test/shiploop-e2e.test.py": 61.0,
     "test/shiploop-run-review.test.py": 0.2,
-    "test/shiploop-callback-contract.test.py": 60.0,
+    "test/shiploop-callback-contract.test.py": 55.0,  # measured alone 2026-10-08: 27 tests, 54 s
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 

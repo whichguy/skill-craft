@@ -100,7 +100,41 @@ class PacketCompletenessTests(unittest.TestCase):
                 if row.complete_runs:
                     self.assertNotIn("nothing automatic", line)
                 else:
-                    self.assertIn("confirm", line)
+                    self.assertIn("you confirm each Done-when condition", line)
+
+    # Declared here, not read from the navigator: the words a stage's Checked-by line must carry because its gate
+    # exists, and the only stages that may carry them.  test/shiploop-callback-contract.test.py pairs each named fault
+    # with the real refusal and an accepted correction.
+    GATE_WORDS = {
+        "assumption": {"plan"},
+        "criterion": {"step-plan"},
+        "deps": {"step-plan"},
+        "system_commands": {"system-test-author"},
+        "consumer_checks": {"release-plan"},
+        "consumer_entry": {"release-plan"},
+        "docs/shiploop": {"prepare", "test-spec", "release-plan"},
+    }
+
+    def test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses(self) -> None:
+        for (stage, kind), packet in sorted(self.found.items()):
+            row = stage_spec.stage(stage)
+            if kind != "producer" or row.complete_runs:
+                continue
+            lines = [line for line in packet.splitlines() if line.startswith("Checked by: ")]
+            with self.subTest(stage):
+                self.assertEqual(len(lines), 1)  # one line: shiploop-keepalive requires the head's lines to be one each
+                line = lines[0]
+                self.assertNotIn("nothing automatic", line)
+                self.assertIn("ShipLoop refuses a result with a mechanical fault", line)
+                self.assertIn("refusal does not advance the run", line)
+                self.assertIn("run the same complete command again", line)
+                self.assertIn("does not judge the work", line)
+                # Claims no wider than the gates: relative evidence paths are not checked, and the credential screen is
+                # conservative, not a guarantee.
+                self.assertIn("absolute", line)
+                self.assertIn("explicit credential pattern", line)
+                for word, stages in self.GATE_WORDS.items():
+                    self.assertEqual(word in line, stage in stages, f"{word!r} in the {stage} line")
 
 
 if __name__ == "__main__":
