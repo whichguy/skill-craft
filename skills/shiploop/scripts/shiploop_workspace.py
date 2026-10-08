@@ -22,6 +22,12 @@ The public functions are intentionally small:
 ``completed_receipt_snapshot``
     A non-mutating packet/report projection that accepts only an already-stable
     workspace and receipt.
+``returned_result`` / ``export_returned_result``
+    Read what the latest completed return delivered, and make a clean copy of
+    exactly that tree under the workspace root.  Neither writes a repository:
+    ``release-verify`` runs its consumer checks in the copy, never in the user's
+    checkout (a file written there would make the receipt non-current) and never
+    in the work area (which holds files the return excluded).
 """
 
 from __future__ import annotations
@@ -73,15 +79,22 @@ FORBIDDEN_PARTS = frozenset({".git", ".shiploop", ".until-loop", ".shiploop-impr
 _SHA = re.compile(r"[0-9a-f]{40,64}")
 _LOCK_LOCAL = threading.local()
 
+# The clean copy of the returned result that release-verify's consumer checks run in.
+CONSUMER_COPY = "consumer-check"
+_RETURN_KINDS = ("fast-forward-merge", "working-tree-return", "no-change-return")
+
 __all__ = [
+    "CONSUMER_COPY",
     "WorkspaceError",
     "assert_binding",
     "completed_receipt",
     "returned_before",
     "completed_receipt_snapshot",
     "execute_return",
+    "export_returned_result",
     "plan_return",
     "prepare",
+    "returned_result",
 ]
 
 
@@ -1944,3 +1957,99 @@ def completed_receipt_snapshot(workspace_root: Path, repo: Path) -> Optional[Dic
             return receipt if _source_result_matches_snapshot(source, receipt) else None
         except (KeyError, TypeError, WorkspaceError):
             return None
+
+
+def returned_result(workspace_root: Path) -> Optional[Dict[str, Any]]:
+    """What the newest completed return delivered, read without writing anything; None when no return is recorded.
+
+    ``None`` means only that the receipt is absent or not ``returned``.  A manifest or receipt that cannot be read,
+    an unsupported kind or a tree id that is not a Git object name raises ``WorkspaceError``: the caller surfaces
+    that, it is not "no return".  The result names the ``tree`` the receipt records (``expected_source.tree`` for a
+    fast-forward, ``expected_source.working_tree`` for the other two kinds), the candidate ``head`` the receipt
+    covers, and ``ahead``: whether the work area has moved past that head since.
+
+    This deliberately does not call ``completed_receipt_snapshot``: that compares the whole candidate fingerprint,
+    including untracked files, so a file the model writes at release-verify would make it report "not current"
+    although the receipt still names exactly what was delivered.  It takes the same shared snapshot lock, so a
+    busy workspace or a pending transaction is an error here, not a half-applied read.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    with _workspace_snapshot_lock(root) as locked:
+        if not locked:
+            _fail("the workspace is busy, has a pending transaction or lacks its lock file, so its return cannot "
+                  "be read now")
+        manifest = _manifest(root)
+        receipt = _receipt(root)
+        if not receipt or receipt.get("status") != "returned":
+            return None
+        worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
+        _assert_binding(root, worktree)
+        kind = receipt.get("kind")
+        expected = receipt.get("expected_source")
+        candidate = receipt.get("candidate_fingerprint")
+        if (receipt.get("schema") != RECEIPT_SCHEMA or receipt.get("version") != VERSION or kind not in _RETURN_KINDS
+                or not isinstance(expected, dict) or not isinstance(candidate, dict)):
+            _fail("the return receipt has an unsupported schema or kind")
+        tree = expected.get("tree" if kind == "fast-forward-merge" else "working_tree")
+        head = candidate.get("head")
+        if not (isinstance(tree, str) and _SHA.fullmatch(tree) and isinstance(head, str) and _SHA.fullmatch(head)):
+            _fail("the return receipt records no valid result tree or candidate head")
+        return {
+            "kind": kind, "tree": tree, "head": head, "ahead": _head(worktree) != head,
+            "source": manifest["source_repo"], "receipt": os.fspath(root / RETURN_RECEIPT),
+            "plan": os.fspath(root / RETURN_PLAN), "copy": os.fspath(root / CONSUMER_COPY),
+        }
+
+
+def export_returned_result(workspace_root: Path) -> Dict[str, Any]:
+    """Make ``<workspace root>/consumer-check`` hold exactly the tree the newest completed return delivered.
+
+    The tree goes through a private index inside the workspace root (``read-tree``, then ``checkout-index``), run
+    from the execution worktree because it shares the source's object database; so the source's index, HEAD,
+    branches and files, the object database and the work area are all left as they were.  It is not
+    ``git archive``: attributes such as ``export-ignore`` do not apply, and line-ending attributes convert as in a
+    normal checkout.  The copy has no ``.git``, no ignored file and no file the return plan excluded.
+
+    An earlier copy of this one directory is replaced; anything else at that path (a symlink, a file) is refused,
+    never followed or removed.  A failure leaves no partial copy.  Returns ``returned_result``'s mapping plus
+    ``path``.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    found = returned_result(root)
+    if found is None:
+        _fail("no completed return is recorded, so there is no returned result to copy")
+    destination = root / CONSUMER_COPY
+    if os.path.lexists(destination):
+        if destination.is_symlink():
+            _fail(f"{destination} is a symlink; remove it before ShipLoop makes its copy there")
+        if not destination.is_dir():
+            _fail(f"{destination} is not a directory; remove it before ShipLoop makes its copy there")
+        try:
+            shutil.rmtree(destination)
+        except OSError as exc:
+            _fail(f"cannot replace the previous copy at {destination}: {exc}")
+    descriptor, index = _temporary_index(root)
+    os.close(descriptor)
+    env = {"GIT_INDEX_FILE": os.fspath(index)}
+    worktree = root / "worktree"
+    try:
+        for args in (("read-tree", found["tree"]),
+                     ("checkout-index", "-a", "-f", "--prefix=" + os.fspath(destination) + "/")):
+            result = _git(worktree, *args, env=env, readonly=True)
+            if result.returncode:
+                detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
+                _fail(f"git {args[0]} failed while copying the returned result"
+                      + (f": {detail[-1]}" if detail else ""))
+        try:
+            destination.mkdir(exist_ok=True)  # a tree with no file produces no directory
+        except OSError as exc:
+            _fail(f"cannot create the copy at {destination}: {exc}")
+    except WorkspaceError:
+        shutil.rmtree(destination, ignore_errors=True)
+        raise
+    finally:
+        try:
+            index.unlink()
+        except OSError:
+            pass
+    return {**found, "path": os.fspath(destination)}

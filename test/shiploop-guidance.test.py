@@ -2243,6 +2243,59 @@ class SettledFactTests(unittest.TestCase):
         self.assertIn("access gap", text)
 
 
+class ConsumerCheckLocationTests(unittest.TestCase):
+    """Batch 1008, B3: release-verify's consumer checks run in a clean copy of the returned result when a return is
+    recorded.  Each stage that has to know it restates its own part (the main tenet: context may be cleared between
+    any two stages); the script-computed packet line says where they run this time, so the duties do not repeat it."""
+
+    @staticmethod
+    def duty(stage: str) -> str:
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_prompts as prompts
+        return " ".join(prompts.DUTIES[stage].split())
+
+    def test_release_plan_says_where_the_checks_will_run_and_how_to_write_them(self) -> None:
+        text = self.duty("release-plan")
+        self.assertIn("clean copy of the returned result", text)
+        self.assertIn("work area and says so", text)
+        self.assertIn("relative to the checkout", text)
+        self.assertIn("what a fresh consumer needs", text)
+        self.assertIn("never write into the user's checkout", text)
+
+    def test_release_verify_says_how_a_defect_is_fixed_and_what_may_touch_the_checkout(self) -> None:
+        text = self.duty("release-verify")
+        self.assertIn("In an isolated run this stage cannot return", text)
+        self.assertIn("through replan", text)
+        self.assertIn("leave it exactly as the return left it", text)
+        self.assertIn("stale", text)
+
+    def test_the_copy_semantics_are_not_added_to_the_other_two_statements_in_that_packet(self) -> None:
+        """GUARD (passes on the unchanged tree): said once per packet. The stage row and the duty keep only the sentence
+        they always had; the script-computed rerun block is the one place that says where the commands run."""
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_stage_spec as spec
+        self.assertEqual(spec.STAGE_SPEC["release-verify"].tools,
+                         "On done, ShipLoop runs every consumer check release-plan recorded.")
+        self.assertNotIn("clean copy", self.duty("release-verify"))
+
+    def test_handoff_reports_where_release_verify_ran_from_the_line_its_packet_carries(self) -> None:
+        text = self.duty("handoff")
+        self.assertIn("Consumer checks (release-verify)", text)
+        self.assertIn("did not observe the user's checkout", text)
+
+    def test_the_skill_card_and_the_workspace_lifecycle_card_say_the_same(self) -> None:
+        skill = " ".join((SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8").split())
+        self.assertIn("clean copy of the result the workspace return delivered", skill)
+        self.assertIn("`consumer-check`", skill)
+        lifecycle = " ".join((REFERENCES / "workspace-lifecycle.md").read_text(encoding="utf-8").split())
+        self.assertIn("### Which checkout release-verify observes", lifecycle)
+        for phrase in ("`consumer-check`", "clean copy of the returned result", "never the user's checkout",
+                       "no Git history", "absolute path"):
+            self.assertIn(phrase, lifecycle)
+        follow_up = lifecycle[lifecycle.index("### Follow-up return"):]
+        self.assertIn("At `release-verify` the stage cannot return", follow_up[:follow_up.index("## Recovery and limits")])
+
+
 class CaseEndStateTests(unittest.TestCase):
     """Owner rule (2026-10-08): a test is authored and executed, and a case completes only when it is validated, re-validated
     another way, or declared unachievable. A case written but not run, or recorded `not run`, is not an end state."""

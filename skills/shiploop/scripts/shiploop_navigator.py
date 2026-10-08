@@ -3349,9 +3349,11 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     if stage in test_loop.STAGES:
         lines.extend(test_loop.render_lines(root, state, workitem or "", action["id"], stage))
     elif stage in test_loop.RERUN_STAGES:
-        lines.extend(test_loop.rerun_lines(state, workitem or "", stage))
+        lines.extend(test_loop.rerun_lines(root, state, workitem or "", stage))
     elif stage == test_loop.RED_STAGE:
         lines.extend(test_loop.red_lines(state, workitem or ""))
+    elif stage == "handoff":
+        lines.extend(test_loop.observed_lines(root, state))
     return "\n".join(lines) + "\n"
 
 

@@ -1,0 +1,4 @@
+---
+bump: minor
+---
+In an isolated run, `release-verify` now runs the consumer checks `release-plan` recorded in a clean copy of the result the workspace return delivered (read from the return receipt into `consumer-check` under the workspace root, never from or into your checkout), so a check that passes only because of a file the return excluded, an ignored file or a later commit is refused with the copy's location, its usual causes and the stage's one exit, `replan`. When no return has been made yet the checks run in the work area as before, and the packet, the test record (`observed`) and the handoff say that they did not observe your checkout; in-place runs are unchanged. The `release-plan`, `release-verify` and `handoff` duties, SKILL.md and the workspace lifecycle card say where the checks run and ask for relative paths, checks that bring what a fresh consumer needs, and no writes into your checkout.

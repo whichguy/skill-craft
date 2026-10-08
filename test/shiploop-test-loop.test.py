@@ -33,6 +33,7 @@ import shiploop_store as store  # noqa: E402
 import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
+import shiploop_workspace as workspace  # noqa: E402
 
 CORE = types.SimpleNamespace(PACKAGE_ROOT=PACKAGE, REF_DIR=PACKAGE / "references")
 DONE = {"outcome": "done", "summary": "Synthetic declaration; no work executed."}
@@ -950,6 +951,98 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(json.loads(saved.read_text()), json.loads(raw))
 
 
+class ReleaseVerifyReturnedResultTests(unittest.TestCase):
+    """Batch 1008, B3 through the real gate: ``complete`` at release-verify in an isolated run that has returned.
+
+    The test-loop driver of ``TestLoopTests`` needs only ``self.repo``, ``self.run_dir`` and its own helpers, so it is
+    borrowed; the run here is a real workspace (a worktree beside a source checkout) driven by real ``dispatch`` calls,
+    the real Until Loop, the real knowledge gate and a real return.  Only the model's results are synthetic.
+    """
+
+    state = TestLoopTests.state
+    action = TestLoopTests.action
+    packet = TestLoopTests.packet
+    complete = TestLoopTests.complete
+    finish_improve = TestLoopTests.finish_improve
+    drive_to = TestLoopTests.drive_to
+    terminal = TestLoopTests.terminal
+    run_loop = TestLoopTests.run_loop
+    pass_loop = TestLoopTests.pass_loop
+    assert_refused = TestLoopTests.assert_refused
+    run_quality_loop = TestLoopTests.run_quality_loop
+
+    def setUp(self) -> None:
+        temp = tempfile.TemporaryDirectory(prefix="shiploop-release-verify-")
+        self.addCleanup(temp.cleanup)
+        base = Path(temp.name).resolve()
+        self.source = base / "source"
+        self.source.mkdir()
+        git(self.source, "init", "-q")
+        git(self.source, "branch", "-M", "main")
+        git(self.source, "config", "user.email", "loop@example.invalid")
+        git(self.source, "config", "user.name", "Loop Test")
+        (self.source / "a.py").write_text("x = 1\n")
+        (self.source / "check.sh").write_text(CHECK)
+        git(self.source, "add", "-A")
+        git(self.source, "commit", "-qm", "base")
+        self.root = base / "workspace"
+        record = workspace.prepare(self.source, self.root)
+        self.repo = Path(record["worktree"])
+        self.run_dir = Path(record["run_dir"])
+        nav.save(self.run_dir, nav.new_state(str(self.repo), "Release-verify fixture.", worktree=True,
+                                             improve_skill=str(IMPROVE_CARD), lint_option="off"))
+
+    def return_result(self, exclude: tuple = ()) -> dict:
+        """What the host does at release: commit leftovers, review every path in the plan, return."""
+        workspace.commit_leftovers(self.root)
+        workspace.plan_return(self.root)
+        plan = store.read_record(self.root / "return-plan.md")
+        for row in plan["paths"]:
+            row["disposition"] = "exclude" if row["path"] in exclude or row["disposition"] == "exclude" else "keep"
+        store.write_record(self.root / "return-plan.md", plan, "ShipLoop workspace return plan")
+        return workspace.execute_return(self.root)
+
+    def test_a_check_that_passes_only_in_the_work_area_is_refused_and_replan_is_the_accepted_exit(self):
+        self.drive_to("release")
+        self.assertEqual(self.return_result(exclude=("retained.txt",))["kind"], "working-tree-return")
+        self.drive_to("release-verify")
+        self.assertTrue((self.repo / "retained.txt").exists(), "control: the work area holds the excluded file")
+        self.assertFalse((self.source / "retained.txt").exists())
+        packet = self.packet()
+        self.assertIn("recorded from a clean copy of the result returned to " + str(self.source), packet)
+        knowledge_support.write(self.state())  # the knowledge gate runs before the test rerun
+        action = self.action()
+        before = {path: path.read_bytes() for path in self.source.rglob("*")
+                  if path.is_file() and ".git" not in path.parts}
+
+        self.assert_refused(DONE, r"(?s)release-verify is not done.*result returned to.*test -f retained\.txt.*replan")
+
+        record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+        self.assertEqual(record["observed"]["where"], "returned-result")
+        self.assertFalse(record["passed"])
+        self.assertEqual(test_loop.refused_runs(self.run_dir, action), 1)
+        self.assertEqual({path: path.read_bytes() for path in self.source.rglob("*")
+                          if path.is_file() and ".git" not in path.parts}, before, "the user's checkout is untouched")
+        # The exit the refusal names is accepted through the same gate, and the corrective item is queued.
+        self.complete(dict(DONE, outcome="replan", work_items=[{"id": "W2", "title": "Return retained.txt"}]))
+        self.assertIn("W2", [row["id"] for row in self.state()["work_items"]])
+
+    def test_the_handoff_packet_names_the_returned_copy_after_a_passing_release_verify(self):
+        self.drive_to("release")
+        self.return_result()
+        self.drive_to("handoff")
+        line = next(row for row in self.packet().splitlines() if row.startswith("Consumer checks (release-verify)"))
+        self.assertIn("ran in a clean copy of the result returned to " + str(self.source), line)
+        self.assertIn("fast-forward-merge at ", line)
+        self.assertNotIn("did not observe", line)
+
+    def test_the_handoff_packet_says_the_checks_did_not_observe_the_checkout_when_nothing_was_returned(self):
+        self.drive_to("handoff")  # release-verify passed in the work area: no return was recorded before it
+        line = next(row for row in self.packet().splitlines() if row.startswith("Consumer checks (release-verify)"))
+        self.assertIn("ran in the work area " + str(self.repo), line)
+        self.assertIn("did not observe the user's checkout", line)
+
+
 class VerifyLimitTests(unittest.TestCase):
     def state(self, repo: Path, command: str) -> dict:
         return {"repo": str(repo), "history": [{"stage": "step-plan", "workitem": "W1", "action": "S1"}],
@@ -1170,8 +1263,8 @@ class UnavailableExecutionTests(unittest.TestCase):
             root = Path(temp)
             state = self.state(root, "true")
             self.assertIn("the item goes back to its step plan (revise)",
-                          "\n".join(test_loop.rerun_lines(state, "W1", "test-refine")))
-            outer = "\n".join(test_loop.rerun_lines(state, "W1", "system-test"))
+                          "\n".join(test_loop.rerun_lines(root, state, "W1", "test-refine")))
+            outer = "\n".join(test_loop.rerun_lines(root, state, "W1", "system-test"))
             self.assertIn("the outer loop takes corrective work items (replan)", outer)
             self.assertNotIn("step plan (revise)", outer)
 
@@ -1182,10 +1275,85 @@ class UnavailableExecutionTests(unittest.TestCase):
             for stage, source in (("test-refine", "the step plan"), ("verify", "the step plan"),
                                   ("system-test", "system-test-author"), ("release-verify", "release-plan")):
                 with self.subTest(stage=stage):
-                    packet = "\n".join(test_loop.rerun_lines(state, "W1", stage))
+                    packet = "\n".join(test_loop.rerun_lines(Path(temp), state, "W1", stage))
                     self.assertIn("runs every test command " + source + " recorded from", packet)
             self.assertNotIn("the step plan recorded",
-                             "\n".join(test_loop.rerun_lines(state, "W1", "system-test")))
+                             "\n".join(test_loop.rerun_lines(Path(temp), state, "W1", "system-test")))
+
+    def test_the_release_verify_packet_names_where_its_commands_run(self):
+        """Batch 1008, B3: the packet says where the recorded consumer checks run, computed afresh at each render."""
+        returned = {"kind": "fast-forward-merge", "tree": "a" * 40, "head": "b" * 40, "ahead": False,
+                    "source": "/src/repo", "receipt": "/ws/return-receipt.md", "plan": "/ws/return-plan.md",
+                    "copy": "/ws/consumer-check"}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "run"
+            state = dict(self.state(Path(temp), "true"), execution_mode="navigator-worktree")
+            with mock.patch.object(test_loop.workspace, "returned_result", return_value=returned):
+                packet = "\n".join(test_loop.rerun_lines(root, state, "", "release-verify"))
+            self.assertIn("runs every test command release-plan recorded from a clean copy of the result returned to "
+                          "/src/repo (fast-forward-merge at " + "b" * 12 + "; receipt /ws/return-receipt.md), made "
+                          "fresh at /ws/consumer-check on each done and refuses unless each passes", packet)
+            self.assertIn("the copy holds exactly the returned tree", packet)
+            with mock.patch.object(test_loop.workspace, "returned_result", return_value=None):
+                packet = "\n".join(test_loop.rerun_lines(root, state, "", "release-verify"))
+            self.assertIn("recorded from the work area " + temp, packet)
+            self.assertIn("do not observe the user's checkout", packet)
+            with mock.patch.object(test_loop.workspace, "returned_result",
+                                   side_effect=test_loop.workspace.WorkspaceError("receipt unreadable")):
+                packet = "\n".join(test_loop.rerun_lines(root, state, "", "release-verify"))  # never raises
+            self.assertIn("not currently known", packet)
+            self.assertIn("receipt unreadable", packet)
+            # an in-place run, and every stage but release-verify, keep the text they always had
+            inplace = self.state(Path(temp), "true")
+            self.assertIn("recorded from " + temp + " and refuses", "\n".join(
+                test_loop.rerun_lines(root, inplace, "", "release-verify")))
+            for stage in ("system-test", "test-refine"):
+                with mock.patch.object(test_loop.workspace, "returned_result", return_value=returned) as read:
+                    text = "\n".join(test_loop.rerun_lines(root, dict(state, execution_mode="navigator-worktree"),
+                                                              "W1", stage))
+                self.assertIn("recorded from " + temp + " and refuses", text)
+                read.assert_not_called()
+
+    def test_release_verify_in_place_run_still_runs_in_the_checkout_and_records_it(self):
+        """GUARD (the cwd half passes on the unchanged tree): an in-place run never touches a workspace."""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "marker.txt").write_text("here\n")
+            state = self.state(root, "test -f marker.txt")
+            with mock.patch.object(test_loop.workspace, "returned_result",
+                                   side_effect=AssertionError("an in-place run reads no workspace")):
+                writes, refusal = test_loop.verify(root, state, "", "A-rv", "release-verify")
+            record = store.loads(writes["tests/A-rv-verify1.md"])
+        self.assertEqual(refusal, "")
+        self.assertEqual(record["cwd"], str(root))
+        self.assertEqual(record["observed"], {"where": "in-place"})
+
+    def test_the_handoff_packet_carries_where_release_verify_ran(self):
+        """A cleared handoff model cannot read a record nothing points to, so the script renders the line."""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state = self.state(root, "true")
+            state["history"].append({"stage": "release-verify", "workitem": None, "action": "A-rv", "outcome": "done"})
+            self.assertEqual(test_loop.observed_lines(root, state), [])  # no record yet: no claim
+            (root / "tests").mkdir()
+            record = {"schema": test_loop.SCHEMA, "passed": True, "runs": [], "disposition": "passed"}
+            for observed, expected in (
+                    ({"where": "work-area", "reason": "no completed return is recorded"},
+                     "ran in the work area " + temp + ". No completed return was recorded then, so they did not "
+                     "observe the user's checkout: list that as a limit."),
+                    ({"where": "returned-result", "kind": "fast-forward-merge", "head": "c" * 40, "source": "/src/repo",
+                      "receipt": "/ws/return-receipt.md", "copy": "/ws/consumer-check"},
+                     "ran in a clean copy of the result returned to /src/repo (fast-forward-merge at " + "c" * 12),
+                    ({"where": "in-place"}, "ran in " + temp + ".")):
+                with self.subTest(where=observed["where"]):
+                    (root / "tests" / "A-rv-verify1.md").write_text(store.dumps(dict(record, observed=observed), "t"))
+                    lines = test_loop.observed_lines(root, state)
+                    self.assertEqual(len(lines), 1)
+                    self.assertIn("Consumer checks (release-verify) " + expected, lines[0])
+                    self.assertIn("Record: " + str(root / "tests" / "A-rv-verify1.md"), lines[0])
+            # a record written before `observed` existed makes no claim
+            (root / "tests" / "A-rv-verify1.md").write_text(store.dumps(record, "t"))
+            self.assertEqual(test_loop.observed_lines(root, state), [])
 
     # -- budget-skipped commands, and records written before the disposition field ---
 
