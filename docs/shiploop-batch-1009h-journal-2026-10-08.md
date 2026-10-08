@@ -187,3 +187,50 @@ twice, `expect: red`; `nav-dfe0a994...` the test-author probe, exit 1 twice, `ex
 
 **Not verified.** Whether any other case or host has a red record that did not pass (a failing test-red); the count includes it
 whatever its disposition, which is what "ran red" says.
+
+## Dropped parts, validation another way, and the hand-off (2026-10-08)
+
+**Dropped by the design (status: firm; each would need a second reader or has no recorded positive).**
+- H1e, a Claude compaction or "context drop" counter: no `compact_boundary` in 15 recorded streams; the only drops fall at a
+  `system/init`, a session start (the audit's scan: 5 runs, 7 drops, not the design's 6 runs), and there is no positive control.
+  Add the branch when a stream shows one, as the `GROK_SIGNALS` comment says.
+- H1f, Claude `truncated_outputs`, `knowledge_reads`, `cancelled_tool_calls`, tool-error counts, Write-tool glue and next-id
+  extraction counts: each needs a second reader (`run.host_truncations`), or the model reads via shell so a Read-tool-only list
+  would be a misleading measured `[]`, or no recorded Claude run has a positive. The three counters stay in `unmeasured`.
+- H1g, exporter and page edits: `skills/shiploop-run-review` is owned by another session, so nothing there changed. The hand-off
+  below replaces it.
+
+**Validated another way (not hermetic).** Scratch copies of `20261008/r1-battleship-sonnet` and `r1-checkers-sonnet` (the run
+folders are never written) were regraded through `run.main` with `--resume-run <copy> --grade-only`. A finished run's regrade writes
+no baseline row, so the committed `baselines.jsonl` was not touched (the audit warned that the design's plan to regrade would append
+one by default). Printed, Battleship: "ShipLoop command failures 5, script verifications 10/10 passed (2 ran red), model glue 1" and
+five `failed shiploop ... exit not shown: ShipLoop navigator: ...` lines (3 `complete`, 2 `workspace`); Checkers: failures 4 (1
+`complete`, 2 `unknown`, 1 `workspace`), glue 2. The unmodified exporter then wrote `refusals` 5 and 4, `glue` 1 and 2, the facts line
+"ShipLoop command failures: 5 (complete 3, workspace 2)" (the design's experiment edited the verbs to `complete` x5; the real list
+has two `workspace` verbs), and, after H1c, per-stage context. Figures that reproduce exactly from the lens: 120 and 105 tool calls,
+222,269 and 209,381 result characters, 44 and 45 packet files, 1,707,162 and 1,737,466 bytes on disk, 44 printed replies, the packet
+Read sizes, 5 and 4 failures under the unguarded rule. Figures that do not: the Checkers script runs (29/10/3/1 against 30/10/4/1).
+
+**Pre-registered readings.** `shiploop_failures` is a heuristic count of tool results, not an exact count of refusals: a document
+line that begins with a prefix counts; a looping command is one; a compound command's exit is attributed to the ShipLoop call in it;
+a result saved to a file is unread. Model glue and every other Claude figure is main-thread. A zero on Claude is a measured lower
+bound, never proof of none.
+
+**Hand-off to the Run Review session** (files that session owns, not edited here; names, not line numbers). Rows and symbols that are
+now stale in `skills/shiploop-run-review/SCHEMA.md` and `scripts/export.py`:
+- the `refusals`, `glue` row: "a host whose events cannot show it, such as Claude's" is no longer true (Claude shows both);
+- the `failures` row: "ShipLoop commands that exited non-zero" is false for a refusal behind a pipe (it is a tool result with a
+  refusal line, or a nonzero exit of a command that names a ShipLoop verb; the verb may be `unknown`, and the facts line reads
+  "(complete 3, workspace 2)" or "(unknown 2, ...)");
+- the `stages[].context` row: "Today only a Codex run with rollouts has it" now also holds for a Claude run (`calls`, `peak`,
+  `peakPct`; no `compactions`; Claude's peak is the call's input side, see `contextPeak`);
+- `export.NO_VISIT_CONTEXT` says the stage rows' context comes "only from a Codex run's rollouts".
+Proposed optional run fields from the `tool_use` block, until the exporter reads it (readers open `metrics.json`): `scratchScripts`
+[{path, bytes, wrapsShiploop, runs}] and `packetUse` {onDiskFiles, onDiskBytes, printedReplies, printedChars, readToolWhole,
+readToolRanged, readToolChars, shellReads, shellChars}, plus one facts.md line such as "Model-written scripts run: sub.sh 30 (wraps
+ShipLoop), idone.py 17, istart.sh 7; model glue excludes the ShipLoop calls inside them". Until then the page's "glue N" reads as a
+full count, which it is not for a Claude run; the SPEC row and `summary_lines` say so.
+
+**Owner calls left open.** Whether the model-written scripts that wrap the CLI should be counted as glue in SPEC S-4 and S-5 (the
+journal keeps `model_glue`'s definition so Grok baselines stay comparable and shows the scripts beside it); whether the exporter
+should show `scratch_scripts`.

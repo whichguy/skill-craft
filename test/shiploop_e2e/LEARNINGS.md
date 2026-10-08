@@ -1624,3 +1624,31 @@ Supersedes "(3) The Sonnet cost rise is unexplained" of the 2026-10-07 entry abo
 **CI lesson.** The 1.24.0 release commit failed `full / shiploop-2` in CI: five errors in `ReleaseVerifyReturnedResultTests` because the CI runner's global Git config carries git-lfs filters, which the workspace refuses; the tests passed on this machine, in the implementers' reruns and in the reviewers' reruns because none of them used a CI-like global Git config. Fixed in `abc47622` (the test isolates `GIT_CONFIG_*`; reproduced first with a config defining the lfs filter). **Rule for new real-git tests: isolate Git config.** Every release should be followed by a CI check before it is described as done; the quick-tier CI of the fix commit passed but the full tier of the release commit was not rerun.
 
 **What the analysis found (the next batch).** Faithful strengths: script-owned evidence held in both Sonnet runs (10 verification records, 29 commands, counted, no skips), release-verify observed the returned result, loops found real defects, honest limits were disclosed. Candidates implemented in the next batch: the return review is a hand edit of a script-owned file; rollback text written before the return kind is known; step-plan "Confirm by" contract disagreements; unverified outcomes and open assumptions have no structured home; Improve packets do not restate the goal and done-when; knowledge-close demands files the packet does not list; `improve-bind` prints a placeholder path; the Backchain child's required status is ambiguous; `run/notes/` is never created; the harness cannot read Claude-host tool calls. Held for a second run: release-check discrimination, implement/baseline script runs, min_tests ratchet, plan-document location, document-stage paths, `skill_na` template visibility (1 of 2 uptake).
+
+## The Claude tool-block reading: failures, glue, /tmp writes, per-stage context and the scripts the model ran — 2026-10-08 — status: firm for the figures (recomputed over the 15 recorded Claude runs and the two round-1 runs, regraded in scratch copies); not yet seen on a Claude Code build after 2.1.294
+
+The harness was blind for Claude for one reason: `metrics.collect` read only Grok's event shape (item 7 of "Callback path typos across
+the 1003 batch"; M1 of `docs/shiploop-callback-typos-plan-2026-10-04.md`). It now reads Claude's `tool_use` and `tool_result` blocks
+through the one classifier Grok's `tool_call` events use (`metrics.ToolLog`), and the round-1 lenses no longer need to mine
+`events.jsonl` by hand. Journal and the audit's corrections: `docs/shiploop-batch-1009h-journal-2026-10-08.md`; recorded calls:
+`docs/experiments/claude-tool-blocks-20261008/`.
+
+- **A refusal is recognised by its own line, not by an exit code.** The model pipes the CLI through `head`, `grep` or `sed`, so all 5
+  refusals of the round-1 Sonnet Battleship run have no exit at all. Over 15 recorded Claude runs: 72 results with a refusal line at
+  a line start, all genuine ShipLoop output (a command guard on top would have dropped 9 of them, a real knowledge-file refusal
+  among them), plus 10 exit-only failures (7 `Exit code 127` of a bare `shiploop`). `ShipLoop workspace blocked:` is a third prefix.
+- **Grok's exit 0 is not a hidden refusal.** The audit read 5 anchored lines at exit 0 in three Grok runs as hidden refusals; they are
+  `in_progress` updates (a placeholder exit 0) of calls whose `completed` update carries exit 2. The classifier reads Grok's completed
+  update only; the old and new lists agree on four recorded Grok runs except v1220 (+1, a compound command whose `$CLI workspace`
+  verb shows once variables are expanded).
+- **Shell variables are expanded per command**, and an assignment still unresolved (`R=$?`, quoted inside a `sh -c`) is not recorded.
+- **Glue is a lower bound for Claude.** 14 of 15 recorded runs wrote and ran helper scripts that wrap the CLI (r1 Battleship: sub.sh 30
+  runs, idone.py 17, istart.sh 7); `tool_use.scratch_scripts` lists them beside `model_glue`, which keeps its definition.
+- **Packets, printed versus read (r1 Battleship):** 44 packet files, 1,707,162 bytes; 44 printed replies, 37,367 characters; 4 packet
+  Reads, 2 whole (28,595 and 21,636 characters); 23 shell commands on packets, 64,249 characters.
+- **`passed 10` held two red records** (the test-red record and the test-author probe); `script_verifications.red` says so.
+- **Stage context for Claude:** `{calls, peak, peakPct}` per stage; 119 of the 120 calls of r1 Battleship fall in a stage window.
+- **Dropped, with reasons:** Claude compactions (no recorded `compact_boundary`), truncated outputs, knowledge reads, cancelled calls,
+  `improve_reviews.identical` (the required pair of clean passes is not waste).
+- **Known limits:** main thread only; a result saved to a file is unread; a document line that starts with a prefix would count;
+  script runs are lower bounds (r1 Checkers: 29 against 30 by hand for sub.sh).
