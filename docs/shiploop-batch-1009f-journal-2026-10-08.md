@@ -125,3 +125,65 @@ Unknowns. Reach: the lead sits deep in a large plan packet and models read littl
 Luna or Grok skip the 23.5-minute child now: read the next looped Luna run for whether the child ran, its summary reason and
 the plan-stage minutes. Whether models write the route in `summary`: scan the next two accepted plan summaries (both Sonnet
 runs did unprompted); if prose proves unreliable, build the structured field.
+
+## B1a: `init` records the Improve card installed beside ShipLoop (B1b not built)
+
+Status: interim (built and pinned through the real CLI; the effect on a live run is unmeasured).
+
+Question. The bind packet printed `--skill-card=/absolute/path/to/selected/improve/SKILL.md`, a template, and both round-1
+Sonnet runs assembled the real path by hand from the CLI's own location (battleship events 60-67:
+`IMP=.../skills/improve/SKILL.md; ls $IMP`, then `improve-bind`; checkers events 56-61: the same with `IC=`). The Grok `none`
+run had the card path typed into its prompt by the operator. ShipLoop already knows the path: the next packet prints it, and
+its Backchain and Until Loop resources are resolved from the same plugin install (`backchain_skills_root`). That violates SPEC
+S-4 (copy printed values) and S-5 (the script decides what it can).
+
+Built (B1a only). One helper in `shiploop_protocol.py` (`_new_run_card`): the explicit `--improve-skill` wins, else the card at
+`shiploop_prompts.installed_improve_card()` (beside `backchain_skills_root`, so the plugin-skills-dir definition stays single,
+S-12) when `shiploop_standalone_improve.resolve_skill` validates it, else nothing. It is recorded in the existing
+`improve_skill` key at `init`; `workspace start` passes its flag through to `init`, so it needs no code. No new flag, state key,
+migration or alias; a saved run loads unchanged. The navigator's two bind sites (`_first_callback_lines`, `_render_improve`)
+print the recorded card, or, when none is recorded, a marked blank (`IMPROVE_CARD_BLANK`, not path-shaped, refused by the bind as
+"skill card path must be absolute") and a sentence that names where ShipLoop looks and does not claim the file is absent. The
+graph dry run records a simulation-only card, as `init` would.
+
+Why record at init. A render-time resolution in the two navigator sites would also fix the stage defect and is smaller, but it
+records nothing in `state.md` (the ledger is the authority) and cannot serve a `none` run; recording is justified by the ledger
+rule and by B1b, not by the stage defect alone.
+
+Not built (B1b). Relaxing `--planning-review none` so it needs no flag edits the SPEC S-10 2026-10-05 clause ("refused without
+it") and four document pins in `test/shiploop-navigator-contract.test.py`; that clause is owner-decision text. `none` stays
+strict: `_require_card_for_unreviewed_planning` still receives the explicit flag, so a `none` run or harness still types the path,
+and the LEARNINGS 2026-10-05 handoff ("any E2E cell that runs --planning-review none must also pass --improve-skill") stays in
+force. When the owner accepts B1b the change is `_require_card_for_unreviewed_planning(args.planning_review, _new_run_card(...))`
+plus those documents; its refusal message must then distinguish "no card found at <path>" from "found at <path> but cannot be
+used: <reason>" (the audit reproduced the misreport with only `skills/improve/SKILL.md` beside ShipLoop and no runtime directory).
+
+Audit corrections applied. (1) The stage path never swallows the resolve error into a "not found" claim: the not-recorded sentence
+names the path looked at, and a test covers the present-but-unusable case (a SKILL.md with no runtime directory). (2) The stale
+document sentences were updated (SKILL.md, README twice, navigator.md, commands/shiploop.md); the `none` sentences stay because
+`none` is unchanged. (3) The dry-run acceptance is stronger than "0 of 574 packets print the literal": the dry run now mirrors
+`init`, and the test requires every `--skill-card=` value in every packet of every scenario and both delegations to be absolute,
+with one labelled not-recorded sample (the dry run used `improve_skill=''` before, so 106 of 574 packets printed an unrunnable
+value). The real gate is `InstalledCardCliTests`, which runs the printed command exactly as printed.
+
+Tests, fail first. `test/shiploop-improve-schedule.test.py`: `InstalledCardCliTests` (a stage run started with no flag records the
+installed card and the printed bind runs as printed; a guard that an explicit flag wins) and `NoInstalledCardCliTests` (a copy of
+the ShipLoop package alone in a temporary `skills/` directory, run through its own CLI: nothing recorded, the honest blank, the bind
+refusal, then the real bind; and the present-but-unusable case), the rewritten lead test (blank branch) with a recorded-card
+sibling, and the one `none`-test line that said a stage run records nothing. `test/shiploop-navigator-dry-run.test.py`
+`BindCommandTests`. The git-lfs lesson applies to every real-git test here: `CliRunCase` sets `GIT_CONFIG_NOSYSTEM` and
+`GIT_CONFIG_GLOBAL`.
+
+Coordination. `test/fixtures/run-review/state-stage.md` carries `improve_skill: ''` and `test/shiploop-run-review.test.py` says
+"none resolves the card at init". After B1a a genuine stage state records the card at init, so the Run Review session (it owns
+`skills/shiploop-run-review/**`) should refresh that fixture; no edit was made here.
+
+Unknowns. The quality and test-loop terminal gates read `improve_skill` and skip when it is empty, so they are active from the
+first item instead of only after `spec` binds; in real stage runs the bind happens at `spec` anyway and no suite depended on the
+skipped gate. A hard-linked install fails `_safe_file` (`st_nlink` must be 1) and falls to the honest blank; none observed. Codex's
+plugin cache holds one version, so a mid-run plugin update removes both the CLI path and the recorded card (every packet command
+already points into that directory). The retained lazy bind (a blank plus a sentence) is the one place the one-supported-version
+rule is arguable; it is pre-existing and documented, and the choice of refusing `stage` init when nothing resolves is the owner's.
+The audit ran `resolve_skill` on every skill-craft layout on this machine (not re-run here): the Claude cache (1.0.0 to 1.24.0),
+Claude marketplaces, the Codex cache (1.24.0), Cursor local, Grok installed-plugins and marketplace cache, and the OpenCode
+symlink; the old claudecraft plugin's improve card is rejected, which supports resolving by location and not by name.

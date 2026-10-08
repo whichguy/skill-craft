@@ -15,6 +15,7 @@ python3 "$SKILL_ROOT/scripts/shiploop" init \
 
 Optional flags on either entry: `--improve-skill=<absolute selected Improve
 SKILL.md>` (required with `--planning-review none`), `--delegation=ask-agent` (default `inline`) and `--delivery-contract`.
+Without `--improve-skill`, `init` records the Improve card installed beside ShipLoop.
 There is no protocol selector. A saved run from an older protocol (v1/v2/v3,
 managed or legacy) is
 refused with an error naming it; start a fresh run directory instead.

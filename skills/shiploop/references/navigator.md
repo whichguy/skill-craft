@@ -179,8 +179,10 @@ new run. `next` rereads the saved effective owner after a context reset; it does
 not select or persist a successor. At an Improve checkpoint a producer `done`
 records the result then parks the parent at `active_improve`; it does not advance
 directly. Any other producer `done` advances to the next producer. When a skill
-was not selected at initialization, the checkpoint's packet supplies the exact
-`improve-bind --action ... --skill-card ...` command (a `--planning-review none` run is refused
+was not selected at initialization, `init` records the card installed beside ShipLoop and the
+checkpoint's packet supplies the exact `improve-bind --action ... --skill-card ...` command with
+that path (where no installed card validates, it prints a marked blank and where ShipLoop looked;
+a `--planning-review none` run is refused
 without `--improve-skill`: its first child is the last item's `carry-forward`, after the quality and
 test loops have read the card). Follow that command and
 the selected card's bound runtime rather than guessing an adapter. Only an

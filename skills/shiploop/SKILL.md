@@ -235,12 +235,15 @@ New workspace and direct runs use navigator **protocol 4**; there is no protocol
 selector. A saved run the current code cannot load, including any navigator
 v1/v2/v3, managed or legacy run, is refused with an error that names its protocol
 or mode; start a fresh `--run-dir` (or workspace root) for that request. If
-new-run initialization did not select an Improve skill, the first Improve
-checkpoint stays pending until its packet directs the owner to bind the selected
-card with `improve-bind --action ... --skill-card ...` (a `--planning-review none` run has no planning
-child to bind it, so it is refused without `--improve-skill`). Use the packet's exact
-command and absolute selected-card path; never guess an installed copy or
-substitute a same-named skill. Recover an existing run's current packet with:
+new-run initialization did not select an Improve skill with `--improve-skill`, it records the
+card installed beside ShipLoop (found by file location in this plugin install and
+validated; no name or PATH search). The first Improve checkpoint's packet directs the
+owner to bind the recorded card with `improve-bind --action ... --skill-card ...`
+(a `--planning-review none` run has no planning child to bind it, so it is still refused
+without `--improve-skill`). Where no installed card validates, nothing is recorded and the
+packet prints a marked blank and says where ShipLoop looked. Use the packet's exact
+command and absolute selected-card path; never substitute a same-named skill. Recover
+an existing run's current packet with:
 
 ```sh
 python3 "$CLI" next --run-dir "$RUN_DIR"

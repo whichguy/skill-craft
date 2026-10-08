@@ -3,6 +3,8 @@
 import copy
 import os
 from pathlib import Path
+import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -239,11 +241,14 @@ class ImproveScheduleTests(unittest.TestCase):
         lead = after_header(packet)
         self.assertTrue(lead.startswith("Next command (bind the selected Improve card"), lead)
         lines = packet.splitlines()
-        body = lines[lines.index("Bind that selected card using this command "
-                                 "(replace the placeholder only if needed):") + 1]
+        # Batch 1009 B1a: no card is recorded in this state, so the packet prints a marked blank and says where
+        # ShipLoop looks, never a path-shaped template a host could run as if it were real.
+        self.assertNotIn("/absolute/path/to", packet)
+        body = lines[next(i for i, line in enumerate(lines) if line.startswith("No Improve card is recorded for this run.")) + 1]
         self.assertIn(" improve-bind ", body)
         self.assertTrue(lead.endswith(": " + body), (lead, body))
-        self.assertIn("/absolute/path/to/selected/improve/SKILL.md", lead)
+        self.assertIn(shlex.quote("--skill-card=" + nav.IMPROVE_CARD_BLANK), lead)
+        self.assertIn(str(nav.guidance.installed_improve_card()), packet)
         # PROGRESS_REPORTING tells the host to run the packet's pause command,
         # so the unbound packet prints it.
         self.assertIn("Pause parent without losing child: "
@@ -265,6 +270,21 @@ class ImproveScheduleTests(unittest.TestCase):
                 for callback in ("Callback for this stage", "Next command (bind",
                                  "Callback for this Improve child"):
                     self.assertNotIn(callback, packet)
+
+    def test_a_recorded_card_is_the_value_the_packet_prints_and_its_body_line_says_where_it_came_from(self):
+        run = Path("/simulation-only/run")
+        recorded = advance_to(nav.new_state("/simulation-only/repo", "Schedule fixture.", improve_skill=str(CARD)), "spec")
+        waiting = nav.apply(recorded, nav.current_action(recorded)["id"], DONE)
+        packet = nav.render(None, run, waiting)
+        lead = after_header(packet)
+        self.assertTrue(lead.startswith("Next command (bind the selected Improve card"), lead)
+        self.assertIn("--skill-card=" + str(CARD), lead)
+        lines = packet.splitlines()
+        body = lines[next(i for i, line in enumerate(lines)
+                          if line.startswith("Bind the Improve card recorded for this run")) + 1]
+        self.assertTrue(lead.endswith(": " + body), (lead, body))
+        self.assertNotIn("No Improve card is recorded", packet)
+        self.assertNotIn(nav.IMPROVE_CARD_BLANK, packet)
 
 
 def render_walk(state, run, *, plan_items=None, limit=300):
@@ -401,35 +421,25 @@ class PlanningReviewScheduleTests(unittest.TestCase):
             self.assertIn(present, staged)
 
 
-class PlanningReviewNoneCliTests(unittest.TestCase):
-    """`--planning-review none` through the shipped CLI: the gates a host meets, not the pure functions."""
+class CliRunCase(unittest.TestCase):
+    """A temporary repository, run directories and the shipped CLI, with the machine's Git configuration ignored."""
+
+    cli_path = CLI
 
     def setUp(self):
-        self._temporary = tempfile.TemporaryDirectory(prefix="shiploop-planning-review-none-")
+        self._temporary = tempfile.TemporaryDirectory(prefix="shiploop-improve-schedule-cli-")
         self.addCleanup(self._temporary.cleanup)
         self.base = Path(self._temporary.name).resolve()
         self.env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GIT_CONFIG_GLOBAL=os.devnull,
                         GIT_CONFIG_NOSYSTEM="1")
 
-    def cli(self, *argv, status=0):
-        done = subprocess.run([sys.executable, "-B", str(CLI), *map(str, argv)], cwd=self.base, env=self.env,
-                              capture_output=True, text=True, timeout=60)
+    def run_argv(self, argv, status=0):
+        done = subprocess.run(argv, cwd=self.base, env=self.env, capture_output=True, text=True, timeout=60)
         self.assertEqual(done.returncode, status, done.stdout + done.stderr)
         return done
 
-    def start(self, mode):
-        """A fresh repository and run recorded with ``mode``; returns the run directory."""
-        self.repo = self.base / ("repo-" + mode)
-        self.repo.mkdir()
-        (self.repo / "a.txt").write_text("x\n")
-        for argv in (["init", "-q"], ["add", "."],
-                     ["-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-qm", "init"]):
-            subprocess.run(["git", *argv], cwd=self.repo, env=self.env, check=True)
-        run = self.base / ("run-" + mode)
-        # A none run starts no child that would bind the card, so it names the card at its start.
-        card = ("--improve-skill", CARD) if mode == "none" else ()
-        self.cli("init", "--repo", self.repo, "--run-dir", run, "--prompt=add hello", "--planning-review", mode, *card)
-        return run
+    def cli(self, *argv, status=0):
+        return self.run_argv([sys.executable, "-B", str(self.cli_path), *map(str, argv)], status)
 
     def repository(self, name):
         repo = self.base / name
@@ -456,6 +466,19 @@ class PlanningReviewNoneCliTests(unittest.TestCase):
                 return self.saved(run)["action"]["id"]
             self.complete(run)
         raise AssertionError("did not reach " + stage + "; stuck at " + self.saved(run)["stage"])
+
+
+class PlanningReviewNoneCliTests(CliRunCase):
+    """`--planning-review none` through the shipped CLI: the gates a host meets, not the pure functions."""
+
+    def start(self, mode):
+        """A fresh repository and run recorded with ``mode``; returns the run directory."""
+        self.repo = self.repository("repo-" + mode)
+        run = self.base / ("run-" + mode)
+        # A none run starts no child that would bind the card, so it names the card at its start.
+        card = ("--improve-skill", CARD) if mode == "none" else ()
+        self.cli("init", "--repo", self.repo, "--run-dir", run, "--prompt=add hello", "--planning-review", mode, *card)
+        return run
 
     def knowledge_commits(self):
         subjects = subprocess.run(["git", "-C", str(self.repo), "log", "--format=%s"], env=self.env, check=True,
@@ -533,10 +556,10 @@ class PlanningReviewNoneCliTests(unittest.TestCase):
                            "--improve-skill", self.base / "no-such-card" / "SKILL.md", status=2)
         self.assertIn("the selected Improve card cannot be resolved", missing.stdout + missing.stderr)
         self.assertFalse((run / "state.md").exists())
-        # the card is optional where a planning child binds it
+        # the flag is optional where a planning child binds the card: init records the card installed beside ShipLoop
         stage_run = self.base / "run-stage-nocard"
         self.cli("init", "--repo", repo, "--run-dir", stage_run, "--prompt=add hello", "--planning-review", "stage")
-        self.assertEqual(self.saved(stage_run)["improve_skill"], "")
+        self.assertEqual(self.saved(stage_run)["improve_skill"], str(CARD))
 
     def test_a_none_run_started_with_its_card_records_it_and_recovers_without_repeating_it(self):
         run = self.start("none")
@@ -572,6 +595,118 @@ class PlanningReviewNoneCliTests(unittest.TestCase):
         refused = self.cli("complete", "--run-dir", run, "--action", action, "--result", path, status=2)
         self.assertIn("W9", refused.stdout + refused.stderr)
         self.assertEqual(self.saved(run)["stage"], "plan")
+
+
+class InstalledCardCliTests(CliRunCase):
+    """Batch 1009 B1a: `init` records the Improve card installed beside ShipLoop, so the first bind prints a real path.
+
+    Both round-1 Sonnet runs assembled the path by hand (`IMP=.../skills/improve/SKILL.md; ls $IMP`) from the CLI path;
+    the packet printed a template.  ShipLoop's sibling card is found by file location and validated by `resolve_skill`
+    (no name or PATH search), and the ledger records it once; an explicit `--improve-skill` still wins.
+    """
+
+    def init(self, *flags, name="installed"):
+        self.repo = self.repository("repo-" + name)
+        run = self.base / ("run-" + name)
+        self.cli("init", "--repo", self.repo, "--run-dir", run, "--prompt=add hello", *flags)
+        return run
+
+    def to_the_bind(self, run):
+        """The packet the spec result's acceptance prints: the first one that binds the Improve card."""
+        self.advance_to(run, "spec")
+        return self.complete(run).stdout
+
+    @staticmethod
+    def printed_bind(head):
+        """The bind command a head leads with, as the shell words it prints."""
+        lead = next(line for line in head.splitlines() if line.startswith("Next command (bind the selected Improve card"))
+        return lead, shlex.split(lead.split("details below): ", 1)[1])
+
+    def test_a_stage_run_started_without_a_card_records_the_installed_one_and_prints_a_runnable_bind(self):
+        run = self.init()
+        self.assertEqual(self.saved(run)["improve_skill"], str(CARD))
+        head = self.to_the_bind(run)
+        lead, argv = self.printed_bind(head)
+        self.assertIn("--skill-card=" + str(CARD), argv)
+        full = Path(next(row for row in head.splitlines() if row.startswith("Full packet: "))
+                    .removeprefix("Full packet: ")).read_text(encoding="utf-8")
+        for text in (head, full):
+            self.assertNotIn("/absolute/path/to", text)
+            self.assertNotIn(nav.IMPROVE_CARD_BLANK, text)
+        # The command exactly as printed binds the card.
+        self.run_argv(argv)
+        self.assertEqual(self.saved(run)["active_improve"]["skill"]["skill_card"], str(CARD))
+
+    def test_an_explicit_improve_skill_wins_over_the_installed_card(self):
+        """GUARD (passes on the unchanged tree): the flag is recorded as given, and the packet binds that card."""
+        elsewhere = self.base / "elsewhere" / "improve"
+        shutil.copytree(CARD.parent, elsewhere, symlinks=True)
+        run = self.init("--improve-skill", elsewhere / "SKILL.md", name="explicit")
+        self.assertEqual(self.saved(run)["improve_skill"], str(elsewhere / "SKILL.md"))
+        _lead, argv = self.printed_bind(self.to_the_bind(run))
+        self.assertIn("--skill-card=" + str(elsewhere / "SKILL.md"), argv)
+        self.assertNotIn("--skill-card=" + str(CARD), argv)
+
+
+class NoInstalledCardCliTests(CliRunCase):
+    """Batch 1009 B1a: where no usable sibling card exists the packet says so; it never prints a path that looks real.
+
+    A copy of the ShipLoop package alone in a temporary `skills/` directory is run through its own CLI, so the
+    installed-card location the copy computes holds no Improve skill (or only part of one).
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls._shared = tempfile.TemporaryDirectory(prefix="shiploop-no-installed-card-")
+        cls.addClassCleanup(cls._shared.cleanup)
+        cls.skills = Path(cls._shared.name).resolve() / "skills"
+        shutil.copytree(PACKAGE, cls.skills / "shiploop", ignore=shutil.ignore_patterns("__pycache__"))
+        cls.cli_path = cls.skills / "shiploop" / "scripts" / "shiploop"
+
+    def init(self):
+        self.repo = self.repository("repo-nocard")
+        run = self.base / "run-nocard"
+        self.cli("init", "--repo", self.repo, "--run-dir", run, "--prompt=add hello")
+        return run
+
+    def at_the_bind(self, run):
+        self.advance_to(run, "spec")
+        head = self.complete(run).stdout
+        full = Path(next(row for row in head.splitlines() if row.startswith("Full packet: "))
+                    .removeprefix("Full packet: ")).read_text(encoding="utf-8")
+        return head, full
+
+    def check_the_honest_blank(self, run):
+        self.assertEqual(self.saved(run)["improve_skill"], "")
+        head, full = self.at_the_bind(run)
+        for text in (head, full):
+            self.assertNotIn("/absolute/path/to", text)
+        # The head leads with the one command; the sentence that says why its value is blank is in the full packet.
+        self.assertIn("No Improve card is recorded for this run.", full)
+        self.assertIn(str(self.skills / "improve" / "SKILL.md"), full)
+        lead = next(line for line in head.splitlines() if line.startswith("Next command (bind the selected Improve card"))
+        # The marked blank is one quoted argument that the bind refuses honestly, rather than a wrong path it runs.
+        refused = self.run_argv(shlex.split(lead.split("details below): ", 1)[1]), status=2)
+        self.assertIn("skill card path must be absolute", refused.stdout + refused.stderr)
+        # Selecting the real card, as the packet says to, binds it.
+        action = self.saved(run)["action"]["id"]
+        self.cli("improve-bind", "--run-dir", run, "--action", action, "--skill-card", CARD)
+        self.assertEqual(self.saved(run)["active_improve"]["skill"]["skill_card"], str(CARD))
+        return head, full
+
+    def test_a_stage_run_starts_and_its_first_bind_says_no_card_is_recorded_instead_of_printing_a_fake_path(self):
+        self.check_the_honest_blank(self.init())
+
+    def test_a_card_that_is_present_but_unusable_is_not_called_missing(self):
+        """Only the SKILL.md sits beside ShipLoop (no runtime directory): init records nothing, and the packet's sentence
+        stays true by naming where ShipLoop looks and not by claiming the file is absent."""
+        (self.skills / "improve").mkdir()
+        self.addCleanup(shutil.rmtree, self.skills / "improve", True)
+        shutil.copy(CARD, self.skills / "improve" / "SKILL.md")
+        head, full = self.check_the_honest_blank(self.init())
+        for text in (head, full):
+            self.assertNotIn("not found", text)
+            self.assertNotIn("no Improve card exists", text)
 
 
 class ReceiptCountTests(unittest.TestCase):

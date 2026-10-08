@@ -662,5 +662,44 @@ class BackchainStageTextTests(unittest.TestCase):
             self.assertEqual(self.packets_in("none")[stage].count(
                 guidance._backchain_guidance(stage, backchain_passes="none")), 1)
 
+
+class BindCommandTests(unittest.TestCase):
+    """Batch 1009 B1a: a packet that tells the host to bind the Improve card prints a path ShipLoop knows, not a template.
+
+    The round-1 runs each built the path by hand (`IMP=.../skills/improve/SKILL.md; ls $IMP`) from the CLI path, although
+    ShipLoop's own sibling card is a fact it can read (SPEC S-4: copy printed values; S-5: the script decides what it can).
+    """
+
+    def test_no_dry_run_packet_prints_a_placeholder_path_in_a_command(self):
+        import shlex
+        seen = 0
+        for delegation in navigator.DELEGATIONS:
+            for name, scenario in driver.scenarios().items():
+                report = driver.run_scenario(name, scenario, delegation=delegation)
+                self.assertTrue(report['ok'], report.get('error'))
+                for event in report['events']:
+                    prompt = event['prompt']
+                    with self.subTest(delegation=delegation, scenario=name, sequence=event['sequence']):
+                        self.assertNotIn('/absolute/path/to', prompt)
+                        for line in prompt.splitlines():
+                            for token in shlex.split(line) if '--skill-card=' in line else ():
+                                if token.startswith('--skill-card='):
+                                    seen += 1
+                                    self.assertTrue(os.path.isabs(token.split('=', 1)[1]), line)
+        self.assertGreater(seen, 0, 'the dry run reaches a packet that binds the Improve card')
+
+    def test_a_run_with_no_recorded_card_prints_a_marked_blank_and_where_shiploop_looks(self):
+        """The not-recorded sample: a saved run that predates init-time resolution, or an install with no sibling card."""
+        done = {'outcome': 'done', 'summary': 'Synthetic declaration; no work executed.'}
+        state = navigator.new_state('/simulation-only/repo', 'Bind sample.', improve_skill='')
+        while navigator.current_stage(state) != 'spec':
+            state = navigator.apply(state, navigator.current_action(state)['id'], done)
+        waiting = navigator.apply(state, navigator.current_action(state)['id'], done)
+        packet = navigator.render(driver.CORE, driver.RUN, waiting)
+        self.assertNotIn('/absolute/path/to', packet)
+        self.assertIn(navigator.IMPROVE_CARD_BLANK, packet)
+        self.assertIn('No Improve card is recorded for this run', packet)
+        self.assertIn(str(guidance.installed_improve_card()), packet)
+
 if __name__ == '__main__':
     unittest.main()

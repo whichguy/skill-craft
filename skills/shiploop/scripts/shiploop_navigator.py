@@ -2525,6 +2525,11 @@ def _result_input_path(root: Path, action_id: str) -> Path:
 # The prefix shiploop_keepalive searches command output for; keep both in step.
 KEEPALIVE_MARKER = "SHIPLOOP-RUN"
 
+# Printed in place of the Improve card path when the run records none (an install with no usable sibling card, or a
+# saved run that predates init-time resolution).  It is not path-shaped, so a host cannot mistake it for a real value,
+# and the bind refuses it as "skill card path must be absolute".
+IMPROVE_CARD_BLANK = "<absolute path of the selected Improve SKILL.md>"
+
 
 # An empty template list was copied verbatim; a placeholder the script refuses
 # makes the worker name the files instead.
@@ -3614,7 +3619,7 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
                 + _callback(core, root, "complete", action=action_id,
                             result=str(_result_input_path(root, action_id)))]
     if child["skill"] is None:
-        card = state.get("improve_skill") or "/absolute/path/to/selected/improve/SKILL.md"
+        card = state.get("improve_skill") or IMPROVE_CARD_BLANK
         return ["Next command (bind the selected Improve card; details below): "
                 + _callback(core, root, "improve-bind", action=action_id, **{"skill-card": card})]
     import shiploop_standalone_improve as standalone
@@ -3708,10 +3713,18 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         seed_text,
     ])
     if child["skill"] is None:
-        card = state.get("improve_skill") or "/absolute/path/to/selected/improve/SKILL.md"
+        card = state.get("improve_skill") or IMPROVE_CARD_BLANK
+        if state.get("improve_skill"):
+            bind_line = ("Bind the Improve card recorded for this run (--improve-skill, or the card installed beside "
+                         "ShipLoop) using this command:")
+        else:
+            # Always true: it names where ShipLoop looks and does not claim the file is absent.
+            bind_line = ("No Improve card is recorded for this run. ShipLoop looks for its own at "
+                         + str(guidance.installed_improve_card()) + " when a run starts; select the Improve "
+                         "SKILL.md to bind (that file, if it exists) and replace the marked value with its absolute path:")
         lines.extend([
             "Load the actual Improve skill selected by this host. Retain its absolute SKILL.md location; do not substitute a policy file or managed controller.",
-            "Bind that selected card using this command (replace the placeholder only if needed):",
+            bind_line,
             _callback(core, root, "improve-bind", action=action_id, **{"skill-card": card}),
             "If unavailable, keep this action pending and report the missing skill; do not substitute a hand-written review loop for the selected skill.",
             "Pause parent without losing child: " + _callback(core, root, "pause", reason="reason"),

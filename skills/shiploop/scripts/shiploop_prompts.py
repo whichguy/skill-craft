@@ -1937,6 +1937,15 @@ def backchain_skills_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
+def installed_improve_card() -> Path:
+    """The Improve card installed beside ShipLoop in this plugin install, by file location (never a name or PATH search).
+
+    The same skills directory as the Backchain and Until Loop resources.  Whether it is usable is
+    ``shiploop_standalone_improve.resolve_skill``'s decision, not this function's.
+    """
+    return backchain_skills_root() / "improve" / "SKILL.md"
+
+
 def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
     """Resolve the fixed Backchain/Until Loop resources from this plugin install."""
     skills_root = backchain_skills_root()
