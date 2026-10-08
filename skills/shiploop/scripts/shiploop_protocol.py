@@ -95,61 +95,88 @@ def _require_card_for_unreviewed_planning(requested: "str | None", card: str) ->
         raise ProtocolError(f"the selected Improve card cannot be resolved: {exc}") from exc
 
 
-def _listed(paths, prefix=""):
-    """Paths as one comma-separated text that keeps ``prefix`` plus itself within the printed-output limit.
+class _Paths:
+    """A printed line that holds a path list: ``head``, the paths, ``tail``.  ``_fit`` decides how many paths show."""
 
-    A longer list is cut at a path, and the rest is counted: a directory decides every undecided path beneath it.
+    def __init__(self, head, paths, tail=""):
+        self.head, self.paths, self.tail = head, list(paths), tail
+
+    def text(self, room):
+        """The line within ``room`` characters; a longer list is cut at a path and the rest counted."""
+        room -= len(self.head) + len(self.tail)
+        whole = ", ".join(self.paths)
+        if len(whole) <= room:
+            return self.head + whole + self.tail
+
+        def more(count):
+            return f", and {count} more"
+
+        room -= len(more(len(self.paths)))
+        shown, used = [], 0
+        for path in self.paths:
+            if used + len(path) + 2 > room:
+                break
+            shown.append(path)
+            used += len(path) + 2
+        return self.head + ", ".join(shown) + more(len(self.paths) - len(shown)) + self.tail
+
+
+def _fit(parts, limit=None):
+    """The lines of one command's output, as text of at most ``limit`` characters (default ``PRINT_LIMIT``) in all.
+
+    A plain string is a fixed line and prints whole.  Each ``_Paths`` takes an even share of the room the fixed lines
+    leave, in order, so a short list leaves its room to the longer ones after it.  Output hosts cut near 20,000
+    characters, and the line a cleared context needs is the last one (the next command), so the whole output, not each
+    list, is held to the limit.
     """
-    whole = ", ".join(paths)
-    if len(prefix) + len(whole) <= navigator.PRINT_LIMIT:
-        return whole
-
-    def more(count):
-        return f", and {count} more (a directory decides every undecided path beneath it)"
-
-    room = navigator.PRINT_LIMIT - len(prefix) - len(more(len(paths)))
-    shown, used = [], 0
-    for path in paths:
-        if used + len(path) + 2 > room:
-            break
-        shown.append(path)
-        used += len(path) + 2
-    return ", ".join(shown) + more(len(paths) - len(shown))
+    room = (limit or navigator.PRINT_LIMIT) - sum(len(part) + 1 for part in parts if isinstance(part, str))
+    lists = sum(not isinstance(part, str) for part in parts)
+    lines = []
+    for part in parts:
+        if not isinstance(part, str):
+            part = part.text(room // lists - 1)
+            room -= len(part) + 1
+            lists -= 1
+        lines.append(part)
+    return lines
 
 
-def _recorded_line(reviewed):
-    """What a review-return call recorded, for the model that has to confirm it."""
+def _emit(parts, stream=None):
+    for line in _fit(parts):
+        print(line, file=stream or sys.stdout)
+
+
+def _recorded_parts(reviewed):
+    """What a review-return call recorded, for the model that has to confirm it.
+
+    The excludes are counted here and listed once, with the other excludes a review decided, by ``_review_parts``.
+    """
     kept, excluded = reviewed["kept"], reviewed["excluded"]
     if not kept and not excluded:
-        return "No decision was recorded (no --keep or --exclude path was named)."
-    parts = []
-    if kept:
-        parts.append("kept " + _listed(kept, "Recorded: kept "))
-    if excluded:
-        parts.append("excluded " + _listed(excluded, "excluded "))
-    return "Recorded: " + "; ".join(parts) + "."
+        return ["No decision was recorded (no --keep or --exclude path was named)."]
+    return [*([_Paths("Recorded: kept ", kept, ".")] if kept else []),
+            *([f"Recorded: excluded {len(excluded)} (every exclude a review decided is listed below)."]
+              if excluded else [])]
 
 
-def _review_lines(core, root, summary, expected=None, policy=None):
+def _review_parts(core, root, summary, expected=None, policy=None):
     """The plan's tally, the excludes a review decided, and the next command, which is always the last line.
 
     While paths are undecided the next command is the review that decides them; with none left it is the return, after
     ``expected``, the route a return would take, for the model to compare with the rollback it wrote at release-plan.
     """
-    lines = [f"Return plan {root / 'return-plan.md'}: {summary['total']} paths, {summary['keep']} keep, "
+    parts = [f"Return plan {root / 'return-plan.md'}: {summary['total']} paths, {summary['keep']} keep, "
              f"{summary['exclude']} exclude, {len(summary['pending'])} undecided."]
     if policy:
-        lines.append(policy)
+        parts.append(policy)
     if summary["reviewed_excludes"]:
-        head = "Excluded by review: "
-        lines.append(head + _listed(summary["reviewed_excludes"], head) + ".")
+        parts.append(_Paths("Excluded by review: ", summary["reviewed_excludes"], "."))
     if summary["pending"]:
-        head = f"Undecided ({len(summary['pending'])}): "
-        return [*lines, head + _listed(summary["pending"], head) + ".", navigator.REVIEW_RETURN_RULE,
-                "Decide them with: " + navigator.review_return_command(core, root)]
+        return [*parts, _Paths(f"Undecided ({len(summary['pending'])}): ", summary["pending"], "."),
+                navigator.REVIEW_RETURN_RULE, "Decide them with: " + navigator.review_return_command(core, root)]
     if expected:
-        lines.append(f"Expected return: {expected}; the return itself still refuses a moved source or a collision.")
-    return [*lines, "Nothing is undecided; run: " + shlex.join(
+        parts.append(f"Expected return: {expected}; the return itself still refuses a moved source or a collision.")
+    return [*parts, "Nothing is undecided; run: " + shlex.join(
         ["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"), "workspace", "return", "--workspace-root", str(root)])]
 
 
@@ -259,26 +286,32 @@ def workspace_command(core, argv):
             saved = store.read_record(root / "run" / "state.md")
             navigator.validate(saved)
             workspace.assert_binding(root, Path(saved["repo"]))
-            if args.operation == "plan-return":
-                leftover = workspace.commit_leftovers(root)
-                if leftover.commit:
-                    print("ShipLoop committed these files that were left uncommitted (no action needed): "
-                          + ", ".join(leftover.paths) + f" ({leftover.commit[:12]}).")
-                if leftover.skipped:
-                    print(shiploop_git.skipped_notice(leftover.skipped))
-                workspace.plan_return(root, fresh=leftover.skipped)
-                recorded, summary = [], workspace.plan_summary(root)
-            else:
-                reviewed = workspace.review_return(root, [name for group in args.keep for name in group],
-                                                   [name for group in args.exclude for name in group])
-                recorded, summary = [_recorded_line(reviewed)], reviewed["summary"]
-            kind = None if summary["pending"] else workspace.expected_return(root)
-            expected = None if kind is None else f"{kind} ({workspace.ROUTE_TEXT[kind]})"
-            policy = ("Return policy: fast-forward only for a clean starting checkout and a clean committed candidate "
-                      "with all reviewed paths kept; otherwise return only the kept working-tree delta, without a "
-                      "Git merge or commit." if args.operation == "plan-return" else None)
-            for line in [*recorded, *_review_lines(core, root, summary, expected, policy)]:
-                print(line)
+            parts = []  # everything this command prints, held to one budget (see _fit)
+            try:
+                if args.operation == "plan-return":
+                    leftover = workspace.commit_leftovers(root)
+                    if leftover.commit:
+                        parts.append(_Paths("ShipLoop committed these files that were left uncommitted (no action "
+                                            "needed): ", leftover.paths, f" ({leftover.commit[:12]})."))
+                    if leftover.skipped:
+                        parts.append(shiploop_git.skipped_notice(leftover.skipped))
+                    workspace.plan_return(root, fresh=leftover.skipped)
+                    summary = workspace.plan_summary(root)
+                else:
+                    reviewed = workspace.review_return(root, [name for group in args.keep for name in group],
+                                                       [name for group in args.exclude for name in group])
+                    parts.extend(_recorded_parts(reviewed))
+                    summary = reviewed["summary"]
+                kind = None if summary["pending"] else workspace.expected_return(root)
+                expected = None if kind is None else f"{kind} ({workspace.ROUTE_TEXT[kind]})"
+                policy = ("Return policy: fast-forward only for a clean starting checkout and a clean committed candidate "
+                          "with all reviewed paths kept; otherwise return only the kept working-tree delta, without a "
+                          "Git merge or commit." if args.operation == "plan-return" else None)
+                parts.extend(_review_parts(core, root, summary, expected, policy))
+            except Exception:
+                _emit(parts)  # what ShipLoop already did (the files it committed) stays visible when a later step refuses
+                raise
+            _emit(parts)
         else:
             saved = store.read_record(root / "run" / "state.md")
             navigator.validate(saved)
@@ -309,15 +342,15 @@ def workspace_command(core, argv):
     except workspace.ReviewRefused as exc:
         # Line 1 carries the verb, the count and the paths: hosts and models read refusals through `head` and `cut`.
         if isinstance(exc, workspace.PendingDispositions):
-            head = f"ShipLoop workspace blocked: review-return is needed for {len(exc.undecided)} undecided return paths: "
-            print(head + _listed(exc.undecided, head), file=sys.stderr)
+            parts = [_Paths("ShipLoop workspace blocked: review-return is needed for "
+                            f"{len(exc.undecided)} undecided return paths: ", exc.undecided)]
         else:
-            print(f"ShipLoop workspace blocked: {exc}", file=sys.stderr)
+            parts = [f"ShipLoop workspace blocked: {exc}"]
             if exc.undecided:
-                head = f"Undecided ({len(exc.undecided)}): "
-                print(head + _listed(exc.undecided, head) + ".", file=sys.stderr)
-        print("Run: " + navigator.review_return_command(core, root), file=sys.stderr)
-        print(navigator.REVIEW_RETURN_RULE + " Then run workspace return again.", file=sys.stderr)
+                parts.append(_Paths(f"Undecided ({len(exc.undecided)}): ", exc.undecided, "."))
+        parts += ["Run: " + navigator.review_return_command(core, root),
+                  navigator.REVIEW_RETURN_RULE + " Then run workspace return again."]
+        _emit(parts, sys.stderr)
         return 2
     except (workspace.WorkspaceError, ProtocolError, store.StorageError, OSError, ValueError) as exc:
         print(f"ShipLoop workspace blocked: {exc}", file=sys.stderr)

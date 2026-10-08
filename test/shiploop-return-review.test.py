@@ -184,7 +184,7 @@ class ReviewReturnTests(ReturnReviewCase):
         self.assertIn(f"Return plan {root / 'return-plan.md'}: 3 paths, 0 keep, 0 exclude, 3 undecided.", planned)
         self.assertIn("Undecided (3): app.js, late.js, scratch.log.", planned)
         self.assertIn("Decide them with: " + self.review_command(root) + " --keep <paths> --exclude <paths>", planned)
-        self.assertIn("A directory decides every undecided path beneath it", planned)
+        self.assertIn(navigator.REVIEW_RETURN_RULE, planned)
         self.assertIn("Return policy: fast-forward only", planned)
         # A cleared context needs the next command last: while paths are undecided that is the review, not the return.
         self.assertTrue(planned.splitlines()[-1].startswith("Decide them with: "), planned.splitlines()[-1])
@@ -195,7 +195,9 @@ class ReviewReturnTests(ReturnReviewCase):
         self.plan_return(root)
         plan_before = (root / "return-plan.md").read_bytes()
         reviewed = self.review(root, "--keep", "app.js", "docs/guide.md", "--exclude", "scratch.log").stdout
-        self.assertIn("Recorded: kept app.js, docs/guide.md; excluded scratch.log.", reviewed)
+        self.assertIn("Recorded: kept app.js, docs/guide.md.", reviewed)
+        self.assertIn("Recorded: excluded 1 (every exclude a review decided is listed below).", reviewed)
+        self.assertEqual(reviewed.count("scratch.log"), 1)  # listed once, under Excluded by review
         self.assertIn("0 undecided", reviewed)
         self.assertIn("Excluded by review: scratch.log.", reviewed)
         self.assertIn("workspace return --workspace-root", reviewed.splitlines()[-1])
@@ -348,25 +350,49 @@ class ReviewReturnTests(ReturnReviewCase):
         positions = [text.index(part) for part in parts]
         self.assertEqual(positions, sorted(positions))
 
-    def test_a_very_long_undecided_list_is_bounded_and_a_directory_decides_the_rest(self) -> None:
+    def test_the_whole_printed_output_is_one_budget_with_the_next_command_last_and_a_directory_decides_the_rest(self) -> None:
+        # Hosts cut a long output near 20,000 characters, and the command is what a cleared context needs, so every
+        # command's output (not each of its lists) stays within PRINT_LIMIT and ends with that command.  Three
+        # directories of long names are each longer than the limit alone, so the review below holds a long kept list,
+        # a long excluded list and a long undecided list in one output.
         root, worktree = self.start("many paths")
-        names = [f"bulk/module-{index:04d}-with-a-rather-long-descriptive-file-name.js" for index in range(700)]
-        for name in names:
-            self.write(worktree, name)
+        for folder in ("keep-me", "drop-me", "wait-me"):
+            for index in range(100):
+                self.write(worktree, f"{folder}/module-{index:04d}-" + "x" * 180 + ".js")
         self.commit(worktree)
         self.at(root, "handoff")
-        planned = self.plan_return(root).stdout
-        refused = self.do_return(root, code=2).stderr
-        for text in (planned, refused):
-            self.assertLessEqual(max(len(line) for line in text.splitlines()), navigator.PRINT_LIMIT)
-        self.assertIn("and ", refused.splitlines()[0])
-        self.assertIn(" more", refused.splitlines()[0])
-        self.assertIn("700 undecided return paths", refused.splitlines()[0])
-        self.assertLessEqual(len(refused.splitlines()[0]), 250 + navigator.PRINT_LIMIT)
-        self.review(root, "--keep", "bulk")
-        self.assertEqual(set(self.dispositions(root).values()), {"keep"})
-        self.assertIn("Verified workspace return", self.do_return(root).stdout)
 
+        def within(text: str, last: str) -> None:
+            self.assertLessEqual(len(text), navigator.PRINT_LIMIT, len(text))
+            self.assertTrue(text.splitlines()[-1].startswith(last), text.splitlines()[-1][:120])
+
+        within(self.plan_return(root).stdout, "Decide them with: ")
+        refused = self.do_return(root, code=2).stderr
+        first = refused.splitlines()[0]
+        self.assertIn("300 undecided return paths", first)
+        self.assertIn(", and ", first)  # a cut list counts the rest
+        self.assertIn(" more", first)
+        self.assertIn("Run: ", refused)
+        self.assertLessEqual(len(refused), navigator.PRINT_LIMIT)
+        excluded = self.review(root, "--exclude", "drop-me").stdout
+        within(excluded, "Decide them with: ")
+        self.assertIn("Recorded: excluded 100", excluded)
+        # The reviewed excludes are listed once, with the other excludes a review decided, not again under Recorded.
+        self.assertEqual(excluded.count("drop-me/module-0000"), 1)
+        replanned = self.plan_return(root).stdout
+        within(replanned, "Decide them with: ")
+        self.assertIn("Excluded by review: drop-me/module-0000", replanned)  # a carried exclude stays visible
+        three = self.review(root, "--keep", "keep-me").stdout
+        within(three, "Decide them with: ")
+        for part in ("Recorded: kept keep-me/module-0000", "Excluded by review: drop-me/module-0000",
+                     "Undecided (100): wait-me/module-0000"):
+            self.assertIn(part, three)
+        last = self.review(root, "--keep", "wait-me").stdout
+        within(last, "Nothing is undecided; run: ")
+        self.assertIn("Recorded: kept wait-me/module-0000", last)
+        self.assertEqual(sorted(set(self.dispositions(root).values())), ["exclude", "keep"])
+        self.assertEqual(sum(value == "keep" for value in self.dispositions(root).values()), 200)
+        self.assertIn("Verified workspace return", self.do_return(root).stdout)
 
     def test_plan_return_and_review_return_take_the_workspace_lock(self) -> None:
         # A writer verb now sits beside plan_return, so neither may run while another ShipLoop command holds the workspace.

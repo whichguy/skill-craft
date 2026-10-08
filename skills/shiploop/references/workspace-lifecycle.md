@@ -139,7 +139,9 @@ return is not evidence that a hosted consumer has been updated.
    the tally, every undecided path and the `review-return` command. Decide **every**
    path with `workspace review-return --workspace-root EXTERNAL --keep PATH... --exclude PATH...`:
    `keep` for intended lasting work, `exclude` for transient work. A directory decides
-   every undecided path beneath it and the most specific name wins. Never edit
+   every undecided path beneath it and the most specific name wins. Each command's
+   output is held to ShipLoop's one print limit, so a very long list is cut at a path
+   and the rest counted, and the last line is always the next command. Never edit
    `return-plan.md` or its status: the verb records the decisions, refuses by name a keep
    of a forbidden runtime path or caller-excluded path and an exclude of ShipLoop's
    knowledge, and records nothing when it refuses. Undecided paths block return, whose
