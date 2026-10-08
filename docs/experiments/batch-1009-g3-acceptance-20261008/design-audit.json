@@ -1,0 +1,253 @@
+{
+ "what": "Batch 1009 group G3 (acceptance): the audited design (candidates K1, W1, I2, U1) and its audit, exported from the session scratchpad file items2/G3-acceptance.json, which the journal, the head-size record and the commit messages cite as the acceptance criteria. The audit verdict is approve-with-corrections; its corrections, wrong_claims and missed_unknowns override the design. Values unedited; only the keys what and source are added.",
+ "source": "items2/G3-acceptance.json (session scratchpad, 2026-10-08)",
+ "key": "G3-acceptance",
+ "cands": [
+  "U1",
+  "I2",
+  "W1",
+  "K1"
+ ],
+ "design": {
+  "verdict": "implement-smaller",
+  "summary": "Build all four, each smaller than proposed. U1 (the only structural change): one optional result key `unverified` on a done product-acceptance result, a list of {outcome, reason, check, owner, due_stage}. ShipLoop REFUSES only mechanical faults at the CLI gate (key missing, malformed entry, the unedited template row, due_stage not a later stage); it only RECORDS what it cannot judge (whether the list is complete, whether [] is true, assumption coverage, headline wording); it PRINTS the list and the plan's still-open assumptions at product-acceptance and handoff and renders it in report.html. No new state key; the key is shape-checked in _canonical_result (absence loads) and required only in a new submit-time gate, the assumptions pattern. Case end-state mapping: an `unverified` entry is the recorded 'unachievable / not yet due' state; 'validated another way' stays a script-run check. The shared CASE_END_STATES is left unchanged on purpose (its 'report blocked' route is wrong for an outer open item under S-14 and for the inner stages, which cannot continue past a failing recorded command); product-acceptance gets its own three-state sentence in DUTIES. I2: the Improve parent packet gets the stage's Goal and Done-when through _goal_lines (reviewer side) plus one sentence in _improve_line; no producer Checked-by change (head window). K1: one stage_files() union, two alias entries deleted. W1: five wording fixes (discovery no-suite, research/intake vs S-14, release guard scoped to plan review, integrate chain/commit lines, 'independent'); (f) is folded into U1. I built this in a scratch copy (/private/tmp/g3/proto2, a copy of the b1008a worktree at abc47622 plus the changes and patched tests; no repo file was edited). Result: all 60 ShipLoop hermetic test files pass except those that fail identically on a pristine copy (chain, chain-async, chain-lifecycle, chain-planning-context, cross-run: 23 failures on both; one status-display test) and one guidance test that needs docs/experiments, which my copy excluded. The seven patched test files fail on the pristine copy for the reasons listed in fail_first_tests. Measured head (dry run, END of the status block, limit 8000): product-acceptance 5973 to 6347, Improve parent packets 4529 to 4876 (inline) and 4758 to 5105 (ask-agent), every other stage within 2 characters; the step-plan head is untouched.",
+  "for_against": "For: both runs ignored the stage row's own 'pending with its owner and due stage' and put an 'all verified' headline over a prose limitation (checkers results/nav-6e9289db headline 'live server meets every request sentence' with 'Limitation: ... not driven in a real browser'; battleship results/nav-c6fbc982 'all request outcomes verified; UI clicks only statically', notes/acceptance.md 'pending, optional, no authorized browser used'); S-14 has required a recorded open item since 2026-09-27 and the 2026-10-04 'a13' route (test/shiploop_e2e/LEARNINGS.md) was deliberately text-only with no field, so the content (owner, due stage, what they report) has nowhere to live; the gate is the same class as the plan's assumption list (required at submit, optional on load); the test blast radius is three helper defaults plus new cases. Against: a model can write [] or perfunctory text and the script cannot tell; n=2 on one model; product-acceptance was a pass-through stage (docs/lifecycle-review-2026-10-07.md: 0.4 min) and now needs one more field; it reverses the a13 'text only' choice for this one stage. Why smaller than the synthesis: no refusal keyed on prose, headline words or assumption ids (KISS over adversarial guards), no producer Checked-by edit (head window), no change to the owner's shared CASE_END_STATES, reportable-only items (script-run baseline, return-plan status, notes/ directory, refusal first lines) left to the other groups. The 5-field entry adds `check` to the synthesis's 4 because S-14's open item is 'who must do what and what they should report'; drop it if the second run shows it is filled perfunctorily.",
+  "per_candidate": [
+   {
+    "id": "U1",
+    "verdict": "implement-smaller",
+    "change": "Optional result key `unverified` ([{outcome, reason, check, owner, due_stage}], [] legal) on a done product-acceptance result. Submit-time gate refuses: key missing, entry not exactly those five non-empty texts, an entry equal to the printed template row, due_stage not one of release-plan, release-check, release, release-verify, operations, handoff. Records and prints: product-acceptance and handoff packets list the plan's assumptions still `open` (every consumer item is done by the outer stages); the handoff packet reprints the accepted list ('none listed' for [], 'no list recorded' when the key is absent: unmeasured is not zero); report.html gets an 'Unverified request outcomes' table with the same distinction. product-acceptance done_when[0] becomes 'every request outcome was observed by an executed check, or is listed in unverified with its reason, owner and due stage'; DUTIES['product-acceptance'] states the three end states (observed / observed another way, a changed method that ran / unachievable or not yet due, listed, run continues) and drops no existing text. Not built: refusal when open assumptions are unaccounted, headline parsing, script-updated assumption dispositions."
+   },
+   {
+    "id": "I2",
+    "verdict": "implement-smaller",
+    "change": "Reviewer side only: _goal_lines returns, for an active Improve child, 'Reviewing the accepted <stage> result. Goal: ...' and the row's done_when under 'Done when (the review confirms each; correct the result's files, never the condition):'. _goal_lines feeds both render and packet_head, so the printed head and the file carry it (one code path). Producer side: one added sentence after the unchanged promise in _improve_line ('That review checks the result against the Done-when conditions above.'), in the full packet after the status block, so no head growth. Not built: a Checked-by edit in the head (step-plan head is at the limit). Nuance the lens missed: the child's frozen exit condition already carries the done-when (improve_start_contract appends loop_contract.stage_exit; r1-checkers improve/nav-64cc858a.../terminal.json conditions.exit), so the runtime packets had it; the gap is the parent packet a cleared model re-reads (S-6), not a reviewer with no contract."
+   },
+   {
+    "id": "W1",
+    "verdict": "implement-smaller",
+    "change": "Wording only, one source each: (a) stage_spec discovery.done_when[0] adds 'or none exists and that is recorded as missing coverage'; (b) research.done_when[1] becomes 'each proven access need is recorded as an open item with who can grant it and the gate it blocks' and intake.done_when[1] 'who answers it (discovery, or a recorded default)'; (c) prompts._improve_prompt release_guard: for a stage in PLANNING_REVIEW_STAGES (release-plan, the only release-family stage with an Improve child) say 'This review performs no deployment, MCP interaction or other release operation and repeats no release effect', keep the old 'may perform' text for the catalog's other release stages; (d) DUTIES['integrate']: 'confirm this item's candidate is assembled ... ShipLoop makes the item's commit when this stage is accepted' for both routes, and the bound-chain sentence moves into _INLINE_DUTY_PARAGRAPHS['integrate'] so inline runs never see it; (e) _BACKCHAIN_IMPROVE_OWNER: 'Improve is a broader review than Backchain's diagnostic'; (f) product-acceptance's missing end states is done in U1. Left alone: CASE_END_STATES vs the system-test open-item paragraph (owner's rule of today; documented below), the 7-refused-runs vs 'no iteration limit' pair (I1, document-only), the plan child's two-review vs one-pass pair."
+   },
+   {
+    "id": "K1",
+    "verdict": "implement",
+    "change": "shiploop_knowledge_home: delete the 'prepare' and 'release-verify' aliases from STAGE_FILES (they only copied CLOSES), add stage_files(stage) = STAGE_FILES entries then any CLOSES file not already listed, and make stage_lines print stage_files. Tables stay the only two; a close can no longer demand a file its packet does not name (test-spec gains {feature}/plan.md, release-plan gains {feature}/system-tests.md). Gates unchanged, so no behavior change in what is refused; no head change (the line is after the status block)."
+   }
+  ],
+  "changes": [
+   {
+    "file": "skills/shiploop/scripts/shiploop_unverified.py (new)",
+    "symbol": "STAGES, FIELDS, TEMPLATE_ROW, SHAPE, UnverifiedError, due_stages, canonical, check_submitted, open_assumptions, accepted_entries, html_section",
+    "change": "New module beside shiploop_assumptions.py. canonical is shape-only (so every saved result still loads); check_submitted holds the required-list, template-row and later-due-stage refusals; open_assumptions and accepted_entries read state via planning_revision.current_actions; html_section prints 'none listed' / 'not recorded' / the table."
+   },
+   {
+    "file": "skills/shiploop/scripts/shiploop_navigator.py",
+    "symbol": "_RESULT_KEYS, _DONE_ONLY_FIELDS, _canonical_result",
+    "change": "Add 'unverified' to both tuples; in _canonical_result accept it only on a done product-acceptance result and store unverified.canonical(value) (NavigatorError on UnverifiedError). A blocked/repeat/replan result carrying it gets the existing 'does not carry' refusal for free."
+   },
+   {
+    "file": "skills/shiploop/scripts/shiploop_navigator.py",
+    "symbol": "_check_submitted_unverified (new), dispatch (complete branch)",
+    "change": "Call it next to _check_submitted_assumptions in the complete branch only (product-acceptance has no Improve child, so not in improve-complete). Required at the CLI gate, never in the pure apply path, so graph simulations and saved runs are unaffected."
+   },
+   {
+    "file": "skills/shiploop/scripts/shiploop_navigator.py",
+    "symbol": "_stage_gates, _result_template",
+    "change": "_stage_gates adds 'a missing unverified list, or an entry that is incomplete or still the template row' for unverified.STAGES (the Checked-by line names exactly what the gate refuses; the word must be added to GATE_WORDS in the completeness test). _result_template prints one example row (dict(unverified.TEMPLATE_ROW)) at product-acceptance."
+   },
+   {
+    "file": "skills/shiploop/scripts/shiploop_navigator.py",
+    "symbol": "_unverified_lines (new), render",
+    "change": "Insert *_unverified_lines(state, root, stage) after progress_guidance and before _run_rules: early in the full packet but AFTER the status-block END, so variable-length content never competes with the 8000-character kept head. Product-acceptance and handoff print open assumptions (id, consumer, text, the check that would settle it, via _bounded_packet_text); handoff also prints the accepted list or 'none listed' / 'no list recorded'."
+   },
+   {
+    "file": "skills/shiploop/scripts/shiploop_navigator.py",
+    "symbol": "_render_report",
+    "change": "Add unverified.html_section(state) to report_tail beside consumer_delivery.html_section; html.escape every cell."
+   },
+   {
+    "file": "skills/shiploop/scripts/shiploop_navigator.py",
+    "symbol": "_goal_lines, _improve_line",
+    "change": "I2: Improve branch of _goal_lines (Goal + Done-when, no Checked-by, since _render_improve owns the Improve 'Checked by:' line); one sentence appended after the unchanged 'starts this action's Improve child.' promise (tests pin that sentence with its period, so the clause must be a separate sentence)."
+   },
+   {
+    "file": "skills/shiploop/scripts/shiploop_stage_spec.py",
+    "symbol": "_ROWS: intake, discovery, research, product-acceptance done_when",
+    "change": "W1 (a), (b) and U1 done_when text. CASE_END_STATES unchanged. No Improve row involved, so loop_contract.stage_exit and the 9,216-byte contract budget are unaffected."
+   },
+   {
+    "file": "skills/shiploop/scripts/shiploop_prompts.py",
+    "symbol": "DUTIES['product-acceptance']",
+    "change": "Append the unverified duty (list what no executed check observed, with reason, check, owner and later stage; a summary-only limitation is not recorded; try another method first) and the three end states ending 'An outcome stated only in the summary has no end state.'"
+   },
+   {
+    "file": "skills/shiploop/scripts/shiploop_prompts.py",
+    "symbol": "_improve_prompt (release_guard), _BACKCHAIN_IMPROVE_OWNER",
+    "change": "W1 (c) branch on stage in PLANNING_REVIEW_STAGES; W1 (e) one phrase."
+   },
+   {
+    "file": "skills/shiploop/scripts/shiploop_prompts.py",
+    "symbol": "DUTIES['integrate'], _INLINE_DUTY_PARAGRAPHS",
+    "change": "W1 (d): reword the commit clause once; add an 'integrate' pair whose delegated half is the bound-chain sentence (the import-time check requires it to occur exactly once in DUTIES) and whose inline half omits it."
+   },
+   {
+    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+    "symbol": "STAGE_FILES, stage_files (new), stage_lines, __all__",
+    "change": "K1 as above."
+   },
+   {
+    "file": "skills/shiploop/SKILL.md",
+    "symbol": "paragraph after the release-plan `consumer_entry` paragraph",
+    "change": "Four lines: what `unverified` is, what ShipLoop refuses and what it cannot judge, where it is printed. Keeps the card and the script in agreement (S-3)."
+   },
+   {
+    "file": "changes/shiploop/unverified-outcomes.md (new)",
+    "symbol": "bump: minor",
+    "change": "One note for all four (notes for one skill share a kind). The commit that changes prompts carries a verbose message: key learning (a done_when clause that only prose carries is ignored, 2 of 2 runs), the evidence files above, and the related commits (the a13 text-only open-item route and the 2026-10-08 case end-state rule). Journal entry in docs/shiploop-batch-1008a-journal-2026-10-08.md in the same commit."
+   },
+   {
+    "file": "test/shiploop-callback-contract.test.py",
+    "symbol": "field_values, RefusalRouteTests.test_each_result_fault_the_checked_line_names_is_refused_and_the_corrected_result_is_accepted, UnverifiedRouteTests (new), UNVERIFIED_ENTRY, OPEN_ASSUMPTION",
+    "change": "fill_done needs a minimum real value for every template key, so field_values gains 'unverified': []; three refusal cases and one template-row subtest; a route test through the real CLI."
+   },
+   {
+    "file": "test/shiploop-packet-completeness.test.py",
+    "symbol": "PacketCompletenessTests.GATE_WORDS, test_an_improve_packet_states_purpose_operation_check_output_and_recovery",
+    "change": "Add 'unverified': {'product-acceptance'}; assert Goal and every done_when line in each Improve packet."
+   },
+   {
+    "file": "test/shiploop-rehydration.test.py",
+    "symbol": "GoalFirstTests.test_every_producer_packet_leads_with_its_goal_and_done_when",
+    "change": "The Improve branch keeps assertNotIn('Done when (confirm each') (the producer's heading) and asserts the stage's done_when lines are present."
+   },
+   {
+    "file": "test/shiploop-knowledge.test.py",
+    "symbol": "KnowledgeTests.test_a_close_packet_lists_every_file_its_refusal_names (new)",
+    "change": "K1 invariant through the real gate."
+   },
+   {
+    "file": "test/shiploop-guidance.test.py",
+    "symbol": "UnattendedWordingTests (new), UnverifiedWordingTests (new), test_improve_retains_coding_and_release_capabilities_with_stage_authority",
+    "change": "Text pins for W1 and the product-acceptance end states; the existing release test pinned 'operations already authorized' for all four release stages, so release-plan alone flips (planning-review stage), the other three keep the old assertions."
+   },
+   {
+    "file": "test/shiploop-delegation.test.py, test/shiploop-improve-schedule.test.py",
+    "symbol": "test_integrate_assembles_direct_or_chain_work, test_planning_improve_packet_has_focus_callback_first_and_honest_passes",
+    "change": "The integrate test pinned 'assemble or commit' on both routes; it now requires no 'assemble or commit' anywhere and the chain sentence only on ask-agent. The improve-schedule test adds no 'independent broader review' and the Goal/Done-when lines."
+   },
+   {
+    "file": "test/shiploop-test-loop.test.py, test/shiploop-full-runtime.test.py",
+    "symbol": "TestLoopTests.complete, _accept_direct_stage",
+    "change": "Helpers that drive the real CLI past product-acceptance default unverified to [] exactly as they default the plan's assumptions (nine test-loop tests and the delivery full-runtime path need it). These are the whole blast radius; nothing else completes product-acceptance through the CLI gates."
+   }
+  ],
+  "fail_first_tests": [
+   "test/shiploop-callback-contract.test.py :: RefusalRouteTests.test_each_result_fault_the_checked_line_names_is_refused_and_the_corrected_result_is_accepted, subTests 'no unverified list', 'an unverified entry without an owner', 'an unverified due stage that is not a later stage', 'the unverified template row copied unchanged'. Real CLI, state.md unchanged on refusal, the corrected result accepted by the same printed command. Fails on pristine (returncode 0, no refusal; template has no unverified key). End state: validated (fails on base, passes on the prototype).",
+   "test/shiploop-callback-contract.test.py :: UnverifiedRouteTests.test_open_assumptions_and_the_accepted_list_reach_the_handoff_packet_and_the_report. Plan carries an open assumption (consumer W1); product-acceptance full packet prints it; a done result with one entry is accepted; the handoff packet prints outcome, reason, check, owner and due_stage; the `report` verb prints the table. Validated.",
+   "test/shiploop-callback-contract.test.py :: EveryStageRouteTests.test_every_stage_accepts_its_printed_template_filled_minimally (existing; needs field_values['unverified']). It failed on the first prototype exactly as predicted and is the guard that the printed template row is a legal result once replaced. Validated.",
+   "test/shiploop-packet-completeness.test.py :: test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses with GATE_WORDS['unverified'] (product-acceptance only): the Checked-by word must exist exactly where the gate does. Fails on base. Validated.",
+   "test/shiploop-packet-completeness.test.py :: test_an_improve_packet_states_purpose_operation_check_output_and_recovery extended to Goal and every done_when line (8 Improve packets: spec, test-strategy, plan, step-plan, test-spec, system-test-author, release-plan, carry-forward). Cold read of state.md, real render. Fails on base for all 8. Validated.",
+   "test/shiploop-rehydration.test.py :: GoalFirstTests.test_every_producer_packet_leads_with_its_goal_and_done_when (Improve branch). Fails on base. Validated.",
+   "test/shiploop-improve-schedule.test.py :: test_planning_improve_packet_has_focus_callback_first_and_honest_passes (adds 'Reviewing the accepted spec result. Goal:' and a done_when line; no 'independent broader review'). Fails on base. Validated.",
+   "test/shiploop-knowledge.test.py :: KnowledgeTests.test_a_close_packet_lists_every_file_its_refusal_names. Takes the refusal text of knowledge.check (the real gate) and requires each '- /path' it names in stage_lines. Fails on base for test-spec ({feature}/plan.md) and release-plan ({feature}/system-tests.md) only; prepare and release-verify pass. Validated.",
+   "test/shiploop-guidance.test.py :: UnattendedWordingTests (3 tests) and UnverifiedWordingTests, and the release-plan arm of test_improve_retains_coding_and_release_capabilities_with_stage_authority. Text pins: they prove the wording changed, not that a model behaves differently. Fail on base. End state: validated another way (text pin) for model behaviour, which is unachievable here without a live run.",
+   "test/shiploop-delegation.test.py :: test_integrate_assembles_direct_or_chain_work (both routes). Fails on base because the pinned sentence is the one removed. Validated.",
+   "Model behaviour: whether a Sonnet 5.5 run given the template row and gate actually lists the unexercised page interaction instead of []. Unachievable in a hermetic test; named reason: only a live run observes it. Requirement left unverified: 'the omitted limitation becomes a non-empty list'. Exit: rerun the Battleship and Checkers cases on the next published build and read product-acceptance results for a non-empty `unverified` naming the page interaction with an owner and due stage (the synthesis's nothing_further_if item 3)."
+  ],
+  "unknowns": [
+   "Live behaviour of the gate (see last fail-first entry). Settled by the next Battleship+Checkers rerun; if the list comes back [] over an unexecuted page, the next step is a script-visible probe of consumer surfaces at test-strategy (candidate U2), not a prose-matching refusal.",
+   "Whether `check` earns its place: read the second run's entries; drop the field if it is filled with filler.",
+   "Owner decision: (c) contradicts a test that pins 'operations already authorized' for release-plan (the 'Improve retains release capabilities with stage authority' decision). The change keeps that text for the catalog's other release stages and flips only the plan review. Needs the owner's yes; if no, leave the contradiction documented.",
+   "Owner decision, left unchanged on purpose: CASE_END_STATES (today's rule) says an unachievable case reports blocked, while DUTIES['system-test'] says a person-only case does not make the result blocked. Rewording the shared constant would be wrong for test-author, test-green and regression (they cannot continue past a failing recorded command) and costs about 75 characters in five heads (system-test-author's real head is already 7448). The more specific outer-stage paragraph wins today. Settle by an owner statement, or by reconciling only the two outer rows.",
+   "Real-path head margin: real product-acceptance packets run about 720 characters longer than the dry run (r1-checkers nav-6e9289db END at 6695 vs 5973 hermetic), so the build projects to about 7070 of 8000. Settle by the status-display dry-run window test (test_every_dry_run_packet_carries_the_block_inside_the_kept_head) and one measured real packet after the build; if above 7600 shorten the done_when line.",
+   "Whether an open item recorded at system-test or release-verify is lost before product-acceptance (its summary reaches the next packet only through the 1200-character 'Last accepted transition' block). Not built; decide from the second run. If lost, allow the same key at those stages and accumulate.",
+   "Delivery-contract runs whose result template exceeds 6000 characters fall back to a minimal template (_result_contract_lines) that omits stage fields including `unverified`; the refusal still names the full shape. Accepted limit, opt-in mode.",
+   "Plan assumptions stay `open` in the ledger after their consumer finishes (context-index.md of both runs still lists A2/A3 as open); this build prints them and lets the model state the outcome but does not change a disposition. Revisit only if the second run still leaves them silent.",
+   "shiploop-e2e.test.py was not run in the prototype (harness-heavy; grep finds no product-acceptance dependence). The chain suites, cross-run and one status-display test fail the same way on a pristine copy of this machine, so they say nothing about the change."
+  ],
+  "risks": [
+   "Saved runs: no new state key. `unverified` is a result key: _canonical_result accepts its absence, and _apply_result's replay compares canonical forms, so accepted product-acceptance results from older runs load and replay unchanged. A run that is mid product-acceptance when the plugin updates gets one refusal naming the exact shape (accepted).",
+   "Gaming and filler: [] or perfunctory text passes. Accepted and visible: the list is printed at handoff and in the report, and the second run is read for it. No prose or headline parsing is added (KISS over adversarial guards).",
+   "Dead-end refusal: the refusal names the key, the entry shape and the six legal due stages, and a test submits the corrected result through the same command. No path waits on a person (S-14) and an unachievable outcome continues the run.",
+   "Packet size and the window: product-acceptance +374 and Improve parents about +347 characters in the dry run, other heads within 2; step-plan head (7971 of 8000) not touched. Variable-length content (open assumptions, the handoff list) is placed after the status-block END, never in the kept head; a run with many open assumptions grows the packet file, not the head.",
+   "Packet-completeness and guidance suites pin several sentences; four edits intentionally flip pins (integrate on both routes, release-plan's Improve guard, the Improve packet's Done-when, the _improve_line sentence must stay a separate sentence because tests pin 'starts this action's Improve child.' with its period). All were run in the prototype.",
+   "Other session owns skills/shiploop-run-review: its exporter reads results generically (no result-key whitelist found by grep); the new key is ignored there. No edits planned in that tree.",
+   "Release/commit hygiene: new tests live in existing files, so no suite_catalog registration; real-git tests used by these files already set GIT_CONFIG_NOSYSTEM and GIT_CONFIG_GLOBAL; one changes/shiploop note (minor); prompt-changing commit needs the verbose message and journal entry.",
+   "S-14 reading of the new refusal: it can block an unattended run only by refusing a malformed result; the model fixes it itself in the same stage, no person is involved.",
+   "Adversarial disposition summary (change admission): gaming with [] accepted; stale saved runs mitigated (optional on load); head overflow mitigated (placement after END, measured); extra cost about zero turns (one list); weakening another clause: S-6 strengthened (Improve packet restates its contract), S-9 untouched (no new claim of evidence), S-12 one mechanism (assumptions-style gate, one new module)."
+  ],
+  "evidence": [
+   "Stage row: skills/shiploop/scripts/shiploop_stage_spec.py _ROWS product-acceptance done_when ('verified, or pending with its owner and due stage') and its `test` has no CASE_END_STATES (only test-author, test-green, regression, system-test-author, system-test carry it).",
+   "Runs: /Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/.shiploop-runs/work-20261008-174135-41d2f7/run/results/nav-6e9289db5fda43719d6625567829fea7.md (product-acceptance) and nav-dd03af00b4584191a16e8bb522d1a0c1.md (handoff, 'Gap: page click UI not driven'); r1-battleship-sonnet/.../run/results/nav-c6fbc982f530485e9a8cfb1d70fc4739.md and notes/acceptance.md. Neither carries an owner or due stage. Checkers work/test/server.test.js TC-13 asserts status, content-type, title and two URL strings only.",
+   "Assumptions: r1-checkers run/state.md accepted nav-fc9a3436 has A2 and A3 `open` with consumer W1 (A3 text: UI checked by served-content tests, not a real browser); run/context-index.md lines for 'plan assumptions' still list them (open) at the end.",
+   "Prose route that exists and has no field: shiploop_prompts COMMON ('record it as an open item in the result, with who must do what and what they should report'), DUTIES['system-test'], DUTIES['handoff'] ('List each open item as unverified, with who reports what'); test/shiploop_e2e/LEARNINGS.md section 'a13 system-test open item, built' ('text only; no script, state field, verb or exit rule'); test/shiploop-test-loop.test.py pins the open item in a summary reaching the next packet.",
+   "Gate pattern and compatibility: shiploop_navigator _canonical_result (skill_na comment: validate() re-canonicalises every accepted result on load), validate (canonical == accepted), _check_submitted_assumptions, dispatch complete branch; shiploop_assumptions.py canonical/check_consumers/check_files.",
+   "I2: shiploop_navigator _goal_lines returns [] for active_improve, packet_head and render both call it; r1-checkers packets/nav-64cc858a...-improve.md has no 'Goal:' or 'Done when'; but improve/nav-64cc858a.../terminal.json conditions.exit includes 'The spec result meets its own done-when criteria: ...' (shiploop_loop_contract.stage_exit via improve_start_contract).",
+   "K1: shiploop_knowledge_home CLOSES['test-spec'] adds {feature}/plan.md and CLOSES['release-plan'] adds {feature}/system-tests.md, absent from STAGE_FILES; r1-battleship events.jsonl records the refusal twice ('Before release-plan is done, write', lines 448 and 450). Prototype: new test fails on base for exactly test-spec and release-plan.",
+   "W1: r1 discovery results already improvised the no-suite outcome ('no existing suite ... recorded as missing coverage', both runs) and research recorded 'No access needs', so (a) and (b) are generic wording gaps, not run-breaking; (c) shiploop_prompts IMPROVE_SCOPES['release-plan'] 'without executing release' vs the _improve_prompt release_guard 'Improve may perform deployments'; (d) test/shiploop-delegation.test.py pinned the contradiction on both routes while shiploop_navigator dispatch _item_commit commits at an accepted integrate; (e) shiploop_navigator _render_improve 'self-passes ... not independent reviewers' vs _BACKCHAIN_IMPROVE_OWNER.",
+   "Measurements (graph-dry-run END of status block): base product-acceptance 5973, Improve parent 4529/4758; prototype 6347, 4876/5105; real r1-checkers packets END: product-acceptance nav-6e9289db 6695, system-test-author nav-4b0da7d9 7448, plan nav-fc9a3436 7849.",
+   "Prototype runs: /private/tmp/g3/out_p2 (patched tree, 60 test files), /private/tmp/g3/out_base (pristine, environment-bound subset), /private/tmp/g3/out_bf (patched tests on pristine: the fail-first record), /private/tmp/g3/proto2 (the patched tree)."
+  ],
+  "size": "m"
+ },
+ "audit": {
+  "verdict": "approve-with-corrections",
+  "corrections": [
+   "U1 report: the design says html_section prints 'none listed' / 'not recorded' / the table. The prototype (/private/tmp/g3/proto2/skills/shiploop/scripts/shiploop_unverified.py html_section) returns [] for both [] and an absent key. Either build the distinction or delete the claim. No test anywhere in proto2 asserts 'none listed' or 'no list recorded' at handoff (grep of proto2/test finds neither). Add a fail-first test for [] versus a result without the key, or the unmeasured-is-not-zero claim has no end state.",
+   "U1 open-assumption lines (shiploop_navigator._unverified_lines): the label 'Settled by: <row[check]>' prints the plan's 'what would settle it' text as if it were a fact. In both r1 runs most open assumptions were in fact settled by tests (checkers A2, battleship A2) but their disposition stays 'open' forever, and A3 (checkers) was not settled at all. Reword to 'Recorded open at planning (the ledger does not update dispositions) ... Check that would settle it: ...' and drop the 'still open although the work items are done' framing. Also remove the unstated limit=300 per-field truncation (bounded text also inserts a newline mid-bullet); print in full or use the existing default.",
+   "U1 due_stage is validated but never consumed. Only product-acceptance and handoff print the list, so an entry due at release-check, release, release-verify or operations is never shown to the stage that owns it. 'Not yet due' then has no route to one of the owner's end states. Smallest fix: let _unverified_lines also print the entries whose due_stage equals the current stage (one condition plus a test). Otherwise restrict due_stage to handoff and say that.",
+   "U1 canonical vs gate: _canonical_result runs on every accepted result at load (validate re-canonicalises). unverified.canonical currently enforces the exact five-key set and non-empty strings at load. The design itself says to drop `check` if it is filler; that later edit would refuse saved runs. Follow the skill_na comment in _canonical_result: canonical = list of mappings of strings only; exact FIELDS, non-empty text, template row and later-stage membership in check_submitted (CLI gate only).",
+   "U1 Checked-by line: _stage_gates names 'a missing unverified list, or an entry that is incomplete or still the template row' but not the fourth refusal, a due_stage that is not a later stage. The completeness test only pins the word 'unverified'. Name the due-stage fault (about +30 characters) so S-6 'how it is checked' is true.",
+   "U1 handoff wording: 'Unverified at product-acceptance: none listed' can be read by a cleared handoff model as 'nothing is open'. Open items recorded at system-test or release-verify in prose are not in it. Say explicitly that earlier and later stages' open items are read from their results, and keep 'none listed' scoped to product-acceptance.",
+   "I2 wording: 'Reviewing the accepted <stage> result' is false; the Improve parent packet itself says the parent step stays pending until improve-complete, so the result is not accepted. Use 'returned' or 'completed'. _improve_line says blocked and repeat results also start a child, and for those the 'Done when (the review confirms each ...)' block cannot hold. Condition the heading on child['seed_result']['outcome'] == 'done', or word it 'a done result must meet each'.",
+   "W1(d): drop the added sentence 'ShipLoop makes the item's commit when this stage is accepted'. The integrate row's Develop consideration already prints the same fact in the same packet (stage_spec integrate develop), which is duplication inside one packet. Keep only the removal of 'or commit' and the move of the bound-chain sentence into the delegated half of _INLINE_DUTY_PARAGRAPHS['integrate'].",
+   "W1(c): hold until the owner answers. test_improve_retains_coding_and_release_capabilities_with_stage_authority is a recorded owner decision. The existing text is already scoped to 'operations already authorized for the current task and stage', which at a plan review authorizes nothing. Both r1 release-plan Improve children ended on one trivial pass, so nothing broke. If the owner agrees, replace the guard outright. Do not keep the old text as an unreachable branch for release-check, release and release-verify, which never have an Improve child (reviewed only for the test's sake).",
+   "Test labelling: the wording pins in test/shiploop-guidance.test.py prove the text changed, which is 'validated'. Do not call them 'validated another way'; the model-behaviour requirement is the 'unachievable' entry with its named reason. Use a neutral fixture instead of UNVERIFIED_ENTRY 'the page responds to a click' (S-13; it mirrors the probe's finding).",
+   "Evidence and journal numbers to restate (see wrong_claims): status-END deltas, the 6695 figure, and 'every other stage within 2 characters'. Also build and test the pieces the prototype lacks (SKILL.md paragraph, changes/shiploop note, journal entry); none exists in proto2.",
+   "Order and commit shape: land K1, then W1 (a, b, d, e), then I2, then U1 as separate commits under one note. Each is independently revertible, and U1 is the only one that changes a gate."
+  ],
+  "missed_unknowns": [
+   "The thing that misled in the evidence is the model's headline ('live server meets every request sentence'), which feeds the script-rendered Achieved line and final narrative (S-15). U1 adds a table beside it in report.html and the handoff packet but leaves the user-facing status line unchanged. Unknown whether the narrative should carry a script-rendered 'N unverified' count when the list is non-empty. That is a small generic follow-up, and the second run should say whether it is needed.",
+   "Plan assumption dispositions never close. Every run that records an open assumption will print it as 'open' at product-acceptance and handoff for the rest of the run. Whether a settled one should be closable (a script-visible disposition update) is open; the design records it but its own wording asserts staleness as fact.",
+   "Only product-acceptance carries the structured list. Open items recorded at system-test (a13 route) reach it only through the 1200-character last-transition block; those recorded at release-verify reach handoff only through prose. Already named by the design; the product-acceptance DUTIES should say 'carry the open items earlier stages recorded', which the prototype text does not.",
+   "The audit is based on n=2 Sonnet runs. The r1 Grok battleship run blocked at system-test-author, so it adds nothing about product-acceptance. In both Sonnet runs the limitation did reach handoff honestly in prose (checkers 'Gap: page click UI not driven', battleship 'limits: no browser click-through'). The gain is owner/due-stage structure, not a lost limitation, so the value is unproven until a rerun.",
+   "The kept-head test result depends on the checkout path length: the same dry run gives a 7971 maximum in the 62-character b1008a path and 7929 in /private/tmp/g3/base. This is an existing fragility, not caused by the design, but 'measured 7971 of 8000' is path-specific and the margin is 29 characters.",
+   "Delivery-contract minimal template (result_template over 6000 characters) omits `unverified` while the gate demands it, so a contract-mode run predictably gets one refusal at product-acceptance. Same class as the existing assumptions limit; accepted by the design.",
+   "A model can leave `reason`, `check` and `owner` as '<...>' placeholders and change only `outcome`: the refusal is exact equality with the whole template row, so a partly edited row passes. KISS may accept this; a one-line placeholder check (a value that starts with '<' and ends with '>') would close it, as the headline placeholder check does.",
+   "Prototype scope gaps: proto2 holds no SKILL.md paragraph, no changes/shiploop note, no journal entry, and shiploop-e2e.test.py was not run (it uses nav.apply to seed stages before step-plan only, so it does not reach product-acceptance; I found no dependence)."
+  ],
+  "owner_rule_violations": [
+   "No invented thresholds: the prototype's _unverified_lines truncates each printed field at limit=300. The design text does not mention it, and nothing measured it.",
+   "MAIN TENET (only duplication inside one packet is waste): W1(d)'s added 'ShipLoop makes the item's commit...' sentence repeats the integrate stage row's Develop consideration, which prints in the same packet.",
+   "S-12 (one implementation of a mechanism) and the owner's case end-state rule of 2026-10-08: DUTIES['product-acceptance'] adds a third statement of the three end states with a different 'unachievable' route (list and continue versus CASE_END_STATES 'report blocked with blocked_by access'). The design flags this as an owner decision, so it is soft until the owner decides; it also puts 'not yet due' inside the unachievable state, which the owner's text treats as a recorded-not-run case.",
+   "Scripts own navigation: due_stage is a navigation-looking field that no script uses after the submit-time check (soft).",
+   "'A test case ends validated, validated another way, or unachievable': the 'none listed' / 'not recorded' distinction in the report is claimed but neither built nor tested, so it has no end state yet. The text pins are labelled 'validated another way', which is the wrong state.",
+   "Not violations (checked): no Battleship or Checkers text, threshold or guard in source or DUTIES; `unverified` is an optional result key, so saved runs load; the new gate is CLI-only like the assumptions gate; the new tests live in existing files that already set GIT_CONFIG_NOSYSTEM and GIT_CONFIG_GLOBAL; no edit under skills/shiploop-run-review."
+  ],
+  "tenet_check": "Mostly satisfied. I2 helps the main tenet: the Improve parent packet today has no Goal or Done-when (verified in r1-checkers packets/nav-64cc858a...-improve.md; only a generic 'Review the current stage's Ready/Done criteria' line), and the child's frozen exit condition already carries the done-when (terminal.json conditions.exit, from loop_contract.stage_exit), so the gap is the parent a cleared model re-reads, as the design says. U1 puts the open assumptions and the accepted list into the two packets that need them (product-acceptance writes it, handoff reports it), which is cross-packet grounding and fine. K1 makes the packet name every file its own gate demands. The kept-head window is not threatened: step-plan and the heaviest revise packets are unchanged apart from a 2-character path artifact; all new variable-length text sits after the status-block END; product-acceptance grows by about 414 characters and Improve parents by 270 to 593 in the dry run, all far below 8000. Tenet gaps: the Improve parent says 'accepted' for a result that is still pending and does not handle blocked or repeat seeds; due_stage entries are not shown at their due stage; W1(d) adds same-packet duplication; the Checked-by line leaves one gate fault unnamed.",
+  "verified_claims": [
+   "Both r1 runs left a limitation in prose without owner or due stage. Checkers results/nav-6e9289db: headline 'Acceptance: live server meets every request sentence', summary 'Limitation: the page's click interaction was not driven in a real browser'. Battleship results/nav-c6fbc982 and notes/acceptance.md: 'pending, optional, no authorized browser used'. Checkers TC-13 (work/test/server.test.js) asserts only status, content-type, the title and two URL strings.",
+   "Plan assumptions stay 'open' to the end: checkers A2 and A3 (consumer W1) and battleship A2 (consumer W1) are 'open' in the accepted plan result.",
+   "product-acceptance has no CASE_END_STATES (only test-author, test-green, regression, system-test-author and system-test carry it), and its done_when is 'verified, or pending with its owner and due stage'.",
+   "The a13 route (test/shiploop_e2e/LEARNINGS.md, 'a13 system-test open item, built') was text only, with no field, and states that DUTIES['product-acceptance'] was left unchanged because the stage row already accepts 'pending with its owner and due stage'. The design reverses that for this one stage. S-14 requires an open item to be recorded.",
+   "The gate pattern exists as described: _canonical_result is shape-only and validate re-canonicalises accepted results; _check_submitted_assumptions runs only in the complete branch; improve-complete has no product-acceptance case because product-acceptance has no Improve child (improve=None). Only stages spec, test-strategy, plan, step-plan, test-spec, system-test-author, release-plan and carry-forward have one.",
+   "K1 is exactly as stated. CLOSES['test-spec'] requires {feature}/plan.md and CLOSES['release-plan'] requires {feature}/system-tests.md, and neither is in STAGE_FILES. 'prepare' and 'release-verify' were aliases of CLOSES. r1-battleship events.jsonl lines 448 and 450 show the release-plan refusal for system-tests.md. Nothing outside shiploop_knowledge_home.py reads STAGE_FILES. Gates are unchanged.",
+   "I2: _goal_lines returns [] for an active Improve child and is used by both render and packet_head. The child's exit condition already includes the stage's done-when (checkers improve/nav-64cc858a.../terminal.json).",
+   "W1: integrate develop text says ShipLoop commits and the model must not, while DUTIES['integrate'] still says 'assemble or commit' (_item_commit confirms ShipLoop commits at an accepted integrate). The research and intake done_when lines contradict COMMON's S-14 text. discovery done_when has no no-suite outcome and both r1 discovery results improvised one. W1(a), (b), (d) and (e) touch no Improve row (intake, discovery and research have improve=None), so the 9,216-byte contract budget is unaffected.",
+   "Test results reproduce. I reran packet-completeness, rehydration, knowledge, delegation, improve-schedule, stage-spec, packet-bounds and navigator-contract in /private/tmp/g3/proto2: all exit 0. out_p2/_summary.txt shows 60 files with 7 failures. chain, chain-async, chain-lifecycle, chain-planning-context, cross-run and status-display fail with the same failing test names on the pristine copy; guidance fails only on the missing docs/experiments/batch-1008-b3-20261008/receipt-recount.json. The status-display failure is the progress-observer extra-files assertion, not the window assertion. The seven patched test files fail on pristine (out_bf). The only ShipLoop test file not run is shiploop-e2e.test.py.",
+   "None of the environment-failing suites pin any changed text, and none drives product-acceptance through the CLI gate. The grep for 'Goal:', 'Done when', 'assemble', STAGE_FILES, stage_lines and product-acceptance found only a status-display stage-list line.",
+   "The exporter in skills/shiploop-run-review reads accepted summaries only (export.py MAX_SUMMARY), so the new result key cannot break it, and no edit there is planned. No code outside the planned files enumerates result keys: _RESULT_KEYS and _DONE_ONLY_FIELDS are used only in the navigator and not by any test.",
+   "The printed prototype packets match the design in structure. Product-acceptance prints the one template row, the new Done-when line and the extended Checked-by line. The handoff prints 'Unverified at product-acceptance: no list recorded' when the key is absent, and 'none listed' for []."
+  ],
+  "wrong_claims": [
+   "'Every other stage within 2 characters' is wrong. Against a pristine copy at an equal-length path (/private/tmp/g3/base), the status-END offset grows in discovery by 59, research by 50 and intake by 8 (W1 a and b), as well as product-acceptance and the Improve parents. The +2 on the remaining stages is a path-length artifact (/private/tmp/g3/base versus /private/tmp/g3/proto2). All are far below 8000, so the conclusion stands but the evidence line is inexact.",
+   "Product-acceptance head growth is stated as 5973 to 6347 (+374). The same dry-run comparison gives about +414. Improve parents are stated as about +347; measured now: spec +443, plan +408, test-strategy +389, release-plan +364, system-test-author +268, and the carry-forward and other parents up to +591 (path artifact of +2 excluded).",
+   "'Real product-acceptance packets run about 720 characters longer than the dry run (r1-checkers nav-6e9289db END at 6695)'. 6695 is the offset of the narrative END marker. The status-block END in that packet is at 5712 characters, shorter than the dry run's 5973. The 7070 projection is therefore a narrative-end figure; the status-block END projects to about 6130. Either figure is under 8000.",
+   "'html_section prints none listed / not recorded / the table' and the report carries 'the same distinction': not what the prototype does (it prints nothing for [] or an absent key), and not tested.",
+   "'The Checked-by line names exactly what the gate refuses': it does not name the due_stage fault, one of the four refusals in unverified.check_submitted.",
+   "'Reviewing the accepted <stage> result' is not accurate: the Improve parent packet's own text says the parent step stays pending until improve-complete imports the review, so the seed result is not accepted yet.",
+   "The design says the open-assumption print lists the plan's assumptions 'still open'. The prototype's line pairs each with 'Settled by: <the plan's check>', which is the text of what would settle it, not a settling fact. Most of those assumptions were in fact settled by the consumer item's tests while their ledger disposition stays 'open', so the label asserts staleness as fact and misreads as a claim of settlement.",
+   "The fail-first entry that labels the text pins 'validated another way' misclassifies them (see corrections); and the design says the prototype 'built' items (SKILL.md paragraph, note, journal) that are not in /private/tmp/g3/proto2."
+  ]
+ }
+}

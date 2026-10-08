@@ -210,7 +210,9 @@ _DURATION_SECONDS = {
     "test/shiploop-test-counts.test.py": 0.2,
     "test/shiploop-backchain-check.test.py": 1.0,
     "test/shiploop-improve-changes.test.py": 1.5,
-    "test/shiploop-knowledge.test.py": 1.0,
+    # 1.0 was written for a smaller suite.  Local wall seconds, 2026-10-08, the faster of two serial runs at load
+    # average 5.7 to 6.5: 23 tests, 3.64 s.
+    "test/shiploop-knowledge.test.py": 3.64,
     "test/shiploop-assumptions.test.py": 0.2,
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py": 2.53,
     "test/shiploop-capability-runtime.test.py": 0.996,

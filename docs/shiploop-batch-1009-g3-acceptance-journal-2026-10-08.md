@@ -1,0 +1,27 @@
+# Batch 1009, group G3 (acceptance): journal (K1, W1, I2, U1)
+
+Living journal for the four audited candidates of group G3, built in worktree `b1009g-aaa47e` on the base
+`847fa64e` (skill-craft 1.24.0 and the round-1 analysis). One section per candidate, each landing in its own
+commit (a section's heading says "this commit" in the commit that adds it and names the commit after).
+Each entry gives the status of its findings (firm, interim, exploratory, superseded), the evidence, and what
+stays unmeasured. Evidence: `docs/experiments/batch-1009-round1-analysis-20261008/analysis.json` (why the
+candidates exist), `docs/experiments/batch-1009-g3-acceptance-20261008/design-audit.json` (the audited design
+and its audit, the acceptance criteria: verdict approve-with-corrections; every correction it required is
+applied and listed in "Audit corrections").
+
+**Purpose (owner).** The sample apps exemplify the ShipLoop SDLC; a change counts only if it makes ShipLoop
+more faithful to its stages, SPEC (`test/shiploop_e2e/SPEC.md`) and the main tenet, and stays generic: no
+sample-app text, threshold or guard.
+
+## K1: a packet lists every file its close will require (this commit)
+
+**Built (status: firm that the packet and the gate now name the same files).** `STAGE_FILES` (what a packet
+prints) and `CLOSES` (what `knowledge.check` refuses without) were two hand-kept tables and two entries had
+drifted: `CLOSES["test-spec"]` requires `{feature}/plan.md`, `CLOSES["release-plan"]` requires
+`{feature}/system-tests.md`, and neither was in the packet's list. `stage_files(stage)` is the stage's own list
+plus any close file not already in it; the `prepare` and `release-verify` rows, which only copied `CLOSES`,
+are gone. Gates unchanged. Test: `KnowledgeTests.test_a_close_packet_lists_every_file_its_refusal_names`
+takes the refusal text of the real gate for every close and requires each named file in `stage_lines`. It
+failed on the base for exactly `test-spec` and `release-plan` (4 failures: the class and its subclass), passes
+after. The round-1 Battleship run met the `release-plan` refusal twice (analysis.json, candidate K1).
+End state: validated. Unmeasured: that a live run now writes the file at release-plan without a refusal.

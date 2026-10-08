@@ -40,20 +40,26 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
     # Before the workspace return: a commit at handoff would miss the return and stale its receipt.
     "release-verify": ("{feature}/outcome.md", "environment.md", "README.md"),
 }
-# What each stage writes or updates, printed in its packet.
+# What each stage writes or updates; a close's required files (above) are added to its packet list by ``stage_files``.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "intake": ("README.md",),
     "discovery": ("environment.md",),
     "spec": ("spec.md", "{feature}/spec.md"),
     "test-strategy": ("test-strategy.md",),
     "plan": ("{feature}/plan.md", "README.md"),
-    "prepare": CLOSES["prepare"],
     "step-plan": ("{feature}/plan.md",),
     "test-spec": ("{feature}/test-spec.md",),
     "system-test-author": ("{feature}/system-tests.md",),
     "release-plan": ("{feature}/release-plan.md", "environment.md"),
-    "release-verify": CLOSES["release-verify"],
 }
+
+
+def stage_files(stage: str) -> Tuple[str, ...]:
+    """Every file the stage's packet names: what it writes, then any further file its close will require."""
+    written = STAGE_FILES.get(stage, ())
+    return written + tuple(name for name in CLOSES.get(stage, ()) if name not in written)
+
+
 _REQUIREMENT_ID = re.compile(r"\b(R-\d+)\b")
 # outcome.md sections that become the release-verify commit body (owner to-do 2026-09-26).
 LEARNING_SECTIONS = ("Learned", "Key considerations", "Open for the next run")
@@ -109,7 +115,7 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     lines = ["", "Repository knowledge home (committed, inherited by later runs): " + str(repo / HOME)
              + "/README.md. Earlier runs' spec, environment and features are there; open a file when this "
              "stage needs it."]
-    files = STAGE_FILES.get(stage)
+    files = stage_files(stage)
     if files:
         lines.append("This stage keeps these up to date (create them if missing): "
                      + ", ".join(str(repo / path) for path in _expand(files, state)) + ".")
@@ -222,4 +228,4 @@ def in_home(path: str) -> bool:
 
 
 __all__ = ("CLOSES", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "check", "commit", "feature_dir", "in_home", "learnings",
-           "recent_commits", "stage_lines")
+           "recent_commits", "stage_files", "stage_lines")
