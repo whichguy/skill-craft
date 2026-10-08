@@ -58,8 +58,6 @@ class ReturnReviewCase(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-return-review-")
         self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name).resolve()
-        self.repo = self.base / "source repository"
-        self.repo.mkdir()
         self.env = {
             **os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONNOUSERSITE": "1", "SHIPLOOP_PROGRESS": "off",
             "SHIPLOOP_KEEPALIVE": "off", "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
@@ -67,6 +65,12 @@ class ReturnReviewCase(unittest.TestCase):
         patched = mock.patch.dict(os.environ, self.env)
         patched.start()
         self.addCleanup(patched.stop)
+        self.fresh_repo("source repository")
+
+    def fresh_repo(self, name: str) -> Path:
+        """A source repository with one baseline commit; later calls give a scenario a clean source of its own."""
+        self.repo = self.base / name
+        self.repo.mkdir()
         self.git("init", "-q")
         self.git("branch", "-M", "main")
         self.git("config", "user.name", "Return Review Test")
@@ -76,6 +80,7 @@ class ReturnReviewCase(unittest.TestCase):
         (self.repo / "existing.txt").write_text("existing\n", encoding="utf-8")
         self.git("add", "-A")
         self.git("commit", "-qm", "baseline")
+        return self.repo
 
     def git(self, *args: str, cwd: Path | None = None, code: int = 0) -> subprocess.CompletedProcess:
         result = subprocess.run([str(GIT), "-C", str(cwd or self.repo), *args], text=True, capture_output=True,
@@ -124,6 +129,12 @@ class ReturnReviewCase(unittest.TestCase):
     @staticmethod
     def plan(root: Path) -> dict:
         return store.read_record(root / "return-plan.md")
+
+    @staticmethod
+    def tree(root: Path) -> dict:
+        """Every file under ``root`` outside .git, with its bytes."""
+        return {path.relative_to(root).as_posix(): path.read_bytes() for path in sorted(root.rglob("*"))
+                if path.is_file() and ".git" not in path.relative_to(root).parts}
 
     def dispositions(self, root: Path) -> dict:
         return {row["path"]: row["disposition"] for row in self.plan(root)["paths"]}
@@ -327,6 +338,233 @@ class ReviewReturnTests(ReturnReviewCase):
         self.review(root, "--keep", "bulk")
         self.assertEqual(set(self.dispositions(root).values()), {"keep"})
         self.assertIn("Verified workspace return", self.do_return(root).stdout)
+
+
+class ReturnRouteTests(ReturnReviewCase):
+    """The route a return takes, said before it happens, and the rollback that undoes each route."""
+
+    def prepare(self, name: str, **options) -> tuple[Path, Path]:
+        root = self.base / name
+        record = workspace.prepare(self.repo, root, **options)
+        return root, Path(record["worktree"])
+
+    def review_all(self, root: Path, exclude: tuple[str, ...] = ()) -> None:
+        workspace.plan_return(root)
+        plan = store.read_record(root / "return-plan.md")
+        keep = [row["path"] for row in plan["paths"] if row["path"] not in exclude and row["disposition"] == "pending"]
+        workspace.review_return(root, keep=keep, exclude=exclude)
+
+    def test_the_expected_return_matches_the_actual_return_for_each_route(self) -> None:
+        # One predicate decides the route (execute_return follows it, expected_return reports it); this guards the
+        # extraction against drift for every route a return can take, including the two follow-ups.
+        with self.subTest("clean start, every path kept: fast-forward, and its follow-up"):
+            self.fresh_repo("ff source")
+            root, worktree = self.prepare("ff")
+            self.write(worktree, "app.js")
+            self.commit(worktree)
+            self.review_all(root)
+            self.assertEqual(workspace.expected_return(root), "fast-forward-merge")
+            self.assertEqual(workspace.execute_return(root)["kind"], "fast-forward-merge")
+            self.write(worktree, "fix.js")
+            self.commit(worktree, "a fix after the return")
+            self.review_all(root)
+            self.assertEqual(workspace.expected_return(root), "fast-forward-merge")  # a follow-up keeps the route
+            self.assertEqual(workspace.execute_return(root)["kind"], "fast-forward-merge")
+        with self.subTest("clean start, a committed path excluded: working-tree return, and its follow-up"):
+            self.fresh_repo("excluded source")
+            root, worktree = self.prepare("excluded")
+            self.write(worktree, "app.js")
+            self.write(worktree, "scratch.log")
+            self.commit(worktree)
+            self.review_all(root, exclude=("scratch.log",))
+            self.assertEqual(workspace.expected_return(root), "working-tree-return")
+            self.assertEqual(workspace.execute_return(root)["kind"], "working-tree-return")
+            self.write(worktree, "fix.js")
+            self.commit(worktree, "a fix after the return")
+            self.review_all(root, exclude=("scratch.log",))
+            self.assertEqual(workspace.expected_return(root), "working-tree-return")
+            self.assertEqual(workspace.execute_return(root)["kind"], "working-tree-return")
+        with self.subTest("dirty start: working-tree return"):
+            self.fresh_repo("dirty source")
+            (self.repo / "existing.txt").write_text("edited by the user\n", encoding="utf-8")
+            root, worktree = self.prepare("dirty")
+            self.write(worktree, "app.js")
+            self.commit(worktree)
+            self.review_all(root)
+            self.assertEqual(workspace.expected_return(root), "working-tree-return")
+            self.assertEqual(workspace.execute_return(root)["kind"], "working-tree-return")
+        with self.subTest("nothing to return"):
+            self.fresh_repo("nothing source")
+            root, worktree = self.prepare("nothing")
+            self.review_all(root)
+            self.assertEqual(workspace.expected_return(root), "no-change-return")
+            self.assertEqual(workspace.execute_return(root)["kind"], "no-change-return")
+        with self.subTest("undecided paths: no route yet"):
+            self.fresh_repo("undecided source")
+            root, worktree = self.prepare("undecided")
+            self.write(worktree, "app.js")
+            self.commit(worktree)
+            workspace.plan_return(root)
+            self.assertIsNone(workspace.expected_return(root))
+
+    def test_review_return_says_the_expected_return_once_nothing_is_undecided(self) -> None:
+        root, worktree = self.start("expected line")
+        self.write(worktree, "app.js")
+        self.write(worktree, "scratch.log")
+        self.commit(worktree)
+        self.at(root, "handoff")
+        self.plan_return(root)
+        partial = self.review(root, "--keep", "app.js").stdout
+        self.assertNotIn("Expected return", partial)
+        done = self.review(root, "--exclude", "scratch.log").stdout
+        self.assertIn("Expected return: working-tree-return", done)
+        self.assertIn("no Git merge or commit", done)
+        self.assertIn("the return itself still refuses a moved source", done)
+        self.assertEqual(self.do_return(root).stdout.splitlines()[0], "Verified workspace return: working-tree-return.")
+        # A follow-up whose only new path is decided by a rule leaves nothing undecided already at plan-return: it
+        # says the route then too, without a review-return call.
+        self.write(worktree, "SHIPLOOP.md", "index\n")
+        self.commit(worktree, "knowledge after the return")
+        replanned = self.plan_return(root).stdout
+        self.assertIn("0 undecided", replanned)
+        self.assertIn("Expected return: working-tree-return", replanned)
+        self.assertIn("Nothing is undecided; run: ", replanned)
+
+    def sh(self, command: str) -> None:
+        result = subprocess.run(["sh", "-c", command], cwd=self.base, text=True, capture_output=True, env=self.env)
+        self.assertEqual(result.returncode, 0, command + "\n" + result.stdout + result.stderr)
+
+    @staticmethod
+    def recipe(root: Path, containing: str) -> str:
+        """The command inside backticks on the one rollback line that holds ``containing``."""
+        found = [line for line in workspace.rollback_lines(root) if containing in line]
+        assert len(found) == 1, (containing, workspace.rollback_lines(root))
+        return found[0].split("`")[1]
+
+    def snapshot(self) -> dict:
+        return {"head": self.git("rev-parse", "HEAD").stdout, "status": self.git("status", "--porcelain=v1",
+                "--untracked-files=all").stdout, "tree": ReturnReviewCase.tree(self.repo)}
+
+    def test_the_printed_rollback_restores_the_source_for_each_return_kind(self) -> None:
+        with self.subTest("fast-forward over a merge commit, nothing on top: reset --keep"):
+            self.fresh_repo("rb-ff source")
+            root, worktree = self.prepare("rb-ff")
+            before = self.snapshot()
+            self.write(worktree, "app.js")
+            self.commit(worktree)
+            run_branch = self.git("rev-parse", "--abbrev-ref", "HEAD", cwd=worktree).stdout.strip()
+            self.git("checkout", "-q", "-b", "side", cwd=worktree)  # a merge commit in the run's history
+            self.write(worktree, "side.js")
+            self.commit(worktree, "side work")
+            self.git("checkout", "-q", run_branch, cwd=worktree)
+            self.write(worktree, "main-line.js")
+            self.commit(worktree, "main line work")
+            self.git("merge", "--no-ff", "-q", "-m", "integrate side", "side", cwd=worktree)
+            self.review_all(root)
+            self.assertEqual(workspace.execute_return(root)["kind"], "fast-forward-merge")
+            self.assertTrue((self.repo / "side.js").is_file())
+            self.sh(self.recipe(root, "reset --keep"))
+            self.assertEqual(self.snapshot(), before)
+        with self.subTest("fast-forward, later commits on top: restore the recorded tree and commit"):
+            self.fresh_repo("rb-top source")
+            root, worktree = self.prepare("rb-top")
+            base_tree = self.git("rev-parse", "HEAD^{tree}").stdout
+            self.write(worktree, "app.js")
+            self.commit(worktree)
+            self.review_all(root)
+            self.assertEqual(workspace.execute_return(root)["kind"], "fast-forward-merge")
+            (self.repo / "later.txt").write_text("a later commit by the user\n", encoding="utf-8")
+            self.git("add", "later.txt")
+            self.git("commit", "-qm", "user work on top")
+            self.sh(self.recipe(root, "restore --source"))
+            self.assertEqual(self.git("rev-parse", "HEAD^{tree}").stdout, base_tree)  # added files are gone too
+            self.assertEqual(self.git("status", "--porcelain=v1", "--untracked-files=all").stdout, "")
+        with self.subTest("working-tree return after an excluded committed path: reverse the kept diff"):
+            self.fresh_repo("rb-wt source")
+            root, worktree = self.prepare("rb-wt")
+            before = self.snapshot()
+            self.write(worktree, "app.js")
+            self.write(worktree, "scratch.log")
+            self.commit(worktree)
+            self.review_all(root, exclude=("scratch.log",))
+            self.assertEqual(workspace.execute_return(root)["kind"], "working-tree-return")
+            self.assertTrue((self.repo / "app.js").is_file())
+            self.sh(self.recipe(root, "apply -R").replace("<kept paths>", "app.js"))
+            self.assertEqual(self.snapshot(), before)
+        with self.subTest("dirty start: reverse the kept diff, and the user's own edit stays"):
+            self.fresh_repo("rb-dirty source")
+            (self.repo / "existing.txt").write_text("edited by the user\n", encoding="utf-8")
+            root, worktree = self.prepare("rb-dirty")
+            before = self.snapshot()
+            self.write(worktree, "app.js")
+            self.write(worktree, "existing.txt", "edited by the user and then by the run\n")
+            self.commit(worktree)
+            self.review_all(root)
+            self.assertEqual(workspace.execute_return(root)["kind"], "working-tree-return")
+            self.assertEqual((self.repo / "existing.txt").read_text(encoding="utf-8"),
+                             "edited by the user and then by the run\n")
+            self.sh(self.recipe(root, "apply -R").replace("<kept paths>", "app.js existing.txt"))
+            self.assertEqual(self.snapshot(), before)
+            self.assertEqual((self.repo / "existing.txt").read_text(encoding="utf-8"), "edited by the user\n")
+
+    def test_the_rollback_anchors_come_from_workspace_md_even_after_a_follow_up_return(self) -> None:
+        root, worktree = self.prepare("rb-anchor")
+        manifest = store.read_record(root / "workspace.md")
+        self.write(worktree, "app.js")
+        self.commit(worktree)
+        self.review_all(root)
+        first = workspace.execute_return(root)
+        self.write(worktree, "fix.js")
+        self.commit(worktree, "a fix after the return")
+        self.review_all(root)
+        second = workspace.execute_return(root)
+        self.assertEqual(second["source_before"]["head"], first["expected_source"]["head"])  # the previous result
+        lines = "\n".join(workspace.rollback_lines(root))
+        self.assertIn(manifest["source_head"], lines)
+        self.assertNotIn(second["source_before"]["head"], lines)
+        self.sh(self.recipe(root, "reset --keep"))
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), manifest["source_head"])
+
+    def test_the_rollback_names_no_absolute_run_path_but_the_source_checkout_for_its_git_calls(self) -> None:
+        root, worktree = self.prepare("rb-paths")
+        text = "\n".join(workspace.rollback_lines(root))
+        self.assertNotIn(str(root), text)  # the worktree and run directory never appear in a durable plan
+        self.assertIn("git -C " + shlex.quote(str(self.repo.resolve())), text)
+        for token in ("{", "}"):
+            self.assertNotIn(token, text)
+
+    def render(self, root: Path, stage: str) -> str:
+        run = root / "run"
+        return navigator.render(None, run, advance_to(store.read_record(run / "state.md"), stage))
+
+    def test_worktree_packets_state_the_run_route_from_workspace_md_and_only_release_plan_and_check_carry_the_rollback(self) -> None:
+        clean_root, _ = self.start("packet clean")
+        (self.repo / "existing.txt").write_text("edited by the user\n", encoding="utf-8")
+        dirty_root, _ = self.start("packet dirty")
+        self.git("checkout", "-q", "--", "existing.txt")
+        manifest = store.read_record(clean_root / "workspace.md")
+        for stage in ("intake", "implement", "release-plan", "release-check", "release", "handoff"):
+            with self.subTest(stage=stage, start="clean"):
+                packet = self.render(clean_root, stage)
+                self.assertEqual(packet.count("Return route (from workspace.md): this run started from a clean main"), 1)
+                self.assertNotIn("A dirty-source working-tree return is not a Git merge or commit", packet)
+                self.assertEqual("Rollback of the return" in packet, stage in ("release-plan", "release-check"))
+                if stage in ("release-plan", "release-check"):
+                    self.assertEqual(packet.count("Return route (from workspace.md)"), 1)  # not repeated in the rollback
+                    self.assertIn("reset --keep " + manifest["source_head"], packet)
+                    self.assertIn("apply -R", packet)
+                    self.assertIn("plain `git` commands run from the repository root", packet)
+        with self.subTest("dirty start"):
+            packet = self.render(dirty_root, "release-plan")
+            self.assertIn("Return route (from workspace.md): this run started from a dirty main", packet)
+            self.assertIn("it is not a Git merge or commit", packet)
+            self.assertIn("apply -R", packet)
+            self.assertNotIn("reset --keep", packet)  # a working-tree return never moved the branch
+        with self.subTest("an unreadable workspace.md is said to be unknown, never guessed or omitted"):
+            (clean_root / "workspace.md").write_text("not a record\n", encoding="utf-8")
+            packet = self.render(clean_root, "release-plan")
+            self.assertIn("Return route unknown: workspace.md cannot be read", packet)
+            self.assertNotIn("Rollback of the return", packet)
 
 
 if __name__ == "__main__":

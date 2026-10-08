@@ -2819,6 +2819,22 @@ def _workspace_return_packet_lines(root: Path, state: Mapping[str, Any]) -> list
     return lines
 
 
+def _return_route_lines(workspace_root: Path, *, rollback: bool) -> list[str]:
+    """How this run's return will go, derived from workspace.md (S-5: the script says what a model would guess).
+
+    Release planning and release checking add the rollback, because the plan written there is durable knowledge that
+    later runs inherit.  An unreadable workspace.md is reported as unknown: never guessed, never left out.
+    """
+    try:
+        import shiploop_workspace as workspace
+    except ImportError:  # pragma: no cover - supports package-style local imports.
+        from . import shiploop_workspace as workspace  # type: ignore
+    try:
+        return [workspace.route_sentence(workspace_root), *(workspace.rollback_lines(workspace_root) if rollback else ())]
+    except workspace.WorkspaceError as exc:
+        return [f"Return route unknown: workspace.md cannot be read ({exc}); do not guess how the return will go."]
+
+
 def _accepted_done(state: Mapping[str, Any]) -> tuple[dict[tuple[str | None, str], str], int]:
     """Return current accepted-done actions by (work item, stage) and the last replan index."""
     outer = graph(state)[2]
@@ -3135,8 +3151,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
                         "--workspace-root", str(workspace_root)]),
             "Record each undecided path with " + review_return_command(core, workspace_root) + ". "
             + REVIEW_RETURN_RULE,
+            *_return_route_lines(workspace_root, rollback=stage in ("release-plan", "release-check")),
             "Handoff completion requires a current script-verified return receipt. "
-            "A dirty-source working-tree return is not a Git merge or commit. "
             "No automatic push, cleanup, or publication is implied.",
         ])
         if stage in ("release", "handoff") and state["status"] == "active":

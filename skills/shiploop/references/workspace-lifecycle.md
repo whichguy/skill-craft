@@ -152,6 +152,11 @@ return is not evidence that a hosted consumer has been updated.
 2. Run `workspace return --workspace-root EXTERNAL` only after that review,
    current checks, and any required authority. The helper rechecks branch,
    baseline, source state, candidate and plan before mutating the source.
+   Once nothing is undecided, `review-return` (and `plan-return`, when carried
+   decisions already settle every path) prints the **expected return**, by the same
+   rule `return` follows; it is advisory, since `return` still refuses a moved source
+   or a collision. Every worktree packet states the run's return route from
+   `workspace.md`; see Rolling a return back for the rollback.
 3. Distinguish the result:
    - **Clean start:** a committed, clean, reviewed candidate can fast-forward
      into the exact original branch. Reachable candidate history is checked too:
@@ -258,6 +263,34 @@ requested drag behavior there. Return applies that new delta while leaving the
 source's staged content exactly as it was; no unrelated original edit is staged
 or committed. A new source edit made during the run blocks the return rather
 than getting overwritten or silently accepted as a new baseline.
+
+### Rolling a return back
+
+`release-plan` writes a rollback, and that file is durable knowledge later runs
+inherit, so it must name the route the return really takes. The `release-plan` and
+`release-check` packets print recipes from `workspace.md` (its `source_head`,
+`baseline_commit` and run branch, never a receipt's `source_before`, which is the
+previous result after a follow-up). Write the plan's rollback with those SHAs and
+branch names as plain `git` commands run from the repository root, not this run's
+absolute paths. Every call runs in the source repository, so the recipes work after
+the execution worktree is removed.
+
+- **Fast-forward, nothing committed on top:** with the original branch checked out,
+  `git reset --keep <source_head>` moves it back and refuses to overwrite local
+  changes. The returned commits stay on the run branch.
+- **Fast-forward, later commits on top:** with a clean working tree,
+  `git restore --source=<source_head> --staged --worktree :/` followed by a commit
+  restores the recorded tree (files the run added are removed) and keeps the later
+  history. It discards uncommitted edits. `git revert <source_head>..HEAD` is not a
+  recipe: it stops on an integrate merge commit in the run's history.
+- **Working-tree return** (a dirty start, or a clean start whose plan excluded a
+  committed path): `git diff --binary <baseline_commit> <run branch> -- <kept paths>`
+  piped to `git apply -R`, both run with `git -C <source repo>`. `<kept paths>` are the
+  keep rows of `return-plan.md`. It needs the run branch and the baseline commit to
+  still exist; ShipLoop never removes them.
+
+A tree id in a receipt (`expected_source.working_tree`) is not a rollback anchor: no
+ref points at it, so `git gc` can remove it.
 
 ## Recovery and limits
 

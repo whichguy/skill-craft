@@ -49,7 +49,7 @@ import threading
 from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path, PurePosixPath
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Container, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 try:  # Scripts are normally imported with their directory on sys.path.
     import shiploop_store as store
@@ -108,13 +108,17 @@ __all__ = [
     "completed_receipt",
     "returned_before",
     "completed_receipt_snapshot",
+    "ROUTE_TEXT",
     "execute_return",
+    "expected_return",
     "export_returned_result",
     "plan_return",
     "plan_summary",
     "prepare",
     "returned_result",
     "review_return",
+    "rollback_lines",
+    "route_sentence",
 ]
 
 
@@ -1188,6 +1192,52 @@ def _reject_added_path_collisions(
             _fail(f"source has an untracked or ignored collision at candidate-added path: {path}")
 
 
+# What a return of each kind does, in the words review-return and the packets use.
+ROUTE_TEXT = {
+    "fast-forward-merge": "a fast-forward of the original branch to the run branch",
+    "working-tree-return": "the kept files applied to the original working tree, with no Git merge or commit",
+    "no-change-return": "no change to the original checkout",
+}
+
+
+def _retained_child_evidence(row: Mapping[str, Any], untracked_paths: Container[str]) -> bool:
+    """A final Improve child's receipt must stay untracked in the worker until the parent imports it after return.
+
+    Only excluded, untracked, never-committed child evidence qualifies; a committed or staged receipt, or a protected
+    path in history, still blocks the return.
+    """
+    return (row["path"].startswith(".shiploop-improve/")
+            and row["path"] in untracked_paths
+            and row["disposition"] == "exclude" and not row["in_history"])
+
+
+def _fast_forward_ok(worktree: Path, manifest: Mapping[str, Any], candidate: Mapping[str, Any],
+                     rows: Sequence[Mapping[str, Any]]) -> bool:
+    """Whether the reviewed candidate may fast-forward the source: the one rule execute_return follows.
+
+    The source started clean, the candidate has no tracked change and no untracked file other than retained child
+    evidence (which does not make a committed product candidate dirty), and every history path is kept.
+    """
+    untracked = {row["path"] for row in candidate["untracked"]}
+    clean_tracked = not _git_bytes(worktree, "status", "--porcelain=v1", "--untracked-files=no")
+    only_retained = all(_retained_child_evidence(row, untracked) for row in rows if row["path"] in untracked)
+    all_history_kept = all(row["disposition"] == "keep" for row in rows if row["in_history"])
+    return bool(manifest["start_clean"] and clean_tracked and only_retained and all_history_kept)
+
+
+def _return_kind(prior_kind: Optional[str], fast_forward_ok: bool, has_new_commits: bool, has_patch: bool) -> str:
+    """The route a return takes: execute_return follows it and expected_return reports it, one rule for both.
+
+    A follow-up keeps the route of the return it follows; a first return is nothing to return, a fast-forward or a
+    working-tree return.
+    """
+    if prior_kind in ("fast-forward-merge", "working-tree-return"):
+        return prior_kind
+    if not has_patch and not (fast_forward_ok and has_new_commits):
+        return "no-change-return"
+    return "fast-forward-merge" if fast_forward_ok else "working-tree-return"
+
+
 RETURN_POLICY = (
     "fast-forward only for a clean source and committed candidate with no tracked "
     "changes, when every history path is kept and its only untracked files are "
@@ -1405,6 +1455,67 @@ def review_return(workspace_root: Path, keep: Iterable[str] = (), exclude: Itera
         "excluded": sorted(path for path, action in chosen.items() if action == "exclude"),
         "summary": _summarize(reviewed if chosen else plan, manifest["excluded"]),
     }
+
+
+@_locked_existing_root
+def expected_return(workspace_root: Path) -> Optional[str]:
+    """The route a return would take now, by the rule ``execute_return`` follows; None while paths are undecided.
+
+    Advisory: the return itself still refuses a moved source, a collision or a stale plan.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    manifest = _manifest(root)
+    worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
+    candidate, changes, history = _candidate(manifest, root)
+    rows = _validate_plan(root, manifest, _record(root, RETURN_PLAN, "return plan"), candidate, changes, history,
+                          allow_pending=True)
+    if any(row["disposition"] == "pending" for row in rows):
+        return None
+    receipt = _receipt(root)
+    prior_kind = receipt.get("kind") if receipt and receipt.get("status") == "returned" else None
+    return _return_kind(prior_kind, _fast_forward_ok(worktree, manifest, candidate, rows),
+                        _head(worktree) != manifest["baseline_commit"],
+                        any(row["in_final_delta"] and row["disposition"] == "keep" for row in rows))
+
+
+def route_sentence(workspace_root: Path) -> str:
+    """How this run's return will go, from workspace.md alone (read-only; raises WorkspaceError when unreadable)."""
+    manifest = _manifest(_resolved_directory(Path(workspace_root), label="workspace root"))
+    branch = manifest["source_branch"]
+    if manifest["start_clean"]:
+        return (f"Return route (from workspace.md): this run started from a clean {branch}. The return fast-forwards "
+                f"{branch} to the run branch {manifest['branch']} when the candidate is committed and every path in "
+                "its history is kept; if the plan excludes a committed path or leaves a file uncommitted, it applies "
+                "only the kept files to the working tree instead, which is not a Git merge or commit.")
+    return (f"Return route (from workspace.md): this run started from a dirty {branch}. The return applies only the "
+            "kept files to the working tree: it is not a Git merge or commit, and your original index and work are "
+            "left as they were.")
+
+
+def rollback_lines(workspace_root: Path) -> List[str]:
+    """Commands that undo each return the route above can make, from workspace.md alone (read-only).
+
+    The anchors are the manifest's ``source_head`` and ``baseline_commit`` and the run branch, never a receipt's
+    ``source_before`` (which is the previous result in a follow-up).  Every call runs in the source repository, so the
+    recipes survive removing the execution worktree and name no run path.  Raises WorkspaceError when unreadable.
+    """
+    manifest = _manifest(_resolved_directory(Path(workspace_root), label="workspace root"))
+    git = "git -C " + shlex.quote(manifest["source_repo"])
+    head, base, run = manifest["source_head"], manifest["baseline_commit"], manifest["branch"]
+    lines = ["Rollback of the return (SHAs and branches are from workspace.md; write the plan's rollback as plain `git` "
+             "commands run from the repository root with these values, never this run's absolute paths):"]
+    if manifest["start_clean"]:
+        lines += [
+            f"- A fast-forward, with {manifest['source_branch']} checked out and nothing committed after the "
+            f"returned commits: `{git} reset --keep {head}`",
+            f"- A fast-forward with later commits on top (needs a clean working tree and discards uncommitted "
+            f"edits): `{git} restore --source={head} --staged --worktree :/ && {git} commit -m "
+            "'Roll back the ShipLoop return'`",
+        ]
+    lines.append(f"- A working-tree return (needs the run branch {run} and commit {base} to still exist; <kept paths> "
+                 f"are the keep rows of the return plan): `{git} diff --binary {base} {run} -- <kept paths> | "
+                 f"{git} apply -R`")
+    return lines
 
 
 def _candidate_tree_with_kept_untracked(
@@ -1740,12 +1851,7 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
     # imports it after return. Permit only excluded, untracked child evidence;
     # a committed/staged receipt or a protected path in history still blocks.
     untracked_paths = {row["path"] for row in candidate["untracked"]}
-    def retained_child_evidence(row: Mapping[str, Any]) -> bool:
-        return (row["path"].startswith(".shiploop-improve/")
-                and row["path"] in untracked_paths
-                and row["disposition"] == "exclude" and not row["in_history"])
-
-    if any(_forbidden(row["path"]) and not retained_child_evidence(row) for row in rows):
+    if any(_forbidden(row["path"]) and not _retained_child_evidence(row, untracked_paths) for row in rows):
         _fail("candidate contains a protected transient/runtime path; preserve the workspace and remove it before return")
     if not adopt:
         _reject_added_path_collisions(
@@ -1759,20 +1865,7 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
     patch = _patch(worktree, manifest["baseline_tree"], candidate_tree, rows)
     plan_digest = _plan_digest(plan)
 
-    # A final Improve packet must remain untracked in the worker until the
-    # parent imports it.  It does not make a committed product candidate dirty
-    # for a fast-forward, but arbitrary untracked output still does.
-    clean_tracked_candidate = not _git_bytes(
-        worktree, "status", "--porcelain=v1", "--untracked-files=no"
-    )
-    only_retained_child_evidence = all(
-        retained_child_evidence(row)
-        for row in rows
-        if row["path"] in untracked_paths
-    )
-    clean_candidate = clean_tracked_candidate and only_retained_child_evidence
-    all_history_kept = all(row["disposition"] == "keep" for row in rows if row["in_history"])
-    fast_forward_ok = manifest["start_clean"] and clean_candidate and all_history_kept
+    fast_forward_ok = _fast_forward_ok(worktree, manifest, candidate, rows)
     has_new_commits = _head(worktree) != manifest["baseline_commit"]
     prior_kind = previous.get("kind") if previous else None
 
@@ -1875,11 +1968,12 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
             return record("working-tree-return", expected_source, extras, None)
         return record("working-tree-return", expected_source, extras, apply(delta.stdout))
 
-    if not patch and not (fast_forward_ok and has_new_commits):
+    kind = _return_kind(prior_kind, fast_forward_ok, has_new_commits, bool(patch))
+    if kind == "no-change-return":
         return record(
             "no-change-return", manifest["initial_fingerprint"], manifest["selected_untracked"], None
         )
-    if fast_forward_ok:
+    if kind == "fast-forward-merge":
         # A true fast-forward preserves candidate commits only after every
         # history path was explicitly reviewed.  Protected paths were rejected
         # before a plan existed, including add-then-delete transient commits.

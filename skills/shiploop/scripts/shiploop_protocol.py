@@ -130,8 +130,12 @@ def _recorded_line(reviewed):
     return "Recorded: " + "; ".join(parts) + "."
 
 
-def _review_lines(core, root, summary):
-    """The plan's tally, the excludes a review decided, and what is still undecided with the command that decides it."""
+def _review_lines(core, root, summary, expected=None):
+    """The plan's tally, the excludes a review decided, and what is still undecided with the command that decides it.
+
+    ``expected`` is the route a return would take once nothing is undecided: a line for the model to compare with the
+    rollback it wrote at release-plan.
+    """
     lines = [f"Return plan {root / 'return-plan.md'}: {summary['total']} paths, {summary['keep']} keep, "
              f"{summary['exclude']} exclude, {len(summary['pending'])} undecided."]
     if summary["reviewed_excludes"]:
@@ -142,6 +146,8 @@ def _review_lines(core, root, summary):
         lines += [head + _listed(summary["pending"], head) + ".",
                   "Decide them with: " + navigator.review_return_command(core, root),
                   navigator.REVIEW_RETURN_RULE]
+    elif expected:
+        lines.append(f"Expected return: {expected}; the return itself still refuses a moved source or a collision.")
     return lines
 
 
@@ -264,7 +270,9 @@ def workspace_command(core, argv):
                 reviewed = workspace.review_return(root, [name for group in args.keep for name in group],
                                                    [name for group in args.exclude for name in group])
                 recorded, summary = [_recorded_line(reviewed)], reviewed["summary"]
-            for line in [*recorded, *_review_lines(core, root, summary)]:
+            kind = None if summary["pending"] else workspace.expected_return(root)
+            expected = None if kind is None else f"{kind} ({workspace.ROUTE_TEXT[kind]})"
+            for line in [*recorded, *_review_lines(core, root, summary, expected)]:
                 print(line)
             if args.operation == "plan-return":
                 print("Return policy: fast-forward only for a clean starting checkout and a "
