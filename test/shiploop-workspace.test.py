@@ -9,6 +9,7 @@ run-local artifacts when the candidate comes back.
 
 from __future__ import annotations
 
+import copy
 import os
 from pathlib import Path
 import shlex
@@ -2283,6 +2284,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
                 self.assertEqual(Path(verified["cwd"]), worktree)
                 self.assertIn("recorded from the work area", packet)
                 self.assertIn("do not observe the user's checkout", packet)
+                self.assertNotIn("cannot return", packet, "the release-verify duty says it; one statement per packet")
                 self.assertFalse((root / "consumer-check").exists())
 
     def test_release_verify_copy_never_changes_the_source_the_object_database_or_the_work_area(self) -> None:
@@ -2451,6 +2453,10 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual({run["status"] for run in record["runs"]}, {"error"})
         self.assertIn("export boom", refusal)
         self.assertIn("replan", refusal)
+        self.assertIn("could not start the 1 listed command, so none ran", refusal)
+        self.assertNotIn("ran the 1 listed command", refusal)
+        for wrong in ("yours to fix here", "Fix the code"):
+            self.assertNotIn(wrong, refusal, "no command started: nothing in the item's code, test or fixture is at fault")
         self.assertEqual(test_loop._remedy("release-verify"), "replan")
         self.assertTrue(test_loop.remedy_open(root / "run", "A-rv"), "ShipLoop's own record opens the named route")
         self.assertEqual(test_loop.refused_runs(root / "run", "A-rv"), 0, "could-not-run is not a refused run")
@@ -2477,7 +2483,11 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
                 self.assertEqual(record["observed"]["where"], "unknown")
                 self.assertEqual(record["disposition"], "could-not-run")
                 self.assertEqual({run["status"] for run in record["runs"]}, {"error"})
-                self.assertTrue(refusal)
+                self.assertIn("could not start the 1 listed command, so none ran", refusal)
+                self.assertNotIn("ran the 1 listed command", refusal)
+                self.assertNotIn("yours to fix here", refusal)
+                self.assertNotIn("Fix the code", refusal)
+                self.assertIn("replan", refusal)
                 self.assertIn("not currently known", packet)
 
     def test_a_copy_refusal_that_is_not_about_the_delivery_can_be_retried_with_done(self) -> None:
@@ -2571,6 +2581,133 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         again, refusal = self._verify_release(root, state, "A-rv2")
         self.assertEqual(refusal, "")
         self.assertTrue(again["passed"])
+
+    # -- the hardening around the copy: what returned_result and export_returned_result refuse ------------------------
+    #
+    # The tree id in a receipt is handed to Git as an argument and the copy is built from it, so each guard below
+    # has a test that fails when the guard is removed (checked by deleting each in a scratch copy).
+
+    def test_a_receipt_that_cannot_be_trusted_is_refused_before_git_or_the_copy_sees_it(self) -> None:
+        root, worktree = self._returned_once("untrusted receipt")
+        receipt_path = root / "return-receipt.md"
+        good = store.read_record(receipt_path)
+        state = self._consumer_state(worktree, "true")
+        self.assertEqual(self._call(workspace.returned_result, root)["tree"], good["expected_source"]["tree"],
+                         "control: the unchanged receipt is read")
+        evil = self.base / "evil"
+        cases = (
+            ("an unknown kind", lambda r: r.update(kind="squash-merge"), "unsupported schema or kind"),
+            ("an unknown schema", lambda r: r.update(schema="something-else"), "unsupported schema or kind"),
+            ("a tree id that is an option", lambda r: r["expected_source"].update(tree="--output=" + str(evil)),
+             "no valid result tree"),
+            ("a tree id that is not an object id", lambda r: r["expected_source"].update(tree="HEAD"),
+             "no valid result tree"),
+            ("no tree for its kind", lambda r: r.update(kind="working-tree-return"), "no valid result tree"),
+            ("a candidate head that is not an object id", lambda r: r["candidate_fingerprint"].update(head="main"),
+             "no valid result tree or candidate head"),
+        )
+        for label, change, pattern in cases:
+            with self.subTest(label):
+                damaged = copy.deepcopy(good)
+                change(damaged)
+                store.write_record(receipt_path, damaged, "ShipLoop return receipt")
+                with self.assertRaisesRegex(workspace.WorkspaceError, pattern):
+                    self._call(workspace.returned_result, root)
+                with self.assertRaisesRegex(workspace.WorkspaceError, pattern):
+                    self._call(workspace.export_returned_result, root)
+                record, refusal = self._verify_release(root, state)
+                self.assertEqual(record["observed"]["where"], "unknown")
+                self.assertRegex(record["observed"]["reason"], pattern)
+                self.assertEqual(record["disposition"], "could-not-run")
+                self.assertFalse((root / "consumer-check").exists())
+                self.assertFalse(evil.exists())
+                self.assertEqual([p.name for p in root.iterdir() if p.name.startswith(".workspace-index-")], [])
+        store.write_record(receipt_path, good, "ShipLoop return receipt")
+
+    def test_the_returned_result_is_not_read_while_the_workspace_is_busy_or_mid_transaction(self) -> None:
+        import fcntl
+
+        root, worktree = self._returned_once("busy workspace")
+        state = self._consumer_state(worktree, "true")
+        lock = root / ".workspace.lock"
+        self.assertTrue(lock.is_file(), "control: the workspace has its lock file")
+        self.assertEqual(self._call(workspace.returned_result, root)["kind"], "fast-forward-merge", "control")
+        with lock.open("rb") as holder:
+            fcntl.flock(holder, fcntl.LOCK_EX | fcntl.LOCK_NB)  # another ShipLoop command holds the workspace
+            with self.assertRaisesRegex(workspace.WorkspaceError, "busy"):
+                self._call(workspace.returned_result, root)
+            with self.assertRaisesRegex(workspace.WorkspaceError, "busy"):
+                self._call(workspace.export_returned_result, root)
+            record, refusal = self._verify_release(root, state)
+        self.assertEqual(record["observed"]["where"], "unknown")
+        self.assertEqual(record["disposition"], "could-not-run")
+        self.assertIn("busy", record["observed"]["reason"])
+        self.assertIn("could not start", refusal)
+        self.assertFalse((root / "consumer-check").exists())
+
+        journal = root / store.JOURNAL_NAME
+        journal.write_text("a transaction that did not finish\n", encoding="utf-8")
+        with self.assertRaisesRegex(workspace.WorkspaceError, "pending transaction"):
+            self._call(workspace.returned_result, root)
+        journal.unlink()
+        self.assertEqual(self._call(workspace.returned_result, root)["kind"], "fast-forward-merge")
+
+    def test_a_worktree_that_is_not_the_one_the_manifest_binds_is_refused(self) -> None:
+        root, worktree = self._returned_once("moved branch")
+        self.git("checkout", "-q", "-b", "elsewhere", cwd=worktree)
+        with self.assertRaisesRegex(workspace.WorkspaceError, "branch no longer matches"):
+            self._call(workspace.returned_result, root)
+        record, _refusal = self._verify_release(root, self._consumer_state(worktree, "true"))
+        self.assertEqual(record["observed"]["where"], "unknown")
+        self.assertEqual(record["disposition"], "could-not-run")
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can remove a read-only directory")
+    def test_a_previous_copy_that_cannot_be_removed_is_could_not_run_not_a_crash(self) -> None:
+        root, worktree = self._returned_once("unremovable copy")
+        previous = root / "consumer-check"
+        (previous / "cache").mkdir(parents=True)
+        (previous / "cache" / "entry").write_text("a build cache\n", encoding="utf-8")
+        (previous / "cache").chmod(0o500)  # a read-only directory a check left behind
+        self.addCleanup((previous / "cache").chmod, 0o700)
+        with self.assertRaisesRegex(workspace.WorkspaceError, "cannot replace the previous copy"):
+            self._call(workspace.export_returned_result, root)
+
+        record, refusal = self._verify_release(root, self._consumer_state(worktree, "true"))
+
+        self.assertEqual(record["disposition"], "could-not-run")
+        self.assertEqual({run["status"] for run in record["runs"]}, {"error"})
+        self.assertIn("cannot replace the previous copy", refusal)
+        self.assertTrue((previous / "cache" / "entry").exists(), "nothing was half-removed")
+
+    def test_a_failed_copy_leaves_no_partial_directory_and_no_index(self) -> None:
+        root, worktree = self._returned_once("failed copy")
+        destination = root / "consumer-check"
+        real_git, seen = workspace._git, []
+
+        def checkout_index_fails_after_writing(repo, *args, **kwargs):
+            result = real_git(repo, *args, **kwargs)
+            if args and args[0] == "checkout-index":
+                seen.append((destination / "app.txt").is_file())  # the copy was really written before the failure
+                return subprocess.CompletedProcess(result.args, 1, result.stdout, b"fatal: simulated failure")
+            return result
+
+        with mock.patch.object(workspace, "_git", side_effect=checkout_index_fails_after_writing):
+            with self.assertRaisesRegex(workspace.WorkspaceError, "git checkout-index failed.*simulated failure"):
+                self._call(workspace.export_returned_result, root)
+        self.assertEqual(seen, [True])
+        self.assertFalse(destination.exists(), "a partial copy would pass for the returned result")
+        self.assertEqual([p.name for p in root.iterdir() if p.name.startswith(".workspace-index-")], [])
+
+        # A tree object that is not in the repository fails in read-tree, before anything is written.
+        receipt_path = root / "return-receipt.md"
+        good = store.read_record(receipt_path)
+        missing = copy.deepcopy(good)
+        missing["expected_source"]["tree"] = "0" * 40
+        store.write_record(receipt_path, missing, "ShipLoop return receipt")
+        with self.assertRaisesRegex(workspace.WorkspaceError, "git read-tree failed"):
+            self._call(workspace.export_returned_result, root)
+        self.assertFalse(destination.exists())
+        self.assertEqual([p.name for p in root.iterdir() if p.name.startswith(".workspace-index-")], [])
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

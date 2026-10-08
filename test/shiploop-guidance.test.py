@@ -7,6 +7,7 @@ claim that an LLM interpreted a locator correctly or that Improve executed.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import re
 import shutil
@@ -2258,7 +2259,8 @@ class ConsumerCheckLocationTests(unittest.TestCase):
         text = self.duty("release-plan")
         self.assertIn("clean copy of the returned result", text)
         self.assertIn("work area and says so", text)
-        self.assertIn("relative to the checkout", text)
+        self.assertIn("relative to the directory the command starts in (the copy or the work area)", text)
+        self.assertNotIn("relative to the checkout", text, "the user's checkout is not where the command starts")
         self.assertIn("what a fresh consumer needs", text)
         self.assertIn("never write into the user's checkout", text)
 
@@ -2281,6 +2283,7 @@ class ConsumerCheckLocationTests(unittest.TestCase):
     def test_handoff_reports_where_release_verify_ran_from_the_line_its_packet_carries(self) -> None:
         text = self.duty("handoff")
         self.assertIn("Consumer checks (release-verify)", text)
+        self.assertIn("(or that none did)", text)
         self.assertIn("did not observe the user's checkout", text)
 
     def test_the_skill_card_and_the_workspace_lifecycle_card_say_the_same(self) -> None:
@@ -2294,6 +2297,38 @@ class ConsumerCheckLocationTests(unittest.TestCase):
             self.assertIn(phrase, lifecycle)
         follow_up = lifecycle[lifecycle.index("### Follow-up return"):]
         self.assertIn("At `release-verify` the stage cannot return", follow_up[:follow_up.index("## Recovery and limits")])
+
+    JOURNAL = ROOT / "docs" / "shiploop-batch-1007-plan-2026-10-07.md"
+    RECOUNT = ROOT / "docs" / "experiments" / "batch-1008-b3-20261008"
+
+    def test_the_journal_lists_what_the_live_run_must_still_show(self) -> None:
+        """Hermetic fixtures prove the mechanism, not the models' habits: the journal names each live check as open."""
+        text = " ".join(self.JOURNAL.read_text(encoding="utf-8").split())
+        built = text[text.index("## B3 built 2026-10-08"):]
+        opened = built[built.index("**Open, with status.**"):built.index("**Owner decisions this needs.**")]
+        # the recorded consumer commands are relative, so the copy is where they run (5 of 10 recorded runs named the source)
+        self.assertIn("recorded release-verify commands use relative paths", opened)
+        self.assertIn("names the source or work-area path", opened)
+        self.assertIn("5 of the 10", opened)
+        # the user's checkout is untouched and the stage hand-off completes
+        self.assertIn("empty `git status --porcelain --untracked-files=all` in the source", opened)
+        self.assertIn("handoff", opened)
+        # the second return kind has no live run: validated another way, with the limit and the next step recorded
+        self.assertIn("validated another way", opened)
+        self.assertIn("working-tree-return", opened)
+        self.assertIn("Named next step", opened)
+
+    def test_the_receipt_recount_the_journal_cites_is_in_the_repository(self) -> None:
+        text = self.JOURNAL.read_text(encoding="utf-8")
+        self.assertIn("docs/experiments/batch-1008-b3-20261008/receipt-recount.json", text)
+        recount = json.loads((self.RECOUNT / "receipt-recount.json").read_text(encoding="utf-8"))
+        summary, runs = recount["summary"], recount["runs"]
+        self.assertEqual(summary["runs_with_a_return_receipt"], len(runs))
+        self.assertEqual(summary["receipt_kinds"], {"fast-forward-merge": len(runs)})
+        self.assertEqual(summary["runs_whose_consumer_checks_name_the_source_path"],
+                         sum(1 for run in runs if run["commands_naming_source_path"]))
+        self.assertEqual(summary["runs_whose_every_release_verify_record_ran_in_the_work_area"], len(runs))
+        self.assertTrue((self.RECOUNT / "recount.py").is_file())
 
 
 class CaseEndStateTests(unittest.TestCase):

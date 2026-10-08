@@ -1668,11 +1668,12 @@ itself when release-verify reports done and refuses unless each passes. In an
 isolated run that has a completed return it runs them in a clean copy of the
 returned result (no Git history, nothing the return plan excluded, no ignored or
 unmanaged file); with none recorded yet it runs them in the work area and says so.
-Write paths relative to the checkout, put what a fresh consumer needs (an install,
-a build) into the check itself, and never write into the user's checkout by
-absolute path. A check only a person can make is recorded in the plan as an open
-item for that person (who, where, what to report), not as a command; when no
-command applies, give an empty list with `consumer_checks_na` and the reason.
+Write paths relative to the directory the command starts in (the copy or the work
+area), put what a fresh consumer needs (an install, a build) into the check itself,
+and never write into the user's checkout by absolute path. A check only a person
+can make is recorded in the plan as an open item for that person (who, where, what
+to report), not as a command; when no command applies, give an empty list with
+`consumer_checks_na` and the reason.
 Create an authorized release/recovery plan: target and candidate identity,
 permission, prerequisites, user impact, rollback, monitoring, pre/post-release
 checks, and stop conditions. List every operation the user-visible outcome needs as
@@ -1779,9 +1780,9 @@ failure as an incident. Preserve required audit failure and recovery policy.
 Prepare an honest final handoff with source, test, integration, release, consumer,
 and operational status; evidence locators; limits; blockers; follow-up work; and
 revalidation needs.  List each open item as unverified, with who reports what.
-Report where release-verify's consumer checks ran, from the packet's "Consumer checks
-(release-verify)" line; checks that ran in the work area did not observe the user's
-checkout, so list that as a limit.
+Report where release-verify's consumer checks ran (or that none did), from the packet's
+"Consumer checks (release-verify)" line; checks that ran in the work area did not
+observe the user's checkout, so list that as a limit.
 Reconcile durable project documentation and product-return receipts where
 applicable.  Do not transform an intent, stale green result, or conversational
 summary into completion evidence.

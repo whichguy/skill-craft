@@ -391,6 +391,19 @@ def _copy_refusal(observed: Mapping[str, Any]) -> str:
             "done again.")
 
 
+def _place_reply(stage: str, refused: int) -> str:
+    """The reply when the place the commands were to run in could not be made or read: no command started."""
+    remedy = _remedy(stage)
+    return ("No command started, so nothing here says anything about the product: this attempt does not count toward "
+            "the " + str(MAX_REFUSED_RUNS) + " refused runs (still at " + str(refused) + "). Nothing is accepted on "
+            "unrun tests. The cause is the return state or the copy path named above, not this item's code, test or "
+            "fixture: repair what it names (a lock another ShipLoop command holds, a path ShipLoop asks you to "
+            "remove) and submit done again"
+            + ("; if it cannot be repaired, report " + remedy + " with the corrective work_items the outer loop must "
+               "run (ShipLoop's own record of this attempt is the evidence)" if remedy else "")
+            + ". Report blocked only for what the user, an access grant or an outside dependency must supply.")
+
+
 def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str) -> List[str]:
     """Packet lines for a rerun stage: the commands ShipLoop runs before accepting done.
 
@@ -409,7 +422,7 @@ def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str
                            "the return plan excluded and no ignored or unmanaged file (installed dependencies, build "
                            "output). A command that names the checkout by an absolute path runs there, not in the copy.",
         "work-area": "Where they run: no completed return is recorded, so these commands run in the work area and do "
-                     "not observe the user's checkout. This stage cannot return; the handoff reports that.",
+                     "not observe the user's checkout; the handoff reports that.",
         "unknown": "Where they run: the return state cannot be read now, so done is refused without counting until it "
                    "can be; retry done then, or report replan if it cannot be repaired.",
     }
@@ -424,23 +437,23 @@ def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str
 def observed_lines(root: Path, state: Mapping[str, Any]) -> List[str]:
     """Handoff packet line: where release-verify's consumer checks last ran, from ShipLoop's own test record.
 
-    A cleared handoff model cannot know it, and a run that never observed the user's checkout must say so.  Empty
-    when the run has no accepted release-verify test record or that record carries no ``observed``.
+    A cleared handoff model cannot know it, and a run that never observed the user's checkout must say so.  Handoff
+    follows release-verify in every run, so the line is always printed once release-verify is accepted: from the
+    ``observed`` key every release-verify test record carries (a record without it, or none where release-plan
+    recorded commands, is a defect and raises), or, when release-plan recorded no consumer check and so ShipLoop
+    wrote no record, as the statement that none ran with the plan's own reason.
     """
     action = next((row.get("action") for row in reversed(state.get("history", ()))
                    if row.get("stage") == "release-verify" and row.get("workitem") is None
                    and row.get("outcome") == "done"), None)
-    number = _verify_count(root, str(action)) if action else 0
-    if not number:
+    if action is None:
         return []
-    path = Path(root) / verify_path(str(action), number)
-    try:
-        record = store.read_record(path)
-    except store.StorageError:
-        return []
-    observed = record.get("observed") if isinstance(record, Mapping) else None
-    if not isinstance(observed, Mapping):
-        return []
+    commands, reason = stage_commands(state, "release-verify", "")
+    if not commands:
+        return ["Consumer checks (release-verify) did not run: release-plan recorded no consumer check"
+                + (" (" + reason.rstrip(".") + ")." if reason else ".")]
+    path = Path(root) / verify_path(str(action), _verify_count(root, str(action)))
+    observed = store.read_record(path)["observed"]
     line = "Consumer checks (release-verify) ran in " + _where(observed, state["repo"]) + "."
     if observed.get("where") == "work-area":
         line += (" No completed return was recorded then, so they did not observe the user's checkout: list that as a "
@@ -892,14 +905,23 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     if record["passed"]:
         return writes, ""
     failing = [run for run in runs if run["status"] not in good]
-    lines = ["ShipLoop test run: " + stage + " is not done. ShipLoop ran the " + str(len(runs))
-             + " listed command" + ("" if len(runs) == 1 else "s") + " from " + _where(observed, repo) + " and "
-             + str(len(failing)) + (" did not fail as expected:" if red
-                                    else " did not show a usable test run:" if probe else " did not pass:")]
+    listed = str(len(runs)) + " listed command" + ("" if len(runs) == 1 else "s")
+    if failure:
+        # The place was never made or read, so no command ran anywhere: do not say they ran "from" it.
+        lines = ["ShipLoop test run: " + stage + " is not done. ShipLoop could not start the " + listed
+                 + ", so none ran:"]
+    else:
+        lines = ["ShipLoop test run: " + stage + " is not done. ShipLoop ran the " + listed + " from "
+                 + _where(observed, repo) + " and " + str(len(failing))
+                 + (" did not fail as expected:" if red
+                    else " did not show a usable test run:" if probe else " did not pass:")]
     for run in failing:
         lines.append("- [" + run["suite"] + "] " + run["command"] + " -> " + _explain(run, stage))
         tail = (run["stdout"] + "\n" + run["stderr"]).strip().splitlines()[-15:]
         lines += ["    | " + line for line in tail]
+    if failure:
+        lines.append(_place_reply(stage, refused) + " Full output: " + str(root / relative) + ".")
+        return writes, "\n".join(lines)
     if disposition == "could-not-run":
         # This attempt does not spend one of the refused runs, so the gate that would
         # otherwise force the stage's remedy cannot fire on it.  Name the routes out

@@ -1042,6 +1042,22 @@ class ReleaseVerifyReturnedResultTests(unittest.TestCase):
         self.assertIn("ran in the work area " + str(self.repo), line)
         self.assertIn("did not observe the user's checkout", line)
 
+    def test_the_handoff_packet_says_no_consumer_check_ran_when_release_plan_recorded_none(self):
+        """No consumer check means no test record, and the handoff duty still points at this line, so it is printed."""
+        self.drive_to("release-plan")
+        self.complete(dict(DONE, consumer_entry={"how": "run python3 a.py", "sources": ["a.py"]},
+                           consumer_checks=[], consumer_checks_na="A script with nothing to observe."))
+        self.drive_to("handoff")
+        line = next(row for row in self.packet().splitlines() if row.startswith("Consumer checks (release-verify)"))
+        self.assertIn("did not run: release-plan recorded no consumer check (A script with nothing to observe)", line)
+
+    def test_the_release_verify_packet_before_any_return_says_the_stage_cannot_return_once(self):
+        """One statement per packet: the duty says an isolated run's release-verify cannot return; the rerun block must not."""
+        self.drive_to("release-verify")
+        text = " ".join(self.packet().split())
+        self.assertIn("recorded from the work area " + str(self.repo), text)
+        self.assertEqual(text.count("cannot return"), 1, text)
+
 
 class VerifyLimitTests(unittest.TestCase):
     def state(self, repo: Path, command: str) -> dict:
@@ -1298,6 +1314,7 @@ class UnavailableExecutionTests(unittest.TestCase):
                 packet = "\n".join(test_loop.rerun_lines(root, state, "", "release-verify"))
             self.assertIn("recorded from the work area " + temp, packet)
             self.assertIn("do not observe the user's checkout", packet)
+            self.assertNotIn("cannot return", packet, "the release-verify duty says it; one statement per packet")
             with mock.patch.object(test_loop.workspace, "returned_result",
                                    side_effect=test_loop.workspace.WorkspaceError("receipt unreadable")):
                 packet = "\n".join(test_loop.rerun_lines(root, state, "", "release-verify"))  # never raises
@@ -1333,8 +1350,8 @@ class UnavailableExecutionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             state = self.state(root, "true")
+            self.assertEqual(test_loop.observed_lines(root, state), [])  # release-verify not accepted yet: nothing to report
             state["history"].append({"stage": "release-verify", "workitem": None, "action": "A-rv", "outcome": "done"})
-            self.assertEqual(test_loop.observed_lines(root, state), [])  # no record yet: no claim
             (root / "tests").mkdir()
             record = {"schema": test_loop.SCHEMA, "passed": True, "runs": [], "disposition": "passed"}
             for observed, expected in (
@@ -1351,9 +1368,17 @@ class UnavailableExecutionTests(unittest.TestCase):
                     self.assertEqual(len(lines), 1)
                     self.assertIn("Consumer checks (release-verify) " + expected, lines[0])
                     self.assertIn("Record: " + str(root / "tests" / "A-rv-verify1.md"), lines[0])
-            # a record written before `observed` existed makes no claim
-            (root / "tests" / "A-rv-verify1.md").write_text(store.dumps(record, "t"))
-            self.assertEqual(test_loop.observed_lines(root, state), [])
+
+    def test_the_handoff_line_says_none_ran_when_release_plan_recorded_no_consumer_check(self):
+        """No consumer check means no test record, so the line comes from the plan's own reason, not from a record."""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state = self.state(root, "true")
+            state["accepted"]["S3"] = dict(DONE, consumer_checks=[], consumer_checks_na="A static page; nothing to run.")
+            state["history"].append({"stage": "release-verify", "workitem": None, "action": "A-rv", "outcome": "done"})
+            self.assertEqual(test_loop.observed_lines(root, state),
+                             ["Consumer checks (release-verify) did not run: release-plan recorded no consumer check "
+                              "(A static page; nothing to run)."])
 
     # -- budget-skipped commands, and records written before the disposition field ---
 
