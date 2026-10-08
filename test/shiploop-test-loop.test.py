@@ -506,6 +506,41 @@ class TestLoopTests(unittest.TestCase):
         for row in self.state()["history"][-3:-1]:
             self.assertFalse(row["summary"].startswith(NOT_APPLICABLE), row["summary"])
 
+    SKILL_FILE = ".claude/skills/review/SKILL.md"
+
+    def test_an_item_that_declares_no_skill_na_is_never_refused_for_its_skill_files(self):
+        """GUARD, green before and after: the skill refusals belong only to an item that declared skill_na.
+
+        An item that selects, creates or changes a skill lists its file in paths with no skill_na; its step plan and its
+        document result are accepted and both skill stages are then issued with packets.  If the step-plan gate refused a
+        skill path without looking for skill_na, or the document gate refused a skill diff without it, every
+        skill-authoring item would be stuck at a refusal whose only exit is a key the item rightly does not have.
+        """
+        self.start()
+        self.drive_to("document", step_plan={**self.NO_TESTS, "paths": [*self.NO_TESTS["paths"], self.SKILL_FILE]})
+        skill = self.repo / self.SKILL_FILE
+        skill.parent.mkdir(parents=True)
+        skill.write_text("---\nname: review\n---\n")
+        self.complete(DONE)
+        for stage in ("skill-assess", "skill-validate"):
+            self.assertEqual(nav.current_stage(self.state()), stage)
+            self.assertIn("ShipLoop navigator | " + stage, self.packet())  # issued to the model, not recorded by the script
+            self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "static-checks")
+        for row in self.state()["history"][-3:-1]:
+            self.assertFalse(row["summary"].startswith(NOT_APPLICABLE), row["summary"])
+
+    def test_an_undeclared_skill_edit_is_not_refused_at_document_without_skill_na(self):
+        """GUARD, green before and after: paths under-declaration is routine; only skill_na turns the diff into a refusal."""
+        self.start()
+        self.drive_to("document", step_plan=self.NO_TESTS)
+        skill = self.repo / self.SKILL_FILE
+        skill.parent.mkdir(parents=True)
+        skill.write_text("---\nname: review\n---\n")
+        self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "skill-assess")
+        self.assertIn("ShipLoop navigator | skill-assess", self.packet())
+
     def test_the_test_stages_and_the_skill_stages_are_independent(self):
         """With real test commands the test stages run for real while the skill stages are still left out."""
         self.start()
@@ -525,7 +560,8 @@ class TestLoopTests(unittest.TestCase):
         plan = dict(DONE, steps=[{"id": "S1", "task": "Make the planned change."}], **self.NO_TESTS)
         skill_file = ".claude/skills/review/SKILL.md"
         self.assert_refused(dict(plan, skill_na=SKILL_NA, paths=[*plan["paths"], skill_file]),
-                            r"(?s)skill_na.*\.claude/skills/review/SKILL\.md.*resubmit the step plan without skill_na")
+                            r"(?s)skill_na.*\.claude/skills/review/SKILL\.md.*resubmit the step plan without skill_na.*"
+                            r"run the same command again")
         with self.assertRaises(nav.NavigatorError) as caught:
             self.complete(dict(plan, skill_na=SKILL_NA, paths=[*plan["paths"], "AGENTS.md"]))
         self.assertNotIn("out of paths", str(caught.exception))  # the file would be left uncommitted: not an exit
@@ -565,6 +601,9 @@ class TestLoopTests(unittest.TestCase):
         skill = self.repo / ".claude" / "skills" / "review" / "SKILL.md"
         skill.parent.mkdir(parents=True)
         skill.write_text("---\nname: review\n---\n")
+        # The document packet's Checked-by line promises this refusal and its exit (P1); the gate then keeps the promise.
+        line = next(row for row in self.packet().splitlines() if row.startswith("Checked by: "))
+        self.assertRegex(line, r"skill file changed after the step plan recorded skill_na \(report revise\)")
         self.assert_refused(DONE, r"(?s)skill_na.*- \.claude/skills/review/SKILL\.md.*report revise")
         self.complete(dict(DONE, outcome="revise", summary="The item added a skill; plan it."))
         self.assertEqual(nav.current_stage(self.state()), "step-plan")

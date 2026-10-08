@@ -1667,7 +1667,7 @@ def _check_submitted_skill_na(stage: str, result: Any) -> None:
     skill path from ``paths`` instead would leave the changed file uncommitted (``item_scope.commit_item``
     commits declared paths only), so it is not offered.
     """
-    if stage != "step-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+    if stage != item_scope.SKILL_NA_PLAN_STAGE or not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
     if "skill_na" not in result:
         return
@@ -1679,7 +1679,7 @@ def _check_submitted_skill_na(stage: str, result: Any) -> None:
           "skill_na says no repo-local skill is selected, created or changed, but paths lists a skill file: "
           + ", ".join(listed) + ". To proceed, resubmit the step plan without skill_na: both skill stages then "
           "run on those files, and the files stay in paths so they are committed with the item. Then run the "
-          "same complete command again.")
+          "same command again.")
 
 
 def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
@@ -3523,14 +3523,13 @@ _CHECK_TEXT = {
 
 # What complete refuses for every stage, in a packet's words.  The evidence gate checks absolute paths only, and the
 # credential screen (shiploop_privacy.sensitive_text) is conservative, so the line claims no more than that.
-_COMMON_GATES = ("a result without outcome and summary, an evidence_refs path that is absolute and does not exist, "
-                 "or an explicit credential pattern")
+_COMMON_GATES = "no outcome or summary, an absolute evidence_refs path that does not exist, or an explicit credential pattern"
 # The extra faults a stage's gates refuse, keyed by the tables the gates read (RECORDED_COMMANDS names the stage that
 # records each command list), so a sentence cannot name a stage the gate does not serve.  The route tests in
 # test/shiploop-callback-contract.test.py pair each named fault with its real refusal.
 _RECORDED_GATES = {
     "test_commands": "test_commands, paths, criteria or steps that do not fit (a criterion no command names, a "
-                     "command naming an unlisted criterion, deps that are not earlier steps)",
+                     "command naming an unlisted one, deps that are not earlier steps)",
     "system_commands": "a missing system_commands list, or an empty one without system_commands_na",
     "consumer_checks": "a missing consumer_checks list, or an empty one without consumer_checks_na, or a "
                        "consumer_entry whose sources are not files in the repository",
@@ -3543,6 +3542,11 @@ def _stage_gates(stage: str) -> list[str]:
         gates.append("an assumption list that is malformed, cites evidence files that do not exist, or leaves an "
                      "open assumption without a consumer work item in this plan")
     gates.extend(_RECORDED_GATES[field] for field, owner in RECORDED_COMMANDS.items() if owner == stage)
+    # skill_na is held to account at these two stages, named by the constants the gates compare with.
+    if stage == item_scope.SKILL_NA_PLAN_STAGE:
+        gates.append("skill_na beside a skill file in paths")
+    if stage == item_scope.SKILL_NA_DIFF_STAGE:
+        gates.append("a skill file changed after the step plan recorded skill_na (report revise)")
     if stage in knowledge.CLOSES:
         gates.append("a docs/shiploop file this stage must have written, missing or empty")
     return gates
@@ -4658,7 +4662,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     and submitted.get("outcome") == "done"):
                 refusal = item_scope.scope_refusal(root, state, cursor_item)
                 _need(not refusal, refusal)
-            if (cursor_stage == "document" and cursor_item and isinstance(submitted, Mapping)
+            if (cursor_stage == item_scope.SKILL_NA_DIFF_STAGE and cursor_item and isinstance(submitted, Mapping)
                     and submitted.get("outcome") == "done"):
                 refusal = item_scope.skill_scope_refusal(root, state, cursor_item)
                 _need(not refusal, refusal)

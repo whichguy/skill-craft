@@ -545,16 +545,21 @@ naming the index it inspected. ShipLoop then records `skill-assess` and
 `skill-validate` as not applicable to that item instead of issuing them: each keeps
 a history row and a result file whose text starts "Not applicable to this item" and
 carries that reason, and the late helper, MCP and library reuse assessment
-`skill-assess` would have made is waived. Under the default `stage` planning review, Improve
-reviews `skill_na` with the rest of the step plan. It is the model's declaration, so it is
-checked twice. A step plan
-that lists a skill file in `paths` (the catalog's `skill_surface`: `SKILL.md`,
-`skills/` and `agents/` trees, the host agent-config directories, `AGENTS.md`,
-`CLAUDE.md`, `GEMINI.md`, `.mcp.json`) is refused at `complete` and at
-`improve-complete`; the way out is the step plan without `skill_na`, because removing
-the file from `paths` would leave it uncommitted. And `document`'s `done` is refused
-when the item's real diff touches a skill file (not `AGENTS.md`, which `document`
-maintains); the way out is `revise`, which spends one of the item's two revisions.
+`skill-assess` would have made is waived. Under the default `stage` planning review,
+Improve reviews `skill_na` with the rest of the step plan.
+
+`skill_na` is the model's declaration, so ShipLoop checks it twice:
+
+- A step plan that lists a skill file in `paths` is refused at `complete` and at
+  `improve-complete`. The skill files are the catalog's `skill_surface` (`SKILL.md`,
+  `skills/` and `agents/` trees, the host agent-config directories, `AGENTS.md`,
+  `CLAUDE.md`, `GEMINI.md`, `.mcp.json`). The way out is the step plan without
+  `skill_na`, because removing the file from `paths` would leave it uncommitted.
+- `document`'s `done` is refused when the item's real diff touches a skill file.
+  This check leaves out `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `.mcp.json`, because
+  `document` is told to maintain the agent-instruction files. The way out is `revise`,
+  which spends one of the item's two revisions; the redone step plan omits `skill_na`.
+
 Without `skill_na`, or after either refusal, both stages run as before. Known gaps:
 the lists are a package catalog, so a repository with a non-standard skill layout is
 covered only by the declaration; `README.md` is not treated as a skill index; an

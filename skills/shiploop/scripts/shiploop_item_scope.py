@@ -34,6 +34,11 @@ AFTER_IMPLEMENT = ("test-green", "test-refine", "regression")
 # The two skill stages an item without skill work leaves out, after document.
 SKILL_STAGES = ("skill-assess", "skill-validate")
 LEFT_OUT_STAGES = TEST_STAGES + SKILL_STAGES
+# The two stages that hold a skill_na declaration to account: the step plan that records it (a skill file in its paths
+# refuses it) and document, whose done is refused when the item's real diff touches a skill file.  The navigator's gates
+# and the Checked-by text of those stages both read these names.
+SKILL_NA_PLAN_STAGE = "step-plan"
+SKILL_NA_DIFF_STAGE = "document"
 # The prefix a script-recorded stage's summary starts with; the E2E metrics and Run Review key on it.
 NOT_APPLICABLE = "Not applicable to this item"
 
@@ -245,6 +250,7 @@ def skill_scope_refusal(run_dir: Path, state: Mapping[str, Any], work_item: str)
     return "\n".join([head + "the change touches skill files:", *("- " + path for path in touched), way_out])
 
 
-__all__ = ("AFTER_IMPLEMENT", "LEFT_OUT_STAGES", "NOT_APPLICABLE", "SKILL_STAGES", "TEST_STAGES", "ItemScopeError",
+__all__ = ("AFTER_IMPLEMENT", "LEFT_OUT_STAGES", "NOT_APPLICABLE", "SKILL_NA_DIFF_STAGE", "SKILL_NA_PLAN_STAGE",
+           "SKILL_STAGES", "TEST_STAGES", "ItemScopeError",
            "behavioural", "changed_paths", "classify", "declared", "left_out", "no_skill_item", "no_test_item",
            "normalise_paths", "outside", "scope_refusal", "skill_scope_refusal", "skill_surface")

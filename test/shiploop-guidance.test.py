@@ -783,7 +783,11 @@ class GuidanceTests(unittest.TestCase):
         flat = normalized(packet)
         for clause in ("record `skill_na`", "skill-assess and skill-validate as not applicable",
                        "Omit `skill_na` when the item selects, uses, creates or changes a skill",
-                       "refuses `skill_na` beside a skill file in `paths`",
+                       "refuses `skill_na` in two places",
+                       "At this step plan, beside a skill file in `paths`",
+                       "At `document`, when the item's real diff touches a skill file",
+                       "AGENTS.md, CLAUDE.md, GEMINI.md and .mcp.json edits there are fine",
+                       "report revise, then resubmit the step plan without `skill_na`",
                        "resubmit the step plan without `skill_na`", "Improve reviews `skill_na`",
                        "late helper, MCP and library reuse assessment"):
             self.assertIn(clause, flat)

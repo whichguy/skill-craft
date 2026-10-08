@@ -1201,11 +1201,12 @@ skill-validate as not applicable to this item without issuing them, which also
 waives their late helper, MCP and library reuse assessment. Omit `skill_na` when the
 item selects, uses, creates or changes a skill.
 Improve reviews `skill_na` with the rest of this result.
-ShipLoop refuses `skill_na` beside a skill file in `paths` (a SKILL.md, a skills/ or
-agents/ tree, AGENTS.md, CLAUDE.md, GEMINI.md, .mcp.json or a host agent-config
-directory) and refuses `document`'s done when the item's real diff touches a skill
-file; after the first refusal resubmit the step plan without `skill_na`, after the
-second report revise and do the same. Both stages then run.
+ShipLoop refuses `skill_na` in two places. At this step plan, beside a skill file in
+`paths` (a SKILL.md, a skills/ or agents/ tree, AGENTS.md, CLAUDE.md, GEMINI.md,
+.mcp.json or a host agent-config directory): resubmit the step plan without
+`skill_na`. At `document`, when the item's real diff touches a skill file (AGENTS.md,
+CLAUDE.md, GEMINI.md and .mcp.json edits there are fine): report revise, then
+resubmit the step plan without `skill_na`. Both skill stages then run.
 Label every pinned value that exists so a check can replay an exact path (fixed
 dice, seed data, a sample click) as a source-check fixture, and name the runtime
 control separately (for example, two die values the player can change, with the

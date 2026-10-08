@@ -333,6 +333,21 @@ class RefusalRouteTests(RealCliCase):
                 write_block(path, good)
                 self.accept_after_the_knowledge_files(command, run)
                 self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        with self.subTest("a skill file in paths beside skill_na"):
+            # The exit the refusal names is the same plan without skill_na, the skill file still in paths.  The document
+            # stage's half of this fault (a skill file changed after skill_na) needs a real item diff and is paired in
+            # test/shiploop-test-loop.test.py.
+            run, head = self.new_run("step-plan")
+            command, path, action = printed_callback(head)
+            good = self.fill_done(head)
+            listed = {**good, "paths": [*good["paths"], ".claude/skills/review/SKILL.md"]}
+            write_block(path, {**listed, "skill_na": "No repo-local skill applies: README.md is the index and names none."})
+            reply = self.refused(command, run)
+            self.assertIn("skill_na says no repo-local skill is selected", reply)
+            self.assertIn("resubmit the step plan without skill_na", reply)
+            write_block(path, listed)
+            self.accepted(command)
+            self.assertEqual(self.recorded(run, action)["outcome"], "done")
         with self.subTest("the docs/shiploop files a close requires"):
             run, head = self.new_run("test-spec")
             command, path, action = printed_callback(head)

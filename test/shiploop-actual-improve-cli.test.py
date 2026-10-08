@@ -1305,6 +1305,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn("skill_na", refused.stderr)
         self.assertIn(".claude/skills/review/SKILL.md", refused.stderr)
         self.assertIn("resubmit the step plan without skill_na", refused.stderr)
+        # The same function serves complete and improve-complete, so its tail names neither verb.
+        self.assertIn("run the same command again", refused.stderr)
+        self.assertNotIn("complete command", refused.stderr)
         self.assertEqual(before, (self.run / "state.md").read_bytes())
         # The named exit: the final result without skill_na is accepted by the same command.
         plain = {key: value for key, value in contradictory.items() if key != "skill_na"}

@@ -240,6 +240,23 @@ about zero). `_checked_line` now builds one line (the keepalive suite requires o
   all 23 lines (failed on all 23 before); `test/shiploop-callback-contract.test.py` pairs each named fault
   with its real refusal and an accepted correction through the CLI (eight faults plus the knowledge close),
   green before and after as a guard: remove a gate and the line over-promises, and this fails.
+- **B6 landed after this line and added two refusals; the line now names both (decision after the review, firm).**
+  The step-plan line says "skill_na beside a skill file in paths" and the document line says "a skill file
+  changed after the step plan recorded skill_na (report revise)". Reason: the line is the only place a model that
+  holds this one packet learns what `complete` refuses, and a list that reads as exhaustive but omits the two
+  newest refusals is the drift P1 exists to remove; the alternative, a sentence that the list is not
+  exhaustive, tells the model nothing it can act on. Both are static conditional text (the refusal fires only for
+  an item whose step plan recorded `skill_na`), the same shape as the pass-log rule. The text is built from
+  `item_scope.SKILL_NA_PLAN_STAGE` and `item_scope.SKILL_NA_DIFF_STAGE`, the names the two gates compare with, so a
+  stage cannot be named that the gate does not serve. Claim-to-gate: the step-plan fault is a subtest of
+  `test_each_result_fault_the_checked_line_names_is_refused_and_the_corrected_result_is_accepted` (CLI; the named exit,
+  the plan without `skill_na` and the skill file still in `paths`, is accepted); the document fault needs a real item
+  diff, so `test_a_skill_file_changed_after_skill_na_refuses_document_and_revise_is_the_way_out` reads the document
+  packet's Checked-by line, then submits the refused result through the real gate and takes the `revise` exit.
+  `GATE_WORDS` in `test/shiploop-packet-completeness.test.py` pins the word `skill_na` to exactly those two stages.
+  Not changed: the `consumer_entry` clause hangs on the `consumer_checks` key of `_RECORDED_GATES` although its gate
+  is hard-coded to `release-plan`; both belong to that one stage in the stage table and the route test pairs the
+  `consumer_entry` fault with its refusal at `release-plan`, so a drift would fail there.
 - A fault the line does not name is the status quo, not a regression: `implement` is refused by
   `item_scope.scope_refusal` for changes outside the step plan's paths, but its `complete_runs` text lists only
   the lint gate (same defect class, `_CHECK_TEXT`, recorded and not changed); `release-verify`'s knowledge close
@@ -256,10 +273,14 @@ about zero). `_checked_line` now builds one line (the keepalive suite requires o
 block inside the first 8000 characters of every dry-run packet (`shiploop_status_hook.WINDOW`, the head Claude
 Code keeps of oversized Bash output). The longer step-plan line pushed the ask-agent redo packet to 8045, so the
 new Done-when bullet of the REVISE entry was shortened and the step-plan clause tightened; the heaviest packet
-(ask-agent, step-plan after a revise) now ends the block at 7960 (measured with `graph-dry-run --scenario all --delegation ask-agent`); the first-visit ask-agent
-step-plan packet ends it at 7819 and the next item's at 7864. **The margin of the redo packet is 40 characters, so the next addition to the head of
-a step-plan packet must shorten something else or raise `WINDOW` deliberately;** the window is a host fact I
-could not verify, so I did not raise it.
+(ask-agent, step-plan after a revise) then ended the block at 7960 (measured with `graph-dry-run --scenario all --delegation ask-agent`); the first-visit ask-agent
+step-plan packet ended it at 7819 and the next item's at 7864. The review fix that names B6's two refusals in the
+step-plan line (36 characters) would have taken the redo packet to 7999, so the common clause was shortened ("no
+outcome or summary, an absolute evidence_refs path that does not exist" in place of the longer wording) and the
+step-plan clause tightened again ("an unlisted one" for "an unlisted criterion"): the block now ends at 7971 in the
+redo packet, 7830 in the first visit and 7875 in the next item's. **The margin of the redo packet is 29 characters, so the
+next addition to the head of a step-plan packet must shorten something else or raise `WINDOW` deliberately;** the
+window is a host fact I could not verify, so I did not raise it.
 
 ## B6: skill-assess and skill-validate recorded by the script when not applicable (2026-10-08)
 
@@ -337,6 +358,32 @@ only, and a guard test pins `classify`, `behavioural`, `order` and `non_behaviou
   not pay for the real Until Loop at every test stage; one default-plan test (real test loops) keeps the claim that
   the test group and the skill group are independent. The design's "saved state without `skill_na` loads
   unchanged" test is dropped (tautological: no code touches a state without the key). Size is `m`, not `s`.
+
+**After the adversarial review (2026-10-08).**
+- **The invariant "B6 never touches an item that did not declare `skill_na`" is now tested (firm).** Two guards in
+  `test/shiploop-test-loop.test.py`: an item whose step plan lists a skill file with no `skill_na` is accepted at
+  `complete`, its `document` is accepted with the file really created, and both skill stages are issued with
+  packets; and an undeclared skill edit at `document` with no `skill_na` is accepted (paths under-declaration is
+  routine). Both are green on the code as built, so their value is shown by mutation, in a scratch copy: with
+  `skill_scope_refusal`'s "no `skill_na`, nothing to refuse" early return removed the document gate fires on every
+  item whose diff touches a skill file and both tests error; with the `"skill_na" not in result` return removed from
+  `_check_submitted_skill_na` the step-plan gate refuses any plan that lists a skill file and the first test errors.
+  The `improve-complete` half (a final result with the skill file and no `skill_na` is accepted) is the end of the
+  existing route test, and I re-ran that test under the second mutation on the unchanged tree: it fails (the review
+  reported it surviving, which this run does not reproduce). Before this change nothing exercised the `complete`
+  half.
+- **The refusal tail names no verb.** `_check_submitted_skill_na` also runs at `improve-complete`, where "run the same
+  complete command again" names the wrong command (the same fault the audit raised for `_submitted_result`). It now
+  says "run the same command again", and the `improve-complete` route test asserts the sentence and that
+  "complete command" is absent.
+- **The step-plan duty states the two refusals separately.** It read "after the first refusal resubmit ... after the
+  second report revise", which does not say which refusal is which. It now says `skill_na` is refused in two places:
+  at the step plan beside a skill file in `paths` (resubmit without `skill_na`), and at `document` when the item's
+  real diff touches a skill file (report revise, then resubmit without `skill_na`), and that `AGENTS.md`,
+  `CLAUDE.md`, `GEMINI.md` and `.mcp.json` edits at `document` are fine. `SKILL.md` carries the same two cases as
+  a list, with the hard wraps fixed.
+- **Named in the Checked-by lines** (P1 section above): decided, not left implicit.
+- A vacuous `assertLess` on two local list indexes in `test/shiploop-revise.test.py` was removed.
 
 **What disappears with the model stage.** The `## Skill disposition` section in `docs/shiploop/features/*/plan.md`
 and the `knowledge after skill-assess` commit seen in the Grok 1.23.0 run (worktree commit 07d1829). No

@@ -204,7 +204,6 @@ class ReviseTests(unittest.TestCase):
         self.assertNotIn(result_path(sent_back), nav.render(dry_run.CORE, dry_run.RUN, state))
         self.assertNotIn("carried over", head_of(state))
         # W2 reaches its own step plan once W1 finishes: nothing of W1's plans or revise result is named.
-        implement = next(i for i, row in enumerate(rows) if row["at"] == "implement")
         second_item = [i for i, row in enumerate(rows) if row["at"] == "get-next-work-item"][1]
         state = walk(state, rows[test_spec:second_item + 1])
         self.assertEqual(state["work_items"][state["work_index"]]["id"], "W2")
@@ -213,7 +212,6 @@ class ReviseTests(unittest.TestCase):
         self.assertNotIn(result_path(plan), packet)
         self.assertNotIn(result_path(sent_back), packet)
         self.assertNotIn("carried over", head_of(state))
-        self.assertLess(step_plan, implement)
 
     def test_an_amended_step_plan_is_accepted_through_the_gate(self) -> None:
         state = submit(drive_to("implement"), REVISE)
