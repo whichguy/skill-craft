@@ -32,6 +32,7 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import select
 import subprocess
 import sys
 import tempfile
@@ -346,6 +347,8 @@ def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float
     record = {"title_seen": False, "output_s": None, "exited": False, "lingered": False, "returncode": None,
               "killed": False, "group_empty": None, "error": None}
     proc = None
+    reader = None
+    stop = threading.Event()
     try:
         argv = [binary, *BROWSER_FLAGS, f"--user-data-dir={profile}", "--dump-dom", url]
         started = time.monotonic()
@@ -365,7 +368,15 @@ def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float
         needle = token.encode()
 
         def read() -> None:
-            for chunk in iter(lambda: proc.stdout.read1(65536), b""):
+            # Raw reads with a poll, so the thread can be told to stop: closing a pipe that a thread is blocked reading waits
+            # for the pipe to close, and a helper that left the group can hold it open long after the browser is gone.
+            fd = proc.stdout.fileno()
+            while not stop.is_set():
+                if not select.select([fd], [], [], 0.1)[0]:
+                    continue
+                chunk = os.read(fd, 65536)
+                if not chunk:
+                    break
                 data.extend(chunk)
                 if not seen and needle in data:
                     seen.append(time.monotonic())
@@ -398,10 +409,12 @@ def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float
             while _group_alive(group) and time.monotonic() < end:
                 time.sleep(POLL_SECONDS)
             record["group_empty"] = not _group_alive(group)
-        reader.join(timeout=2)
         return record
     finally:
-        if proc is not None and proc.stdout is not None:
+        stop.set()
+        if reader is not None:
+            reader.join(timeout=2)  # it looks at `stop` every 0.1 s
+        if proc is not None and proc.stdout is not None and (reader is None or not reader.is_alive()):
             with contextlib.suppress(OSError):
                 proc.stdout.close()
         shutil.rmtree(profile, ignore_errors=True)

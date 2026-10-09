@@ -63,6 +63,13 @@ launches each, thirty seconds apart, with no other Chrome running:
 `python3 test/shiploop_e2e/environment.py --need browser` and journal `title_seen`, `output_s`, `exited`, `lingered` per kind. No overlay,
 threshold or verdict is built on it.
 
+**F7. Closing a pipe that a thread is still reading blocks until the pipe closes, so a helper that left the browser's group could hang the probe. Firm (reproduced with a `sleep` child of my own, then by a test).**
+A first version read the browser's output through a buffered reader in a thread and closed it at the end. Closing blocks while another thread is
+inside a read of the same buffered file; a helper that left the group (a detached crash reporter, say) and holds the output open therefore held
+the probe: the new test took 8.2 s against its 6 s bound with the helper holding the pipe for 8 s, before any host would have started. The reader now
+polls the raw descriptor with `select` and a stop flag, and the pipe is closed only after the reader has gone. Commit
+`fix(shiploop-e2e): the browser probe does not block on a pipe a helper holds open`.
+
 ## Method and evidence, per part
 
 - Red first, then green, for every behaviour; the red reason is in each commit message. After green, mutants were applied to scratch copies of

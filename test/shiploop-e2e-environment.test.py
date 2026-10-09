@@ -230,6 +230,12 @@ if mode == "silent":
 if mode == "crash":
     print("no display", file=sys.stderr)
     sys.exit(3)
+if mode == "escape":
+    # A helper that left the browser's group and still holds its output open, as a detached crash reporter could.
+    import subprocess
+    child = subprocess.Popen([sys.executable, "-c", "import signal, time; signal.alarm(8); time.sleep(30)"],
+                             start_new_session=True, stdin=subprocess.DEVNULL, stdout=sys.stdout)
+    note(child=child.pid)
 if kind == "file":
     from urllib.parse import unquote, urlparse
     page = open(unquote(urlparse(url).path)).read()
@@ -269,9 +275,10 @@ class BrowserFixture(OwnProcesses):
     def _end_browsers(self) -> None:
         """Whatever fake browser the code under test left, by the pid it logged and only if it still leads its group."""
         for entry in self.launches():
-            with contextlib.suppress(ProcessLookupError, PermissionError):
-                if os.getpgid(entry["pid"]) == entry["pid"]:
-                    os.killpg(entry["pid"], signal.SIGKILL)
+            for pid in (entry["pid"], entry.get("child")):
+                with contextlib.suppress(ProcessLookupError, PermissionError, TypeError):
+                    if os.getpgid(pid) == pid:
+                        os.killpg(pid, signal.SIGKILL)
 
     def alive(self, pid: int) -> bool:
         try:
@@ -335,6 +342,18 @@ class BrowserProbeTest(BrowserFixture, unittest.TestCase):
         self.assertLess(elapsed, 4.0, "both kinds were probed together, each in a session of its own")
         for entry in self.launches():
             self.assertFalse(self.alive(entry["pid"]))
+
+    def test_a_helper_that_left_the_group_and_keeps_the_output_open_does_not_hang_the_probe(self):
+        # Closing a pipe that a thread is still reading blocks until the pipe closes: with this helper holding it for 8 s,
+        # a probe that closes it at the end would take 8 s, before the host has even started.
+        with mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "escape"}):
+            start = time.monotonic()
+            record = self.probe()
+            elapsed = time.monotonic() - start
+        self.assertLess(elapsed, 6.0)
+        for kind in ("file", "http"):
+            self.assertTrue(record[kind]["title_seen"], kind)
+            self.assertTrue(record[kind]["group_empty"], "the helper is not in the browser's group, and the group is empty")
 
     def test_a_browser_that_dies_without_output_is_not_a_title_and_its_exit_code_is_kept(self):
         with mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "crash"}):
