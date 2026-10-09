@@ -1120,21 +1120,26 @@ class LaunchRecordsTest(unittest.TestCase):
         def record(name, **kw):
             (out / name).write_text(json.dumps({"case": "c", "host": kw.pop("host"), "versions": {}, **kw}))
 
+        # The reason of a null build is read through runrecord.host_build under the launch record's key names
+        # (identity_unmeasured.host_build) and with group G3's reasons (batch 1011 integration; it was host_build_reason).
         record("invocation.json", host="grok")
         record("invocation-resume-claude-1001.json", host="claude")
         record("invocation-resume-grok-1002.json", host="grok", host_build=None, environment="oops")
         record("invocation-resume-grok-1003.json", host="grok", host_build="grok 1.0.50 (c58f321264ba)", environment={"observed": True})
-        old, claude, nulled, whole = self.environment.launch_environments(out)
-        self.assertIn("predates", old["host_build_reason"])
+        record("invocation-resume-grok-1004.json", host="grok", host_build=None,
+               identity_unmeasured={"host_build": "probe failed: silent"})  # as G3's launch writes a failed probe
+        old, claude, nulled, whole, probed = self.environment.launch_environments(out)
+        self.assertEqual(old["identity_unmeasured"], {"host_build": "launch predates the field"})
         self.assertIn("no environment", old["environment_reason"])
-        self.assertIn("Claude", claude["host_build_reason"])
-        self.assertIn("claude_code_version", claude["host_build_reason"])
-        self.assertIn("null", nulled["host_build_reason"])
+        self.assertIn("Claude", claude["identity_unmeasured"]["host_build"])
+        self.assertIn("init event", claude["identity_unmeasured"]["host_build"])
+        self.assertEqual(nulled["identity_unmeasured"], {"host_build": "no reason recorded"})
         self.assertIn("not a record", nulled["environment_reason"])
-        self.assertEqual((whole["host_build"], whole["host_build_reason"], whole["environment_reason"]),
-                         ("grok 1.0.50 (c58f321264ba)", None, None))
-        record("invocation-resume-claude-1004.json", host="claude", host_build="2.1.295")
-        self.assertIsNone(self.environment.launch_environments(out)[-1]["host_build_reason"], "a Claude launch that recorded a build")
+        self.assertEqual((whole["host_build"], whole["identity_unmeasured"], whole["environment_reason"]),
+                         ("grok 1.0.50 (c58f321264ba)", {}, None))
+        self.assertEqual(probed["identity_unmeasured"], {"host_build": "probe failed: silent"}, "the launch's own reason wins")
+        record("invocation-resume-claude-1005.json", host="claude", host_build="2.1.295")
+        self.assertEqual(self.environment.launch_environments(out)[-1]["identity_unmeasured"], {}, "a Claude launch that recorded a build")
 
     def test_a_start_that_cannot_be_restated_says_what_is_true_about_the_record(self):
         tmp = tempfile.TemporaryDirectory()

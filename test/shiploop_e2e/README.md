@@ -448,9 +448,10 @@ each fails open (a part that cannot be made says so, with its reason, and the ru
   last launch's record and its `end` says it was not observed. The host CLI build is not read here: a launch record carries
   `host_build` where the harness captured it at launch, and the per-launch entry passes it through. It is null for every
   Claude launch (Claude's build is `metrics.claude_code_version`, from its init event) and for a launch recorded before the field
-  existed; `host_build_reason` says which.
+  existed; `identity_unmeasured.host_build` says which (the launch record's own key, read through `runrecord.host_build`, the one reader
+  of a launch's build, with G3's reasons).
 - `hosts_used`, `mixed_host`, `environments`: who launched the run, read through `runrecord.py` (the one reader). `environments`
-  has one entry per launch, first launch first, with its host, model, effort, `host_build` (and `host_build_reason` where it is
+  has one entry per launch, first launch first, with its host, model, effort, `host_build` (and `identity_unmeasured.host_build` where it is
   null) and the `environment` that launch recorded (null, with `environment_reason`, for a launch recorded before this record
   existed). `r2-battleship-grok-none` reads `["grok", "claude"]`: Grok started it and Claude Sonnet finished it, though its saved
   `result.json` says host grok (a regrade now restates the last launch's identity, so it would say claude). A regrade is not a

@@ -524,6 +524,29 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
         record = json.loads(next(out.glob("invocation-resume-grok-*.json")).read_text())
         self.assertEqual(record["host_build"], "grok 1.0.51 (bbb)")  # the resume launch itself was probed
 
+    def test_the_environment_record_reads_each_launchs_build_and_reason_as_its_launch_record_wrote_them(self):
+        # Batch 1011 integration: one host_build contract. G3 writes host_build and identity_unmeasured.host_build on each launch
+        # record; G4's environment.environments[] reads each launch through runrecord.host_build and carries the same two keys,
+        # with G3's reasons (it derived reasons of its own before).
+        import runrecord
+        code, stopped, _ = self.run_as("grok", "stuck", "--max-resumes", "0", binary=self.versioned("grok", "grok 1.0.50 (aaa)"))
+        out = Path(stopped["output"])
+        result = self.resume_on("grok", out, "")  # the resume's probe prints nothing
+        records = [record for _name, record in runrecord.launches(out)]
+        entries = result["environment"]["environments"]
+        self.assertEqual([(e["host_build"], e["identity_unmeasured"]) for e in entries],
+                         [("grok 1.0.50 (aaa)", {}), (None, {"host_build": "probe failed: silent"})])
+        self.assertEqual([(r["host_build"], r["identity_unmeasured"].get("host_build")) for r in records],
+                         [("grok 1.0.50 (aaa)", None), (None, "probe failed: silent")])
+        self.assertFalse(any("host_build_reason" in e for e in entries), "one set of key names")
+        code, claude, _ = self.run_as("claude")
+        entry = claude["environment"]["environments"][0]
+        self.assertEqual((entry["host_build"], entry["identity_unmeasured"]),
+                         (None, {"host_build": "Claude: read from the init event after the run"}))
+        self.assertEqual(runrecord.host_build({"host": "grok"}), (None, "launch predates the field"))
+        self.assertEqual(runrecord.host_build({"host": "claude"}), (None, "Claude: read from the init event after the run"))
+        self.assertEqual(runrecord.host_build({"host": "grok", "host_build": None}), (None, "no reason recorded"))
+
     def test_a_run_resumed_on_another_host_names_no_single_build(self):
         code, stopped, _ = self.run_as("grok", "stuck", "--max-resumes", "0", binary=self.versioned("grok", "grok 1.0.50 (aaa)"))
         out = Path(stopped["output"])

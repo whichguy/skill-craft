@@ -1367,7 +1367,7 @@ def row_termination(termination) -> dict | None:
         return termination
     return {key: value for key, value in termination.items() if key not in ROW_EXCLUDED_TERMINATION}
 PREDATES = "not recorded by this result (it predates the field)"
-LAUNCH_PREDATES = "launch predates the field"
+LAUNCH_PREDATES = runrecord.LAUNCH_PREDATES
 FIRST_PREDATES = "first launch predates the field"
 
 
@@ -1732,8 +1732,7 @@ def folder_record(folder: Path, cases: dict) -> dict:
                  or metrics.claude_builds(folder / "events.jsonl"))
         fill("host_build", build, "the init events name no Claude Code build")
     else:  # the build the FIRST launch recorded; a run launched before the field existed has none, and none is not asked for now
-        fill("host_build", first_launch.get("host_build"),
-             (first_launch.get("identity_unmeasured") or {}).get("host_build") or LAUNCH_PREDATES)
+        fill("host_build", *runrecord.host_build(first_launch))
     span = metrics.span(folder / "timeline.jsonl")
     fill("started", span["started"], "no timeline.jsonl stamps")
     fill("ended", span["ended"], "no timeline.jsonl stamps")
@@ -2659,8 +2658,7 @@ def _main(argv: list[str] | None, held: list) -> int:
     # restates what the run recorded, and a run recorded before the field existed stays null (today's CLI is not the one
     # that ran). Claude's build is its init event's (read below), so it is never probed.
     if regrade:
-        launch_build = recorded.get("host_build")
-        launch_why = None if launch_build else (recorded.get("identity_unmeasured") or {}).get("host_build") or LAUNCH_PREDATES
+        launch_build, launch_why = runrecord.host_build(recorded)
     else:
         launch_build, launch_why = host.cli_version(env)
     # The run's `host_build` has one meaning, the first launch's: this launch's when it is the first, else the first
@@ -2670,14 +2668,12 @@ def _main(argv: list[str] | None, held: list) -> int:
     elif regrade:
         # `recorded` is the run's last launch (a regrade restates that launch's identity), but the run's `host_build` is the
         # first launch's: restate what the run recorded for it (its result, else invocation.json, the first launch's record).
-        first = earlier_result if "host_build" in earlier_result else earlier
-        host_build = first.get("host_build")
-        host_build_why = None if host_build else (first.get("identity_unmeasured") or {}).get("host_build") or LAUNCH_PREDATES
+        host_build, host_build_why = runrecord.host_build(earlier_result if "host_build" in earlier_result else earlier)
     elif resumed and earlier.get("host") != args.host:
         host_build, host_build_why = None, "resumed on another host: see the launch records"
     elif resumed:
-        host_build = earlier.get("host_build")
-        host_build_why = None if host_build else (earlier.get("identity_unmeasured") or {}).get("host_build") or FIRST_PREDATES
+        host_build, host_build_why = runrecord.host_build(earlier)  # invocation.json: the first launch's record
+        host_build_why = FIRST_PREDATES if host_build_why == LAUNCH_PREDATES else host_build_why
     else:
         host_build, host_build_why = launch_build, launch_why
     plugin_why = versions.get("plugin_sha256_unmeasured") or (

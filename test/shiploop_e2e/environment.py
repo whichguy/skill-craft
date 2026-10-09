@@ -147,17 +147,6 @@ def end_record() -> dict:
 
 # ---------------------------------------------------------------- launches and hosts
 
-def _host_build_reason(record: dict) -> str | None:
-    """Why a launch's ``host_build`` is null (None when it holds a build)."""
-    if record.get("host_build") is not None:
-        return None
-    if record.get("host") == "claude":
-        return "Claude: its build is metrics.claude_code_version (from its init event), not probed at launch"
-    if "host_build" not in record:
-        return "the launch record has no host_build (it predates the field)"
-    return "the launch recorded host_build null (its version probe returned none)"
-
-
 def _environment_reason(record: dict) -> str | None:
     """Why a launch's ``environment`` is null (None when it holds a record)."""
     if isinstance(record.get("environment"), dict):
@@ -169,13 +158,17 @@ def _environment_reason(record: dict) -> str | None:
 
 def launch_environments(out) -> list[dict]:
     """One entry per launch of the run that could be read, first launch first: who ran it and the start record that launch kept.
-    ``host_build`` and ``environment`` are whatever the launch record carries, null with ``host_build_reason`` /
-    ``environment_reason`` saying why (Claude's build is never probed; an old launch has neither)."""
-    return [{"launch": name, "host": record.get("host"), "model": record.get("model"), "effort": record.get("effort"),
-             "host_build": record.get("host_build"), "host_build_reason": _host_build_reason(record),
-             "environment": record.get("environment") if isinstance(record.get("environment"), dict) else None,
-             "environment_reason": _environment_reason(record)}
-            for name, record in runrecord.launches(Path(out))]
+    ``host_build`` and its reason are read through runrecord.host_build, the one reader of a launch's build, under the launch
+    record's own key names (``host_build``, ``identity_unmeasured.host_build``: empty when the build is known); ``environment``
+    is whatever the launch record carries, null with ``environment_reason`` saying why (an old launch has none)."""
+    entries = []
+    for name, record in runrecord.launches(Path(out)):
+        build, why = runrecord.host_build(record)
+        entries.append({"launch": name, "host": record.get("host"), "model": record.get("model"), "effort": record.get("effort"),
+                        "host_build": build, "identity_unmeasured": {"host_build": why} if why else {},
+                        "environment": record.get("environment") if isinstance(record.get("environment"), dict) else None,
+                        "environment_reason": _environment_reason(record)})
+    return entries
 
 
 def restated_start(out) -> dict:

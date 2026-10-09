@@ -26,6 +26,32 @@ def _read(path: Path) -> dict | None:
     return record if isinstance(record, dict) else None
 
 
+# Why a launch record's host_build is null, where the record does not say: the one set of reasons (group G3's), which a
+# launch's own probe extends (hosts.probe_version: probe failed: not found | non-zero exit N | silent | hung).
+LAUNCH_PREDATES = "launch predates the field"
+CLAUDE_BUILD = "Claude: read from the init event after the run"  # hosts.Host.cli_version returns it too
+NO_REASON = "no reason recorded"
+
+
+def host_build(record: dict) -> Tuple[str | None, str | None]:
+    """(build, None) or (None, why): the host CLI build one launch record carries, and why it is null. The one reader of a
+    launch's build: the run's result (run._main), the baseline report (run.folder_record) and environment.environments[]
+    read a launch through it.
+
+    The reason is the one the launch recorded (``identity_unmeasured.host_build``, written at launch), else what is true of
+    the record: a Claude launch is never probed (its build is the init event's), a record without the field predates it.
+    """
+    build = record.get("host_build")
+    if isinstance(build, str) and build:
+        return build, None
+    if record.get("host") == "claude":
+        return None, CLAUDE_BUILD
+    reasons = record.get("identity_unmeasured") if isinstance(record.get("identity_unmeasured"), dict) else {}
+    if isinstance(reasons.get("host_build"), str) and reasons["host_build"]:
+        return None, reasons["host_build"]
+    return None, LAUNCH_PREDATES if "host_build" not in record else NO_REASON
+
+
 def launches(out: Path) -> List[Tuple[str, dict]]:
     """``(file name, record)`` for every launch that started a host, first launch first."""
     out = Path(out)
