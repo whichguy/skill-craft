@@ -241,9 +241,9 @@ _DURATION_SECONDS = {
     # QUICK_MAX_SECONDS (120): a further 20 s of tests here moves the suite out of the quick tier.
     "test/shiploop-e2e.test.py": 100.0,
     "test/shiploop-e2e-runrecord.test.py": 0.2,
-    # Local wall seconds, 2026-10-09, 91 tests at load average 6 to 8: 28.6 (node --test runs in MutationNodeTest, the stand-in
-    # mutation runs, and the reference-service calibration). Under QUICK_MAX_SECONDS.
-    "test/shiploop-e2e-quality.test.py": 29.0,
+    # Local wall seconds, 2026-10-09: 91 tests 28.6 at load average 6 to 8; after the fix round (confirmation runs, the port
+    # guard's real-node tests, the orphan stand-ins) 125 tests 43.2 at load average 3 to 5. Under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-quality.test.py": 43.0,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
