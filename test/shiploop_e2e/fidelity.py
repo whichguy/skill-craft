@@ -36,6 +36,11 @@ VERIFY_SCHEMA = "shiploop-test-loop/v1"
 TEST_SUITES = ("focused", "regression")
 RECORD_KINDS = ("verify", "lint", "quality", "backchain", "improve")
 SCRIPT_KINDS = ("verify", "lint", "quality", "backchain")
+# The record kind each run a stage declares at `done` (the stage table's complete_runs) leaves behind: the lint gate writes
+# lint/<action>.gate<N>.md, the test runs write tests/<action>-verify<N>.md, the quality loop's terminal check writes
+# quality/<action>-terminal.json. A run this table does not know is not judged (`unmapped_runs`).
+RUN_KIND = {"lint-gate": "lint", "test-loop": "verify", "test-probe": "verify", "test-red": "verify", "test-rerun": "verify",
+            "quality-terminal": "quality"}
 # The five questions an Improve packet (packets/<action>-improve.md) answers for a model that holds only that packet. Anchored to
 # the engine's wording (shiploop_navigator _goal_lines, _checked_line, _render_improve, _first_callback_lines); a test pins each
 # prefix against the engine's source. The exporter records `carried` labels for producer packets only; if it ever scores Improve
@@ -207,14 +212,16 @@ def commit_forms(command: str) -> list[str]:
 
 # --- evidence -------------------------------------------------------------------------------------------------------------
 
-def _refs(entry: dict) -> dict:
-    """How an accepted result's evidence_refs split: the stage's own packet, inbox or result file; a note the model wrote (the
-    harness's MODEL_INPUT: run/notes, run/evidence, run/scratch, Improve reviews); anything else. The refs are paths of the machine
-    that ran, so whether they still exist is not asked: the engine checked at the callback."""
+def _refs(entry: dict, action: str) -> dict:
+    """How an accepted result's evidence_refs split: the action's own packet, inbox or result file (a ref that names the action;
+    another action's result is a cited file); a note the model wrote (the harness's MODEL_INPUT: run/notes, run/evidence,
+    run/scratch, Improve reviews); anything else. The refs are paths of the machine that ran, so whether they still exist is not
+    asked: the engine checked at the callback."""
     own = note = outside = 0
+    owned = re.compile(r"/run/(?:packets|inbox|results)/" + re.escape(action) + r"(?:[.\-/]|$)")
     for ref in entry.get("evidence_refs") or []:
         ref = str(ref)
-        if re.search(r"/run/(?:packets|inbox|results)/", ref):
+        if owned.search(ref):
             own += 1
         elif metrics.MODEL_INPUT.search(ref):
             note += 1
@@ -248,8 +255,11 @@ def evidence(run_dir: Path | None, state: dict, declared: dict | None) -> dict:
     the script wrote), loop (an Improve child), file (a cited file that is neither the stage's own nor a model note), note (only
     model-authored notes), sentence (nothing beyond its own packet, inbox or result file). `records` lists every kind found, because
     the precedence hides a review loop behind a script record. `declared` is the check the stage table declares for the stage
-    (None when the table could not be read); `declared_script_run_without_record` names a done stage that declares a script-run
-    check and has no script-written record. A reading aid, not a target: citing any file makes a row `file`."""
+    (None when the table could not be read). `needs` is the record kinds the stage's declared runs leave (RUN_KIND; without a lint
+    gate when the run's lint option is off) and `lacks` the ones the action has none of; `declared_script_run_without_record` names a
+    done, not skipped stage that declares a script-run check and lacks any of them, so one script's record does not stand in for
+    another's. A run RUN_KIND does not know makes `needs` None, is not judged and is named in `unmapped_runs`. A reading aid, not a
+    target: citing any file makes a row `file`."""
     history = state.get("history") if isinstance(state, dict) else None
     if run_dir is None or not isinstance(history, list):
         raise Unmeasured("state.md records no history (no ShipLoop run directory, or one of another layout)")
@@ -257,7 +267,8 @@ def evidence(run_dir: Path | None, state: dict, declared: dict | None) -> dict:
     improved = state.get("improve_results") if isinstance(state.get("improve_results"), dict) else {}
     counts = {"script": 0, "loop": 0, "file": 0, "note": 0, "sentence": 0, "skipped": 0, "unclassified": 0}
     kinds = dict.fromkeys(RECORD_KINDS, 0)
-    rows, missing = [], []
+    rows, missing, unmapped = [], [], set()
+    lint_off = state.get("lint") == "off"
     for item in history:
         if not isinstance(item, dict) or not isinstance(item.get("action"), str):
             continue
@@ -266,7 +277,7 @@ def evidence(run_dir: Path | None, state: dict, declared: dict | None) -> dict:
         records = _records(run_dir, action, improved)
         for kind in records:
             kinds[kind] += 1
-        refs = _refs(entry) if entry is not None else None
+        refs = _refs(entry, action) if entry is not None else None
         summary = str((entry or {}).get("summary") or item.get("summary") or "")
         if entry is None:
             klass = "unclassified"
@@ -279,13 +290,20 @@ def evidence(run_dir: Path | None, state: dict, declared: dict | None) -> dict:
         else:
             klass = "file" if refs["outside"] else "note" if refs["note"] else "sentence"
         counts[klass] += 1
-        check = None if declared is None else declared.get(item.get("stage"))
-        if check == "script-run" and item.get("outcome") == "done" and klass not in ("script", "skipped"):
+        row = (declared or {}).get(item.get("stage")) or {}
+        check, runs = row.get("check"), row.get("runs") or []
+        known = [RUN_KIND[name] for name in runs if name in RUN_KIND]
+        unknown = [name for name in runs if name not in RUN_KIND]
+        unmapped.update(unknown)
+        needs = None if declared is None or unknown else sorted({kind for kind in known if not (lint_off and kind == "lint")})
+        lacks = None if needs is None else [kind for kind in needs if kind not in records]
+        if check == "script-run" and item.get("outcome") == "done" and klass != "skipped" and lacks:
             missing.append(item.get("stage"))
         rows.append({"action": action, "stage": item.get("stage"), "work_item": item.get("workitem"), "outcome": item.get("outcome"),
-                     "declared": check, "class": klass, "records": records, "refs": refs})
+                     "declared": check, "needs": needs, "lacks": lacks, "class": klass, "records": records, "refs": refs})
     return {"counts": counts, "records": kinds,
-            "declared_script_run_without_record": None if declared is None else missing, "stages": rows}
+            "declared_script_run_without_record": None if declared is None else missing,
+            "unmapped_runs": sorted(unmapped), "stages": rows}
 
 
 _EXPORTERS: dict[Path, object] = {}
@@ -305,14 +323,16 @@ def _exporter(path):
 
 
 def declared_checks(state: dict, engine_scripts, exporter) -> dict:
-    """{stage: the exit check its row declares} from the stage table of the ShipLoop the run used, read by the exporter's own
-    stage_catalog and effective_exit_check (planning_review `none` reads the planning stages as model judgement)."""
+    """{stage: {"check": the exit check its row declares, "runs": the runs it declares at done}} from the stage table of the ShipLoop
+    the run used, read by the exporter's own stage_catalog and effective_exit_check (planning_review `none` reads the planning stages
+    as model judgement)."""
     module = _exporter(exporter)
     if engine_scripts is None:
         raise Unmeasured("the ShipLoop scripts directory of the run is not known, so its stage table cannot be read")
     catalog = module.stage_catalog(module.load_stage_spec(Path(engine_scripts) / "shiploop_stage_spec.py"))
     mode = metrics.planning_review(state)
-    return {entry["stage"]: module.effective_exit_check(entry, mode) for entry in catalog}
+    return {entry["stage"]: {"check": module.effective_exit_check(entry, mode), "runs": list(entry.get("completeRuns") or [])}
+            for entry in catalog}
 
 
 # --- validation -----------------------------------------------------------------------------------------------------------
@@ -518,6 +538,9 @@ def build(out: Path, run_dir: Path | None, tools, *, engine_scripts=None, export
             gone["validation.counts"] = COUNTS_REASON
         if block["validation"]["unread"]:
             gone["validation.unread"] = UNREAD_REASON
+    if block["evidence"] and block["evidence"]["unmapped_runs"]:
+        gone["declared.runs"] = ("the stage table declares runs this reader does not know (" + ", ".join(block["evidence"]["unmapped_runs"])
+                                 + "), so the stages that declare them are not judged")
     if block["end_state"] and block["end_state"]["unverified"] is None:
         gone["end_state.unverified"] = UNVERIFIED_REASON
     return block

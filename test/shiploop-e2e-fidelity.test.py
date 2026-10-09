@@ -51,18 +51,20 @@ def fidelity_module():
     return fidelity
 
 
-def stage_table_dir(tmp: Path, planning_choice: bool = True) -> Path:
+def stage_table_dir(tmp: Path, planning_choice: bool = True, extra_run: str | None = None) -> Path:
     """A stand-in for <engine scripts>/shiploop_stage_spec.py built from the engine's table as test/fixtures/fidelity/extract.py
     froze it, so a later change to the engine's table cannot move a saved run's declared checks. Without
     PLANNING_CHOICE_STAGES it is the shape of the 1.21.0 table, which the exporter's stage_catalog cannot read."""
     table = json.loads((FIXTURES / "stage_table.json").read_text())
     rows = {name: {"goal": name, **row} for name, row in table["rows"].items()}
+    if extra_run:  # a run the harness has no record kind for, declared by test-green
+        rows["test-green"]["complete_runs"] = [*rows["test-green"]["complete_runs"], extra_run]
     source = ("from types import SimpleNamespace as N\n"
               f"STAGES = {tuple(table['stages'])!r}\n"
               "STAGE_SPEC = {n: N(goal=r['goal'], complete_runs=frozenset(r['complete_runs']), improve=r['improve'] or None,"
               " reads=tuple(r['reads'])) for n, r in " + repr(rows) + ".items()}\n"
               + (f"PLANNING_CHOICE_STAGES = frozenset({table['planning_choice_stages']!r})\n" if planning_choice else ""))
-    scripts = tmp / ("scripts" if planning_choice else "scripts-1.21.0")
+    scripts = tmp / ("scripts" if planning_choice and not extra_run else "scripts-1.21.0" if not planning_choice else "scripts-extra")
     scripts.mkdir(parents=True, exist_ok=True)
     (scripts / "shiploop_stage_spec.py").write_text(source)
     return scripts
@@ -389,6 +391,133 @@ class EvidenceTest(unittest.TestCase):
             block = self.fidelity.build(shown, run_dir, metrics.ToolLog(), engine_scripts=CURRENT_TABLE, exporter=EXPORTER)
             stage = next(h["stage"] for h in metrics.engine_state(run_dir)["history"] if h["action"] == action)
             self.assertIn(stage, block["evidence"]["declared_script_run_without_record"])
+
+    def run_state(self, history, accepted=None, lint="fix"):
+        """A minimal state.md body: one history entry per (action, stage, outcome) and an accepted result for each."""
+        return {"status": "done", "lint": lint,
+                "history": [{"action": a, "stage": s, "outcome": o, "summary": ""} for a, s, o in history],
+                "accepted": accepted if accepted is not None else {
+                    a: {"outcome": o, "summary": "did it", "evidence_refs": ["/r/.shiploop-runs/w/worktree/x.md"]}
+                    for a, s, o in history}}
+
+    def test_a_stage_declaring_two_scripts_is_listed_when_one_of_them_left_no_record(self):
+        # Review A1: test-green and regression declare [lint-gate, test-loop] and static-checks [quality-terminal, test-rerun]; a lint or
+        # quality record alone must not satisfy them. The deletion is exactly the review's: only tests/<action>-verify*.md of three stages.
+        for alias in ("r3-battleship-sonnet", "r1-battleship-sonnet"):
+            with self.subTest(run=alias), tempfile.TemporaryDirectory() as tmp:
+                shown = Path(tmp) / alias
+                self.copy_run(alias, shown)
+                run_dir = shown / ".shiploop-runs" / "work-1" / "run"
+                wanted = {"test-green", "regression", "static-checks"}
+                actions = {h["action"]: h["stage"] for h in metrics.engine_state(run_dir)["history"] if h["stage"] in wanted}
+                self.assertEqual(set(actions.values()), wanted)
+                for action in actions:
+                    for record in (run_dir / "tests").glob(f"{action}-verify*.md"):
+                        record.unlink()
+                block = self.fidelity.build(shown, run_dir, metrics.ToolLog(), engine_scripts=CURRENT_TABLE, exporter=EXPORTER)
+                evidence = block["evidence"]
+                self.assertEqual(sorted(set(evidence["declared_script_run_without_record"])), sorted(wanted))
+                rows = [r for r in evidence["stages"] if r["action"] in actions]
+                self.assertEqual({r["stage"]: r["lacks"] for r in rows}, {"test-green": ["verify"], "regression": ["verify"],
+                                                                         "static-checks": ["verify"]})
+                self.assertEqual({r["class"] for r in rows}, {"script"}, "the class still comes from the records that exist")
+                self.assertEqual(replay(alias)["block"]["evidence"]["declared_script_run_without_record"], [])
+
+    def test_the_kinds_a_stage_needs_come_from_the_runs_its_table_row_declares(self):
+        declared = {"test-green": {"check": "script-run", "runs": ["lint-gate", "test-loop"]},
+                    "static-checks": {"check": "script-run", "runs": ["quality-terminal", "test-rerun"]},
+                    "test-author": {"check": "script-run", "runs": ["test-probe"]},
+                    "test-red": {"check": "script-run", "runs": ["test-red"]},
+                    "intake": {"check": "model judgement", "runs": []}}
+        run_dir = Path("/nonexistent-run-dir")
+        state = self.run_state([("a", "test-green", "done"), ("b", "static-checks", "done"), ("c", "test-author", "done"),
+                                ("d", "test-red", "done"), ("e", "intake", "done")])
+        rows = {r["stage"]: r for r in self.fidelity.evidence(run_dir, state, declared)["stages"]}
+        self.assertEqual({k: (r["needs"], r["lacks"]) for k, r in rows.items()}, {
+            "test-green": (["lint", "verify"], ["lint", "verify"]), "static-checks": (["quality", "verify"], ["quality", "verify"]),
+            "test-author": (["verify"], ["verify"]), "test-red": (["verify"], ["verify"]), "intake": ([], [])})
+
+    def test_a_run_with_the_lint_option_off_does_not_need_a_lint_gate_record(self):
+        declared = {"implement": {"check": "script-run", "runs": ["lint-gate"]}, "test-green": {"check": "script-run", "runs": ["lint-gate", "test-loop"]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            (run_dir / "tests").mkdir(parents=True)
+            (run_dir / "tests" / "b-verify1.md").write_text("x")
+            # test-green keeps its verify record, so with the lint option on it lacks the gate only; with it off it lacks nothing.
+            for lint, listed in (("off", []), ("fix", ["implement", "test-green"]), ("report", ["implement", "test-green"])):
+                with self.subTest(lint=lint):
+                    state = self.run_state([("a", "implement", "done"), ("b", "test-green", "done")], lint=lint)
+                    evidence = self.fidelity.evidence(run_dir, state, declared)
+                    self.assertEqual(evidence["declared_script_run_without_record"], listed)
+                    if lint == "off":
+                        self.assertEqual([r["needs"] for r in evidence["stages"]], [[], ["verify"]])
+
+    def test_a_declared_run_the_reader_does_not_know_is_not_judged_and_is_named(self):
+        declared = {"test-green": {"check": "script-run", "runs": ["lint-gate", "future-run"]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence = self.fidelity.evidence(Path(tmp), self.run_state([("a", "test-green", "done")]), declared)
+        self.assertEqual(evidence["declared_script_run_without_record"], [])
+        self.assertEqual(evidence["stages"][0]["needs"], None)
+        self.assertEqual(evidence["unmapped_runs"], ["future-run"])
+
+    def test_a_stage_table_with_an_unknown_run_is_named_in_the_block_and_those_stages_are_not_judged(self):
+        scripts = stage_table_dir(Path(_TABLE_TMP.name), extra_run="future-run")
+        block = replay("r1-battleship-sonnet", engine_scripts=scripts)["block"]
+        self.assertIn("future-run", block["unmeasured"]["declared.runs"])
+        self.assertEqual(block["evidence"]["declared_script_run_without_record"], [])
+        self.assertEqual({r["needs"] for r in block["evidence"]["stages"] if r["stage"] == "test-green"}, {None})
+
+    def test_a_skipped_stage_declaring_scripts_is_not_listed_and_the_same_stage_not_skipped_is(self):
+        declared = {"test-green": {"check": "script-run", "runs": ["lint-gate", "test-loop"]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            for summary, listed in (("Not applicable to this item: no tests", []), ("did the work", ["test-green"])):
+                with self.subTest(summary=summary):
+                    state = self.run_state([("a", "test-green", "done")], accepted={"a": {"outcome": "done", "summary": summary, "evidence_refs": []}})
+                    evidence = self.fidelity.evidence(Path(tmp), state, declared)
+                    self.assertEqual(evidence["declared_script_run_without_record"], listed)
+                    self.assertEqual(evidence["stages"][0]["class"], "skipped" if not listed else "sentence")
+
+    def test_only_the_lint_gate_is_lint_evidence_an_advisory_pass_is_not(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            (run_dir / "lint").mkdir(parents=True)
+            state = self.run_state([("nav-1", "implement", "done")])
+            for name in ("nav-1.md", "nav-1.1.md", "nav-1.2.md", "nav-1-inventory.md"):
+                (run_dir / "lint" / name).write_text("advisory")
+            row = self.fidelity.evidence(run_dir, state, None)["stages"][0]
+            self.assertEqual((row["records"], row["class"]), ([], "file"))
+            (run_dir / "lint" / "nav-1.gate1.md").write_text("gate")
+            row = self.fidelity.evidence(run_dir, state, None)["stages"][0]
+            self.assertEqual((row["records"], row["class"]), (["lint"], "script"))
+
+    def test_a_quality_terminal_record_and_a_backchain_check_are_script_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            (run_dir / "quality").mkdir(parents=True)
+            (run_dir / "backchain" / "nav-2").mkdir(parents=True)
+            (run_dir / "quality" / "nav-1-terminal.json").write_text("{}")
+            (run_dir / "backchain" / "nav-2" / "check-abc.json").write_text("{}")
+            state = self.run_state([("nav-1", "static-checks", "done"), ("nav-2", "plan", "done")])
+            rows = {r["action"]: r for r in self.fidelity.evidence(run_dir, state, None)["stages"]}
+            self.assertEqual((rows["nav-1"]["records"], rows["nav-1"]["class"]), (["quality"], "script"))
+            self.assertEqual((rows["nav-2"]["records"], rows["nav-2"]["class"]), (["backchain"], "script"))
+
+    def test_a_ref_is_the_rows_own_only_when_it_names_the_rows_action(self):
+        run = "/r/.shiploop-runs/w/run"
+        cases = [(f"{run}/packets/nav-1.md", "own"), (f"{run}/packets/nav-1-improve.md", "own"), (f"{run}/inbox/nav-1.json", "own"),
+                 (f"{run}/results/nav-1.md", "own"),
+                 (f"{run}/results/nav-2.md", "outside"), (f"{run}/inbox/nav-12.json", "note"), (f"{run}/packets/nav-2.md", "outside"),
+                 (f"{run}/notes/intake.md", "note"), ("/r/.shiploop-runs/w/worktree/docs/spec.md", "outside")]
+        for ref, kind in cases:
+            with self.subTest(ref=ref):
+                found = self.fidelity._refs({"evidence_refs": [ref]}, "nav-1")
+                self.assertEqual({k: v for k, v in found.items() if v}, {kind: 1})
+
+    def test_a_stage_that_cites_another_actions_result_cites_a_file_not_nothing(self):
+        # v1230-battleship-sonnet skill-validate cites the result of an earlier action: evidence of an earlier step, so not a sentence.
+        rows = [r for r in replay("v1230-battleship-sonnet")["block"]["evidence"]["stages"] if r["stage"] == "skill-validate"]
+        self.assertTrue(rows)
+        self.assertEqual({r["class"] for r in rows}, {"file"})
 
     def test_a_blocked_stage_without_a_record_is_not_listed(self):
         # v1230 Grok ended blocked at system-test: a blocked system-test has no record by design.
