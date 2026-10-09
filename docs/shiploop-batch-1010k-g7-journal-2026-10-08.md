@@ -257,3 +257,23 @@ isolate Git themselves, so the quick tier is run with the outer Git variables un
 test). The same three tests passed on the rerun. The registered durations in `test/suite_catalog.py` are unchanged: the added
 tests do not move any suite near `QUICK_MAX_SECONDS`, and the new timings (return-review 74.5 s alone, callback-contract
 72 to 78 s under load) are inside the noise of the registered 85.9 s and 69.1 s.
+
+## Verification after the review fixes (2026-10-08)
+
+Run on the tree of 7196f216 (four commits over 6b20f6a2; the three fix commits touch the same files the suites below cover).
+- `bash test/run-all.sh --group quick --changed-from origin/main` with only `SHIPLOOP_PROGRESS=off` set (the outer shell held no
+  `GIT_CONFIG_*` variables): `run-all.sh: PASS`, exit 0 in 526 s, 32 suites started, including shiploop-callback-contract,
+  shiploop-return-review, shiploop-stage-spec, shiploop-status-display (the head-window test), shiploop-packet-completeness,
+  shiploop-chain-async, shiploop-keepalive and shiploop-actual-improve-cli.
+- Every touched or reached suite in full, hand-run with `SHIPLOOP_PROGRESS=off` (five at a time, so the times are loaded): callback-contract 39
+  tests, return-review 24, stage-spec 9, workspace 77 (147 s; above `QUICK_MAX_SECONDS`, so the quick tier does not select it),
+  status-display 15, packet-completeness 6, guidance 57, rehydration 12, packet-bounds 9, navigator-contract 102, delegation 47,
+  revise 14, improve-schedule 33, navigator-v4 17, actual-improve-cli 33, full-runtime 2, keepalive 57, quality 18,
+  standalone-improve 10, navigator-dry-run 32, test-groups 21: all OK.
+- The changed and new tests (the A3 guard test, the A4 test, the route test, the stage-spec table test) also pass under a CI-like
+  global Git configuration defining `[filter "lfs"]` clean, smudge, process and required (`HOME` and `GIT_CONFIG_GLOBAL` pointed
+  at it); the tests isolate Git configuration themselves.
+- `python3 scripts/check-release-boundary.py --base origin/main`: OK.
+- Measurements named above (packet growth, opening allowance, terminal-packet path limit, heaviest status end 7971 at the
+  62-character path) were taken from copies of the trees under the session scratchpad and a temporary directory, removed
+  afterwards; nothing was left running.
