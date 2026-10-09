@@ -1,0 +1,68 @@
+{
+ "r3-battleship-grok-none": {
+  "note": "the keys run._main hands to quality_gate, from the saved result.json of 20261008/r3-battleship-grok-none",
+  "case": "custom",
+  "host": "grok",
+  "shiploop": {
+   "pass": false,
+   "status": "active",
+   "stage": "inner-loop"
+  },
+  "committed": {
+   "pass": false,
+   "head_files": 0
+  },
+  "engine": {
+   "status": "active",
+   "stage": "implement"
+  },
+  "process": {
+   "status": "stopped",
+   "pass": null
+  }
+ },
+ "r3-checkers-sonnet": {
+  "note": "the keys run._main hands to quality_gate, from the saved result.json of 20261008/r3-checkers-sonnet",
+  "case": "checkers",
+  "host": "claude",
+  "shiploop": {
+   "pass": true,
+   "status": "done",
+   "stage": "done"
+  },
+  "committed": {
+   "pass": true,
+   "head_files": 18
+  },
+  "engine": {
+   "status": "done",
+   "stage": "done"
+  },
+  "process": {
+   "status": "exited",
+   "pass": true
+  }
+ },
+ "r2-battleship-grok-none": {
+  "note": "the keys run._main hands to quality_gate, from the saved result.json of 20261008/r2-battleship-grok-none",
+  "case": "custom",
+  "host": "grok",
+  "shiploop": {
+   "pass": true,
+   "status": "done",
+   "stage": "done"
+  },
+  "committed": {
+   "pass": true,
+   "head_files": 17
+  },
+  "engine": {
+   "status": "done",
+   "stage": "done"
+  },
+  "process": {
+   "status": "not observed",
+   "pass": null
+  }
+ }
+}

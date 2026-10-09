@@ -76,6 +76,10 @@ once and is recorded the same way, as `terminated by SIGTERM`; a Ctrl-C does so 
 case checks the harness stops the TCP listeners left under the case's output folder and records them as `left_behind` in
 result.json. A launch is refused while an ended case's listener is still bound, and so is a --resume-run of a case whose harness
 is running (README, "Launching long runs").
+After the verdicts are written, a delivery that is finished and returned (and only then) is measured on a copy under
+<output>/quality and recorded as `quality` in result.json, beside the verdicts and never as one: a mutation ratio of the
+delivered tests, the held-out acceptance a case declares, the Claude memory writes the events show (quality.py, README
+"Delivered quality"). --planning-review stage|none gives a run its ShipLoop mode as an option of the harness.
 This launches a real model and costs money; it is never part of default CI.
 `--baseline-report [--baseline FILE] [--runs DIR ...] [--json]` is the one read-only exception: it starts no host and
 probes no CLI, unions the baseline file with the run folders and prints, per cell, the attempts, builds and the n, min,
@@ -120,10 +124,12 @@ import fidelity  # noqa: E402
 import hosts  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
+import quality  # noqa: E402
 import runrecord  # noqa: E402
 import sessionlog  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_chain_ledger as chain_ledger  # noqa: E402
+import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 CASES = HERE / "cases.json"
@@ -202,6 +208,81 @@ def load_case(args) -> tuple[str, str, list[str], str | None]:
     follows = case.get("follows")
     regression = cases[follows]["checks"] if follows else []
     return args.case, case["prompt"], regression + case["checks"] + case.get("retention", []) + (args.check or []), follows
+
+
+def case_quality(name: str) -> dict:
+    """The quality measures a case declares: its own entry, else the one of the case it follows (a follow-on is measured by its
+    followed case's declaration unless it names its own). ``{}`` for a case that declares none, and for a name that is not a
+    case. Kept apart from load_case, whose four values callers unpack."""
+    cases = json.loads(CASES.read_text())
+    case = cases.get(name) or {}
+    own, earlier = case.get("quality") or {}, (cases.get(case.get("follows")) or {}).get("quality") or {}
+    found = {key: own.get(key) or earlier.get(key) for key in ("mutation", "acceptance", "refuse_ports")}
+    return {key: value for key, value in found.items() if value}
+
+
+def quality_stop(stop_file: Path) -> str | None:
+    """Why the quality phase should end now: the harness was told to end, or a person created the stop file. None otherwise."""
+    return stop_cause(stop_file) if TERMINATION.is_set() or stop_file.exists() else None
+
+
+def quality_gate(*, shiploop: dict, committed: dict, engine: dict, process: dict, stop_seen: bool, stop_file: Path,
+                 lock_held: bool) -> str | None:
+    """Why this run's delivery is not measured (None: it is a finished, returned one). The order is the order of what a
+    reader would fix first. The phase runs under the case lock this harness already holds and never takes another."""
+    if TERMINATION.is_set() or stop_seen or process.get("status") == "stopped" or stop_file.exists():
+        return f"a stop was requested ({stop_cause(stop_file)}), so the delivery is not a finished one"
+    if engine.get("status") == "active":
+        return f"ShipLoop is still active (stage {engine.get('stage')}), so no delivery was returned"
+    if not shiploop.get("pass"):
+        return f"ShipLoop did not reach done ({shiploop.get('status') or shiploop.get('reason')}), so no delivery was returned"
+    if not committed.get("pass"):
+        return "the returned checkout is not committed (the committed verdict failed), so it is not a finished delivery"
+    if not lock_held:
+        return ("this harness does not hold the case lock (another harness holds it, or it could not be made): a second "
+                "phase over the same folder could clash with that harness's")
+    return None
+
+
+def quality_record(out: Path, work: Path, name: str, gate: str | None, stop_file: Path) -> dict:
+    """The run's ``quality`` block. Recording fails open: an error is recorded as the reason and never changes a verdict."""
+    spec: dict = {}
+    try:
+        spec = case_quality(name) if name != "custom" else {}
+        return quality.measure(out, work, spec, gate=gate, groups=LIVE_HOST_GROUPS, stop=lambda: quality_stop(stop_file))
+    except Exception as exc:
+        return quality.failed_block(out, spec, exc)
+
+
+def improve_card(plugin_dir: Path) -> Path:
+    """The Improve card of a plugin build: the file `--improve-skill` names under `--planning-review none`."""
+    return Path(plugin_dir) / "skills" / "improve" / "SKILL.md"
+
+
+def require_improve_card(planning_review: str | None, plugin_dir: Path) -> None:
+    """`none` needs the plugin's Improve card (SPEC S-10 carve-out of 2026-10-05): refuse as soon as the plugin directory is known,
+    before any host CLI runs, so a refusal leaves no profile, plugin install or host session behind."""
+    if planning_review == "none" and not improve_card(plugin_dir).is_file():
+        raise SystemExit(f"--planning-review none needs the plugin's Improve card (--improve-skill), and {improve_card(plugin_dir)} is "
+                         "not a file: nothing was started")
+
+
+def planning_review_sentence(improve_skill: str) -> str:
+    """The sentence that makes the model start ShipLoop with `--planning-review none`, which needs the Improve card named
+    (`--improve-skill`). `stage` is the engine's default and appends nothing: the run's prompt stays the case's own."""
+    return f"Start ShipLoop with the run option --planning-review none and --improve-skill {improve_skill}."
+
+
+def planning_review_choice(requested: str | None, earlier: dict | None) -> str | None:
+    """The mode this invocation records. A new run records what was asked (None when nothing was). A resume continues a run
+    whose mode is fixed at its start, so it names that value or none, and an unrecorded run cannot be given one now."""
+    if earlier is None:
+        return requested
+    recorded = earlier.get("planning_review")
+    if requested is not None and requested != recorded:
+        raise SystemExit(f"--planning-review {requested} on a resume: the run's own mode is {recorded or 'not recorded'} and "
+                         "is fixed when the run starts (state.md); name that value or leave the option out")
+    return recorded
 
 
 def continue_from(prior: Path, work: Path) -> dict:
@@ -1294,6 +1375,11 @@ def parser() -> argparse.ArgumentParser:
                    help="kill the host (and its workers) as soon as a chain worker is in flight, then resume the "
                         "run with a fresh session; graded as `recovery`")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
+    p.add_argument("--planning-review", choices=stage_spec.PLANNING_REVIEW_MODES,
+                   help="the ShipLoop run option: append it to the prompt of a --case or --prompt run so the model starts "
+                        "ShipLoop with it (none also names this plugin's Improve card, --improve-skill, which that mode "
+                        "requires). A named case keeps its case, style and baseline key; without the option the prompt "
+                        "is the case's own and the engine's default applies. Not with --seed-at")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
     p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="claude",
                    help="the host that drives ShipLoop; 'all' only with --preflight-only (checks every host)")
@@ -2443,6 +2529,9 @@ def _main(argv: list[str] | None, held: list) -> int:
         raise SystemExit("--grade-only needs --resume-run <output directory>: it grades a run that already exists")
     if args.host == "all":
         raise SystemExit("--host all is only for --preflight-only; a run needs one host")
+    if args.planning_review and args.seed_at:
+        raise SystemExit("--planning-review with --seed-at: the harness starts a seeded run itself and records its stages "
+                         "without doing them, so the option would change nothing")
     if args.suite:
         return run_suite(args, argv)
     if args.plugin_dir:
@@ -2460,6 +2549,7 @@ def _main(argv: list[str] | None, held: list) -> int:
         out = args.resume_run.expanduser().resolve()
         earlier = json.loads((out / "invocation.json").read_text())
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
+        planning_review = planning_review_choice(args.planning_review, earlier)
         prompt = (out / "prompt.txt").read_text().strip()
         work = out / "work"
         state = grade_shiploop(out)
@@ -2521,6 +2611,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
         name, prompt, checks, follows = load_case(args)
+        planning_review = planning_review_choice(args.planning_review, None)
         if follows and not args.continue_from:
             raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
         if not args.suite_name:
@@ -2608,6 +2699,8 @@ def _main(argv: list[str] | None, held: list) -> int:
                              "Start the case again.")
     elif args.source == "marketplace":
         plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
+        if not resumed:
+            require_improve_card(planning_review, plugin_dir)  # the install above is the only host CLI that could run before this
         if resumed:
             # No original install to reuse: a newer release is still not a reason to refuse the run.
             versions["gate"] = [problem for problem in versions["gate"] if not problem.startswith("installed ")]
@@ -2621,9 +2714,16 @@ def _main(argv: list[str] | None, held: list) -> int:
     else:
         plugin = None
         plugin_dir = args.plugin_dir or build_candidate(out)
+        if not resumed:
+            require_improve_card(planning_review, plugin_dir)  # before the host CLI installs the plugin into its profile
         plugin = host.install_plugin(env, plugin_dir)
         versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
     keepalive = hosts.grok_keepalive(env, plugin_dir) if host.keepalive else None
+    improve_skill = earlier.get("improve_skill") if resumed else None
+    if planning_review == "none" and not resumed:
+        # The run option rides in the prompt the model is given (and prompt.txt keeps), as it did in a custom --prompt.
+        improve_skill = str(improve_card(plugin_dir).absolute())
+        prompt = f"{prompt} {planning_review_sentence(improve_skill)}"
     seeded = earlier.get("seeded") if resumed else None
     interrupt_at = earlier.get("interrupt_at") if resumed else args.interrupt_at
     # The CLI of the host and plugin the run started on (a resume on another host keeps it): every prompt below names it.
@@ -2685,6 +2785,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                   "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
                   "interrupt_at": interrupt_at, "needs": needs, "environment": start_environment,
+                  "planning_review": planning_review, "improve_skill": improve_skill,
                   # why each null identity field of this launch is null (empty: all known)
                   "identity_unmeasured": {**({} if launch_build else {"host_build": launch_why}),
                                           **({} if versions.get("plugin_sha256") else {"plugin_sha256": plugin_why})}}
@@ -3102,6 +3203,20 @@ def _main(argv: list[str] | None, held: list) -> int:
         failed.extend(("check", f"`{c['command']}` exits 0 (source: {expectations['checks']})", check_observed(c))
                       for c in check_results if not c["pass"])
         print(f"  mismatch  {write_mismatch(out, name, args.host, failed)}")
+    # The delivered-quality phase runs last: it can take minutes after the host ended and a task launcher's limit is near 30, so
+    # the result, the metrics, the Run Review export and the baseline row are all written before it, and it adds its block to
+    # result.json and to nothing else (SPEC, Delivered quality). The report above is already printed.
+    gate = quality_gate(shiploop=shiploop, committed=committed, engine=engine, process=process, stop_seen=stop_seen,
+                        stop_file=stop_file, lock_held=lock is not None)
+    block = quality_record(out, work, name, gate, stop_file)
+    kept = earlier_result.get("quality") if regrade else None
+    if isinstance(kept, dict) and kept.get("observed") and not block.get("observed"):
+        # A regrade that cannot measure (the case is held by another harness, a port is busy) never replaces a measurement with a gap.
+        result["quality"], result["quality_regrade_skipped"] = kept, {"reason": block.get("reason")}
+    else:
+        result["quality"] = block
+    (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+    print(f"  quality   {quality.line(result['quality'])}")
     return 0 if result["pass"] else 1
 
 

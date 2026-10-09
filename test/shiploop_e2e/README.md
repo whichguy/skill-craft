@@ -93,6 +93,7 @@ bash test/run-integration.sh shiploop-e2e --case battleship
 bash test/run-integration.sh shiploop-e2e --case hello --host claude
 bash test/run-integration.sh shiploop-e2e --case hello --host codex --effort xhigh
 bash test/run-integration.sh shiploop-e2e --prompt "Create fizzbuzz.py with tests" --check "python3 -m unittest -q"
+bash test/run-integration.sh shiploop-e2e --case battleship --planning-review none
 ```
 
 `run.py` creates a new output directory (default `$TMPDIR/shiploop-e2e/<case>-<time>-<rand>`)
@@ -237,6 +238,83 @@ no longer active. A resumed or seeded run, a run left active (a deadline, a stop
 resume budget) and a run whose host the deadline or a stop killed before ShipLoop wrote any state
 write none: their turns, cost and stages are a fragment. A host that ends on its own, even with no
 ShipLoop state, still writes its row.
+
+### Delivered quality (`quality`)
+
+`result.json` carries an optional `quality` block, taken last and recorded beside the verdicts, never as one (SPEC,
+"Delivered quality is recorded, never judged"). It is taken only from a delivery that is finished and returned (`shiploop`
+and `committed` pass, the engine is not active, no stop was requested); otherwise it is `{"observed": false, "reason": ...}`.
+result.json, metrics.json, the Run Review export and the baseline row are written first: the phase can add minutes, and
+it updates result.json and nothing else. The baseline row has no `quality`; a reader takes it from result.json. A regrade
+measures again, and keeps the earlier observed block (with `quality_regrade_skipped` beside it) when it cannot.
+
+```
+quality: {
+  observed, reason,            # false + why when no delivered-product measure was taken (never 0, never a pass)
+  declared: ["mutation", "acceptance"],        # what the case's `quality` entry in cases.json asked for
+  hosts_used, mixed_host,      # runrecord.hosts_used / runrecord.mixed_host of the launch records, not --host; null + unmeasured when none
+  mutation:   {observed, operator_id, command, source, baseline: {returncode, seconds, tests},
+               sites, killed, timeout, port_refused, port_refusals, survived, invalid, unconfirmed, not_run, ratio, ceiling_hit,
+               ceilings, refuse_ports, not_run_reasons,
+               per_file: {<path>: {sites, lines, loaded_by_tests, killed, timeout, survived, invalid, unconfirmed, not_run}},
+               uncovered: [{file, inline_script_lines}],              # page scripts no operator reaches
+               kills: [{file, line, op, from, to, evidence, timeout, port_refusals}],   # evidence: first failing line
+               survivors: [{file, line, op, from, to}],
+               unconfirmed_mutants: [{file, line, op, from, to, first, second}], seconds}     # or {observed: false, reason}
+  acceptance: {observed, source, ids, passed, checks: [{id, source, pass, note}]}   # or {observed: false, reason}
+  held_out_seen,               # host event lines naming a held-out script; null (see `unmeasured`) when unreadable
+  memory_writes,               # [{path, tool, line}] Claude Write/Edit/MultiEdit under ~/.claude/projects/*/memory, from events.jsonl
+  notes: [...],                # caveats that depend on the run (a mixed-host run's memory list covers Claude only)
+  unmeasured: {<key>: <reason>},   # the keys above that are null
+  left_behind, delivered_files, seconds
+}
+```
+
+* **mutation** copies the delivered files (`git ls-files --cached --others --exclude-standard`, without `.git`) to
+  `<output>/quality/copy`, never touches `work/`, checks that the unmutated copy's test run exits 0, counts at least one
+  test (the engine's `shiploop_test_counts` reads the count) and touches none of the case's declared fixed ports, then applies
+  one text mutation at a time from the operator catalog `js-1` (`quality.JS_OPERATORS`: `===`/`!==`, `<`/`<=`/`>`/`>=`,
+  `&&`/`||`, `true`/`false`, spaced `+`/`-`, and the literal after a comparison, in code only: comments and string and
+  template bodies are masked) and runs the case's `quality.mutation.command`. A failing run is run once more; it counts as
+  `killed` only if it fails again (`unconfirmed` otherwise: out of the ratio, both outcomes in `unconfirmed_mutants`), and a
+  kill records the first failing line. `killed` includes `timeout` (a run past `RUN_CEILING_SECONDS`, which defines a hang)
+  and `port_refused` (a kill whose run had a declared port refused); `invalid` (the file no longer parses, `node --check`)
+  is out of the ratio, and a syntax check that does not finish is `not_run` (`not_run_reasons`). `ratio = killed / (killed +
+  survived)`; `killed + survived + invalid + unconfirmed + not_run = sites`. Mutants are taken round-robin across files, so a
+  ceiling hit (`PHASE_CEILING_SECONDS`, `ceiling_hit`, the rest `not_run`) leaves a sample of every file. **Compare a ratio
+  only with one of the same `operator_id`**, and read it with the counts beside it: equivalent mutants that survive lower
+  it; hangs, load-induced failures and port collisions counted as caught raise it, which is why those are separate counts.
+  `loaded_by_tests` is true when Node's V8 coverage of the baseline run lists the file or a confirmed, non-timeout caught
+  mutant of it exists (a sign, not a proof), false when neither is so (no sign of a load, so all its sites survive: a lower
+  bound, because a server the tests stop with a signal writes no coverage; the saved r1 Checkers `server.js` is the case),
+  null when no coverage was written and no mutant of the file was caught. The saved deliveries keep the page's JavaScript
+  in an HTML file or a string of `server.js`, which no operator reaches: `uncovered` names the HTML files with inline scripts
+  and their line counts, `per_file[*].lines` the JavaScript that was mutated. Python and other deliveries are `observed:
+  false` (no operator catalog), listing the files by extension.
+* **Fixed ports.** A product defaults to the port its prompt names (3000) and a mutant can make it listen there whatever
+  `PORT` says. Every child of the phase runs under a Node preload (`test/shiploop_e2e/refuse_ports.cjs`, listed in the JS
+  catalog) that refuses `listen` and `connect` on the ports in the case's `quality.refuse_ports` and counts the refusals. A
+  delivery whose own unmutated tests touch one is `observed: false` ("its tests bind a fixed port; not run"); the three saved
+  ones are v1230 (ST-3), r2-checkers (TC-1 (c), ST-3) and r2-battleship-grok-none (TC-port).
+* **acceptance** (the `checkers` case only) runs held-out checks, hand-written from the case's prompt and never shown to the
+  model, against the delivered `node server.js` on a free port. They are `test/shiploop_e2e/checks/checkers_accept.py`,
+  imported by the harness and called in its own process, so no check text or id is on any command line. The path of
+  `checks/` does appear in the harness's own command line and resume prompt, and `held_out_seen: 0` only says no event
+  names it. Each check is calibrated against `test/fixtures/quality/reference_checkers.py`, a hermetic service with one
+  defect switch per check (`AcceptanceCalibrationTest`). A server that never listens leaves the block unobserved, never failed.
+* Every child process the phase starts (test runs, syntax checks, the server) runs in a group of its own that is registered
+  with the harness's live groups, so a SIGTERM and the exit hook end it. When a child's leader exits the whole group is
+  ended before the leader is reaped (a test run's leftovers share its group, and an unreaped leader pins the group id); a
+  hung leader is ended the same way; a stop (a signal or `<output>/stop`) is checked before every run; listeners are stopped
+  under `<output>/quality` only, also in a regrade, and recorded as `left_behind`. The phase runs under the case lock the
+  harness already holds (a second acquire in one process fails), so a regrade while another harness holds the case records
+  `observed: false`.
+* A suite's parallel chains run their phases while sibling hosts work, and a loaded machine can make a mutant time out or
+  fail once: read `timeout`, `unconfirmed` and `seconds`, and rerun a suspicious ratio alone (`--serial`).
+* A case declares measures in `cases.json`: `quality.mutation` (`command`, `exclude` path prefixes that are not source,
+  `source`), `quality.refuse_ports` and `quality.acceptance` (one block: `module` in `checks/`, `start`, `source` and `checks`
+  with an `id` and the prompt sentence each reads). A follow-on case is measured by its followed case's declaration unless it
+  names its own (`run.case_quality`). Battleship's acceptance set was dropped: it passed 5 of 5 deliveries and separated nothing.
 
 While a run is going, `python3 test/shiploop_e2e/progress.py <output>` prints
 what changed since its last call (new accepted stages with turns and minutes,
@@ -608,6 +686,19 @@ is not known and never 0 or empty:
   metrics): the closed planning window on the engine's clock (`metrics.planning.window.seconds`), null while the window is
   open or unreadable. `local_head`: `versions.local_head` for a checkout run, `versions.released.local_head` for a marketplace
   run.
+
+`--planning-review stage|none` gives a run its ShipLoop mode as an option of the harness (a named `--case` or a
+`--prompt`). `none` appends `Start ShipLoop with the run option --planning-review none and --improve-skill <the plugin's
+skills/improve/SKILL.md>` to the prompt, because the engine requires the card in that mode (SPEC S-10 carve-out of
+2026-10-05); a plugin without the card is refused as soon as its directory is known, before any host CLI runs. `stage` is the
+engine's default and appends nothing: a `stage` run has the prompt of a run without the option. The run keeps its case, so
+its style and its baseline key are the case's, where a mode passed inside `--prompt` made it `custom` with style null (the
+Grok `none` rows of 2026-10-06 and 2026-10-07 and rounds 2 and 3; a regrade cannot change that case, so those saved runs get
+no mutation or acceptance block). `invocation.json` records `planning_review` and `improve_skill` (null when not given); a
+resume names the run's own value or none; the option is refused with `--seed-at`, whose stages the harness records itself. A
+suite passes it to every case. A custom `--prompt`/`--check` run still carries its check text in the harness's own command
+line (the model of the r3 Checkers run printed it with `pgrep`), and an abbreviated option such as `--chec` is accepted by
+argparse: the option protects a named case, not a custom one.
 
 The row's `planning_review` is the run option ShipLoop 1.22.0 records in `state.md`
 (`stage`: an Improve child after each of spec, test-strategy, plan, step-plan and
