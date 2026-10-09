@@ -98,6 +98,33 @@ class PlanningReviewOptionTest(e2e.CaseRunCase):
         invocation = json.loads((out / "invocation.json").read_text())
         self.assertEqual((invocation["planning_review"], invocation["improve_skill"]), ("stage", None))
 
+    def test_the_prompt_hash_is_the_case_prompts_whatever_the_option_appends(self):
+        # Batch 1011 integration: G3's prompt_sha256 hashes the case prompt BEFORE the sentence `none` appends (the mode is a key
+        # of its own), so two `none` runs of one case hash alike whatever --plugin-dir their Improve card sits in, and a `stage`
+        # run (which appends nothing) hashes like a run without the option.
+        _c, first, _p, out_first = self.case_main("h-none-1", "--case", "hello", "--planning-review", "none",
+                                                  env={"FAKE_PLANNING_REVIEW": "none"})
+        saved = self.plugin
+        self.plugin = self.tmp / "another-plugin-build"
+        shutil.copytree(saved, self.plugin)
+        try:
+            _c, second, _p, out_second = self.case_main("h-none-2", "--case", "hello", "--planning-review", "none",
+                                                        env={"FAKE_PLANNING_REVIEW": "none"})
+        finally:
+            self.plugin = saved
+        _c, stage, _p, _o = self.case_main("h-stage", "--case", "hello", "--planning-review", "stage")
+        _c, plain, _p, _o = self.case_main("h-plain", "--case", "hello")
+        self.assertNotEqual((out_first / "prompt.txt").read_text(), (out_second / "prompt.txt").read_text(),
+                            "the two prompts name two Improve cards")
+        self.assertEqual(first["prompt_sha256"], second["prompt_sha256"])
+        self.assertEqual(stage["prompt_sha256"], plain["prompt_sha256"])
+        self.assertEqual(first["prompt_sha256"], plain["prompt_sha256"], "the case prompt's hash: the mode is its own key")
+        self.assertEqual(first["prompt_sha256"], hashlib.sha256(self.hello.strip().encode()).hexdigest()[:12])
+        # The report reads prompt.txt (which keeps the sentence the model was given) to the same hash.
+        (out_second / "result.json").unlink()
+        record = run.folder_record(out_second, json.loads(run.CASES.read_text()))
+        self.assertEqual(record["row"]["prompt_sha256"], first["prompt_sha256"])
+
     def test_without_the_option_the_prompt_and_the_record_are_as_before(self):
         _code, _result, _printed, out = self.case_main("c-plain", "--case", "hello")
         self.assertEqual((out / "prompt.txt").read_text().strip(), self.hello)

@@ -667,7 +667,8 @@ is not known and never 0 or empty:
   version string does not identify a build (the Battleship Sonnet runs of 2026-10-06 and 2026-10-07 both say plugin 1.22.0
   with different scripts) and a git head over-splits (two heads built byte-identical trees). A regrade restates the recorded
   digest and never computes one.
-- `prompt_sha256`: the prompt with the run's own output folder replaced by `<output>` (12 hex). The Grok `none` runs' prompt
+- `prompt_sha256`: the case prompt (without the sentence `--planning-review none` appends: the mode is a key of its own, and the
+  sentence names an absolute path) with the run's own output folder replaced by `<output>` (12 hex). The Grok `none` runs' prompt
   names `<run folder>/build/.../improve/SKILL.md`, so five runs of one prompt had five raw hashes and have one masked hash.
 - `host_build`: the build of the run's first launch. Claude: its Code build from the init events (`metrics.claude_code_version`;
   sessions on two builds name both). Grok and Codex: the first stdout line of `<cli> --version` (`grok 1.0.50 (c58f321264ba)`,

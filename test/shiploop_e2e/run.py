@@ -273,6 +273,15 @@ def planning_review_sentence(improve_skill: str) -> str:
     return f"Start ShipLoop with the run option --planning-review none and --improve-skill {improve_skill}."
 
 
+def case_prompt(prompt: str, improve_skill: str | None) -> str:
+    """The case's own prompt: ``prompt`` without the sentence ``--planning-review none`` appended to it (planning_review_sentence of
+    the run's recorded ``improve_skill``). What prompt_sha256 hashes: the mode is a key of its own, and the sentence names an
+    absolute path, so two `none` runs of one case would otherwise hash apart by where their plugin build sits."""
+    text = prompt.strip()
+    tail = " " + planning_review_sentence(improve_skill) if improve_skill else None
+    return text[:-len(tail)] if tail and text.endswith(tail) else text
+
+
 def planning_review_choice(requested: str | None, earlier: dict | None) -> str | None:
     """The mode this invocation records. A new run records what was asked (None when nothing was). A resume continues a run
     whose mode is fixed at its start, so it names that value or none, and an unrecorded run cannot be given one now."""
@@ -1810,7 +1819,8 @@ def folder_record(folder: Path, cases: dict) -> dict:
         digest, why = tree_digest_checked(plugin_dir) if plugin_dir else (None, "the plugin build is not inside the run folder")
         fill("plugin_sha256", digest, why)
     try:
-        fill("prompt_sha256", masked_prompt_digest((folder / "prompt.txt").read_text(), Path(recorded)))
+        fill("prompt_sha256", masked_prompt_digest(case_prompt((folder / "prompt.txt").read_text(), first.get("improve_skill")),
+                                                   Path(recorded)))
     except OSError:
         why_not["prompt_sha256"] = "no prompt.txt in the folder"
     if row.get("host") == "claude":
@@ -3002,9 +3012,10 @@ def _main(argv: list[str] | None, held: list) -> int:
     identity_unmeasured = {name: why.get(name) or "no reason recorded" for name, value in known.items() if value is None}
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
-              # Identity, null where unknown: the prompt with the run's own folder masked, the host CLI's build (Claude's
+              # Identity, null where unknown: the case prompt (before a `--planning-review none` sentence) with the run's own
+              # folder masked, the host CLI's build (Claude's
               # init event; the others' launch probe) and the stream's first and last stamp.
-              "prompt_sha256": masked_prompt_digest(prompt, out, args.resume_run or args.output),
+              "prompt_sha256": masked_prompt_digest(case_prompt(prompt, improve_skill), out, args.resume_run or args.output),
               "host_build": run_metrics["claude_code_version"] if args.host == "claude" else host_build,
               "span": run_metrics["span"],
               "identity_unmeasured": identity_unmeasured,
