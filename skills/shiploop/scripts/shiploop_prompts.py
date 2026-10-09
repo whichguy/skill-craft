@@ -756,6 +756,11 @@ the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
 compatibility check; reuse accepted choices for unaffected scope and the existing
 design/test facilities."""
 
+# How ShipLoop matches a listed test ID against the runner's output (``shiploop_test_counts.named``).  One sentence,
+# restated by every duty and packet line that says a listed ID must be shown, so the rule is worded once.
+ID_WORD_RULE = ("A listed ID counts only as its own word in a test's printed name (for example, a test titled `TC-4a` "
+                "does not show `TC-4`: title it `TC-4 (a)`).")
+
 DUTIES = {
     "intake": """\
 Establish the requested outcome, repository and run boundaries, explicit user
@@ -1156,7 +1161,7 @@ executed no test, because a filter that matches nothing exits 0 in most runners.
 Give each focused command the `ids` of the test-spec cases it must run, and a
 runner flag that prints test names (for example Jest `--verbose`, pytest `-v`, `node --test` with its default
 spec or the tap reporter, never dot or junit),
-so the output shows them; add `min_tests` when a command must run at least that
+so the output shows them. """ + ID_WORD_RULE + """ Declare the ids as the tests will be titled. Add `min_tests` when a command must run at least that
 many. An empty list needs `test_commands_na` with the reason.
 Record the files this item will change in `paths` (repository-relative files or
 globs). ShipLoop classifies them with its package catalog: when the item records
@@ -1313,7 +1318,7 @@ Authoring is complete only when selected clauses have executable check bindings
 or justified reproducible manual procedures at their required surfaces. Keep
 unavailable execution prerequisites and later-phase observations pending.
 On done, ShipLoop runs the item's focused commands once and refuses unless a test
-ran (a counted test with every listed ID shown, or a failing test). Tests that
+ran (a counted test with every listed ID shown, or a failing test). """ + ID_WORD_RULE + """ Tests that
 load something this item creates need it loadable now: create the smallest
 loadable placeholder at a path the step plan's `paths` names, or load it inside
 the test so a missing file fails that test and not the run.

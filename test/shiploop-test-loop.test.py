@@ -129,6 +129,11 @@ def git(repo: Path, *args: str) -> str:
 
 class TestLoopTests(unittest.TestCase):
     def setUp(self) -> None:
+        # Real-git tests must not read the machine's Git configuration (a CI runner's global config carries git-lfs
+        # filters), as ReleaseVerifyReturnedResultTests below and the workspace suite do.
+        isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+        isolated.start()
+        self.addCleanup(isolated.stop)
         temp = tempfile.TemporaryDirectory(prefix="shiploop-test-loop-")
         self.addCleanup(temp.cleanup)
         base = Path(temp.name).resolve()
@@ -1100,6 +1105,48 @@ class TestLoopTests(unittest.TestCase):
             for word in ("node", "npm", "jest", "pytest", "python", "javascript", "java ", "game", "widget"):
                 self.assertNotIn(word, text.lower(), word)
 
+    # -- the whole-word ID rule (A1), through the real gate ---------------------------------------------------------------
+
+    def test_the_whole_word_rule_is_stated_on_the_refusal_and_the_title_fix_is_accepted(self):
+        """A1 (a Checkers run, 2026-10-09): tests titled `TC-4a` while the step plan listed `TC-4`.  The refusal named
+        `--verbose`, though the runner already printed the names, and the model read the engine source for the rule."""
+        self.start()
+        titled = b"\xe2\x9c\x96 TC-4a initial position (0.6ms)\nF.\nRan 2 tests in 0.001s\n\nFAILED (failures=1)\n"
+        self.drive_to("test-author", step_plan=self.probe_item(["TC-4"]))
+        action = self.action()
+        with mock.patch.object(test_loop.lint, "run_argv", return_value=("failed", 1, titled, b"")):
+            with self.assertRaises(nav.NavigatorError) as raised:
+                self.complete(DONE)
+        flat = " ".join(str(raised.exception).split())
+        self.assertIn("did not show TC-4 as a whole word (unittest reported 2 run, 1 failed). A listed ID counts only "
+                      "as its own word in a test's printed name", flat)
+        self.assertIn("TC-4 appears only inside: \u2716 TC-4a initial position (0.6ms)", flat)
+        self.assertIn("`TC-4 (a)`", flat)
+        self.assertNotIn("--verbose", flat)
+        record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+        self.assertEqual(record["runs"][0]["ids_inside"], {"TC-4": "\u2716 TC-4a initial position (0.6ms)"})
+        renamed = titled.replace(b"TC-4a", b"TC-4 (a)")
+        with mock.patch.object(test_loop.lint, "run_argv", return_value=("failed", 1, renamed, b"")):
+            self.complete(DONE)
+        self.assertEqual(nav.current_stage(self.state()), "test-red")
+
+    def test_an_id_that_starts_another_id_is_a_missing_test_not_a_title_to_fix(self):
+        """GUARD (passes on the unchanged tree; kills a raw substring match): `TC-1` listed, `TC-10` and `TC-13` printed.
+        The test is missing; "title each test so its ID stands alone" would send the model to retitle tests that are
+        fine, so the select-and-print remedy stays."""
+        self.start()
+        printed = (b"\xe2\x9c\x94 TC-10 a (1ms)\n\xe2\x9c\x94 TC-13 b (1ms)\n\xe2\x9c\x96 TC-2 c (1ms)\n"
+                   b"F..\nRan 3 tests in 0.001s\n\nFAILED (failures=1)\n")
+        self.drive_to("test-author", step_plan=self.probe_item(["TC-1", "TC-3"]))
+        with mock.patch.object(test_loop.lint, "run_argv", return_value=("failed", 1, printed, b"")):
+            with self.assertRaises(nav.NavigatorError) as raised:
+                self.complete(DONE)
+        flat = " ".join(str(raised.exception).split())
+        self.assertIn("did not show TC-1, TC-3 running (unittest reported 3 run, 1 failed). Make the command select "
+                      "those cases and print test names (for example --verbose).", flat)
+        self.assertNotIn("as a whole word", flat)
+        self.assertNotIn("appears only inside", flat)
+
     def run_quality_loop(self) -> None:
         """One trivial quality-loop iteration, saved to the static-checks terminal path."""
         start = next(line for line in self.packet().splitlines() if line.startswith("Start: "))
@@ -1294,6 +1341,96 @@ class VerifyLimitTests(unittest.TestCase):
             _writes, refusal = test_loop.verify(root, self.state(root, "true"), "W1", "A1", "test-green",
                                                 budget=0.5)
         self.assertIn("[focused] true -> skipped", refusal)
+
+
+class WholeWordIdTests(unittest.TestCase):
+    """A1: what the ids-missing refusal says when a listed ID appears only inside a longer token."""
+
+    PRINT = "printf '%s\\n' '\u2714 TC-4a initial (1ms)' '\u2714 TC-7 move (1ms)' 'Ran 2 tests in 0.001s' '' OK"
+
+    def verify(self, command: str, ids: list, stage: str = "test-green"):
+        state = {"repo": "/", "history": [{"stage": "step-plan", "workitem": "W1", "action": "S1"}],
+                 "accepted": {"S1": dict(DONE, test_commands=[{"command": command, "suite": "focused", "ids": ids}])}}
+        with tempfile.TemporaryDirectory() as temp:
+            writes, refusal = test_loop.verify(Path(temp), state, "W1", "A1", stage)
+        return store.loads(writes["tests/A1-verify1.md"])["runs"][0], " ".join(refusal.split())
+
+    def test_an_id_inside_a_longer_token_is_refused_with_the_rule_the_line_and_no_verbose_hint(self):
+        run, flat = self.verify(self.PRINT, ["TC-4", "TC-7"])
+        self.assertEqual(run["status"], "ids-missing")
+        self.assertEqual(run["ids_inside"], {"TC-4": "\u2714 TC-4a initial (1ms)"})
+        self.assertIn("did not show TC-4 as a whole word (unittest reported 2 run, 0 failed). "
+                      "A listed ID counts only as its own word", flat)
+        self.assertIn("TC-4 appears only inside: \u2714 TC-4a initial (1ms)", flat)
+        self.assertIn("title it `TC-4 (a)`", flat)
+        self.assertNotIn("--verbose", flat)
+
+    def test_an_id_that_never_appears_keeps_the_select_and_print_names_remedy(self):
+        """GUARD (passes on the unchanged tree): an ID no line holds keeps the remedy it always had."""
+        run, flat = self.verify(self.PRINT, ["TC-9"])
+        self.assertNotIn("ids_inside", run)
+        self.assertIn("did not show TC-9 running (unittest reported 2 run, 0 failed). Make the command select those "
+                      "cases and print test names (for example --verbose).", flat)
+        self.assertNotIn("its own word", flat.split("Full output")[0])
+
+    def test_one_refusal_names_both_causes_when_the_ids_differ(self):
+        _run, flat = self.verify(self.PRINT, ["TC-4", "TC-9"])
+        self.assertIn("did not show TC-4 as a whole word", flat)
+        self.assertIn("Also did not show TC-9 running. Make the command select those cases", flat)
+
+    def test_an_id_that_starts_another_id_is_not_reported_inside_it(self):
+        """The judge's verdict carries `ids_inside` only for a real whole-token relation (TC-4a), never for TC-10 vs TC-1."""
+        row = {"command": "x", "suite": "focused", "ids": ["TC-1", "TC-4"]}
+        output = "\u2714 TC-10 a (1ms)\n\u2714 TC-4a b (1ms)\nRan 2 tests in 0.001s\n\nOK\n"
+        verdict = test_loop.judge(row, 0, output)
+        self.assertEqual((verdict["status"], verdict["ids_missing"]), ("ids-missing", ["TC-1", "TC-4"]))
+        self.assertEqual(verdict["ids_inside"], {"TC-4": "\u2714 TC-4a b (1ms)"})
+        self.assertNotIn("ids_inside", test_loop.judge(dict(row, ids=["TC-1"]), 0, output))
+        run, flat = self.verify("printf '%s\\n' '\u2714 TC-10 a (1ms)' 'Ran 1 test in 0.001s' '' OK", ["TC-1"])
+        self.assertNotIn("as a whole word", flat)
+
+    def test_a_longer_token_that_is_itself_a_listed_id_leaves_the_shorter_one_a_missing_test(self):
+        """Review of A1: `TC-4` and `TC-4a` are both listed and only `TC-4a` is printed.  `TC-4a` is shown, as listed;
+        `TC-4` is a test that is missing, so the select-and-print remedy stays and no title is called wrong."""
+        row = {"command": "x", "suite": "focused", "ids": ["TC-4", "TC-4a"]}
+        verdict = test_loop.judge(row, 0, "✔ TC-4a b (1ms)\nRan 1 test in 0.001s\n\nOK\n")
+        self.assertEqual((verdict["status"], verdict["ids_missing"]), ("ids-missing", ["TC-4"]))
+        self.assertNotIn("ids_inside", verdict)
+        run, flat = self.verify("printf '%s\\n' '✔ TC-4a b (1ms)' 'Ran 1 test in 0.001s' '' OK", ["TC-4", "TC-4a"])
+        self.assertNotIn("ids_inside", run)
+        self.assertIn("did not show TC-4 running (unittest reported 1 run, 0 failed). Make the command select those "
+                      "cases and print test names (for example --verbose).", flat)
+        self.assertNotIn("as a whole word", flat)
+        self.assertNotIn("appears only inside", flat)
+
+    def test_the_refusal_quotes_the_first_listed_id_that_is_inside_a_longer_token(self):
+        """Several IDs can be inside longer tokens; the one line quoted belongs to the first of them in the step plan's order."""
+        command = "printf '%s\\n' '✔ TC-5b five (1ms)' '✔ TC-4a four (1ms)' 'Ran 2 tests in 0.001s' '' OK"
+        run, flat = self.verify(command, ["TC-4", "TC-5"])
+        self.assertEqual(list(run["ids_inside"]), ["TC-4", "TC-5"])
+        self.assertIn("did not show TC-4, TC-5 as a whole word", flat)
+        self.assertIn("TC-4 appears only inside: ✔ TC-4a four (1ms)", flat)
+        self.assertNotIn("TC-5 appears only inside", flat)
+
+    def test_every_packet_that_says_a_listed_id_is_shown_says_how_it_is_matched(self):
+        rule = " ".join(test_loop.guidance.ID_WORD_RULE.split())
+        state = {"repo": "/", "history": [{"stage": "step-plan", "workitem": "W1", "action": "S1", "outcome": "done"}],
+                 "accepted": {"S1": dict(DONE, test_commands=[{"command": "x", "suite": "focused", "ids": ["TC-4"]},
+                                                              {"command": "y", "suite": "regression"}])}}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            packets = {
+                "step-plan duty": test_loop.guidance.duty("step-plan"),
+                "test-author duty": test_loop.guidance.duty("test-author"),
+                "test-red": "\n".join(test_loop.red_lines(state, "W1")),
+                "test-green": "\n".join(test_loop.render_lines(root, state, "W1", "A1", "test-green")),
+                "regression": "\n".join(test_loop.render_lines(root, state, "W1", "A1", "regression")),
+                "test-refine": "\n".join(test_loop.rerun_lines(root, state, "W1", "test-refine")),
+                "static-checks": "\n".join(test_loop.rerun_lines(root, state, "W1", "static-checks")),
+            }
+        for name, text in packets.items():
+            with self.subTest(packet=name):
+                self.assertEqual(" ".join(text.split()).count(rule), 1)  # restated per packet, never twice in one
 
 
 class UnavailableExecutionTests(unittest.TestCase):

@@ -12,9 +12,12 @@ prove.
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 _INT = r"(\d+)"
+# How much of an output line a refusal quotes when it shows where an ID sits inside a longer token.  Display only: it
+# decides nothing.
+INSIDE_CHARS = 100
 
 
 def _sum(text: str, pattern: str) -> int:
@@ -200,18 +203,47 @@ def _id_pattern(test_id: str) -> "re.Pattern[str]":
     return re.compile(r"(?<![\w-])" + re.escape(test_id) + r"(?![\w])")
 
 
-def named(output: str, ids: Sequence[str]) -> Dict[str, List[str]]:
-    """Split declared IDs into ``shown`` (on a non-skip output line) and ``missing``."""
+def _inside_pattern(test_id: str) -> "re.Pattern[str]":
+    """The longer token that starts with the ID and whose next character begins a new run: ``TC-4a`` for ``TC-4``.
+
+    A digit after a digit (or a letter after a letter) continues the ID's own kind of character, which makes a different
+    ID (``TC-10`` is not ``TC-1`` inside a longer token), so only a character of another kind counts.  Group 1 is the
+    whole token, so a caller can tell a token that is itself another listed ID (``TC-4a`` beside a listed ``TC-4``).
+    """
+    last = test_id[-1:]
+    new_run = r"[^\W\d]" if last.isdigit() else r"[\d_]" if last.isalpha() else r"\w"
+    return re.compile(r"(?<![\w-])(" + re.escape(test_id) + "(?=" + new_run + r")\w+)")
+
+
+def named(output: str, ids: Sequence[str]) -> Dict[str, Any]:
+    """Split declared IDs into ``shown`` (on a non-skip output line) and ``missing``.
+
+    ``inside`` maps each missing ID to the first non-skip line that holds it at the start of a longer token of the same
+    word (``TC-4`` inside ``TC-4a``): the ID is printed, but not as its own word, which is what the match requires.  A
+    longer token that is itself a listed ID is that ID shown, not the shorter one inside it, so such a line is not
+    counted.  An ID that no line holds that way is just absent and has no entry.
+    """
     lines = [line for line in _plain(output).splitlines() if not _ANNOUNCEMENT.match(line)]
+    text = "\n".join(lines)
+    listed = set(ids)
     shown: List[str] = []
     missing: List[str] = []
+    inside: Dict[str, str] = {}
     for test_id in ids:
         pattern = _id_pattern(test_id)
         if any(pattern.search(line) and not _SKIP_LINE.search(line) for line in lines):
             shown.append(test_id)
-        else:
-            missing.append(test_id)
-    return {"shown": shown, "missing": missing}
+            continue
+        missing.append(test_id)
+        if test_id not in text:
+            continue  # printed nowhere, so no longer token holds it either: no second pass over the lines
+        pattern = _inside_pattern(test_id)
+        first = next((line.strip() for line in lines
+                      if any(match.group(1) not in listed for match in pattern.finditer(line))
+                      and not _SKIP_LINE.search(line)), None)
+        if first is not None:
+            inside[test_id] = first[:INSIDE_CHARS]
+    return {"shown": shown, "missing": missing, "inside": inside}
 
 
 __all__ = ("count", "named")

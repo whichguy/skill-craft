@@ -470,15 +470,16 @@ def red_lines(state: Mapping[str, Any], work_item: str) -> List[str]:
         return []
     return (["", "Expected-RED run: on done, ShipLoop runs each focused command from " + str(state["repo"])
              + " and expects it to fail inside a test: the runner must report at least one failing test,"
-             " and every listed ID must appear in the output. A failure before any test runs (syntax,"
-             " import, setup) is not a meaningful RED. If these tests are expected to pass already"
+             " and every listed ID must appear in the output. " + guidance.ID_WORD_RULE + " A failure before any"
+             " test runs (syntax, import, setup) is not a meaningful RED. If these tests are expected to pass already"
              " (characterisation tests), put the reason in the result's red_na; ShipLoop still runs"
              " them and requires that they ran."]
             + ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)])
 
 
 COUNT_RULE = ("A command passes only when it exits 0 and actually ran tests: ShipLoop reads the runner's summary, "
-              "refuses a run of zero tests, and checks that every listed ID appears in the output. A filter "
+              "refuses a run of zero tests, and checks that every listed ID appears in the output. "
+              + guidance.ID_WORD_RULE + " A filter "
               "that matches nothing is not evidence; running the whole suite instead of the named cases does "
               "not satisfy a listed ID. If ShipLoop cannot read a focused command's test count, it needs ids "
               "and a runner flag that prints test names (for example --verbose; for node --test the spec or tap "
@@ -547,6 +548,8 @@ def judge(row: Mapping[str, Any], code: Optional[int], output: str, *, red: bool
     names = counts.named(output, ids) if ids else {"shown": [], "missing": []}
     minimum = int(row.get("min_tests") or 1)
     verdict: Dict[str, Any] = {"counts": tally, "ids_missing": names["missing"]}
+    if names.get("inside"):
+        verdict["ids_inside"] = names["inside"]
     if red:
         if tally is not None and tally["ran"] == 0:
             verdict["status"] = "no-tests"
@@ -606,8 +609,19 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
         return ("ran fewer tests than the step plan requires (at least " + str(run.get("min_tests")) + ")"
                 + seen + ".")
     if status == "ids-missing":
-        return ("did not show " + ", ".join(run["ids_missing"]) + " running" + seen + ". Make the command select "
-                "those cases and print test names (for example --verbose).")
+        inside = run.get("ids_inside") or {}
+        apart = [test_id for test_id in run["ids_missing"] if test_id not in inside]
+        reason = ""
+        if inside:
+            first = next(iter(inside))
+            reason = ("did not show " + ", ".join(inside) + " as a whole word" + seen + ". " + guidance.ID_WORD_RULE
+                      + " " + first + " appears only inside: " + inside[first] + ". Title each test so its listed "
+                      "ID stands alone.")
+        if apart:
+            reason += (" Also " if reason else "") + ("did not show " + ", ".join(apart) + " running"
+                      + ("" if reason else seen) + ". Make the command select those cases and print test names "
+                      "(for example --verbose).")
+        return reason
     if status == "uncounted":
         unread = "exited " + str(run["exit"]) + ", but ShipLoop could not read how many tests it ran. "
         if stage in OUTER_SOURCES:

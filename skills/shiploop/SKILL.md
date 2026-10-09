@@ -525,7 +525,10 @@ runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet, `nod
 reporter, not dot or junit) and
 refuses a run of zero tests (`no-tests`), fewer than `min_tests`
 (`too-few-tests`), or one whose output does not show each listed ID on a line
-that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). A focused command whose count ShipLoop
+that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). An ID counts only as its own
+word in a test's printed name: `TC-4a` does not show `TC-4`. When a missing ID is printed at the start of a longer token that continues it with a
+new kind of character (`TC-4a`, `TC-4_a`; not `TC-40`, which is another ID, nor a longer token that is itself a listed ID and so shows that ID), the refusal says so and quotes the line (`ids_inside` in the record);
+an ID that no line holds that way keeps the select-and-print remedy. A focused command whose count ShipLoop
 cannot read passes only with `ids` that all appear; a regression command without
 `ids` or `min_tests` may pass uncounted.
 A system command row marked `"host_dependent": true` (its cases need a host tool: a browser, a device,
