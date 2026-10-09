@@ -90,6 +90,10 @@ otherwise "not examined". Findings that are fixed, accepted or re-expected do no
 | `planning` | object (below) | optional: the planning window of the owner's 30-minute rule, read from `metrics.json` `planning` and never recomputed. Absent, with `unmeasured.planning`, when the block is missing (a run before the harness measured it: the 1.22.0 Grok run on disk has none) |
 | `freshStarts` | array (below) | optional, record only (R23c): every time the model lost its context and what it cost to re-ground, from `metrics.json` `fresh_starts`. Absent, with `unmeasured.freshStarts`, when the run could not record them or its record predates the key; `[]` is a measured none (see "Fresh starts") |
 | `quality` | object (below) | optional, record only (R23c): what the run delivered, measured after it on a copy of the delivered work, from `result.json` `quality`. Absent for a run recorded before the harness measured it (see "Quality"). Never a verdict and never a threshold |
+| `fidelity` | object (below) | optional, from R23b: the harness's fidelity block (`metrics.json` `fidelity`) read compactly: how each accepted stage's exit was evidenced, what ShipLoop's script checks recorded, the model's edits of ShipLoop's files and its refusals by stage. A record, never a verdict. Absent, with `unmeasured.fidelity`, when the block is missing, of another schema or failed (see "Fidelity") |
+| `improvePackets` | object `{read, carried}` | optional, from R23b: how many Improve child packets the exporter read and, per label, how many carried it (see "The Improve packet checklist"). Absent, with `unmeasured.improvePackets`, for a run of the old layout |
+| `stages[].improveCarried` | object of boolean | optional, from R23b: which of the five Improve packet labels (`goal`, `doneWhen`, `checkedBy`, `output`, `recovery`) the visit's `packets/<action>-improve.md` carried; present only for a visit whose file was read |
+| `stages[].evidenceClass` | string | optional, from R23b: how the visit's exit was evidenced, one of the `fidelity.evidence` classes, joined to the harness's row by action id; absent without a fidelity block, for a visit the block has no row for and for a class this exporter does not know |
 
 
 **Fresh starts** (R23c; `freshStarts`, `stages[].freshStart`; the page's "Fresh starts" card). The main tenet of ShipLoop is that the model's context may be
@@ -198,6 +202,31 @@ adds no note. Paths are removed: a stop file's path or a worktree path never app
 The page shows `productAtStop` and not `verdicts.worktreeChecks` when a run has both (they are the same checks run in the same worktree; the
 count in `worktreeChecks` stays in the export for a run that has no `productAtStop`). `unmeasured` keys with a dot (`identity.hostBuild`,
 `environment.start`) are named by the part they explain, as the keys of the other measures are named by the run field.
+
+**Fidelity** (R23b: `fidelity`, `stages[].evidenceClass`; the page's "Fidelity" card). The harness's fidelity block (`metrics.json`
+`fidelity`, schema `shiploop-e2e-fidelity/v1`) read as a compact reading of how ShipLoop was carried: **a record, never a verdict**. Every
+member is optional and read from the block, not recomputed. A part the harness could not measure is absent, with the harness's reason
+under `unmeasured.fidelity.<part>` (`unmeasured.fidelity.edits`, ...), never 0. A `metrics.json` with no block (a harness before the
+block), a block of another schema and a block the harness failed to build (`{schema, error}`) export no `fidelity` and give the reason, the
+error text for a failed block, under `unmeasured.fidelity`. The harness's reasons for parts this document does not keep (`end_state`,
+`improve_packets`, and `validation.accepted_ran`, which each visit's `verify.runs[].acceptedRan` already carries) are not copied.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `fidelity.evidence` | object | how each accepted stage's exit was evidenced, one count per class of the harness: `script` (a verify, lint, quality-terminal or backchain-check record that ShipLoop's script wrote), `loop` (an Improve child), `file` (a cited file that is neither the stage's own nor a model note), `note` (only notes the model wrote), `sentence` (nothing beyond the stage's own packet, inbox or result file), `skipped` (the engine's own not-applicable entry), `unclassified` (no accepted entry). They sum to the accepted stages (r1 Sonnet: script 15, loop 7, file 1, note 12, sentence 0, skipped 2, unclassified 0 over 37). A reading aid, not a target: citing any file makes a stage `file`. `scriptRunWithoutRecord` lists the stages that declare a script-run exit check and whose accepted visit has no script record (`[]` is a measured none; absent, with `unmeasured.fidelity.declared`, when the stage table of the run's ShipLoop could not be read) |
+| `stages[].evidenceClass` | string | the same class for one visit, so the stage list shows each exit as actually evidenced beside the exit check its stage declares |
+| `fidelity.validation` | object | ShipLoop's verify records (`tests/<action>-verifyN.md`) as counts: `records`, `runs` (commands run in them), `distinctCommands`, `passed` (records that passed), `couldNotRun` (records that never reached a verdict), `red` (records in which a command ran red; a test-red record accepts red), `unread` (records that could not be read: their rows are in no count). `testsRanUnmeasured` counts the focused and regression rows whose test count is null (a row with no count does not show that a test ran), `counted` the rows that carry a count and `zeroRan` those of them that ran no test (absent, with `unmeasured.fidelity.validation.zeroRan`, when no row carried a count). Not kept: the per-suite table, the schemas, and the release-verify record (`stages[].verify.observed` has where it ran) |
+| `fidelity.edits` | object | the model's edits of ShipLoop's side of the work, **a list to confirm**: no hit is not proof and a hit can be quoted text. `scriptOwned` is `{count, items}`: edits of files ShipLoop's scripts own (a shell write such as `sed -i`, or an edit tool), at most 5 items `{form, target, tool?}`, `count` the number found. `target` is a path inside the run folder: the harness's `<run>/` prefix is removed, a path that stays absolute is cut to what follows its `.shiploop*` component (else its file name), at most 200 characters. `nameKills` and `modelCommits` count the kills by process name and the commands that ran git add or commit (not listed). `limits` is the harness's own text on what the lists miss, kept whole, and the page prints it beside the list. The event numbers and commit forms are not kept |
+| `fidelity.refusals` | object | `repeated` (refusals whose whole first line came back in the same stage; absent, with `unmeasured.fidelity.refusals.repeated`, when no refusal could be given a stage), `unstaged` (refusals with no stage), `byStage` (`[{stage, count}]`, most refusals first, at most 40) and `limits` (the harness's text, kept whole). The refusal lines themselves are the run's `failures` |
+
+The page draws `fidelity` as the "Fidelity" card in the run view: the evidence mix as a thin bar with a legend (one segment per class
+that has a count, the legend all seven), the rows above as text, and the harness's `limits` for the two lists marked to confirm printed
+word for word under them. A part that was not measured is listed with its reason, and a run exported before the reading has no card.
+
+**One count of refusals.** The run's `refusals` is the one count (the length of `metrics.json` `shiploop_failures`); `fidelity.refusals`
+has no count of its own. The harness builds both from the same list, and the exporter checks it: when the block's count differs from
+`refusals`, or the run's count is unmeasured, the block's refusal detail is not exported and `unmeasured.fidelity.refusals` says so (r1 Sonnet:
+both are 5). The page's "5 refusals, 1 repeated" takes the first from `refusals` and the second from here.
 
 **`backchain/<id>`** (a loop ledger; id `<runKey>-<loop>`; none is written when a run has no loop)
 
@@ -414,6 +443,34 @@ with `packetImprove` is the Improve child's file, and the card says so; in the n
 packet of every reviewed stage, and no real run of the new layout is in the committed evidence yet (the five exports are
 runs of ShipLoop 1.16.1 to 1.19.0).
 
+## The Improve packet checklist (`stages[].improveCarried`, `improvePackets`)
+
+An Improve child's packets are written to `packets/<action>-improve.md` (the new layout, see `stages[].improvePacketBytes`; the file holds the
+last printing). The exporter scores each readable file's whole text for five labels the way it scores a producer packet for `carried`: one
+table in `export.py` (`IMPROVE_CARRIED`) holds each label, what is looked for and its pattern, a label is found when a line of the text starts
+with its marker, and a test pins each phrase against the navigator's source, so a change of the engine's wording changes this one table.
+(The harness's `metrics.json` `fidelity.improve_packets` is a temporary copy of this table and is not read.)
+
+| Label | A line that starts | Printed |
+| --- | --- | --- |
+| `goal` | `Reviewing the returned <stage> result. Goal:` | from skill-craft 1.25.0 (ShipLoop 0.57.0) |
+| `doneWhen` | `Done when (` | from skill-craft 1.25.0 |
+| `checkedBy` | `Checked by:` (the line that names the improve-complete callback) | every release with the layout |
+| `output` | `The opening file holds exactly these headings` or `Then run:` (the improve-start step) | once an Improve card is bound; the file holds the last printing |
+| `recovery` | `Recovery command:` | every release with the layout |
+
+`stages[].improveCarried` is `{goal, doneWhen, checkedBy, output, recovery}` of booleans for each visit whose file was read. `improvePackets` is
+`{read, carried: {goal, doneWhen, checkedBy, output, recovery}}`: the files read and, per label, how many carried it. The numbers are read
+next to the run's `release` and are **never a defect**: skill-craft 1.25.0 added Goal and Done when to the packet, so an earlier release reads 0
+for both by design. The saved runs: r1 Sonnet (skill-craft 1.24.0) read 8, goal 0, doneWhen 0, checkedBy 8, output 8, recovery 8; r3 Sonnet
+(1.26.0) all five 8 of 8; over the seven saved runs frozen in `docs/experiments/run-review-r23-20261009/figures.json`, 31 files, 19 with all five (the runs of skill-craft 1.25.0 and 1.26.0) and 12 without Goal and Done when (1.22.0 and 1.24.0). The page prints
+"Improve packets, skill-craft 1.24.0, ShipLoop 0.56.0: Checked by 8/8, Output 8/8, Recovery 8/8, Goal 0/8, Done when 0/8" on its Improve card.
+
+A run of the current layout with no Improve child has `read` 0 and every count 0: a measured none, not unmeasured. A run whose packets cannot be
+scored has no `improvePackets` and says why under `unmeasured.improvePackets`: the old layout (ShipLoop 1.22.0 and earlier wrote one packet
+file per action, and a visit with `packetImprove` keeps only the child's), children that left no `-improve.md` file, or files that could not be
+read as UTF-8.
+
 ## The stage card
 
 Tapping a visit on step 1 (the picture or a row of the "Stage cards" list below it) opens that visit's card with three labelled
@@ -429,12 +486,14 @@ and, when it differs, as secondary text, and is what every other part of the pag
   `improvePacketDoc`, a second closed box "Improve child's packet" with its size. The head is the first 12 non-empty lines of the
   visit's producer `packets` document counted from its first line beginning `ShipLoop navigator |` (the delegation preamble before
   it is left out; a packet with no such line shows its first 12 non-empty lines), and every packet text is loaded on demand by
-  the same single `get` and cache.
+  the same single `get` and cache. With `improveCarried` the block also says which of the five Improve packet labels that child's
+  packet carried ("Improve child's packet carried": the labels found, then "not in the packet text: ...").
 - **Done: how the visit went.** Outcome, minutes and their share of the run, work item, steps-loop pass and step, the item's
   revise count, Improve passes and minutes for the visit, refusals, and context where measured. Refusals are a run-level count
   (`failures` carry a verb and a line, no action), so the card says "not recorded per visit" and prints the run's figure
   labelled run-level, or "not measured" and points to the Refusals card for the reason.
-- **Done also** prints "Checked by the script" from `verify`: the records and how many passed, the commands of the last record with what ran,
+- **Done also** prints "Exit evidenced by" from `evidenceClass` ("loop: an Improve review"), beside the exit-check chip the catalog gives the stage,
+  and "Checked by the script" from `verify`: the records and how many passed, the commands of the last record with what ran,
   failed and was accepted, and where release-verify's checks ran. **Written also** prints "Left unverified (owner, due stage)" from
   `unverified` (each outcome with its reason and check, or "none listed") on the visits whose result has the list.
 - **Written: the result.** The summary (cut at 300 characters, said so), whether the result file exists and its size, and

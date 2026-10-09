@@ -76,6 +76,10 @@ The run document also records what losing context cost and what the run delivere
 and seconds the model took to re-ground and the harness's lower bounds for failures and rewrites; absent, with the reason in `unmeasured.freshStarts`,
 for a run that could not record them, never an empty list) and `quality` (the mutation ratio with its operator, the survivors, the held-out checks and
 the writes to the model's own memory; absent when the case measures none). See "Fresh starts" and "Quality" in [SCHEMA.md](SCHEMA.md).
+From R23b the run also carries the harness's fidelity reading (`fidelity`: how each accepted stage's exit was evidenced, what ShipLoop's
+script checks recorded, the model's edits of ShipLoop's own files and its refusals by stage, with the harness's limits text) and, scored by
+the exporter itself, which labels each Improve child's packet carried (`improvePackets`). Both are record only; a part the run lacks is
+absent with its reason in `unmeasured`. See "Fidelity" and "The Improve packet checklist" in [SCHEMA.md](SCHEMA.md).
 
 ## advise RUN_DIR_OR_KEY
 

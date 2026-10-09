@@ -180,6 +180,24 @@ QUALITY_FIELDS = {
                                "failed": (("list", S), False)}), False),
     "memoryWrites": (("object", {"count": (N, True), "items": (("items", {"path": (S, True), "tool": (S, False)}), False)}), False),
     "heldOutSeen": (N, False), "notes": (("list", S), False), "seconds": (N, False), "unmeasured": (("map", S), False)}
+
+# R23b. The Improve child's packet labels (IMPROVE_CARRIED below) scored per visit and counted per run, and the compact reading of the
+# harness's fidelity block (metrics.json `fidelity`, schema shiploop-e2e-fidelity/v1): how each accepted stage's exit was evidenced,
+# what ShipLoop's own script checks recorded, the model's edits of ShipLoop's files (a list to confirm) and its refusals by stage.
+IMPROVE_KEYS = ("goal", "doneWhen", "checkedBy", "output", "recovery")
+IMPROVE_CARRIED_FIELDS = {key: (B, True) for key in IMPROVE_KEYS}
+IMPROVE_PACKETS_FIELDS = {"read": (N, True), "carried": (("object", {key: (N, True) for key in IMPROVE_KEYS}), True)}
+FIDELITY_SCHEMA = "shiploop-e2e-fidelity/v1"
+EVIDENCE_CLASSES = ("script", "loop", "file", "note", "sentence", "skipped", "unclassified")  # the harness's, in its order
+FIDELITY_FIELDS = {
+    "evidence": (("object", {**{name: (N, False) for name in EVIDENCE_CLASSES}, "scriptRunWithoutRecord": (("list", S), False)}), False),
+    "validation": (("object", {name: (N, False) for name in (
+        "records", "runs", "distinctCommands", "passed", "couldNotRun", "red", "unread", "testsRanUnmeasured", "counted", "zeroRan")}), False),
+    "edits": (("object", {
+        "scriptOwned": (("object", {"count": (N, True), "items": (("items", {"form": (S, True), "target": (S, True), "tool": (S, False)}), False)}), False),
+        "nameKills": (N, False), "modelCommits": (N, False), "limits": (S, False)}), False),
+    "refusals": (("object", {"repeated": (N, False), "unstaged": (N, False), "limits": (S, False),
+                             "byStage": (("items", {"stage": (S, True), "count": (N, True)}), False)}), False)}
 SCHEMA = {
     # No expectation carries a status: how an expectation stands for a run is derived by the page from the run's
     # findings and review. `clauses` ties a criterion to the S-n clauses of test/shiploop_e2e/SPEC.md.
@@ -236,7 +254,10 @@ SCHEMA = {
                               "verify": (("object", VERIFY_FIELDS), False),
                               "unverified": (("items", UNVERIFIED_FIELDS), False),
                               # R23c: the fresh start this visit's acceptance ended (SCHEMA.md "Fresh starts").
-                              "freshStart": (("object", FRESH_MARK_FIELDS), False)}), False),
+                              "freshStart": (("object", FRESH_MARK_FIELDS), False),
+                              # R23b: how this visit's exit was evidenced (the harness's class: script, loop, file, note, sentence,
+                              # skipped, unclassified) and which of the five IMPROVE_CARRIED labels its Improve child's packet carried.
+                              "evidenceClass": (S, False), "improveCarried": (("object", IMPROVE_CARRIED_FIELDS), False)}), False),
         # The plan's work items and how each went through the steps loop, from state.md and results/ only. Absent, with
         # a reason in `unmeasured.workItems`, when the records cannot tell; stepsPlanned and stepsExecuted are absent,
         # with a reason under their own name, when any item's steps or pairing is unknown. Never a zero for those.
@@ -295,6 +316,10 @@ SCHEMA = {
         # says why a list is absent or partial. An absent `quality` means the case measures none or the phase has not run.
         "freshStarts": (("items", FRESH_START_FIELDS), False),
         "quality": (("object", QUALITY_FIELDS), False),
+        # R23b. The harness's fidelity block read compactly (SCHEMA.md "Fidelity"), and the run's count of the labels its Improve
+        # child's packets carried (a measured none is read 0; the old layout is absent, with `unmeasured.improvePackets`).
+        "fidelity": (("object", FIDELITY_FIELDS), False),
+        "improvePackets": (("object", IMPROVE_PACKETS_FIELDS), False),
     },
     "backchain": {
         "run": (S, False), "loop": (S, False), "phase": (N, False), "order": (N, False), "title": (S, False),
@@ -1961,6 +1986,176 @@ def quality_of(record) -> dict | None:
     return out
 
 
+# ---------------------------------------------------------------- the harness's fidelity block, and the Improve packets (R23b)
+
+MAX_FIDELITY_EDITS = 5  # script-owned edits listed by name; `scriptOwned.count` says how many there were
+MAX_FIDELITY_NAMES = 40  # stage names in one fidelity list (a run has well under 40 distinct stages, so nothing is cut in practice)
+MAX_LIMITS_TEXT = 1000  # characters of a heuristic part's `limits` text kept (the harness's are about 400, kept whole)
+MAX_TOOL_NAME = 40  # characters of a tool name or an edit form kept
+FIDELITY_MISSING = ("metrics.json has no fidelity block: it was written before the harness recorded how ShipLoop was carried "
+                    "(regrade the run)")
+# The reasons in the harness's `unmeasured` map that belong to a part the run document keeps. `end_state` and `improve_packets` are not
+# kept (the run document has its own status, ending, blocked and unverified lists, and the exporter scores the Improve packets itself),
+# and `validation.accepted_ran` concerns a field each visit's `verify.runs[].acceptedRan` already carries.
+FIDELITY_REASON_PARTS = ("evidence", "validation", "edits", "refusals", "declared")
+FIDELITY_REASON_DROPPED = ("validation.accepted_ran",)
+NO_IMPROVE_PACKET_FILE = "Improve children ran (improve/ holds them) but left no packets/<action>-improve.md file"
+OLD_IMPROVE_LAYOUT = ("no packets/<action>-improve.md file, and a packet file holds an Improve child's packet: ShipLoop 1.22.0 or earlier "
+                      "wrote one packet file per action, so the Improve child's packets were not kept apart")
+
+
+def fidelity_edit_target(target) -> str:
+    """A script-owned edit's target as a path inside the run folder. The harness writes the run folder `<run>` and the home folder `~`;
+    the leading `<run>/` goes, and a path that is still absolute (a file outside the run folder) is cut to what follows the first
+    `.shiploop*` component, else to its file name. Cut at MAX_CLIP characters."""
+    text = str(target).strip()
+    if text == "<run>":
+        return "."
+    if text.startswith("<run>/"):
+        text = text[len("<run>/"):]
+    if text.startswith(("/", "~")):
+        found = re.search(r"(?:^|/)(\.shiploop[^/]*(?:/.*)?)$", text)
+        text = found.group(1) if found else Path(text).name
+    return text[:MAX_CLIP]
+
+
+def _fidelity_evidence(block: dict) -> tuple[dict | None, dict[str, str]]:
+    """(the evidence reading, {action id: class}): the harness's count per class of how each accepted stage's exit was evidenced, and the
+    stages that declare a script-run check and have no script record (a list, `[]` a measured none; absent when the stage table could not
+    be read, with the reason `fidelity.declared`)."""
+    evidence = block.get("evidence")
+    if not isinstance(evidence, dict):
+        return None, {}
+    counts = evidence.get("counts") if isinstance(evidence.get("counts"), dict) else {}
+    out = {name: counts[name] for name in EVIDENCE_CLASSES if _num(counts.get(name)) is not None}
+    if not out:
+        return None, {}
+    missing = evidence.get("declared_script_run_without_record")
+    if isinstance(missing, list):
+        out["scriptRunWithoutRecord"] = list(dict.fromkeys(str(x) for x in missing if _text(x)))[:MAX_FIDELITY_NAMES]
+    classes = {row["action"]: row["class"] for row in evidence.get("stages") or []
+               if isinstance(row, dict) and isinstance(row.get("action"), str) and row.get("class") in EVIDENCE_CLASSES}
+    return out, classes
+
+
+def _fidelity_validation(block: dict) -> tuple[dict | None, dict[str, str]]:
+    """(the validation reading, reasons): ShipLoop's verify records as counts. `counted` is the rows that carried a test count and
+    `zeroRan` those of them that ran no test (absent, with `fidelity.validation.zeroRan`, when no row carried a count)."""
+    found = block.get("validation")
+    if not isinstance(found, dict):
+        return None, {}
+    out = {name: found[key] for name, key in (
+        ("records", "records"), ("runs", "runs"), ("distinctCommands", "distinct_commands"), ("passed", "passed"),
+        ("couldNotRun", "could_not_run"), ("red", "red"), ("unread", "unread"), ("testsRanUnmeasured", "tests_ran_unmeasured"))
+        if _num(found.get(key)) is not None}
+    reasons = {}
+    suites = [x for x in (found.get("by_suite") or {}).values() if isinstance(x, dict)] if isinstance(found.get("by_suite"), dict) else None
+    if suites is not None:
+        out["counted"] = sum(x["counted"] for x in suites if _num(x.get("counted")) is not None)
+        if out["counted"]:
+            out["zeroRan"] = sum(x["zero_ran"] for x in suites if _num(x.get("zero_ran")) is not None)
+        else:
+            reasons["fidelity.validation.zeroRan"] = "no row carried a test count, so how many ran no test is not known"
+    return out or None, reasons
+
+
+def _fidelity_edits(block: dict) -> dict | None:
+    """The model's edits of ShipLoop's side of the work, a list to confirm: the script-owned edits (count, and the first MAX_FIDELITY_EDITS
+    by form, run-relative target and tool), the kills by process name and the commands that ran git add or commit, with the harness's own
+    `limits` text. The event numbers and the commit forms are not kept."""
+    edits = block.get("edits")
+    if not isinstance(edits, dict):
+        return None
+    out: dict = {}
+    if isinstance(edits.get("script_owned"), list):
+        owned = [x for x in edits["script_owned"] if isinstance(x, dict) and _text(x.get("form")) and _text(x.get("target"))]
+        out["scriptOwned"] = {"count": len(owned), "items": [
+            {"form": x["form"][:MAX_TOOL_NAME], "target": fidelity_edit_target(x["target"]),
+             **({"tool": x["tool"][:MAX_TOOL_NAME]} if _text(x.get("tool")) else {})} for x in owned[:MAX_FIDELITY_EDITS]]}
+    for name, key in (("nameKills", "name_kills"), ("modelCommits", "model_commits")):
+        if isinstance(edits.get(key), list):
+            out[name] = len(edits[key])
+    if _text(edits.get("limits")):
+        out["limits"] = edits["limits"][:MAX_LIMITS_TEXT]
+    return out or None
+
+
+def _fidelity_refusals(block: dict, failures: list, count_unmeasured: bool) -> tuple[dict | None, dict[str, str]]:
+    """(the refusals reading, reasons). The run's `refusals` (the length of metrics.json `shiploop_failures`) is the one count: the
+    block's own count is compared with it and, when they differ or the run has no count, the block's detail is not exported. The reading
+    holds how many repeated (absent when no refusal could be given a stage), how many had no stage, the refusals per stage (most first)
+    and the harness's `limits` text."""
+    found = block.get("refusals")
+    if not isinstance(found, dict):
+        return None, {}
+    if count_unmeasured:
+        return None, {"fidelity.refusals": "the run's refusal count is not measured (metrics.json names shiploop_failures unmeasured), "
+                                           "so the block's detail has no count to agree with and is not exported"}
+    if found.get("count") != len(failures):
+        return None, {"fidelity.refusals": f"the harness's fidelity block counts {found.get('count')} refusals and metrics.json lists "
+                                           f"{len(failures)}, so the block's detail is not exported"}
+    out: dict = {}
+    for name, key in (("repeated", "repeated"), ("unstaged", "unstaged")):
+        if _num(found.get(key)) is not None:
+            out[name] = found[key]
+    tally: dict[str, int] = {}
+    for item in found.get("items") or []:
+        if isinstance(item, dict) and _text(item.get("stage")):
+            tally[item["stage"]] = tally.get(item["stage"], 0) + 1
+    if tally:
+        out["byStage"] = [{"stage": stage, "count": n}
+                          for stage, n in sorted(tally.items(), key=lambda kv: (-kv[1], kv[0]))[:MAX_FIDELITY_NAMES]]
+    if _text(found.get("limits")):
+        out["limits"] = found["limits"][:MAX_LIMITS_TEXT]
+    return out, {}
+
+
+def _fidelity(metrics: dict, failures: list, count_unmeasured: bool) -> tuple[dict | None, dict[str, str], dict[str, str]]:
+    """(fidelity, reasons for `unmeasured`, {action id: evidence class}) from metrics.json `fidelity`, the harness's reading of how
+    ShipLoop was carried (schema shiploop-e2e-fidelity/v1). A block that is missing, of another schema or `{schema, error}` exports
+    nothing and gives its reason under `fidelity`. Otherwise each part the harness measured is kept in a compact form, each it could not is
+    left out with the harness's reason under `fidelity.<part>`, and a heuristic part keeps the harness's own `limits` text."""
+    block = metrics.get("fidelity")
+    if not isinstance(block, dict):
+        return None, {"fidelity": FIDELITY_MISSING}, {}
+    if block.get("schema") != FIDELITY_SCHEMA:
+        return None, {"fidelity": f"metrics.json holds a fidelity block of schema {block.get('schema')!r}, which this exporter does not "
+                                  f"read (it reads {FIDELITY_SCHEMA})"}, {}
+    if "error" in block:
+        error = " ".join(str(block["error"]).split())[:MAX_REASON]
+        return None, {"fidelity": f"the harness could not build its fidelity block: {error}"}, {}
+    reasons = {f"fidelity.{name}": " ".join(why.split())[:MAX_REASON]
+               for name, why in (block.get("unmeasured") if isinstance(block.get("unmeasured"), dict) else {}).items()
+               if name.split(".")[0] in FIDELITY_REASON_PARTS and name not in FIDELITY_REASON_DROPPED and _text(why)}
+    evidence, classes = _fidelity_evidence(block)
+    validation, why_validation = _fidelity_validation(block)
+    refusals, why_refusals = _fidelity_refusals(block, failures, count_unmeasured)
+    reasons.update(why_validation)
+    reasons.update(why_refusals)
+    parts = {"evidence": evidence, "validation": validation, "edits": _fidelity_edits(block), "refusals": refusals}
+    for name, part in parts.items():
+        if part is None and f"fidelity.{name}" not in reasons:
+            reasons[f"fidelity.{name}"] = f"the fidelity block has no {name} reading and names no reason"
+    return {name: part for name, part in parts.items() if part is not None} or None, reasons, classes
+
+
+def _improve_packets(stages: list[dict], children: dict) -> tuple[dict | None, str | None]:
+    """(improvePackets, why it is absent). The labels each Improve child's packet carried, counted over the packets read (`improveCarried`
+    on the visit rows). A current-layout run with no Improve child has read 0, a measured none. A run of the old layout (the child's
+    packet replaced the producer's, `packetImprove`), one whose children left no `-improve.md` file and one whose files could not be read
+    have nothing to score and give the reason."""
+    scored = [row["improveCarried"] for row in stages if "improveCarried" in row]
+    if scored:
+        return {"read": len(scored), "carried": {key: sum(1 for c in scored if c[key]) for key in IMPROVE_KEYS}}, None
+    if any("improvePacketBytes" in row for row in stages):
+        return None, "the packets/<action>-improve.md files could not be read as UTF-8, so no Improve packet was scored"
+    if any(row.get("packetImprove") for row in stages):
+        return None, OLD_IMPROVE_LAYOUT
+    if children:
+        return None, NO_IMPROVE_PACKET_FILE
+    return {"read": 0, "carried": {key: 0 for key in IMPROVE_KEYS}}, None
+
+
 def _clip(text: str) -> tuple[str, bool]:
     """(the first MAX_CLIP characters of a work item title or a step task, whether it was cut)."""
     return (text[:MAX_CLIP], True) if len(text) > MAX_CLIP else (text, False)
@@ -2140,12 +2335,30 @@ CARRIED_RX = tuple((label, tuple(tuple(tuple(re.compile(rx, re.M) for rx in grou
 # intact and is what `carried` reads. A visit is told by its files: a `-improve.md` beside the producer file is the new layout.
 IMPROVE_PACKET = re.compile(r"^Current action: Improve the completed ", re.M)
 IMPROVE_SUFFIX = "-improve"
+# What an Improve child's packet (packets/<action>-improve.md) carries for a model that holds only that packet: one row per label,
+# (key, what is looked for, pattern), the patterns anchored to the lines the navigator prints (_goal_lines in its active-Improve branch,
+# _checked_line's Improve variant in _render_improve, _first_callback_lines, the run footer). A packet is scored line by line like
+# CARRIED. Goal and Done when are printed from skill-craft 1.25.0 (ShipLoop 0.57.0) on: an earlier release has none by design, so the
+# count is read beside the run's release and is never a defect. A test pins each phrase against the navigator's source.
+IMPROVE_CARRIED = (
+    ("goal", "the review's 'Reviewing the returned <stage> result. Goal:' line (skill-craft 1.25.0 on)", r"^Reviewing the returned .* result\. Goal: "),
+    ("doneWhen", "the 'Done when (' list the review holds the result to (skill-craft 1.25.0 on)", r"^Done when \("),
+    ("checkedBy", "the 'Checked by:' line that names the improve-complete callback", r"^Checked by:"),
+    ("output", "the opening file's heading line, or the 'Then run:' improve-start line", r"^(?:The opening file holds exactly these headings|Then run: )"),
+    ("recovery", "the 'Recovery command:' line", r"^Recovery command:"),
+)
+IMPROVE_CARRIED_RX = tuple((key, re.compile(rx, re.M)) for key, _, rx in IMPROVE_CARRIED)
 
 
 def carried_markers(text: str) -> dict[str, bool]:
     """{label: whether the packet text carries it} for every CARRIED label (the page prints each as a tick or a cross)."""
     return {label: any(all(any(rx.search(text) for rx in group) for group in rule) for rule in rules)
             for label, rules in CARRIED_RX}
+
+
+def improve_carried_markers(text: str) -> dict[str, bool]:
+    """{label: whether the Improve child's packet text carries it} for every IMPROVE_CARRIED label."""
+    return {key: bool(rx.search(text)) for key, rx in IMPROVE_CARRIED_RX}
 
 
 def _packet_doc(run_key: str, action: str, stage: str, path: Path, kind: str | None = None) -> tuple[dict, str] | None:
@@ -2210,6 +2423,7 @@ def packet_docs(run_key: str, packets: Path, stages: list[dict]) -> tuple[dict[s
             else:
                 found[f"{run_key}--{action}{IMPROVE_SUFFIX}"] = read[0]
                 row["improvePacketDoc"] = True
+                row["improveCarried"] = improve_carried_markers(read[1])
     return found, unreadable
 
 
@@ -2433,8 +2647,20 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     if (left_behind := _left_behind(result.get("left_behind"))) is not None:
         run["leftBehind"] = left_behind
     run.update(record_fields)
+    fidelity, fidelity_why, evidence_classes = _fidelity(metrics, failures, "shiploop_failures" in unmeasured)
+    unmeasured.update(fidelity_why)
+    if fidelity:
+        run["fidelity"] = fidelity
+    for row in stages:  # how each visit's exit was evidenced, joined to the harness's rows by action id
+        if row.get("action") in evidence_classes:
+            row["evidenceClass"] = evidence_classes[row["action"]]
 
     packet_set, unreadable = packet_docs(key, packets, stages)
+    improve_packets, improve_packets_why = _improve_packets(stages, children)
+    if improve_packets is not None:
+        run["improvePackets"] = improve_packets
+    else:
+        unmeasured["improvePackets"] = improve_packets_why
     if ending.get("action"):  # the packet issued for the stage the run never accepted: a document like any visit's
         read = _packet_doc(key, ending["action"], ending["stage"], packets / f"{ending['action']}.md")
         if read is None:
@@ -2700,6 +2926,66 @@ def _quality_lines(run) -> list[str]:
     return [head + ("; ".join(parts) if parts else "observed, nothing measured")]
 
 
+def _fidelity_lines(run) -> list[str]:
+    """The R23b measures as facts lines: the harness's fidelity reading part by part (a part the run lacks reads "not measured" and
+    why) and the Improve packet labels with the release they were printed by."""
+    unmeasured, fid = run["unmeasured"], run.get("fidelity")
+    if fid is None:
+        lines = [f"- Fidelity: not measured ({unmeasured.get('fidelity', 'no reason recorded')})"]
+    else:
+        def why(part: str) -> str:
+            return f"not measured ({unmeasured.get('fidelity.' + part, 'no reason recorded')})"
+        ev, val, edits, refusals = fid.get("evidence"), fid.get("validation"), fid.get("edits"), fid.get("refusals")
+        lines = []
+        if ev is None:
+            lines.append(f"- Fidelity, exit evidence: {why('evidence')}")
+        else:
+            lines.append(f"- Fidelity, exit evidence of {_count(sum(ev.get(c, 0) for c in EVIDENCE_CLASSES), 'accepted stage')}: "
+                         + ", ".join(f"{c} {ev[c]}" for c in EVIDENCE_CLASSES if c in ev)
+                         + "; declared script-run checks with no script record: "
+                         + ("not measured (" + unmeasured.get("fidelity.declared", "no reason recorded") + ")"
+                            if "scriptRunWithoutRecord" not in ev else ", ".join(ev["scriptRunWithoutRecord"]) or "none"))
+        if val is None:
+            lines.append(f"- Fidelity, validation: {why('validation')}")
+        else:
+            groups = [", ".join(f"{val[k]} {label}" for k, label in group if k in val) for group in (
+                (("records", "records"), ("runs", "command runs"), ("distinctCommands", "distinct commands")),
+                (("passed", "passed"), ("red", "ran red"), ("couldNotRun", "could not run"), ("unread", "unreadable")))]
+            if "counted" in val:
+                groups.append(f"{val['zeroRan']} of {val['counted']} rows with a test count ran no test" if "zeroRan" in val
+                              else f"{val['counted']} rows with a test count")
+            if "testsRanUnmeasured" in val:
+                groups.append(f"{val['testsRanUnmeasured']} focused or regression rows with no test count")
+            lines.append("- Fidelity, validation: " + "; ".join(g for g in groups if g))
+        if edits is None:
+            lines.append(f"- Fidelity, edits: {why('edits')}")
+        else:
+            owned = edits.get("scriptOwned")
+            lines.append("- Fidelity, edits (a list to confirm, no hit is not proof): "
+                         + ", ".join(part for part in (
+                             f"{_count(owned['count'], 'script-owned edit')}" if owned else "", f"{_count(edits['nameKills'], 'kill')} by process name"
+                             if "nameKills" in edits else "", f"{_count(edits['modelCommits'], 'command')} that ran git add or commit"
+                             if "modelCommits" in edits else "") if part))
+        if refusals is None:
+            lines.append(f"- Fidelity, refusals: {why('refusals')}")
+        else:
+            lines.append("- Fidelity, refusals (a list to confirm, no repeat flagged is not proof): "
+                         + (f"{run['refusals']} in all, " if "refusals" in run else "")
+                         + ("repeated not measured" if "repeated" not in refusals else f"{refusals['repeated']} repeated")
+                         + (f", {refusals['unstaged']} with no stage" if "unstaged" in refusals else "")
+                         + ("; by stage " + ", ".join(f"{b['stage']} {b['count']}" for b in refusals["byStage"]) if refusals.get("byStage") else ""))
+    packets = run.get("improvePackets")
+    if packets is None:
+        lines.append(f"- Improve packets: not measured ({unmeasured.get('improvePackets', 'no reason recorded')})")
+    elif not packets["read"]:
+        lines.append("- Improve packets: none (the run has no Improve child)")
+    else:
+        lines.append(f"- Improve packets ({run['release']}; read {packets['read']}; skill-craft 1.25.0 added Goal and Done when, so an earlier "
+                     "release has none): " + ", ".join(f"{label} {packets['carried'][key]}" for key, label in (
+                         ("goal", "goal"), ("doneWhen", "done when"), ("checkedBy", "checked by"), ("output", "output"), ("recovery", "recovery"))))
+    return lines
+
+
 def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, loops, unknown, from_state,
            seeded_note, option, packet_set, unreadable, verify_loose=(0, 0)) -> list[str]:
     stages = run["stages"]
@@ -2770,6 +3056,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
     lines += _record_lines(run)
     lines += _fresh_lines(run)
     lines += _quality_lines(run)
+    lines += _fidelity_lines(run)
     if untimed:
         lines.append(f"- Stages with no minutes (no accept stamp, or none on the visit before): {untimed} of "
                      f"{len(stages)}; their minutes are null, not 0")
