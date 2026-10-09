@@ -118,6 +118,10 @@ equals the catalog's E2E suites, so a merged group that adds one must update the
 
 - G3 and G5 are not merged. Their duplicates (span/overlap readers, the `--version` probe helper, G5's `quality.end_group`) are
   for the second half.
+- `baseline_row` copies `result["termination"]`, so since G4 a baseline row's `termination` also carries `engine_blocked_by`,
+  `engine_awaiting_kind` and `engine_awaiting_no_default` (G4 removed `outcome_class` from the row; these keys came in through
+  `termination`, not through the merge). For the second half's row review (integration item 14); not changed here.
+- The SPEC S-6 evidence line and the G2 owner finding stay as G2 left them (main session's item).
 - `runrecord.launch_epochs` (G2) reads the second in a resume record's name; G4's `launch_stamp` can bump that number past the
   real second when two launches share one. It is read only for runs without `sessions.jsonl` (runs from before 2026-10-09), so
   no new run is affected; recorded, not changed.
@@ -138,3 +142,9 @@ All runs with `SHIPLOOP_PROGRESS=off` and no exported `GIT_CONFIG_*` variable.
 | after (b) (load about 4) | shiploop-e2e-environment | 132 OK, 62.3 s |
 | | `python3 test/shiploop-e2e.test.py` | 404 OK, 108.2 s |
 | after (c) | test-groups | 24 OK, 2.5 s |
+| final head, before this journal commit (load 3.4 to 4.5) | shiploop-e2e / -environment / -fidelity / -reorientation / -runrecord | 404 OK 108.7 s / 132 OK 61.1 s / 142 OK 8.6 s / 118 OK 7.6 s / 6 OK |
+| | test-groups / shiploop-run-review | 24 OK 2.2 s / 363 OK 22.2 s |
+| | `bash test/run-all.sh --group quick --changed-from 30a3b40a` | PASS, 33 of 33 suites, 645 s wall (the five E2E family suites selected; shiploop-e2e 103.8 s in the runner) |
+
+`test/shiploop-e2e.test.py` stays at 404 tests and 108 to 111 s across the merges, against `QUICK_MAX_SECONDS` 120 (no test was
+added to it; its catalog duration is 100.0).
