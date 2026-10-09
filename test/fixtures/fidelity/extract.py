@@ -9,7 +9,8 @@ line of the stream is left blank, so an event keeps its original number, the 0-b
 at and the analyses cite), ``invocation*.json`` (host and regrade only), and ``.shiploop-runs/work-1/run/`` with a
 trimmed ``state.md`` (the keys the reader looks at), ``timeline.json``, the verify records without their stdout,
 placeholders for the lint gate, quality, backchain and Improve receipt files that exist (only their names are read) and,
-of each Improve packet, the lines that carry one of its five questions. The advisory lint files (``<action>.md``,
+of each Improve packet, the lines that carry one of its five questions (and, for the old layout, a one-line marker file for each
+producer file that is a child's packet). The advisory lint files (``<action>.md``,
 ``<action>.<n>.md``, ``-inventory.md``) are not kept: no part of the block reads them.
 
 What is changed: the run folder prefix becomes /runs/<run>, the work-directory stamp becomes work-1, the macOS temporary
@@ -70,6 +71,7 @@ EDIT_TOOL = re.compile(r"write|edit|replace|create", re.I)
 # kill or git, or writes in place, kills by pattern or names a workspace file.
 CANDIDATE = re.compile(r"\.shiploop-runs/|\.shiploop-improve|\.shiploop/|until-loop|\b(?:pkill|killall|kill)\b|\bgit\b|\bsed\s+(?:-\w+\s+)*-i\b|"
                        r"\bperl\s+(?:-\w+\s+)*-\w*i\b|return-plan\.md|return-receipt\.md|workspace\.md")
+OLD_LAYOUT = re.compile(r"^Current action: Improve the completed ", re.M)
 # The lines of an Improve packet that carry one of its five questions (and the one that names the packet).
 IMPROVE_LINES = re.compile(r"^(?:Current action:|Reviewing the returned |Goal: |Done when \(|Checked by:|"
                            r"The opening file holds exactly these headings|Then run: |Recovery command:)")
@@ -166,6 +168,10 @@ def extract_run_dir(src_run: Path, dst_run: Path, folder: Path, heads_only: bool
             target = dst_run / path.relative_to(src_run)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(body)
+    for packet in sorted(src_run.glob("packets/nav-*.md")):  # old layout (ShipLoop 1.22.0 and earlier): a producer file that IS the child's packet
+        if not packet.name.endswith("-improve.md") and OLD_LAYOUT.search(packet.read_text(errors="replace")):
+            (dst_run / "packets").mkdir(parents=True, exist_ok=True)
+            (dst_run / "packets" / packet.name).write_text("Current action: Improve the completed (the Improve child's packet; old layout)\n")
     for packet in sorted(src_run.glob("packets/nav-*-improve.md")):
         lines = [clip(line, CUT_LINE) for line in packet.read_text(errors="replace").splitlines() if IMPROVE_LINES.match(line)]
         target = dst_run / "packets" / packet.name

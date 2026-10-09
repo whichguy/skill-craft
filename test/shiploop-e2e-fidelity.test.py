@@ -978,6 +978,31 @@ class RefusalsTest(unittest.TestCase):
         self.assertEqual([i["repeat_of"] for i in items], [None, None])
         self.assertEqual(items[0]["line"], items[1]["line"], "the recorded line is the 200-character one, like shiploop_failures")
 
+    def test_a_partly_staged_run_keeps_the_count_it_can_flag_and_says_what_it_cannot(self):
+        same = "ShipLoop navigator: " + "evidence " * 30
+        found = self._items([same, same, same], ["plan", "plan", None])
+        self.assertEqual(found["repeated"], 1)
+        self.assertEqual([i["repeat_of"] for i in found["items"]], [None, 0, None])
+        log = metrics.ToolLog()
+        log.call(1.0, "c", "Bash", {"command": "ls"}, event=1)
+        none = self.fidelity.refusals(log, Path("."), None, {})
+        self.assertEqual((none["count"], none["repeated"]), (0, 0), "a stream with calls and no refusal is a measured none")
+
+    def test_the_block_notes_a_partly_staged_refusal_list_and_stays_quiet_when_every_refusal_has_a_stage(self):
+        run = replay("r2-checkers-sonnet")
+        canned = {"count": 3, "repeated": 1, "unstaged": 1, "limits": "", "items": []}
+        for unstaged, noted in ((1, True), (0, False)):
+            with self.subTest(unstaged=unstaged), mock.patch.object(self.fidelity, "refusals", return_value={**canned, "unstaged": unstaged}):
+                block = self.fidelity.build(run["out"], run["run_dir"], run["tools"], engine_scripts=CURRENT_TABLE, exporter=EXPORTER)
+                self.assertEqual("refusals.stage" in block["unmeasured"], noted)
+        self.assertNotIn("refusals.stage", run["block"]["unmeasured"])
+        self.assertNotIn("refusals.repeated", run["block"]["unmeasured"])
+
+    def test_the_refusals_part_says_what_it_cannot_see(self):
+        found = self._items(["ShipLoop navigator: a"], ["plan"])
+        self.assertIn("a repeat needs", found["limits"])
+        self.assertIn("pointer", found["limits"])
+
     def test_a_repeat_is_of_the_refusal_just_before_it_and_not_of_an_earlier_one(self):
         same = "ShipLoop navigator: same"
         other = "ShipLoop navigator: other"
@@ -997,7 +1022,10 @@ class RefusalsTest(unittest.TestCase):
         refusals = self.fidelity.refusals(tools, out, run_dir, metrics.engine_state(run_dir))
         self.assertEqual(refusals["count"], 5)
         self.assertEqual({i["stage"] for i in refusals["items"]}, {None})
-        self.assertEqual(refusals["repeated"], 0, "a repeat needs a known stage")
+        self.assertIsNone(refusals["repeated"], "no refusal could be given a stage, so a repeat cannot be told: not 0")
+        block = self.fidelity.build(out, run_dir, tools, engine_scripts=CURRENT_TABLE, exporter=EXPORTER)
+        self.assertIn("no refusal could be given a stage", block["unmeasured"]["refusals.repeated"])
+        self.assertIn("repeated unmeasured", self.fidelity.lines(block)[3])
 
     def test_a_refusal_behind_a_model_wrapper_script_is_found_from_the_result_text(self):
         # r3-battleship-sonnet wrapped the CLI in scratch scripts; the refusal at event 318 is read from the result.
@@ -1036,6 +1064,32 @@ class EndStateTest(unittest.TestCase):
         block = replay("r1-battleship-sonnet")["block"]
         self.assertIsNone(block["end_state"]["unverified"])
         self.assertIn("unverified", block["unmeasured"]["end_state.unverified"])
+
+    def end_state_of(self, entries, status="done"):
+        """end_state on a state with one accepted result per (outcome, extra keys)."""
+        history = [{"action": f"a{i}", "stage": "s", "outcome": o} for i, (o, _) in enumerate(entries)]
+        accepted = {f"a{i}": {"outcome": o, "summary": "x", **extra} for i, (o, extra) in enumerate(entries)}
+        return self.fidelity.end_state({"status": status, "history": history, "accepted": accepted})
+
+    def test_the_last_unverified_list_wins_over_an_earlier_one(self):
+        two = [{"outcome": "a", "owner": "user"}, {"outcome": "b", "owner": "ops"}]
+        state = self.end_state_of([("done", {"unverified": two}), ("done", {"unverified": [two[0]]}), ("done", {})])
+        self.assertEqual(state["unverified"], {"entries": 1, "owners": ["user"]})
+        state = self.end_state_of([("done", {"unverified": [two[0]]}), ("done", {"unverified": two})])
+        self.assertEqual(state["unverified"], {"entries": 2, "owners": ["ops", "user"]})
+
+    def test_no_default_is_true_only_when_the_result_states_why_no_default_would_do(self):
+        for awaiting, expected in (({"kind": "answer", "no_default": "No default would do: a person must grant it"}, True),
+                                   ({"kind": "answer", "no_default": ""}, False), ({"kind": "answer", "no_default": "   "}, False),
+                                   ({"kind": "answer"}, False), ({"kind": "present", "no_default": None}, False)):
+            with self.subTest(awaiting=awaiting):
+                state = self.end_state_of([("blocked", {"blocked_by": "access", "awaiting": awaiting})], status="blocked")
+                self.assertEqual(state["awaiting"], {"kind": awaiting["kind"], "no_default": expected})
+        self.assertIsNone(self.end_state_of([("blocked", {"blocked_by": "access"})], status="blocked")["awaiting"])
+
+    def test_blocked_by_and_awaiting_are_read_from_the_last_accepted_result(self):
+        state = self.end_state_of([("blocked", {"blocked_by": "first", "awaiting": {"kind": "a", "no_default": "x"}}), ("done", {})])
+        self.assertEqual((state["blocked_by"], state["awaiting"]), (None, None))
 
     def test_no_state_is_unmeasured_with_a_reason(self):
         block = self.fidelity.build(Path("."), None, None)
@@ -1078,7 +1132,7 @@ class ImprovePacketsTest(unittest.TestCase):
             for entry in packets["missing"]:
                 self.assertEqual(entry["labels"], ["goal", "done_when"])
         self.assertEqual((both + without, both, without), (63, 35, 28))
-        self.assertEqual(per_run["r3-battleship-grok-none"], None, "no Improve child ran in that run")
+        self.assertEqual(per_run["r3-battleship-grok-none"], 0, "no Improve child ran in that run: a measured none")
         self.assertEqual(per_run["r2-battleship-grok-none"], 3)
 
     def test_a_missing_entry_names_the_action_and_its_stage(self):
@@ -1090,7 +1144,65 @@ class ImprovePacketsTest(unittest.TestCase):
     def test_a_run_of_the_old_layout_with_improve_children_but_no_improve_files_is_unmeasured_not_missing(self):
         block = replay(CODEX, engine_scripts=OLD_TABLE)["block"]
         self.assertIsNone(block["improve_packets"])
-        self.assertIn("-improve.md", block["unmeasured"]["improve_packets"])
+        self.assertIn("1.22.0 or earlier", block["unmeasured"]["improve_packets"])
+
+    def test_a_run_with_no_improve_child_has_read_zero_not_unmeasured(self):
+        # r3-battleship-grok-none ran planning_review none and stopped before any carry-forward: a measured none (review B16).
+        block = replay("r3-battleship-grok-none")["block"]
+        self.assertEqual(block["improve_packets"], {"read": 0, "carried": dict.fromkeys(self.QUESTIONS, 0), "missing": []})
+        self.assertNotIn("improve_packets", block["unmeasured"])
+
+    def test_improve_children_that_left_no_packet_file_in_a_current_layout_run_are_unmeasured(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            (run_dir / "packets").mkdir(parents=True)
+            (run_dir / "packets" / "nav-1.md").write_text("ShipLoop navigator | spec | revision 1\nGoal: x\n")
+            state = {"history": [], "improve_results": {"nav-1": {}}}
+            with self.assertRaises(self.fidelity.Unmeasured) as raised:
+                self.fidelity.improve_packets(run_dir, state)
+            self.assertIn("left no packets/<action>-improve.md", str(raised.exception))
+            self.assertNotIn("1.22.0", str(raised.exception))
+            self.assertEqual(self.fidelity.improve_packets(run_dir, {"history": []})["read"], 0)
+
+    def test_the_old_layout_marker_is_the_exporters_own(self):
+        namespace: dict = {}
+        source = EXPORTER.read_text()
+        found = re.search(r'(?m)^IMPROVE_PACKET = re\.compile\((r"[^"]+"), re\.M\)', source)
+        self.assertIsNotNone(found, "the exporter's old-layout marker moved")
+        self.assertEqual(self.fidelity.OLD_LAYOUT_MARKER.pattern, eval(found.group(1), namespace))
+
+    def packet_without(self, label: str, how: str) -> tuple[dict, str]:
+        """improve_packets of a copy of a real Improve packet (r3-battleship-sonnet) from which `label`'s line was dropped (how "drop") or
+        turned into a mid-line mention (how "mention")."""
+        source = next((run_dir_of("r3-battleship-sonnet") / "packets").glob("*-improve.md")).read_text()
+        pattern = dict(self.fidelity.IMPROVE_QUESTIONS)[label]
+        lines = []
+        for line in source.splitlines():
+            if pattern.search(line):
+                if how == "mention":
+                    lines.append("The packet text also says " + line)
+                continue
+            lines.append(line)
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            (run_dir / "packets").mkdir(parents=True)
+            (run_dir / "packets" / "nav-1-improve.md").write_text("Some other rule of the packet.\n" + "\n".join(lines) + "\nAnd a closing line.\n")
+            return self.fidelity.improve_packets(run_dir, {"history": [{"action": "nav-1", "stage": "spec"}]}), source
+
+    def test_a_packet_missing_one_question_names_exactly_that_one(self):
+        # Review A5: the extract keeps only the lines the patterns are built to match, so the replay alone cannot show a pattern
+        # that matches everything; a real packet with one label's line dropped, or only mentioned mid-line, can.
+        for label in self.QUESTIONS:
+            for how in ("drop", "mention"):
+                with self.subTest(label=label, how=how):
+                    found, _ = self.packet_without(label, how)
+                    self.assertEqual(found["missing"], [{"action": "nav-1", "stage": "spec", "labels": [label]}])
+                    self.assertEqual({k: v for k, v in found["carried"].items() if v == 0}, {label: 0})
+
+    def test_the_intact_packet_the_negative_cases_start_from_carries_all_five(self):
+        source = next((run_dir_of("r3-battleship-sonnet") / "packets").glob("*-improve.md")).read_text()
+        for label, pattern in self.fidelity.IMPROVE_QUESTIONS:
+            self.assertTrue(pattern.search(source), label)
 
     def test_the_block_holds_the_label_booleans_only_never_the_packet_text(self):
         self.assertNotIn("Reviewing the returned", json.dumps(replay("r3-battleship-sonnet")["block"]))
@@ -1123,15 +1235,15 @@ class BuildTest(unittest.TestCase):
     def setUp(self):
         self.fidelity = fidelity_module()
 
-    def test_the_block_names_its_schema_the_hosts_and_every_part(self):
+    def test_the_block_names_its_schema_and_every_part_and_not_the_host(self):
         block = replay("r2-battleship-grok-none")["block"]
         self.assertEqual(block["schema"], "shiploop-e2e-fidelity/v1")
-        self.assertEqual(block["hosts"], ["grok", "claude"])
-        self.assertTrue(block["mixed_host"])
+        # runrecord.hosts_used is the one reader of which hosts worked on a run (group G4's environment block records it).
+        self.assertNotIn("hosts", block)
+        self.assertNotIn("mixed_host", block)
         for part in ("evidence", "validation", "edits", "refusals", "end_state", "improve_packets"):
             self.assertIn(part, block)
         self.assertGreater(block["tool_calls_seen"], 0)
-        self.assertFalse(replay("r1-battleship-sonnet")["block"]["mixed_host"])
 
     def test_a_part_that_raises_is_unmeasured_with_its_reason_and_the_other_parts_still_run(self):
         with mock.patch.object(self.fidelity, "validation", side_effect=RuntimeError("boom in validation")):
@@ -1145,7 +1257,7 @@ class BuildTest(unittest.TestCase):
 
     def test_every_known_gap_is_a_reason_string_and_no_part_is_zero_where_it_was_not_measured(self):
         block = self.fidelity.build(Path("."), None, None)
-        reasons = {"evidence": "no history", "validation": "run directory", "end_state": "no status", "improve_packets": "-improve.md",
+        reasons = {"evidence": "no history", "validation": "run directory", "end_state": "no status", "improve_packets": "run directory",
                    "edits": "no tool call", "refusals": "no tool call"}
         for part, word in reasons.items():
             self.assertIsNone(block[part], part)
@@ -1166,7 +1278,8 @@ class BuildTest(unittest.TestCase):
                 self.assertTrue(all(isinstance(line, str) and line for line in lines))
         lines = self.fidelity.lines(replay("r1-battleship-sonnet")["block"])
         joined = "\n".join(lines)
-        self.assertIn("script 15, loop 7, file 1, note 12, sentence 0, skipped 2", lines[0])
+        self.assertIn("script 15, loop 7, file 1, note 12, sentence 0, skipped 2, unclassified 0 (records:", lines[0])
+        self.assertTrue(lines[3].startswith("refusals (heuristic, no repeat flagged is not proof) 5, repeated 1: "), lines[3])
         self.assertIn("(records: verify 10, lint ", lines[0])
         self.assertIn(", improve 8)", lines[0], "the precedence hides a review loop behind a script record; the records line shows it")
         self.assertIn("script-owned edits 1", joined)

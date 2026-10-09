@@ -25,7 +25,6 @@ import re
 import shlex
 
 import metrics
-import runrecord
 
 SCHEMA = "shiploop-e2e-fidelity/v1"
 # Files the engine keeps beside a run (shiploop_workspace.MANIFEST, RETURN_PLAN, RETURN_RECEIPT): script-owned, and named in a
@@ -45,6 +44,9 @@ RUN_KIND = {"lint-gate": "lint", "test-loop": "verify", "test-probe": "verify", 
 # the engine's wording (shiploop_navigator _goal_lines, _checked_line, _render_improve, _first_callback_lines); a test pins each
 # prefix against the engine's source. The exporter records `carried` labels for producer packets only; if it ever scores Improve
 # packets, this table goes.
+# The first line of an Improve child's packet. In ShipLoop 1.22.0 and earlier one packet file per action was rewritten at every printing, so
+# a producer file that has this line IS the child's packet and the producer's own is gone (the exporter's IMPROVE_PACKET; a test pins the two).
+OLD_LAYOUT_MARKER = re.compile(r"^Current action: Improve the completed ", re.M)
 IMPROVE_QUESTIONS = (
     ("goal", re.compile(r"^Reviewing the returned .* result\. Goal: ", re.M)),
     ("done_when", re.compile(r"^Done when \(", re.M)),
@@ -52,6 +54,9 @@ IMPROVE_QUESTIONS = (
     ("output", re.compile(r"^(?:The opening file holds exactly these headings|Then run: )", re.M)),
     ("recovery", re.compile(r"^Recovery command:", re.M)),
 )
+REFUSAL_LIMITS = ("a repeat needs a known stage (the stage join is whole seconds and needs timeline.jsonl) and the same whole first line as the "
+                  "refusal just before it; the same line twice is a pointer, neutral about cause (a remedy that misled or an honest second "
+                  "failed try); a result the host saved to a file is not read")
 EDIT_LIMITS = ("a lower bound: a script-owned file rewritten by interpreter code (a python3 heredoc), a shell apply_patch or git apply, "
                "a kill by numeric pid and a relative path after cd (other than the three workspace files, matched by name) are not seen")
 UNREAD_REASON = ("a verify record that is not shiploop-test-loop/v1 or cannot be read as JSON is not read, so its rows are in no "
@@ -466,43 +471,60 @@ def refusals(tools, out: Path, run_dir: Path | None, state: dict) -> dict:
         items.append({"event": found["event"], "verb": failure["verb"], "exit": failure["exit"], "stage": stage,
                       "line": failure["line"], "repeat_of": index - 1 if repeat else None})
         previous = (found["line"], stage)
-    return {"count": len(tools.failures), "repeated": sum(item["repeat_of"] is not None for item in items), "items": items}
+    staged = sum(item["stage"] is not None for item in items)
+    return {"count": len(tools.failures),
+            "repeated": None if items and not staged else sum(item["repeat_of"] is not None for item in items),
+            "unstaged": len(items) - staged, "limits": REFUSAL_LIMITS, "items": items}
 
 
 # --- end state, Improve packets -------------------------------------------------------------------------------------------
 
+def _blocked_reading(last: dict) -> tuple:
+    """(blocked_by, awaiting) from the last accepted result: ``awaiting`` is {kind, no_default} where no_default says whether the result
+    states why no default would do (an empty text is False), None when the result awaits nothing. One small reading, so it can be
+    replaced by a shared one."""
+    awaiting = last.get("awaiting") if isinstance(last.get("awaiting"), dict) else None
+    return last.get("blocked_by"), (None if awaiting is None else
+                                    {"kind": awaiting.get("kind"), "no_default": bool(str(awaiting.get("no_default") or "").strip())})
+
+
 def end_state(state: dict) -> dict:
-    """The engine's own record of where the run stood: status, stage, the stage it never accepted, its stated reason; for a run that
-    ended on a blocked result, the last accepted entry's ``blocked_by`` and ``awaiting`` (the kind, and whether it states why no
-    default would do); the product-acceptance ``unverified`` list (None when no result carries the key). Nothing here is a verdict."""
+    """The engine's own record of where the run stood: status, stage, the stage it never accepted, its stated reason; for a run that ended on
+    a blocked result, the last accepted entry's ``blocked_by`` and ``awaiting`` (the kind, and whether it states why no default would do);
+    the product-acceptance ``unverified`` list of the last result that carries one (None when no result carries the key). Nothing here is a
+    verdict."""
     if not isinstance(state, dict) or not state.get("status"):
         raise Unmeasured("state.md records no status (no ShipLoop run directory, or one of another layout)")
     history = [h for h in state.get("history") or [] if isinstance(h, dict)]
     accepted = state.get("accepted") if isinstance(state.get("accepted"), dict) else {}
     last = accepted.get(history[-1].get("action")) if history else None
-    last = last if isinstance(last, dict) else {}
-    awaiting = last.get("awaiting") if isinstance(last.get("awaiting"), dict) else None
+    blocked_by, awaiting = _blocked_reading(last if isinstance(last, dict) else {})
     unverified = None
     for item in history:
         entry = accepted.get(item.get("action"))
         if isinstance(entry, dict) and isinstance(entry.get("unverified"), list):
             unverified = entry["unverified"]
     return {"status": state.get("status"), "stage": metrics.current_stage(state), "unaccepted_stage": metrics.pending_stage(state),
-            "status_reason": clip(state.get("status_reason")), "blocked_by": last.get("blocked_by"),
-            "awaiting": None if awaiting is None else {"kind": awaiting.get("kind"),
-                                                       "no_default": bool(str(awaiting.get("no_default") or "").strip())},
+            "status_reason": clip(state.get("status_reason")), "blocked_by": blocked_by, "awaiting": awaiting,
             "unverified": None if unverified is None else {
                 "entries": len(unverified),
                 "owners": sorted({str(u["owner"]) for u in unverified if isinstance(u, dict) and u.get("owner")})}}
 
 
 def improve_packets(run_dir: Path | None, state: dict) -> dict:
-    """Whether each Improve child's packet carries its five questions (IMPROVE_QUESTIONS): label counts and, for a packet that lacks
-    any, its action, stage and the labels it lacks. Never the packet text. Only the files of the current layout are read."""
-    files = sorted(Path(run_dir).glob("packets/*-improve.md")) if run_dir is not None else []
+    """Whether each Improve child's packet carries its five questions (IMPROVE_QUESTIONS): label counts and, for a packet that lacks any,
+    its action, stage and the labels it lacks. Never the packet text. Only the files of the current layout (packets/<action>-improve.md)
+    are read. A run with no Improve child has read 0 (a measured none); a run of the old layout, whose child's packet replaced the
+    producer's, and a run whose children left no packet file are unmeasured."""
+    if run_dir is None:
+        raise Unmeasured("no ShipLoop run directory, so its packets cannot be read")
+    files = sorted(Path(run_dir).glob("packets/*-improve.md"))
     if not files:
-        raise Unmeasured("no packets/<action>-improve.md file (no Improve child ran, or ShipLoop 1.22.0 or earlier, whose "
-                         "one packet file per action is not read)")
+        if any(OLD_LAYOUT_MARKER.search(path.read_text(errors="replace")) for path in sorted(Path(run_dir).glob("packets/*.md"))):
+            raise Unmeasured("no packets/<action>-improve.md file and a packet file holds an Improve child's packet (ShipLoop 1.22.0 or "
+                             "earlier, whose one packet file per action is not read)")
+        if isinstance(state.get("improve_results"), dict) and state["improve_results"]:
+            raise Unmeasured("Improve children ran but left no packets/<action>-improve.md file")
     stages = {h.get("action"): h.get("stage") for h in (state.get("history") or []) if isinstance(h, dict)}
     carried = {name: 0 for name, _ in IMPROVE_QUESTIONS}
     missing = []
@@ -525,8 +547,7 @@ def build(out: Path, run_dir: Path | None, tools, *, engine_scripts=None, export
     read the run's stage table. Every part fails open: an exception is the part's reason in ``unmeasured``."""
     out = Path(out)
     state = metrics.engine_state(run_dir)
-    block = {"schema": SCHEMA, "hosts": runrecord.hosts_used(out), "mixed_host": runrecord.mixed_host(out),
-             "tool_calls_seen": len(tools.sequence) if tools is not None else 0, "unmeasured": {}}
+    block = {"schema": SCHEMA, "tool_calls_seen": len(tools.sequence) if tools is not None else 0, "unmeasured": {}}
     gone = block["unmeasured"]
 
     def part(name: str, make, *args):
@@ -560,6 +581,13 @@ def build(out: Path, run_dir: Path | None, tools, *, engine_scripts=None, export
                                                "so the rows that ran at least their floor are not known")
         if disagreement := reader_disagreement(block["validation"], metrics.verifications(run_dir)):
             gone["validation.readers"] = disagreement
+    if block["refusals"]:
+        if block["refusals"]["repeated"] is None:
+            gone["refusals.repeated"] = ("no refusal could be given a stage (no timeline.jsonl, or no readable acceptance stamps), so a "
+                                         "repeat cannot be told")
+        elif block["refusals"]["unstaged"] and block["refusals"]["count"] > 1:
+            gone["refusals.stage"] = (f"{block['refusals']['unstaged']} of {block['refusals']['count']} refusals have no stage, so a repeat "
+                                      "among them is not flagged")
     if block["evidence"] and block["evidence"]["unmapped_runs"]:
         gone["declared.runs"] = ("the stage table declares runs this reader does not know (" + ", ".join(block["evidence"]["unmapped_runs"])
                                  + "), so the stages that declare them are not judged")
@@ -589,7 +617,7 @@ def lines(block: dict) -> list[str]:
         no_record = ev["declared_script_run_without_record"]
         records = ", ".join(f"{kind} {n}" for kind, n in ev["records"].items())
         result.append(f"evidence {len(ev['stages'])} accepted: script {c['script']}, loop {c['loop']}, file {c['file']}, "
-                      f"note {c['note']}, sentence {c['sentence']}, skipped {c['skipped']} (records: {records}); declared "
+                      f"note {c['note']}, sentence {c['sentence']}, skipped {c['skipped']}, unclassified {c['unclassified']} (records: {records}); declared "
                       f"script-run without a record: "
                       + (f"unmeasured ({gone.get('declared')})" if no_record is None else ", ".join(no_record) or "none"))
     else:
@@ -615,7 +643,9 @@ def lines(block: dict) -> list[str]:
     r = block.get("refusals")
     if r:
         repeat = next((i for i in r["items"] if i["repeat_of"] is not None), None)
-        result.append(f"refusals {r['count']}, repeated {r['repeated']}" + (f": \"{(repeat['line'] or '')[:100]}\"" if repeat else ""))
+        shown = "unmeasured" if r["repeated"] is None else r["repeated"]
+        result.append(f"refusals (heuristic, no repeat flagged is not proof) {r['count']}, repeated {shown}"
+                      + (f": \"{(repeat['line'] or '')[:100]}\"" if repeat else ""))
     else:
         result.append(f"refusals unmeasured: {gone.get('refusals')}")
     s, p = block.get("end_state"), block.get("improve_packets")
