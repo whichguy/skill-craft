@@ -1895,3 +1895,84 @@ and marks are absent there).
 shares its key with the Luna review's open S-14 option: tick one; P8 for S-15; P9 for S-3), and a65 (a SPEC carve-out for the refused-run
 cap, only if the cap stays). The E2E session's items: a75 and a77 (resume host and plugin directory), a68 (one planning figure per run),
 the X1 decision (a79 recommended), and the round-3 text batch (a27, a29, a31, a34, a37). Publishing needs the R22a/R22b exporter first.
+
+
+## 2026-10-09: R22a, how a run ended: stopped, blocked, left behind, hosts, and the stale statements (local, unpublished)
+
+Status: firm for the definitions, the real-data results, the sizes and the tests below. Local commit on `rr22-940ad8` in
+`.claude/worktrees/rr22-940ad8`, base `origin/main` `1854938b` (skill-craft 1.26.0, shiploop-run-review 0.1.2; the shiploop-run-review
+change note `changes/shiploop-run-review/run-ending-hosts-blocked-left-behind.md`). R22b follows as its own commit. No push, no
+`scripts/release.py`, no E2E run launched or resumed, no Artifact or ArtifactData call, nothing written under `/Users/dadleet/e2e-runs`;
+the canonical checkout and every other worktree were not touched, no process was signalled, and no test imports or calls
+`test/shiploop_e2e/listeners.py`, `lsof` or the reaper (the exporter only reads `left_behind` from result.json). Related: `f1329599`
+(the harness reaps listeners and records `left_behind`), `3b2c42b2` and `dc1edbbb` (a signal ends the hosts and is recorded as a requested
+stop), `2b2b4d18` (the operator contract names them), `200c32ce` (1.26.0), R21 `38e72e66`, `97dc44ef`, `5cd2477d`.
+
+**The audit, re-verified against the real files** (11 runs, ShipLoop 0.54.0 to 0.58.0). Confirmed: r3 Grok is state `active`, `process.status`
+`stopped`, `termination.resume_stop` "stopped by .../stop", unaccepted stage `implement`, an `incomplete` metrics row of 1626.6 s, 104 turns
+and 128 tool calls and its packet file on disk (`wallMin` 36.5 omits those 27.1 minutes); r2 Grok has three invocation files (the original,
+a Claude resume and a Grok resume) and its visits 10 to 31 read `calls 0` while visits 1 to 9 carry Grok peaks beside Claude's 1,000,000
+window; r1 Grok and v1230 Grok are blocked with `blocked_by` and `awaiting` on the last result and `status_reason` in state.md; r3 Grok
+reaped node `:64332` (the worktree) and headless Chrome `:64335` (the work folder), r3 Sonnet reaped node `:3471` and `:3000`; r1 Grok, v1230
+Grok and r3 Grok have `worktree_checks` 4/4 against `checks` 0/4; every producer packet of all 11 runs carries a `Checked by:` line (the
+one file per finished run without it is the `done` state's). One correction to the brief: `awaiting`, `blocked_by` and `headline` are not in
+result.json; they are in the last visit's result record (`results/<action>.md`), and the reason is state.md's `status_reason`.
+
+**What was built.**
+- *Stopped (gaps 1 and 2).* `status` takes the value `stopped` when the engine's status is `active` and result.json's
+  `termination.process_status` (else `process.status`) is `stopped`, `timeout`, `failed` or `exited`: the engine cannot say its host went away,
+  the harness can. A regrade (`not observed`) never makes a run stopped; blocked, paused and done keep the engine's word; no result.json reads
+  `active` as before. The current phase's state is `stopped` (`derive_phases` pins it apart from `running` and `blocked`); the header time
+  reads "stopped after 36 min, then 27 min of unaccepted work". `ending` (SCHEMA.md "How the run ended") holds `by` (the harness's own
+  words, the stop file's absolute path replaced by its name), `stage`, `unacceptedMin` and `unacceptedTurns` from the `incomplete` row (absent,
+  never 0, when the row has no timing), the packet issued for that stage (`action`, `packetBytes`, and a `packets` document), this
+  invocation's `sessions` and `resumes`, and `earlier` terminations. It is written only when there is something to say (stopped, an unaccepted
+  stage, a resume, an earlier termination), so a one-session run has none. The page: a "How it ended" card under the header, a hatched
+  chevron "stopped by the harness" (the blocked one now reads "blocked here"; the key under the chevrons says both), and a hatched
+  `U` column at the end of the picture outside the visits and the scale, with its own detail, packet head and a row at the end of the stage
+  cards.
+- *Hosts (3, 4).* `hosts` lists every distinct host, model and effort from `invocation.json` and each `invocation-resume-<host>-<time>.json`
+  (ordered by that time). With more than one, `calls`, `contextPeak`, `contextWindow`, `compactions` and every visit's `context` are absent,
+  each with the reason "2 hosts ran this (...): the harness mixes their events in one figure, so it is not a measure". A visit whose row
+  counts no model call has no `context` (a peak beside "0 calls" was another host's); the page's `contextOf` applies the same rule, so an
+  export already in the database stops printing "0 calls" too. The page shows a chip "resumed on <model>".
+- *Blocked, left behind, unreturned product (5, 6, 7).* `blocked` {by, reason, headline, question, options, noDefault}; `leftBehind` {observed,
+  reason?, reaped[], survived[]} with entries {command, ports, where, endedBy}, no pid, argument list or absolute path, `where` read from the
+  path's components (worktree, work, other); `verdicts.worktreeChecks`. The card words the pair: "passes its checks in the worktree; the copy
+  in the work folder fails them because nothing was returned there". Only a boolean is exported, not N/N (the count is in result.json).
+- *Stale statements (10, 11, 12, 17, 21).* The refusals note and the run-detail heading say "refusal lines or failed ShipLoop commands" (the
+  harness reads refusal LINES; r3 Sonnet's one failure has the verb `unknown` and exit null); SCHEMA's refusals/glue row no longer says a
+  Claude host cannot measure them (refusals 1 to 5 and glue 0 to 2 on the seven Sonnet runs; glue is a lower bound where a model wraps
+  ShipLoop); `stages[].context` says every Claude visit has one and a Grok run never does; `NO_VISIT_CONTEXT` is a reason per host
+  (`no_visit_context`); the `Checked by:` statements (SCHEMA checklist section, the `CARRIED` comment) say the 11 runs carry it; the default
+  run name carries the case ("claude claude-sonnet-5-5, battleship, release 1.24.0"; the key rules are unchanged; a Grok run's case is
+  `custom`); `test/fixtures/run-review/state-stage.md` resolves the Improve card as the current engine does and the test asserts both modes.
+- *The legend* lists only the kinds the picture draws (`legendKinds`: done, rev, blk, skip, seed, na, tail, imp, and ctx, warn, tri only with a
+  band, a column at 90% or more, a measured compaction).
+
+**Defects the render found** (a local server over the template, a fake database holding the 11 scratch exports, 375 px): (1) the legend's
+`hidden` entries stayed visible because `.sqleg span{display:inline-flex}` beat the hidden attribute; (2) the card's two-column facts grid kept
+two columns on a phone, squeezing the value into a 90 px strip; (3) a blocked run's options ran together as one paragraph. Each has a test
+(`EndingCardStyleTests` reads the stylesheet, since node has no layout; it can only pin that the rule exists). Seen after the fixes: r3 Grok
+(stopped), r1 Grok (blocked), r2 Grok (two hosts), r3 Sonnet (done with two listeners reaped); the final light, dark, 375 px and desktop pass
+over all four is in the R22b entry.
+
+**Real data (scratch only, `scratchpad/rr22/export/<key>/`).** All 11 runs export with exit 0, pass `--check`, and a second export into the
+same folder is byte-identical; `review-export.json` 13.4 to 36.9 KB (the audit's exports were 12.7 to 38.1 KB). r3 Grok: status `stopped`,
+Build `stopped`, `ending` {by "stopped by the stop file", stage implement, 27.1 min, 104 turns, the packet document}, two listeners ended,
+`worktreeChecks` true; r1 Grok and v1230 Grok: `blocked` with the question and two options; r2 Grok: two hosts, no mixed figure, no visit
+context; r3 Sonnet: done, two reaped listeners, no `ending`.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: **409 OK** (363 at the base). 46 new tests in eight classes (`RunEndingExportTests`,
+`RunHostsExportTests`, `RunBlockedAndLeftBehindExportTests`, `RunEndingContractTests`, `EndingCardLogicTests`, `EndingCardPageTests`,
+`EndingCardStyleTests`, `TailColumnTests`) and four changed existing ones (the pinned refusals text, the Improve-card assertion over both
+modes, the fixture). Fail-first, against a `git archive` of `1854938b` with only the test file copied in: **all 46 new test methods fail
+or error** on it (52 failing or erroring cases counting subtests); one of them (`only a run whose engine reads active ...`) first passed
+there because its cases are guards, so it now begins with the positive case. Also green: `node test/skill-frontmatter.test.js` (22),
+`test/test-groups.test.py` (21), `test/marketplace-package.test.py` (29).
+
+**Sizes.** Template 150,592 to 160,905 bytes.
+
+**Declined or left.** No rename, removal, new collection or id bump was needed; the schema id stays `run-review-export/v2`. Not done: an N/N
+for the worktree checks (a boolean was asked for), the `blocked` object for a paused or halted run (its `status_reason` is only used for
+`blocked`), and the header's "1 refusals" plural (cosmetic, a test pins the text).

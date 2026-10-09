@@ -3667,7 +3667,7 @@ class SequencePictureTests(unittest.TestCase):
         self.assertEqual((luna[2][:24], luna[7]), ("Table of the 39 visits (", 39))
         for text in ("Visits3939 work", "Elapsed (accept to accept)19.3 hstart to the last accept, 1,158.5 min",
                      "Improve41 passes360.3 min, 31% of elapsed", "Context (main thread)97.5%251,867 of 258,400 tokens; 34 compactions",
-                     "Refusals13ShipLoop commands that exited non-zero"):
+                     "Refusals13refusal lines or failed ShipLoop commands"):
             self.assertIn(text, luna[3])
         self.assertEqual(luna[4], "")
         hello = page_probe('[textOf("kpis"),textOf("seqnote"),REG.seqnote.hidden,REG.sqlegband.hidden,walk(REG.seqtable,function(e){return e.tagName==="th";}).length]',
@@ -4027,7 +4027,8 @@ class PlanningReviewExportTest(unittest.TestCase):
         self.assertEqual(set(real_state("stage")), set(real_state("none")))  # one key set; the option is a value, not a shape
         # what each mode did in the engine's own walk: stage parked a child after spec, test-strategy and plan, none none
         self.assertEqual((len(real_state("stage")["improve_results"]), len(real_state("none")["improve_results"])), (3, 0))
-        self.assertEqual(real_state("none")["improve_skill"], "/plugin/skills/improve/SKILL.md")  # none resolves the card at init
+        for mode in ("stage", "none"):  # the current engine resolves the Improve card at init in both modes
+            self.assertEqual(real_state(mode)["improve_skill"], "/plugin/skills/improve/SKILL.md", mode)
 
     def test_the_option_is_exported_as_state_md_wrote_it_and_is_not_recorded_when_the_key_is_absent(self):
         for written, shown in (("stage", "stage"), ("none", "none"), ("once", "once"), (2, "2"), (None, "not recorded")):
@@ -5884,6 +5885,676 @@ class PacketHeadStartTests(unittest.TestCase):
         self.assertNotIn("Delegation: inline.", with_line.split("Packet box below)")[1])
         self.assertNotIn("from the 'ShipLoop navigator |' line", without)
         self.assertIn("the first 3 non-empty lines of the packet", without)
+
+
+# ---------------------------------------------------------------- R22a: how the run ended, hosts, blocked, left behind
+
+# Excerpts of the real records of a Grok run the harness stopped (ShipLoop 0.58.0), the shapes the exporter reads; the paths
+# and ids are synthetic. result.json `termination`, `earlier_terminations`, `left_behind` and `shiploop.worktree_checks`.
+TERMINATION_STOPPED = {"process_status": "stopped", "returncode": -9, "sessions": 1, "resumes": 0, "session_stops": ["unknown"],
+                       "resume_stop": "stopped by /e2e/r3-battleship-grok-none/stop", "engine_status": "active",
+                       "engine_stage": "test-green", "engine_unaccepted_stage": "test-green", "engine_status_reason": None}
+EARLIER_TERMINATION = {"process_status": "stopped", "returncode": -9, "sessions": 1, "resumes": 0, "session_stops": ["unknown"],
+                       "resume_stop": "terminated by SIGTERM", "engine_status": "active", "engine_stage": "test-author",
+                       "engine_unaccepted_stage": "test-author", "engine_status_reason": None}
+LEFT_BEHIND = {"observed": True, "survived": [], "reaped": [
+    {"pid": 39510, "command": "node", "ports": [64332], "ended_by": "SIGTERM",
+     "cwd": "/e2e/r3/.shiploop-runs/work-20261009-062034-d142b0/worktree", "argv": "/opt/homebrew/Cellar/node/25.9.0_2/bin/node server.js"},
+    {"pid": 39511, "command": "Google Chrome", "ports": [64335], "ended_by": "SIGTERM", "cwd": "/e2e/r3/work",
+     "argv": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome --headless=new --remote-debugging-port=64335 about:blank"}]}
+INCOMPLETE_ROW = {"stage": "test-green", "outcome": None, "incomplete": True, "seconds": 1626.6, "turns": 104, "tool_calls": 128}
+
+
+def ended_run(root: Path, *, process_status: str = "stopped", termination: dict | None = None, status: str = "active",
+              incomplete: dict | None = INCOMPLETE_ROW, packet: bool = True, **result) -> Path:
+    """A run the harness ended: ShipLoop's state still reads `status`, result.json carries the harness's termination record
+    (a stopped Grok run's, by default), metrics.json the `incomplete` stage row for the stage never accepted, and the packet
+    issued for it (state.md names its action `nav-x`) is on disk."""
+    rows = harness_rows(ACCEPTS) + ([incomplete] if incomplete else [])
+    out = make_run(root, status=status, loops=False, metrics={"stages": rows})
+    if packet:
+        (run_dir_of(out) / "packets" / "nav-x.md").write_text("ShipLoop navigator | test-green | revision 9\n" + "x" * 300)
+    def write(r: dict) -> None:
+        r.update(termination=dict(TERMINATION_STOPPED, process_status=process_status) if termination is None else termination,
+                 process={"status": process_status, "returncode": -9})
+        for name, value in result.items():  # `shiploop` extends the record that names the run directory
+            r[name] = {**r.get(name, {}), **value} if name == "shiploop" else value
+    edit_json(out / "result.json", write)
+    return out
+
+
+class RunEndingExportTests(unittest.TestCase):
+    """R22a gaps 1 and 2: a run the harness ended reads stopped, not running, and its unaccepted tail is not lost."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def test_an_active_run_whose_host_the_harness_stopped_reads_stopped_with_the_phase_the_header_and_the_cause(self):
+        run, facts = self.build(ended_run(self.tmp))
+        self.assertEqual(run["status"], "stopped")
+        self.assertEqual(run["phases"], ["done", "done", "done", "stopped", "none", "none", "none", "none"])
+        self.assertEqual(run["time"], "stopped after 2.3 h, then 27 min of unaccepted work")
+        self.assertEqual(run["ending"]["by"], "stopped by the stop file")  # the absolute path is not exported
+        self.assertNotIn("/e2e", json.dumps(run))
+        self.assertIn("- Ended: stopped: stopped by the stop file; test-green never accepted, 27.1 min after the last accept, "
+                      "104 turns; 1 session, 0 resumes", "\n".join(facts))
+        self.assertEqual(run["wallMin"], 140.0)  # the accepted work only: the tail is not in it
+
+    def test_the_phase_map_pins_stopped_apart_from_running_and_blocked(self):
+        self.assertEqual(export.derive_phases([0, 1, 2], 2, "stopped"), ["done", "done", "stopped"] + ["none"] * 5)
+        self.assertEqual(export.derive_phases([0, 1, 2], 2, "active")[2], "running")
+        self.assertEqual(export.derive_phases([0, 1, 2], 2, "blocked")[2], "blocked")
+        self.assertEqual(export.derive_phases([0, 1, 2], 2, "halted")[2], "blocked")
+        self.assertEqual(export.derive_phases(list(range(8)), None, "done"), ["done"] * 8)
+        self.assertIn("stopped", export.PHASE_STATES)
+        self.assertEqual(export.validate_doc("runs", {"key": "k", "name": "n", "order": 1, "release": "r", "time": "t",
+                                                       "imp": "i", "phases": ["stopped"], "status": "stopped"}), [])
+        self.assertTrue(export.validate_doc("runs", {"key": "k", "name": "n", "order": 1, "release": "r", "time": "t",
+                                                      "imp": "i", "phases": ["halted"]}))
+
+    def test_a_timeout_a_spent_resume_budget_and_a_failed_host_are_stopped_too_and_say_why(self):
+        for process_status, resume_stop, said in (
+                ("timeout", "host is not resumable", "host timeout; host is not resumable"),
+                ("exited", "resume budget spent (3)", "resume budget spent (3)"),
+                ("failed", "no host session id to resume", "host failed; no host session id to resume"),
+                ("stopped", "terminated by SIGTERM", "terminated by SIGTERM")):
+            with self.subTest(process_status=process_status):
+                out = ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), process_status=process_status,
+                                termination=dict(TERMINATION_STOPPED, process_status=process_status, resume_stop=resume_stop))
+                run, _ = self.build(out)
+                self.assertEqual((run["status"], run["ending"]["by"]), ("stopped", said))
+
+    def test_only_a_run_whose_engine_reads_active_and_whose_host_the_harness_saw_end_is_stopped(self):
+        self.assertEqual(self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp))))[0]["status"], "stopped")  # the positive case
+        for label, kwargs, expected in (
+                ("blocked keeps the engine's status", dict(status="blocked"), "blocked"),
+                ("paused keeps the engine's status", dict(status="paused"), "paused"),
+                ("a regrade observed no process", dict(process_status="not observed (regraded: no host ran)"), "active")):
+            with self.subTest(label):
+                run, _ = self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), **kwargs))
+                self.assertEqual(run["status"], expected)
+        out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)  # no termination record at all: as before
+        run, _ = self.build(out)
+        self.assertEqual((run["status"], run["time"]), ("active", "running, 2.3 h at snapshot"))
+        self.assertNotIn("ending", run)
+
+    def test_a_stopped_run_with_no_timing_for_its_tail_has_no_unaccepted_minutes_and_says_nothing_of_them(self):
+        no_timing = {"stage": "test-green", "outcome": None, "incomplete": True, "timing": "unavailable"}
+        run, _ = self.build(ended_run(self.tmp, incomplete=no_timing))
+        self.assertNotIn("unacceptedMin", run["ending"])
+        self.assertNotIn("unacceptedTurns", run["ending"])
+        self.assertEqual(run["ending"]["stage"], "test-green")  # the engine still names the stage
+        self.assertEqual(run["time"], "stopped after 2.3 h")  # nothing invented, not "then 0 min"
+        none = Path(tempfile.mkdtemp(dir=self.tmp))
+        gone = self.build(ended_run(none, incomplete=None))[0]
+        self.assertTrue(all(k not in gone["ending"] for k in ("unacceptedMin", "unacceptedTurns")))
+
+    def test_the_packet_issued_for_the_unaccepted_stage_is_named_sized_and_written_as_a_document(self):
+        out = ended_run(self.tmp)
+        docs, _ = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        size = (run_dir_of(out) / "packets" / "nav-x.md").stat().st_size
+        self.assertGreater(size, 300)
+        self.assertEqual((run["ending"]["action"], run["ending"]["packetBytes"], run["ending"]["packetDoc"]), ("nav-x", size, True))
+        document = docs["packets"][f"{self.KEY}--nav-x"]
+        self.assertEqual((document["stage"], document["bytes"]), ("test-green", size))
+        self.assertEqual(export.validate_doc("packets", document), [])
+        bare = Path(tempfile.mkdtemp(dir=self.tmp))
+        docs, _ = export.build_run(ended_run(bare, packet=False))
+        self.assertTrue(all(k not in docs["runs"][self.KEY]["ending"] for k in ("action", "packetBytes", "packetDoc")))
+        self.assertNotIn(f"{self.KEY}--nav-x", docs["packets"])
+
+    def test_sessions_resumes_and_earlier_terminations_are_kept_for_a_resumed_run_and_a_clean_run_has_no_ending(self):
+        resumed = ended_run(self.tmp, status="done", process_status="exited", incomplete=None, packet=False,
+                            termination=dict(TERMINATION_STOPPED, process_status="exited", sessions=2, resumes=1,
+                                             resume_stop="ShipLoop run is done", engine_status="done",
+                                             engine_unaccepted_stage=None),
+                            earlier_terminations=[EARLIER_TERMINATION])
+        run, facts = self.build(resumed)
+        self.assertEqual(run["status"], "done")
+        self.assertEqual(run["ending"], {"sessions": 2, "resumes": 1, "earlier": [{"by": "terminated by SIGTERM", "stage": "test-author"}]})
+        self.assertIn("earlier: terminated by SIGTERM at test-author", "\n".join(facts))
+        clean = ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), status="done", process_status="exited", incomplete=None, packet=False,
+                          termination=dict(TERMINATION_STOPPED, process_status="exited", resume_stop="host is not resumable",
+                                           engine_status="done", engine_unaccepted_stage=None))
+        self.assertNotIn("ending", self.build(clean)[0])  # guard: one clean session is nothing to report
+
+    def test_the_stop_files_path_is_replaced_by_its_name_and_a_cause_without_one_is_kept_as_written(self):
+        self.assertEqual(export._ended_by("stopped by /Users/x/e2e/run-1/stop", "stopped"), "stopped by the stop file")
+        self.assertEqual(export._ended_by("run deadline spent", "exited"), "run deadline spent")
+        self.assertEqual(export._ended_by("host is not resumable", "timeout"), "host timeout; host is not resumable")
+        self.assertIsNone(export._ended_by(None, "exited"))
+        self.assertIsNone(export._ended_by("   ", "exited"))
+
+
+class RunHostsExportTests(unittest.TestCase):
+    """R22a gaps 3 and 4: a run two hosts wrote is not one host's measure, and a visit never prints an unmeasured 0 calls."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def two_hosts(self, root: Path) -> Path:
+        """A Grok run resumed on Claude: one visit of each host's events has a context row, the Grok visits have calls 0."""
+        contexts = {0: {"calls": 0, "peak": 63_417, "peakPct": 6.3}, 1: {"calls": 0, "peak": None, "peakPct": None},
+                    5: {"calls": 5, "peak": 71_202, "peakPct": 7.1}, 6: {"calls": 3, "peak": 92_119, "peakPct": 9.2}}
+        out = make_run(root, loops=False, metrics={"stages": harness_rows(ACCEPTS, contexts), "model_calls": 182,
+                                                   "window_tokens": 1_000_000, "compactions": 1,
+                                                   "tokens": {"input_peak": 257_816}})
+        write_json(out / "invocation-resume-claude-1791508003.json", {"host": "claude", "model": "claude-sonnet-5-5", "case": "custom"})
+        write_json(out / "invocation-resume-codex-1791509021.json", json.loads((out / "invocation.json").read_text()))
+        return out
+
+    def test_a_run_resumed_on_another_host_lists_both_and_exports_no_figure_that_mixes_them(self):
+        run, facts = self.build(self.two_hosts(self.tmp))
+        self.assertEqual(run["hosts"], [{"host": "codex", "model": "gpt-6-luna", "effort": "max"},
+                                        {"host": "claude", "model": "claude-sonnet-5-5"}])  # the repeat of the first is one entry
+        for field in ("calls", "contextPeak", "contextWindow", "compactions"):
+            self.assertNotIn(field, run)
+            self.assertIn("2 hosts ran this (codex gpt-6-luna, claude claude-sonnet-5-5)", run["unmeasured"][field])
+            self.assertIn("not a measure", run["unmeasured"][field])
+        self.assertTrue(all("context" not in row for row in run["stages"]))
+        self.assertEqual(run["unmeasured"]["visitContext"], run["unmeasured"]["calls"])
+        self.assertEqual(run["host"], "codex")  # the run's own host, model and effort stay those of invocation.json
+        text = "\n".join(facts)
+        self.assertIn("- Hosts: codex gpt-6-luna max; claude claude-sonnet-5-5 (more than one:", text)
+        self.assertIn("calls not measured (2 hosts ran this", text)
+
+    def test_hosts_are_ordered_by_the_resume_time_not_the_file_name_and_a_one_host_run_keeps_its_figures(self):
+        out = make_run(self.tmp, loops=False)
+        write_json(out / "invocation-resume-grok-1791509021.json", {"host": "grok", "model": "grok-4.7", "effort": "medium"})
+        write_json(out / "invocation-resume-claude-1791508003.json", {"host": "claude", "model": "claude-sonnet-5-5"})
+        self.assertEqual([h["host"] for h in export._hosts(out)], ["codex", "claude", "grok"])
+        single, _ = self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False))
+        self.assertEqual(single["hosts"], [{"host": "codex", "model": "gpt-6-luna", "effort": "max"}])
+        self.assertEqual((single["calls"], single["contextPeak"], single["contextWindow"], single["compactions"]), (120, 250_000, 1_000_000, 0))
+        resumed_same = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        write_json(resumed_same / "invocation-resume-codex-1791509021.json", json.loads((resumed_same / "invocation.json").read_text()))
+        again, _ = self.build(resumed_same)
+        self.assertEqual(len(again["hosts"]), 1)  # a resume on the same host and model is not a second host
+        self.assertEqual(again["calls"], 120)
+
+    def test_a_visit_whose_row_counts_no_model_call_has_no_context_and_one_with_calls_keeps_it(self):
+        contexts = {0: {"calls": 0, "peak": 63_417, "peakPct": 6.3, "compactions": 0}, 1: {"calls": 0, "peak": None, "peakPct": None},
+                    2: {"calls": 7, "peak": 123_219, "peakPct": 12.3}}
+        out = make_run(self.tmp, loops=False, metrics={"stages": harness_rows(ACCEPTS, contexts)})
+        run, _ = self.build(out)
+        self.assertNotIn("context", run["stages"][0])  # a peak beside 0 calls is another host's, not this visit's
+        self.assertNotIn("context", run["stages"][1])
+        self.assertEqual(run["stages"][2]["context"], {"calls": 7, "peak": 123_219, "peakPct": 12.3})
+        self.assertNotIn('"calls": 0', json.dumps(run))
+        for row in run["stages"]:
+            self.assertNotEqual((row.get("context") or {}).get("calls"), 0)
+        self.assertNotIn("visitContext", run["unmeasured"])  # some visits are measured
+
+    def test_the_reason_no_visit_has_a_context_is_per_host_and_names_what_the_harness_reads(self):
+        for host, same in (("grok", False), ("claude", True), ("codex", True)):
+            with self.subTest(host=host):
+                out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False, metrics={"stages": harness_rows(ACCEPTS)})
+                edit_json(out / "invocation.json", lambda r: r.update(host=host))
+                run = next(iter(export.build_run(out)[0]["runs"].values()))  # the key names the host: it moved with it
+                self.assertEqual(export.validate_doc("runs", run), [])
+                reason = run["unmeasured"]["visitContext"]
+                self.assertEqual(reason, export.NO_VISIT_CONTEXT if same else export.NO_VISIT_CONTEXT_GROK)
+                self.assertNotIn("only from a Codex run", reason)
+        self.assertIn("Grok's events", export.NO_VISIT_CONTEXT_GROK)
+        self.assertIn("Claude's per-message usage", export.NO_VISIT_CONTEXT)
+
+
+class RunBlockedAndLeftBehindExportTests(unittest.TestCase):
+    """R22a gaps 5, 6 and 7: a blocked run's own words, the listeners the harness ended, and the unreturned product's checks."""
+
+    KEY = RunReviewTest.KEY
+    AWAITING = {"kind": "answer", "no_default": "Recording a passing case would claim an observation that did not happen.",
+                "options": ["Accept the HTTP check and leave the browser steps unverified", "Wait until a browser can open the page"],
+                "question": "Headless Chrome does not finish loading the page and no browser tool is connected. How should TC-16 proceed?"}
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> dict:
+        docs, _ = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run
+
+    def blocked_run(self, root: Path, reason: str = "access: SYS-SERVE passed. TC-16 did not run.", **body) -> Path:
+        out = make_run(root, loops=False, status="blocked")
+        run_dir = run_dir_of(out)
+        action = IDS["implement"]
+        set_state(out, status_reason=reason, history=[*export._record(run_dir / "state.md")["history"][:-1],
+                                                         {"action": action, "stage": "implement", "outcome": "blocked",
+                                                          "summary": "s", "workitem": "W1"}])
+        record(run_dir / "results" / f"{action}.md", {"action": action, "stage": "implement", "result": {
+            "outcome": "blocked", "summary": "s", "blocked_by": "access", "headline": "TC-16 needs a browser",
+            "awaiting": self.AWAITING, **body}})
+        return out
+
+    def test_a_blocked_run_exports_its_class_reason_headline_question_options_and_why_no_default(self):
+        run = self.build(self.blocked_run(self.tmp))
+        self.assertEqual(run["status"], "blocked")
+        self.assertEqual(run["blocked"], {
+            "by": "access", "reason": "access: SYS-SERVE passed. TC-16 did not run.", "headline": "TC-16 needs a browser",
+            "question": self.AWAITING["question"], "options": self.AWAITING["options"], "noDefault": self.AWAITING["no_default"]})
+
+    def test_the_reason_is_cut_at_600_characters_and_a_run_that_is_not_blocked_has_no_blocked_object(self):
+        run = self.build(self.blocked_run(self.tmp, reason="r" * 900))
+        self.assertEqual(len(run["blocked"]["reason"]), 600)
+        self.assertNotIn("blocked", self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)))
+        self.assertNotIn("blocked", self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False, status="done")))
+
+    def test_a_blocked_run_whose_last_visit_is_not_the_blocked_result_keeps_only_the_engines_reason(self):
+        out = make_run(self.tmp, loops=False, status="blocked")
+        set_state(out, status_reason="lint: the gate refused")
+        run = self.build(out)
+        self.assertEqual(run["blocked"], {"reason": "lint: the gate refused"})  # no question was asked: none is invented
+
+    def test_left_behind_keeps_command_ports_where_and_signal_and_drops_pids_argument_lists_and_paths(self):
+        run = self.build(ended_run(self.tmp, left_behind=LEFT_BEHIND))
+        self.assertEqual(run["leftBehind"], {"observed": True, "survived": [], "reaped": [
+            {"command": "node", "ports": [64332], "where": "worktree", "endedBy": "SIGTERM"},
+            {"command": "Google Chrome", "ports": [64335], "where": "work", "endedBy": "SIGTERM"}]})
+        text = json.dumps(run)
+        for leaked in ("39510", "argv", "opt/homebrew", "remote-debugging", "/e2e/", "cwd"):
+            self.assertNotIn(leaked, text)
+
+    def test_a_survivor_has_no_signal_and_a_table_the_harness_could_not_read_stays_unobserved_with_its_reason(self):
+        survivor = {"observed": True, "reaped": [], "survived": [{"pid": 7, "command": "/usr/bin/node", "ports": [3000],
+                                                                 "cwd": "/somewhere/else", "argv": "node server.js"}]}
+        run = self.build(ended_run(self.tmp, left_behind=survivor))
+        self.assertEqual(run["leftBehind"]["survived"], [{"command": "node", "ports": [3000], "where": "other"}])
+        unread = self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), left_behind={"observed": False, "reason": "lsof timed out after 5s"}))
+        self.assertEqual(unread["leftBehind"], {"observed": False, "reason": "lsof timed out after 5s"})  # never an empty list
+        none = self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), left_behind={"observed": True, "reaped": [], "survived": []}))
+        self.assertEqual(none["leftBehind"], {"observed": True, "reaped": [], "survived": []})  # a measured none
+        self.assertNotIn("leftBehind", self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)))
+
+    def test_where_is_read_from_the_path_components_so_a_copied_run_classifies_the_same(self):
+        self.assertEqual([export._where(p) for p in ("/a/.shiploop-runs/work-1/worktree", "/b/worktree/src", "/a/run-out/work",
+                                                      "/a/work/sub", "/a/.shiploop-runs/work-1/run", None)],
+                         ["worktree", "worktree", "work", "work", "other", "other"])
+
+    def test_the_unreturned_products_checks_are_a_verdict_beside_the_checks_that_ran_where_it_was_not_returned(self):
+        shiploop = {"pass": False, "worktree_checks": [{"command": "node --test", "pass": True}, {"command": "curl", "pass": True}]}
+        out = ended_run(self.tmp, shiploop=shiploop)
+        run = self.build(out)
+        self.assertEqual((run["verdicts"]["checks"], run["verdicts"]["worktreeChecks"]), (False, True))
+        failing = dict(shiploop, worktree_checks=[{"command": "a", "pass": True}, {"command": "b", "pass": False}])
+        self.assertFalse(self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), shiploop=failing))["verdicts"]["worktreeChecks"])
+        self.assertNotIn("worktreeChecks", self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False))["verdicts"])  # none ran there
+        text = "\n".join(export.build_run(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), shiploop=shiploop))[1])
+        self.assertIn("- Checks in the worktree (product not returned): all pass; in the work folder: not all pass", text)
+
+    def test_the_default_run_name_carries_the_case_and_a_given_name_still_wins(self):
+        out = make_run(self.tmp, loops=False)
+        run = self.build(out)
+        self.assertEqual(run["name"], "codex gpt-6-luna max, battleship, release 1.16.1")
+        named = export.build_run(out, name="My name")[0]["runs"][self.KEY]["name"]
+        self.assertEqual(named, "My name")
+        edit_json(out / "invocation.json", lambda r: r.pop("case"))
+        edit_json(out / "result.json", lambda r: r.pop("case"))
+        bare = next(iter(export.build_run(out)[0]["runs"].values()))
+        self.assertEqual(bare["name"], "codex gpt-6-luna max, release 1.16.1")  # no case recorded: none printed
+        self.assertEqual(bare["key"], "codex-gpt-6-luna-1.16.1-unknown-20261003")  # the key rule is unchanged
+
+
+class RunEndingContractTests(unittest.TestCase):
+    """R22a: the contract names the new fields, rejects wrong shapes, and no longer states what the E2E runs disproved."""
+
+    def run_doc(self, **fields) -> dict:
+        return dict({"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}, **fields)
+
+    def test_the_new_fields_validate_and_wrong_shapes_are_named(self):
+        good = self.run_doc(status="stopped", hosts=[{"host": "grok", "model": "grok-4.7", "effort": "medium"}],
+                            ending={"by": "stopped by the stop file", "stage": "implement", "unacceptedMin": 27.1, "unacceptedTurns": 104,
+                                    "packetBytes": 47475, "packetDoc": True, "sessions": 1, "resumes": 0,
+                                    "earlier": [{"by": "terminated by SIGTERM", "stage": "test-author"}]},
+                            blocked={"by": "access", "options": ["a", "b"]},
+                            leftBehind={"observed": True, "reaped": [{"command": "node", "ports": [3000], "where": "work", "endedBy": "SIGTERM"}],
+                                        "survived": []},
+                            verdicts={"checks": False, "worktreeChecks": True})
+        self.assertEqual(export.validate_doc("runs", good), [])
+        bad = self.run_doc(status="sleeping", hosts=[{"model": "m"}], ending={"unacceptedMin": "27", "earlier": [{"by": 1}]},
+                           blocked={"options": "one"}, leftBehind={"reaped": [{"command": "node", "where": "attic"}]})
+        problems = "\n".join(export.validate_doc("runs", bad))
+        for needle in ("'sleeping' is not one of", "hosts[0]: missing required field 'host'", "ending.unacceptedMin: expected a number",
+                       "ending.earlier[0].by: expected a string", "blocked.options: expected an array",
+                       "leftBehind: missing required field 'observed'", "'attic' is not one of"):
+            self.assertIn(needle, problems)
+
+    def test_schema_md_documents_the_new_fields_and_states_what_the_runs_showed(self):
+        text = " ".join(SCHEMA_MD.read_text().split())
+        for phrase in ("`hosts`", "`ending`", "`blocked`", "`leftBehind`", "`worktreeChecks`", "ending.unacceptedMin", "`stopped`",
+                       "How the run ended", "not a measure", "refusal lines", "never on a Grok run", "a reason per host",
+                       "every producer packet carries a `Checked by:` line"):
+            self.assertIn(phrase, text)
+        for stale in ("such as Claude's", "Today only a Codex run", "no packet on disk has a 'Checked by:' line yet",
+                      "ShipLoop commands that exited non-zero"):
+            self.assertNotIn(stale, text)
+        self.assertNotIn("no packet on disk has", (SKILL_ROOT / "scripts" / "export.py").read_text())
+
+    def test_a_state_md_fixture_of_each_mode_resolves_the_improve_card_as_the_current_engine_does(self):
+        for mode in ("stage", "none"):
+            self.assertEqual(real_state(mode)["improve_skill"], "/plugin/skills/improve/SKILL.md", mode)
+        self.assertEqual(set(real_state("stage")), set(real_state("none")))
+
+
+# ---------------------------------------------------------------- R22a: the page shows how a run ended
+
+# Run documents shaped like the exporter's for a stopped Grok run, a blocked one and a run two hosts wrote. Excerpts only.
+ROWS_STOPPED = [{"stage": "intake", "outcome": "done", "min": 1.8, "action": "nav-a"},
+                {"stage": "spec", "outcome": "done", "min": 3.1, "action": "nav-b"},
+                {"stage": "implement", "outcome": "done", "min": 4.8, "action": "nav-c"}]
+STOPPED_RUN = {
+    "key": "s1", "name": "grok grok-4.7 medium, custom, release 1.26.0", "order": 5, "release": "skill-craft 1.26.0, ShipLoop 0.58.0",
+    "phases": ["done", "done", "done", "stopped", "none", "none", "none", "none"], "status": "stopped", "imp": "0 children",
+    "time": "stopped after 36 min, then 27 min of unaccepted work", "wallMin": 36.5, "stages": ROWS_STOPPED,
+    "ending": {"by": "stopped by the stop file", "stage": "implement", "action": "nav-d", "unacceptedMin": 27.1, "unacceptedTurns": 104,
+               "packetBytes": 47_475, "packetDoc": True, "sessions": 1, "resumes": 0,
+               "earlier": [{"by": "terminated by SIGTERM", "stage": "test-author"}]},
+    "leftBehind": {"observed": True, "survived": [], "reaped": [
+        {"command": "node", "ports": [64332], "where": "worktree", "endedBy": "SIGTERM"},
+        {"command": "Google Chrome", "ports": [64335], "where": "work", "endedBy": "SIGTERM"}]},
+    "verdicts": {"checks": False, "worktreeChecks": True}, "unmeasured": {}}
+BLOCKED_RUN = {
+    "key": "b1", "name": "grok grok-4.7 medium, custom, release 1.24.0", "order": 4, "release": "skill-craft 1.24.0", "status": "blocked",
+    "phases": ["done", "done", "done", "done", "done", "done", "blocked", "none"], "imp": "0 children", "time": "blocked after 90 min",
+    "stages": ROWS_STOPPED, "unmeasured": {},
+    "blocked": {"by": "access", "reason": "access: SYS-SERVE passed. TC-16 did not run.", "headline": "TC-16 needs a browser",
+                "question": "Headless Chrome does not finish loading the page. How should TC-16 proceed?",
+                "options": ["Accept the HTTP check and leave the browser steps unverified", "Wait until a browser can open the page"],
+                "noDefault": "Recording a pass would claim an observation that did not happen."},
+    "verdicts": {"checks": False, "worktreeChecks": False}}
+DONE_RUN = {"key": "d1", "name": "claude claude-sonnet-5-5, battleship, release 1.26.0", "order": 3, "release": "skill-craft 1.26.0",
+            "status": "done", "phases": ["done"] * 8, "imp": "5 children", "time": "done in 80 min", "stages": ROWS_STOPPED,
+            "unmeasured": {}, "verdicts": {"checks": True}}
+TWO_HOSTS_RUN = dict(DONE_RUN, key="h1", name="grok grok-4.7 medium, custom, release 1.25.0", hosts=[
+    {"host": "grok", "model": "grok-4.7", "effort": "medium"}, {"host": "claude", "model": "claude-sonnet-5-5"}],
+    unmeasured={"calls": "2 hosts ran this (grok grok-4.7, claude claude-sonnet-5-5): the harness mixes their events in one "
+                         "figure, so it is not a measure",
+                "contextPeak": "2 hosts ran this: not a measure", "visitContext": "2 hosts ran this: not a measure"})
+
+
+def ended_page(run: dict, extra: str = "") -> str:
+    """The sample page with one run in place of the first, chosen, drawn, and the eight phases the exporter's table has."""
+    phases = "".join('data.exp["phase-%d"]={kind:"phase",order:%d,title:%s,short:"",text:"t"};' % (i, i, json.dumps(title))
+                     for i, (title, _) in enumerate(export.PHASES))
+    return (SAMPLE_SETUP + phases + "data.runs=[Object.assign(" + json.dumps(run) + ",{order:9})];L.run=" + json.dumps(run["key"]) + ";"
+            + extra + "renderAll();")
+
+
+def ending_rows(run: dict) -> dict:
+    model = run_logic("endingModel(%s)" % json.dumps(run))
+    return {label: text for label, text in model["rows"]} if model else {}
+
+
+class EndingCardLogicTests(unittest.TestCase):
+    """endingModel is pure: the run in, the rows of the "How it ended" card out, and only what the export holds."""
+
+    def test_a_stopped_run_says_by_what_which_stage_how_long_and_what_came_before(self):
+        model = run_logic("endingModel(%s)" % json.dumps(STOPPED_RUN))
+        self.assertEqual((model["kind"], model["title"]), ("stopped", "How it ended: stopped by the harness"))
+        rows = dict(model["rows"])
+        self.assertEqual(rows["Stopped by"], "stopped by the stop file")
+        self.assertEqual(rows["Never accepted"], "Implement: 27.1 min and 104 turns of work after the last accept, none of it in a visit "
+                                                  "above (the hatched column at the end of the picture)")
+        self.assertEqual(rows["Earlier invocation"], "terminated by SIGTERM, Test author left unaccepted")
+        self.assertEqual(rows["Listeners the harness ended"],
+                         "node :64332 (in the worktree, ended by SIGTERM); Google Chrome :64335 (in the work folder, ended by SIGTERM)")
+        self.assertEqual(rows["Product that was never returned"],
+                         "passes its checks in the worktree; the copy in the work folder fails them because nothing was returned there")
+        self.assertNotIn("Sessions", rows)  # one session, no resume: nothing to say
+        self.assertEqual([label for label, _ in model["rows"]][:2], ["Stopped by", "Never accepted"])
+
+    def test_minutes_the_harness_could_not_time_say_so_and_a_stop_without_a_cause_says_that(self):
+        run = dict(STOPPED_RUN, ending={"stage": "implement"})
+        rows = ending_rows(run)
+        self.assertEqual(rows["Stopped by"], "the harness's record names no cause")
+        self.assertTrue(rows["Never accepted"].startswith("Implement: work after the last accept (minutes not measured), none of it"))
+        self.assertNotIn("0 min", json.dumps(rows))
+        self.assertNotRegex(json.dumps(rows), r"undefined|NaN|null")
+
+    def test_a_blocked_run_gives_its_class_reason_question_options_and_why_no_default(self):
+        model = run_logic("endingModel(%s)" % json.dumps(BLOCKED_RUN))
+        self.assertEqual((model["kind"], model["title"]), ("blocked", "How it ended: blocked"))
+        rows = dict(model["rows"])
+        self.assertEqual(rows["Blocked by"], "access: TC-16 needs a browser")
+        self.assertEqual(rows["Reason"], "access: SYS-SERVE passed. TC-16 did not run.")
+        self.assertEqual(rows["Question put to a person"], BLOCKED_RUN["blocked"]["question"])
+        self.assertEqual(rows["Options"], "1. Accept the HTTP check and leave the browser steps unverified\n2. Wait until a browser can open the page")
+        self.assertEqual(rows["Why no default was taken"], BLOCKED_RUN["blocked"]["noDefault"])
+        self.assertEqual(rows["Product that was never returned"], "fails its checks in the worktree too, as the work folder does")
+
+    def test_a_finished_run_shows_the_card_only_for_what_it_resumed_or_left_behind_and_a_plain_one_has_none(self):
+        self.assertIsNone(run_logic("endingModel(%s)" % json.dumps(DONE_RUN)))
+        self.assertEqual(run_logic("[endingModel(null),endingModel({}),endingModel({status:'done',ending:{}})]"), [None, None, None])
+        resumed = dict(DONE_RUN, ending={"sessions": 2, "resumes": 1})
+        model = run_logic("endingModel(%s)" % json.dumps(resumed))
+        self.assertEqual((model["kind"], model["title"], dict(model["rows"])), (
+            "note", "How it ended: done", {"Sessions": "2 sessions, 1 resume in the last invocation"}))
+        left = dict(DONE_RUN, leftBehind={"observed": True, "reaped": [{"command": "node", "ports": [3471], "where": "worktree", "endedBy": "SIGTERM"}], "survived": []})
+        self.assertEqual(ending_rows(left), {"Listeners the harness ended": "node :3471 (in the worktree, ended by SIGTERM)"})
+        self.assertEqual(ending_rows(dict(DONE_RUN, leftBehind={"observed": True, "reaped": [], "survived": []})), {})  # a measured none says nothing
+        self.assertEqual(ending_rows(dict(DONE_RUN, leftBehind={"observed": False, "reason": "lsof timed out after 5s"})),
+                         {"Listeners": "not observed: lsof timed out after 5s"})
+        survivor = dict(DONE_RUN, leftBehind={"observed": True, "reaped": [], "survived": [{"command": "node", "ports": [3000], "where": "other"}]})
+        self.assertEqual(ending_rows(survivor), {"Listeners still running": "node :3000 (elsewhere)"})
+        passes = dict(DONE_RUN, verdicts={"checks": True, "worktreeChecks": True})
+        self.assertEqual(ending_rows(passes), {"Product that was never returned": "checks in the worktree pass"})
+
+    def test_the_host_chip_appears_only_for_a_run_two_hosts_wrote_and_names_the_later_host(self):
+        chip = run_logic("hostChip(%s)" % json.dumps(TWO_HOSTS_RUN))
+        self.assertEqual(chip["text"], "resumed on claude-sonnet-5-5")
+        self.assertIn("2 hosts (grok grok-4.7 medium; claude claude-sonnet-5-5)", chip["title"])
+        self.assertIn("are not measured", chip["title"])
+        one = {"hosts": [{"host": "claude", "model": "claude-sonnet-5-5"}]}
+        self.assertEqual(run_logic("[hostChip(%s),hostChip({}),hostChip(null)]" % json.dumps(one)), [None, None, None])
+        self.assertEqual(run_logic("hostChip({hosts:[{host:'a'},{host:'b'},{host:'c',model:'m'}]}).text"), "resumed on b and m")
+
+
+class EndingCardPageTests(unittest.TestCase):
+    """What the page draws on step 1: the card under the header, the chip, the chevron and the figures."""
+
+    def test_the_stopped_run_shows_the_card_the_header_the_hatched_chevron_and_is_not_called_running(self):
+        out = page_probe('[textOf("endcard"),REG.endcard.hidden,REG.endcard.className,textOf("runfacts"),'
+                         'byClass("flow","st-stopped").map(function(c){return c.textContent;})]',
+                         setup=ended_page(STOPPED_RUN))
+        self.assertFalse(out[1])
+        self.assertEqual(out[2], "card endcard stopped")
+        self.assertIn("How it ended: stopped by the harness", out[0])
+        self.assertIn("Stopped bystopped by the stop file", out[0])
+        self.assertIn("node :64332 (in the worktree, ended by SIGTERM)", out[0])
+        self.assertIn("stopped after 36 min, then 27 min of unaccepted work", out[3])
+        self.assertNotIn("running", out[3])
+        self.assertEqual(out[4], ["Buildstopped by the harness"])  # only the current phase, and no other chevron says stopped
+
+    def test_the_chevrons_keep_blocked_here_and_stopped_by_the_harness_apart(self):
+        stopped = page_probe('byClass("flow","chev").map(function(c){return c.textContent;})', setup=ended_page(STOPPED_RUN))
+        blocked = page_probe('byClass("flow","chev").map(function(c){return c.textContent;})', setup=ended_page(BLOCKED_RUN))
+        self.assertIn("Buildstopped by the harness", "".join(stopped))
+        self.assertNotIn("blocked here", "".join(stopped))
+        self.assertIn("blocked here", "".join(blocked))
+        self.assertNotIn("stopped here", "".join(blocked))  # the old label is gone
+        legend = TEMPLATE.read_text(encoding="utf-8")
+        self.assertIn("red blocked here, hatched amber stopped by the harness", legend)  # the key under the chevrons says it too
+        self.assertNotIn("red stopped", legend)
+        self.assertNotIn("stopped by the harness", "".join(blocked))
+
+    def test_the_blocked_run_shows_its_question_and_options_on_the_card(self):
+        out = page_probe('[textOf("endcard"),REG.endcard.className]', setup=ended_page(BLOCKED_RUN))
+        self.assertEqual(out[1], "card endcard blocked")
+        for text in ("How it ended: blocked", "Blocked byaccess: TC-16 needs a browser", "Question put to a personHeadless Chrome",
+                     "1. Accept the HTTP check", "Why no default was takenRecording a pass"):
+            self.assertIn(text, out[0])
+
+    def test_a_plain_finished_run_has_no_card_and_no_chip_and_a_two_host_run_has_the_chip(self):
+        plain = page_probe('[REG.endcard.hidden,REG.runhosts.hidden]', setup=ended_page(DONE_RUN))
+        self.assertEqual(plain, [True, True])
+        two = page_probe('[REG.runhosts.hidden,textOf("runhosts"),REG.runhosts.title,textOf("kpis")]', setup=ended_page(TWO_HOSTS_RUN))
+        self.assertFalse(two[0])
+        self.assertEqual(two[1], "resumed on claude-sonnet-5-5")
+        self.assertIn("2 hosts", two[2])
+        self.assertIn("Context (main thread)not measured2 hosts ran this: not a measure", two[3])  # the card gives the exporter's reason
+        self.assertNotRegex(two[3], r"undefined|NaN|null")
+
+    def test_a_visit_context_with_zero_calls_is_not_printed_as_a_measurement(self):
+        rows = [{"stage": "intake", "outcome": "done", "min": 2, "context": {"calls": 0, "peak": 63417, "peakPct": 6.3}},
+                {"stage": "spec", "outcome": "done", "min": 3, "context": {"calls": 4, "peak": 90000, "peakPct": 9}}]
+        run = dict(DONE_RUN, stages=rows, contextWindow=1_000_000, contextPeak=90000)
+        out = page_probe('setCol(0);var a=textOf("seqdetail");setCol(1);[a,textOf("seqdetail"),REG.seqnote.hidden]', setup=ended_page(run))
+        self.assertNotIn("0 calls", out[0])
+        self.assertIn("Context (main thread)not measured for this visit", out[0])
+        self.assertIn("4 calls", out[1])
+        self.assertEqual(run_logic("contextOf([{context:{calls:0,peak:5}}],1000)"), None)
+        self.assertEqual(run_logic("contextOf([{context:{calls:2,peak:5}}],1000)")["calls"], 2)
+
+    def test_the_refusals_card_and_the_failures_heading_say_refusal_lines_not_exit_codes(self):
+        run = dict(DONE_RUN, refusals=3, failures=[{"verb": "complete", "line": "refused"}, {"verb": "unknown", "line": "refused 2"},
+                                                   {"verb": "workspace", "line": "refused 3"}])
+        out = page_probe('[textOf("kpis"),textOf("rundetail")]', setup=ended_page(run))
+        self.assertIn("Refusals3refusal lines or failed ShipLoop commands", out[0])
+        self.assertIn("3 refusals: refusal lines or failed ShipLoop commands", out[1])
+        self.assertNotIn("exited non-zero", out[0] + out[1])
+        self.assertNotIn("exited non-zero", TEMPLATE.read_text(encoding="utf-8"))
+
+
+class EndingCardStyleTests(unittest.TestCase):
+    """What a render at 375 px showed and a node test cannot: the legend's hidden entries stay hidden (an inline-flex rule
+    beat the hidden attribute), and the card's two-column facts grid gives way to one column on a phone."""
+
+    CSS = TEMPLATE.read_text(encoding="utf-8").split("</style>")[0]
+
+    def test_a_hidden_legend_entry_is_not_displayed_by_an_inline_flex_rule(self):
+        self.assertRegex(self.CSS, r"\.sqleg span\[hidden\]\s*\{[^}]*display:none")
+        self.assertRegex(self.CSS, r"\.sqleg span\{[^}]*display:inline-flex")  # the rule the attribute has to beat
+
+    def test_the_options_of_a_question_are_one_per_line(self):
+        self.assertRegex(self.CSS, r"\.endcard \.facts dd\{[^}]*white-space:pre-line")  # the rows join the options with a newline
+
+    def test_the_how_it_ended_facts_are_one_column_on_a_phone(self):
+        phone = self.CSS.split("@media (max-width:640px)")[1]
+        self.assertRegex(phone, r"\.endcard \.facts[^{]*\{grid-template-columns:1fr\}")
+
+    def test_the_elapsed_card_of_a_stopped_run_says_how_much_more_work_was_never_accepted(self):
+        cards = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(STOPPED_RUN))}
+        self.assertEqual(cards["elapsed"]["note"], "start to the last accept; then 27.1 min never accepted")
+        plain = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(DONE_RUN))}
+        self.assertNotIn("never accepted", plain["elapsed"]["note"])
+        untimed = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(dict(STOPPED_RUN, ending={"stage": "implement"})))}
+        self.assertNotIn("never accepted", untimed["elapsed"]["note"])  # no minutes known: none printed
+
+
+class TailColumnTests(unittest.TestCase):
+    """The unaccepted stage is the picture's last column, outside the visits, the scale and the context band."""
+
+    def model(self, run: dict) -> dict:
+        return run_logic("sequenceModel(%s,{})" % json.dumps(run))
+
+    def test_a_stopped_run_gets_a_hatched_last_column_outside_the_visits_and_the_scale(self):
+        model = self.model(STOPPED_RUN)
+        columns = model["columns"]
+        self.assertEqual((len(columns), model["visits"]), (4, 3))  # three visits and the tail
+        tail = columns[-1]
+        self.assertEqual((tail["kind"], tail["stage"], tail["outcome"], tail["min"], tail["mark"], tail["packetBytes"]),
+                         ("tail", "implement", "unaccepted", 27.1, "U", 47_475))
+        self.assertEqual(model["maxMin"], {"min": 4.8, "stage": "implement", "visit": 3})  # the tail does not set the scale
+        self.assertEqual(max(c["h"] for c in columns[:3]), model["lay"]["plot"])
+        self.assertLessEqual(tail["h"], model["lay"]["plot"])
+        self.assertEqual(model["lay"]["width"], 8 + 4 * 16 + 8)
+        self.assertEqual([c["kind"] for c in columns[:3]], ["work"] * 3)
+        self.assertEqual(tail["phases"], [3])  # implement belongs to Build
+
+    def test_a_run_with_no_unaccepted_stage_has_no_tail_and_a_tail_with_no_minutes_is_a_fixed_stub(self):
+        self.assertEqual([c["kind"] for c in self.model(DONE_RUN)["columns"]], ["work"] * 3)
+        bare = self.model(dict(STOPPED_RUN, ending={"stage": "implement"}))["columns"][-1]
+        self.assertEqual((bare["min"], bare["h"]), (None, 26))
+        no_stage = self.model(dict(STOPPED_RUN, ending={"by": "stopped by the stop file"}))
+        self.assertEqual(len(no_stage["columns"]), 3)
+
+    def test_the_svg_draws_the_tail_with_its_own_pattern_a_u_mark_and_no_context_bar(self):
+        run = dict(STOPPED_RUN)
+        run["stages"] = [dict(r, context={"calls": 5, "peak": 100, "peakPct": 10}) for r in ROWS_STOPPED]
+        svg = run_logic("sequenceSvg(sequenceModel(%s,{}),-1)" % json.dumps(run))
+        self.assertEqual(re.findall(r'class="sq-col ([^"]+)"', svg), ["o-done", "o-done", "o-done", "tail"])
+        self.assertIn('id="sq-tail"', svg)
+        self.assertEqual(svg.count(">U</text>"), 1)
+        self.assertEqual(len(re.findall(r'class="sq-ctx[ "]', svg)), 3)  # the three visits have a bar, the tail has none
+        self.assertEqual(svg.count('class="sq-hit"'), 4)
+        self.assertIn("a hatched last column for the stage the run never accepted", svg)
+        self.assertNotRegex(svg, r"NaN|undefined|null|Infinity")
+
+    def test_tapping_the_tail_gives_its_detail_and_never_a_stage_card(self):
+        detail = run_logic("columnDetail(sequenceModel(%s,{}),3,%s,[],null)" % (json.dumps(STOPPED_RUN), json.dumps(STOPPED_RUN)))
+        self.assertEqual(detail["title"], "Unaccepted: Implement (the run ended here)")
+        self.assertIsNone(detail["card"])
+        self.assertEqual(dict(detail["lines"]), {
+            "Outcome": "never accepted: the run ended while this stage was running",
+            "Minutes": "27.1 min after the last accept (not in the elapsed time above)",
+            "Turns": "104 turns (main thread)", "Packet file": "46.4 KB, the packet issued for this stage"})
+        self.assertEqual((detail["packet"], detail["prev"], detail["next"]), ({"id": "s1--nav-d"}, 2, None))
+        names = run_logic("sequenceModel(%s,{}).columns.map(columnName)" % json.dumps(STOPPED_RUN))
+        self.assertEqual(names[-1], "unaccepted implement, 27.1 min, the run ended here")
+
+    def test_the_stage_card_list_ends_with_the_unaccepted_stage_and_the_visits_card_counts_it(self):
+        rows = run_logic("cardRows(sequenceModel(%s,{}),%s,null)" % (json.dumps(STOPPED_RUN), json.dumps(STOPPED_RUN)))
+        last = rows[-1]
+        self.assertEqual((last["visit"], last["stage"], last["outcome"], last["min"], last["sent"]),
+                         ("end", "Implement", "unaccepted", "27.1 min", "46.4 KB"))
+        cards = {c["key"]: c for c in self.model(STOPPED_RUN)["cards"]}
+        self.assertEqual(cards["visits"]["note"], "3 work, 1 unaccepted: Implement")
+        self.assertEqual(cards["visits"]["value"], "3")
+
+    def test_the_page_draws_the_tail_and_lets_a_tap_select_it_with_its_packet_head(self):
+        out = page_probe('setCol(3);[REG.seqscroll.innerHTML.indexOf("sq-col tail")>0,textOf("seqdetail"),byClass("sclist","sc-row").length]',
+                         setup=ended_page(STOPPED_RUN))
+        self.assertTrue(out[0])
+        self.assertIn("Unaccepted: Implement (the run ended here)", out[1])
+        self.assertIn("27.1 min after the last accept", out[1])
+        self.assertEqual(out[2], 4)
+
+    def test_the_legend_lists_only_the_kinds_the_picture_draws(self):
+        legend = lambda run: run_logic("sequenceModel(%s,{}).legend" % json.dumps(run))
+        self.assertEqual(legend(STOPPED_RUN), ["done", "tail"])
+        self.assertEqual(legend(DONE_RUN), ["done"])
+        mixed = {"stages": [{"stage": "intake", "outcome": "done", "min": 1, "improve": {"passes": 2}},
+                            {"stage": "spec", "outcome": "revise", "min": 2}, {"stage": "plan", "outcome": "blocked", "min": 3},
+                            {"stage": "step-plan", "outcome": "done", "min": None},
+                            {"stage": "test-spec", "outcome": "done", "min": None, "seeded": True},
+                            {"stage": "baseline", "outcome": "done", "min": 0, "skipped": True}]}
+        self.assertEqual(legend(mixed), ["done", "rev", "blk", "skip", "seed", "na", "imp"])
+        band = {"stages": [{"stage": "intake", "outcome": "done", "min": 1, "context": {"calls": 3, "peak": 5, "peakPct": 95, "compactions": 2}},
+                           {"stage": "spec", "outcome": "done", "min": 1, "context": {"calls": 3, "peak": 5, "peakPct": 20, "compactions": 0}}]}
+        self.assertEqual(legend(band), ["done", "ctx", "warn", "tri"])
+        calm = {"stages": [{"stage": "intake", "outcome": "done", "min": 1, "context": {"calls": 3, "peak": 5, "peakPct": 20, "compactions": 0}}]}
+        self.assertEqual(legend(calm), ["done", "ctx"])  # no compaction measured: no triangle in the legend; none over 90%: no warning
+        self.assertEqual(run_logic("sequenceModel({},{}).legend"), [])
+
+    def test_the_page_hides_the_legend_entries_the_picture_does_not_need(self):
+        out = page_probe('["done","rev","blk","skip","seed","na","tail","imp","ctx","warn","tri"].filter(function(k){return !REG["sql-"+k].hidden;})',
+                         setup=ended_page(STOPPED_RUN))
+        self.assertEqual(out, ["done", "tail"])
+        self.assertEqual(page_probe('REG.sqlegband.hidden', setup=ended_page(STOPPED_RUN)), True)
 
 
 if __name__ == "__main__":

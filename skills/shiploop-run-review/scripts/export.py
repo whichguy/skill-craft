@@ -107,8 +107,12 @@ STAGE_PHASE = _with_aliases({stage: order for order, (_, stages) in enumerate(PH
 # that has any of them accepted has left implement.
 AFTER_IMPLEMENT = ("test-green", "test-refine", "regression", "document", "skill-assess", "skill-validate",
                    "static-checks", "verify", "integrate", "integration-verify", "carry-forward")
-# ShipLoop run status -> the page's run status.
+# ShipLoop run status -> the page's run status. A run whose engine says `active` but whose harness record says the host is
+# over is `stopped` (see build_run): the engine cannot say that, it is not running when its host goes away.
 RUN_STATUS = {"active": "active", "paused": "paused", "blocked": "blocked", "halted": "failed", "done": "done"}
+# What result.json says about a host that is over, for a run whose engine still reads active: it was stopped on purpose, hit its
+# deadline, crashed, or ended its turn with the resume budget spent. Not "not observed": a regrade started no host.
+HARNESS_ENDED = ("stopped", "timeout", "failed", "exited")
 # Upload order: what the page shows first (runs and their loops), the replicas published from defaults/, then the
 # review (the arc), the findings it raises and the options that resolve them, then the packets (megabytes: their own
 # upload batches, last, so the page shows the run before they arrive). Every SCHEMA collection is listed.
@@ -120,7 +124,9 @@ COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "reviews", "o
 # ("map", value type) for an object of values. A `?` field of an item is not required.
 S, N, B, ISO = "string", "number", "boolean", "iso"
 BOOL_OR_UNKNOWN = "bool-or-unknown"  # true, false or the string "unknown": a fact that may not be knowable from the records
-PHASE_STATES = ("done", "running", "blocked", "none")
+PHASE_STATES = ("done", "running", "blocked", "stopped", "none")
+LEFT_BEHIND_ITEM = {"command": (S, True), "ports": (("list", N), False),
+                    "where": (("enum", ("worktree", "work", "other")), True), "endedBy": (S, False)}
 SCHEMA = {
     # No expectation carries a status: how an expectation stands for a run is derived by the page from the run's
     # findings and review. `clauses` ties a criterion to the S-n clauses of test/shiploop_e2e/SPEC.md.
@@ -148,7 +154,7 @@ SCHEMA = {
         # The run's `planning_review` option as state.md recorded it, text as written ("not recorded" when the key is
         # absent: never a default), and, only for the recorded value `none`, what that means for the Improve numbers.
         "planningReview": (S, False), "improveScope": (S, False),
-        "status": (("enum", ("done", "active", "paused", "blocked", "failed")), False),
+        "status": (("enum", ("done", "active", "paused", "blocked", "failed", "stopped")), False),
         "startedAt": (ISO, False), "endedAt": (ISO, False),
         "verdicts": (("map", B), False),
         # min is null when the visit has no accept stamp, the one before it has none, the stamps run backwards, or the
@@ -185,6 +191,27 @@ SCHEMA = {
         "knowledge": (("map", N), False),
         "failures": (("items", {"verb": (S, True), "line": (S, True)}), False),
         "evidence": (S, False),
+        # Every host that ran the run (invocation.json and each invocation-resume-*.json, first seen first): a run resumed on
+        # another host has two, and its calls, context peak, window and compactions are then not a measure (see unmeasured).
+        "hosts": (("items", {"host": (S, True), "model": (S, False), "effort": (S, False)}), False),
+        # How the run ended, from the harness's termination record and metrics.json's unaccepted tail (SCHEMA.md "How the run
+        # ended"): why a stopped run stopped (`by`), the stage the engine never accepted and what it cost, the sessions this
+        # invocation ran, and the earlier invocations' terminations. Present only when there is something to say.
+        "ending": (("object", {
+            "by": (S, False), "stage": (S, False), "action": (S, False), "unacceptedMin": (N, False),
+            "unacceptedTurns": (N, False), "packetBytes": (N, False), "packetDoc": (B, False),
+            "sessions": (N, False), "resumes": (N, False),
+            "earlier": (("items", {"by": (S, False), "stage": (S, False)}), False)}), False),
+        # A blocked run's own words: the engine's class (`blocked_by`), its status reason, the one-line headline and, when it
+        # asked, the question with its options and why no default was taken. Every member is optional.
+        "blocked": (("object", {
+            "by": (S, False), "reason": (S, False), "headline": (S, False), "question": (S, False),
+            "options": (("list", S), False), "noDefault": (S, False)}), False),
+        # The listeners the harness found under the run's folder and ended (or could not): the harness's left_behind record
+        # without pids, argument lists or absolute paths. `where` is worktree, work or other.
+        "leftBehind": (("object", {
+            "observed": (B, True), "reason": (S, False),
+            "reaped": (("items", LEFT_BEHIND_ITEM), False), "survived": (("items", LEFT_BEHIND_ITEM), False)}), False),
     },
     "backchain": {
         "run": (S, False), "loop": (S, False), "phase": (N, False), "order": (N, False), "title": (S, False),
@@ -445,15 +472,17 @@ def current_stage(state: dict) -> str | None:
 
 
 def derive_phases(stage_phases: list[int], current: int | None, status: str | None) -> list[str]:
-    """One state per phase: running/blocked for the current phase, done for any other phase the run
-    reached (its reached stages are all accepted once the run has moved on), none otherwise."""
+    """One state per phase: running, blocked or stopped for the current phase, done for any other phase the run
+    reached (its reached stages are all accepted once the run has moved on), none otherwise. `status` is the ShipLoop
+    status, or "stopped" for a run the harness ended while its engine still read active (build_run): its current phase is
+    `stopped`, not `running` (the run is not going on) and not `blocked` (the engine did not block it)."""
     reached = set(stage_phases)
     states = []
     for order in range(len(PHASES)):
         if status == "done":
             states.append("done" if order in reached else "none")
         elif order == current:
-            states.append("blocked" if status in ("blocked", "halted") else "running")
+            states.append("blocked" if status in ("blocked", "halted") else "stopped" if status == "stopped" else "running")
         else:
             states.append("done" if order in reached else "none")
     return states
@@ -465,12 +494,16 @@ def _fmt_minutes(minutes: float | None) -> str:
     return f"{round(minutes)} min" if minutes < 120 else f"{minutes / 60:.1f} h"
 
 
-def _time_text(status: str | None, wall: float | None, accepted: int) -> str:
+def _time_text(status: str | None, wall: float | None, accepted: int, ending: dict | None = None) -> str:
+    """The run header's time: how long it ran to its last accept, by status. A stopped run also says how much unaccepted
+    work came after that accept when the harness measured it (`ending.unacceptedMin`), since it is not running now."""
     if not accepted:
         return "no stage accepted yet"
     spent = _fmt_minutes(wall)
+    tail = (ending or {}).get("unacceptedMin")
+    stopped = f"stopped after {spent}" + (f", then {_fmt_minutes(tail)} of unaccepted work" if isinstance(tail, (int, float)) else "")
     return {"done": f"done in {spent}", "active": f"running, {spent} at snapshot", "paused": f"paused after {spent}",
-            "blocked": f"blocked after {spent}", "failed": f"halted after {spent}"}.get(status, spent)
+            "blocked": f"blocked after {spent}", "failed": f"halted after {spent}", "stopped": stopped}.get(status, spent)
 
 
 def _knowledge(checkouts: list[Path]) -> tuple[dict, Path | None]:
@@ -934,23 +967,32 @@ def _model_measures(metrics: dict, harness: dict[str, str]) -> tuple[dict, dict[
     return found, why
 
 
-NO_VISIT_CONTEXT = ("the harness's stage rows carry no per-stage context (it reads that only from a Codex run's "
-                    "rollouts)")
+NO_VISIT_CONTEXT = ("the harness's stage rows carry no per-stage context (it reads it from Claude's per-message usage and "
+                    "from a Codex run's rollouts)")
+NO_VISIT_CONTEXT_GROK = ("the harness does not read per-stage context from Grok's events (it does from Claude's per-message "
+                         "usage and from a Codex run's rollouts)")
 
 
-def _visit_context(metrics: dict, history: list[dict]) -> tuple[list[dict | None], str | None]:
+def no_visit_context(host: str | None) -> str:
+    """Why no visit has a context, by the host that wrote the run: Grok's events carry per-call usage but the harness
+    attributes it to no stage; Claude's and Codex's rows have it, so another host (or none) gets the general sentence."""
+    return NO_VISIT_CONTEXT_GROK if host == "grok" else NO_VISIT_CONTEXT
+
+
+def _visit_context(metrics: dict, history: list[dict], host: str | None = None) -> tuple[list[dict | None], str | None]:
     """(context per history entry, why none is shown).
 
     The harness's stage rows (metrics.json `stages`) carry no action id: each is built from one history entry of
     state.md, in order, plus a trailing `incomplete` row for the stage the run stopped in. So a row belongs to the
     history entry at its position, and that entry names the action. The join is used only when the rows line up
     exactly (the same count, and the same stage and outcome at every position); otherwise no visit gets a context,
-    never a guess. A context holds only the figures the harness measured: calls, peak, peakPct, compactions.
-    """
+    never a guess. A context holds only the figures the harness measured: calls, peak, peakPct, compactions. A row that
+    counts no model call (`calls` 0) has no context: its peak is unmeasured, and "0 calls" beside it would read as a
+    measurement, as it did for the visits a host had no events for."""
     rows = metrics.get("stages")
     rows = [r for r in rows if isinstance(r, dict) and not r.get("incomplete")] if isinstance(rows, list) else []
     if not any(isinstance(r.get("context"), dict) for r in rows):
-        return [None] * len(history), NO_VISIT_CONTEXT
+        return [None] * len(history), no_visit_context(host)
     if len(rows) != len(history) or any(
             (row.get("stage"), row.get("outcome")) != (entry.get("stage") or "?", entry.get("outcome"))
             for row, entry in zip(rows, history)):
@@ -959,9 +1001,13 @@ def _visit_context(metrics: dict, history: list[dict]) -> tuple[list[dict | None
     found = []
     for row in rows:
         figures = row.get("context") if isinstance(row.get("context"), dict) else {}
+        calls = _num(figures.get("calls"))
+        if calls is not None and calls < 1:
+            found.append(None)
+            continue
         found.append({k: figures[k] for k in ("calls", "peak", "peakPct", "compactions")
                       if _num(figures.get(k)) is not None} or None)
-    return found, None if any(found) else NO_VISIT_CONTEXT
+    return found, None if any(found) else no_visit_context(host)
 
 
 def _seeded(seeded, history: list[dict]) -> tuple[set[str], str | None]:
@@ -980,6 +1026,182 @@ def _seeded(seeded, history: list[dict]) -> tuple[set[str], str | None]:
         return set(), (f"result.json says the harness seeded {', '.join(names)}, but the first {len(names)} visits "
                        f"of state.md are {', '.join(str(s) for s in first) or 'none'}")
     return {h["action"] for h in history[:len(names)] if isinstance(h.get("action"), str)}, None
+
+
+# ---------------------------------------------------------------- hosts, how the run ended, blocked, left behind (R22a)
+
+MAX_REASON = 600  # characters of a blocked run's reason, question and why-no-default kept in the run document
+STOP_FILE_PATH = re.compile(r"\S*/stop\b")  # the one path the harness's stop_cause writes: the run's stop file
+
+
+def _hosts(out: Path) -> list[dict]:
+    """Every host that ran this run, first seen first: invocation.json, then each invocation-resume-<host>-<time>.json by
+    that time. One entry per distinct (host, model, effort): a run resumed on the same host and model has one, a run resumed
+    on another has two (the harness's calls, context peak, window and compactions then mix them: build_run drops them)."""
+    def resumed_at(path: Path) -> tuple[int, str]:
+        tail = re.search(r"-(\d+)\.json$", path.name)
+        return (int(tail.group(1)) if tail else 0, path.name)
+    files = [out / "invocation.json", *sorted(out.glob("invocation-resume-*.json"), key=resumed_at)]
+    found: list[dict] = []
+    for path in files:
+        record = _optional_json(path)
+        host = _text(record.get("host")) if isinstance(record, dict) else None
+        if host is None:
+            continue
+        entry = {"host": host, **{k: v for k in ("model", "effort") if (v := _text(record.get(k)))}}
+        if entry not in found:
+            found.append(entry)
+    return found
+
+
+def _hosts_why(hosts: list[dict]) -> str:
+    """The reason a figure the harness mixes across hosts is not exported: the hosts, and that a mixed figure is no measure."""
+    names = ", ".join(" ".join(h[k] for k in ("host", "model") if k in h) for h in hosts)
+    return (f"{len(hosts)} hosts ran this ({names}): the harness mixes their events in one figure, so it is not a measure")
+
+
+def _process_status(result: dict) -> str | None:
+    """The harness's word on the host process at the end of the run: termination.process_status, else process.status
+    (exited, failed, stopped, timeout, or "not observed" when the run was only regraded)."""
+    termination = result.get("termination") if isinstance(result.get("termination"), dict) else {}
+    process = result.get("process") if isinstance(result.get("process"), dict) else {}
+    status = termination.get("process_status") or process.get("status")
+    return status if isinstance(status, str) else None
+
+
+def _worktree_checks(result: dict):
+    """Whether every check passes in the worktree: the harness runs them there when the product was not returned
+    (shiploop.worktree_checks), as information next to `checks`. None when it did not."""
+    checks = (result.get("shiploop") or {}).get("worktree_checks") if isinstance(result.get("shiploop"), dict) else None
+    if not (isinstance(checks, list) and checks and all(isinstance(c, dict) for c in checks)):
+        return None
+    return all(bool(c.get("pass")) for c in checks)
+
+
+def _where(cwd) -> str:
+    """Where a listener ran: in the worktree (the product not yet returned), in the work folder (the returned result), or
+    elsewhere. Read from the path's own components, so a copied run directory classifies the same."""
+    parts = Path(cwd).parts if isinstance(cwd, str) else ()
+    return "worktree" if "worktree" in parts else "work" if "work" in parts else "other"
+
+
+def _left_behind(record) -> dict | None:
+    """The harness's left_behind record as the run document keeps it, or None when result.json has none (a regrade, or a
+    run before the harness reaped). pid, argv and cwd are dropped: a port, a command, where and how it ended say what the
+    listener was; the exporter only reads this record, it never looks at a process. A table the harness could not read
+    stays `observed` false with its reason, never an empty list."""
+    if not isinstance(record, dict) or not isinstance(record.get("observed"), bool):
+        return None
+
+    def entries(name: str) -> list[dict]:
+        found = []
+        for item in record.get(name) or []:
+            if not isinstance(item, dict) or not isinstance(item.get("command"), str):
+                continue
+            row = {"command": Path(item["command"]).name or item["command"],
+                   "where": _where(item.get("cwd"))}
+            ports = [p for p in item.get("ports") or [] if isinstance(p, int) and not isinstance(p, bool)]
+            if ports:
+                row["ports"] = ports
+            if isinstance(item.get("ended_by"), str) and item["ended_by"]:
+                row["endedBy"] = item["ended_by"]
+            found.append(row)
+        return found
+    if not record["observed"]:
+        reason = _text(record.get("reason"))
+        return {"observed": False, **({"reason": reason[:200]} if reason else {})}
+    return {"observed": True, "reaped": entries("reaped"), "survived": entries("survived")}
+
+
+def _ended_by(text, process_status) -> str | None:
+    """Why the harness's last session ended, in its own words: result.json termination.resume_stop ('stopped by the stop
+    file', 'terminated by SIGTERM', 'run deadline spent', 'resume budget spent (3)', ...). The stop file's absolute path is
+    replaced by its name, and a host that timed out or failed says so first."""
+    said = STOP_FILE_PATH.sub("the stop file", " ".join(text.split())) if isinstance(text, str) and text.strip() else ""
+    host = f"host {process_status}" if process_status in ("timeout", "failed") else ""
+    return "; ".join(part for part in (host, said) if part) or None
+
+
+def _pending_action(state: dict) -> str | None:
+    """The action id of the visit the engine had issued and not accepted (state.md `action`, or the inner loop's action of
+    the current work item), or None."""
+    action = state.get("action")
+    if state.get("stage") == "inner-loop":
+        try:
+            action = state["inner_loops"][state["work_items"][state["work_index"]]["id"]]["action"]
+        except (KeyError, IndexError, TypeError):
+            action = None
+    ident = action.get("id") if isinstance(action, dict) else None
+    return ident if isinstance(ident, str) and re.fullmatch(r"[A-Za-z0-9._-]+", ident) else None
+
+
+def _ending(result: dict, state: dict, metrics: dict, packets: Path, ended: bool) -> dict:
+    """How the run ended, from result.json's termination record and metrics.json's unaccepted tail ({} when there is
+    nothing to say: a run that finished in one session, or was only regraded).
+
+    `by` is only for a run the harness ended (`ended`: the engine read active, the host was over). `stage` is the stage the
+    engine never accepted (termination.engine_unaccepted_stage) and, from the harness's `incomplete` stage row, the
+    `unacceptedMin` and `unacceptedTurns` of the work after the last accept: unknown, and so absent, when the row has no
+    timing or no per-call usage. `action` and `packetBytes` name the packet that was issued for it, when the file is there.
+    `sessions` and `resumes` are this invocation's; `earlier` holds the terminations of the invocations before it."""
+    termination = result.get("termination") if isinstance(result.get("termination"), dict) else {}
+    ending: dict = {}
+    if ended:
+        by = _ended_by(termination.get("resume_stop"), termination.get("process_status"))
+        if by:
+            ending["by"] = by
+    stage = _text(termination.get("engine_unaccepted_stage"))
+    tail = next((r for r in metrics.get("stages") or [] if isinstance(r, dict) and r.get("incomplete")), None)
+    if stage is None and ended and tail is not None:
+        stage = _text(tail.get("stage"))
+    if stage:
+        ending["stage"] = stage
+        seconds, turns = _num((tail or {}).get("seconds")), _num((tail or {}).get("turns"))
+        if seconds is not None and seconds >= 0:
+            ending["unacceptedMin"] = round(seconds / 60, 1)
+        if turns is not None and turns >= 0:
+            ending["unacceptedTurns"] = turns
+        action = _pending_action(state)
+        if action and (packets / f"{action}.md").is_file():
+            ending["action"], ending["packetBytes"] = action, (packets / f"{action}.md").stat().st_size
+    for field in ("sessions", "resumes"):
+        if _num(termination.get(field)) is not None and termination[field] >= 0:
+            ending[field] = termination[field]
+    earlier = []
+    for item in result.get("earlier_terminations") if isinstance(result.get("earlier_terminations"), list) else []:
+        if isinstance(item, dict):
+            row = {k: v for k, v in (("by", _ended_by(item.get("resume_stop"), item.get("process_status"))),
+                                     ("stage", _text(item.get("engine_unaccepted_stage")))) if v}
+            if row:
+                earlier.append(row)
+    if earlier:
+        ending["earlier"] = earlier
+    noteworthy = ended or earlier or stage or (_num(ending.get("resumes")) or 0) >= 1
+    return ending if noteworthy else {}
+
+
+def _blocked(state: dict, history: list[dict], results: Path) -> dict:
+    """A blocked run's own words ({} when the records say nothing): the status reason of state.md (cut at MAX_REASON), and,
+    when the last visit's result is the blocked one, its `blocked_by` class, `headline` and `awaiting` (the question put to a
+    person, its options and why no default was taken)."""
+    found: dict = {}
+    reason = _text(state.get("status_reason"))
+    last = history[-1] if history else {}
+    body = _result_body(results, state, last.get("action")) if last.get("outcome") == "blocked" else {}
+    awaiting = body.get("awaiting") if isinstance(body.get("awaiting"), dict) else {}
+    if reason is None and isinstance(body.get("summary"), str):
+        reason = _text(body["summary"])
+    for field, value in (("by", body.get("blocked_by")), ("headline", body.get("headline")),
+                         ("question", awaiting.get("question")), ("noDefault", awaiting.get("no_default"))):
+        if _text(value):
+            found[field] = " ".join(value.split())[:MAX_REASON if field != "headline" else 200]
+    if reason:
+        found["reason"] = " ".join(reason.split())[:MAX_REASON]
+    options = [" ".join(o.split())[:300] for o in awaiting.get("options") or [] if _text(o)] \
+        if isinstance(awaiting.get("options"), list) else []
+    if options:
+        found["options"] = options
+    return found
 
 
 def _clip(text: str) -> tuple[str, bool]:
@@ -1127,10 +1349,11 @@ def work_items(state: dict, history: list[dict], results: Path,
 # its stage operates and how it is checked). One row per label of the stage card's checklist: (label, what is looked for,
 # rules). A label is found when ANY rule holds; a rule holds when every one of its groups has a pattern matching a line of
 # the packet text. So a rule is a tuple of groups, a group a tuple of alternative patterns: `checked` is found by the old
-# pair (the Done when list AND the Improve line) or, alone, by a 'Checked by:' line (a later engine prints it; no packet on
-# disk has one yet, and nothing depends on it). The patterns are the lines the navigator prints (_goal_lines,
-# _first_callback_lines, _result_contract_lines, _improve_line, the run rules) and were checked against the packets of every
-# run on disk, ShipLoop 1.16.1 to 1.22.0: one place to change when the engine's wording does. "not found in the packet
+# pair (the Done when list AND the Improve line) or, alone, by a 'Checked by:' line (the engine prints it under the Done
+# when list from ShipLoop 0.54.0 on: every producer packet of the 11 runs on disk, ShipLoop 0.54.0 to 0.58.0, has one; the old
+# pair keeps the earlier runs of the committed history readable). The patterns are the lines the navigator prints
+# (_goal_lines, _first_callback_lines, _result_contract_lines, _improve_line, the run rules) and were checked against the
+# packets of every run on disk, ShipLoop 1.16.1 to 1.22.0 and 0.54.0 to 0.58.0: one place to change when the engine's wording does. "not found in the packet
 # text" is a statement about the text, not about what the model needed.
 CARRIED = (
     ("where", "the progress line 'ShipLoop navigator | <stage> | revision N'",
@@ -1273,7 +1496,10 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     packets = run_dir / "packets"
     issued = packets.is_dir() and any(p.is_file() for p in packets.iterdir())  # some packet exists: absence means something
     children = _improve_children(run_dir)
-    visit_context, visit_context_why = _visit_context(metrics, history)
+    hosts = _hosts(out)
+    visit_context, visit_context_why = _visit_context(metrics, history, _text(invocation.get("host")) or _text(result.get("host")))
+    if len(hosts) > 1:  # one figure over two hosts' events: not a measure, for any visit either
+        visit_context, visit_context_why = [None] * len(history), _hosts_why(hosts)
     actions, stages, phases_seen = [], [], []
     from_state, unknown, stamped = [], [], []
     previous, last_phase = started, 0
@@ -1329,11 +1555,18 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
 
     raw_status = state.get("status")
     status = RUN_STATUS.get(raw_status)
+    # The engine says active while it is not running when its host goes away: result.json's termination record is the
+    # harness's word that the host is over (stopped on purpose, a deadline, a crash, a spent resume budget). A regrade
+    # observed no process, so it never makes a run stopped (its status reads "not observed").
+    ended = status == "active" and (_process_status(result) in HARNESS_ENDED)
+    if ended:
+        status = "stopped"
     now = current_stage(state)
     current = None if raw_status == "done" else STAGE_PHASE.get(now, phases_seen[-1] if phases_seen else 0)
     if now and now not in STAGE_PHASE and raw_status != "done":
         unknown.append(now)
     wall = _minutes(started, stamped[-1][0]) if started and stamped else None
+    ending = _ending(result, state, metrics, packets, ended)
 
     versions = invocation.get("versions") or result.get("versions") or {}
     host = _text(invocation.get("host")) or _text(result.get("host"))
@@ -1347,13 +1580,17 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     key = _clean_key(key or "-".join([host or "unknown", model or "unknown", plugin or "unknown", case or "unknown",
                                       first.strftime("%Y%m%d") if first else "undated"]))
     name = name or (" ".join(part for part in (host, model, effort) if part) or "unknown host") + \
-        (f", release {plugin}" if plugin else "")
+        (f", {case}" if case else "") + (f", release {plugin}" if plugin else "")
     order = order if order is not None else (int(first.timestamp()) if first else 0)
 
     failures = [f for f in metrics.get("shiploop_failures") or [] if isinstance(f, dict)]
     glue = metrics.get("model_glue") or []
     improve, improve_why = _improve_totals(children)
     measures, unmeasured = _model_measures(metrics, unmeasured)
+    if len(hosts) > 1:  # calls, peak, window and compactions of one host's events mixed with another's are no measure
+        for field in ("calls", "contextPeak", "contextWindow", "compactions"):
+            measures.pop(field, None)
+            unmeasured[field] = _hosts_why(hosts)
     unmeasured.update(improve_why)
     items, plan_why, marks = work_items(state, history, results, seeded_ids)
     unmeasured.update(plan_why)
@@ -1365,8 +1602,8 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     knowledge, knowledge_root = _knowledge(checkouts if raw_status == "done" else checkouts[::-1])
 
     run = {"key": key, "name": name, "order": order, "release": release,
-           "phases": derive_phases(phases_seen, current, raw_status),
-           "time": _time_text(status, wall, len(stages)),
+           "phases": derive_phases(phases_seen, current, "stopped" if ended else raw_status),
+           "time": _time_text(status, wall, len(stages), ending),
            "imp": f"{len(children)} children" + (f", {improve['improvePasses']} review passes"
                                                  if improve.get("improvePasses") else ""),
            "stages": stages, "unmeasured": unmeasured, **improve, **measures,
@@ -1401,10 +1638,28 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             verdicts[verdict] = result[verdict]["pass"]
     if isinstance(result.get("checks"), list) and result["checks"]:
         verdicts["checks"] = all(bool(c.get("pass")) for c in result["checks"] if isinstance(c, dict))
+    unreturned = _worktree_checks(result)
+    if unreturned is not None:  # the product the run never returned, checked where it is: information beside `checks`
+        verdicts["worktreeChecks"] = unreturned
     if verdicts:
         run["verdicts"] = verdicts
+    if hosts:
+        run["hosts"] = hosts
+    if ending:
+        run["ending"] = ending
+    if raw_status == "blocked" and (blocked := _blocked(state, history, results)):
+        run["blocked"] = blocked
+    if (left_behind := _left_behind(result.get("left_behind"))) is not None:
+        run["leftBehind"] = left_behind
 
     packet_set, unreadable = packet_docs(key, packets, stages)
+    if ending.get("action"):  # the packet issued for the stage the run never accepted: a document like any visit's
+        read = _packet_doc(key, ending["action"], ending["stage"], packets / f"{ending['action']}.md")
+        if read is None:
+            unreadable += 1
+        else:
+            packet_set[f"{key}--{ending['action']}"] = read[0]
+            ending["packetDoc"] = True
     docs: dict[str, dict[str, dict]] = {"runs": {key: run}, "backchain": {}, "packets": packet_set}
     loops = []
     scratch = run_dir / "scratch"
@@ -1462,6 +1717,47 @@ def _carried_line(run) -> str:
     return (f"- Packet text carried (producer packets read {len(read)}; {separate} visits have a separate Improve packet file; "
             f"{improve} visits (old layout) keep only an Improve child's packet, not read): " + (", ".join(f"{label} {sum(1 for c in read if c.get(label))}" for label, _, _ in CARRIED)
                              if read else "no label counted"))
+
+
+def _ending_lines(run) -> list[str]:
+    """How the run ended, as facts lines (a line only for a part the run document has): hosts, the ending, why it is blocked,
+    the listeners the harness ended and the unreturned product's checks."""
+    lines = []
+    hosts = run.get("hosts") or []
+    if len(hosts) > 1:
+        lines.append("- Hosts: " + "; ".join(" ".join(h[k] for k in ("host", "model", "effort") if k in h) for h in hosts)
+                     + " (more than one: calls, context peak, window, compactions and visit context are not exported)")
+    ending = run.get("ending")
+    if ending:
+        tail = (f"; {ending['stage']} never accepted" if "stage" in ending else "") + (
+            f", {ending['unacceptedMin']} min after the last accept" if "unacceptedMin" in ending else "") + (
+            f", {ending['unacceptedTurns']} turns" if "unacceptedTurns" in ending else "")
+        sessions = (f"; {_count(ending['sessions'], 'session')}, {_count(ending['resumes'], 'resume')}"
+                    if "sessions" in ending and "resumes" in ending else "")
+        earlier = "".join(f"; earlier: {e.get('by', 'ended')}" + (f" at {e['stage']}" if "stage" in e else "")
+                          for e in ending.get("earlier") or [])
+        lines.append(f"- Ended: {run.get('status', 'unknown')}" + (f": {ending['by']}" if "by" in ending else "")
+                     + tail + sessions + earlier)
+    blocked = run.get("blocked")
+    if blocked:
+        lines.append("- Blocked: " + "; ".join(f"{label} {blocked[key]}" for key, label in
+                                              (("by", "class"), ("headline", "headline"), ("question", "question"))
+                                              if key in blocked) + (f"; {len(blocked['options'])} options"
+                                                                    if blocked.get("options") else ""))
+    left = run.get("leftBehind")
+    if left:
+        def named(item):
+            return (item["command"] + "".join(f" :{p}" for p in item.get("ports") or []) + f" ({item['where']})"
+                    + (f" {item['endedBy']}" if "endedBy" in item else ""))
+        lines.append("- Left behind: " + (
+            "; ".join([*(f"ended {named(i)}" for i in left.get("reaped") or []),
+                       *(f"still running {named(i)}" for i in left.get("survived") or [])] or ["none"])
+            if left["observed"] else f"not observed ({left.get('reason', 'no reason recorded')})"))
+    verdicts = run.get("verdicts") or {}
+    if "worktreeChecks" in verdicts:
+        lines.append(f"- Checks in the worktree (product not returned): {'all pass' if verdicts['worktreeChecks'] else 'not all pass'}"
+                     + (f"; in the work folder: {'all pass' if verdicts['checks'] else 'not all pass'}" if "checks" in verdicts else ""))
+    return lines
 
 
 def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, loops, unknown, from_state,
@@ -1527,6 +1823,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
                  + (f", candidate match {_MATCH_WORD[d['candidateMatch']]}" if "candidateMatch" in d else "")
                  for d in loops.values()) or "none found under scratch/ or backchain/"),
              f"- Run directory: {run_dir.relative_to(out).as_posix()}"]
+    lines += _ending_lines(run)
     if untimed:
         lines.append(f"- Stages with no minutes (no accept stamp, or none on the visit before): {untimed} of "
                      f"{len(stages)}; their minutes are null, not 0")
