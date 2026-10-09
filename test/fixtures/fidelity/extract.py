@@ -13,7 +13,7 @@ of each Improve packet, the lines that carry one of its five questions.
 
 What is changed: the run folder prefix becomes /runs/<run>, the work-directory stamp becomes work-1 and the user name
 becomes `user`, so no personal path is kept; Claude's thinking and text blocks are dropped; a tool result is cut to its
-first 120 characters, except a ShipLoop refusal, which keeps the text from its own line on; a summary is cut to 80
+first 120 characters (after the path rewrite, so no half of a user path is left), except a ShipLoop refusal, which keeps the text from its own line on; a summary is cut to 80
 characters. The tests expect the figures of these cuts; the figures of the uncut runs are in
 docs/shiploop-batch-1011m-g1-fidelity-journal-2026-10-09.md.
 
@@ -266,11 +266,11 @@ def extract_events(src: Path, dst: Path, folder: Path) -> None:
             revent = events[rnumber]
             if revent.get("type") == "user":
                 kept_blocks.setdefault(rnumber, []).append(
-                    {"type": "tool_result", "tool_use_id": call_id, "content": cut_result(shown)})
+                    {"type": "tool_result", "tool_use_id": call_id, "content": cut_result(rewrite(shown, folder))})
             else:
                 out[rnumber] = json.dumps(rewrite_json({
                     "type": "tool_call_update", "toolCallId": call_id, "status": revent.get("status"),
-                    "rawOutput": {"output_for_prompt": cut_result(shown), "exit_code": code}}, folder))
+                    "rawOutput": {"output_for_prompt": cut_result(rewrite(shown, folder)), "exit_code": code}}, folder))
     for number, blocks in kept_blocks.items():
         event = events[number]
         if event.get("type") == "assistant":

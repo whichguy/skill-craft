@@ -610,7 +610,7 @@
 
 
 {"type": "assistant", "message": {"id": "msg_011CfrDRqdbDQvcaQ9vGanqK", "content": [{"type": "tool_use", "id": "toolu_013DyZQeLL14M94rYxYdraMN", "name": "Bash", "input": {"command": "R=/runs/r3-checkers-sonnet/.shiploop-runs/work-1; W=$R/worktree; O=/runs/r3-checkers-sonnet/work; git -C $W rev-parse --short HEAD; git -C $O rev-parse --short HEAD; git -C $O status --short | head -3; ls $O/docs/shiploop/features/*/\ncat > $R/run/scratch/body.json <<EOF\n[body cut]\nEOF\n$R/run/scratch/sub.sh nav-9be5d3e0adb9498797821ef3bda3c1d3 $R/run/scratch/body.json 3500 | head -20 | cut -c1-500"}, "caller": {"type": "direct"}}], "usage": {"input_tokens": 2, "cache_creation_input_tokens": 1369, "cache_read_input_tokens": 280217, "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 1369}, "output_tokens": 3, "service_tier": "standard", "inference_geo": "not_available"}}}
-{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_013DyZQeLL14M94rYxYdraMN", "content": "70f11aa\n70f11aa\noutcome.md\nplan.md\nrelease-plan.md\nspec.md\nsystem-tests.md\ntest-spec.md\nFull packet: /Users/user/e2e-"}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_013DyZQeLL14M94rYxYdraMN", "content": "70f11aa\n70f11aa\noutcome.md\nplan.md\nrelease-plan.md\nspec.md\nsystem-tests.md\ntest-spec.md\nFull packet: /runs/r3-checkers-s"}]}}
 
 
 
