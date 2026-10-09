@@ -111,6 +111,7 @@ import listeners  # noqa: E402
 import metrics  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_chain_ledger as chain_ledger  # noqa: E402
+import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 CASES = HERE / "cases.json"
@@ -194,6 +195,25 @@ def load_case(args) -> tuple[str, str, list[str], str | None]:
     follows = case.get("follows")
     regression = cases[follows]["checks"] if follows else []
     return args.case, case["prompt"], regression + case["checks"] + case.get("retention", []) + (args.check or []), follows
+
+
+def planning_review_sentence(mode: str, improve_skill: str | None) -> str:
+    """The sentence that makes the model start ShipLoop with the run option. `none` also names the Improve card, which the
+    engine requires there (SPEC S-10 carve-out of 2026-10-05); `stage` is the engine's default and needs only the option."""
+    option = f"--planning-review {mode}" + (f" and --improve-skill {improve_skill}" if improve_skill else "")
+    return f"Start ShipLoop with the run option {option}."
+
+
+def planning_review_choice(requested: str | None, earlier: dict | None) -> str | None:
+    """The mode this invocation records. A new run records what was asked (None when nothing was). A resume continues a run
+    whose mode is fixed at its start, so it names that value or none, and an unrecorded run cannot be given one now."""
+    if earlier is None:
+        return requested
+    recorded = earlier.get("planning_review")
+    if requested is not None and requested != recorded:
+        raise SystemExit(f"--planning-review {requested} on a resume: the run's own mode is {recorded or 'not recorded'} and "
+                         "is fixed when the run starts (state.md); name that value or leave the option out")
+    return recorded
 
 
 def continue_from(prior: Path, work: Path) -> dict:
@@ -1098,6 +1118,11 @@ def parser() -> argparse.ArgumentParser:
                    help="kill the host (and its workers) as soon as a chain worker is in flight, then resume the "
                         "run with a fresh session; graded as `recovery`")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
+    p.add_argument("--planning-review", choices=stage_spec.PLANNING_REVIEW_MODES,
+                   help="the ShipLoop run option: append it to the prompt of a --case or --prompt run so the model starts "
+                        "ShipLoop with it (none also names this plugin's Improve card, --improve-skill, which that mode "
+                        "requires). A named case keeps its case, style and baseline key; without the option the prompt "
+                        "is the case's own and the engine's default applies. Not with --seed-at")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
     p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default="claude",
                    help="the host that drives ShipLoop; 'all' only with --preflight-only (checks every host)")
@@ -1604,6 +1629,9 @@ def _main(argv: list[str] | None, held: list) -> int:
         raise SystemExit("--grade-only needs --resume-run <output directory>: it grades a run that already exists")
     if args.host == "all":
         raise SystemExit("--host all is only for --preflight-only; a run needs one host")
+    if args.planning_review and args.seed_at:
+        raise SystemExit("--planning-review with --seed-at: the harness starts a seeded run itself and records its stages "
+                         "without doing them, so the option would change nothing")
     if args.suite:
         return run_suite(args, argv)
     if args.plugin_dir:
@@ -1621,6 +1649,7 @@ def _main(argv: list[str] | None, held: list) -> int:
         out = args.resume_run.expanduser().resolve()
         earlier = json.loads((out / "invocation.json").read_text())
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
+        planning_review = planning_review_choice(args.planning_review, earlier)
         prompt = (out / "prompt.txt").read_text().strip()
         work = out / "work"
         state = grade_shiploop(out)
@@ -1662,6 +1691,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
         name, prompt, checks, follows = load_case(args)
+        planning_review = planning_review_choice(args.planning_review, None)
         if follows and not args.continue_from:
             raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
         if not args.suite_name:
@@ -1739,6 +1769,16 @@ def _main(argv: list[str] | None, held: list) -> int:
         plugin = host.install_plugin(env, plugin_dir)
         versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
     keepalive = hosts.grok_keepalive(env, plugin_dir) if host.keepalive else None
+    improve_skill = earlier.get("improve_skill") if resumed else None
+    if planning_review and not resumed:
+        # The run option rides in the prompt the model is given (and prompt.txt keeps), as it did in a custom --prompt.
+        if planning_review == "none":
+            card = Path(plugin_dir) / "skills" / "improve" / "SKILL.md"
+            if not card.is_file():
+                raise SystemExit(f"--planning-review none needs the plugin's Improve card (--improve-skill), and {card} is "
+                                 "not a file: nothing was started")
+            improve_skill = str(card.absolute())
+        prompt = f"{prompt} {planning_review_sentence(planning_review, improve_skill)}"
     seeded = earlier.get("seeded") if resumed else None
     interrupt_at = earlier.get("interrupt_at") if resumed else args.interrupt_at
     # The CLI of the host and plugin the run started on (a resume on another host keeps it): every prompt below names it.
@@ -1764,7 +1804,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
                   "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
-                  "interrupt_at": interrupt_at}
+                  "interrupt_at": interrupt_at, "planning_review": planning_review, "improve_skill": improve_skill}
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
         (out / f"invocation-resume-{host.name}-{int(time.time())}.json").write_text(

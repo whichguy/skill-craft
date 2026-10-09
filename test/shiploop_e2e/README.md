@@ -91,6 +91,7 @@ bash test/run-integration.sh shiploop-e2e --case battleship
 bash test/run-integration.sh shiploop-e2e --case hello --host claude
 bash test/run-integration.sh shiploop-e2e --case hello --host codex --effort xhigh
 bash test/run-integration.sh shiploop-e2e --prompt "Create fizzbuzz.py with tests" --check "python3 -m unittest -q"
+bash test/run-integration.sh shiploop-e2e --case battleship --planning-review none
 ```
 
 `run.py` creates a new output directory (default `$TMPDIR/shiploop-e2e/<case>-<time>-<rand>`)
@@ -261,6 +262,15 @@ The suite default of 3 parallel chains stays, because a suite is for finding fai
 records an overlap: a baseline row has no overlap field, and each run's `timeline.jsonl` start stamp is the only trace, so
 this is a discipline and not a guarantee (SPEC, "Parallel work"). The two round-2 Sonnet runs were started within 0.1 s of
 each other.
+
+`--planning-review stage|none` gives a run its ShipLoop mode as an option of the harness (a named `--case` or a
+`--prompt`): the harness appends `Start ShipLoop with the run option --planning-review <mode>` to the prompt, and for
+`none` also `--improve-skill <the plugin's skills/improve/SKILL.md>`, which the engine requires in that mode (SPEC S-10
+carve-out of 2026-10-05; a plugin without the card is refused before a host starts). The run keeps its case, so its
+style and its baseline key are the case's, where a mode passed inside `--prompt` made it `custom` with style null (the
+Grok `none` rows of 2026-10-06 and 2026-10-07 and rounds 2 and 3). `invocation.json` records `planning_review` and
+`improve_skill` (null when not given); a resume names the run's own value or none; the option is refused with
+`--seed-at`, whose stages the harness records itself. A suite passes it to every case.
 
 The row's `planning_review` is the run option ShipLoop 1.22.0 records in `state.md`
 (`stage`: an Improve child after each of spec, test-strategy, plan, step-plan and
