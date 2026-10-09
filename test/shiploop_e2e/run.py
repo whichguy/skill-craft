@@ -85,6 +85,7 @@ from __future__ import annotations
 
 import argparse
 import atexit
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import hashlib
@@ -1267,23 +1268,43 @@ def planning_review_line(mode: str, last: dict) -> str:
             f"driver is {str(last.get('date'))[:10]}, ShipLoop {last.get('shiploop_version')}" + (f"; it {why}" if why else ""))
 
 
-def scan_baseline(path: Path, case: str, source: str | None, host: str | None = None,
-                  model: str | None = None, effort: str | None = None,
-                  planning_review: str | None = None) -> tuple[dict | None, int]:
-    """(the last comparable row, how many rows were recorded for this case and source).
+def row_reached_done(row: dict) -> bool:
+    """False when a row's own record says ShipLoop did not reach done: its ``shiploop`` verdict is false, or its engine
+    status is anything but done. A row that says neither (written before the verdicts or the termination record existed,
+    or by a test) is not refused: unknown is not excluded. A finished run whose product failed a check is still done."""
+    if (row.get("verdicts") or {}).get("shiploop") is False:
+        return False
+    status = (row.get("termination") or {}).get("engine_status")
+    return status is None or status == "done"
 
-    SPEC: a baseline compares only with rows from the same host, model and
-    effort, so a row that does not name all three, or names different ones, is
-    not a baseline for this run. Rows written before those fields existed are
-    therefore skipped rather than compared against. The count lets a caller say
-    "rows exist but none is comparable" instead of printing nothing. With
-    ``planning_review`` (this run's mode) a row that stands for another mode
-    (``row_planning_review``) is skipped too, so the last row of the run's own
-    mode is found past any rows of the other; a run that records no mode matches no row.
+
+def _prompt_differs(case: str, prompt_sha256: str | None, row: dict) -> bool:
+    """Whether the prompt key excludes a row. For the ``custom`` case (a prompt given on the command line) the key always
+    applies: a row compares only if both it and the run carry a hash and the hashes are equal, because two unknown
+    prompts are not known to be one. For a named case the prompt is the case's own, so the key applies only when the run
+    and the row both carry a hash: a row written before the field existed keeps comparing."""
+    theirs = row.get("prompt_sha256")
+    if case == "custom":
+        return prompt_sha256 is None or theirs != prompt_sha256
+    return prompt_sha256 is not None and theirs is not None and theirs != prompt_sha256
+
+
+def matching_rows(path: Path, case: str, source: str | None, host: str | None = None, model: str | None = None,
+                  effort: str | None = None, planning_review: str | None = None,
+                  prompt_sha256: str | None = None) -> tuple[list[dict], int, Counter]:
+    """(the rows this run may be compared with, in file order; how many rows the case and source have; why each other was skipped).
+
+    The one definition of a run's cell, behind ``scan_baseline`` and ``previous_row`` (S-12). SPEC: a baseline compares
+    only with rows from the same host, model and effort, so a row that does not name all three, or names different ones,
+    is skipped, and rows written before those fields existed are therefore not compared against. With ``planning_review``
+    (this run's mode) a row that stands for another mode (``row_planning_review``) is skipped too; a run that records no
+    mode matches no row. A row that did not reach done is a record and not a basis (``row_reached_done``). The prompt key is
+    ``_prompt_differs``. Nothing here returns a row for a reason it does not name in the third value.
     """
+    skipped: Counter = Counter()
     if not path.is_file():
-        return None, 0
-    found, seen = None, 0
+        return [], 0, skipped
+    rows, seen = [], 0
     for line in path.read_text().splitlines():
         try:
             row = json.loads(line)
@@ -1293,18 +1314,55 @@ def scan_baseline(path: Path, case: str, source: str | None, host: str | None = 
             continue
         seen += 1
         if (row.get("host"), row.get("model"), row.get("effort")) != (host, model, effort):
-            continue
-        if planning_review is not None and (planning_review == metrics.NOT_RECORDED
-                                            or row_planning_review(row)[0] != planning_review):
-            continue
-        found = row
-    return found, seen
+            skipped["another host, model or effort"] += 1
+        elif planning_review is not None and (planning_review == metrics.NOT_RECORDED
+                                              or row_planning_review(row)[0] != planning_review):
+            skipped["another planning_review mode"] += 1
+        elif _prompt_differs(case, prompt_sha256, row):
+            skipped["another prompt"] += 1
+        elif not row_reached_done(row):
+            skipped["did not reach done"] += 1
+        else:
+            rows.append(row)
+    return rows, seen, skipped
+
+
+def scan_baseline(path: Path, case: str, source: str | None, host: str | None = None,
+                  model: str | None = None, effort: str | None = None,
+                  planning_review: str | None = None, prompt_sha256: str | None = None) -> tuple[dict | None, int]:
+    """(the last comparable row, how many rows were recorded for this case and source), by ``matching_rows``.
+
+    The count lets a caller say "rows exist but none is comparable" instead of printing nothing.
+    """
+    rows, seen, _ = matching_rows(path, case, source, host, model, effort, planning_review, prompt_sha256)
+    return (rows[-1] if rows else None), seen
 
 
 def previous_row(path: Path, case: str, source: str | None, host: str | None = None,
-                 model: str | None = None, effort: str | None = None) -> dict | None:
-    """The last recorded row for this case that is actually comparable with this run."""
-    return scan_baseline(path, case, source, host, model, effort)[0]
+                 model: str | None = None, effort: str | None = None, prompt_sha256: str | None = None) -> dict | None:
+    """The last recorded row for this case that is actually comparable with this run, whatever its planning_review mode."""
+    return scan_baseline(path, case, source, host, model, effort, None, prompt_sha256)[0]
+
+
+def sample_line(row: dict, before: dict, cell: list[dict]) -> str:
+    """The facts a comparison rests on, as a line: no claim that the run is within, above or below anything (SPEC, "A
+    comparison names its sample"). Whether the plugin tree is the one the earlier row ran on, how the host build changed, and
+    how many earlier rows the cell has on how many builds; a fact one side does not record is said to be unknown, not
+    guessed."""
+    def pair(was, now, same: str, differs: str, label: str) -> str:
+        if was is None or now is None:
+            return f"{label} unknown ({'this run' if now is None else 'the earlier row'} records none)"
+        return same.format(now) if was == now else differs.format(was, now)
+
+    trees = pair(before.get("plugin_sha256"), row.get("plugin_sha256"), "plugin tree same ({})",
+                 "plugin tree different ({} -> {})", "plugin tree")
+    label = "Claude Code build" if row.get("host") == "claude" else f"{row.get('host')} build"
+    builds = pair(before.get("host_build"), row.get("host_build"), label + " {} (same)", label + " {} -> {}", label)
+    recorded = {r["plugin_sha256"] for r in cell if r.get("plugin_sha256")}
+    unrecorded = sum(1 for r in cell if not r.get("plugin_sha256"))
+    rows = (f"{len(cell)} earlier row(s) in this cell on {len(recorded)} recorded build(s)"
+            + (f", {unrecorded} with no recorded tree" if unrecorded else ""))
+    return f"{trees}; {builds}; {rows}"
 
 
 NOT_OBSERVED = "not observed (regraded: no host ran)"
@@ -2012,10 +2070,15 @@ def _main(argv: list[str] | None, held: list) -> int:
     engine_active = engine.get("status") == "active"
     unfinished = engine_active or process["status"] in ("timeout", "stopped")
     baseline_file = args.baseline if not (resumed or seeded or unfinished) else None
-    before, rows_for_case = (scan_baseline(baseline_file, name, versions["source"], args.host, args.model,
-                                           args.effort, row["planning_review"]) if baseline_file else (None, 0))
-    last = (previous_row(baseline_file, name, versions["source"], args.host, args.model, args.effort)
-            if baseline_file and before is None else None)  # the driver's last row, of another mode: what the report names
+    # The row is written for any run that ended, but only a run that reached done is compared: a blocked or halted run's
+    # turns, cost and stages stop at the block (r1 Grok printed "503 -> 301" for a blocked run against a blocked row).
+    reached_done = engine.get("status") == "done"
+    cell, rows_for_case, skipped = (
+        matching_rows(baseline_file, name, versions["source"], args.host, args.model, args.effort, row["planning_review"],
+                      row["prompt_sha256"]) if baseline_file and reached_done else ([], 0, Counter()))
+    before = cell[-1] if cell else None
+    last = (previous_row(baseline_file, name, versions["source"], args.host, args.model, args.effort, row["prompt_sha256"])
+            if baseline_file and reached_done and before is None else None)  # the driver's last row, of another mode: what the report names
     if baseline_file:
         with baseline_file.open("a") as handle:
             handle.write(json.dumps(row) + "\n")
@@ -2096,16 +2159,23 @@ def _main(argv: list[str] | None, held: list) -> int:
               + (f", narrative shown {before['narrative']['shown']}/{before['narrative']['emitted']} -> "
                  f"{row['narrative']['shown']}/{row['narrative']['emitted']}"
                  if before.get("narrative") and row.get("narrative") else ""))
+        print(f"            sample: {sample_line(row, before, cell)}")
         if why := row_planning_review(before)[1]:  # a row with no mode compared as stage by the plugin version rule
             print(f"            the earlier row {why}")
         for line in stage_diff_lines(before.get("stages"), row.get("stages")):
             print(f"            {line}")
+    elif baseline_file and not reached_done:
+        print(f"  baseline  nothing compared: this run did not reach done (engine {engine.get('status') or 'unknown'}), so "
+              "its turns, cost and stages are no comparison; its row is recorded")
     elif last:
         print(planning_review_line(row["planning_review"], last))  # turns, cost and stages mean something else in the other mode
     elif baseline_file:
+        only_driver = set(skipped) <= {"another host, model or effort"}
         print("  baseline  nothing compared: " + (
             f"{rows_for_case} earlier row(s) for {name}, none recorded with {args.host}/{args.model}/"
-            f"{args.effort}, so there is no baseline" if rows_for_case
+            f"{args.effort}, so there is no baseline" if rows_for_case and only_driver
+            else f"{rows_for_case} earlier row(s) for {name}, none comparable with this run ("
+                 + ", ".join(f"{count} {reason}" for reason, count in skipped.items()) + ")" if rows_for_case
             else f"no earlier row for {name} from this source"))
     elif resumed or seeded:
         print("  baseline  nothing compared: a resumed or seeded run is not a baseline")

@@ -302,6 +302,22 @@ which is what `stage` does) and the report says so; a row with no usable
 `plugin_version`, or with 1.22.0 or later and no field, reads `not recorded` and is
 compared with no run.
 
+One rule picks the rows a run is compared with (`run.matching_rows`, behind `scan_baseline` and `previous_row`; SPEC, "A
+baseline row is a finished run's" and "A comparison names its sample"). A row is a basis only if ShipLoop reached done in
+it: a row whose `verdicts.shiploop` is false, or whose `termination.engine_status` is anything but done, is still written (a
+blocked run is a record) and is never the row another run is compared with. A run that did not itself reach done prints
+`baseline  nothing compared: this run did not reach done (engine blocked)` and compares no turns, cost or stage, because they
+stop at the block (r1 Grok printed `503 -> 301` for a blocked run against a blocked row). A row with neither signal (written
+before the verdicts or the termination record existed) is not refused: unknown is not excluded. The prompt key: for a case run
+with `--prompt` (case `custom`) a row compares only when it and the run both carry a `prompt_sha256` and they are equal, so
+two prompts are two cells and one prompt in two folders is one; for a named case the key applies only when both carry one,
+so the 23 rows committed before the field existed keep comparing with a new run of the same driver, and a named case whose
+prompt is edited starts a new cell. The one transitional break is therefore the Grok `none` runs (case `custom`): their two
+committed rows carry no hash, so the first new `custom` run of a prompt compares with nothing until a row with the hash
+exists. Under the `baseline  vs` line, a `sample:` line states facts and no verdict: whether the plugin tree
+(`plugin_sha256`) is the one the earlier row ran on, how `host_build` changed (`Claude Code build 2.1.292 -> 2.1.294`), and
+how many earlier rows the cell has on how many recorded builds. A fact one side does not record is `unknown`, not guessed.
+
 `metrics.json` also reports `script_verifications` (the checks ShipLoop itself
 ran and recorded, from its `*-verify*.md` records) and `model_glue`: shell
 commands that did a step ShipLoop owns (`git commit`/`add`, shell writes into

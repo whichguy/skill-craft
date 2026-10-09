@@ -369,6 +369,204 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
         self.assertEqual(self.last_row()["local_head"], result["versions"]["local_head"])
 
 
+DRIVER = {"case": "battleship", "source": "checkout", "host": "claude", "model": "m", "effort": None,
+          "planning_review": "stage"}
+
+
+def row(**fields) -> dict:
+    return {**DRIVER, "date": "2026-10-08T10:00:00+0000", "shiploop_version": "0.56.0", "turns": 100,
+            "verdicts": {"shiploop": True}, "termination": {"engine_status": "done"}, **fields}
+
+
+def _source(function) -> str:
+    import inspect
+    return inspect.getsource(function)
+
+
+class MatchingRowsTest(unittest.TestCase):
+    """One matching rule (run.matching_rows) behind scan_baseline and previous_row; a row that did not reach done is a
+    record and not a basis, and the prompt key applies only where both sides carry one (always for case 'custom')."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.path = Path(tmp.name) / "baselines.jsonl"
+
+    def write(self, *rows: dict) -> Path:
+        self.path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+        return self.path
+
+    def match(self, *rows: dict, case="battleship", prompt=None, mode="stage"):
+        self.write(*rows)
+        return run.matching_rows(self.path, case, "checkout", "claude", "m", None, mode, prompt)
+
+    def test_a_row_that_did_not_reach_done_is_never_the_row_a_run_is_compared_with(self):
+        done = row(turns=301)
+        blocked = row(turns=503, verdicts={"shiploop": False}, termination={"engine_status": "blocked"})
+        self.write(done, blocked)
+        found, seen = run.scan_baseline(self.path, "battleship", "checkout", "claude", "m", None, "stage")
+        self.assertEqual((found["turns"], seen), (301, 2))  # the blocked row is past the done one and is still skipped
+        self.assertEqual(run.previous_row(self.path, "battleship", "checkout", "claude", "m", None)["turns"], 301)
+        rows, seen, skipped = self.match(done, blocked)
+        self.assertEqual(([r["turns"] for r in rows], seen, dict(skipped)), ([301], 2, {"did not reach done": 1}))
+        self.assertEqual(run.scan_baseline(self.write(blocked), "battleship", "checkout", "claude", "m", None, "stage"),
+                         (None, 1))
+
+    def test_either_signal_that_the_run_did_not_finish_excludes_a_row_and_a_row_with_neither_is_kept(self):
+        self.assertEqual(len(self.match(row(verdicts={"shiploop": False}, termination=None))[0]), 0)
+        self.assertEqual(len(self.match(row(verdicts=None, termination={"engine_status": "blocked"}))[0]), 0)
+        for status in ("halted", "paused", "unknown", "active"):
+            self.assertEqual(len(self.match(row(termination={"engine_status": status}))[0]), 0, status)
+        # unknown is not refused: a row written before verdicts and termination existed, or by a test, stays a baseline
+        bare = {k: v for k, v in row().items() if k not in ("verdicts", "termination")}
+        self.assertEqual(len(self.match(bare)[0]), 1)
+        # a finished run whose product failed a check is a complete run: its cost is a complete run's cost
+        self.assertEqual(len(self.match(row(**{"pass": False}))[0]), 1)
+
+    def test_a_named_case_compares_rows_with_no_prompt_hash_and_splits_on_two_different_hashes(self):
+        old, same, other = row(turns=1), row(turns=2, prompt_sha256="aaaaaaaaaaaa"), row(turns=3, prompt_sha256="bbbbbbbbbbbb")
+        kept = [r["turns"] for r in self.match(old, same, other, prompt="aaaaaaaaaaaa")[0]]
+        self.assertEqual(kept, [1, 2])  # the old row has no hash: the existing 'baseline vs' line survives for it
+        self.assertEqual([r["turns"] for r in self.match(old, same, other, prompt=None)[0]], [1, 2, 3])
+        rows, _, skipped = self.match(old, same, other, prompt="aaaaaaaaaaaa")
+        self.assertEqual(dict(skipped), {"another prompt": 1})
+
+    def test_the_custom_case_compares_only_rows_that_carry_the_same_prompt_hash(self):
+        custom = {"case": "custom"}
+        old = row(**custom, turns=1)  # a committed Grok 'none' row, written before the field existed
+        same = row(**custom, turns=2, prompt_sha256="5ea67bf3a1c2")
+        other = row(**custom, turns=3, prompt_sha256="0123456789ab")
+        rows, seen, skipped = self.match(old, same, other, case="custom", prompt="5ea67bf3a1c2")
+        self.assertEqual(([r["turns"] for r in rows], seen), ([2], 3))
+        self.assertEqual(dict(skipped), {"another prompt": 2})
+        # a caller that cannot name its prompt matches nothing for 'custom': two unknown prompts are not known to be one
+        self.assertEqual(self.match(old, same, case="custom", prompt=None)[0], [])
+
+    def test_the_other_rules_are_unchanged_the_driver_the_mode_and_the_source(self):
+        rows, seen, skipped = self.match(row(turns=1), row(turns=2, host="grok"), row(turns=3, planning_review="none"),
+                                         row(turns=4, source="marketplace"), row(turns=5, case="checkers"))
+        self.assertEqual(([r["turns"] for r in rows], seen), ([1], 3))
+        self.assertEqual(dict(skipped), {"another host, model or effort": 1, "another planning_review mode": 1})
+
+    def test_a_missing_file_has_no_rows(self):
+        self.assertEqual(run.matching_rows(self.path.with_name("nowhere.jsonl"), "x", "checkout")[:2], ([], 0))
+
+    def test_scan_baseline_and_previous_row_have_no_filter_of_their_own(self):
+        source = _source(run.scan_baseline) + _source(run.previous_row)
+        self.assertIn("matching_rows(", source)
+        self.assertNotIn("json.loads", source)  # no second reading of the file, so no second key
+
+
+class ComparisonThroughMainTest(main_tests().PrintedCase):
+    """The live 'baseline vs' line as run.main prints it: which row it draws on, the facts under it, and what a run that
+    did not reach done prints."""
+
+    def finish_blocked(self) -> Path:
+        """The shared fake of the host, then a ShipLoop state that blocked itself: the host exits 0, the engine is blocked."""
+        wrapper = self.tmp / "grok-blocks"
+        script(wrapper, f"""#!/bin/sh
+"{self.fakes['grok']}" "$@"
+rc=$?
+{sys.executable} - <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, {str(ROOT / 'skills/shiploop/scripts')!r})
+import shiploop_store as store
+store.write_record(Path(".shiploop/state.md"), {{"status": "blocked", "stage": "system-test", "planning_review": "stage",
+                                                "status_reason": "waiting for a person"}})
+Path(".shiploop/report.html").unlink()
+PY
+exit $rc
+""")
+        return wrapper
+
+    def once(self, mode="done", *extra, binary: Path | None = None, host="grok") -> tuple[int, dict, str]:
+        os.environ["FAKE_MODE"] = mode
+        out = self.tmp / f"out-{len(list(self.tmp.glob('out-*')))}"
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(["--host", host, f"--{host}-bin", str(binary or self.fakes[host]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue()
+
+    def edit_rows(self, **changes_by_index: dict) -> None:
+        rows = [json.loads(line) for line in self.baselines.read_text().splitlines()]
+        for index, changes in changes_by_index.items():
+            rows[int(index.removeprefix("r"))].update(changes)
+        self.baselines.write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+    def test_a_run_that_did_not_reach_done_still_writes_its_row_and_compares_with_nothing(self):
+        self.once()
+        self.edit_rows(r0={"turns": 301})
+        code, result, printed = self.once(binary=self.finish_blocked())
+        self.assertEqual(result["termination"]["engine_status"], "blocked", result["termination"])
+        self.assertIn("  baseline  nothing compared: this run did not reach done (engine blocked)", printed)
+        self.assertNotIn("baseline  vs", printed)
+        rows = [json.loads(line) for line in self.baselines.read_text().splitlines()]
+        self.assertEqual(len(rows), 2)  # a record, not a basis: the row is written
+        self.assertEqual((rows[1]["verdicts"]["shiploop"], rows[1]["termination"]["engine_status"]), (False, "blocked"))
+
+    def test_a_blocked_row_is_skipped_and_the_run_is_compared_with_the_done_row_before_it(self):
+        self.once()
+        self.once(binary=self.finish_blocked())
+        self.edit_rows(r0={"turns": 301}, r1={"turns": 503})
+        code, result, printed = self.once()
+        self.assertIn("turns 301 -> ", printed)
+        self.assertNotIn("turns 503 -> ", printed)
+
+    def test_with_only_a_blocked_row_before_it_nothing_is_compared_and_the_report_says_why(self):
+        self.once(binary=self.finish_blocked())
+        code, result, printed = self.once()
+        self.assertEqual(code, 0, result)
+        self.assertIn("  baseline  nothing compared: 1 earlier row(s) for hello, none comparable with this run "
+                      "(1 did not reach done)", printed)
+
+    def test_two_custom_prompts_are_two_cells_and_one_prompt_in_two_folders_is_one_cell(self):
+        args = ("--prompt", "make hello", "--check", "true")
+        self.once("done", *args, host="claude")
+        _, one_again, printed = self.once("done", *args, host="claude")
+        self.assertIn("baseline  vs", printed)  # the same prompt in another folder is the same cell
+        _, other, printed = self.once("done", "--prompt", "make goodbye", "--check", "true", host="claude")
+        self.assertIn("  baseline  nothing compared: 2 earlier row(s) for custom, none comparable with this run "
+                      "(2 another prompt)", printed)
+        # a row written before the field existed compares with no custom run
+        self.edit_rows(r0={"prompt_sha256": None}, r1={"prompt_sha256": None}, r2={"prompt_sha256": None})
+        _, _, printed = self.once("done", *args, host="claude")
+        self.assertIn("none comparable with this run (3 another prompt)", printed)
+
+    def test_a_named_case_keeps_comparing_with_a_row_that_has_no_prompt_hash(self):
+        self.once()
+        self.edit_rows(r0={"prompt_sha256": None})
+        code, result, printed = self.once()
+        self.assertIn("baseline  vs", printed)
+        self.edit_rows(r0={"prompt_sha256": "0123456789ab"}, r1={"prompt_sha256": "0123456789ab"})
+        _, _, printed = self.once()  # both carry a hash and it differs from this run's: another cell
+        self.assertIn("(2 another prompt)", printed)
+
+    def test_the_facts_under_the_line_name_the_tree_the_host_build_and_the_cell(self):
+        self.once("done", host="claude")
+        _, _, printed = self.once("done", host="claude")
+        line = next(ln for ln in printed.splitlines() if ln.startswith("            sample: "))
+        digest = run.tree_digest(self.plugin)
+        self.assertIn(f"plugin tree same ({digest}); Claude Code build 0.0.1-fake (same); "
+                      "1 earlier row(s) in this cell on 1 recorded build(s)", line)
+        self.edit_rows(r0={"plugin_sha256": None}, r1={"plugin_sha256": "aaaaaaaaaaaa", "host_build": "2.1.292"})
+        _, _, printed = self.once("done", host="claude")
+        line = next(ln for ln in printed.splitlines() if ln.startswith("            sample: "))
+        self.assertIn(f"plugin tree different (aaaaaaaaaaaa -> {digest}); Claude Code build 2.1.292 -> 0.0.1-fake; "
+                      "2 earlier row(s) in this cell on 1 recorded build(s), 1 with no recorded tree", line)
+
+    def test_a_fact_one_side_does_not_record_is_unknown_and_makes_no_claim(self):
+        self.once()
+        self.edit_rows(r0={"plugin_sha256": None, "host_build": None})
+        _, _, printed = self.once()
+        line = next(ln for ln in printed.splitlines() if ln.startswith("            sample: "))
+        self.assertIn("plugin tree unknown (the earlier row records none)", line)
+        self.assertIn("grok build unknown (this run records none)", line)  # the shared fake's --version fails: this run has none
+        for word in ("within", "above", "below", "regression", "faster", "slower"):
+            self.assertNotIn(word, line)
+
+
 class IdentityDocsTest(unittest.TestCase):
     """The README says what each identity field is and what is never done to it; the SPEC carries the rules."""
 
@@ -382,6 +580,17 @@ class IdentityDocsTest(unittest.TestCase):
                        "stays null, because today's build stamped on it would be a made-up fact",
                        "A regrade restates the recorded digest and never computes one",
                        "A baseline row has no overlap field", "as a lower bound", "a discipline and not a guarantee"):
+            self.assertIn(phrase, readme)
+
+    def test_the_readme_says_which_rows_a_run_is_compared_with_and_names_the_transitional_break(self):
+        readme = self.text("README.md")
+        for phrase in ("One rule picks the rows a run is compared with (`run.matching_rows`",
+                       "is still written (a blocked run is a record) and is never the row another run is compared with",
+                       "`baseline nothing compared: this run did not reach done (engine blocked)`",
+                       "unknown is not excluded", "two prompts are two cells and one prompt in two folders is one",
+                       "the 23 rows committed before the field existed keep comparing",
+                       "The one transitional break is therefore the Grok `none` runs",
+                       "a `sample:` line states facts and no verdict", "is `unknown`, not guessed"):
             self.assertIn(phrase, readme)
 
     def test_the_spec_carries_the_rules_this_group_serves(self):
