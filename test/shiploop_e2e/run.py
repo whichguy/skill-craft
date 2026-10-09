@@ -319,42 +319,86 @@ def build_candidate(out: Path) -> Path:
     return out / "build" / "plugins" / PLUGIN_NAME
 
 
-def tree_digest(root: Path) -> str | None:
-    """One digest (12 hex) of the plugin tree a host loads: each file's relative path and the sha256 of its bytes.
+def tree_digest_checked(root: Path) -> tuple[str | None, str | None]:
+    """(a digest of the plugin tree a host loads, None) or (None, why it could not be made). 12 hex.
 
-    A version string does not identify a build (two Battleship Sonnet runs said plugin 1.22.0 with different scripts),
-    and a git head over-splits (two heads built byte-identical trees), so the bytes are what is compared. Left out:
-    ``__pycache__`` folders and ``*.pyc`` (a host compiles them when it runs the scripts, so they differ between a plugin
-    before and after a run), symlinks (their target is not part of the plugin) and anything that is not a regular file.
-    None when ``root`` is not a folder.
+    Each file's relative path and the sha256 of its bytes. A version string does not identify a build (two Battleship
+    Sonnet runs said plugin 1.22.0 with different scripts) and a git head over-splits (two heads built byte-identical
+    trees), so the bytes are what is compared. Left out: ``__pycache__`` folders and ``*.pyc`` (a host compiles them when
+    it runs the scripts, so they differ between a plugin before and after a run), symlinks (their target is not part of
+    the plugin) and anything that is not a regular file. A file or folder that cannot be read gives no digest at all, with
+    the reason: a digest of the files that could be read would be another build's digest for the same bytes.
     """
     root = Path(root)
     if not root.is_dir():
-        return None
+        return None, "the plugin folder does not exist"
+    problems: list[str] = []
+    found: list[Path] = []
+
+    def unreadable(error: OSError) -> None:
+        problems.append(f"{error.filename}: {error.strerror}")
+
+    for here, folders, names in os.walk(root, onerror=unreadable):
+        folders[:] = [f for f in folders if f != "__pycache__" and not (Path(here) / f).is_symlink()]
+        for name in names:
+            path = Path(here) / name
+            if path.suffix != ".pyc" and not path.is_symlink() and path.is_file():
+                found.append(path.relative_to(root))
     digest = hashlib.sha256()
-    for path in sorted(root.rglob("*")):
-        relative = path.relative_to(root)
-        if "__pycache__" in relative.parts or path.suffix == ".pyc" or path.is_symlink() or not path.is_file():
+    for relative in sorted(found):
+        try:
+            data = (root / relative).read_bytes()
+        except OSError as error:
+            problems.append(f"{root / relative}: {error.strerror}")
             continue
-        digest.update(relative.as_posix().encode() + b"\0" + hashlib.sha256(path.read_bytes()).hexdigest().encode() + b"\n")
-    return digest.hexdigest()[:12]
+        digest.update(relative.as_posix().encode() + b"\0" + hashlib.sha256(data).hexdigest().encode() + b"\n")
+    if problems:
+        return None, f"unreadable: {problems[0]}" + (f" (and {len(problems) - 1} more)" if len(problems) > 1 else "")
+    return digest.hexdigest()[:12], None
 
 
-def masked_prompt_digest(prompt: str, out: Path) -> str:
-    """The sha256 (12 hex) of a run's prompt with its own output folder replaced by ``<output>``.
+def tree_digest(root: Path) -> str | None:
+    """The digest of ``tree_digest_checked``, None when it could not be made."""
+    return tree_digest_checked(root)[0]
+
+
+def output_forms(out: Path, requested: Path | None = None) -> list[str]:
+    """Every spelling of a run's output folder a prompt may carry, longest first: the resolved path, the path as it was
+    asked for (``--output /tmp/x`` resolves to ``/private/tmp/x`` on macOS), the same without ``/private``, and the
+    home-relative ``~/...`` form."""
+    forms = {str(out)}
+    if requested is not None:
+        forms |= {str(requested), os.path.abspath(os.path.expanduser(str(requested)))}
+    home = str(Path.home())
+    for form in list(forms):
+        if form.startswith("/private/"):
+            forms.add(form[len("/private"):])
+    for form in list(forms):
+        if form.startswith(home + "/"):
+            forms.add("~" + form[len(home):])
+    return sorted((f for f in forms if f), key=len, reverse=True)
+
+
+def masked_prompt_digest(prompt: str, out: Path, requested: Path | None = None) -> str:
+    """The sha256 (12 hex) of a run's prompt with its own output folder replaced by ``<output>``, in every spelling.
 
     A case that names no path hashes to the plain hash of its text. The Grok ``none`` runs' prompt tells the host to read
-    ``<run folder>/build/.../improve/SKILL.md``, so five runs of one prompt had five raw hashes and one masked hash.
+    ``<run folder>/build/.../improve/SKILL.md``, so five runs of one prompt had five raw hashes and one masked hash. A
+    spelling only counts as the folder when it is not part of a longer name (``/a/run1`` inside ``/a/run10`` or
+    ``/other/a/run1``, ``/a/run1.bak``); a sentence-ending full stop does not hide it.
     """
-    return hashlib.sha256(prompt.replace(str(out), "<output>").strip().encode()).hexdigest()[:12]
+    for form in output_forms(out, requested):
+        prompt = re.sub(r"(?<![\w.~/-])" + re.escape(form) + r"(?!\w|-|\.\w)", "<output>", prompt)
+    return hashlib.sha256(prompt.strip().encode()).hexdigest()[:12]
 
 
 def installed_versions(plugin_dir: Path) -> dict:
     """The skill-craft and ShipLoop versions of the plugin a host will actually load, and the digest of its tree."""
     manifest = plugin_dir / ".claude-plugin" / "plugin.json"
+    digest, why = tree_digest_checked(plugin_dir)
     return {"plugin_version": json.loads(manifest.read_text()).get("version") if manifest.is_file() else None,
             "shiploop_version": card_version(plugin_dir / "skills" / "shiploop" / "SKILL.md"),
-            "plugin_sha256": tree_digest(plugin_dir)}
+            "plugin_sha256": digest, **({"plugin_sha256_unmeasured": why} if why else {})}
 
 
 def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None, dict]:
@@ -2344,7 +2388,7 @@ def _main(argv: list[str] | None, held: list) -> int:
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
               # Identity, null where unknown: the prompt with the run's own folder masked, the host CLI's build (Claude's
               # init event; the others' launch probe) and the stream's first and last stamp.
-              "prompt_sha256": masked_prompt_digest(prompt, out),
+              "prompt_sha256": masked_prompt_digest(prompt, out, args.resume_run or args.output),
               "host_build": run_metrics["claude_code_version"] if args.host == "claude" else host_build,
               "span": run_metrics["span"],
               "process": process, "termination": termination,

@@ -124,6 +124,7 @@ class TreeDigestTest(unittest.TestCase):
         before = run.tree_digest(root)
         (root / "skills" / "x" / "scripts" / "__pycache__").mkdir()
         (root / "skills" / "x" / "scripts" / "__pycache__" / "m.cpython-314.pyc").write_bytes(b"\0\1\2")
+        (root / "skills" / "x" / "scripts" / "__pycache__" / "notes.txt").write_text("not bytecode, still inside __pycache__")
         (root / "stray.pyc").write_bytes(b"\3")
         outside = self.tmp / "outside.txt"
         outside.write_text("not part of the plugin")
@@ -134,6 +135,48 @@ class TreeDigestTest(unittest.TestCase):
 
     def test_a_folder_that_is_not_there_has_no_digest(self):
         self.assertIsNone(run.tree_digest(self.tmp / "nowhere"))
+
+    def unreadable(self, path: Path) -> None:
+        path.chmod(0)
+        self.addCleanup(path.chmod, 0o755 if path.is_dir() else 0o644)
+
+    def test_an_unreadable_file_gives_no_digest_with_the_reason_and_never_raises(self):
+        root = self.tree("locked", self.FILES)
+        self.unreadable(root / "skills" / "x" / "scripts" / "run")
+        if os.access(root / "skills" / "x" / "scripts" / "run", os.R_OK):
+            self.skipTest("the user can read a mode 000 file (root)")
+        digest, why = run.tree_digest_checked(root)
+        self.assertIsNone(digest)
+        self.assertIn("scripts/run", why)
+        self.assertIsNone(run.tree_digest(root))
+
+    def test_an_unreadable_folder_is_not_skipped_into_a_digest_of_fewer_files(self):
+        # The old walk skipped it silently: the same bytes digested differently depending on one file mode.
+        root = self.tree("locked-dir", self.FILES)
+        whole = run.tree_digest(root)
+        self.unreadable(root / "skills" / "x")
+        if os.access(root / "skills" / "x", os.R_OK):
+            self.skipTest("the user can list a mode 000 folder (root)")
+        digest, why = run.tree_digest_checked(root)
+        self.assertIsNone(digest, "a digest of the files that could be read is not the plugin's digest")
+        self.assertIn("skills/x", why)
+        self.assertNotEqual(whole, digest)
+
+    def test_a_plugin_that_cannot_be_digested_says_why_in_its_versions(self):
+        plugin = self.tree("plugin-locked", {".claude-plugin/plugin.json": json.dumps({"version": "1.2.3"}), **self.FILES})
+        self.unreadable(plugin / "a.txt")
+        if os.access(plugin / "a.txt", os.R_OK):
+            self.skipTest("the user can read a mode 000 file (root)")
+        versions = run.installed_versions(plugin)
+        self.assertIsNone(versions["plugin_sha256"])
+        self.assertIn("a.txt", versions["plugin_sha256_unmeasured"])
+        self.assertEqual(versions["plugin_version"], "1.2.3")  # the rest of the record is still made
+        clean = run.installed_versions(self.tree("plugin-whole", {".claude-plugin/plugin.json": "{}", **self.FILES}))
+        self.assertNotIn("plugin_sha256_unmeasured", clean)
+
+    def test_a_missing_folder_has_its_reason_too(self):
+        digest, why = run.tree_digest_checked(self.tmp / "nowhere")
+        self.assertEqual((digest, why), (None, "the plugin folder does not exist"))
 
     def test_installed_versions_carries_the_digest_of_the_plugin_it_names(self):
         plugin = self.tree("plugin", {".claude-plugin/plugin.json": json.dumps({"version": "1.2.3"}), **self.FILES})
@@ -171,6 +214,31 @@ class PromptDigestTest(unittest.TestCase):
         expected = hashlib.sha256(text.encode()).hexdigest()[:12]
         self.assertEqual(run.masked_prompt_digest(text + "\n", Path("/x/run-a")), expected)
         self.assertEqual(run.masked_prompt_digest(text, Path("/x/run-a")), expected)
+
+    def sha(self, text: str) -> str:
+        return hashlib.sha256(text.encode()).hexdigest()[:12]
+
+    def test_the_requested_spelling_of_the_folder_is_masked_as_well_as_the_resolved_one(self):
+        # --output /tmp/x resolves to /private/tmp/x on macOS, and a prompt may name either; both are the run's folder
+        resolved, requested = Path("/private/tmp/x"), Path("/tmp/x")
+        by_resolved = run.masked_prompt_digest("Read /private/tmp/x/build/SKILL.md", resolved, requested)
+        by_requested = run.masked_prompt_digest("Read /tmp/x/build/SKILL.md", resolved, requested)
+        self.assertEqual(by_resolved, by_requested)
+        self.assertEqual(by_resolved, self.sha("Read <output>/build/SKILL.md"))
+        # without the requested spelling the resolved folder's /private-less form is still recognised
+        self.assertEqual(run.masked_prompt_digest("Read /tmp/x/build/SKILL.md", resolved), self.sha("Read <output>/build/SKILL.md"))
+
+    def test_the_home_relative_spelling_is_masked(self):
+        out = Path.home() / "e2e-runs" / "x"
+        got = run.masked_prompt_digest("Read ~/e2e-runs/x/build/SKILL.md", out)
+        self.assertEqual(got, self.sha("Read <output>/build/SKILL.md"))
+
+    def test_a_longer_folder_sharing_the_prefix_is_not_corrupted_and_a_sentence_end_is_masked(self):
+        out = Path("/a/run1")
+        got = run.masked_prompt_digest("Use /a/run1 and not /a/run10/x or /a/run1.bak, then /a/run1.", out)
+        self.assertEqual(got, self.sha("Use <output> and not /a/run10/x or /a/run1.bak, then <output>."))
+        # the same characters inside a longer path are not the folder
+        self.assertEqual(run.masked_prompt_digest("see /other/a/run1/x", out), self.sha("see /other/a/run1/x"))
 
     def test_the_five_recorded_grok_prompts_are_five_raw_hashes_and_one_masked_hash(self):
         # prompt.txt of the Grok `none` runs of 2026-10-06, 10-07 and 10-08 (r1, r2, r3): each embeds its own folder.
@@ -353,6 +421,25 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
         _, other, _ = self.run_as("claude", "done", "--prompt", "make goodbye", "--check", "true")
         self.assertNotEqual(one["prompt_sha256"], other["prompt_sha256"])
         self.assertEqual(self.last_row()["prompt_sha256"], other["prompt_sha256"])
+
+    def test_a_prompt_naming_its_own_output_folder_is_masked_through_main_in_either_spelling(self):
+        # The harness resolves --output; a prompt written by a person or a script names the folder as it asked for it.
+        real = self.tmp / "real"
+        real.mkdir()
+        link = self.tmp / "link"
+        link.symlink_to(real)
+        digests = []
+        for name, spelled in (("one", link / "one"), ("two", real / "two")):
+            prompt = f"Make hello. Read {spelled}/build/SKILL.md first."
+            os.environ["FAKE_MODE"] = "done"
+            with contextlib.redirect_stdout(io.StringIO()):
+                run.main(["--host", "claude", "--claude-bin", str(self.fakes["claude"]), "--output", str(spelled),
+                          "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--prompt", prompt,
+                          "--check", "true"])
+            result = json.loads((real / name / "result.json").read_text())
+            digests.append(result["prompt_sha256"])
+        self.assertEqual(digests[0], digests[1])
+        self.assertEqual(digests[0], hashlib.sha256(b"Make hello. Read <output>/build/SKILL.md first.").hexdigest()[:12])
 
     def test_the_span_is_the_streams_first_and_last_stamp_and_an_unclosed_planning_window_is_null(self):
         code, result, _ = self.run_as("claude")
