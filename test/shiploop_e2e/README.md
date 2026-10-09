@@ -290,7 +290,8 @@ in a Claude Bash call (its own process group) can finish after the kill: the eng
 session. `after_kill` records that (it compares revisions, it does not wait), and a difference is overshoot after the kill, not
 a failed probe. The result file and `complete` are often one shell command, so the `inside` boundary can race the submission:
 `fresh_starts[].stage_in_flight` says which stage the clear landed in. A probed run is a resumed run and writes no baseline row.
-Read `$OUT/metrics.json` `fresh_starts`: the block with `reason: resume-run`. Phase 2 (`--clear-at`, a trigger and kill in the
+The watcher matches a stage by name, so it is for the stages that happen once (intake to step-plan): a stage that repeats per work item
+matches its first row. Read `$OUT/metrics.json` `fresh_starts`: the block with `reason: resume-run`. Phase 2 (`--clear-at`, a trigger and kill in the
 harness) is built only if these probes show the overshoot or the two-invocation procedure inadequate.
 
 ### Suites and baselines

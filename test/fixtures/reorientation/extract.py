@@ -195,8 +195,11 @@ def build(spec: dict) -> None:
     keys = ("status", "stage", "revision", "planning_review", "history", "inner_loops", "work_items", "work_index")
     folder = target / ".shiploop-runs" / "work-fixture" / "run"
     folder.mkdir(parents=True, exist_ok=True)
-    (folder / "state.md").write_text("# state\n\n```shiploop-state\n"
-                                     + json.dumps({k: state[k] for k in keys if k in state}, indent=1) + "\n```\n")
+    kept_state = {k: state[k] for k in keys if k in state}
+    # A history row keeps what the readers join on (stage, outcome, work item, action id), not its summary text.
+    kept_state["history"] = [{k: row.get(k) for k in ("stage", "outcome", "workitem", "action")}
+                             for row in state.get("history", []) if isinstance(row, dict)]
+    (folder / "state.md").write_text("# state\n\n```shiploop-state\n" + json.dumps(kept_state, indent=1) + "\n```\n")
     (folder / "timeline.json").write_text((run_dir / "timeline.json").read_text())
     # Launch records and the reconstructed sessions.jsonl.
     rows = []

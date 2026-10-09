@@ -1709,9 +1709,13 @@ def _main(argv: list[str] | None, held: list) -> int:
     left_behind: list = []  # what each reap pass of this invocation found (see listeners.py)
 
     def engine_now() -> dict | None:
-        """Where the ledger stands now (None before ShipLoop has written any state)."""
-        running = grade_shiploop(out)
-        return metrics.engine_position(Path(running["run_dir"]) if running.get("run_dir") else None)
+        """Where the ledger stands now (None before ShipLoop has written any state, or where it cannot be read: the record of a
+        session never stops the session)."""
+        try:
+            running = grade_shiploop(out)
+            return metrics.engine_position(Path(running["run_dir"]) if running.get("run_dir") else None)
+        except Exception:  # noqa: BLE001 - fail-open recording
+            return None
 
     def session(*launch_args, kind: str, reason: str, told: dict | None = None, resumed_session: str | None = None,
                 **launch_kw) -> dict:

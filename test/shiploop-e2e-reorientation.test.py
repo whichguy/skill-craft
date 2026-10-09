@@ -1145,6 +1145,14 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
         self.assertEqual(got[1]["told"]["cli"], str(self.cli))
         self.assertTrue(got[1]["told"]["run_dir"].endswith("/run"))
 
+    def test_a_ledger_that_cannot_be_read_never_stops_a_launch(self):
+        # The record is fail-open: a defect reading the engine state leaves `engine` null and the host still runs.
+        with mock.patch.object(metrics, "engine_position", side_effect=ValueError("unreadable ledger")):
+            code, result, _ = self.invoke_printed("claude", "done")
+        self.assertEqual(code, 0, result)
+        got = self.sessions(result)
+        self.assertEqual((got[0]["engine"], got[0]["end"]["engine"], got[0]["end"]["status"]), (None, None, "exited"))
+
     def test_a_regrade_launches_no_host_and_adds_no_row(self):
         code, first, _ = self.invoke_printed("grok", "done")
         before = (Path(first["output"]) / "sessions.jsonl").read_text()
