@@ -790,12 +790,41 @@ class ToolsAndMachineTest(OwnProcesses, unittest.TestCase):
         self.tool("node", "import time\ntime.sleep(20)")
         self.tool("git", "print('boom', file=sys.stderr)\nsys.exit(4)")
         self.tool("python3", "sys.exit(0)")  # exits 0 and prints nothing
-        with mock.patch.object(self.environment, "TOOL_TIMEOUT", 0.5):
+        import hosts
+        with mock.patch.object(hosts, "VERSION_TIMEOUT_SECONDS", 0.5):  # the one --version ceiling (batch 1011 integration)
             versions, unread = self.environment.read_tools()
         self.assertEqual(versions, {"node": None, "python3": None, "git": None})
-        self.assertIn("timed out", unread["node"])
-        self.assertEqual(unread["git"], "--version exited 4")
-        self.assertEqual(unread["python3"], "--version printed nothing on stdout")
+        # The one set of reasons, hosts.probe_version's (it was "--version exited 4" and "--version printed nothing on stdout").
+        self.assertTrue(unread["node"].startswith("probe failed: hung"), unread["node"])
+        self.assertEqual(unread["git"], "probe failed: non-zero exit 4")
+        self.assertEqual(unread["python3"], "probe failed: silent")
+
+    def test_every_version_is_read_by_the_one_probe_helper(self):
+        # Batch 1011 integration: G3's hosts.probe_version (host CLIs) and G4's read_tools / browser_version were two readers of
+        # `<binary> --version`, with two ceilings and two sets of reasons. One is left: hosts.probe_version.
+        import hosts
+        self.assertFalse(hasattr(self.environment, "browser_version") or hasattr(self.environment, "TOOL_TIMEOUT"))
+        self.tool("node", "print('v1')")
+        self.tool("python3", "print('Python 3')")
+        self.tool("git", "print('git version 2')")
+        seen = []
+        real = hosts.probe_version
+
+        def probe(binary, env=None):
+            seen.append((Path(binary).name, env))
+            return real(binary, env)
+
+        with mock.patch.object(hosts, "probe_version", side_effect=probe):
+            versions, _ = self.environment.read_tools()
+            fake = self.bin / "fake-browser"
+            fake.write_text("#!/bin/sh\necho 'Fake Browser 1.2.3'\nexit 3\n")
+            fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
+            with mock.patch.object(self.environment, "probe_target", return_value={}):
+                record = self.environment.browser_record(str(fake))
+        self.assertEqual(versions, {"node": "v1", "python3": "Python 3", "git": "git version 2"})
+        self.assertEqual(sorted(name for name, _ in seen), ["fake-browser", "git", "node", "python3"])
+        self.assertTrue(all(env is None for _, env in seen), "the harness's own tools and browser: the harness's environment")
+        self.assertEqual((record["version"], record["version_unread"]), (None, "probe failed: non-zero exit 3"))
 
     def test_the_versions_are_read_once_per_process(self):
         calls = []

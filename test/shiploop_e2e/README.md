@@ -441,7 +441,8 @@ each fails open (a part that cannot be made says so, with its reason, and the ru
 `invocation-resume-<host>-<seconds>.json`).
 
 - `start` and `end`: the node, python3 and git versions on the harness's PATH (`tools`, the first line of `--version`, read
-  once per harness process), `cpus`, `loadavg`, `display_hold` (whether the host ran under `caffeinate -d -i`; `keep_awake` is
+  once per harness process by `hosts.probe_version`, the one `--version` reader, which also reads the host CLIs' and the
+  browser's: one 20 s ceiling, one set of reasons, `probe failed: not found | non-zero exit N | silent | hung`), `cpus`, `loadavg`, `display_hold` (whether the host ran under `caffeinate -d -i`; `keep_awake` is
   the one decider) and `unread` (why a value is null). `start` is the launch's, taken before the deadline is set, so it spends
   none of the run's time; `end` is read after the checks and has no `tools`. A regrade starts no host: its `start` restates the
   last launch's record and its `end` says it was not observed. The host CLI build is not read here: a launch record carries
@@ -526,7 +527,7 @@ A regrade restates the identity of the run's last launch whatever the flags say,
 launch (the saved r2 result says grok); `resumed_run.from_host` and `from_model` now name the last launch's host and model (results
 written before name the first launch's).
 
-Shapes worth knowing: the browser record carries `version_unread` when `--version` printed nothing; a regrade of a result written
+Shapes worth knowing: the browser record carries `version_unread` (the probe's reason) when its `--version` could not be read; a regrade of a result written
 before 2026-10-09 has no `engine_blocked_by` or `engine_awaiting_*` keys in its `termination` (only the `*_at_regrade` ones, from
 the regrade's own reading); and `environment.start` is a copy of the last launch's `environments[-1].environment`, so the browser
 record appears twice in `result.json` by design (the copy in `start` is this invocation's, the entries are the whole run's).

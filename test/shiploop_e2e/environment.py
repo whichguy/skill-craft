@@ -41,14 +41,15 @@ import time
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import hosts  # noqa: E402  (hosts.probe_version: the one `--version` reader)
 import listeners  # noqa: E402
 import metrics  # noqa: E402
 import runrecord  # noqa: E402
 
 NEEDS = ("browser",)
 TOOLS = ("node", "python3", "git")
-# One `--version` call's ceiling in seconds: a ceiling, not a tuning value (they answer in 0.01 to 0.05 s).
-TOOL_TIMEOUT = 10.0
+# Every `--version` (the tools here, the browser, the host CLIs) is read by hosts.probe_version, under its one ceiling
+# (hosts.VERSION_TIMEOUT_SECONDS) and with its one set of reasons.
 
 # A browser started headless to dump the DOM of a stand-in page.  The hygiene flags keep a fresh profile from phoning home
 # (a first launch registered with a push service and tried to install a default app); they did not change how long a launch
@@ -87,9 +88,9 @@ def unobserved(reason: str) -> dict:
 
 # ---------------------------------------------------------------- tools, load, the start and the end
 
-def read_tools(timeout: float | None = None) -> tuple[dict, dict]:
-    """(``{tool: first stdout line of tool --version or None}``, ``{tool: why None}``), the tools found on this PATH."""
-    timeout = TOOL_TIMEOUT if timeout is None else timeout
+def read_tools() -> tuple[dict, dict]:
+    """(``{tool: first stdout line of tool --version or None}``, ``{tool: why None}``), the tools found on this PATH, each read
+    by hosts.probe_version in the harness's own environment (what the model's shell inherits)."""
     versions: dict = {}
     unread: dict = {}
     for name in TOOLS:
@@ -97,20 +98,9 @@ def read_tools(timeout: float | None = None) -> tuple[dict, dict]:
         if path is None:
             versions[name], unread[name] = None, "not found on PATH"
             continue
-        try:
-            done = subprocess.run([path, "--version"], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=timeout)
-        except subprocess.TimeoutExpired:
-            versions[name], unread[name] = None, f"--version timed out after {timeout:g}s"
-            continue
-        except OSError as exc:
-            versions[name], unread[name] = None, f"--version could not run: {exc}"
-            continue
-        line = next((text.strip() for text in done.stdout.splitlines() if text.strip()), "")
-        if done.returncode == 0 and line:
-            versions[name] = line
-        else:
-            versions[name], unread[name] = None, (f"--version exited {done.returncode}" if done.returncode
-                                                  else "--version printed nothing on stdout")
+        versions[name], why = hosts.probe_version(path, None)
+        if why:
+            unread[name] = why
     return versions, unread
 
 
@@ -467,18 +457,6 @@ def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float
         shutil.rmtree(profile, ignore_errors=True)
 
 
-def browser_version(binary: str) -> tuple[str | None, str | None]:
-    """(the first stdout line of ``binary --version``, why not)."""
-    try:
-        done = subprocess.run([binary, "--version"], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=TOOL_TIMEOUT)
-    except subprocess.TimeoutExpired:
-        return None, f"--version timed out after {TOOL_TIMEOUT:g}s"
-    except OSError as exc:
-        return None, f"--version could not run: {exc}"
-    line = next((text.strip() for text in done.stdout.splitlines() if text.strip()), "")
-    return (line, None) if done.returncode == 0 and line else (None, f"--version exited {done.returncode}")
-
-
 def browser_record(binary: str | None, ceiling: float | None = None, grace: float | None = None, should_stop=None) -> dict:
     """The browser capability record of a declared need: can a headless browser load a stand-in page here, over ``file:`` and
     over loopback http?  A record, never a gate.  The two targets are probed one after the other, so each browser is measured
@@ -490,7 +468,7 @@ def browser_record(binary: str | None, ceiling: float | None = None, grace: floa
         if found is None:
             return {"declared": True, "probed": False,
                     "reason": "no browser binary" + (f" at {binary}" if binary else " found in the usual places or on PATH")}
-        version, why = browser_version(found)
+        version, why = hosts.probe_version(found, None)  # the binary on disk, in the harness's environment
         record: dict = {"declared": True, "probed": True, "binary": found, "version": version,
                         "flags": list(BROWSER_FLAGS), "ceiling_seconds": ceiling, "grace_seconds": grace,
                         "empty_seconds": EMPTY_SECONDS}
