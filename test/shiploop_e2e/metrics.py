@@ -1062,7 +1062,7 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
         row = {**base, "seconds": round(until - since, 1), **counted(events, tools)}
         if any("call" in x for x in turns):
             peak = max((x["input"] for x in events if x["input"] is not None), default=None)
-            row["context"] = {"calls": sum(x["call"] for x in events), "peak": peak,
+            row["context"] = {"calls": sum(bool(x.get("call")) for x in events), "peak": peak,
                               "peakPct": rollouts.share(peak, context_window)}
         rows.append(row)
     return rows

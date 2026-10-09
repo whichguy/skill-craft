@@ -3799,6 +3799,22 @@ class RolloutContextTest(unittest.TestCase):
         self.assertEqual(got["subagents"], {"calls": 0, "peak": None, "compactions": 0})
 
 
+class MixedHostTurnsTest(unittest.TestCase):
+    """Live finding (round 2, Grok resume): a run's events.jsonl can hold turn rows of two shapes, those with a `call`
+    key (Claude's assistant messages) and those without (Grok's usage events); per_stage crashed on the mix, after the
+    host had finished, so the run got no metrics and no review export."""
+
+    def test_per_stage_counts_the_rows_that_carry_a_call_and_ignores_the_rest(self):
+        accepted = [{"stage": "a", "outcome": "done", "t": 105.0}, {"stage": "b", "outcome": "done", "t": 112.0}]
+        stamps = {n: 100.0 + n for n in range(21)}
+        turns = [{"t": 101.5, "input": 10, "call": True}, {"t": 102.0, "input": 20},
+                 {"t": 103.0, "input": 30, "call": False}, {"t": 106.0, "input": 40, "call": True}]
+        rows = metrics.per_stage(accepted, turns, {}, stamps, None, context_window=100)
+        self.assertEqual([r["context"]["calls"] for r in rows], [1, 1])
+        self.assertEqual([r["context"]["peak"] for r in rows], [30, 40])
+        self.assertEqual([r["turns"] for r in rows], [3, 1])
+
+
 class StageWindowsTest(unittest.TestCase):
     """The windows per_stage already derived are one implementation the rollout reader shares."""
 
