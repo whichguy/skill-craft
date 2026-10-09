@@ -1783,3 +1783,15 @@ test could fail first did, and the mutants named below were applied to a scratch
   `orbctl start`. The scope guard (`scope_to_tmp`, `guarded_signal`) now checks by the test's own folder and refuses to signal any
   pid outside it, independent of the code under test; mutants of the selector fail on that guard and signal nothing. Mutants that widen the
   selection are not run against the real-process classes.
+- **A second harness for a running case went on silently (minor).** `hold_case` returns None where another harness holds the lock, and
+  `main` carried on: a second `--resume-run` of a live run would have reaped the live harness's servers, started a second host in the same
+  work directory and consumed the stop request its owner had made. Now `main` refuses (`another harness is running <out>`, nothing
+  started or stopped) unless the invocation is a regrade, which starts and stops nothing and may read a case that is running; and only the
+  invocation that holds the lock removes a stale stop file (the removal moved from the top of the resume branch to after the lock; the
+  existing `test_a_stop_never_answers_a_blocked_run` pins that a regrade still clears it when it holds the case). Red first:
+  `SystemExit not raised` and the stop file gone after a regrade. Mutants killed: refuse a regrade too, never refuse, remove the stop file
+  whatever the lock, never remove it (6 of 6 with the port mutants below).
+- **`listeners_of` raised on a name with no colon (minor, latent).** The test and the value used different indexes
+  (`rsplit(":", 1)[-1]` against `[1]`), so `n123` raised `IndexError` out of `launch()`. lsof prints `host:port` for a TCP endpoint, so this
+  cannot happen in a normal run; a name that is not `host:port` now yields no port (`_port`), pinned by a test that failed first on the
+  `IndexError`.

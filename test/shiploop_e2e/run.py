@@ -1602,7 +1602,6 @@ def _main(argv: list[str] | None, held: list) -> int:
     if args.resume_run:
         # Continue a stopped run in place: same work directory, run state and event stream.
         out = args.resume_run.expanduser().resolve()
-        (out / "stop").unlink(missing_ok=True)  # a request left by an earlier invocation must not stop this one
         earlier = json.loads((out / "invocation.json").read_text())
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
         prompt = (out / "prompt.txt").read_text().strip()
@@ -1660,6 +1659,13 @@ def _main(argv: list[str] | None, held: list) -> int:
     lock = listeners.hold_case(out)
     if lock is not None:
         held.append(lock)
+    elif not regrade and listeners.case_alive(out):
+        # Two harnesses in one case: the second would stop the first's servers and consume its stop request. A regrade starts
+        # and stops nothing, so it may read a case that is running.
+        raise SystemExit(f"--resume-run: another harness is running {out} (it holds {out / listeners.LOCK_NAME}), so nothing was "
+                         f"started or stopped. Create {stop_file} to end that run, or wait for it, then resume.")
+    if resumed and lock is not None:
+        stop_file.unlink(missing_ok=True)  # an earlier invocation's request must not stop this one; only the harness holding the case owns it
     left_behind: list = []  # what each reap pass of this invocation found (see listeners.py)
 
     def session(*launch_args, **launch_kw) -> dict:

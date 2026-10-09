@@ -67,14 +67,19 @@ def _parse_fields(text: str) -> list[dict]:
     return processes
 
 
+def _port(name: str) -> int | None:
+    """The port of an lsof endpoint name `host:port` (`*:3457`, `[::1]:3457`); None for any other name."""
+    _, colon, port = name.rpartition(":")
+    return int(port) if colon and port.isdigit() else None
+
+
 def listeners_of(text: str, uid: int) -> list[dict]:
     """The listening processes of user `uid` in `lsof -iTCP -sTCP:LISTEN -Fpcun` output, with their ports (each once)."""
     found = []
     for process in _parse_fields(text):
         if process["uid"] != uid:
             continue
-        ports = sorted({int(name.rsplit(":", 1)[1]) for name in process["names"]
-                        if name.rsplit(":", 1)[-1].isdigit()})
+        ports = sorted({port for port in map(_port, process["names"]) if port is not None})
         found.append({"pid": process["pid"], "command": process["command"], "ports": ports})
     return found
 

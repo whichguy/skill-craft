@@ -4909,6 +4909,11 @@ class ListenerParseSelectionTest(unittest.TestCase):
         self.assertTrue(seen[63973]["argv"].endswith("/worktree/server.js"))
         self.assertEqual((seen[969]["cwd"], seen[969]["argv"]), (None, ""), "a process that vanished between the calls has neither")
 
+    def test_a_name_that_is_not_host_and_port_is_not_a_port_and_never_raises(self):
+        # lsof prints host:port for a TCP listener; a name without a colon (an all-digit one included) is no endpoint to list.
+        odd = "p1\ncx\nu501\nn123\nnno-colon-here\nn*:80\nnhost:notaport\n"
+        self.assertEqual(listeners.listeners_of(odd, 501), [{"pid": 1, "command": "x", "ports": [80]}])
+
     def test_only_a_listener_inside_the_case_folder_on_a_path_boundary_is_selected(self):
         folder = "/e2e/case-1"
         chosen = [listener(10, "/e2e/case-1/work"), listener(11, "/e2e/case-1"),
@@ -5280,14 +5285,14 @@ class CaseLockTest(unittest.TestCase):
         (self.tmp / "half" / "invocation.json").write_text("{}")  # a record without a work directory is not a case
         self.assertIsNone(listeners.case_folder(self.tmp / "half" / "x"))
 
-    def test_the_lock_is_held_while_its_file_is_open_and_a_second_holder_is_refused_quietly(self):
+    def test_the_lock_is_held_while_its_file_is_open_and_a_second_holder_gets_none(self):
         folder = self.case("case-1")
         self.assertFalse(listeners.case_alive(folder), "no lock file: no live harness")
         self.assertFalse((folder / ".harness-lock").exists(), "looking creates nothing in a folder the run does not own")
         held = listeners.hold_case(folder)
         self.assertIsNotNone(held)
         self.assertTrue(listeners.case_alive(folder), "a second open file description in this very process sees it held")
-        self.assertIsNone(listeners.hold_case(folder), "one harness per case folder; the second is told, not raised at")
+        self.assertIsNone(listeners.hold_case(folder), "one harness per case folder; the second gets None, not an exception (main refuses on it)")
         held.close()
         self.assertFalse(listeners.case_alive(folder))
         self.assertIsNone(listeners.hold_case(self.tmp / "no-such-folder"), "never raises")
@@ -5372,6 +5377,43 @@ class StalePreflightThroughMainTest(CaseRunCase):
         with self.leaking(ended):
             code, result, printed, out = self.case_main("case-new")
         self.assertEqual(code, 0, result)
+
+    def resume_argv(self, out: Path, *extra: str) -> list[str]:
+        return ["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out), "--plugin-dir", str(self.plugin),
+                "--baseline", str(self.baselines), *extra]
+
+    def test_a_second_harness_for_a_case_whose_harness_is_alive_is_refused_and_touches_nothing(self):
+        code, first, _, out = self.case_main("case-live", "--max-resumes", "0", mode="stuck", host="grok")
+        self.assertEqual(first["shiploop"]["status"], "active")
+        live = listeners.hold_case(out)  # the harness that is running this case
+        self.assertIsNotNone(live)
+        self.addCleanup(live.close)
+        (out / "stop").write_text("")  # its owner has asked it to end
+        self.log.unlink()
+        reaped: list = []
+        released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False, "catalog_version": None,
+                    "shiploop_version": None, "unreleased": [], "ci": "success"}
+        with mock.patch.object(listeners, "reap", side_effect=lambda folder: reaped.append(folder)), \
+                mock.patch.object(run, "released_versions", return_value=released), \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as refused:
+            run.main(self.resume_argv(out))
+        self.assertIn("another harness is running", str(refused.exception))
+        self.assertIn(str(out), str(refused.exception))
+        self.assertTrue((out / "stop").exists(), "the stop request belongs to the harness that is running")
+        self.assertFalse(self.log.exists(), "no host started")
+        self.assertEqual(reaped, [], "the live harness's servers are not this invocation's to stop")
+
+    def test_a_regrade_of_a_case_whose_harness_is_alive_is_not_refused_and_leaves_its_stop_request(self):
+        code, first, _, out = self.case_main("case-done")
+        live = listeners.hold_case(out)
+        self.assertIsNotNone(live)
+        self.addCleanup(live.close)
+        (out / "stop").write_text("")
+        for extra in ((), ("--grade-only",)):
+            with contextlib.redirect_stdout(io.StringIO()):
+                run.main(self.resume_argv(out, *extra))
+            self.assertTrue(json.loads((out / "result.json").read_text())["process"]["regraded"], extra)
+            self.assertTrue((out / "stop").exists(), f"a regrade {extra} starts nothing, so it owns no stop request")
 
     def test_a_regrade_is_never_refused_because_it_starts_nothing(self):
         code, first, _, out = self.case_main("case-done")
