@@ -96,6 +96,16 @@ def make_improve_child(run: Path, action: str, passes: int | None = 3, bind_at: 
     return child
 
 
+# An excerpt of the planning block a current harness writes (a real Grok run's, two of its ten rows): the window on the engine's
+# clock and the host's, the Improve share, and the output tokens the host's usage events gave.
+PLANNING_BLOCK = {
+    "window": {"closed": True, "through": "test-spec", "seconds": 1393.0, "host_seconds": 1429.5, "before_engine_seconds": 36.5},
+    "stages": [{"stage": "intake", "outcome": "done", "action": "nav-5195", "seconds": 73.0, "improve_seconds": 0.0},
+               {"stage": "test-spec", "outcome": "done", "action": "nav-7a4a", "seconds": 51.0, "improve_seconds": 0.0}],
+    "improve": {"children": 0, "seconds": 0.0}, "producer_seconds": 1393.0, "unmeasured": {},
+    "tokens": {"output": 88480, "reasoning": 36447, "clock": "host", "source": "usage events"}}
+
+
 def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = True,
              metrics: dict | None = None) -> Path:
     """A run output directory shaped like test/shiploop_e2e/run.py writes it; `metrics` overrides keys of its metrics.json."""
@@ -138,6 +148,8 @@ def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = 
         "model_glue": [{"reasons": ["git commit/add by the model"], "command": "git commit"}] * 2,
         "unmeasured": {},  # every counter measured, as on a Grok run
         "model_calls": 120, "window_tokens": 1_000_000, "tokens": {"input_peak": 250_000}, "compactions": 0,
+        # what the harness writes today: no tool_use for a host it does not read it from, and the planning block (R22b)
+        "tool_use": None, "planning": PLANNING_BLOCK,
         **(metrics or {})})
     if loops:
         make_plan_loop(run / "scratch" / "backchain-plan")
@@ -216,7 +228,7 @@ class RunReviewTest(unittest.TestCase):
         self.assertEqual((run["stages"][0]["packetBytes"], run["wallMin"], run["order"]),
                          (100, 140.0, int(T0.timestamp())))
         self.assertGreater(run["stages"][0]["resultBytes"], 0)
-        self.assertEqual((run["refusals"], run["glue"], run["imp"]), (1, 2, "1 children, 3 review passes"))
+        self.assertEqual((run["refusals"], run["glue"], run["imp"]), (1, 2, "1 child, 3 review passes"))
         self.assertEqual(len(run["failures"][0]["line"]), 240)
         self.assertEqual((run["improvePasses"], run["improveMin"]), (3, 12.5))
         self.assertEqual(run["stages"][3]["improve"], {"passes": 3, "min": 12.5})  # the plan visit started the child
@@ -416,7 +428,8 @@ class RunReviewTest(unittest.TestCase):
         run = self.docs(target)["runs"][self.KEY]
         for field in ("refusals", "glue", "failures"):
             self.assertNotIn(field, run)
-        self.assertEqual(run["unmeasured"], {**reasons, "visitContext": export.NO_VISIT_CONTEXT})  # no stage row has one
+        self.assertEqual(run["unmeasured"], {**reasons, "visitContext": export.NO_VISIT_CONTEXT,  # no stage row has one
+                                             "toolUse": f"{export.NO_TOOL_USE} (host: codex)"})
         self.assertEqual(export.validate_doc("runs", run), [])
         facts = (target / "facts.md").read_text()
         self.assertIn(f"- ShipLoop command failures: not measured ({reasons['shiploop_failures']})", facts)
@@ -433,7 +446,8 @@ class RunReviewTest(unittest.TestCase):
         run = self.docs(target)["runs"][self.KEY]
         self.assertEqual((run["refusals"], run["glue"], len(run["failures"])), (13, 2, 13))
         self.assertEqual(run["unmeasured"], {"stage_turns": "no per-call usage events",
-                                             "visitContext": export.NO_VISIT_CONTEXT})
+                                             "visitContext": export.NO_VISIT_CONTEXT,
+                                             "toolUse": f"{export.NO_TOOL_USE} (host: codex)"})
         self.assertIn("- ShipLoop command failures: 13 (complete 13)", (target / "facts.md").read_text())
 
     def test_a_metrics_file_without_the_unmeasured_key_is_refused_and_says_how_to_get_one(self):
@@ -621,8 +635,8 @@ class RunVisitsTest(unittest.TestCase):
         run, facts = self.build(make_run(self.tmp, loops=False))
         self.assertEqual(self.row(run, "plan")["improve"], {"passes": 3, "min": 12.5})
         self.assertTrue(all("improve" not in r for r in run["stages"] if r["action"] != IDS["plan"]))
-        self.assertEqual((run["improvePasses"], run["improveMin"], run["imp"]), (3, 12.5, "1 children, 3 review passes"))
-        self.assertIn("- Improve: 1 children, 3 review passes; most passes in one child: 3; 12.5 min bind to receipt",
+        self.assertEqual((run["improvePasses"], run["improveMin"], run["imp"]), (3, 12.5, "1 child, 3 review passes"))
+        self.assertIn("- Improve: 1 child, 3 review passes; most passes in one child: 3; 12.5 min bind to receipt",
                       "\n".join(facts))
 
     def test_a_child_with_no_receipt_has_passes_only_and_the_run_total_minutes_are_unknown_with_a_reason(self):
@@ -996,15 +1010,21 @@ class BackchainLoopRecordsTest(unittest.TestCase):
         self.assertEqual(self.facts_of(doc)["Passes"], "1")
         self.assertIs(doc["candidateMatch"], True)  # the digests do not need the start
 
-    def test_a_directory_with_only_check_receipts_is_no_loop_and_the_facts_name_both_places_looked(self):
+    def test_a_directory_with_only_check_receipts_is_a_graph_check_only_document_not_a_loop_and_not_nothing(self):
         out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
         set_state(out, backchain_passes="none")
         write_json(run_dir_of(out) / "backchain" / IDS["plan"] / f"check-{FINAL_DIGEST[:12]}.json",
                    {"candidate_sha256": FINAL_DIGEST, "ok": True})
         loops, facts = self.export(out)
-        self.assertEqual(loops, {})
-        self.assertIn("- Backchain loops: none found under scratch/ or backchain/", facts)
-        self.assertIn("- Backchain passes option (state.md): none", facts)  # a run with option none has no loop to carry it
+        self.assertEqual(list(loops), [self.PLAN])  # read as no loop before R22b: a run whose plan was checked said "none"
+        doc = loops[self.PLAN]
+        self.assertEqual((doc["graphCheckOnly"], doc["segments"], doc["loop"], doc["stageMin"], doc["title"]),
+                         (True, [], "plan", None, "Plan graph check"))
+        self.assertEqual(self.facts_of(doc)["Graph check"], "graph check only: 1 check, last ok")
+        self.assertEqual(doc["candidateMatch"], "unknown")  # no loop record names a final candidate to compare with
+        self.assertIn("- Backchain loops: plan: graph check only: 1 check, last ok", facts)
+        self.assertIn("- Backchain passes option (state.md): none", facts)  # the option is kept on the document too
+        self.assertEqual(doc["backchainPasses"], "none")
 
     def test_a_second_loop_is_ordered_by_its_start_and_named_by_its_stage(self):
         out = self.run_out()
@@ -3115,9 +3135,9 @@ class LunaReviewTests(unittest.TestCase):
         self.assertEqual((code, err.getvalue()), (0, ""))
         warned = sorted(line.split(":")[1].strip().split("/")[1] + ":" + ("option" if "no option" in line else "effect")
                         for line in out.getvalue().splitlines() if line.startswith("warning: "))
-        # o16 and o34 have neither (unknown cause; not this run), o17 is the owner's choice, o23 and o30 wait for one
-        self.assertEqual(warned, ["o16:effect", "o16:option", "o17:effect", "o23:option", "o30:option", "o34:effect",
-                                  "o34:option"])
+        # o16 has neither (unknown cause), o17 is the owner's choice, o23 and o30 wait for one; o34 is fixed since R22c
+        # (the harness reads Claude's tool blocks, c7a8187d to 4e656d23), so it no longer warns
+        self.assertEqual(warned, ["o16:effect", "o16:option", "o17:effect", "o23:option", "o30:option"])
 
     def test_every_saved_document_is_kept_and_every_option_is_rewritten_normalised_and_linked(self):
         findings, options = self.docs["observations"], self.docs["actions"]
@@ -3667,7 +3687,7 @@ class SequencePictureTests(unittest.TestCase):
         self.assertEqual((luna[2][:24], luna[7]), ("Table of the 39 visits (", 39))
         for text in ("Visits3939 work", "Elapsed (accept to accept)19.3 hstart to the last accept, 1,158.5 min",
                      "Improve41 passes360.3 min, 31% of elapsed", "Context (main thread)97.5%251,867 of 258,400 tokens; 34 compactions",
-                     "Refusals13ShipLoop commands that exited non-zero"):
+                     "Refusals13refusal lines or failed ShipLoop commands"):
             self.assertIn(text, luna[3])
         self.assertEqual(luna[4], "")
         hello = page_probe('[textOf("kpis"),textOf("seqnote"),REG.seqnote.hidden,REG.sqlegband.hidden,walk(REG.seqtable,function(e){return e.tagName==="th";}).length]',
@@ -4027,7 +4047,8 @@ class PlanningReviewExportTest(unittest.TestCase):
         self.assertEqual(set(real_state("stage")), set(real_state("none")))  # one key set; the option is a value, not a shape
         # what each mode did in the engine's own walk: stage parked a child after spec, test-strategy and plan, none none
         self.assertEqual((len(real_state("stage")["improve_results"]), len(real_state("none")["improve_results"])), (3, 0))
-        self.assertEqual(real_state("none")["improve_skill"], "/plugin/skills/improve/SKILL.md")  # none resolves the card at init
+        for mode in ("stage", "none"):  # the current engine resolves the Improve card at init in both modes
+            self.assertEqual(real_state(mode)["improve_skill"], "/plugin/skills/improve/SKILL.md", mode)
 
     def test_the_option_is_exported_as_state_md_wrote_it_and_is_not_recorded_when_the_key_is_absent(self):
         for written, shown in (("stage", "stage"), ("none", "none"), ("once", "once"), (2, "2"), (None, "not recorded")):
@@ -4244,11 +4265,13 @@ class GeneralReviewBundleTests(unittest.TestCase):
         cls.open_docs = {c: {i: {**d, "status": "open"} for i, d in rows.items()} for c, rows in cls.docs.items()}
         cls.defaults = {e["key"]: e for e in json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))}
 
-    def test_it_passes_the_check_with_no_failure_and_no_warning(self):
+    def test_it_passes_the_check_with_no_failure(self):
+        # R22c added the findings of the 2026-10-08 runs; RoundRunFindingsTests pins the one warning left on purpose.
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             code = export.main(["--check", str(GENERAL_REVIEW)])
-        self.assertEqual((code, err.getvalue(), out.getvalue().strip()), (0, "", "check: ok (2 documents, 0 failures, 0 warnings)"))
+        self.assertEqual((code, err.getvalue()), (0, ""))
+        self.assertRegex(out.getvalue().strip().splitlines()[-1], r"^check: ok \(\d+ documents, 0 failures, \d+ warnings?\)$")
 
     def test_its_finding_and_option_are_shaped_as_the_handoff_asks_and_reuse_no_id_of_another_bundle(self):
         f, o = self.finding, self.option
@@ -4311,7 +4334,9 @@ class GeneralReviewBundleTests(unittest.TestCase):
         self.assertEqual([o["id"] for o in general["cards"][0]["options"]], ["a26"])
         self.assertFalse(general["cards"][0]["noOption"])
         self.assertEqual([c["finding"]["id"] for c in open_for_run["cards"]], ["o44"])  # `any` applies to every run
-        self.assertEqual(other["cards"], [])
+        # the R22c findings list the runs they apply to, so they are other runs' findings here, never general ones
+        self.assertNotIn("o44", [c["finding"]["id"] for c in other["cards"]])
+        self.assertTrue(all(c["finding"].get("runs") for c in other["cards"]))
 
     def test_the_defaults_record_the_revision_of_phase_1_naming_its_finding_and_option(self):
         doc, change = self.defaults["phase-1"], self.option["change"]
@@ -4335,8 +4360,378 @@ class GeneralReviewBundleTests(unittest.TestCase):
         state = {"findings": [{"id": i, **d} for i, d in self.docs["observations"].items()],
                  "options": [{"id": i, **d} for i, d in self.docs["actions"].items()], "runKey": "r1"}
         general = run_logic("cardsFor(Object.assign({filter:'general'},%s))" % json.dumps(state))
-        self.assertEqual([o["id"] for o in general["done"]], ["a26"])
+        self.assertIn("a26", [o["id"] for o in general["done"]])  # R22c's done options are listed there too
+        self.assertEqual([c["finding"]["id"] for c in general["cards"]], ["o44"])
         self.assertEqual([o["id"] for c in general["cards"] for o in c["options"]], [])
+
+
+# ---------------------------------------------------------------- R22c: the findings layer for the runs of 2026-10-07 and 2026-10-08
+# One contiguous block (another session appends tests elsewhere in this file). Every number is checked against a committed
+# file: the analysis JSONs of the rounds and the run-folder extract docs/experiments/run-review-r22c-20261009/figures.json
+# (written by its collect.py); the run folders themselves are never read here.
+
+R22C_DIR = ROOT / "docs" / "experiments" / "run-review-r22c-20261009"
+R22C_ANALYSIS = ROOT / "docs" / "experiments" / "batch-1010-round2-round3-analysis-20261008"
+R22C_ROUND1 = ROOT / "docs" / "experiments" / "batch-1009-round1-analysis-20261008" / "analysis.json"
+R22C_FIRST = (45, 27)  # the first finding and option numbers this increment adds (o44 and a26 were the last before it)
+# A sentence that states the withdrawn explanation of the Grok-host Chrome failure (LEARNINGS 'Rounds 2 and 3', correction 2,
+# and 'Correction of 2026-10-09'): the display asleep, off or sleeping as the cause, or keeping it awake as the remedy.
+R22C_WITHDRAWN = re.compile(r"(?i)\bdisplay(?:[- ](?:asleep|sleep|off)\b|\s+(?:was|is|being|went)\s+(?:asleep|off)\b)"
+                            r"|\bdisplay[- ]sleep\b|\bkeep(?:ing)?\s+the\s+display\s+awake\b")
+
+
+def r22c_bundles() -> dict[str, dict]:
+    """{file name: docs} of every committed review bundle."""
+    return {p.name: json.loads(p.read_text(encoding="utf-8"))["docs"] for p in sorted(EVIDENCE_DIR.glob("*.review.json"))}
+
+
+def r22c_numbered(ids, prefix: str, first: int) -> list[int]:
+    return sorted(int(i[1:]) for i in ids if re.fullmatch(prefix + r"\d+", i) and int(i[1:]) >= first)
+
+
+def r22c_texts(doc: dict) -> str:
+    """Every string a finding or an option shows (the prompt prints title, the instruction, the change and the evidence)."""
+    return " ".join(str(v) for k, v in doc.items() if isinstance(v, str)) + " " + " ".join(
+        str(v) for v in (doc.get("change") or {}).values())
+
+
+class RoundRunFindingsTests(unittest.TestCase):
+    """R22c: findings, options and reviews for the eleven runs of 2026-10-07 and 2026-10-08, from the synthesized analyses,
+    the run folders (through figures.json) and git; checked by --check, by id and key rules, and by their numbers."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.bundles = r22c_bundles()
+        cls.general = json.loads(GENERAL_REVIEW.read_text(encoding="utf-8"))["docs"]
+        cls.figures = json.loads((R22C_DIR / "figures.json").read_text(encoding="utf-8"))
+        cls.r2 = json.loads((R22C_ANALYSIS / "round2-analysis.json").read_text(encoding="utf-8"))["synthesis"]
+        cls.r3 = json.loads((R22C_ANALYSIS / "round3-analysis.json").read_text(encoding="utf-8"))["synthesis"]
+        cls.r1 = json.loads(R22C_ROUND1.read_text(encoding="utf-8"))["synthesis"]
+        cls.defaults = {e["key"]: e for e in json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))}
+        cls.new_findings = {f"o{n}": cls.general["observations"][f"o{n}"]
+                            for n in r22c_numbered(cls.general["observations"], "o", R22C_FIRST[0])}
+        cls.new_options = {f"a{n}": cls.general["actions"][f"a{n}"]
+                           for n in r22c_numbered(cls.general["actions"], "a", R22C_FIRST[1])}
+
+    def bars(self, fid: str) -> dict:
+        return {item["label"]: item["value"] for item in self.general["observations"][fid]["figure"]["items"]}
+
+    def test_every_bundle_passes_the_check_and_warns_only_where_left_on_purpose(self):
+        self.assertIn("general.review.json", self.bundles)
+        warned = []
+        for name in self.bundles:
+            out, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = export.main(["--check", str(EVIDENCE_DIR / name)])
+            self.assertEqual((code, err.getvalue()), (0, ""), name)
+            if name == "general.review.json":
+                warned = [line for line in out.getvalue().splitlines() if line.startswith("warning: ")]
+        # o68 is the owner's choice (keep or remove the refused-run cap) and was never exercised, so it is not rated
+        self.assertEqual(warned, ["warning: observations/o68: open finding with no effect (the page shows it as 'not rated')"])
+
+    def test_ids_are_unique_across_bundles_and_continue_from_o45_and_a27(self):
+        seen: dict[str, str] = {}
+        for name, docs in self.bundles.items():
+            for collection in ("observations", "actions"):
+                for i in docs.get(collection) or {}:
+                    self.assertNotIn(i, seen, f"{i} is in {seen.get(i)} and {name}")
+                    seen[i] = name
+        findings = r22c_numbered(self.general["observations"], "o", R22C_FIRST[0])
+        options = r22c_numbered(self.general["actions"], "a", R22C_FIRST[1])
+        self.assertGreaterEqual(len(findings), 30)
+        self.assertEqual(findings, list(range(R22C_FIRST[0], R22C_FIRST[0] + len(findings))))
+        self.assertEqual(options, list(range(R22C_FIRST[1], R22C_FIRST[1] + len(options))))
+
+    def test_every_runs_key_is_a_run_folder_and_every_criterion_a_key_of_the_defaults(self):
+        folders = set(self.figures["runs"])
+        self.assertEqual(len(folders), 11)
+        self.assertTrue(self.new_findings)
+        for fid, finding in self.new_findings.items():
+            self.assertEqual(finding.get("run"), "any", fid)
+            self.assertTrue(finding.get("runs"), fid)
+            self.assertLessEqual(set(finding["runs"]), folders, fid)
+            self.assertIn(finding["criterion"], self.defaults, fid)
+            if finding.get("status", "open") == "open" and fid != "o68":
+                self.assertIn(finding.get("effect"), ("broken", "bent"), fid)
+            if "advice" in finding:
+                self.assertLessEqual(len(re.findall(r"[.!?](?:\s|$)", finding["advice"])), 3, fid)
+            for item in (finding.get("figure") or {}).get("items", []):
+                self.assertLessEqual(len(item["label"]), 22, f"{fid}: {item['label']}")
+        proposed = {json.loads(o["change"]["to"])["key"] for o in self.new_options.values()
+                    if o.get("kind") == "change-expectation" and o["change"]["to"].startswith("{")}
+        for aid, option in self.new_options.items():
+            self.assertIn(option["criterion"], set(self.defaults) | proposed, aid)
+            self.assertTrue(set(option["findings"]) <= set(self.new_findings), aid)
+            self.assertTrue(re.fullmatch(r"Do: .* Files and symbols: .* Test: .* Done when: [^:]*", option["goal"]), aid)
+            if option.get("kind") in ("fix-shiploop", "fix-harness"):
+                self.assertRegex(option["why"], r"^For: .* Against: .* Verdict: ", aid)
+        for fid in self.new_findings:  # one to four options each, at most one recommended
+            linked = [o for o in self.new_options.values() if fid in o["findings"]]
+            self.assertTrue(1 <= len(linked) <= 4, fid)
+            self.assertLessEqual(sum(o.get("recommended") is True for o in linked), 1, fid)
+
+    def test_a_fixed_finding_cites_its_commit_in_a_done_option_and_every_done_or_built_option_has_a_ref(self):
+        fixed = [fid for fid, f in self.new_findings.items() if f.get("status") == "fixed"]
+        self.assertGreaterEqual(len(fixed), 10)
+        for fid in fixed:
+            refs = [o.get("ref", "") for o in self.new_options.values() if fid in o["findings"] and o["status"] in ("done", "built")]
+            self.assertTrue(any(re.search(r"\b[0-9a-f]{8}\b", r) for r in refs), fid)
+            self.assertNotIn("effect", self.new_findings[fid], fid)
+        for aid, option in self.new_options.items():
+            if option["status"] in ("done", "built", "planned"):
+                self.assertTrue(option.get("ref"), aid)
+
+    def test_no_bundle_states_the_withdrawn_explanation_and_the_chrome_findings_name_the_grok_host(self):
+        for name, docs in self.bundles.items():
+            for collection, items in docs.items():
+                for i, doc in items.items():
+                    text = json.dumps(doc, ensure_ascii=False)
+                    self.assertIsNone(R22C_WITHDRAWN.search(text), f"{name} {collection}/{i}")
+        self.assertIsNone(R22C_WITHDRAWN.search("Chrome hung in the Grok host while the display was held on"))  # a fact, not the cause
+        self.assertIsNotNone(R22C_WITHDRAWN.search("the display was asleep, so Chrome stayed on about:blank"))
+        chrome = [fid for fid, f in self.new_findings.items() if "Chrome" in f["title"]]
+        self.assertTrue(chrome)
+        for fid in chrome:
+            self.assertIn("Grok host", self.new_findings[fid]["title"] + self.new_findings[fid]["observed"], fid)
+        mixed = self.new_findings["o73"]  # r2 is mixed host: Claude, not Grok, ran its browser check
+        self.assertIn("Claude Sonnet", mixed["observed"])
+        self.assertIn("browser check", mixed["observed"])
+
+    def test_the_figures_equal_the_numbers_of_the_analyses_and_the_run_extract(self):
+        cost = self.r2["cost_finding"]
+        for text in ("$5.1613 to $8.5146", "calls 105 to 152", "17.73M to 30.84M", "$5.70 to $5.81"):
+            self.assertIn(text, cost)
+        loop = next(c for c in self.r3["loop_done_check"] if "B9" in c["condition"])["evidence"]
+        self.assertIn("Checkers cost is $6.65 against r1 $5.16 and r2 $8.51, Battleship $5.67 against r1 $5.70 and r2 $5.81", loop)
+        self.assertEqual(self.bars("o69"), {"r1 Checkers": 5.16, "r2 Checkers": 8.51, "r3 Checkers": 6.65,
+                                            "r1 Battleship": 5.70, "r2 Battleship": 5.81, "r3 Battleship": 5.67})
+        for text in ("$5.1613", "$8.5146", "105 to 152", "17.73M to 30.84M"):
+            self.assertIn(text, self.general["observations"]["o69"]["observed"])
+        a5 = next(c for c in self.r2["candidates"] if c["id"] == "A5")["evidence"]
+        self.assertIn("(44-47%)", a5)
+        self.assertIn("(80-89%)", a5)
+        self.assertIn("67-74% of it in Checkers", next(c for c in self.r3["batch4_scorecard"] if c["change"].startswith("A5 per-item"))["evidence"])
+        self.assertEqual(self.bars("o55"), {"Floor after ratchet": 100, "r2 Checkers, low": 44, "r2 Checkers, high": 47,
+                                            "r2 Battleship, low": 80, "r2 Battleship, high": 89, "r3 Checkers model, low": 67})
+        self.assertIn("Met 1 of 4", next(c for c in self.r3["new_candidates"] if c["id"] == "R3-2")["evidence"])
+        self.assertEqual(self.bars("o46"), {"Rollbacks read": 4, "Printed recipe used": 1})
+        self.assertIn("8 calls, 34 s", next(c for c in self.r1["candidates"] if c["id"] == "R1")["evidence"])
+        self.assertIn("(round 1: 7 and 8 calls with a hand sed)", next(c for c in self.r2["batch3_scorecard"] if c["change"].startswith("R1 "))["evidence"])
+        self.assertEqual(self.bars("o58"), {"r1 Battleship calls": 8, "r1 Checkers calls": 7, "r2 calls, each run": 1})
+        fig, runs = self.figures, self.figures["runs"]
+        round_runs = fig["round_runs"]
+        self.assertEqual(self.bars("o65"), {"Round runs": len(round_runs), "Backchain loop ran": len(fig["backchain_loop_round_runs"]),
+                                            "Graph check ran": len(fig["graph_checked_round_runs"])})
+        self.assertEqual((len(fig["backchain_loop_round_runs"]), len(fig["graph_checked_round_runs"])), (0, 3))
+        self.assertEqual(set(self.general["observations"]["o65"]["runs"]), set(round_runs) - set(fig["graph_checked_round_runs"]))
+        windows = {k: runs[k]["planning_window_min"] for k in round_runs}
+        self.assertEqual(windows, {k: round(runs[k]["planning_window_seconds"] / 60, 1) for k in round_runs})
+        sonnet = [windows[k] for k in round_runs if k.endswith("sonnet")]
+        self.assertEqual(self.bars("o70"), {"Owner's rule": 30, "Grok r1": windows["r1-battleship-grok-none"],
+                                            "Grok r2, mixed run": windows["r2-battleship-grok-none"], "Grok r3": windows["r3-battleship-grok-none"],
+                                            "Sonnet, slowest": max(sonnet), "Sonnet, fastest": min(sonnet)})
+        self.assertEqual([windows[k] for k in ("r1-battleship-grok-none", "r2-battleship-grok-none", "r3-battleship-grok-none")], [23.3, 15.7, 23.2])
+        self.assertLess(max(windows.values()), 30)
+        # the second planning figure: round 1's planning_minutes is the harness's stage seconds from intake to prepare
+        round1 = json.loads((ROOT / "docs" / "experiments" / "round1-20261008" / "evidence.json").read_text(encoding="utf-8"))["runs"]
+        for run in round1.values():
+            seconds = sum(v for k, v in run["stage_seconds"].items() if int(k.split(":")[0]) <= 6)
+            self.assertEqual(round(seconds / 60, 1), run["planning_minutes"])
+        self.assertEqual(self.bars("o71"), {"r1 blocked visit": fig["r1_grok_blocked_visit_min"],
+                                            "r3 open implement": fig["r3_grok"]["open_implement_min"]})
+        self.assertEqual((fig["r1_grok_blocked_visit_min"], fig["r3_grok"]["open_implement_min"]), (21.1, 27.1))
+        mixed = fig["r2_mixed"]
+        self.assertEqual(self.bars("o73"), {"Grok-host visits": mixed["grok_visits"], "Claude-host visits": mixed["claude_visits"]})
+        self.assertEqual((mixed["grok_visits"], mixed["claude_visits"], mixed["first_claude_visit"]), (31, 21, 32))
+        self.assertEqual(self.bars("o76"), {f"r3 {name} {what}": runs[key]["narrative_" + what]
+                                            for name, key in (("Battleship", "r3-battleship-sonnet"), ("Checkers", "r3-checkers-sonnet"),
+                                                              ("Grok", "r3-battleship-grok-none")) for what in ("emitted", "shown")})
+        skipped = {k: runs[k]["skipped_visits"] for k in round_runs if runs[k]["skipped_visits"]}
+        self.assertEqual(self.bars("o80"), {"Round runs": 9, "Runs with skill_na": len(skipped),
+                                            "Visits recorded N/A": sum(len(v) for v in skipped.values())})
+        self.assertEqual(sorted(self.general["observations"]["o80"]["runs"]), sorted(skipped))
+
+    def test_the_credential_finding_names_the_trigger_the_screen_replay_shows(self):
+        sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
+        try:
+            import shiploop_privacy
+        finally:
+            sys.path.remove(str(ROOT / "skills" / "shiploop" / "scripts"))
+        replay = self.figures["credential_replay"]
+        self.assertEqual(sorted(replay), ["r2-battleship-grok-none", "r3-battleship-grok-none"])
+        hex_lines = 0
+        for rows in replay.values():
+            for row in rows:
+                self.assertTrue(shiploop_privacy.sensitive_text(row["line"]))  # the screen of this checkout still refuses it
+                self.assertFalse(shiploop_privacy.sensitive_text(re.sub(r"(?i)\bsignature\s*:", "", row["line"])))
+                self.assertTrue(row["trips_on"] and all("Signature:" in part for part in row["trips_on"]))
+                hex_lines += bool(re.search(r"#[0-9a-fA-F]{6}\b", row["line"]))
+        self.assertGreaterEqual(hex_lines, 1)  # the hex colours are on the refused line, and they are not what trips it
+        x1 = self.new_findings["o75"]
+        self.assertIn("the trigger is the label, not the hex values", x1["observed"])
+        self.assertEqual(sum(self.figures["runs"][k]["credential_refusals"] for k in x1["runs"]), 4)
+        self.assertIn("E2E session's engine", x1["advice"])
+
+    def test_a_prompt_for_new_options_stays_within_the_size_contract_and_names_no_unticked_option(self):
+        findings = [{"id": i, **d} for docs in self.bundles.values() for i, d in (docs.get("observations") or {}).items()]
+        options = [{"id": i, **d} for docs in self.bundles.values() for i, d in (docs.get("actions") or {}).items()]
+        cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
+        run = {"key": "r3-battleship-sonnet", "name": "r3 Battleship Sonnet", "evidence": "/Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet"}
+        state = {"run": run, "runs": [run], "findings": findings, "options": options, "expectations": self.defaults,
+                 "review": None, "after": "wait", "notes": "", "selected": {"options": {}, "find": {}},
+                 "config": {**cfg["prompt"], "artifactUrl": ""}}
+
+        def own_words(ticked):
+            chosen = [o for o in options if o["id"] in ticked]
+            ids = {f for o in chosen for f in o["findings"]}
+            said = sum(len(o["goal"]) + len(o["title"]) + len(o.get("cost", ""))
+                       + sum(len(v) for v in (o.get("change") or {}).values()) for o in chosen)
+            return said + sum(len(f["title"]) + len(f["expected"]) + len(f["observed"]) + len(f.get("evidence", ""))
+                              for f in findings if f["id"] in ids)
+
+        live = [i for i, o in self.new_options.items() if o["status"] != "done"]
+        changes = [i for i, o in self.new_options.items() if o.get("kind") == "change-expectation" and o["change"]["target"] == "page"]
+        ticks = [["a27", "a75"]] + ([changes[:2]] if len(changes) >= 2 else []) + [[i] for i in live]
+        texts = run_logic("(function(S){return %s.map(function(t){var s=JSON.parse(JSON.stringify(S));"
+                          "t.forEach(function(i){s.selected.options[i]=true;});return buildPrompt(s);});})(%s)"
+                          % (json.dumps(ticks), json.dumps(state)))
+        for ticked, text in zip(ticks, texts):
+            with self.subTest(ticked=ticked):
+                self.assertLessEqual(len(text) - own_words(ticked), 3000, len(text))
+                for other in options:
+                    if other["id"] not in ticked:
+                        self.assertNotRegex(text, rf"\b{other['id']}\b")
+        self.assertIn("FIX SHIPLOOP", texts[0])
+        self.assertIn("FIX THE HARNESS", texts[0])
+        self.assertLess(texts[0].index("FIX SHIPLOOP"), texts[0].index("FIX THE HARNESS"))
+
+    def test_stale_luna_statements_are_marked_superseded_in_place_with_their_evidence(self):
+        luna = self.bundles["luna1.review.json"]
+        obs, act = luna["observations"], luna["actions"]
+        expect = {  # id: (status, the dated mark, a token of its evidence)
+            "o34": ("fixed", "[Superseded 2026-10-09:", "c7a8187d"), "o40": ("fixed", "[Superseded 2026-10-09:", "9c593a37"),
+            "o41": ("accepted", "[Superseded in part 2026-10-09:", "ce32a143"),
+            "a21": ("done", "[Superseded 2026-10-09:", "9c593a37"), "a17": ("done", "[2026-10-09: shipped in 1.21.0", "1411d5f1"),
+            "a23": ("built", "[2026-10-09: built in 41c45512", "d1cca62f"), "a09": ("built", "is unknown", "1411d5f1")}
+        for i, (status, note, token) in expect.items():
+            doc = (obs if i.startswith("o") else act)[i]
+            text = r22c_texts(doc)
+            self.assertEqual(doc["status"], status, i)
+            self.assertIn(note, text, i)
+            self.assertIn(token, text, i)
+            # kept as written: the dated mark is appended after the old text, never a rewrite (a21 had no ref; its ref is new)
+            marked = [doc[f] for f in ("observed", "why", "ref", "advice") if "2026-10-09" in doc.get(f, "")
+                      and not (i == "a21" and f == "ref")]
+            self.assertTrue(marked, i)
+            for field in marked:
+                self.assertTrue(field.endswith("]"), i)
+                self.assertGreater(field.index("2026-10-09"), 20, i)
+        self.assertIn("f6f1ac2f", obs["o41"]["observed"])
+        self.assertEqual(self.figures["luna_recollect"], {"failures": 13, "generic_tails": 0, "own_line": 13})
+        self.assertIn("[Superseded 2026-10-09: o40 is fixed (9c593a37).]", luna["reviews"]["luna1"]["basis"]["P5"])
+
+    def test_the_phase_changes_keep_the_current_text_and_the_owners_sentence_and_append_the_engine_today(self):
+        changes = {o["criterion"]: (i, o) for i, o in self.new_options.items()
+                   if o.get("kind") == "change-expectation" and o["change"]["target"] == "page"}
+        for key, finding, appended in (("phase-2", "o65", "the plan packet makes the Backchain child the host's choice"),
+                                       ("phase-4", "o80", "when the accepted step plan records skill_na")):
+            aid, option = changes[key]
+            now = self.defaults[key]["text"]
+            self.assertTrue(option["change"]["to"].startswith(now), key)  # nothing of the current text is removed
+            self.assertIn(appended, option["change"]["to"][len(now):], key)
+            self.assertEqual((option["findings"], option.get("recommended")), ([finding], True), key)
+            self.assertIn(key, option["goal"])
+        self.assertTrue(self.defaults["phase-2"]["text"].endswith("there is no limit to this"))  # the owner's sentence
+        self.assertIn("there is no limit to this", changes["phase-2"][1]["change"]["to"])
+        self.assertIn("'there is no limit to this' is kept word for word", changes["phase-2"][1]["change"]["reason"])
+
+    def test_the_new_criteria_are_documents_in_the_specs_words_for_clauses_no_criterion_carries(self):
+        spec = " ".join(SPEC_MD.read_text(encoding="utf-8").split())
+        carried = {c for e in self.defaults.values() for c in e.get("clauses") or []}
+        phrases = {"S-14": ("When a step meets an open question, it takes a stated, recorded default", "instead of waiting",
+                            "When a step needs something only a person can supply",
+                            "the run records it as an open item, continues with everything that does not depend on it",
+                            "truly cannot proceed"),
+                   "S-15": ("What the user sees about progress is rendered by ShipLoop's scripts from saved state: a short status at every "
+                            "step and, at milestones, a narrative of what is achieved, what is happening, what comes next and the observed pace.",
+                            "The model never composes, paraphrases or estimates progress itself"),
+                   "S-3": ("SKILL.md and the reference cards tell the model how to invoke the scripts and to follow what they return.",
+                           "When a card and a script disagree, the script wins, and the disagreement is a defect to fix.")}
+        proposed = {}
+        for aid, option in self.new_options.items():
+            if option.get("kind") == "change-expectation" and option["change"]["to"].startswith("{"):
+                doc = json.loads(option["change"]["to"])
+                proposed[doc["clauses"][0]] = (aid, option, doc)
+        self.assertEqual(sorted(proposed), ["S-14", "S-15", "S-3"])
+        for clause, (aid, option, doc) in proposed.items():
+            self.assertNotIn(clause, carried, clause)  # the gap is real
+            self.assertNotIn(doc["key"], self.defaults, clause)
+            self.assertEqual((option["criterion"], doc["kind"], doc["group"]), (doc["key"], "criterion", "group-principles"))
+            self.assertEqual(export.validate_doc("expectations", {k: v for k, v in doc.items() if k != "key"}), [], clause)
+            self.assertLessEqual(len(re.findall(r"[.!?](?:\s|$)", doc["text"])), 2, clause)
+            for phrase in phrases[clause]:
+                self.assertIn(phrase, spec, clause)
+                self.assertIn(phrase.rstrip("."), doc["text"], clause)
+            reason = option["change"]["reason"]
+            for gap in ("S-3", "S-8", "S-12", "S-13", "S-14", "S-15"):
+                self.assertIn(gap, reason, clause)
+            self.assertTrue(option["findings"] and all(self.new_findings[f].get("status", "open") == "open" for f in option["findings"]))
+            self.assertIn(f"key {doc['key']}", option["goal"])
+        # the prompt reads a new criterion as one with no current text
+        text = run_logic("buildPrompt(%s)" % json.dumps({
+            "run": {"key": "r1-battleship-grok-none"}, "findings": [{"id": i, **d} for i, d in self.new_findings.items()],
+            "options": [{"id": i, **d} for i, d in self.new_options.items()], "expectations": self.defaults,
+            "selected": {"options": {proposed["S-14"][0]: True}, "find": {}}, "config": {}}))
+        self.assertIn(f"{proposed['S-14'][0]} P7 Add a criterion for S-14: unattended by default: target page. Now: {{", text)
+        self.assertIn(" Was: (not recorded) Why: ", text)
+
+    def test_the_two_round_3_reviews_ground_every_basis_line_and_derive_the_chips_they_describe(self):
+        findings = [{"id": i, **d} for docs in self.bundles.values() for i, d in (docs.get("observations") or {}).items()]
+        criteria = [k for k, e in self.defaults.items() if e["kind"] == "criterion"]
+        expected = {"r3-battleship-sonnet": {"P1": "holds", "P2": "holds", "P3": "bent", "P4": "holds", "P5": "broken",
+                                             "P6": "unexamined", "B1": "unexamined", "B2": "bent", "B3": "unexamined",
+                                             "B4": "unexamined", "B5": "unexamined"},
+                    "r3-battleship-grok-none": {"P1": "holds", "P2": "holds", "P3": "unexamined", "P4": "holds", "P5": "broken",
+                                                "P6": "broken", "B1": "unexamined", "B2": "bent", "B3": "unexamined",
+                                                "B4": "unexamined", "B5": "unexamined"}}
+        for key, chips in expected.items():
+            with self.subTest(run=key):
+                name = f"{key}.review.json"
+                self.assertIn(name, self.bundles)
+                self.assertEqual(sorted(self.bundles[name]), ["reviews"])  # its findings live in general.review.json
+                review = self.bundles[name]["reviews"][key]
+                self.assertTrue(3 <= len(review["summary"]) <= 6)
+                self.assertEqual(review["reviewedAt"], "2026-10-09T16:00:00Z")
+                out, err = io.StringIO(), io.StringIO()
+                with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    code = export.main(["--check", str(EVIDENCE_DIR / name)])
+                self.assertEqual((code, err.getvalue(), out.getvalue().strip()), (0, "", "check: ok (1 document, 0 failures, 0 warnings)"))
+                applying = {f["id"]: f for f in findings if key in (f.get("runs") or []) and f.get("status", "open") == "open"}
+                for criterion, line in review["basis"].items():
+                    mine = {fid: f for fid, f in applying.items() if f["criterion"] == criterion}
+                    if line.startswith("Holds"):
+                        self.assertEqual(mine, {}, criterion)
+                    else:
+                        cited = set(re.findall(r"\bo\d+\b", line))
+                        self.assertEqual(cited, set(mine), criterion)  # every open finding of the criterion, and only those
+                        for fid in cited:
+                            word = "Broken by" if mine[fid]["effect"] == "broken" else "Bent by"
+                            self.assertRegex(line, rf"(?i){word}[^.;]*\b{fid}\b", f"{criterion} {fid}")
+                    self.assertTrue(re.search(r"\b(?:o\d+|state\.md|metrics\.json|result\.json|run/backchain/|revision \d+)", line), criterion)
+                got = run_logic("(function(F,R){return %s.map(function(k){return chipFor(k,%s,F,R);});})(%s,%s)"
+                                % (json.dumps(criteria), json.dumps(key), json.dumps(findings), json.dumps(review)))
+                self.assertEqual(dict(zip(criteria, got)), chips)
+        runs, g3 = self.figures["runs"], self.figures["r3_grok"]
+        sonnet = self.bundles["r3-battleship-sonnet.review.json"]["reviews"]["r3-battleship-sonnet"]["summary"][0]
+        bs = runs["r3-battleship-sonnet"]
+        for fact in (f"in {bs['wall_min']} min", f"{bs['visits']} accepted visits", f"{bs['calls']} model calls", f"${bs['cost_usd']:.2f}",
+                     f"{bs['planning_window_min']} min ({bs['planning_window_seconds']:.0f} s)"):
+            self.assertIn(fact, sonnet)
+        grok = " ".join(self.bundles["r3-battleship-grok-none.review.json"]["reviews"]["r3-battleship-grok-none"]["summary"])
+        for fact in ("STOPPED", f"{g3['accepted_visits']} accepted visits", f"{g3['open_implement_min']} unaccepted minutes",
+                     f"{g3['resumed_session_min']} minutes", f"{g3['first_browser_line_second']} s in", "Grok host"):
+            self.assertIn(fact, grok)
+        self.assertEqual((g3["stop"], g3["earlier_stop"], g3["last_accepted_stage"]), ("stopped", ["terminated by SIGTERM"], "implement"))
 
 
 # ---------------------------------------------------------------- R20a: the stage catalog, the card fields and the stage card
@@ -5510,6 +5905,1236 @@ class PacketHeadStartTests(unittest.TestCase):
         self.assertNotIn("Delegation: inline.", with_line.split("Packet box below)")[1])
         self.assertNotIn("from the 'ShipLoop navigator |' line", without)
         self.assertIn("the first 3 non-empty lines of the packet", without)
+
+
+# ---------------------------------------------------------------- R22a: how the run ended, hosts, blocked, left behind
+
+# Excerpts of the real records of a Grok run the harness stopped (ShipLoop 0.58.0), the shapes the exporter reads; the paths
+# and ids are synthetic. result.json `termination`, `earlier_terminations`, `left_behind` and `shiploop.worktree_checks`.
+TERMINATION_STOPPED = {"process_status": "stopped", "returncode": -9, "sessions": 1, "resumes": 0, "session_stops": ["unknown"],
+                       "resume_stop": "stopped by /e2e/r3-battleship-grok-none/stop", "engine_status": "active",
+                       "engine_stage": "test-green", "engine_unaccepted_stage": "test-green", "engine_status_reason": None}
+EARLIER_TERMINATION = {"process_status": "stopped", "returncode": -9, "sessions": 1, "resumes": 0, "session_stops": ["unknown"],
+                       "resume_stop": "terminated by SIGTERM", "engine_status": "active", "engine_stage": "test-author",
+                       "engine_unaccepted_stage": "test-author", "engine_status_reason": None}
+LEFT_BEHIND = {"observed": True, "survived": [], "reaped": [
+    {"pid": 39510, "command": "node", "ports": [64332], "ended_by": "SIGTERM",
+     "cwd": "/e2e/r3/.shiploop-runs/work-20261009-062034-d142b0/worktree", "argv": "/opt/homebrew/Cellar/node/25.9.0_2/bin/node server.js"},
+    {"pid": 39511, "command": "Google Chrome", "ports": [64335], "ended_by": "SIGTERM", "cwd": "/e2e/r3/work",
+     "argv": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome --headless=new --remote-debugging-port=64335 about:blank"}]}
+INCOMPLETE_ROW = {"stage": "test-green", "outcome": None, "incomplete": True, "seconds": 1626.6, "turns": 104, "tool_calls": 128}
+
+
+def ended_run(root: Path, *, process_status: str = "stopped", termination: dict | None = None, status: str = "active",
+              incomplete: dict | None = INCOMPLETE_ROW, packet: bool = True, **result) -> Path:
+    """A run the harness ended: ShipLoop's state still reads `status`, result.json carries the harness's termination record
+    (a stopped Grok run's, by default), metrics.json the `incomplete` stage row for the stage never accepted, and the packet
+    issued for it (state.md names its action `nav-x`) is on disk."""
+    rows = harness_rows(ACCEPTS) + ([incomplete] if incomplete else [])
+    out = make_run(root, status=status, loops=False, metrics={"stages": rows})
+    if packet:
+        (run_dir_of(out) / "packets" / "nav-x.md").write_text("ShipLoop navigator | test-green | revision 9\n" + "x" * 300)
+    def write(r: dict) -> None:
+        r.update(termination=dict(TERMINATION_STOPPED, process_status=process_status) if termination is None else termination,
+                 process={"status": process_status, "returncode": -9})
+        for name, value in result.items():  # `shiploop` extends the record that names the run directory
+            r[name] = {**r.get(name, {}), **value} if name == "shiploop" else value
+    edit_json(out / "result.json", write)
+    return out
+
+
+class RunEndingExportTests(unittest.TestCase):
+    """R22a gaps 1 and 2: a run the harness ended reads stopped, not running, and its unaccepted tail is not lost."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def test_an_active_run_whose_host_the_harness_stopped_reads_stopped_with_the_phase_the_header_and_the_cause(self):
+        run, facts = self.build(ended_run(self.tmp))
+        self.assertEqual(run["status"], "stopped")
+        self.assertEqual(run["phases"], ["done", "done", "done", "stopped", "none", "none", "none", "none"])
+        self.assertEqual(run["time"], "stopped after 2.3 h, then 27 min of unaccepted work")
+        self.assertEqual(run["ending"]["by"], "stopped by the stop file")  # the absolute path is not exported
+        self.assertNotIn("/e2e", json.dumps(run))
+        self.assertIn("- Ended: stopped: stopped by the stop file; test-green never accepted, 27.1 min after the last accept, "
+                      "104 turns; 1 session, 0 resumes", "\n".join(facts))
+        self.assertEqual(run["wallMin"], 140.0)  # the accepted work only: the tail is not in it
+
+    def test_the_phase_map_pins_stopped_apart_from_running_and_blocked(self):
+        self.assertEqual(export.derive_phases([0, 1, 2], 2, "stopped"), ["done", "done", "stopped"] + ["none"] * 5)
+        self.assertEqual(export.derive_phases([0, 1, 2], 2, "active")[2], "running")
+        self.assertEqual(export.derive_phases([0, 1, 2], 2, "blocked")[2], "blocked")
+        self.assertEqual(export.derive_phases([0, 1, 2], 2, "halted")[2], "blocked")
+        self.assertEqual(export.derive_phases(list(range(8)), None, "done"), ["done"] * 8)
+        self.assertIn("stopped", export.PHASE_STATES)
+        self.assertEqual(export.validate_doc("runs", {"key": "k", "name": "n", "order": 1, "release": "r", "time": "t",
+                                                       "imp": "i", "phases": ["stopped"], "status": "stopped"}), [])
+        self.assertTrue(export.validate_doc("runs", {"key": "k", "name": "n", "order": 1, "release": "r", "time": "t",
+                                                      "imp": "i", "phases": ["halted"]}))
+
+    def test_a_timeout_a_spent_resume_budget_and_a_failed_host_are_stopped_too_and_say_why(self):
+        for process_status, resume_stop, said in (
+                ("timeout", "host is not resumable", "host timeout; host is not resumable"),
+                ("exited", "resume budget spent (3)", "resume budget spent (3)"),
+                ("failed", "no host session id to resume", "host failed; no host session id to resume"),
+                ("stopped", "terminated by SIGTERM", "terminated by SIGTERM")):
+            with self.subTest(process_status=process_status):
+                out = ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), process_status=process_status,
+                                termination=dict(TERMINATION_STOPPED, process_status=process_status, resume_stop=resume_stop))
+                run, _ = self.build(out)
+                self.assertEqual((run["status"], run["ending"]["by"]), ("stopped", said))
+
+    def test_only_a_run_whose_engine_reads_active_and_whose_host_the_harness_saw_end_is_stopped(self):
+        self.assertEqual(self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp))))[0]["status"], "stopped")  # the positive case
+        for label, kwargs, expected in (
+                ("blocked keeps the engine's status", dict(status="blocked"), "blocked"),
+                ("paused keeps the engine's status", dict(status="paused"), "paused"),
+                ("a regrade observed no process", dict(process_status="not observed (regraded: no host ran)"), "active")):
+            with self.subTest(label):
+                run, _ = self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), **kwargs))
+                self.assertEqual(run["status"], expected)
+        out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)  # no termination record at all: as before
+        run, _ = self.build(out)
+        self.assertEqual((run["status"], run["time"]), ("active", "running, 2.3 h at snapshot"))
+        self.assertNotIn("ending", run)
+
+    def test_a_stopped_run_with_no_timing_for_its_tail_has_no_unaccepted_minutes_and_says_nothing_of_them(self):
+        no_timing = {"stage": "test-green", "outcome": None, "incomplete": True, "timing": "unavailable"}
+        run, _ = self.build(ended_run(self.tmp, incomplete=no_timing))
+        self.assertNotIn("unacceptedMin", run["ending"])
+        self.assertNotIn("unacceptedTurns", run["ending"])
+        self.assertEqual(run["ending"]["stage"], "test-green")  # the engine still names the stage
+        self.assertEqual(run["time"], "stopped after 2.3 h")  # nothing invented, not "then 0 min"
+        none = Path(tempfile.mkdtemp(dir=self.tmp))
+        gone = self.build(ended_run(none, incomplete=None))[0]
+        self.assertTrue(all(k not in gone["ending"] for k in ("unacceptedMin", "unacceptedTurns")))
+
+    def test_the_packet_issued_for_the_unaccepted_stage_is_named_sized_and_written_as_a_document(self):
+        out = ended_run(self.tmp)
+        docs, _ = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        size = (run_dir_of(out) / "packets" / "nav-x.md").stat().st_size
+        self.assertGreater(size, 300)
+        self.assertEqual((run["ending"]["action"], run["ending"]["packetBytes"], run["ending"]["packetDoc"]), ("nav-x", size, True))
+        document = docs["packets"][f"{self.KEY}--nav-x"]
+        self.assertEqual((document["stage"], document["bytes"]), ("test-green", size))
+        self.assertEqual(export.validate_doc("packets", document), [])
+        bare = Path(tempfile.mkdtemp(dir=self.tmp))
+        docs, _ = export.build_run(ended_run(bare, packet=False))
+        self.assertTrue(all(k not in docs["runs"][self.KEY]["ending"] for k in ("action", "packetBytes", "packetDoc")))
+        self.assertNotIn(f"{self.KEY}--nav-x", docs["packets"])
+
+    def test_sessions_resumes_and_earlier_terminations_are_kept_for_a_resumed_run_and_a_clean_run_has_no_ending(self):
+        resumed = ended_run(self.tmp, status="done", process_status="exited", incomplete=None, packet=False,
+                            termination=dict(TERMINATION_STOPPED, process_status="exited", sessions=2, resumes=1,
+                                             resume_stop="ShipLoop run is done", engine_status="done",
+                                             engine_unaccepted_stage=None),
+                            earlier_terminations=[EARLIER_TERMINATION])
+        run, facts = self.build(resumed)
+        self.assertEqual(run["status"], "done")
+        self.assertEqual(run["ending"], {"sessions": 2, "resumes": 1, "earlier": [{"by": "terminated by SIGTERM", "stage": "test-author"}]})
+        self.assertIn("earlier: terminated by SIGTERM at test-author", "\n".join(facts))
+        clean = ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), status="done", process_status="exited", incomplete=None, packet=False,
+                          termination=dict(TERMINATION_STOPPED, process_status="exited", resume_stop="host is not resumable",
+                                           engine_status="done", engine_unaccepted_stage=None))
+        self.assertNotIn("ending", self.build(clean)[0])  # guard: one clean session is nothing to report
+
+    def test_the_stop_files_path_is_replaced_by_its_name_and_a_cause_without_one_is_kept_as_written(self):
+        self.assertEqual(export._ended_by("stopped by /Users/x/e2e/run-1/stop", "stopped"), "stopped by the stop file")
+        self.assertEqual(export._ended_by("run deadline spent", "exited"), "run deadline spent")
+        self.assertEqual(export._ended_by("host is not resumable", "timeout"), "host timeout; host is not resumable")
+        self.assertIsNone(export._ended_by(None, "exited"))
+        self.assertIsNone(export._ended_by("   ", "exited"))
+
+
+class RunHostsExportTests(unittest.TestCase):
+    """R22a gaps 3 and 4: a run two hosts wrote is not one host's measure, and a visit never prints an unmeasured 0 calls."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def two_hosts(self, root: Path) -> Path:
+        """A Grok run resumed on Claude: one visit of each host's events has a context row, the Grok visits have calls 0."""
+        contexts = {0: {"calls": 0, "peak": 63_417, "peakPct": 6.3}, 1: {"calls": 0, "peak": None, "peakPct": None},
+                    5: {"calls": 5, "peak": 71_202, "peakPct": 7.1}, 6: {"calls": 3, "peak": 92_119, "peakPct": 9.2}}
+        out = make_run(root, loops=False, metrics={"stages": harness_rows(ACCEPTS, contexts), "model_calls": 182,
+                                                   "window_tokens": 1_000_000, "compactions": 1,
+                                                   "tokens": {"input_peak": 257_816}})
+        write_json(out / "invocation-resume-claude-1791508003.json", {"host": "claude", "model": "claude-sonnet-5-5", "case": "custom"})
+        write_json(out / "invocation-resume-codex-1791509021.json", json.loads((out / "invocation.json").read_text()))
+        return out
+
+    def test_a_run_resumed_on_another_host_lists_both_and_exports_no_figure_that_mixes_them(self):
+        run, facts = self.build(self.two_hosts(self.tmp))
+        self.assertEqual(run["hosts"], [{"host": "codex", "model": "gpt-6-luna", "effort": "max"},
+                                        {"host": "claude", "model": "claude-sonnet-5-5"}])  # the repeat of the first is one entry
+        for field in ("calls", "contextPeak", "contextWindow", "compactions"):
+            self.assertNotIn(field, run)
+            self.assertIn("2 hosts ran this (codex gpt-6-luna, claude claude-sonnet-5-5)", run["unmeasured"][field])
+            self.assertIn("not a measure", run["unmeasured"][field])
+        self.assertTrue(all("context" not in row for row in run["stages"]))
+        self.assertEqual(run["unmeasured"]["visitContext"], run["unmeasured"]["calls"])
+        self.assertEqual(run["host"], "codex")  # the run's own host, model and effort stay those of invocation.json
+        text = "\n".join(facts)
+        self.assertIn("- Hosts: codex gpt-6-luna max; claude claude-sonnet-5-5 (more than one:", text)
+        self.assertIn("calls not measured (2 hosts ran this", text)
+
+    def test_hosts_are_ordered_by_the_resume_time_not_the_file_name_and_a_one_host_run_keeps_its_figures(self):
+        out = make_run(self.tmp, loops=False)
+        write_json(out / "invocation-resume-grok-1791509021.json", {"host": "grok", "model": "grok-4.7", "effort": "medium"})
+        write_json(out / "invocation-resume-claude-1791508003.json", {"host": "claude", "model": "claude-sonnet-5-5"})
+        self.assertEqual([h["host"] for h in export._hosts(out)], ["codex", "claude", "grok"])
+        single, _ = self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False))
+        self.assertEqual(single["hosts"], [{"host": "codex", "model": "gpt-6-luna", "effort": "max"}])
+        self.assertEqual((single["calls"], single["contextPeak"], single["contextWindow"], single["compactions"]), (120, 250_000, 1_000_000, 0))
+        resumed_same = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        write_json(resumed_same / "invocation-resume-codex-1791509021.json", json.loads((resumed_same / "invocation.json").read_text()))
+        again, _ = self.build(resumed_same)
+        self.assertEqual(len(again["hosts"]), 1)  # a resume on the same host and model is not a second host
+        self.assertEqual(again["calls"], 120)
+
+    def test_a_visit_whose_row_counts_no_model_call_has_no_context_and_one_with_calls_keeps_it(self):
+        contexts = {0: {"calls": 0, "peak": 63_417, "peakPct": 6.3, "compactions": 0}, 1: {"calls": 0, "peak": None, "peakPct": None},
+                    2: {"calls": 7, "peak": 123_219, "peakPct": 12.3}}
+        out = make_run(self.tmp, loops=False, metrics={"stages": harness_rows(ACCEPTS, contexts)})
+        run, _ = self.build(out)
+        self.assertNotIn("context", run["stages"][0])  # a peak beside 0 calls is another host's, not this visit's
+        self.assertNotIn("context", run["stages"][1])
+        self.assertEqual(run["stages"][2]["context"], {"calls": 7, "peak": 123_219, "peakPct": 12.3})
+        self.assertNotIn('"calls": 0', json.dumps(run))
+        for row in run["stages"]:
+            self.assertNotEqual((row.get("context") or {}).get("calls"), 0)
+        self.assertNotIn("visitContext", run["unmeasured"])  # some visits are measured
+
+    def test_the_reason_no_visit_has_a_context_is_per_host_and_names_what_the_harness_reads(self):
+        for host, same in (("grok", False), ("claude", True), ("codex", True)):
+            with self.subTest(host=host):
+                out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False, metrics={"stages": harness_rows(ACCEPTS)})
+                edit_json(out / "invocation.json", lambda r: r.update(host=host))
+                run = next(iter(export.build_run(out)[0]["runs"].values()))  # the key names the host: it moved with it
+                self.assertEqual(export.validate_doc("runs", run), [])
+                reason = run["unmeasured"]["visitContext"]
+                self.assertEqual(reason, export.NO_VISIT_CONTEXT if same else export.NO_VISIT_CONTEXT_GROK)
+                self.assertNotIn("only from a Codex run", reason)
+        self.assertIn("Grok's events", export.NO_VISIT_CONTEXT_GROK)
+        self.assertIn("Claude's per-message usage", export.NO_VISIT_CONTEXT)
+
+
+class RunBlockedAndLeftBehindExportTests(unittest.TestCase):
+    """R22a gaps 5, 6 and 7: a blocked run's own words, the listeners the harness ended, and the unreturned product's checks."""
+
+    KEY = RunReviewTest.KEY
+    AWAITING = {"kind": "answer", "no_default": "Recording a passing case would claim an observation that did not happen.",
+                "options": ["Accept the HTTP check and leave the browser steps unverified", "Wait until a browser can open the page"],
+                "question": "Headless Chrome does not finish loading the page and no browser tool is connected. How should TC-16 proceed?"}
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> dict:
+        docs, _ = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run
+
+    def blocked_run(self, root: Path, reason: str = "access: SYS-SERVE passed. TC-16 did not run.", **body) -> Path:
+        out = make_run(root, loops=False, status="blocked")
+        run_dir = run_dir_of(out)
+        action = IDS["implement"]
+        set_state(out, status_reason=reason, history=[*export._record(run_dir / "state.md")["history"][:-1],
+                                                         {"action": action, "stage": "implement", "outcome": "blocked",
+                                                          "summary": "s", "workitem": "W1"}])
+        record(run_dir / "results" / f"{action}.md", {"action": action, "stage": "implement", "result": {
+            "outcome": "blocked", "summary": "s", "blocked_by": "access", "headline": "TC-16 needs a browser",
+            "awaiting": self.AWAITING, **body}})
+        return out
+
+    def test_a_blocked_run_exports_its_class_reason_headline_question_options_and_why_no_default(self):
+        run = self.build(self.blocked_run(self.tmp))
+        self.assertEqual(run["status"], "blocked")
+        self.assertEqual(run["blocked"], {
+            "by": "access", "reason": "access: SYS-SERVE passed. TC-16 did not run.", "headline": "TC-16 needs a browser",
+            "question": self.AWAITING["question"], "options": self.AWAITING["options"], "noDefault": self.AWAITING["no_default"]})
+
+    def test_the_reason_is_cut_at_600_characters_and_a_run_that_is_not_blocked_has_no_blocked_object(self):
+        run = self.build(self.blocked_run(self.tmp, reason="r" * 900))
+        self.assertEqual(len(run["blocked"]["reason"]), 600)
+        self.assertNotIn("blocked", self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)))
+        self.assertNotIn("blocked", self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False, status="done")))
+
+    def test_a_blocked_run_whose_last_visit_is_not_the_blocked_result_keeps_only_the_engines_reason(self):
+        out = make_run(self.tmp, loops=False, status="blocked")
+        set_state(out, status_reason="lint: the gate refused")
+        run = self.build(out)
+        self.assertEqual(run["blocked"], {"reason": "lint: the gate refused"})  # no question was asked: none is invented
+
+    def test_left_behind_keeps_command_ports_where_and_signal_and_drops_pids_argument_lists_and_paths(self):
+        run = self.build(ended_run(self.tmp, left_behind=LEFT_BEHIND))
+        self.assertEqual(run["leftBehind"], {"observed": True, "survived": [], "reaped": [
+            {"command": "node", "ports": [64332], "where": "worktree", "endedBy": "SIGTERM"},
+            {"command": "Google Chrome", "ports": [64335], "where": "work", "endedBy": "SIGTERM"}]})
+        text = json.dumps(run)
+        for leaked in ("39510", "argv", "opt/homebrew", "remote-debugging", "/e2e/", "cwd"):
+            self.assertNotIn(leaked, text)
+
+    def test_a_survivor_has_no_signal_and_a_table_the_harness_could_not_read_stays_unobserved_with_its_reason(self):
+        survivor = {"observed": True, "reaped": [], "survived": [{"pid": 7, "command": "/usr/bin/node", "ports": [3000],
+                                                                 "cwd": "/somewhere/else", "argv": "node server.js"}]}
+        run = self.build(ended_run(self.tmp, left_behind=survivor))
+        self.assertEqual(run["leftBehind"]["survived"], [{"command": "node", "ports": [3000], "where": "other"}])
+        unread = self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), left_behind={"observed": False, "reason": "lsof timed out after 5s"}))
+        self.assertEqual(unread["leftBehind"], {"observed": False, "reason": "lsof timed out after 5s"})  # never an empty list
+        none = self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), left_behind={"observed": True, "reaped": [], "survived": []}))
+        self.assertEqual(none["leftBehind"], {"observed": True, "reaped": [], "survived": []})  # a measured none
+        self.assertNotIn("leftBehind", self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)))
+
+    def test_where_is_read_from_the_path_components_so_a_copied_run_classifies_the_same(self):
+        self.assertEqual([export._where(p) for p in ("/a/.shiploop-runs/work-1/worktree", "/b/worktree/src", "/a/run-out/work",
+                                                      "/a/work/sub", "/a/.shiploop-runs/work-1/run", None)],
+                         ["worktree", "worktree", "work", "work", "other", "other"])
+        self.assertEqual([export._where(p) for p in ("/a/work/x/worktree/src", "/a/worktree/x/work")], ["worktree", "work"])  # the nearest wins
+
+    def test_the_unreturned_products_checks_are_a_verdict_beside_the_checks_that_ran_where_it_was_not_returned(self):
+        shiploop = {"pass": False, "worktree_checks": [{"command": "node --test", "pass": True}, {"command": "curl", "pass": True}]}
+        out = ended_run(self.tmp, shiploop=shiploop)
+        run = self.build(out)
+        self.assertEqual((run["verdicts"]["checks"], run["verdicts"]["worktreeChecks"]), (False, {"passed": 2, "total": 2}))
+        failing = dict(shiploop, worktree_checks=[{"command": "a", "pass": True}, {"command": "b", "pass": False}])
+        self.assertEqual(self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), shiploop=failing))["verdicts"]["worktreeChecks"],
+                         {"passed": 1, "total": 2})
+        self.assertNotIn("worktreeChecks", self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False))["verdicts"])  # none ran there
+        text = "\n".join(export.build_run(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), shiploop=shiploop))[1])
+        self.assertIn("- Checks in the worktree (product not returned): 2/2 pass; in the work folder: not all pass", text)
+        self.assertIn("worktreeChecks 2/2", text)  # the Verdicts line prints the count, not "pass" for an object
+
+    def test_the_default_run_name_carries_the_case_and_a_given_name_still_wins(self):
+        out = make_run(self.tmp, loops=False)
+        run = self.build(out)
+        self.assertEqual(run["name"], "codex gpt-6-luna max, battleship, release 1.16.1")
+        named = export.build_run(out, name="My name")[0]["runs"][self.KEY]["name"]
+        self.assertEqual(named, "My name")
+        edit_json(out / "invocation.json", lambda r: r.pop("case"))
+        edit_json(out / "result.json", lambda r: r.pop("case"))
+        bare = next(iter(export.build_run(out)[0]["runs"].values()))
+        self.assertEqual(bare["name"], "codex gpt-6-luna max, release 1.16.1")  # no case recorded: none printed
+        self.assertEqual(bare["key"], "codex-gpt-6-luna-1.16.1-unknown-20261003")  # the key rule is unchanged
+
+
+class RunEndingContractTests(unittest.TestCase):
+    """R22a: the contract names the new fields, rejects wrong shapes, and no longer states what the E2E runs disproved."""
+
+    def run_doc(self, **fields) -> dict:
+        return dict({"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}, **fields)
+
+    def test_the_new_fields_validate_and_wrong_shapes_are_named(self):
+        good = self.run_doc(status="stopped", hosts=[{"host": "grok", "model": "grok-4.7", "effort": "medium"}],
+                            ending={"by": "stopped by the stop file", "stage": "implement", "unacceptedMin": 27.1, "unacceptedTurns": 104,
+                                    "packetBytes": 47475, "packetDoc": True, "sessions": 1, "resumes": 0,
+                                    "earlier": [{"by": "terminated by SIGTERM", "stage": "test-author"}]},
+                            blocked={"by": "access", "options": ["a", "b"]},
+                            leftBehind={"observed": True, "reaped": [{"command": "node", "ports": [3000], "where": "work", "endedBy": "SIGTERM"}],
+                                        "survived": []},
+                            verdicts={"checks": False, "worktreeChecks": {"passed": 4, "total": 4}})
+        self.assertEqual(export.validate_doc("runs", good), [])
+        bad = self.run_doc(status="sleeping", hosts=[{"model": "m"}], ending={"unacceptedMin": "27", "earlier": [{"by": 1}]},
+                           blocked={"options": "one"}, leftBehind={"reaped": [{"command": "node", "where": "attic"}]},
+                           verdicts={"checks": "yes", "worktreeChecks": True})
+        problems = "\n".join(export.validate_doc("runs", bad))
+        for needle in ("'sleeping' is not one of", "hosts[0]: missing required field 'host'", "ending.unacceptedMin: expected a number",
+                       "ending.earlier[0].by: expected a string", "blocked.options: expected an array",
+                       "leftBehind: missing required field 'observed'", "'attic' is not one of",
+                       "verdicts.checks: expected a boolean", "verdicts.worktreeChecks: expected an object {passed, total}"):
+            self.assertIn(needle, problems)
+
+    def test_schema_md_documents_the_new_fields_and_states_what_the_runs_showed(self):
+        text = " ".join(SCHEMA_MD.read_text().split())
+        for phrase in ("`hosts`", "`ending`", "`blocked`", "`leftBehind`", "`worktreeChecks`", "ending.unacceptedMin", "`stopped`",
+                       "How the run ended", "not a measure", "refusal lines", "never on a Grok run", "a reason per host",
+                       "every producer packet carries a `Checked by:` line"):
+            self.assertIn(phrase, text)
+        for stale in ("such as Claude's", "Today only a Codex run", "no packet on disk has a 'Checked by:' line yet",
+                      "ShipLoop commands that exited non-zero"):
+            self.assertNotIn(stale, text)
+        self.assertNotIn("no packet on disk has", (SKILL_ROOT / "scripts" / "export.py").read_text())
+
+    def test_a_state_md_fixture_of_each_mode_resolves_the_improve_card_as_the_current_engine_does(self):
+        for mode in ("stage", "none"):
+            self.assertEqual(real_state(mode)["improve_skill"], "/plugin/skills/improve/SKILL.md", mode)
+        self.assertEqual(set(real_state("stage")), set(real_state("none")))
+
+
+# ---------------------------------------------------------------- R22a: the page shows how a run ended
+
+# Run documents shaped like the exporter's for a stopped Grok run, a blocked one and a run two hosts wrote. Excerpts only.
+ROWS_STOPPED = [{"stage": "intake", "outcome": "done", "min": 1.8, "action": "nav-a"},
+                {"stage": "spec", "outcome": "done", "min": 3.1, "action": "nav-b"},
+                {"stage": "implement", "outcome": "done", "min": 4.8, "action": "nav-c"}]
+STOPPED_RUN = {
+    "key": "s1", "name": "grok grok-4.7 medium, custom, release 1.26.0", "order": 5, "release": "skill-craft 1.26.0, ShipLoop 0.58.0",
+    "phases": ["done", "done", "done", "stopped", "none", "none", "none", "none"], "status": "stopped", "imp": "0 children",
+    "time": "stopped after 36 min, then 27 min of unaccepted work", "wallMin": 36.5, "stages": ROWS_STOPPED,
+    "ending": {"by": "stopped by the stop file", "stage": "implement", "action": "nav-d", "unacceptedMin": 27.1, "unacceptedTurns": 104,
+               "packetBytes": 47_475, "packetDoc": True, "sessions": 1, "resumes": 0,
+               "earlier": [{"by": "terminated by SIGTERM", "stage": "test-author"}]},
+    "leftBehind": {"observed": True, "survived": [], "reaped": [
+        {"command": "node", "ports": [64332], "where": "worktree", "endedBy": "SIGTERM"},
+        {"command": "Google Chrome", "ports": [64335], "where": "work", "endedBy": "SIGTERM"}]},
+    "verdicts": {"checks": False, "worktreeChecks": {"passed": 4, "total": 4}}, "unmeasured": {}}
+BLOCKED_RUN = {
+    "key": "b1", "name": "grok grok-4.7 medium, custom, release 1.24.0", "order": 4, "release": "skill-craft 1.24.0", "status": "blocked",
+    "phases": ["done", "done", "done", "done", "done", "done", "blocked", "none"], "imp": "0 children", "time": "blocked after 90 min",
+    "stages": ROWS_STOPPED, "unmeasured": {},
+    "blocked": {"by": "access", "reason": "access: SYS-SERVE passed. TC-16 did not run.", "headline": "TC-16 needs a browser",
+                "question": "Headless Chrome does not finish loading the page. How should TC-16 proceed?",
+                "options": ["Accept the HTTP check and leave the browser steps unverified", "Wait until a browser can open the page"],
+                "noDefault": "Recording a pass would claim an observation that did not happen."},
+    "verdicts": {"checks": False, "worktreeChecks": {"passed": 2, "total": 4}}}
+DONE_RUN = {"key": "d1", "name": "claude claude-sonnet-5-5, battleship, release 1.26.0", "order": 3, "release": "skill-craft 1.26.0",
+            "status": "done", "phases": ["done"] * 8, "imp": "5 children", "time": "done in 80 min", "stages": ROWS_STOPPED,
+            "unmeasured": {}, "verdicts": {"checks": True}}
+TWO_HOSTS_RUN = dict(DONE_RUN, key="h1", name="grok grok-4.7 medium, custom, release 1.25.0", hosts=[
+    {"host": "grok", "model": "grok-4.7", "effort": "medium"}, {"host": "claude", "model": "claude-sonnet-5-5"}],
+    unmeasured={"calls": "2 hosts ran this (grok grok-4.7, claude claude-sonnet-5-5): the harness mixes their events in one "
+                         "figure, so it is not a measure",
+                "contextPeak": "2 hosts ran this: not a measure", "visitContext": "2 hosts ran this: not a measure"})
+
+
+def ended_page(run: dict, extra: str = "") -> str:
+    """The sample page with one run in place of the first, chosen, drawn, and the eight phases the exporter's table has."""
+    phases = "".join('data.exp["phase-%d"]={kind:"phase",order:%d,title:%s,short:"",text:"t"};' % (i, i, json.dumps(title))
+                     for i, (title, _) in enumerate(export.PHASES))
+    return (SAMPLE_SETUP + phases + "data.runs=[Object.assign(" + json.dumps(run) + ",{order:9})];L.run=" + json.dumps(run["key"]) + ";"
+            + extra + "renderAll();")
+
+
+def ending_rows(run: dict) -> dict:
+    model = run_logic("endingModel(%s)" % json.dumps(run))
+    return {label: text for label, text in model["rows"]} if model else {}
+
+
+class EndingCardLogicTests(unittest.TestCase):
+    """endingModel is pure: the run in, the rows of the "How it ended" card out, and only what the export holds."""
+
+    def test_a_stopped_run_says_by_what_which_stage_how_long_and_what_came_before(self):
+        model = run_logic("endingModel(%s)" % json.dumps(STOPPED_RUN))
+        self.assertEqual((model["kind"], model["title"]), ("stopped", "How it ended: stopped by the harness"))
+        rows = dict(model["rows"])
+        self.assertEqual(rows["Stopped by"], "stopped by the stop file")
+        self.assertEqual(rows["Never accepted"], "Implement: 27.1 min and 104 turns of work after the last accept, none of it in a visit "
+                                                  "above (the hatched column at the end of the picture)")
+        self.assertEqual(rows["Earlier invocation"], "terminated by SIGTERM, Test author left unaccepted")
+        self.assertEqual(rows["Listeners the harness ended"],
+                         "node :64332 (in the worktree, ended by SIGTERM); Google Chrome :64335 (in the work folder, ended by SIGTERM)")
+        self.assertEqual(rows["Product that was never returned"],
+                         "passes 4/4 checks in the worktree; the copy in the work folder fails them because nothing was returned there")
+        self.assertNotIn("Sessions", rows)  # one session, no resume: nothing to say
+        self.assertEqual([label for label, _ in model["rows"]][:2], ["Stopped by", "Never accepted"])
+
+    def test_minutes_the_harness_could_not_time_say_so_and_a_stop_without_a_cause_says_that(self):
+        run = dict(STOPPED_RUN, ending={"stage": "implement"})
+        rows = ending_rows(run)
+        self.assertEqual(rows["Stopped by"], "the harness's record names no cause")
+        self.assertTrue(rows["Never accepted"].startswith("Implement: work after the last accept (minutes not measured), none of it"))
+        self.assertNotIn("0 min", json.dumps(rows))
+        self.assertNotRegex(json.dumps(rows), r"undefined|NaN|null")
+
+    def test_a_blocked_run_gives_its_class_reason_question_options_and_why_no_default(self):
+        model = run_logic("endingModel(%s)" % json.dumps(BLOCKED_RUN))
+        self.assertEqual((model["kind"], model["title"]), ("blocked", "How it ended: blocked"))
+        rows = dict(model["rows"])
+        self.assertEqual(rows["Blocked by"], "access: TC-16 needs a browser")
+        self.assertEqual(rows["Reason"], "access: SYS-SERVE passed. TC-16 did not run.")
+        self.assertEqual(rows["Question put to a person"], BLOCKED_RUN["blocked"]["question"])
+        self.assertEqual(rows["Options"], "1. Accept the HTTP check and leave the browser steps unverified\n2. Wait until a browser can open the page")
+        self.assertEqual(rows["Why no default was taken"], BLOCKED_RUN["blocked"]["noDefault"])
+        self.assertEqual(rows["Product that was never returned"],
+                         "passes 2/4 checks in the worktree, and the copy in the work folder fails its checks too")
+
+    def test_a_finished_run_shows_the_card_only_for_what_it_resumed_or_left_behind_and_a_plain_one_has_none(self):
+        self.assertIsNone(run_logic("endingModel(%s)" % json.dumps(DONE_RUN)))
+        self.assertEqual(run_logic("[endingModel(null),endingModel({}),endingModel({status:'done',ending:{}})]"), [None, None, None])
+        resumed = dict(DONE_RUN, ending={"sessions": 2, "resumes": 1})
+        model = run_logic("endingModel(%s)" % json.dumps(resumed))
+        self.assertEqual((model["kind"], model["title"], dict(model["rows"])), (
+            "note", "How it ended: done", {"Sessions": "2 sessions, 1 resume in the last invocation"}))
+        left = dict(DONE_RUN, leftBehind={"observed": True, "reaped": [{"command": "node", "ports": [3471], "where": "worktree", "endedBy": "SIGTERM"}], "survived": []})
+        self.assertEqual(ending_rows(left), {"Listeners the harness ended": "node :3471 (in the worktree, ended by SIGTERM)"})
+        self.assertEqual(ending_rows(dict(DONE_RUN, leftBehind={"observed": True, "reaped": [], "survived": []})), {})  # a measured none says nothing
+        self.assertEqual(ending_rows(dict(DONE_RUN, leftBehind={"observed": False, "reason": "lsof timed out after 5s"})),
+                         {"Listeners": "not observed: lsof timed out after 5s"})
+        survivor = dict(DONE_RUN, leftBehind={"observed": True, "reaped": [], "survived": [{"command": "node", "ports": [3000], "where": "other"}]})
+        self.assertEqual(ending_rows(survivor), {"Listeners still running": "node :3000 (elsewhere)"})
+        passes = dict(DONE_RUN, verdicts={"checks": True, "worktreeChecks": {"passed": 3, "total": 3}})
+        self.assertEqual(ending_rows(passes), {"Product that was never returned": "passes 3/3 checks in the worktree"})
+
+    def test_the_host_chip_appears_only_for_a_run_two_hosts_wrote_and_names_the_later_host(self):
+        chip = run_logic("hostChip(%s)" % json.dumps(TWO_HOSTS_RUN))
+        self.assertEqual(chip["text"], "resumed on claude-sonnet-5-5")
+        self.assertIn("2 hosts (grok grok-4.7 medium; claude claude-sonnet-5-5)", chip["title"])
+        self.assertIn("are not measured", chip["title"])
+        one = {"hosts": [{"host": "claude", "model": "claude-sonnet-5-5"}]}
+        self.assertEqual(run_logic("[hostChip(%s),hostChip({}),hostChip(null)]" % json.dumps(one)), [None, None, None])
+        self.assertEqual(run_logic("hostChip({hosts:[{host:'a'},{host:'b'},{host:'c',model:'m'}]}).text"), "resumed on b and m")
+
+
+class EndingCardPageTests(unittest.TestCase):
+    """What the page draws on step 1: the card under the header, the chip, the chevron and the figures."""
+
+    def test_the_stopped_run_shows_the_card_the_header_the_hatched_chevron_and_is_not_called_running(self):
+        out = page_probe('[textOf("endcard"),REG.endcard.hidden,REG.endcard.className,textOf("runfacts"),'
+                         'byClass("flow","st-stopped").map(function(c){return c.textContent;})]',
+                         setup=ended_page(STOPPED_RUN))
+        self.assertFalse(out[1])
+        self.assertEqual(out[2], "card endcard stopped")
+        self.assertIn("How it ended: stopped by the harness", out[0])
+        self.assertIn("Stopped bystopped by the stop file", out[0])
+        self.assertIn("node :64332 (in the worktree, ended by SIGTERM)", out[0])
+        self.assertIn("stopped after 36 min, then 27 min of unaccepted work", out[3])
+        self.assertNotIn("running", out[3])
+        self.assertEqual(out[4], ["Buildstopped by the harness"])  # only the current phase, and no other chevron says stopped
+
+    def test_the_chevrons_keep_blocked_here_and_stopped_by_the_harness_apart(self):
+        stopped = page_probe('byClass("flow","chev").map(function(c){return c.textContent;})', setup=ended_page(STOPPED_RUN))
+        blocked = page_probe('byClass("flow","chev").map(function(c){return c.textContent;})', setup=ended_page(BLOCKED_RUN))
+        self.assertIn("Buildstopped by the harness", "".join(stopped))
+        self.assertNotIn("blocked here", "".join(stopped))
+        self.assertIn("blocked here", "".join(blocked))
+        self.assertNotIn("stopped here", "".join(blocked))  # the old label is gone
+        legend = TEMPLATE.read_text(encoding="utf-8")
+        self.assertIn("red blocked here, hatched amber stopped by the harness", legend)  # the key under the chevrons says it too
+        self.assertNotIn("red stopped", legend)
+        self.assertNotIn("stopped by the harness", "".join(blocked))
+
+    def test_the_blocked_run_shows_its_question_and_options_on_the_card(self):
+        out = page_probe('[textOf("endcard"),REG.endcard.className]', setup=ended_page(BLOCKED_RUN))
+        self.assertEqual(out[1], "card endcard blocked")
+        for text in ("How it ended: blocked", "Blocked byaccess: TC-16 needs a browser", "Question put to a personHeadless Chrome",
+                     "1. Accept the HTTP check", "Why no default was takenRecording a pass"):
+            self.assertIn(text, out[0])
+
+    def test_a_plain_finished_run_has_no_card_and_no_chip_and_a_two_host_run_has_the_chip(self):
+        plain = page_probe('[REG.endcard.hidden,REG.runhosts.hidden]', setup=ended_page(DONE_RUN))
+        self.assertEqual(plain, [True, True])
+        two = page_probe('[REG.runhosts.hidden,textOf("runhosts"),REG.runhosts.title,textOf("kpis")]', setup=ended_page(TWO_HOSTS_RUN))
+        self.assertFalse(two[0])
+        self.assertEqual(two[1], "resumed on claude-sonnet-5-5")
+        self.assertIn("2 hosts", two[2])
+        self.assertIn("Context (main thread)not measured2 hosts ran this: not a measure", two[3])  # the card gives the exporter's reason
+        self.assertNotRegex(two[3], r"undefined|NaN|null")
+
+    def test_a_visit_context_with_zero_calls_is_not_printed_as_a_measurement(self):
+        rows = [{"stage": "intake", "outcome": "done", "min": 2, "context": {"calls": 0, "peak": 63417, "peakPct": 6.3}},
+                {"stage": "spec", "outcome": "done", "min": 3, "context": {"calls": 4, "peak": 90000, "peakPct": 9}}]
+        run = dict(DONE_RUN, stages=rows, contextWindow=1_000_000, contextPeak=90000)
+        out = page_probe('setCol(0);var a=textOf("seqdetail");setCol(1);[a,textOf("seqdetail"),REG.seqnote.hidden]', setup=ended_page(run))
+        self.assertNotIn("0 calls", out[0])
+        self.assertIn("Context (main thread)not measured for this visit", out[0])
+        self.assertIn("4 calls", out[1])
+        self.assertEqual(run_logic("contextOf([{context:{calls:0,peak:5}}],1000)"), None)
+        self.assertEqual(run_logic("contextOf([{context:{calls:2,peak:5}}],1000)")["calls"], 2)
+
+    def test_the_refusals_card_and_the_failures_heading_say_refusal_lines_not_exit_codes(self):
+        run = dict(DONE_RUN, refusals=3, failures=[{"verb": "complete", "line": "refused"}, {"verb": "unknown", "line": "refused 2"},
+                                                   {"verb": "workspace", "line": "refused 3"}])
+        out = page_probe('[textOf("kpis"),textOf("rundetail")]', setup=ended_page(run))
+        self.assertIn("Refusals3refusal lines or failed ShipLoop commands", out[0])
+        self.assertIn("3 refusals: refusal lines or failed ShipLoop commands", out[1])
+        self.assertNotIn("exited non-zero", out[0] + out[1])
+        self.assertNotIn("exited non-zero", TEMPLATE.read_text(encoding="utf-8"))
+
+
+class EndingCardStyleTests(unittest.TestCase):
+    """What a render at 375 px showed and a node test cannot: the legend's hidden entries stay hidden (an inline-flex rule
+    beat the hidden attribute), and the card's two-column facts grid gives way to one column on a phone."""
+
+    CSS = TEMPLATE.read_text(encoding="utf-8").split("</style>")[0]
+
+    def test_a_hidden_legend_entry_is_not_displayed_by_an_inline_flex_rule(self):
+        self.assertRegex(self.CSS, r"\.sqleg span\[hidden\]\s*\{[^}]*display:none")
+        self.assertRegex(self.CSS, r"\.sqleg span\{[^}]*display:inline-flex")  # the rule the attribute has to beat
+
+    def test_the_options_of_a_question_are_one_per_line(self):
+        self.assertRegex(self.CSS, r"\.endcard \.facts dd\{[^}]*white-space:pre-line")  # the rows join the options with a newline
+
+    def test_the_how_it_ended_facts_are_one_column_on_a_phone(self):
+        phone = self.CSS.split("@media (max-width:640px)")[1]
+        self.assertRegex(phone, r"\.endcard \.facts[^{]*\{grid-template-columns:1fr\}")
+
+    def test_the_elapsed_card_of_a_stopped_run_says_how_much_more_work_was_never_accepted(self):
+        cards = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(STOPPED_RUN))}
+        self.assertEqual(cards["elapsed"]["note"], "start to the last accept; then 27.1 min never accepted")
+        plain = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(DONE_RUN))}
+        self.assertNotIn("never accepted", plain["elapsed"]["note"])
+        untimed = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(dict(STOPPED_RUN, ending={"stage": "implement"})))}
+        self.assertNotIn("never accepted", untimed["elapsed"]["note"])  # no minutes known: none printed
+
+
+class TailColumnTests(unittest.TestCase):
+    """The unaccepted stage is the picture's last column, outside the visits, the scale and the context band."""
+
+    def model(self, run: dict) -> dict:
+        return run_logic("sequenceModel(%s,{})" % json.dumps(run))
+
+    def test_a_stopped_run_gets_a_hatched_last_column_outside_the_visits_and_the_scale(self):
+        model = self.model(STOPPED_RUN)
+        columns = model["columns"]
+        self.assertEqual((len(columns), model["visits"]), (4, 3))  # three visits and the tail
+        tail = columns[-1]
+        self.assertEqual((tail["kind"], tail["stage"], tail["outcome"], tail["min"], tail["mark"], tail["packetBytes"]),
+                         ("tail", "implement", "unaccepted", 27.1, "U", 47_475))
+        self.assertEqual(model["maxMin"], {"min": 4.8, "stage": "implement", "visit": 3})  # the tail does not set the scale
+        self.assertEqual(max(c["h"] for c in columns[:3]), model["lay"]["plot"])
+        self.assertLessEqual(tail["h"], model["lay"]["plot"])
+        self.assertEqual(model["lay"]["width"], 8 + 4 * 16 + 8)
+        self.assertEqual([c["kind"] for c in columns[:3]], ["work"] * 3)
+        self.assertEqual(tail["phases"], [3])  # implement belongs to Build
+
+    def test_a_run_with_no_unaccepted_stage_has_no_tail_and_a_tail_with_no_minutes_is_a_fixed_stub(self):
+        self.assertEqual([c["kind"] for c in self.model(DONE_RUN)["columns"]], ["work"] * 3)
+        bare = self.model(dict(STOPPED_RUN, ending={"stage": "implement"}))["columns"][-1]
+        self.assertEqual((bare["min"], bare["h"]), (None, 26))
+        no_stage = self.model(dict(STOPPED_RUN, ending={"by": "stopped by the stop file"}))
+        self.assertEqual(len(no_stage["columns"]), 3)
+
+    def test_the_svg_draws_the_tail_with_its_own_pattern_a_u_mark_and_no_context_bar(self):
+        run = dict(STOPPED_RUN)
+        run["stages"] = [dict(r, context={"calls": 5, "peak": 100, "peakPct": 10}) for r in ROWS_STOPPED]
+        svg = run_logic("sequenceSvg(sequenceModel(%s,{}),-1)" % json.dumps(run))
+        self.assertEqual(re.findall(r'class="sq-col ([^"]+)"', svg), ["o-done", "o-done", "o-done", "tail"])
+        self.assertIn('id="sq-tail"', svg)
+        self.assertEqual(svg.count(">U</text>"), 1)
+        self.assertEqual(len(re.findall(r'class="sq-ctx[ "]', svg)), 3)  # the three visits have a bar, the tail has none
+        self.assertEqual(svg.count("sq-nm"), 0)  # nor a "not measured" dash: the tail is not a visit that lacked a figure
+        self.assertEqual(svg.count('class="sq-hit"'), 4)
+        self.assertIn("a hatched last column for the stage the run never accepted", svg)
+        self.assertNotRegex(svg, r"NaN|undefined|null|Infinity")
+
+    def test_tapping_the_tail_gives_its_detail_and_never_a_stage_card(self):
+        detail = run_logic("columnDetail(sequenceModel(%s,{}),3,%s,[],null)" % (json.dumps(STOPPED_RUN), json.dumps(STOPPED_RUN)))
+        self.assertEqual(detail["title"], "Unaccepted: Implement (the run ended here)")
+        self.assertIsNone(detail["card"])
+        self.assertEqual(dict(detail["lines"]), {
+            "Outcome": "never accepted: the run ended while this stage was running",
+            "Minutes": "27.1 min after the last accept (not in the elapsed time above)",
+            "Turns": "104 turns (main thread)", "Packet file": "46.4 KB, the packet issued for this stage"})
+        self.assertEqual((detail["packet"], detail["prev"], detail["next"]), ({"id": "s1--nav-d"}, 2, None))
+        names = run_logic("sequenceModel(%s,{}).columns.map(columnName)" % json.dumps(STOPPED_RUN))
+        self.assertEqual(names[-1], "unaccepted implement, 27.1 min, the run ended here")
+
+    def test_the_stage_card_list_ends_with_the_unaccepted_stage_and_the_visits_card_counts_it(self):
+        rows = run_logic("cardRows(sequenceModel(%s,{}),%s,null)" % (json.dumps(STOPPED_RUN), json.dumps(STOPPED_RUN)))
+        last = rows[-1]
+        self.assertEqual((last["visit"], last["stage"], last["outcome"], last["min"], last["sent"]),
+                         ("end", "Implement", "unaccepted", "27.1 min", "46.4 KB"))
+        cards = {c["key"]: c for c in self.model(STOPPED_RUN)["cards"]}
+        self.assertEqual(cards["visits"]["note"], "3 work, 1 unaccepted: Implement")
+        self.assertEqual(cards["visits"]["value"], "3")
+
+    def test_the_page_draws_the_tail_and_lets_a_tap_select_it_with_its_packet_head(self):
+        out = page_probe('setCol(3);[REG.seqscroll.innerHTML.indexOf("sq-col tail")>0,textOf("seqdetail"),byClass("sclist","sc-row").length]',
+                         setup=ended_page(STOPPED_RUN))
+        self.assertTrue(out[0])
+        self.assertIn("Unaccepted: Implement (the run ended here)", out[1])
+        self.assertIn("27.1 min after the last accept", out[1])
+        self.assertEqual(out[2], 4)
+
+    def test_the_legend_lists_only_the_kinds_the_picture_draws(self):
+        legend = lambda run: run_logic("sequenceModel(%s,{}).legend" % json.dumps(run))
+        self.assertEqual(legend(STOPPED_RUN), ["done", "tail"])
+        self.assertEqual(legend(DONE_RUN), ["done"])
+        mixed = {"stages": [{"stage": "intake", "outcome": "done", "min": 1, "improve": {"passes": 2}},
+                            {"stage": "spec", "outcome": "revise", "min": 2}, {"stage": "plan", "outcome": "blocked", "min": 3},
+                            {"stage": "step-plan", "outcome": "done", "min": None},
+                            {"stage": "test-spec", "outcome": "done", "min": None, "seeded": True},
+                            {"stage": "baseline", "outcome": "done", "min": 0, "skipped": True}]}
+        self.assertEqual(legend(mixed), ["done", "rev", "blk", "skip", "seed", "na", "imp"])
+        band = {"stages": [{"stage": "intake", "outcome": "done", "min": 1, "context": {"calls": 3, "peak": 5, "peakPct": 95, "compactions": 2}},
+                           {"stage": "spec", "outcome": "done", "min": 1, "context": {"calls": 3, "peak": 5, "peakPct": 20, "compactions": 0}}]}
+        self.assertEqual(legend(band), ["done", "ctx", "warn", "tri"])
+        calm = {"stages": [{"stage": "intake", "outcome": "done", "min": 1, "context": {"calls": 3, "peak": 5, "peakPct": 20, "compactions": 0}}]}
+        self.assertEqual(legend(calm), ["done", "ctx"])  # no compaction measured: no triangle in the legend; none over 90%: no warning
+        self.assertEqual(run_logic("sequenceModel({},{}).legend"), [])
+
+    def test_the_page_hides_the_legend_entries_the_picture_does_not_need(self):
+        out = page_probe('["done","rev","blk","skip","seed","na","tail","imp","ctx","warn","tri"].filter(function(k){return !REG["sql-"+k].hidden;})',
+                         setup=ended_page(STOPPED_RUN))
+        self.assertEqual(out, ["done", "tail"])
+        self.assertEqual(page_probe('REG.sqlegband.hidden', setup=ended_page(STOPPED_RUN)), True)
+
+
+# ---------------------------------------------------------------- R22b: script checks, unverified outcomes, tool use, planning, graph checks
+
+# Excerpts of the real records (ShipLoop 0.58.0), the shapes the exporter reads; ids, paths and texts are synthetic where they
+# would be long. A tests/<action>-verifyN.md record, a Claude run's metrics `tool_use`, and a Grok run's planning tokens.
+VERIFY_PASSED = {"action": "A", "created_at": "2026-10-09T06:29:00Z", "cwd": "/e2e/r3/worktree", "disposition": "passed", "passed": True,
+                 "schema": "shiploop-test-loop/v1", "stage": "static-checks", "work_item": "W1", "runs": [
+                     {"accepted_ran": 5, "command": "node --test test/game.test.js", "counts": {"failed": 0, "ran": 5, "runners": ["node"]},
+                      "exit": 0, "seconds": 0.117, "status": "passed", "stderr": "", "stdout": "✔ TC-1 builds a legal fleet", "suite": "focused"},
+                     {"command": "grep -q title index.html", "counts": None, "exit": 0, "status": "passed", "stdout": "", "suite": "check"}]}
+VERIFY_RED = {"action": "A", "disposition": "passed", "expect": "red", "passed": True, "stage": "test-red", "runs": [
+    {"accepted_ran": 5, "command": "node --test", "counts": {"failed": 5, "ran": 5}, "exit": 1, "status": "red", "stdout": "x"},
+    {"accepted_ran": 8, "command": "node --test", "counts": {"failed": 8, "ran": 8}, "exit": 1, "status": "red", "stdout": "x"}]}
+VERIFY_IDS_MISSING = {"action": "A", "disposition": "failed", "expect": "a test ran", "passed": False, "stage": "test-author", "runs": [
+    {"command": "node --test", "counts": {"failed": 23, "ran": 23}, "exit": 1, "ids_missing": ["TC-4", "TC-6"], "status": "ids-missing"}]}
+VERIFY_RELEASE = {"action": "A", "disposition": "passed", "passed": True, "stage": "release-verify", "runs": [
+    {"command": "node --test", "counts": {"failed": 0, "ran": 15}, "exit": 0, "status": "passed"}],
+    "observed": {"ahead": False, "copy": "/e2e/r3/consumer-check", "head": "e2f70e4e14b67438dd60950ca43e56aa959cc21d", "kind": "fast-forward-merge",
+                 "source": "/e2e/r3/work", "tree": "5f846af6e5e56cf52e64a8f02ffddd369c1cbf59", "where": "returned-result"}}
+TOOL_USE = {"calls": 110, "by_tool": {"Bash": 105, "Read": 2, "Write": 3}, "result_chars": 294209, "scratch_scripts": [
+    {"path": "/e2e/r3/run/scratch/done.py", "bytes": 1019, "wraps_shiploop": True, "runs": 30},
+    {"path": "/e2e/r3/run/scratch/ifinish.sh", "bytes": 782, "wraps_shiploop": True, "runs": 4},
+    {"path": "/e2e/r3/run/scratch/istart.sh", "bytes": 971, "wraps_shiploop": True, "runs": 7},
+    {"path": "/e2e/r3/run/scratch/uicheck.js", "bytes": 1544, "wraps_shiploop": False, "runs": 1}],
+    "packets": {"on_disk": {"files": 45, "bytes": 1802659}, "printed": {"replies": 47, "chars": 104849},
+                "read": {"read_tool": [{"packet": "nav-a", "whole": True, "chars": 29527}, {"packet": "nav-b", "whole": False, "chars": 8484},
+                                       {"packet": "nav-b-improve", "whole": True, "chars": 24549}],
+                         "shell": {"calls": 19, "chars": 90112}}}}
+UNVERIFIED_ITEM = {"check": "Open the page after node server.js, click cells until the fleet is sunk and report whether it looks right",
+                   "due_stage": "handoff", "outcome": "The page looks right and is playable by mouse in a real browser", "owner": "user",
+                   "reason": "No browser tool was used in this run; only a fake-DOM execution of the page script was done"}
+
+
+def add_record(out: Path, action: str, number: int, value: dict) -> None:
+    record(run_dir_of(out) / "tests" / f"{action}-verify{number}.md", dict(value, action=action))
+
+
+class VerifyAndUnverifiedExportTests(unittest.TestCase):
+    """R22b gaps 8 and 9: what ShipLoop's own script checks recorded, and what a result left unverified."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def row(self, run: dict, name: str) -> dict:
+        return run["stages"][[a[0] for a in ACCEPTS].index(name)]
+
+    def test_a_visit_reads_its_records_by_action_id_with_the_last_records_runs_and_no_command_or_output(self):
+        out = make_run(self.tmp, loops=False)
+        for number, value in ((1, VERIFY_IDS_MISSING), (2, VERIFY_IDS_MISSING), (3, VERIFY_RED)):
+            add_record(out, IDS["implement"], number, value)  # a retried visit: two refused records, then the one that passed
+        add_record(out, IDS["step-plan"], 1, VERIFY_PASSED)
+        run, facts = self.build(out)
+        self.assertEqual(self.row(run, "implement")["verify"], {
+            "records": 3, "passed": 1, "red": 1,
+            "runs": [{"status": "red", "ran": 5, "failed": 5, "acceptedRan": 5}, {"status": "red", "ran": 8, "failed": 8, "acceptedRan": 8}]})
+        self.assertEqual(self.row(run, "step-plan")["verify"], {
+            "records": 1, "passed": 1, "red": 0,
+            "runs": [{"status": "passed", "ran": 5, "failed": 0, "acceptedRan": 5}, {"status": "passed"}]})  # counts null: no figure
+        self.assertNotIn("verify", self.row(run, "plan"))
+        text = json.dumps(run)
+        for leaked in ("stdout", "node --test", "/e2e", "cwd", "TC-1 builds"):
+            self.assertNotIn(leaked, text)
+        self.assertIn("- Script checks (tests/<action>-verifyN.md): 4 records on 2 visits, 2 passed, 1 ran red", "\n".join(facts))
+
+    def test_a_record_that_never_reached_a_verdict_is_counted_and_a_release_check_names_where_it_ran_without_a_path(self):
+        out = make_run(self.tmp, loops=False)
+        add_record(out, IDS["implement"], 1, dict(VERIFY_PASSED, disposition="could-not-run", passed=False))
+        add_record(out, IDS["step-plan"], 1, VERIFY_RELEASE)
+        run, _ = self.build(out)
+        self.assertEqual(self.row(run, "implement")["verify"]["couldNotRun"], 1)
+        self.assertNotIn("couldNotRun", self.row(run, "step-plan")["verify"])
+        self.assertEqual(self.row(run, "step-plan")["verify"]["observed"], {"where": "returned-result", "tree12": "5f846af6e5e5"})
+        self.assertNotIn("consumer-check", json.dumps(run))
+        self.assertNotIn("e2f70e4e", json.dumps(run))
+
+    def test_files_that_are_no_records_are_ignored_and_orphan_and_unreadable_records_are_counted_in_the_facts(self):
+        out = make_run(self.tmp, loops=False)
+        run_dir = run_dir_of(out)
+        add_record(out, IDS["implement"], 1, VERIFY_PASSED)
+        write_json(run_dir / "tests" / f"{IDS['implement']}-contract.json", {"x": 1})
+        write_json(run_dir / "tests" / f"{IDS['implement']}-terminal.json", {"x": 1})
+        add_record(out, "nav-ghost", 1, VERIFY_PASSED)  # an action no visit of state.md has
+        (run_dir / "tests" / f"{IDS['plan']}-verify1.md").write_text("no fenced record here")
+        run, facts = self.build(out)
+        self.assertEqual(self.row(run, "implement")["verify"]["records"], 1)
+        self.assertNotIn("verify", self.row(run, "plan"))
+        text = "\n".join(facts)
+        self.assertIn("; 1 record names an action that is no visit; 1 unreadable", text)
+        none = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        run, facts = self.build(none)
+        self.assertTrue(all("verify" not in r for r in run["stages"]))
+        self.assertIn("- Script checks (tests/<action>-verifyN.md): none recorded", "\n".join(facts))
+
+    def test_unverified_outcomes_are_exported_with_owner_and_due_stage_and_an_empty_list_is_a_measured_none(self):
+        out = make_run(self.tmp, loops=False)
+        run_dir = run_dir_of(out)
+        long = dict(UNVERIFIED_ITEM, reason="r" * 400)
+        for action, stage, items in ((IDS["step-plan"], "step-plan", [UNVERIFIED_ITEM, long]), (IDS["implement"], "implement", [])):
+            record(run_dir / "results" / f"{action}.md", {"action": action, "stage": stage, "result": {
+                "outcome": "revise" if stage == "implement" else "done", "summary": "s", "unverified": items}})
+        run, facts = self.build(out)
+        first = self.row(run, "step-plan")["unverified"]
+        self.assertEqual(first[0], {"outcome": UNVERIFIED_ITEM["outcome"], "reason": UNVERIFIED_ITEM["reason"],
+                                    "check": UNVERIFIED_ITEM["check"], "owner": "user", "dueStage": "handoff"})
+        self.assertEqual(len(first[1]["reason"]), 301)  # cut at 300 characters, marked with an ellipsis
+        self.assertTrue(first[1]["reason"].endswith("…"))
+        self.assertEqual(self.row(run, "implement")["unverified"], [])
+        self.assertNotIn("unverified", self.row(run, "plan"))  # a result with no such key claims nothing
+        self.assertIn("- Unverified outcomes: step-plan 2; implement 0", "\n".join(facts))
+
+    def test_the_contract_types_verify_and_unverified_and_rejects_wrong_shapes(self):
+        base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
+        good = dict(base, stages=[{"stage": "s", "outcome": "done", "verify": {
+            "records": 2, "passed": 1, "red": 1, "couldNotRun": 1, "runs": [{"status": "red", "ran": 5, "failed": 5, "acceptedRan": 5}],
+            "observed": {"where": "returned-result", "tree12": "5f846af6e5e5"}}, "unverified": [{
+                "outcome": "o", "reason": "r", "check": "c", "owner": "user", "dueStage": "handoff"}]}])
+        self.assertEqual(export.validate_doc("runs", good), [])
+        bad = dict(base, stages=[{"stage": "s", "outcome": "done", "verify": {"passed": "1", "runs": [{"ran": 5}]},
+                                  "unverified": [{"owner": 1}], }])
+        problems = "\n".join(export.validate_doc("runs", bad))
+        for needle in ("verify: missing required field 'records'", "verify.passed: expected a number",
+                       "verify.runs[0]: missing required field 'status'", "unverified[0].owner: expected a string"):
+            self.assertIn(needle, problems)
+
+
+class ToolUseAndPlanningExportTests(unittest.TestCase):
+    """R22b gaps 13, 14 and 15: the wrapper scripts and packet use of a Claude run, and the planning window, read not recomputed."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def test_a_claude_runs_wrapper_scripts_and_packet_use_are_exported_by_name_and_count(self):
+        run, facts = self.build(make_run(self.tmp, loops=False, metrics={"tool_use": TOOL_USE}))
+        self.assertEqual(run["toolUse"]["wrappers"], [{"name": "done.py", "runs": 30}, {"name": "ifinish.sh", "runs": 4},
+                                                       {"name": "istart.sh", "runs": 7}])  # uicheck.js does not wrap ShipLoop
+        self.assertEqual(run["toolUse"]["packets"], {"files": 45, "bytes": 1_802_659, "printed": 47, "printedChars": 104_849,
+                                                      "readWhole": 2, "readPartial": 1, "shellReads": 19, "shellChars": 90_112})
+        self.assertNotIn("toolUse", run["unmeasured"])
+        self.assertNotIn("/e2e", json.dumps(run))  # the script's name only, never its path
+        self.assertIn("- Tool use: wrapper scripts done.py 30, ifinish.sh 4, istart.sh 7; packets files 45, bytes 1,802,659, printed 47", "\n".join(facts))
+
+    def test_a_run_that_wrote_no_wrapper_has_a_measured_empty_list_and_a_host_with_no_record_has_none_with_a_reason(self):
+        none = dict(TOOL_USE, scratch_scripts=[{"path": "/x/a.js", "bytes": 1, "wraps_shiploop": False, "runs": 3}])
+        run, _ = self.build(make_run(self.tmp, loops=False, metrics={"tool_use": none}))
+        self.assertEqual(run["toolUse"]["wrappers"], [])
+        bare, facts = self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False))  # tool_use None, as a Grok or Codex run writes it
+        self.assertNotIn("toolUse", bare)
+        self.assertEqual(bare["unmeasured"]["toolUse"], f"{export.NO_TOOL_USE} (host: codex)")
+        self.assertIn("- Tool use: not measured (", "\n".join(facts))
+        two = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        write_json(two / "invocation-resume-claude-1791508003.json", {"host": "claude", "model": "claude-sonnet-5-5"})
+        self.assertIn("(host: codex, claude)", self.build(two)[0]["unmeasured"]["toolUse"])
+
+    def test_the_planning_window_is_read_from_the_harnesss_block_with_its_two_clocks_improve_share_and_tokens(self):
+        run, facts = self.build(make_run(self.tmp, loops=False))
+        self.assertEqual(run["planning"], {"closed": True, "through": "test-spec", "windowMin": 23.2, "hostWindowMin": 23.8,
+                                           "improveMin": 0.0, "children": 0, "outputTokens": 88_480, "reasoningPct": 41.2})
+        for name in ("planning", "planningHostWindow", "planningImprove", "planningTokens"):
+            self.assertNotIn(name, run["unmeasured"])
+        self.assertIn("- Planning window: 23.2 min on the engine clock, 23.8 min on the host's, closed at test-spec, Improve 0.0 min "
+                      "over 0 children, 88,480 output tokens, 41.2% reasoning", "\n".join(facts))
+
+    def test_a_planning_member_the_block_holds_as_unknown_is_absent_with_the_blocks_own_reason(self):
+        sonnet = dict(PLANNING_BLOCK, tokens={"unmeasured": "this host's per-message output counts are streaming snapshots"},
+                      improve={"children": 5, "seconds": None}, unmeasured={"improve": "the plan Improve child has no bind file"})
+        run, _ = self.build(make_run(self.tmp, loops=False, metrics={"planning": sonnet}))
+        self.assertEqual(run["planning"], {"closed": True, "through": "test-spec", "windowMin": 23.2, "hostWindowMin": 23.8})
+        self.assertEqual(run["unmeasured"]["planningTokens"], "this host's per-message output counts are streaming snapshots")
+        self.assertEqual(run["unmeasured"]["planningImprove"], "the plan Improve child has no bind file")
+        unwindowed = {"window": {"closed": False, "through": None, "seconds": None, "host_seconds": None, "before_engine_seconds": None},
+                      "stages": [], "improve": None, "producer_seconds": None, "tokens": {"unmeasured": "no window"},
+                      "unmeasured": {"window": "the planning window is not measured: the timeline was recreated"}}
+        open_run, _ = self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False, metrics={"planning": unwindowed}))
+        self.assertEqual(open_run["planning"], {"closed": False})
+        self.assertEqual(open_run["unmeasured"]["planning"], "the planning window is not measured: the timeline was recreated")
+        self.assertEqual(open_run["unmeasured"]["planningImprove"], open_run["unmeasured"]["planning"])
+        self.assertNotIn("windowMin", open_run["planning"])  # never 0
+
+    def test_a_metrics_file_with_no_planning_block_has_none_and_says_why(self):
+        out = make_run(self.tmp, loops=False)
+        metrics = json.loads((out / "metrics.json").read_text())
+        del metrics["planning"]
+        write_json(out / "metrics.json", metrics)
+        run, facts = self.build(out)
+        self.assertNotIn("planning", run)
+        self.assertIn("no planning block", run["unmeasured"]["planning"])
+        self.assertIn("- Planning window: not measured (metrics.json has no planning block", "\n".join(facts))
+
+    def test_the_blocks_stage_seconds_equal_the_exporters_accept_to_accept_minutes_within_three_seconds(self):
+        stages = []
+        previous = 0
+        for action, stage, minute, outcome in ACCEPTS[:6]:
+            stages.append({"stage": stage, "outcome": outcome, "action": IDS[action], "seconds": float((minute - previous) * 60) + 2.0,
+                           "improve_seconds": 0.0})  # the engine's whole-second stamps are up to a second off
+            previous = minute
+        run, _ = self.build(make_run(self.tmp, loops=False, metrics={"planning": dict(PLANNING_BLOCK, stages=stages)}))
+        self.assertIn("planning", run)  # the run carries the block's window, and the two readings of the same visits agree
+        for block_row, row in zip(stages, run["stages"]):
+            self.assertLessEqual(abs(block_row["seconds"] - row["min"] * 60), 3.0, row["stage"])
+
+    def test_the_contract_types_the_new_run_fields_and_documents_them_and_the_two_tolerances(self):
+        base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
+        good = dict(base, toolUse={"wrappers": [{"name": "done.py", "runs": 30}], "packets": {"files": 45, "readWhole": 1}},
+                    planning={"closed": True, "through": "test-spec", "windowMin": 23.2, "outputTokens": 5})
+        self.assertEqual(export.validate_doc("runs", good), [])
+        problems = "\n".join(export.validate_doc("runs", dict(base, toolUse={"wrappers": [{"runs": "x"}]}, planning={"closed": "yes", "windowMin": "5"})))
+        for needle in ("toolUse.wrappers[0]: missing required field 'name'", "toolUse.wrappers[0].runs: expected a number",
+                       "planning.closed: expected a boolean", "planning.windowMin: expected a number"):
+            self.assertIn(needle, problems)
+        text = " ".join(SCHEMA_MD.read_text().split())
+        for phrase in ("`toolUse`", "`planning`", "stages[].verify", "stages[].unverified", "`graphCheckOnly`", "**lower bound**",
+                       "within 3 s", "at most 1.2 s a child", "`unmeasured.planning`", "Left unverified (owner, due stage)",
+                       "Checked by the script"):
+            self.assertIn(phrase, text)
+
+
+class GraphCheckOnlyBackchainTests(unittest.TestCase):
+    """R22b gap 16: a stage that only ran `backchain-check` is a graph check, not no loop."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def checks(self, out: Path, action: str, *receipts: tuple) -> Path:
+        """check-<sha12>.json receipts of one run/backchain/<action>/ folder: (candidate digest, ok, completion, mtime in minutes)."""
+        folder = run_dir_of(out) / "backchain" / IDS[action]
+        for digest, ok, completion, at in receipts:
+            write_json(folder / f"check-{digest[:12]}.json", {"schema": "shiploop-backchain-check/v1", "candidate_sha256": digest,
+                                                              "ok": ok, "completion": completion}, at=at)
+        return folder
+
+    def test_two_checks_one_invalid_then_one_ok_read_as_a_graph_check_with_the_last_one_named(self):
+        out = make_run(self.tmp, loops=False)
+        self.checks(out, "plan", ("a" * 64, False, "invalid", 60), ("b" * 64, True, "complete", 70))
+        docs, facts = export.build_run(out)
+        doc = docs["backchain"][f"{self.KEY}-plan"]
+        self.assertEqual((doc["graphCheckOnly"], doc["segments"], doc["loop"], doc["phase"], doc["title"], doc["stageMin"]),
+                         (True, [], "plan", 2, "Plan graph check", None))
+        fact = {f["k"]: f["v"] for f in doc["facts"]}
+        self.assertEqual(fact["Graph check"], "graph check only: 2 checks, last ok (complete)")
+        self.assertTrue(fact["Receipt"].endswith("check-bbbbbbbbbbbb.json"), fact["Receipt"])
+        self.assertEqual(export.validate_doc("backchain", doc), [])
+        self.assertIn("- Backchain loops: plan: graph check only: 2 checks, last ok (complete)", "\n".join(facts))
+        reversed_order = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        self.checks(reversed_order, "plan", ("a" * 64, False, "invalid", 80), ("b" * 64, True, "complete", 70))
+        text = {f["k"]: f["v"] for f in export.build_run(reversed_order)[0]["backchain"][f"{self.KEY}-plan"]["facts"]}["Graph check"]
+        self.assertEqual(text, "graph check only: 2 checks, last not ok (invalid)")  # the newest by file time, not by name
+
+    def test_a_stage_with_a_real_loop_is_unchanged_and_sits_beside_a_graph_check_in_start_order(self):
+        out = make_run(self.tmp, loops=False)
+        make_1_21_loop(out, action="plan", start_at=40, receipt_at=80)
+        self.checks(out, "step-plan", ("c" * 64, True, "complete", 130))
+        docs = export.build_run(out)[0]["backchain"]
+        self.assertEqual([(d["loop"], d.get("graphCheckOnly"), d["order"]) for d in docs.values()],
+                         [("plan", None, 1), ("step-plan", True, 2)])
+        self.assertEqual(export.find_graph_check_dirs(run_dir_of(out)), [run_dir_of(out) / "backchain" / IDS["step-plan"]])
+        self.assertEqual(docs[f"{self.KEY}-plan"]["segments"][0]["label"], "Before the loop")
+
+    def test_the_page_counts_a_graph_check_apart_from_a_loop_and_says_so_in_the_lane_and_the_card(self):
+        graph = {"title": "Plan graph check", "run": "r1", "order": 1, "loop": "plan", "phase": 2, "segments": [], "graphCheckOnly": True,
+                 "facts": [{"k": "Graph check", "v": "graph check only: 2 checks, last ok (complete)"}]}
+        real = {"title": "Step-plan loop", "run": "r1", "order": 2, "loop": "step-plan", "phase": 2, "stageMin": 4,
+                "segments": [{"label": "Pass 1", "min": 4, "kind": "unclear", "note": "n"}], "facts": []}
+        cards = lambda loops: {c["key"]: c for c in run_logic("sequenceModel({wallMin:20,stages:[]},{loops:%s}).cards" % json.dumps(loops))}["loops"]
+        only = cards([graph])
+        self.assertEqual((only["value"], only["note"]), ("none", "no Backchain loop recorded; 1 graph check only"))
+        mixed = cards([graph, real])
+        self.assertEqual((mixed["value"], mixed["note"]), ("1 loop", "4 min as stages, 20% of elapsed; 1 graph check only"))
+        self.assertEqual(cards([real])["note"], "4 min as stages, 20% of elapsed")
+        self.assertEqual(run_logic("[isGraphCheck(%s),isGraphCheck(%s),isGraphCheck(null)]" % (json.dumps(graph), json.dumps(real))), [True, False, False])
+        card = page_probe("loopCard(%s).textContent" % json.dumps(graph), setup="live=false;")
+        self.assertIn("Graph check only: this stage checked its graph with backchain-check and ran no Until Loop", card)
+        self.assertIn("Graph checkgraph check only: 2 checks, last ok (complete)", card)
+        lane = page_probe('byClass("flow","cell").map(function(c){return c.textContent;}).join("|")',
+                          setup=SAMPLE_SETUP + "data.bc=[" + json.dumps(dict(graph, run="r1", phase=1)) + "];renderAll();")
+        self.assertIn("plan: graph check only", lane)
+        self.assertNotIn("no result", lane)
+
+
+# ---------------------------------------------------------------- R22b: the page
+
+class ChecksPlanningPageLogicTests(unittest.TestCase):
+    """The pure text functions of the card, the KPI cards and the run detail."""
+
+    def test_the_script_checks_read_as_records_runs_and_where_they_ran(self):
+        verify = {"records": 3, "passed": 1, "red": 1, "couldNotRun": 1, "runs": [
+            {"status": "red", "ran": 5, "failed": 5, "acceptedRan": 5}, {"status": "passed"}],
+            "observed": {"where": "returned-result", "tree12": "5f846af6e5e5"}}
+        self.assertEqual(run_logic("verifyText(%s)" % json.dumps(verify)),
+                         "3 records, 1 passed, 1 ran red, 1 could not run; last record: red (ran 5, failed 5, accepted 5), passed; "
+                         "ran in returned-result, tree 5f846af6e5e5")
+        self.assertEqual(run_logic('verifyText({records:1,passed:1,red:0})'), "1 record, 1 passed")
+        self.assertEqual(run_logic("[verifyText(null),verifyText({}),verifyText({records:'1'})]"), ["", "", ""])
+        self.assertEqual(run_logic('verifyText({records:1,passed:0,observed:{tree12:"abc"}})'), "1 record, 0 passed; ran in a place the record does not name, tree abc")
+
+    def test_unverified_outcomes_read_one_per_line_with_owner_and_due_stage_and_none_listed_is_said(self):
+        item = {"outcome": "The page works", "owner": "user", "dueStage": "handoff", "reason": "no browser", "check": "open it"}
+        self.assertEqual(run_logic("unverifiedText(%s)" % json.dumps([item, {"outcome": "Two"}])),
+                         "The page works (user, due handoff). Reason: no browser. Check: open it.\nTwo (no owner, due no stage).")
+        self.assertEqual(run_logic("[unverifiedText([]),unverifiedText(null),unverifiedText(undefined),unverifiedText('x')]"), ["none listed", "", "", ""])
+
+    def test_the_planning_note_and_text_use_the_blocks_numbers_and_never_a_zero_for_a_window_that_was_not_measured(self):
+        plan = {"closed": True, "through": "test-spec", "windowMin": 23.2, "hostWindowMin": 23.8, "improveMin": 0, "children": 0,
+                "outputTokens": 88_480, "reasoningPct": 41.2}
+        self.assertEqual(run_logic("planningNote({planning:%s})" % json.dumps(plan)), "planning 23.2 min, closed at test-spec")
+        self.assertEqual(run_logic('planningNote({planning:{windowMin:6,closed:false,through:"plan"}})'), "planning 6 min, still open through plan")
+        self.assertEqual(run_logic("[planningNote({}),planningNote({planning:{closed:true}}),planningNote(null)]"), ["", "", ""])
+        self.assertEqual(run_logic("planningText({planning:%s})" % json.dumps(plan)),
+                         "23.2 min on the engine's clock; 23.8 min on the host's; closed at test-spec; Improve 0 min over 0 children; "
+                         "88,480 output tokens, 41.2% reasoning")
+        self.assertEqual(run_logic('planningText({unmeasured:{planning:"no planning block"}})'), "not measured (no planning block)")
+        self.assertEqual(run_logic('planningText({planning:{closed:false},unmeasured:{planning:"timeline recreated"}})'), "not measured (timeline recreated)")
+        self.assertEqual(run_logic('planningText({planning:{windowMin:5,children:1,improveMin:2}})'), "5 min on the engine's clock; Improve 2 min over 1 child")
+
+    def test_packet_use_and_glue_read_from_tool_use_and_glue_is_a_lower_bound_with_wrappers(self):
+        run = {"glue": 2, "toolUse": {"wrappers": [{"name": "done.py", "runs": 30}, {"name": "istart.sh", "runs": 7}],
+                                      "packets": {"files": 45, "bytes": 1_802_659, "printed": 47, "printedChars": 104_849, "readWhole": 1,
+                                                  "readPartial": 0, "shellReads": 19, "shellChars": 90_112}}}
+        self.assertEqual(run_logic("packetUseText(%s)" % json.dumps(run)),
+                         "Packets: 45 packet files (1.7 MB) on disk; 47 printed replies (104,849 characters); 1 read whole, 0 in part; "
+                         "19 shell reads (90,112 characters)")
+        self.assertEqual(run_logic("glueText(%s)" % json.dumps(run)),
+                         "2 commands + 37 runs of 2 wrapper scripts (done.py, istart.sh): a lower bound, since a wrapper hides what it runs")
+        self.assertEqual(run_logic('glueText({glue:0,toolUse:{wrappers:[]}})'), "0 commands; no wrapper script was run")
+        self.assertEqual(run_logic('glueText({glue:3})'), "3 commands")
+        self.assertEqual(run_logic('glueText({unmeasured:{model_glue:"a host that cannot show it"}})'), "not measured (a host that cannot show it)")
+        self.assertEqual(run_logic("[packetUseText({}),packetUseText({toolUse:{}}),packetUseText(null)]"), ["", "", ""])
+
+    def test_the_run_detail_rows_add_glue_and_the_planning_window_only_when_the_run_has_them(self):
+        rows = run_logic('[factRows({glue:1,planning:{windowMin:5}}),factRows({}),factRows({unmeasured:{planning:"none"}})]')
+        names = lambda r: [x[0] for x in r]
+        self.assertEqual(names(rows[0])[-2:], ["Model glue", "Planning window"])
+        self.assertEqual(names(rows[1]), ["Model calls (main thread)", "Context peak (main thread)", "Compactions"])  # as before
+        self.assertEqual(rows[2][-1], ["Planning window", "not measured (none)"])
+
+
+class ChecksPlanningPageTests(unittest.TestCase):
+    """What the page draws from them: the stage card's two lines, the Elapsed and Context cards, and the run detail."""
+
+    ROWS = [{"stage": "test-red", "outcome": "done", "min": 1, "action": "nav-a", "verify": {
+        "records": 1, "passed": 1, "red": 1, "runs": [{"status": "red", "ran": 5, "failed": 5, "acceptedRan": 5}]}},
+            {"stage": "product-acceptance", "outcome": "done", "min": 2, "action": "nav-b", "unverified": [{
+                "outcome": "Plays in a browser", "owner": "user", "dueStage": "handoff", "reason": "no browser"}]},
+            {"stage": "handoff", "outcome": "done", "min": 3, "action": "nav-c", "unverified": []},
+            {"stage": "release", "outcome": "done", "min": 3, "action": "nav-d"}]
+
+    def run_of(self, **extra) -> dict:
+        return dict(DONE_RUN, stages=self.ROWS, wallMin=30, **extra)
+
+    def test_the_stage_card_prints_checked_by_the_script_and_left_unverified_only_where_the_export_has_them(self):
+        card_for = lambda i: {k: v for k, v in run_logic("stageCard(%s,%d,null)" % (json.dumps(self.run_of()), i))["done"]["lines"]}
+        written_for = lambda i: {k: v for k, v in run_logic("stageCard(%s,%d,null)" % (json.dumps(self.run_of()), i))["written"]["lines"]}
+        self.assertEqual(card_for(0)["Checked by the script"],
+                         "1 record, 1 passed, 1 ran red; last record: red (ran 5, failed 5, accepted 5)")
+        self.assertNotIn("Checked by the script", card_for(1))
+        self.assertEqual(written_for(1)["Left unverified (owner, due stage)"], "Plays in a browser (user, due handoff). Reason: no browser.")
+        self.assertEqual(written_for(2)["Left unverified (owner, due stage)"], "none listed")
+        self.assertNotIn("Left unverified (owner, due stage)", written_for(3))
+        self.assertNotIn("Left unverified (owner, due stage)", written_for(0))
+
+    def test_the_page_shows_the_card_lines_and_keeps_their_line_breaks(self):
+        text = page_probe('setCol(1);textOf("seqdetail")', setup=ended_page(self.run_of()))
+        self.assertIn("Left unverified (owner, due stage)Plays in a browser (user, due handoff). Reason: no browser.", text)
+        css = TEMPLATE.read_text(encoding="utf-8").split("</style>")[0]
+        self.assertRegex(css, r"\.sqd \.facts dd\{[^}]*white-space:pre-line")  # several unverified outcomes are one per line
+
+    def test_the_elapsed_card_says_when_planning_closed_and_the_context_card_gains_the_packet_use_line(self):
+        planning = {"closed": True, "through": "test-spec", "windowMin": 23.2}
+        tool_use = {"wrappers": [], "packets": {"files": 45, "printed": 47, "readWhole": 1, "readPartial": 0}}
+        cards = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(
+            self.run_of(planning=planning, toolUse=tool_use, contextPeak=5000, contextWindow=10000)))}
+        self.assertEqual(cards["elapsed"]["note"], "start to the last accept; planning 23.2 min, closed at test-spec")
+        self.assertEqual(cards["context"]["lines"], ["Packets: 45 packet files on disk; 47 printed replies; 1 read whole, 0 in part"])
+        unmeasured = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(self.run_of(toolUse=tool_use)))}
+        self.assertEqual(unmeasured["context"]["value"], "not measured")
+        self.assertEqual(len(unmeasured["context"]["lines"]), 1)  # the packet line is independent of the context figure
+        plain = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(self.run_of()))}
+        self.assertEqual((plain["context"]["lines"], plain["elapsed"]["note"]), ([], "start to the last accept"))
+        out = page_probe('textOf("kpis")', setup=ended_page(self.run_of(planning=planning, toolUse=tool_use, contextPeak=5000, contextWindow=10000)))
+        self.assertIn("Packets: 45 packet files on disk; 47 printed replies; 1 read whole, 0 in part", out)
+        self.assertIn("planning 23.2 min, closed at test-spec", out)
+
+    def test_the_run_detail_gives_the_glue_lower_bound_and_the_planning_window(self):
+        run = self.run_of(glue=2, planning={"closed": True, "through": "test-spec", "windowMin": 23.2},
+                          toolUse={"wrappers": [{"name": "done.py", "runs": 30}]})
+        out = page_probe('textOf("rundetail")', setup=ended_page(run))
+        self.assertIn("Model glue2 commands + 30 runs of 1 wrapper script (done.py): a lower bound", out)
+        self.assertIn("Planning window23.2 min on the engine's clock; closed at test-spec", out)
+
+
+# ---------------------------------------------------------------- R22d: counts in the right number, MB sizes, the worktree checks as N/N
+
+class CountsInTheRightNumberTests(unittest.TestCase):
+    """One pure helper, `plural`, puts every counted noun the page prints in the right number: "1 refusal", never "1 refusals"."""
+
+    def test_the_one_helper_reads_one_and_many_and_takes_an_irregular_plural(self):
+        self.assertEqual(run_logic('[plural(1,"refusal"),plural(0,"refusal"),plural(13,"refusal"),plural(1,"pass"),plural(2,"pass"),'
+                                   'plural(1,"child","children"),plural(2,"child","children"),plural(0,"child","children"),'
+                                   'plural(1,"printed reply","printed replies"),plural(3,"printed reply","printed replies")]'),
+                         ["1 refusal", "0 refusals", "13 refusals", "1 pass", "2 passes", "1 child", "2 children", "0 children",
+                          "1 printed reply", "3 printed replies"])
+
+    def test_the_header_line_counts_refusals_in_the_right_number_and_glue_stays_a_mass_noun(self):
+        heads = run_logic('[1,0,13].map(function(n){return headerFacts({release:"r",time:"t",imp:"i",refusals:n,glue:n});})')
+        self.assertEqual(heads, ["r | t | 1 refusal | 1 glue | i", "r | t | 0 refusals | 0 glue | i", "r | t | 13 refusals | 13 glue | i"])
+        self.assertEqual(run_logic('headerFacts({release:"r",time:"t",imp:"i"})'), "r | t | refusals not measured | glue not measured | i")
+        self.assertNotIn("1 refusals", page_probe('textOf("runfacts")', setup=ended_page(dict(DONE_RUN, refusals=1, glue=1))))
+        self.assertIn("| 1 refusal |", page_probe('textOf("runfacts")', setup=ended_page(dict(DONE_RUN, refusals=1, glue=1))))
+
+    def test_the_prompts_run_facts_count_visits_improve_passes_and_refusals_in_the_right_number(self):
+        one = run_logic('runFactsLine({stages:[{stage:"intake"}],wallMin:5,improvePasses:1,refusals:1,glue:1})')
+        many = run_logic('runFactsLine({stages:[{stage:"intake"},{stage:"spec"}],wallMin:5,improvePasses:2,refusals:2,glue:2})')
+        self.assertEqual(one, "Run facts: 1 visit, 5 min elapsed, 1 Improve pass, 1 refusal, 1 glue.")
+        self.assertEqual(many, "Run facts: 2 visits, 5 min elapsed, 2 Improve passes, 2 refusals, 2 glue.")
+        self.assertEqual(run_logic('runFactsLine({stages:[{stage:"intake"}]})'),
+                         "Run facts: 1 visit; Improve passes not measured, refusals not measured, glue not measured.")
+
+    def test_the_refusals_card_and_the_failures_heading_say_one_refusal_line_for_one(self):
+        card = lambda n: {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(dict(DONE_RUN, refusals=n)))}["refusals"]
+        self.assertEqual((card(1)["value"], card(1)["note"]), ("1", "refusal line or failed ShipLoop command"))
+        self.assertEqual((card(13)["value"], card(13)["note"]), ("13", "refusal lines or failed ShipLoop commands"))
+        self.assertEqual(card(0)["note"], "refusal lines or failed ShipLoop commands")  # a measured 0 reads as many
+        one = page_probe('textOf("rundetail")', setup=ended_page(dict(DONE_RUN, refusals=1, failures=[{"verb": "complete", "line": "refused"}])))
+        self.assertIn("1 refusal: refusal line or failed ShipLoop command", one)
+        self.assertNotIn("1 refusals", one)
+
+    def test_irregular_and_regular_plurals_inside_the_run_detail_use_the_helper(self):
+        self.assertEqual(run_logic('planningText({planning:{windowMin:5,children:1,improveMin:2}})'), "5 min on the engine's clock; Improve 2 min over 1 child")
+        self.assertIn("1 printed reply (9 characters)", run_logic('packetUseText({toolUse:{packets:{printed:1,printedChars:9}}})'))
+        self.assertIn("2 printed replies", run_logic('packetUseText({toolUse:{packets:{printed:2}}})'))
+        strip = run_logic('whereStrip({stages:[{stage:"intake",outcome:"done"}]},{phase:0})')
+        self.assertIn("Understand: 1 of 1 visit<", strip)
+        self.assertNotIn("1 of 1 visits", strip)
+
+    def test_the_exporters_header_text_counts_children_and_review_passes_in_the_right_number(self):
+        self.assertEqual([export._count(1, "child", "children"), export._count(2, "child", "children"), export._count(0, "child", "children"),
+                          export._count(1, "review pass"), export._count(2, "review pass"), export._count(1, "check"), export._count(3, "check")],
+                         ["1 child", "2 children", "0 children", "1 review pass", "2 review passes", "1 check", "3 checks"])
+        with tempfile.TemporaryDirectory() as tmp:
+            out = make_run(Path(tmp), loops=False)
+            make_improve_child(run_dir_of(out), IDS["plan"], passes=1)
+            run = export.build_run(out)[0]["runs"][RunReviewTest.KEY]
+            self.assertEqual(run["imp"], "1 child, 1 review pass")
+            facts = "\n".join(export.build_run(out)[1])
+            self.assertIn("- Improve: 1 child, 1 review pass;", facts)
+            self.assertIn("7 accepted actions", facts)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = make_run(Path(tmp), [ACCEPTS[0]], loops=False)
+            shutil.rmtree(run_dir_of(out) / "improve")
+            docs, facts = export.build_run(out)
+            self.assertEqual(docs["runs"][RunReviewTest.KEY]["imp"], "0 children")
+            self.assertIn("1 accepted action;", "\n".join(facts))  # one accepted action, not "1 accepted actions"
+            self.assertIn("over 1 accepted action", "\n".join(facts))
+
+
+class MegabyteSizeTests(unittest.TestCase):
+    """kbText prints bytes, KB, and from 1000 KB up MB with one decimal."""
+
+    def test_a_size_reads_in_b_kb_or_mb_with_one_decimal_and_the_edges_are_pinned(self):
+        self.assertEqual(run_logic("[0,814,1023,1024,1536,47475,55492,1023897,1023999,1048576,1802659,5242880,52428800].map(kbText)"),
+                         ["0 B", "814 B", "1023 B", "1 KB", "1.5 KB", "46.4 KB", "54.2 KB", "999.9 KB", "1 MB", "1 MB", "1.7 MB", "5 MB", "50 MB"])
+
+    def test_the_packet_use_line_and_the_cards_print_megabytes_not_a_thousand_kilobytes(self):
+        text = run_logic('packetUseText({toolUse:{packets:{files:45,bytes:1802659}}})')
+        self.assertEqual(text, "Packets: 45 packet files (1.7 MB) on disk")
+        self.assertNotIn("1760", text)
+        self.assertEqual(run_logic("kbText(2*1024*1024)"), "2 MB")
+
+
+class WorktreeChecksCountTests(unittest.TestCase):
+    """The unreturned product's checks are {passed, total}: N of M pass in the worktree, not a bare boolean."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def checks(self, results: list[bool]) -> dict:
+        return {"pass": False, "worktree_checks": [{"command": f"check {n}", "pass": ok} for n, ok in enumerate(results)]}
+
+    def test_the_export_holds_how_many_of_the_checks_pass_in_the_worktree(self):
+        for results, expected in (([True] * 4, {"passed": 4, "total": 4}), ([True, False, True, False], {"passed": 2, "total": 4}),
+                                  ([False], {"passed": 0, "total": 1})):
+            with self.subTest(results=results):
+                out = ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), shiploop=self.checks(results))
+                docs, facts = export.build_run(out)
+                run = docs["runs"][self.KEY]
+                self.assertEqual(run["verdicts"]["worktreeChecks"], expected)
+                self.assertEqual(export.validate_doc("runs", run), [])
+                self.assertIn(f"- Checks in the worktree (product not returned): {expected['passed']}/{expected['total']} pass", "\n".join(facts))
+        none = ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), shiploop={"pass": False, "worktree_checks": []})
+        self.assertNotIn("worktreeChecks", export.build_run(none)[0]["runs"][self.KEY].get("verdicts", {}))  # no checks ran there: no count
+
+    def test_the_contract_rejects_the_boolean_the_first_export_wrote_and_a_count_without_both_numbers(self):
+        base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
+        self.assertEqual(export.validate_doc("runs", dict(base, verdicts={"checks": True, "worktreeChecks": {"passed": 2, "total": 4}})), [])
+        problems = "\n".join(export.validate_doc("runs", dict(base, verdicts={"worktreeChecks": True})))
+        self.assertIn("verdicts.worktreeChecks: expected an object {passed, total}", problems)
+        problems = "\n".join(export.validate_doc("runs", dict(base, verdicts={"worktreeChecks": {"passed": "2"}})))
+        self.assertIn("verdicts.worktreeChecks: missing required field 'total'", problems)
+        self.assertIn("verdicts.worktreeChecks.passed: expected a number", problems)
+
+    def test_schema_md_documents_the_count_and_says_the_boolean_is_not_read(self):
+        text = " ".join(SCHEMA_MD.read_text().split())
+        for phrase in ("`worktreeChecks` is the one exception, an object `{passed, total}`", "passes 4/4 checks in the worktree",
+                       "An earlier R22a export wrote it as a boolean; that shape is not read"):
+            self.assertIn(phrase, text)
+        self.assertNotIn("true when every one passes there", text)
+
+    def test_the_page_says_how_many_checks_pass_and_reads_only_the_count_shape(self):
+        self.assertEqual(run_logic('[worktreeOf({passed:4,total:4}),worktreeOf({passed:2,total:4}),worktreeOf(true),worktreeOf(false),worktreeOf(null),'
+                                   'worktreeOf({passed:5,total:4}),worktreeOf({passed:0,total:0}),worktreeOf({passed:"2",total:4}),worktreeOf({passed:0,total:3})]'),
+                         [{"passed": 4, "total": 4, "all": True}, {"passed": 2, "total": 4, "all": False}, None, None, None, None, None, None,
+                          {"passed": 0, "total": 3, "all": False}])
+        rows = lambda v: ending_rows(dict(DONE_RUN, verdicts=v))
+        self.assertEqual(rows({"checks": False, "worktreeChecks": {"passed": 4, "total": 4}}),
+                         {"Product that was never returned": "passes 4/4 checks in the worktree; the copy in the work folder fails them because nothing was returned there"})
+        self.assertEqual(rows({"checks": False, "worktreeChecks": {"passed": 0, "total": 3}}),
+                         {"Product that was never returned": "passes 0/3 checks in the worktree, and the copy in the work folder fails its checks too"})
+        self.assertEqual(rows({"worktreeChecks": True}), {})  # the old boolean is not read, so no verdict is invented from it
+
+    def test_the_run_detail_chip_reads_the_count_and_is_green_only_when_every_check_passes(self):
+        chips = lambda v: page_probe('byClass("rundetail","chip").map(function(c){return c.className.split(" ").pop()+":"+c.textContent;})',
+                                     setup=ended_page(dict(DONE_RUN, verdicts=v)))
+        self.assertEqual(chips({"checks": False, "worktreeChecks": {"passed": 4, "total": 4}}), ["broken:checks fail", "holds:worktree checks 4/4"])
+        self.assertEqual(chips({"worktreeChecks": {"passed": 2, "total": 4}}), ["broken:worktree checks 2/4"])
+        self.assertEqual(chips({"checks": True, "worktreeChecks": True}), ["holds:checks pass"])  # not a count: no chip for it
 
 
 if __name__ == "__main__":

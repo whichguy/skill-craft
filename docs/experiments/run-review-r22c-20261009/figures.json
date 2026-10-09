@@ -1,0 +1,468 @@
+{
+ "backchain_loop_round_runs": [],
+ "credential_refusal_to_spec_accept_seconds": {
+  "r2-battleship-grok-none": 19.1,
+  "r3-battleship-grok-none": 42.8
+ },
+ "credential_replay": {
+  "r2-battleship-grok-none": [
+   {
+    "flagged_without_key_word": false,
+    "hex_colours": 0,
+    "line": "- Signature: the board reads as a chart, with coordinate captions. Miss is a dot, not a filled cell. No stock photography.",
+    "trips_on": [
+     "- Signature: the board reads as a chart,"
+    ]
+   }
+  ],
+  "r3-battleship-grok-none": [
+   {
+    "flagged_without_key_word": false,
+    "hex_colours": 7,
+    "line": "- Skin decision: water is `#06202b`, the board is `#0c3a46`, unfired cells are `#114b56`, text is `#d7efe8`, a miss is a hollow ring `#8fb9b0`, a hit is `#e37a3a`, a sunk ship is `#f2c14e` across that ship's known cells only after the server says `sunk` for each of them (the page only knows cells it has already been told; it does not invent the rest of the ship). Display type is `Georgia` for the title only; cells use `ui-monospace, monospace`. This avoids the cream/serif, acid-green-on-black, and broadsheet defaults called out by the design note, while staying inside system fonts. Signature: the grid reads as an instrument, with coordinates on the axes, not as a marketing hero.",
+    "trips_on": [
+     "Signature: the grid reads as an instrument,"
+    ]
+   },
+   {
+    "flagged_without_key_word": false,
+    "hex_colours": 7,
+    "line": "- Skin decision: water is `#06202b`, the board is `#0c3a46`, unfired cells are `#114b56`, text is `#d7efe8`, a miss is a hollow ring `#8fb9b0`, a hit is `#e37a3a`, and the cell whose reply was `sunk` is `#f2c14e`. Earlier hits stay hit-colored. The fire body does not list the rest of the ship (D-5), so the page must not invent those cells. Display type is `Georgia` for the title only; cells use `ui-monospace, monospace`. This avoids the cream/serif, acid-green-on-black, and broadsheet defaults called out by the design note, while staying inside system fonts. Signature: the grid reads as an instrument, with coordinates on the axes, not as a marketing hero.",
+    "trips_on": [
+     "Signature: the grid reads as an instrument,"
+    ]
+   }
+  ]
+ },
+ "graph_checked_round_runs": [
+  "r1-battleship-grok-none",
+  "r1-battleship-sonnet",
+  "r2-checkers-sonnet"
+ ],
+ "luna_recollect": {
+  "failures": 13,
+  "generic_tails": 0,
+  "own_line": 13
+ },
+ "r1_grok_blocked_stage": "system-test-author",
+ "r1_grok_blocked_visit_min": 21.1,
+ "r2_mixed": {
+  "claude_resume_file": "invocation-resume-claude-1791508003.json",
+  "claude_start": "2026-10-09T01:06:43Z",
+  "claude_visits": 21,
+  "first_claude_visit": 32,
+  "first_grok_harness_log_last_second": 855,
+  "grok_visits": 31,
+  "orphan_gap_min": 32.2,
+  "visits_before_harness_end": 8
+ },
+ "r3_grok": {
+  "accepted_visits": 15,
+  "browser_debug_scripts": 12,
+  "earlier_stop": [
+   "terminated by SIGTERM"
+  ],
+  "first_browser_line_second": 490,
+  "implement_open_from_session_second": 487,
+  "last_accept": "2026-10-09T06:57:03Z",
+  "last_accepted_stage": "implement",
+  "open_implement_min": 27.1,
+  "open_implement_seconds": 1626.6,
+  "open_implement_turns": 104,
+  "resume_start": "2026-10-09T06:48:56Z",
+  "resumed_session_min": 35.2,
+  "resumed_session_seconds": 2114.2,
+  "stop": "stopped"
+ },
+ "round_runs": [
+  "r1-battleship-sonnet",
+  "r1-checkers-sonnet",
+  "r1-battleship-grok-none",
+  "r2-battleship-sonnet",
+  "r2-checkers-sonnet",
+  "r2-battleship-grok-none",
+  "r3-battleship-sonnet",
+  "r3-checkers-sonnet",
+  "r3-battleship-grok-none"
+ ],
+ "runs": {
+  "r1-battleship-grok-none": {
+   "calls": 301,
+   "check_receipts": 1,
+   "checks": 4,
+   "checks_passed": 0,
+   "cost_usd": 8.7455,
+   "credential_refusals": 0,
+   "glue": 0,
+   "improve_passes": 4,
+   "invocation_hosts": [
+    "grok"
+   ],
+   "key": "r1-battleship-grok-none",
+   "left_behind_reaped": 0,
+   "loop_receipts": 0,
+   "narrative_emitted": 17,
+   "narrative_shown": 3,
+   "planning_improve_children": 0,
+   "planning_window_host_seconds": 1446.4,
+   "planning_window_min": 23.3,
+   "planning_window_seconds": 1396.0,
+   "refusal_lines": [],
+   "release": "skill-craft 1.24.0, ShipLoop 0.56.0",
+   "skipped_visits": [
+    "skill-assess",
+    "skill-validate"
+   ],
+   "stage": "system-test-author",
+   "status": "blocked",
+   "visits": 27,
+   "wall_min": 74.8
+  },
+  "r1-battleship-sonnet": {
+   "calls": 120,
+   "check_receipts": 1,
+   "checks": 4,
+   "checks_passed": 4,
+   "cost_usd": 5.7046,
+   "credential_refusals": 0,
+   "glue": 1,
+   "improve_passes": 13,
+   "invocation_hosts": [
+    "claude",
+    "claude"
+   ],
+   "key": "r1-battleship-sonnet",
+   "left_behind_reaped": 0,
+   "loop_receipts": 0,
+   "narrative_emitted": 5,
+   "narrative_shown": 0,
+   "planning_improve_children": 5,
+   "planning_window_host_seconds": 341.9,
+   "planning_window_min": 5.6,
+   "planning_window_seconds": 336.0,
+   "refusal_lines": [
+    "ShipLoop navigator: evidence_refs cite files that do not exist: /Users/dadleet/e2e-runs/20261008/r1-battleship-sonnet/.shiploop-runs/work-20261008-173654-a943e7",
+    "ShipLoop navigator: ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. Before release-plan is done, write:",
+    "ShipLoop navigator: ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. Before release-plan is done, write:",
+    "ShipLoop workspace blocked: return plan has unresolved path dispositions",
+    "ShipLoop workspace blocked: return plan has an invalid status"
+   ],
+   "release": "skill-craft 1.24.0, ShipLoop 0.56.0",
+   "skipped_visits": [
+    "skill-assess",
+    "skill-validate"
+   ],
+   "stage": "done",
+   "status": "done",
+   "visits": 37,
+   "wall_min": 13.6
+  },
+  "r1-checkers-sonnet": {
+   "calls": 105,
+   "check_receipts": 0,
+   "checks": 4,
+   "checks_passed": 4,
+   "cost_usd": 5.1613,
+   "credential_refusals": 1,
+   "glue": 2,
+   "improve_passes": 15,
+   "invocation_hosts": [
+    "claude",
+    "claude"
+   ],
+   "key": "r1-checkers-sonnet",
+   "left_behind_reaped": 0,
+   "loop_receipts": 0,
+   "narrative_emitted": 5,
+   "narrative_shown": 0,
+   "planning_improve_children": 5,
+   "planning_window_host_seconds": 373.0,
+   "planning_window_min": 6.1,
+   "planning_window_seconds": 367.0,
+   "refusal_lines": [
+    "ShipLoop navigator: These knowledge lines look like credentials; record alias names, never tokens, passwords or session URLs: docs/shiploop/spec.md:19",
+    "ShipLoop navigator: Until Loop terminal packet is not complete",
+    "ShipLoop navigator: ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. Before release-plan is done, write:",
+    "ShipLoop workspace blocked: return plan has unresolved path dispositions"
+   ],
+   "release": "skill-craft 1.24.0, ShipLoop 0.56.0",
+   "skipped_visits": [],
+   "stage": "done",
+   "status": "done",
+   "visits": 36,
+   "wall_min": 12.8
+  },
+  "r2-battleship-grok-none": {
+   "calls": 182,
+   "check_receipts": 0,
+   "checks": 4,
+   "checks_passed": 4,
+   "cost_usd": 5.4866,
+   "credential_refusals": 1,
+   "glue": 10,
+   "improve_passes": 12,
+   "invocation_hosts": [
+    "grok",
+    "claude",
+    "grok"
+   ],
+   "key": "r2-battleship-grok-none",
+   "left_behind_reaped": 0,
+   "loop_receipts": 0,
+   "narrative_emitted": 11,
+   "narrative_shown": 1,
+   "planning_improve_children": 0,
+   "planning_window_host_seconds": 963.4,
+   "planning_window_min": 15.7,
+   "planning_window_seconds": 943.0,
+   "refusal_lines": [
+    "ShipLoop navigator: These knowledge lines look like credentials; record alias names, never tokens, passwords or session URLs: docs/shiploop/spec.md:205",
+    "ShipLoop navigator: a check command is judged by its exit code and takes no ids or min_tests",
+    "ShipLoop navigator: ShipLoop Improve import: the review changed these files but did not commit them:",
+    "ShipLoop navigator: Before release-verify is done, write: /Users/dadleet/e2e-runs/20261008/r2-battleship-grok-none/.shiploop-runs/work-20261009-002036-d50cd1/wo"
+   ],
+   "release": "skill-craft 1.25.0, ShipLoop 0.57.0",
+   "skipped_visits": [
+    "skill-assess",
+    "skill-validate",
+    "skill-assess",
+    "skill-validate"
+   ],
+   "stage": "done",
+   "status": "done",
+   "visits": 52,
+   "wall_min": 60.6
+  },
+  "r2-battleship-sonnet": {
+   "calls": 116,
+   "check_receipts": 0,
+   "checks": 4,
+   "checks_passed": 4,
+   "cost_usd": 5.8146,
+   "credential_refusals": 0,
+   "glue": 1,
+   "improve_passes": 12,
+   "invocation_hosts": [
+    "claude"
+   ],
+   "key": "r2-battleship-sonnet",
+   "left_behind_reaped": 0,
+   "loop_receipts": 0,
+   "narrative_emitted": 4,
+   "narrative_shown": 0,
+   "planning_improve_children": 5,
+   "planning_window_host_seconds": 336.7,
+   "planning_window_min": 5.5,
+   "planning_window_seconds": 331.0,
+   "refusal_lines": [
+    ""
+   ],
+   "release": "skill-craft 1.25.0, ShipLoop 0.57.0",
+   "skipped_visits": [
+    "skill-assess",
+    "skill-validate"
+   ],
+   "stage": "done",
+   "status": "done",
+   "visits": 36,
+   "wall_min": 13.3
+  },
+  "r2-checkers-sonnet": {
+   "calls": 152,
+   "check_receipts": 2,
+   "checks": 4,
+   "checks_passed": 4,
+   "cost_usd": 8.5146,
+   "credential_refusals": 0,
+   "glue": 0,
+   "improve_passes": 24,
+   "invocation_hosts": [
+    "claude"
+   ],
+   "key": "r2-checkers-sonnet",
+   "left_behind_reaped": 0,
+   "loop_receipts": 0,
+   "narrative_emitted": 5,
+   "narrative_shown": 0,
+   "planning_improve_children": 5,
+   "planning_window_host_seconds": 426.6,
+   "planning_window_min": 7.0,
+   "planning_window_seconds": 421.0,
+   "refusal_lines": [
+    "ShipLoop navigator: write the opening file first: /Users/dadleet/e2e-runs/20261008/r2-checkers-sonnet/.shiploop-runs/work-20261009-002022-bbe194/worktree/.shipl",
+    "ShipLoop navigator: assumption A3 (open) needs exactly check, consumer, reason; each assumption is {id, assumption, disposition} plus: evidenced -> evidence (li",
+    "ShipLoop navigator: assumption A3 (open) needs exactly check, consumer, reason; each assumption is {id, assumption, disposition} plus: evidenced -> evidence (li",
+    "ShipLoop navigator: ShipLoop test run: test-author is not done. ShipLoop ran the 2 listed commands from /Users/dadleet/e2e-runs/20261008/r2-checkers-sonnet/.shi",
+    "ShipLoop navigator: ShipLoop test run: test-author is not done. ShipLoop ran the 2 listed commands from /Users/dadleet/e2e-runs/20261008/r2-checkers-sonnet/.shi"
+   ],
+   "release": "skill-craft 1.25.0, ShipLoop 0.57.0",
+   "skipped_visits": [],
+   "stage": "done",
+   "status": "done",
+   "visits": 37,
+   "wall_min": 20.6
+  },
+  "r3-battleship-grok-none": {
+   "calls": 230,
+   "check_receipts": 0,
+   "checks": 4,
+   "checks_passed": 0,
+   "cost_usd": null,
+   "credential_refusals": 2,
+   "glue": 0,
+   "improve_passes": 0,
+   "invocation_hosts": [
+    "grok",
+    "grok"
+   ],
+   "key": "r3-battleship-grok-none",
+   "left_behind_reaped": 2,
+   "loop_receipts": 0,
+   "narrative_emitted": 11,
+   "narrative_shown": 1,
+   "planning_improve_children": 0,
+   "planning_window_host_seconds": 1429.5,
+   "planning_window_min": 23.2,
+   "planning_window_seconds": 1393.0,
+   "refusal_lines": [
+    "ShipLoop navigator: These knowledge lines look like credentials; record alias names, never tokens, passwords or session URLs: docs/shiploop/spec.md:188",
+    "ShipLoop navigator: These knowledge lines look like credentials; record alias names, never tokens, passwords or session URLs: docs/shiploop/spec.md:188"
+   ],
+   "release": "skill-craft 1.26.0, ShipLoop 0.58.0",
+   "skipped_visits": [],
+   "stage": "implement",
+   "status": "active",
+   "visits": 15,
+   "wall_min": 36.5
+  },
+  "r3-battleship-sonnet": {
+   "calls": 107,
+   "check_receipts": 0,
+   "checks": 4,
+   "checks_passed": 4,
+   "cost_usd": 5.6749,
+   "credential_refusals": 0,
+   "glue": 2,
+   "improve_passes": 14,
+   "invocation_hosts": [
+    "claude"
+   ],
+   "key": "r3-battleship-sonnet",
+   "left_behind_reaped": 2,
+   "loop_receipts": 0,
+   "narrative_emitted": 6,
+   "narrative_shown": 0,
+   "planning_improve_children": 5,
+   "planning_window_host_seconds": 299.0,
+   "planning_window_min": 4.8,
+   "planning_window_seconds": 291.0,
+   "refusal_lines": [
+    "ShipLoop navigator: list the saved terminal packet in evidence_refs: /Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet/.shiploop-runs/work-20261009-062005-7"
+   ],
+   "release": "skill-craft 1.26.0, ShipLoop 0.58.0",
+   "skipped_visits": [],
+   "stage": "done",
+   "status": "done",
+   "visits": 36,
+   "wall_min": 12.3
+  },
+  "r3-checkers-sonnet": {
+   "calls": 120,
+   "check_receipts": 0,
+   "checks": 4,
+   "checks_passed": 4,
+   "cost_usd": 6.6509,
+   "credential_refusals": 0,
+   "glue": 0,
+   "improve_passes": 19,
+   "invocation_hosts": [
+    "claude"
+   ],
+   "key": "r3-checkers-sonnet",
+   "left_behind_reaped": 0,
+   "loop_receipts": 0,
+   "narrative_emitted": 4,
+   "narrative_shown": 0,
+   "planning_improve_children": 5,
+   "planning_window_host_seconds": 346.1,
+   "planning_window_min": 5.7,
+   "planning_window_seconds": 340.0,
+   "refusal_lines": [
+    "ShipLoop navigator: action 'nav-f2dc6f21b3e14a18a90c283ec0a2e0cf' is not the current navigator action; current action is nav-f2dc6f21b3e14a18a90c2873f85db28d wi",
+    "ShipLoop navigator: a check command is judged by its exit code and takes no ids or min_tests"
+   ],
+   "release": "skill-craft 1.26.0, ShipLoop 0.58.0",
+   "skipped_visits": [],
+   "stage": "done",
+   "status": "done",
+   "visits": 38,
+   "wall_min": 14.8
+  },
+  "v1230-battleship-grok-none": {
+   "calls": 503,
+   "check_receipts": 2,
+   "checks": 4,
+   "checks_passed": 0,
+   "cost_usd": 14.1673,
+   "credential_refusals": 0,
+   "glue": 1,
+   "improve_passes": 2,
+   "invocation_hosts": [
+    "grok"
+   ],
+   "key": "v1230-battleship-grok-none",
+   "left_behind_reaped": 0,
+   "loop_receipts": 0,
+   "narrative_emitted": 13,
+   "narrative_shown": 4,
+   "planning_improve_children": null,
+   "planning_window_host_seconds": null,
+   "planning_window_min": null,
+   "planning_window_seconds": null,
+   "refusal_lines": [
+    "ShipLoop blocked: /Users/dadleet/e2e-runs/20261007/v1230-battleship-grok-none/.shiploop-runs/work-20261007-153345-c5f8ed/run/inbox/nav-f11369ce9e434982b376f9bc2",
+    "ShipLoop navigator: the loop contract is 9,450 bytes, 234 over its 9,216-byte budget: the Until Loop keeps its whole state (contract, latest report, progress) i"
+   ],
+   "release": "skill-craft 1.22.0, ShipLoop 0.54.0",
+   "skipped_visits": [],
+   "stage": "system-test",
+   "status": "blocked",
+   "visits": 47,
+   "wall_min": 100.7
+  },
+  "v1230-battleship-sonnet": {
+   "calls": 167,
+   "check_receipts": 0,
+   "checks": 4,
+   "checks_passed": 4,
+   "cost_usd": 9.6543,
+   "credential_refusals": 0,
+   "glue": 1,
+   "improve_passes": 18,
+   "invocation_hosts": [
+    "claude",
+    "claude",
+    "claude"
+   ],
+   "key": "v1230-battleship-sonnet",
+   "left_behind_reaped": 0,
+   "loop_receipts": 0,
+   "narrative_emitted": 7,
+   "narrative_shown": 0,
+   "planning_improve_children": 5,
+   "planning_window_host_seconds": 394.4,
+   "planning_window_min": 6.5,
+   "planning_window_seconds": 388.0,
+   "refusal_lines": [
+    "ShipLoop workspace blocked: return plan has unresolved path dispositions"
+   ],
+   "release": "skill-craft 1.22.0, ShipLoop 0.54.0",
+   "skipped_visits": [],
+   "stage": "done",
+   "status": "done",
+   "visits": 38,
+   "wall_min": 19.8
+  }
+ },
+ "source": "/Users/dadleet/e2e-runs"
+}

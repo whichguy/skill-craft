@@ -1,0 +1,25 @@
+{
+ "schema": "run-review-export/v2",
+ "docs": {
+  "reviews": {
+   "r3-battleship-sonnet": {
+    "summary": [
+     "Claude Sonnet 5.5 ran Node Battleship on skill-craft 1.26.0 (checkout build, planning_review stage) in 12.3 min: 36 accepted visits, done, 4 of 4 harness checks, 107 model calls, $5.67; its planning window was 4.8 min (291 s) with five Improve children.",
+     "What it showed: the fixes of 1.25.0 and 1.26.0 held (no hand edit of return-plan.md, the Improve child's directory made by emit, the test-count ratchet recorded, the reaper ended the two servers the run left on ports 3471 and 3000), but the model committed twice under the user's identity (de38128 at integrate, 9e28b73), wrote a rollback that is not the printed recipe, claimed a release-check run that did not happen, and classified the browser case away.",
+     "Conclusions: the passing grade rests on HTTP-level tests; the page's clicks were never tested (three page mutants pass all 15 retained tests, per the round-3 analysis), and the run said so honestly in its unverified list.",
+     "Learnings: an obligation that lives only in the packet body is missed (the rollback recipe, the release-check compare), while the same kind of obligation in the Done-when head is met (the probe line worked for Checkers).",
+     "Next: the round-3 text batch (integrate wording, two rollback Done-when lines, the process and port sentence, the release-check shape gate), then one Sonnet pair run in sequence with no other track."
+    ],
+    "basis": {
+     "P1": "Holds: 36 visits accepted through the script in state.md history (revision 52), all done; no state edit and no hand edit of return-plan.md (docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.batch4_scorecard 'Batch-3 items').",
+     "P2": "Holds: 8 Improve children (14 passes, metrics.json improve_reviews) and the test and quality loops ran from script-written contracts; the plan ran no Backchain loop, so no loop contract was model-built (the plan summary in state.md history: 'no Backchain Until Loop child requested').",
+     "P3": "Bent by o45 (two user-identity commits, the first induced by the integrate row) and o46 (a rollback that is not the printed recipe); the run went on after each.",
+     "P4": "Holds: each visit ended with the printed callback; the one refused command ('list the saved terminal packet in evidence_refs') was repaired in the same stage (metrics.json shiploop_failures).",
+     "P5": "Broken by o48 (release-check accepted a run of the confirm commands that did not happen); bent by o51 (baseline recorded 3 of 4 commands, the exit taken from tail) and o76 (narrative shown 0 of 6, unmeasurable headless). The harness reaped the two servers the run left (result.json left_behind).",
+     "B2": "Bent by o65: the plan was a prose dependency audit with no backchain-check receipt (no run/backchain/ directory), which the one-pass packet allows."
+    },
+    "reviewedAt": "2026-10-09T16:00:00Z"
+   }
+  }
+ }
+}
