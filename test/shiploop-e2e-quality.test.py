@@ -163,5 +163,857 @@ class PlanningReviewOptionTest(e2e.CaseRunCase):
             choice("none", {})  # the run never recorded a value: it cannot be given one now
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# Shared helpers
+
+TINY = FIXTURES / "tiny-product"
+REFERENCE = FIXTURES / "reference_checkers.py"
+CHECKERS_IDS = ["red-moves-first", "illegal-keeps-turn", "off-board-keeps-turn", "legal-moves-alternate", "red-jump-mandatory",
+                "black-jump-mandatory-and-removal"]
+GIT_IDENTITY = ["-c", "user.name=Quality Test", "-c", "user.email=quality@example.invalid"]
+
+
+class RecordingGroups(set):
+    """The harness's live-group registry, remembering every pid ever added."""
+
+    def __init__(self):
+        super().__init__()
+        self.added: list[int] = []
+
+    def add(self, pid):
+        self.added.append(pid)
+        super().add(pid)
+
+
+def no_syntax_check():
+    """The stand-in tests need no node, so the catalog's `node --check` is left out of them (MutationNodeTest has it)."""
+    return mock.patch.object(quality.JS, "syntax_check", None)
+
+
+def commit_delivery(work: Path) -> Path:
+    """Make `work` a committed git checkout, as a finished run leaves it."""
+    for args in (["init", "-q"], ["add", "-A"], [*GIT_IDENTITY, "commit", "-q", "-m", "delivery"]):
+        subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True)
+    return work
+
+
+def tree_digest(root: Path) -> dict:
+    return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in sorted(root.rglob("*")) if path.is_file() and ".git" not in path.relative_to(root).parts}
+
+
+class QualityCase(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        e2e.isolate_git(self)
+        self.groups = RecordingGroups()
+        # No test of this file reads the machine's process table: the listener scan sees nothing unless a class scopes it.
+        patch = mock.patch.object(listeners, "observe", return_value=[])
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def delivery(self, name: str = "work", source: Path = TINY, extra: dict | None = None) -> Path:
+        work = self.tmp / name
+        shutil.copytree(source, work)
+        for relative, text in (extra or {}).items():
+            (work / relative).parent.mkdir(parents=True, exist_ok=True)
+            (work / relative).write_text(text)
+        return commit_delivery(work)
+
+    def mutate(self, command: str = "python3 check.py", name: str = "copy", **kw) -> tuple[dict, Path]:
+        copy = self.tmp / name
+        if not copy.exists():
+            shutil.copytree(TINY, copy)
+        spec = {"command": command, **kw.pop("spec", {})}
+        kw.setdefault("stop", lambda: None)
+        return quality.mutation(copy, spec, groups=self.groups, logs=self.tmp / f"logs-{name}", **kw), copy
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The operator catalog
+
+
+@needs_quality
+class MutationOperatorTest(QualityCase):
+    """What counts as a place to mutate: operators in code and nowhere else."""
+
+    def found(self, source: str) -> list[tuple]:
+        return [(site["op"], site["old"], site["new"]) for site in quality.sites(source)]
+
+    def test_each_operator_finds_its_sites_in_code(self):
+        table = {
+            "a === b": [("eq-flip", "===", "!==")],
+            "a !== b": [("eq-flip", "!==", "===")],
+            "a <= b": [("rel-bound", "<=", "<")],
+            "a >= b": [("rel-bound", ">=", ">")],
+            "a < b": [("rel-bound", "<", "<=")],
+            "a > b": [("rel-bound", ">", ">=")],
+            "a && b": [("logic-flip", "&&", "||")],
+            "a || b": [("logic-flip", "||", "&&")],
+            "x = true": [("bool-flip", "true", "false")],
+            "x = false": [("bool-flip", "false", "true")],
+            "a + b": [("arith-flip", "+", "-")],
+            "a - b": [("arith-flip", "-", "+")],
+            "i < 10": [("rel-bound", "<", "<="), ("bound-literal", "10", "11")],
+            "n >= 5": [("rel-bound", ">=", ">"), ("bound-literal", "5", "6")],
+        }
+        for source, expected in table.items():
+            with self.subTest(source=source):
+                self.assertEqual(self.found(source), expected)
+
+    def test_comments_strings_and_templates_hold_no_site(self):
+        for source in ("let s = 'a === b'", 'let s = "a && b || true"', "let s = `a < ${b > 1}`", "// a === b && true\n",
+                       "/* a < b */", "let s = 'it\\'s a === b'"):
+            with self.subTest(source=source):
+                self.assertEqual(self.found(source), [])
+
+    def test_syntax_that_resembles_an_operator_is_not_one(self):
+        table = {"const f = (x) => x": [], "i++": [], "i--": [], "a+b": [], "x = -1": [], "const trueish = 1": [],
+                 "n < 2.5": [("rel-bound", "<", "<=")],  # a number with a fraction is not stepped
+                 "a >> 2": [("bound-literal", "2", "3")]}  # the shift is no comparison; the literal after `>` is still stepped
+        for source, expected in table.items():
+            with self.subTest(source=source):
+                self.assertEqual(self.found(source), expected)
+
+    def test_the_tiny_product_has_the_sites_its_tests_are_written_around(self):
+        by_file = {name: quality.sites((TINY / name).read_text()) for name in ("lib.js", "other.js", "unused.js")}
+        self.assertEqual([(s["op"], s["old"], s["new"], s["line"]) for s in by_file["lib.js"]],
+                         [("rel-bound", ">=", ">", 4), ("bound-literal", "18", "19", 4), ("rel-bound", ">", ">=", 6),
+                          ("bound-literal", "0", "1", 6), ("logic-flip", "&&", "||", 6), ("rel-bound", "<", "<=", 6),
+                          ("bound-literal", "10", "11", 6), ("bool-flip", "false", "true", 9)],
+                         "the comment on line 2 and the string on line 3 name operators and are not code")
+        self.assertEqual(len(by_file["other.js"]), 2)
+        self.assertEqual(len(by_file["unused.js"]), 2)
+
+    def test_the_mask_keeps_length_and_lines(self):
+        source = "a // x === y\nb /* c\nd */ e 'f g' h `i\nj`"
+        masked = quality.mask(source)
+        self.assertEqual(len(masked), len(source))
+        self.assertEqual(masked.count("\n"), source.count("\n"))
+        self.assertNotIn("===", masked)
+
+    def test_the_mutants_are_taken_round_robin_across_files(self):
+        order = quality.round_robin({"a.js": [1, 2, 3], "b.js": [4], "c.js": [5, 6]})
+        self.assertEqual([(name, site) for name, site in order], [("a.js", 1), ("b.js", 4), ("c.js", 5), ("a.js", 2), ("c.js", 6),
+                                                                  ("a.js", 3)])
+        self.assertEqual(quality.round_robin({}), [])
+
+    def test_the_ratio_is_null_when_nothing_was_decided(self):
+        self.assertIsNone(quality.ratio(0, 0))
+        self.assertEqual(quality.ratio(5, 7), 0.4167)
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The mutation run, driven by a stand-in for `node --test` (no node needed)
+
+SURVIVORS = [
+    {"file": "lib.js", "line": 6, "op": "rel-bound", "from": ">", "to": ">="},
+    {"file": "lib.js", "line": 6, "op": "bound-literal", "from": "0", "to": "1"},
+    {"file": "lib.js", "line": 6, "op": "rel-bound", "from": "<", "to": "<="},
+    {"file": "lib.js", "line": 6, "op": "bound-literal", "from": "10", "to": "11"},
+    {"file": "other.js", "line": 2, "op": "eq-flip", "from": "===", "to": "!=="},
+    {"file": "unused.js", "line": 2, "op": "rel-bound", "from": ">", "to": ">="},
+    {"file": "unused.js", "line": 2, "op": "bound-literal", "from": "2", "to": "3"},
+]
+
+
+@needs_quality
+class MutationRunTest(QualityCase):
+    def setUp(self):
+        super().setUp()
+        patch = no_syntax_check()
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def test_a_mutant_the_tests_catch_and_one_they_miss_are_told_apart_and_the_source_is_restored(self):
+        before = tree_digest(TINY)
+        block, copy = self.mutate()
+        self.assertTrue(block["observed"], block)
+        self.assertEqual((block["sites"], block["killed"], block["survived"], block["invalid"], block["not_run"], block["timeout"]),
+                         (12, 5, 7, 0, 0, 0))
+        self.assertEqual((block["ratio"], block["ceiling_hit"], block["operator_id"]), (0.4167, False, "js-1"))
+        self.assertEqual(block["killed"] + block["survived"] + block["invalid"] + block["not_run"], block["sites"])
+        self.assertEqual(block["baseline"]["tests"], 4)
+        self.assertEqual(sorted(block["survivors"], key=lambda s: (s["file"], s["line"], s["op"], s["from"])),
+                         sorted(SURVIVORS, key=lambda s: (s["file"], s["line"], s["op"], s["from"])))
+        self.assertEqual({name: (row["sites"], row["killed"], row["survived"]) for name, row in block["per_file"].items()},
+                         {"lib.js": (8, 4, 4), "other.js": (2, 1, 1), "unused.js": (2, 0, 2)})
+        self.assertEqual(tree_digest(copy), before, "every mutated file is back as it was")
+
+    def test_what_the_tests_load_is_proved_by_a_caught_mutant_and_unknown_without_a_coverage_record(self):
+        block, _copy = self.mutate()
+        self.assertEqual({name: row["loaded_by_tests"] for name, row in block["per_file"].items()},
+                         {"lib.js": True, "other.js": True, "unused.js": None},
+                         "a file a mutant of which was caught ran; with no coverage record the others are unknown, not false")
+
+    def test_a_file_the_coverage_misses_but_a_caught_mutant_proves_is_loaded(self):
+        # The saved r1 Checkers run: server.js is run only by a child the tests stop with a signal, so it writes no coverage,
+        # and 23 of its 32 mutants were caught. "Never loaded" would have been false.
+        with mock.patch.object(quality.JS, "coverage_files", lambda directory, copy: {"other.js"}):
+            block, _ = self.mutate()
+        self.assertEqual({name: row["loaded_by_tests"] for name, row in block["per_file"].items()},
+                         {"lib.js": True, "other.js": True, "unused.js": False})
+
+    def test_test_files_dependencies_docs_and_the_cases_exclusions_are_not_source(self):
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+        for relative in ("docs/shiploop/browser-check.js", "node_modules/dep/index.js", "tests/more.js", "system/probe.js",
+                         "price.test.js", "price.spec.mjs", "test-helper.js", "test.js", "lib/checks_test.js", "lib/a-test.cjs"):
+            (copy / relative).parent.mkdir(parents=True, exist_ok=True)
+            (copy / relative).write_text("const x = a > 1 && b;\n")
+        (copy / "latest.js").write_text("const x = a > 1;\n")  # looks like `test` to a careless pattern, and is source
+        block, _ = self.mutate(spec={"exclude": ["system", "unused.js"]})
+        self.assertEqual(sorted(block["per_file"]), ["latest.js", "lib.js", "other.js"])
+        self.assertEqual(block["sites"], 12)
+
+    def test_a_red_baseline_is_not_observed_and_never_a_ratio(self):
+        for mode, reason in (("red", "exited 1"), ("zero", "counted no tests"), ("silent", "nothing readable")):
+            with self.subTest(mode=mode), mock.patch.dict(os.environ, {"BASELINE": mode}):
+                block, _ = self.mutate(name=f"copy-{mode}")
+                self.assertFalse(block["observed"])
+                self.assertIn(reason, block["reason"])
+                self.assertNotIn("ratio", block)
+                self.assertNotIn("killed", block)
+
+    def test_a_baseline_that_does_not_finish_is_not_observed(self):
+        with mock.patch.dict(os.environ, {"SLOW": "5"}), mock.patch.object(quality, "RUN_CEILING_SECONDS", 1):
+            block, _ = self.mutate()
+        self.assertFalse(block["observed"])
+        self.assertIn("did not finish within the ceiling", block["reason"])
+
+    def test_a_command_that_is_not_there_is_a_red_baseline_not_a_crash(self):
+        block, _ = self.mutate(command="no-such-test-runner-xyz --test")
+        self.assertFalse(block["observed"])
+        self.assertIn("exited 127", block["reason"])
+
+    def test_a_delivery_in_a_language_with_no_catalog_is_not_observed_and_says_what_it_holds(self):
+        copy = self.tmp / "py"
+        copy.mkdir()
+        (copy / "tool.py").write_text("def f(a, b):\n    return a > b\n")
+        (copy / "README.md").write_text("# x\n")
+        block = quality.mutation(copy, {"command": "python3 -m unittest"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l")
+        self.assertFalse(block["observed"])
+        self.assertIn("no delivered source file has an operator catalog", block["reason"])
+        self.assertIn(".md 1", block["reason"])
+        self.assertIn(".py 1", block["reason"])
+
+    def test_source_with_no_operator_is_not_observed(self):
+        copy = self.tmp / "plain"
+        copy.mkdir()
+        (copy / "a.js").write_text("module.exports = 42;\n")
+        block = quality.mutation(copy, {"command": "python3 -c pass"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l")
+        self.assertFalse(block["observed"])
+        self.assertIn("no operator applies", block["reason"])
+
+    def test_a_mutant_that_is_not_valid_syntax_is_dropped_from_the_ratio(self):
+        checker = "import sys; sys.exit(1 if 'const spin = true' in open(sys.argv[1]).read() else 0)"
+        with mock.patch.object(quality.JS, "syntax_check", lambda path: [sys.executable, "-c", checker, str(path)]):
+            block, _ = self.mutate(name="copy-invalid")
+        self.assertEqual((block["invalid"], block["killed"], block["survived"], block["sites"]), (1, 4, 7, 12))
+        self.assertEqual(block["ratio"], 0.3636, "4 of the 11 mutants that are programs")
+        self.assertEqual(block["per_file"]["lib.js"]["invalid"], 1)
+
+    def test_two_runs_over_the_same_copy_give_the_same_survivors(self):
+        first, _ = self.mutate(name="copy-a")
+        second, _ = self.mutate(name="copy-b")
+        self.assertEqual(first["survivors"], second["survivors"])
+        self.assertEqual({k: first[k] for k in ("sites", "killed", "survived", "ratio")},
+                         {k: second[k] for k in ("sites", "killed", "survived", "ratio")})
+
+    def test_a_ceiling_hit_leaves_a_sample_of_every_file_and_counts_the_rest_as_not_run(self):
+        ticks = iter(range(1000))
+        with mock.patch.object(quality, "PHASE_CEILING_SECONDS", 5):
+            block, _ = self.mutate(clock=lambda: next(ticks))  # the phase reads its clock once per mutant: 4 mutants fit
+        self.assertTrue(block["ceiling_hit"])
+        tested = {name: row["killed"] + row["survived"] for name, row in block["per_file"].items()}
+        self.assertEqual(sum(tested.values()), 4)
+        self.assertEqual(sorted(tested.values()), [1, 1, 2], "the first mutant of every file ran before a second of any")
+        self.assertEqual(block["not_run"], 8)
+        self.assertEqual(block["killed"] + block["survived"] + block["invalid"] + block["not_run"], block["sites"])
+        self.assertEqual(sum(row["not_run"] for row in block["per_file"].values()), 8)
+        self.assertIsNotNone(block["ratio"], "a ratio over the mutants that did run is recorded beside ceiling_hit")
+
+    def test_a_requested_stop_ends_the_phase_with_no_ratio_and_the_source_intact(self):
+        before = tree_digest(TINY)
+        asked = []
+
+        def stop():
+            asked.append(1)
+            return "terminated by SIGTERM" if len(asked) > 3 else None
+
+        block, copy = self.mutate(stop=stop)
+        self.assertFalse(block["observed"])
+        self.assertIn("terminated by SIGTERM", block["reason"])
+        self.assertIn("ended after 3 of 12 mutants", block["reason"])
+        self.assertNotIn("ratio", block)
+        self.assertEqual(tree_digest(copy), before)
+
+    def test_a_stop_that_arrives_during_the_last_mutant_discards_the_ratio_too(self):
+        # A run the stop killed exits non-zero and would read as a caught mutant: the ratio must not include it.
+        asked = []
+
+        def stop():
+            asked.append(1)  # asked before each of the 12 mutants, then once more after the last
+            return "terminated by SIGTERM" if len(asked) > 12 else None
+
+        block, _ = self.mutate(stop=stop)
+        self.assertFalse(block["observed"])
+        self.assertIn("during its last mutant", block["reason"])
+        self.assertNotIn("ratio", block)
+
+    def test_line_endings_and_non_ascii_text_survive_a_mutation_run_byte_for_byte(self):
+        copy = self.tmp / "crlf"
+        copy.mkdir()
+        original = "function f(a) {\r\n  return a > 1 && '\u00e9';\r\n}\r\nmodule.exports = { f };\r\n".encode("utf-8")
+        (copy / "a.js").write_bytes(original)
+        (copy / "check.py").write_text("print('# tests 1\\n# pass 1\\n# fail 0\\n# cancelled 0')\n")
+        block = quality.mutation(copy, {"command": "python3 check.py"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l")
+        self.assertTrue(block["observed"], block)
+        self.assertEqual(block["sites"], 3)
+        self.assertEqual((copy / "a.js").read_bytes(), original)
+
+    def test_the_block_records_its_ceilings_and_the_command(self):
+        block, _ = self.mutate()
+        self.assertEqual(block["ceilings"], {"run_seconds": quality.RUN_CEILING_SECONDS, "phase_seconds": quality.PHASE_CEILING_SECONDS})
+        self.assertEqual(block["command"], "python3 check.py")
+
+
+    def test_the_cases_source_for_the_command_is_carried_into_the_record(self):
+        block, _ = self.mutate(spec={"source": "the request says node --test"})
+        self.assertEqual(block["source"], "the request says node --test")
+
+
+@needs_node
+@needs_quality
+class MutationNodeTest(QualityCase):
+    """The same tiny delivery under the real `node --test`, the real syntax check and the real coverage record."""
+
+    def test_the_real_runner_gives_the_ratio_the_stand_in_gives_and_knows_which_files_the_tests_load(self):
+        block, copy = self.mutate(command="node --test")
+        self.assertTrue(block["observed"], block)
+        self.assertEqual((block["sites"], block["killed"], block["survived"], block["invalid"], block["ratio"]), (12, 5, 7, 0, 0.4167))
+        self.assertEqual(block["baseline"]["tests"], 4, "counted by the engine's reader from the real summary")
+        self.assertEqual({name: row["loaded_by_tests"] for name, row in block["per_file"].items()},
+                         {"lib.js": True, "other.js": True, "unused.js": False},
+                         "unused.js is never required: its two sites survive for that reason and the record says so")
+        self.assertEqual(tree_digest(copy), tree_digest(TINY))
+
+    def test_the_catalogs_syntax_check_tells_a_program_from_one_that_does_not_parse(self):
+        good, bad = self.tmp / "good.js", self.tmp / "bad.js"
+        good.write_text("const a = 1;\n")
+        bad.write_text("const = ;\n")
+        codes = [quality.run_once(quality.JS.syntax_check(path), self.tmp, quality.child_env(), self.tmp / "syntax.log",
+                                  quality.RUN_CEILING_SECONDS, self.groups)["returncode"] for path in (good, bad)]
+        self.assertEqual(codes[0], 0)
+        self.assertNotEqual(codes[1], 0)
+
+    def test_every_group_the_phase_started_is_registered_and_then_forgotten(self):
+        block, _ = self.mutate(command="node --test")
+        self.assertTrue(block["observed"])
+        self.assertEqual(set(self.groups), set(), "every group the phase started was forgotten once its leader was reaped")
+        self.assertGreater(len(self.groups.added), 12, "and it had registered each one: baseline, 12 mutants and their syntax checks")
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Process safety
+
+def alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def gone_soon(pid: int, seconds: float = 5.0) -> bool:
+    end = time.time() + seconds
+    while time.time() < end:
+        if not alive(pid):
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def kill_quietly(pid: int) -> None:
+    with contextlib.suppress(ProcessLookupError, PermissionError):
+        os.kill(pid, signal.SIGKILL)
+
+
+# A process that starts a child and sleeps (each for at most 60 s, so a failing test leaves nothing for long); its pids go to argv[1].
+PARENT_AND_CHILD = (
+    "import os, subprocess, sys, time\n"
+    "child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+    "open(sys.argv[1], 'w').write('%d %d' % (os.getpid(), child.pid))\n"
+    "time.sleep(60)\n")
+
+
+@needs_quality
+class ProcessSafetyTest(QualityCase):
+    """What the quality phase may signal, and what ends it."""
+
+    def read_pids(self, path: Path) -> tuple[int, int]:
+        for _ in range(200):
+            if path.exists() and path.read_text().count(" "):
+                break
+            time.sleep(0.05)
+        parent, child = map(int, path.read_text().split())
+        self.addCleanup(kill_quietly, child)
+        self.addCleanup(kill_quietly, parent)
+        return parent, child
+
+    def test_a_group_is_ended_whole_while_its_leader_still_leads_it(self):
+        pidfile = self.tmp / "pids"
+        proc = quality.start([sys.executable, "-c", PARENT_AND_CHILD, str(pidfile)], self.tmp, quality.child_env(),
+                             self.tmp / "log", self.groups)
+        self.addCleanup(kill_quietly, proc.pid)
+        parent, child = self.read_pids(pidfile)
+        self.assertEqual(os.getpgid(child), proc.pid, "the child shares the leader's group, so the group kill reaches it")
+        self.assertIn(proc.pid, self.groups, "registered at once, so a signal to the harness ends it")
+        self.assertTrue(quality.end_group(proc))
+        self.assertTrue(gone_soon(child), "the leader's child ended with the group")
+        self.assertFalse(alive(parent))
+
+    def test_a_process_that_does_not_lead_its_group_is_never_signalled(self):
+        # Started in the test's own group: its pid is not a group id. A killpg on it would signal an unrelated group (or none).
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"], stdin=subprocess.DEVNULL)
+        self.addCleanup(e2e.end_quietly, proc)
+        self.assertNotEqual(os.getpgid(proc.pid), proc.pid)
+        with mock.patch.object(os, "killpg") as killpg:
+            self.assertFalse(quality.end_group(proc))
+        killpg.assert_not_called()
+        self.assertTrue(alive(proc.pid))
+
+    def test_a_process_that_already_ended_is_not_signalled_by_group(self):
+        proc = quality.start([sys.executable, "-c", "pass"], self.tmp, quality.child_env(), self.tmp / "log", self.groups)
+        proc.wait()
+        with mock.patch.object(os, "killpg") as killpg:
+            self.assertFalse(quality.end_group(proc), "a reaped pid may be reused: its group is not ours to signal")
+        killpg.assert_not_called()
+        self.groups.discard(proc.pid)
+
+    def test_every_group_is_registered_while_it_runs_and_forgotten_after(self):
+        result = quality.run_once([sys.executable, "-c", "pass"], self.tmp, quality.child_env(), self.tmp / "log", 5, self.groups)
+        self.assertEqual(result["returncode"], 0)
+        self.assertEqual(len(self.groups.added), 1)
+        self.assertEqual(set(self.groups), set())
+
+    def test_a_group_the_phase_started_is_ended_by_the_harness_when_it_is_told_to_end(self):
+        # run.end_live_hosts is what a SIGTERM to the harness and the exit hook call; the phase registers in the same set.
+        proc = quality.start([sys.executable, "-c", "import time; time.sleep(30)"], self.tmp, quality.child_env(), self.tmp / "log",
+                             run.LIVE_HOST_GROUPS)
+        self.addCleanup(kill_quietly, proc.pid)
+        self.addCleanup(run.LIVE_HOST_GROUPS.discard, proc.pid)
+        self.assertIn(proc.pid, run.LIVE_HOST_GROUPS)
+        run.end_live_hosts()
+        self.assertEqual(proc.wait(timeout=10), -signal.SIGKILL)
+
+    def test_a_hanging_mutant_is_counted_killed_and_its_whole_group_ends(self):
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+        began = time.monotonic()
+        with no_syntax_check(), mock.patch.dict(os.environ, {"HANG_ON_SPIN": "1"}), mock.patch.object(quality, "RUN_CEILING_SECONDS", 1):
+            block = quality.mutation(copy, {"command": "python3 check.py"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l")
+        # The hung run and its child would sleep for 60 s on their own: the phase ended them, it did not wait them out.
+        self.assertLess(time.monotonic() - began, 30)
+        self.assertTrue(block["observed"], block)
+        self.assertEqual((block["timeout"], block["killed"], block["survived"]), (1, 5, 7),
+                         "the spin mutant hangs: it is killed by the ceiling, as the stand-in's failing test would have killed it")
+        self.assertEqual(block["per_file"]["lib.js"]["timeout"], 1)
+        leader, child = map(int, (copy / "grandchild.pid").read_text().split())
+        self.addCleanup(kill_quietly, child)
+        self.assertTrue(gone_soon(child), "the hung run's child went with its group")
+        self.assertFalse(alive(leader))
+        self.assertFalse(alive(child), "and it went before its own 60 s were up")
+        self.assertEqual(set(self.groups), set())
+        self.assertEqual((copy / "lib.js").read_text(), (TINY / "lib.js").read_text(), "the hung mutant was undone")
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Held-out acceptance
+
+# The failing set each defect of the reference service must give: the exact set, so every check is shown to pass the correct
+# service and to fail the defect it reads, and no defect goes unnoticed. offboard-400 is the shape the saved r3 Checkers
+# delivery answered (HTTP 400 and {ok, error}, no turn and no winner).
+EXPECTED_FAILURES = {
+    None: set(),
+    "black-first": set(CHECKERS_IDS),
+    "illegal-flips-turn": {"red-moves-first", "illegal-keeps-turn", "red-jump-mandatory", "black-jump-mandatory-and-removal"},
+    "offboard-400": {"off-board-keeps-turn"},
+    "no-alternation": {"legal-moves-alternate", "red-jump-mandatory", "black-jump-mandatory-and-removal"},
+    "optional-jump": {"red-jump-mandatory", "black-jump-mandatory-and-removal"},
+    "black-optional-jump": {"black-jump-mandatory-and-removal"},
+    "no-removal": {"black-jump-mandatory-and-removal"},
+}
+
+
+def checkers_block(defect: str | None, ids: list[str] = CHECKERS_IDS) -> dict:
+    return {"module": "checkers_accept", "start": f"{sys.executable} {REFERENCE}" + (f" --defect {defect}" if defect else ""),
+            "source": "the case prompt", "checks": [{"id": ident, "source": f"quote for {ident}"} for ident in ids]}
+
+
+@needs_quality
+class AcceptanceCalibrationTest(QualityCase):
+    """Each held-out check against a hermetic reference service with one defect switch (a check admitted without this once failed
+    4 of 5 good deliveries because it kept firing after the game was over)."""
+
+    def run_defect(self, defect: str | None) -> dict:
+        folder = self.tmp / f"accept-{defect}"
+        folder.mkdir()
+        return quality.acceptance(folder, checkers_block(defect), groups=self.groups, stop=lambda: None, logs=folder / "logs")
+
+    def test_every_check_passes_the_correct_service_and_fails_the_defect_it_reads(self):
+        for defect, expected in EXPECTED_FAILURES.items():
+            with self.subTest(defect=defect):
+                block = self.run_defect(defect)
+                self.assertTrue(block["observed"], block)
+                self.assertEqual({row["id"] for row in block["checks"] if not row["pass"]}, expected,
+                                 {row["id"]: row["note"] for row in block["checks"] if not row["pass"]})
+                self.assertEqual(block["passed"], [i for i in CHECKERS_IDS if i not in expected])
+        self.assertEqual(set(), set(self.groups), "every server the checks started was ended")
+
+    def test_every_check_is_failed_by_some_defect_and_every_defect_by_some_check(self):
+        failing = [failed for defect, failed in EXPECTED_FAILURES.items() if defect]
+        self.assertEqual(set().union(*failing), set(CHECKERS_IDS), "a check no defect fails could never fail")
+        self.assertTrue(all(failing), "a defect no check fails would go unnoticed")
+
+    def test_the_off_board_item_is_its_own_check_and_the_other_illegal_moves_pass_when_it_fails(self):
+        block = self.run_defect("offboard-400")
+        rows = {row["id"]: row for row in block["checks"]}
+        self.assertTrue(rows["illegal-keeps-turn"]["pass"], "the bundled item once hid the one that discriminates")
+        self.assertFalse(rows["off-board-keeps-turn"]["pass"])
+        self.assertIn("HTTP 400", rows["off-board-keeps-turn"]["note"])
+
+
+@needs_quality
+class AcceptanceRunTest(QualityCase):
+    def accept(self, block: dict, **kw) -> dict:
+        folder = self.tmp / f"run-{len(list(self.tmp.glob('run-*')))}"
+        folder.mkdir()
+        kw.setdefault("stop", lambda: None)
+        return quality.acceptance(folder, block, groups=self.groups, logs=folder / "logs", **kw)
+
+    def checks_dir(self, source: str) -> Path:
+        folder = self.tmp / "checks"
+        folder.mkdir(exist_ok=True)
+        (folder / "tmpmod.py").write_text(source)
+        return folder
+
+    def block(self, start: str, ids=("one",)) -> dict:
+        return {"module": "tmpmod", "start": start, "source": "s", "checks": [{"id": i, "source": f"q {i}"} for i in ids]}
+
+    def test_a_server_that_never_listens_leaves_the_checks_unrun_and_its_group_ended(self):
+        directory = self.checks_dir("CHECKS = {'one': lambda base: (True, base)}\n")
+        with mock.patch.object(quality, "LISTEN_CEILING_SECONDS", 1):
+            block = self.accept(self.block(f"{sys.executable} -c 'import time; time.sleep(30)'"), checks_dir=directory)
+        self.assertFalse(block["observed"])
+        self.assertIn("did not listen", block["reason"])
+        self.assertNotIn("checks", block, "a check that did not run has no pass")
+        self.assertEqual(set(self.groups), set())
+
+    def test_a_server_that_exits_at_once_is_named_with_its_exit(self):
+        directory = self.checks_dir("CHECKS = {'one': lambda base: (True, base)}\n")
+        block = self.accept(self.block(f"{sys.executable} -c 'raise SystemExit(3)'"), checks_dir=directory)
+        self.assertFalse(block["observed"])
+        self.assertIn("exited 3", block["reason"])
+
+    def test_a_server_command_that_is_not_there_is_a_reason_not_a_crash(self):
+        directory = self.checks_dir("CHECKS = {'one': lambda base: (True, base)}\n")
+        block = self.accept(self.block("no-such-server-binary-xyz"), checks_dir=directory)
+        self.assertFalse(block["observed"])
+        self.assertIn("could not be started", block["reason"])
+
+    def test_a_declared_check_the_module_lacks_and_a_module_that_is_missing_are_harness_defects_said_so(self):
+        directory = self.checks_dir("CHECKS = {}\n")
+        block = self.accept(self.block("true", ids=("one", "two")), checks_dir=directory)
+        self.assertFalse(block["observed"])
+        self.assertIn("has no check for: one, two", block["reason"])
+        block = self.accept(dict(self.block("true"), module="absent"), checks_dir=directory)
+        self.assertFalse(block["observed"])
+        self.assertIn("could not be loaded", block["reason"])
+
+    def test_a_check_that_raises_fails_with_the_exception_and_the_others_still_run(self):
+        directory = self.checks_dir("def boom(base):\n    raise RuntimeError('no')\nCHECKS = {'one': boom, 'two': lambda base: (True, 'fine')}\n")
+        block = self.accept(dict(self.block(f"{sys.executable} {REFERENCE}", ids=("one", "two"))), checks_dir=directory)
+        self.assertTrue(block["observed"], block)
+        self.assertEqual([(row["id"], row["pass"]) for row in block["checks"]], [("one", False), ("two", True)])
+        self.assertIn("RuntimeError", block["checks"][0]["note"])
+        self.assertEqual((block["ids"], block["passed"]), (["one", "two"], ["two"]))
+
+    def test_nothing_but_the_servers_own_command_line_reaches_an_argv(self):
+        directory = self.checks_dir("CHECKS = {'secret-id': lambda base: (True, base)}\n")
+        argvs = []
+        real = subprocess.Popen
+
+        def spy(argv, *args, **kwargs):
+            argvs.append(list(argv))
+            return real(argv, *args, **kwargs)
+
+        with mock.patch.object(quality.subprocess, "Popen", side_effect=spy):
+            block = self.accept(self.block(f"{sys.executable} {REFERENCE}", ids=("secret-id",)), checks_dir=directory)
+        self.assertTrue(block["observed"], block)
+        self.assertEqual(argvs, [[sys.executable, str(REFERENCE)]], "only the product's server was started")
+        self.assertNotIn("secret-id", " ".join(" ".join(a) for a in argvs))
+        self.assertNotIn("tmpmod", " ".join(" ".join(a) for a in argvs))
+
+    def test_a_requested_stop_ends_the_checks_without_a_pass_for_the_unrun(self):
+        directory = self.checks_dir("CHECKS = {'one': lambda base: (True, 'a'), 'two': lambda base: (True, 'b')}\n")
+        asked = []
+        block = self.accept(self.block(f"{sys.executable} {REFERENCE}", ids=("one", "two")), checks_dir=directory,
+                            stop=lambda: asked.append(1) or ("stopped by x" if len(asked) > 1 else None))
+        self.assertFalse(block["observed"])
+        self.assertIn("ended after 1 of 2", block["reason"])
+        self.assertEqual(set(self.groups), set())
+
+    def test_the_record_keeps_each_checks_source_and_a_short_note(self):
+        block = self.accept(checkers_block(None, ids=["red-moves-first"]))
+        self.assertEqual(block["source"], "the case prompt")
+        row = block["checks"][0]
+        self.assertEqual((row["id"], row["source"], row["pass"]), ("red-moves-first", "quote for red-moves-first", True))
+        self.assertLessEqual(len(row["note"]), 300)
+
+    def test_two_blocks_of_a_followed_case_merge_the_followed_ones_first(self):
+        first = {"observed": True, "source": "a", "ids": ["x"], "passed": ["x"], "checks": [{"id": "x", "pass": True}]}
+        second = {"observed": True, "source": "b", "ids": ["y"], "passed": [], "checks": [{"id": "y", "pass": False}]}
+        merged = quality.merge_acceptance([first, second])
+        self.assertEqual((merged["ids"], merged["passed"], merged["source"]), (["x", "y"], ["x"], "a | b"))
+        self.assertFalse(quality.merge_acceptance([first, {"observed": False, "reason": "no server"}])["observed"])
+        self.assertIs(quality.merge_acceptance([first]), first)
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Facts read from the events
+
+MEMORY_EVENTS = FIXTURES / "memory-write-events.jsonl"
+
+
+def tool_use_line(name: str, **arg) -> str:
+    return json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t1", "name": name, "input": arg}]}})
+
+
+@needs_quality
+class EventFactsTest(QualityCase):
+    def events(self, *lines: str, name: str = "events.jsonl") -> Path:
+        path = self.tmp / name
+        path.write_text("".join(line + "\n" for line in lines))
+        return path
+
+    def test_the_memory_writes_of_the_saved_checkers_run_are_found_in_its_events(self):
+        # The real shape: r3-checkers-sonnet lines 599 and 605 (here 2 and 6) wrote feedback_no-broad-pkill.md and MEMORY.md; a Bash
+        # call that only reads the folder, the tool results and a Grok-shaped line are not writes.
+        found = quality.memory_writes(MEMORY_EVENTS)
+        self.assertEqual([(w["tool"], w["line"], Path(w["path"]).name) for w in found],
+                         [("Write", 2, "feedback_no-broad-pkill.md"), ("Write", 6, "MEMORY.md")])
+        self.assertTrue(all("/.claude/projects/" in w["path"] and "/memory/" in w["path"] for w in found))
+
+    def test_edit_and_multiedit_count_and_a_path_that_only_resembles_the_memory_folder_does_not(self):
+        path = self.events(
+            tool_use_line("Edit", file_path="/Users/x/.claude/projects/-a-b/memory/MEMORY.md", old_string="a", new_string="b"),
+            tool_use_line("MultiEdit", file_path="/Users/x/.claude/projects/-a-b/memory/notes/n.md", edits=[]),
+            tool_use_line("Write", file_path="/Users/x/.claude/projects/-a-b/memory-notes/n.md", content="x"),
+            tool_use_line("Write", file_path="/Users/x/.claude/projects/-a-b/memory"),
+            tool_use_line("Write", file_path="/Users/x/project/memory/n.md", content="x"),
+            tool_use_line("Write", file_path="/Users/x/.claude/settings.json", content="x"),
+            tool_use_line("Read", file_path="/Users/x/.claude/projects/-a-b/memory/MEMORY.md"),
+            tool_use_line("Bash", command="echo hi > /Users/x/.claude/projects/-a-b/memory/shell.md"))
+        self.assertEqual([(w["tool"], w["line"]) for w in quality.memory_writes(path)], [("Edit", 1), ("MultiEdit", 2), ("Write", 4)])
+
+    def test_a_run_that_wrote_nothing_there_is_a_measured_empty_list(self):
+        path = self.events(tool_use_line("Write", file_path="/work/server.js", content="x"))
+        facts, unmeasured = quality.event_facts(path, ["claude"], [])
+        self.assertEqual(facts["memory_writes"], [])
+        self.assertNotIn("memory_writes", unmeasured)
+
+    def test_events_that_are_absent_or_unreadable_leave_both_facts_null_with_the_reason(self):
+        facts, unmeasured = quality.event_facts(self.tmp / "absent.jsonl", ["claude"], [{"module": "checkers_accept"}])
+        self.assertEqual(facts, {"memory_writes": None, "held_out_seen": None})
+        self.assertEqual(set(unmeasured), {"memory_writes", "held_out_seen"})
+        self.assertIn("absent or unreadable", unmeasured["held_out_seen"])
+        folder = self.tmp / "isdir.jsonl"
+        folder.mkdir()
+        facts, unmeasured = quality.event_facts(folder, ["claude"], [{"module": "checkers_accept"}])
+        self.assertEqual(facts["held_out_seen"], None, "a directory where the events should be is unreadable, not zero")
+
+    def test_a_run_with_no_claude_session_has_no_memory_measure_and_says_so(self):
+        path = self.events(tool_use_line("Write", file_path="/Users/x/.claude/projects/-a/memory/MEMORY.md"))
+        facts, unmeasured = quality.event_facts(path, ["grok"], [])
+        self.assertIsNone(facts["memory_writes"])
+        self.assertIn("grok", unmeasured["memory_writes"])
+        facts, unmeasured = quality.event_facts(path, ["grok", "claude"], [])
+        self.assertEqual(len(facts["memory_writes"]), 1, "a run Claude finished is read, whoever started it")
+        facts, unmeasured = quality.event_facts(path, [], [])
+        self.assertIsNone(facts["memory_writes"])
+        self.assertIn("no host", unmeasured["memory_writes"])
+
+    def test_held_out_seen_counts_lines_that_name_a_held_out_script_or_the_checks_folder(self):
+        blocks = [{"module": "checkers_accept"}]
+        path = self.events(json.dumps({"type": "text", "data": "I will read checkers_accept.py"}),
+                           json.dumps({"type": "text", "data": "ls /x/test/shiploop_e2e/checks"}),
+                           json.dumps({"type": "text", "data": "echo $E2E_CHECKS"}),
+                           json.dumps({"type": "text", "data": "nothing of the kind"}))
+        facts, unmeasured = quality.event_facts(path, ["grok"], blocks)
+        self.assertEqual(facts["held_out_seen"], 3)
+        self.assertNotIn("held_out_seen", unmeasured)
+
+    def test_held_out_seen_is_a_measured_zero_when_the_events_name_nothing(self):
+        path = self.events(json.dumps({"type": "text", "data": "pgrep -fl run.py"}))
+        facts, _ = quality.event_facts(path, ["claude"], [{"module": "checkers_accept"}])
+        self.assertEqual(facts["held_out_seen"], 0)
+
+    def test_a_case_with_no_held_out_acceptance_has_nothing_held_out_to_see(self):
+        path = self.events(json.dumps({"type": "text", "data": "echo $E2E_CHECKS"}))
+        facts, unmeasured = quality.event_facts(path, ["claude"], [])
+        self.assertIsNone(facts["held_out_seen"])
+        self.assertIn("nothing is held out", unmeasured["held_out_seen"])
+
+    def test_a_saved_run_without_acceptance_declares_no_markers_but_the_shared_ones(self):
+        self.assertEqual(quality.held_out_markers([]), ["E2E_CHECKS", "shiploop_e2e/cases.json", "shiploop_e2e/checks"])
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The block of a run
+
+@needs_quality
+class MeasureBlockTest(QualityCase):
+    """quality.measure: the gate, the copy, the delivered folder left alone, and what it records."""
+
+    def setUp(self):
+        super().setUp()
+        patch = no_syntax_check()
+        patch.start()
+        self.addCleanup(patch.stop)
+        self.out = self.tmp / "out"
+        self.out.mkdir()
+        self.work = self.delivery("out/work")
+        (self.out / "events.jsonl").write_text(MEMORY_EVENTS.read_text())
+
+    def measure(self, spec=None, gate=None, hosts=("claude",), **kw) -> dict:
+        spec = {"mutation": {"command": "python3 check.py"}} if spec is None else spec
+        return quality.measure(self.out, self.work, spec, gate=gate, hosts_used=list(hosts), groups=self.groups,
+                               stop=lambda: None, **kw)
+
+    def test_a_finished_delivery_is_measured_on_a_copy_under_the_output_folder(self):
+        block = self.measure()
+        self.assertTrue(block["observed"], block)
+        self.assertEqual((block["hosts"], block["mixed_host"]), (["claude"], False))
+        self.assertEqual((block["mutation"]["sites"], block["mutation"]["ratio"]), (12, 0.4167))
+        self.assertNotIn("reason", block)
+        self.assertEqual(block["delivered_files"], len([p for p in TINY.rglob("*") if p.is_file()]))
+        self.assertTrue((self.out / "quality" / "copy" / "lib.js").is_file())
+        self.assertEqual(len(block["memory_writes"]), 2)
+        self.assertIsNone(block["held_out_seen"])
+        self.assertIn("nothing is held out", block["unmeasured"]["held_out_seen"])
+        self.assertEqual(block["left_behind"], {"observed": True, "reaped": [], "survived": []})
+
+    def test_the_delivered_folder_is_not_touched(self):
+        before = tree_digest(self.work)
+        status = subprocess.run(["git", "-C", str(self.work), "status", "--porcelain"], capture_output=True, text=True).stdout
+        times = {str(p): p.stat().st_mtime_ns for p in self.work.rglob("*") if p.is_file() and ".git" not in p.parts}
+        self.measure()
+        self.assertEqual(tree_digest(self.work), before)
+        self.assertEqual(subprocess.run(["git", "-C", str(self.work), "status", "--porcelain"], capture_output=True, text=True).stdout,
+                         status)
+        self.assertEqual({str(p): p.stat().st_mtime_ns for p in self.work.rglob("*") if p.is_file() and ".git" not in p.parts}, times)
+        self.assertFalse((self.work / ".git" / "quality").exists())
+
+    def test_the_gate_reason_is_the_reason_and_nothing_is_copied_or_run(self):
+        block = self.measure(gate="ShipLoop is still active (stage implement), so no delivery was returned")
+        self.assertEqual((block["observed"], block["reason"]), (False, "ShipLoop is still active (stage implement), so no delivery was returned"))
+        self.assertNotIn("mutation", block)
+        self.assertFalse((self.out / "quality").exists())
+        self.assertEqual(self.groups.added, [], "no process was started")
+        self.assertEqual(len(block["memory_writes"]), 2, "the events are read whether or not the delivery was")
+
+    def test_a_case_that_declares_nothing_says_so(self):
+        for spec in ({}, None):
+            with self.subTest(spec=spec):
+                block = quality.measure(self.out, self.work, spec, gate=None, hosts_used=["claude"], groups=self.groups, stop=lambda: None)
+                self.assertFalse(block["observed"])
+                self.assertIn("declares no quality measures", block["reason"])
+                self.assertFalse((self.out / "quality").exists())
+
+    def test_declared_measures_that_all_failed_to_run_give_one_reason_naming_each(self):
+        with mock.patch.dict(os.environ, {"BASELINE": "red"}):
+            block = self.measure()
+        self.assertFalse(block["observed"])
+        self.assertIn("none of the declared measures could be taken", block["reason"])
+        self.assertIn("mutation: the unmutated copy's test run exited 1", block["reason"])
+        self.assertFalse(block["mutation"]["observed"])
+
+    def test_an_earlier_copy_of_a_regrade_is_replaced_not_reused(self):
+        (self.out / "quality").mkdir()
+        (self.out / "quality" / "stale.txt").write_text("a copy of an earlier phase")
+        self.measure()
+        self.assertFalse((self.out / "quality" / "stale.txt").exists())
+
+    def test_hosts_come_from_the_launch_records_given_and_a_run_two_hosts_worked_on_is_marked(self):
+        block = self.measure(hosts=("grok", "claude"))
+        self.assertEqual((block["hosts"], block["mixed_host"]), (["grok", "claude"], True))
+        self.assertEqual(len(block["memory_writes"]), 2)
+
+    def test_the_held_out_checks_and_the_mutation_both_run_when_the_case_declares_both(self):
+        spec = {"mutation": {"command": "python3 check.py"}, "acceptance": [checkers_block(None, ["red-moves-first", "legal-moves-alternate"])]}
+        block = self.measure(spec=spec)
+        self.assertTrue(block["acceptance"]["observed"] and block["mutation"]["observed"])
+        self.assertEqual(block["acceptance"]["passed"], ["red-moves-first", "legal-moves-alternate"])
+        self.assertEqual(block["held_out_seen"], 0, "the events name no held-out script")
+
+    def test_an_error_inside_the_phase_still_reaps_the_copy_folder_and_propagates(self):
+        with mock.patch.object(quality, "export_delivery", side_effect=RuntimeError("no git")), \
+                mock.patch.object(listeners, "reap", return_value={"observed": True, "reaped": [], "survived": []}) as reap:
+            with self.assertRaises(RuntimeError):
+                self.measure()
+        reap.assert_called_once_with(self.out / "quality")
+
+
+@e2e.needs_lsof
+@needs_quality
+class QualityReapTest(e2e.RealListeners, unittest.TestCase):
+    """The phase stops the listeners under <output>/quality, and only those: the real lsof and signals, scoped to the test's folder."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.scope_to_tmp()
+        patch = no_syntax_check()
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def test_a_server_a_test_run_leaves_under_the_copy_is_stopped_and_one_beside_the_delivery_is_not(self):
+        out = self.tmp / "out"
+        out.mkdir()
+        work = out / "work"
+        shutil.copytree(TINY, work)
+        # check.py is replaced by a version that leaves one server running (its own session, as a model's `node server.js &`)
+        # the first time it runs; every later run just reports.
+        leak = ("import os, subprocess, sys\n"
+                "if not os.path.exists('leaked'):\n"
+                "    open('leaked', 'w').close()\n"
+                "    portfile = os.path.join(os.getcwd(), 'port')\n"
+                f"    subprocess.Popen([sys.executable, '-c', {e2e.LISTENER_SOURCE!r}, portfile], start_new_session=True,\n"
+                "                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+                "    import time\n"
+                "    while not os.path.exists(portfile): time.sleep(0.02)\n")
+        (work / "check.py").write_text(leak + (TINY / "check.py").read_text())
+        commit_delivery(work)
+        beside, beside_port = self.serve(out / "beside")
+        groups = RecordingGroups()
+        block = quality.measure(out, work, {"mutation": {"command": "python3 check.py"}}, gate=None, hosts_used=["claude"],
+                                groups=groups, stop=lambda: None)
+        self.assertTrue(block["observed"], block)
+        reaped = block["left_behind"]["reaped"]
+        self.assertEqual(len(reaped), 1, block["left_behind"])
+        self.assertTrue(reaped[0]["cwd"].startswith(os.path.realpath(out / "quality")), reaped)
+        self.assertTrue(e2e.refuses_soon(int((out / "quality" / "copy" / "port").read_text().split()[1])))
+        self.assertTrue(e2e.answers(beside_port), "a server under <output> but outside <output>/quality is not the phase's to stop")
+
+
 if __name__ == "__main__":
     unittest.main()
