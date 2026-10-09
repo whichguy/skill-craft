@@ -232,7 +232,11 @@ _DURATION_SECONDS = {
     # 3m16s.  Replace it with the suite's own GitHub seconds once the runner prints per-suite time.
     # 2026-10-08: 247 -> 320 tests (resume, stop and records, the planning block, the review corrections); 84.5 s
     # locally against 64 s, so 61.0 scaled by 84.5/64 is 81.  Still an estimate, still under QUICK_MAX_SECONDS (120).
-    "test/shiploop-e2e.test.py": 81.0,
+    # 2026-10-08 (batch 1010 A6): 350 -> 398 tests (the leftover-listener reap and refusal, the signal handling, which use the
+    # real lsof, ps, flock and signals); 84.1 s locally at the start against 104.7 s now (the median of eight full runs, 94.7
+    # to 116.6 s), so 81.0 scaled by 104.7/84.1 is 100.  The new classes alone take 19.7 s.  Still an estimate and still under
+    # QUICK_MAX_SECONDS (120): a further 20 s of tests here moves the suite out of the quick tier.
+    "test/shiploop-e2e.test.py": 100.0,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.

@@ -254,6 +254,14 @@ run writes no row. When rows do compare, the stage lines show where a whole-run
 difference landed; they gate nothing. Commit the new rows with the run's learnings
 entry. See SPEC.md, "E2E suites" and "Parallel work".
 
+Run the runs you compare one after the other. Concurrent runs share the CPU, the host's rate limit and the machine's loopback
+ports, so two runs whose wall time or per-call cost are set side by side (a before/after pair, a host or model comparison)
+are started the second after the first has ended: `--serial` for a suite, or launch the second once the first has ended.
+The suite default of 3 parallel chains stays, because a suite is for finding failures and not for timing them. Nothing
+records an overlap: a baseline row has no overlap field, and each run's `timeline.jsonl` start stamp is the only trace, so
+this is a discipline and not a guarantee (SPEC, "Parallel work"). The two round-2 Sonnet runs were started within 0.1 s of
+each other.
+
 The row's `planning_review` is the run option ShipLoop 1.22.0 records in `state.md`
 (`stage`: an Improve child after each of spec, test-strategy, plan, step-plan and
 test-spec; `none`: after none of them), read as written from the run's own state, and

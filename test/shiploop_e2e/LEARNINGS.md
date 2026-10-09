@@ -1736,6 +1736,14 @@ sentence under "Every ending leaves its records", and "Runs compared on wall tim
   `iterate.py` and the review and fan-out agents (`hosts.run_agent`) are not covered by the handlers; `iterate.py` still gets the
   `atexit` kill. A mutant that dropped the early return for a session begun after the signal survived, so that code was removed: the
   poll loop ends such a session at its first poll.
+- **Sequencing** (A6-sequence) is a rule and a README sentence with no code: runs compared on wall time or per-call cost run one after the
+  other (`--serial` for a suite, or launch the second after the first ends). The suite default of 3 parallel chains stays for finding
+  failures. A baseline row has no overlap field, so a later comparison cannot exclude an overlapped run; `timeline.jsonl` t0 is the only
+  record. The r2 pair started within 0.1 s of each other (1791505216.323 and .384).
+- **Dropped:** A6-sentence (a ShipLoop line about loopback ports): the contamination came from the leak, not from a missing rule, the
+  scratch-directory line already sits in every packet (`shiploop_navigator._run_rules`, pinned by `test/shiploop-navigator-v4.test.py`),
+  and it would need a change note and a release for an unmeasured benefit. Reopen only if a post-fix rerun still writes a port lesson
+  into durable knowledge.
 - **Decision (reversible): a leftover is a record, not a verdict.** `pass` is unchanged. Making it a verdict would fail a run for a
   model's habit the harness already cleaned up.
 - **Open:** U2 whether `lsof` exists on the `ubuntu-latest` CI runner (the pure parse and selection tests run either way; the real-process

@@ -5674,6 +5674,20 @@ class LeftBehindReadmeTest(unittest.TestCase):
                        "`<output>/.harness-lock`", "no override", "stop it by pid with `kill <pid>`"):
             self.assertIn(phrase, readme)
 
+    def test_the_readme_says_to_run_compared_runs_one_after_the_other_and_what_that_cannot_promise(self):
+        readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
+        for phrase in ("Run the runs you compare one after the other", "`--serial` for a suite",
+                       "The suite default of 3 parallel chains stays", "no overlap field", "a discipline and not a guarantee"):
+            self.assertIn(phrase, readme)
+
+    def test_the_spec_carries_the_rules_this_code_serves(self):
+        spec = " ".join((ROOT / "test" / "shiploop_e2e" / "SPEC.md").read_text().split())
+        for phrase in ("**A run leaves nothing listening**", "`<output>/.harness-lock`", "`left_behind`",
+                       "A SIGTERM to the harness (a task runner's stop, `kill`) is a requested stop too",
+                       "**Runs compared on wall time or per-call cost run one after the other**",
+                       "a pair whose figures are compared is the exception in the bullet after next"):
+            self.assertIn(phrase, spec)
+
     def test_the_readme_says_what_a_signal_to_the_harness_does(self):
         readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
         for phrase in ("A SIGTERM or SIGHUP to the harness ends every live host at once", "`terminated by SIGTERM`",
