@@ -967,6 +967,27 @@ class OutcomeClassTest(unittest.TestCase):
             with self.subTest(label):
                 self.assertEqual(self.cls(False, engine_status="active", engine_stage="implement", **kw)[0], "STOPPED")
 
+    def test_a_host_session_that_ended_on_the_cap_the_harness_gave_it_is_stopped_on_every_host(self):
+        # --max-turns and --max-budget-usd are the harness's own limits: the host ending on them is the harness ending the run,
+        # whether or not the host can be resumed (Claude cannot; Grok is resumed until its budget is spent).
+        caps = {"claude turns": run.metrics.session_stop({"type": "result", "subtype": "error_max_turns", "is_error": True,
+                                                          "num_turns": 10000}),
+                "claude budget": run.metrics.session_stop({"type": "result", "subtype": "error_max_budget_usd", "is_error": True}),
+                "grok turns": run.metrics.session_stop({"type": "end", "stopReason": {"kind": "max_turns"}})}
+        for label, stop in caps.items():
+            for resume_stop in ("host is not resumable", "no host session id to resume"):
+                with self.subTest(label, resume_stop=resume_stop):
+                    cls, basis = self.cls(False, engine_status="active", engine_stage="implement", resume_stop=resume_stop,
+                                          process_status="failed", returncode=1, session_stops=["cancelled", stop])
+                    self.assertEqual(cls, "STOPPED")
+                    self.assertIn("cap", basis)
+        # An API failure, an empty turn and a crash are the host's own ending: FAILED. Only the last session counts.
+        api = run.metrics.session_stop({"type": "result", "subtype": "success", "is_error": True, "terminal_reason": "api_error"})
+        for stops in ([api], ["unknown"], [caps["claude turns"], "cancelled"]):
+            with self.subTest(stops=stops):
+                self.assertEqual(self.cls(False, engine_status="active", resume_stop="host is not resumable",
+                                          process_status="failed", session_stops=stops)[0], "FAILED")
+
     def test_a_requested_stop_after_the_engine_blocked_does_not_turn_the_block_into_a_stop(self):
         self.assertEqual(self.cls(False, engine_status="blocked", process_status="stopped", resume_stop="stopped by /out/stop")[0],
                          "BLOCKED")

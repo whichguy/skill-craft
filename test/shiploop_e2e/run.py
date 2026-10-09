@@ -1441,6 +1441,12 @@ RESUME_STOP_CLASSES = (
 )
 
 
+# A host session's recorded stop (`metrics.session_stop`) that names a limit the harness gave the host: Claude's `error_max_turns` and
+# `error_max_budget_usd` (--max-turns, --max-budget-usd) and Grok's `{"kind": "max_turns"}`. Codex has neither limit. The harness ending the
+# session on its own cap is the harness ending the run (STOPPED), not the host's own failure, whether or not the host can be resumed.
+CAP_STOPS = ("max_turns", "max_budget_usd")
+
+
 def _head(text, size: int = 100) -> str:
     return " ".join(str(text).split())[:size]
 
@@ -1451,7 +1457,8 @@ def outcome_class(passed: bool, t: dict) -> tuple[str | None, str]:
     PASS: every verdict passed. BLOCKED: the engine accepted a blocked result, or is paused (it awaits resume the same way);
     the class says what the engine recorded and never that the block was warranted, which is a model judgement S-9 excludes
     as evidence. FAILED: the engine finished or halted without passing, or the host ended on its own with the engine
-    unfinished. STOPPED: the harness ended the run (a requested stop, a signal, the deadline, a spent resume budget). None:
+    unfinished. STOPPED: the harness ended the run (a requested stop, a signal, the deadline, a spent resume budget, or a host
+    session that ended on the cap the harness gave it: ``CAP_STOPS``). None:
     unknown, and the basis says why (a regrade that observed no host, or an ending this function does not know). The engine's
     status wins over how the host ended: a stop requested after the engine blocked does not turn the block into a stop.
     A regrade that kept the original ending reads the engine as it is now (the ``*_at_regrade`` fields) and the ending as it
@@ -1484,6 +1491,11 @@ def outcome_class(passed: bool, t: dict) -> tuple[str | None, str]:
     process, stop = t.get("process_status"), t.get("resume_stop") or ""
     if process in ("stopped", "timeout"):
         return "STOPPED", f"host {process} with the engine {engine}" + (f" at {stage}" if stage != "unknown" else "") + f"; {_head(stop)}"
+    stops = t.get("session_stops")
+    last_stop = str(stops[-1]) if isinstance(stops, list) and stops else ""
+    if any(cap in last_stop for cap in CAP_STOPS):
+        return "STOPPED", (f"engine {engine}" + (f" at {stage}" if stage != "unknown" else "")
+                           + f"; the host session ended on the cap the harness gave it ({_head(last_stop)})")
     for prefix, cls in RESUME_STOP_CLASSES:
         if stop.startswith(prefix):
             return cls, f"engine {engine}" + (f" at {stage}" if stage != "unknown" else "") + f"; {_head(stop)}"
