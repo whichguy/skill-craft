@@ -1664,3 +1664,47 @@ through the one classifier Grok's `tool_call` events use (`metrics.ToolLog`), an
   `improve_reviews.identical` (the required pair of clean passes is not waste).
 - **Known limits:** main thread only; a result saved to a file is unread; a document line that starts with a prefix would count;
   script runs are lower bounds (r1 Checkers: 29 against 30 by hand for sub.sh).
+
+## A run leaves nothing listening, and a signalled harness leaves no orphan host (batch 1010, item A6) — 2026-10-08 — status: firm for the facts read from this machine (pid 63973, the r2 events, the Grok log, the timings); the new paths are hermetic-tested and not yet seen in a live run
+
+Round-2 analysis candidate A6 (`round2-analysis.json`): two round-2 Sonnet runs met a stale server on port 3457 and one committed
+a false lesson. SPEC amendment first, in its own commit (`4ec2a54a`): "A run leaves nothing listening", the SIGTERM and SIGHUP
+sentence under "Every ending leaves its records", and "Runs compared on wall time or per-call cost run one after the other".
+
+- **The leak, verified live.** Pid 63973 is `node .../r1-checkers-sonnet/.shiploop-runs/work-20261008-174135-41d2f7/worktree/server.js`,
+  parent pid 1, process group 63956 (the host's was 57814), started 10:49:51 on 2026-10-08, cwd `.../r1-checkers-sonnet/work`, bound
+  `*:3457`. r1-checkers-sonnet exited rc 0 after 787.8 s, so no kill ran: `launch()` kills only on a deadline, a stop or an
+  interrupt, and Claude Code gives each Bash call its own process group, which a group kill of the host never reaches. r2-battleship
+  events 362 to 363 (`PORT=3457 node server.js ... &`, then `EADDRINUSE :::3457`) and r2-checkers events 557 to 558 met it; r2-checkers
+  event 562 (`... & sleep 1; ...; kill %1; wait`, job control is off so `%1` names nothing) hung to the 120 s timeout at 570, and 572 ran
+  `pkill -f "node server.js"`, which does not match the leaked `node /abs/path/server.js`. The false lesson is at
+  r2-checkers-sonnet `work/docs/shiploop/environment.md` line 17 and `features/*/outcome.md` line 9 (S-11). Both models chose 3457 by
+  habit: neither the cases nor `skills/` name a port.
+- **Census** (read-only, the design workflow): 26 case folders under `/Users/dadleet/e2e-runs`, exactly one with a listener under it
+  (r1-checkers-sonnet); the other seven user listeners have cwd `/`, so "cwd or an argv path under the case folder" had no false positive
+  here. Measured again at build time: 8 own listeners, `observe()` 0.115 to 0.121 s over three scans (lsof twice, ps once), `protected_pids`
+  0.02 s, a detect-only `listeners.inside` of r1-checkers-sonnet finds pid 63973 on port 3457 with that cwd, and of the name
+  `r1-checkers-sonne` (a bare prefix) finds nothing. The leaked pid was not signalled by this work: stopping it needs the owner's go.
+- **Probes of the design** (scratch, reproduced as hermetic tests): SIGTERM freed a listener's port in 0.27 s and left a `case-10` sibling
+  alone when `case-1` was reaped; an exclusive `flock` holds across a second open file description in one process and across processes and
+  is released when the holder is SIGKILLed; a host started with `start_new_session=True` survives a SIGTERM to the harness by default and
+  dies with a handler; `subprocess.run(shell=True, timeout=1)` leaves `sleep 301 &` alive after the timeout, so a timed-out case check
+  leaks too.
+- **Built: reap** (this entry's first commit). `listeners.py` observes with `lsof -iTCP -sTCP:LISTEN -Fpcun`, `lsof -a -d cwd -p` and `ps -ww`,
+  keeps the harness user's, matches the working directory (a real path) or any command-line word (as given and as resolved, a leading
+  `--opt=` stripped) on a path boundary, never pid 1, the harness or its ancestors, and stops with SIGTERM then, after 3 s, SIGKILL, reading
+  the table again before each signal. `run.launch` reaps when a session ends, `main` reaps again after the case checks and before a resumed
+  session starts (an earlier invocation's harness may have been killed), and a regrade reaps nothing. The record is `left_behind` in result.json
+  (`observed`, `reaped`, `survived`, or `observed: false` and the reason, the passes merged so an unseen pass never reads as none).
+  Ordinary harness tests patch the observer to return nothing, so none reads this machine's table (pid 63973 would otherwise be seen).
+  The classes that use the real lsof scope what it shows to their own temporary folder. A test whose lsof is absent skips with a stated reason.
+- **Decision (reversible): a leftover is a record, not a verdict.** `pass` is unchanged. Making it a verdict would fail a run for a
+  model's habit the harness already cleaned up.
+- **Open:** U2 whether `lsof` exists on the `ubuntu-latest` CI runner (the pure parse and selection tests run either way; the real-process
+  classes skip with a reason if it is missing); U3 whether lsof may read the user's processes inside a Desktop background-task sandbox
+  (`left_behind.observed` and `reason` will say); U4 whether the Codex or Grok host keeps a listener of its own with a cwd under the case folder
+  (`left_behind.reaped` should then name it; exclude by command name rather than weaken the folder rule); U6 the leak rate (one of 26 case
+  folders today and two found by hand earlier; `left_behind` measures it from now on); U7 Run Review's `facts.md` does not render
+  `left_behind` yet (skills/shiploop-run-review is another session's; the exporter ignores unknown result.json keys, so nothing breaks).
+  Not covered, documented in the README: non-listening leftovers, UDP and unix-socket servers, and a server with cwd and command line both
+  outside the folder.

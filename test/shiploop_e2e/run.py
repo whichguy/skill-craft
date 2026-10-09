@@ -102,6 +102,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import hosts  # noqa: E402
+import listeners  # noqa: E402
 import metrics  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_chain_ledger as chain_ledger  # noqa: E402
@@ -364,6 +365,9 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     The result carries ``stop``: the host's own reason from the last end/result event this
     session wrote, or None when it wrote none (killed, crashed), so a termination record can
     hold one entry per session and say unknown for the ones that never reported.
+
+    It also carries ``left_behind``: the listeners the session left under `out` (a model's backgrounded
+    server), stopped as the session ends and recorded (see listeners.py).
     """
     if first and fresh:
         # The skill must start from a directory with nothing in it.
@@ -437,7 +441,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         reader.join(timeout=10)
         proc.stdout.close()
     return {"status": status, "returncode": proc.returncode,
-            "elapsed_seconds": round(time.time() - start, 1), "stop": stop}
+            "elapsed_seconds": round(time.time() - start, 1), "stop": stop, "left_behind": listeners.reap(out)}
 
 
 def summarize_events(path: Path) -> dict:
@@ -1539,6 +1543,13 @@ def main(argv: list[str] | None = None) -> int:
         work.mkdir()
         follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
     stop_file = out / "stop"  # a person (or a watcher) creates it to end the run; main consumes it
+    left_behind: list = []  # what each reap pass of this invocation found (see listeners.py)
+
+    def session(*launch_args, **launch_kw) -> dict:
+        done = launch(*launch_args, **launch_kw)
+        left_behind.append(done.pop("left_behind", None))  # a run's one record is built below, not repeated per session
+        return done
+
     host = the_host(args)
     args.model = args.model or host.model
     args.effort = args.effort or host.effort
@@ -1630,13 +1641,17 @@ def main(argv: list[str] | None = None) -> int:
             print(f"resume: {resume_command(out, args)}", flush=True)
 
     deadline = time.time() + args.timeout
+    if resumed and not regrade:
+        # A server an earlier invocation's model left (its harness may have been killed before it could stop it) must
+        # not answer the new session's probes: that is how two runs met the same port in round 2.
+        left_behind.append(listeners.reap(out))
     if regrade:
         # ShipLoop is done or blocked: no host is started, and the verdicts are computed from what is on disk.
         process = regraded_process(earlier_result.get("process"))
     else:
         interrupt_file = out / "interrupt.json"
         stop_when = ((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None)
-        process = launch(cli, work, out, env, args.timeout, watch=not args.quiet,
+        process = session(cli, work, out, env, args.timeout, watch=not args.quiet,
                          fresh=follow_on is None and seeded is None,
                          first=resumed is None, translate=host.translator(), stop_when=stop_when,
                          stop_file=stop_file)
@@ -1653,7 +1668,7 @@ def main(argv: list[str] | None = None) -> int:
                          prompt_file=out / "resume-after-interrupt.txt", cwd=work, model=args.model,
                          effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
                          max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir)
-        process = launch(argv, work, out, env, max(60, int(deadline - time.time())), watch=not args.quiet,
+        process = session(argv, work, out, env, max(60, int(deadline - time.time())), watch=not args.quiet,
                          first=False, translate=host.translator(), stop_file=stop_file)
         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
@@ -1689,7 +1704,7 @@ def main(argv: list[str] | None = None) -> int:
                          prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
                          effort=args.effort, permission_mode=args.permission_mode,
                          max_turns=args.max_turns, resume=session_id)
-        process = launch(argv, work, out, env, remaining, watch=not args.quiet, first=False,
+        process = session(argv, work, out, env, remaining, watch=not args.quiet, first=False,
                          translate=host.translator(), stop_file=stop_file)
         sessions.append(dict(process, resumed=session_id, host=host.name))
         stop_seen = process["status"] == "stopped"
@@ -1738,6 +1753,12 @@ def main(argv: list[str] | None = None) -> int:
         # Informational only: does the unreturned candidate already pass?
         shiploop["worktree_checks"] = [{k: c[k] for k in ("command", "pass")}
                                        for c in run_checks(Path(shiploop["worktree"]), checks, env=check_env)]
+    if not regrade:
+        # A check may leave a server too (a timed-out check leaves its `node server.js &`). A regrade reaps nothing: it
+        # starts no host, and the run it grades may have a live one.
+        left_behind.append(listeners.reap(out))
+    left = (earlier_result.get("left_behind") if regrade
+            else listeners.merge_left_behind([earlier_result.get("left_behind") if resumed else None, *left_behind]))
     case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
     expect = case.get("chain")
     chain = chain_facts(out, expect) if (seeded or interrupt_at or expect) else None
@@ -1774,6 +1795,7 @@ def main(argv: list[str] | None = None) -> int:
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
               "process": process, "termination": termination,
               **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
+              **({"left_behind": left} if left is not None else {}),
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
@@ -1827,6 +1849,8 @@ def main(argv: list[str] | None = None) -> int:
               f"decisions {keepalive['decisions'] or 'none (hooks never ran)'}")
     print(f"  shiploop  {mark(shiploop['pass'])}  {shiploop.get('status') or shiploop.get('reason')}")
     print(f"  stopped   {stopped_line(termination)}")
+    if line := listeners.left_behind_line(left):
+        print(line)
     if shiploop.get("worktree_checks") is not None:
         passed = sum(c["pass"] for c in shiploop["worktree_checks"])
         print(f"            unreturned product in {shiploop['worktree']}: "

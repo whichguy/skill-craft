@@ -509,14 +509,28 @@ idle-sleeping for the whole session; elsewhere nothing is wrapped. The display h
 runs where a model-driven headless Chrome never loaded a page (see LEARNINGS, 2026-10-08).
 
 A task kill before the deadline stops the harness where it stands and no harness code runs: nothing is written
-afterwards (no termination record, no `result.json`, no baseline row), and nothing looks for what the host left
-behind. Give the run its records afterwards with `--resume-run <output directory> --grade-only`. A
-model's background server can outlive its run by far more than the task limit: two (`python server.py` and
-`node server.js`) were found alive about 27 hours after their runs, parent pid 1, listening on all interfaces,
-and were stopped by hand. Claude Code gives each Bash call its own process group; the harness's kill is a
-group kill of the host's own session (`os.killpg`, on a timeout or an interrupt), which does not reach those
-groups. No verdict reads these processes. After a long run, list what still has its working directory under
-the run's output directory, check each one, and kill it by pid:
+afterwards (no termination record, no `result.json`, no baseline row). Give the run its records afterwards with
+`--resume-run <output directory> --grade-only`.
+
+The harness stops what a host leaves listening. A model's background server can outlive its run by far more than
+the task limit: two (`python server.py` and `node server.js`) were found alive about 27 hours after their runs,
+parent pid 1, listening on all interfaces, and were stopped by hand; on 2026-10-08 one such `node server.js` held port
+3457 while two later runs chose the same port, and one of them committed a false lesson about it. Claude Code gives
+each Bash call its own process group; the harness's kill is a group kill of the host's own session (`os.killpg`, on a
+timeout or an interrupt), which does not reach those groups. So when a host session ends, and again after the case
+checks, the harness stops every TCP listener of your user whose working directory or command line lies under the
+case's output folder (SIGTERM, then SIGKILL after 3 s; a path that only shares a name prefix with the folder does not
+count, and neither the harness nor what launched it is ever stopped). It records what it stopped, and what it could
+not stop, as `left_behind` in `result.json` and prints one `left` line when there is something to say. Where `lsof`
+or `ps` cannot be read the record says `observed: false` and why: unmeasured never reads as none. A leftover is a
+record and not a verdict. A regrade (`--grade-only`) reaps nothing, because the run it grades may have a live host.
+So do not serve a case folder by hand while its run ends (say with `python3 -m http.server` inside it): the harness
+stops that too.
+
+Not covered: a process that does not listen (a file watcher, `npm --watch`), a UDP or unix-socket server, a server
+whose working directory and command line are both outside the folder, and anything left by a harness that was
+killed without a chance to run (SIGKILL). For those, list what still has its working directory under the run's
+output directory, check each one, and kill it by pid:
 
 ```sh
 OUT=/Users/dadleet/e2e-runs/<day>/<suite>/<case>     # the run's output directory, no trailing slash
