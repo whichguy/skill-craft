@@ -1,0 +1,16 @@
+{
+ "case": "custom",
+ "host": "grok",
+ "model": "grok-4.7",
+ "effort": "medium",
+ "versions": {
+  "source": "marketplace (resumed on its original install)",
+  "plugin_version": "1.26.0",
+  "shiploop_version": "0.58.0"
+ },
+ "resumed_run": {
+  "from_host": "grok",
+  "from_model": "grok-4.7",
+  "stage": "inner-loop"
+ }
+}

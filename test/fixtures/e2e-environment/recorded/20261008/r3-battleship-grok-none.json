@@ -1,0 +1,22 @@
+{
+ "pass": false,
+ "host": "grok",
+ "process": {
+  "status": "stopped",
+  "returncode": -9
+ },
+ "termination": {
+  "process_status": "stopped",
+  "returncode": -9,
+  "sessions": 1,
+  "resumes": 0,
+  "session_stops": [
+   "unknown"
+  ],
+  "resume_stop": "stopped by /Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none/stop",
+  "engine_status": "active",
+  "engine_stage": "implement",
+  "engine_unaccepted_stage": "implement",
+  "engine_status_reason": null
+ }
+}

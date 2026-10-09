@@ -1,0 +1,11 @@
+{
+ "case": "custom",
+ "host": "grok",
+ "model": "grok-4.7",
+ "effort": "medium",
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.25.0",
+  "shiploop_version": "0.57.0"
+ }
+}

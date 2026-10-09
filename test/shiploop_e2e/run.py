@@ -65,7 +65,9 @@ model, effort, plugin verdict and the process block, whatever --host, --model or
 failed stays failed; a run with no record of its exit says "not observed" and leaves
 the process verdict out of the result. A blocked run waits for a person (SPEC S-14), so
 it is never resumed as if answered: it is only graded again, which refreshes its
-metrics.json and result.json. An active run is a real resume. --grade-only does the
+metrics.json and result.json. An active run is a real resume, on the host, model and effort its last launch recorded (no --host
+means that host, not Claude); another --host is refused unless --allow-host-change says the change is deliberate, which makes a mixed-host
+run. --grade-only does the
 same regrade for a run in any status that has a ShipLoop state, for a run whose harness
 was killed with its host and so never wrote its records. Creating <output>/stop ends a
 running host on purpose: it is not relaunched, the records are written, and the exit
@@ -107,10 +109,12 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
+import environment  # noqa: E402
 import fidelity  # noqa: E402
 import hosts  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
+import runrecord  # noqa: E402
 import sessionlog  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_chain_ledger as chain_ledger  # noqa: E402
@@ -142,9 +146,11 @@ def kill_group(pid: int) -> None:
 
 
 def end_live_hosts() -> None:
-    """Kill every host session that is running. Also runs at exit, so a Ctrl-C or a crash leaves no orphan host."""
+    """Kill every host session that is running, and the browser of a capability probe that is running (the probe registers its
+    group in environment.LIVE_PROBE_GROUPS). Also runs at exit, so a Ctrl-C or a crash leaves no orphan host or browser."""
     for pid in tuple(LIVE_HOST_GROUPS):  # a copy: suite worker threads add and discard concurrently
         kill_group(pid)
+    environment.end_live_probes()
 
 
 atexit.register(end_live_hosts)
@@ -438,6 +444,56 @@ def events_line_count(events_path: Path, repair: bool = True) -> int:
             with events_path.open("ab") as handle:
                 handle.write(b"\n")
     return lines
+
+
+def resume_identity(args, asked: bool, last: dict, out: Path) -> tuple[str, str | None, str | None]:
+    """(host, model, effort) a resume runs with: the run's last launch's, unless a host is named (SPEC: a resume continues the
+    run's own driver).
+
+    ``--host`` names a host only if it was given (the parser's default is not a choice). A different host is refused, before
+    anything starts, unless ``--allow-host-change`` says it is deliberate: the run would then be a mixed-host run, whose
+    verdicts and costs belong to no one host. Model and effort given explicitly win; the recorded ones apply only while the
+    host is the recorded one.
+    """
+    recorded = last.get("host")
+    if asked and args.host != recorded and not args.allow_host_change:
+        used = runrecord.hosts_used(out)
+        what = (f"it already is a mixed-host run (hosts so far: {', '.join(used)}) and --host {args.host} would continue it on a "
+                f"host other than its last, {recorded}" if len(used) > 1 else
+                f"--host {args.host} would finish it on a different host, so it would become a mixed-host run (hosts so far: "
+                f"{', '.join(used) or recorded})")
+        raise SystemExit(f"--resume-run: this run was last launched on {recorded} ({last.get('model')}); {what}, and its verdicts "
+                         f"and costs belong to no one host. Nothing was started. Drop --host to continue on {recorded}, or pass "
+                         f"--allow-host-change to continue it on {args.host} on purpose.")
+    host = args.host if asked else recorded
+    same = host == recorded
+    return host, args.model or (last.get("model") if same else None), args.effort or (last.get("effort") if same else None)
+
+
+def launch_stamp(out: Path, host_name: str) -> int:
+    """The number a resume's launch record and prompt file are named with: the second it began in, or the next free one.
+
+    A launch record is the run's only trace of who ran it (runrecord reads them in the order of this number), so another launch
+    or a regrade that began in the same second must not overwrite it: it takes the next number instead.
+    """
+    stamp = int(time.time())
+    while any((out / name).exists() for name in (f"invocation-resume-{host_name}-{stamp}.json", f"resume-{host_name}-{stamp}.txt")):
+        stamp += 1
+    return stamp
+
+
+def display_held() -> bool:
+    """Whether a host session runs under a display hold: the one decision is keep_awake's, asked and not repeated."""
+    marker = ["host"]
+    return keep_awake(marker) != marker
+
+
+def declared_needs(name: str, args, earlier: dict | None = None) -> list[str]:
+    """The needs this launch declares (SPEC: a record exists only where something declares its need): the case's, the
+    ``--need`` flags', and those the run's own first launch recorded. A custom prompt declares none by itself."""
+    case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
+    found = [*case.get("needs", []), *(args.need or []), *((earlier or {}).get("needs") or [])]
+    return list(dict.fromkeys(found))
 
 
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
@@ -1096,6 +1152,42 @@ def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | No
     return results
 
 
+# One check's ceiling in the product-at-stop run, the same 180 s as a check in the working directory. A ceiling for a check
+# that never ends, not a tuning value.
+PRODUCT_AT_STOP_TIMEOUT = 180
+
+
+def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict | None = None) -> dict | None:
+    """For a run whose ShipLoop did not reach done: do the case checks pass in ShipLoop's unreturned worktree?
+
+    Information only (SPEC S-11): it never touches ``checks``, ``committed``, ``pass`` or the exit code, because a run that
+    never delivered must not pass. It names the engine's position, so a partial product at ``implement`` is not read as a
+    finished one, and keeps each check's return code, so a check that timed out is ``timed_out`` and not a product failure.
+    None for a run that passed. ``{"ran": false, "reason": ...}`` where there was nothing to run, never an absent key.
+    """
+    if shiploop.get("pass"):
+        return None
+    position = {"status": engine.get("status") or "unknown", "stage": metrics.current_stage(engine) or "unknown"}
+    head = {"information_only": True}
+    if not shiploop.get("worktree"):
+        reason = ("no ShipLoop state.md under the output directory" if shiploop.get("reason")
+                  else "no worktree directory under the run's workspace")
+        return {**head, "ran": False, "reason": reason, "engine": position}
+    if not checks:
+        return {**head, "ran": False, "reason": "the case declares no checks", "engine": position}
+    entries = []
+    for done in run_checks(Path(shiploop["worktree"]), checks, timeout=PRODUCT_AT_STOP_TIMEOUT, env=env):
+        timed_out = done["returncode"] is None
+        entry = {"command": done["command"], "pass": done["pass"], "returncode": done["returncode"], "timed_out": timed_out}
+        if not done["pass"] and not timed_out:
+            entry["output"] = " ".join(str(done.get("output") or "").split())[-300:]
+        entries.append(entry)
+    timed = sum(entry["timed_out"] for entry in entries)
+    passed = sum(entry["pass"] for entry in entries)
+    return {**head, "ran": True, "worktree": shiploop["worktree"], "engine": position, "checks": entries,
+            "passed": passed, "failed": len(entries) - passed - timed, "timed_out": timed, "total": len(entries)}
+
+
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--case", default="hello", help="case name from cases.json (default: hello)")
@@ -1153,9 +1245,19 @@ def parser() -> argparse.ArgumentParser:
                    help="suites: run every case one after another (rerun a failure that appears only in parallel "
                         "this way before attributing it to ShipLoop)")
     p.add_argument("--suite-name", help=argparse.SUPPRESS)
+    p.add_argument("--allow-host-change", action="store_true",
+                   help="with --resume-run: finish the run on the --host named even though its last launch was on another "
+                        "host, which makes it a mixed-host run (without this flag that is refused; a resume that names no "
+                        "--host continues on the host the run was last launched on)")
+    p.add_argument("--need", action="append", choices=environment.NEEDS, default=[],
+                   help="declare a need of this run, which records its capability on the harness side before the host "
+                        "starts (browser: can a headless browser load a stand-in page here). A named case declares its own "
+                        "(`needs` in cases.json); a custom --prompt declares none by itself. A record, never a verdict")
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
     p.add_argument("--codex-bin", default="codex")
+    p.add_argument("--browser-bin", default=None,
+                   help="the browser the capability record probes (default: a Chrome or Chromium found in the usual places)")
     return p
 
 
@@ -1344,10 +1446,16 @@ def termination_facts(process: dict, engine: dict, resume_stop: str | None, earl
         "engine_unaccepted_stage": pending,
         # The engine's own recorded cause for a blocked, paused or halted run.
         "engine_status_reason": " ".join(reason.split())[:200] if isinstance(reason, str) and reason.strip() else None,
+        # What the engine accepted when it blocked (null where it did not block, or recorded no blocked result).
+        **{f"engine_{key}": value for key, value in metrics.blocked_detail(engine).items()},
     }
     if process.get("regraded"):
         if isinstance(earlier, dict) and earlier.get("process_status"):
-            return {**earlier, "regraded": True, "engine_status_at_regrade": engine_facts["engine_status"]}
+            # The ending stays the one the original run recorded; the engine is read again, so the class can name what it is now.
+            return {**earlier, "regraded": True, "engine_status_at_regrade": engine_facts["engine_status"],
+                    **{f"{key}_at_regrade": engine_facts[key] for key in (
+                        "engine_stage", "engine_status_reason", "engine_blocked_by", "engine_awaiting_kind",
+                        "engine_awaiting_no_default")}}
         return {"process_status": NOT_OBSERVED, "returncode": None, "sessions": 0, "resumes": None,
                 "session_stops": [], "resume_stop": "not evaluated (regraded)", **engine_facts, "regraded": True}
     sessions = process.get("sessions") or []
@@ -1360,6 +1468,86 @@ def termination_facts(process: dict, engine: dict, resume_stop: str | None, earl
         "resume_stop": resume_stop or "unknown",
         **engine_facts,
     }
+
+
+# How the run ended, as one word (SPEC: outcome_class is a record and not a verdict; it changes neither pass nor the exit code).
+OUTCOME_CLASSES = ("PASS", "FAILED", "BLOCKED", "STOPPED")
+
+# The wordings of `termination.resume_stop` the harness itself writes when the engine's own status is not the reason the
+# resume loop ended, with the class each means (prefixes: some carry a number or a path). "ShipLoop run is <status>" and "not
+# evaluated (regraded)" are decided by the engine's status. A new wording must be added here: a test reads this file's source
+# for every `resume_stop` and fails on one that is not, so an unlisted ending is never silently called FAILED.
+RESUME_STOP_CLASSES = (
+    ("host is not resumable", "FAILED"),
+    ("no host session id to resume", "FAILED"),
+    ("run deadline spent", "STOPPED"),
+    ("resume budget spent", "STOPPED"),
+    ("stopped by ", "STOPPED"),
+    ("terminated by ", "STOPPED"),
+)
+
+
+# A host session's recorded stop (`metrics.session_stop`) that names a limit the harness gave the host: Claude's `error_max_turns` and
+# `error_max_budget_usd` (--max-turns, --max-budget-usd) and Grok's `{"kind": "max_turns"}`. Codex has neither limit. The harness ending the
+# session on its own cap is the harness ending the run (STOPPED), not the host's own failure, whether or not the host can be resumed.
+CAP_STOPS = ("max_turns", "max_budget_usd")
+
+
+def _head(text, size: int = 100) -> str:
+    return " ".join(str(text).split())[:size]
+
+
+def outcome_class(passed: bool, t: dict) -> tuple[str | None, str]:
+    """(class, basis): how a run ended, a pure function of ``pass`` and the termination block (SPEC S-14).
+
+    PASS: every verdict passed. BLOCKED: the engine accepted a blocked result, or is paused (it awaits resume the same way);
+    the class says what the engine recorded and never that the block was warranted, which is a model judgement S-9 excludes
+    as evidence. FAILED: the engine finished or halted without passing, or the host ended on its own with the engine
+    unfinished. STOPPED: the harness ended the run (a requested stop, a signal, the deadline, a spent resume budget, or a host
+    session that ended on the cap the harness gave it: ``CAP_STOPS``). None:
+    unknown, and the basis says why (a regrade that observed no host, or an ending this function does not know). The engine's
+    status wins over how the host ended: a stop requested after the engine blocked does not turn the block into a stop.
+    A regrade that kept the original ending reads the engine as it is now (the ``*_at_regrade`` fields) and the ending as it
+    was recorded.
+    """
+    if passed:
+        return "PASS", "every verdict passed"
+    regraded = "engine_status_at_regrade" in t
+
+    def now(key: str):
+        return t.get(f"{key}_at_regrade") if regraded else t.get(key)
+
+    engine = now("engine_status") or "unknown"
+    stage = now("engine_stage") or "unknown"
+    reason = now("engine_status_reason")
+    why = f" ({_head(reason)})" if reason else ""
+    if engine == "paused":
+        return "BLOCKED", f"engine paused at {stage}{why}: it awaits resume; no blocked result names who can unblock it"
+    if engine == "blocked":
+        by, kind, no_default = now("engine_blocked_by"), now("engine_awaiting_kind"), now("engine_awaiting_no_default")
+        if by is None:
+            return "BLOCKED", f"engine blocked at {stage}{why}; no blocked result was read from the state (an old state, or none accepted)"
+        wait = ("" if kind is None else
+                f"; awaits a person ({kind}), " + ("and states why no default would do" if no_default else "and gives no reason that no default would do"))
+        return "BLOCKED", f"engine blocked at {stage} by {by}{wait}"
+    if engine == "halted":
+        return "FAILED", f"engine halted at {stage}{why}"
+    if engine == "done":
+        return "FAILED", "engine done; at least one verdict failed"
+    process, stop = t.get("process_status"), t.get("resume_stop") or ""
+    if process in ("stopped", "timeout"):
+        return "STOPPED", f"host {process} with the engine {engine}" + (f" at {stage}" if stage != "unknown" else "") + f"; {_head(stop)}"
+    stops = t.get("session_stops")
+    last_stop = str(stops[-1]) if isinstance(stops, list) and stops else ""
+    if any(cap in last_stop for cap in CAP_STOPS):
+        return "STOPPED", (f"engine {engine}" + (f" at {stage}" if stage != "unknown" else "")
+                           + f"; the host session ended on the cap the harness gave it ({_head(last_stop)})")
+    for prefix, cls in RESUME_STOP_CLASSES:
+        if stop.startswith(prefix):
+            return cls, f"engine {engine}" + (f" at {stage}" if stage != "unknown" else "") + f"; {_head(stop)}"
+    if stop.startswith("not evaluated"):
+        return None, f"no host ran (regraded) and the engine is {engine}: the end of the run was not observed"
+    return None, f"engine {engine}; the ending {_head(stop)!r} has no class"
 
 
 def stopped_line(t: dict) -> str:
@@ -1661,6 +1849,24 @@ def _main(argv: list[str] | None, held: list) -> int:
         if state.get("status") != "active" and not regrade:
             raise SystemExit(f"--resume-run needs an active, blocked or finished ShipLoop run; found "
                              f"{state.get('status')!r} in {out}")
+        launched = runrecord.launches(out)
+        last_launch = launched[-1][1] if launched else earlier  # the launch that ran it last, which a resume continues
+        if not regrade:
+            asked = host_given(argv)
+            args.host, args.model, args.effort = resume_identity(args, asked, last_launch, out)
+            if not args.quiet:
+                if asked and args.host != last_launch.get("host"):
+                    print(f"resume: --allow-host-change: finishing on {args.host} a run last launched on "
+                          f"{last_launch.get('host')}; it is a mixed-host run", flush=True)
+                elif not asked:
+                    print(f"resume: --host not given; continuing on {args.host} ({args.model}, {args.effort or 'default effort'}), "
+                          "as the run's last launch recorded", flush=True)
+                if args.host == last_launch.get("host"):
+                    changed = [f"{label} {new} (the last launch used {old})" for label, new, old in (
+                        ("model", args.model, last_launch.get("model")), ("effort", args.effort, last_launch.get("effort")))
+                        if new is not None and new != old]
+                    if changed:
+                        print("resume: " + "; ".join(changed), flush=True)
         if not regrade and not args.suite_name:
             refuse_stale_listeners(out)  # the run's own leftovers are stopped below, not refused
         # The one CLI value every prompt of this invocation names (a record with no plugin_dir yields a path that is not a file).
@@ -1674,11 +1880,12 @@ def _main(argv: list[str] | None, held: list) -> int:
         except (OSError, ValueError):
             earlier_result = {}
         if regrade:
-            # Nothing is launched, so identity is not a choice: restate the run's own last record (its result.json,
-            # which a resume on another host updates) or, when no result was written, its first launch
-            # (invocation.json). --host, --model and --effort cannot relabel a finished run with a host that
-            # did not run it.
-            recorded = earlier_result if isinstance(earlier_result.get("host"), str) else earlier
+            # Nothing is launched, so identity is not a choice: restate the identity of the run's last launch
+            # (runrecord.launches, the reader a resume continues from; invocation.json when it is the only one), so a run that
+            # two hosts worked on is named by the host that ran it last and not by a result.json an earlier regrade wrote.
+            # --host, --model and --effort cannot relabel a finished run with a host that did not run it.
+            recorded = last_launch if isinstance(last_launch.get("host"), str) else (
+                earlier_result if isinstance(earlier_result.get("host"), str) else earlier)
             kept = {"host": recorded["host"], "model": recorded.get("model") or earlier.get("model"),
                     "effort": recorded.get("effort") or earlier.get("effort")}
             asked = {"host": args.host if host_given(argv) else None, "model": args.model, "effort": args.effort}
@@ -1687,7 +1894,8 @@ def _main(argv: list[str] | None, held: list) -> int:
                 print(f"regrade: no host starts, so the run's recorded host, model and effort stay ({kept['host']}, "
                       f"{kept['model']}, {kept['effort'] or 'no effort'}); ignoring {', '.join(ignored)}", flush=True)
             args.host, args.model, args.effort = kept["host"], kept["model"], kept["effort"]
-        resumed = {"from_host": earlier["host"], "from_model": earlier.get("model"), "run_dir": state.get("run_dir"),
+        resumed = {"from_host": last_launch.get("host") or earlier["host"], "from_model": last_launch.get("model") or earlier.get("model"),
+                   "run_dir": state.get("run_dir"),
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
         name, prompt, checks, follows = load_case(args)
@@ -1798,6 +2006,16 @@ def _main(argv: list[str] | None, held: list) -> int:
     interrupt_at = earlier.get("interrupt_at") if resumed else args.interrupt_at
     # The CLI of the host and plugin the run started on (a resume on another host keeps it): every prompt below names it.
     the_cli = resumed_cli if resumed else run_cli(host.name, out, plugin_dir)
+    # The machine and any declared capability, recorded before the host starts and before the deadline is set, so the probe
+    # spends none of the run's time (SPEC: a record, not a verdict). A regrade launches nothing and so reads nothing.
+    needs = declared_needs(name, args, last_launch if resumed else None)
+    if regrade:
+        start_environment = environment.unobserved("regraded: no host was launched")
+    else:
+        try:
+            start_environment = environment.start_record(display_held(), needs, args.browser_bin, TERMINATION.is_set)
+        except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
+            start_environment = environment.unobserved("could not be recorded: " + (" ".join(str(exc).split())[:200] or type(exc).__name__))
     if args.seed_at and not resumed:
         seeded = seed_run(the_cli, work, out, prompt, args.seed_at)
         if not args.quiet:
@@ -1807,8 +2025,9 @@ def _main(argv: list[str] | None, held: list) -> int:
     opening = (resume_prompt(resumed["run_dir"], the_cli) if resumed
                else host.invoke(args.skill, seed_prompt(the_cli, seeded["run_dir"], prompt)) if seeded
                else host.invoke(args.skill, prompt))
+    stamp = launch_stamp(out, host.name) if resumed else None
     cli = host.argv(prompt=opening, prompt_file=out / ("host-prompt.txt" if not resumed else
-                                                       f"resume-{host.name}-{int(time.time())}.txt"),
+                                                       f"resume-{host.name}-{stamp}.txt"),
                     cwd=work, model=args.model, effort=args.effort,
                     permission_mode=args.permission_mode, max_turns=args.max_turns,
                     max_budget_usd=args.max_budget_usd,
@@ -1819,10 +2038,10 @@ def _main(argv: list[str] | None, held: list) -> int:
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
                   "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
-                  "interrupt_at": interrupt_at}
+                  "interrupt_at": interrupt_at, "needs": needs, "environment": start_environment}
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
-        (out / f"invocation-resume-{host.name}-{int(time.time())}.json").write_text(
+        (out / f"invocation-resume-{host.name}-{stamp}.json").write_text(
             json.dumps(invocation, indent=2) + "\n")
     else:
         (out / "prompt.txt").write_text(prompt + "\n")
@@ -1834,6 +2053,13 @@ def _main(argv: list[str] | None, held: list) -> int:
             # Before any host spend: a later session that finds only this log, even after the harness was
             # killed, holds the output directory and the command that continues the run.
             print(f"resume: {resume_command(out, args)}", flush=True)
+            if needs:
+                print(f"  environment  {environment.browser_line(start_environment.get('browser') or {})}"
+                      if "browser" in needs and start_environment.get("observed") else
+                      f"  environment  needs declared ({', '.join(needs)}); the start record could not be made", flush=True)
+            elif name == "custom" and not resumed:
+                print("  environment  a custom prompt declares no need by itself, so no browser capability is recorded "
+                      "(pass --need browser if this run uses a browser)", flush=True)
 
     deadline = time.time() + args.timeout
     if resumed and not regrade:
@@ -1953,10 +2179,15 @@ def _main(argv: list[str] | None, held: list) -> int:
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
     check_results = run_checks(work, checks, env=check_env)
-    if not shiploop["pass"] and shiploop.get("worktree"):
-        # Informational only: does the unreturned candidate already pass?
-        shiploop["worktree_checks"] = [{k: c[k] for k in ("command", "pass")}
-                                       for c in run_checks(Path(shiploop["worktree"]), checks, env=check_env)]
+    engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
+    try:
+        # Informational only (SPEC S-11): does the unreturned candidate already pass? Before the reap below, so a server that a
+        # check which timed out leaves is stopped with the rest in a run that launched a host. A regrade reaps nothing (the run
+        # it grades may have a live host), so there the server stays up: stop it by pid (README).
+        at_stop = product_at_stop(shiploop, engine, checks, check_env)
+    except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
+        at_stop = {"information_only": True, "ran": False,
+                   "reason": "could not be computed: " + (" ".join(str(exc).split())[:200] or type(exc).__name__)}
     if not regrade:
         # A check may leave a server too (a timed-out check leaves its `node server.js &`). A regrade reaps nothing: it
         # starts no host, and the run it grades may have a live one.
@@ -1988,22 +2219,38 @@ def _main(argv: list[str] | None, held: list) -> int:
                 *(c["pass"] for c in check_results)]
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
-    engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     termination = termination_facts(process, engine, resume_stop,
                                     earlier_result.get("termination") if regrade else None)
+    try:
+        outcome, outcome_basis = outcome_class(all(verdicts), termination)
+    except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
+        outcome, outcome_basis = None, "could not be computed: " + (_head(exc, 200) or type(exc).__name__)
+    # The machine at the end and the whole run's hosts and neighbours; each part that cannot be read says so (SPEC).
+    if regrade:
+        end_environment = environment.unobserved("regraded: the end of the run was not observed")
+        result_start = environment.restated_start(out)
+    else:
+        try:
+            end_environment = environment.end_record()
+        except Exception as exc:  # noqa: BLE001
+            end_environment = environment.unobserved("could not be recorded: " + (" ".join(str(exc).split())[:200] or type(exc).__name__))
+        result_start = start_environment
+    run_environment = environment.result_block(out, result_start, end_environment)
     # A resumed run overwrites result.json: keep the termination each earlier invocation recorded.
     earlier_terminations = list(earlier_result.get("earlier_terminations") or []) if resumed else []
     if resumed and not regrade and isinstance(earlier_result.get("termination"), dict):
         earlier_terminations.append(earlier_result["termination"])
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
-              "process": process, "termination": termination,
+              "process": process, "termination": termination, "outcome_class": outcome, "outcome_basis": outcome_basis,
+              "environment": run_environment,
               **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
               **({"left_behind": left} if left is not None else {}),
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
               "expectations": expectations,
+              **({"product_at_stop": at_stop} if at_stop is not None else {}),
               "metrics": {k: run_metrics[k] for k in ("claude_code_version", "turns", "model_calls", "window_tokens",
                                                       "cost_usd", "unreported_sessions", "compactions",
                                                       "truncated_outputs", "improve_children", "stages", "unmeasured")}
@@ -2053,12 +2300,15 @@ def _main(argv: list[str] | None, held: list) -> int:
               f"decisions {keepalive['decisions'] or 'none (hooks never ran)'}")
     print(f"  shiploop  {mark(shiploop['pass'])}  {shiploop.get('status') or shiploop.get('reason')}")
     print(f"  stopped   {stopped_line(termination)}")
+    print(f"  outcome   {outcome or 'unknown'}  {outcome_basis}")
+    for line in environment.summary_lines(run_environment):
+        print(f"  environment  {line}")
     if line := listeners.left_behind_line(left):
         print(line)
-    if shiploop.get("worktree_checks") is not None:
-        passed = sum(c["pass"] for c in shiploop["worktree_checks"])
-        print(f"            unreturned product in {shiploop['worktree']}: "
-              f"{passed}/{len(shiploop['worktree_checks'])} checks pass there")
+    if at_stop is not None and at_stop["ran"]:
+        print(f"            product at stop (information only, engine {at_stop['engine']['status']} at "
+              f"{at_stop['engine']['stage']}): {at_stop['passed']}/{at_stop['total']} checks pass in {at_stop['worktree']}"
+              + (f"; {at_stop['timed_out']} timed out" if at_stop["timed_out"] else ""))
     print(f"  committed {mark(committed['pass'])}  HEAD {str(committed['head'])[:8]} (started at "
           f"{str(committed['start_head'])[:8] if committed['start_head'] else 'no commit'}); "
           f"{committed['head_files']} files in HEAD, {len(knowledge['uncommitted'])} uncommitted product paths")

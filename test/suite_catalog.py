@@ -142,6 +142,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-runrecord.test.py",
     "test/shiploop-e2e-fidelity.test.py",
     "test/shiploop-e2e-reorientation.test.py",
+    "test/shiploop-e2e-environment.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
 )
@@ -249,6 +250,9 @@ _DURATION_SECONDS = {
     # QUICK_MAX_SECONDS 120.  Local wall seconds, 2026-10-09, the faster of two serial runs at load average 6: 118 tests,
     # 7.7 s (the README watcher tests and the through-main tests with the harness's fake hosts are most of it).
     "test/shiploop-e2e-reorientation.test.py": 7.7,
+    # The environment record (batch 1011, group G4): its own file for the same reason.  125 tests, 60.5 s locally on 2026-10-09
+    # at load average 7 to 9 (its journal); the browser probe's process-safety tests start the fake browsers.
+    "test/shiploop-e2e-environment.test.py": 65.0,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.

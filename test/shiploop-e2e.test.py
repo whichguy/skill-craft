@@ -34,6 +34,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+import environment  # noqa: E402
 import hosts  # noqa: E402
 import iterate  # noqa: E402
 import metrics  # noqa: E402
@@ -356,6 +357,11 @@ class HarnessCase(unittest.TestCase):
         patch = nothing_listens()
         patch.__enter__()
         self.addCleanup(patch.__exit__, None, None, None)
+        # No harness case starts a real browser: a case that declares the browser need would otherwise find one on this
+        # machine. The classes that exercise the capability record pass a fake with --browser-bin.
+        browser = mock.patch.object(environment, "autodetect_browser", return_value=None)
+        browser.start()
+        self.addCleanup(browser.stop)
 
     def invoke(self, host: str, mode: str, *extra: str) -> tuple[int, dict]:
         os.environ["FAKE_MODE"] = mode
@@ -859,8 +865,11 @@ class ReviewParsingTest(unittest.TestCase):
 class LearningsTest(unittest.TestCase):
     RESULT = {"host": "grok", "model": "grok-4.7", "effort": "medium", "pass": False,
               "process": {"status": "failed", "returncode": 1, "elapsed_seconds": 12.5},
-              "shiploop": {"status": "active", "stage": "regression", "report_html": False,
-                           "worktree_checks": [{"command": "node --test", "pass": True}]},
+              "shiploop": {"status": "active", "stage": "regression", "report_html": False},
+              "product_at_stop": {"information_only": True, "ran": True, "worktree": "/w", "total": 1, "passed": 1,
+                                  "failed": 0, "timed_out": 0,
+                                  "engine": {"status": "active", "stage": "regression"},
+                                  "checks": [{"command": "node --test", "pass": True, "returncode": 0, "timed_out": False}]},
               "checks": [{"command": "node --test", "pass": False}],
               "cli": {"num_turns": 150, "cost_usd": 10.88,
                       "truncated_outputs": [{"total_bytes": 36000, "shown_chars": 20467, "call": "x"}]}}
@@ -881,7 +890,7 @@ class LearningsTest(unittest.TestCase):
         message = self.message()
         self.assertTrue(message.startswith(
             "test(shiploop): record E2E iteration 2 learnings (battleship, grok medium)\n\n"))
-        for text in ("150 turns", "stage regression", "unreturned product in ShipLoop's worktree: 1/1",
+        for text in ("150 turns", "stage regression", "product at stop (information only, engine active at regression): 1/1",
                      "host truncated 1 tool outputs", "Evidence: work/ empty", "breaks premise: rejected",
                      "- apply: Return earlier", "Built on the learnings of aaa1111, bbb2222.",
                      "- further learning: Compare stage costs", "  proposal: track per stage",
@@ -2045,7 +2054,7 @@ class CodexRunTest(HarnessCase):
         original = (out / "invocation.json").read_text()
         os.environ["FAKE_MODE"] = "done"
         with contextlib.redirect_stdout(io.StringIO()):
-            code = run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            code = run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         result = json.loads((out / "result.json").read_text())
         self.assertEqual(code, 0, result)
@@ -3122,7 +3131,7 @@ class ResumedRunRecordTest(PrintedCase):
         with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
                 run, "marketplace_preflight", return_value=(self.plugin, None, versions)):
             with self.assertRaisesRegex(SystemExit, "version gate"):
-                run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+                run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                           "--baseline", str(self.baselines)])
         self.assertEqual((out / "result.json").read_text(), before)
 
@@ -3131,7 +3140,7 @@ class ResumedRunRecordTest(PrintedCase):
         original = json.loads((out / "result.json").read_text())["termination"]
         os.environ["FAKE_MODE"] = "done"
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         result = json.loads((out / "result.json").read_text())
         self.assertEqual(result["earlier_terminations"], [original])
@@ -3401,7 +3410,7 @@ class RegradeRecordTest(PrintedCase):
         out = Path(stopped["output"])
         os.environ["FAKE_MODE"] = "nothing"
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         resumed = json.loads((out / "result.json").read_text())
         self.assertEqual((resumed["host"], resumed["resumed_run"]["from_host"]), ("codex", "grok"))
@@ -3427,7 +3436,7 @@ class BaselineAbsentTest(PrintedCase):
         os.environ["FAKE_MODE"] = "done"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", stopped["output"],
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", stopped["output"],
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertIn("baseline  nothing compared: a resumed or seeded run is not a baseline", printed.getvalue())
 
@@ -4400,7 +4409,7 @@ class ResumeCliThroughMainTest(PrintedCase):
         other_cli.write_text("")
         self.log.unlink()
         os.environ["FAKE_MODE"] = "stuck"
-        self.resume(Path(first["output"]), "codex", other)
+        self.resume(Path(first["output"]), "codex", other, "--allow-host-change")
         prompt = self.seen()["prompt"]
         self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)  # the first host's install, not the new one
         self.assertNotIn(str(other_cli), prompt)
@@ -4555,7 +4564,7 @@ class StopFileTest(PrintedCase):
         (out / "stop").write_text("")  # left over from a stop nobody consumed
         os.environ["FAKE_MODE"] = "done"
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         result = json.loads((out / "result.json").read_text())
         self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")
