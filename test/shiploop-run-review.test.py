@@ -8776,6 +8776,16 @@ class R23bFidelityPageTests(unittest.TestCase):
         for key in export.EVIDENCE_CLASSES:
             self.assertIn(f".fe-{key}", css)
 
+    def test_each_filled_evidence_class_reads_apart_from_the_card_it_sits_on(self):
+        """The bar has no track: a segment filled with the page's own tint reads as a gap (the `file` class, the second largest on a
+        real run, did on the first look at the page). A class that is a solid fill uses a colour of its own, and `file` differs from `note`."""
+        css = TEMPLATE.read_text(encoding="utf-8").split("</style>")[0]
+        rules = {key: re.search(r"\.fe-%s\{([^}]*)\}" % key, css).group(1) for key in export.EVIDENCE_CLASSES}
+        self.assertNotIn("background:var(--code-bg)", rules["file"].replace(" ", ""))
+        self.assertNotIn("background:var(--surface)", rules["file"].replace(" ", ""))
+        self.assertNotEqual(rules["file"], rules["note"])
+        self.assertIn("var(--muted)", rules["file"])  # outline and fill both come from the muted ink, not the faint line colour
+
 
 if __name__ == "__main__":
     unittest.main()
