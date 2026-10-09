@@ -178,3 +178,23 @@ test-strategy is a possible time sink; the duty already says a failing probe is 
 
 Related commits: 482fff76 (the stand-in duty), 1f5006e7 (the Improve parent packet restates the Done-when), 62b6ac89 and 1b9918ab
 (A2 and A3, this group). Change note: `changes/shiploop/test-strategy-done-when-host-tool-probe.md` (patch).
+
+## Verification of the group (2026-10-08)
+
+Run on the final tree (HEAD e25da2e4, three commits over b73c30ba), all green:
+- `bash test/run-all.sh --group quick --changed-from origin/main` with only `SHIPLOOP_PROGRESS=off` set: exit 0 in 529 s, 31 suites
+  OK, including shiploop-return-review, shiploop-callback-contract, shiploop-chain-async, shiploop-status-display (the head-window
+  test), shiploop-packet-completeness, shiploop-stage-spec, shiploop-keepalive and shiploop-actual-improve-cli.
+- Each touched suite in full, hand-run with `SHIPLOOP_PROGRESS=off`: shiploop-return-review 24 tests, shiploop-callback-contract 38,
+  shiploop-workspace 77 (above `QUICK_MAX_SECONDS`, so the quick tier does not select it), shiploop-stage-spec 9,
+  shiploop-status-display 15, shiploop-packet-completeness 6.
+- The three new tests also pass under a CI-like global Git configuration that defines `[filter "lfs"]` clean, smudge, process and
+  required (the outer `GIT_CONFIG_GLOBAL` and `HOME` pointed at it): the tests isolate Git configuration themselves.
+
+Lesson from the first quick-tier attempt. It was started with `GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null` exported in the
+outer shell, and `shiploop-chain-async` failed three tests with "prepare refuses Git context environment overrides:
+GIT_CONFIG_GLOBAL, GIT_CONFIG_NOSYSTEM". That was my environment, not the change: the chain suites refuse an outer override and
+isolate Git themselves, so the quick tier is run with the outer Git variables unset (the suites that need isolation set it per
+test). The same three tests passed on the rerun. The registered durations in `test/suite_catalog.py` are unchanged: the added
+tests do not move any suite near `QUICK_MAX_SECONDS`, and the new timings (return-review 74.5 s alone, callback-contract
+72 to 78 s under load) are inside the noise of the registered 85.9 s and 69.1 s.
