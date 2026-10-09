@@ -49,7 +49,7 @@ mutant("G10 preload does not refuse connect", G, "    if (port !== undefined && 
 mutant("G11 preload does not note the refusal", G, "  try { fs.appendFileSync(log, `${process.pid} ${kind} ${port}\\n`); } catch (_) { /* a log that cannot be written must not change a run */ }", "  void log;", "PortGuardNodeTest")
 mutant("G12 preload does not read an options object", G, "  if (value && typeof value === 'object' && !Array.isArray(value)) value = value.port;\n", "", "PortGuardNodeTest")
 mutant("G13 preload does not refuse listen", G, "    if (port !== undefined && ports.has(port)) {\n      note('listen', port);", "    if (false) {\n      note('listen', port);", "PortGuardNodeTest")
-mutant("G14 declared ports not inherited from the followed case", R, "    ports = own.get(\"refuse_ports\") or earlier.get(\"refuse_ports\")", "    ports = own.get(\"refuse_ports\")", "PortGuardTest")
+mutant("G14 declared ports not carried by case_quality", R, "for key in (\"mutation\", \"acceptance\", \"refuse_ports\")}", "for key in (\"mutation\", \"acceptance\")}", "PortGuardTest")
 
 # ---- confirmation, evidence, signs of a load, page script
 mutant("C01 a failure is not confirmed", Q, "        elif again is not None and not failed(again):", "        elif False:", "MutationRunTest")
@@ -106,7 +106,7 @@ mutant("A:M10 a confirmed kill is no sign of a load", Q, "        if name in sig
 mutant("A:M11 no restore of the mutated file", Q, "        finally:\n            path.write_bytes(text.encode(\"utf-8\", \"surrogateescape\"))", "        finally:\n            pass", "MutationRunTest")
 mutant("A:M12 unreadable events count 0", Q, "    facts: dict = {\"memory_writes\": None, \"held_out_seen\": None}", "    facts: dict = {\"memory_writes\": [], \"held_out_seen\": 0}", "EventFactsTest")
 mutant("A:M13 MultiEdit not a write", Q, "MEMORY_TOOLS = (\"Write\", \"Edit\", \"MultiEdit\")", "MEMORY_TOOLS = (\"Write\", \"Edit\")", "EventFactsTest")
-mutant("A:M14 memory regex no boundary", Q, "memory(?:/|$)\")", "memory)\")", "EventFactsTest")
+mutant("A:M14 memory regex has no end boundary (the reviewer's version made an invalid regex, caught only by a crash)", Q, "memory(?:/|$)\")", "memory(?:/)?\")", "EventFactsTest")
 mutant("A:M15 reap the whole output folder", Q, "block[\"left_behind\"] = listeners.reap(folder)", "block[\"left_behind\"] = listeners.reap(out)", "QualityReapTest MeasureBlockTest")
 mutant("A:M16 an earlier copy reused", Q, "        shutil.rmtree(folder, ignore_errors=True)  # ours: a regrade's earlier copy", "        pass", "MeasureBlockTest")
 mutant("A:M17 acceptance server not ended", Q, "    finally:\n        finish(proc, groups)\n    return {\"observed\": True, \"source\"", "    finally:\n        pass\n    return {\"observed\": True, \"source\"", "AcceptanceRunTest AcceptanceCalibrationTest")

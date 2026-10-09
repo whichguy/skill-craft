@@ -247,3 +247,34 @@ mark `mixed_host`.
 * **Other runners and languages**: only `node --test` was exercised against real output; every other language is "no operator catalog".
 * **Python 3.14 / macOS only** (`waitid` with `WNOWAIT`, the `getpgid` behaviour on a zombie) were exercised.
 * The Run Review exporter was not read or changed; it copies result.json and picks named keys.
+
+## Tests and verification (real results, 2026-10-09, fix round; GIT_CONFIG_* not exported)
+
+`test/shiploop-e2e-quality.test.py`, 125 tests (registered in `suite_catalog.SHIPLOOP_SUITES` at 43 s; `test-groups.test.py` pins 71 ShipLoop
+suites and 112 in all). By class: `PlanningReviewOptionTest` 9, `MutationOperatorTest` 7, `MutationRunTest` 27, `MutationNodeTest` 3 (real
+`node --test`), `PortGuardTest` 7, `PortGuardNodeTest` 3 (real node, a declared port that is a free one the test picked), `PrintedLineTest` 2,
+`ProcessSafetyTest` 9, `AcceptanceCalibrationTest` 5, `AcceptanceRunTest` 8, `EventFactsTest` 10, `MeasureBlockTest` 12, `QualityReapTest` 1 (real
+lsof and signals, scoped to the test's folder), `QualityThroughMainTest` 14, `QualityGateTest` 6, `CaseQualityTest` 2. No test binds or connects to
+a fixed port, reads the machine's process table (every class patches `listeners.observe` except `QualityReapTest`, which scopes it) or depends
+on `/Users/dadleet/e2e-runs`; every process a test starts expires by itself (60 s, 120 s or 30 s at most).
+
+| Command | Result |
+|---|---|
+| `python3 test/shiploop-e2e-quality.test.py` | 125 tests OK in 44 s |
+| the same with node off `PATH` | 125 OK, 6 skipped (`MutationNodeTest`, `PortGuardNodeTest`; reason: "this class runs the real `node --test` and needs node on PATH") |
+| `python3 test/shiploop-e2e.test.py` | 404 tests OK in 112 s (no test of that file was edited) |
+| `python3 test/shiploop-e2e-runrecord.test.py` | 6 tests OK |
+| `python3 test/test-groups.test.py` | 21 tests OK |
+| `bash test/run-all.sh --group quick --changed-from 30a3b40a` | PASS, 21 suites OK, among them `shiploop-e2e` and `shiploop-e2e-quality` |
+
+**Mutants.** `docs/experiments/batch-1011p-g5-quality-20261009/mutants.py` lists 104 mutants of `quality.py`, `run.py`, `checkers_accept.py` and
+`refuse_ports.cjs`, and `mutants-result.json` the test that went red for each. All 104 are caught (none equivalent). They include the 48 of
+review lens A under their ids (`A:M01` to `A:R17`, ported to the code as it now is; `A:R10` and `A:R13` break the successors of the code the
+reviewer broke: the stage sentence no longer exists, the acceptance lists no longer concatenate). The reviewer's `M14` made an invalid regular
+expression and was caught only by a crash; the ported `A:M14` is a valid one and is caught by an assertion. Reviewer A's survivors of the first
+round, now red: `M01` (the reaped-pid guard; the test mocks `getpgid` to return the pid after the reap and asserts `killpg` is not called),
+`M18` (the harness's PORT not stripped), `M24` (the coverage prefix; a sibling folder named like the copy), `R06` (TERMINATION with no stop file)
+and `R11` (a custom run measured by a catalog that has battleship). Two first-round tests were vacuous in the way the reviewers said (the
+`end_group` reaped-pid test and the hung-mutant test, which passed with the group kill removed because the child expired on its own after
+60 s); both are repaired. The first fix commits' tests were written with their code (a departure from tests-first); the mutant list stands in
+for the fail-first run, except where the commit message says a test failed first.
