@@ -19,7 +19,8 @@ gone.  So the harness that launches the hosts writes the boundary, in the one pl
            ``returncode`` (the launch's own), and ``engine``, the ledger at that moment (metrics.engine_position).  A
            harness killed with its host writes none: the start row stays without one.
 
-Recording is fail-open: a folder that cannot be written never stops a run.
+Recording is fail-open: a folder that cannot be written, or a file that cannot be read, never stops a run.  runrecord.py is the
+older per-launch record (which hosts launched, from the invocation files); a run from before this file has only that one.
 """
 
 from __future__ import annotations
@@ -36,8 +37,12 @@ def _lines(out: Path) -> list[dict] | None:
     path = Path(out) / SESSIONS
     if not path.is_file():
         return None
+    try:
+        text = path.read_text(errors="replace")
+    except OSError:  # present but unreadable: a record that cannot be read is not a record (the caller can tell: it exists)
+        return None
     rows: list[dict] = []
-    for line in path.read_text(errors="replace").splitlines():
+    for line in text.splitlines():
         try:
             row = json.loads(line)
         except ValueError:

@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import bisect
 from datetime import datetime, timezone
+import itertools
 import json
 import os
 from pathlib import Path
 import re
 
 import rollouts
+import runrecord
 import sessionlog
 
 SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
@@ -768,8 +770,8 @@ def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], gro
 
 # The ShipLoop CLI and run directory a `next` call carries, read from the command as the model wrote it (variables expanded
 # where the same command assigns them), to compare with what the resume prompt told.
-NEXT_CALL = re.compile(r"""(?P<cli>[^\s"'=]*shiploop)["']?\s+next\b(?P<rest>[^\n]*)""")
 PACKET_REVISION = re.compile(r"^ShipLoop navigator \|[^\n|]*\| revision (\d+)", re.M)
+NEXT_CALL = re.compile(r"""(?P<cli>[^\s"'=]*shiploop)["']?\s+next\b(?P<rest>[^\n]*)""")
 RUN_DIR_ARG = re.compile(r"""--run-dir(?:=|\s+)["']?(?P<dir>[^"'\s]+)""")
 # The ShipLoop verbs whose call can be the one that gets an action accepted (an Improve child's finish accepts its parent).
 ACCEPTING_VERBS = ("complete", "improve-complete")
@@ -779,11 +781,19 @@ ACCEPTING_VERBS = ("complete", "improve-complete")
 # script the model wrote in an earlier session is not known to the window, so a ShipLoop command run through one is not
 # recognised, and a refusal behind a pipe that lost its prefix line is missed.
 FAILURES_SCOPE = "the window's own calls only: a ShipLoop command run through a script written in an earlier session is not seen"
+FRESH_STARTS_UNREADABLE = ("not recorded: sessions.jsonl exists but cannot be read, so the host session starts are unknown; only "
+                           "the compactions are listed")
 FRESH_STARTS_NOT_RECORDED = ("not recorded: this run has no sessions.jsonl (the harness wrote it from 2026-10-09), so its host "
                              "session starts are unknown; only its compactions are listed")
 NO_EVENT = "the session wrote no event"
-NO_ACCEPT = ("no tool call submitted an action accepted after this start (the ledger names none, or the session ended before "
-             "it submitted one)")
+NO_LATER_ACCEPT = "the ledger accepted no action after this start"
+AMBIGUOUS_ACCEPT = ("an action accepted after this start has no accept stamp, so which accept came next cannot be told")
+NO_SUBMISSION = ("the next accepted action ({stage}, {action}) was not submitted by a tool call this window recognises: it was "
+                 "accepted by something that left no event (an orphan host), by a script this window does not see, or the "
+                 "session ended before it")
+PARKED = ("every call that names the next accepted action ({stage}, {action}) returned before its accept stamp: it was parked "
+          "(an Improve child) or accepted by a call this window does not recognise")
+SESSION_BOUNDS = "session bounds not recorded: {why}"
 
 
 def written_paths(rows) -> set:
@@ -844,78 +854,152 @@ def _recovery(tools: "ToolLog", window: list, told: dict | None, heads: dict) ->
     return {"told": told, "next_calls": len(nexts), "first_next": first, "revision_seen": revision}
 
 
-def reorientation(rows, stamps: dict, accepted: list[dict], told: dict | None = None, earlier=None) -> dict:
+def _scoped(event: dict, token) -> dict:
+    """The event with its call ids made unique to one session, so a host that numbers its calls again in a continued session
+    (Codex: item_1 in every session) cannot have one call replace another in a window's log."""
+    prefix = f"{token}:"
+    kind = event.get("type")
+    if kind == "assistant" and isinstance(event.get("message"), dict):
+        blocks = [dict(b, id=prefix + str(b.get("id"))) if isinstance(b, dict) and b.get("type") == "tool_use" else b
+                  for b in event["message"].get("content") or []]
+        return dict(event, message=dict(event["message"], content=blocks))
+    if kind == "user" and isinstance(event.get("message"), dict):
+        blocks = [dict(b, tool_use_id=prefix + str(b.get("tool_use_id"))) if isinstance(b, dict) and b.get("type") == "tool_result"
+                  else b for b in event["message"].get("content") or []]
+        return dict(event, message=dict(event["message"], content=blocks))
+    if kind in ("tool_call", "tool_call_update") and event.get("toolCallId") is not None:
+        return dict(event, toolCallId=prefix + str(event["toolCallId"]))
+    return event
+
+
+def _next_accept(accepted: list[dict], start_t: float | None, ledger_at_start: int | None) -> tuple:
+    """(index in ``accepted`` of the first action the ledger accepted after the start, None), or (None, why it cannot be told).
+
+    The start row's ledger length (``ledger_at_start``) names it exactly. Without it the first row stamped at or after the start's
+    second is taken, and a row with no stamp between the last earlier one and that one could be the next accept, so it is
+    refused rather than guessed. (An accept in the start's own second, before the start, is taken for the next: its submission
+    is then not found in the window, and the window is not measured: safe, not wrong.)
+    """
+    if ledger_at_start is not None:
+        return (ledger_at_start, None) if 0 <= ledger_at_start < len(accepted) else (None, NO_LATER_ACCEPT)
+    if start_t is None:
+        return None, NO_EVENT
+    unstamped = False
+    for index, row in enumerate(accepted):
+        if row["t"] is None:
+            unstamped = True
+        elif row["t"] < int(start_t):
+            unstamped = False
+        else:
+            return (None, AMBIGUOUS_ACCEPT) if unstamped else (index, None)
+    return (None, AMBIGUOUS_ACCEPT) if unstamped else (None, NO_LATER_ACCEPT)
+
+
+def reorientation(rows, stamps: dict, accepted: list[dict], told: dict | None = None, earlier=None, *,
+                  ledger_at_start: int | None = None, scope=None, session_marks: list | None = None) -> dict:
     """What a fresh context did from its start to the next accepted action: a record, never a verdict.
 
     ``rows`` are the (line, event) pairs of one session's events from the fresh start, read lazily (this stops reading at
     the window's end); ``stamps`` the runner's timeline; ``accepted`` the ledger's accepted rows (``stage_results``);
     ``told`` the CLI and run directory the resume prompt named (None for a start with no recovery command, a compaction);
     ``earlier(after)`` the (line, event) pairs before the start whose stamp is after ``after`` (None: from the beginning),
-    the stage's pre-start portion that `rewrote` compares.
+    the stage's pre-start portion that `rewrote` compares. ``ledger_at_start`` is how many actions the ledger had accepted
+    when the context began (a start row's engine.accepted); ``scope(line)`` names the host session a line belongs to, so call
+    ids reused by a continued session stay apart; ``session_marks`` is None for a run whose sessions.jsonl bounded the rows,
+    else the epoch seconds at which other launches began (runrecord), and then a host's own end or init event in the window
+    counts as a session boundary too.
 
-    The window ends at the tool call that SUBMITTED the next accepted action: a `complete` (or an Improve child's finish)
-    naming an action the ledger accepted, that did not fail and does not start after its accept stamp's second (so never an
-    action accepted before the start). The stamp is whole-second truncated, so a cut at the stamp would lose the submitting
-    call (it starts after the truncated stamp) or keep the next one (it starts in the same second). Both are recorded:
-    ``seconds`` to the submitting call, on the runner's clock, and ``seconds_to_accept_stamp``, good to a second.
+    The action waited for is the FIRST the ledger accepted after the start (``_next_accept``). The window ends at the LAST
+    `complete` or `improve-complete` call that names it, did not fail, began before its accept stamp's second ended and
+    returned at or after the stamp. The stamp is whole-second truncated, so a cut at the stamp would lose the call (it starts
+    after the truncated stamp) or keep the next one (it starts in the same second); an Improve park's parent `complete`
+    returns long before the accept and is not the call. Both clocks are recorded: ``seconds`` to the call, on the runner's
+    clock, and ``seconds_to_accept_stamp``, good to a second. A window the records cannot place that way is never extended
+    to a later action: it is ``measured: false`` with its reason.
 
-    Always present: ``first_grounding`` (`next`, `packet`, `other`, or None where the window held no such call) with
-    ``calls_before_grounding``, and ``recovery``. A window that reaches no accepted action is ``measured: false`` with its
-    reason and has no count: unknown is not zero. ``failures`` and ``rewrote`` are lower bounds and say so.
+    Always present: ``first_grounding`` (see ``_grounding``) with ``calls_before_grounding``, and ``recovery``. A window that is
+    not measured has no count: unknown is not zero. ``failures`` and ``rewrote`` are lower bounds and say so.
     """
-    by_action = {row["action"]: (index, row) for index, row in enumerate(accepted) if isinstance(row.get("action"), str)}
-    ids = re.compile(r"(?<![\w-])(" + "|".join(re.escape(a) for a in sorted(by_action, key=len, reverse=True)) + r")(?![\w-])") \
-        if by_action else None
+    iterator = iter(rows)
+    head, start_t = [], None
+    for line, event in iterator:  # the first stamped event is the start; the action waited for is chosen from its time
+        head.append((line, event))
+        if stamps.get(line) is not None:
+            start_t = stamps[line]
+            break
+    index, why = _next_accept(accepted, start_t, ledger_at_start) if head else (None, NO_EVENT)
+    row = accepted[index] if index is not None else None
+    target = row["action"] if row and isinstance(row.get("action"), str) else None
+    stamp = row["t"] if row else None
+    pattern = re.compile(r"(?<![\w-])" + re.escape(target) + r"(?![\w-])") if target else None
     tools, order = ToolLog(), []
-    start_t = None
-    pending: list[tuple] = []  # calls that submit an accepted action, until their result says whether it was accepted
+    candidates: list = []  # calls that name the target in an accepting verb and began before its accept stamp's second ended
+    line_of: dict = {}
+    result_t: dict = {}
     heads: dict = {}  # `next` call -> the first characters of what it returned (the last update of a running Grok call wins)
-    ended = None
-    for line, event in rows:
+    marker = None  # (line, what) of the first host session boundary inside the window, when the run's sessions are not recorded
+    last_t = start_t
+    for line, event in itertools.chain(head, iterator):
         t = stamps.get(line)
-        if start_t is None and t is not None:
-            start_t = t
-        for key in tools.feed(event, t):
+        last_t = t if t is not None else last_t
+        if session_marks is not None and marker is None and line != head[0][0] and (
+                event.get("type") in ("end", "result") or (event.get("type") == "system" and event.get("subtype") == "init")):
+            marker = (line, f"a host {event.get('type')} event at line {line}")
+        seen = _scoped(event, scope(line)) if scope else event
+        for key in tools.feed(seen, t):
             order.append(key)
-            action = _submitted(tools.calls[key], ids)
-            if action is not None and _plausible_submission(by_action[action][1]["t"], tools.calls[key]["t"]):
-                pending.append((key, action))
-        for call_id, shown in tool_results(event):
+            line_of[key] = line
+            if pattern and _submits(tools.calls[key], pattern) and _plausible_submission(stamp, tools.calls[key]["t"]):
+                candidates.append(key)
+        for call_id, shown in tool_results(seen):
             if call_id in tools.calls and "next" in _verbs(tools.calls[call_id]):
                 heads[call_id] = shown[:400]
-        pending = [item for item in pending if item[0] not in tools.failed]
-        ended = next((item for item in pending if item[0] in tools.answered), None)
-        if ended:
+        for key in candidates:
+            if key in tools.answered and key not in result_t:
+                result_t[key] = last_t
+        resolved = all(key in tools.answered for key in candidates)
+        if stamp is None:  # no time to wait for: the first submission that did not fail is the one
+            if any(key in tools.answered and key not in tools.failed for key in candidates):
+                break
+        elif resolved and t is not None and t >= stamp + 1:  # every call that could have got it accepted has been seen
             break
-    window = order if ended is None else order[:order.index(ended[0]) + 1]
+    placed = [key for key in candidates if key in tools.answered and key not in tools.failed
+              and (stamp is None or result_t.get(key) is None or result_t[key] >= stamp)]
+    parked = [key for key in candidates if key in tools.answered and key not in tools.failed and key not in placed]
+    end_key = (placed[0] if stamp is None else placed[-1]) if placed else None
+    window = order if end_key is None else order[:order.index(end_key) + 1]
     grounding = next(((number, _grounding(tools.calls[key])) for number, key in enumerate(window)
                       if _grounding(tools.calls[key])), (None, None))
     common = {"first_grounding": grounding[1], "calls_before_grounding": grounding[0],
               "recovery": _recovery(tools, window, told, heads)}
-    if not order and start_t is None:
-        return {"measured": False, "reason": NO_EVENT, **common}
-    if ended is None:
-        return {"measured": False, "reason": NO_ACCEPT, **common}
-    index, row = by_action[ended[1]]
-    submitted_at = tools.calls[ended[0]]["t"]
-    stage_stamp = row["t"]
+    # A host session that began or ended inside the window means a run with no recorded bounds cannot place it.
+    if session_marks is not None and start_t is not None:
+        until = tools.calls[end_key]["t"] if end_key is not None else (stamp + 1 if stamp is not None else last_t)
+        crossed = [f"another launch began at {m}" for m in session_marks if until is not None and start_t < m <= until]
+        if marker and (end_key is None or marker[0] < line_of[end_key]):
+            crossed.append(marker[1])
+        if crossed:
+            return {"measured": False, "reason": SESSION_BOUNDS.format(why="; ".join(crossed) + " before the next accepted "
+                                                                      "action, so this window may span two sessions"), **common}
+    if target is None:
+        return {"measured": False, "reason": why or NO_LATER_ACCEPT, **common}
+    if end_key is None:
+        text = PARKED if parked else NO_SUBMISSION
+        return {"measured": False, "reason": text.format(stage=row["stage"], action=target), **common}
+    submitted_at = tools.calls[end_key]["t"]
     failures = [tools.failure_of[key] for key in window if key in tools.failure_of]
-    return {"measured": True, "accepted": {"stage": row["stage"], "action": ended[1]}, "tool_calls": len(window),
+    return {"measured": True, "accepted": {"stage": row["stage"], "action": target}, "tool_calls": len(window),
             "seconds": None if start_t is None or submitted_at is None else round(submitted_at - start_t, 1),
-            "seconds_to_accept_stamp": None if start_t is None or stage_stamp is None else round(stage_stamp - start_t, 1),
+            "seconds_to_accept_stamp": None if start_t is None or stamp is None else round(stamp - start_t, 1),
             **common,
             "failures": {"items": failures, "bound": "lower", "scope": FAILURES_SCOPE},
             "rewrote": _rewrote(tools, window, earlier, accepted, index),
             "asked_user": sum(bool(ASK_PERSON.search(tools.calls[key]["tool"])) for key in window)}
 
 
-def _submitted(call: dict, ids) -> str | None:
-    """The accepted action a tool call submits: a `complete` (or `improve-complete`) that names its id, else None."""
-    text = call.get("invoked", "")
-    if ids is None or not any(verb in ACCEPTING_VERBS for verb in _verbs(call)):
-        return None
-    found = ids.search(text)
-    return found.group(1) if found else None
+def _submits(call: dict, pattern) -> bool:
+    """Whether a tool call runs a `complete` or `improve-complete` that names the action ``pattern`` matches."""
+    return any(verb in ACCEPTING_VERBS for verb in _verbs(call)) and bool(pattern.search(call.get("invoked", "")))
 
 
 def _plausible_submission(stamp: float | None, call_t: float | None) -> bool:
@@ -940,12 +1024,17 @@ def _rewrote(tools: "ToolLog", window: list, earlier, accepted: list[dict], inde
     return {"paths": paths, "bound": "lower", "scope": scope}
 
 
-def fresh_starts(out: Path, stamps: dict, accepted: list[dict], sessions: list[dict] | None, compactions: list[dict]) -> list[dict]:
+def fresh_starts(out: Path, stamps: dict, accepted: list[dict], sessions: list[dict] | None, compactions: list[dict],
+                 launch_epochs: list | None = None) -> list[dict]:
     """One block for every fresh context the run had, in the order of its first event: a host session started with no host
     session id passed (``sessions`` rows of kind `fresh`: a --resume-run, the session after an --interrupt-at) and every
     compaction (``compactions``: {"host": "grok", "line": n} where the host's event stream marks it, {"host": "codex", "t": epoch}
-    where only its rollouts do). Each block is ``reorientation`` over the events from that point to the session's end
-    (the next recorded session start, or the end of the file); a compaction's has no told command.
+    where only its rollouts do). Each block is ``reorientation`` over the events from that point to the next recorded FRESH
+    start (or the end of the file); a `continued` session keeps the context and the window; a compaction's has no told command.
+
+    A start row's ``engine.accepted`` names the action a fresh session waits for exactly. Where the sessions are not recorded
+    (no sessions.jsonl, or events before its first row) nothing bounds a window, so ``launch_epochs`` (runrecord) and the host's
+    own end and init events say where another session began, and a window that spans one is not measured.
 
     Record-only. ``sessions`` None (a run from before sessions.jsonl) lists no session start, only compactions; the caller
     says so. ``stage_in_flight`` is the stage whose acceptance ends the window, else the one the previous session's end row
@@ -953,7 +1042,11 @@ def fresh_starts(out: Path, stamps: dict, accepted: list[dict], sessions: list[d
     this session's start row and in the first `next` result it got, and ``moved`` (None while fewer than two are known).
     """
     path = out / "events.jsonl"
-    boundaries = sorted(row["events_line"] for row in sessions or [] if isinstance(row.get("events_line"), int))
+    rows = [row for row in sessions or [] if isinstance(row.get("events_line"), int)]
+    fresh_lines = sorted(row["events_line"] for row in rows if row.get("kind") == "fresh")
+    start_lines = sorted(row["events_line"] for row in rows)
+    recorded_from = None if not rows else (0 if rows[0].get("kind") == "first" and rows[0]["events_line"] == 0
+                                           else rows[0]["events_line"])
     ordered = sorted(stamps)
     times = [stamps[n] for n in ordered]
 
@@ -964,30 +1057,33 @@ def fresh_starts(out: Path, stamps: dict, accepted: list[dict], sessions: list[d
         index = bisect.bisect_right(times, after)
         return ordered[index] if index < len(ordered) else (ordered[-1] + 1 if ordered else 0)
 
-    points = [(row["events_line"], "fresh", row) for row in sessions or []
-              if row.get("kind") == "fresh" and isinstance(row.get("events_line"), int)]
+    points = [(row["events_line"], "fresh", row) for row in rows if row.get("kind") == "fresh"]
     for compaction in compactions:
         line = compaction["line"] if "line" in compaction else first_line_after(compaction.get("t"))
         points.append((line, "compaction", compaction))
     blocks = []
     for line, kind, info in sorted(points, key=lambda point: point[0]):
-        bound = next((b for b in boundaries if b > line), None)
+        bound = next((b for b in fresh_lines if b > line), None)
         told = info.get("told") if kind == "fresh" and isinstance(info.get("told"), dict) else None
+        started = info.get("engine") if kind == "fresh" and isinstance(info.get("engine"), dict) else {}
+        at_start = started.get("accepted") if isinstance(started.get("accepted"), int) else None
+        unrecorded = recorded_from is None or line < recorded_from
         block = reorientation(event_range(path, line, bound), stamps, accepted, told,
-                              earlier=lambda after, line=line: event_range(path, first_line_after(after), line))
+                              earlier=lambda after, line=line: event_range(path, first_line_after(after), line),
+                              ledger_at_start=at_start, scope=lambda n: bisect.bisect_right(start_lines, n),
+                              session_marks=list(launch_epochs or []) if unrecorded else None)
         entry = {"kind": kind, "n": None, "reason": None, "host": info.get("host"),
                  "t": info.get("t") if "t" in info else stamps.get(line), "events_line": line}
         left = {}
         if kind == "fresh":
             entry.update(n=info["n"], reason=info.get("reason"))
-            previous = next((row for row in sessions or [] if row["n"] == info["n"] - 1), None)
+            previous = next((row for row in rows if row["n"] == info["n"] - 1), None)
             left = ((previous or {}).get("end") or {}).get("engine")
             left = left if isinstance(left, dict) else {}
         entry["stage_in_flight"] = block["accepted"]["stage"] if block["measured"] else left.get("stage")
         if kind == "fresh":
             # The engine at the kill, at the launch and in the fresh session's first `next` result: any difference is something
             # that advanced the run after the host was killed (an in-flight command of the killed session, an orphan).
-            started = info.get("engine") if isinstance(info.get("engine"), dict) else {}
             seen = {"end_revision": left.get("revision"), "start_revision": started.get("revision"),
                     "first_next_revision": block["recovery"]["revision_seen"]}
             known = {r for r in seen.values() if isinstance(r, int)}
@@ -1101,13 +1197,27 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     planning["tokens"] = planning_tokens(bounds, why_not_tokens, usage_rows, grok, bool(claude_calls), context)
     # Fresh contexts: the sessions the harness recorded (sessions.jsonl; a run from before it says so) and every compaction the
     # host's events (Grok) or its rollouts (Codex) show. Claude's compactions are not detected (see GROK_SIGNALS).
-    sessions_recorded = sessionlog.read(out)
     compaction_points = ([{"host": "grok", "line": n} for n in compaction_lines] if "compactions" not in unmeasured else [])
     if context and "unmeasured" not in context:
         compaction_points = [{"host": "codex", "t": t} for t in context.get("compaction_times", [])]
     try:
-        fresh_list, fresh_note = (fresh_starts(out, stamps, accepted, sessions_recorded, compaction_points),
-                                  None if sessions_recorded is not None else FRESH_STARTS_NOT_RECORDED)
+        sessions_recorded = sessionlog.read(out)
+        notes = []
+        if sessions_recorded is None:
+            notes.append(FRESH_STARTS_NOT_RECORDED if not (out / sessionlog.SESSIONS).exists()
+                         else FRESH_STARTS_UNREADABLE)
+        else:
+            first = sessions_recorded[0] if sessions_recorded else None
+            events_before = first["events_line"] if first and isinstance(first.get("events_line"), int) else None
+            if first is None and (out / "events.jsonl").is_file() and (out / "events.jsonl").stat().st_size:
+                events_before = sum(1 for _ in (out / "events.jsonl").open("rb"))
+            if events_before:
+                notes.append(f"partial: sessions before events line {events_before} are not recorded")
+        if "compactions" in unmeasured:
+            notes.append(f"compactions not detected on this host: {unmeasured['compactions']}")
+        fresh_list = fresh_starts(out, stamps, accepted, sessions_recorded, compaction_points,
+                                  runrecord.launch_epochs(out))
+        fresh_note = "; ".join(notes) or None
     except Exception as exc:  # noqa: BLE001 - a passive record never takes the run's metrics down (per_stage once did)
         fresh_list, fresh_note = [], f"failed: {type(exc).__name__}: {' '.join(str(exc).split())[:200]}"
     stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)

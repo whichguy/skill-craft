@@ -150,6 +150,18 @@ class ToolLogFeedTest(unittest.TestCase):
         self.assertIn("a", log.answered)
         self.assertNotIn("c", log.answered)
 
+    def test_a_reused_call_id_starts_clean_whatever_the_earlier_call_with_that_id_did(self):
+        # Codex numbers its calls item_1.. in every session: the second item_1 is a new call.
+        log = metrics.ToolLog()
+        call = {"type": "tool_call", "toolCallId": "item_1", "toolName": "run_terminal_command",
+                "rawInput": {"command": "python3 x/shiploop complete --run-dir r"}}
+        log.feed(call, 1.0)
+        log.feed({"type": "tool_call_update", "toolCallId": "item_1", "status": "completed",
+                  "rawOutput": {"exit_code": 2, "output_for_prompt": "ShipLoop navigator: refused"}}, 2.0)
+        self.assertTrue({"item_1"} <= log.failed & log.answered & set(log.failure_of))
+        log.feed(call, 3.0)
+        self.assertEqual((log.failed, log.answered, log.failure_of), (set(), set(), {}))
+
     def test_a_failure_is_remembered_by_its_call_so_a_window_can_count_its_own(self):
         log = fed(CLAUDE_STREAM)
         self.assertEqual(list(log.failure_of), ["u1"])
@@ -208,6 +220,10 @@ class Stream:
     def complete(self, action: str, after: float = 1.0, output: str = "ShipLoop navigator | test-red | revision 4\n") -> str:
         return self.shell(after, f'python3 "{CLI}" complete --run-dir={RUN} --action={action} --result={RUN}/inbox/{action}.md',
                           output)
+
+    def improve_complete(self, action: str, after: float = 1.0, output: str = "ShipLoop navigator | test-strategy | revision 9\n") -> str:
+        """The finish of an Improve child, which is what gets its parent action accepted."""
+        return self.shell(after, f'python3 "{CLI}" improve-complete --run-dir={RUN} --action={action}', output)
 
     def claude(self, after: float, tool: str, arg: dict, output: str = "", message: str | None = None) -> str:
         """One Claude-shaped call: an assistant event with a tool_use block, then the user event with its result."""
@@ -288,7 +304,7 @@ class WindowEndRuleTest(unittest.TestCase):
         s.next(after=1.0, run_dir="/r/.shiploop-runs/w/run/../typo")
         got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-a", "intake", 900.0)), TOLD)
         self.assertFalse(got["measured"])
-        self.assertIn("no tool call submitted an action accepted after this start", got["reason"])
+        self.assertEqual(got["reason"], "the ledger accepted no action after this start")
         for name in ("tool_calls", "seconds", "failures", "rewrote"):
             self.assertNotIn(name, got, "an unmeasured window has no count: unknown is not zero")
         self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("next", 1))
@@ -297,6 +313,214 @@ class WindowEndRuleTest(unittest.TestCase):
     def test_a_session_that_wrote_no_event_is_unmeasured(self):
         got = metrics.reorientation([], {}, accepted_rows(("nav-a", "intake", 900.0)), TOLD)
         self.assertEqual((got["measured"], got["reason"]), (False, "the session wrote no event"))
+
+
+class WindowPlacementTest(unittest.TestCase):
+    """Which accepted action a window waits for, and which call got it accepted (the fix round's items 1 to 3): the FIRST action
+    the ledger accepted after the start, by the LAST call that names it and returned at or after its accept stamp. Anything
+    the records cannot place is not measured, and is never extended to a later action."""
+
+    PARK = "ShipLoop navigator | spec | revision 4\nNext command (bind the selected Improve card; details below): ...\n"
+
+    def parked(self, with_finish: bool = True) -> tuple:
+        s = Stream(first=1000.0).start()
+        s.next(after=0.5)
+        s.complete("nav-b", after=1.0, output=self.PARK)          # call 2 returns at 1001.7: it only PARKS the action
+        s.shell(1500.0, "improve review pass")                     # call 3 at 2501.8
+        if with_finish:
+            s.improve_complete("nav-b", after=200.0)               # call 4 at 2702.0: this one gets nav-b accepted
+        return s, accepted_rows(("nav-a", "intake", 900.0), ("nav-b", "spec", stamp(s)))
+
+    def test_an_improve_park_ends_at_the_improve_complete_not_at_the_parent_complete_that_returned_long_before(self):
+        s, ledger = self.parked()
+        got = metrics.reorientation(s.rows, s.stamps, ledger, TOLD)
+        self.assertTrue(got["measured"], got)
+        self.assertEqual(got["tool_calls"], 4, "next, the parent complete, the review pass and the improve-complete")
+        self.assertEqual(got["seconds"], 1701.8, "to the improve-complete call")
+        self.assertEqual(got["seconds_to_accept_stamp"], 1701.0)
+
+    def test_a_park_whose_finish_this_window_cannot_see_is_not_measured_and_says_parked(self):
+        s, ledger = self.parked(with_finish=False)
+        ledger = accepted_rows(("nav-a", "intake", 900.0), ("nav-b", "spec", 2702.0))
+        got = metrics.reorientation(s.rows, s.stamps, ledger, TOLD)
+        self.assertFalse(got["measured"])
+        self.assertIn("parked", got["reason"])
+        self.assertNotIn("tool_calls", got)
+
+    def test_the_first_action_accepted_after_the_start_is_the_one_waited_for_not_a_later_one_the_window_happens_to_submit(self):
+        # nav-x was accepted by something that left no event (r2: an orphan host); nav-b is submitted in the window.
+        s = Stream(first=1000.0).start()
+        s.next(after=0.5)
+        s.shell(5.0, "work")
+        s.complete("nav-b", after=1.0)
+        ledger = accepted_rows(("nav-a", "intake", 900.0), ("nav-x", "spec", 1003.0), ("nav-b", "plan", stamp(s)))
+        got = metrics.reorientation(s.rows, s.stamps, ledger, TOLD)
+        self.assertFalse(got["measured"], got)
+        self.assertIn("nav-x", got["reason"], "the reason names the action that was accepted without a submission in this window")
+
+    def test_an_unrecognised_submission_is_not_skipped_to_a_later_stages_one(self):
+        # Case A of the reviewer's probe: nav-b was submitted by a script the window cannot see, nav-c directly.
+        s = Stream(first=5000.0).start()
+        s.next(after=0.5)
+        s.shell(1.0, "./run/scratch/submit.sh")
+        tb = stamp(s)
+        s.next(after=1.0, output="ShipLoop navigator | plan | revision 5\n")
+        s.shell(5.0, "edit plan")
+        s.complete("nav-c", after=1.0)
+        ledger = accepted_rows(("nav-a", "intake", 4000.0), ("nav-b", "spec", tb), ("nav-c", "plan", stamp(s)))
+        got = metrics.reorientation(s.rows, s.stamps, ledger, TOLD)
+        self.assertFalse(got["measured"], "measured across two stages with the second one's calls: " + str(got.get("accepted")))
+        # Case B: the id is read from a file by the command itself.
+        s = Stream(first=6000.0).start()
+        s.next(after=0.5)
+        s.shell(1.0, f'python3 "{CLI}" complete --run-dir={RUN} --action="$(cat /r/pending-id)"')
+        tb = stamp(s)
+        s.next(after=1.0, output="ShipLoop navigator | plan | revision 5\n")
+        s.complete("nav-c", after=3.0)
+        ledger = accepted_rows(("nav-a", "intake", 4000.0), ("nav-b", "spec", tb), ("nav-c", "plan", stamp(s)))
+        self.assertFalse(metrics.reorientation(s.rows, s.stamps, ledger, TOLD)["measured"])
+
+    def test_the_ledger_length_at_the_start_names_the_action_when_the_stamps_cannot(self):
+        # nav-a was accepted in the same second the session began (stamp 1000 = the start's second): by stamps alone it looks
+        # like the next one. The start row's engine.accepted says one action was already accepted, so nav-b is.
+        s = Stream(first=1000.4).start()
+        s.next(after=0.5)
+        s.complete("nav-b", after=1.0)
+        ledger = accepted_rows(("nav-a", "intake", 1000.0), ("nav-b", "spec", stamp(s)))
+        by_stamp = metrics.reorientation(s.rows, s.stamps, ledger, TOLD)
+        self.assertFalse(by_stamp["measured"], "nav-a is taken for the next accept and was never submitted here")
+        exact = metrics.reorientation(s.rows, s.stamps, ledger, TOLD, ledger_at_start=1)
+        self.assertEqual((exact["measured"], exact["accepted"]["action"]), (True, "nav-b"))
+        none_left = metrics.reorientation(s.rows, s.stamps, ledger, TOLD, ledger_at_start=2)
+        self.assertFalse(none_left["measured"])
+
+    def test_an_unstamped_action_between_the_start_and_the_first_stamped_one_could_be_the_next_accept(self):
+        s = Stream(first=1000.0).start()
+        s.next(after=0.5)
+        s.complete("nav-c", after=1.0)
+        ledger = accepted_rows(("nav-a", "intake", 900.0), ("nav-b", "spec", None), ("nav-c", "plan", stamp(s)))
+        got = metrics.reorientation(s.rows, s.stamps, ledger, TOLD)
+        self.assertFalse(got["measured"], got)
+        self.assertIn("no accept stamp", got["reason"])
+
+    def test_a_resubmission_after_the_accept_is_not_the_call_that_got_it_accepted(self):
+        # The model submits nav-b again after it was accepted (an idempotent replay, answered without a failure): it begins after the
+        # accept stamp's second, so it is not the call that got the action accepted.
+        s = Stream(first=1000.0).start()
+        s.next(after=0.5)
+        s.complete("nav-b", after=1.0)                       # begins 1001.6, accepted at about 1001.7: stamp 1001
+        accepted = accepted_rows(("nav-b", "spec", stamp(s)))
+        s.complete("nav-b", after=1.5, output="ShipLoop navigator | plan | revision 5\n")   # begins 1003.3
+        got = metrics.reorientation(s.rows, s.stamps, accepted, TOLD)
+        self.assertEqual((got["measured"], got["tool_calls"]), (True, 2))
+
+    def test_a_refused_resubmission_in_the_stamps_second_is_not_the_end_either(self):
+        s = Stream(first=1000.0).start()
+        s.complete("nav-b", after=0.3)                       # begins 1000.3, answered 1000.4: accepted, stamp 1000
+        accepted = accepted_rows(("nav-b", "spec", stamp(s)))
+        s.complete("nav-b", after=0.2, output="ShipLoop navigator: stale action\n")      # begins 1000.6: refused
+        got = metrics.reorientation(s.rows, s.stamps, accepted, TOLD)
+        self.assertEqual((got["measured"], got["tool_calls"]), (True, 1), "the refused repeat is a failed call, not the end")
+
+    def test_a_park_that_returns_in_the_accepts_own_second_still_ends_at_the_last_call(self):
+        # The parent complete returns at 1001.7 and the Improve child finishes at 1001.9: both fit the stamp's second, the last one
+        # is the call that got the action accepted.
+        s = Stream(first=1000.0).start()
+        s.next(after=0.5)
+        s.complete("nav-b", after=1.0, output=self.PARK)
+        s.improve_complete("nav-b", after=0.1)
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", 1001.0)), TOLD)
+        self.assertEqual((got["measured"], got["tool_calls"]), (True, 3))
+
+    def test_an_unstamped_accept_is_ended_by_the_first_submission_that_did_not_fail(self):
+        s = Stream(first=1000.0).start()
+        s.next(after=0.5)
+        s.complete("nav-b", after=1.0, output="ShipLoop navigator: result requires outcome and summary\n")
+        s.shell(2.0, "fix the result")
+        s.complete("nav-b", after=1.0)
+        s.shell(5.0, "work after the accept")
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", None)), TOLD, ledger_at_start=0)
+        self.assertEqual((got["measured"], got["tool_calls"], got["seconds_to_accept_stamp"]), (True, 4, None))
+
+    def test_an_unstamped_action_before_an_earlier_stamped_one_is_not_ambiguous(self):
+        # [nav-0 unstamped, nav-a stamped before the start, nav-b stamped after]: nav-0 came before nav-a, so before the start.
+        s = Stream(first=1000.0).start()
+        s.next(after=0.5)
+        s.complete("nav-b", after=1.0)
+        ledger = accepted_rows(("nav-0", "intake", None), ("nav-a", "discovery", 900.0), ("nav-b", "spec", stamp(s)))
+        got = metrics.reorientation(s.rows, s.stamps, ledger, TOLD)
+        self.assertEqual((got["measured"], got["accepted"]["action"]), (True, "nav-b"))
+
+    def test_a_running_placeholder_update_is_not_the_result_of_a_refused_complete(self):
+        # Grok repeats an in_progress update with a placeholder exit 0 before the final one; counted as the result it would
+        # make a refused complete look answered and not failed, and end the window early.
+        s = Stream(first=1000.0).start()
+        s.next(after=0.5)
+        s.calls += 1
+        s.add({"type": "tool_call", "toolCallId": "r1", "toolName": "run_terminal_command", "rawInput": {
+            "command": f'python3 "{CLI}" complete --run-dir={RUN} --action=nav-b --result=x'}}, 1.0)
+        s.add({"type": "tool_call_update", "toolCallId": "r1", "status": "in_progress",
+               "rawOutput": {"exit_code": 0, "output_for_prompt": "running"}}, 0.2)
+        s.add({"type": "tool_call_update", "toolCallId": "r1", "status": "completed", "rawOutput": {
+            "exit_code": 2, "output_for_prompt": "ShipLoop navigator: result requires outcome and summary\n"}}, 0.5)
+        s.shell(3.0, "fix the result")
+        s.complete("nav-b", after=1.0)
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", stamp(s))), TOLD)
+        self.assertEqual((got["measured"], got["tool_calls"]), (True, 4), "the refused attempt is in the window, the end is the second")
+        self.assertEqual(len(got["failures"]["items"]), 1)
+
+
+class SessionBoundsTest(unittest.TestCase):
+    """A run with no sessions.jsonl has no recorded session bounds (review items 1c and 2): the launch records and the host's own
+    end events say where another session began, a window that crosses one is not measured, and a `continued` session of the
+    recorded kind keeps the context and keeps the window."""
+
+    def stream(self) -> "Stream":
+        s = Stream(first=1000.0).start()
+        s.next(after=0.5)
+        s.shell(5.0, "work")
+        s.complete("nav-b", after=1.0)
+        return s
+
+    def test_a_launch_that_began_inside_the_window_means_the_session_bounds_are_not_known(self):
+        s = self.stream()
+        ledger = accepted_rows(("nav-a", "intake", 900.0), ("nav-b", "spec", stamp(s)))
+        crossed = metrics.reorientation(s.rows, s.stamps, ledger, TOLD, session_marks=[1003.0])
+        self.assertFalse(crossed["measured"])
+        self.assertIn("session bounds not recorded", crossed["reason"])
+        before = metrics.reorientation(s.rows, s.stamps, ledger, TOLD, session_marks=[999.0, 1000.0])
+        self.assertTrue(before["measured"], "launches at or before the start are this window's own")
+        after = metrics.reorientation(s.rows, s.stamps, ledger, TOLD, session_marks=[2000.0])
+        self.assertTrue(after["measured"], "a launch after the accept is no business of the window")
+        recorded = metrics.reorientation(s.rows, s.stamps, ledger, TOLD)
+        self.assertTrue(recorded["measured"], "session_marks=None is a recorded run: the caller bounded the rows")
+
+    def test_a_host_end_event_before_the_accept_is_a_session_boundary_in_an_unrecorded_run(self):
+        s = Stream(first=1000.0).start()
+        s.next(after=0.5)
+        s.add({"type": "end", "stopReason": "end_turn", "num_turns": 3}, 1.0)
+        s.add({"type": "available_commands", "commands": []}, 2.0)
+        s.next(after=1.0)
+        s.complete("nav-b", after=1.0)
+        ledger = accepted_rows(("nav-a", "intake", 900.0), ("nav-b", "spec", stamp(s)))
+        got = metrics.reorientation(s.rows, s.stamps, ledger, TOLD, session_marks=[])
+        self.assertFalse(got["measured"])
+        self.assertIn("session bounds not recorded", got["reason"])
+        self.assertTrue(metrics.reorientation(s.rows, s.stamps, ledger, TOLD)["measured"])
+
+    def test_call_ids_reused_by_a_continued_session_do_not_meet_when_the_caller_scopes_them(self):
+        # Codex numbers its calls item_1.. in every session, a continued one included.
+        s = Stream(first=1000.0).start()
+        s.shell(1.0, "ls")
+        s.rows[2][1]["toolCallId"] = s.rows[1][1]["toolCallId"] = "item_1"
+        s.add({"type": "available_commands", "commands": []}, 1.0)    # the continued session's first event, line 3
+        s.complete("nav-b", after=1.0)
+        s.rows[5][1]["toolCallId"] = s.rows[4][1]["toolCallId"] = "item_1"
+        ledger = accepted_rows(("nav-b", "spec", stamp(s)))
+        plain = metrics.reorientation(s.rows, s.stamps, ledger, TOLD)
+        scoped = metrics.reorientation(s.rows, s.stamps, ledger, TOLD, scope=lambda line: 0 if line < 3 else 1)
+        self.assertEqual(scoped["tool_calls"], 2, "the ls and the complete are two calls")
+        self.assertNotEqual(plain["tool_calls"], 2, "unscoped, the second item_1 replaces the first")
 
 
 class FirstGroundingTest(unittest.TestCase):
@@ -450,7 +674,7 @@ class RewroteTest(unittest.TestCase):
         self.assertIsNone(no_earlier["rewrote"]["paths"])
         self.assertIn("earlier", no_earlier["rewrote"]["scope"])
         unstamped = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-a", "intake", None), ("nav-b", "spec", stamp(s))),
-                                          TOLD, earlier=lambda after_t: [])
+                                          TOLD, earlier=lambda after_t: [], ledger_at_start=1)
         self.assertIsNone(unstamped["rewrote"]["paths"])
         self.assertIn("no accept stamp", unstamped["rewrote"]["scope"])
         first = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", stamp(s))), TOLD,
@@ -629,13 +853,20 @@ class FreshStartsCollectTest(unittest.TestCase):
         self.assertTrue(got["fresh_starts_unmeasured"].startswith("not recorded"), got["fresh_starts_unmeasured"])
         self.assertIn("sessions.jsonl", got["fresh_starts_unmeasured"])
 
-    def test_a_recorded_empty_sessions_file_is_recorded_empty_not_missing(self):
+    def test_an_empty_sessions_file_beside_events_is_a_partial_record_and_beside_none_is_recorded_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             (out / "events.jsonl").write_text(json.dumps({"type": "usage", "usage": {"input_tokens": 1}}) + "\n")
             (out / "sessions.jsonl").write_text("")
             got = metrics.collect(out, None)
-        self.assertEqual((got["fresh_starts"], got["fresh_starts_unmeasured"]), ([], None))
+        self.assertEqual(got["fresh_starts"], [])
+        self.assertEqual(got["fresh_starts_unmeasured"], "partial: sessions before events line 1 are not recorded")
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "sessions.jsonl").write_text("")
+            got = metrics.collect(out, None)
+        self.assertEqual(got["fresh_starts"], [])
+        self.assertNotIn("partial", got["fresh_starts_unmeasured"] or "", "no event, so nothing came before the first row")
 
     def test_r2_is_a_mixed_host_run_and_its_fresh_start_belongs_to_the_claude_host_that_began_it(self):
         got = self.collect("r2-battleship-grok-none")
@@ -684,7 +915,7 @@ class FreshStartsCollectTest(unittest.TestCase):
                 for n, (start, (kind, reason)) in enumerate(zip(starts, kinds))))
             got = metrics.collect(out, run_dir)
         two, three = (b["reorientation"] for b in got["fresh_starts"])
-        self.assertEqual((two["measured"], two["reason"][:30]), (False, "no tool call submitted an acti"))
+        self.assertEqual((two["measured"], two["reason"][:30]), (False, "the next accepted action (spec"))
         self.assertEqual((three["measured"], three["tool_calls"]), (True, 2))
         self.assertEqual(three["recovery"]["first_next"]["call"], 1)
 
@@ -902,6 +1133,208 @@ class ReadmeRecipeTest(unittest.TestCase):
         self.assertNotIn("--case hello --prompt", text, "--case and --prompt cannot be combined")
 
 
+def joined(*streams: "Stream") -> tuple:
+    """The (events, stamps, start lines) of several Streams written one after the other into one events file."""
+    lines, stamps, starts, offset = [], {}, [], 0
+    for stream in streams:
+        starts.append(offset)
+        lines += [event for _l, event in stream.rows]
+        stamps.update({offset + n: t for n, t in stream.stamps.items()})
+        offset += len(stream.rows)
+    return lines, stamps, starts
+
+
+class PlacedRunCase(unittest.TestCase):
+    """A run folder built from Streams: events, timeline, the ledger, and optionally sessions.jsonl and launch records."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.out = Path(self._tmp.name)
+
+    def write(self, lines, stamps, ledger, sessions=None, launches=(), status="active", stage="spec") -> Path:
+        (self.out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in lines))
+        (self.out / "timeline.jsonl").write_text("".join(json.dumps({"line": n, "t": t}) + "\n" for n, t in stamps.items()))
+        run_dir = self.out / "run"
+        MAIN.write_engine_records(run_dir, ledger, status=status, stage=stage)
+        if sessions is not None:
+            (self.out / "sessions.jsonl").write_text("".join(json.dumps(r) + "\n" for r in sessions))
+        for name, host in launches:
+            (self.out / name).write_text(json.dumps({"case": "custom", "host": host, "versions": {"source": "checkout"}}))
+        return run_dir
+
+    @staticmethod
+    def row(n: int, kind: str, line: int, host: str = "grok", **extra) -> dict:
+        return {"row": "start", "n": n, "kind": kind, "reason": {"first": "start", "fresh": "resume-run",
+                                                                  "continued": "resume-loop"}[kind], "host": host,
+                "t": 1.0, "events_line": line, "told": None if kind == "first" else TOLD, **extra}
+
+    def compaction_run(self):
+        """A Grok-shaped run: usage, a compaction, two calls; a second session begins; then next and the accepting complete."""
+        s = Stream(first=100.0)
+        s.add(usage(100))
+        s.add({"type": "auto_compact_completed"}, 1.0)
+        s.shell(1.0, "ls")
+        second = len(s.rows)
+        s.add({"type": "available_commands", "commands": []}, 1.0)
+        s.next(after=1.0)
+        s.complete("nav-b", after=1.0)
+        return s, second
+
+
+class ContinuedAndRecordedSessionsTest(PlacedRunCase):
+    """Fix-round items 2 and 3 at the collector: a `continued` session keeps the window; the next `fresh` one ends it; the start
+    row's ledger length names the action; call ids a continued session reuses stay apart."""
+
+    def test_a_continued_session_does_not_cut_a_compaction_window(self):
+        s, second = self.compaction_run()
+        run_dir = self.write(*joined(s)[:2], [("nav-a", "intake", "done", 90.0), ("nav-b", "spec", "done", stamp(s))],
+                             sessions=[self.row(1, "first", 0), self.row(2, "continued", second, resumed_session="sess-1")])
+        got = metrics.collect(self.out, run_dir)
+        window = got["fresh_starts"][0]["reorientation"]
+        self.assertEqual((window["measured"], window["tool_calls"]), (True, 3), "ls, next and complete across the resume")
+
+    def test_the_next_fresh_session_does_end_it(self):
+        s, second = self.compaction_run()
+        run_dir = self.write(*joined(s)[:2], [("nav-a", "intake", "done", 90.0), ("nav-b", "spec", "done", stamp(s))],
+                             sessions=[self.row(1, "first", 0), self.row(2, "fresh", second)])
+        got = metrics.collect(self.out, run_dir)
+        compaction = next(b for b in got["fresh_starts"] if b["kind"] == "compaction")
+        self.assertFalse(compaction["reorientation"]["measured"], "a new context began before the action was accepted")
+
+    def test_call_ids_a_continued_session_reuses_do_not_replace_the_first_sessions(self):
+        s, second = self.compaction_run()
+        for pair in ((3, 4), (second + 3, second + 4)):          # the ls call, and the complete call of the continued session
+            for line in pair:
+                s.rows[line][1]["toolCallId"] = "item_1"
+        run_dir = self.write(*joined(s)[:2], [("nav-a", "intake", "done", 90.0), ("nav-b", "spec", "done", stamp(s))],
+                             sessions=[self.row(1, "first", 0), self.row(2, "continued", second, resumed_session="sess-1")])
+        window = metrics.collect(self.out, run_dir)["fresh_starts"][0]["reorientation"]
+        self.assertEqual((window["measured"], window["tool_calls"]), (True, 3))
+
+    def test_the_start_rows_ledger_length_names_the_action_when_the_stamps_cannot(self):
+        old, fresh = Stream(first=100.0).start(), Stream(first=300.4).start()
+        old.shell(1.0, "ls")
+        fresh.next(after=0.5)
+        fresh.complete("nav-b", after=1.0)
+        lines, stamps, starts = joined(old, fresh)
+        ledger = [("nav-a", "intake", "done", 300.0), ("nav-b", "spec", "done", stamp(fresh))]   # nav-a: the fresh start's second
+        engine = {"status": "active", "stage": "spec", "revision": 5, "accepted": 1, "last_accepted": None}
+        run_dir = self.write(lines, stamps, ledger, sessions=[self.row(1, "first", 0),
+                                                              self.row(2, "fresh", starts[1], engine=engine)])
+        window = metrics.collect(self.out, run_dir)["fresh_starts"][0]["reorientation"]
+        self.assertEqual((window["measured"], window["accepted"]["action"]), (True, "nav-b"))
+
+    def test_a_pre_start_write_the_window_repeats_is_rewritten_through_the_production_wiring(self):
+        old, fresh = Stream(first=100.0).start(), Stream(first=300.0).start()
+        old.call(1.0, "search_replace", {"file_path": "/w/x.js"})
+        fresh.call(0.5, "write", {"file_path": "/w/x.js"})
+        fresh.next(after=0.5)
+        fresh.complete("nav-b", after=1.0)
+        lines, stamps, starts = joined(old, fresh)
+        run_dir = self.write(lines, stamps, [("nav-a", "intake", "done", 50.0), ("nav-b", "spec", "done", stamp(fresh))],
+                             sessions=[self.row(1, "first", 0), self.row(2, "fresh", starts[1])])
+        window = metrics.collect(self.out, run_dir)["fresh_starts"][0]["reorientation"]
+        self.assertEqual(window["rewrote"]["paths"], ["/w/x.js"])
+
+    def test_an_unmeasured_fresh_start_names_the_stage_the_killed_session_left_in_flight(self):
+        old, fresh = Stream(first=100.0).start(), Stream(first=300.0).start()
+        old.shell(1.0, "ls")
+        fresh.shell(1.0, "work")
+        lines, stamps, starts = joined(old, fresh)
+        engine = {"status": "active", "stage": "test-strategy", "revision": 7, "accepted": 4, "last_accepted": None}
+        rows = [self.row(1, "first", 0), {"row": "end", "n": 1, "t": 200.0, "events_line": starts[1], "status": "stopped",
+                                          "returncode": -9, "engine": engine}, self.row(2, "fresh", starts[1])]
+        run_dir = self.write(lines, stamps, [("nav-a", "intake", "done", 50.0)], sessions=rows)
+        block = metrics.collect(self.out, run_dir)["fresh_starts"][0]
+        self.assertFalse(block["reorientation"]["measured"])
+        self.assertEqual(block["stage_in_flight"], "test-strategy")
+
+
+class UnrecordedSessionsTest(PlacedRunCase):
+    """Runs from before sessions.jsonl (every saved run, and a regrade of one): no recorded bounds, so the launch records say where
+    another session began and a window that spans one is not measured (fix-round item 1c)."""
+
+    def test_a_launch_inside_the_window_makes_it_unmeasured_with_the_reason(self):
+        s, _second = self.compaction_run()
+        ledger = [("nav-a", "intake", "done", 90.0), ("nav-b", "spec", "done", stamp(s))]
+        run_dir = self.write(*joined(s)[:2], ledger, launches=[("invocation.json", "grok"),
+                                                              ("invocation-resume-grok-103.json", "grok")])
+        got = metrics.collect(self.out, run_dir)
+        window = got["fresh_starts"][0]["reorientation"]
+        self.assertFalse(window["measured"], window)
+        self.assertIn("session bounds not recorded", window["reason"])
+        self.assertTrue(got["fresh_starts_unmeasured"].startswith("not recorded"))
+
+    def test_the_same_run_with_no_launch_inside_the_window_is_measured(self):
+        s, _second = self.compaction_run()
+        ledger = [("nav-a", "intake", "done", 90.0), ("nav-b", "spec", "done", stamp(s))]
+        run_dir = self.write(*joined(s)[:2], ledger, launches=[("invocation.json", "grok"),
+                                                              ("invocation-resume-grok-99.json", "grok")])
+        window = metrics.collect(self.out, run_dir)["fresh_starts"][0]["reorientation"]
+        self.assertTrue(window["measured"], window)
+
+    def test_launch_epochs_are_the_resume_records_names_without_a_regrade(self):
+        import runrecord
+        self.write([], {}, [])
+        for name, regraded in (("invocation-resume-grok-300.json", False), ("invocation-resume-claude-200.json", False),
+                               ("invocation-resume-grok-400.json", True)):
+            (self.out / name).write_text(json.dumps({"host": "grok", "versions": {"regraded": regraded}}))
+        (self.out / "invocation.json").write_text(json.dumps({"host": "grok"}))
+        self.assertEqual(runrecord.launch_epochs(self.out), [200, 300])
+
+
+class FreshStartsNoteTest(PlacedRunCase):
+    """`fresh_starts_unmeasured` says what the list lacks (fix-round items 4 and 5), and a file that cannot be read never stops
+    a launch or the metrics."""
+
+    def collect(self, sessions, stream=None, **kw):
+        s = stream or Stream(first=100.0).start()
+        run_dir = self.write(*joined(s)[:2], [], sessions=sessions, **kw)
+        return metrics.collect(self.out, run_dir)
+
+    def test_sessions_that_start_after_the_run_began_are_a_partial_record(self):
+        s = Stream(first=100.0)
+        s.add(usage(1))
+        s.add({"type": "available_commands", "commands": []}, 1.0)
+        got = self.collect([self.row(1, "fresh", 1)], stream=s)
+        self.assertEqual(got["fresh_starts_unmeasured"], "partial: sessions before events line 1 are not recorded")
+
+    def test_a_complete_record_on_a_host_whose_compactions_are_seen_has_no_note(self):
+        s = Stream(first=100.0)
+        s.add(usage(1))
+        self.assertIsNone(self.collect([self.row(1, "first", 0)], stream=s)["fresh_starts_unmeasured"])
+
+    def test_a_host_whose_compactions_are_not_detected_says_so_instead_of_an_unqualified_empty_list(self):
+        got = self.collect([self.row(1, "first", 0, host="claude")], stream=Stream(first=100.0).start())
+        self.assertEqual(got["fresh_starts"], [])
+        self.assertTrue(got["fresh_starts_unmeasured"].startswith("compactions not detected on this host:"),
+                        got["fresh_starts_unmeasured"])
+
+    def test_notes_are_joined_when_more_than_one_applies(self):
+        got = self.collect(None, stream=Stream(first=100.0).start())
+        self.assertTrue(got["fresh_starts_unmeasured"].startswith("not recorded: this run has no sessions.jsonl"))
+        self.assertIn("; compactions not detected on this host:", got["fresh_starts_unmeasured"])
+
+    def test_an_unreadable_sessions_file_never_stops_a_launch_or_the_metrics(self):
+        import sessionlog
+        s = Stream(first=100.0)
+        s.add(usage(1))
+        run_dir = self.write(*joined(s)[:2], [], sessions=[self.row(1, "first", 0)])
+        path = self.out / sessionlog.SESSIONS
+        path.chmod(0)
+        self.addCleanup(path.chmod, 0o644)
+        row = sessionlog.start(self.out, kind="fresh", reason="resume-run", host="grok", model="m", events_line=1, told=None)
+        self.assertEqual(row["n"], 1, "start() raised no error and numbers from what it could read")
+        got = metrics.collect(self.out, run_dir)
+        self.assertEqual(got["fresh_starts"], [])
+        self.assertIn("cannot be read", got["fresh_starts_unmeasured"])
+
+
+IMPROVE_NEXT = ('python3 "/p/plugin/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py" next --state '
+                '"/r/.shiploop-runs/w/run/improve/nav-1/state.json"')
+
+
 class SessionLogTest(unittest.TestCase):
     """sessions.jsonl: the harness's append-only record of every host launch and every session end."""
 
@@ -953,6 +1386,15 @@ class SessionLogTest(unittest.TestCase):
         rows = [json.loads(line) for line in text.splitlines()]
         self.assertEqual([r["row"] for r in rows], ["start", "end", "start"])
         self.assertEqual(rows[2]["resumed_session"], "sess-1")
+
+    def test_a_row_of_another_kind_or_with_a_number_that_is_not_an_integer_is_not_read(self):
+        import sessionlog
+        good = self.start()
+        with (self.out / sessionlog.SESSIONS).open("a") as handle:
+            handle.write('{"row": "note", "n": 1, "kind": "fresh"}\n{"row": "start", "n": "2", "kind": "fresh"}\n'
+                         '{"row": "start", "n": null, "kind": "fresh"}\n{"row": "end", "n": "1"}\n{"n": 3, "kind": "fresh"}\n')
+        got = sessionlog.read(self.out)
+        self.assertEqual([(g["n"], g["end"]) for g in got], [(good["n"], None)])
 
     def test_no_file_is_not_recorded_and_an_empty_file_is_recorded_empty(self):
         import sessionlog
