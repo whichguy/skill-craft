@@ -480,7 +480,6 @@ class RefusalRouteTests(RealCliCase):
             return "\n\n".join(f"## {renamed if renamed and name == 'Environment' else name}\n{body}"
                                for name, body in sections.items()) + "\n"
 
-        opening.parent.mkdir(parents=True, exist_ok=True)
         opening.write_text(text("Environment and validation"), encoding="utf-8")
         reply = self.refused(start, run)
         self.assertIn('no line reading exactly "## Environment"', reply)
@@ -488,6 +487,36 @@ class RefusalRouteTests(RealCliCase):
         self.assertIn("run the same improve-start command again", reply)
         opening.write_text(text(None), encoding="utf-8")
         self.assertEqual(json.loads(self.accepted(start))["status"], "active")
+
+    def test_the_opening_file_the_improve_bind_packet_names_is_written_without_making_its_directory(self) -> None:
+        """Batch 1010 A3: the printed step is "write the opening file", and the directory it lands in is ShipLoop's.
+
+        Both round-2 Sonnet runs listed the missing directory, met "write the opening file first" and retried after
+        ``mkdir -p``: a step the packet never told them to take (S-4, S-5).  The directory is made where the path is
+        named, so the printed step is the whole step.
+        """
+        sections = {"Current context and desired improvements": "The user asked for hello.",
+                    "Scope": "a.txt", "Authority": "Local edits only.", "Environment": "Python 3."}
+        for stage in ("spec", "test-strategy"):
+            with self.subTest(stage=stage):
+                run, head = self.new_run(stage)
+                command, path, _ = printed_callback(head)
+                write_block(path, self.fill_done(head))
+                bind = next(row for row in self.accepted(command).splitlines() if row.startswith("Next command (bind"))
+                started = self.accepted(bind.split("details below): ", 1)[1])
+                start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
+                opening = Path(re.search(r"opening file (\S+);", start_line).group(1))
+                start = start_line.split("details below): ", 1)[1]
+                self.assertTrue(opening.parent.is_dir(), "the printed opening path's directory exists after bind")
+                self.assertFalse(opening.exists())  # the file is the model's to write
+                self.assertIn("write the opening file first", self.refused(start, run))
+                # A run bound before the directory was made has none; the recovery command restores it.
+                shutil.rmtree(opening.parent)
+                self.assertEqual(self.cli("next", "--run-dir", str(run)).returncode, 0)
+                self.assertTrue(opening.parent.is_dir())
+                opening.write_text("\n\n".join(f"## {name}\n{body}" for name, body in sections.items()) + "\n",
+                                   encoding="utf-8")
+                self.assertEqual(json.loads(self.accepted(start))["status"], "active")
 
     def test_an_empty_section_is_refused_naming_it_and_the_filled_opening_is_accepted(self) -> None:
         run, head = self.new_run("spec")
@@ -498,7 +527,6 @@ class RefusalRouteTests(RealCliCase):
         start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
         opening = Path(re.search(r"opening file (\S+);", start_line).group(1))
         start = start_line.split("details below): ", 1)[1]
-        opening.parent.mkdir(parents=True, exist_ok=True)
         opening.write_text("## Current context and desired improvements\nHello.\n\n## Scope\na.txt\n\n"
                            "## Authority\nLocal edits only.\n\n## Environment\n...\n", encoding="utf-8")
         reply = self.refused(start, run)
@@ -947,7 +975,6 @@ class OpeningAllowanceTests(RealCliCase):
         started = self.accepted(bind.split("details below): ", 1)[1])
         start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
         opening = Path(re.search(r"opening file (\S+);", start_line).group(1))
-        opening.parent.mkdir(parents=True, exist_ok=True)
         return run, opening, start_line.split("details below): ", 1)[1]
 
     def write_sections(self, opening: Path, sizes: tuple[int, int, int, int]) -> None:

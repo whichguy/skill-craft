@@ -78,3 +78,43 @@ every non-forbidden file, so the behaviour is unchanged; read `git ls-files` of 
 Related commits: 8eb93c21 (the route sentence, placed after the status block), 313e06ce (commit leftovers before the return),
 e39160ae (the plan-return notice reworded), 1f5006e7. Change note: `changes/shiploop/return-route-states-leftover-commit.md`
 (patch).
+
+## A3: the directory of the Improve opening file exists where its path is named (2026-10-08)
+
+**Built (status: firm; hermetic through the real CLI).** After `improve-bind` the packet prints "start the bound Improve child
+after writing its opening file `<path>`", and the directory that path lands in (`.shiploop-improve/<run>/<action>/`, beside the
+runtime receipt) did not exist. `improve-start` then refused with "write the opening file first". Both round-2 Sonnet runs met
+it (r2 Checkers events 99 to 103: `ls` of the directory fails with "No such file or directory", then `mkdir -p` and the write
+succeed and event 103 starts the child); both then put `mkdir -p` in their
+`start.sh` wrapper. That is a step the packet never told them to take, and S-4 and S-5 name directory creation as script work.
+The same pattern was fixed for `notes/` in 4fc3b3b8 (emit creates it).
+
+What changed (`shiploop_navigator.emit`, beside the `scratch/` and `notes/` mkdirs). When the state is active and its
+`active_improve` child is bound (`skill` is not None), emit makes `improve_opening_path(child).parent` with `parents=True,
+exist_ok=True`, inside `try/except OSError`. The condition mirrors `_first_callback_lines`, which is what prints the opening line.
+`improve-bind` ends with `emit`, so the directory exists as soon as the bind packet prints; `render` stays pure (graph-dry-run
+renders a simulated repository path and never calls emit). A run bound before this change gets the directory on its next `next`
+(one supported version: no migration). Not created: `reviews/`, which `_improve_start` makes and nothing writes before start.
+`improve-start` keeps its "write the opening file first" refusal, so a missing file is still caught.
+
+Audit points kept. The design proposed a `reviews/` mkdir too; it is unnecessary and left out. Two hand mkdirs in
+`test/shiploop-actual-improve-cli.test.py` (before each direct `improve-start` through the bridge binding) stay on purpose: those
+tests never pass through `emit`, so they are not compensating for this defect.
+
+Test, fail first: `RefusalRouteTests.test_the_opening_file_the_improve_bind_packet_names_is_written_without_making_its_directory`
+in `test/shiploop-callback-contract.test.py` drives the real CLI for the `spec` and `test-strategy` stages: after the printed bind
+command the opening path's directory exists and the file does not; `improve-start` still refuses with "write the opening file
+first"; deleting the directory and running `next` restores it (a run bound earlier); four filled sections written with no
+`mkdir` are accepted. It failed on the directory assertion at base for both stages. The three hand `mkdir` lines that compensated
+for the defect (the renamed-heading test, the empty-section test and `OpeningAllowanceTests.at_improve_start`) were removed in
+the same commit and failed at base with `FileNotFoundError`, so the whole opening route is now proven without model glue.
+
+Observed after the change: callback-contract 37 tests OK (72.5 s with eleven other suites running; registered 69.1 s alone),
+actual-improve-cli 33, delegation 47, full-runtime 2, improve-schedule 33, keepalive 57, navigator-contract 102, navigator-v4 17,
+quality 18, status-display 15, packet-completeness 6 and rehydration 12, all OK. Packet text is unchanged, so no packet size,
+head window or reference card moves.
+
+Risk accepted: a failing mkdir is swallowed (the refusal path stays intact); in an in-place run an empty
+`.shiploop-improve/<run>/<action>/` appears at bind instead of at start (Git lists no empty directory and `.shiploop-improve` is a
+protected runtime path). Related commits: 4fc3b3b8 (the same fix for `notes/`). Change note:
+`changes/shiploop/improve-opening-directory-created-at-emit.md` (patch).
