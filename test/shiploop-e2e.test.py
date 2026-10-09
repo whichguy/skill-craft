@@ -5435,11 +5435,17 @@ class TerminationSignalTest(CaseRunCase):
         self.env = dict(os.environ, HOME=str(self.home), PATH=f"{tools}{os.pathsep}{os.environ['PATH']}", FAKE_LOG=str(self.log),
                         FAKE_MODE="hang-active", SHIPLOOP_PROGRESS="off")
 
-    def start(self, name: str, *extra: str, launcher: tuple = ()) -> tuple[subprocess.Popen, Path]:
+    # What the task runner's child starts with is not what this test process inherited: a job a shell started in the background
+    # has SIGINT ignored (and one under nohup has SIGHUP ignored), and Python installs no Ctrl-C handler for an ignored SIGINT.
+    # The harness is started through this, which sets the named signals to their defaults first and keeps the rest as inherited.
+    DEFAULT_SIGNALS = ("import os, signal, sys\n[signal.signal(getattr(signal, n), signal.SIG_DFL) for n in sys.argv[1].split(',') if n]\n"
+                       "os.execv(sys.executable, [sys.executable] + sys.argv[2:])\n")
+
+    def start(self, name: str, *extra: str, launcher: tuple = (), reset: str = "SIGINT,SIGTERM,SIGHUP") -> tuple[subprocess.Popen, Path]:
         out = self.tmp / name
-        proc = subprocess.Popen([*launcher, sys.executable, str(run.HERE / "run.py"), "--host", "grok", "--grok-bin", str(self.fakes["grok"]),
-                                 "--output", str(out), "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines),
-                                 "--timeout", "120", *extra],
+        proc = subprocess.Popen([*launcher, sys.executable, "-c", self.DEFAULT_SIGNALS, reset, str(run.HERE / "run.py"), "--host", "grok",
+                                 "--grok-bin", str(self.fakes["grok"]), "--output", str(out), "--plugin-dir", str(self.plugin),
+                                 "--baseline", str(self.baselines), "--timeout", "120", *extra],
                                 env=self.env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         self.addCleanup(end_quietly, proc)
         return proc, out
@@ -5500,7 +5506,7 @@ class TerminationSignalTest(CaseRunCase):
 
     @unittest.skipUnless(shutil.which("nohup"), "needs nohup")
     def test_a_nohup_launch_keeps_its_run_through_a_hangup(self):
-        proc, out = self.start("case-nohup", launcher=("nohup",))
+        proc, out = self.start("case-nohup", launcher=("nohup",), reset="SIGINT,SIGTERM")  # nohup's own SIGHUP is ignored; keep it so
         host = self.host_pid()
         proc.send_signal(signal.SIGHUP)  # the terminal went away; nohup's whole purpose is that the run does not
         time.sleep(1.5)
