@@ -859,8 +859,11 @@ class ReviewParsingTest(unittest.TestCase):
 class LearningsTest(unittest.TestCase):
     RESULT = {"host": "grok", "model": "grok-4.7", "effort": "medium", "pass": False,
               "process": {"status": "failed", "returncode": 1, "elapsed_seconds": 12.5},
-              "shiploop": {"status": "active", "stage": "regression", "report_html": False,
-                           "worktree_checks": [{"command": "node --test", "pass": True}]},
+              "shiploop": {"status": "active", "stage": "regression", "report_html": False},
+              "product_at_stop": {"information_only": True, "ran": True, "worktree": "/w", "total": 1, "passed": 1,
+                                  "failed": 0, "timed_out": 0,
+                                  "engine": {"status": "active", "stage": "regression"},
+                                  "checks": [{"command": "node --test", "pass": True, "returncode": 0, "timed_out": False}]},
               "checks": [{"command": "node --test", "pass": False}],
               "cli": {"num_turns": 150, "cost_usd": 10.88,
                       "truncated_outputs": [{"total_bytes": 36000, "shown_chars": 20467, "call": "x"}]}}
@@ -881,7 +884,7 @@ class LearningsTest(unittest.TestCase):
         message = self.message()
         self.assertTrue(message.startswith(
             "test(shiploop): record E2E iteration 2 learnings (battleship, grok medium)\n\n"))
-        for text in ("150 turns", "stage regression", "unreturned product in ShipLoop's worktree: 1/1",
+        for text in ("150 turns", "stage regression", "product at stop (information only, engine active at regression): 1/1",
                      "host truncated 1 tool outputs", "Evidence: work/ empty", "breaks premise: rejected",
                      "- apply: Return earlier", "Built on the learnings of aaa1111, bbb2222.",
                      "- further learning: Compare stage costs", "  proposal: track per stage",

@@ -1067,6 +1067,42 @@ def run_checks(work: Path, checks: list[str], timeout: int = 180, env: dict | No
     return results
 
 
+# One check's ceiling in the product-at-stop run, the same 180 s as a check in the working directory. A ceiling for a check
+# that never ends, not a tuning value.
+PRODUCT_AT_STOP_TIMEOUT = 180
+
+
+def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict | None = None) -> dict | None:
+    """For a run whose ShipLoop did not reach done: do the case checks pass in ShipLoop's unreturned worktree?
+
+    Information only (SPEC S-11): it never touches ``checks``, ``committed``, ``pass`` or the exit code, because a run that
+    never delivered must not pass. It names the engine's position, so a partial product at ``implement`` is not read as a
+    finished one, and keeps each check's return code, so a check that timed out is ``timed_out`` and not a product failure.
+    None for a run that passed. ``{"ran": false, "reason": ...}`` where there was nothing to run, never an absent key.
+    """
+    if shiploop.get("pass"):
+        return None
+    position = {"status": engine.get("status") or "unknown", "stage": metrics.current_stage(engine) or "unknown"}
+    head = {"information_only": True}
+    if not shiploop.get("worktree"):
+        reason = ("no ShipLoop state.md under the output directory" if shiploop.get("reason")
+                  else "no worktree directory under the run's workspace")
+        return {**head, "ran": False, "reason": reason, "engine": position}
+    if not checks:
+        return {**head, "ran": False, "reason": "the case declares no checks", "engine": position}
+    entries = []
+    for done in run_checks(Path(shiploop["worktree"]), checks, timeout=PRODUCT_AT_STOP_TIMEOUT, env=env):
+        timed_out = done["returncode"] is None
+        entry = {"command": done["command"], "pass": done["pass"], "returncode": done["returncode"], "timed_out": timed_out}
+        if not done["pass"] and not timed_out:
+            entry["output"] = " ".join(str(done.get("output") or "").split())[-300:]
+        entries.append(entry)
+    timed = sum(entry["timed_out"] for entry in entries)
+    passed = sum(entry["pass"] for entry in entries)
+    return {**head, "ran": True, "worktree": shiploop["worktree"], "engine": position, "checks": entries,
+            "passed": passed, "failed": len(entries) - passed - timed, "timed_out": timed, "total": len(entries)}
+
+
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--case", default="hello", help="case name from cases.json (default: hello)")
@@ -1889,10 +1925,14 @@ def _main(argv: list[str] | None, held: list) -> int:
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
     check_results = run_checks(work, checks, env=check_env)
-    if not shiploop["pass"] and shiploop.get("worktree"):
-        # Informational only: does the unreturned candidate already pass?
-        shiploop["worktree_checks"] = [{k: c[k] for k in ("command", "pass")}
-                                       for c in run_checks(Path(shiploop["worktree"]), checks, env=check_env)]
+    engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
+    try:
+        # Informational only (SPEC S-11): does the unreturned candidate already pass? Before the reap below, so a server
+        # that a check which timed out leaves is stopped with the rest.
+        at_stop = product_at_stop(shiploop, engine, checks, check_env)
+    except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
+        at_stop = {"information_only": True, "ran": False,
+                   "reason": "could not be computed: " + (" ".join(str(exc).split())[:200] or type(exc).__name__)}
     if not regrade:
         # A check may leave a server too (a timed-out check leaves its `node server.js &`). A regrade reaps nothing: it
         # starts no host, and the run it grades may have a live one.
@@ -1924,7 +1964,6 @@ def _main(argv: list[str] | None, held: list) -> int:
                 *(c["pass"] for c in check_results)]
     if keepalive is not None:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
-    engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     termination = termination_facts(process, engine, resume_stop,
                                     earlier_result.get("termination") if regrade else None)
     # A resumed run overwrites result.json: keep the termination each earlier invocation recorded.
@@ -1940,6 +1979,7 @@ def _main(argv: list[str] | None, held: list) -> int:
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
               "expectations": expectations,
+              **({"product_at_stop": at_stop} if at_stop is not None else {}),
               "metrics": {k: run_metrics[k] for k in ("claude_code_version", "turns", "model_calls", "window_tokens",
                                                       "cost_usd", "unreported_sessions", "compactions",
                                                       "truncated_outputs", "improve_children", "stages", "unmeasured")}
@@ -1991,10 +2031,10 @@ def _main(argv: list[str] | None, held: list) -> int:
     print(f"  stopped   {stopped_line(termination)}")
     if line := listeners.left_behind_line(left):
         print(line)
-    if shiploop.get("worktree_checks") is not None:
-        passed = sum(c["pass"] for c in shiploop["worktree_checks"])
-        print(f"            unreturned product in {shiploop['worktree']}: "
-              f"{passed}/{len(shiploop['worktree_checks'])} checks pass there")
+    if at_stop is not None and at_stop["ran"]:
+        print(f"            product at stop (information only, engine {at_stop['engine']['status']} at "
+              f"{at_stop['engine']['stage']}): {at_stop['passed']}/{at_stop['total']} checks pass in {at_stop['worktree']}"
+              + (f"; {at_stop['timed_out']} timed out" if at_stop["timed_out"] else ""))
     print(f"  committed {mark(committed['pass'])}  HEAD {str(committed['head'])[:8]} (started at "
           f"{str(committed['start_head'])[:8] if committed['start_head'] else 'no commit'}); "
           f"{committed['head_files']} files in HEAD, {len(knowledge['uncommitted'])} uncommitted product paths")
