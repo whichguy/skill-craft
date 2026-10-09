@@ -159,7 +159,8 @@ def run_scenario(name, scenario, *, delegation=navigator.DEFAULT_DELEGATION,
         state = navigator.new_state(
             '/simulation-only/repo',
             'Inspect the SDLC graph with synthetic declarations.',
-            improve_skill='', delegation=delegation, backchain_passes=backchain_passes,
+            # What `init` records (the card installed beside ShipLoop), so a bind packet prints an absolute value.
+            improve_skill='/simulation-only/improve/SKILL.md', delegation=delegation, backchain_passes=backchain_passes,
             planning_review=planning_review,
         )
         for index, step in enumerate(rows, 1):

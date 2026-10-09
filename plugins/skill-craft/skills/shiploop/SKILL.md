@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.56.0
+version: 0.57.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -193,13 +193,13 @@ The returned packet binds its repository locator to the execution worktree and
 its run directory to `WORKSPACE_ROOT/run`. `WORKSPACE_ROOT/workspace.md` retains
 the original checkout/branch and baseline. Do all product work in that worktree;
 do not silently fall back to editing the source. At the final planned integration
-boundary, follow the packet's return-plan and guarded return commands. Completion
+boundary, follow the packet's plan-return, review-return and guarded return commands. Completion
 requires a verified return receipt. A dirty starting checkout receives only the
 new delta and keeps its original index; this is not a Git merge/commit.
 The return happens at release or handoff, after the end-of-work Improve
 child, once no child is active. A product fix committed after that return (for
 example one found by a post-deploy check) goes back as a follow-up return: run
-the same return-plan and return commands again.
+the same plan-return, review-return and return commands again.
 If source return must itself trigger a required delivery check, retain that
 ordering conflict as incomplete; use the workspace policy's reconciliation rule.
 
@@ -235,12 +235,15 @@ New workspace and direct runs use navigator **protocol 4**; there is no protocol
 selector. A saved run the current code cannot load, including any navigator
 v1/v2/v3, managed or legacy run, is refused with an error that names its protocol
 or mode; start a fresh `--run-dir` (or workspace root) for that request. If
-new-run initialization did not select an Improve skill, the first Improve
-checkpoint stays pending until its packet directs the owner to bind the selected
-card with `improve-bind --action ... --skill-card ...` (a `--planning-review none` run has no planning
-child to bind it, so it is refused without `--improve-skill`). Use the packet's exact
-command and absolute selected-card path; never guess an installed copy or
-substitute a same-named skill. Recover an existing run's current packet with:
+new-run initialization did not select an Improve skill with `--improve-skill`, it records the
+card installed beside ShipLoop (found by file location in this plugin install and
+validated; no name or PATH search). The first Improve checkpoint's packet directs the
+owner to bind the recorded card with `improve-bind --action ... --skill-card ...`
+(a `--planning-review none` run has no planning child to bind it, so it is still refused
+without `--improve-skill`). Where no installed card validates, nothing is recorded and the
+packet prints a marked blank and says where ShipLoop looked. Use the packet's exact
+command and absolute selected-card path; never substitute a same-named skill. Recover
+an existing run's current packet with:
 
 ```sh
 python3 "$CLI" next --run-dir "$RUN_DIR"
@@ -401,7 +404,9 @@ run option `backchain_passes` (default `one`): how many passes the Backchain
 planning child may take. `one` is one review/fix/check cycle, `converge` is two
 consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`. The `one`
 plan packet prints the gate and an exit condition, which the host copies into the child's
-start contract; the `converge` plan packet prints the two-review gate, and the host takes its
+start contract, and says the child is the host's choice (nothing refuses a plan without it
+and ShipLoop cannot see whether it ran) and that the result's summary names the route taken;
+the `converge` plan packet prints the two-review gate, and the host takes its
 exit condition from Backchain's convergence reference. In `none` the plan packet prints the
 read-only audit route the other Backchain stages print (the one resource it needs and the
 loop-resource status line), says no whole `plan`/`draft` is requested in this run, and
@@ -631,13 +636,21 @@ criterion. `step-plan` lists the item's `criteria` and names, in each test
 command's `criteria`, the ones that command confirms; ShipLoop refuses a step plan
 with an uncovered criterion. Content with no test runner gets a `check` command
 (suite `check`, judged by exit code), for example a `grep` that a README documents a
-flag. `verify` reruns every recorded command. `system-test-author` records
-`system_commands` and `release-plan` records `consumer_checks`; ShipLoop runs them
-when `system-test` and `release-verify` report done and refuses unless each passes
-(`release-verify` runs them in a copy of the returned result when a return is
-recorded, else in the work area, and its record says which). An empty list needs its
-`_na` reason. The run records under `tests/` are the
+flag. A condition no command can confirm is not a criterion: the step plan records it
+as an open item in its summary. `verify` reruns every recorded command.
+`system-test-author` records `system_commands` and `release-plan` records
+`consumer_checks`; ShipLoop runs them when `system-test` and `release-verify` report
+done and refuses unless each passes (`release-verify` runs them in a copy of the
+returned result when a return is recorded, else in the work area, and its record says
+which). An empty list needs its `_na` reason. The run records under `tests/` are the
 evidence; a result's summary is not.
+
+A request outcome no executed check observed is neither confirmed nor hidden: a
+done `product-acceptance` lists it in `unverified` (outcome, reason, check, owner,
+due stage), and `[]` says every outcome was observed. ShipLoop refuses a missing
+list, an incomplete or placeholder entry and a due stage that is not a later
+stage; it cannot judge that the list is complete. It prints each entry at its
+due stage and the whole list at `handoff` and in the report.
 
 ### Tests pass or the step stops
 

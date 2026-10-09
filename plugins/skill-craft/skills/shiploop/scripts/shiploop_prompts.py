@@ -974,11 +974,15 @@ results do not prove live permissions, event delivery or operator log access.
 Settle these now, so later stages do not guess. For each command, say which test
 ids it may print. A host-dependent case (it needs a host browser, a device, an
 account or a service) names its tool and is probed now by doing the case's first
-step (for a browser, load a local page and read its title back), not its version;
-a probe that fails is an access gap to record now, in the strategy, with the
-requirement it leaves unobserved. The case stays out of the project's default
-test command: give it its own opt-in command or flag, so a plain run of the
-default test command passes without the host tool.
+step, not its version. If the product does not exist yet, probe against a stand-in,
+not the product's own address (a request to it fails whatever the tool can do): for
+a browser, write a one-line page in this run's scratch directory, open it by
+`file:` URL or from a throwaway static server you stop afterwards, and read its
+title back with the tool as the case will use it; for an account or a service, make
+a harmless read the tool can make today. A probe that fails is an access gap to
+record now, in the strategy, with the requirement it leaves unobserved. The case
+stays out of the project's default test command: give it its own opt-in command or
+flag, so a plain run of the default test command passes without the host tool.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -1170,8 +1174,11 @@ the two-people test: two people running it separately would be forced to agree.
 State whether the condition must be exercised or whether inspection is
 sufficient. Give content criteria (docs, changelogs, test coverage) a
 command-checkable confirmation, such as a search for required terms, so they are
-re-observed rather than recalled. Mark a criterion that no available check can
-confirm as `Confirm by: unconfirmable here — <what would confirm it>` rather
+re-observed rather than recalled. A `criteria` entry needs a command that
+confirms it (above), so a condition no command can confirm is not listed there:
+record it as an open item in this result's summary (who does what, and what they
+report back). Elsewhere (a plan note, a graph step's done item) mark such a
+criterion as `Confirm by: unconfirmable here — <what would confirm it>` rather
 than dropping it.
 When the item adds or moves code or stored data, reopen the plan's Namespace
 and data map and the current tree of each environment it touches. Name each
@@ -1549,7 +1556,7 @@ user work and keep run-time state, raw logs, credentials, and generated artifact
 out of product commits and returns.  Do not infer a merge, commit, push, or
 deployment from a plan or command attempt.  If implement used a bound chain,
 confirm its finish commit is an ancestor of the execution checkout HEAD and
-record it; otherwise assemble or commit this item's candidate in the execution
+record it; otherwise confirm this item's candidate is assembled in the execution
 checkout under workspace and repository policy, or record a justified no-op.
 The original branch is returned only at the final workspace return.
 """,
@@ -1673,6 +1680,15 @@ consumer boundary.
 Reconcile new and preserved behavior against the selected prior baseline and
 incoming spec. Check durable knowledge and remaining gaps; a recovered description
 or planned check alone does not establish product acceptance.
+Every request outcome ends in one of three states: observed by an executed check;
+observed another way (the first method could not, so the method changed and the new
+check ran and passed); or unachievable here or not yet due, listed in `unverified`
+with its reason, owner and due stage while the run continues. A list entry is the
+outcome, the named reason, what its owner does and reports to settle it, the owner,
+and the later stage that reports it (handoff, or the stage whose external effect it
+gates). Carry in the open items an earlier stage recorded (system-test). Before
+listing an outcome, try another way to observe it. An outcome stated only in the
+summary has no end state; an empty list says every request outcome was observed.
 """,
     "release-plan": """\
 Record the post-release consumer checks as commands in `consumer_checks` (same
@@ -1724,6 +1740,10 @@ child is active. Use an authorized delivery route from the execution checkout if
 If source return itself is required before consumer checks can run, record the
 ordering conflict for reconciliation and retain an incomplete disposition; never
 claim earlier checks observed a future return-triggered effect.
+In an isolated run, write the rollback for the source return the packet states
+(its return route and rollback recipes come from workspace.md): that route's SHAs and
+branch names as plain `git` commands, never this run's absolute paths, and never a
+rollback for another route.
 """,
     "release-check": """\
 Verify final release-candidate readiness without performing the release.  Check
@@ -1736,6 +1756,11 @@ Run the dry-run form of the planned deploy (for example `sf project deploy valid
 and each post-release confirm command once, against current target state, and
 record both outputs. A confirm command whose output cannot tell the result present
 from absent is fixed here, before the real deploy, not discovered after it.
+In an isolated run, run the packet's plan-return and review-return commands now as a
+dry run of the return (plan-return may commit leftover product files to the run
+branch; the decisions you record are kept for the plan made at release), compare the
+expected return review-return reports with the rollback in release-plan.md, and
+correct that file when they differ; after any such correction run plan-return again.
 """,
     "release": """\
 Perform the planned release only when the exact target, operation, authority, and
@@ -1934,6 +1959,15 @@ def backchain_skills_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
+def installed_improve_card() -> Path:
+    """The Improve card installed beside ShipLoop in this plugin install, by file location (never a name or PATH search).
+
+    The same skills directory as the Backchain and Until Loop resources.  Whether it is usable is
+    ``shiploop_standalone_improve.resolve_skill``'s decision, not this function's.
+    """
+    return backchain_skills_root() / "improve" / "SKILL.md"
+
+
 def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
     """Resolve the fixed Backchain/Until Loop resources from this plugin install."""
     skills_root = backchain_skills_root()
@@ -2039,7 +2073,7 @@ substitutes. A forbidden revision, nonterminal child or unresolved finding stays
 incomplete and is not submitted as a completed parent action.
 """
 _BACKCHAIN_IMPROVE_OWNER = """\
-Improve is an independent broader review. It reads Backchain findings and the
+Improve is a broader review than Backchain's diagnostic. It reads Backchain findings and the
 returned candidate as ordinary inputs; it does not request or count Backchain
 passes, and creates no `active_backchain` child, nested Until Loop, retry
 dispatcher or new callback. For a dependency diagnostic use a one-pass Backchain
@@ -2079,6 +2113,19 @@ binding marker in the child request.
 """
 
 
+# Printed with the one-pass gate only: its "Write the child's start contract ... verbatim" reads as an order, and the
+# `converge` gate text has no such sentence.  Says what the script enforces (nothing refuses a plan without the child)
+# and what it cannot see; the dependency audit is the planning guide's duty either way.
+_BACKCHAIN_PLAN_CHOICE = """\
+The `plan`/`draft` request is your choice: nothing refuses a plan without it, and ShipLoop
+cannot see whether the child ran. The planning guide's dependency audit is not optional on
+either route. Say in this result's `summary` which route you took and why. The start
+contract below applies only if you request the child. The printed `backchain-check` reads
+a candidate graph in Backchain's plan schema (Backchain SKILL.md, "Plan document shape"),
+not a prose plan.
+"""
+
+
 def _one_pass(backchain_passes: str) -> bool:
     """Whether a Backchain child's gate text is the one-pass text (every mode but `converge`).
 
@@ -2111,7 +2158,8 @@ Through `source-aware-native`, the current stage host may
 request exactly one action `{action}` / stage `{operation}` within the packet's
 scope. Backchain invokes the selected actual Until Loop for its dependency-specific
 review/fix/check cycle using `Backchain standalone Until Loop binding: <binding-id>`.
-""" + (_BACKCHAIN_PLAN_GATE_ONE if _one_pass(backchain_passes) else _BACKCHAIN_PLAN_GATE_CONVERGE) + """\
+""" + (_BACKCHAIN_PLAN_CHOICE + _BACKCHAIN_PLAN_GATE_ONE if _one_pass(backchain_passes)
+       else _BACKCHAIN_PLAN_GATE_CONVERGE) + """\
 Backchain returns opaque actual Until Loop terminal evidence only after the child reports
 `complete` and its exact receipt is saved. A nonterminal, unresolved, or incompatible
 child leaves this parent action incomplete and must not be submitted as a completed parent
@@ -2151,6 +2199,15 @@ def _require_planning_review(planning_review: str) -> None:
 # Inline runs replace only the chain-specific paragraphs of these duties; the
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
+    "integrate": ("""\
+If implement used a bound chain,
+confirm its finish commit is an ancestor of the execution checkout HEAD and
+record it; otherwise confirm this item's candidate is assembled in the execution
+checkout under workspace and repository policy, or record a justified no-op.
+""", """\
+Confirm this item's candidate is assembled in the execution checkout under
+workspace and repository policy, or record a justified no-op.
+"""),
     "step-plan": ("""\
 Give each change that does not need another its own step with deps [] (for
 example, two modules that do not use each other) and join them in a later step

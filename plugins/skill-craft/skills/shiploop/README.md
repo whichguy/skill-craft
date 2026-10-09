@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.56.0
+# ShipLoop navigator 0.57.0
 
 > **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
 > its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
@@ -207,8 +207,9 @@ route; unavailable remote checks remain unrun even when local tests pass.
 
 At initialization, `--improve-skill=ABSOLUTE_SELECTED_SKILL_CARD` may bind the
 actual card (`--planning-review none` requires it: no planning child binds the card before the first item's
-quality and test loops read it). If omitted, the first checkpoint remains pending until the packet
-instructs the owner to use `improve-bind --action ... --skill-card ...`. The
+quality and test loops read it). If omitted, `init` records the card installed beside ShipLoop when it
+validates, and the first checkpoint's packet prints the command `improve-bind --action ... --skill-card ...`
+with that path; where none validates the checkpoint stays pending on a marked blank. The
 packet is authoritative for argument values and recovery. It then supplies one
 actual Improve handoff; a recorded child is resumed through its own state, and
 `improve-complete` imports its last review pass(es) and check output once, with
@@ -224,7 +225,8 @@ the selected Until Loop runtime remains child-execution authority.
 The canonical Improve package bundles Until Loop **0.5.0**, pinned to
 upstream commit `5df2a2feef4d80b93ca3c8a749d7d265c082d376`. Its default child uses
 `scripts/until_loop_ephemeral.py`; the package provenance manifest records the
-copied source hashes. The explicit selected card determines this binding. An
+copied source hashes. The selected card (the explicit `--improve-skill`, else the card installed
+beside ShipLoop and recorded at `init`) determines this binding. An
 ambient same-named skill or an older `scripts/until-loop` on `PATH` cannot select
 the child runtime. Changing an external Until Loop installation alone does not
 refresh Improve's bundled copy.
@@ -329,8 +331,9 @@ the original branch receives nothing after an individual item. System checks
 and outer Improve evaluate the assembled candidate before final return.
 
 At the planned final integration boundary, the packet supplies `workspace
-plan-return` and `workspace return`. Review the candidate-bound Markdown plan's
-path dispositions: keep intended code/tests/configuration and maintained project
+plan-return`, `workspace review-return` and `workspace return`. Decide every path of
+the candidate-bound Markdown plan with `review-return --keep/--exclude`, never by
+editing the file: keep intended code/tests/configuration and maintained project
 knowledge; exclude transient output. The helper blocks pending/stale decisions,
 known runtime paths, source drift and unsafe merges. For a clean start it also
 checks reachable commit paths, so committing then deleting a runtime artifact
@@ -937,6 +940,7 @@ line after the header is the one legal callback. The command surface is:
 # Start a navigator protocol 4 run
 shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
 shiploop workspace plan-return --workspace-root ROOT
+shiploop workspace review-return --workspace-root ROOT [--keep PATH...] [--exclude PATH...]
 shiploop workspace return      --workspace-root ROOT
 shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
 # Reread the current packet; never advances

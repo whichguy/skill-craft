@@ -26,6 +26,7 @@ from typing import Any
 from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
+import shiploop_unverified as unverified
 import shiploop_prompts as guidance
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
@@ -56,7 +57,7 @@ _RESULT_KEYS = frozenset((
     "outcome", "summary", "headline", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
-    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps", "skill_na",
+    "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps", "skill_na", "unverified",
 ))
 # A bare "carry on" is not an answer to the question a blocked run is waiting on.
 _NOT_AN_ANSWER = frozenset((
@@ -81,7 +82,7 @@ AWAITING_SHAPE = (
 _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
-    "red_na", "skill_na", "lint_waivers",
+    "red_na", "skill_na", "lint_waivers", "unverified",
 )
 _STATE_KEYS = frozenset(
     (
@@ -728,6 +729,15 @@ def _canonical_result(
             result["assumptions"] = assumptions.canonical(value["assumptions"], stage)
         except assumptions.AssumptionError as exc:
             raise NavigatorError(str(exc)) from exc
+    if "unverified" in value:
+        # Shape only: the exact fields, the placeholder and the due stage are checked at the CLI gates, because
+        # validate() re-canonicalises every accepted result on load and an edit of the field set must not refuse a saved run.
+        _need(stage in unverified.STAGES and outcome == "done",
+              "unverified is allowed only on a done " + ", ".join(sorted(unverified.STAGES)) + " result")
+        try:
+            result["unverified"] = unverified.canonical(value["unverified"])
+        except unverified.UnverifiedError as exc:
+            raise NavigatorError(str(exc)) from exc
     if "delivery_assessment" in value:
         _need(delivery_contract,
               "delivery_assessment requires an opt-in delivery-contract navigator run")
@@ -1317,6 +1327,8 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """
     timeline = load_timeline(root)
     scratch_dir(root).mkdir(exist_ok=True)
+    # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
+    (Path(root) / "notes").mkdir(exist_ok=True)
     text = render(core, root, state, timeline=timeline)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)
@@ -1554,7 +1566,9 @@ def _normalise_criteria(value: Any, commands: list) -> list[dict[str, str]]:
     _need(not unknown, "test_commands name criteria that are not listed: " + ", ".join(unknown))
     uncovered = [criterion for criterion in ids if criterion not in named]
     _need(not uncovered, "every criterion needs a test command that confirms it (a check command is enough "
-          "for documents or other non-test content); uncovered: " + ", ".join(uncovered))
+          "for documents or other non-test content). A condition no command can confirm is not a criterion: take it "
+          "out of criteria and record it as an open item in the summary (who does what, and what they report back); "
+          "uncovered: " + ", ".join(uncovered))
     return rows
 
 
@@ -1830,6 +1844,18 @@ def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: A
         assumptions.check_consumers(rows, consumers)
         assumptions.check_files(rows)
     except assumptions.AssumptionError as exc:
+        raise NavigatorError(str(exc)) from exc
+
+
+def _check_submitted_unverified(stage: str, result: Any) -> None:
+    """Refuse a submitted done product-acceptance result without a usable unverified list.
+
+    CLI gates only, like the assumption list: the pure graph functions check the shape when the field is
+    present and do not require it, so simulations and saved runs are unaffected.
+    """
+    try:
+        unverified.check_submitted(stage, result)
+    except unverified.UnverifiedError as exc:
         raise NavigatorError(str(exc)) from exc
 
 
@@ -2503,6 +2529,18 @@ def _command(core: Any) -> str:
     return str(Path(package_root) / "scripts" / "shiploop") if package_root else "shiploop"
 
 
+def review_return_command(core: Any, workspace_root: Path) -> str:
+    """The review-return command with its decisions left blank: ShipLoop names the verb, the model supplies the judgement."""
+    return (shlex.join(["python3", _command(core), "workspace", "review-return", "--workspace-root",
+                        str(workspace_root)]) + " --keep <paths> --exclude <paths>")
+
+
+# What --keep and --exclude mean, said once for the packet and for the verb's own output.
+REVIEW_RETURN_RULE = ("--keep is for product code, tests, configuration and durable knowledge; --exclude is for "
+                      "transient output (logs, dumps, scratch files, run artifacts). Paths are relative to the "
+                      "execution checkout, as the plan lists them; a directory decides every undecided path beneath it.")
+
+
 def _reference_dir(core: Any) -> Path:
     package_root = getattr(core, "PACKAGE_ROOT", None)
     if package_root:
@@ -2522,6 +2560,12 @@ def _result_input_path(root: Path, action_id: str) -> Path:
 
 # The prefix shiploop_keepalive searches command output for; keep both in step.
 KEEPALIVE_MARKER = "SHIPLOOP-RUN"
+
+# Printed in place of the Improve card path when the run records none: `init` found no usable card beside ShipLoop
+# (an install without a sibling Improve skill, or one that fails `resolve_skill`) and no `--improve-skill` was given.
+# It is not path-shaped, so a host cannot mistake it for a real value, and the bind refuses it as "skill card path must
+# be absolute".
+IMPROVE_CARD_BLANK = "<absolute path of the selected Improve SKILL.md>"
 
 
 # An empty template list was copied verbatim; a placeholder the script refuses
@@ -2565,6 +2609,8 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
             {"id": "A3", "assumption": "...", "disposition": "open", "check": "...",
              "reason": "...", "consumer": "W1"},
         ]
+    if stage in unverified.STAGES:
+        result["unverified"] = [dict(unverified.TEMPLATE_ROW)]
     assessment = consumer_delivery.template_assessment(state, stage)
     if assessment is not None:
         result["delivery_assessment"] = assessment
@@ -2803,6 +2849,22 @@ def _workspace_return_packet_lines(root: Path, state: Mapping[str, Any]) -> list
         "workspace return status."
     )
     return lines
+
+
+def _return_route_lines(workspace_root: Path, *, rollback: bool) -> list[str]:
+    """How this run's return will go, derived from workspace.md (S-5: the script says what a model would guess).
+
+    Release planning and release checking add the rollback, because the plan written there is durable knowledge that
+    later runs inherit.  An unreadable workspace.md is reported as unknown: never guessed, never left out.
+    """
+    try:
+        import shiploop_workspace as workspace
+    except ImportError:  # pragma: no cover - supports package-style local imports.
+        from . import shiploop_workspace as workspace  # type: ignore
+    try:
+        return [workspace.route_sentence(workspace_root), *(workspace.rollback_lines(workspace_root) if rollback else ())]
+    except workspace.WorkspaceError as exc:
+        return [f"Return route unknown: workspace.md cannot be read ({exc}); do not guess how the return will go."]
 
 
 def _accepted_done(state: Mapping[str, Any]) -> tuple[dict[tuple[str | None, str], str], int]:
@@ -3096,6 +3158,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         "",
         *narrative_lines(state, timeline),
         progress_guidance,
+        # After the status block's END, so variable-length lists never compete with the kept head.
+        *_unverified_lines(state, stage),
     ]
     lines += _run_rules(core, root, state)
     lines.extend(
@@ -3119,10 +3183,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
             "To review the final candidate for return:",
             shlex.join(["python3", _command(core), "workspace", "plan-return",
                         "--workspace-root", str(workspace_root)]),
-            "Review every return-plan disposition, retaining product code/tests and "
-            "durable knowledge but excluding transient output.",
+            "Record each undecided path with " + review_return_command(core, workspace_root) + ". "
+            + REVIEW_RETURN_RULE,
+            *_return_route_lines(workspace_root, rollback=stage in ("release-plan", "release-check")),
             "Handoff completion requires a current script-verified return receipt. "
-            "A dirty-source working-tree return is not a Git merge or commit. "
             "No automatic push, cleanup, or publication is implied.",
         ])
         if stage in ("release", "handoff") and state["status"] == "active":
@@ -3543,6 +3607,9 @@ def _stage_gates(stage: str) -> list[str]:
         gates.append("skill_na beside a skill file in paths")
     if stage == item_scope.SKILL_NA_DIFF_STAGE:
         gates.append("a skill file changed after the step plan recorded skill_na (report revise)")
+    if stage in unverified.STAGES:
+        gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
+                     "or a due_stage that is not a later stage")
     if stage in knowledge.CLOSES:
         gates.append("a docs/shiploop file this stage must have written, missing or empty")
     return gates
@@ -3561,10 +3628,17 @@ def _checked_line(row: Any) -> str:
 
 
 def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
-    """Lead an active producer packet with the stage's goal, done-when and fixed considerations."""
-    if state["status"] != "active" or state.get("active_improve"):
+    """Lead an active packet with the stage's goal and done-when; a producer also gets its checks and considerations."""
+    if state["status"] != "active":
         return []
     row = stage_spec.stage(stage)
+    if state.get("active_improve"):
+        # The parent packet a cleared model re-reads while the child runs: what the review judges the result against.
+        # The result is returned, not accepted (the parent step stays pending), and may be blocked or repeat, so the
+        # conditions are the ones a done result must meet.
+        return ["Reviewing the returned " + stage + " result. Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
+                "Done when (a done result must meet each; correct the result, never the condition):",
+                *("- " + condition for condition in row.done_when)]
     lines = ["Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
              "Done when (confirm each before calling done; keep going until all hold):",
              *("- " + condition for condition in row.done_when),
@@ -3577,6 +3651,54 @@ def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     if considerations:
         lines.append("Considerations for this stage:")
         lines.extend(f"- {label}: {text}" for label, text in considerations)
+    return lines
+
+
+def _unverified_row(row: Mapping[str, Any]) -> str:
+    """One entry as a line; the stored shape is loose (shape-only canonical), so a missing field prints empty."""
+    text = {name: _bounded_packet_text(str(row.get(name, ""))) for name in unverified.FIELDS}
+    return ("- " + text["outcome"] + " | reason: " + text["reason"] + " | owner: " + text["owner"]
+            + " | to settle: " + text["check"] + " | due: " + text["due_stage"])
+
+
+def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """What the run left unverified, printed from state by the stages that account for it or report it.
+
+    Product-acceptance and the handoff print the plan's assumptions still recorded open; the stage an entry is due
+    at prints that entry; the handoff prints the whole list.  Nothing is recalled by the model, and no Improve
+    child's packet carries it.
+    """
+    if state["status"] != "active" or state.get("active_improve"):
+        return []
+    lines: list[str] = []
+    if stage in ("product-acceptance", "handoff"):
+        still_open = unverified.open_assumptions(state)
+        if still_open:
+            lines.append("Plan assumptions recorded open at planning (the ledger does not update dispositions): "
+                         "account for each in your summary, settled by a named result or listed as unverified.")
+            lines.extend("- " + str(row["id"]) + " (consumer " + str(row["consumer"]) + "): "
+                         + _bounded_packet_text(str(row["assumption"])) + " | check that would settle it: "
+                         + _bounded_packet_text(str(row["check"])) for row in still_open)
+    if stage == "handoff":
+        action, entries = unverified.accepted_list(state)
+        if entries:
+            lines.append("Product-acceptance listed these request outcomes as unverified (ShipLoop's report lists "
+                         "them too):")
+            lines.extend(_unverified_row(row) for row in entries)
+        elif entries is None:
+            lines.append("No unverified list is recorded for product-acceptance (unmeasured, not zero).")
+        else:
+            lines.append("Product-acceptance listed no unverified request outcome (its accepted result, field "
+                         "unverified).")
+        lines.append("That is product-acceptance's list only: open items another stage recorded are in that "
+                     "stage's own result; read them before stating the limits.")
+    elif stage in unverified.due_stages():
+        due = unverified.due_entries(state, stage)
+        if due:
+            lines.append("Request outcomes product-acceptance listed as unverified and due at " + stage + " (observe "
+                         "each here if this stage can and say so in the result; otherwise it stays listed for the "
+                         "handoff):")
+            lines.extend(_unverified_row(row) for row in due)
     return lines
 
 
@@ -3612,7 +3734,7 @@ def _first_callback_lines(core: Any, root: Path, state: Mapping[str, Any]) -> li
                 + _callback(core, root, "complete", action=action_id,
                             result=str(_result_input_path(root, action_id)))]
     if child["skill"] is None:
-        card = state.get("improve_skill") or "/absolute/path/to/selected/improve/SKILL.md"
+        card = state.get("improve_skill") or IMPROVE_CARD_BLANK
         return ["Next command (bind the selected Improve card; details below): "
                 + _callback(core, root, "improve-bind", action=action_id, **{"skill-card": card})]
     import shiploop_standalone_improve as standalone
@@ -3635,7 +3757,7 @@ def _improve_line(state: Mapping[str, Any], stage: str) -> str:
     mode = recorded_planning_review(state)
     if stage in stage_spec.reviewed_stages(mode):
         when = ("Every " + stage + " result, including blocked and repeat, starts this action's "
-                "Improve child.")
+                "Improve child. That review checks the result against the Done-when conditions above.")
     elif stage in stage_spec.PLANNING_CHOICE_STAGES:
         when = ("no Improve child starts after this result in this run (planning_review: " + mode
                 + "); ShipLoop's own checks at complete are the only gate before the graph advances.")
@@ -3706,10 +3828,17 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         seed_text,
     ])
     if child["skill"] is None:
-        card = state.get("improve_skill") or "/absolute/path/to/selected/improve/SKILL.md"
+        card = state.get("improve_skill") or IMPROVE_CARD_BLANK
+        if state.get("improve_skill"):
+            bind_line = "Bind the Improve card recorded for this run using this command:"
+        else:
+            # Always true: it names where ShipLoop looks and does not claim the file is absent.
+            bind_line = ("No Improve card is recorded for this run. ShipLoop looks for its own at "
+                         + str(guidance.installed_improve_card()) + " when a run starts; select the Improve "
+                         "SKILL.md to bind (that file, if it exists) and replace the marked value with its absolute path:")
         lines.extend([
             "Load the actual Improve skill selected by this host. Retain its absolute SKILL.md location; do not substitute a policy file or managed controller.",
-            "Bind that selected card using this command (replace the placeholder only if needed):",
+            bind_line,
             _callback(core, root, "improve-bind", action=action_id, **{"skill-card": card}),
             "If unavailable, keep this action pending and report the missing skill; do not substitute a hand-written review loop for the selected skill.",
             "Pause parent without losing child: " + _callback(core, root, "pause", reason="reason"),
@@ -4071,8 +4200,8 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
         ]
     delivery_section = consumer_delivery.html_section(state)
     leftover_section = _leftovers_section(_leftovers(root, state))
-    report_tail = ["</tbody></table>", *progress_section, *workspace_section, *leftover_section,
-                   delivery_section, "</body></html>"]
+    report_tail = ["</tbody></table>", *progress_section, *unverified.html_section(state), *workspace_section,
+                   *leftover_section, delivery_section, "</body></html>"]
     return "\n".join(
         [
             "<!doctype html>",
@@ -4639,6 +4768,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         if state["status"] == "active" and action_id not in state["accepted"]:
             _check_submitted_evidence(submitted)
             _check_submitted_assumptions(state, current_stage(state), submitted)
+            _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)
             _check_submitted_skill_na(current_stage(state), submitted)
             _check_submitted_consumer_entry(state["repo"], current_stage(state), submitted)

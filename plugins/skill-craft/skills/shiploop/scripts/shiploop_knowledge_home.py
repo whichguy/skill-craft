@@ -40,20 +40,26 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
     # Before the workspace return: a commit at handoff would miss the return and stale its receipt.
     "release-verify": ("{feature}/outcome.md", "environment.md", "README.md"),
 }
-# What each stage writes or updates, printed in its packet.
+# What each stage writes or updates; a close's required files (above) are added to its packet list by ``stage_files``.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "intake": ("README.md",),
     "discovery": ("environment.md",),
     "spec": ("spec.md", "{feature}/spec.md"),
     "test-strategy": ("test-strategy.md",),
     "plan": ("{feature}/plan.md", "README.md"),
-    "prepare": CLOSES["prepare"],
     "step-plan": ("{feature}/plan.md",),
     "test-spec": ("{feature}/test-spec.md",),
     "system-test-author": ("{feature}/system-tests.md",),
     "release-plan": ("{feature}/release-plan.md", "environment.md"),
-    "release-verify": CLOSES["release-verify"],
 }
+
+
+def stage_files(stage: str) -> Tuple[str, ...]:
+    """Every file the stage's packet names: what it writes, then any further file its close will require."""
+    written = STAGE_FILES.get(stage, ())
+    return written + tuple(name for name in CLOSES.get(stage, ()) if name not in written)
+
+
 _REQUIREMENT_ID = re.compile(r"\b(R-\d+)\b")
 # outcome.md sections that become the release-verify commit body (owner to-do 2026-09-26).
 LEARNING_SECTIONS = ("Learned", "Key considerations", "Open for the next run")
@@ -109,7 +115,7 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     lines = ["", "Repository knowledge home (committed, inherited by later runs): " + str(repo / HOME)
              + "/README.md. Earlier runs' spec, environment and features are there; open a file when this "
              "stage needs it."]
-    files = STAGE_FILES.get(stage)
+    files = stage_files(stage)
     if files:
         lines.append("This stage keeps these up to date (create them if missing): "
                      + ", ".join(str(repo / path) for path in _expand(files, state)) + ".")
@@ -170,8 +176,13 @@ def check(state: Mapping[str, Any], stage: str) -> str:
     missing = [path for path in required if not (repo / path).is_file() or not (repo / path).read_text(
         encoding="utf-8", errors="replace").strip()]
     if missing:
-        return ("ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. "
-                "Before " + stage + " is done, write:\n" + "".join("- " + str(repo / p) + "\n" for p in missing)
+        # Line 1 is what a model that reads only the first line of a refusal needs: the action and the files.  The
+        # paths are absolute because the shell's directory is the original checkout, while these files belong in
+        # this execution checkout.  The `- /abs` lines stay one per line for the callback contract to follow.
+        paths = [str(repo / p) for p in missing]
+        return ("Before " + stage + " is done, write: " + ", ".join(paths) + "\n"
+                "ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. "
+                "The files, one per line:\n" + "".join("- " + p + "\n" for p in paths)
                 + "See the packet's knowledge-home lines for what each file holds.")
     leaks = []
     screened = sorted((repo / HOME).rglob("*.md")) + ([repo / INDEX] if (repo / INDEX).is_file() else [])
@@ -222,4 +233,4 @@ def in_home(path: str) -> bool:
 
 
 __all__ = ("CLOSES", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "check", "commit", "feature_dir", "in_home", "learnings",
-           "recent_commits", "stage_lines")
+           "recent_commits", "stage_files", "stage_lines")

@@ -4,6 +4,28 @@ Written by scripts/release.py.
 
 ## 2026-10-08
 
+### skill-craft 1.25.0
+
+- Skills: shiploop 0.57.0
+
+### shiploop 0.57.0
+
+- Refusals a model reads through `head` or `cut` now say what to do on their first line: a knowledge-close refusal puts "Before <stage> is done, write:" and the absolute paths there, an invalid return-plan status names the allowed values and the `review-return` verb, and `backchain-check` tells a Markdown candidate that it must be the plan graph JSON and where that shape is defined.
+- The one-pass plan packet now says the whole Backchain child is the host's choice (nothing refuses a plan without it, and ShipLoop cannot see whether it ran), that the dependency audit is not optional, and that the result's summary names the route taken. A `backchain-check` on a candidate that is not JSON now points at Backchain's "Plan document shape" instead of leaving the model to read the checker's source. The text describes today's behaviour, not a policy: requiring the child at plan stays open pending the Backchain validator comparison, and plan-stage timings are not comparable across this version.
+- A stage whose done runs a knowledge check now lists every file that check requires, so test-spec and release-plan no longer meet a refusal for a file their packet never named.
+- The packet a model re-reads while an Improve review runs now states the stage's goal and the Done-when conditions the review holds the result to, and the producer's packet says its Done-when is what that review checks.
+- `init` and `workspace start` now record the Improve card installed beside ShipLoop when `--improve-skill` is not given and the card validates, so the first Improve bind packet prints a real path instead of a template. Where no installed card validates, the packet prints a marked blank and the place ShipLoop looked; `--improve-skill` still wins and `--planning-review none` still requires it. `--help` now says the same: the flag is required with `--planning-review none`, and a stage run without it records the installed card.
+- The output of `workspace plan-return` and `review-return`, and the refusal of a blocked `return`, is now held to one print limit in all, not one per path list, so a very long list is cut at a path and the rest counted while the last line stays the next command. `review-return` counts the paths it excluded and no longer lists them a second time beside the excludes a review decided.
+- Every isolated-run packet now states how the return will go, taken from `workspace.md` (replacing a generic sentence that was wrong for a clean start), the release-plan and release-check packets print tested rollback recipes for each return kind, and `review-return` reports the expected return once nothing is undecided, by the same rule `return` follows. The release-plan and release-check duties tell the model to write and verify the rollback against that route.
+- `review-return` now refuses an absolute, `..` or empty `--keep`/`--exclude` path the way it refuses an unknown one, with the undecided paths and the command, and its rule says the paths are relative to the execution checkout. The rollback recipe for a fast-forward with later commits says it also undoes what those commits changed, and points to the diff recipe for keeping their work.
+- New `shiploop workspace review-return --keep PATH... --exclude PATH...` records the return plan's keep/exclude decisions, so a model no longer hand-edits `return-plan.md`. `plan-return` now prints the tally, every undecided path and the exact command (and keeps the decisions already recorded for the same path on a fresh plan), a blocked `return` names the undecided paths and the verb on its first line, and a stale plan names `plan-return` as the next step.
+- ShipLoop now creates the run's `notes/` directory beside `scratch/` when it prints a packet, so the pass log every packet names can be written (and an `evidence_refs` entry for it resolved) without a `mkdir` first. The log itself is still the model's to create.
+- The `notes/` row of the state-files reference now says ShipLoop creates the empty directory when it prints a packet, and that the notes and the pass log stay the host's to write.
+- The step plan no longer tells the model to mark a criterion `Confirm by: unconfirmable here` in `criteria`, a shape the gate refuses; it says a condition no command can confirm is recorded as an open item in the summary, and the refusal for an uncovered criterion names the same exit. The implement Done-when no longer names a `Confirm by` field that an item without tests does not hold.
+- The test-strategy duty now says a host-dependent tool (a browser, a device, an account, a service) is probed against a stand-in, such as a one-line page opened by `file:` URL or from a throwaway static server, when the product does not exist yet; a request to the product's own address says nothing about the tool.
+- Intake, discovery and research ask for a recorded default or open item instead of a person or a suite that may not exist, integrate no longer asks the model to commit (ShipLoop does) and an inline run no longer reads about bound chains, and the Improve packet no longer calls its own review independent.
+- A done product-acceptance result now lists, in `unverified`, each request outcome no executed check observed, with its reason, owner and due stage (an empty list says every outcome was observed). ShipLoop refuses a missing list, an incomplete or placeholder entry and a due stage that is not a later stage, and prints each entry at its due stage, the whole list at handoff and a table in the report.
+
 ### skill-craft 1.24.0
 
 - Skills: shiploop 0.56.0
