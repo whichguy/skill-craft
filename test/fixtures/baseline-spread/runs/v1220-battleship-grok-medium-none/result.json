@@ -1,0 +1,89 @@
+{
+ "case": "custom",
+ "host": "grok",
+ "model": "grok-4.7",
+ "effort": "medium",
+ "pass": true,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.22.0",
+  "shiploop_version": "0.54.0",
+  "local_head": "e824945f26ac9dd207ea8e2e4500eefa5d511596"
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_seconds": 5616.2,
+  "stop": "end_turn",
+  "pass": true,
+  "regraded": null,
+  "sessions": [
+   {
+    "status": "exited",
+    "stop": "end_turn",
+    "host": "grok",
+    "resumed": null
+   }
+  ]
+ },
+ "termination": {
+  "process_status": "exited",
+  "returncode": 0,
+  "sessions": 1,
+  "resumes": 0,
+  "session_stops": [
+   "end_turn"
+  ],
+  "resume_stop": "ShipLoop run is done",
+  "engine_status": "done",
+  "engine_stage": "done",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": null
+ },
+ "shiploop": {
+  "pass": true,
+  "run_dir": "/Users/dadleet/e2e-runs/20261006/v1220-battleship-grok-medium-none/.shiploop-runs/work-20261006-234515-40fb4c/run"
+ },
+ "committed": {
+  "pass": true
+ },
+ "checks": [
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  }
+ ],
+ "resumed_run": null,
+ "seeded": null,
+ "metrics": {
+  "claude_code_version": null,
+  "turns": 467,
+  "model_calls": 467,
+  "cost_usd": 12.5014,
+  "unreported_sessions": 471,
+  "compactions": 5,
+  "truncated_outputs": 0,
+  "cancelled_tool_calls": 0,
+  "model_glue": 3,
+  "tmp_writes": 6,
+  "shiploop_failures": 2,
+  "unmeasured": {
+   "window_tokens": "reduced"
+  }
+ },
+ "output": "/Users/dadleet/e2e-runs/20261006/v1220-battleship-grok-medium-none"
+}

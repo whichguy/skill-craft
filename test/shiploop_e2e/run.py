@@ -77,6 +77,9 @@ case checks the harness stops the TCP listeners left under the case's output fol
 result.json. A launch is refused while an ended case's listener is still bound, and so is a --resume-run of a case whose harness
 is running (README, "Launching long runs").
 This launches a real model and costs money; it is never part of default CI.
+`--baseline-report [--baseline FILE] [--runs DIR ...] [--json]` is the one read-only exception: it starts no host and
+probes no CLI, unions the baseline file with the run folders and prints, per cell, the attempts, builds and the n, min,
+median and max of cost, turns, minutes and planning minutes (README, "The baseline report").
 
   python3 test/shiploop_e2e/run.py --case battleship
   python3 test/shiploop_e2e/run.py --case battleship-scoring --continue-from <battleship output>
@@ -89,8 +92,10 @@ from __future__ import annotations
 
 import argparse
 import atexit
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -99,6 +104,7 @@ import secrets
 import shlex
 import shutil
 import signal
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -216,7 +222,8 @@ def continue_from(prior: Path, work: Path) -> dict:
     return {"prior": str(prior), "start_head": head.stdout.strip() if head.returncode == 0 else None, "prior_case": earlier.get("case"), "prior_pass": earlier.get("pass"),
             "prior_turns": (earlier.get("metrics") or earlier.get("cli") or {}).get("turns")
             or (earlier.get("cli") or {}).get("num_turns"),
-            "prior_cost_usd": (earlier.get("metrics") or earlier.get("cli") or {}).get("cost_usd")}
+            "prior_cost_usd": (earlier.get("metrics") or earlier.get("cli") or {}).get("cost_usd"),
+            "prior_lower_bound": metrics.lower_bound(earlier.get("metrics") or {})}
 
 
 def new_output_dir(requested: Path | None, name: str) -> Path:
@@ -314,11 +321,86 @@ def build_candidate(out: Path) -> Path:
     return out / "build" / "plugins" / PLUGIN_NAME
 
 
+def tree_digest_checked(root: Path) -> tuple[str | None, str | None]:
+    """(a digest of the plugin tree a host loads, None) or (None, why it could not be made). 12 hex.
+
+    Each file's relative path and the sha256 of its bytes. A version string does not identify a build (two Battleship
+    Sonnet runs said plugin 1.22.0 with different scripts) and a git head over-splits (two heads built byte-identical
+    trees), so the bytes are what is compared. Left out: ``__pycache__`` folders and ``*.pyc`` (a host compiles them when
+    it runs the scripts, so they differ between a plugin before and after a run), symlinks (their target is not part of
+    the plugin) and anything that is not a regular file. A file or folder that cannot be read gives no digest at all, with
+    the reason: a digest of the files that could be read would be another build's digest for the same bytes.
+    """
+    root = Path(root)
+    if not root.is_dir():
+        return None, "the plugin folder does not exist"
+    problems: list[str] = []
+    found: list[Path] = []
+
+    def unreadable(error: OSError) -> None:
+        problems.append(f"{error.filename}: {error.strerror}")
+
+    for here, folders, names in os.walk(root, onerror=unreadable):
+        folders[:] = [f for f in folders if f != "__pycache__" and not (Path(here) / f).is_symlink()]
+        for name in names:
+            path = Path(here) / name
+            if path.suffix != ".pyc" and not path.is_symlink() and path.is_file():
+                found.append(path.relative_to(root))
+    digest = hashlib.sha256()
+    for relative in sorted(found):
+        try:
+            data = (root / relative).read_bytes()
+        except OSError as error:
+            problems.append(f"{root / relative}: {error.strerror}")
+            continue
+        digest.update(relative.as_posix().encode() + b"\0" + hashlib.sha256(data).hexdigest().encode() + b"\n")
+    if problems:
+        return None, f"unreadable: {problems[0]}" + (f" (and {len(problems) - 1} more)" if len(problems) > 1 else "")
+    return digest.hexdigest()[:12], None
+
+
+def tree_digest(root: Path) -> str | None:
+    """The digest of ``tree_digest_checked``, None when it could not be made."""
+    return tree_digest_checked(root)[0]
+
+
+def output_forms(out: Path, requested: Path | None = None) -> list[str]:
+    """Every spelling of a run's output folder a prompt may carry, longest first: the resolved path, the path as it was
+    asked for (``--output /tmp/x`` resolves to ``/private/tmp/x`` on macOS), the same without ``/private``, and the
+    home-relative ``~/...`` form."""
+    forms = {str(out)}
+    if requested is not None:
+        forms |= {str(requested), os.path.abspath(os.path.expanduser(str(requested)))}
+    home = str(Path.home())
+    for form in list(forms):
+        if form.startswith("/private/"):
+            forms.add(form[len("/private"):])
+    for form in list(forms):
+        if form.startswith(home + "/"):
+            forms.add("~" + form[len(home):])
+    return sorted((f for f in forms if f), key=len, reverse=True)
+
+
+def masked_prompt_digest(prompt: str, out: Path, requested: Path | None = None) -> str:
+    """The sha256 (12 hex) of a run's prompt with its own output folder replaced by ``<output>``, in every spelling.
+
+    A case that names no path hashes to the plain hash of its text. The Grok ``none`` runs' prompt tells the host to read
+    ``<run folder>/build/.../improve/SKILL.md``, so five runs of one prompt had five raw hashes and one masked hash. A
+    spelling only counts as the folder when it is not part of a longer name (``/a/run1`` inside ``/a/run10`` or
+    ``/other/a/run1``, ``/a/run1.bak``); a sentence-ending full stop does not hide it.
+    """
+    for form in output_forms(out, requested):
+        prompt = re.sub(r"(?<![\w.~/-])" + re.escape(form) + r"(?!\w|-|\.\w)", "<output>", prompt)
+    return hashlib.sha256(prompt.strip().encode()).hexdigest()[:12]
+
+
 def installed_versions(plugin_dir: Path) -> dict:
-    """The skill-craft and ShipLoop versions of the plugin a host will actually load."""
+    """The skill-craft and ShipLoop versions of the plugin a host will actually load, and the digest of its tree."""
     manifest = plugin_dir / ".claude-plugin" / "plugin.json"
+    digest, why = tree_digest_checked(plugin_dir)
     return {"plugin_version": json.loads(manifest.read_text()).get("version") if manifest.is_file() else None,
-            "shiploop_version": card_version(plugin_dir / "skills" / "shiploop" / "SKILL.md")}
+            "shiploop_version": card_version(plugin_dir / "skills" / "shiploop" / "SKILL.md"),
+            "plugin_sha256": digest, **({"plugin_sha256_unmeasured": why} if why else {})}
 
 
 def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None, dict]:
@@ -1246,6 +1328,13 @@ def parser() -> argparse.ArgumentParser:
                    help="declare a need of this run, which records its capability on the harness side before the host "
                         "starts (browser: can a headless browser load a stand-in page here). A named case declares its own "
                         "(`needs` in cases.json); a custom --prompt declares none by itself. A record, never a verdict")
+    p.add_argument("--baseline-report", action="store_true",
+                   help="read-only: print, per cell of the baseline file and the run folders, how many attempts there were, "
+                        "which count, on how many builds, and the n, min, median and max of cost, turns, minutes and "
+                        "planning minutes. Starts no host and writes nothing; exits 0")
+    p.add_argument("--runs", type=Path, nargs="+",
+                   help="with --baseline-report: run folders (or folders of run folders) to read beside the baseline file")
+    p.add_argument("--json", action="store_true", help="with --baseline-report: print JSON instead of text")
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
     p.add_argument("--codex-bin", default="codex")
@@ -1259,6 +1348,14 @@ def host_given(argv: list[str]) -> bool:
     probe = parser()
     probe.set_defaults(host=None)
     return probe.parse_args(argv).host is not None
+
+
+# The identity fields of a row and a result: what the run ran on and for how long. Each is null where it is not known, and
+# `identity_unmeasured` says why for each null one.
+IDENTITY_FIELDS = ("plugin_sha256", "prompt_sha256", "host_build", "local_head", "started", "ended", "planning_seconds")
+PREDATES = "not recorded by this result (it predates the field)"
+LAUNCH_PREDATES = "launch predates the field"
+FIRST_PREDATES = "first launch predates the field"
 
 
 def baseline_stages(stages: list | None) -> list | None:
@@ -1291,7 +1388,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
     """
     m = result.get("metrics") or {}
     versions = result.get("versions") or {}
-    return {"date": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "case": result.get("case"), "style": style,
+    row = {"date": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "case": result.get("case"), "style": style,
             "suite": suite, "host": result.get("host"), "model": result.get("model"),
             "effort": result.get("effort"), "stages": baseline_stages(m.get("stages")),
             "termination": result.get("termination"), "unmeasured": sorted(m.get("unmeasured") or {}),
@@ -1308,7 +1405,17 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "tmp_writes": m.get("tmp_writes"),
             "shiploop_failures": m.get("shiploop_failures"), "compactions": m.get("compactions"),
             "truncated_outputs": m.get("truncated_outputs"), "narrative": m.get("narrative"),
+            # Identity: what the run ran on and for how long, null where the result does not say (never 0 or ''). A
+            # checkout run records its head in versions.local_head, a marketplace run under versions.released.
+            "plugin_sha256": versions.get("plugin_sha256"), "prompt_sha256": result.get("prompt_sha256"),
+            "host_build": result.get("host_build"),
+            "local_head": versions.get("local_head") or (versions.get("released") or {}).get("local_head"),
+            "started": (result.get("span") or {}).get("started"), "ended": (result.get("span") or {}).get("ended"),
+            "planning_seconds": m.get("planning_seconds"),
             "output": result.get("output")}
+    reasons = result.get("identity_unmeasured") if isinstance(result.get("identity_unmeasured"), dict) else {}
+    row["identity_unmeasured"] = {name: reasons.get(name) or PREDATES for name in IDENTITY_FIELDS if row[name] is None}
+    return row
 
 
 # `planning_review` (state.md key, ShipLoop 1.22.0 and later) says which planning results start an Improve child: `stage`
@@ -1352,44 +1459,550 @@ def planning_review_line(mode: str, last: dict) -> str:
             f"driver is {str(last.get('date'))[:10]}, ShipLoop {last.get('shiploop_version')}" + (f"; it {why}" if why else ""))
 
 
-def scan_baseline(path: Path, case: str, source: str | None, host: str | None = None,
-                  model: str | None = None, effort: str | None = None,
-                  planning_review: str | None = None) -> tuple[dict | None, int]:
-    """(the last comparable row, how many rows were recorded for this case and source).
+def row_reached_done(row: dict) -> bool:
+    """False when a row's own record says ShipLoop did not reach done: its ``shiploop`` verdict is false, or its engine
+    status is anything but done. A row that says neither (written before the verdicts or the termination record existed,
+    or by a test) is not refused: unknown is not excluded. A finished run whose product failed a check is still done."""
+    if (row.get("verdicts") or {}).get("shiploop") is False:
+        return False
+    status = (row.get("termination") or {}).get("engine_status")
+    return status is None or status == "done"
 
-    SPEC: a baseline compares only with rows from the same host, model and
-    effort, so a row that does not name all three, or names different ones, is
-    not a baseline for this run. Rows written before those fields existed are
-    therefore skipped rather than compared against. The count lets a caller say
-    "rows exist but none is comparable" instead of printing nothing. With
-    ``planning_review`` (this run's mode) a row that stands for another mode
-    (``row_planning_review``) is skipped too, so the last row of the run's own
-    mode is found past any rows of the other; a run that records no mode matches no row.
+
+def _prompt_differs(case: str, prompt_sha256: str | None, row: dict) -> bool:
+    """Whether the prompt key excludes a row. For the ``custom`` case (a prompt given on the command line) the key always
+    applies: a row compares only if both it and the run carry a hash and the hashes are equal, because two unknown
+    prompts are not known to be one. For a named case the prompt is the case's own, so the key applies only when the run
+    and the row both carry a hash: a row written before the field existed keeps comparing."""
+    theirs = row.get("prompt_sha256")
+    if case == "custom":
+        return prompt_sha256 is None or theirs != prompt_sha256
+    return prompt_sha256 is not None and theirs is not None and theirs != prompt_sha256
+
+
+def _source_name(text) -> str | None:
+    """'marketplace (resumed on its original install)' is a marketplace run: the part before the note."""
+    return text.split(" (")[0] if isinstance(text, str) else text
+
+
+def row_matches(row: dict, case: str, source: str | None, host: str | None = None, model: str | None = None,
+                effort: str | None = None, planning_review: str | None = None,
+                prompt_sha256: str | None = None) -> str | None:
+    """None when ``row`` is a basis for a run with this key, else why not, in words (the keys of ``matching_rows``' counter).
+
+    The one predicate (S-12) behind ``matching_rows``, ``scan_baseline``, ``previous_row`` and ``--baseline-report``. SPEC: a
+    baseline compares only with rows from the same host, model and effort, so a row that does not name all three, or names
+    different ones, is no basis, and rows written before those fields existed are therefore not compared against. The source
+    is compared by its name, not by the note a resume adds. With ``planning_review`` (this run's mode) a row that stands for
+    another mode (``row_planning_review``) is no basis either; a run that records no mode matches no row. The prompt key is
+    ``_prompt_differs``. A row that did not reach done is a record and not a basis (``row_reached_done``).
     """
+    if row.get("case") != case or _source_name(row.get("source")) != _source_name(source):
+        return "another case or source"
+    if (row.get("host"), row.get("model"), row.get("effort")) != (host, model, effort):
+        return "another host, model or effort"
+    if planning_review is not None and (planning_review == metrics.NOT_RECORDED
+                                        or row_planning_review(row)[0] != planning_review):
+        return "another planning_review mode"
+    if _prompt_differs(case, prompt_sha256, row):
+        return "another prompt"
+    if not row_reached_done(row):
+        return "did not reach done"
+    return None
+
+
+def matching_rows(path: Path, case: str, source: str | None, host: str | None = None, model: str | None = None,
+                  effort: str | None = None, planning_review: str | None = None,
+                  prompt_sha256: str | None = None) -> tuple[list[dict], int, Counter]:
+    """(the rows this run may be compared with, in file order; how many rows the case and source have; why each other was
+    skipped), by ``row_matches``."""
+    skipped: Counter = Counter()
     if not path.is_file():
-        return None, 0
-    found, seen = None, 0
+        return [], 0, skipped
+    rows, seen = [], 0
     for line in path.read_text().splitlines():
         try:
             row = json.loads(line)
         except ValueError:
             continue
-        if row.get("case") != case or row.get("source") != source:
+        reason = row_matches(row, case, source, host, model, effort, planning_review, prompt_sha256)
+        if reason == "another case or source":
             continue
         seen += 1
-        if (row.get("host"), row.get("model"), row.get("effort")) != (host, model, effort):
-            continue
-        if planning_review is not None and (planning_review == metrics.NOT_RECORDED
-                                            or row_planning_review(row)[0] != planning_review):
-            continue
-        found = row
-    return found, seen
+        if reason:
+            skipped[reason] += 1
+        else:
+            rows.append(row)
+    return rows, seen, skipped
+
+
+def scan_baseline(path: Path, case: str, source: str | None, host: str | None = None,
+                  model: str | None = None, effort: str | None = None,
+                  planning_review: str | None = None, prompt_sha256: str | None = None) -> tuple[dict | None, int]:
+    """(the last comparable row, how many rows were recorded for this case and source), by ``matching_rows``.
+
+    The count lets a caller say "rows exist but none is comparable" instead of printing nothing.
+    """
+    rows, seen, _ = matching_rows(path, case, source, host, model, effort, planning_review, prompt_sha256)
+    return (rows[-1] if rows else None), seen
 
 
 def previous_row(path: Path, case: str, source: str | None, host: str | None = None,
-                 model: str | None = None, effort: str | None = None) -> dict | None:
-    """The last recorded row for this case that is actually comparable with this run."""
-    return scan_baseline(path, case, source, host, model, effort)[0]
+                 model: str | None = None, effort: str | None = None, prompt_sha256: str | None = None) -> dict | None:
+    """The last recorded row for this case that is actually comparable with this run, whatever its planning_review mode."""
+    return scan_baseline(path, case, source, host, model, effort, None, prompt_sha256)[0]
+
+
+def row_lower_bound(row: dict) -> bool | None:
+    """Whether a baseline row's cost and turns cover only the sessions that reported. A row carries no count (it is not a
+    baseline key), so: True when the row lists ``unreported_sessions`` among its unmeasured counters (Grok's events cannot
+    show a session that never reported), and True for any Grok row (the rows from before that listing were written the same
+    way); None otherwise, which is unknown and is not marked."""
+    if "unreported_sessions" in (row.get("unmeasured") or []) or row.get("host") == "grok":
+        return True
+    return None
+
+
+def marked(figure, bound: bool | None) -> str:
+    """A printed figure, with '(lower bound)' after it where it is one."""
+    return f"{figure} (lower bound)" if bound else str(figure)
+
+
+def sample_line(row: dict, before: dict, cell: list[dict]) -> str:
+    """The facts a comparison rests on, as a line: no claim that the run is within, above or below anything (SPEC, "A
+    comparison names its sample"). Whether the plugin tree is the one the earlier row ran on, how the host build changed, and
+    how many earlier rows the cell has on how many builds; a fact one side does not record is said to be unknown, not
+    guessed."""
+    def pair(was, now, same: str, differs: str, label: str) -> str:
+        if was is None or now is None:
+            return f"{label} unknown ({'this run' if now is None else 'the earlier row'} records none)"
+        return same.format(now) if was == now else differs.format(was, now)
+
+    trees = pair(before.get("plugin_sha256"), row.get("plugin_sha256"), "plugin tree same ({})",
+                 "plugin tree different ({} -> {})", "plugin tree")
+    label = "Claude Code build" if row.get("host") == "claude" else f"{row.get('host')} build"
+    builds = pair(before.get("host_build"), row.get("host_build"), label + " {} (same)", label + " {} -> {}", label)
+    recorded = {r["plugin_sha256"] for r in cell if r.get("plugin_sha256")}
+    unrecorded = sum(1 for r in cell if not r.get("plugin_sha256"))
+    rows = (f"{len(cell)} earlier row(s) in this cell on {len(recorded)} recorded build(s)"
+            + (f", {unrecorded} with no recorded tree" if unrecorded else ""))
+    return f"{trees}; {builds}; {rows}"
+
+
+# ------------------------------------------------------------------------------- run.py --baseline-report
+#
+# Read-only. It unions the baseline file with the run folders (by the run's recorded output path) and says, per cell, how
+# many attempts there were, which of them count, on how many builds, and the n, min, median and max of what they cost. It
+# states facts: no run is placed within or outside a range (SPEC, "A comparison names its sample"). It writes nothing and
+# starts no host or CLI: a build a run did not record stays null, because today's CLI is not the one that ran. Whether a
+# row is a basis for a run is decided by ``row_matches``, the predicate the live line uses.
+
+# The class of each attempt; exactly one applies, the first that does, in this order.
+ATTEMPT_COUNTS = {"counted": "counted", "did not reach done": "did_not_reach_done", "mixed host": "mixed_host",
+                  "resumed": "resumed", "seeded": "seeded", "ended by the harness": "ended_by_harness",
+                  "process not observed": "process_not_observed", "no driver recorded": "no_driver_recorded",
+                  "no result.json": "no_result"}
+# What a folder can supply for a row that lacks it: the cell fields and the identity fields.
+SUPPLIED_FIELDS = ("source", "host", "model", "effort", "planning_review", *IDENTITY_FIELDS)
+REPORT_NOTES = (
+    "n, min, median and max describe the rows counted; a range across builds is not a noise estimate, and no run is placed "
+    "against it.",
+    "A figure marked as a lower bound covers only the sessions that reported; Grok's events cannot show a session that "
+    "never did, so every Grok cost and turns figure is marked.",
+    "Overlap is a count of rows whose recorded span crossed another recorded span. It misses a run that left no record "
+    "and a row with no span, and it can include a resumed run's pause (a span runs from the first to the last stamp).",
+    "Where a baseline row and a run folder both describe a run, the row wins wherever it has a value; the folder fills "
+    "only what the row lacks, and every field it supplied is listed in `recomputed`. A build a run did not record "
+    "stays null, with its reason in `identity_unmeasured`.",
+)
+SKIPPED_DIRECTORIES = ("node_modules", "__pycache__")
+
+
+def _json_file(path: Path) -> dict | None:
+    try:
+        value = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _inside(folder: Path, recorded_output: str | None, recorded) -> Path | None:
+    """A path a run recorded, found under its folder as the folder lies now: a copied or moved run folder keeps the
+    absolute paths it was made with. None for a path outside the run's own folder: what lies there now is not what the run
+    used, so nothing is derived from it."""
+    if not isinstance(recorded, str) or not isinstance(recorded_output, str) or not recorded_output:
+        return None
+    if recorded == recorded_output or recorded.startswith(recorded_output + "/"):
+        return folder / recorded[len(recorded_output):].lstrip("/")
+    return None
+
+
+def is_run_folder(path: Path) -> bool:
+    """A folder in the harness's own record shape: an ``invocation.json`` naming a case and a host, or a ``result.json``
+    naming a case, a host and an output. The audit harness's trial folders have neither."""
+    first = _json_file(path / "invocation.json")
+    if first is not None and isinstance(first.get("case"), str) and isinstance(first.get("host"), str):
+        return True
+    result = _json_file(path / "result.json")
+    return (result is not None and isinstance(result.get("case"), str) and isinstance(result.get("host"), str)
+            and isinstance(result.get("output"), str))
+
+
+def run_folders(roots: list[Path]) -> tuple[list[Path], list[str]]:
+    """(the run folders at any depth under each root, the walk stopping at a run folder; a note for each root with none or
+    that does not exist). Resolved and de-duplicated, so the result does not depend on how a root is spelled."""
+    found: dict[str, Path] = {}
+    notes: list[str] = []
+    for root in roots:
+        root = Path(root).expanduser()
+        if not root.is_dir():
+            notes.append(f"the --runs directory {root} does not exist")
+            continue
+        before = len(found)
+        for here, folders, _names in os.walk(root):
+            if is_run_folder(Path(here)):
+                found.setdefault(str(Path(here).resolve()), Path(here).resolve())
+                folders[:] = []
+            else:
+                folders[:] = sorted(f for f in folders if not f.startswith(".") and f not in SKIPPED_DIRECTORIES)
+        if len(found) == before:
+            notes.append(f"no run folder was found under {root}")
+    return [found[key] for key in sorted(found)], notes
+
+
+def folder_record(folder: Path, cases: dict) -> dict:
+    """What a run folder says about its run: the row its result stands for, the fields the report supplied from the folder's
+    other files (and why it could not supply the others), and the facts that decide whether the run counts. Nothing here
+    starts a process."""
+    result = _json_file(folder / "result.json")
+    first = _json_file(folder / "invocation.json") or {}
+    launches = runrecord.launches(folder)
+    first_launch = launches[0][1] if launches else {}
+    saved = _json_file(folder / "metrics.json") or {}
+    identity = first if result is None else result
+    if result is not None and not isinstance(result.get("output"), str):
+        raise ValueError("result.json has no output path")
+    recorded = (result or {}).get("output") or str(folder)
+    run_dir = _inside(folder, (result or {}).get("output"), ((result or {}).get("shiploop") or {}).get("run_dir"))
+    name = identity.get("case")
+    style = None if name == "custom" else (cases.get(name) or {}).get("style")
+    stand_in = result if result is not None else {"case": name, "host": identity.get("host"), "model": identity.get("model"),
+                                                  "effort": identity.get("effort"), "versions": identity.get("versions"),
+                                                  "output": recorded, "metrics": {}}
+    state = metrics.engine_state(run_dir) if run_dir else {}
+    row = baseline_row(stand_in, style, None, metrics.planning_review(state))
+    if state.get("planning_review") is None:
+        row["planning_review"] = None  # no mode recorded: ``row_planning_review`` reads it from the plugin version, as for a row
+    row["source"] = _source_name((first.get("versions") or {}).get("source") or row.get("source"))
+    filled: list[str] = []
+    why_not: dict[str, str] = {}
+
+    def fill(key: str, value, why: str | None = None) -> None:
+        if row.get(key) is not None:
+            return
+        if value is not None:
+            row[key] = value
+            filled.append(key)
+        elif why:
+            why_not[key] = why
+
+    plugin_dir = _inside(folder, (result or {}).get("output"), first.get("plugin_dir"))
+    if row.get("plugin_sha256") is None:
+        digest, why = tree_digest_checked(plugin_dir) if plugin_dir else (None, "the plugin build is not inside the run folder")
+        fill("plugin_sha256", digest, why)
+    try:
+        fill("prompt_sha256", masked_prompt_digest((folder / "prompt.txt").read_text(), Path(recorded)))
+    except OSError:
+        why_not["prompt_sha256"] = "no prompt.txt in the folder"
+    if row.get("host") == "claude":
+        build = (((result or {}).get("metrics") or {}).get("claude_code_version") or saved.get("claude_code_version")
+                 or metrics.claude_builds(folder / "events.jsonl"))
+        fill("host_build", build, "the init events name no Claude Code build")
+    else:  # the build the FIRST launch recorded; a run launched before the field existed has none, and none is not asked for now
+        fill("host_build", first_launch.get("host_build"),
+             (first_launch.get("identity_unmeasured") or {}).get("host_build") or LAUNCH_PREDATES)
+    span = metrics.span(metrics.timeline(folder / "timeline.jsonl"))
+    fill("started", span["started"], "no timeline.jsonl stamps")
+    fill("ended", span["ended"], "no timeline.jsonl stamps")
+    fill("planning_seconds", metrics.planning_seconds(saved.get("planning")),
+         metrics.planning_unmeasured(saved.get("planning")) if saved else "no metrics.json in the folder")
+    unreadable = result is None and (folder / "result.json").is_file()
+    return {"row": row, "filled": filled, "why_not": why_not, "result_reasons": (result or {}).get("identity_unmeasured") or {},
+            "folder": folder, "has_result": result is not None, "unreadable": unreadable,
+            "hosts_used": runrecord.hosts_used(folder), "mixed_host": runrecord.mixed_host(folder),
+            "launches": len(launches), "seeded": bool((result or {}).get("seeded")),
+            "earlier": len((result or {}).get("earlier_terminations") or []),
+            "process_status": ((result or {}).get("process") or {}).get("status"),
+            "termination": (result or {}).get("termination") or {},
+            "lower_bound": metrics.lower_bound((result or {}).get("metrics") or {})}
+
+
+def classify_attempt(row: dict, folder: dict | None) -> tuple[str, str | None]:
+    """(the class of an attempt, why it is not counted). The first that applies: a run nobody recorded the end of, seeded,
+    worked on by two hosts, really resumed (a regrade is not a resume: it started no host), ended by the harness (the live
+    path writes it no row), its host never observed, not done, or with no driver named."""
+    if folder is not None:
+        if not folder["has_result"]:
+            return "no result.json", ("result.json is unreadable" if folder["unreadable"] else
+                                      "the folder holds launch records and no result.json: its harness died before writing "
+                                      "the records, or the run is still going")
+        if folder["seeded"]:
+            return "seeded", "seeded at a later stage: it did not start from intake"
+        if folder["mixed_host"]:
+            return "mixed host", f"launched by {' and '.join(folder['hosts_used'])}: it belongs to no host's cell"
+        if folder["earlier"] or folder["launches"] > 1:
+            return "resumed", (f"resumed ({folder['launches']} launch(es), {folder['earlier']} earlier termination(s)): "
+                               "a fragment of a run is not a baseline")
+        if folder["process_status"] in ("timeout", "stopped") or folder["termination"].get("engine_status") == "active":
+            return "ended by the harness", ("its host was killed by a deadline or a stop, or its engine is still active: the "
+                                            "live path wrote no row for it")
+        if folder["process_status"] == "not observed":
+            return "process not observed", "no host ran in this record and none was recorded: nothing says it ended"
+    if not row_reached_done(row):
+        status = (row.get("termination") or {}).get("engine_status") or (
+            "blocked" if (row.get("verdicts") or {}).get("shiploop") is False else "unknown")
+        return "did not reach done", f"engine {status}: its turns, cost and stages stop there"
+    if row.get("host") is None and row.get("model") is None and row.get("effort") is None:
+        return "no driver recorded", "the row names no host, model or effort, so no run is compared with it"
+    return "counted", None
+
+
+def _stats(values: list, digits: int) -> dict:
+    """n, min, median and max of the measured values; None for each when there is none."""
+    got = sorted(v for v in values if v is not None)
+    if not got:
+        return {"n": 0, "min": None, "median": None, "max": None}
+    middle = statistics.median(got)
+    return {"n": len(got), "min": round(got[0], digits), "median": round(middle, digits), "max": round(got[-1], digits)}
+
+
+def span_overlaps(spans: list[tuple[float | None, float | None]]) -> list[int | None]:
+    """For each (started, ended) span, how many of the others it crosses (touching spans do not cross); None for a span with
+    an end unknown. The one place overlap is computed."""
+    counts: list[int | None] = []
+    for index, (start, end) in enumerate(spans):
+        if start is None or end is None:
+            counts.append(None)
+            continue
+        counts.append(sum(1 for other, (s, e) in enumerate(spans)
+                          if other != index and s is not None and e is not None and start < e and s < end))
+    return counts
+
+
+def assign_cells(records: list[dict]) -> dict[tuple, list[dict]]:
+    """Group records into cells: the live key (case, source, host, model, effort, planning_review mode) plus the prompt. A
+    record with a hash goes to the cell of that hash. One with none goes to the only cell of its driver when there is one
+    prompt (the live rule matches it with any prompt of a named case), and to a cell of its own when the driver has
+    several, or when the case is ``custom`` (the live rule matches it with none)."""
+    def base(r: dict) -> tuple:
+        return tuple(r[k] for k in ("case", "source", "host", "model", "effort", "planning_review"))
+
+    hashes: dict[tuple, set] = {}
+    for r in records:
+        if r["prompt_sha256"]:
+            hashes.setdefault(base(r), set()).add(r["prompt_sha256"])
+    groups: dict[tuple, list[dict]] = {}
+    for r in records:
+        found = hashes.get(base(r), set())
+        prompt = r["prompt_sha256"] or (next(iter(found)) if r["case"] != "custom" and len(found) == 1 else None)
+        groups.setdefault((*base(r), prompt), []).append(r)
+    return groups
+
+
+def _public_record(key: str, entry: dict) -> dict:
+    """One attempt, merged from the baseline row and the folder: the row wins wherever it has a value."""
+    file_row, found = entry.get("file"), entry.get("folder")
+    row = dict(found["row"]) if found else {}
+    if file_row:
+        row.update({k: v for k, v in file_row.items() if v is not None and k != "identity_unmeasured"})
+        row["source"] = _source_name(row.get("source"))
+    if found and file_row:
+        derived = sorted(k for k in SUPPLIED_FIELDS if file_row.get(k) is None and row.get(k) is not None)
+    else:
+        derived = sorted(found["filled"]) if found else []
+    klass, why = classify_attempt(row, found)
+    started, ended, planning = row.get("started"), row.get("ended"), row.get("planning_seconds")
+    for name, value in (("started", started), ("ended", ended), ("planning_seconds", planning), ("cost_usd", row.get("cost_usd")),
+                        ("turns", row.get("turns"))):
+        if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float))):
+            raise TypeError(f"{name} is {value!r}, not a number")
+    file_reasons = (file_row or {}).get("identity_unmeasured") or {}
+    reasons = {}
+    for name in IDENTITY_FIELDS:
+        if row.get(name) is None:
+            reasons[name] = (file_reasons.get(name) or (found or {}).get("result_reasons", {}).get(name)
+                             or (found or {}).get("why_not", {}).get(name)
+                             or (row.get("identity_unmeasured") or {}).get(name) or "not recorded")
+    bound = found["lower_bound"] if found and found["lower_bound"] is not None else row_lower_bound(row)
+    return {
+        "output": row.get("output") or key, "record": "file+folder" if file_row and found else "folder" if found else "file",
+        "case": row.get("case"), "source": row.get("source"), "host": row.get("host"), "model": row.get("model"),
+        "effort": row.get("effort"), "planning_review": row_planning_review(row)[0],
+        "prompt_sha256": row.get("prompt_sha256"), "plugin_version": row.get("plugin_version"),
+        "plugin_sha256": row.get("plugin_sha256"), "host_build": row.get("host_build"), "local_head": row.get("local_head"),
+        "started": started, "ended": ended,
+        "minutes": round((ended - started) / 60, 1) if started is not None and ended is not None else None,
+        "planning_seconds": planning, "planning_minutes": round(planning / 60, 2) if planning is not None else None,
+        "cost_usd": row.get("cost_usd"), "turns": row.get("turns"),
+        "lower_bound": bound,
+        "pass": row.get("pass"),
+        "engine_status": (found["termination"].get("engine_status") if found and found["termination"] else None)
+        or (row.get("termination") or {}).get("engine_status"),
+        "process_status": (found["process_status"] if found else None) or (row.get("termination") or {}).get("process_status"),
+        "hosts_used": found["hosts_used"] if found else None, "class": klass, "why": why, "recomputed": derived,
+        "identity_unmeasured": reasons, "overlaps": None}
+
+
+def _unreadable_record(key: str, entry: dict, error: Exception) -> dict:
+    row = entry.get("file") if isinstance(entry.get("file"), dict) else {}
+    output = key if not isinstance(row.get("output"), str) else row["output"]
+    blank = {name: None for name in ("case", "source", "host", "model", "effort", "prompt_sha256", "plugin_version",
+                                     "plugin_sha256", "host_build", "local_head", "started", "ended", "minutes",
+                                     "planning_seconds", "planning_minutes", "cost_usd", "turns", "lower_bound", "pass",
+                                     "engine_status", "process_status", "hosts_used", "overlaps")}
+    return {"output": output, "record": "file+folder" if entry.get("file") and entry.get("folder") else
+            "folder" if entry.get("folder") else "file", **blank, "planning_review": None,
+            "class": "unreadable record", "why": f"{type(error).__name__}: {error}", "recomputed": [],
+            "identity_unmeasured": {}}
+
+
+def baseline_report(baseline: Path | None, runs: list[Path]) -> dict:
+    """The report: every attempt once (a baseline row and a run folder that describe the same run are one record, keyed by
+    the run's recorded output path), its class, and per cell the attempts, builds, measures and overlap. A record that
+    cannot be read is an 'unreadable record' with the exception text, and never stops the report."""
+    cases = json.loads(CASES.read_text())
+    notes: list[str] = []
+    entries: dict[str, dict] = {}
+    if baseline is not None:
+        if not baseline.is_file():
+            notes.append(f"the baseline file {baseline} does not exist")
+        else:
+            for number, line in enumerate(baseline.read_text().splitlines()):
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(row, dict):
+                    output = row.get("output")
+                    entries[os.path.normpath(output if isinstance(output, str) and output else f"<row {number}>")] = {"file": row}
+    folders, folder_notes = run_folders(runs)
+    notes += folder_notes
+    for folder in folders:
+        try:
+            found = folder_record(folder, cases)
+            key = os.path.normpath(found["row"].get("output") or str(folder))
+            entries.setdefault(key, {})["folder"] = found
+        except Exception as error:  # one bad record is one unreadable record
+            entries.setdefault(os.path.normpath(str(folder)), {})["error"] = error
+    records = []
+    for key, entry in entries.items():
+        try:
+            if "error" in entry:
+                raise entry["error"]
+            records.append(_public_record(key, entry))
+        except Exception as error:
+            records.append(_unreadable_record(key, entry, error))
+    readable = [r for r in records if r["class"] != "unreadable record"]
+    for record, count in zip(readable, span_overlaps([(r["started"], r["ended"]) for r in readable])):
+        record["overlaps"] = count
+    records.sort(key=lambda r: (r["started"] is None, r["started"] or 0.0, str(r["output"])))
+    cells = []
+    groups = assign_cells([r for r in records if r["class"] != "unreadable record"])
+    for key in sorted(groups, key=lambda k: tuple("" if part is None else str(part) for part in k)):
+        members = groups[key]
+        counted = [r for r in members if r["class"] == "counted"]
+        attempts = {"seen": len(members), "counted": len(counted), "passed": sum(1 for r in counted if r["pass"] is True),
+                    **{ATTEMPT_COUNTS[c]: sum(1 for r in members if r["class"] == c) for c in ATTEMPT_COUNTS if c != "counted"}}
+        trees = Counter(r["plugin_sha256"] for r in counted if r["plugin_sha256"])
+        hosts_seen = Counter(r["host_build"] for r in counted if r["host_build"])
+        measures = {}
+        for name, field, digits in (("cost_usd", "cost_usd", 4), ("turns", "turns", 0), ("minutes", "minutes", 1),
+                                    ("planning_minutes", "planning_minutes", 2)):
+            values = [r[field] for r in counted]
+            stat = _stats(values, digits)
+            if name == "turns":
+                stat = {k: (int(v) if isinstance(v, float) and v == int(v) else v) for k, v in stat.items()}
+            stat["not_measured"] = sum(1 for v in values if v is None)
+            if name in ("cost_usd", "turns"):
+                stat["lower_bound_rows"] = sum(1 for r in counted if r[field] is not None and r["lower_bound"] is True)
+                stat["lower_bound_unknown_rows"] = sum(1 for r in counted if r[field] is not None and r["lower_bound"] is None)
+            if name == "minutes":  # a wall-time range is read beside how many of its rows overlapped
+                stat["overlapped_by_span"] = sum(1 for r in counted if r["minutes"] is not None and r["overlaps"])
+                stat["not_seen_overlapping"] = sum(1 for r in counted if r["minutes"] is not None and r["overlaps"] == 0)
+            measures[name] = stat
+        cells.append({
+            "cell": dict(zip(("case", "source", "host", "model", "effort", "planning_review", "prompt_sha256"), key)),
+            "attempts": attempts,
+            "builds": {"plugin_sha256": dict(sorted(trees.items())),
+                       "unrecorded": sum(1 for r in counted if not r["plugin_sha256"])},
+            "host_builds": {**dict(sorted(hosts_seen.items())), "unrecorded": sum(1 for r in counted if not r["host_build"])},
+            "measures": measures,
+            "overlap": {"rows": len(counted), "overlapped_by_span": sum(1 for r in counted if r["overlaps"]),
+                        "not_seen_overlapping": sum(1 for r in counted if r["overlaps"] == 0),
+                        "unknown": sum(1 for r in counted if r["overlaps"] is None)},
+            "outputs": {c: [Path(str(r["output"])).name for r in members if r["class"] == c]
+                        for c in ATTEMPT_COUNTS if any(r["class"] == c for r in members)}})
+    return {"inputs": {"baseline": str(baseline) if baseline else None, "runs": [str(r) for r in runs]},
+            "records": records, "cells": cells, "notes": [*notes, *REPORT_NOTES]}
+
+
+def render_report(report: dict) -> str:
+    """The report as text: one block per cell, then the notes."""
+    records = report["records"]
+    kinds = Counter(r["record"] for r in records)
+    unreadable = [r for r in records if r["class"] == "unreadable record"]
+    lines = [f"baseline report: {len(records)} record(s) ({kinds['file+folder']} in the file and a folder, {kinds['folder']} in "
+             f"a folder only, {kinds['file']} in the file only; {len(unreadable)} unreadable) in {len(report['cells'])} cell(s)"]
+    for cell in report["cells"]:
+        c = cell["cell"]
+        lines += ["", "cell " + " | ".join([str(c["case"]), str(c["source"]), c["host"] or "host not recorded",
+                                            c["model"] or "model not recorded", f"effort {c['effort'] or '-'}",
+                                            f"planning_review {c['planning_review']}",
+                                            f"prompt {c['prompt_sha256'] or 'not recorded'}"])]
+        a = cell["attempts"]
+        extra = "".join(f", {label} {a[key]}" for label, key in (
+            ("did not reach done", "did_not_reach_done"), ("mixed host", "mixed_host"), ("resumed", "resumed"),
+            ("seeded", "seeded"), ("ended by the harness", "ended_by_harness"),
+            ("process not observed", "process_not_observed"),
+            ("no driver recorded", "no_driver_recorded"), ("no result.json", "no_result")) if a[key])
+        lines.append(f"  attempts   seen {a['seen']}, counted {a['counted']}, passed {a['passed']}{extra}")
+        trees = cell["builds"]["plugin_sha256"]
+        lines.append(f"  builds     {len(trees)} plugin tree(s)" + (f" ({', '.join(str(n) for n in trees.values())} row(s) each)"
+                     if trees else "") + f", {cell['builds']['unrecorded']} row(s) with no recorded tree")
+        lines.append("  host build " + (", ".join(f"{b} x{n}" for b, n in cell["host_builds"].items() if b != "unrecorded")
+                                        or "none recorded") + f"; {cell['host_builds']['unrecorded']} unrecorded")
+        for name, label in (("cost_usd", "cost_usd  "), ("turns", "turns     "), ("minutes", "minutes   "),
+                            ("planning_minutes", "planning  ")):
+            m = cell["measures"][name]
+            if not m["n"]:
+                lines.append(f"  {label} n=0 ({m['not_measured']} not measured)")
+                continue
+            note = ""
+            if "lower_bound_rows" in m and (m["lower_bound_rows"] or m["lower_bound_unknown_rows"]):
+                note = (f" (lower bound in {m['lower_bound_rows']} of {m['n']} rows"
+                        + (f", unknown in {m['lower_bound_unknown_rows']}" if m["lower_bound_unknown_rows"] else "") + ")")
+            if name == "minutes":
+                note = f" ({m['overlapped_by_span']} of {m['n']} overlapped)"
+            lines.append(f"  {label} n={m['n']} min {m['min']} median {m['median']} max {m['max']}{note}"
+                         + (f"; {m['not_measured']} not measured" if m["not_measured"] else ""))
+        o = cell["overlap"]
+        lines.append(f"  overlap    {o['overlapped_by_span']} of {o['rows']} rows overlapped another recorded span; "
+                     f"{o['not_seen_overlapping']} not seen to"
+                     + (f"; {o['unknown']} row(s) record no span" if o["unknown"] else ""))
+        for klass, names in cell["outputs"].items():
+            if klass != "counted":
+                lines.append(f"  {klass}: {', '.join(names)}")
+    if unreadable:
+        lines += ["", *(f"unreadable record: {Path(str(r['output'])).name}: {r['why']}" for r in unreadable)]
+    lines += ["", *report["notes"]]
+    return "\n".join(lines) + "\n"
+
+
+def baseline_report_main(args) -> int:
+    """`--baseline-report`: print the report (JSON with --json). Reads files only and always exits 0."""
+    report = baseline_report(args.baseline, args.runs or [])
+    print(json.dumps(report, indent=1) if args.json else render_report(report), end="\n" if args.json else "")
+    return 0
 
 
 NOT_OBSERVED = "not observed (regraded: no host ran)"
@@ -1795,6 +2408,10 @@ def main(argv: list[str] | None = None) -> int:
 def _main(argv: list[str] | None, held: list) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    if args.baseline_report:
+        return baseline_report_main(args)
+    if args.runs or args.json:
+        raise SystemExit("--runs and --json belong to --baseline-report")
     if args.preflight_only:
         # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
         out = new_output_dir(args.output, "preflight")
@@ -2025,13 +2642,43 @@ def _main(argv: list[str] | None, held: list) -> int:
                     permission_mode=args.permission_mode, max_turns=args.max_turns,
                     max_budget_usd=args.max_budget_usd,
                     plugin_dir=None if host.marketplace else plugin_dir)
+    # The host CLI's build, probed once for this launch and written on this launch's record. A regrade starts no host: it
+    # restates what the run recorded, and a run recorded before the field existed stays null (today's CLI is not the one
+    # that ran). Claude's build is its init event's (read below), so it is never probed.
+    if regrade:
+        launch_build = recorded.get("host_build")
+        launch_why = None if launch_build else (recorded.get("identity_unmeasured") or {}).get("host_build") or LAUNCH_PREDATES
+    else:
+        launch_build, launch_why = host.cli_version(env)
+    # The run's `host_build` has one meaning, the first launch's: this launch's when it is the first, else the first
+    # launch's record, and never a probe made now for a launch made before the field existed.
+    if args.host == "claude":
+        host_build, host_build_why = None, None  # the init event, read after the run
+    elif regrade:
+        # `recorded` is the run's last launch (a regrade restates that launch's identity), but the run's `host_build` is the
+        # first launch's: restate what the run recorded for it (its result, else invocation.json, the first launch's record).
+        first = earlier_result if "host_build" in earlier_result else earlier
+        host_build = first.get("host_build")
+        host_build_why = None if host_build else (first.get("identity_unmeasured") or {}).get("host_build") or LAUNCH_PREDATES
+    elif resumed and earlier.get("host") != args.host:
+        host_build, host_build_why = None, "resumed on another host: see the launch records"
+    elif resumed:
+        host_build = earlier.get("host_build")
+        host_build_why = None if host_build else (earlier.get("identity_unmeasured") or {}).get("host_build") or FIRST_PREDATES
+    else:
+        host_build, host_build_why = launch_build, launch_why
+    plugin_why = versions.get("plugin_sha256_unmeasured") or (
+        LAUNCH_PREDATES if regrade and "plugin_sha256" not in versions else "no reason recorded")
     # `plugin` is the install check made before the host started (Grok, Codex), kept so a resume or a regrade
     # grades the run on its first launch's evidence; None for Claude, whose init event shows it on every launch.
     invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
-                  "checks": checks,
+                  "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
-                  "interrupt_at": interrupt_at, "needs": needs, "environment": start_environment}
+                  "interrupt_at": interrupt_at, "needs": needs, "environment": start_environment,
+                  # why each null identity field of this launch is null (empty: all known)
+                  "identity_unmeasured": {**({} if launch_build else {"host_build": launch_why}),
+                                          **({} if versions.get("plugin_sha256") else {"plugin_sha256": plugin_why})}}
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
         (out / f"invocation-resume-{host.name}-{stamp}.json").write_text(
@@ -2233,8 +2880,24 @@ def _main(argv: list[str] | None, held: list) -> int:
     earlier_terminations = list(earlier_result.get("earlier_terminations") or []) if resumed else []
     if resumed and not regrade and isinstance(earlier_result.get("termination"), dict):
         earlier_terminations.append(earlier_result["termination"])
+    stamps_why = "no timeline.jsonl stamps"
+    local_head = versions.get("local_head") or (versions.get("released") or {}).get("local_head")
+    known = {"plugin_sha256": versions.get("plugin_sha256"), "prompt_sha256": True,
+             "host_build": run_metrics["claude_code_version"] if args.host == "claude" else host_build,
+             "local_head": local_head, "started": run_metrics["span"]["started"], "ended": run_metrics["span"]["ended"],
+             "planning_seconds": metrics.planning_seconds(run_metrics.get("planning"))}
+    why = {"plugin_sha256": plugin_why, "host_build": "the init events name no Claude Code build" if args.host == "claude"
+           else host_build_why, "local_head": "no head recorded", "started": stamps_why, "ended": stamps_why,
+           "planning_seconds": metrics.planning_unmeasured(run_metrics.get("planning"))}
+    identity_unmeasured = {name: why.get(name) or "no reason recorded" for name, value in known.items() if value is None}
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
+              # Identity, null where unknown: the prompt with the run's own folder masked, the host CLI's build (Claude's
+              # init event; the others' launch probe) and the stream's first and last stamp.
+              "prompt_sha256": masked_prompt_digest(prompt, out, args.resume_run or args.output),
+              "host_build": run_metrics["claude_code_version"] if args.host == "claude" else host_build,
+              "span": run_metrics["span"],
+              "identity_unmeasured": identity_unmeasured,
               "process": process, "termination": termination, "outcome_class": outcome, "outcome_basis": outcome_basis,
               "environment": run_environment,
               **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
@@ -2249,6 +2912,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                                                       "truncated_outputs", "improve_children", "stages", "unmeasured")}
               # None, not 0, where the host's events cannot show the thing counted.
               | {"script_verifications": run_metrics["script_verifications"],
+                 "planning_seconds": metrics.planning_seconds(run_metrics.get("planning")),
                  "model_glue": metrics.count(run_metrics, "model_glue"),
                  "tmp_writes": metrics.count(run_metrics, "tmp_writes"),
                  "asked_user": len(run_metrics["asked_user"]),
@@ -2267,10 +2931,15 @@ def _main(argv: list[str] | None, held: list) -> int:
     engine_active = engine.get("status") == "active"
     unfinished = engine_active or process["status"] in ("timeout", "stopped")
     baseline_file = args.baseline if not (resumed or seeded or unfinished) else None
-    before, rows_for_case = (scan_baseline(baseline_file, name, versions["source"], args.host, args.model,
-                                           args.effort, row["planning_review"]) if baseline_file else (None, 0))
-    last = (previous_row(baseline_file, name, versions["source"], args.host, args.model, args.effort)
-            if baseline_file and before is None else None)  # the driver's last row, of another mode: what the report names
+    # The row is written for any run that ended, but only a run that reached done is compared: a blocked or halted run's
+    # turns, cost and stages stop at the block (r1 Grok printed "503 -> 301" for a blocked run against a blocked row).
+    reached_done = engine.get("status") == "done"
+    cell, rows_for_case, skipped = (
+        matching_rows(baseline_file, name, versions["source"], args.host, args.model, args.effort, row["planning_review"],
+                      row["prompt_sha256"]) if baseline_file and reached_done else ([], 0, Counter()))
+    before = cell[-1] if cell else None
+    last = (previous_row(baseline_file, name, versions["source"], args.host, args.model, args.effort, row["prompt_sha256"])
+            if baseline_file and reached_done and before is None else None)  # the driver's last row, of another mode: what the report names
     if baseline_file:
         with baseline_file.open("a") as handle:
             handle.write(json.dumps(row) + "\n")
@@ -2338,34 +3007,44 @@ def _main(argv: list[str] | None, held: list) -> int:
     for failure in run_metrics["shiploop_failures"][:5]:
         print(f"  failed    shiploop {failure['verb']} {metrics.failure_text(failure)}: {failure['line']}")
     if follow_on:
+        prior_bound = follow_on.get("prior_lower_bound")
         print(f"  follow-on of {follow_on['prior_case']} ({follow_on['prior']}): turns {metrics.turns_text(run_metrics)} vs "
-              f"{'not reported' if follow_on['prior_turns'] is None else follow_on['prior_turns']}, cost {metrics.money(run_metrics['cost_usd'])} vs "
-              f"{metrics.money(follow_on['prior_cost_usd'])}")
+              f"{marked('not reported' if follow_on['prior_turns'] is None else follow_on['prior_turns'], prior_bound)}, "
+              f"cost {marked(metrics.money(run_metrics['cost_usd']), metrics.lower_bound(run_metrics))} vs "
+              f"{marked(metrics.money(follow_on['prior_cost_usd']), prior_bound)}")
     print(f"  checks    expected from {expectations['checks']}")
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
     print(f"  {exported}")
     if before:
         unknown = lambda value: "not measured" if value is None else value  # noqa: E731
+        was, now = row_lower_bound(before), metrics.lower_bound(run_metrics)  # a lower bound stays marked wherever it is shown
         print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}, same "
               f"{args.host}/{args.model}/{args.effort}, planning_review {row['planning_review']}): "
-              f"turns {unknown(before['turns'])} -> {unknown(row['turns'])}, cost {metrics.money(before['cost_usd'])} -> "
-              f"{metrics.money(row['cost_usd'])}, "
+              f"turns {marked(unknown(before['turns']), was)} -> {marked(unknown(row['turns']), now)}, "
+              f"cost {marked(metrics.money(before['cost_usd']), was)} -> {marked(metrics.money(row['cost_usd']), now)}, "
               f"sessions {before['sessions']} -> {row['sessions']}, "
               f"glue {unknown(before['model_glue'])} -> {unknown(row['model_glue'])}"
               + (f", narrative shown {before['narrative']['shown']}/{before['narrative']['emitted']} -> "
                  f"{row['narrative']['shown']}/{row['narrative']['emitted']}"
                  if before.get("narrative") and row.get("narrative") else ""))
+        print(f"            sample: {sample_line(row, before, cell)}")
         if why := row_planning_review(before)[1]:  # a row with no mode compared as stage by the plugin version rule
             print(f"            the earlier row {why}")
         for line in stage_diff_lines(before.get("stages"), row.get("stages")):
             print(f"            {line}")
+    elif baseline_file and not reached_done:
+        print(f"  baseline  nothing compared: this run did not reach done (engine {engine.get('status') or 'unknown'}), so "
+              "its turns, cost and stages are no comparison; its row is recorded")
     elif last:
         print(planning_review_line(row["planning_review"], last))  # turns, cost and stages mean something else in the other mode
     elif baseline_file:
+        only_driver = set(skipped) <= {"another host, model or effort"}
         print("  baseline  nothing compared: " + (
             f"{rows_for_case} earlier row(s) for {name}, none recorded with {args.host}/{args.model}/"
-            f"{args.effort}, so there is no baseline" if rows_for_case
+            f"{args.effort}, so there is no baseline" if rows_for_case and only_driver
+            else f"{rows_for_case} earlier row(s) for {name}, none comparable with this run ("
+                 + ", ".join(f"{count} {reason}" for reason, count in skipped.items()) + ")" if rows_for_case
             else f"no earlier row for {name} from this source"))
     elif resumed or seeded:
         print("  baseline  nothing compared: a resumed or seeded run is not a baseline")

@@ -2399,8 +2399,9 @@ class HostCoverageTest(unittest.TestCase):
     def test_a_grok_shaped_stream_measures_every_counter(self):
         stream = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
                   {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "git add -A"}}] * 4
-        # Every counter: the detectors read Grok's events. (A context window is a figure Grok never reports.)
-        self.assertEqual(set(collect_stream(stream, self.ACCEPTED)["unmeasured"]), {"window_tokens"})
+        # Every counter: the detectors read Grok's events. (A context window is a figure Grok never reports, and nothing in
+        # its events marks a session start, so the count of sessions that never reported is unmeasured too.)
+        self.assertEqual(set(collect_stream(stream, self.ACCEPTED)["unmeasured"]), {"window_tokens", "unreported_sessions"})
 
     def test_the_baseline_row_carries_unmeasured_counters_as_null_with_their_names(self):
         result = {"case": "hello", "metrics": {"turns": 5, "cost_usd": None, "model_glue": None,
@@ -3500,7 +3501,7 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
         self.assertIn("no earlier row of mode none", printed)
         self.number_rows(11, 22)
         _, printed = self.run_with("stage")  # [stage, none] then stage: the stage row, found past the none row
-        self.assertIn("planning_review stage): turns 11 -> ", printed)
+        self.assertIn("planning_review stage): turns 11 (lower bound) -> ", printed)
         self.assertNotIn("not compared across", printed)
 
     def test_two_modes_interleaved_each_pick_their_own_last_row(self):
@@ -3508,10 +3509,10 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
             self.run_with(mode)
         self.number_rows(111, 222, 333, 444)
         _, printed = self.run_with("none")
-        self.assertIn("planning_review none): turns 444 -> ", printed)
+        self.assertIn("planning_review none): turns 444 (lower bound) -> ", printed)
         self.number_rows(111, 222, 333, 444, 555)
         _, printed = self.run_with("stage")
-        self.assertIn("planning_review stage): turns 333 -> ", printed)
+        self.assertIn("planning_review stage): turns 333 (lower bound) -> ", printed)
         self.assertNotIn("not compared across", printed)
 
     def test_an_earlier_row_with_no_mode_compares_as_stage_only_when_its_plugin_predates_the_option(self):
@@ -3536,7 +3537,7 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
         _, printed = self.run_with("none")
         self.assertIn("(none vs stage); no earlier row of mode none; ", printed)
         _, printed = self.run_with("stage")  # [old row, none row] then stage: the old row, read as stage
-        self.assertIn("planning_review stage): turns 555 -> ", printed)
+        self.assertIn("planning_review stage): turns 555 (lower bound) -> ", printed)
         self.assertIn("            the earlier row records no mode, read as stage because plugin 1.21.0 predates the option", printed)
 
     def test_a_run_whose_state_named_no_mode_is_compared_with_no_row(self):
@@ -4042,7 +4043,7 @@ class ModelCallsAndWindowTest(unittest.TestCase):
         m = collect_stream([{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}] * 4, [])
         self.assertEqual((m["model_calls"], m["turns"]), (4, 4))
         self.assertIsNone(m["window_tokens"])
-        self.assertEqual(set(m["unmeasured"]), {"window_tokens"})
+        self.assertEqual(set(m["unmeasured"]), {"window_tokens", "unreported_sessions"})  # Grok marks no session start
 
     def test_a_host_with_no_per_call_usage_has_no_call_count_not_zero_calls(self):
         m = collect_stream(codex_stream(3), [])
@@ -4113,7 +4114,8 @@ class HostSignalCountersTest(unittest.TestCase):
             {"type": "auto_compact_completed"},
             {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}]
         m = collect_stream(stream, self.ACCEPTED)
-        self.assertEqual(set(m["unmeasured"]), {"window_tokens"}, "every detector reads a Grok stream")
+        self.assertEqual(set(m["unmeasured"]), {"window_tokens", "unreported_sessions"},
+                         "every detector reads a Grok stream; its events mark no session start")
         self.assertEqual((m["compactions"], m["truncated_outputs"]), (1, 1))
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
         self.assertEqual(m["knowledge_reads"], ["docs/shiploop/spec.md"])

@@ -624,6 +624,10 @@ def session_stop(event: dict) -> str | None:
 
 
 # Why a counter is unmeasured, recorded beside the run so a reader never takes its 0 for a measurement.
+NO_SESSION_START = ("Grok's events mark no session start: its available_commands event is announced again inside a session "
+                    "(314 of them for 2 end events on a recorded run), so a session that never reported cannot be counted from "
+                    "the stream (model calls after the last end prove at least one did: unreported_sessions_at_least); cost "
+                    "and turns are a lower bound")
 NO_PER_CALL_USAGE = ("the host reports no per-call usage events (one total per session), so turns cannot be "
                      "attributed to a stage")
 NO_MODEL_CALLS = ("the host's events carry no per-call usage (no Claude assistant message and no Grok usage event), so "
@@ -796,6 +800,51 @@ def planning_window(run_dir: Path | None, state: dict, accepted: list[dict], sta
     if first_event is None:
         return block, None, PLANNING_NO_RUNNER_TIMELINE
     return block, (first_event - 1, end), ""
+
+
+def init_build(event: dict) -> str | None:
+    """The Claude Code build a session's ``system/init`` event names, None for any other event."""
+    build = event.get("claude_code_version")
+    return build if isinstance(build, str) and build else None
+
+
+def claude_builds(path: Path) -> str | None:
+    """The build(s) named by the init events of an events file, ', '-joined, None where it names none: the run's own record
+    of the host build, for a run whose metrics did not keep it."""
+    found = {init_build(event) for _number, event in events(path) if event.get("type") == "system"
+             and event.get("subtype") == "init"}
+    return ", ".join(sorted(b for b in found if b)) or None
+
+
+def span(stamps: dict) -> dict:
+    """{started, ended}: the earliest and latest arrival stamp of the stream, None for both when there is none."""
+    return {"started": min(stamps.values()) if stamps else None, "ended": max(stamps.values()) if stamps else None}
+
+
+def planning_seconds(planning: dict | None) -> float | None:
+    """The planning window in seconds, from a ``planning`` block, only when it is closed and measured.
+
+    An open window is not the planning time (it is still running) and one that could not be read is unknown: neither
+    is ever 0. The one reader of the window's length, for the baseline row and for a report built from a saved folder.
+    """
+    window = (planning or {}).get("window") if isinstance(planning, dict) else None
+    seconds = window.get("seconds") if isinstance(window, dict) and window.get("closed") else None
+    return seconds if isinstance(seconds, (int, float)) and not isinstance(seconds, bool) else None
+
+
+def planning_unmeasured(planning: dict | None) -> str | None:
+    """Why ``planning_seconds`` is null, None when it is measured: the block's own reason for the window, else that it is
+    still open, else that there is no block."""
+    if planning_seconds(planning) is not None:
+        return None
+    block = planning if isinstance(planning, dict) else {}
+    window = block.get("window") if isinstance(block.get("window"), dict) else {}
+    reason = (block.get("unmeasured") or {}).get("window") if isinstance(block.get("unmeasured"), dict) else None
+    if reason:
+        return reason
+    if window and not window.get("closed"):
+        return f"the planning window is still open (through {window.get('through')})"
+    return "the metrics hold no planning block"
 
 
 def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], grok: bool, claude: bool,
@@ -1186,6 +1235,8 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     cancelled: list[str] = []
     grok = False  # per-call `usage` events: the one stream shape the Grok-only counters below can be read from
     starts = 0  # sessions the host began, to tell how many never reported an end
+    announced = 0  # available_commands events: a session start for Codex, a repeated announcement inside one for Grok
+    usage_since_end = 0  # Grok model calls since the last `end` event: a session that never ended made them
     messages: set[str] = set()  # Claude message ids seen: one API call writes one assistant event per content block
     claude_calls = usage_events = 0
     compaction_lines: list[int] = []  # where Grok's stream says a compaction completed: a fresh context for the model
@@ -1200,10 +1251,16 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         tools.feed(event, t, number)  # Claude tool_use / tool_result blocks, Grok and Codex tool_call / tool_call_update
         if kind in ("usage", "assistant"):
             calls_in_session += 1
-        if kind == "available_commands" or (kind == "system" and event.get("subtype") == "init"):
-            starts += 1  # Codex and Grok open a session with available_commands, Claude with system/init
-            if isinstance(event.get("claude_code_version"), str):
-                versions.add(event["claude_code_version"])
+        if kind == "available_commands":
+            announced += 1  # whose start it is depends on the host, decided once the whole stream has been read
+        elif kind == "system" and event.get("subtype") == "init":
+            starts += 1  # Claude opens a session with system/init
+        if kind in ("available_commands", "system") and init_build(event):
+            versions.add(init_build(event))
+        if kind == "usage":
+            usage_since_end += 1
+        elif kind == "end":
+            usage_since_end = 0
         if kind == "usage":
             grok = True
             usage_events += 1
@@ -1241,6 +1298,12 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
             if not calls_in_session:
                 unreported += event.get("num_turns") or 0
             calls_in_session = 0
+    # Grok's events mark no session start (its `available_commands` is announced again inside a session: 314 for 2 `end`
+    # events on r1-battleship-grok-none), Codex's translator emits one per thread. A stream is Grok's when a launch record
+    # names Grok or it holds Grok's per-call `usage` events: never by a field of one event, which a Grok build can add.
+    grok_stream = grok or "grok" in runrecord.hosts_used(out)
+    if not grok_stream:
+        starts += announced
     # One read of state.md for both the accepted history and the pending stage: a
     # live run rewrites it on every transition, so two reads could disagree.
     state = engine_state(run_dir)
@@ -1305,6 +1368,8 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     except Exception as exc:  # noqa: BLE001 - a passive record never takes the run's metrics down (per_stage once did)
         fresh_list, fresh_note = [], f"failed: {type(exc).__name__}: {' '.join(str(exc).split())[:200]}"
     stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
+    if grok_stream:
+        unmeasured["unreported_sessions"] = NO_SESSION_START
     if context and "unmeasured" not in context:
         for row, figures in zip(stages, context["perStage"]):
             if figures is not None:
@@ -1329,7 +1394,13 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         "tokens": {"input_peak": peak},
         "unmeasured": unmeasured,
         "cost_usd": total_cost(sessions),
-        "unreported_sessions": max(0, starts - len(sessions)),
+        # Null when the stream holds Grok's events: no event marks one of its session starts, so how many sessions never
+        # reported is unknown and cost and turns stay a lower bound (lower_bound). The harness's own launch records, not
+        # this stream, can count them: a launch whose lines hold no `end` event never reported.
+        "unreported_sessions": None if grok_stream else max(0, starts - len(sessions)),
+        # What the stream does prove about a Grok run: model calls after its last `end` (or with no `end`) were made by a
+        # session that never reported, so at least one did. None where the count is exact.
+        "unreported_sessions_at_least": (1 if usage_since_end else 0) if grok_stream else None,
         "compactions": None if "compactions" in unmeasured else compactions,
         "truncated_outputs": None if "truncated_outputs" in unmeasured else len(truncated),
         "cancelled_tool_calls": cancelled,
@@ -1351,6 +1422,9 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         # and `fresh_starts_unmeasured` says why, where the run has no sessions.jsonl; None where it is complete.
         "fresh_starts": fresh_list,
         "fresh_starts_unmeasured": fresh_note,
+        # The first and last stamp of the stream (a resumed run's covers all its launches): the interval another run's
+        # span is compared with to count overlap. None where the runner wrote no timeline.
+        "span": span(stamps),
     }
 
 
@@ -1594,13 +1668,34 @@ def money(value) -> str:
     return "not reported" if value is None else f"${value}"
 
 
+def lower_bound(run_metrics: dict) -> bool | None:
+    """Whether the whole-run cost and turns cover only the sessions that reported, by the one predicate every reader shares.
+
+    True when a session is known not to have reported (``unreported_sessions`` above 0) and when the count is unknown
+    for a reason (null, named in ``unmeasured``: Grok's events mark no session start, so a killed session cannot be ruled
+    out). False when every session reported. None when the metrics say nothing (they predate the field).
+    """
+    if "unreported_sessions" not in run_metrics:
+        return None
+    never = run_metrics["unreported_sessions"]
+    if never is None:
+        return True if "unreported_sessions" in (run_metrics.get("unmeasured") or {}) else None
+    return never > 0
+
+
 def cost_text(run_metrics: dict) -> str:
     """The cost for a printed line, saying so when sessions that never reported make it a lower bound.
 
-    A cost that is unknown has nothing for a lower bound to bound, so it says only that it is not reported.
+    A cost that is unknown has nothing for a lower bound to bound, so it says only that it is not reported. When the
+    host's events cannot count the sessions that never reported (Grok), no count is printed, only that it may be one.
     """
-    cost, never = run_metrics.get("cost_usd"), run_metrics.get("unreported_sessions") or 0
-    return money(cost) + (f" (lower bound: {never} session(s) never reported)" if never and cost is not None else "")
+    cost, never = run_metrics.get("cost_usd"), run_metrics.get("unreported_sessions")
+    if cost is None or not lower_bound(run_metrics):
+        return money(cost)
+    at_least = run_metrics.get("unreported_sessions_at_least")
+    return money(cost) + (f" (lower bound: {never} session(s) never reported)" if never else
+                          f" (lower bound: at least {at_least} session(s) never reported)" if at_least else
+                          " (lower bound: this host's events do not show whether a session never reported)")
 
 
 def turns_text(run_metrics: dict) -> str:
@@ -1608,7 +1703,7 @@ def turns_text(run_metrics: dict) -> str:
     turns = run_metrics.get("turns")
     if turns is None:
         return "not reported"
-    return f"{turns} (lower bound)" if run_metrics.get("unreported_sessions") else str(turns)
+    return f"{turns} (lower bound)" if lower_bound(run_metrics) else str(turns)
 
 
 def count(run_metrics: dict, name: str) -> int | None:

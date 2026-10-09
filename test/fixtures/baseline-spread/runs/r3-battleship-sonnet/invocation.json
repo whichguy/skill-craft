@@ -1,0 +1,15 @@
+{
+ "case": "battleship",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "plugin_dir": "/Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet/build/plugins/skill-craft",
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.26.0",
+  "shiploop_version": "0.58.0",
+  "local_head": "200c32cec9bf569ae41bac26c511963947db813c"
+ },
+ "resumed_run": null,
+ "seeded": null
+}

@@ -63,7 +63,7 @@ def report(out: Path) -> str:
     peak = m["tokens"]["input_peak"]
     lines = [f"[{int(time.time() - started) // 60} min] turns {metrics.turns_text(m)}, peak context "
              f"{'n/a' if peak is None else str(peak // 1000) + 'K'}, "
-             f"cost {('$' + format(m['cost_usd'], '.2f')) if m['cost_usd'] else 'n/a'} | "
+             f"cost {('$' + format(m['cost_usd'], '.2f') + (' (lower bound)' if metrics.lower_bound(m) else '')) if m['cost_usd'] else 'n/a'} | "
              + (f"{state.get('status')}, rev {state.get('revision')}, "
                 f"stage {metrics.current_stage(state) or state.get('stage')}, items {items}"
                 if state else "no run state yet")]

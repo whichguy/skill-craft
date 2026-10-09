@@ -1,0 +1,30 @@
+{
+ "case": "custom",
+ "host": "grok",
+ "model": "grok-4.7",
+ "effort": "medium",
+ "plugin_dir": "/Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none/build/plugins/skill-craft",
+ "versions": {
+  "source": "marketplace (resumed on its original install)",
+  "plugin_version": "1.26.0",
+  "shiploop_version": "0.58.0",
+  "released": {
+   "origin_main": "200c32cec9bf569ae41bac26c511963947db813c",
+   "local_head": "200c32cec9bf569ae41bac26c511963947db813c",
+   "local_behind_main": true,
+   "catalog_version": "1.26.0",
+   "shiploop_version": "0.58.0",
+   "unreleased": [],
+   "ci": "success"
+  },
+  "gate": []
+ },
+ "resumed_run": {
+  "from_host": "grok",
+  "from_model": "grok-4.7",
+  "run_dir": "/Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none/.shiploop-runs/work-20261009-062034-d142b0/run",
+  "revision": 11,
+  "stage": "inner-loop"
+ },
+ "seeded": null
+}

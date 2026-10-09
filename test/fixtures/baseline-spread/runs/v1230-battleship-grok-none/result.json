@@ -1,0 +1,103 @@
+{
+ "case": "custom",
+ "host": "grok",
+ "model": "grok-4.7",
+ "effort": "medium",
+ "pass": false,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.22.0",
+  "shiploop_version": "0.54.0",
+  "local_head": "bc1d645232b8026b2851eab2329b26a28752af92"
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_seconds": 729.1,
+  "stop": "end_turn",
+  "pass": true,
+  "regraded": null,
+  "sessions": [
+   {
+    "status": "exited",
+    "stop": "cancelled",
+    "host": "grok",
+    "resumed": null
+   },
+   {
+    "status": "exited",
+    "stop": "cancelled",
+    "host": "grok",
+    "resumed": "01a116ff-4d69-7f60-81dd-b67bb35f303f"
+   },
+   {
+    "status": "exited",
+    "stop": "end_turn",
+    "host": "grok",
+    "resumed": "01a116ff-4d69-7f60-81dd-b67bb35f303f"
+   }
+  ]
+ },
+ "termination": {
+  "process_status": "exited",
+  "returncode": 0,
+  "sessions": 3,
+  "resumes": 2,
+  "session_stops": [
+   "cancelled",
+   "cancelled",
+   "end_turn"
+  ],
+  "resume_stop": "ShipLoop run is blocked",
+  "engine_status": "blocked",
+  "engine_stage": "system-test",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": "access: node restart-check.mjs exited 0: an id from a stopped server.js is 404 after a new process starts. node browser.mjs exited 1. Chrome lists the game URL but the document stays about:blank, and "
+ },
+ "shiploop": {
+  "pass": false,
+  "run_dir": "/Users/dadleet/e2e-runs/20261007/v1230-battleship-grok-none/.shiploop-runs/work-20261007-153345-c5f8ed/run"
+ },
+ "committed": {
+  "pass": false
+ },
+ "checks": [
+  {
+   "pass": false
+  },
+  {
+   "pass": false
+  },
+  {
+   "pass": false
+  },
+  {
+   "pass": false
+  }
+ ],
+ "resumed_run": null,
+ "seeded": null,
+ "metrics": {
+  "claude_code_version": null,
+  "turns": 503,
+  "model_calls": 503,
+  "cost_usd": 14.1673,
+  "unreported_sessions": 511,
+  "compactions": 6,
+  "truncated_outputs": 2,
+  "cancelled_tool_calls": 2,
+  "model_glue": 1,
+  "tmp_writes": 1,
+  "shiploop_failures": 2,
+  "unmeasured": {
+   "window_tokens": "reduced"
+  }
+ },
+ "output": "/Users/dadleet/e2e-runs/20261007/v1230-battleship-grok-none"
+}

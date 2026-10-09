@@ -143,6 +143,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-fidelity.test.py",
     "test/shiploop-e2e-reorientation.test.py",
     "test/shiploop-e2e-environment.test.py",
+    "test/shiploop-e2e-baseline.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
 )
@@ -254,6 +255,9 @@ _DURATION_SECONDS = {
     # at load average 7 to 9 (its journal); the browser probe's process-safety tests start the fake browsers.  With the
     # integration's listeners.end_group tests: 132 tests, 62.3 s at load average about 4.
     "test/shiploop-e2e-environment.test.py": 65.0,
+    # 2026-10-09 (batch 1011 G3): 139 tests (fake hosts for the identity and comparison tests, compact run folders for the
+    # report); 25 s locally at load average 6 to 8, 8.5 s at 30 tests.  An estimate, far under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-baseline.test.py": 25.0,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.

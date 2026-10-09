@@ -1,0 +1,120 @@
+{
+ "case": "custom",
+ "host": "grok",
+ "model": "grok-4.7",
+ "effort": "medium",
+ "pass": false,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "versions": {
+  "source": "marketplace (resumed on its original install)",
+  "plugin_version": "1.26.0",
+  "shiploop_version": "0.58.0",
+  "released": {
+   "origin_main": "200c32cec9bf569ae41bac26c511963947db813c",
+   "local_head": "200c32cec9bf569ae41bac26c511963947db813c",
+   "local_behind_main": true,
+   "catalog_version": "1.26.0",
+   "shiploop_version": "0.58.0",
+   "unreleased": [],
+   "ci": "success"
+  },
+  "gate": []
+ },
+ "process": {
+  "status": "stopped",
+  "returncode": -9,
+  "elapsed_seconds": 2114.2,
+  "stop": null,
+  "pass": null,
+  "regraded": null,
+  "sessions": [
+   {
+    "status": "stopped",
+    "stop": null,
+    "host": "grok",
+    "resumed": null
+   }
+  ]
+ },
+ "termination": {
+  "process_status": "stopped",
+  "returncode": -9,
+  "sessions": 1,
+  "resumes": 0,
+  "session_stops": [
+   "unknown"
+  ],
+  "resume_stop": "stopped by /Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none/stop",
+  "engine_status": "active",
+  "engine_stage": "implement",
+  "engine_unaccepted_stage": "implement",
+  "engine_status_reason": null
+ },
+ "earlier_terminations": [
+  {
+   "process_status": "stopped",
+   "returncode": -9,
+   "sessions": 1,
+   "resumes": 0,
+   "session_stops": [
+    "unknown"
+   ],
+   "resume_stop": "terminated by SIGTERM",
+   "engine_status": "active",
+   "engine_stage": "test-author",
+   "engine_unaccepted_stage": "test-author",
+   "engine_status_reason": null
+  }
+ ],
+ "shiploop": {
+  "pass": false,
+  "run_dir": "/Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none/.shiploop-runs/work-20261009-062034-d142b0/run"
+ },
+ "committed": {
+  "pass": false
+ },
+ "checks": [
+  {
+   "pass": false
+  },
+  {
+   "pass": false
+  },
+  {
+   "pass": false
+  },
+  {
+   "pass": false
+  }
+ ],
+ "resumed_run": {
+  "from_host": "grok",
+  "from_model": "grok-4.7",
+  "run_dir": "/Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none/.shiploop-runs/work-20261009-062034-d142b0/run",
+  "revision": 11,
+  "stage": "inner-loop"
+ },
+ "seeded": null,
+ "metrics": {
+  "claude_code_version": null,
+  "turns": 230,
+  "model_calls": 230,
+  "cost_usd": null,
+  "unreported_sessions": 237,
+  "compactions": 2,
+  "truncated_outputs": 2,
+  "cancelled_tool_calls": 0,
+  "model_glue": 0,
+  "tmp_writes": 7,
+  "shiploop_failures": 2,
+  "unmeasured": {
+   "window_tokens": "reduced"
+  }
+ },
+ "output": "/Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none"
+}

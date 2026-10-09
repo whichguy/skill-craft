@@ -32,6 +32,35 @@ GROK_AUTH = Path.home() / ".grok" / "auth.json"
 
 MARKETPLACE_SOURCE = "whichguy/skill-craft"
 
+# A ceiling for the one `<cli> --version` probe made when a run is launched, not a tuning value: the CLIs answer in about
+# 0.01 s, so a probe that is still running after this long is stuck, and its build is recorded as unknown.
+VERSION_TIMEOUT_SECONDS = 20
+
+
+def probe_version(binary: str, env: dict) -> tuple[str | None, str | None]:
+    """(the first line of ``<binary> --version`` on stdout, None) or (None, why it could not be read).
+
+    The reasons: ``probe failed: not found``, ``non-zero exit N``, ``silent`` (no stdout) and ``hung`` (still running after
+    VERSION_TIMEOUT_SECONDS). stdin is closed and stderr is dropped: Codex prints a WARNING there when its CODEX_HOME does
+    not exist yet. ``env`` is the launch's own isolated environment (``grok --version`` creates ``~/.grok`` in whatever HOME
+    it runs under). This is a record of the build a run was launched on, taken once at launch (run.py) and never at report
+    time, because today's answer stamped on a past run would be a made-up fact. It is the one place a CLI is asked.
+    """
+    try:
+        done = subprocess.run([binary, "--version"], env=env or None, stdin=subprocess.DEVNULL, capture_output=True,
+                              text=True, timeout=VERSION_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        return None, f"probe failed: hung (still running after {VERSION_TIMEOUT_SECONDS} s)"
+    except FileNotFoundError:
+        return None, "probe failed: not found"
+    except (OSError, subprocess.SubprocessError) as error:
+        return None, f"probe failed: {type(error).__name__}"
+    if done.returncode != 0:
+        return None, f"probe failed: non-zero exit {done.returncode}"
+    lines = done.stdout.strip().splitlines()
+    first = lines[0].strip() if lines else ""
+    return (first, None) if first else (None, "probe failed: silent")
+
 
 def grok_keepalive(env: dict, plugin_dir: Path) -> dict:
     """Install ShipLoop's global Grok keepalive hooks before the session starts.
@@ -183,6 +212,15 @@ class Host:
     def translator(self):
         return _identity
 
+    def cli_version(self, env: dict) -> tuple[str | None, str | None]:
+        """(the build of this host's CLI as its own ``--version`` prints it, None) or (None, why not), probed by the
+        caller once at launch.
+
+        Claude names its build in its init event, so it is never probed. Never call it to describe a run that was
+        launched earlier.
+        """
+        return None, "Claude: read from the init event after the run"
+
 
 class GrokHost(Host):
     name, model, effort, skill = "grok", "grok-4.7", "medium", "shiploop"
@@ -245,6 +283,9 @@ class GrokHost(Host):
 
     def plugin_cli(self, home):
         return next((home / ".grok" / "installed-plugins").glob("skill-craft-*/skills/shiploop/scripts/shiploop"), None)
+
+    def cli_version(self, env):
+        return probe_version(self.binary, env)
 
 
 class ClaudeHost(Host):
@@ -333,6 +374,9 @@ class CodexHost(Host):
     def plugin_cli(self, home):
         return next((home / ".codex" / "plugins" / "cache").glob("*/skill-craft/*/skills/shiploop/scripts/shiploop"),
                     None)
+
+    def cli_version(self, env):
+        return probe_version(self.binary, env)
 
     def translator(self):
         return CodexTranslator()
