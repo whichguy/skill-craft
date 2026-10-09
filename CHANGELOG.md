@@ -4,6 +4,18 @@ Written by scripts/release.py.
 
 ## 2026-10-08
 
+### skill-craft 1.26.0
+
+- Skills: shiploop 0.58.0
+
+### shiploop 0.58.0
+
+- ShipLoop now creates the directory of a bound Improve child's opening file whenever it prints the packet, so the printed step "write the opening file" needs no `mkdir`. A run bound earlier gets the directory on its next `next`.
+- The return-route sentence that every worktree packet prints now says, right after its first sentence, that plan-return commits files left uncommitted, so a run commits nothing by hand for the return except a file plan-return reports as not committed (a credential-like one). The old wording could be read as needing a hand commit before the return, and its working-tree fallback now reads "still leaves a file uncommitted".
+- ShipLoop now also refuses a test run of an item's command that ran fewer tests than the most any run of that command it accepted for the item has run since the item's latest step plan, so a test removed or newly skipped to pass is no longer a pass. The test-author probe sets the first number, test-refine (whose duty is to explain removed cases) is not held to it and restarts it, and a revised step plan starts it again; the refusal names both numbers and the stage's real exit, and the packets state the rule.
+- The test-strategy stage's "Done when" list, which every run displays, now asks that each case needing a host tool (a browser, a device, an account, a service) names it and cites the output of probing it now against a stand-in while the product does not exist, and that only a failed probe is recorded as the access gap. The probe's how stays in the stage duty.
+- ShipLoop's refusal for a listed test ID that the runner prints only inside a longer name (a test titled `TC-4a` for the listed `TC-4`) now states the whole-word rule, quotes the line and shows the rename, instead of telling the model to print test names. The rule is also stated once in the step-plan, test-author, test-red and test-loop packets.
+
 ### skill-craft 1.25.0
 
 - Skills: shiploop 0.57.0

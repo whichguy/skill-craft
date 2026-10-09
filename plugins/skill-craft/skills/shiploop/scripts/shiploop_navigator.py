@@ -1329,6 +1329,13 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     scratch_dir(root).mkdir(exist_ok=True)
     # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
     (Path(root) / "notes").mkdir(exist_ok=True)
+    # Likewise the directory of a bound Improve child's opening file, which the packet tells the parent to write.
+    child = state.get("active_improve")
+    if state["status"] == "active" and child is not None and child["skill"] is not None:
+        try:
+            improve_opening_path(child).parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass  # improve-start still refuses with "write the opening file first"
     text = render(core, root, state, timeline=timeline)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)
