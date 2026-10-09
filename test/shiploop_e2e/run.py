@@ -1497,7 +1497,7 @@ def outcome_class(passed: bool, t: dict) -> tuple[str | None, str]:
         if by is None:
             return "BLOCKED", f"engine blocked at {stage}{why}; no blocked result was read from the state (an old state, or none accepted)"
         wait = ("" if kind is None else
-                f"; waits for a person's {kind}, " + ("and states why no default would do" if no_default else "and gives no reason that no default would do"))
+                f"; awaits a person ({kind}), " + ("and states why no default would do" if no_default else "and gives no reason that no default would do"))
         return "BLOCKED", f"engine blocked at {stage} by {by}{wait}"
     if engine == "halted":
         return "FAILED", f"engine halted at {stage}{why}"
