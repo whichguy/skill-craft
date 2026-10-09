@@ -296,7 +296,9 @@ is the one reader of that.
   second failed try; `limits` says what it cannot see;
 - `end_state`: the engine's `status`, `stage`, the stage it never accepted, its `status_reason`, and for a run that ended on a
   blocked result the last accepted entry's `blocked_by` and `awaiting` (its `kind`, and whether `no_default` states why no
-  default would do); `unverified` is the product-acceptance list (`entries`, `owners`), null when no result carries the key
+  default would do), read through `metrics.blocked_detail`, the one reader `termination`'s `engine_blocked_by` and
+  `engine_awaiting_*` use too: only while the engine is blocked on its last history action, so a block that was answered (the
+  engine active again) reads null; `unverified` is the product-acceptance list (`entries`, `owners`), null when no result carries the key
   (a result without the key says nothing, it is not an empty list, which says every outcome was observed);
 - `improve_packets` (**temporary**): whether each `packets/<action>-improve.md` carries the five questions an Improve packet
   answers for a model that holds only that packet (`goal`, `done_when`, `checked_by`, `output`, `recovery`), as counts and a

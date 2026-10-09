@@ -1276,6 +1276,29 @@ class EndStateTest(unittest.TestCase):
         state = self.end_state_of([("blocked", {"blocked_by": "first", "awaiting": {"kind": "a", "no_default": "x"}}), ("done", {})])
         self.assertEqual((state["blocked_by"], state["awaiting"]), (None, None))
 
+    def test_an_answered_block_reads_as_no_block(self):
+        # The engine is active again while its last history entry is still the blocked one (the block was answered): the
+        # shared reader (metrics.blocked_detail, the one outcome_class's termination uses) reads nothing, so end_state does too.
+        answered = self.end_state_of([("blocked", {"blocked_by": "user", "awaiting": {"kind": "answer", "no_default": "x"}})],
+                                     status="active")
+        self.assertEqual((answered["status"], answered["blocked_by"], answered["awaiting"]), ("active", None, None))
+
+    def test_the_blocked_fields_come_from_the_one_shared_reader(self):
+        self.assertFalse(hasattr(self.fidelity, "_blocked_reading"), "one reader: metrics.blocked_detail")
+        seen = []
+
+        def reader(state):
+            seen.append(state)
+            return {"blocked_by": "external", "awaiting_kind": "present", "awaiting_no_default": False}
+
+        with mock.patch.object(self.fidelity.metrics, "blocked_detail", reader):
+            state = self.end_state_of([("done", {})])
+        self.assertEqual(len(seen), 1)
+        self.assertEqual((state["blocked_by"], state["awaiting"]), ("external", {"kind": "present", "no_default": False}))
+        with mock.patch.object(self.fidelity.metrics, "blocked_detail",
+                               lambda state: {"blocked_by": None, "awaiting_kind": None, "awaiting_no_default": None}):
+            self.assertIsNone(self.end_state_of([("blocked", {"blocked_by": "access"})], status="blocked")["awaiting"])
+
     def test_no_state_is_unmeasured_with_a_reason(self):
         block = self.fidelity.build(Path("."), None, None)
         self.assertIsNone(block["end_state"])

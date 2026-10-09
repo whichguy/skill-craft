@@ -294,7 +294,9 @@ Real figures re-run on the saved runs after the fix round: evidence classes unch
 (493, 414); kills 571, 548, 2838, 858, 7711 plus 8493 in v1220-battleship-grok-medium-none; `declared_script_run_without_record` empty on all eleven; the review's deletion test lists test-green,
 regression and static-checks on both extracts. The v1220 Grok run also lists two `search_replace` edits of its `return-plan.md` (events 10847, 10849), the round-1 hand edit. New fixture size:
 2.8 MB in 468 files (before: 1.2 MB in 520 files). Deferred to the coordinator, not done: wiring `end_state` to group G4's shared blocked-detail helper (the blocked reading is one private function,
-`_blocked_reading`, with its guard unchanged).
+`_blocked_reading`, with its guard unchanged). **Superseded 2026-10-09 by the integration branch** (`docs/shiploop-batch-1011-integration-journal-2026-10-09.md`):
+`end_state` reads `blocked_by` and `awaiting` through `metrics.blocked_detail`, `_blocked_reading` is deleted, and an answered block (engine active, last history entry
+blocked) now reads null where it read the old result's `blocked_by` (`user` in the test); the saved v1230 and r1 Grok runs still read `access`.
 
 Mutants of the review (its labels; its literal patterns changed with the code, so equivalent mutants of the new lines were applied, each red): M11 skipped row not exempt, M12 advisory lint counted, M13
 quality record dropped, M18 release taken without `where`, M22 first `unverified` list, M23 `no_default` always true, M25, M26, M27 (and their anywhere-in-line variants), M28 no ToolLog,
@@ -343,5 +345,6 @@ shiploop-e2e-fidelity, shiploop-run-review and test-groups among its suites. The
   (`PrintedCase`, `isolate_git`).
 - Merge: `metrics.py` (`ToolLog.call`/`result`/`collect` signatures; group G2's `ToolLog.feed` extraction should pass `event=number` and keep `collect(..., tools=)`; `NOT_APPLICABLE`, `within`),
   `run.py` (`_main` around the `metrics.collect` call and the printing loop, the import lines, `review_export`'s loader, the docstring), `suite_catalog.py`, `test-groups.test.py`, `SPEC.md`, `README.md`,
-  `LEARNINGS.md`. Group G4's `hosts_used`/`mixed_host` (runrecord) and its blocked-detail helper (`end_state._blocked_reading`) meet this block there.
+  `LEARNINGS.md`. Group G4's `hosts_used`/`mixed_host` (runrecord) and its blocked-detail helper (`end_state._blocked_reading`) meet this block there
+  (done at integration, 2026-10-09: `end_state` calls `metrics.blocked_detail`; see the integration journal).
 - The fixtures are 2.8 MB in 468 small files: every call that names a run, Improve or Until Loop directory, a kill or git is kept (results only for refused or failed ShipLoop calls).

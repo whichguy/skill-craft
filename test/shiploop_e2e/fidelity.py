@@ -569,26 +569,21 @@ def refusals(tools, out: Path, run_dir: Path | None, state: dict) -> dict:
 
 # --- end state, Improve packets -------------------------------------------------------------------------------------------
 
-def _blocked_reading(last: dict) -> tuple:
-    """(blocked_by, awaiting) from the last accepted result: ``awaiting`` is {kind, no_default} where no_default says whether the result
-    states why no default would do (an empty text is False), None when the result awaits nothing. One small reading, so it can be
-    replaced by a shared one."""
-    awaiting = last.get("awaiting") if isinstance(last.get("awaiting"), dict) else None
-    return last.get("blocked_by"), (None if awaiting is None else
-                                    {"kind": awaiting.get("kind"), "no_default": bool(str(awaiting.get("no_default") or "").strip())})
-
-
 def end_state(state: dict) -> dict:
     """The engine's own record of where the run stood: status, stage, the stage it never accepted, its stated reason; for a run that ended on
-    a blocked result, the last accepted entry's ``blocked_by`` and ``awaiting`` (the kind, and whether it states why no default would do);
-    the product-acceptance ``unverified`` list of the last result that carries one (None when no result carries the key). Nothing here is a
-    verdict."""
+    a blocked result, ``blocked_by`` and ``awaiting`` (the kind, and whether it states why no default would do), read through
+    ``metrics.blocked_detail``, the one reader of the blocked detail (outcome_class's ``termination`` reads it too): only while the engine
+    is blocked on its last history action, so an answered block reads None; the product-acceptance ``unverified`` list of the last result
+    that carries one (None when no result carries the key). Nothing here is a verdict."""
     if not isinstance(state, dict) or not state.get("status"):
         raise Unmeasured("state.md records no status (no ShipLoop run directory, or one of another layout)")
     history = [h for h in state.get("history") or [] if isinstance(h, dict)]
     accepted = state.get("accepted") if isinstance(state.get("accepted"), dict) else {}
-    last = accepted.get(history[-1].get("action")) if history else None
-    blocked_by, awaiting = _blocked_reading(last if isinstance(last, dict) else {})
+    detail = metrics.blocked_detail(state)
+    blocked_by = detail["blocked_by"]
+    # awaiting_no_default is a bool exactly when the blocked result carries an awaiting record; None when it awaits nothing.
+    awaiting = (None if detail["awaiting_no_default"] is None
+                else {"kind": detail["awaiting_kind"], "no_default": detail["awaiting_no_default"]})
     unverified = None
     for item in history:
         entry = accepted.get(item.get("action"))
