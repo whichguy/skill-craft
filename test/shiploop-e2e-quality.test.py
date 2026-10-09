@@ -688,6 +688,20 @@ class AcceptanceCalibrationTest(QualityCase):
         self.assertFalse(rows["off-board-keeps-turn"]["pass"])
         self.assertIn("HTTP 400", rows["off-board-keeps-turn"]["note"])
 
+    def test_the_cases_declared_ids_are_exactly_the_modules_checks(self):
+        module = quality.load_checks("checkers_accept", quality.HERE / "checks")
+        declared = [item["id"] for item in run.case_quality("checkers")["acceptance"][0]["checks"]]
+        self.assertEqual(declared, list(module.CHECKS))
+        self.assertEqual(declared, CHECKERS_IDS)
+        for item in run.case_quality("checkers")["acceptance"][0]["checks"]:
+            self.assertTrue(item["source"], f"{item['id']} quotes the sentence it reads")
+
+    def test_the_battleship_set_was_dropped_and_python_cases_declare_nothing(self):
+        for name in ("battleship", "battleship-scoring", "hello", "csv-report", "seat-reservations"):
+            self.assertNotIn("acceptance", run.case_quality(name), name)
+        self.assertEqual(run.case_quality("battleship-scoring")["mutation"]["command"], "node --test",
+                         "a follow-on is measured by the followed case's declaration")
+
 
 @needs_quality
 class AcceptanceRunTest(QualityCase):
@@ -1013,6 +1027,273 @@ class QualityReapTest(e2e.RealListeners, unittest.TestCase):
         self.assertTrue(reaped[0]["cwd"].startswith(os.path.realpath(out / "quality")), reaped)
         self.assertTrue(e2e.refuses_soon(int((out / "quality" / "copy" / "port").read_text().split()[1])))
         self.assertTrue(e2e.answers(beside_port), "a server under <output> but outside <output>/quality is not the phase's to stop")
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Through run.main
+
+EXTRA_PRODUCT = (
+    "def extra_product():\n"
+    "    import shutil\n"
+    "    shutil.copytree(os.environ['FAKE_PRODUCT_SRC'], '.', dirs_exist_ok=True)\n")
+
+
+def with_product(text: str) -> str:
+    """A fake host of the main suite that also delivers the files of $FAKE_PRODUCT_SRC, committed with the rest."""
+    marker = "def product():\n"
+    assert text.count(marker) == 1, "the fake host's product writer changed shape: update this surgery"
+    return text.replace(marker, EXTRA_PRODUCT + marker + "    extra_product()\n", 1)
+
+
+def quality_cases() -> dict:
+    return {
+        "q-tiny": {"style": "web-service", "prompt": "Make the tiny product.", "checks": ["true"], "checks_source": "test",
+                   "quality": {"mutation": {"command": "python3 check.py", "source": "test"}}},
+        "q-none": {"style": "smoke", "prompt": "Say hello.", "checks": ["true"], "checks_source": "test"},
+        "q-ref": {"style": "web-service", "prompt": "Serve the reference.", "checks": ["true"], "checks_source": "test",
+                  "quality": {"acceptance": [checkers_block(None)]}},
+    }
+
+
+@needs_quality
+class QualityThroughMainTest(e2e.CaseRunCase):
+    """run.main with the fake hosts delivering a small committed product: the block, its order, its gate and its record."""
+
+    def setUp(self):
+        super().setUp()
+        e2e.isolate_git(self)
+        for name, path in self.fakes.items():
+            path.write_text(with_product(path.read_text()))
+        patched = mock.patch.dict(os.environ, {"FAKE_PRODUCT_SRC": str(TINY)})
+        patched.start()
+        self.addCleanup(patched.stop)
+        self.cases = self.tmp / "cases.json"
+        self.cases.write_text(json.dumps(quality_cases()))
+        for patch in (mock.patch.object(run, "CASES", self.cases), no_syntax_check()):
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def finished(self, case: str = "q-tiny", host: str = "claude", name: str | None = None, *extra: str):
+        return self.case_main(name or f"{case}-{host}", "--case", case, *extra, host=host)
+
+    def regrade(self, out: Path, *extra: str) -> tuple[int, dict, str]:
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), mock.patch.object(run, "review_export", return_value="review export: fake"):
+            code = run.main([*extra, "--resume-run", str(out), "--grade-only", "--plugin-dir", str(self.plugin),
+                             "--baseline", str(self.baselines)])
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue()
+
+    def test_a_finished_delivery_is_measured_and_recorded_in_the_result_the_row_and_the_report(self):
+        code, result, printed, out = self.finished()
+        self.assertEqual(code, 0, result)
+        block = result["quality"]
+        self.assertTrue(block["observed"], block)
+        self.assertEqual((block["declared"], block["hosts"], block["mixed_host"]), (["mutation"], ["claude"], False))
+        self.assertEqual((block["mutation"]["operator_id"], block["mutation"]["sites"], block["mutation"]["ratio"]), ("js-1", 12, 0.4167))
+        self.assertEqual(block["memory_writes"], [])
+        self.assertTrue(result["pass"], "the verdicts are the same whatever the quality block holds")
+        line = next(ln for ln in printed.splitlines() if ln.startswith("  quality"))
+        self.assertIn("mutation 5 of 12 caught (ratio 0.4167, js-1, 3 files)", line)
+        quality_row = self.last_row()["quality"]
+        self.assertEqual(quality_row["mutation"], {"operator_id": "js-1", "sites": 12, "killed": 5, "survived": 7, "ratio": 0.4167,
+                                                   "ceiling_hit": False})
+        self.assertEqual((quality_row["hosts"], quality_row["mixed_host"], quality_row["observed"]), (["claude"], False, True))
+        status = subprocess.run(["git", "-C", str(out / "work"), "status", "--porcelain"], capture_output=True, text=True).stdout
+        self.assertEqual(status, "", "the delivered checkout is exactly as it was committed")
+        self.assertTrue((out / "quality" / "copy" / "lib.js").is_file())
+
+    def test_the_result_is_written_before_the_phase_and_again_with_the_block(self):
+        seen = {}
+
+        def spy(out, work, spec, **kw):
+            seen["on_disk"] = json.loads((out / "result.json").read_text())
+            seen.update(spec=spec, kw=kw, lock_alive=listeners.case_alive(out), stop_clear=kw["stop"]())
+            (out / "stop").write_text("")
+            seen["stop_asked"] = kw["stop"]()
+            with mock.patch.object(run.TERMINATION, "is_set", return_value=True), mock.patch.object(run, "TERMINATED_BY", ["SIGTERM"]):
+                seen["terminated"] = kw["stop"]()
+            return {"observed": False, "reason": "spy", "declared": ["mutation"], "hosts": kw["hosts_used"], "mixed_host": False}
+
+        with mock.patch.object(quality, "measure", side_effect=spy):
+            code, result, printed, out = self.finished()
+        self.assertNotIn("quality", seen["on_disk"], "the record that exists today is on disk before the phase starts")
+        self.assertEqual(seen["on_disk"]["case"], "q-tiny")
+        self.assertEqual(result["quality"]["reason"], "spy", "and result.json is written again with the block")
+        self.assertEqual(seen["spec"], run.case_quality("q-tiny"))
+        self.assertIsNone(seen["kw"]["gate"])
+        self.assertIs(seen["kw"]["groups"], run.LIVE_HOST_GROUPS, "the phase's children end with the harness's signal handling")
+        self.assertTrue(seen["lock_alive"], "the phase runs under the case lock the harness holds")
+        self.assertIsNone(seen["stop_clear"])
+        self.assertRegex(seen["stop_asked"], r"^stopped by .*q-tiny-claude/stop$")
+        self.assertEqual(seen["terminated"], "terminated by SIGTERM")
+        self.assertTrue((out / "stop").exists(), "a stop file after the host ended is left for the next resume to remove, as before")
+        self.assertEqual(code, 0)
+
+    def test_an_error_in_the_phase_is_recorded_and_changes_neither_the_verdict_nor_the_exit(self):
+        with mock.patch.object(quality, "measure", side_effect=RuntimeError("boom")):
+            code, result, printed, _ = self.finished()
+        self.assertEqual(code, 0)
+        self.assertTrue(result["pass"])
+        self.assertEqual(result["quality"], {"observed": False, "hosts": ["claude"], "mixed_host": False,
+                                             "reason": "the quality phase failed: RuntimeError('boom')"})
+        self.assertIn("quality   not observed: the quality phase failed: RuntimeError('boom')", printed)
+
+    def test_each_host_is_measured_the_same_way(self):
+        ratios = {}
+        for host in ("claude", "grok", "codex"):
+            with self.subTest(host=host):
+                code, result, _, _ = self.finished(host=host)
+                self.assertEqual(code, 0, result)
+                block = result["quality"]
+                self.assertEqual((block["observed"], block["hosts"], block["mutation"]["ratio"]), (True, [host], 0.4167))
+                ratios[host] = block["mutation"]["ratio"]
+                if host != "claude":
+                    self.assertIsNone(block["memory_writes"], "no Claude session: the detector reads nothing")
+                    self.assertIn(host, block["unmeasured"]["memory_writes"])
+        self.assertEqual(len(set(ratios.values())), 1)
+
+    def test_a_run_that_returned_no_delivery_records_why_and_starts_nothing(self):
+        code, result, printed, out = self.case_main("q-none-delivered", "--case", "q-tiny", mode="nothing")
+        block = result["quality"]
+        self.assertFalse(block["observed"])
+        self.assertIn("ShipLoop did not reach done", block["reason"])
+        self.assertNotIn("mutation", block)
+        self.assertFalse((out / "quality").exists())
+        self.assertEqual(self.last_row()["quality"]["observed"], False, "the row says the declared measure was not taken")
+
+    def test_a_run_whose_engine_is_still_active_is_not_measured(self):
+        code, result, _, out = self.case_main("q-active", "--case", "q-tiny", mode="active")
+        self.assertFalse(result["quality"]["observed"])
+        self.assertIn("ShipLoop is still active (stage test-refine)", result["quality"]["reason"])
+        self.assertFalse((out / "quality").exists())
+
+    def test_a_case_that_declares_nothing_and_a_custom_prompt_record_that_and_leave_the_row_alone(self):
+        _code, result, _printed, out = self.finished("q-none")
+        self.assertEqual(result["quality"]["declared"], [])
+        self.assertIn("declares no quality measures", result["quality"]["reason"])
+        self.assertNotIn("quality", self.last_row())
+        _code, result, _printed, _out = self.case_main("q-custom", "--prompt", "say hello")
+        self.assertIn("declares no quality measures", result["quality"]["reason"])
+        self.assertNotIn("quality", self.last_row())
+        self.assertFalse((out / "quality").exists())
+
+    def test_held_out_acceptance_runs_in_the_harness_process_and_is_recorded_beside_the_mutation(self):
+        _code, result, printed, _out = self.finished("q-ref")
+        acceptance = result["quality"]["acceptance"]
+        self.assertTrue(acceptance["observed"], acceptance)
+        self.assertEqual(acceptance["passed"], CHECKERS_IDS)
+        self.assertEqual(result["quality"]["held_out_seen"], 0, "the host's events name no held-out script: a measured none")
+        self.assertIn("held-out 6 of 6 pass", printed)
+        self.assertEqual(self.last_row()["quality"]["acceptance"], {"ids": 6, "passed": 6})
+        events = (Path(result["output"]) / "events.jsonl").read_text()
+        self.assertNotIn("checkers_accept", events)
+        self.assertNotIn("checkers_accept", (Path(result["output"]) / "invocation.json").read_text())
+
+    def test_a_regrade_measures_again_reproduces_the_memory_writes_from_the_events_and_names_both_hosts(self):
+        _code, result, _printed, out = self.finished()
+        self.assertEqual(result["quality"]["hosts"], ["claude"])
+        (out / "quality" / "stale.txt").write_text("from the first phase")
+        before = len((out / "events.jsonl").read_text().splitlines())
+        with (out / "events.jsonl").open("a") as handle:
+            handle.write(MEMORY_EVENTS.read_text())
+        (out / "invocation-resume-grok-1791509021.json").write_text(json.dumps({"case": "q-tiny", "host": "grok", "versions": {}}))
+        rows = self.baselines.read_text()
+        code, regraded, _ = self.regrade(out)
+        block = regraded["quality"]
+        self.assertTrue(block["observed"], block)
+        self.assertEqual((block["hosts"], block["mixed_host"]), (["claude", "grok"], True),
+                         "the run's launch records name the hosts, not the flag of this invocation")
+        self.assertEqual([(w["tool"], Path(w["path"]).name, w["line"]) for w in block["memory_writes"]],
+                         [("Write", "feedback_no-broad-pkill.md", before + 2), ("Write", "MEMORY.md", before + 6)],
+                         "computed from events.jsonl, so a regrade gives the same answer whatever the live profile holds")
+        self.assertFalse((out / "quality" / "stale.txt").exists())
+        self.assertEqual(self.baselines.read_text(), rows, "a regrade writes no baseline row")
+
+    def test_a_regrade_while_another_harness_holds_the_case_takes_no_measure(self):
+        _code, _result, _printed, out = self.finished()
+        holder = listeners.hold_case(out)
+        self.assertIsNotNone(holder)
+        self.addCleanup(holder.close)
+        code, regraded, _ = self.regrade(out)
+        self.assertFalse(regraded["quality"]["observed"])
+        self.assertIn("does not hold the case lock", regraded["quality"]["reason"])
+        self.assertEqual(regraded["quality"]["memory_writes"], [], "the events are still read")
+
+    def test_a_second_lock_in_one_process_fails_so_the_phase_must_reuse_the_one_it_holds(self):
+        folder = self.tmp / "lock"
+        folder.mkdir()
+        first = listeners.hold_case(folder)
+        self.addCleanup(first.close)
+        self.assertIsNone(listeners.hold_case(folder), "flock is per open file description: a second acquire in this process fails")
+        self.assertTrue(listeners.case_alive(folder))
+
+
+@needs_quality
+class QualityGateTest(unittest.TestCase):
+    """run.quality_gate: every reason a delivery is not measured, in the order they are looked at."""
+
+    def gate(self, **kw):
+        args = dict(shiploop={"pass": True}, committed={"pass": True}, engine={"status": "done"}, process={"status": "exited"},
+                    stop_seen=False, stop_file=Path("/nonexistent/stop"), lock_held=True)
+        return run.quality_gate(**{**args, **kw})
+
+    def test_a_finished_returned_delivery_under_the_held_lock_is_measured(self):
+        self.assertIsNone(self.gate())
+
+    def test_each_reason(self):
+        table = [
+            (dict(stop_seen=True), "a stop was requested"),
+            (dict(process={"status": "stopped"}), "a stop was requested"),
+            (dict(engine={"status": "active", "stage": "implement"}), "ShipLoop is still active (stage implement)"),
+            (dict(shiploop={"pass": False, "status": "blocked"}), "ShipLoop did not reach done (blocked)"),
+            (dict(shiploop={"pass": False, "reason": "no ShipLoop state.md"}), "ShipLoop did not reach done (no ShipLoop state.md)"),
+            (dict(committed={"pass": False}), "not committed"),
+            (dict(lock_held=False), "does not hold the case lock"),
+        ]
+        for change, wanted in table:
+            with self.subTest(change=change):
+                self.assertIn(wanted, self.gate(**change))
+
+    def test_a_signal_to_the_harness_and_a_stop_file_are_stops(self):
+        with mock.patch.object(run.TERMINATION, "is_set", return_value=True), mock.patch.object(run, "TERMINATED_BY", ["SIGHUP"]):
+            self.assertIn("terminated by SIGHUP", self.gate())
+        with tempfile.TemporaryDirectory() as folder:
+            stop = Path(folder) / "stop"
+            stop.write_text("")
+            self.assertIn(f"stopped by {stop}", self.gate(stop_file=stop))
+
+    def test_a_stop_outranks_the_other_reasons(self):
+        self.assertIn("a stop was requested", self.gate(stop_seen=True, engine={"status": "active"}, shiploop={"pass": False}))
+
+
+@needs_quality
+class CaseQualityTest(unittest.TestCase):
+    """run.case_quality: the followed case's declarations first, as load_case orders checks; load_case itself is unchanged."""
+
+    def cases(self, **cases) -> mock._patch:
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / "cases.json"
+        path.write_text(json.dumps(cases))
+        return mock.patch.object(run, "CASES", path)
+
+    def test_the_followed_cases_acceptance_comes_first_and_its_mutation_stands_unless_the_case_names_its_own(self):
+        a, b = {"module": "m1", "start": "s", "checks": [{"id": "x"}]}, {"module": "m2", "start": "s", "checks": [{"id": "y"}]}
+        with self.cases(base={"quality": {"mutation": {"command": "base"}, "acceptance": [a]}},
+                        inherits={"follows": "base", "quality": {"acceptance": [b]}},
+                        overrides={"follows": "base", "quality": {"mutation": {"command": "own"}}},
+                        plain={}):
+            self.assertEqual(run.case_quality("inherits"), {"mutation": {"command": "base"}, "acceptance": [a, b]})
+            self.assertEqual(run.case_quality("overrides"), {"mutation": {"command": "own"}, "acceptance": [a]})
+            self.assertEqual(run.case_quality("plain"), {})
+            self.assertEqual(run.case_quality("missing"), {})
+
+    def test_load_case_still_returns_its_four_values(self):
+        args = run.parser().parse_args(["--case", "battleship-scoring"])
+        name, prompt, checks, follows = run.load_case(args)
+        self.assertEqual((name, follows), ("battleship-scoring", "battleship"))
+        self.assertTrue(checks and prompt)
 
 
 if __name__ == "__main__":

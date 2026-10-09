@@ -217,6 +217,67 @@ resume budget) and a run whose host the deadline or a stop killed before ShipLoo
 write none: their turns, cost and stages are a fragment. A host that ends on its own, even with no
 ShipLoop state, still writes its row.
 
+### Delivered quality (`quality`)
+
+`result.json` carries an optional `quality` block, taken after the verdicts are written and recorded beside them, never
+as one (SPEC, "Delivered quality is recorded, never judged"). It is taken only from a delivery that is finished and
+returned (`shiploop` and `committed` pass, the engine is not active, no stop was requested); otherwise it is
+`{"observed": false, "reason": ...}`. result.json and metrics.json are written first and result.json again with the
+block, because the phase can add up to its ceiling after the host ended.
+
+```
+quality: {
+  observed, reason,            # false + why when no delivered-product measure was taken (never 0, never a pass)
+  declared: ["mutation", "acceptance"],        # what the case's `quality` entry in cases.json asked for
+  hosts, mixed_host,           # from the run's launch records (runrecord.py), not --host
+  mutation:   {observed, operator_id, command, baseline: {returncode, seconds, tests},
+               sites, killed, timeout, survived, invalid, not_run, ratio, ceiling_hit, ceilings,
+               per_file: {<path>: {sites, loaded_by_tests, killed, timeout, survived, invalid, not_run}},
+               survivors: [{file, line, op, from, to}], seconds}      # or {observed: false, reason}
+  acceptance: {observed, source, ids, passed, checks: [{id, source, pass, note}]}   # or {observed: false, reason}
+  held_out_seen,               # host event lines naming a held-out script; null (see `unmeasured`) when unreadable
+  memory_writes,               # [{path, tool, line}] Claude Write/Edit/MultiEdit under ~/.claude/projects/*/memory, from events.jsonl
+  unmeasured: {<key>: <reason>},   # the keys above that are null
+  left_behind, delivered_files, seconds
+}
+```
+
+* **mutation** copies the delivered files (`git ls-files --cached --others --exclude-standard`, without `.git`) to
+  `<output>/quality/copy`, never touches `work/`, checks that the unmutated copy's test run exits 0 and counts at least one
+  test (the engine's `shiploop_test_counts` reads the count), then applies one text mutation at a time from the operator
+  catalog `js-1` (`quality.JS_OPERATORS`: `===`/`!==`, `<`/`<=`/`>`/`>=`, `&&`/`||`, `true`/`false`, spaced `+`/`-`, and the
+  literal after a comparison, in code only: comments and string and template bodies are masked) and runs the case's
+  `quality.mutation.command`. `killed` includes `timeout` (a run past `RUN_CEILING_SECONDS` is a hang, counted as caught and
+  counted separately); `invalid` (the file no longer parses) is out of the ratio; `ratio = killed / (killed + survived)`.
+  `killed + survived + invalid + not_run = sites`. Mutants are taken round-robin across files, so a ceiling hit
+  (`PHASE_CEILING_SECONDS`, `ceiling_hit`, the rest `not_run`) leaves a sample of every file. Both ceilings are ceilings and
+  not tuning values. **Compare a ratio only with one of the same `operator_id`.** It is an upper bound: equivalent mutants
+  survive. `loaded_by_tests` is true when Node's V8 coverage of the baseline run lists the file or a mutant of it was caught,
+  false when neither is so (no sign of a load, so all its sites survive: a lower bound, because a server the tests stop with
+  a signal writes no coverage; the saved r1 Checkers `server.js` is the case), null when no coverage was written and no
+  mutant of the file was caught. The saved deliveries keep the page's JavaScript in an HTML file
+  or a string of `server.js`, which no operator reaches. Python and other deliveries are `observed: false` (no operator
+  catalog), listing the files by extension.
+* **acceptance** (the `checkers` case only) runs held-out checks, hand-written from the case's prompt and never shown to the
+  model, against the delivered `node server.js` on a free port. They are `test/shiploop_e2e/checks/checkers_accept.py`,
+  imported by the harness and called in its own process, so no check text or id is on any command line. Each is calibrated
+  against `test/fixtures/quality/reference_checkers.py`, a hermetic service with one defect switch per check
+  (`AcceptanceCalibrationTest`). A server that never listens leaves the block unobserved, never failed.
+* Every child process the phase starts (test runs, syntax checks, the server) runs in a group of its own that is registered
+  with the harness's live groups, so a SIGTERM and the exit hook end it; a stop (a signal or `<output>/stop`) is checked
+  between mutants; a group is signalled only while its leader still leads it; listeners are stopped under
+  `<output>/quality` only, also in a regrade, and recorded as `left_behind`. The phase runs under the case lock the harness
+  already holds (a second acquire in one process fails), so a regrade while another harness holds the case records
+  `observed: false`.
+* A suite's parallel chains run their phases while sibling hosts work, and a loaded machine can make a mutant time out: read
+  `timeout` and `seconds`, and rerun a suspicious ratio alone (`--serial`).
+* The baseline row gains a compact `quality` (the mutation ratio with its `operator_id` and the acceptance counts, plus
+  `hosts` and `mixed_host`) for a case that declares measures; `scan_baseline` and the stage lines never read it.
+* A case declares measures in `cases.json`: `quality.mutation` (`command`, `exclude` path prefixes that are not source,
+  `source`) and `quality.acceptance` (a list of blocks: `module` in `checks/`, `start`, `source` and `checks` with an `id` and
+  the prompt sentence each reads). A follow-on case is measured by its followed case's declaration first (`run.case_quality`).
+  Battleship's acceptance set was dropped: it passed 5 of 5 deliveries and separated nothing.
+
 While a run is going, `python3 test/shiploop_e2e/progress.py <output>` prints
 what changed since its last call (new accepted stages with turns and minutes,
 failed ShipLoop commands, truncations, compactions, ended sessions). It never

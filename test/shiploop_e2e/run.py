@@ -72,6 +72,10 @@ once and is recorded the same way, as `terminated by SIGTERM`; a Ctrl-C does so 
 case checks the harness stops the TCP listeners left under the case's output folder and records them as `left_behind` in
 result.json. A launch is refused while an ended case's listener is still bound, and so is a --resume-run of a case whose harness
 is running (README, "Launching long runs").
+After the verdicts are written, a delivery that is finished and returned (and only then) is measured on a copy under
+<output>/quality and recorded as `quality` in result.json, beside the verdicts and never as one: a mutation ratio of the
+delivered tests, the held-out acceptance a case declares, the Claude memory writes the events show (quality.py, README
+"Delivered quality"). --planning-review stage|none gives a run its ShipLoop mode as an option of the harness.
 This launches a real model and costs money; it is never part of default CI.
 
   python3 test/shiploop_e2e/run.py --case battleship
@@ -109,6 +113,8 @@ sys.path.insert(0, str(HERE))
 import hosts  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
+import quality  # noqa: E402
+import runrecord  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_chain_ledger as chain_ledger  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
@@ -195,6 +201,52 @@ def load_case(args) -> tuple[str, str, list[str], str | None]:
     follows = case.get("follows")
     regression = cases[follows]["checks"] if follows else []
     return args.case, case["prompt"], regression + case["checks"] + case.get("retention", []) + (args.check or []), follows
+
+
+def case_quality(name: str) -> dict:
+    """The quality measures a case declares, the followed case's first (as load_case orders checks): its held-out acceptance
+    blocks come before the case's own, and its mutation command stands unless the case names its own. ``{}`` for a case that
+    declares none, and for a name that is not a case. Kept apart from load_case, whose four values callers unpack."""
+    cases = json.loads(CASES.read_text())
+    case = cases.get(name) or {}
+    followed = cases.get(case.get("follows")) or {}
+    own, earlier = case.get("quality") or {}, followed.get("quality") or {}
+    blocks = [*(earlier.get("acceptance") or []), *(own.get("acceptance") or [])]
+    mutation = own.get("mutation") or earlier.get("mutation")
+    return {**({"mutation": mutation} if mutation else {}), **({"acceptance": blocks} if blocks else {})}
+
+
+def quality_stop(stop_file: Path) -> str | None:
+    """Why the quality phase should end now: the harness was told to end, or a person created the stop file. None otherwise."""
+    return stop_cause(stop_file) if TERMINATION.is_set() or stop_file.exists() else None
+
+
+def quality_gate(*, shiploop: dict, committed: dict, engine: dict, process: dict, stop_seen: bool, stop_file: Path,
+                 lock_held: bool) -> str | None:
+    """Why this run's delivery is not measured (None: it is a finished, returned one). The order is the order of what a
+    reader would fix first. The phase runs under the case lock this harness already holds and never takes another."""
+    if TERMINATION.is_set() or stop_seen or process.get("status") == "stopped" or stop_file.exists():
+        return f"a stop was requested ({stop_cause(stop_file)}), so the delivery is not a finished one"
+    if engine.get("status") == "active":
+        return f"ShipLoop is still active (stage {engine.get('stage')}), so no delivery was returned"
+    if not shiploop.get("pass"):
+        return f"ShipLoop did not reach done ({shiploop.get('status') or shiploop.get('reason')}), so no delivery was returned"
+    if not committed.get("pass"):
+        return "the returned checkout is not committed (the committed verdict failed), so it is not a finished delivery"
+    if not lock_held:
+        return ("this harness does not hold the case lock (another harness holds it, or it could not be made): a second "
+                "phase over the same folder could clash with that harness's")
+    return None
+
+
+def quality_record(out: Path, work: Path, name: str, gate: str | None, stop_file: Path) -> dict:
+    """The run's ``quality`` block. Recording fails open: an error is recorded as the reason and never changes a verdict."""
+    used = runrecord.hosts_used(out)
+    try:
+        return quality.measure(out, work, case_quality(name) if name != "custom" else {}, gate=gate, hosts_used=used,
+                               groups=LIVE_HOST_GROUPS, stop=lambda: quality_stop(stop_file))
+    except Exception as exc:
+        return {"observed": False, "hosts": used, "mixed_host": len(used) > 1, "reason": f"the quality phase failed: {exc!r}"}
 
 
 def planning_review_sentence(mode: str, improve_skill: str | None) -> str:
@@ -1209,7 +1261,9 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "tmp_writes": m.get("tmp_writes"),
             "shiploop_failures": m.get("shiploop_failures"), "compactions": m.get("compactions"),
             "truncated_outputs": m.get("truncated_outputs"), "narrative": m.get("narrative"),
-            "output": result.get("output")}
+            "output": result.get("output"),
+            # Optional, record only: a run with no block has no key, and scan_baseline never reads it.
+            **({"quality": summary} if (summary := quality.summary(result.get("quality"))) else {})}
 
 
 # `planning_review` (state.md key, ShipLoop 1.22.0 and later) says which planning results start an Improve child: `stage`
@@ -1993,6 +2047,12 @@ def _main(argv: list[str] | None, held: list) -> int:
                  "cancelled_tool_calls": metrics.count(run_metrics, "cancelled_tool_calls")},
               "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+    # The delivered-quality phase can take up to its ceiling after the host ended, and a task launcher's limit is near 30
+    # minutes: the record above is written first, so a kill in the phase loses nothing that exists today (SPEC, Delivered quality).
+    gate = quality_gate(shiploop=shiploop, committed=committed, engine=engine, process=process, stop_seen=stop_seen,
+                        stop_file=stop_file, lock_held=lock is not None)
+    result["quality"] = quality_record(out, work, name, gate, stop_file)
+    (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     exported = review_export(out)
     style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name, metrics.planning_review(engine))
@@ -2066,6 +2126,7 @@ def _main(argv: list[str] | None, held: list) -> int:
               f"took {budget['observed_minutes']} min ({budget['source']})")
     for line in metrics.summary_lines(run_metrics):
         print(f"  metrics   {line}")
+    print(f"  quality   {quality.line(result['quality'])}")
     for failure in run_metrics["shiploop_failures"][:5]:
         print(f"  failed    shiploop {failure['verb']} {metrics.failure_text(failure)}: {failure['line']}")
     if follow_on:
