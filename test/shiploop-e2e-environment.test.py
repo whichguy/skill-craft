@@ -1215,5 +1215,104 @@ class OutcomeClassThroughMainTest(QuietHarnessCase):
         self.assertIn("boom", result["outcome_basis"])
 
 
+class ResumeDefaultsTest(QuietHarnessCase):
+    """--resume-run continues the run's own driver; it does not default to Claude, and a host change is deliberate."""
+
+    def setUp(self):
+        super().setUp()
+        (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
+        released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False, "catalog_version": "9.9.9",
+                    "shiploop_version": None, "unreleased": [], "ci": "success"}
+        patched = mock.patch.object(run, "released_versions", return_value=released)
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def stopped(self, *extra: str) -> Path:
+        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0", *extra)
+        self.assertEqual(first["shiploop"]["status"], "active")
+        return Path(first["output"])
+
+    def resume(self, out: Path, *extra: str, mode: str = "done") -> tuple[int, dict, str]:
+        """A resume that names no host: every host's binary is a fake, so whichever one is chosen is safe to start."""
+        os.environ["FAKE_MODE"] = mode
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(["--grok-bin", str(self.fakes["grok"]), "--claude-bin", str(self.fakes["claude"]),
+                             "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out), "--plugin-dir", str(self.plugin),
+                             "--baseline", str(self.baselines), "--max-resumes", "0", *extra])
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue()
+
+    def launches(self, out: Path) -> list[tuple[str, str, str | None, str | None]]:
+        return [(name, record["host"], record["model"], record["effort"]) for name, record in run.runrecord.launches(out)]
+
+    def test_a_resume_that_names_no_host_continues_on_the_host_the_run_was_launched_on(self):
+        out = self.stopped()
+        code, result, printed = self.resume(out)
+        self.assertEqual(result["host"], "grok")
+        self.assertEqual([host for _, host, _, _ in self.launches(out)], ["grok", "grok"])
+        self.assertIn("This session ended while the ShipLoop run was still active", self.seen()["prompt"])
+        self.assertIn("continuing on grok (grok-4.7, medium)", printed)
+        self.assertEqual(result["environment"]["hosts_used"], ["grok"])
+
+    def test_model_and_effort_come_from_the_runs_own_record_and_an_explicit_one_wins(self):
+        out = self.stopped("--model", "my-model", "--effort", "high")
+        code, result, _ = self.resume(out)
+        self.assertEqual((result["model"], result["effort"]), ("my-model", "high"))
+        self.assertEqual(self.launches(out)[1][2:], ("my-model", "high"))
+        os.environ.pop("FAKE_MODE", None)
+        out = self.stopped("--model", "my-model", "--effort", "high")
+        _, result, _ = self.resume(out, "--model", "other-model", "--effort", "low")
+        self.assertEqual((result["model"], result["effort"]), ("other-model", "low"))
+
+    def test_a_host_that_differs_is_refused_naming_both_and_nothing_starts(self):
+        out = self.stopped()
+        result_before = (out / "result.json").read_text()
+        sessions = len(self.sessions())
+        with self.assertRaises(SystemExit) as raised:
+            self.resume(out, "--host", "claude")
+        message = str(raised.exception)
+        for text in ("grok", "claude", "--allow-host-change", "mixed-host"):
+            self.assertIn(text, message)
+        self.assertEqual(len(self.sessions()), sessions, "no host was started")
+        self.assertEqual((out / "result.json").read_text(), result_before)
+        self.assertEqual(len(self.launches(out)), 1, "no launch record was written")
+
+    def sessions(self) -> list:
+        path = Path(str(self.log) + ".sessions")
+        return path.read_text().splitlines() if path.exists() else []
+
+    def test_the_deliberate_flag_finishes_the_run_on_the_named_host_as_a_mixed_host_run(self):
+        out = self.stopped("--model", "my-model", "--effort", "high")
+        code, result, printed = self.resume(out, "--host", "claude", "--allow-host-change")
+        self.assertEqual([(host, model) for _, host, model, _ in self.launches(out)],
+                         [("grok", "my-model"), ("claude", "claude-sonnet-5-5")],
+                         "the recorded model belongs to the host that recorded it")
+        block = result["environment"]
+        self.assertEqual((block["hosts_used"], block["mixed_host"]), (["grok", "claude"], True))
+        self.assertEqual(len(block["environments"]), 2)
+        self.assertEqual(result["host"], "claude")
+        self.assertIn("MIXED HOST: grok, claude", printed)
+        self.assertIn("--allow-host-change", printed)
+
+    def test_naming_the_recorded_host_is_not_a_change_and_a_mixed_run_continues_on_the_host_that_last_ran_it(self):
+        out = self.stopped()
+        code, result, _ = self.resume(out, "--host", "grok")
+        out = self.stopped()
+        self.resume(out, "--host", "claude", "--allow-host-change", mode="active")  # claude leaves it active
+        time.sleep(1.1)  # a launch record is named by the second it began in
+        code, result, printed = self.resume(out)  # no host: the one that last ran it, not the first and not Claude by default
+        self.assertEqual([host for _, host, _, _ in self.launches(out)], ["grok", "claude", "claude"])
+        self.assertIn("continuing on claude", printed)
+
+    def test_a_regrade_still_restates_the_recorded_identity_whatever_the_flags_say(self):
+        out = self.stopped()
+        self.blocked_workspace(out)
+        before = len(self.sessions())
+        code, result, printed = self.resume(out, "--host", "claude", "--model", "other")
+        self.assertEqual((result["host"], result["model"]), ("grok", "grok-4.7"))
+        self.assertIn("regrade: no host starts", printed)
+        self.assertEqual(len(self.sessions()), before)
+
+
 if __name__ == "__main__":
     unittest.main()

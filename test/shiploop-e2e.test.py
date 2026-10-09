@@ -2054,7 +2054,7 @@ class CodexRunTest(HarnessCase):
         original = (out / "invocation.json").read_text()
         os.environ["FAKE_MODE"] = "done"
         with contextlib.redirect_stdout(io.StringIO()):
-            code = run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            code = run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         result = json.loads((out / "result.json").read_text())
         self.assertEqual(code, 0, result)
@@ -3131,7 +3131,7 @@ class ResumedRunRecordTest(PrintedCase):
         with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
                 run, "marketplace_preflight", return_value=(self.plugin, None, versions)):
             with self.assertRaisesRegex(SystemExit, "version gate"):
-                run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+                run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                           "--baseline", str(self.baselines)])
         self.assertEqual((out / "result.json").read_text(), before)
 
@@ -3140,7 +3140,7 @@ class ResumedRunRecordTest(PrintedCase):
         original = json.loads((out / "result.json").read_text())["termination"]
         os.environ["FAKE_MODE"] = "done"
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         result = json.loads((out / "result.json").read_text())
         self.assertEqual(result["earlier_terminations"], [original])
@@ -3410,7 +3410,7 @@ class RegradeRecordTest(PrintedCase):
         out = Path(stopped["output"])
         os.environ["FAKE_MODE"] = "nothing"
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         resumed = json.loads((out / "result.json").read_text())
         self.assertEqual((resumed["host"], resumed["resumed_run"]["from_host"]), ("codex", "grok"))
@@ -3436,7 +3436,7 @@ class BaselineAbsentTest(PrintedCase):
         os.environ["FAKE_MODE"] = "done"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", stopped["output"],
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", stopped["output"],
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertIn("baseline  nothing compared: a resumed or seeded run is not a baseline", printed.getvalue())
 
@@ -4406,7 +4406,7 @@ class ResumeCliThroughMainTest(PrintedCase):
         other_cli.write_text("")
         self.log.unlink()
         os.environ["FAKE_MODE"] = "stuck"
-        self.resume(Path(first["output"]), "codex", other)
+        self.resume(Path(first["output"]), "codex", other, "--allow-host-change")
         prompt = self.seen()["prompt"]
         self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)  # the first host's install, not the new one
         self.assertNotIn(str(other_cli), prompt)
@@ -4561,7 +4561,7 @@ class StopFileTest(PrintedCase):
         (out / "stop").write_text("")  # left over from a stop nobody consumed
         os.environ["FAKE_MODE"] = "done"
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         result = json.loads((out / "result.json").read_text())
         self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")

@@ -419,6 +419,27 @@ def keep_awake(argv: list[str]) -> list[str]:
     return [caffeinate, "-d", "-i", *argv] if caffeinate else argv
 
 
+def resume_identity(args, asked: bool, last: dict, out: Path) -> tuple[str, str | None, str | None]:
+    """(host, model, effort) a resume runs with: the run's last launch's, unless a host is named (SPEC: a resume continues the
+    run's own driver).
+
+    ``--host`` names a host only if it was given (the parser's default is not a choice). A different host is refused, before
+    anything starts, unless ``--allow-host-change`` says it is deliberate: the run would then be a mixed-host run, whose
+    verdicts and costs belong to no one host. Model and effort given explicitly win; the recorded ones apply only while the
+    host is the recorded one.
+    """
+    recorded = last.get("host")
+    if asked and args.host != recorded and not args.allow_host_change:
+        used = ", ".join(runrecord.hosts_used(out)) or str(recorded)
+        raise SystemExit(f"--resume-run: this run was last launched on {recorded} ({last.get('model')}); --host {args.host} would "
+                         f"finish it on a different host, so it would be a mixed-host run (hosts so far: {used}) whose verdicts "
+                         f"and costs belong to no one host. Nothing was started. Drop --host to continue on {recorded}, or pass "
+                         f"--allow-host-change to finish it on {args.host} on purpose.")
+    host = args.host if asked else recorded
+    same = host == recorded
+    return host, args.model or (last.get("model") if same else None), args.effort or (last.get("effort") if same else None)
+
+
 def display_held() -> bool:
     """Whether a host session runs under a display hold: the one decision is keep_awake's, asked and not repeated."""
     marker = ["host"]
@@ -1176,6 +1197,10 @@ def parser() -> argparse.ArgumentParser:
                    help="suites: run every case one after another (rerun a failure that appears only in parallel "
                         "this way before attributing it to ShipLoop)")
     p.add_argument("--suite-name", help=argparse.SUPPRESS)
+    p.add_argument("--allow-host-change", action="store_true",
+                   help="with --resume-run: finish the run on the --host named even though its last launch was on another "
+                        "host, which makes it a mixed-host run (without this flag that is refused; a resume that names no "
+                        "--host continues on the host the run was last launched on)")
     p.add_argument("--need", action="append", choices=environment.NEEDS, default=[],
                    help="declare a need of this run, which records its capability on the harness side before the host "
                         "starts (browser: can a headless browser load a stand-in page here). A named case declares its own "
@@ -1786,6 +1811,18 @@ def _main(argv: list[str] | None, held: list) -> int:
         if state.get("status") != "active" and not regrade:
             raise SystemExit(f"--resume-run needs an active, blocked or finished ShipLoop run; found "
                              f"{state.get('status')!r} in {out}")
+        launched = runrecord.launches(out)
+        last_launch = launched[-1][1] if launched else earlier  # the launch that ran it last, which a resume continues
+        if not regrade:
+            asked = host_given(argv)
+            args.host, args.model, args.effort = resume_identity(args, asked, last_launch, out)
+            if not args.quiet:
+                if asked and args.host != last_launch.get("host"):
+                    print(f"resume: --allow-host-change: finishing on {args.host} a run last launched on "
+                          f"{last_launch.get('host')}; it is a mixed-host run", flush=True)
+                elif not asked:
+                    print(f"resume: --host not given; continuing on {args.host} ({args.model}, {args.effort or 'default effort'}), "
+                          "as the run's last launch recorded", flush=True)
         if not regrade and not args.suite_name:
             refuse_stale_listeners(out)  # the run's own leftovers are stopped below, not refused
         # The one CLI value every prompt of this invocation names (a record with no plugin_dir yields a path that is not a file).
@@ -1812,7 +1849,8 @@ def _main(argv: list[str] | None, held: list) -> int:
                 print(f"regrade: no host starts, so the run's recorded host, model and effort stay ({kept['host']}, "
                       f"{kept['model']}, {kept['effort'] or 'no effort'}); ignoring {', '.join(ignored)}", flush=True)
             args.host, args.model, args.effort = kept["host"], kept["model"], kept["effort"]
-        resumed = {"from_host": earlier["host"], "from_model": earlier.get("model"), "run_dir": state.get("run_dir"),
+        resumed = {"from_host": last_launch.get("host") or earlier["host"], "from_model": last_launch.get("model") or earlier.get("model"),
+                   "run_dir": state.get("run_dir"),
                    "revision": state.get("revision"), "stage": state.get("stage")}
     else:
         name, prompt, checks, follows = load_case(args)
