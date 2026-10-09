@@ -1,35 +1,48 @@
 #!/usr/bin/env python3
 """Compact extracts of saved E2E runs, for test/shiploop-e2e-fidelity.test.py (the fidelity block of test/shiploop_e2e/fidelity.py).
 
-  python3 test/fixtures/fidelity/extract.py [/Users/dadleet/e2e-runs]
+  python3 test/fixtures/fidelity/extract.py <folder holding the dated run folders, e.g. the e2e-runs folder>
 
 Reads, never writes, the run folders below (outside the repository) and writes beside this script one folder per run,
 in the shape the harness reads: ``events.jsonl`` and ``timeline.jsonl`` (only the events a test needs; every other
-line of the stream is left blank, so an event keeps its original number and `metrics.events` yields it at the number
-the analyses cite), ``invocation*.json`` (host and regrade only), and ``.shiploop-runs/work-1/run/`` with a
+line of the stream is left blank, so an event keeps its original number, the 0-based line index `metrics.events` yields it
+at and the analyses cite), ``invocation*.json`` (host and regrade only), and ``.shiploop-runs/work-1/run/`` with a
 trimmed ``state.md`` (the keys the reader looks at), ``timeline.json``, the verify records without their stdout,
-placeholders for the lint, quality, backchain and Improve receipt files that exist (only their names are read) and,
-of each Improve packet, the lines that carry one of its five questions.
+placeholders for the lint gate, quality, backchain and Improve receipt files that exist (only their names are read) and,
+of each Improve packet, the lines that carry one of its five questions. The advisory lint files (``<action>.md``,
+``<action>.<n>.md``, ``-inventory.md``) are not kept: no part of the block reads them.
 
-What is changed: the run folder prefix becomes /runs/<run>, the work-directory stamp becomes work-1 and the user name
-becomes `user`, so no personal path is kept; Claude's thinking and text blocks are dropped; a tool result is cut to its
-first 120 characters (after the path rewrite, so no half of a user path is left), except a ShipLoop refusal, which keeps the text from its own line on; a summary is cut to 80
-characters. The tests expect the figures of these cuts; the figures of the uncut runs are in
-docs/shiploop-batch-1011m-g1-fidelity-journal-2026-10-09.md.
+What is changed: the run folder prefix becomes /runs/<run>, the work-directory stamp becomes work-1, the macOS temporary
+folder (/var/folders/xx/yyyy/T) becomes /tmp and the user name (taken from the input folder's /Users/<name>/ path, else the
+login name) becomes `user`, so no personal path is kept; Claude's thinking and text blocks are dropped; a tool result is cut to
+its first 120 characters (after the path rewrite, so no half of a user path is left), except a ShipLoop refusal, which keeps
+the text from its own line on; a summary is cut to 80 characters; a heredoc body over 600 characters is cut. The tests expect
+the figures of these cuts; the figures of the uncut runs are in docs/shiploop-batch-1011m-g1-fidelity-journal-2026-10-09.md.
 
-Selection of events: every edit-tool call on a path inside a run or Improve directory or a workspace file, every shell
-command that writes with sed -i or perl -i, kills by pattern, runs git commit or add, or names a workspace file, and
-every ShipLoop call that was refused or exited non-zero, each with its result. Product edits and the rest of the calls are blank lines.
+Selection of events: every call (a shell command or an edit tool) whose command or paths mention a run or workspace
+directory (`.shiploop-runs/`), an Improve directory (`.shiploop-improve`), an Until Loop (`until-loop`), `kill` or `git`, or
+that writes with sed -i or perl -i, kills by pattern or names a workspace file, and every ShipLoop call that was refused or
+exited non-zero; only the last keep their result (a result is read for a refusal and for an exit code, nothing else). What is left blank: calls that name none of those (reads of a skill, a test run in a
+bare directory, a `curl`). Limits the tests inherit: a call that writes a ShipLoop-owned file through a path built in a
+variable set by an EARLIER call is not recognised by the extractor (no saved run does it), and a command cut at a heredoc body
+over 600 characters can lose a ShipLoop verb that only the body named, so a refusal found through such a command is fewer in
+an extract than in the full run (the Codex run has 9 of 10).
 """
 from __future__ import annotations
 
+import getpass
 import json
 from pathlib import Path
 import re
 import sys
 
-RUNS = Path(sys.argv[1] if len(sys.argv) > 1 else "/Users/dadleet/e2e-runs")
+if len(sys.argv) != 2:
+    raise SystemExit(__doc__)
+RUNS = Path(sys.argv[1]).expanduser().resolve()
 HERE = Path(__file__).resolve().parent
+# The user name to mask: the /Users/<name>/ of the input folder, else the login name.
+_FOUND = re.search(r"/Users/([^/]+)/", str(RUNS) + "/")
+USER_NAME = _FOUND.group(1) if _FOUND else getpass.getuser()
 
 # alias -> (folder under RUNS, whether events are kept). The v1220 pair keeps verify heads only: their point is the null counts.
 FULL = {
@@ -53,9 +66,10 @@ HEADS_ONLY = {
 FENCE = re.compile(r"```shiploop-state\n(?P<json>.*?)\n```", re.S)
 REFUSAL = re.compile(r"^ShipLoop (?:navigator|blocked|workspace blocked): ", re.M)
 EDIT_TOOL = re.compile(r"write|edit|replace|create", re.I)
-KEPT_INSIDE = re.compile(r"/\.shiploop-runs/[^/]+/(?:run/|return-plan\.md|return-receipt\.md|workspace\.md)|\.shiploop-improve/|/\.shiploop/")
-SHELL_CANDIDATE = re.compile(r"\bsed\s+(?:-\w+\s+)*-i\b|\bperl\s+(?:-\w+\s+)*-\w*i\b|\bpkill\b|\bkillall\b|git\b[^\n]*\b(?:commit|add)\b|"
-                             r"return-plan\.md|return-receipt\.md|workspace\.md")
+# A call is kept when its command or a path it names mentions a run or workspace directory, an Improve directory, an Until Loop, a
+# kill or git, or writes in place, kills by pattern or names a workspace file.
+CANDIDATE = re.compile(r"\.shiploop-runs/|\.shiploop-improve|\.shiploop/|until-loop|\b(?:pkill|killall|kill)\b|\bgit\b|\bsed\s+(?:-\w+\s+)*-i\b|"
+                       r"\bperl\s+(?:-\w+\s+)*-\w*i\b|return-plan\.md|return-receipt\.md|workspace\.md")
 # The lines of an Improve packet that carry one of its five questions (and the one that names the packet).
 IMPROVE_LINES = re.compile(r"^(?:Current action:|Reviewing the returned |Goal: |Done when \(|Checked by:|"
                            r"The opening file holds exactly these headings|Then run: |Recovery command:)")
@@ -67,7 +81,8 @@ HEREDOC = re.compile(r"(<<-?\s*['\"]?(\w+)['\"]?[^\n]*\n).*?(\n\s*\2(?=[\"']?\s*
 def rewrite(text: str, folder: Path) -> str:
     text = text.replace(str(folder), f"/runs/{folder.name}")
     text = re.sub(r"\.shiploop-runs/work-\d{8}-\d{6}-[0-9a-f]{6}", ".shiploop-runs/work-1", text)
-    return text.replace("dadleet", "user")
+    text = re.sub(r"(?:/private)?/var/folders/[^/\s\"']+/[^/\s\"']+/T\b", "/tmp", text)  # a macOS temporary folder
+    return text.replace(USER_NAME, "user") if USER_NAME != "user" else text
 
 
 def rewrite_json(value, folder: Path):
@@ -145,7 +160,7 @@ def extract_run_dir(src_run: Path, dst_run: Path, folder: Path, heads_only: bool
         target.write_text(rewrite(record_text(trimmed_record(record)), folder))
     if heads_only:
         return
-    for pattern, body in (("lint/nav-*.md", "# ShipLoop lint record\n"), ("quality/nav-*-terminal.json", "{}\n"),
+    for pattern, body in (("lint/nav-*.gate*.md", "# ShipLoop lint record\n"), ("quality/nav-*-terminal.json", "{}\n"),
                           ("backchain/nav-*/check-*.json", "{}\n"), ("improve/nav-*/receipt.md", "# Improve receipt\n")):
         for path in sorted(src_run.glob(pattern)):
             target = dst_run / path.relative_to(src_run)
@@ -189,10 +204,10 @@ def compact_input(arg: dict) -> dict:
 def candidate_call(tool: str, arg: dict) -> bool:
     command = str(arg.get("command") or "")
     if command:
-        return bool(SHELL_CANDIDATE.search(command))
+        return bool(CANDIDATE.search(command))
     paths = [str(arg.get(k)) for k in ("target_file", "file_path", "path") if isinstance(arg.get(k), str)]
     paths += [p for p in (arg.get("paths") or []) if isinstance(p, str)]
-    return bool(EDIT_TOOL.search(tool)) and any(KEPT_INSIDE.search(p) for p in paths)
+    return bool(EDIT_TOOL.search(tool)) and any(CANDIDATE.search(p) for p in paths)
 
 
 def compact_event(event: dict) -> dict:
@@ -243,13 +258,16 @@ def extract_events(src: Path, dst: Path, folder: Path) -> None:
             if event.get("toolCallId") in latest:
                 raw = event["rawOutput"]
                 results[latest[event["toolCallId"]]] = (number, str(raw.get("output_for_prompt") or ""), raw.get("exit_code"))
-    keep = set()
+    keep, with_result = set(), set()  # calls kept; of them, the refused or failed ones keep their result too
     for key, (tool, arg) in calls.items():
         found = results.get(key) or (None, "", None)
         shown, code = found[1], found[2]
         exit_shown = int(m.group(1)) if (m := re.match(r"Exit code (\d+)", shown)) else code
         failed_shiploop = "shiploop" in str(arg.get("command") or "") and exit_shown not in (None, 0)
-        if candidate_call(tool, arg) or REFUSAL.search(shown) or failed_shiploop:
+        if REFUSAL.search(shown) or failed_shiploop:
+            keep.add(key)
+            with_result.add(key)
+        elif candidate_call(tool, arg):
             keep.add(key)
     out = [""] * len(lines)
     kept_blocks: dict[int, list] = {}  # event -> the blocks of that event to write
@@ -261,7 +279,7 @@ def extract_events(src: Path, dst: Path, folder: Path) -> None:
             kept_blocks.setdefault(number, []).append({**block, "input": compact_input(block.get("input") or {})})
         else:
             out[number] = json.dumps(rewrite_json(compact_event(event), folder))
-        if key in results:
+        if key in with_result:
             rnumber, shown, code = results[key]
             revent = events[rnumber]
             if revent.get("type") == "user":

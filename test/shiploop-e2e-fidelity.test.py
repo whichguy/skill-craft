@@ -3,10 +3,17 @@
 
 The replay tests read the compact extracts of twelve saved runs under test/fixtures/fidelity (cut by its extract.py from the
 run folders of 2026-10-05, 2026-10-07 and 2026-10-08) and two extracts of the 2026-10-06 verify records, never the machine's
-run folders. Each events.jsonl keeps its selected events at their original line numbers, so `event 493` below is line 493 of
-the saved stream. The real-git and host-stream shapes are the harness's own (Claude tool_use and tool_result blocks, Grok
-tool_call and tool_call_update events, Codex through its translator). No test starts a host, a model or a listener, signals a
-process, or reads the machine's process table.
+run folders. Each events.jsonl keeps its selected events at their original line numbers, so `event 493` below is the 0-based line
+index 493 of the saved stream (line 494 in an editor). The host-stream shapes are the harness's own (Claude tool_use and
+tool_result blocks, Grok tool_call and tool_call_update events, Codex through its translator). No test starts a host, a model or a
+listener, signals a process, or reads the machine's process table.
+
+What the extracts can and cannot show (their limits are the tests' limits). extract.py keeps every call whose command or paths
+mention a run, workspace, Improve or Until Loop directory, a kill or git, or that writes in place or names a workspace file, and
+leaves the rest blank; a call that writes an owned file through a path built in a variable set by an EARLIER call is not recognised
+by the extractor (no saved run does it). Results are kept only for refused or failed ShipLoop calls, and a heredoc body over 600
+characters is cut, which can lose a ShipLoop verb that only the body named (the Codex run has 9 of its 10 refusals). The figures of
+the uncut runs are in the journal; a pin here is a pin on the extract.
 """
 
 from __future__ import annotations
@@ -879,7 +886,9 @@ class BuildTest(unittest.TestCase):
             self.assertIsNone(block[part], part)
             self.assertIn(word, block["unmeasured"][part], part)
 
-    def test_the_block_is_json_and_small(self):
+    def test_the_block_is_json_and_a_regression_tripwire_on_its_size(self):
+        # 60,000 characters is a tripwire at about 4 times the largest block of the saved runs (15 KB), not a budget: a block
+        # that grows past it holds something it should not (packet text, a command).
         text = json.dumps(replay("r2-battleship-grok-none")["block"])
         json.loads(text)
         self.assertLess(len(text), 60_000)
