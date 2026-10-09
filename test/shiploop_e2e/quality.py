@@ -35,19 +35,20 @@ import metrics
 import shiploop_test_counts as test_counts
 
 HERE = Path(__file__).resolve().parent
-# Ceilings, not tuning values (as listeners.LSOF_TIMEOUT is): the point past which a thing is taken to have hung.
-# One test run, the unmutated baseline and each mutant alike: the eight saved deliveries' own suites took 0.23 to 1.27 s, and the
-# prototype sweeps over them (33 to 108 mutants, 25 to 152 s each) ran with this limit. A run that reaches it is a killed mutant
-# (a hang is a visible change) counted as a timeout, or, for the baseline, an unobserved ratio.
+# Time limits. None is a measurement; each is a point past which something is taken to have hung, and a result records it.
+# RUN_CEILING_SECONDS defines a hang: one test run (the unmutated baseline or one mutant) that has not ended by then is a hang,
+# which counts as a caught mutant and as a `timeout`, so changing it changes results. 10 s is the limit the prototype sweeps
+# of the eight saved deliveries ran with, beside suites that took 0.23 to 1.27 s.
 RUN_CEILING_SECONDS = 10
-# The whole mutation phase. Its largest measured sweep was 152 s; a task launcher's limit is near 30 minutes. Mutants not reached
-# are `not_run` and `ceiling_hit` says so.
+# PHASE_CEILING_SECONDS is the point at which the whole mutation phase gives up; the mutants not reached are `not_run` and
+# `ceiling_hit` says so. About five times the longest sweep measured here (113 s) and well under a task launcher's limit of
+# about 30 minutes; reaching it is recorded, never hidden.
 PHASE_CEILING_SECONDS = 600
-# How long a product's server has to start listening.
+# How long a product's server has to start listening; past it the held-out checks are `observed: false`.
 LISTEN_CEILING_SECONDS = 10
-# One HTTP call of a held-out check.
-CALL_CEILING_SECONDS = 5
-POLL_SECONDS = 0.05
+POLL_SECONDS = 0.01  # how often a running child is looked at
+TAIL_BYTES = 200_000  # how much of the end of a test run's output is read back: the summary is last
+NOTE_CHARS = 300  # display only: a held-out check's note is cut here
 # The operator catalog a ratio belongs to. Any change to the operators or to the masking is a new id: ratios of two ids
 # are never compared.
 OPERATOR_ID = "js-1"
@@ -160,17 +161,42 @@ CATALOGS = {extension: JS for extension in JS.extensions}
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Processes: every child in a group of its own, registered while its leader is unreaped, signalled only while it leads it.
+# Processes: every child in a group of its own, registered while its leader is unreaped, its whole group ended with it.
+
+def exited(proc: subprocess.Popen) -> bool:
+    """Whether the leader has exited, without reaping it: an exited, unreaped leader is a zombie that still pins its pid."""
+    if proc.returncode is not None:
+        return True
+    try:
+        done = os.waitid(os.P_PID, proc.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+    except ChildProcessError:
+        return True
+    return done is not None and done.si_pid != 0
+
 
 def end_group(proc: subprocess.Popen) -> bool:
-    """SIGKILL the process group `proc` leads, then reap it. False (nothing signalled) unless `proc` is alive and its own
-    group's leader: a pid that has been reaped may be reused, and its group is then someone else's (the guard the harness's
-    other kills use, ``os.getpgid(pid) == pid``)."""
+    """SIGKILL the whole process group `proc` leads and reap `proc`; False (nothing signalled) when it was already reaped, or
+    is alive and does not lead a group of its own.
+
+    This is the one place the phase signals a group. A group is ended while its leader is alive and leads it, or has exited and
+    is not yet reaped: an unreaped leader keeps its pid, so the number cannot have been reused for someone else's group, and
+    anything a test run left behind shares that group (a reaped leader would leave it orphaned and unreachable). On macOS
+    ``getpgid`` raises for an exited, unreaped process while ``killpg`` still works, so the guard is applied only to a leader
+    that is still running. The harness's other group kills (``run.kill_group``, ``hosts.run_process``) signal without this
+    guard; a test helper (``kill_hosts``) uses it.
+    """
+    if proc.returncode is not None:  # reaped: the pid may belong to someone else now
+        return False
+    if not exited(proc):
+        try:
+            if os.getpgid(proc.pid) != proc.pid:
+                return False
+        except ProcessLookupError:
+            pass  # it exited just now: still an unreaped zombie holding the id
     try:
-        if proc.poll() is not None or os.getpgid(proc.pid) != proc.pid:
-            return False
         os.killpg(proc.pid, signal.SIGKILL)
     except (ProcessLookupError, PermissionError):
+        proc.wait()
         return False
     proc.wait()
     return True
@@ -181,19 +207,34 @@ def start(argv: list[str], cwd: Path, env: dict, log: Path, groups: set) -> subp
     with log.open("wb") as handle:
         proc = subprocess.Popen(argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=handle, stderr=subprocess.STDOUT,
                                 start_new_session=True)
+    if os.getpgid(proc.pid) != proc.pid:  # setsid ran before exec returned: anything else means the id is not ours to signal
+        proc.kill()
+        proc.wait()
+        raise OSError(f"{argv[0]} did not start in a session of its own")
     groups.add(proc.pid)
     return proc
 
 
 def finish(proc: subprocess.Popen, groups: set) -> None:
-    """End `proc`'s group if it is still running, reap it and forget it (a reaped pid is never signalled again)."""
+    """End `proc`'s whole group (a hung leader, or what a leader that exited left behind), reap it and forget it."""
     end_group(proc)
     proc.wait()
     groups.discard(proc.pid)
 
 
+def wait_exit(proc: subprocess.Popen, ceiling: float) -> bool:
+    """Wait up to `ceiling` seconds for the leader to exit without reaping it. True when it exited by itself."""
+    end = time.monotonic() + ceiling
+    while not exited(proc):
+        if time.monotonic() >= end:
+            return False
+        time.sleep(POLL_SECONDS)
+    return True
+
+
 def run_once(argv: list[str], cwd: Path, env: dict, log: Path, ceiling: float, groups: set) -> dict:
-    """Run a command to its end or to `ceiling` seconds: ``{returncode, timeout, seconds, output}`` (returncode None on a timeout)."""
+    """Run a command to its end or to `ceiling` seconds: ``{returncode, timeout, seconds, output}`` (returncode None on a timeout).
+    Whatever else shares the command's group is ended with it."""
     began = time.monotonic()
     try:
         proc = start(argv, cwd, env, log, groups)
@@ -201,10 +242,7 @@ def run_once(argv: list[str], cwd: Path, env: dict, log: Path, ceiling: float, g
         return {"returncode": 127, "timeout": False, "seconds": 0.0, "output": f"could not start {argv[0]}: {exc}"}
     timed_out = False
     try:
-        try:
-            proc.wait(timeout=ceiling)
-        except subprocess.TimeoutExpired:
-            timed_out = True
+        timed_out = not wait_exit(proc, ceiling)
     finally:
         finish(proc, groups)
     try:
@@ -450,9 +488,9 @@ def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str |
                 return {"observed": False, "reason": f"{why}: the held-out checks ended after {len(results)} of {len(declared)}"}
             try:
                 ok, note = implemented[item["id"]](f"http://127.0.0.1:{port}")
-                results.append({"id": item["id"], "source": item.get("source"), "pass": bool(ok), "note": str(note)[:300]})
+                results.append({"id": item["id"], "source": item.get("source"), "pass": bool(ok), "note": str(note)[:NOTE_CHARS]})
             except Exception as exc:
-                results.append({"id": item["id"], "source": item.get("source"), "pass": False, "note": f"raised {exc!r}"[:300]})
+                results.append({"id": item["id"], "source": item.get("source"), "pass": False, "note": f"raised {exc!r}"[:NOTE_CHARS]})
     finally:
         finish(proc, groups)
     return {"observed": True, "source": block.get("source"), "ids": declared,

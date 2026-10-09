@@ -16,7 +16,7 @@ import json
 import urllib.error
 import urllib.request
 
-CALL_SECONDS = 5
+CALL_SECONDS = 5  # a ceiling for one HTTP call: a call that has not answered by then fails its check
 
 
 def call(base: str, method: str, path: str, body: dict | None = None) -> tuple[int, dict]:

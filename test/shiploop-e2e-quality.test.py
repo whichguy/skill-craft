@@ -587,13 +587,6 @@ class ProcessSafetyTest(QualityCase):
         killpg.assert_not_called()
         self.assertTrue(alive(proc.pid))
 
-    def test_a_process_that_already_ended_is_not_signalled_by_group(self):
-        proc = quality.start([sys.executable, "-c", "pass"], self.tmp, quality.child_env(), self.tmp / "log", self.groups)
-        proc.wait()
-        with mock.patch.object(os, "killpg") as killpg:
-            self.assertFalse(quality.end_group(proc), "a reaped pid may be reused: its group is not ours to signal")
-        killpg.assert_not_called()
-        self.groups.discard(proc.pid)
 
     def test_every_group_is_registered_while_it_runs_and_forgotten_after(self):
         result = quality.run_once([sys.executable, "-c", "pass"], self.tmp, quality.child_env(), self.tmp / "log", 5, self.groups)
@@ -603,13 +596,56 @@ class ProcessSafetyTest(QualityCase):
 
     def test_a_group_the_phase_started_is_ended_by_the_harness_when_it_is_told_to_end(self):
         # run.end_live_hosts is what a SIGTERM to the harness and the exit hook call; the phase registers in the same set.
-        proc = quality.start([sys.executable, "-c", "import time; time.sleep(30)"], self.tmp, quality.child_env(), self.tmp / "log",
-                             run.LIVE_HOST_GROUPS)
-        self.addCleanup(kill_quietly, proc.pid)
-        self.addCleanup(run.LIVE_HOST_GROUPS.discard, proc.pid)
-        self.assertIn(proc.pid, run.LIVE_HOST_GROUPS)
-        run.end_live_hosts()
-        self.assertEqual(proc.wait(timeout=10), -signal.SIGKILL)
+        # end_live_hosts signals every pid of the process-global set without a guard: the set is the test's own for its length.
+        with mock.patch.object(run, "LIVE_HOST_GROUPS", set()):
+            proc = quality.start([sys.executable, "-c", "import time; time.sleep(30)"], self.tmp, quality.child_env(), self.tmp / "log",
+                                 run.LIVE_HOST_GROUPS)
+            self.addCleanup(kill_quietly, proc.pid)
+            self.assertEqual(set(run.LIVE_HOST_GROUPS), {proc.pid})
+            run.end_live_hosts()
+            self.assertEqual(proc.wait(timeout=10), -signal.SIGKILL)
+
+    def orphans(self, copy: Path) -> list[int]:
+        pids = [int(line) for line in (copy / "orphans.txt").read_text().split()]
+        for pid in pids:
+            self.addCleanup(kill_quietly, pid)
+        return pids
+
+    def test_a_test_run_that_leaves_a_helper_in_its_group_leaves_nothing_behind_and_keeps_its_exit_code(self):
+        # A run that exits 0 while a helper it started shares its group (a test that unrefs a spawned process): the leader's
+        # exit must not drop the group, or the helper is orphaned and no signal to the harness can reach it again.
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+        with mock.patch.dict(os.environ, {"ORPHAN": "1"}):
+            result = quality.run_once([sys.executable, "check.py"], copy, quality.child_env(), self.tmp / "log", 30, self.groups)
+        (helper,) = self.orphans(copy)
+        self.assertEqual((result["returncode"], result["timeout"]), (0, False), "ending the group after the exit does not change the code")
+        self.assertTrue(gone_soon(helper), "the helper the run left behind was ended with its group")
+        self.assertEqual(set(self.groups), set())
+
+    def test_a_mutation_phase_over_a_test_run_that_leaves_helpers_leaves_none_alive(self):
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+        with no_syntax_check(), mock.patch.dict(os.environ, {"ORPHAN": "1"}):
+            block = quality.mutation(copy, {"command": "python3 check.py"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l")
+        self.assertTrue(block["observed"], block)
+        helpers = self.orphans(copy)
+        self.assertEqual(len(helpers), block["sites"] + 1, "one per run: the baseline and each mutant")
+        self.assertTrue(all(gone_soon(pid) for pid in helpers))
+
+    def test_a_group_whose_leader_has_exited_but_is_not_reaped_is_ended_and_one_already_reaped_is_not(self):
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+        with mock.patch.dict(os.environ, {"ORPHAN": "1"}):
+            proc = quality.start([sys.executable, "check.py"], copy, quality.child_env(), self.tmp / "log", self.groups)
+            os.waitid(os.P_PID, proc.pid, os.WEXITED | os.WNOWAIT)  # the leader is a zombie: it pins its group id
+        (helper,) = self.orphans(copy)
+        self.assertTrue(alive(helper))
+        self.assertTrue(quality.end_group(proc), "the zombie leader still pins the group: its helper is ended")
+        self.assertTrue(gone_soon(helper))
+        with mock.patch.object(os, "getpgid", return_value=proc.pid), mock.patch.object(os, "killpg") as killpg:
+            self.assertFalse(quality.end_group(proc), "a leader that was reaped may have its pid reused: nothing is signalled")
+        killpg.assert_not_called()
 
     def test_a_hanging_mutant_is_counted_killed_and_its_whole_group_ends(self):
         copy = self.tmp / "copy"

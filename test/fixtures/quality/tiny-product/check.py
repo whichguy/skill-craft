@@ -3,7 +3,9 @@
 prints (TAP), so the mutation runner can be driven without a JavaScript runtime. The same four checks as test/lib.test.js, as text.
 
 Environment, set by a test: BASELINE=red|zero|silent changes what the unmutated copy reports; HANG_ON_SPIN=1 makes the copy
-whose `spin` constant is true start a child and hang, as a mutant that loops would; SLOW=<seconds> sleeps before reporting."""
+whose `spin` constant is true start a child and hang, as a mutant that loops would; SLOW=<seconds> sleeps before reporting;
+ORPHAN=1 starts a child in this process's group that outlives it (a test that leaves a helper behind), recording its pid in
+orphans.txt; EXIT_BY=<n> exits with that code after reporting (a failing run)."""
 import os, re, subprocess, sys, time
 
 if os.environ.get("SLOW"):
@@ -14,6 +16,11 @@ if os.environ.get("HANG_ON_SPIN") and "const spin = true" in lib:
     with open("grandchild.pid", "w") as handle:
         handle.write(f"{os.getpid()} {child.pid}")
     time.sleep(60)  # a bounded hang: the harness ends it long before
+if os.environ.get("ORPHAN"):
+    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # same group, 60 s at most
+    with open("orphans.txt", "a") as handle:
+        handle.write(f"{child.pid}\n")
 mode = os.environ.get("BASELINE")
 if mode == "silent":
     print("ok")
