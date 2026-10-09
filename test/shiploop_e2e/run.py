@@ -434,14 +434,29 @@ def resume_identity(args, asked: bool, last: dict, out: Path) -> tuple[str, str 
     """
     recorded = last.get("host")
     if asked and args.host != recorded and not args.allow_host_change:
-        used = ", ".join(runrecord.hosts_used(out)) or str(recorded)
-        raise SystemExit(f"--resume-run: this run was last launched on {recorded} ({last.get('model')}); --host {args.host} would "
-                         f"finish it on a different host, so it would be a mixed-host run (hosts so far: {used}) whose verdicts "
+        used = runrecord.hosts_used(out)
+        what = (f"it already is a mixed-host run (hosts so far: {', '.join(used)}) and --host {args.host} would continue it on a "
+                f"host other than its last, {recorded}" if len(used) > 1 else
+                f"--host {args.host} would finish it on a different host, so it would become a mixed-host run (hosts so far: "
+                f"{', '.join(used) or recorded})")
+        raise SystemExit(f"--resume-run: this run was last launched on {recorded} ({last.get('model')}); {what}, and its verdicts "
                          f"and costs belong to no one host. Nothing was started. Drop --host to continue on {recorded}, or pass "
-                         f"--allow-host-change to finish it on {args.host} on purpose.")
+                         f"--allow-host-change to continue it on {args.host} on purpose.")
     host = args.host if asked else recorded
     same = host == recorded
     return host, args.model or (last.get("model") if same else None), args.effort or (last.get("effort") if same else None)
+
+
+def launch_stamp(out: Path, host_name: str) -> int:
+    """The number a resume's launch record and prompt file are named with: the second it began in, or the next free one.
+
+    A launch record is the run's only trace of who ran it (runrecord reads them in the order of this number), so another launch
+    or a regrade that began in the same second must not overwrite it: it takes the next number instead.
+    """
+    stamp = int(time.time())
+    while any((out / name).exists() for name in (f"invocation-resume-{host_name}-{stamp}.json", f"resume-{host_name}-{stamp}.txt")):
+        stamp += 1
+    return stamp
 
 
 def display_held() -> bool:
@@ -1817,6 +1832,12 @@ def _main(argv: list[str] | None, held: list) -> int:
                 elif not asked:
                     print(f"resume: --host not given; continuing on {args.host} ({args.model}, {args.effort or 'default effort'}), "
                           "as the run's last launch recorded", flush=True)
+                if args.host == last_launch.get("host"):
+                    changed = [f"{label} {new} (the last launch used {old})" for label, new, old in (
+                        ("model", args.model, last_launch.get("model")), ("effort", args.effort, last_launch.get("effort")))
+                        if new is not None and new != old]
+                    if changed:
+                        print("resume: " + "; ".join(changed), flush=True)
         if not regrade and not args.suite_name:
             refuse_stale_listeners(out)  # the run's own leftovers are stopped below, not refused
         # The one CLI value every prompt of this invocation names (a record with no plugin_dir yields a path that is not a file).
@@ -1830,11 +1851,12 @@ def _main(argv: list[str] | None, held: list) -> int:
         except (OSError, ValueError):
             earlier_result = {}
         if regrade:
-            # Nothing is launched, so identity is not a choice: restate the run's own last record (its result.json,
-            # which a resume on another host updates) or, when no result was written, its first launch
-            # (invocation.json). --host, --model and --effort cannot relabel a finished run with a host that
-            # did not run it.
-            recorded = earlier_result if isinstance(earlier_result.get("host"), str) else earlier
+            # Nothing is launched, so identity is not a choice: restate the identity of the run's last launch
+            # (runrecord.launches, the reader a resume continues from; invocation.json when it is the only one), so a run that
+            # two hosts worked on is named by the host that ran it last and not by a result.json an earlier regrade wrote.
+            # --host, --model and --effort cannot relabel a finished run with a host that did not run it.
+            recorded = last_launch if isinstance(last_launch.get("host"), str) else (
+                earlier_result if isinstance(earlier_result.get("host"), str) else earlier)
             kept = {"host": recorded["host"], "model": recorded.get("model") or earlier.get("model"),
                     "effort": recorded.get("effort") or earlier.get("effort")}
             asked = {"host": args.host if host_given(argv) else None, "model": args.model, "effort": args.effort}
@@ -1931,7 +1953,7 @@ def _main(argv: list[str] | None, held: list) -> int:
     the_cli = resumed_cli if resumed else run_cli(host.name, out, plugin_dir)
     # The machine and any declared capability, recorded before the host starts and before the deadline is set, so the probe
     # spends none of the run's time (SPEC: a record, not a verdict). A regrade launches nothing and so reads nothing.
-    needs = declared_needs(name, args, earlier if resumed else None)
+    needs = declared_needs(name, args, last_launch if resumed else None)
     if regrade:
         start_environment = environment.unobserved("regraded: no host was launched")
     else:
@@ -1948,8 +1970,9 @@ def _main(argv: list[str] | None, held: list) -> int:
     opening = (resume_prompt(resumed["run_dir"], the_cli) if resumed
                else host.invoke(args.skill, seed_prompt(the_cli, seeded["run_dir"], prompt)) if seeded
                else host.invoke(args.skill, prompt))
+    stamp = launch_stamp(out, host.name) if resumed else None
     cli = host.argv(prompt=opening, prompt_file=out / ("host-prompt.txt" if not resumed else
-                                                       f"resume-{host.name}-{int(time.time())}.txt"),
+                                                       f"resume-{host.name}-{stamp}.txt"),
                     cwd=work, model=args.model, effort=args.effort,
                     permission_mode=args.permission_mode, max_turns=args.max_turns,
                     max_budget_usd=args.max_budget_usd,
@@ -1963,7 +1986,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                   "interrupt_at": interrupt_at, "needs": needs, "environment": start_environment}
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
-        (out / f"invocation-resume-{host.name}-{int(time.time())}.json").write_text(
+        (out / f"invocation-resume-{host.name}-{stamp}.json").write_text(
             json.dumps(invocation, indent=2) + "\n")
     else:
         (out / "prompt.txt").write_text(prompt + "\n")
@@ -2094,8 +2117,9 @@ def _main(argv: list[str] | None, held: list) -> int:
     check_results = run_checks(work, checks, env=check_env)
     engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     try:
-        # Informational only (SPEC S-11): does the unreturned candidate already pass? Before the reap below, so a server
-        # that a check which timed out leaves is stopped with the rest.
+        # Informational only (SPEC S-11): does the unreturned candidate already pass? Before the reap below, so a server that a
+        # check which timed out leaves is stopped with the rest in a run that launched a host. A regrade reaps nothing (the run
+        # it grades may have a live host), so there the server stays up: stop it by pid (README).
         at_stop = product_at_stop(shiploop, engine, checks, check_env)
     except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
         at_stop = {"information_only": True, "ran": False,

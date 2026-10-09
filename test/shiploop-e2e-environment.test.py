@@ -172,6 +172,19 @@ class ProductAtStopTest(QuietHarnessCase):
                                    ['test -d "$PRIOR_WORK"'], {"PRIOR_WORK": str(self.tmp)})
         self.assertEqual((stop["passed"], stop["total"]), (1, 1))
 
+    def test_the_follow_on_environment_reaches_the_product_at_stop_checks_through_main(self):
+        prior = self.tmp / "prior"
+        (prior / "work").mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(prior / "work")], check=True)
+        (prior / "work" / "prior.txt").write_text("kept\n")
+        (prior / "result.json").write_text(json.dumps({"case": "hello", "pass": True}))
+        out = self.first_run("--continue-from", str(prior), "--prompt", "Add a feature.",
+                             "--check", 'test -f "$PRIOR_WORK/prior.txt"')
+        self.blocked_workspace(out, worktree_files={})
+        _, result, _ = self.grade_only(out)
+        stop = result["product_at_stop"]
+        self.assertEqual((stop["passed"], stop["total"]), (1, 1), "the check sees $PRIOR_WORK in the worktree run too")
+
     def test_a_computation_that_raises_is_recorded_and_changes_nothing(self):
         out = self.first_run("--prompt", "build it", *self.CHECKS)
         self.blocked_workspace(out, worktree_files={"product.txt": "x\n"})
@@ -1105,6 +1118,31 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
             with self.assertRaises(ProcessLookupError):
                 os.kill(entry["pid"], 0)
 
+    def resume_all(self, out: Path, *extra: str) -> dict:
+        """A resume that names no host, every host's binary a fake, the run kept active."""
+        released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False, "catalog_version": "9.9.9",
+                    "shiploop_version": None, "unreleased": [], "ci": "success"}
+        os.environ["FAKE_MODE"] = "stuck"
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(run, "released_versions", return_value=released):
+            run.main(["--grok-bin", str(self.fakes["grok"]), "--claude-bin", str(self.fakes["claude"]),
+                      "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out), "--plugin-dir", str(self.plugin),
+                      "--baseline", str(self.baselines), "--max-resumes", "0", *extra])
+        return json.loads((out / "result.json").read_text())
+
+    def test_the_needs_a_launch_declared_carry_to_each_later_launch_and_are_probed_again(self):
+        (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
+        with mock.patch.object(self.environment, "TITLE_CEILING_SECONDS", 3.0), mock.patch.object(self.environment, "GRACE_SECONDS", 0.2):
+            _, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0", "--prompt", "p")
+            out = Path(first["output"])
+            self.assertEqual(self.browser_launches(), [], "the first launch declared no need")
+            self.resume_all(out, "--need", "browser", "--browser-bin", str(self.browser))
+            self.assertEqual(len(self.browser_launches()), 2, "a resume that declares the need probes the browser")
+            self.resume_all(out, "--browser-bin", str(self.browser))  # declares nothing itself
+        records = [json.loads(path.read_text()) for path in sorted(out.glob("invocation-resume-grok-*.json"))]
+        self.assertEqual([record["needs"] for record in records], [["browser"], ["browser"]], "the last launch's needs carry on")
+        self.assertTrue(records[1]["environment"]["browser"]["probed"])
+        self.assertEqual(len(self.browser_launches()), 4, "and the later resume probes again")
+
     def test_an_unknown_need_is_refused_by_the_parser(self):
         self.assertEqual(run.parser().parse_args(["--need", "browser"]).need, ["browser"])
         self.assertEqual(run.parser().parse_args([]).need, [])
@@ -1689,10 +1727,78 @@ class ResumeDefaultsTest(QuietHarnessCase):
         code, result, _ = self.resume(out, "--host", "grok")
         out = self.stopped()
         self.resume(out, "--host", "claude", "--allow-host-change", mode="active")  # claude leaves it active
-        time.sleep(1.1)  # a launch record is named by the second it began in
         code, result, printed = self.resume(out)  # no host: the one that last ran it, not the first and not Claude by default
         self.assertEqual([host for _, host, _, _ in self.launches(out)], ["grok", "claude", "claude"])
         self.assertIn("continuing on claude", printed)
+
+    def test_a_regrade_restates_the_identity_of_the_last_launch_not_the_result_an_earlier_regrade_wrote(self):
+        # r2-battleship-grok-none: Grok started it, Claude finished it, and a regrade left result.json saying Grok beside a
+        # Claude-finished run (its header read host=grok, its metrics said Claude 2.1.294, its environment said mixed).
+        out = self.stopped("--model", "my-model", "--effort", "high")
+        self.resume(out, "--host", "claude", "--allow-host-change")
+        saved = json.loads((out / "result.json").read_text())
+        saved.update(host="grok", model="grok-4.7", effort="medium")
+        (out / "result.json").write_text(json.dumps(saved))
+        code, regraded, printed = self.resume(out, "--grade-only")
+        self.assertEqual((regraded["host"], regraded["model"]), ("claude", "claude-sonnet-5-5"))
+        self.assertEqual(regraded["resumed_run"]["from_host"], "claude")
+        self.assertTrue(regraded["environment"]["mixed_host"])
+        header = next(ln for ln in printed.splitlines() if " shiploop e2e case=" in ln and ln.split()[0] in ("PASS", "FAIL", "STOPPED"))
+        self.assertIn("host=claude", header)
+        self.assertIn("MIXED HOST", printed)
+        self.assertEqual(self.launches(out)[-1][1], "claude", "the regrade started no host and is not a launch")
+
+    def test_a_launch_record_is_never_overwritten_by_another_launch_that_began_in_the_same_second(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        out = Path(tmp.name)
+        now = int(time.time())
+        with mock.patch.object(run.time, "time", return_value=float(now)):
+            self.assertEqual(run.launch_stamp(out, "claude"), now)
+            (out / f"invocation-resume-claude-{now}.json").write_text("{}")
+            self.assertEqual(run.launch_stamp(out, "claude"), now + 1, "the record of the launch before is kept")
+            (out / f"resume-claude-{now + 1}.txt").write_text("a prompt")
+            self.assertEqual(run.launch_stamp(out, "claude"), now + 2, "so is a prompt file")
+            self.assertEqual(run.launch_stamp(out, "grok"), now, "another host's names are its own")
+
+    def test_a_regrade_in_the_same_second_as_the_launch_it_follows_leaves_that_launch_on_record(self):
+        out = self.stopped()
+        self.resume(out, "--host", "claude", "--allow-host-change")
+        names = sorted(path.name for path in out.glob("invocation-resume-*.json"))
+        self.resume(out, "--grade-only")  # no pause: the second may well be the same
+        self.assertTrue(set(names) <= {path.name for path in out.glob("invocation-resume-*.json")})
+        self.assertEqual([host for _, host, _, _ in self.launches(out)], ["grok", "claude"], "the regrade is not a launch")
+
+    def test_a_resume_of_a_mixed_run_names_the_last_launch_as_where_it_resumed_from(self):
+        out = self.stopped()
+        self.resume(out, "--host", "claude", "--allow-host-change", mode="active")
+        _, result, _ = self.resume(out)
+        self.assertEqual((result["resumed_run"]["from_host"], result["resumed_run"]["from_model"]), ("claude", "claude-sonnet-5-5"))
+
+    def test_the_refusal_names_the_recorded_host_and_the_requested_one_and_is_honest_about_a_run_that_already_is_mixed(self):
+        out = self.stopped()
+        with self.assertRaises(SystemExit) as raised:
+            self.resume(out, "--host", "claude")
+        text = str(raised.exception)
+        for phrase in ("last launched on grok", "--host claude would finish it", "would become a mixed-host run", "--allow-host-change"):
+            self.assertIn(phrase, text)
+        self.assertNotIn("already", text)
+        self.resume(out, "--host", "claude", "--allow-host-change", mode="active")
+        with self.assertRaises(SystemExit) as raised:
+            self.resume(out, "--host", "grok")
+        text = str(raised.exception)
+        for phrase in ("last launched on claude", "already is a mixed-host run", "hosts so far: grok, claude", "--host grok"):
+            self.assertIn(phrase, text)
+        self.assertNotIn("would become", text)
+
+    def test_a_model_or_effort_that_differs_from_the_recorded_one_is_printed_and_an_unchanged_one_is_not(self):
+        out = self.stopped("--model", "my-model", "--effort", "high")
+        _, _, printed = self.resume(out, "--model", "other-model", "--effort", "low")
+        self.assertIn("model other-model (the last launch used my-model)", printed)
+        self.assertIn("effort low (the last launch used high)", printed)
+        out = self.stopped("--model", "my-model", "--effort", "high")
+        _, _, quiet = self.resume(out)
+        self.assertNotIn("the last launch used", quiet)
 
     def test_a_regrade_still_restates_the_recorded_identity_whatever_the_flags_say(self):
         out = self.stopped()
