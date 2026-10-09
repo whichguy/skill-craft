@@ -349,16 +349,19 @@ def _verify_record(path: Path) -> dict | None:
 def validation(run_dir: Path | None) -> dict:
     """ShipLoop's verify records (tests/<action>-verify<N>.md) read as JSON. Counts and presence only, no threshold.
 
-    ``tests_ran_unmeasured`` is the focused and regression rows whose counts are null; ``zero_ran`` the rows that counted a test
-    and ran none. ``unread`` is the records that are not shiploop-test-loop/v1 or not JSON: their rows are in no count. The regex
-    reader metrics.verifications stays what baselines use; a test pins that both agree on the saved runs."""
+    ``tests_ran_unmeasured`` is the focused and regression rows whose counts are null; ``zero_ran`` (per suite) the rows that counted
+    a test and ran none, null for a suite with no counted row. ``accepted_ran`` is null when no row carries the key. ``release_verify``
+    is the latest record (by created_at, then by record number) that observed a ``where``, with the record's own ``passed``: the
+    engine writes ``observed`` before it decides ``passed``. ``unread`` is the records that are not shiploop-test-loop/v1 or not JSON:
+    their rows are in no count. The regex reader metrics.verifications stays what baselines use; build compares the two and a test
+    pins that both agree on the saved runs."""
     if run_dir is None or not Path(run_dir).is_dir():
         raise Unmeasured("no ShipLoop run directory, so its verify records cannot be read")
     files = sorted(Path(run_dir).rglob("*-verify*.md"))
     suites: dict[str, dict] = {}
     commands, schemas, accepted_stages = set(), set(), set()
     passed = could_not_run = red = unread = runs = accepted_rows = 0
-    release = None
+    release, release_key = None, None
     for path in files:
         record = _verify_record(path)
         if record is None:
@@ -371,17 +374,22 @@ def validation(run_dir: Path | None) -> dict:
         red += any(row.get("status") == "red" for row in rows)
         observed = record.get("observed")
         if isinstance(observed, dict) and observed.get("where"):
-            release = {"where": observed.get("where"), "kind": observed.get("kind")}
+            number = re.search(r"-verify(\d+)\.md$", path.name)
+            key = (str(record.get("created_at") or ""), int(number.group(1)) if number else 0)
+            if release_key is None or key >= release_key:
+                release_key = key
+                release = {"where": observed.get("where"), "kind": observed.get("kind"),
+                           "passed": record["passed"] if isinstance(record.get("passed"), bool) else None}
         for row in rows:
             runs += 1
             commands.add(str(row.get("command")))
-            suite = suites.setdefault(str(row.get("suite")), {"runs": 0, "counted": 0, "counts_null": 0, "zero_ran": 0})
+            suite = suites.setdefault(str(row.get("suite")), {"runs": 0, "counted": 0, "counts_null": 0, "zero_ran": None})
             suite["runs"] += 1
             counts = row.get("counts")
             ran = counts.get("ran") if isinstance(counts, dict) else None
             if isinstance(ran, int) and not isinstance(ran, bool):
                 suite["counted"] += 1
-                suite["zero_ran"] += ran == 0
+                suite["zero_ran"] = (suite["zero_ran"] or 0) + (ran == 0)
             else:
                 suite["counts_null"] += 1
             if "accepted_ran" in row:
@@ -391,7 +399,16 @@ def validation(run_dir: Path | None) -> dict:
             "could_not_run": could_not_run, "red": red, "schemas": sorted(schemas),
             "by_suite": dict(sorted(suites.items())),
             "tests_ran_unmeasured": sum(suites.get(name, {}).get("counts_null", 0) for name in TEST_SUITES),
-            "accepted_ran": {"runs": accepted_rows, "stages": sorted(accepted_stages)}, "release_verify": release}
+            "accepted_ran": {"runs": accepted_rows, "stages": sorted(accepted_stages)} if accepted_rows else None,
+            "release_verify": release}
+
+
+def reader_disagreement(found: dict, regex: dict) -> str | None:
+    """Where the JSON reader (validation) and the regex reader baselines use (metrics.verifications) differ, naming both values, or
+    None. The regex reader counts text, so a record it cannot parse the same way shows here."""
+    pairs = (("records", "records"), ("passed", "passed"), ("could_not_run", "could_not_run"), ("red", "red"), ("commands", "runs"))
+    differ = [f"{name} {regex[name]} (metrics.verifications) vs {found[mine]} (JSON)" for name, mine in pairs if regex[name] != found[mine]]
+    return ("the two verify-record readers disagree: " + "; ".join(differ)) if differ else None
 
 
 # --- the model's edits, kills and commits ---------------------------------------------------------------------------------
@@ -538,6 +555,11 @@ def build(out: Path, run_dir: Path | None, tools, *, engine_scripts=None, export
             gone["validation.counts"] = COUNTS_REASON
         if block["validation"]["unread"]:
             gone["validation.unread"] = UNREAD_REASON
+        if block["validation"]["runs"] and block["validation"]["accepted_ran"] is None:
+            gone["validation.accepted_ran"] = ("no verify row carries accepted_ran (an engine that does not write it, or no row had a floor), "
+                                               "so the rows that ran at least their floor are not known")
+        if disagreement := reader_disagreement(block["validation"], metrics.verifications(run_dir)):
+            gone["validation.readers"] = disagreement
     if block["evidence"] and block["evidence"]["unmapped_runs"]:
         gone["declared.runs"] = ("the stage table declares runs this reader does not know (" + ", ".join(block["evidence"]["unmapped_runs"])
                                  + "), so the stages that declare them are not judged")
@@ -574,10 +596,16 @@ def lines(block: dict) -> list[str]:
         result.append(f"evidence unmeasured: {gone.get('evidence')}")
     v = block.get("validation")
     if v:
+        suites = v["by_suite"].values()
+        counted = sum(suite["counted"] for suite in suites)
+        zero = (f"zero-ran {sum(suite['zero_ran'] or 0 for suite in suites)} of {counted} counted" if counted
+                else "zero-ran unmeasured (no row counted)")
+        release = v["release_verify"]
+        passed = {True: "true", False: "false", None: "unknown"}[release["passed"]] if release else None
         result.append(f"validation {v['records']} records / {v['runs']} runs / {v['distinct_commands']} commands: test counts "
-                      f"unmeasured {v['tests_ran_unmeasured']}, zero-ran {sum(s['zero_ran'] for s in v['by_suite'].values())}, "
-                      f"red {v['red']}, accepted_ran at {len(v['accepted_ran']['stages'])} stages"
-                      + (f", release verified {v['release_verify']['where']}" if v["release_verify"] else ""))
+                      f"unmeasured {v['tests_ran_unmeasured']}, {zero}, red {v['red']}"
+                      + (f", accepted_ran at {len(v['accepted_ran']['stages'])} stages" if v["accepted_ran"] else "")
+                      + (f"; release-verify record: {release['where']}, passed {passed}" if release else ""))
     else:
         result.append(f"validation unmeasured: {gone.get('validation')}")
     e = block.get("edits")

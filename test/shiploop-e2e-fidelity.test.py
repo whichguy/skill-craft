@@ -630,12 +630,105 @@ class ValidationTest(unittest.TestCase):
         block = self.fidelity.build(Path(tmp.name), run_dir, None)
         self.assertIn("not read", block["unmeasured"]["validation.unread"])
 
-    def test_the_release_verify_record_names_where_and_what_it_observed(self):
+    def release_record(self, run_dir: Path, number: int, created_at: str | None, passed, where="returned-result", observed=True):
+        record = {"schema": "shiploop-test-loop/v1", "action": "nav-rel", "stage": "release-verify", "passed": passed,
+                  "runs": [{"command": "node --test", "suite": "check", "counts": None, "status": "passed" if passed else "failed"}]}
+        if created_at:
+            record["created_at"] = created_at
+        if observed:
+            record["observed"] = {"kind": "fast-forward-merge", **({"where": where} if where else {})}
+        (run_dir / "tests").mkdir(parents=True, exist_ok=True)
+        (run_dir / "tests" / f"nav-rel-verify{number}.md").write_text("```shiploop-state\n" + json.dumps(record) + "\n```\n")
+
+    def test_the_release_verify_record_names_where_what_it_observed_and_its_own_passed(self):
+        # Review A2/B1: the engine sets `observed` before it decides `passed`, so `where` alone is not a pass.
         for alias in ("r1-battleship-sonnet", "r3-checkers-sonnet", "r2-battleship-grok-none"):
             with self.subTest(run=alias):
                 self.assertEqual(replay(alias)["block"]["validation"]["release_verify"],
-                                 {"where": "returned-result", "kind": "fast-forward-merge"})
+                                 {"where": "returned-result", "kind": "fast-forward-merge", "passed": True})
         self.assertIsNone(replay("v1230-battleship-sonnet")["block"]["validation"]["release_verify"])
+
+    def test_a_failed_or_unknown_release_verify_record_is_shown_with_passed_false_or_null(self):
+        for passed in (False, None):
+            with self.subTest(passed=passed), tempfile.TemporaryDirectory() as tmp:
+                run_dir = Path(tmp) / "run"
+                self.release_record(run_dir, 1, "2026-10-09T10:00:00Z", passed, where="work-area")
+                found = self.fidelity.validation(run_dir)["release_verify"]
+                self.assertEqual(found, {"where": "work-area", "kind": "fast-forward-merge", "passed": passed})
+
+    def test_the_release_verify_record_is_the_latest_by_created_at_then_by_number_never_by_file_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            self.release_record(run_dir, 10, "2026-10-09T10:00:00Z", True, where="old")     # verify10 sorts before verify2
+            self.release_record(run_dir, 2, "2026-10-09T11:00:00Z", False, where="newest")
+            self.assertEqual(self.fidelity.validation(run_dir)["release_verify"]["where"], "newest")
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            self.release_record(run_dir, 10, None, True, where="ten")
+            self.release_record(run_dir, 2, None, False, where="two")
+            self.assertEqual(self.fidelity.validation(run_dir)["release_verify"]["where"], "ten")
+
+    def test_an_observed_block_with_no_where_is_no_release_verify_record(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            self.release_record(run_dir, 1, "2026-10-09T10:00:00Z", True, where=None)
+            self.assertIsNone(self.fidelity.validation(run_dir)["release_verify"])
+
+    def test_accepted_ran_is_null_with_a_reason_when_no_row_carries_the_key(self):
+        # 8 of the 11 saved runs and both v1220 runs come from engines that do not write accepted_ran: not "0 stages".
+        for alias in ("r1-battleship-sonnet", "v1230-battleship-grok-none", "r2-checkers-sonnet"):
+            with self.subTest(run=alias):
+                block = replay(alias)["block"]
+                self.assertIsNone(block["validation"]["accepted_ran"])
+                self.assertIn("accepted_ran", block["unmeasured"]["validation.accepted_ran"])
+        block = replay("r3-battleship-sonnet")["block"]
+        self.assertEqual(len(block["validation"]["accepted_ran"]["stages"]), 6)
+        self.assertNotIn("validation.accepted_ran", block["unmeasured"])
+        grok = self.fidelity.build(FIXTURES / "v1220-battleship-grok-medium-none", run_dir_of("v1220-battleship-grok-medium-none"), None)
+        self.assertIsNone(grok["validation"]["accepted_ran"])
+
+    def test_zero_ran_is_null_for_a_suite_with_no_counted_row_and_a_count_otherwise(self):
+        # v1220 Sonnet counts 0 of 42 rows and v1220 Grok 0 of 41: "zero-ran 0" would read as a measurement.
+        for alias in V1220:
+            with self.subTest(run=alias):
+                suites = self.fidelity.validation(run_dir_of(alias))["by_suite"]
+                self.assertEqual({name: s["zero_ran"] for name, s in suites.items()}, {"check": None, "focused": None, "regression": None})
+        suites = replay("r3-battleship-sonnet")["block"]["validation"]["by_suite"]
+        self.assertEqual(suites["focused"]["zero_ran"], 0)
+        self.assertEqual((suites["check"]["counted"], suites["check"]["zero_ran"]), (1, 0))
+
+    def test_the_validation_line_says_what_was_counted_and_what_was_not(self):
+        lines = self.fidelity.lines(replay("r1-battleship-sonnet")["block"])
+        self.assertEqual(lines[1], "validation 10 records / 29 runs / 6 commands: test counts unmeasured 0, zero-ran 0 of 23 counted, "
+                                   "red 2; release-verify record: returned-result, passed true")
+        heads = self.fidelity.build(FIXTURES / "v1220-battleship-sonnet", run_dir_of("v1220-battleship-sonnet"), None)
+        self.assertEqual(self.fidelity.lines(heads)[1], "validation 15 records / 42 runs / 6 commands: test counts unmeasured 34, "
+                                                         "zero-ran unmeasured (no row counted), red 2")
+        r3 = self.fidelity.lines(replay("r3-battleship-sonnet")["block"])[1]
+        self.assertIn(", accepted_ran at 6 stages", r3)
+        self.assertIn("zero-ran 0 of 26 counted", r3)
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            self.release_record(run_dir, 1, "2026-10-09T10:00:00Z", False, where="work-area")
+            block = self.fidelity.build(Path(tmp), run_dir, None)
+            self.assertIn("; release-verify record: work-area, passed false", self.fidelity.lines(block)[1])
+            self.assertNotIn("release verified", self.fidelity.lines(block)[1])
+
+    def test_a_block_built_where_the_two_readers_disagree_names_both_values(self):
+        run = replay("r1-battleship-sonnet")
+        self.assertNotIn("validation.readers", run["block"]["unmeasured"])
+        real = metrics.verifications(run["run_dir"])
+        with mock.patch.object(metrics, "verifications", return_value={**real, "records": real["records"] + 1, "passed": real["passed"] - 1}):
+            block = self.fidelity.build(run["out"], run["run_dir"], run["tools"], engine_scripts=CURRENT_TABLE, exporter=EXPORTER)
+        note = block["unmeasured"]["validation.readers"]
+        self.assertIn(f"records {real['records'] + 1} (metrics.verifications) vs {real['records']} (JSON)", note)
+        self.assertIn(f"passed {real['passed'] - 1} (metrics.verifications) vs {real['passed']} (JSON)", note)
+        self.assertNotIn("red", note, "only the figures that differ are named")
+
+    def test_the_two_readers_agree_on_every_replay_so_no_run_carries_the_note(self):
+        for alias in ELEVEN:
+            with self.subTest(run=alias):
+                self.assertNotIn("validation.readers", replay(alias)["block"]["unmeasured"])
 
     def test_a_run_directory_with_no_records_has_zero_of_them_and_no_run_directory_is_unmeasured(self):
         tmp = tempfile.TemporaryDirectory()
