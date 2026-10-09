@@ -16,9 +16,12 @@ the evidence and live outside the repository; no test reads them.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "test" / "shiploop_e2e"))
+import run  # noqa: E402  (the digest is the harness's own: run.tree_digest)
 
 RUNS = (
     "20261006/v1220-battleship-sonnet",
@@ -49,18 +52,6 @@ def read(path: Path):
         return None
 
 
-def tree_digest(root: Path) -> str | None:
-    if not root.is_dir():
-        return None
-    digest = hashlib.sha256()
-    for path in sorted(root.rglob("*")):
-        relative = path.relative_to(root)
-        if "__pycache__" in relative.parts or path.suffix == ".pyc" or path.is_symlink() or not path.is_file():
-            continue
-        digest.update(relative.as_posix().encode() + b"\0" + hashlib.sha256(path.read_bytes()).hexdigest().encode() + b"\n")
-    return digest.hexdigest()[:12]
-
-
 def reduce_run(source: Path, target: Path) -> None:
     target.mkdir(parents=True, exist_ok=True)
     result = read(source / "result.json")
@@ -77,7 +68,7 @@ def reduce_run(source: Path, target: Path) -> None:
         if plugin_dir.startswith(marker):
             stub = target / plugin_dir[len(marker):]
             real = Path(plugin_dir.replace(output, str(source)))
-            digest = tree_digest(real)
+            digest = run.tree_digest(real)
             (stub / ".claude-plugin").mkdir(parents=True, exist_ok=True)
             (stub / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": (record.get("versions") or {}).get("plugin_version")}) + "\n")
             (stub / "skills" / "shiploop" / "scripts").mkdir(parents=True, exist_ok=True)

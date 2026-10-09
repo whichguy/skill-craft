@@ -857,8 +857,7 @@ class BaselineReportCellTest(BaselineReportCase):
         by = self.by_name(self.report())
         self.assertEqual(by["r1-battleship-sonnet"]["plugin_sha256"], by["r1-checkers-sonnet"]["plugin_sha256"])
         self.assertNotEqual(by["v1220-battleship-sonnet"]["plugin_sha256"], by["v1230-battleship-sonnet"]["plugin_sha256"])
-        self.assertEqual(by["v1220-battleship-sonnet"]["plugin_version"] if "plugin_version" in by["v1220-battleship-sonnet"]
-                         else "1.22.0", "1.22.0")
+        self.assertEqual(by["v1220-battleship-sonnet"]["plugin_version"], by["v1230-battleship-sonnet"]["plugin_version"])
         for name in ("r1-battleship-sonnet", "v1220-battleship-sonnet"):
             self.assertIn("plugin_sha256", by[name]["recomputed"])  # the old run did not record it: the report derived it
 

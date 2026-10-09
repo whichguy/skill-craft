@@ -73,6 +73,9 @@ case checks the harness stops the TCP listeners left under the case's output fol
 result.json. A launch is refused while an ended case's listener is still bound, and so is a --resume-run of a case whose harness
 is running (README, "Launching long runs").
 This launches a real model and costs money; it is never part of default CI.
+`--baseline-report [--baseline FILE] [--runs DIR ...] [--json]` is the one read-only exception: it starts no host and
+probes no CLI, unions the baseline file with the run folders and prints, per cell, the attempts, builds and the n, min,
+median and max of cost, turns, minutes and planning minutes (README, "The baseline report").
 
   python3 test/shiploop_e2e/run.py --case battleship
   python3 test/shiploop_e2e/run.py --case battleship-scoring --continue-from <battleship output>
