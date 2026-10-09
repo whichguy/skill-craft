@@ -147,7 +147,7 @@
       "summary": "Synthetic Improve receipt."
     }
   },
-  "improve_skill": "",
+  "improve_skill": "/plugin/skills/improve/SKILL.md",
   "inner_loops": {
     "W1": {
       "action": {
