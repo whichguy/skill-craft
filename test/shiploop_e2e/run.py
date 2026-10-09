@@ -1353,6 +1353,19 @@ def host_given(argv: list[str]) -> bool:
 # The identity fields of a row and a result: what the run ran on and for how long. Each is null where it is not known, and
 # `identity_unmeasured` says why for each null one.
 IDENTITY_FIELDS = ("plugin_sha256", "prompt_sha256", "host_build", "local_head", "started", "ended", "planning_seconds")
+# Termination keys that are records of how the run ended (group G4: the blocked detail and what a regrade read), kept in
+# result.json and left out of the baseline row, which carries what its eligibility (row_reached_done reads engine_status) and
+# comparison read. engine_status_at_regrade predates them and stays.
+_BLOCKED_KEYS = tuple(f"engine_{key}" for key in metrics.blocked_detail({}))
+ROW_EXCLUDED_TERMINATION = frozenset((*_BLOCKED_KEYS, *(f"{key}_at_regrade" for key in (
+    "engine_stage", "engine_status_reason", *_BLOCKED_KEYS))))
+
+
+def row_termination(termination) -> dict | None:
+    """A result's termination as the baseline row keeps it: without ROW_EXCLUDED_TERMINATION."""
+    if not isinstance(termination, dict):
+        return termination
+    return {key: value for key, value in termination.items() if key not in ROW_EXCLUDED_TERMINATION}
 PREDATES = "not recorded by this result (it predates the field)"
 LAUNCH_PREDATES = "launch predates the field"
 FIRST_PREDATES = "first launch predates the field"
@@ -1391,7 +1404,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
     row = {"date": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "case": result.get("case"), "style": style,
             "suite": suite, "host": result.get("host"), "model": result.get("model"),
             "effort": result.get("effort"), "stages": baseline_stages(m.get("stages")),
-            "termination": result.get("termination"), "unmeasured": sorted(m.get("unmeasured") or {}),
+            "termination": row_termination(result.get("termination")), "unmeasured": sorted(m.get("unmeasured") or {}),
             "source": versions.get("source"), "plugin_version": versions.get("plugin_version"),
             "shiploop_version": versions.get("shiploop_version"), "planning_review": planning_review,
             "pass": result.get("pass"),

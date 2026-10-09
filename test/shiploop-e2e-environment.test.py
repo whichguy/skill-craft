@@ -1760,7 +1760,9 @@ class OutcomeClassThroughMainTest(QuietHarnessCase):
             self.assertIn(text, result["outcome_basis"])
         self.assertIn("  outcome   BLOCKED", printed)
         self.assertNotIn("outcome_class", self.last_row(), "the class is in result.json only")
-        self.assertEqual(self.last_row()["termination"], t)
+        # So is the blocked detail (batch 1011 integration): the row keeps why it stopped, with engine_status for eligibility.
+        self.assertEqual(self.last_row()["termination"], run.row_termination(t))
+        self.assertEqual((t["engine_blocked_by"], self.last_row()["termination"]["engine_status"]), ("access", "blocked"))
 
     def test_a_regrade_of_a_blocked_run_is_blocked_and_starts_no_host(self):
         out = self.first_run()

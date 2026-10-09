@@ -512,7 +512,9 @@ with the engine unfinished (`host is not resumable`, `no host session id to resu
 stop file, a signal, the deadline, a spent resume budget, or a host session that ended on the cap the harness gave it:
 `--max-turns` or `--max-budget-usd`, read from the session's recorded stop). A regrade that observed no host and an engine still
 active is `null`. Which baseline rows are comparable is the baseline code's rule, not this record's: no baseline rule reads
-`outcome_class`.
+`outcome_class`, and the baseline row carries neither it nor the blocked detail: the row's `termination` leaves out
+`engine_blocked_by`, `engine_awaiting_*` and the regrade's `*_at_regrade` readings other than `engine_status_at_regrade`
+(`run.ROW_EXCLUDED_TERMINATION`; they stay in `result.json`).
 
 ### Resuming a run
 

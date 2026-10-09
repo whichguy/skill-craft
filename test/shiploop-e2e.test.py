@@ -2894,7 +2894,8 @@ class TerminationThroughMainTest(PrintedCase):
         self.assertEqual((t["process_status"], t["returncode"], t["sessions"], t["resumes"]), ("exited", 0, 1, 0))
         self.assertEqual((t["session_stops"], t["resume_stop"], t["engine_status"]),
                          (["cancelled"], "ShipLoop run is done", "done"))
-        self.assertEqual(self.last_row()["termination"], t)
+        # The row keeps why it stopped; the blocked detail stays in result.json (batch 1011 integration).
+        self.assertEqual(self.last_row()["termination"], run.row_termination(t))
         self.assertEqual(self.stopped(printed), "  stopped   host exited rc=0; session stops cancelled; "
                                                 "no further resume: ShipLoop run is done; engine done")
 

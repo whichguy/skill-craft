@@ -392,6 +392,35 @@ class BaselineRowIdentityTest(unittest.TestCase):
         row = run.baseline_row({"metrics": {"unreported_sessions": 3}}, None, None)
         self.assertNotIn("unreported_sessions", row)
 
+    def test_the_row_carries_only_what_eligibility_and_comparison_read_and_no_record_of_the_ending(self):
+        # Batch 1011 integration: group G4's blocked detail and outcome class are records in result.json; the row is a basis
+        # for comparison (row_reached_done reads termination.engine_status), so they stay out of it, live and regraded.
+        live = {"process_status": "exited", "returncode": 0, "engine_status": "blocked", "engine_stage": "system-test",
+                "engine_unaccepted_stage": None, "engine_status_reason": "access: no browser",
+                "engine_blocked_by": "access", "engine_awaiting_kind": "present", "engine_awaiting_no_default": True}
+        regraded = {"process_status": "exited", "engine_status": "active", "regraded": True, "engine_status_at_regrade": "done",
+                    "engine_stage_at_regrade": "done", "engine_status_reason_at_regrade": None,
+                    "engine_blocked_by_at_regrade": None, "engine_awaiting_kind_at_regrade": None,
+                    "engine_awaiting_no_default_at_regrade": None}
+        for termination in (live, regraded):
+            result = {"case": "hello", "termination": termination, "outcome_class": "BLOCKED", "outcome_basis": "x",
+                      "environment": {"observed": True}, "metrics": {}}
+            row = run.baseline_row(result, None, None)
+            with self.subTest(regraded=termination is regraded):
+                self.assertFalse({"outcome_class", "outcome_basis", "environment", "quality"} & set(row))
+                self.assertFalse([key for key in row["termination"] if key.startswith(("engine_blocked_by", "engine_awaiting"))],
+                                 row["termination"])
+                self.assertFalse([key for key in row["termination"] if key.endswith("_at_regrade")
+                                  and key != "engine_status_at_regrade"], row["termination"])
+                for key in ("process_status", "engine_status"):
+                    self.assertEqual(row["termination"][key], termination[key])
+                self.assertEqual(result["termination"], termination, "result.json keeps every key")
+                self.assertIn("identity_unmeasured", row)
+                self.assertTrue(set(self.NEW) <= set(row))
+        self.assertEqual(run.baseline_row({"termination": regraded, "metrics": {}}, None, None)["termination"]
+                         ["engine_status_at_regrade"], "done")
+        self.assertFalse(run.row_reached_done(run.baseline_row({"termination": live, "metrics": {}}, None, None)))
+
 
 class IdentityThroughMainTest(main_tests().PrintedCase):
     """The identity fields as run.main writes them: result.json, the launch records and the baseline row."""
