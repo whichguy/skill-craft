@@ -502,6 +502,8 @@ _E2E_FAMILY_IDS = tuple(suite.id for suite in SHIPLOOP_SUITES
 # of the quick tier on 2026-10-09 (shiploop-e2e 100, -environment 65, -fidelity 9, -reorientation 7.7, -runrecord 0.2).
 _PREFIX_SUITE_IDS = {
     "test/shiploop_e2e/": _E2E_FAMILY_IDS,
+    # The committed output of `run.py --baseline-report` and the script that cut its fixtures: the baseline suite pins both.
+    "docs/experiments/baseline-spread-20261009/": ("shiploop-e2e-baseline",),
     "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
 }
 

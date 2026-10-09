@@ -433,6 +433,13 @@ class E2EFamilySelectionTest(unittest.TestCase):
                 self.assertGreaterEqual(suite_catalog.targeted([path]), self.FAMILY)
                 self.assertGreaterEqual({suite.id for suite in suite_catalog.quick([path])}, self.FAMILY)
 
+    def test_the_committed_baseline_report_selects_the_suite_that_pins_it(self) -> None:
+        # runs.json is the committed output of `run.py --baseline-report`; the baseline suite pins it. Its file name selects nothing.
+        for path in ("docs/experiments/baseline-spread-20261009/runs.json",
+                     "docs/experiments/baseline-spread-20261009/reduce_fixtures.py"):
+            with self.subTest(path=path):
+                self.assertIn("shiploop-e2e-baseline", suite_catalog.targeted([path]))
+
     def test_the_apparatus_is_not_part_of_the_family(self) -> None:
         self.assertNotIn("shiploop-e2e-apparatus", suite_catalog.targeted(["test/shiploop_e2e/run.py"]))
 
