@@ -4244,11 +4244,13 @@ class GeneralReviewBundleTests(unittest.TestCase):
         cls.open_docs = {c: {i: {**d, "status": "open"} for i, d in rows.items()} for c, rows in cls.docs.items()}
         cls.defaults = {e["key"]: e for e in json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))}
 
-    def test_it_passes_the_check_with_no_failure_and_no_warning(self):
+    def test_it_passes_the_check_with_no_failure(self):
+        # R22c added the findings of the 2026-10-08 runs; RoundRunFindingsTests pins the one warning left on purpose.
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             code = export.main(["--check", str(GENERAL_REVIEW)])
-        self.assertEqual((code, err.getvalue(), out.getvalue().strip()), (0, "", "check: ok (2 documents, 0 failures, 0 warnings)"))
+        self.assertEqual((code, err.getvalue()), (0, ""))
+        self.assertRegex(out.getvalue().strip().splitlines()[-1], r"^check: ok \(\d+ documents, 0 failures, \d+ warnings?\)$")
 
     def test_its_finding_and_option_are_shaped_as_the_handoff_asks_and_reuse_no_id_of_another_bundle(self):
         f, o = self.finding, self.option
@@ -4311,7 +4313,9 @@ class GeneralReviewBundleTests(unittest.TestCase):
         self.assertEqual([o["id"] for o in general["cards"][0]["options"]], ["a26"])
         self.assertFalse(general["cards"][0]["noOption"])
         self.assertEqual([c["finding"]["id"] for c in open_for_run["cards"]], ["o44"])  # `any` applies to every run
-        self.assertEqual(other["cards"], [])
+        # the R22c findings list the runs they apply to, so they are other runs' findings here, never general ones
+        self.assertNotIn("o44", [c["finding"]["id"] for c in other["cards"]])
+        self.assertTrue(all(c["finding"].get("runs") for c in other["cards"]))
 
     def test_the_defaults_record_the_revision_of_phase_1_naming_its_finding_and_option(self):
         doc, change = self.defaults["phase-1"], self.option["change"]
@@ -4335,8 +4339,250 @@ class GeneralReviewBundleTests(unittest.TestCase):
         state = {"findings": [{"id": i, **d} for i, d in self.docs["observations"].items()],
                  "options": [{"id": i, **d} for i, d in self.docs["actions"].items()], "runKey": "r1"}
         general = run_logic("cardsFor(Object.assign({filter:'general'},%s))" % json.dumps(state))
-        self.assertEqual([o["id"] for o in general["done"]], ["a26"])
+        self.assertIn("a26", [o["id"] for o in general["done"]])  # R22c's done options are listed there too
+        self.assertEqual([c["finding"]["id"] for c in general["cards"]], ["o44"])
         self.assertEqual([o["id"] for c in general["cards"] for o in c["options"]], [])
+
+
+# ---------------------------------------------------------------- R22c: the findings layer for the runs of 2026-10-07 and 2026-10-08
+# One contiguous block (another session appends tests elsewhere in this file). Every number is checked against a committed
+# file: the analysis JSONs of the rounds and the run-folder extract docs/experiments/run-review-r22c-20261009/figures.json
+# (written by its collect.py); the run folders themselves are never read here.
+
+R22C_DIR = ROOT / "docs" / "experiments" / "run-review-r22c-20261009"
+R22C_ANALYSIS = ROOT / "docs" / "experiments" / "batch-1010-round2-round3-analysis-20261008"
+R22C_ROUND1 = ROOT / "docs" / "experiments" / "batch-1009-round1-analysis-20261008" / "analysis.json"
+R22C_FIRST = (45, 27)  # the first finding and option numbers this increment adds (o44 and a26 were the last before it)
+# A sentence that states the withdrawn explanation of the Grok-host Chrome failure (LEARNINGS 'Rounds 2 and 3', correction 2,
+# and 'Correction of 2026-10-09'): the display asleep, off or sleeping as the cause, or keeping it awake as the remedy.
+R22C_WITHDRAWN = re.compile(r"(?i)\bdisplay(?:[- ](?:asleep|sleep|off)\b|\s+(?:was|is|being|went)\s+(?:asleep|off)\b)"
+                            r"|\bdisplay[- ]sleep\b|\bkeep(?:ing)?\s+the\s+display\s+awake\b")
+
+
+def r22c_bundles() -> dict[str, dict]:
+    """{file name: docs} of every committed review bundle."""
+    return {p.name: json.loads(p.read_text(encoding="utf-8"))["docs"] for p in sorted(EVIDENCE_DIR.glob("*.review.json"))}
+
+
+def r22c_numbered(ids, prefix: str, first: int) -> list[int]:
+    return sorted(int(i[1:]) for i in ids if re.fullmatch(prefix + r"\d+", i) and int(i[1:]) >= first)
+
+
+def r22c_texts(doc: dict) -> str:
+    """Every string a finding or an option shows (the prompt prints title, the instruction, the change and the evidence)."""
+    return " ".join(str(v) for k, v in doc.items() if isinstance(v, str)) + " " + " ".join(
+        str(v) for v in (doc.get("change") or {}).values())
+
+
+class RoundRunFindingsTests(unittest.TestCase):
+    """R22c: findings, options and reviews for the eleven runs of 2026-10-07 and 2026-10-08, from the synthesized analyses,
+    the run folders (through figures.json) and git; checked by --check, by id and key rules, and by their numbers."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.bundles = r22c_bundles()
+        cls.general = json.loads(GENERAL_REVIEW.read_text(encoding="utf-8"))["docs"]
+        cls.figures = json.loads((R22C_DIR / "figures.json").read_text(encoding="utf-8"))
+        cls.r2 = json.loads((R22C_ANALYSIS / "round2-analysis.json").read_text(encoding="utf-8"))["synthesis"]
+        cls.r3 = json.loads((R22C_ANALYSIS / "round3-analysis.json").read_text(encoding="utf-8"))["synthesis"]
+        cls.r1 = json.loads(R22C_ROUND1.read_text(encoding="utf-8"))["synthesis"]
+        cls.defaults = {e["key"]: e for e in json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))}
+        cls.new_findings = {f"o{n}": cls.general["observations"][f"o{n}"]
+                            for n in r22c_numbered(cls.general["observations"], "o", R22C_FIRST[0])}
+        cls.new_options = {f"a{n}": cls.general["actions"][f"a{n}"]
+                           for n in r22c_numbered(cls.general["actions"], "a", R22C_FIRST[1])}
+
+    def bars(self, fid: str) -> dict:
+        return {item["label"]: item["value"] for item in self.general["observations"][fid]["figure"]["items"]}
+
+    def test_every_bundle_passes_the_check_and_warns_only_where_left_on_purpose(self):
+        self.assertIn("general.review.json", self.bundles)
+        warned = []
+        for name in self.bundles:
+            out, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = export.main(["--check", str(EVIDENCE_DIR / name)])
+            self.assertEqual((code, err.getvalue()), (0, ""), name)
+            if name == "general.review.json":
+                warned = [line for line in out.getvalue().splitlines() if line.startswith("warning: ")]
+        # o68 is the owner's choice (keep or remove the refused-run cap) and was never exercised, so it is not rated
+        self.assertEqual(warned, ["warning: observations/o68: open finding with no effect (the page shows it as 'not rated')"])
+
+    def test_ids_are_unique_across_bundles_and_continue_from_o45_and_a27(self):
+        seen: dict[str, str] = {}
+        for name, docs in self.bundles.items():
+            for collection in ("observations", "actions"):
+                for i in docs.get(collection) or {}:
+                    self.assertNotIn(i, seen, f"{i} is in {seen.get(i)} and {name}")
+                    seen[i] = name
+        findings = r22c_numbered(self.general["observations"], "o", R22C_FIRST[0])
+        options = r22c_numbered(self.general["actions"], "a", R22C_FIRST[1])
+        self.assertGreaterEqual(len(findings), 30)
+        self.assertEqual(findings, list(range(R22C_FIRST[0], R22C_FIRST[0] + len(findings))))
+        self.assertEqual(options, list(range(R22C_FIRST[1], R22C_FIRST[1] + len(options))))
+
+    def test_every_runs_key_is_a_run_folder_and_every_criterion_a_key_of_the_defaults(self):
+        folders = set(self.figures["runs"])
+        self.assertEqual(len(folders), 11)
+        self.assertTrue(self.new_findings)
+        for fid, finding in self.new_findings.items():
+            self.assertEqual(finding.get("run"), "any", fid)
+            self.assertTrue(finding.get("runs"), fid)
+            self.assertLessEqual(set(finding["runs"]), folders, fid)
+            self.assertIn(finding["criterion"], self.defaults, fid)
+            if finding.get("status", "open") == "open" and fid != "o68":
+                self.assertIn(finding.get("effect"), ("broken", "bent"), fid)
+            if "advice" in finding:
+                self.assertLessEqual(len(re.findall(r"[.!?](?:\s|$)", finding["advice"])), 3, fid)
+            for item in (finding.get("figure") or {}).get("items", []):
+                self.assertLessEqual(len(item["label"]), 22, f"{fid}: {item['label']}")
+        proposed = {json.loads(o["change"]["to"])["key"] for o in self.new_options.values()
+                    if o.get("kind") == "change-expectation" and o["change"]["to"].startswith("{")}
+        for aid, option in self.new_options.items():
+            self.assertIn(option["criterion"], set(self.defaults) | proposed, aid)
+            self.assertTrue(set(option["findings"]) <= set(self.new_findings), aid)
+            self.assertTrue(re.fullmatch(r"Do: .* Files and symbols: .* Test: .* Done when: [^:]*", option["goal"]), aid)
+            if option.get("kind") in ("fix-shiploop", "fix-harness"):
+                self.assertRegex(option["why"], r"^For: .* Against: .* Verdict: ", aid)
+        for fid in self.new_findings:  # one to four options each, at most one recommended
+            linked = [o for o in self.new_options.values() if fid in o["findings"]]
+            self.assertTrue(1 <= len(linked) <= 4, fid)
+            self.assertLessEqual(sum(o.get("recommended") is True for o in linked), 1, fid)
+
+    def test_a_fixed_finding_cites_its_commit_in_a_done_option_and_every_done_or_built_option_has_a_ref(self):
+        fixed = [fid for fid, f in self.new_findings.items() if f.get("status") == "fixed"]
+        self.assertGreaterEqual(len(fixed), 10)
+        for fid in fixed:
+            refs = [o.get("ref", "") for o in self.new_options.values() if fid in o["findings"] and o["status"] in ("done", "built")]
+            self.assertTrue(any(re.search(r"\b[0-9a-f]{8}\b", r) for r in refs), fid)
+            self.assertNotIn("effect", self.new_findings[fid], fid)
+        for aid, option in self.new_options.items():
+            if option["status"] in ("done", "built", "planned"):
+                self.assertTrue(option.get("ref"), aid)
+
+    def test_no_bundle_states_the_withdrawn_explanation_and_the_chrome_findings_name_the_grok_host(self):
+        for name, docs in self.bundles.items():
+            for collection, items in docs.items():
+                for i, doc in items.items():
+                    text = json.dumps(doc, ensure_ascii=False)
+                    self.assertIsNone(R22C_WITHDRAWN.search(text), f"{name} {collection}/{i}")
+        self.assertIsNone(R22C_WITHDRAWN.search("Chrome hung in the Grok host while the display was held on"))  # a fact, not the cause
+        self.assertIsNotNone(R22C_WITHDRAWN.search("the display was asleep, so Chrome stayed on about:blank"))
+        chrome = [fid for fid, f in self.new_findings.items() if "Chrome" in f["title"]]
+        self.assertTrue(chrome)
+        for fid in chrome:
+            self.assertIn("Grok host", self.new_findings[fid]["title"] + self.new_findings[fid]["observed"], fid)
+        mixed = self.new_findings["o73"]  # r2 is mixed host: Claude, not Grok, ran its browser check
+        self.assertIn("Claude Sonnet", mixed["observed"])
+        self.assertIn("browser check", mixed["observed"])
+
+    def test_the_figures_equal_the_numbers_of_the_analyses_and_the_run_extract(self):
+        cost = self.r2["cost_finding"]
+        for text in ("$5.1613 to $8.5146", "calls 105 to 152", "17.73M to 30.84M", "$5.70 to $5.81"):
+            self.assertIn(text, cost)
+        loop = next(c for c in self.r3["loop_done_check"] if "B9" in c["condition"])["evidence"]
+        self.assertIn("Checkers cost is $6.65 against r1 $5.16 and r2 $8.51, Battleship $5.67 against r1 $5.70 and r2 $5.81", loop)
+        self.assertEqual(self.bars("o69"), {"r1 Checkers": 5.16, "r2 Checkers": 8.51, "r3 Checkers": 6.65,
+                                            "r1 Battleship": 5.70, "r2 Battleship": 5.81, "r3 Battleship": 5.67})
+        for text in ("$5.1613", "$8.5146", "105 to 152", "17.73M to 30.84M"):
+            self.assertIn(text, self.general["observations"]["o69"]["observed"])
+        a5 = next(c for c in self.r2["candidates"] if c["id"] == "A5")["evidence"]
+        self.assertIn("(44-47%)", a5)
+        self.assertIn("(80-89%)", a5)
+        self.assertIn("67-74% of it in Checkers", next(c for c in self.r3["batch4_scorecard"] if c["change"].startswith("A5 per-item"))["evidence"])
+        self.assertEqual(self.bars("o55"), {"Floor after ratchet": 100, "r2 Checkers, low": 44, "r2 Checkers, high": 47,
+                                            "r2 Battleship, low": 80, "r2 Battleship, high": 89, "r3 Checkers model, low": 67})
+        self.assertIn("Met 1 of 4", next(c for c in self.r3["new_candidates"] if c["id"] == "R3-2")["evidence"])
+        self.assertEqual(self.bars("o46"), {"Rollbacks read": 4, "Printed recipe used": 1})
+        self.assertIn("8 calls, 34 s", next(c for c in self.r1["candidates"] if c["id"] == "R1")["evidence"])
+        self.assertIn("(round 1: 7 and 8 calls with a hand sed)", next(c for c in self.r2["batch3_scorecard"] if c["change"].startswith("R1 "))["evidence"])
+        self.assertEqual(self.bars("o58"), {"r1 Battleship calls": 8, "r1 Checkers calls": 7, "r2 calls, each run": 1})
+        fig, runs = self.figures, self.figures["runs"]
+        round_runs = fig["round_runs"]
+        self.assertEqual(self.bars("o65"), {"Round runs": len(round_runs), "Backchain loop ran": len(fig["backchain_loop_round_runs"]),
+                                            "Graph check ran": len(fig["graph_checked_round_runs"])})
+        self.assertEqual((len(fig["backchain_loop_round_runs"]), len(fig["graph_checked_round_runs"])), (0, 3))
+        self.assertEqual(set(self.general["observations"]["o65"]["runs"]), set(round_runs) - set(fig["graph_checked_round_runs"]))
+        windows = {k: runs[k]["planning_window_min"] for k in round_runs}
+        self.assertEqual(windows, {k: round(runs[k]["planning_window_seconds"] / 60, 1) for k in round_runs})
+        sonnet = [windows[k] for k in round_runs if k.endswith("sonnet")]
+        self.assertEqual(self.bars("o70"), {"Owner's rule": 30, "Grok r1": windows["r1-battleship-grok-none"],
+                                            "Grok r2, mixed run": windows["r2-battleship-grok-none"], "Grok r3": windows["r3-battleship-grok-none"],
+                                            "Sonnet, slowest": max(sonnet), "Sonnet, fastest": min(sonnet)})
+        self.assertEqual([windows[k] for k in ("r1-battleship-grok-none", "r2-battleship-grok-none", "r3-battleship-grok-none")], [23.3, 15.7, 23.2])
+        self.assertLess(max(windows.values()), 30)
+        # the second planning figure: round 1's planning_minutes is the harness's stage seconds from intake to prepare
+        round1 = json.loads((ROOT / "docs" / "experiments" / "round1-20261008" / "evidence.json").read_text(encoding="utf-8"))["runs"]
+        for run in round1.values():
+            seconds = sum(v for k, v in run["stage_seconds"].items() if int(k.split(":")[0]) <= 6)
+            self.assertEqual(round(seconds / 60, 1), run["planning_minutes"])
+        self.assertEqual(self.bars("o71"), {"r1 blocked visit": fig["r1_grok_blocked_visit_min"],
+                                            "r3 open implement": fig["r3_grok"]["open_implement_min"]})
+        self.assertEqual((fig["r1_grok_blocked_visit_min"], fig["r3_grok"]["open_implement_min"]), (21.1, 27.1))
+        mixed = fig["r2_mixed"]
+        self.assertEqual(self.bars("o73"), {"Grok-host visits": mixed["grok_visits"], "Claude-host visits": mixed["claude_visits"]})
+        self.assertEqual((mixed["grok_visits"], mixed["claude_visits"], mixed["first_claude_visit"]), (31, 21, 32))
+        self.assertEqual(self.bars("o76"), {f"r3 {name} {what}": runs[key]["narrative_" + what]
+                                            for name, key in (("Battleship", "r3-battleship-sonnet"), ("Checkers", "r3-checkers-sonnet"),
+                                                              ("Grok", "r3-battleship-grok-none")) for what in ("emitted", "shown")})
+        skipped = {k: runs[k]["skipped_visits"] for k in round_runs if runs[k]["skipped_visits"]}
+        self.assertEqual(self.bars("o80"), {"Round runs": 9, "Runs with skill_na": len(skipped),
+                                            "Visits recorded N/A": sum(len(v) for v in skipped.values())})
+        self.assertEqual(sorted(self.general["observations"]["o80"]["runs"]), sorted(skipped))
+
+    def test_the_credential_finding_names_the_trigger_the_screen_replay_shows(self):
+        sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
+        try:
+            import shiploop_privacy
+        finally:
+            sys.path.remove(str(ROOT / "skills" / "shiploop" / "scripts"))
+        replay = self.figures["credential_replay"]
+        self.assertEqual(sorted(replay), ["r2-battleship-grok-none", "r3-battleship-grok-none"])
+        hex_lines = 0
+        for rows in replay.values():
+            for row in rows:
+                self.assertTrue(shiploop_privacy.sensitive_text(row["line"]))  # the screen of this checkout still refuses it
+                self.assertFalse(shiploop_privacy.sensitive_text(re.sub(r"(?i)\bsignature\s*:", "", row["line"])))
+                self.assertTrue(row["trips_on"] and all("Signature:" in part for part in row["trips_on"]))
+                hex_lines += bool(re.search(r"#[0-9a-fA-F]{6}\b", row["line"]))
+        self.assertGreaterEqual(hex_lines, 1)  # the hex colours are on the refused line, and they are not what trips it
+        x1 = self.new_findings["o75"]
+        self.assertIn("the trigger is the label, not the hex values", x1["observed"])
+        self.assertEqual(sum(self.figures["runs"][k]["credential_refusals"] for k in x1["runs"]), 4)
+        self.assertIn("E2E session's engine", x1["advice"])
+
+    def test_a_prompt_for_new_options_stays_within_the_size_contract_and_names_no_unticked_option(self):
+        findings = [{"id": i, **d} for docs in self.bundles.values() for i, d in (docs.get("observations") or {}).items()]
+        options = [{"id": i, **d} for docs in self.bundles.values() for i, d in (docs.get("actions") or {}).items()]
+        cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
+        run = {"key": "r3-battleship-sonnet", "name": "r3 Battleship Sonnet", "evidence": "/Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet"}
+        state = {"run": run, "runs": [run], "findings": findings, "options": options, "expectations": self.defaults,
+                 "review": None, "after": "wait", "notes": "", "selected": {"options": {}, "find": {}},
+                 "config": {**cfg["prompt"], "artifactUrl": ""}}
+
+        def own_words(ticked):
+            chosen = [o for o in options if o["id"] in ticked]
+            ids = {f for o in chosen for f in o["findings"]}
+            said = sum(len(o["goal"]) + len(o["title"]) + len(o.get("cost", ""))
+                       + sum(len(v) for v in (o.get("change") or {}).values()) for o in chosen)
+            return said + sum(len(f["title"]) + len(f["expected"]) + len(f["observed"]) + len(f.get("evidence", ""))
+                              for f in findings if f["id"] in ids)
+
+        live = [i for i, o in self.new_options.items() if o["status"] != "done"]
+        changes = [i for i, o in self.new_options.items() if o.get("kind") == "change-expectation" and o["change"]["target"] == "page"]
+        ticks = [["a27", "a75"]] + ([changes[:2]] if len(changes) >= 2 else []) + [[i] for i in live]
+        texts = run_logic("(function(S){return %s.map(function(t){var s=JSON.parse(JSON.stringify(S));"
+                          "t.forEach(function(i){s.selected.options[i]=true;});return buildPrompt(s);});})(%s)"
+                          % (json.dumps(ticks), json.dumps(state)))
+        for ticked, text in zip(ticks, texts):
+            with self.subTest(ticked=ticked):
+                self.assertLessEqual(len(text) - own_words(ticked), 3000, len(text))
+                for other in options:
+                    if other["id"] not in ticked:
+                        self.assertNotRegex(text, rf"\b{other['id']}\b")
+        self.assertIn("FIX SHIPLOOP", texts[0])
+        self.assertIn("FIX THE HARNESS", texts[0])
+        self.assertLess(texts[0].index("FIX SHIPLOOP"), texts[0].index("FIX THE HARNESS"))
 
 
 # ---------------------------------------------------------------- R20a: the stage catalog, the card fields and the stage card

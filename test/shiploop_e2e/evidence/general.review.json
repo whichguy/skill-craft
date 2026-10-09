@@ -14,6 +14,917 @@
     "effect": "bent",
     "advice": "Amend phase-1 with the wording of the SPEC's S-10 carve-out of 2026-10-05 and keep its original sentence, so the page states what the engine does under each mode and does not read an unreviewed none run as a defect. Inferred: until the owner flips the default (I5 of the planning review plan) every new run is stage, so the amended text describes the exception and the original sentence stays the rule.",
     "createdAt": "2026-10-06T07:47:18Z"
+   },
+   "o45": {
+    "title": "The integrate stage and its 'Not committed' notice tell the model to commit what plan-return commits",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r3-battleship-sonnet"
+    ],
+    "phase": 5,
+    "effect": "bent",
+    "expected": "Commits belong to the script (S-4, S-5): no packet tells the model to run git commit, and what ShipLoop prints about commits is true (S-3).",
+    "observed": "The document stage wrote README.md, which the step plan's paths did not declare; at integrate the model ran git add and git commit (de38128) because the integrate row says 'commit the ones the product needs', and ShipLoop's reply to that same result still printed 'Not committed (changed, but not in the step plan's paths): README.md' after the commit, because the item scope compares the item base with the working tree. A second hand commit (9e28b73, test/system.test.js at system-test-author) has no packet text behind it. Both carry the user's identity; the other 13 commits of the delivered history are 'ShipLoop Workspace'. r3-checkers-sonnet made no hand commit: plan-return committed its leftovers (af3a19e).",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.new_candidates R3-1 and synthesis.batch4_scorecard 'A2 acceptance'; /Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet/work (git log: de38128 and 9e28b73 by the user, 13 by ShipLoop Workspace); the integrate row in skills/shiploop/scripts/shiploop_stage_spec.py; the 'Not committed' notice in skills/shiploop/scripts/shiploop_navigator.py",
+    "advice": "Reword the two strings so both say plan-return commits the item's other changed files, the analysis's one-string-pair fix. Inferred: the second hand commit is habit, so expect the user-identity count to fall to one rather than zero; re-measure model_glue after.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o46": {
+    "title": "The rollback in release-plan.md was the printed recipe in 1 of 4 runs",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r2-checkers-sonnet",
+     "r3-battleship-sonnet",
+     "r3-checkers-sonnet"
+    ],
+    "phase": 7,
+    "effect": "bent",
+    "expected": "release-plan writes the rollback the packet prints for this run's return route (reset --keep to the recorded head), and release-check compares it with the route plan-return reports.",
+    "observed": "Returned release-plan.md files: r3-battleship-sonnet 'git reset of main to the baseline commit' (a mixed reset leaves the returned files in the tree), r3-checkers-sonnet 'reset --hard 491b2af', r2-checkers-sonnet 'reset --hard fc65b04 or git revert'; only r2-battleship-sonnet used reset --keep, the one run whose tool results showed the recipe. The recipe and the compare duty sit in the packet body; release-plan's Done-when says only that rollback steps are planned, and 'reset --keep' appears 0 times in either round-3 run's tool results.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.new_candidates R3-2; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.candidates B5; /Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet/work/docs/shiploop/features/build-a-small-single-player-battleship-8f4f83/release-plan.md (Rollback line); rollback_lines in skills/shiploop/scripts/shiploop_workspace.py",
+    "advice": "Move the duty into the head as two Done-when lines, the device that got the host-tool probe done in round 3. Inferred: no run executed a rollback, so the cost so far is a latent wrong recovery step, not a broken run.",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Rollbacks read",
+       "value": 4,
+       "unit": "runs",
+       "tone": "expected"
+      },
+      {
+       "label": "Printed recipe used",
+       "value": 1,
+       "unit": "runs",
+       "tone": "saw"
+      }
+     ]
+    },
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o47": {
+    "title": "Models start servers they never stop and kill processes by name: a pkill stopped two Grok harnesses",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r2-battleship-grok-none",
+     "r3-checkers-sonnet",
+     "r3-battleship-grok-none"
+    ],
+    "effect": "broken",
+    "expected": "A run's evidence is its own (S-9, S-11): a model stops only the processes it started, and a check observes the run's own server.",
+    "observed": "r3-checkers-sonnet ran pgrep -fl 'node server.js' and pkill -f 'node server.js' (events 548-549); the listing included the concurrent Grok harness, whose argv embeds every --check string, and that harness ended 'terminated by SIGTERM' at test-author (r3-battleship-grok-none result.json earlier_terminations). The same kind of pattern kill, by r2-checkers-sonnet, orphaned the Grok host of r2-battleship-grok-none in round 2. r3-battleship-sonnet left two servers it started with '& ... kill %1' (job control is off in the host's shell), which the harness reaped (ports 3471 and 3000). Inferred, not proven: r3-checkers-sonnet's release-verify default-port GET was answered by another listener, since its own server had exited ('kill 20149 failed: no such process'). The only engine text on shared resources is the /tmp sentence.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.new_candidates R3-3 and R3-10; test/shiploop_e2e/LEARNINGS.md 'Rounds 2 and 3' correction (1) and 'Correction of 2026-10-09' (923a3bd6); /Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none/result.json earlier_terminations; /Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet/result.json left_behind; the scratch directory lines in skills/shiploop/scripts/shiploop_navigator.py",
+    "advice": "Add the one sentence on processes and ports (stop the pid you started, never a name pattern) and keep compared tracks sequential, as the README already says. Inferred: the sentence must sit in the packet head's considerations to be read, since models read packet heads.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o48": {
+    "title": "release-check accepts a sentence for its not-there-yet run, and the Battleship sentence was false",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r1-checkers-sonnet",
+     "r3-battleship-sonnet",
+     "r3-checkers-sonnet"
+    ],
+    "phase": 7,
+    "effect": "broken",
+    "expected": "Each post-release confirm command ran once and recorded its not-there-yet output (release-check Done-when), shown by a record the script keeps (S-9).",
+    "observed": "r3-battleship-sonnet's release-check ran git status, plan-return and review-return only, yet its accepted result says the confirm commands 'were run once against the current candidate before release and pass (15 tests)'; the first tool result showing 15 tests is at release-verify, after the claim. r3-checkers-sonnet ran 2 of its 3 consumer commands (node system/ui-click.js was neither run nor listed). r1-checkers-sonnet answered with an ad hoc curl that returned 200 in the worktree. The row has no complete_runs, and evidence_refs accepts any existing file.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.new_candidates R3-4; docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates R3; the release-check row in skills/shiploop/scripts/shiploop_stage_spec.py",
+    "advice": "Add the shape gate (each consumer check listed with its command and an output file), the smaller of the analysis's two variants. Inferred: about half the runs miss this duty (both round-2 runs met it, one round-1 and both round-3 runs did not), so variance does not excuse it.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o49": {
+    "title": "The host_dependent guard cannot work on a check row, the only shape a browser script can take",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r3-checkers-sonnet"
+    ],
+    "phase": 6,
+    "effect": "bent",
+    "expected": "What the packet promises, the script does (S-3).",
+    "observed": "The system-test-author duty says a host_dependent row makes ShipLoop refuse if that row's ids appear in the regression output, but normalise_commands rejects ids on a check row and default_suite_drift builds its list only from ids. r3-checkers-sonnet marked node system/ui-click.js host_dependent with ids [ST-2], was refused ('takes no ids or min_tests'), resubmitted without ids and was accepted; the guard never ran for that row. The protection came from placing the script under system/, outside test/.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.new_candidates R3-5; the host_dependent paragraph in skills/shiploop/scripts/shiploop_prompts.py; normalise_commands and default_suite_drift in skills/shiploop/scripts/shiploop_test_loop.py; /Users/dadleet/e2e-runs/20261008/r3-checkers-sonnet/metrics.json shiploop_failures",
+    "advice": "Fold one sentence into the next text batch: for a check row the flag is a note, and the script must sit outside the default suite's discovery path. Inferred: low priority, since no harm was observed.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o50": {
+    "title": "Battleship's test strategy classified the browser case away, so the page's clicks were never tested",
+    "criterion": "phase-6",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r2-battleship-sonnet",
+     "r3-battleship-sonnet"
+    ],
+    "phase": 1,
+    "effect": "broken",
+    "expected": "Each host-dependent case's tool is probed against a stand-in with its output cited, or its access gap is recorded (test-strategy Done-when since 1.26.0), and the whole product is tested for real (phase-6).",
+    "observed": "r3-battleship-sonnet's test strategy says 'No host tool needed (Node v25.9.0 probed); browser rendering is not a required tool' for a request that asks for a playable HTML page, with Chrome installed; no probe ran and the Improve review accepted it. Three page mutants (a dead click handler, swapped row and column, a wrong fire URL) each pass all 15 retained tests (round-3 analysis, on a scratch copy). Product acceptance disclosed it honestly in the unverified list (owner user, due handoff). r3-checkers-sonnet, under the same Done-when line, probed Chrome against a stand-in and kept a real-browser system command; in round 2 neither Sonnet run probed.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.new_candidates R3-6 and synthesis.batch4_scorecard 'A4 test-strategy Done-when, Battleship'; /Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet/.shiploop-runs/work-20261009-062005-7d0dcc/run/state.md (the test-strategy summary and the product-acceptance unverified list)",
+    "advice": "Run the next Sonnet pair before changing the trigger: the analysis held this for another run (n=1 per cell, opposite branches on the same text). Inferred: if it recurs, defining the trigger by the request's observable surfaces removes the producer's choice to classify the case away.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o51": {
+    "title": "Baseline records fewer commands than its Done-when, with wrong or blank exit codes",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet",
+     "r2-battleship-sonnet",
+     "r3-battleship-sonnet",
+     "r3-checkers-sonnet"
+    ],
+    "phase": 3,
+    "effect": "bent",
+    "expected": "A check the script runs and records is the evidence (S-9): baseline records each step-plan command's exit on the unchanged item base.",
+    "observed": "r3-battleship-sonnet's baseline.txt holds 3 of 4 recorded commands and 'exit=0' after 'Could not find test/game.test.js', because a pipe to tail supplied the status; r3-checkers-sonnet 2 of 5 with blank exit lines; r2-battleship-sonnet ran 1 of 4; in round 1 the Checkers discovery reported tail's exit and Battleship skipped a recorded command. The stage has no complete_runs. Every case was greenfield, so no wrong verdict followed.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.new_candidates R3-7; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.round1_candidates_status (P2); docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates P2; the baseline row in skills/shiploop/scripts/shiploop_stage_spec.py",
+    "advice": "Hold it for a case with an existing suite, where a pre-existing failure matters; the analysis's verdict is needs-another-run. Inferred: a record-only run would cost seconds, since later stages already rerun the same commands in about half a second each.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o52": {
+    "title": "The ids-missing refusal gave a wrong remedy and never stated the whole-word rule",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r2-checkers-sonnet"
+    ],
+    "phase": 3,
+    "effect": "bent",
+    "expected": "A refusal names its cause and the next action on its first line (S-7), and the model never reads engine source to learn a rule (S-4).",
+    "observed": "r2-checkers-sonnet's test-author was refused twice: the first line carried no remedy, and the bullet suggested --verbose although node had printed the names; the rule is that an id counts only as its own word, so TC-4a does not show TC-4. It took 9 calls and 50 s to acceptance, 4 of them reading engine source, and the model wrote the engine rule into the product's environment.md. Fixed in 178b514c (1.26.0): the refusal states the whole-word rule and names the output line. Round 3 never triggered it (0 'did not show' in either run), so the fix is unexercised live.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.candidates A1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.batch4_scorecard 'A1 whole-word id refusal'; 178b514c; _id_pattern in skills/shiploop/scripts/shiploop_test_counts.py",
+    "advice": "Keep it open until the refusal is seen: cover it with a seeded or fixture run, as the round-3 scorecard suggests. Inferred: models now title tests with the base id, so a live run may never trigger it.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o53": {
+    "title": "The return-route sentence induced a hand commit and a false lesson in the knowledge home",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r2-battleship-sonnet"
+    ],
+    "phase": 7,
+    "expected": "Printed text matches the script (S-3), and later runs inherit no wrong rule (S-11).",
+    "observed": "r2-battleship-sonnet ran git add and git commit at release-plan (6bba9a6, the user's identity) because the route sentence said an uncommitted file forces the working-tree return, while plan-return commits leftovers itself; it then wrote 'commit them before the return' into the returned outcome.md. Fixed in 62b6ac89 and 6049ae17 (1.26.0): in round 3 the sentence is in every packet (45 of 45 and 47 of 47), it is true, and neither delivered knowledge home holds the rule. The round-3 Battleship hand commits have another cause (o45).",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.candidates A2; docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.batch4_scorecard 'A2 route sentence'; 62b6ac89; 6049ae17",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o54": {
+    "title": "Packets named directories nothing created: run/notes/ and the Improve child's opening directory",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet",
+     "r2-checkers-sonnet"
+    ],
+    "expected": "Directory creation is mechanical work the script owns (S-4, S-5): every path a packet prints can be written.",
+    "observed": "Round 1: r1-battleship-sonnet's first intake complete was refused because notes/ did not exist, and r1-checkers-sonnet had no notes/ at all. Round 2: r2-checkers-sonnet's first improve-start was refused ('write the opening file first') because the child directory did not exist, and both round-2 models then put mkdir in their own wrappers. Fixed: emit creates run/notes/ (4fc3b3b8, 1.25.0; present in both round-2 runs) and the bound Improve child's directory (1b9918ab, bd3785cb, 1.26.0; born 15 s before the model wrote opening.md in both round-3 runs). The models still mkdir defensively, which no engine change can stop.",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates N1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.candidates A3 and synthesis.batch3_scorecard N1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.batch4_scorecard A3; 4fc3b3b8; 1b9918ab; bd3785cb",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o55": {
+    "title": "min_tests floors were the model's first guess, 44-47% of what ran, and never ratcheted",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r2-battleship-sonnet",
+     "r2-checkers-sonnet"
+    ],
+    "phase": 3,
+    "expected": "A check that ran less is not a pass (S-9): a rerun runs at least what an earlier accepted run of the same command ran.",
+    "observed": "r2-checkers-sonnet's floors were 12 and 8 against 27 and 16-17 tests run (44-47%), with no floor on the full-suite regression command or the consumer checks; r2-battleship-sonnet's were 80-89%, round 1's 40-57%. Deleting half the focused tests would have passed every gate. Fixed by the per-item ratchet (53ab8b78, 1.26.0): in round 3 accepted_ran is recorded on 6 of 11 verify records per run with no false refusal, it was the binding floor in Checkers (the model's floors were 67-74% of the real count), and both regression commands carry a floor. Not exercised: the refusal itself (no count dropped). Not covered, by design: the test-author probe, test-refine, the end-of-work review, system-test and release-verify.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.candidates A5; docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.batch4_scorecard ('A5 per-item test-count ratchet' and 'A5 refusal route') and synthesis.remaining_known_limits; 53ab8b78",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Floor after ratchet",
+       "value": 100,
+       "unit": "%",
+       "tone": "expected"
+      },
+      {
+       "label": "r2 Checkers, low",
+       "value": 44,
+       "unit": "%",
+       "tone": "saw"
+      },
+      {
+       "label": "r2 Checkers, high",
+       "value": 47,
+       "unit": "%",
+       "tone": "saw"
+      },
+      {
+       "label": "r2 Battleship, low",
+       "value": 80,
+       "unit": "%",
+       "tone": "saw"
+      },
+      {
+       "label": "r2 Battleship, high",
+       "value": 89,
+       "unit": "%",
+       "tone": "saw"
+      },
+      {
+       "label": "r3 Checkers model, low",
+       "value": 67,
+       "unit": "%",
+       "tone": "saw"
+      }
+     ]
+    },
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o56": {
+    "title": "The harness left model-started servers running, so a later run probed a stale server",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-checkers-sonnet",
+     "r2-battleship-sonnet",
+     "r2-checkers-sonnet"
+    ],
+    "expected": "A run leaves nothing listening (SPEC harness rule of 2026-10-08, anchor S-11).",
+    "observed": "A server from r1-checkers-sonnet's worktree stayed bound to port 3457; in round 2 both runs' probes reached it (EADDRINUSE and a foreign '<title>Checkers</title>'), and r2-checkers-sonnet committed 'a probe on 3457 reached a foreign server; use unusual ports' to its returned knowledge. Fixed in the harness: listeners under the case folder are reaped and recorded as left_behind (f1329599) and a launch is refused while an ended case leaves one bound (ab01b29a). In round 3 the reaper ended r3-battleship-sonnet's two leaked servers and r3-battleship-grok-none's node and Chrome; the launch refusal never had to fire.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.candidates A6; docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.batch4_scorecard ('A6 reap and result.json left_behind', 'A6 launch preflight'); f1329599; ab01b29a; /Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet/result.json left_behind",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o57": {
+    "title": "The harness could not read Claude's tool calls, so refusals, glue and per-stage context were unmeasured",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet"
+    ],
+    "expected": "Run metrics count the refusals and glue of every host.",
+    "observed": "metrics.collect read only Grok's tool events, so Claude refusals, model glue and /tmp writes were unmeasured lower bounds and every round-1 lens hand-mined events.jsonl. Fixed in c7a8187d to 4e656d23 (2026-10-08): Claude's tool_use and tool_result blocks go through the one classifier, and verify records that ran red by design are counted apart. Round 2 recomputed exactly (model calls 116 and 152, tool_use blocks 119 and 160). Remaining gaps: one compound-command false positive, wrapper scripts outside model_glue, and no identical-consecutive Improve note count.",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates H1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard H1 and synthesis.candidates B6; c7a8187d; 4e656d23",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o58": {
+    "title": "The return review was a hand edit of a script-owned file, and its block named no path",
+    "criterion": "P1",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet"
+    ],
+    "phase": 7,
+    "expected": "The model never edits run state (S-1), and a refusal names what to fix (S-7).",
+    "observed": "Round 1: 'return plan has unresolved path dispositions' named no path; Battleship spent 8 calls (34 s) and Checkers 7, each ending in a sed over return-plan.md, and Checkers' release-check summary said all 16 were kept while 7 rows were still pending. Fixed in e39160ae, 3bac0b19 and 55bee172 (1.25.0): plan-return prints the undecided paths and one review-return call records the decisions. Rounds 2 and 3: 0 hand edits of return-plan.md, 0 'unresolved path dispositions' blocks, one review-return call each.",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates R1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard R1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.batch4_scorecard 'Batch-3 items'; e39160ae; 3bac0b19; 55bee172",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "r1 Battleship calls",
+       "value": 8,
+       "unit": "calls",
+       "tone": "saw"
+      },
+      {
+       "label": "r1 Checkers calls",
+       "value": 7,
+       "unit": "calls",
+       "tone": "saw"
+      },
+      {
+       "label": "r2 calls, each run",
+       "value": 1,
+       "unit": "calls",
+       "tone": "expected"
+      }
+     ]
+    },
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o59": {
+    "title": "Outcomes no check observed had no structured home at acceptance or handoff",
+    "criterion": "phase-6",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet"
+    ],
+    "phase": 6,
+    "expected": "A case ends validated, validated another way, or unachievable with a named reason, and the limit travels to the report.",
+    "observed": "Round 1: neither delivered page was ever executed, and product-acceptance was done with the limit in prose and no owner or due stage. Fixed in b3a8e3f1 (1.25.0): product-acceptance carries a gated unverified list that handoff prints and report.html tables. Round 2 Battleship filled one entry on first submit and Checkers recorded [] after a real headless-Chrome click-through; round 3 Battleship listed its browser outcome (owner user, due handoff). The gate checks shape, not completeness (o50).",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates U1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard U1; b3a8e3f1",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o60": {
+    "title": "The step-plan packet promised an 'unconfirmable' criterion its own gate refused",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet"
+    ],
+    "phase": 2,
+    "expected": "What the packet promises, the script accepts (S-3).",
+    "observed": "Round 1: the template showed no Confirm-by shape, the prose promised an unconfirmable route that the criteria gate refused, and Battleship's C1 to C3 read 'Confirm by:  (exercised)' with the command lost to an unquoted heredoc. Fixed in 84d4d9da (1.25.0): both round-2 step plans were accepted on first submit with 0 'every criterion needs a test command' refusals, criteria bound through test_commands[].criteria.",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates S1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard S1; 84d4d9da",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o61": {
+    "title": "A knowledge close required files its own packet did not list",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-battleship-sonnet"
+    ],
+    "phase": 7,
+    "expected": "A stage's packet names every file its close requires (S-6, S-12).",
+    "observed": "Round 1: the release-plan close required system-tests.md, which the release-plan packet did not name, and Battleship was refused twice. Fixed in 3a7bc9f4 (1.25.0): 0 knowledge-close refusals in rounds 2 and 3.",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates K1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard K1; 3a7bc9f4",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o62": {
+    "title": "improve-bind printed a placeholder path the model had to replace",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet"
+    ],
+    "phase": 1,
+    "expected": "The model copies printed exact argument values (S-4).",
+    "observed": "Round 1 printed --skill-card=/absolute/path/to/selected/improve/SKILL.md, and each run located the card by hand. Fixed in 0d7a35dd (1.25.0): init records the installed Improve card, and rounds 2 and 3 show 0 'absolute/path/to' in their events.",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates B1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard B1a; 0d7a35dd",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o63": {
+    "title": "Stage wording contradicted S-14, the commit owner and the packet's own Improve text",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet"
+    ],
+    "expected": "A packet says what to do and how it is checked, and no line contradicts another or the SPEC (S-3, S-6).",
+    "observed": "Round 1: discovery's Done-when had no outcome for 'no suite exists', research said to put access needs to the user against S-14, integrate still told an inline run to commit, and the Improve packet called self-passes independent. Fixed in 2b2f4513 (1.25.0) and verified in round 2: both discovery results used the new outcome and no model committed at integrate. The integrate row's remaining 'commit the ones the product needs' is o45.",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates W1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard W1; 2b2f4513",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o64": {
+    "title": "Improve packets did not restate the goal and Done-when they review against",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet"
+    ],
+    "phase": 1,
+    "expected": "Every packet stands alone (S-6): a cleared reviewer has the contract it checks.",
+    "observed": "Round 1: 0 'Goal:' or 'Done when' in the three Improve packets read. Fixed in 1f5006e7 (1.25.0): 8 of 8 Improve packets per round-2 run carry the Done-when. Its effect on review quality is unmeasured (2 of 25 review notes cite a Done-when), and the child's frozen contract still lacks the stage's review focus (round-3 R3-8, document-only).",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates I2; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard I2; docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.new_candidates R3-8; 1f5006e7",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o65": {
+    "title": "Backchain is now the host's choice: no round run ran its loop and 3 of 9 checked a graph",
+    "criterion": "B2",
+    "kind": "decision",
+    "status": "open",
+    "runs": [
+     "r1-checkers-sonnet",
+     "r2-battleship-sonnet",
+     "r2-battleship-grok-none",
+     "r3-battleship-sonnet",
+     "r3-checkers-sonnet",
+     "r3-battleship-grok-none"
+    ],
+    "phase": 2,
+    "effect": "bent",
+    "expected": "Backchain turns the spec into a dependency graph (phase-2), and a ShipLoop script checks that graph and writes a receipt (B2).",
+    "observed": "Since 4c2a8a98 and cc705b9d (1.25.0) the one-pass plan packet says the Backchain child is the host's choice, as round-1 BC1 asked (the packet had been ambiguous, and both round-1 Sonnet runs skipped the child). Across the nine round runs: 0 Backchain loop receipts, and a backchain-check receipt in 3 (r1-battleship-grok-none, r1-battleship-sonnet, r2-checkers-sonnet); the other six planned with a prose dependency audit that no script checked. The same text led r2-battleship-sonnet to skip and r2-checkers-sonnet to check. The phase-2 text still says Backchain turns the spec into a graph, and ends with the owner's 'there is no limit to this'.",
+    "evidence": "docs/experiments/run-review-r22c-20261009/figures.json graph_checked_round_runs and backchain_loop_round_runs (each run's run/backchain/); docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates BC1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard BC1; 4c2a8a98; phase-2 and B2 in skills/shiploop-run-review/defaults/expectations.json",
+    "advice": "Amend phase-2 to say what the engine does now and keep the owner's sentence, so a run that skips the child by design reads as the expectation and not as a miss. Inferred: B2 then applies only to runs that build a graph; whether the check should be required at one pass is a separate owner decision the BC1 text left open.",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Round runs",
+       "value": 9,
+       "unit": "runs",
+       "tone": "limit"
+      },
+      {
+       "label": "Backchain loop ran",
+       "value": 0,
+       "unit": "runs",
+       "tone": "saw"
+      },
+      {
+       "label": "Graph check ran",
+       "value": 3,
+       "unit": "runs",
+       "tone": "saw"
+      }
+     ]
+    },
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o66": {
+    "title": "Rollback text was written before the return route was known, and was wrong in both round-1 runs",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "fixed",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet"
+    ],
+    "phase": 7,
+    "expected": "The release plan's rollback fits the return ShipLoop will make.",
+    "observed": "Round 1: Battleship's release-plan said 'git clean -fd' for a return that was a fast-forward merge, Checkers said to remove the returned files, and the Improve review called the rollback accurate. Fixed in 8eb93c21 (1.25.0): every isolated-run packet states the route, release-plan and release-check print tested recipes, and review-return reports the expected return. The 'git clean -fd' form did not recur; the recipe itself reached the models in 1 of 4 later runs (o46).",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates R2; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard R2; 8eb93c21",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o67": {
+    "title": "Refusals buried the offending paths and the remedy below a generic first line",
+    "criterion": "P3",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet"
+    ],
+    "effect": "bent",
+    "expected": "What is printed carries the action (S-7): a refusal's first line names the paths and the next step.",
+    "observed": "Both round-1 models filtered every ShipLoop reply through grep or head; the knowledge-close refusal named its paths on the second line and a call was wasted (Battleship events 447-449), and backchain-check on a Markdown plan said 'could not run: not JSON' with no schema pointer (4 calls reading the engine). e4435c85 (1.25.0) puts the paths and the remedy on line 1 of those refusals; none of the three fired in rounds 2 and 3, so the fix is unexercised. A refusal that did fire in round 2, the ids-missing one, lacked it (o52).",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates F1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard F1; e4435c85",
+    "advice": "Keep it open until one of the three refusals is seen live; a list of every refusal's first line is cheaper than waiting. Inferred: the first-line rule should hold for every refusal family, not only the three round 1 hit.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o68": {
+    "title": "Test loops stop accepting done after 7 refused runs, while S-10 says loops have no cap",
+    "criterion": "P2",
+    "kind": "decision",
+    "status": "open",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet"
+    ],
+    "expected": "Loops iterate until their exit condition holds, with no iteration cap except the SPEC's carve-outs (S-10).",
+    "observed": "The test-green and regression packets say 'there is no iteration limit' and, separately, that after 7 refused runs done is no longer accepted and the result must be revise (MAX_REFUSED_RUNS = 7). The two count different things (the Until Loop's iterations, the script's reruns at complete), but the packet does not say so, and no S-10 carve-out names the second. No round run came near it (at most 2 refusals on one result).",
+    "evidence": "docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates I1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.round1_candidates_status (I1); MAX_REFUSED_RUNS in skills/shiploop/scripts/shiploop_test_loop.py; test/shiploop_e2e/SPEC.md S-10",
+    "advice": "The owner's choice: keep the cap as an unattended safety and name it in the SPEC and the packet, or remove it under S-10. Inferred: either way the packet should name both counters, since its two sentences read as a contradiction.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o69": {
+    "title": "Checkers cost rose from $5.16 to $8.51 in round 2 and fell to $6.65 in round 3; no engine cause is shown",
+    "criterion": "P5",
+    "kind": "decision",
+    "status": "accepted",
+    "runs": [
+     "r1-checkers-sonnet",
+     "r2-checkers-sonnet",
+     "r3-checkers-sonnet"
+    ],
+    "expected": "A cost change is laid to the engine only when it exceeds the spread of repeated runs on one build.",
+    "observed": "r2-checkers-sonnet: $5.1613 to $8.5146 (+65%), model calls 105 to 152, cache-read tokens 17.73M to 30.84M, wall 787 to 1250 s; cache reads are $2.62 of the $3.35 rise. The round-2 analysis puts about $0.8-1.0 on intended new validation (a real-browser closure, a Backchain audit, more Improve passes), about $0.7 on refusal churn, $0.5-0.7 on model glue and $1.3-1.8 on product scope the model chose (Inferred by the analysis: 15 to 47 tests). Battleship read $5.70, $5.81 and $5.67 over the three rounds, and two Battleship runs of one earlier build already differed by a factor of 1.48. n=1 per cell, and round 3 ran beside a Grok track.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.cost_finding; docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.loop_done_check (the B9 condition); docs/experiments/round2-round3-20261008/evidence.json",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "r1 Checkers",
+       "value": 5.16,
+       "unit": "$",
+       "tone": "saw"
+      },
+      {
+       "label": "r2 Checkers",
+       "value": 8.51,
+       "unit": "$",
+       "tone": "saw"
+      },
+      {
+       "label": "r3 Checkers",
+       "value": 6.65,
+       "unit": "$",
+       "tone": "saw"
+      },
+      {
+       "label": "r1 Battleship",
+       "value": 5.7,
+       "unit": "$",
+       "tone": "saw"
+      },
+      {
+       "label": "r2 Battleship",
+       "value": 5.81,
+       "unit": "$",
+       "tone": "saw"
+      },
+      {
+       "label": "r3 Battleship",
+       "value": 5.67,
+       "unit": "$",
+       "tone": "saw"
+      }
+     ]
+    },
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o70": {
+    "title": "Planning stays inside the owner's 30-minute rule in all nine round runs; the round evidence states a second, shorter planning figure",
+    "criterion": "phase-1",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet",
+     "r1-battleship-grok-none",
+     "r2-battleship-sonnet",
+     "r2-checkers-sonnet",
+     "r2-battleship-grok-none",
+     "r3-battleship-sonnet",
+     "r3-checkers-sonnet",
+     "r3-battleship-grok-none"
+    ],
+    "phase": 1,
+    "effect": "bent",
+    "expected": "The planning window, intake to the first accepted test-spec, is read from metrics.json's planning block, the one place it is computed (SPEC table, S-10 carve-out and S-12), against the owner's 30-minute rule.",
+    "observed": "metrics.json planning windows on the engine clock: Grok r1 23.3, r2 15.7, r3 23.2 min (no Improve child under planning_review none); the six Sonnet runs 4.8 to 7.0 min with five Improve children each. All nine are under 30. r2's window covers visits 1 to 10, all Grok-hosted (Claude took over at visit 32); its token count covers only the first harness session. The committed round evidence states planning_minutes 21.8, 10.7 and 20.7 for the same Grok runs and 3.7 to 5.1 for Sonnet: for round 1 it is the sum of the harness's stage seconds from intake to prepare (1,308 s and 268 s), a second definition beside the block.",
+    "evidence": "docs/experiments/run-review-r22c-20261009/figures.json runs.*.planning_window_seconds (metrics.json planning.window); docs/experiments/round1-20261008/evidence.json runs.*.stage_seconds and planning_minutes; docs/experiments/round2-round3-20261008/evidence.json runs.*.planning_minutes; test/shiploop_e2e/SPEC.md (the planning row of the measures table)",
+    "advice": "Cite the block's window in the round evidence, or label planning_minutes with what it sums, so one run has one planning figure. Inferred: the Grok windows sit at 52-78% of the ceiling with no review loop at all, so the rule leaves Grok little room if planning reviews come back.",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Owner's rule",
+       "value": 30,
+       "unit": "min",
+       "tone": "limit"
+      },
+      {
+       "label": "Grok r1",
+       "value": 23.3,
+       "unit": "min",
+       "tone": "saw"
+      },
+      {
+       "label": "Grok r2, mixed run",
+       "value": 15.7,
+       "unit": "min",
+       "tone": "saw"
+      },
+      {
+       "label": "Grok r3",
+       "value": 23.2,
+       "unit": "min",
+       "tone": "saw"
+      },
+      {
+       "label": "Sonnet, slowest",
+       "value": 7.0,
+       "unit": "min",
+       "tone": "saw"
+      },
+      {
+       "label": "Sonnet, fastest",
+       "value": 4.8,
+       "unit": "min",
+       "tone": "saw"
+      }
+     ]
+    },
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o71": {
+    "title": "Headless Chrome cannot load the real page over loopback in the Grok host: r1 blocked and r3 stopped on it",
+    "criterion": "P6",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r1-battleship-grok-none",
+     "r3-battleship-grok-none"
+    ],
+    "effect": "broken",
+    "expected": "Behaviour does not depend on the model or its host: a run that passes on one host predicts a pass on another (P6).",
+    "observed": "Since 2026-10-07 every Grok run that tried headless Chrome failed to load the page over http://127.0.0.1 (v1230-battleship-grok-none, r1, r3) while a file: stand-in loaded; Chrome worked in every Claude run, including the browser check Claude Sonnet ran inside r2-battleship-grok-none. r1 spent its 21.1-minute system-test-author visit on it and ended blocked by access. r3's test-strategy probe opened a file: stand-in (run/scratch/standin.html, 'The probe succeeded'), so the gap surfaced in implement, where step S3 stayed unaccepted for 27.1 min (104 turns, 12 browser-debug scripts) until the stop. The cause inside the Grok host is unproven; Chrome version drift and the Grok host's network sandbox are the open candidates.",
+    "evidence": "test/shiploop_e2e/LEARNINGS.md 'Correction of 2026-10-09' (923a3bd6); docs/experiments/run-review-r22c-20261009/figures.json r1_grok_blocked_visit_min and r3_grok; /Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none/.shiploop-runs/work-20261009-062034-d142b0/worktree/docs/shiploop/test-strategy.md (the probe section); /Users/dadleet/e2e-runs/20261008/r1-battleship-grok-none/result.json termination",
+    "advice": "Settle the cause before the next Grok browser case with a probe of at least five launches per cell (Grok session and Claude session; http on loopback and file:), printing the Chrome version. Inferred: until then a Grok run with a required browser case will block or loop on this machine, so run browser cases on the Claude host or accept the gap.",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "r1 blocked visit",
+       "value": 21.1,
+       "unit": "min",
+       "tone": "saw"
+      },
+      {
+       "label": "r3 open implement",
+       "value": 27.1,
+       "unit": "min",
+       "tone": "saw"
+      }
+     ]
+    },
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o72": {
+    "title": "Round-1 Grok ended blocked at system-test-author, asking a person, while all but the browser case could proceed",
+    "criterion": "phase-6",
+    "kind": "decision",
+    "status": "open",
+    "runs": [
+     "r1-battleship-grok-none"
+    ],
+    "phase": 6,
+    "effect": "bent",
+    "expected": "S-14: a step that needs something only a person can supply is recorded as an open item and the run continues; it prompts only when it truly cannot proceed.",
+    "observed": "At system-test-author the HTTP-level check passed (SYS-SERVE), Chrome did not load the page, and the model returned blocked_by access with a question offering to accept the HTTP check and leave the browser interactions unverified, or to wait for a browser. The run ended on the awaiting route after 27 accepted visits and 74.8 minutes, so system-test, product-acceptance and release never ran and the harness's 4 product checks failed on an unreturned product. Round-3 Sonnet Battleship recorded its own unobserved browser outcome in the unverified list (added in 1.25.0, after this run) and released.",
+    "evidence": "/Users/dadleet/e2e-runs/20261008/r1-battleship-grok-none/result.json (termination: engine_status blocked, engine_status_reason); test/shiploop_e2e/LEARNINGS.md 'Round 1' (the Grok block); docs/experiments/round1-20261008/evidence.json runs.battleship_grok_checks_off.blocked; b3a8e3f1",
+    "advice": "The owner's choice: an access gap on a required case at system-test-author either blocks with the S-14 question, as here, or becomes an unverified open item and the run releases. Inferred: the unverified list of 1.25.0 gives the second route a home, so the engine change would be small.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o73": {
+    "title": "A resume without --host ran Claude Sonnet inside a Grok run from visit 32 to 52, and the records still read Grok",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r2-battleship-grok-none"
+    ],
+    "phase": 3,
+    "effect": "broken",
+    "expected": "A grade means the engine, not the harness (P5): a run's host is the one its records name.",
+    "observed": "A model's pkill in r2-checkers-sonnet ended the first Grok harness after visit 8; the orphaned Grok host went on to accept visits 9 to 31 with no harness reading its events, and 32.2 minutes after the harness ended the run was resumed with --resume-run and no --host, so the harness defaulted to Claude Sonnet 5.5, which accepted visits 32 to 52, including the system-test-author browser check, product acceptance and the handoff. result.json still reads host grok and model grok-4.7, and metrics.json mixes the first Grok session with the Claude session (its cost, $5.4866, is Claude's; nothing is recorded for the orphan).",
+    "evidence": "docs/experiments/run-review-r22c-20261009/figures.json r2_mixed; /Users/dadleet/e2e-runs/20261008/r2-battleship-grok-none/invocation-resume-claude-1791508003.json and invocation-resume-grok-1791509021.json; test/shiploop_e2e/LEARNINGS.md 'Correction of 2026-10-09' (923a3bd6); docs/experiments/round2-round3-20261008/evidence.json runs.r2_battleship_grok_none.mixed_host",
+    "advice": "This is the E2E session's harness to change: default host, model and effort from the run's own invocation.json and refuse a silent host change (queued in its harness batch, 923a3bd6). Read r2-battleship-grok-none as Grok to visit 31 and Claude from visit 32; it is not a Grok result for system test or release.",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Grok-host visits",
+       "value": 31,
+       "unit": "visits",
+       "tone": "saw"
+      },
+      {
+       "label": "Claude-host visits",
+       "value": 21,
+       "unit": "visits",
+       "tone": "saw"
+      }
+     ]
+    },
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o74": {
+    "title": "The first session's printed resume command omits --plugin-dir for a checkout build",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r2-battleship-grok-none",
+     "r3-battleship-grok-none"
+    ],
+    "effect": "bent",
+    "expected": "The printed resume line continues the run as it started (SPEC harness rule of 2026-10-08: a resume names the CLI the run itself uses).",
+    "observed": "r2-grok.log and r3-grok.log print 'resume: ... --resume-run <out> --host grok ... --permission-mode auto' with no --plugin-dir, while invocation.json records source checkout and plugin_dir .../build/plugins/skill-craft; resume_command adds --plugin-dir only when the command line gave one, which a checkout build the harness made itself does not. Run as printed, a resume would test the published plugin rather than the run's own build (LEARNINGS 'Rounds 2 and 3', correction 3). Both later resumes carried --plugin-dir because it was added by hand.",
+    "evidence": "/Users/dadleet/e2e-runs/20261008/r3-grok.log and /Users/dadleet/e2e-runs/20261008/r2-grok.log (the first 'resume:' line); /Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none/invocation.json (versions.source, plugin_dir); resume_command in test/shiploop_e2e/run.py; test/shiploop_e2e/LEARNINGS.md 'Rounds 2 and 3'",
+    "advice": "This is the E2E session's harness to change: build the line from invocation.json's plugin_dir for a checkout build. Inferred: one condition in resume_command, testable beside the existing ResumeCommandTest.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o75": {
+    "title": "The credential screen refuses design notes labelled 'Signature:', not the hex colours beside them",
+    "criterion": "P5",
+    "kind": "defect",
+    "status": "open",
+    "runs": [
+     "r1-checkers-sonnet",
+     "r2-battleship-grok-none",
+     "r3-battleship-grok-none"
+    ],
+    "phase": 1,
+    "effect": "bent",
+    "expected": "Only credentials are refused at a knowledge close; ordinary prose is retained as written (S-11).",
+    "observed": "4 refusals 'These knowledge lines look like credentials' in 3 of the 9 round runs: r3-battleship-grok-none twice at spec (docs/shiploop/spec.md:188), r2-battleship-grok-none once (spec.md:205), r1-checkers-sonnet once ('No auth: anyone ...', round-1 X1, dropped then). Replaying the screen on the submitted lines: r3's line carries 7 hex colours and is flagged only for 'Signature: the grid reads as an instrument' (the key-value pattern matches 'Signature: the'); with the label removed it passes, and r2's flagged line ('- Signature: the board reads as a chart') has no hex colour. So the trigger is the label, not the hex values. Inferred: the label comes from the Grok host's frontend-design guidance, which r2's spec cites. Each run recovered by rewording: 42.8 s (r3) and 19.1 s (r2) from the first refusal to the spec accept.",
+    "evidence": "docs/experiments/run-review-r22c-20261009/figures.json credential_replay and credential_refusal_to_spec_accept_seconds (replayed by collect.py with skills/shiploop/scripts/shiploop_privacy.py); /Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none/metrics.json and /Users/dadleet/e2e-runs/20261008/r2-battleship-grok-none/metrics.json shiploop_failures; _KEY_VALUE_SECRET and _DOCUMENTATION_FIELD_WORD in skills/shiploop/scripts/shiploop_privacy.py; docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates X1",
+    "advice": "This is the E2E session's engine to change; accept it as a known limit unless it recurs on new labels, since each costs under a minute, names its file and line, and a looser screen trades safety for convenience. Inferred: an allowance for a label followed by an ordinary word would also pass a secret that happens to be a word.",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o76": {
+    "title": "The narrative counter reads 'shown 0' in every Sonnet run, where no one watches",
+    "criterion": "P5",
+    "kind": "noise",
+    "status": "open",
+    "runs": [
+     "r1-battleship-sonnet",
+     "r1-checkers-sonnet",
+     "r2-battleship-sonnet",
+     "r2-checkers-sonnet",
+     "r3-battleship-sonnet",
+     "r3-checkers-sonnet"
+    ],
+    "effect": "bent",
+    "expected": "S-15: the user follows the run from ShipLoop's script-rendered status and milestone narratives, and the harness's narrative counter measures that.",
+    "observed": "metrics.json narrative: the six Sonnet round runs emitted 4 to 6 milestone narratives and showed 0; the three Grok-started runs showed 1 to 3 of 11 to 17. A headless session has no viewer and the models cut packet heads, so the counter cannot tell a skipped narrative from an unwatched one. Round 1 classed this a measurement caveat (X2, document-only); no harness note records it yet.",
+    "evidence": "docs/experiments/run-review-r22c-20261009/figures.json runs.*.narrative_emitted and narrative_shown (metrics.json narrative); docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates X2; test/shiploop_e2e/SPEC.md S-15",
+    "advice": "Record the caveat so 'shown 0' is not read as a defect, and judge S-15 on a run someone watches. Inferred: a criterion for S-15 would read not examined on headless runs for the same reason.",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "r3 Battleship emitted",
+       "value": 6,
+       "unit": "narratives",
+       "tone": "saw"
+      },
+      {
+       "label": "r3 Battleship shown",
+       "value": 0,
+       "unit": "narratives",
+       "tone": "saw"
+      },
+      {
+       "label": "r3 Checkers emitted",
+       "value": 4,
+       "unit": "narratives",
+       "tone": "saw"
+      },
+      {
+       "label": "r3 Checkers shown",
+       "value": 0,
+       "unit": "narratives",
+       "tone": "saw"
+      },
+      {
+       "label": "r3 Grok emitted",
+       "value": 11,
+       "unit": "narratives",
+       "tone": "saw"
+      },
+      {
+       "label": "r3 Grok shown",
+       "value": 1,
+       "unit": "narratives",
+       "tone": "saw"
+      }
+     ]
+    },
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o77": {
+    "title": "Whether a test can fail stays model-judged: page mutants pass every retained Battleship test",
+    "criterion": "phase-6",
+    "kind": "decision",
+    "status": "accepted",
+    "runs": [
+     "r2-battleship-sonnet",
+     "r2-checkers-sonnet",
+     "r3-battleship-sonnet",
+     "r3-checkers-sonnet"
+    ],
+    "phase": 6,
+    "expected": "The whole product is tested for real against the spec's acceptance criteria (phase-6).",
+    "observed": "Round 2: a leak of ship cells, a layout in /api/new and a placeFleet that ignores its rng survived 11 of 11 Battleship tests, and Checkers' body-cap and game-store-cap mutants survived 47 of 47. Round 3: three page mutants survived all 15 retained Battleship tests, and Checkers' off-board move answers without turn although the request says every response carries it, while its unverified list is empty. The id gate sees that ids ran, not whether they can fail; the unverified gate checks shape, not completeness; RED for the right reason is model-judged too.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.candidates B2; docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.remaining_known_limits; docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates T1; test/shiploop_e2e/SPEC.md S-9 and the S-10 carve-out of 2026-10-05",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o78": {
+    "title": "Improve's confirming passes repeat the previous review word for word",
+    "criterion": "P2",
+    "kind": "decision",
+    "status": "accepted",
+    "runs": [
+     "r2-battleship-sonnet",
+     "r3-battleship-sonnet",
+     "r3-checkers-sonnet"
+    ],
+    "expected": "Each loop pass earns its time, under the S-10 carve-out that review content is not script-checked.",
+    "observed": "Identical consecutive review bodies in 2 of 3 Battleship and 5 of 5 Checkers multi-pass children in round 3, and in both 3-pass Battleship children in round 2, where 6 of 8 children closed on one pass at 0.0 s. Where the first pass found something the loops paid (Checkers: 8 review commits in round 2). The receipt keeps only the closing reviews, so a defect-finding pass lives in its commit message.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.remaining_known_limits; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.candidates B4; docs/experiments/batch-1009-round1-analysis-20261008/analysis.json synthesis.candidates I3",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o79": {
+    "title": "Planning-time status lines in the returned test-strategy.md are never refreshed",
+    "criterion": "P5",
+    "kind": "decision",
+    "status": "accepted",
+    "runs": [
+     "r2-battleship-sonnet",
+     "r2-checkers-sonnet",
+     "r3-battleship-sonnet",
+     "r3-checkers-sonnet"
+    ],
+    "phase": 1,
+    "expected": "Knowledge retained in the repository is true for the next run (S-11).",
+    "observed": "Every returned repository since round 2 keeps 'all checks below are PLANNED, none passed yet' (or the like) in docs/shiploop/test-strategy.md after 11 to 47 tests passed; no knowledge close refreshes the file. Later runs re-observe the suite at discovery, so no run has been misled yet.",
+    "evidence": "docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.candidates B1; docs/experiments/batch-1010-round2-round3-analysis-20261008/round3-analysis.json synthesis.remaining_known_limits",
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
+   },
+   "o80": {
+    "title": "Skill assessment and validation are recorded by the script with no packet when the step plan records skill_na",
+    "criterion": "phase-4",
+    "kind": "decision",
+    "status": "open",
+    "runs": [
+     "r1-battleship-grok-none",
+     "r1-battleship-sonnet",
+     "r2-battleship-grok-none",
+     "r2-battleship-sonnet"
+    ],
+    "phase": 4,
+    "effect": "bent",
+    "expected": "Phase 4: regression, documentation, skill assessment and validation, and static checks each run as a script-served stage with their own result file.",
+    "observed": "Since 8af12178 (1.24.0) a done step plan may carry skill_na, and the script then records skill-assess and skill-validate as not applicable and issues no packet. 10 visits in 4 of the 9 round runs were recorded so (r2-battleship-grok-none 4, the others 2 each), each with a script-written result file and 0.0 minutes; the other five runs ran both stages as model turns of about 0.1 minutes. The phase-4 text still says each runs as a stage.",
+    "evidence": "docs/experiments/run-review-r22c-20261009/figures.json runs.*.skipped_visits (each export's stages[].skipped); 8af12178; phase-4 in skills/shiploop-run-review/defaults/expectations.json",
+    "advice": "Append the skill_na route to phase-4 so a run that skips both stages by design reads as the expectation. Inferred: the 4-of-9 uptake follows whether the step-plan template shows skill_na, which round 1 left as a decision (S2).",
+    "figure": {
+     "kind": "bars",
+     "items": [
+      {
+       "label": "Round runs",
+       "value": 9,
+       "unit": "runs",
+       "tone": "limit"
+      },
+      {
+       "label": "Runs with skill_na",
+       "value": 4,
+       "unit": "runs",
+       "tone": "saw"
+      },
+      {
+       "label": "Visits recorded N/A",
+       "value": 10,
+       "unit": "visits",
+       "tone": "saw"
+      }
+     ]
+    },
+    "run": "any",
+    "createdAt": "2026-10-09T16:00:00Z"
    }
   },
   "actions": {
@@ -35,6 +946,775 @@
     },
     "goal": "Do: replace the text of phase-1 in skills/shiploop-run-review/defaults/expectations.json with change.to, append a revs entry naming option a26 and finding o44, and journal the change. Files and symbols: phase-1 in skills/shiploop-run-review/defaults/expectations.json; docs/shiploop-run-review-journal.md. Test: python3 -B test/shiploop-run-review.test.py. Done when: the defaults carry the amended phase-1 text with its revs entry and the suite passes.",
     "why": "For: the page's Specify text promises an Improve review of the spec and the test strategy that planning_review none does not run, and the SPEC states the exception. Against: a longer expectation text for a mode that is not the default yet. Verdict: apply it, so a none run is judged against the SPEC's own wording."
+   },
+   "a27": {
+    "title": "Say in the integrate row and its notice that plan-return commits the other changed files",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o45"
+    ],
+    "goal": "Do: change the integrate row's sentence 'commit the ones the product needs' and the navigator's 'Not committed (changed, but not in the step plan's paths)' notice so both say that plan-return commits the item's other changed files (except one it reports as not committed) and that the model deletes generated output and commits nothing itself. Files and symbols: the integrate row in skills/shiploop/scripts/shiploop_stage_spec.py; the 'Not committed' print in skills/shiploop/scripts/shiploop_navigator.py; commit_leftovers and plan_return in skills/shiploop/scripts/shiploop_workspace.py (read only). Test: the stage-spec and navigator tests that pin the two strings, updated, and one that neither tells the model to commit. Done when: those tests pass and the next Sonnet Battleship run's delivered history has no user-identity commit at integrate.",
+    "why": "For: S-3 and S-5; the notice becomes true and it is one string pair (round-3 verdict: implement). Against: the second hand commit has no ShipLoop cause, so zero model commits is not guaranteed. Verdict: do it in the next text batch and re-measure model_glue."
+   },
+   "a28": {
+    "title": "Accept a model commit on the run's branch as harmless",
+    "criterion": "P3",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o45"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that a model-made commit on the run's branch harms no product (the return still fast-forwards), and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names de38128, 9e28b73 and the integrate row's wording as the cause of the first.",
+    "why": "The other side: the product was right and the return was verified. Against it: the printed notice stays false, and a normal run meets it whenever document writes an undeclared file."
+   },
+   "a29": {
+    "title": "Make the rollback recipe and its check two Done-when lines",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o46"
+    ],
+    "goal": "Do: add to release-plan's Done-when 'the rollback is the packet's recipe for this run's return route, with its values, or a stated reason none applies' and to release-check's 'the rollback in release-plan.md matches the route plan-return reports, or was corrected', and raise the packet size bound if the heaviest packet passes it. Files and symbols: the release-plan and release-check rows (done_when) in skills/shiploop/scripts/shiploop_stage_spec.py; rollback_lines in skills/shiploop/scripts/shiploop_workspace.py; the packet size bound test. Test: the stage-spec tests that pin done_when, and the packet size bound test. Done when: those tests pass and the next Sonnet pair's release-plan.md files carry the printed recipe.",
+    "why": "For: 3 of 4 runs wrote another rollback, and the same device worked for the probe (Checkers probed once it was in the head). Against: the line is self-confirmed; no script checks it. Verdict: do it; add a token check of the verb and the head only if the line is ignored."
+   },
+   "a30": {
+    "title": "Accept a non-recipe rollback while no run executes one",
+    "criterion": "P3",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o46"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that a release-plan rollback other than the printed recipe is a known limit while no run executes a rollback, and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names the three non-recipe rollbacks and their files.",
+    "why": "No run executed a rollback, so nothing broke; but the mixed reset written in r3-battleship-sonnet would leave returned files in the tree on a real recovery."
+   },
+   "a31": {
+    "title": "Say in every packet that processes and ports are shared: stop only the pid you started",
+    "criterion": "P5",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o47"
+    ],
+    "goal": "Do: extend the packet's shared-resource sentence (the scratch directory line) to say that processes and ports are shared with other runs and the user: start a server only on a port checked free, keep the pid started, stop that pid and never a name pattern, and confirm the run's own process answered; put the host fact that job control is off ('kill %1' does nothing) in skills/shiploop/references/host-matrix.md. Files and symbols: the scratch directory lines in skills/shiploop/scripts/shiploop_navigator.py and skills/shiploop/scripts/shiploop_prompts.py; skills/shiploop/references/host-matrix.md. Test: a navigator contract test that the packet head names pid-only stopping. Done when: that test passes and the next paired runs show no pkill -f in their events.",
+    "why": "For: three rounds in a row, and it killed a sibling run (round-3 verdict: implement). Against: the reaper already ends leaks at case end, and a model can still pattern-kill. Verdict: do it with the next text batch."
+   },
+   "a32": {
+    "title": "Run compared tracks one after the other",
+    "criterion": "P5",
+    "kind": "accept",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o47"
+    ],
+    "ref": "b0e1a1f2 (the README rule, on main before 1.26.0); not honoured in round 3, when Grok ran beside Checkers",
+    "goal": "Do: run tracks that are compared one after the other on one machine and change no code. Files and symbols: test/shiploop_e2e/README.md. Test: none; this records a known limit. Done when: the README states the rule.",
+    "why": "The rule exists, but the round-3 launch broke it; a documentation rule cannot stop that, which is why the engine sentence is recommended."
+   },
+   "a33": {
+    "title": "Pass the harness's check commands by file, not argv",
+    "criterion": "P5",
+    "kind": "fix-harness",
+    "effort": "M",
+    "status": "open",
+    "findings": [
+     "o47"
+    ],
+    "goal": "Do: pass the --check strings to the harness by file instead of argv, so no model's name pattern can match a harness process. Files and symbols: the --check argument of parser() and the checks of invocation.json in test/shiploop_e2e/run.py. Test: a test/shiploop-e2e.test.py case that the harness argv carries no check command. Done when: that test passes.",
+    "why": "For: removes the harness side of the hazard. Against: needed only when tracks overlap (round-3 verdict: document-only). Verdict: only if overlapping tracks become routine."
+   },
+   "a34": {
+    "title": "Gate release-check on one output file per consumer check",
+    "criterion": "P5",
+    "kind": "fix-shiploop",
+    "effort": "M",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o48"
+    ],
+    "goal": "Do: require the release-check result to list, for each release-plan consumer_check, the command run and an output_ref, and refuse a missing entry or a missing output file, as the unverified and system_commands gates refuse a missing shape. Files and symbols: the release-check row in skills/shiploop/scripts/shiploop_stage_spec.py; _check_submitted_unverified and the consumer_checks handling in skills/shiploop/scripts/shiploop_navigator.py (the pattern to copy). Test: navigator tests for a missing entry, a missing output file and a complete list. Done when: those tests pass and the next pair's release-check results each cite one output file per consumer check.",
+    "why": "For: S-9; the stage's purpose went unchecked and a false statement was accepted, and the gate is about 30 lines. Against: a model can still forge an output file. Verdict: do the shape gate now; the script run waits."
+   },
+   "a35": {
+    "title": "Run each consumer check record-only before the return",
+    "criterion": "P5",
+    "kind": "fix-shiploop",
+    "effort": "L",
+    "status": "open",
+    "findings": [
+     "o48"
+    ],
+    "cost": "one live run to confirm it",
+    "goal": "Do: run each recorded consumer_check record-only in a clean export of the pre-return source head, reusing release-verify's copy, and flag a command whose result is the same before and after the return. Files and symbols: the release-verify copy in skills/shiploop/scripts/shiploop_workspace.py; the release-check row in skills/shiploop/scripts/shiploop_stage_spec.py. Test: workspace tests with a check that fails before and passes after, and one that passes both. Done when: those tests pass and a live run records both results.",
+    "why": "For: a script-run record (S-9), which a sentence cannot fake. Against: running a model-written command in the user's checkout is a policy question. Verdict: only if the shape gate is ignored."
+   },
+   "a36": {
+    "title": "Accept the not-there-yet duty as model-judged",
+    "criterion": "P5",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o48"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that release-check's not-there-yet duty is model-judged and was met in about half the runs, and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names the three runs that missed it.",
+    "why": "The other side: no released product was wrong because of it; what is missing is the evidence that the check tells absent from present."
+   },
+   "a37": {
+    "title": "Say that host_dependent is a note on a check row",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o49"
+    ],
+    "goal": "Do: say in the system-test-author duty that for a check row host_dependent is a note only and the script must sit outside the default suite's discovery path, the isolation guard applying to runner rows with ids, and optionally refuse the flag on a row with no ids. Files and symbols: the host_dependent paragraph in skills/shiploop/scripts/shiploop_prompts.py; normalise_commands and default_suite_drift in skills/shiploop/scripts/shiploop_test_loop.py. Test: the prompt test that pins the duty text, and a test_loop test for the flag on a row with no ids. Done when: those tests pass.",
+    "why": "For: S-3; it cost two calls and gives a false sense of protection, and it is one sentence. Against: no harm observed. Verdict: fold it into the next text batch."
+   },
+   "a38": {
+    "title": "Accept the unused flag on check rows",
+    "criterion": "P3",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o49"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that host_dependent guards only runner rows with ids, and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names the refused and resubmitted row of r3-checkers-sonnet.",
+    "why": "A normal run with a browser check under a separate directory is protected anyway; the cost was two calls."
+   },
+   "a39": {
+    "title": "Read the next Sonnet pair for the browser-case classification",
+    "criterion": "phase-6",
+    "kind": "gather-evidence",
+    "effort": "L",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o50"
+    ],
+    "cost": "two live Sonnet runs, about $12 at round-3 prices ($5.67 and $6.65)",
+    "goal": "Do: run the Node Battleship and Node Checkers cases once each on the next build, in sequence and with no other track, and read whether each test strategy probes the browser surface or records its access gap. Files and symbols: test/shiploop_e2e/run.py (the cases); each run's docs/shiploop/test-strategy.md. Test: none; read-only beyond the two runs. Done when: the journal states, for both runs, whether the page was probed and whether a real-browser check was kept.",
+    "why": "The round-3 analysis held this for another run: one run of each case took opposite branches on identical text."
+   },
+   "a40": {
+    "title": "Define the probe trigger by the request's observable surfaces",
+    "criterion": "phase-6",
+    "kind": "fix-shiploop",
+    "effort": "M",
+    "status": "open",
+    "findings": [
+     "o50"
+    ],
+    "goal": "Do: reword the test-strategy Done-when entry so that each request outcome a person observes through a screen, device, account or service names the tool that would observe it and cites a probe, or states why none observes it that way, instead of leaving the producer to judge which cases need a host tool. Files and symbols: the test-strategy row (done_when) in skills/shiploop/scripts/shiploop_stage_spec.py; the probe paragraph in skills/shiploop/scripts/shiploop_prompts.py. Test: the stage-spec test that pins done_when, and the packet size bound test. Done when: those tests pass and the next Battleship run's strategy names a browser probe or an access gap.",
+    "why": "For: it decides whether the central outcome is ever checked. Against: n=1 per cell with opposite branches, and the heaviest packet has little byte headroom (round-3 analysis). Verdict: only if the next pair repeats the miss."
+   },
+   "a41": {
+    "title": "Run a case with an existing suite",
+    "criterion": "P5",
+    "kind": "gather-evidence",
+    "effort": "L",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o51"
+    ],
+    "cost": "one live run of a brownfield case",
+    "goal": "Do: run one case whose repository already has a test suite and read whether baseline records every step-plan command with its true exit and separates pre-existing failures from new ones. Files and symbols: test/shiploop_e2e/run.py (a brownfield case); the run's baseline result and notes. Test: none; read-only beyond the run. Done when: the journal states whether baseline's record misled a later stage.",
+    "why": "Every case so far is greenfield, so the payoff of a script-run baseline cannot be shown without one."
+   },
+   "a42": {
+    "title": "Record the baseline commands with a script run",
+    "criterion": "P5",
+    "kind": "fix-shiploop",
+    "effort": "M",
+    "status": "open",
+    "findings": [
+     "o51"
+    ],
+    "goal": "Do: run the step plan's commands record-only on the unchanged item base at baseline, reusing the test-author probe machinery, and save each exit, count and output; the model still classifies the result. Files and symbols: the baseline row in skills/shiploop/scripts/shiploop_stage_spec.py; the test-author probe in skills/shiploop/scripts/shiploop_test_loop.py. Test: test_loop tests for a passing, a failing and a missing command at baseline. Done when: those tests pass and a live run's baseline record lists every command with its exit.",
+    "why": "For: S-9, and 3 of 4 later runs missed. Against: no wrong verdict yet, on greenfield cases only. Verdict: after a brownfield run shows the need."
+   },
+   "a43": {
+    "title": "The whole-word id refusal names the rule and the line",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "recommended": true,
+    "status": "built",
+    "findings": [
+     "o52"
+    ],
+    "ref": "178b514c (released in 1.26.0, 200c32ce); not exercised in round 3",
+    "goal": "Do: when a declared id appears only inside a longer token of the runner output, refuse with the whole-word rule and that output line on the first line, and drop the --verbose hint when names were printed. Files and symbols: _id_pattern in skills/shiploop/scripts/shiploop_test_counts.py; COUNT_RULE in skills/shiploop/scripts/shiploop_test_loop.py. Test: the test_counts and test_loop tests committed with 178b514c. Done when: those tests pass and a live or seeded run shows the new first line.",
+    "why": "For: F1's rule (remedy on line 1) and S-4; the gate is not loosened. Against: seen once. Verdict: built and released; it needs one sighting."
+   },
+   "a44": {
+    "title": "Trigger the ids refusal in a seeded run",
+    "criterion": "P3",
+    "kind": "gather-evidence",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o52"
+    ],
+    "goal": "Do: run the harness's seeded path to test-author with a fixture whose test titles carry only a longer id (TC-4a for TC-4), and read the refusal's first line. Files and symbols: the --seed-at path of test/shiploop_e2e/run.py; a neutral fixture under test/fixtures/. Test: none; read-only beyond the seeded run. Done when: the journal quotes the first line and it names the whole-word rule.",
+    "why": "Cheaper than waiting for a live run to trip it, which round 3 did not."
+   },
+   "a45": {
+    "title": "Say in the route sentence that plan-return commits leftovers",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o53"
+    ],
+    "ref": "62b6ac89, 6049ae17 (released in 1.26.0, 200c32ce); verified in both round-3 runs",
+    "goal": "Do: reword route_sentence to say ShipLoop commits product files left uncommitted when it plans the return, so the model never runs git commit for the return. Files and symbols: route_sentence in skills/shiploop/scripts/shiploop_workspace.py. Test: the workspace tests that hold the sentence against the real plan-return. Done when: the sentence is in every isolated-run packet and no returned knowledge file tells later runs to commit.",
+    "why": "For: S-3 and S-11; the sentence was false and its lesson was retained. Against: none found. Verdict: done; 45 of 45 and 47 of 47 round-3 packets carry it and no false lesson recurred."
+   },
+   "a46": {
+    "title": "Emit creates the directories the packet names",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o54"
+    ],
+    "ref": "4fc3b3b8 (1.25.0, ea6ce8ce); 1b9918ab, bd3785cb (1.26.0, 200c32ce); verified in rounds 2 and 3",
+    "goal": "Do: have emit create run/notes/ with the run directory and the bound Improve child's directory before the packet names them. Files and symbols: emit in skills/shiploop/scripts/shiploop_navigator.py. Test: the navigator tests committed with 4fc3b3b8 and 1b9918ab, and the mutant guard of bd3785cb. Done when: no run refuses a write into a directory its packet named.",
+    "why": "For: S-4 and S-5; a printed path should be writable. Against: none found. Verdict: done; no 'No such file' refusal for notes/ in round 2 or for opening.md in round 3."
+   },
+   "a47": {
+    "title": "Ratchet each command's test count within an item",
+    "criterion": "P5",
+    "kind": "fix-shiploop",
+    "effort": "M",
+    "status": "done",
+    "findings": [
+     "o55"
+    ],
+    "ref": "53ab8b78 (released in 1.26.0, 200c32ce); computed and binding in round 3, its refusal not exercised",
+    "goal": "Do: refuse a rerun of a recorded command that runs fewer tests than the most an accepted run of the same command ran for the item, and record that count as accepted_ran. Files and symbols: the floor and accepted_ran handling in skills/shiploop/scripts/shiploop_test_loop.py. Test: the test_loop tests committed with 53ab8b78. Done when: the round-3 verify records carry accepted_ran equal to the highest earlier accepted count.",
+    "why": "For: S-9; the floors were guesses in 4 of 4 runs. Against: legitimate test consolidation needs the revise route. Verdict: done for the computation (22 verify records read by the round-3 analysis); the refusal path waits for a run that drops a count."
+   },
+   "a48": {
+    "title": "Accept that outer stages carry no ratchet",
+    "criterion": "P5",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o55"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that the ratchet does not cover the test-author probe, test-refine, the end-of-work review, system-test or release-verify, and that both round-3 end-of-work reviews edited code with no floor in force. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry lists the five uncovered records.",
+    "why": "The design exempted these on purpose; the counts happened to be unchanged in round 3."
+   },
+   "a49": {
+    "title": "Reap a case's listeners and refuse a launch beside a stale one",
+    "criterion": "P5",
+    "kind": "fix-harness",
+    "effort": "M",
+    "status": "done",
+    "findings": [
+     "o56"
+    ],
+    "ref": "f1329599, ab01b29a (on main before 200c32ce); the reap verified in round 3, the launch refusal not exercised",
+    "goal": "Do: stop the TCP listeners a case's host left under the case folder, record them as left_behind, and refuse a launch while an ended case leaves a listener bound. Files and symbols: the left_behind reap and the launch preflight in test/shiploop_e2e/run.py. Test: the test/shiploop-e2e.test.py cases committed with f1329599 and ab01b29a. Done when: lsof after a case lists no listener under its folder and result.json records what was reaped.",
+    "why": "For: S-11 and comparable runs; a leak had planted a false lesson. Against: none found. Verdict: done; round 3 reaped four processes and left none."
+   },
+   "a50": {
+    "title": "Read Claude's tool blocks through the one classifier",
+    "criterion": "P5",
+    "kind": "fix-harness",
+    "effort": "M",
+    "status": "done",
+    "findings": [
+     "o57"
+    ],
+    "ref": "c7a8187d, 8a9732ea, 3aa2b43f, 4e656d23 (2026-10-08); verified in round 2",
+    "goal": "Do: classify Claude's tool_use and tool_result blocks with the classifier Grok's tool calls use, and count red-by-design verify records apart. Files and symbols: ToolLog and collect in test/shiploop_e2e/metrics.py. Test: the test/shiploop-e2e.test.py cases committed with c7a8187d to 4e656d23. Done when: a Claude run's metrics.json records refusals and glue as measured.",
+    "why": "For: every Claude review had to hand-mine events.jsonl. Against: none for the engine. Verdict: done; round-2 counts reproduce from events.jsonl."
+   },
+   "a51": {
+    "title": "A review-return verb records the return decisions",
+    "criterion": "P1",
+    "kind": "fix-shiploop",
+    "effort": "M",
+    "status": "done",
+    "findings": [
+     "o58"
+    ],
+    "ref": "e39160ae, 3bac0b19, 55bee172 (released in 1.25.0, ea6ce8ce); verified in rounds 2 and 3",
+    "goal": "Do: have plan-return print the undecided paths with the exact command, and record keep and exclude decisions with workspace review-return instead of a hand edit. Files and symbols: plan_return and the review-return verb in skills/shiploop/scripts/shiploop_workspace.py. Test: the workspace tests committed with e39160ae. Done when: no run edits return-plan.md by hand.",
+    "why": "For: S-1 and S-7; the hand edit was the only route. Against: a review that copies the printed list is still a copy. Verdict: done; zero hand edits in four later Sonnet runs."
+   },
+   "a52": {
+    "title": "Product acceptance lists the outcomes no check observed",
+    "criterion": "phase-6",
+    "kind": "fix-shiploop",
+    "effort": "M",
+    "status": "done",
+    "findings": [
+     "o59"
+    ],
+    "ref": "b3a8e3f1 (released in 1.25.0, ea6ce8ce); verified in rounds 2 and 3",
+    "goal": "Do: add a gated unverified list to the product-acceptance result, print it at handoff and table it in report.html. Files and symbols: _check_submitted_unverified and _unverified_lines in skills/shiploop/scripts/shiploop_navigator.py. Test: the navigator tests committed with b3a8e3f1. Done when: every later run's handoff prints the list.",
+    "why": "For: the limit now travels to the report. Against: the gate checks shape, not completeness. Verdict: done; filled or empty on first submit in all four later Sonnet runs."
+   },
+   "a53": {
+    "title": "The step plan stops promising a route its gate refuses",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o60"
+    ],
+    "ref": "84d4d9da (released in 1.25.0, ea6ce8ce); verified in round 2",
+    "goal": "Do: remove the unconfirmable-criterion promise from the step-plan packet, so every criterion is bound to a test command. Files and symbols: the step-plan duty in skills/shiploop/scripts/shiploop_prompts.py; _normalise_criteria in skills/shiploop/scripts/shiploop_navigator.py. Test: the tests committed with 84d4d9da. Done when: no step plan is refused for a criterion with no command.",
+    "why": "For: S-3; a promised route was refused. Against: none found. Verdict: done; both round-2 step plans accepted on first submit."
+   },
+   "a54": {
+    "title": "A close's packet lists every file the close requires",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o61"
+    ],
+    "ref": "3a7bc9f4 (released in 1.25.0, ea6ce8ce); verified in rounds 2 and 3",
+    "goal": "Do: derive each close stage's packet file list from the files its close requires. Files and symbols: CLOSES and STAGE_FILES in skills/shiploop/scripts/shiploop_knowledge_home.py. Test: the tests committed with 3a7bc9f4. Done when: no knowledge close refuses a file its packet did not name.",
+    "why": "For: S-6 and S-12; one table. Against: none found. Verdict: done; no knowledge-close refusal since."
+   },
+   "a55": {
+    "title": "init records the installed Improve card",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o62"
+    ],
+    "ref": "0d7a35dd (released in 1.25.0, ea6ce8ce); verified in round 2",
+    "goal": "Do: resolve the Improve card installed beside ShipLoop at init and print it in the bind packet, never a placeholder. Files and symbols: init and the improve-bind packet in skills/shiploop/scripts/shiploop_navigator.py. Test: the tests committed with 0d7a35dd. Done when: no printed command carries a placeholder path.",
+    "why": "For: S-4; models located the card by hand. Against: none found. Verdict: done; state.md improve_skill is the installed card in both round-2 runs."
+   },
+   "a56": {
+    "title": "Reword the stage lines that contradicted the SPEC",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o63"
+    ],
+    "ref": "2b2f4513 (released in 1.25.0, ea6ce8ce); verified in round 2",
+    "goal": "Do: add a no-suite outcome to discovery, align research with S-14, render the integrate guidance from the run's route and drop 'independent' from the Improve packet. Files and symbols: the discovery, research and integrate rows in skills/shiploop/scripts/shiploop_stage_spec.py; the Improve packet in skills/shiploop/scripts/shiploop_prompts.py. Test: the tests committed with 2b2f4513. Done when: no packet line contradicts S-14 or another line.",
+    "why": "For: lines that cannot be satisfied mislead a normal run. Against: none found. Verdict: done for the lines round 1 named; o45 is the one left."
+   },
+   "a57": {
+    "title": "The Improve packet restates the stage's goal and Done-when",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o64"
+    ],
+    "ref": "1f5006e7 (released in 1.25.0, ea6ce8ce); verified in round 2",
+    "goal": "Do: render the stage row's goal and done_when into the Improve parent packet. Files and symbols: the Improve packet in skills/shiploop/scripts/shiploop_prompts.py; skills/shiploop/scripts/shiploop_stage_spec.py. Test: the tests committed with 1f5006e7. Done when: every Improve packet carries the Done-when it reviews against.",
+    "why": "For: S-6; the reviewer is the only non-mechanical check of eight stages. Against: none found. Verdict: done; 8 of 8 per run in round 2."
+   },
+   "a58": {
+    "title": "The plan packet says the Backchain child is the host's choice",
+    "criterion": "B2",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o65"
+    ],
+    "ref": "4c2a8a98, cc705b9d (released in 1.25.0, ea6ce8ce); verified in rounds 2 and 3",
+    "goal": "Do: say in the one-pass plan packet that the Backchain child is the host's choice, and name the schema when backchain-check is given a non-JSON plan. Files and symbols: the plan packet's Backchain lines in skills/shiploop/scripts/shiploop_prompts.py; the non-JSON message in skills/shiploop/scripts/shiploop_backchain_graph.py. Test: the tests committed with 4c2a8a98 and cc705b9d. Done when: every later plan summary names its route.",
+    "why": "For: the packet was ambiguous. Against: it made the child optional, which o65 is about. Verdict: done; every round-2 and round-3 plan summary names the route it took."
+   },
+   "a59": {
+    "title": "Keep phase-2 and B2 as the aim",
+    "criterion": "B2",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o65"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that under the one-pass default most runs plan without the Backchain child and without a script-checked graph, keep phase-2 and B2 as written, and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names the 3 of 9 round runs that checked a graph.",
+    "why": "The other side: the expectation keeps pressure toward a checked graph; but then B2 reads bent on most runs by design."
+   },
+   "a60": {
+    "title": "Every packet states the return route and prints tested rollback recipes",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "M",
+    "status": "done",
+    "findings": [
+     "o66"
+    ],
+    "ref": "8eb93c21 (released in 1.25.0, ea6ce8ce); verified in round 2",
+    "goal": "Do: state the return route from workspace.md in every isolated-run packet, print tested rollback recipes at release-plan and release-check, and report the expected return in review-return. Files and symbols: route_sentence and rollback_lines in skills/shiploop/scripts/shiploop_workspace.py. Test: the tests committed with 8eb93c21. Done when: no later rollback uses 'git clean -fd' for a fast-forward return.",
+    "why": "For: both round-1 rollbacks were wrong. Against: none found. Verdict: done for the route statement; the recipe's uptake is o46."
+   },
+   "a61": {
+    "title": "The refusals round 1 hit name the action on their first line",
+    "criterion": "P3",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "recommended": true,
+    "status": "built",
+    "findings": [
+     "o67"
+    ],
+    "ref": "e4435c85 (released in 1.25.0, ea6ce8ce); not exercised in rounds 2 and 3",
+    "goal": "Do: put the offending paths or fields and the next action on the first line of the knowledge-close, return-plan and non-JSON backchain-check refusals. Files and symbols: the refusal texts in skills/shiploop/scripts/shiploop_knowledge_home.py, shiploop_workspace.py and shiploop_backchain_graph.py. Test: the tests committed with e4435c85. Done when: a live run shows one of these refusals with its action on line 1.",
+    "why": "For: S-7, a cheap reorder. Against: none found. Verdict: built and released; it needs one sighting."
+   },
+   "a62": {
+    "title": "List every refusal's first line",
+    "criterion": "P3",
+    "kind": "gather-evidence",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o67"
+    ],
+    "goal": "Do: list every ShipLoop refusal message with its first line, from the engine source and the tests that pin refusal text, and mark each whose first line names no path, field or next action. Files and symbols: skills/shiploop/scripts/shiploop_protocol.py, shiploop_navigator.py, shiploop_workspace.py and shiploop_test_loop.py (read only). Test: none; read-only. Done when: the journal holds the list with each refusal's first line.",
+    "why": "Cheaper than waiting for each refusal to fire live, and it covers the families round 1 never hit."
+   },
+   "a63": {
+    "title": "Name both counters in one packet sentence",
+    "criterion": "P2",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o68"
+    ],
+    "goal": "Do: say in the test-green and regression packets, in one sentence, that the Until Loop has no iteration limit while ShipLoop stops accepting done after 7 of its own refused reruns at complete. Files and symbols: the refused-run text built from MAX_REFUSED_RUNS in skills/shiploop/scripts/shiploop_test_loop.py. Test: the test_loop test that pins the refusal text. Done when: that test passes and the packet has no two sentences that contradict each other.",
+    "why": "For: removes an apparent contradiction with S-10. Against: if the owner removes the cap, the sentence goes with it. Verdict: the owner decides the cap first."
+   },
+   "a64": {
+    "title": "Keep the cap as an unattended safety",
+    "criterion": "P2",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o68"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that the 7-refused-run cap is intended for unattended runs and has never been reached, and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names MAX_REFUSED_RUNS and the two counters.",
+    "why": "The other side: a cap keeps an unattended run from spending without end on a failing suite."
+   },
+   "a65": {
+    "title": "Carve the refused-run cap out of S-10",
+    "criterion": "P2",
+    "kind": "change-expectation",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o68"
+    ],
+    "change": {
+     "target": "spec",
+     "to": "S-10 carve-out: ShipLoop's own reruns of recorded checks at complete stop accepting done after 7 refused runs (the result must then be revise); the Until Loop's iterations keep no cap.",
+     "reason": "The code has the cap (MAX_REFUSED_RUNS = 7) and S-10 says no loop has one except the carve-outs, none of which names it."
+    },
+    "goal": "Do: if the owner keeps the cap, add change.to to test/shiploop_e2e/SPEC.md under S-10 in its own commit, dated and stating why. Files and symbols: test/shiploop_e2e/SPEC.md (S-10). Test: none; a SPEC text change. Done when: S-10 names the cap and the packet sentence agrees with it.",
+    "why": "Only with the accept side: a kept cap needs a SPEC carve-out to be true to S-10."
+   },
+   "a66": {
+    "title": "Run Checkers twice more on one build",
+    "criterion": "P5",
+    "kind": "gather-evidence",
+    "effort": "L",
+    "status": "open",
+    "findings": [
+     "o69"
+    ],
+    "cost": "two more Checkers runs, about $17 (the round-2 estimate)",
+    "goal": "Do: run Node Checkers twice more on one build, in sequence and with no other track, and compare model calls, per-stage calls and delivered test counts with the three round runs. Files and symbols: test/shiploop_e2e/run.py (the Checkers case); each run's metrics.json. Test: none; read-only beyond the runs. Done when: the journal states whether five runs' spread covers $8.51.",
+    "why": "Only this separates an engine cost from variance; the owner's rule prefers fewer tokens only once a difference is real."
+   },
+   "a67": {
+    "title": "Read the Checkers cost as run-to-run spread",
+    "criterion": "P5",
+    "kind": "accept",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o69"
+    ],
+    "ref": "1854938b (LEARNINGS 'Rounds 2 and 3': no engine regression is claimed)",
+    "goal": "Do: record that the round-2 Checkers rise is not laid to the engine and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry states the three Checkers costs and that no regression is claimed.",
+    "why": "Round 3 came back to $6.65, inside the spread already seen on Battleship."
+   },
+   "a68": {
+    "title": "State one planning figure per run in the round evidence",
+    "criterion": "phase-1",
+    "kind": "fix-harness",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o70"
+    ],
+    "goal": "Do: replace or label planning_minutes in the round evidence files with metrics.json's planning.window (seconds and clock), naming any other sum by what it covers. Files and symbols: docs/experiments/round1-20261008/evidence.json and docs/experiments/round2-round3-20261008/evidence.json (planning_minutes); the planning block of test/shiploop_e2e/metrics.py (read only). Test: none; an evidence file edit, checked by reading both files. Done when: each run in the round evidence has one planning figure that equals its metrics.json window or says what it sums.",
+    "why": "For: S-12 (one implementation) and the 2026-10-08 block was made to end exactly this. Against: the evidence files are the E2E session's, written before the block was read. Verdict: the E2E session's to apply."
+   },
+   "a69": {
+    "title": "Keep both figures, each labelled",
+    "criterion": "phase-1",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o70"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that the round evidence's planning_minutes is intake to prepare by harness stage rows and is not the planning window, and change no file. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry gives both figures for the three Grok runs.",
+    "why": "Both are right for what they sum; the risk is reading one against the owner's rule."
+   },
+   "a70": {
+    "title": "Probe Chrome over loopback in a Grok and a Claude session",
+    "criterion": "P6",
+    "kind": "gather-evidence",
+    "effort": "M",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o71"
+    ],
+    "cost": "a short Grok session and a short Claude session",
+    "goal": "Do: from a Grok session and from a Claude session on this machine, launch headless Chrome at least five times each against a page served over http://127.0.0.1 and against the same page as a file: URL, with a Python subprocess timeout, and record the Chrome version, each launch's outcome and each cell's pass rate. Files and symbols: a probe script and its output under docs/experiments/ (the E2E session's). Test: none; read-only for the engine. Done when: the journal states which cells fail and whether the failure needs the Grok host.",
+    "why": "One launch per cell cannot tell a host limit from a flaky launch; five per cell can."
+   },
+   "a71": {
+    "title": "Probe over the product's transport at test-strategy",
+    "criterion": "P6",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o71"
+    ],
+    "goal": "Do: have the test-strategy probe serve its stand-in over HTTP on loopback, the transport the product will use, rather than open it as a file. Files and symbols: the test-strategy probe paragraph in skills/shiploop/scripts/shiploop_prompts.py; the test-strategy row (done_when) in skills/shiploop/scripts/shiploop_stage_spec.py. Test: the prompt test that pins the probe paragraph. Done when: that test passes and the next Grok browser case surfaces the gap at test-strategy.",
+    "why": "For: r3's file: probe passed and hid the gap for 27 minutes (listed in LEARNINGS 'Rounds 2 and 3'). Against: it moves the failure earlier; it does not fix it. Verdict: do it with the next text batch."
+   },
+   "a72": {
+    "title": "Run browser cases on the Claude host",
+    "criterion": "P6",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o71"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/README.md that headless Chrome over loopback fails in the Grok host on this machine since 2026-10-07, run cases with a required browser check on the Claude host, and change no code. Files and symbols: test/shiploop_e2e/README.md. Test: none; this records a known limit. Done when: the README's host notes name the limit and its date.",
+    "why": "A normal Claude run does not hit it; the limit is the Grok host's on this machine."
+   },
+   "a73": {
+    "title": "Route a host-access gap at system-test-author to the unverified list",
+    "criterion": "phase-6",
+    "kind": "fix-shiploop",
+    "effort": "M",
+    "status": "open",
+    "findings": [
+     "o72"
+    ],
+    "goal": "Do: when a required case at system-test-author cannot be observed because a host tool is not reachable, accept the stage with the case recorded as an open item (owner, reason, due stage) that product-acceptance carries into its unverified list, and continue. Files and symbols: the system-test-author duty in skills/shiploop/scripts/shiploop_prompts.py; _check_submitted_unverified in skills/shiploop/scripts/shiploop_navigator.py. Test: navigator tests for an access gap recorded at system-test-author and carried to product-acceptance. Done when: those tests pass and a run with an unreachable browser reaches release with the case in its unverified list.",
+    "why": "For: S-14 (continue with everything that does not depend on the person) and a run that delivers a product. Against: the block is an honest question, and a release with an unverified central outcome may not be what the owner wants. Verdict: the owner decides."
+   },
+   "a74": {
+    "title": "Keep the block as S-14's awaiting route",
+    "criterion": "phase-6",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o72"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that a required case the host cannot observe ends the run on the awaiting route with a question, and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names this run and the question it asked.",
+    "why": "The other side: the run asked rather than claim, which S-14 allows when nothing that matters can proceed without the person."
+   },
+   "a75": {
+    "title": "A resume takes host, model and effort from the run's invocation",
+    "criterion": "P5",
+    "kind": "fix-harness",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o73"
+    ],
+    "ref": "923a3bd6 (LEARNINGS 'Correction of 2026-10-09': queued in the harness batch; owner: the E2E session)",
+    "goal": "Do: in --resume-run, take host, model and effort from the run's own invocation.json when the command line does not name them, and refuse a --host that differs from the recorded host unless a flag asks for the switch, recording any switch in result.json. Files and symbols: the resume branch of main and parser() in test/shiploop_e2e/run.py; invocation.json. Test: test/shiploop-e2e.test.py cases that resume a recorded Grok run with no --host and get Grok, and that refuse a silent switch to Claude. Done when: both tests pass.",
+    "why": "For: the run's records name the wrong host and every figure of r2 mixes two hosts. Against: none found. Verdict: the E2E session's next harness item."
+   },
+   "a76": {
+    "title": "Read r2-battleship-grok-none as a mixed-host run",
+    "criterion": "P5",
+    "kind": "accept",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o73"
+    ],
+    "ref": "923a3bd6 (LEARNINGS 'Correction of 2026-10-09'; the round evidence's mixed_host flag)",
+    "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md and the round evidence that r2-battleship-grok-none is mixed host and not a Grok result after visit 31. Files and symbols: test/shiploop_e2e/LEARNINGS.md; docs/experiments/round2-round3-20261008/evidence.json. Test: none; this records a known limit. Done when: the LEARNINGS correction and the evidence file's mixed_host flag exist.",
+    "why": "Done by the E2E session; the record stays wrong until the harness fix lands."
+   },
+   "a77": {
+    "title": "The printed resume line carries the build's plugin directory",
+    "criterion": "P5",
+    "kind": "fix-harness",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o74"
+    ],
+    "goal": "Do: make resume_command add --plugin-dir from invocation.json's plugin_dir whenever the run's source is checkout, whether or not the command line named it. Files and symbols: resume_command in test/shiploop_e2e/run.py. Test: a ResumeCommandTest case in test/shiploop-e2e.test.py for a checkout build launched without --plugin-dir. Done when: that test passes and the printed line parses with the harness's own parser to the same plugin directory.",
+    "why": "For: a resume typed as printed silently tests another build. Against: none found. Verdict: the E2E session's, with the host default above."
+   },
+   "a78": {
+    "title": "Add --plugin-dir by hand on a resume",
+    "criterion": "P5",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o74"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/README.md that a resume of a checkout build needs --plugin-dir added to the printed line, and change no code. Files and symbols: test/shiploop_e2e/README.md. Test: none; this records a known limit. Done when: the README's resume section says so.",
+    "why": "What the operator did in rounds 2 and 3; it depends on remembering it."
+   },
+   "a79": {
+    "title": "Accept design-note labels as a known false positive",
+    "criterion": "P5",
+    "kind": "accept",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o75"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/LEARNINGS.md that the credential screen refuses knowledge lines labelled 'Signature:' or 'No auth:', 4 refusals in 3 of 9 round runs, each recovered in under a minute, and that the replay shows the label, not the hex colours, as the trigger; change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the entry names the replayed trigger and the three runs.",
+    "why": "The cost is small and the screen is defence in depth; the audit's hex-colour reading would have sent a fix the wrong way."
+   },
+   "a80": {
+    "title": "Let a labelled description pass the credential screen",
+    "criterion": "P5",
+    "kind": "fix-shiploop",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o75"
+    ],
+    "goal": "Do: treat a key-value match whose value is an ordinary word followed by more prose in the same clause as a description, while still refusing a value shaped like a secret, and keep the four refused lines as fixtures that must pass. Files and symbols: _KEY_VALUE_SECRET, _documentation_value and sensitive_text in skills/shiploop/scripts/shiploop_privacy.py. Test: privacy tests with the four refused lines (not flagged) and secret-shaped values under the same labels (flagged). Done when: those tests pass and no round run's refused line is flagged on replay.",
+    "why": "For: 4 false refusals in 3 of 9 runs. Against: any allowance can let a word-shaped secret through, and the screen is the E2E session's engine. Verdict: only if it recurs on new labels."
+   },
+   "a81": {
+    "title": "Record that narrative display is not measurable headless",
+    "criterion": "P5",
+    "kind": "accept",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o76"
+    ],
+    "goal": "Do: record in test/shiploop_e2e/README.md, beside the narrative measure, that a headless run has no viewer, so 'shown 0' there is not evidence against S-15, and change no code. Files and symbols: test/shiploop_e2e/README.md (the measures section). Test: none; this records a known limit. Done when: the README says so next to the narrative counter.",
+    "why": "Round 1's verdict was document-only; it has not been documented."
+   },
+   "a82": {
+    "title": "Oracle strength is a known limit",
+    "criterion": "phase-6",
+    "kind": "accept",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o77"
+    ],
+    "ref": "1854938b (LEARNINGS 'Rounds 2 and 3', known limits)",
+    "goal": "Do: record that oracle strength and RED for the right reason are model-judged (S-9) and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the LEARNINGS entry lists it among the known limits.",
+    "why": "No script check decides whether a test can fail at a cost the run can bear."
+   },
+   "a83": {
+    "title": "The Improve ceremony is a known limit",
+    "criterion": "P2",
+    "kind": "accept",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o78"
+    ],
+    "ref": "1854938b (LEARNINGS 'Rounds 2 and 3', known limits)",
+    "goal": "Do: record that Improve's confirming passes are a ceremony with a vendored engine (S-10) and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the LEARNINGS entry lists it among the known limits.",
+    "why": "A script check of review content is gameable and outside the carve-out (round-1 and round-2 verdicts)."
+   },
+   "a84": {
+    "title": "Stale status lines are a known limit",
+    "criterion": "P5",
+    "kind": "accept",
+    "effort": "S",
+    "status": "done",
+    "findings": [
+     "o79"
+    ],
+    "ref": "1854938b (LEARNINGS 'Rounds 2 and 3', known limits)",
+    "goal": "Do: record that status lines in the knowledge home are not refreshed and change no code. Files and symbols: test/shiploop_e2e/LEARNINGS.md. Test: none; this records a known limit. Done when: the LEARNINGS entry lists it among the known limits.",
+    "why": "No inheriting run has been misled; discovery re-observes the suite."
+   },
+   "a85": {
+    "title": "Run a follow-on feature on a returned repository",
+    "criterion": "P5",
+    "kind": "gather-evidence",
+    "effort": "L",
+    "status": "open",
+    "findings": [
+     "o79"
+    ],
+    "cost": "one live follow-on run",
+    "goal": "Do: run a second feature on one returned case repository and read whether any stage trusts the stale 'planned' lines. Files and symbols: test/shiploop_e2e/run.py (a follow-on case); the run's discovery and test-strategy results. Test: none; read-only beyond the run. Done when: the journal states whether a stage was misled.",
+    "why": "The round-2 analysis's condition for acting: an inheriting run misled by the line."
+   },
+   "a86": {
+    "title": "Keep phase-4 as written",
+    "criterion": "phase-4",
+    "kind": "accept",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o80"
+    ],
+    "goal": "Do: keep phase-4's text, since a skipped skill stage is still recorded by the script with its own result file, and change no file. Files and symbols: skills/shiploop-run-review/defaults/expectations.json (phase-4, unchanged). Test: none; this records a known limit. Done when: the journal notes the reading.",
+    "why": "The other side: the stage is still script-served, only not run; but the text reads as if each stage ran."
    }
   }
  }
