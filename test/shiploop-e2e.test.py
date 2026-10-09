@@ -1834,13 +1834,16 @@ class MetricsTest(unittest.TestCase):
     def test_a_session_killed_before_it_reported_makes_the_cost_a_lower_bound(self):
         init = {"type": "system", "subtype": "init", "model": "m"}
         result = {"type": "result", "subtype": "success", "num_turns": 5, "total_cost_usd": 1.85}
-        opened = {"type": "available_commands", "commands": []}
+        # The Codex translator names its thread; Grok's own announcement carries no session id and is repeated inside one
+        # session (314 for 2 end events on r1-battleship-grok-none), so it is no start: GrokSessionStartTest in
+        # test/shiploop-e2e-baseline.test.py has the Grok rows (the count is null there).
+        opened = {"type": "available_commands", "commands": [], "sessionId": "t1"}
         end = {"type": "end", "stopReason": "end_turn", "num_turns": 5, "total_cost_usd": None}
         for label, events, want in (
                 ("Claude: four sessions began and one reported", [init, init, init, init, result], 3),
                 ("Claude: the first was killed, the second finished", [init, init, result], 1),
-                ("Codex or Grok: two began and one reported", [opened, opened, end], 1),
-                ("Grok: killed before any end", [opened], 1),
+                ("Codex: two began and one reported", [opened, opened, end], 1),
+                ("Codex: killed before any end", [opened], 1),
                 ("every session reported", [init, result, opened, end], 0),
                 ("an end with no recorded start is never negative", [result, end], 0),
                 ("a Claude system event that is not an init is not a start",

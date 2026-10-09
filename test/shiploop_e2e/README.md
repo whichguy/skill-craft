@@ -168,7 +168,17 @@ Grok events carry no time) and ShipLoop's run directory:
   reported one), `unreported_sessions` (sessions that began and never reported an end,
   such as one killed with the task: any above 0 makes turns and cost a lower bound, and
   the printed cost says so; it is a field of `metrics.json` and `result.json`, not a
-  baseline key), auto-compactions, host-truncated outputs, test runs and Improve
+  baseline key. It is exact for Claude (one `system/init` per session) and for Codex
+  (its translator names the thread). For Grok it is `null`, named in `unmeasured`,
+  because Grok's events mark no session start: its `available_commands` event is announced
+  again inside a session (314 of them for 2 `end` events on r1-battleship-grok-none,
+  2 at the head of the first launch and 8 at the head of the resume), and the old
+  reading, one start per announcement, printed "lower bound: 312 session(s) never
+  reported" for a cost that equals the two end events' totals. A null count keeps the
+  lower-bound marking, without a number, because a killed Grok session cannot be ruled
+  out from the stream (`metrics.lower_bound` is the one predicate: `--baseline-report`
+  and the printed lines share it). The harness's own launch rows will count them: a
+  launch whose lines hold no `end` event never reported), auto-compactions, host-truncated outputs, test runs and Improve
   children (the directories ShipLoop made, not their `-bind.md` receipts);
 - the host CLI build the sessions ran on (`claude_code_version`, from Claude's init event; sessions on two
   builds name both, null where the host's events do not carry it; also in `result.json`'s `metrics`). Two runs of

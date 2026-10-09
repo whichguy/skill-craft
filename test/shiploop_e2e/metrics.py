@@ -472,6 +472,9 @@ def session_stop(event: dict) -> str | None:
 
 
 # Why a counter is unmeasured, recorded beside the run so a reader never takes its 0 for a measurement.
+NO_SESSION_START = ("Grok's events mark no session start: its available_commands event is announced again inside a session "
+                    "(314 of them for 2 end events on a recorded run), so a session that never reported cannot be counted from "
+                    "the stream; cost and turns are a lower bound")
 NO_PER_CALL_USAGE = ("the host reports no per-call usage events (one total per session), so turns cannot be "
                      "attributed to a stage")
 NO_MODEL_CALLS = ("the host's events carry no per-call usage (no Claude assistant message and no Grok usage event), so "
@@ -700,6 +703,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     cancelled: list[str] = []
     grok = False  # per-call `usage` events: the one stream shape the Grok-only counters below can be read from
     starts = 0  # sessions the host began, to tell how many never reported an end
+    announced = 0  # Grok's available_commands events: not session starts, see below
     messages: set[str] = set()  # Claude message ids seen: one API call writes one assistant event per content block
     claude_calls = usage_events = 0
     usage_rows: list[tuple] = []  # (t, output, reasoning) of Grok's per-call usage events: the planning window's tokens
@@ -712,8 +716,12 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         t = stamps.get(number)
         if kind in ("usage", "assistant"):
             calls_in_session += 1
-        if kind == "available_commands" or (kind == "system" and event.get("subtype") == "init"):
-            starts += 1  # Codex and Grok open a session with available_commands, Claude with system/init
+        if kind == "available_commands" and "sessionId" not in event:
+            # Grok's own announcement of its tool and command list. It is repeated inside one session (314 for 2 `end`
+            # events on r1-battleship-grok-none) and nothing else marks a Grok session start, so it is not counted as one.
+            announced += 1
+        elif kind == "available_commands" or (kind == "system" and event.get("subtype") == "init"):
+            starts += 1  # Codex (its translator names the thread) opens a session with available_commands, Claude with system/init
             if isinstance(event.get("claude_code_version"), str):
                 versions.add(event["claude_code_version"])
         if kind == "usage":
@@ -805,6 +813,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
                                        NO_ROLLOUT_WINDOW if context else NO_WINDOW)
     planning["tokens"] = planning_tokens(bounds, why_not_tokens, usage_rows, grok, bool(claude_calls), context)
     stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
+    if announced:
+        unmeasured["unreported_sessions"] = NO_SESSION_START
     if context and "unmeasured" not in context:
         for row, figures in zip(stages, context["perStage"]):
             if figures is not None:
@@ -829,7 +839,10 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "tokens": {"input_peak": peak},
         "unmeasured": unmeasured,
         "cost_usd": total_cost(sessions),
-        "unreported_sessions": max(0, starts - len(sessions)),
+        # Null when the stream holds Grok's events: no event marks one of its session starts, so how many sessions never
+        # reported is unknown and cost and turns stay a lower bound (lower_bound). The harness's own launch records, not
+        # this stream, can count them: a launch whose lines hold no `end` event never reported.
+        "unreported_sessions": None if announced else max(0, starts - len(sessions)),
         "compactions": None if "compactions" in unmeasured else compactions,
         "truncated_outputs": None if "truncated_outputs" in unmeasured else len(truncated),
         "cancelled_tool_calls": cancelled,
@@ -1092,13 +1105,32 @@ def money(value) -> str:
     return "not reported" if value is None else f"${value}"
 
 
+def lower_bound(run_metrics: dict) -> bool | None:
+    """Whether the whole-run cost and turns cover only the sessions that reported, by the one predicate every reader shares.
+
+    True when a session is known not to have reported (``unreported_sessions`` above 0) and when the count is unknown
+    for a reason (null, named in ``unmeasured``: Grok's events mark no session start, so a killed session cannot be ruled
+    out). False when every session reported. None when the metrics say nothing (they predate the field).
+    """
+    if "unreported_sessions" not in run_metrics:
+        return None
+    never = run_metrics["unreported_sessions"]
+    if never is None:
+        return True if "unreported_sessions" in (run_metrics.get("unmeasured") or {}) else None
+    return never > 0
+
+
 def cost_text(run_metrics: dict) -> str:
     """The cost for a printed line, saying so when sessions that never reported make it a lower bound.
 
-    A cost that is unknown has nothing for a lower bound to bound, so it says only that it is not reported.
+    A cost that is unknown has nothing for a lower bound to bound, so it says only that it is not reported. When the
+    host's events cannot count the sessions that never reported (Grok), no count is printed, only that it may be one.
     """
-    cost, never = run_metrics.get("cost_usd"), run_metrics.get("unreported_sessions") or 0
-    return money(cost) + (f" (lower bound: {never} session(s) never reported)" if never and cost is not None else "")
+    cost, never = run_metrics.get("cost_usd"), run_metrics.get("unreported_sessions")
+    if cost is None or not lower_bound(run_metrics):
+        return money(cost)
+    return money(cost) + (f" (lower bound: {never} session(s) never reported)" if never else
+                          " (lower bound: this host's events do not show whether a session never reported)")
 
 
 def turns_text(run_metrics: dict) -> str:
@@ -1106,7 +1138,7 @@ def turns_text(run_metrics: dict) -> str:
     turns = run_metrics.get("turns")
     if turns is None:
         return "not reported"
-    return f"{turns} (lower bound)" if run_metrics.get("unreported_sessions") else str(turns)
+    return f"{turns} (lower bound)" if lower_bound(run_metrics) else str(turns)
 
 
 def count(run_metrics: dict, name: str) -> int | None:

@@ -567,6 +567,100 @@ exit $rc
             self.assertNotIn(word, line)
 
 
+class GrokSessionStartTest(unittest.TestCase):
+    """A Grok event stream carries no session-start marker, so a session that never reported cannot be counted from it.
+
+    ``available_commands`` is Grok's announcement of its tool and command list and it is repeated inside one session:
+    r1-battleship-grok-none (2026-10-08) holds 314 of them for 2 `end` events (301 model calls), 2 at the head of the
+    first launch and 8 at the head of the resume. Counting each as a start printed "lower bound: 312 session(s) never
+    reported" for a cost that equals the two end events' totals. The count is unknown, and the lower-bound marking stays,
+    because a killed Grok session cannot be told from a long one by the stream alone; the harness's own launch rows can."""
+
+    ACCEPTED = [("A1", "intake", "done", 105.0)]
+
+    def stream(self) -> list[dict]:
+        return [json.loads(line) for line in (FIXTURES / "grok-r1-session-shape.jsonl").read_text().splitlines()]
+
+    def collect(self, stream: list[dict]) -> dict:
+        return main_tests().collect_stream(stream, self.ACCEPTED)
+
+    def test_the_recorded_shape_has_many_announcements_for_two_ended_sessions(self):
+        kinds = [event["type"] for event in self.stream()]
+        self.assertEqual((kinds.count("available_commands"), kinds.count("end")), (314, 2))
+
+    def test_the_announcements_are_not_counted_as_starts_the_count_is_unknown_with_its_reason(self):
+        m = self.collect(self.stream())
+        self.assertIsNone(m["unreported_sessions"], "314 announcements are not 314 sessions")
+        self.assertIn("available_commands", m["unmeasured"]["unreported_sessions"])
+        self.assertEqual(len(m["sessions"]), 2)
+        self.assertAlmostEqual(m["cost_usd"], 8.7455, places=4)  # the two end events' totals, as the row recorded
+
+    def test_the_lower_bound_marking_stays_and_names_no_invented_count(self):
+        m = self.collect(self.stream())
+        self.assertTrue(metrics.lower_bound(m))
+        self.assertEqual(metrics.cost_text(m), "$8.7455 (lower bound: this host's events do not show whether a session "
+                                               "never reported)")
+        self.assertTrue(metrics.turns_text(m).endswith("(lower bound)"))
+        self.assertNotIn("312", metrics.summary_lines(m)[0])
+        self.assertIn("(lower bound", metrics.summary_lines(m)[0])
+
+    def test_a_stream_that_mixes_grok_and_claude_events_is_unknown_too(self):
+        # r2-battleship-grok-none: Grok started it and was killed with its harness; Claude finished it.
+        grok = [e for e in self.stream()[:6]]  # a launch that never ended
+        claude = [{"type": "system", "subtype": "init", "claude_code_version": "2.1.294"},
+                  {"type": "result", "subtype": "success", "num_turns": 5, "total_cost_usd": 1.0}]
+        m = self.collect(grok + claude)
+        self.assertIsNone(m["unreported_sessions"])
+        self.assertTrue(metrics.lower_bound(m))
+
+    def test_a_host_that_marks_each_session_start_keeps_an_exact_count(self):
+        init = {"type": "system", "subtype": "init", "model": "m"}
+        result = {"type": "result", "subtype": "success", "num_turns": 5, "total_cost_usd": 1.85}
+        codex_open = {"type": "available_commands", "commands": [], "sessionId": "t1"}  # the Codex translator names its session
+        end = {"type": "end", "stopReason": "end_turn", "num_turns": 5, "total_cost_usd": None}
+        self.assertEqual(self.collect([init, init, result])["unreported_sessions"], 1)
+        self.assertEqual(self.collect([codex_open, codex_open, end])["unreported_sessions"], 1)
+        self.assertEqual(self.collect([init, result])["unreported_sessions"], 0)
+        self.assertFalse(metrics.lower_bound(self.collect([init, result])))
+
+    def test_the_lower_bound_predicate_reads_a_count_a_reason_or_nothing(self):
+        for found, want in (({"unreported_sessions": 0}, False), ({"unreported_sessions": 3}, True),
+                            ({"unreported_sessions": None, "unmeasured": {"unreported_sessions": "why"}}, True),
+                            ({"unreported_sessions": None}, None), ({}, None)):
+            with self.subTest(found=found):
+                self.assertIs(metrics.lower_bound(found), want)
+
+    def test_the_count_is_still_not_a_baseline_key_and_a_grok_row_names_it_unmeasured(self):
+        m = self.collect(self.stream())
+        result = {"case": "battleship", "host": "grok", "metrics": {"unmeasured": m["unmeasured"], "turns": m["turns"],
+                                                                      "cost_usd": m["cost_usd"],
+                                                                      "unreported_sessions": m["unreported_sessions"]}}
+        row = run.baseline_row(result, None, None)
+        self.assertNotIn("unreported_sessions", row)
+        self.assertIn("unreported_sessions", row["unmeasured"])
+
+
+class GrokSessionStartThroughMainTest(main_tests().PrintedCase):
+    """What run.main records and prints for a Grok run now that the session count is unknown, not invented."""
+
+    def test_a_grok_run_prints_the_marking_without_a_count_and_the_row_names_the_count_unmeasured(self):
+        code, result, printed = self.invoke_printed("grok", "done")
+        self.assertEqual(code, 0, result)
+        self.assertIsNone(result["metrics"]["unreported_sessions"])
+        note = "(lower bound: this host's events do not show whether a session never reported)"
+        process = next(line for line in printed.splitlines() if line.startswith("  process"))
+        self.assertIn(f"cost=$0.01 {note}", process)
+        self.assertIn(f"cost $0.01 {note}", next(line for line in printed.splitlines() if line.startswith("  metrics   turns")))
+        row = self.last_row()
+        self.assertNotIn("unreported_sessions", row)
+        self.assertIn("unreported_sessions", row["unmeasured"])
+
+    def test_a_claude_run_that_ended_whole_prints_no_marking(self):
+        code, result, printed = self.invoke_printed("claude", "done")
+        self.assertEqual(result["metrics"]["unreported_sessions"], 0)
+        self.assertNotIn("lower bound", printed)
+
+
 class IdentityDocsTest(unittest.TestCase):
     """The README says what each identity field is and what is never done to it; the SPEC carries the rules."""
 
@@ -591,6 +685,14 @@ class IdentityDocsTest(unittest.TestCase):
                        "the 23 rows committed before the field existed keep comparing",
                        "The one transitional break is therefore the Grok `none` runs",
                        "a `sample:` line states facts and no verdict", "is `unknown`, not guessed"):
+            self.assertIn(phrase, readme)
+
+    def test_the_readme_says_why_the_grok_session_count_is_unknown_and_what_will_count_it(self):
+        readme = self.text("README.md")
+        for phrase in ("For Grok it is `null`, named in `unmeasured`", "Grok's events mark no session start",
+                       "314 of them for 2 `end` events", "A null count keeps the lower-bound marking, without a number",
+                       "`metrics.lower_bound` is the one predicate",
+                       "a launch whose lines hold no `end` event never reported"):
             self.assertIn(phrase, readme)
 
     def test_the_spec_carries_the_rules_this_group_serves(self):
