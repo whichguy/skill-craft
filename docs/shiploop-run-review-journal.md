@@ -2187,3 +2187,18 @@ exploratory for how a reader uses the new cards (nobody has looked at them yet).
 the SVG picture. Not checked: a phone-width render (no agent could start a browser). Open for the first real post-merge run: `sessions.jsonl`
 runs (kind first/fresh/continued, reasons) and a `quality` block of a run made after the merge; this entry's fresh-start figures are all Grok
 compactions of regraded runs.
+
+**Follow-up, same day: the page was looked at (draft v10, `96bf74b4`).** Real post-merge runs exist now (E2E, 5e22fd10, Claude Sonnet,
+hello with `--planning-review none`): `s6-after-spec` (stopped after spec with a cleared context, resumed in a fresh session; a real
+`sessions.jsonl`) and `s6-inside-implement` (an unstopped full run). Both export with the integrated exporter and are in the draft with their
+packets (3 run documents, 74 packet documents; a third run, `r3-checkers-quality-preview`, is the saved Checkers run with the quality block
+E2E committed for that exact run overlaid, labelled as a preview in its name). On `s6-after-spec` the page shows: outcome PASS and the build
+line (plugin a03059c9db03, prompt d2d7e2dabeeb, host build 2.1.295); evidence script 13, loop 2, file 18, note 2 over 35 accepted stages; 11
+verify records, 25 command runs, 2 red; 5 refusals, 0 repeated (release-verify 2, system-test-author 2, test-green 1); Improve packets 3 of 3
+on all five labels at 1.26.0; and one fresh start, a new host session in test-strategy, re-grounded in 6 calls and 21 s with `shiploop next`,
+with the harness's lower-bound notes beside it and "compactions not detected on this host" marking the list as not complete. The page was
+rendered through a static local page with a stub for the page's database (`window.claude.use("db")`), in the built-in browser, at desktop
+width and at 375 px: no horizontal overflow on any new card. One defect found only by looking: the `file` class of the evidence bar was filled
+with the page's own tint and the bar has no track, so the second-largest class read as a gap; it now has a fill of its own (pinned by a test,
+red then green). Still not seen: a run that did not pass with a real `product_at_stop` (no real run has one yet), and dark mode.
+
