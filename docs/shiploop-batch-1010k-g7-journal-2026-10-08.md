@@ -1,8 +1,11 @@
 # Batch 1010, worktree K, group G7: journal (packet text: A2, A3, A4)
 
-Living journal for the three packet-text candidates of the round-2 analysis, built from the audited designs
-(`G7-packet-text.json`, design plus audit; the audit's corrections override the design). One section per candidate, written
-in that candidate's own commit. Basis: origin/main b73c30ba (skill-craft 1.25.0, ShipLoop 0.57.0; release commit ea6ce8ce).
+Living journal for the three packet-text candidates of the round-2 analysis, built from audited designs (the audit's
+corrections override the design and are listed in each section). One section per candidate, written in that candidate's own
+commit, then a section for the review of the first build and its fixes. Basis: origin/main b73c30ba (skill-craft 1.25.0,
+ShipLoop 0.57.0; release commit ea6ce8ce). Evidence export (events quoted, grep counts, base-versus-tree packet sizes):
+`docs/experiments/batch-1010k-g7-packet-text-20261008/evidence.json`; the line numbers cited below are lines of the
+`events.jsonl` of each run.
 Round-2 evidence: the Battleship and Checkers Sonnet runs under `/Users/dadleet/e2e-runs/20261008/` (`r2-battleship-sonnet`,
 `r2-checkers-sonnet`; round 1 in the `r1-*` folders). Purpose: each change makes ShipLoop more faithful to its stages, to
 `test/shiploop_e2e/SPEC.md` and to the main tenet, and names no sample app.
@@ -26,12 +29,17 @@ rule for the next run.
 What changed (text only, one source). `_LEFTOVERS_CLAUSE` is printed straight after the first sentence of the route, in both
 the clean-start and the dirty-start sentence: "plan-return commits files left uncommitted, so commit nothing for the return
 except a file it reports as not committed." 120 characters per worktree packet (clause and one space), in the full packet file
-after the status block, so the kept head is untouched. The clause starts at character 70 of the printed line and ends at 189.
+after the status block, so the kept head is untouched. The clause starts at character 70 of the printed line and ends at 189. The
+review added one word to the clean-start tail, "or still leaves a file uncommitted" (6 characters), so the fallback reads as what
+remains after plan-return's commit and not as a contradiction of the clause.
 
 Corrections the audit made to the design, all applied.
-- *Early.* The design's sentence was 247 characters and its instruction began at character 281. The Battleship model read this
-  line through `cut -c1-300` (events line 372) and `cut -c1-250` (line 388), so it would have been cut off. The clause leads, and
-  a test pins that it ends inside 250 characters.
+- *Early.* The design's sentence was 247 characters and its instruction began at character 281. The Battleship model saw the old
+  sentence in six tool results (events 25, 58, 373, 389, 475, 507; `evidence.json`), always cut at 246 to 382 characters by the Read
+  tool, `cut -c1-300` or `cut -c1-250`, and the cut always fell in the second half of the sentence (the longest display ends "...
+  leaves a file uncommitted, it applie"). An instruction that began at character 281 would have been cut off. The clause leads,
+  and a test pins that it ends inside 250 characters. (The first version of this entry named `cut -c1-250` at line 388; that line
+  is a 300-character cut, and the 250-character cuts are lines 475 and 507. Corrected on review.)
 - *"Files", not "product files".* `commit_leftovers` commits everything not protected, excluded or credential-like, so generated
   output is committed too. The integrate row's "delete generated output" still has to be followed; the clause says nothing that
   weakens it.
@@ -45,7 +53,7 @@ Corrections the audit made to the design, all applied.
   the ones the product needs", and only r1 Checkers event 362 is a leftover commit nothing instructed. So the sentence is one
   possible source, not the only one, and the integrate row's Develop line and that notice compete with it.
 
-Test, fail first: `ReturnRouteTests.test_the_route_sentence_says_plan_return_commits_files_left_uncommitted_and_plan_return_does_exactly_that`
+Test, fail first: `ReturnRouteTests.test_route_sentence_says_plan_return_commits_leftovers_and_it_does`
 in `test/shiploop-return-review.test.py` (isolated Git configuration, real CLI). It failed on the two sentence assertions (clean
 and dirty start: the clause absent from the printed line) and passed the real-verb subtests at base. Those subtests are the proof
 that the sentence is true: plan-return commits `late.js`, prints "Not committed, they look like they hold a credential:
@@ -57,18 +65,22 @@ hand commit with `add -A` is therefore also harmful, not only redundant.
 
 Margin (measured, not a regression at the real path). `test_return_projection_stays_current_across_terminal_cold_and_report_packets`
 in `test/shiploop-workspace.test.py` keeps a terminal packet under `PRINT_LIMIT` (16,000); every embedded path counts. Run from
-copies of the tree at fixed checkout path lengths: the base passes up to 126 characters and fails at 128; with the clause it
-passes at 120 and fails at 122. This worktree's path is 62 characters. The head window of the heaviest packet is likewise
-checkout-path dependent (the audit measured 8024 against the 8000 limit on unmodified code at a 115-character path); it is 7971
-at a 62-character path and A2 does not move it.
+copies of the tree at fixed checkout path lengths, in one environment, bisecting the longest checkout path at which it passes:
+the base passes up to 118 characters, the first build (clause) up to 112, and the tree after the review fixes up to 112 (the
+review's six extra characters, "still ", move it by well under one character of path). The implementer's earlier figures (126
+and 120) came from another environment: the limit depends on the temporary path the test itself uses as well as the checkout
+path, so only same-environment figures compare. This worktree's path is 62 characters. The head window of the heaviest packet is
+likewise checkout-path dependent (the audit measured 8024 against the 8000 limit on unmodified code at a 115-character path); it
+is 7971 at a 62-character path (measured again after the review fixes) and A2 does not move it.
 
 Suite time (measured, registered value left alone). `test/shiploop-return-review.test.py` ran 24 tests in 74.5 s alone at
 load average 2.3 to 2.7; its registered 85.9 s was measured at load 4.6 to 5.1 with 23 tests, so it stays the heavier-load
 bound and stays under `QUICK_MAX_SECONDS`.
 
 Not verified, and how to settle it. Whether the sentence stops the hand commit: the model's thinking blocks are redacted, n is 1
-per cell, and round 2 showed both models the sentence yet one still committed (it saw it only through a `grep -iE commit` at
-integrate and carry-forward, truncated by `cut`; at release-plan it never displayed it). Settle with the next Sonnet pair: any
+per cell, and round 2 showed the model the old sentence four times before its hand commit (events 25, 58, 373, 389), each time cut
+inside its second half so that what the plan then does was never shown; it never displayed the sentence at release-plan). That
+fits the sentence as one source but does not prove it. Settle with the next Sonnet pair: any
 `git add` or `git commit` by the model after the corrected sentence, and `git log --format=%an` of the returned product showing
 only ShipLoop Workspace. If it still commits, add a head-visible `develop` line to the system-test-author row (about 170
 characters; the design measured that packet's status end at 5863) and consider scoping the integrate row's "commit the ones the product needs" to
@@ -83,10 +95,13 @@ e39160ae (the plan-return notice reworded), 1f5006e7. Change note: `changes/ship
 
 **Built (status: firm; hermetic through the real CLI).** After `improve-bind` the packet prints "start the bound Improve child
 after writing its opening file `<path>`", and the directory that path lands in (`.shiploop-improve/<run>/<action>/`, beside the
-runtime receipt) did not exist. `improve-start` then refused with "write the opening file first". Both round-2 Sonnet runs met
-it (r2 Checkers events 99 to 103: `ls` of the directory fails with "No such file or directory", then `mkdir -p` and the write
-succeed and event 103 starts the child); both then put `mkdir -p` in their
-`start.sh` wrapper. That is a step the packet never told them to take, and S-4 and S-5 name directory creation as script work.
+runtime receipt) did not exist. `improve-start` then refused with "write the opening file first". Round-2 Checkers met it
+(events 99 to 103: `ls` of the directory fails with "No such file or directory", `improve-start` says "write the opening file
+first", then `mkdir -p` and the write succeed and event 103 starts the child) and kept `mkdir -p` in its `start.sh` wrapper
+(event 187). Round-2 Battleship wrote `mkdir -p $D` into its `start.sh` wrapper at event 141 and none of its tool results holds
+the refusal (0 hits), so it took the step without meeting the refusal. (The first version of this entry said both runs met the
+refusal; corrected on review against the events, see `evidence.json`.) Either way it is a step the packet never told them to
+take, and S-4 and S-5 name directory creation as script work.
 The same pattern was fixed for `notes/` in 4fc3b3b8 (emit creates it).
 
 What changed (`shiploop_navigator.emit`, beside the `scratch/` and `notes/` mkdirs). When the state is active and its
@@ -114,7 +129,7 @@ actual-improve-cli 33, delegation 47, full-runtime 2, improve-schedule 33, keepa
 quality 18, status-display 15, packet-completeness 6 and rehydration 12, all OK. Packet text is unchanged, so no packet size,
 head window or reference card moves.
 
-Risk accepted: a failing mkdir is swallowed (the refusal path stays intact); in an in-place run an empty
+Risk accepted: a failing mkdir is swallowed (the refusal path stays intact, and since the review a test holds it); in an in-place run an empty
 `.shiploop-improve/<run>/<action>/` appears at bind instead of at start (Git lists no empty directory and `.shiploop-improve` is a
 protected runtime path). Related commits: 4fc3b3b8 (the same fix for `notes/`). Change note:
 `changes/shiploop/improve-opening-directory-created-at-emit.md` (patch).
@@ -130,10 +145,13 @@ one grep), Checkers' first browser tool use was event 648 against the test-strat
 never ran a command naming Chrome. Done-when is the text every run displays, and the Improve parent packet and the Improve contract
 repeat it (`loop_contract.stage_exit`), so the obligation goes there and the how stays in the duty.
 
-What changed (`shiploop_stage_spec._ROWS`, the `test-strategy` row, one fourth `done_when` entry, 303 characters on one line):
+What changed (`shiploop_stage_spec._ROWS`, the `test-strategy` row, one fourth `done_when` entry, 307 characters on one line):
 "each case that needs a host tool (a browser, a device, an account, a service) names it and cites the output of probing it now by
-doing the case's first step, against a stand-in while the product does not exist; only a failed probe is recorded as the access
-gap, with the requirement it leaves unobserved". No change to the duty, to `_COMMON_GATES` or to `GATE_WORDS`.
+doing the case's first step, against a stand-in while the product does not exist, and only a failed probe is recorded as the access
+gap, with the requirement it leaves unobserved". No change to the duty, to `_COMMON_GATES` or to `GATE_WORDS`. (The first build had
+"exist; only a failed probe", 303 characters; the review found that `loop_contract.stage_exit` joins the entries with "; ", so the
+Improve contract's exit condition read that entry as two conditions. The only entry in the spec with a semicolon, now none: a
+test in `test/shiploop-stage-spec.test.py` pins it for every stage.)
 
 Two audit corrections shaped the wording, both from the designed text's defects.
 - *Not a free exit.* The design said "either cites the output of probing it ... or records the access gap". Both round-2 runs
@@ -151,17 +169,21 @@ applies, as for the stage's other conditions (S-9). A script-run or script-recor
 is a new mechanism and is deferred, not built.
 
 Measured (graph-dry-run packets, base b73c30ba against this tree, equal tree path lengths so only the change differs; 574 packets,
-24 change). Each changed packet grows by 306 characters (the entry, its "- " and the newline): the test-strategy producer's status
-block ends at 4829 then 5135 and its full file is 32,939 then 33,245 characters (inline delivery; ask-agent 32,973 then 33,279);
-its Improve parent packet's status block ends at 2970 then 3276 and the file is 18,093 then 18,399. The largest status end of any
-packet, which sets the kept-head window (the ask-agent revise packet of the step plan, 7971 of 8000 at this worktree's
-62-character path), does not move. The test-strategy Improve-opening allowance falls from 4,718 to 4,413 bytes (305, probed
-through the refusal's own "may use about N bytes in all"; the spec stage's 4,680 does not change) while the design reported the
-largest opening in five runs at 1,719 bytes. The design's smaller figures (+241) were for its shorter, defective wording.
+24 change). Re-measured after the review fix, three trees at equal path lengths (`evidence.json`, `packet_sizes_dry_run`): each
+changed packet grows by 310 characters (the entry, its "- " and the newline; the first build's 303-character entry grew them by
+306): the test-strategy producer's status block ends at 4832 (base), 5138 (first build) and 5142 (now), and its full file is 33,035,
+33,341 and 33,345 characters (inline delivery; ask-agent 33,069, 33,375, 33,379); its Improve parent packet's status block ends at
+2973, 3279 and 3283 and the file is 18,183, 18,489 and 18,493. These absolute values are at the scratch path of the measurement;
+the growth does not depend on the path. The largest status end of any packet, which sets the kept-head window (the ask-agent revise
+packet of the step plan), is 7971 of 8000 at this worktree's 62-character path, measured again after the review fixes, and does
+not move. The test-strategy Improve-opening allowance, probed through the refusal's own "may use about N bytes in all" at equal
+paths, is 4,706 (base), 4,401 (first build) and 4,397 (now), a fall of 309 bytes; the spec stage's 4,668 does not change. The
+design reported the largest opening in five runs at 1,719 bytes. The design's smaller figures (+241) were for its shorter,
+defective wording.
 
-Test, fail first: `RefusalRouteTests.test_the_test_strategy_done_when_asks_for_a_probe_of_each_host_tool_and_only_a_failed_probe_is_the_access_gap`
+Test, fail first: `RefusalRouteTests.test_test_strategy_done_when_asks_a_probe_of_each_host_tool`
 in `test/shiploop-callback-contract.test.py`, through the real CLI. It reads the printed head's Done-when (before `Checked by`)
-and asserts the five clauses and that "probing" appears once; the `Checked by` line still says the model confirms each condition
+and asserts the four clauses (the stand-in clause with the access-gap rule in one run of text) and that "probing" appears once; the `Checked by` line still says the model confirms each condition
 and names no probe; a result citing a probe-output path that does not exist is refused with "evidence_refs cite files that do not
 exist" and the same command is accepted once the file exists. It failed at base on the first clause (AssertionError: not found).
 
@@ -178,6 +200,43 @@ test-strategy is a possible time sink; the duty already says a failing probe is 
 
 Related commits: 482fff76 (the stand-in duty), 1f5006e7 (the Improve parent packet restates the Done-when), 62b6ac89 and 1b9918ab
 (A2 and A3, this group). Change note: `changes/shiploop/test-strategy-done-when-host-tool-probe.md` (patch).
+
+## Review of the first build, and its fixes (2026-10-08)
+
+An adversarial review of 6b20f6a2 found no blocker and no major defect, and six minor findings. It re-ran the suites, ran ten
+mutants (eight killed) and reproduced the packet growth. What each finding led to, one commit per candidate on top of 6b20f6a2.
+
+1. *A3: the guard around the mkdir was untested* (a mutant that replaced `except OSError` survived). **Fixed** in bd3785cb:
+   `RefusalRouteTests.test_a_directory_that_cannot_be_made_does_not_stop_the_bind_packet` plants a regular file where
+   `.shiploop-improve` belongs, accepts the bind, and requires the printed start command and the "write the opening file first"
+   refusal. Mutation check on this worktree: with `except ZeroDivisionError` in its place the test fails at the bind step with
+   "ShipLoop blocked: [Errno 20] Not a directory"; the source was restored byte for byte. Not a fail-first test (the guard existed);
+   the test is the missing holder of it. The other survivor, dropping the `status == "active"` condition, is equivalent in
+   practice and left alone.
+2. *A4: the entry held a "; " of its own* and `loop_contract.stage_exit` joins entries with "; ", so the Improve contract read it
+   as two conditions. **Fixed** in 2419b331: "exist; only" became "exist, and only" (307 characters). Held for every stage by one
+   assertion in `StageTableTest.test_every_row_states_a_goal_and_how_it_is_confirmed` (no ";" inside any `done_when` entry); it
+   failed before the change for test-strategy alone, on the assertion. The A4 callback test's clause pinning follows the joined text.
+   Costs, re-measured: each changed packet grows by 310 characters (was 306), the test-strategy opening allowance falls by 309 bytes.
+3. *The evidence lived only under `e2e-runs` and a session scratchpad.* **Fixed**: `docs/experiments/batch-1010k-g7-packet-text-20261008/
+   evidence.json` (the pattern of the 1009f export) holds the quoted events, the grep counts and the base, first-build and
+   review-fix packet sizes, built from the event logs by a script, not typed. Building it corrected three statements of the first
+   journal, each marked where it was made: (a) Round-2 Battleship never met the "write the opening file first" refusal; it put
+   `mkdir -p` in its wrapper at event 141 (A3); (b) the 250-character cuts are events 475 and 507, line 388 is a 300-character cut,
+   and the old route sentence reached the Battleship model in six tool results, four before its hand commit, always cut inside
+   its second half (A2); (c) the bare scratchpad file name in the header is gone, replaced by the corrections themselves.
+4. *A2: the tail "or leaves a file uncommitted" looked contradictory after the clause, and the dirty-start half was asserted
+   only as text.* **Fixed** in 6049ae17: the tail reads "or still leaves a file uncommitted" (+6 characters; failed first on the
+   assertion), and the test runs plan-return on a dirty-start workspace with the user's source edit kept in place, because a moved
+   source blocks plan-return (the dirty root's `late.js` is committed by it). That second check verifies a true claim and did not
+   fail first. The dirty-start sentence was left as it is: "it is not a Git merge or commit" follows "The return applies only
+   the kept files", not the clause.
+5. *Registered durations and the "34 tests" comment in `test/suite_catalog.py`.* **Kept, deliberately.** The comment is the record
+   of a past measurement at that test count, not a claim about today's count. Measured now: callback-contract 39 tests in 81 s
+   and return-review 24 tests in 90 s with five suites running in parallel on a loaded machine (registered 69.1 s and 85.9 s),
+   each far under `QUICK_MAX_SECONDS`. No new top-level test file, so no suite registration or pinned count changes.
+6. *Style.* **Fixed**: one blank line before the new return-review method (it had two, which made the class look closed) and
+   shorter test names (the 129- and 133-character names are now 66 and 59 characters).
 
 ## Verification of the group (2026-10-08)
 
