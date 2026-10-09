@@ -234,6 +234,35 @@ def plural(count: int, noun: str) -> str:
     return f"{count} {noun}{'' if count == 1 else 's'}"
 
 
+def call_target(arg: dict) -> str:
+    """The file a tool call names (Grok `target_file`, Claude `file_path`, a bare `path`), or an empty string."""
+    return str(arg.get("target_file") or arg.get("file_path") or arg.get("path") or "")
+
+
+def tool_call_events(event: dict) -> list[tuple]:
+    """``(call id, tool name, input)`` of each tool call one event starts, whatever host wrote it.
+
+    Claude writes one `assistant` event per content block of a message, so an event holds the `tool_use` blocks of
+    that block's message (none for a text block); Grok, and Codex after the harness translator, write one `tool_call`
+    event per call. The one reader: ``ToolLog.feed`` and so the whole-run reading and a window read calls this way.
+    """
+    kind = event.get("type")
+    if kind == "assistant":
+        return [(block.get("id"), str(block.get("name") or ""), block["input"] if isinstance(block.get("input"), dict) else {})
+                for block in (event.get("message") or {}).get("content") or []
+                if isinstance(block, dict) and block.get("type") == "tool_use"]
+    if kind == "tool_call":
+        return [(event.get("toolCallId"), str(event.get("toolName") or event.get("title") or ""),
+                 event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {})]
+    return []
+
+
+def cancelled_update(event: dict) -> bool:
+    """Grok's headless permission check refused the call: a failed update whose content says the user cancelled it."""
+    return (event.get("type") == "tool_call_update" and event.get("status") == "failed"
+            and "cancelled" in json.dumps(event.get("content") or "").lower())
+
+
 class ToolLog:
     """The tool calls of one host stream and what each returned, classified once for every host: Grok's `tool_call` and
     `tool_call_update` events, Codex's after the harness translator, and Claude's `tool_use` and `tool_result` blocks.
@@ -254,6 +283,8 @@ class ToolLog:
         self.reads: list[str] = []
         self.failures: list[dict] = []
         self.failed: set = set()  # call ids already counted: Grok repeats an update for one call, which is a failure once
+        self.failure_of: dict = {}  # call id -> its entry in ``failures``, so a window can count the failures of its own calls
+        self.answered: set = set()  # call ids whose final result arrived: a failure is known only once the result is
         self.scripts: dict[str, dict] = {}  # path -> {body, wraps, bytes, runs, pattern}: the model-written scripts so far
         self.by_tool: dict[str, int] = {}  # Claude only below: what the model called, what came back, how it used packets
         self.result_chars = 0
@@ -262,6 +293,8 @@ class ToolLog:
     def call(self, t, call_id, tool: str, arg: dict) -> None:
         """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written."""
         self.failed.discard(call_id)  # Codex numbers its calls again in each session: a reused id is a new call
+        self.failure_of.pop(call_id, None)
+        self.answered.discard(call_id)
         if ASK_PERSON.search(tool):  # SPEC S-14: an unattended run never asks a person
             self.asked.append(" ".join(str(arg.get("question") or arg or "").split())[:160])
         command = str(arg.get("command") or "")
@@ -274,7 +307,7 @@ class ToolLog:
         shell = shell_text(expanded)
         for script in self.scripts.values():  # a run is a tool call that runs the script, however many lines do
             script["runs"] += bool(script["pattern"].search(shell))
-        target = arg.get("target_file") or arg.get("file_path") or arg.get("path")
+        target = call_target(arg)
         self.by_tool[tool] = self.by_tool.get(tool, 0) + 1
         self.calls[call_id if call_id is not None else f"#{len(self.calls)}"] = {
             "t": t, "command": command, "expanded": expanded, "invoked": expanded + wrappers, "tool": tool,
@@ -322,8 +355,29 @@ class ToolLog:
                             "read": {"read_tool": self.packets["read_tool"],
                                      "shell": dict(zip(("calls", "chars"), self.packets["shell"]))}}}
 
+    def feed(self, event: dict, t) -> None:
+        """One host event, read the one way for every host: the calls it starts and the results it carries.
+
+        Claude's `tool_use` blocks, Grok's `tool_call` events and Codex's after the translator start calls; Claude's
+        `tool_result` blocks and Grok's final `tool_call_update` carry results. A running update (Grok repeats one, with a
+        placeholder exit 0) and a cancelled one (a permission refusal, which ends the turn) are no result. The whole-run
+        reading (``collect``) and a window (``reorientation``) both feed a log this way, so they cannot differ.
+        """
+        for call_id, tool, arg in tool_call_events(event):
+            self.call(t, call_id, tool, arg)
+        kind = event.get("type")
+        if kind == "user":  # Claude: the tool_result blocks, whose text may begin with the host's `Exit code N`
+            for call_id, shown in tool_results(event):
+                self.measure(call_id, shown)
+                self.result(call_id, shown, claude_exit(shown))
+        elif kind == "tool_call_update" and isinstance(event.get("rawOutput"), dict) and not cancelled_update(event) \
+                and event.get("status") != "in_progress":
+            for call_id, shown in tool_results(event):
+                self.result(call_id, shown, event["rawOutput"].get("exit_code"))
+
     def result(self, call_id, shown: str, code: int | None) -> None:
         """One tool result, with the exit code the host showed (None when it showed none)."""
+        self.answered.add(call_id)
         refusal = REFUSAL_LINE.search(shown)
         call = self.calls.get(call_id) or {}
         exited = code not in (None, 0) and SHIPLOOP_COMMAND.search(call.get("invoked", ""))
@@ -334,6 +388,7 @@ class ToolLog:
         # From the refusal's own line on: the model's shell errors before it are not why ShipLoop refused.
         self.failures.append({"verb": verb.group("verb") if verb else "unknown", "exit": code,
                               "line": failure_line(shown[refusal.start():] if refusal else shown)})
+        self.failure_of[call_id] = self.failures[-1]
 
 
 def engine_state(run_dir: Path | None) -> dict:
@@ -694,6 +749,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     for number, event in events(out / "events.jsonl"):
         kind = event.get("type")
         t = stamps.get(number)
+        tools.feed(event, t)  # Claude tool_use / tool_result blocks, Grok and Codex tool_call / tool_call_update
         if kind in ("usage", "assistant"):
             calls_in_session += 1
         if kind == "available_commands" or (kind == "system" and event.get("subtype") == "init"):
@@ -716,28 +772,13 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
                 claude_calls += 1
                 if isinstance(message_id, str) and message_id:
                     messages.add(message_id)
-            for block in (event.get("message") or {}).get("content") or []:
-                if isinstance(block, dict) and block.get("type") == "tool_use":
-                    tools.call(t, block.get("id"), str(block.get("name") or ""),
-                               block["input"] if isinstance(block.get("input"), dict) else {})
             turns.append({"t": t, "input": context_tokens((event.get("message") or {}).get("usage")), "call": first})
-        elif kind == "user":  # Claude: the tool_result blocks, whose text may begin with the host's `Exit code N`
-            for call_id, shown in tool_results(event):
-                tools.measure(call_id, shown)
-                tools.result(call_id, shown, claude_exit(shown))
-        elif kind == "tool_call":
-            arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
-            tools.call(t, event.get("toolCallId"), str(event.get("toolName") or event.get("title") or ""), arg)
-        elif kind == "tool_call_update" and event.get("status") == "failed" and "cancelled" in json.dumps(
-                event.get("content") or "").lower():
+        elif kind == "tool_call_update" and cancelled_update(event):
             # Grok's headless permission check refused the call; the turn ends with it.
             cancelled.append((tools.calls.get(event.get("toolCallId")) or {}).get("command", "")[:160])
         elif kind == "tool_call_update" and isinstance(event.get("rawOutput"), dict):
             if event["rawOutput"].get("truncated"):  # Grok repeats the update; count each call once
                 truncated.add(event.get("toolCallId"))
-            if event.get("status") != "in_progress":  # Grok's running updates carry a placeholder exit 0 and the output so far
-                for call_id, shown in tool_results(event):
-                    tools.result(call_id, shown, event["rawOutput"].get("exit_code"))
         elif kind == "auto_compact_completed":
             compactions += 1
         elif kind in ("end", "result"):
