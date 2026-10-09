@@ -45,6 +45,9 @@ class StageTableTest(unittest.TestCase):
                 self.assertLessEqual(len(row.goal), 80)
                 self.assertTrue(row.done_when)
                 self.assertTrue(all(item.strip() for item in row.done_when))
+                # An Improve contract's exit joins the entries with "; " (loop_contract.stage_exit), so an entry that
+                # holds a "; " of its own would read there as two conditions.
+                self.assertTrue(all(";" not in item for item in row.done_when))
                 self.assertEqual(prompts.STAGE_PURPOSE[name], row.goal)
 
     def test_improve_rules(self) -> None:

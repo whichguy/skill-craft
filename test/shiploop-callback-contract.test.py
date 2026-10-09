@@ -480,7 +480,6 @@ class RefusalRouteTests(RealCliCase):
             return "\n\n".join(f"## {renamed if renamed and name == 'Environment' else name}\n{body}"
                                for name, body in sections.items()) + "\n"
 
-        opening.parent.mkdir(parents=True, exist_ok=True)
         opening.write_text(text("Environment and validation"), encoding="utf-8")
         reply = self.refused(start, run)
         self.assertIn('no line reading exactly "## Environment"', reply)
@@ -488,6 +487,51 @@ class RefusalRouteTests(RealCliCase):
         self.assertIn("run the same improve-start command again", reply)
         opening.write_text(text(None), encoding="utf-8")
         self.assertEqual(json.loads(self.accepted(start))["status"], "active")
+
+    def test_the_opening_file_the_improve_bind_packet_names_is_written_without_making_its_directory(self) -> None:
+        """Batch 1010 A3: the printed step is "write the opening file", and the directory it lands in is ShipLoop's.
+
+        Both round-2 Sonnet runs listed the missing directory, met "write the opening file first" and retried after
+        ``mkdir -p``: a step the packet never told them to take (S-4, S-5).  The directory is made where the path is
+        named, so the printed step is the whole step.
+        """
+        sections = {"Current context and desired improvements": "The user asked for hello.",
+                    "Scope": "a.txt", "Authority": "Local edits only.", "Environment": "Python 3."}
+        for stage in ("spec", "test-strategy"):
+            with self.subTest(stage=stage):
+                run, head = self.new_run(stage)
+                command, path, _ = printed_callback(head)
+                write_block(path, self.fill_done(head))
+                bind = next(row for row in self.accepted(command).splitlines() if row.startswith("Next command (bind"))
+                started = self.accepted(bind.split("details below): ", 1)[1])
+                start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
+                opening = Path(re.search(r"opening file (\S+);", start_line).group(1))
+                start = start_line.split("details below): ", 1)[1]
+                self.assertTrue(opening.parent.is_dir(), "the printed opening path's directory exists after bind")
+                self.assertFalse(opening.exists())  # the file is the model's to write
+                self.assertIn("write the opening file first", self.refused(start, run))
+                # A run bound before the directory was made has none; the recovery command restores it.
+                shutil.rmtree(opening.parent)
+                self.assertEqual(self.cli("next", "--run-dir", str(run)).returncode, 0)
+                self.assertTrue(opening.parent.is_dir())
+                opening.write_text("\n\n".join(f"## {name}\n{body}" for name, body in sections.items()) + "\n",
+                                   encoding="utf-8")
+                self.assertEqual(json.loads(self.accepted(start))["status"], "active")
+
+    def test_a_directory_that_cannot_be_made_does_not_stop_the_bind_packet(self) -> None:
+        """Batch 1010 A3 review: emit's mkdir is a courtesy, so its failure must not take the packet down with it.
+
+        A regular file where ``.shiploop-improve`` belongs makes the mkdir fail.  The bind packet must still print its
+        start command, and ``improve-start`` must still say what is missing: the opening file.
+        """
+        run, head = self.new_run("spec")
+        command, path, _ = printed_callback(head)
+        write_block(path, self.fill_done(head))
+        bind = next(row for row in self.accepted(command).splitlines() if row.startswith("Next command (bind"))
+        (self.repo_of(run) / ".shiploop-improve").write_text("a file, not a directory\n", encoding="utf-8")
+        started = self.accepted(bind.split("details below): ", 1)[1])
+        start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
+        self.assertIn("write the opening file first", self.refused(start_line.split("details below): ", 1)[1], run))
 
     def test_an_empty_section_is_refused_naming_it_and_the_filled_opening_is_accepted(self) -> None:
         run, head = self.new_run("spec")
@@ -498,7 +542,6 @@ class RefusalRouteTests(RealCliCase):
         start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
         opening = Path(re.search(r"opening file (\S+);", start_line).group(1))
         start = start_line.split("details below): ", 1)[1]
-        opening.parent.mkdir(parents=True, exist_ok=True)
         opening.write_text("## Current context and desired improvements\nHello.\n\n## Scope\na.txt\n\n"
                            "## Authority\nLocal edits only.\n\n## Environment\n...\n", encoding="utf-8")
         reply = self.refused(start, run)
@@ -531,6 +574,39 @@ class RefusalRouteTests(RealCliCase):
                            "summary": good["summary"] + " Open item: a person signs off the layout and reports back."})
         self.accepted(command)
         self.assertEqual([row["id"] for row in self.recorded(run, action)["criteria"]], ["C1"])
+
+    def test_test_strategy_done_when_asks_a_probe_of_each_host_tool(self) -> None:
+        """Batch 1010 A4: the text every run displays carries the probe obligation, and the entry is not a free exit.
+
+        The probe paragraph of the test-strategy duty sits deep in a long packet; neither round-2 Sonnet run read it
+        (no tool result holds "probed now by doing" or "stand-in"), both read only the head, Checkers first ran Chrome
+        about 470 events after that head and Battleship never ran a command naming it.  Done-when is the text every run
+        displays, so the obligation goes there and the how stays in the duty.  Two defects the audit found are held
+        here.  A condition that let "record the access gap" stand in for the probe passed both runs unchanged, so the
+        gap must be the result of a failed probe.  And "do the case's first step" with no stand-in repeats the wording
+        that sent a run to the product's own address before the product existed (482fff76).  A third, found on review:
+        an Improve contract joins the entries with "; ", so an entry holds no ";" of its own (the stage-spec test pins
+        that for every stage).  The one automatic check stays the form check: a cited path must exist.
+        """
+        run, head = self.new_run("test-strategy")
+        command, path, _ = printed_callback(head)
+        done_when = " ".join(head.split("Done when", 1)[1].split("Checked by:", 1)[0].split())
+        for part in ("each case that needs a host tool (a browser, a device, an account, a service)",
+                     "cites the output of probing it now by doing the case's first step",
+                     "against a stand-in while the product does not exist, and only a failed probe is recorded as the "
+                     "access gap",
+                     "the requirement it leaves unobserved"):
+            self.assertIn(part, done_when)
+        self.assertEqual(done_when.count("probing"), 1)  # one entry, stated once
+        # The Checked-by line claims no script check of the probe: the model confirms it, and a cited path must exist.
+        checked = head.split("Checked by:", 1)[1].split("\n", 1)[0]
+        self.assertIn("you confirm each Done-when condition", checked)
+        self.assertNotIn("probe", checked)
+        output = self.base / "probe-output.txt"
+        write_block(path, {**self.fill_done(head), "evidence_refs": [str(output)]})
+        self.assertIn("evidence_refs cite files that do not exist", self.refused(command, run))
+        output.write_text("page title read back by the tool: stand-in\n")
+        self.accepted(command)
 
     def test_the_implement_packet_does_not_ask_for_a_field_the_accepted_plan_does_not_hold(self) -> None:
         """Batch 1009 S1: an item that records no test command has no `criteria` and no `Confirm by` text, yet the
@@ -947,7 +1023,6 @@ class OpeningAllowanceTests(RealCliCase):
         started = self.accepted(bind.split("details below): ", 1)[1])
         start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
         opening = Path(re.search(r"opening file (\S+);", start_line).group(1))
-        opening.parent.mkdir(parents=True, exist_ok=True)
         return run, opening, start_line.split("details below): ", 1)[1]
 
     def write_sections(self, opening: Path, sizes: tuple[int, int, int, int]) -> None:
