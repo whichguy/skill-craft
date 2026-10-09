@@ -7438,6 +7438,192 @@ class R23aContractTests(unittest.TestCase):
         for name in ("MAX_IDENTITY", "MAX_OVERLAP_RUNS", "MAX_AT_STOP_CHECKS"):
             self.assertTrue(hasattr(export, name), name)
 
+    def test_skill_md_tells_the_reader_the_four_records_exist_and_are_not_verdicts(self):
+        text = " ".join(SKILL_MD.read_text().split())
+        for phrase in ("`outcome`, a record and never a verdict", "`identity`", "`environment`", "minutes measured beside another run are not clean",
+                       "`productAtStop`, information only", 'See "The run\'s record" in [SCHEMA.md](SCHEMA.md)'):
+            self.assertIn(phrase, text)
+
+
+# ---------------------------------------------------------------- R23a: the page shows the outcome, the build, the environment and the product at the stop
+
+def r23a_doc(saved: str | None = None, **result) -> dict:
+    """The run document the exporter writes for a synthetic run carrying a saved run's new keys, as the page would read it."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out = ended_run(Path(tmp), **{**(r23a_saved(saved) if saved else {}), **result})
+        docs, _ = export.build_run(out)
+        return json.loads(json.dumps(docs["runs"][RunReviewTest.KEY]))
+
+
+class R23aPageLogicTests(unittest.TestCase):
+    """outcomeText, identityModel, overlapChip, environmentModel and the At the stop row are pure: the run in, words out."""
+
+    def test_the_outcome_line_is_the_class_and_the_basis_as_plain_words_and_an_unknown_class_reads_unknown(self):
+        for name, (cls, basis) in r23_figures()["examples"]["outcomeClassExamples"].items():
+            with self.subTest(name):
+                doc = r23a_doc(name)
+                self.assertEqual(run_logic("outcomeText(%s)" % json.dumps(doc)), f"Outcome: {cls}, {doc['outcome']['basis']}")
+        self.assertEqual(run_logic("outcomeText({outcome:{basis:'no host ran (regraded)'}})"), "Outcome: unknown, no host ran (regraded)")
+        self.assertEqual(run_logic("outcomeText({outcome:{class:'PASS'}})"), "Outcome: PASS")
+        self.assertEqual(run_logic("[outcomeText({}),outcomeText(null),outcomeText({outcome:{}}),outcomeText({outcome:'PASS'})]"), ["", "", "", ""])
+
+    def test_the_build_line_shortens_a_hash_names_what_is_not_measured_and_gives_the_reason_as_its_hint(self):
+        sonnet = run_logic("identityModel(%s)" % json.dumps(r23a_doc("20261008/r1-battleship-sonnet")))
+        self.assertEqual(sonnet["text"], "Build: plugin 3a7515d2efd3, prompt d0c0cbe71344, host build 2.1.294")
+        grok = run_logic("identityModel(%s)" % json.dumps(r23a_doc("20261008/r1-battleship-grok-none")))
+        self.assertEqual(grok["text"], "Build: plugin 3a7515d2efd3, prompt 5ea67bf35336, host build not measured")
+        self.assertIn("host build: launch predates the field", grok["title"])
+        self.assertEqual(run_logic("identityModel({identity:{pluginSha:'%s'}}).text" % ("ab" * 32)), "Build: plugin " + "ab" * 6)
+        self.assertEqual(run_logic("[identityModel({}),identityModel(null),identityModel({identity:{}}),identityModel({identity:'x'})]"), [None] * 4)
+        none = run_logic("identityModel({unmeasured:{'identity.hostBuild':'r'}}).text")
+        self.assertEqual(none, "Build: host build not measured")
+
+    def test_the_overlap_chip_counts_the_siblings_says_the_minutes_are_not_clean_and_is_absent_without_any(self):
+        chip = run_logic("overlapChip(%s)" % json.dumps(r23a_doc("20261008/r1-battleship-grok-none")))
+        self.assertEqual(chip["text"], "ran alongside 2 other runs")
+        for needle in ("r1-battleship-sonnet 13.8 min", "r1-checkers-sonnet 13.1 min", "not a clean measure", "neither an upper nor a lower bound"):
+            self.assertIn(needle, chip["title"])
+        one = run_logic("overlapChip({environment:{overlap:{basis:'b',runs:[{folder:'a',overlappedMin:1,startedOffsetMin:0}]}}})")
+        self.assertEqual(one["text"], "ran alongside 1 other run")
+        more = run_logic("overlapChip({environment:{overlap:{basis:'b',runs:[{folder:'a',overlappedMin:1,startedOffsetMin:0}],runsOmitted:4}}})")
+        self.assertEqual(more["text"], "ran alongside 5 other runs")
+        self.assertEqual(run_logic("[overlapChip({}),overlapChip(null),overlapChip({environment:{}}),overlapChip({environment:{overlap:{basis:'b',runs:[]}}})]"),
+                         [None] * 4)  # a measured none, and nothing measured, draw no chip
+
+    def test_the_environment_card_lists_the_siblings_and_each_part_nobody_observed_with_its_reason(self):
+        doc = r23a_doc("20261008/r1-battleship-grok-none")
+        model = run_logic("environmentModel(%s)" % json.dumps(doc))
+        rows = dict(model["rows"])
+        self.assertEqual(rows["Other runs on the machine"],
+                         "r1-battleship-sonnet (battleship on claude): 13.8 min together, started with this run\n"
+                         "r1-checkers-sonnet (checkers on claude): 13.1 min together, started 4.7 min after this run")
+        self.assertIn("neither an upper nor a lower bound", rows["How that is counted"])
+        self.assertEqual(rows["Start of the run"], "not observed: regraded: the launch record has no environment (it was written before the record existed)")
+        self.assertEqual(rows["End of the run"], "not observed: regraded: the end of the run was not observed")
+        self.assertNotIn("Tools", rows)
+        self.assertNotRegex(json.dumps(model), r"undefined|NaN|null")
+
+    def test_the_environment_card_names_tools_the_browser_and_how_a_sibling_started(self):
+        env = {"tools": {"node": "v25.9.0", "python3": "Python 3.14.7"},
+               "browser": {"declared": True, "probed": True, "version": "Google Chrome 141", "targets": {"file": "page title seen in 0.41 s", "http": "no page title (stopped at the ceiling)"}},
+               "overlap": {"basis": "b", "runs": [{"folder": "early", "overlappedMin": 2, "startedOffsetMin": -3.5},
+                                                   {"folder": "late", "case": "checkers", "hosts": ["claude", "grok"], "overlappedMin": 1.2, "startedOffsetMin": 0.5}],
+                           "unreadable": ["odd"]}}
+        run = {"environment": env, "unmeasured": {"environment.tools.git": "not found on PATH", "environment.end": "regraded: not observed"}}
+        rows = dict(run_logic("environmentModel(%s)" % json.dumps(run))["rows"])
+        self.assertEqual(rows["Tools"], "node: v25.9.0\npython3: Python 3.14.7")
+        self.assertEqual(rows["Tools not read"], "git: not found on PATH")
+        self.assertEqual(rows["Browser"], "probed Google Chrome 141\nfile: page title seen in 0.41 s\nhttp: no page title (stopped at the ceiling)")
+        self.assertEqual(rows["Other runs on the machine"],
+                         "early: 2 min together, started 3.5 min before this run\nlate (checkers on claude, grok): 1.2 min together, started 0.5 min after this run")
+        self.assertEqual(rows["Sibling folders not read"], "odd")
+        self.assertEqual(rows["End of the run"], "not observed: regraded: not observed")
+        for browser, text in (({"declared": False, "probed": False, "reason": "no case or --need declares a browser"}, "not declared (no case or --need declares a browser)"),
+                              ({"declared": True, "probed": False, "reason": "no browser binary"}, "declared, not probed: no browser binary")):
+            self.assertEqual(dict(run_logic("environmentModel(%s)" % json.dumps({"environment": {"browser": browser}}))["rows"])["Browser"], text)
+        empty = {"environment": {"overlap": {"basis": "b", "runs": []}}}
+        self.assertTrue(dict(run_logic("environmentModel(%s)" % json.dumps(empty))["rows"])["Other runs on the machine"].startswith("none seen"))
+        self.assertEqual(run_logic("[environmentModel({}),environmentModel(null),environmentModel({environment:{}})]"), [None] * 3)
+
+    def test_the_at_the_stop_row_counts_the_checks_lists_each_one_that_did_not_pass_and_replaces_the_older_worktree_row(self):
+        ran = r23a_doc(product_at_stop=r23_figures()["examples"]["productAtStopRan"])
+        rows = ending_rows(ran)
+        self.assertEqual(rows["At the stop (information only)"],
+                         "1 of 2 checks pass in the unreturned worktree (engine active at implement)\n"
+                         "failed: echo 'TypeError: x is not a function' >&2; exit 1 (exit 1)\n    TypeError: x is not a function")
+        both = dict(ran, verdicts={"checks": False, "worktreeChecks": {"passed": 1, "total": 2}})
+        self.assertEqual(ending_rows(both), rows)  # the same checks in the same worktree are shown once, as productAtStop
+        self.assertNotIn("Product that was never returned", ending_rows(both))
+        only_old = dict(DONE_RUN, verdicts={"checks": False, "worktreeChecks": {"passed": 1, "total": 2}})
+        self.assertIn("Product that was never returned", ending_rows(only_old))  # a run without productAtStop reads as before
+
+    def test_the_at_the_stop_row_says_when_the_checks_did_not_run_when_one_timed_out_and_reads_only_the_shape(self):
+        notran = r23a_doc(product_at_stop=r23_figures()["examples"]["productAtStopNotRan"])
+        self.assertEqual(ending_rows(notran)["At the stop (information only)"],
+                         "the checks did not run in the unreturned worktree: no worktree directory under the run's workspace")
+        timed = {"ran": True, "passed": 0, "failed": 0, "timedOut": 1, "total": 1, "checks": [{"command": "slow", "pass": False, "timedOut": True}]}
+        self.assertEqual(ending_rows(dict(DONE_RUN, productAtStop=timed))["At the stop (information only)"],
+                         "0 of 1 checks pass in the unreturned worktree, 1 timed out\ntimed out: slow")
+        short = dict(timed, total=30, passed=29, timedOut=1, checks=timed["checks"])
+        self.assertIn("(1 of 30 checks listed)", ending_rows(dict(DONE_RUN, productAtStop=short))["At the stop (information only)"])
+        for bad in ("yes", {"ran": "no"}, {"ran": True}, {"ran": True, "total": 0, "passed": 0}, {"ran": True, "total": "2", "passed": 1}):
+            self.assertEqual(ending_rows(dict(DONE_RUN, productAtStop=bad)), {}, bad)
+
+
+class R23aPageTests(unittest.TestCase):
+    """What the page draws: the header lines and chip, the Environment card, and the row in the How it ended card."""
+
+    def page(self, run: dict, expression: str):
+        return page_probe(expression, setup=ended_page(run))
+
+    def test_the_header_lines_say_the_outcome_and_the_build_as_plain_text_never_coloured_as_a_verdict(self):
+        doc = r23a_doc("20261008/r3-battleship-grok-none")
+        out = self.page(doc, '[textOf("runrecord"),REG.runrecord.hidden,REG.runrecord.className,'
+                             'walk(REG.runrecord,function(e){return /holds|broken|bent|chip/.test(e.className);}).length]')
+        self.assertFalse(out[1])
+        self.assertIn("Outcome: STOPPED, host stopped with the engine active at implement; stopped by the stop file", out[0])
+        self.assertIn("Build: plugin a03059c9db03, prompt 5ea67bf35336, host build not measured", out[0])
+        self.assertEqual((out[2], out[3]), ("", 0))  # no class that colours, no chip: a record is not a pass or a fail
+        blocked = self.page(r23a_doc("20261008/r1-battleship-grok-none"), 'textOf("runrecord")')
+        self.assertIn("Outcome: BLOCKED, engine blocked at system-test-author by access", blocked)
+
+    def test_a_run_with_neither_record_has_no_lines_and_no_chip_and_the_chip_names_the_siblings(self):
+        plain = self.page(DONE_RUN, '[REG.runrecord.hidden,REG.runoverlap.hidden,textOf("runrecord")]')
+        self.assertEqual(plain, [True, True, ""])
+        doc = r23a_doc("20261008/r1-battleship-grok-none")
+        chip = self.page(doc, '[REG.runoverlap.hidden,textOf("runoverlap"),REG.runoverlap.title,REG.runoverlap.className]')
+        self.assertFalse(chip[0])
+        self.assertEqual(chip[1], "ran alongside 2 other runs")
+        self.assertIn("not a clean measure", chip[2])
+        self.assertNotIn("broken", chip[3])  # the template ships the chip's class: neutral, not a warning colour
+
+    def test_the_environment_card_is_in_the_run_detail_and_only_for_a_run_that_has_a_record(self):
+        doc = r23a_doc("20261008/r1-battleship-grok-none")
+        card = self.page(doc, 'byClass("rundetail","envcard").map(function(c){return c.textContent;})')
+        self.assertEqual(len(card), 1)
+        for text in ("Environment", "Other runs on the machine", "r1-checkers-sonnet (checkers on claude): 13.1 min together, started 4.7 min after this run",
+                     "Start of the run", "not an upper"):
+            self.assertIn(text.replace("not an upper", "neither an upper nor a lower bound"), card[0])
+        self.assertEqual(self.page(DONE_RUN, 'byClass("rundetail","envcard").length'), 0)
+
+    def test_the_how_it_ended_card_shows_the_product_at_the_stop_once_for_a_run_that_has_both_records(self):
+        ran = r23a_doc(product_at_stop=r23_figures()["examples"]["productAtStopRan"],
+                       shiploop={"pass": False, "worktree_checks": [{"command": "a", "pass": True}, {"command": "b", "pass": False}]})
+        self.assertIn("worktreeChecks", ran["verdicts"])
+        text = self.page(ran, 'textOf("endcard")')
+        self.assertIn("At the stop (information only)", text)
+        self.assertIn("1 of 2 checks pass in the unreturned worktree (engine active at implement)", text)
+        self.assertIn("TypeError: x is not a function", text)
+        self.assertNotIn("Product that was never returned", text)
+        self.assertEqual(text.count("checks pass in the unreturned worktree"), 1)
+
+    def test_every_new_element_the_page_script_names_is_in_the_template(self):
+        html = TEMPLATE.read_text(encoding="utf-8")
+        for ident in ("runrecord", "runoverlap"):
+            self.assertEqual(html.count(f'id="{ident}"'), 1, ident)
+        self.assertIn("envcard", html)
+
+
+class R23aStyleTests(unittest.TestCase):
+    """What a render shows and a node test cannot: a hidden element stays hidden, a row keeps one line per entry, and a long check
+    command or output wraps inside a phone-wide card instead of widening the page."""
+
+    CSS = TEMPLATE.read_text(encoding="utf-8").split("</style>")[0]
+
+    def test_the_record_block_and_the_chip_are_not_given_a_display_that_would_beat_the_hidden_attribute(self):
+        self.assertNotRegex(self.CSS, r"\.runrecord\s*\{[^}]*display")
+        self.assertNotRegex(self.CSS, r"#runoverlap\s*\{[^}]*display")
+
+    def test_the_environment_and_ending_rows_keep_a_line_per_entry_and_wrap_a_long_word(self):
+        for selector in (r"\.envcard \.facts dd", r"\.endcard \.facts dd"):
+            self.assertRegex(self.CSS, selector + r"\{[^}]*white-space:pre-line[^}]*overflow-wrap:anywhere")
+        self.assertRegex(self.CSS, r"\.runrecord\{[^}]*overflow-wrap:anywhere")
+
+    def test_the_environment_facts_are_one_column_on_a_phone_by_the_ordinary_facts_rule(self):
+        phone = self.CSS.split("@media (max-width:640px)")[1]
+        self.assertRegex(phone, r"\.facts[,{][^{]*\{grid-template-columns:1fr\}")
+        self.assertNotRegex(self.CSS, r"\.envcard \.facts\s*\{[^}]*grid-template-columns")  # nothing of its own to out-rank that rule
+
 
 if __name__ == "__main__":
     unittest.main()

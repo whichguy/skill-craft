@@ -188,11 +188,13 @@ label.opt .t{min-width:0}
 .kpi.wide{grid-column:1/-1}
 .kpi .kn{font-size:12px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
 .seqcard{margin-top:12px}
+.runrecord{font-family:var(--mono);font-size:12px;color:var(--muted);margin:-4px 0 10px;overflow-wrap:anywhere}
+.envcard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
 .endcard{margin-top:12px;border-left:4px solid var(--muted)}
 .endcard.stopped{border-left-color:var(--bent)}
 .endcard.blocked{border-left-color:var(--broken)}
 .endcard .facts{grid-template-columns:minmax(120px,210px) minmax(0,1fr)}
-.endcard .facts dd{white-space:pre-line}
+.endcard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
 .seqscroll{overflow-x:auto;padding-bottom:6px;margin-top:6px}
 .sq{display:block;height:auto;max-width:none}
 .sq text{font-family:var(--sans);font-size:11px;fill:var(--muted)}
@@ -302,7 +304,8 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <section class="step" id="step-1" data-step="1" aria-labelledby="h-step-1">
 <h2 id="h-step-1">1. What happened</h2>
 <p class="sub">Pick a run. Six numbers say how big it was. The picture shows every stage visit in order, how long each took, where Improve worked and, where the host measured it, how full the model's context was. Tap a column, or a row of the stage cards, for that visit's card: what the stage was for, what it was sent and what it wrote back. Below, the path every run should take and the Backchain time spent on it.</p>
-<div class="row"><label for="runsel">Run</label><select id="runsel"></select><span class="snap" id="runfacts"></span><span class="chip bent" id="runmode" hidden></span><span class="chip acc" id="runhosts" hidden></span></div>
+<div class="row"><label for="runsel">Run</label><select id="runsel"></select><span class="snap" id="runfacts"></span><span class="chip bent" id="runmode" hidden></span><span class="chip acc" id="runhosts" hidden></span><span class="chip muted" id="runoverlap" hidden></span></div>
+<div class="runrecord" id="runrecord" hidden></div>
 <div class="card endcard" id="endcard" hidden></div>
 <div id="arc" class="arc"></div>
 <div class="kpis" id="kpis" role="group" aria-label="Six numbers for this run"></div>
@@ -766,7 +769,8 @@ function endingModel(run){
       if(Array.isArray(lb.survived)&&lb.survived.length)rows.push(["Listeners still running",lb.survived.map(listenerText).join("; ")]);
     }
   }
-  var wt=worktreeOf(v.worktreeChecks);
+  var atStop=atStopRow(run),wt=atStop?null:worktreeOf(v.worktreeChecks);  /* the same checks in the same worktree: shown once, as productAtStop when the run has it */
+  if(atStop)rows.push(atStop);
   if(wt){
     var of=wt.passed+"/"+wt.total;
     rows.push(["Product that was never returned",v.checks===false&&wt.all?
@@ -798,6 +802,97 @@ function tailOf(run){
   return {stage:e.stage,min:isCount(e.unacceptedMin)?e.unacceptedMin:null,turns:isCount(e.unacceptedTurns)?e.unacceptedTurns:null,
     packetBytes:isCount(e.packetBytes)?e.packetBytes:null,action:typeof e.action==="string"?e.action:"",
     packetId:e.packetDoc===true&&typeof e.action==="string"&&typeof run.key==="string"?run.key+"--"+e.action:""};
+}
+
+/* ---- the run's record: outcome, build, environment and the product at the stop (R23a) ---- */
+/* The harness's ending as one plain line, "Outcome: BLOCKED, engine blocked at ... by access ...". A record, never a verdict: the page gives
+   it no colour and does not set it beside the verdicts. A run whose class the harness could not name reads "unknown"; "" without a record. */
+function outcomeText(run){
+  var o=run&&run.outcome&&typeof run.outcome==="object"?run.outcome:null;
+  if(!o)return "";
+  var cls=typeof o.class==="string"&&o.class?o.class:"",basis=typeof o.basis==="string"&&o.basis?o.basis:"";
+  return cls||basis?"Outcome: "+(cls||"unknown")+(basis?", "+basis:""):"";
+}
+var IDENTITY_LABELS=[["pluginSha","plugin"],["promptSha","prompt"],["hostBuild","host build"]];
+/* A long hash as its first 12 characters (the harness's hashes are 12 already); a version is printed as it is. */
+function shortSha(v){return /^[0-9a-f]{13,}$/.test(v)?v.slice(0,12):v;}
+/* The build under test as {text, title}: "Build: plugin 3a7515d2efd3, prompt d0c0cbe71344, host build 2.1.294". A field the export could not
+   measure says "not measured" (the harness's reason is the hint); null when the run has no build record and no reason for one. */
+function identityModel(run){
+  var id=run&&run.identity&&typeof run.identity==="object"?run.identity:null,parts=[],why=[];
+  IDENTITY_LABELS.forEach(function(p){
+    var v=id&&typeof id[p[0]]==="string"&&id[p[0]]?id[p[0]]:"",r=reasonFor(run,"identity."+p[0]);
+    if(v)parts.push(p[1]+" "+shortSha(v));
+    else if(r){parts.push(p[1]+" not measured");why.push(p[1]+": "+r);}
+  });
+  return parts.length?{text:"Build: "+parts.join(", "),title:"The build under test."+(why.length?" Not measured: "+why.join("; ")+".":"")}:null;
+}
+/* The overlap record of the run's environment ({basis, runs, ...}), or null when the run has none (not observed, or an older export). */
+function overlapOf(run){
+  var o=run&&run.environment&&typeof run.environment==="object"?run.environment.overlap:null;
+  return o&&typeof o==="object"&&Array.isArray(o.runs)?o:null;
+}
+/* The neutral chip for a run that shared the machine with others: {text, title}, or null when none was seen alongside. Minutes measured
+   while other runs shared the machine are not clean, so the header says so; it is a note on the measure, not a warning about the run. */
+function overlapChip(run){
+  var o=overlapOf(run);if(!o)return null;
+  var n=o.runs.length+(isCount(o.runsOmitted)&&o.runsOmitted>0?o.runsOmitted:0);
+  if(!n)return null;
+  var list=o.runs.map(function(r){return r.folder+" "+r.overlappedMin+" min";}).join(", ");
+  return {text:"ran alongside "+plural(n,"other run"),
+    title:"Shared the machine with: "+(list||"other runs")+". Minutes measured while other runs shared the machine are not a clean measure. "+(typeof o.basis==="string"?o.basis:"")};
+}
+/* One overlapping run as a line: its folder, what it was (case, hosts), the minutes shared and when it began against this run. */
+function siblingText(r){
+  var hosts=Array.isArray(r.hosts)&&r.hosts.length?(r.case?"on ":"")+r.hosts.join(", "):"",who=[r.case,hosts].filter(Boolean).join(" ");
+  var off=isCount(r.startedOffsetMin)?r.startedOffsetMin:null;
+  var began=off===null?"":off===0?", started with this run":off>0?", started "+off+" min after this run":", started "+(-off)+" min before this run";
+  return r.folder+(who?" ("+who+")":"")+": "+(isCount(r.overlappedMin)?r.overlappedMin+" min":"? min")+" together"+began;
+}
+/* The start's browser record in words: declared or not, probed or not and why, and what each probed target did. */
+function browserText(b){
+  if(b.probed===true){
+    var t=b.targets&&typeof b.targets==="object"?Object.keys(b.targets).map(function(k){return k+": "+b.targets[k];}):[];
+    return ["probed"+(b.version?" "+b.version:"")].concat(t).join("\n");
+  }
+  return b.declared===true?"declared, not probed"+(b.reason?": "+b.reason:""):"not declared"+(b.reason?" ("+b.reason+")":"");
+}
+var ENV_UNOBSERVED=[["environment.start","Start of the run"],["environment.end","End of the run"],["environment.overlap","Other runs on the machine"],
+  ["environment.browser","Browser"],["environment.browser.version","Browser version"],["environment.tools","Tools"],["environment","Environment"]];
+/* The Environment card: {note, rows [[label, text]]}, or null when the run has no environment record and no note on one. A part nobody
+   observed keeps the harness's reason ("not observed: ..."): a run that was only regraded observed neither its start nor its end. */
+function environmentModel(run){
+  var env=run&&run.environment&&typeof run.environment==="object"?run.environment:null,u=run&&run.unmeasured&&typeof run.unmeasured==="object"?run.unmeasured:{};
+  var rows=[],o=overlapOf(run),b=env&&env.browser&&typeof env.browser==="object"?env.browser:null;
+  if(env&&env.tools&&typeof env.tools==="object"&&Object.keys(env.tools).length)rows.push(["Tools",Object.keys(env.tools).map(function(k){return k+": "+env.tools[k];}).join("\n")]);
+  var unread=Object.keys(u).filter(function(k){return k.indexOf("environment.tools.")===0;}).map(function(k){return k.slice("environment.tools.".length)+": "+u[k];});
+  if(unread.length)rows.push(["Tools not read",unread.join("\n")]);
+  if(b)rows.push(["Browser",browserText(b)]);
+  if(o){
+    var more=isCount(o.runsOmitted)&&o.runsOmitted>0?"\n"+plural(o.runsOmitted,"more run")+" not listed":"";
+    rows.push(["Other runs on the machine",o.runs.length?o.runs.map(siblingText).join("\n")+more:"none seen: no sibling folder's host events overlapped this run's (this does not say nothing else ran)"]);
+    if(Array.isArray(o.unreadable)&&o.unreadable.length)rows.push(["Sibling folders not read",o.unreadable.join(", ")]);
+    if(typeof o.basis==="string"&&o.basis)rows.push(["How that is counted",o.basis]);
+  }
+  ENV_UNOBSERVED.forEach(function(p){if(typeof u[p[0]]==="string")rows.push([p[1],"not observed: "+u[p[0]]]);});
+  return rows.length?{note:"A record of the machine and of the other runs on it while this run ran. It is not a verdict on the run.",rows:rows}:null;
+}
+/* The product at the stop as a row of the "How it ended" card, [label, text], or null: how many of the case's checks pass in the worktree the run
+   never returned, with the engine's position (a partial product is not a finished one), and each check that did not pass with what it printed.
+   Information only; a record that is not the exported shape draws nothing, so no verdict is invented from it. */
+function atStopRow(run){
+  var p=run&&run.productAtStop&&typeof run.productAtStop==="object"?run.productAtStop:null,label="At the stop (information only)";
+  if(!p||typeof p.ran!=="boolean")return null;
+  if(!p.ran)return [label,"the checks did not run in the unreturned worktree"+(p.reason?": "+p.reason:"")];
+  if(!isCount(p.total)||p.total<1||!isCount(p.passed)||p.passed<0||p.passed>p.total)return null;
+  var at=[p.engineStatus,p.engineStage?"at "+p.engineStage:""].filter(Boolean).join(" "),checks=Array.isArray(p.checks)?p.checks:[];
+  var lines=[p.passed+" of "+p.total+" checks pass in the unreturned worktree"+(isCount(p.timedOut)&&p.timedOut>0?", "+p.timedOut+" timed out":"")+(at?" (engine "+at+")":"")];
+  checks.forEach(function(c){
+    if(!c||c.pass===true)return;
+    lines.push((c.timedOut===true?"timed out":"failed")+": "+c.command+(isCount(c.returncode)?" (exit "+c.returncode+")":"")+(c.output?"\n    "+c.output:""));
+  });
+  if(checks.length<p.total)lines.push("("+checks.length+" of "+p.total+" checks listed)");
+  return [label,lines.join("\n")];
 }
 
 /* ---- script checks, unverified outcomes, tool use and the planning window (R22b) ---- */
@@ -1493,6 +1588,7 @@ function renderFlow(){
   var f=byId("flow");clear(f);
   var P=phases();
   renderEnding(o.run);
+  renderRunRecord(o.run);
   var hc=byId("runhosts"),hostc=o.run?hostChip(o.run):null;hc.hidden=!hostc;hc.textContent=hostc?hostc.text:"";hc.title=hostc?hostc.title:"";
   if(!o.run){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.runs?"No runs recorded yet.":"Loading the shared record."));byId("runfacts").textContent="";byId("runmode").hidden=true;return;}
   if(!P.length){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.exp?"No stages are defined yet. Seed the starting expectations (the shiploop-run-review skill, SKILL.md).":"Loading the shared record."));return;}
@@ -1535,6 +1631,21 @@ function renderFlow(){
     });
     f.appendChild(cell);
   });
+}
+/* The outcome and build lines under the run header and the chip for a run that shared the machine (R23a); hidden when the run has none. */
+function renderRunRecord(run){
+  var box=byId("runrecord"),chip=byId("runoverlap");clear(box);
+  var line=run?outcomeText(run):"",id=run?identityModel(run):null,oc=run?overlapChip(run):null;
+  if(line)box.appendChild(h("div","",line));
+  if(id){var d=h("div","",id.text);d.title=id.title;box.appendChild(d);}
+  box.hidden=!(line||id);
+  chip.hidden=!oc;chip.textContent=oc?oc.text:"";chip.title=oc?oc.title:"";
+}
+/* The Environment card of the run detail (R23a), from environmentModel; null when the run has no record of its environment. */
+function envCard(run){
+  var m=environmentModel(run);if(!m)return null;
+  var card=h("div","card envcard");card.appendChild(h("h3","","Environment"));card.appendChild(h("p","sub",m.note));card.appendChild(factsEl(m.rows));
+  return card;
 }
 /* "How it ended": the card under the header, built from endingModel; hidden when the run has nothing to say. */
 function renderEnding(run){
@@ -2074,6 +2185,7 @@ function renderRunDetail(){
     if(k==="worktreeChecks"&&!wt)return;  /* not {passed, total}: no verdict is invented */
     vc.appendChild(h("span","chip "+((wt?wt.all:v)?"holds":"broken"),wt?"worktree checks "+wt.passed+"/"+wt.total:k+(v?" pass":" fail")));});card.appendChild(vc);}
   box.appendChild(card);
+  var envc=envCard(A);if(envc)box.appendChild(envc);
   // the same six numbers for the second run, side by side (the picture and its table are in the step above)
   if(B){
     var cm=h("div","card"),ca=sequenceModel(A,{loops:loopsFor(A)}).cards,cb=sequenceModel(B,{loops:loopsFor(B)}).cards;

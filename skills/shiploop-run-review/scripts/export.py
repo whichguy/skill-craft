@@ -1439,13 +1439,13 @@ def _overlap(overlap: dict) -> dict | None:
         together, offset = _tenths(item.get("overlapped_seconds")), _tenths(item.get("started_offset_seconds"))
         if together is None or offset is None:
             continue
-        row = {"folder": item["folder"], "overlappedMin": together, "startedOffsetMin": offset}
+        row = {"folder": item["folder"]}
         if _text(item.get("case")):
             row["case"] = item["case"]
         hosts = [h for h in item.get("hosts") or [] if _text(h)] if isinstance(item.get("hosts"), list) else []
         if hosts:
             row["hosts"] = hosts
-        runs.append(row)
+        runs.append({**row, "overlappedMin": together, "startedOffsetMin": offset})
     found: dict = {"basis": _line(basis, len(basis)), "runs": runs[:MAX_OVERLAP_RUNS]}
     if len(items) > len(found["runs"]):
         found["runsOmitted"] = len(items) - len(found["runs"])
@@ -2341,7 +2341,7 @@ def _record_lines(run) -> list[str]:
         listed = ", ".join(f"{r['folder']} {r['overlappedMin']} min" for r in overlap["runs"])
         parts.append((f"ran alongside {_count(len(overlap['runs']) + overlap.get('runsOmitted', 0), 'other run')} ({listed})"
                       if overlap["runs"] else "no sibling run overlapped (host events of the sibling folders only)")
-                     + "; its seconds are neither an upper nor a lower bound")
+                     + "; the shared seconds are neither an upper nor a lower bound")
     gone = [f"{key[len('environment.'):]} ({reason})" for key, reason in unmeasured.items() if key.startswith("environment.") and key.count(".") == 1]
     if gone:
         parts.append("not observed: " + "; ".join(gone))
