@@ -580,7 +580,7 @@ stands at the commit under test.
   measure are not built. The README and LEARNINGS deferral of a stage-named trigger stands: phase 1 does not reverse it,
   and the documented path is an external watcher that creates `<output>/stop` when `state.md` shows the target boundary,
   then `--resume-run`. Phase 2 (`--clear-at`) is built only if the first live probes show that the stop file's overshoot
-  (its 2 s poll, up to 2.25 s) or the two-invocation procedure is inadequate. Engine movement between the kill and the
+  (the watcher's 0.5 s poll plus the harness's 2 s one) or the two-invocation procedure is inadequate. Engine movement between the kill and the
   fresh session is read from the revisions the killed session's `end` row, the fresh session's `start` row and its first
   `next` result carry (`after_kill.moved`), never from an invented wait. *Evidence.* test/shiploop-e2e-reorientation.test.py, over compact extracts of the saved runs named
   above (test/fixtures/reorientation/).
