@@ -410,7 +410,7 @@ def keep_awake(argv: list[str]) -> list[str]:
     A run takes an hour or more. -i keeps the machine from idle-sleeping, which otherwise freezes the host mid-stage
     and stretches every stage timing. -d keeps the display on: on 2026-10-07 the display was off from 06:04 to 10:10
     (pmset log), the whole window in which headless Chrome never loaded a page for the Grok run, and on 2026-10-06,
-    display on, the same host loaded it. That is a correlation, not a proven cause (a display woken with
+    display on, the same host loaded it. SUPERSEDED 2026-10-09: with the display held awake headless Chrome still failed to load http://127.0.0.1 in the Grok host and worked in every Claude run, so display sleep is not the explanation; the hold stays only as harmless hygiene. That is a correlation, not a proven cause (a display woken with
     `caffeinate -u -d` still hung once), so this removes a variable and claims nothing more.
     """
     caffeinate = shutil.which("caffeinate") if sys.platform == "darwin" else None

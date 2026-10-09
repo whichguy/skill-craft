@@ -52,7 +52,8 @@
    "accepted_rows": 52,
    "minutes": 61.0,
    "planning_minutes": 10.7,
-   "outcome": "harness SIGTERMed at ~15 min (a concurrent Checkers model ran pkill -f 'node server.js', which matched this harness's argv); host orphaned, resumed in place under the harness, ShipLoop done (52 accepted), regraded PASS after fixing a metrics KeyError"
+   "outcome": "MIXED-HOST (corrected 2026-10-09): Grok orphaned host did visits 9..31 after the harness was SIGTERMed by a concurrent Checkers model's pkill -f 'node server.js'; a resume without --host grok defaulted to Claude Sonnet 5.5, which did visits 31..52 including the browser check; not a Grok result after visit 31; the numbers here mix both",
+   "mixed_host": true
   },
   "r3_battleship_sonnet": {
    "pass": true,
