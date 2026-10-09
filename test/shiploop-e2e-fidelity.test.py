@@ -203,6 +203,10 @@ class UnwrapTest(unittest.TestCase):
         self.assertEqual(self.fidelity.commit_forms(wrapped), ["git commit"])
         self.assertEqual(self.fidelity.commit_forms('/bin/zsh -lc "cd w && git -C w add -A && git -C w commit -q -m y"'),
                          ["git add", "git commit"])
+        # The form is the subcommand, not a word of the path or the message.
+        self.assertEqual(self.fidelity.commit_forms('git -C /x/add-dir commit -q -m "test: add the thing"'), ["git commit"])
+        self.assertEqual(self.fidelity.commit_forms('git -c user.name=a -c user.email=b add -A && git commit -m "add x"'),
+                         ["git add", "git commit"])
 
     def test_real_codex_command_strings_of_the_1_21_0_run(self):
         # Event 731 of v1210-battleship-luna-xhigh feeds a report to the Until Loop runtime through a heredoc whose prose says
@@ -599,6 +603,8 @@ class EditsTest(unittest.TestCase):
             "pgrep -f server.js | xargs kill": ["pgrep -f server.js | xargs kill"],
             "sudo pkill -f x": ["pkill -f x"],
             '/bin/zsh -lc "pkill -f node"': ["pkill -f node"],
+            "if lsof -i :3000; then pkill -f server.js; fi": ["pkill -f server.js"],
+            'pkill -f "http-probe.mjs" 2>/dev/null || true': ['pkill -f "http-probe.mjs"'],
         }
         for command, forms in cases.items():
             with self.subTest(command=command):

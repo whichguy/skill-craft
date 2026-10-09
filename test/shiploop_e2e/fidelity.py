@@ -181,7 +181,7 @@ def shell_edits(command: str) -> list[dict]:
     return hits
 
 
-NAME_KILL = re.compile(r"(?:(?:^|[;&|(])[ \t]*(?:sudo[ \t]+)?(?P<by>(?:pkill|killall)\b[^\n;&|)]*)"
+NAME_KILL = re.compile(r"(?:(?:^|[;&|(])[ \t]*(?:(?:then|do|else)[ \t]+)?(?:sudo[ \t]+)?(?P<by>(?:pkill|killall)\b[^\n;&|)]*)"
                        r"|(?P<pipe>\bpgrep\b[^\n;&]*\|[ \t]*xargs[ \t]+(?:-\S+[ \t]+)*kill\b[^\n;&|]*)"
                        r"|(?P<sub>\bkill\b[^\n;&|]*(?:\$\(|`)[ \t]*pgrep\b[^\n)`]*[)`]))", re.M)
 
@@ -196,10 +196,15 @@ def name_kills(command: str) -> list[str]:
     return [TRAILING_REDIRECT.sub("", text.strip())[:120] for text in found]
 
 
+# `git [-C path] [-c key=value] [--option] commit|add`: the subcommand, not a word of a path or a message that says add or commit.
+GIT_SUBCOMMAND = re.compile(r"\bgit\b(?:\s+(?:-C|-c|--git-dir|--work-tree)\s+\S+|\s+--?\S+)*\s+(commit|add)\b")
+
+
 def commit_forms(command: str) -> list[str]:
     """`git add` and `git commit` invocations of a command, in order, by the frozen glue reader's own pattern (one meaning of a
     model commit command) applied to the unwrapped command."""
-    return ["git " + re.search(r"\b(commit|add)\b", m.group(0)).group(1) for m in metrics.GLUE_COMMIT.finditer(shell_view(command))]
+    return ["git " + (GIT_SUBCOMMAND.search(m.group(0)) or re.search(r"\b(commit|add)\b", m.group(0))).group(1)
+            for m in metrics.GLUE_COMMIT.finditer(shell_view(command))]
 
 
 # --- evidence -------------------------------------------------------------------------------------------------------------
