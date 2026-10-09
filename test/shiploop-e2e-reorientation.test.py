@@ -1385,6 +1385,44 @@ class GroundingKindsTest(unittest.TestCase):
             self.assertEqual(measure.first_call(events, 0)["kind"], "plain")
 
 
+class LaunchBookendsTest(unittest.TestCase):
+    """The start row is written once launch's own checks have passed (fix-round item 16): a refusal before any host ran leaves no
+    session behind, and the row's events_line is the very line launch counted."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.out = Path(self._tmp.name)
+        self.work = self.out / "work"
+        self.work.mkdir()
+        patched = MAIN.nothing_listens()
+        patched.__enter__()
+        self.addCleanup(patched.__exit__, None, None, None)
+
+    def test_a_refusal_before_the_host_starts_never_calls_before_start(self):
+        (self.work / "leftover.txt").write_text("x")
+        called = []
+        with self.assertRaises(SystemExit):
+            run.launch([sys.executable, "-c", "pass"], self.work, self.out, dict(os.environ), 30, watch=False,
+                       before_start=called.append)
+        self.assertEqual(called, [])
+
+    def test_before_start_runs_before_the_host_is_spawned_with_the_line_launch_counted(self):
+        (self.out / "events.jsonl").write_text('{"type": "a"}\n{"type": "b"}\n')
+        marker = self.out / "marker"
+        seen = []
+        script = f"import pathlib; print('{{}}'); pathlib.Path({str(self.out / 'seen')!r}).write_text(str(pathlib.Path({str(marker)!r}).exists()))"
+
+        def begin(line):
+            seen.append(line)
+            marker.write_text("started")
+
+        done = run.launch([sys.executable, "-c", script], self.work, self.out, dict(os.environ), 30, watch=False,
+                          first=False, before_start=begin)
+        self.assertEqual((done["status"], seen), ("exited", [2]))
+        self.assertEqual((self.out / "seen").read_text(), "True", "the marker existed when the host ran")
+
+
 class SessionLogTest(unittest.TestCase):
     """sessions.jsonl: the harness's append-only record of every host launch and every session end."""
 
@@ -1588,6 +1626,7 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
         seen = []
 
         def peek(argv, work, out, *a, **kw):
+            kw["before_start"](0)  # launch calls it once its own checks pass, just before it spawns the host
             seen.append(sessionlog.read(out))
             raise RuntimeError("the harness dies here")
 
@@ -1639,6 +1678,16 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
         self.assertEqual(got[1]["events_line"], got[0]["end"]["events_line"])
         self.assertEqual(got[1]["told"]["cli"], str(self.cli))
         self.assertTrue(got[1]["told"]["run_dir"].endswith("/run"))
+
+    def test_a_launch_refused_before_any_host_ran_leaves_no_session_rows(self):
+        import sessionlog
+        out = self.tmp / "refused"
+        with mock.patch.object(run, "launch", side_effect=SystemExit("working directory is not empty: ['x']")), \
+                contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                run.main(["--host", "claude", "--claude-bin", str(self.fakes["claude"]), "--output", str(out),
+                          "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        self.assertEqual(sessionlog.read(out), None, "no host ran: no session row, not a 'crashed' one")
 
     def test_a_ledger_that_cannot_be_read_never_stops_a_launch(self):
         # The record is fail-open: a defect reading the engine state leaves `engine` null and the host still runs.

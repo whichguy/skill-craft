@@ -439,8 +439,13 @@ def events_line_count(events_path: Path, repair: bool = True) -> int:
 
 
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
-           first: bool = True, fresh: bool = True, translate=None, stop_when=None, stop_file: Path | None = None) -> dict:
+           first: bool = True, fresh: bool = True, translate=None, stop_when=None, stop_file: Path | None = None,
+           before_start=None) -> dict:
     """Run one host session. `stop_when`, polled every POLL_SECONDS, kills the session (status "interrupted").
+
+    `before_start(line)` is called once the checks above pass and before the host is spawned, with the number of events.jsonl
+    lines already written (the session's first event will be that line): the session record's start row, which therefore
+    exists for every host that ran and for no launch that was refused.
 
     A `stop_file` that exists kills it the same way with status "stopped": a person's request to end the run
     (the caller consumes the file). So does a SIGTERM or SIGHUP to the harness (TERMINATION, set by on_termination, which
@@ -466,6 +471,8 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     stop = None
     events_path = out / "events.jsonl"
     line = 0 if first else events_line_count(events_path)
+    if before_start is not None:
+        before_start(line)
     argv = keep_awake(argv)
     with events_path.open(mode) as events, (out / "stderr.txt").open(mode) as stderr, \
             (out / "timeline.jsonl").open("w" if first else "a") as stamps:
@@ -1722,16 +1729,20 @@ def _main(argv: list[str] | None, held: list) -> int:
         """One host launch, bracketed in sessions.jsonl: the start row before the host runs (a harness that dies keeps the
         boundary), the end row after it, with the ledger as it stands at that moment (also when the launch raises)."""
         events_path = out / "events.jsonl"
-        row = sessionlog.start(out, kind=kind, reason=reason, host=host.name, model=args.model, told=told,
-                               events_line=0 if launch_kw.get("first", True) else events_line_count(events_path),
-                               resumed_session=resumed_session, engine=engine_now())
+        started: list = []
+
+        def begin(events_line: int) -> None:
+            started.append(sessionlog.start(out, kind=kind, reason=reason, host=host.name, model=args.model, told=told,
+                                            events_line=events_line, resumed_session=resumed_session, engine=engine_now()))
+
         done = None
         try:
-            done = launch(*launch_args, **launch_kw)
+            done = launch(*launch_args, before_start=begin, **launch_kw)
         finally:
-            sessionlog.end(out, row, events_line=events_line_count(events_path, repair=False),
-                           status=(done or {}).get("status", "crashed"), returncode=(done or {}).get("returncode"),
-                           engine=engine_now())
+            if started:  # a launch refused before any host ran leaves no session behind
+                sessionlog.end(out, started[0], events_line=events_line_count(events_path, repair=False),
+                               status=(done or {}).get("status", "crashed"), returncode=(done or {}).get("returncode"),
+                               engine=engine_now())
         left_behind.append(done.pop("left_behind", None))  # a run's one record is built below, not repeated per session
         return done
 
