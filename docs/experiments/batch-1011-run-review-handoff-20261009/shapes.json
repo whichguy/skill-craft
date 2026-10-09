@@ -1,0 +1,1051 @@
+{
+ "result.json": [
+  {
+   "path": "outcome_class",
+   "type": "string",
+   "example": "\"PASS\"",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4",
+   "new": true,
+   "null_means": "unknown (outcome_basis says why); never a verdict"
+  },
+  {
+   "path": "outcome_basis",
+   "type": "string",
+   "example": "\"every verdict passed\"",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4",
+   "new": true,
+   "null_means": "never null"
+  },
+  {
+   "path": "termination.engine_blocked_by",
+   "type": "string",
+   "example": "\"access\"",
+   "source": "20261008/r1-battleship-grok-none",
+   "group": "G4",
+   "new": true,
+   "null_means": "no accepted blocked result, or the block was answered"
+  },
+  {
+   "path": "termination.engine_awaiting_kind",
+   "type": "string",
+   "example": "\"answer\"",
+   "source": "20261008/r1-battleship-grok-none",
+   "group": "G4",
+   "new": true,
+   "null_means": "as engine_blocked_by"
+  },
+  {
+   "path": "termination.engine_awaiting_no_default",
+   "type": "boolean",
+   "example": "true",
+   "source": "20261008/r1-battleship-grok-none",
+   "group": "G4",
+   "new": true,
+   "null_means": "awaits no one (true: the result states why no default would do)"
+  },
+  {
+   "path": "termination.engine_status_at_regrade",
+   "type": "string",
+   "example": "\"done\"",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "base",
+   "new": false,
+   "null_means": "(only on a regrade that kept the original ending)"
+  },
+  {
+   "path": "termination.engine_stage_at_regrade",
+   "type": "string",
+   "example": "\"unknown\"",
+   "source": "fake claude hello, regraded",
+   "group": "G4",
+   "new": true,
+   "null_means": "(regrade only)"
+  },
+  {
+   "path": "termination.engine_blocked_by_at_regrade",
+   "type": "null",
+   "example": "null",
+   "source": "fake claude hello, regraded",
+   "group": "G4",
+   "new": true,
+   "null_means": "(regrade only) as engine_blocked_by"
+  },
+  {
+   "path": "product_at_stop",
+   "type": "object",
+   "example": "{\"information_only\": true, \"ran\": false, \"reason\": \"no worktree directory under the run's workspace\", \"engine\u2026",
+   "source": "fake grok hello, stopped (engine active)",
+   "group": "G4",
+   "new": true,
+   "null_means": "absent for a run that passed"
+  },
+  {
+   "path": "product_at_stop.ran",
+   "type": "boolean",
+   "example": "false",
+   "source": "fake grok hello, stopped (engine active)",
+   "group": "G4",
+   "new": true,
+   "null_means": "never null; false with reason when nothing could run"
+  },
+  {
+   "path": "product_at_stop.checks[]",
+   "type": "(absent)",
+   "example": "",
+   "source": "",
+   "group": "G4",
+   "new": true,
+   "null_means": "(ran: true)"
+  },
+  {
+   "path": "environment.start",
+   "type": "object",
+   "example": "{\"observed\": false, \"reason\": \"regraded: the launch record has no environment (it was written before the reco\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4",
+   "new": true,
+   "null_means": "{observed: false, reason} when not recorded"
+  },
+  {
+   "path": "environment.start.tools",
+   "type": "object",
+   "example": "{\"node\": \"v25.9.0\", \"python3\": \"Python 3.14.7\", \"git\": \"git version 2.54.0 (Apple Git-157)\"}",
+   "source": "fake claude hello",
+   "group": "G4",
+   "new": true,
+   "null_means": "(observed start) a tool not found or not read is null, reason in unread"
+  },
+  {
+   "path": "environment.start.browser",
+   "type": "object",
+   "example": "{\"declared\": false, \"probed\": false, \"reason\": \"no case or --need declares a browser\"}",
+   "source": "fake claude hello",
+   "group": "G4",
+   "new": true,
+   "null_means": "(observed start) {declared: false, ...} when no need is declared"
+  },
+  {
+   "path": "environment.end",
+   "type": "object",
+   "example": "{\"observed\": false, \"reason\": \"regraded: the end of the run was not observed\"}",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4",
+   "new": true,
+   "null_means": "{observed: false, reason} for a regrade"
+  },
+  {
+   "path": "environment.hosts_used",
+   "type": "array",
+   "example": "[\"claude\"]",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4",
+   "new": true,
+   "null_means": "{observed: false, reason} when a launch record cannot be read"
+  },
+  {
+   "path": "environment.mixed_host",
+   "type": "boolean",
+   "example": "false",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4",
+   "new": true,
+   "null_means": "as hosts_used"
+  },
+  {
+   "path": "environment.environments[]",
+   "type": "object",
+   "example": "{\"launch\": \"invocation.json\", \"host\": \"claude\", \"model\": \"claude-sonnet-5-5\", \"effort\": null, \"host_build\": n\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4",
+   "new": true,
+   "null_means": "one entry per readable launch, first first"
+  },
+  {
+   "path": "environment.environments[].host_build",
+   "type": "null",
+   "example": "null",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4+G3",
+   "new": true,
+   "null_means": "null with identity_unmeasured.host_build (runrecord.host_build)"
+  },
+  {
+   "path": "environment.environments[].identity_unmeasured",
+   "type": "object",
+   "example": "{\"host_build\": \"Claude: read from the init event after the run\"}",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "integration",
+   "new": true,
+   "null_means": "{} when the build is known"
+  },
+  {
+   "path": "environment.environments[].environment",
+   "type": "object",
+   "example": "{\"observed\": true, \"at\": \"2026-10-09T20:33:31Z\", \"tools\": {\"node\": \"v25.9.0\", \"python3\": \"Python 3.14.7\", \"gi\u2026",
+   "source": "fake claude hello",
+   "group": "G4",
+   "new": true,
+   "null_means": "null with environment_reason for a launch from before the record"
+  },
+  {
+   "path": "environment.launches_unreadable",
+   "type": "array",
+   "example": "[]",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4",
+   "new": true,
+   "null_means": "[] when every launch record reads"
+  },
+  {
+   "path": "environment.overlap",
+   "type": "object",
+   "example": "{\"observed\": true, \"basis\": \"the first and last host event of this run and of each sibling folder in the same\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4",
+   "new": true,
+   "null_means": "{observed: false, reason} when this run's timeline has no span"
+  },
+  {
+   "path": "environment.overlap.runs[]",
+   "type": "object",
+   "example": "{\"folder\": \"r1-battleship-grok-none\", \"case\": \"custom\", \"hosts\": [\"grok\"], \"hosts_reason\": null, \"overlapped_\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4",
+   "new": true,
+   "null_means": "[] means no sibling's host events overlapped (not that nothing else ran)"
+  },
+  {
+   "path": "environment.overlap.siblings_unreadable",
+   "type": "array",
+   "example": "[]",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G4",
+   "new": true,
+   "null_means": "names, never dropped"
+  },
+  {
+   "path": "quality",
+   "type": "object",
+   "example": "{\"observed\": true, \"declared\": [\"mutation\", \"acceptance\"], \"hosts_used\": [\"claude\"], \"mixed_host\": false, \"de\u2026",
+   "source": "G5 evidence: 20261008/r3-checkers-sonnet (its real events.jsonl and work/, hosts from its invocation.json); sweep 1 of 5",
+   "group": "G5",
+   "new": true,
+   "null_means": "absent on runs from before this change; {observed: false, reason} when not measured"
+  },
+  {
+   "path": "quality.mutation.ratio",
+   "type": "number",
+   "example": "0.907",
+   "source": "G5 evidence: 20261008/r3-checkers-sonnet (its real events.jsonl and work/, hosts from its invocation.json); sweep 1 of 5",
+   "group": "G5",
+   "new": true,
+   "null_means": "(observed) killed / (killed + survived); compare only within one operator_id"
+  },
+  {
+   "path": "quality.acceptance",
+   "type": "object",
+   "example": "{\"observed\": true, \"source\": \"hand-written from the request, never shown to the model, run in the harness pro\u2026",
+   "source": "G5 evidence: 20261008/r3-checkers-sonnet (its real events.jsonl and work/, hosts from its invocation.json); sweep 1 of 5",
+   "group": "G5",
+   "new": true,
+   "null_means": "(Checkers) {observed: false, reason} when not run"
+  },
+  {
+   "path": "quality.memory_writes",
+   "type": "array",
+   "example": "[{\"path\": \"~/.claude/projects/-Users-dadleet-e2e-runs-20261008-r3-checkers-sonnet-work/memory/feedback_no-bro\u2026",
+   "source": "G5 evidence: 20261008/r3-checkers-sonnet (its real events.jsonl and work/, hosts from its invocation.json); sweep 1 of 5",
+   "group": "G5",
+   "new": true,
+   "null_means": "null with unmeasured.memory_writes when no Claude session or no launch record"
+  },
+  {
+   "path": "prompt_sha256",
+   "type": "string",
+   "example": "\"d0c0cbe71344\"",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "the case prompt (before a --planning-review none sentence), output folder masked"
+  },
+  {
+   "path": "host_build",
+   "type": "string",
+   "example": "\"2.1.294\"",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "null with identity_unmeasured.host_build (the FIRST launch's build)"
+  },
+  {
+   "path": "span",
+   "type": "object",
+   "example": "{\"started\": 1791481009.116, \"ended\": 1791481838.24}",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "{started: null, ended: null} without readable timeline stamps"
+  },
+  {
+   "path": "identity_unmeasured",
+   "type": "object",
+   "example": "{\"plugin_sha256\": \"not recorded by this result (it predates the field)\", \"prompt_sha256\": \"not recorded by th\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "{} when every identity field is known; a reason per null field"
+  },
+  {
+   "path": "versions.plugin_sha256",
+   "type": "string",
+   "example": "\"3a7515d2efd3\"",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "null with versions.plugin_sha256_unmeasured / identity_unmeasured.plugin_sha256"
+  }
+ ],
+ "metrics.json": [
+  {
+   "path": "fidelity",
+   "type": "object",
+   "example": "{\"schema\": \"shiploop-e2e-fidelity/v1\", \"tool_calls_seen\": 120, \"unmeasured\": {\"validation.accepted_ran\": \"no \u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G1",
+   "new": true,
+   "null_means": "{schema, error} when the builder raised; parts null with fidelity.unmeasured[part]"
+  },
+  {
+   "path": "fidelity.evidence",
+   "type": "object",
+   "example": "{\"counts\": {\"script\": 15, \"loop\": 7, \"file\": 1, \"note\": 12, \"sentence\": 0, \"skipped\": 2, \"unclassified\": 0}, \u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G1",
+   "new": true,
+   "null_means": "null with unmeasured.evidence"
+  },
+  {
+   "path": "fidelity.validation",
+   "type": "object",
+   "example": "{\"records\": 10, \"unread\": 0, \"runs\": 29, \"distinct_commands\": 6, \"passed\": 10, \"could_not_run\": 0, \"red\": 2, \u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G1",
+   "new": true,
+   "null_means": "null with unmeasured.validation"
+  },
+  {
+   "path": "fidelity.edits",
+   "type": "object",
+   "example": "{\"script_owned\": [{\"event\": 493, \"tool\": \"Bash\", \"form\": \"sed -i\", \"target\": \"<run>/.shiploop-runs/work-20261\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G1",
+   "new": true,
+   "null_means": "heuristic list; null when the stream holds no tool call"
+  },
+  {
+   "path": "fidelity.refusals",
+   "type": "object",
+   "example": "{\"count\": 5, \"repeated\": 1, \"unstaged\": 0, \"limits\": \"a repeat needs a known stage (the stage join is whole s\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G1",
+   "new": true,
+   "null_means": "heuristic list"
+  },
+  {
+   "path": "fidelity.end_state",
+   "type": "object",
+   "example": "{\"status\": \"done\", \"stage\": \"done\", \"unaccepted_stage\": null, \"status_reason\": null, \"blocked_by\": null, \"awa\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G1",
+   "new": true,
+   "null_means": "null with unmeasured.end_state (blocked fields read through metrics.blocked_detail)"
+  },
+  {
+   "path": "fidelity.improve_packets",
+   "type": "object",
+   "example": "{\"read\": 8, \"carried\": {\"goal\": 0, \"done_when\": 0, \"checked_by\": 8, \"output\": 8, \"recovery\": 8}, \"missing\": [\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G1",
+   "new": true,
+   "null_means": "null for the old packet layout"
+  },
+  {
+   "path": "fidelity.unmeasured",
+   "type": "object",
+   "example": "{\"validation.accepted_ran\": \"no verify row carries accepted_ran (an engine that does not write it, or no row \u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G1",
+   "new": true,
+   "null_means": "{} when every part was measured"
+  },
+  {
+   "path": "fresh_starts",
+   "type": "array",
+   "example": "[]",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G2",
+   "new": true,
+   "null_means": "[] measured none only when fresh_starts_unmeasured is null"
+  },
+  {
+   "path": "fresh_starts[].reorientation",
+   "type": "object",
+   "example": "{\"measured\": true, \"accepted\": {\"stage\": \"plan\", \"action\": \"nav-095e163a750546978c5cc60fde97416b\"}, \"tool_cal\u2026",
+   "source": "20261008/r1-battleship-grok-none",
+   "group": "G2",
+   "new": true,
+   "null_means": "measured: false with reason, and no counts, when the window cannot be placed"
+  },
+  {
+   "path": "fresh_starts_unmeasured",
+   "type": "string",
+   "example": "\"not recorded: this run has no sessions.jsonl (the harness wrote it from 2026-10-09), so its host session sta\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G2",
+   "new": true,
+   "null_means": "null when the list is complete; else notes joined with '; '"
+  },
+  {
+   "path": "unreported_sessions",
+   "type": "integer",
+   "example": "0",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": false,
+   "null_means": "null for a stream with Grok in it (no session start marker), reason in unmeasured"
+  },
+  {
+   "path": "unreported_sessions_at_least",
+   "type": "integer",
+   "example": "0",
+   "source": "20261008/r1-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where the count is exact (not Grok)"
+  },
+  {
+   "path": "span",
+   "type": "object",
+   "example": "{\"started\": 1791481009.116, \"ended\": 1791481838.24}",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "{started: null, ended: null} without readable stamps"
+  }
+ ],
+ "sessions.jsonl": [
+  {
+   "path": "row",
+   "type": "string",
+   "example": "\"start\"",
+   "source": "fake claude hello",
+   "group": "G2",
+   "new": true,
+   "null_means": "start | end"
+  },
+  {
+   "path": "n",
+   "type": "integer",
+   "example": "1",
+   "source": "fake claude hello",
+   "group": "G2",
+   "new": true,
+   "null_means": "the launch's number"
+  },
+  {
+   "path": "kind",
+   "type": "string",
+   "example": "\"first\"",
+   "source": "fake claude hello",
+   "group": "G2",
+   "new": true,
+   "null_means": "first | fresh | continued"
+  },
+  {
+   "path": "reason",
+   "type": "string",
+   "example": "\"start\"",
+   "source": "fake claude hello",
+   "group": "G2",
+   "new": true,
+   "null_means": "start | resume-run | after-interrupt | resume-loop"
+  },
+  {
+   "path": "events_line",
+   "type": "integer",
+   "example": "0",
+   "source": "fake claude hello",
+   "group": "G2",
+   "new": true,
+   "null_means": "never null"
+  },
+  {
+   "path": "told",
+   "type": "object",
+   "example": "{\"cli\": \"<e2e-runs>/20261008/r3-battleship-grok-none/home/.grok/installed-plugins/skill-craft-f132a56c/skills\u2026",
+   "source": "G2 fixture r3-battleship-grok-none (reconstructed)",
+   "group": "G2",
+   "new": true,
+   "null_means": "null for a first launch (no recovery command)"
+  },
+  {
+   "path": "engine",
+   "type": "object",
+   "example": "{\"status\": \"done\", \"stage\": null, \"revision\": null, \"accepted\": 0, \"last_accepted\": null}",
+   "source": "fake claude hello (end row)",
+   "group": "G2",
+   "new": true,
+   "null_means": "null before ShipLoop wrote state"
+  },
+  {
+   "path": "status",
+   "type": "string",
+   "example": "\"exited\"",
+   "source": "fake claude hello (end row)",
+   "group": "G2",
+   "new": true,
+   "null_means": "(end row) exited | stopped | ... | crashed"
+  },
+  {
+   "path": "reconstructed",
+   "type": "boolean",
+   "example": "true",
+   "source": "G2 fixture r3-battleship-grok-none (reconstructed)",
+   "group": "G2",
+   "new": true,
+   "null_means": "(only in G2's fixtures of runs from before sessions.jsonl)"
+  }
+ ],
+ "invocation*.json": [
+  {
+   "path": "host_build",
+   "type": "null",
+   "example": "null",
+   "source": "fake claude hello",
+   "group": "G3",
+   "new": true,
+   "null_means": "null with identity_unmeasured.host_build; Claude's is always null (init event)"
+  },
+  {
+   "path": "identity_unmeasured",
+   "type": "object",
+   "example": "{\"host_build\": \"Claude: read from the init event after the run\"}",
+   "source": "fake claude hello",
+   "group": "G3",
+   "new": true,
+   "null_means": "{} when known"
+  },
+  {
+   "path": "versions.plugin_sha256",
+   "type": "string",
+   "example": "\"4d242a9401f7\"",
+   "source": "fake claude hello",
+   "group": "G3",
+   "new": true,
+   "null_means": "null with versions.plugin_sha256_unmeasured"
+  },
+  {
+   "path": "needs",
+   "type": "array",
+   "example": "[]",
+   "source": "fake claude hello",
+   "group": "G4",
+   "new": true,
+   "null_means": "[] when nothing declares a need"
+  },
+  {
+   "path": "environment",
+   "type": "object",
+   "example": "{\"observed\": true, \"at\": \"2026-10-09T20:33:31Z\", \"tools\": {\"node\": \"v25.9.0\", \"python3\": \"Python 3.14.7\", \"gi\u2026",
+   "source": "fake claude hello",
+   "group": "G4",
+   "new": true,
+   "null_means": "{observed: false, reason} on a regrade's own record"
+  },
+  {
+   "path": "planning_review",
+   "type": "string",
+   "example": "\"none\"",
+   "source": "fake claude hello --planning-review none",
+   "group": "G5",
+   "new": true,
+   "null_means": "null when the option was not given"
+  },
+  {
+   "path": "improve_skill",
+   "type": "string",
+   "example": "\"<tmp>/tmplwtj4zxs/build/plugins/skill-craft/skills/improve/SKILL.md\"",
+   "source": "fake claude hello --planning-review none",
+   "group": "G5",
+   "new": true,
+   "null_means": "null unless --planning-review none"
+  }
+ ],
+ "baseline row": [
+  {
+   "path": "plugin_sha256",
+   "type": "string",
+   "example": "\"3a7515d2efd3\"",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "null with identity_unmeasured.plugin_sha256"
+  },
+  {
+   "path": "prompt_sha256",
+   "type": "string",
+   "example": "\"d0c0cbe71344\"",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "as result.json"
+  },
+  {
+   "path": "host_build",
+   "type": "string",
+   "example": "\"2.1.294\"",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "as result.json"
+  },
+  {
+   "path": "local_head",
+   "type": "string",
+   "example": "\"587cd90d4d54745f67c5acd6a10535dd12afd769\"",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "null with identity_unmeasured.local_head"
+  },
+  {
+   "path": "started",
+   "type": "number",
+   "example": "1791481009.116",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "as span"
+  },
+  {
+   "path": "ended",
+   "type": "number",
+   "example": "1791481838.24",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "as span"
+  },
+  {
+   "path": "planning_seconds",
+   "type": "number",
+   "example": "336.0",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "null while the window is open or unread"
+  },
+  {
+   "path": "identity_unmeasured",
+   "type": "object",
+   "example": "{\"plugin_sha256\": \"not recorded by this result (it predates the field)\", \"prompt_sha256\": \"not recorded by th\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "{} when all known; a row without it predates it"
+  },
+  {
+   "path": "termination",
+   "type": "object",
+   "example": "{\"process_status\": \"exited\", \"returncode\": 0, \"sessions\": 1, \"resumes\": 0, \"session_stops\": [\"success\"], \"res\u2026",
+   "source": "20261008/r1-battleship-sonnet",
+   "group": "integration",
+   "new": false,
+   "null_means": "the result's termination minus run.ROW_EXCLUDED_TERMINATION (no blocked detail)"
+  }
+ ],
+ "baseline report records[]": [
+  {
+   "path": "output",
+   "type": "string",
+   "example": "\"<e2e-runs>/20261007/v1230-battleship-grok-none\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "record",
+   "type": "string",
+   "example": "\"file+folder\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "case",
+   "type": "string",
+   "example": "\"custom\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "source",
+   "type": "string",
+   "example": "\"checkout\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "host",
+   "type": "string",
+   "example": "\"grok\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "model",
+   "type": "string",
+   "example": "\"grok-4.7\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "effort",
+   "type": "string",
+   "example": "\"medium\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "planning_review",
+   "type": "string",
+   "example": "\"none\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "prompt_sha256",
+   "type": "string",
+   "example": "\"5ea67bf35336\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "plugin_version",
+   "type": "string",
+   "example": "\"1.22.0\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "plugin_sha256",
+   "type": "string",
+   "example": "\"452b7e2eb831\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "host_build",
+   "type": "string",
+   "example": "\"2.1.294\"",
+   "source": "r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "local_head",
+   "type": "string",
+   "example": "\"bc1d645232b8026b2851eab2329b26a28752af92\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "started",
+   "type": "number",
+   "example": "1791387192.866",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "ended",
+   "type": "number",
+   "example": "1791393413.333",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "minutes",
+   "type": "number",
+   "example": "103.7",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "planning_seconds",
+   "type": "number",
+   "example": "336.0",
+   "source": "r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "planning_minutes",
+   "type": "number",
+   "example": "5.6",
+   "source": "r1-battleship-sonnet",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "cost_usd",
+   "type": "number",
+   "example": "14.1673",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "turns",
+   "type": "integer",
+   "example": "503",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "lower_bound",
+   "type": "boolean",
+   "example": "true",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "pass",
+   "type": "boolean",
+   "example": "false",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "engine_status",
+   "type": "string",
+   "example": "\"blocked\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "process_status",
+   "type": "string",
+   "example": "\"exited\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "hosts_used",
+   "type": "array",
+   "example": "[\"grok\"]",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "class",
+   "type": "string",
+   "example": "\"did not reach done\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "why",
+   "type": "string",
+   "example": "\"engine blocked: its turns, cost and stages stop there\"",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "recomputed",
+   "type": "array",
+   "example": "[\"ended\", \"local_head\", \"plugin_sha256\", \"prompt_sha256\", \"started\"]",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "identity_unmeasured",
+   "type": "object",
+   "example": "{\"host_build\": \"launch predates the field\", \"planning_seconds\": \"the metrics hold no planning block\"}",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  },
+  {
+   "path": "overlaps",
+   "type": "integer",
+   "example": "1",
+   "source": "v1230-battleship-grok-none",
+   "group": "G3",
+   "new": true,
+   "null_means": "null where unknown (see identity_unmeasured / why)"
+  }
+ ],
+ "baseline report cells[]": [
+  {
+   "path": "cell",
+   "type": "object",
+   "example": "{\"case\": \"battleship\", \"source\": \"checkout\", \"host\": \"claude\", \"model\": \"claude-sonnet-5-5\", \"effort\": null, \u2026",
+   "source": "cell battleship claude",
+   "group": "G3",
+   "new": true,
+   "null_means": "never null"
+  },
+  {
+   "path": "attempts",
+   "type": "object",
+   "example": "{\"seen\": 5, \"counted\": 5, \"passed\": 5, \"did_not_reach_done\": 0, \"mixed_host\": 0, \"resumed\": 0, \"seeded\": 0, \"\u2026",
+   "source": "cell battleship claude",
+   "group": "G3",
+   "new": true,
+   "null_means": "never null"
+  },
+  {
+   "path": "builds",
+   "type": "object",
+   "example": "{\"plugin_sha256\": {\"3a7515d2efd3\": 1, \"44b3fe8caa1c\": 1, \"452b7e2eb831\": 1, \"a03059c9db03\": 1}, \"unrecorded\":\u2026",
+   "source": "cell battleship claude",
+   "group": "G3",
+   "new": true,
+   "null_means": "never null"
+  },
+  {
+   "path": "host_builds",
+   "type": "object",
+   "example": "{\"2.1.292\": 1, \"2.1.294\": 3, \"unrecorded\": 1}",
+   "source": "cell battleship claude",
+   "group": "G3",
+   "new": true,
+   "null_means": "never null"
+  },
+  {
+   "path": "measures.cost_usd",
+   "type": "object",
+   "example": "{\"n\": 5, \"min\": 5.6749, \"median\": 5.8146, \"max\": 9.6543, \"not_measured\": 0, \"lower_bound_rows\": 0, \"lower_bou\u2026",
+   "source": "cell battleship claude",
+   "group": "G3",
+   "new": true,
+   "null_means": "never null"
+  },
+  {
+   "path": "measures.minutes",
+   "type": "object",
+   "example": "{\"n\": 4, \"min\": 12.6, \"median\": 13.7, \"max\": 20.0, \"not_measured\": 1, \"overlapped_by_span\": 4, \"not_seen_over\u2026",
+   "source": "cell battleship claude",
+   "group": "G3",
+   "new": true,
+   "null_means": "never null"
+  },
+  {
+   "path": "overlap",
+   "type": "object",
+   "example": "{\"rows\": 5, \"overlapped_by_span\": 4, \"not_seen_overlapping\": 0, \"unknown\": 1}",
+   "source": "cell battleship claude",
+   "group": "G3",
+   "new": true,
+   "null_means": "never null"
+  },
+  {
+   "path": "outputs",
+   "type": "object",
+   "example": "{\"counted\": [\"v1230-battleship-sonnet\", \"r1-battleship-sonnet\", \"r2-battleship-sonnet\", \"r3-battleship-sonnet\u2026",
+   "source": "cell battleship claude",
+   "group": "G3",
+   "new": true,
+   "null_means": "never null"
+  }
+ ],
+ "result.json top-level keys": {
+  "case": "before batch 1011",
+  "host": "before batch 1011",
+  "model": "before batch 1011",
+  "effort": "before batch 1011",
+  "pass": "before batch 1011",
+  "invoked": "before batch 1011",
+  "plugin": "before batch 1011",
+  "versions": "before batch 1011",
+  "prompt_sha256": "G3",
+  "host_build": "G3",
+  "span": "G3",
+  "identity_unmeasured": "G3",
+  "process": "before batch 1011",
+  "termination": "before batch 1011",
+  "outcome_class": "G4",
+  "outcome_basis": "G4",
+  "environment": "G4",
+  "left_behind": "before batch 1011",
+  "keepalive": "before batch 1011",
+  "shiploop": "before batch 1011",
+  "committed": "before batch 1011",
+  "checks": "before batch 1011",
+  "cli": "before batch 1011",
+  "follow_on": "before batch 1011",
+  "resumed_run": "before batch 1011",
+  "seeded": "before batch 1011",
+  "chain": "before batch 1011",
+  "recovery": "before batch 1011",
+  "budget": "before batch 1011",
+  "expectations": "before batch 1011",
+  "metrics": "before batch 1011",
+  "output": "before batch 1011",
+  "quality": "G5",
+  "product_at_stop": "G4 (runs that did not pass)"
+ }
+}
