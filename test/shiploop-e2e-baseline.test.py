@@ -1131,25 +1131,31 @@ class IdentityDocsTest(unittest.TestCase):
                        "`local_head`", "probed once when a launch starts", "It is never probed again",
                        "stays null, because today's build stamped on it would be a made-up fact",
                        "A regrade restates the recorded digest and never computes one",
-                       "A baseline row has no overlap field", "as a lower bound", "a discipline and not a guarantee"):
+                       "the build of the run's first launch",
+                       "A later launch records its own probe on its own record and the run's result keeps the first launch's",
+                       "`identity_unmeasured`", "a bare null is never all there is",
+                       "A baseline row has no overlap field", "a discipline and not a guarantee",
+                       "it can include a resumed run's pause"):
             self.assertIn(phrase, readme)
 
     def test_the_readme_says_which_rows_a_run_is_compared_with_and_names_the_transitional_break(self):
         readme = self.text("README.md")
-        for phrase in ("One rule picks the rows a run is compared with (`run.matching_rows`",
+        for phrase in ("`run.row_matches`, behind `run.matching_rows`",
                        "is still written (a blocked run is a record) and is never the row another run is compared with",
                        "`baseline nothing compared: this run did not reach done (engine blocked)`",
                        "unknown is not excluded", "two prompts are two cells and one prompt in two folders is one",
-                       "the 23 rows committed before the field existed keep comparing",
-                       "The one transitional break is therefore the Grok `none` runs",
-                       "a `sample:` line states facts and no verdict", "is `unknown`, not guessed"):
+                       "Of the 23 committed rows, 15 name no host, model or effort and were never a basis; 6",
+                       "the transitional break is the two Grok `none` rows",
+                       "is marked on the `baseline vs` line too", "a `sample:` line states facts and no verdict",
+                       "is `unknown`, not guessed"):
             self.assertIn(phrase, readme)
 
     def test_the_readme_says_why_the_grok_session_count_is_unknown_and_what_will_count_it(self):
         readme = self.text("README.md")
-        for phrase in ("For Grok it is `null`, named in `unmeasured`", "Grok's events mark no session start",
-                       "314 of them for 2 `end` events", "A null count keeps the lower-bound marking, without a number",
-                       "`metrics.lower_bound` is the one predicate",
+        for phrase in ("For a stream with Grok in it it is `null`, named in `unmeasured`", "Grok's events mark no session start",
+                       "314 of them for 2 `end` events", "A null count keeps the lower-bound marking",
+                       "the test is the host, not a field of one event",
+                       "at least one session never reported", "`metrics.lower_bound` is the one predicate",
                        "a launch whose lines hold no `end` event never reported"):
             self.assertIn(phrase, readme)
 
@@ -1157,10 +1163,16 @@ class IdentityDocsTest(unittest.TestCase):
         readme = self.text("README.md")
         for phrase in ("--baseline-report [--baseline FILE] [--runs DIR ...] [--json]",
                        "Read-only: it starts no host, probes no CLI and writes nothing, and always exits 0",
+                       "an input that is missing, and a record that cannot be read, are named in the report",
+                       "found at any depth under each `--runs` directory and the walk stops at it",
+                       "The output does not depend on how `--runs` is spelled",
                        "the row wins wherever it has a value", "A regrade is not a resume",
-                       "`no result.json`", "`mixed host`", "`process not observed`", "`did not reach done`", "`counted`",
-                       "`lower_bound_rows`", "`lower_bound_unknown_rows`", "`overlapped_at_least`",
-                       "so it is a lower bound", "The report places no run within or outside a range and sets no threshold",
+                       "`unreadable record`", "`no result.json`", "`mixed host`", "`ended by the harness`",
+                       "`process not observed`", "`did not reach done`", "`counted`",
+                       "`lower_bound_rows`", "`lower_bound_unknown_rows`", "`overlapped_by_span`",
+                       "so it is a count and not a bound", "(4 of 5 overlapped)",
+                       "listed under the cell of the host their result names and are counted in no measure",
+                       "The report places no run within or outside a range and sets no threshold",
                        "`--json` prints `{inputs, records, cells, notes}`",
                        "the tests pin that file, never the live `baselines.jsonl`"):
             self.assertIn(phrase, readme)
@@ -1169,9 +1181,15 @@ class IdentityDocsTest(unittest.TestCase):
         spec = self.text("SPEC.md")
         for phrase in ("**A comparison names its sample**", "**A baseline row is a finished run's**",
                        "Amended 2026-10-09", "never probed afterwards", "`plugin_sha256`", "`prompt_sha256`",
-                       "Transitional break, named",
+                       "Transitional break, named", "`identity_unmeasured`", "`host_build` is the build of the run's first launch",
+                       "One predicate (`row_matches`, behind `matching_rows`)", "The report differs on purpose in two ways",
+                       "listed in the report with their class and counted in no measure",
+                       "A count of overlapping runs from recorded spans is a count and not a bound",
+                       "probability exactly 2/(n+1)", "classed \"ended by the harness\"",
                        "**Runs compared on wall time or per-call cost run one after the other**"):
             self.assertIn(phrase, spec)
+        for retired in ("kept out of every cell", "belongs to no host's cell", "That count is a lower bound"):
+            self.assertNotIn(retired, spec)
 
 
 if __name__ == "__main__":

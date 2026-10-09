@@ -169,16 +169,22 @@ Grok events carry no time) and ShipLoop's run directory:
   such as one killed with the task: any above 0 makes turns and cost a lower bound, and
   the printed cost says so; it is a field of `metrics.json` and `result.json`, not a
   baseline key. It is exact for Claude (one `system/init` per session) and for Codex
-  (its translator names the thread). For Grok it is `null`, named in `unmeasured`,
-  because Grok's events mark no session start: its `available_commands` event is announced
-  again inside a session (314 of them for 2 `end` events on r1-battleship-grok-none,
-  2 at the head of the first launch and 8 at the head of the resume), and the old
-  reading, one start per announcement, printed "lower bound: 312 session(s) never
-  reported" for a cost that equals the two end events' totals. A null count keeps the
-  lower-bound marking, without a number, because a killed Grok session cannot be ruled
-  out from the stream (`metrics.lower_bound` is the one predicate: `--baseline-report`
-  and the printed lines share it). The harness's own launch rows will count them: a
-  launch whose lines hold no `end` event never reported), auto-compactions, host-truncated outputs, test runs and Improve
+  (its translator names the thread). For a stream with Grok in it it is `null`, named in
+  `unmeasured`. A stream has Grok in it when a launch record names Grok or the stream
+  holds `usage` events (the test is the host, not a field of one event, so a Grok build
+  that adds a field to `available_commands` changes nothing). Grok's events mark no
+  session start: its `available_commands` event is announced again inside a session (314
+  of them for 2 `end` events on r1-battleship-grok-none, 2 at the head of the first launch
+  and 8 at the head of the resume), and the old reading, one start per announcement,
+  printed "lower bound: 312 session(s) never reported" for a cost that equals the two end
+  events' totals. A null count keeps the lower-bound marking. When `usage` events follow
+  the last `end` event, or there is no `end` at all, at least one session never reported
+  (`unreported_sessions_at_least` is 1: r2-battleship-grok-none, r3-battleship-grok-none
+  and v1210-battleship-grok-medium hold 69, 230 and 328 Grok `usage` events and no Grok
+  `end`) and the printed cost says "at least 1 session(s) never reported"; otherwise it says
+  the events do not show whether one did (`metrics.lower_bound` is the one predicate:
+  `--baseline-report` and the printed lines share it). The harness's own launch rows will
+  count them: a launch whose lines hold no `end` event never reported), auto-compactions, host-truncated outputs, test runs and Improve
   children (the directories ShipLoop made, not their `-bind.md` receipts);
 - the host CLI build the sessions ran on (`claude_code_version`, from Claude's init event; sessions on two
   builds name both, null where the host's events do not carry it; also in `result.json`'s `metrics`). Two runs of
@@ -269,8 +275,10 @@ ports, so two runs whose wall time or per-call cost are set side by side (a befo
 are started the second after the first has ended: `--serial` for a suite, or launch the second once the first has ended.
 The suite default of 3 parallel chains stays, because a suite is for finding failures and not for timing them. A baseline
 row has no overlap field. It carries `started` and `ended` (the first and last stamp of the run's stream, epoch seconds), and
-`--baseline-report` counts from them how many rows overlapped another recorded run, as a lower bound: a run that wrote no
-row, and a row written before the span existed, are not seen. So this is a discipline and not a guarantee (SPEC, "Parallel
+`--baseline-report` counts from them how many rows overlapped another recorded run's span. The count is neither a floor nor
+a ceiling: it misses a run that wrote no row and a row written before the span existed (`unknown`), and it can include a
+resumed run's pause (a span runs from the first to the last stamp; r2-battleship-grok-none has a 32-minute gap). So this is a
+discipline and not a guarantee (SPEC, "Parallel
 work"). The two round-2 Sonnet runs were started within 0.1 s of each other.
 
 What a row and `result.json` say about the run they record (SPEC, "A comparison names its sample"), each field null where it
@@ -283,12 +291,19 @@ is not known and never 0 or empty:
   digest and never computes one.
 - `prompt_sha256`: the prompt with the run's own output folder replaced by `<output>` (12 hex). The Grok `none` runs' prompt
   names `<run folder>/build/.../improve/SKILL.md`, so five runs of one prompt had five raw hashes and have one masked hash.
-- `host_build`: Claude's Code build from its init event (`metrics.claude_code_version`); for Grok and Codex the first stdout
-  line of `<cli> --version` (`grok 1.0.50 (c58f321264ba)`, `codex-cli 0.162.0`), probed once when a launch starts and written
-  on that launch's record (`invocation.json`, `invocation-resume-<host>-*.json`), `null` when the CLI does not answer. It is
-  never probed again: a regrade restates what the run recorded, and a Grok or Codex run launched before this field existed
-  stays null, because today's build stamped on it would be a made-up fact. Claude's launch record carries null (its build is
-  read from the events after the run).
+- `host_build`: the build of the run's first launch. Claude: its Code build from the init events (`metrics.claude_code_version`;
+  sessions on two builds name both). Grok and Codex: the first stdout line of `<cli> --version` (`grok 1.0.50 (c58f321264ba)`,
+  `codex-cli 0.162.0`), probed once when a launch starts and written on that launch's record (`invocation.json`,
+  `invocation-resume-<host>-*.json`), `null` when the CLI does not answer. A later launch records its own probe on its own
+  record and the run's result keeps the first launch's (a run resumed on another host has null in its result and the
+  launch records say the rest). It is never probed again: a regrade restates what the run recorded, and a run whose first
+  launch was made before this field existed stays null, because today's build stamped on it would be a made-up fact.
+  Claude's launch record carries null (its build is read from the events after the run).
+- `identity_unmeasured` (on the row, in `result.json` and on each launch record): for each identity field that is null, the
+  reason in a few words: `host_build` "launch predates the field", "Claude: read from the init event after the run",
+  "probe failed: not found | non-zero exit | silent | hung"; `plugin_sha256` "the plugin folder does not exist" or "unreadable
+  file ..."; `started`/`ended` "no timeline.jsonl stamps"; `planning_seconds` the planning block's own reason or "window still
+  open"; `local_head` "no head recorded". `{}` means every field was measured; a bare null is never all there is.
 - `started`, `ended` (in `result.json`: `span`): the stream's first and last stamp. `planning_seconds` (in `result.json`'s
   metrics): the closed planning window on the engine's clock (`metrics.planning.window.seconds`), null while the window is
   open or unreadable. `local_head`: `versions.local_head` for a checkout run, `versions.released.local_head` for a marketplace
@@ -312,21 +327,26 @@ which is what `stage` does) and the report says so; a row with no usable
 `plugin_version`, or with 1.22.0 or later and no field, reads `not recorded` and is
 compared with no run.
 
-One rule picks the rows a run is compared with (`run.matching_rows`, behind `scan_baseline` and `previous_row`; SPEC, "A
-baseline row is a finished run's" and "A comparison names its sample"). A row is a basis only if ShipLoop reached done in
-it: a row whose `verdicts.shiploop` is false, or whose `termination.engine_status` is anything but done, is still written (a
-blocked run is a record) and is never the row another run is compared with. A run that did not itself reach done prints
-`baseline  nothing compared: this run did not reach done (engine blocked)` and compares no turns, cost or stage, because they
-stop at the block (r1 Grok printed `503 -> 301` for a blocked run against a blocked row). A row with neither signal (written
-before the verdicts or the termination record existed) is not refused: unknown is not excluded. The prompt key: for a case run
-with `--prompt` (case `custom`) a row compares only when it and the run both carry a `prompt_sha256` and they are equal, so
-two prompts are two cells and one prompt in two folders is one; for a named case the key applies only when both carry one,
-so the 23 rows committed before the field existed keep comparing with a new run of the same driver, and a named case whose
-prompt is edited starts a new cell. The one transitional break is therefore the Grok `none` runs (case `custom`): their two
-committed rows carry no hash, so the first new `custom` run of a prompt compares with nothing until a row with the hash
-exists. Under the `baseline  vs` line, a `sample:` line states facts and no verdict: whether the plugin tree
-(`plugin_sha256`) is the one the earlier row ran on, how `host_build` changed (`Claude Code build 2.1.292 -> 2.1.294`), and
-how many earlier rows the cell has on how many recorded builds. A fact one side does not record is `unknown`, not guessed.
+One rule picks the rows a run is compared with (`run.row_matches`, behind `run.matching_rows`, `scan_baseline` and
+`previous_row`, and shared by `--baseline-report`; SPEC, "A baseline row is a finished run's" and "A comparison names its
+sample"). A row is a basis only if ShipLoop reached done in it: a row whose `verdicts.shiploop` is false, or whose
+`termination.engine_status` is anything but done, is still written (a blocked run is a record) and is never the row another
+run is compared with. A run that did not itself reach done prints `baseline  nothing compared: this run did not reach done
+(engine blocked)` and compares no turns, cost or stage, because they stop at the block (r1 Grok printed `503 -> 301` for a
+blocked run against a blocked row). A row with neither signal (written before the verdicts or the termination record
+existed) is not refused: unknown is not excluded. The prompt key: for a case run with `--prompt` (case `custom`) a row
+compares only when it and the run both carry a `prompt_sha256` and they are equal, so two prompts are two cells and one
+prompt in two folders is one; for a named case the key applies only when both carry one, and a named case whose prompt is
+edited starts a new cell. Of the 23 committed rows, 15 name no host, model or effort and were never a basis; 6
+(v1200-hello-sonnet, v1220-battleship-sonnet, v1230-battleship-sonnet, r1-checkers-sonnet, r3-battleship-sonnet,
+r3-checkers-sonnet) keep comparing with a new run of the same driver; the transitional break is the two Grok `none` rows
+(v1220-battleship-grok-medium-none and the blocked v1230-battleship-grok-none, case `custom`): they carry no hash, so the
+first new `custom` run of a prompt compares with nothing until a row with the hash exists. A cost or turns figure the harness
+calls a lower bound is marked on the `baseline  vs` line too (`turns 503 (lower bound) -> 301 (lower bound)`), on the follow-on
+line and in `progress.py`: every Grok figure is, and so is any whose row lists `unreported_sessions` as unmeasured. Under the
+`baseline  vs` line, a `sample:` line states facts and no verdict: whether the plugin tree (`plugin_sha256`) is the one the
+earlier row ran on, how `host_build` changed (`Claude Code build 2.1.292 -> 2.1.294`), and how many earlier rows the cell has on
+how many recorded builds. A fact one side does not record is `unknown`, not guessed.
 
 ### The baseline report
 
@@ -334,40 +354,57 @@ how many earlier rows the cell has on how many recorded builds. A fact one side 
 python3 test/shiploop_e2e/run.py --baseline-report [--baseline FILE] [--runs DIR ...] [--json]
 ```
 
-Read-only: it starts no host, probes no CLI and writes nothing, and always exits 0. It unions the baseline file with the run
-folders (a folder with a `result.json` or an `invocation.json`, at or one or two levels under each `--runs` directory) by the
-run's recorded `output`, so a run that a baseline file and a folder both describe is one record. This matters because the
-baseline file is appended in whichever worktree the run was started from and is not always committed: of the loop's 7
-finished rows of 2026-10-08, the committed file holds 3. Where both describe a run, the row wins wherever it has a value; the
-folder fills only what the row lacks (v1230-battleship-sonnet's row has no planning figure, its regraded `metrics.json` has a
-closed 388 s window), and the identity fields the report derived from the folder's other files are listed in `recomputed`:
-`plugin_sha256` from the folder's plugin build (`plugin_dir` under the folder), `prompt_sha256` from `prompt.txt`,
-`host_build` (Claude: `metrics.claude_code_version`, else the init event in `events.jsonl`; Grok and Codex: only what a launch
-record wrote, never a probe), `started` and `ended` from `timeline.jsonl`, `planning_seconds` from `metrics.json`.
+Read-only: it starts no host, probes no CLI and writes nothing, and always exits 0 (an input that is missing, and a record
+that cannot be read, are named in the report and never stop it). It unions the baseline file with the run folders by the
+run's recorded `output`, so a run that a baseline file and a folder both describe is one record. A run folder is found at any
+depth under each `--runs` directory and the walk stops at it: a folder with an `invocation.json` that names a case and a host,
+or a `result.json` that names a case, a host and an output (the audit harness's `result.json` has neither, so its folders
+are not run folders). The output does not depend on how `--runs` is spelled. The union matters because the baseline file is
+appended in whichever worktree the run was started from and is not always committed: of the loop's 7 finished rows of
+2026-10-08, the committed file holds 3. Where both describe a run, the row wins wherever it has a value; the folder fills only
+what the row lacks (v1230-battleship-sonnet's row has no planning figure, its regraded `metrics.json` has a closed 388 s
+window). `recomputed` lists the fields the folder supplied: for a run the baseline file also has, every cell or identity
+field (`source`, `host`, `model`, `effort`, `planning_review`, `prompt_sha256`, `plugin_sha256`, `host_build`, `local_head`,
+`started`, `ended`, `planning_seconds`) the row lacked; for a run only a folder has, the identity fields the report derived
+from the folder's other files: `plugin_sha256` from the folder's plugin build (`plugin_dir` under the folder), `prompt_sha256`
+from `prompt.txt`, `host_build` (Claude: `metrics.claude_code_version`, else the init event in `events.jsonl`; Grok and Codex:
+only what the first launch record wrote, never a probe), `started` and `ended` from `timeline.jsonl`, `planning_seconds` from
+`metrics.json`. A pre-1.22.0 run whose `state.md` has no `planning_review` reads `stage` by the same plugin-version rule as a row
+(`row_planning_review`), not `not recorded`.
 
-Each attempt has exactly one class, the first that applies: `no result.json` (a folder with launch records and no result: the
-harness died before writing its records, or the run is still going), `seeded`, `mixed host` (`runrecord.mixed_host`: two
-hosts launched it, as Grok and then Claude did r2-battleship-grok-none), `resumed` (a real resume: `earlier_terminations`
-not empty or more than one launch record), `process not observed` (`process.status` is `not observed`), `did not reach done`
-(`verdicts.shiploop` false or the engine not done), `no driver recorded` (a row that names no host, model or effort) and
-`counted`. A regrade is not a resume: `versions.regraded` runs started no host, and the finished ones (v1230-battleship-sonnet,
-r1-battleship-sonnet, r1-checkers-sonnet, both v1190 hello runs) are counted; the rule "`resumed_run` is set" would have
-dropped them. A cell is the key of the live comparison (case, source, host, model, effort, `planning_review` mode, prompt
-hash). Per cell the report prints the attempts (seen, counted, passed, and the others by class), the builds
-(`plugin_sha256` counts and rows with none recorded), the host builds, the n, min, median and max of `cost_usd`, `turns`,
-`minutes` (`ended - started`) and `planning_minutes` (the closed planning window), and the overlap. Cost and turns carry
-`lower_bound_rows` (the rows whose figure `metrics.lower_bound` calls a lower bound: every Grok run, because its events
-cannot show a session that never reported) and `lower_bound_unknown_rows` (a row from the file alone, whose
-`unreported_sessions` is not a baseline key). Overlap is `overlapped_at_least` of `rows`: a run that left no record and a row
-with no span are not seen, so it is a lower bound; `not_seen_overlapping` counts the rows with a span that no recorded run crossed (the most that can be called clean, since an unrecorded run may have crossed it) and `unknown` the rows with no span, so a wall-time or cost range is read beside them and not pooled silently. The report places no run
-within or outside a range and sets no threshold (SPEC, "A comparison names its sample").
+Each attempt has exactly one class, the first that applies: `unreadable record` (an exception text in `why`; one bad record never
+stops the report), `no result.json` (a folder with launch records and no result: the harness died before writing its records,
+or the run is still going), `seeded`, `mixed host` (`runrecord.mixed_host`: two hosts launched it, as Grok and then Claude did
+r2-battleship-grok-none), `resumed` (a real resume: `earlier_terminations` not empty or more than one launch record), `ended by
+the harness` (its host was killed by a deadline or a stop, or its engine is still active: the live path writes no row for it),
+`process not observed` (`process.status` is `not observed`), `did not reach done` (`verdicts.shiploop` false or the engine not
+done), `no driver recorded` (a row that names no host, model or effort) and `counted`. A regrade is not a resume:
+`versions.regraded` runs started no host, and the finished ones (v1230-battleship-sonnet, r1-battleship-sonnet,
+r1-checkers-sonnet, both v1190 hello runs) are counted; the rule "`resumed_run` is set" would have dropped them. A cell is the
+key of the live comparison (case, source, host, model, effort, `planning_review` mode, prompt hash), decided by the same
+`row_matches` predicate; the report differs on purpose in the two ways SPEC names (it takes the driver, mode and prompt from the
+folder for a row that predates them, and a named case's row with no prompt hash sits in the driver's only cell, or in a cell of
+its own when the driver has several prompts). Mixed-host, resumed, seeded, not-done and harness-ended attempts are listed under
+the cell of the host their result names and are counted in no measure. Per cell the report prints the attempts (seen, counted,
+passed, and the others by class), the builds (`plugin_sha256` counts and rows with none recorded), the host builds, the n, min,
+median and max of `cost_usd`, `turns`, `minutes` (`ended - started`) and `planning_minutes` (the closed planning window), and
+the overlap. Cost and turns carry `lower_bound_rows` (the rows whose figure is a lower bound: every Grok run, because its events
+cannot show a session that never reported, and a row from the file alone that is a Grok row or lists `unreported_sessions` as
+unmeasured) and `lower_bound_unknown_rows` (a row from the file alone that is neither). Overlap is `overlapped_by_span` of
+`rows`: the rows whose span crossed another recorded span. It misses a run that left no record and can include a resumed run's
+pause, so it is a count and not a bound; `not_seen_overlapping` counts the rows with a span that no recorded span crossed (the
+most that can be called clean, since an unrecorded run may have crossed it) and `unknown` the rows with no span. The minutes line
+says how many of its rows overlapped (`minutes   n=5 min 12.6 median 13.8 max 20.0 (4 of 5 overlapped)`), so a wall-time range
+is read beside them and not pooled silently. The report places no run within or outside a range and sets no threshold (SPEC, "A
+comparison names its sample").
 
 `--json` prints `{inputs, records, cells, notes}`. A record has `output`, `record` (`file`, `folder` or `file+folder`), the
 cell key fields (`case`, `source`, `host`, `model`, `effort`, `planning_review`, `prompt_sha256`), `plugin_version`,
 `plugin_sha256`, `host_build`, `local_head`, `started`, `ended`, `minutes`, `planning_seconds`, `planning_minutes`,
 `cost_usd`, `turns`, `lower_bound` (true, false, or null where the run's own metrics are not there), `pass`,
-`engine_status`, `process_status`, `hosts_used`, `class`, `why`, `recomputed` and `overlaps` (the number of other recorded runs
-whose span crosses it, null with no span). A cell has `cell`, `attempts`, `builds`, `host_builds`, `measures`, `overlap` and
+`engine_status`, `process_status`, `hosts_used`, `class`, `why`, `recomputed`, `identity_unmeasured` (the reason for each null
+identity field, merged from the row and the folder) and `overlaps` (the number of other recorded runs whose span crosses it,
+null with no span). A cell has `cell`, `attempts`, `builds`, `host_builds`, `measures`, `overlap` and
 `outputs`. The committed `docs/experiments/baseline-spread-20261009/runs.json` is this command's output over the baseline
 file and the saved runs of 2026-10-03 to 2026-10-08 (`--baseline test/shiploop_e2e/baselines.jsonl --runs
 /Users/dadleet/e2e-runs --json`): the tests pin that file, never the live `baselines.jsonl`, so committing the rows that

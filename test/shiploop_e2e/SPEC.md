@@ -310,7 +310,7 @@ on quickly before the breadth of everything is checked.
 | S-9, S-10 | `script_verifications` (ShipLoop's own verify records, with the count that ran red, which a test-red record or a probe passes by design), Improve children; a zero-test pass fails |
 | S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner's 30-minute planning rule is read from it, and it is the one place these figures are computed |
 | S-12 | `claude_code_version` in metrics.json and result.json (added 2026-10-08): the host CLI build the sessions ran on, so two runs of one prompt on different builds (the Sonnet pair of 2026-10-06 and 2026-10-07 ran on 2.1.291 and 2.1.292) are not read as a controlled comparison. Null where the host's events do not carry it |
-| S-12 | identity of a run, null where unknown (added 2026-10-09): `plugin_sha256` (one digest of the installed plugin tree: file paths and bytes, `__pycache__`, `*.pyc` and symlinks left out, taken when the run is launched), `prompt_sha256` (the prompt with the run's own output folder masked), `host_build`, `started` and `ended` (the stream's first and last stamp), `planning_seconds` (the closed planning window, the engine's clock) and `local_head`, on every baseline row and in `result.json`. Records, never verdicts; `run.py --baseline-report` reads them |
+| S-12 | identity of a run, null where unknown (added 2026-10-09): `plugin_sha256` (one digest of the installed plugin tree: file paths and bytes, `__pycache__`, `*.pyc` and symlinks left out, taken when the run is launched), `prompt_sha256` (the prompt with the run's own output folder masked), `host_build`, `started` and `ended` (the stream's first and last stamp), `planning_seconds` (the closed planning window, the engine's clock) and `local_head`, on every baseline row and in `result.json`. A null among them carries its reason in `identity_unmeasured`. Records, never verdicts; `run.py --baseline-report` reads them |
 | S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew) |
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
 | S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered; a requested stop (`<output>/stop`, added 2026-10-08) ends the host and is recorded as `stopped`, and never answers a blocked or awaiting run |
@@ -362,10 +362,10 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   guarantee. Amended 2026-10-09: a row still has no overlap field, but a row
   written from this date carries `started` and `ended` (epoch seconds of the
   first and last stamp of its stream), and `run.py --baseline-report` counts, per
-  cell, how many rows overlapped another recorded run. That count is a lower
-  bound ("at least k of n"): a run that left no record and a row from before the
-  span existed ("unknown") are not seen, and nothing is excluded, because 4 of the
-  5 recorded Battleship Sonnet runs and all 3 Checkers runs of the 2026-10-08 loop
+  cell, how many rows overlapped another recorded run's span. The count misses a
+  run that left no record and a row from before the span existed ("unknown"), and
+  it can include a resumed run's pause; nothing is excluded, because 4 of the 5
+  recorded Battleship Sonnet runs and all 3 Checkers runs of the 2026-10-08 loop
   overlapped a sibling. The discipline stays the rule.
 - Agents do not replace evidence: an agent's analysis is a lead, and a
   claim it makes is checked against the event log or a script before it
@@ -508,7 +508,10 @@ stands at the commit under test.
   false, is never the row another run is compared with and never part of a
   sample; and a run that itself did not reach `done` is compared with nothing and
   says so, because its turns, cost and stages stop at a block. A run that two
-  hosts worked on (`runrecord.mixed_host`) belongs to no host's cell. A
+  hosts worked on (`runrecord.mixed_host`) is counted in no measure of any cell
+  (the report lists it, with its class, under the cell of the host its result
+  names). A run the harness ended (a deadline or a stop killed its host, or its
+  engine is still active) wrote no row and is classed "ended by the harness". A
   regrade (`versions.regraded`) restates a finished run and is not a resume; a
   real resume (`earlier_terminations` not empty, or more than one launch record)
   is not counted. Basis: r1-battleship-grok-none (2026-10-08) was itself blocked
@@ -528,30 +531,54 @@ stands at the commit under test.
   the two Battleship Sonnet rows of 2026-10-06 and 2026-10-07 both say plugin
   1.22.0 and ShipLoop 0.54.0 and have different trees, and a cost difference of
   $6.54 against $9.65 was explained between two uncontrolled builds) and on
-  which host builds (`host_build`: Claude Code's build from its init event; for
-  Grok and Codex the first line of the CLI's `--version`, probed once when the
-  run was launched and written on the launch record, and null for every run that
-  was launched before that, never probed afterwards, because today's build
-  stamped on a past run would be a made-up fact). It states facts: the plugin tree
-  is the same or different, the host build is the same or changed, the cell has n
-  rows on k builds. It makes no claim that a run is within, above or below its
-  history and sets no threshold: at n = 3, with nothing changed, a new run falls
-  outside the range of the earlier three 2 times in 4 (at most 2/(n+1) in
-  general, without ties), so such a claim supports nothing until a sample size
-  is justified by the owner. A mixed-host run, a run that did not reach `done`, a
-  resume and a seeded run are named in the report and kept out of every cell. A
-  cost or turns figure the harness itself calls a lower bound (a session that
-  may never have reported) stays marked as one wherever it is summarised. An
-  overlap count from recorded spans is a lower bound too: a run that wrote no
-  row, and a row written before the span existed, are invisible to it. One
-  matching rule serves both the live line and the report (`matching_rows`).
-  Transitional break, named: a row written before this date carries no
-  `prompt_sha256`, so for the `custom` case (the Grok `none` runs) it matches no
-  new run until a row with the field exists; for a named case the prompt key
-  applies only when both the run and the row carry one, so the existing
-  `baseline vs` line and its stage lines survive for the 23 committed rows. The
-  promotion bullet above ("no worse than the style's baseline") is not edited:
-  giving it a number is the owner's decision.
+  which host builds. `host_build` is the build of the run's first launch: for
+  Claude the build its init events name; for Grok and Codex the first line of
+  the CLI's `--version`, probed once when that launch started and written on
+  that launch's record (a later launch records its own probe on its own record;
+  the run's result keeps the first launch's). It is null for every launch made
+  before the probe existed and is never probed afterwards, because today's build
+  stamped on a past run would be a made-up fact. A null identity field carries
+  its reason in `identity_unmeasured` (launch predates the field, probe failed:
+  not found, non-zero exit, silent or hung, an unreadable plugin file, no stamps,
+  planning window still open), so a bare null is never all there is. The line
+  states facts: the plugin tree is the same or different, the host build is the
+  same or changed, the cell has n rows on k builds. It makes no claim that a run
+  is within, above or below its history and sets no threshold: for exchangeable
+  runs with nothing changed and no ties, a new run falls outside the range of the
+  earlier n with probability exactly 2/(n+1) (2 times in 4 at n = 3), and with ties
+  (turns are integers) at most that, so such a claim
+  supports nothing until a sample size is justified by the owner. A mixed-host
+  run, a run that did not reach `done`, a run the harness ended, a resume and a
+  seeded run are listed in the report with their class and counted in no measure
+  of the cell. A cost or turns figure the harness itself calls a lower bound (a
+  session that may never have reported) stays marked as one wherever it is
+  summarised: the printed report, the `baseline vs` line, the follow-on line, the
+  progress line and the baseline report. A count of overlapping runs from recorded
+  spans is a count and not a bound: it misses a run that left no record or a row
+  from before the span existed ("unknown"), and it can include a resumed run's
+  pause (a span runs from the first to the last stamp, and r2-battleship-grok-none
+  has a 32-minute gap). On the saved runs every one of the 15 overlaps of a counted
+  run was a real one (checked against the active intervals of the timelines, split
+  at gaps over 10 minutes). One predicate (`row_matches`, behind `matching_rows`)
+  decides whether a row is a basis for a run, and the live line and the report both
+  use it. The report differs on purpose in two ways, named here: it takes host,
+  model, effort, `planning_review` mode and prompt hash from the run's own folder
+  for a row that predates them (every field it supplied is listed in `recomputed`;
+  the live rule never does, so such a row stays no basis for a live comparison);
+  and a row with no prompt hash of a named case sits in the driver's only cell, or
+  in a cell of its own when the driver has several prompts, because the live rule
+  would match it with any of them and the report cannot say which. Transitional
+  break, named: of the 23 committed rows, 15 name no host, model or effort and were
+  never a basis; 6 (v1200-hello-sonnet, v1220-battleship-sonnet,
+  v1230-battleship-sonnet, r1-checkers-sonnet, r3-battleship-sonnet,
+  r3-checkers-sonnet) name a driver, carry no prompt hash and are cases with a fixed
+  prompt, so they keep comparing with a new run of the same driver (the prompt key
+  applies to a named case only when both the run and the row carry one); the two
+  Grok `none` rows (v1220-battleship-grok-medium-none and the blocked
+  v1230-battleship-grok-none) are case `custom`, where the key always applies, so
+  they match no new run until a row with the hash exists. The promotion bullet
+  above ("no worse than the style's baseline") is not edited: giving it a number is
+  the owner's decision.
 - **A run leaves nothing listening** (amended 2026-10-08; anchor S-11, a
   lesson a contaminated run commits is retained as knowledge, and "Concurrency
   must not change a verdict"). When a host session ends, and once after the
