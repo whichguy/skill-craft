@@ -314,6 +314,7 @@ on quickly before the breadth of everything is checked.
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
 | S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered; a requested stop (`<output>/stop`, added 2026-10-08) ends the host and is recorded as `stopped`, and never answers a blocked or awaiting run |
 | S-15 | `narrative`: milestone narratives ShipLoop emitted for the model to show, how many the model showed (heading present) and showed verbatim (every line), the stages whose narrative it skipped, and the share of accepted step results that carry a headline. Scored beside reliability, not a verdict, until a style has a baseline |
+| S-9 (oracle strength), S-11 | `quality` in result.json (added 2026-10-09), taken only from a finished, committed delivery: a mutation ratio of the delivered tests (JS text operators on a copy under `<output>/quality`, never on `work/`; recorded with its operator-catalog id, per-file site counts and whether the tests load each file), held-out acceptance for a case that declares it (Checkers only), `held_out_seen` (host events that name a held-out check; null where the events cannot be read) and the Claude memory writes the events show. Recorded beside the verdicts, never a verdict and never a threshold; a measure that could not be taken is `{observed: false, reason}`, never 0, and two ratios are compared only when their operator-catalog ids are equal |
 
 Verdicts (invoked, plugin, process, shiploop, committed, checks) must all pass.
 Reliability (sessions, cancellations, failures) and cost (turns, dollars, per
@@ -523,6 +524,88 @@ stands at the commit under test.
   unix-socket servers, and a server whose working directory and command line are
   both outside the folder are not reaped; a pair of concurrent runs still
   shares loopback (see Parallel work).
+- **A planning_review mode is an option of a named case** (amended 2026-10-09; anchor
+  S-13, a case's specifics stay in the case catalog, and this SPEC's rule that a baseline
+  compares a run only with its own driver and case). `--planning-review stage|none` works
+  with `--case` as it did inside a `--prompt`: the harness appends the run option to the
+  case's prompt, and for `none` also the absolute path of the plugin's Improve card as
+  `--improve-skill`, which the S-10 carve-out of 2026-10-05 requires for that mode.
+  `invocation.json` records `planning_review` and `improve_skill` (null when the option was
+  not given); the mode a baseline row compares by stays the one `state.md` records. A
+  resume names the run's own value or none. Basis: the Grok `none` runs of 2026-10-06 and
+  2026-10-07 (baseline rows 2026-10-06T18:17 and 2026-10-07T10:17) and rounds 2 and 3 were
+  launched with `--prompt` and `--check`, so their case is `custom` and their style null:
+  they compare with any other custom run, and no measure a case declares can reach them.
+- **Delivered quality is recorded, never judged** (amended 2026-10-09; anchor S-9, whose
+  known limit is that the strength of the delivered tests is model-judged: the 15 Battleship
+  tests of r3 passed three hand-made page mutants, and 8 of 17 hand-made mutants survived
+  there; also "Concurrency must not change a verdict", and S-14 for the stop). After the
+  host and the case checks, the harness measures the product the run returned, in this
+  order and within these limits:
+  - **Gate.** Only a delivery that is finished and returned is measured: `shiploop` and
+    `committed` pass, the engine is not active, no stop was requested and the harness was
+    not told to end. Otherwise the block is `{observed: false, reason}` (r3-battleship-grok-none
+    is active with no tracked file). The measures run under the case lock the harness already
+    holds and never take another (a second non-blocking lock in one process fails by
+    design); a regrade runs them too, and records `observed: false` when another harness
+    holds the case.
+  - **Order.** result.json (without `quality`) and metrics.json are written first; the phase
+    then adds its block and writes result.json again. The phase can add up to its ceiling
+    after the host ends, and a task launcher's limit is near 30 minutes: a kill in the phase
+    must not lose the record that exists today.
+  - **Processes.** The copy lives under `<output>/quality`. Every child (a test run, the
+    product's server) starts in a group of its own and is registered with the harness's live
+    groups, so SIGTERM and exit end it; a requested stop (a signal or `<output>/stop`) is
+    checked between mutants and ends the phase; a group is signalled only while its leader
+    is alive and still leads it; listeners are stopped under `<output>/quality` only, also in
+    a regrade, which reaps nothing else. The two time limits (one test run, the whole
+    mutation phase) are ceilings and not tuning values, as `LSOF_TIMEOUT` is: a run that
+    reaches the first is counted killed (and counted as a timeout), and the second leaves
+    the mutants it did not reach as `not_run` and sets `ceiling_hit`. Mutants are taken
+    round-robin across files so that a ceiling hit leaves a sample of every file.
+  - **Comparability.** A ratio belongs to one operator catalog (`operator_id`) and is
+    compared only with a ratio of the same id. It is the share of mutants the tests catch,
+    and equivalent mutants survive, so it never reaches 1. A file the tests never load is
+    reported as such (`loaded_by_tests`), because all its sites survive. The saved
+    deliveries keep the page's JavaScript in an HTML file or in a string of `server.js`,
+    which no operator reaches: a known limit, and a layout that moves page code into a
+    `.js` file changes the ratio for a reason that is not quality. A delivery in a language
+    with no operator catalog reports `observed: false`, never 0.
+  - **Held-out acceptance** (Checkers only; the Battleship set passed 5 of 5 deliveries and
+    separated nothing) is written by hand from the case's prompt, lives only in
+    `cases.json` and `checks/`, and runs inside the harness process, so no check text or id
+    reaches a harness argv, a prompt or a file under `work/`. A model on the same machine
+    reads argv: the r3 Checkers model printed the Grok harness's argv with `pgrep` (events
+    550 and 570). `held_out_seen` counts the host events that name a held-out script, the
+    checks folder or `E2E_CHECKS`, and is null, never 0, where the events cannot be read.
+    Each check is calibrated against a hermetic reference server with one defect switch
+    before it is admitted.
+  - **Hosts.** Attribution (`hosts`, `mixed_host`) comes from the run's launch records
+    (`runrecord`), never from `--host`: r2-battleship-grok-none was started by Grok and
+    finished by Claude.
+  - **Claude memory.** The writes a Claude session made under `~/.claude/projects/*/memory`
+    are computed from the run's events (a `Write`, `Edit` or `MultiEdit` call), so a
+    regrade reproduces them from the run record and not from a profile the owner can prune.
+    Nothing is deleted and no environment variable changes a host: a run's behaviour is
+    unchanged.
+
+  Non-regression: `quality` is an optional key of result.json and of the baseline row;
+  `scan_baseline`, `stage_diff_lines` and every verdict ignore it; no host argv, environment
+  or profile changes. Tool knowledge (the operators, how a test runner reports its count,
+  which files a run loaded) sits in one catalog keyed by extension (S-8, S-12), product
+  knowledge in `cases.json` and `checks/`, and the engine's one test-count reader is reused,
+  not copied. Dispositions of the design audit of 2026-10-09: not built are the port lease
+  and port serialisation, `CLAUDE_CODE_DISABLE_AUTO_MEMORY` (a behaviour change of every
+  Claude run: an owner decision) and the argv exec scrub (classed document-only by the
+  round-3 synthesis; a named case carries no check text in its argv, and a custom `--prompt`
+  and `--check` run still does, as do Claude's and Codex's prompts, which stay on their
+  hosts' argv because standard input stays closed, S-14); overlap and kill-by-name counts
+  belong to the environment and fidelity records; the UI observation waits until a browser
+  can be clicked through a debugging connection; the Battleship acceptance set is dropped.
+  Basis: the prototype ratios (r3 Battleship 0.56 against 0.74 to 0.82 for the other three
+  deliveries, Checkers 0.81 to 0.91) were one sweep each by other operators and are read as
+  "lowest of four, consistent with the hand finding, not separable at four runs or fewer",
+  never as a ranking.
 - Start from an empty directory, or for a follow-on case, from a clean copy of
   an earlier run's checkout. The harness leaves no files of its own behind.
 - Case products are disposable probes. The repository a run builds (and any
