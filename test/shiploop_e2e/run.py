@@ -143,9 +143,11 @@ def kill_group(pid: int) -> None:
 
 
 def end_live_hosts() -> None:
-    """Kill every host session that is running. Also runs at exit, so a Ctrl-C or a crash leaves no orphan host."""
+    """Kill every host session that is running, and the browser of a capability probe that is running (the probe registers its
+    group in environment.LIVE_PROBE_GROUPS). Also runs at exit, so a Ctrl-C or a crash leaves no orphan host or browser."""
     for pid in tuple(LIVE_HOST_GROUPS):  # a copy: suite worker threads add and discard concurrently
         kill_group(pid)
+    environment.end_live_probes()
 
 
 atexit.register(end_live_hosts)
@@ -1934,7 +1936,7 @@ def _main(argv: list[str] | None, held: list) -> int:
         start_environment = environment.unobserved("regraded: no host was launched")
     else:
         try:
-            start_environment = environment.start_record(display_held(), needs, args.browser_bin)
+            start_environment = environment.start_record(display_held(), needs, args.browser_bin, TERMINATION.is_set)
         except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
             start_environment = environment.unobserved("could not be recorded: " + (" ".join(str(exc).split())[:200] or type(exc).__name__))
     if args.seed_at and not resumed:

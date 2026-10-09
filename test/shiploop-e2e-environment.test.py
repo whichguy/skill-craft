@@ -23,6 +23,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -32,6 +33,9 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "test" / "fixtures" / "e2e-environment"
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import run  # noqa: E402
+
+# The real group signal, kept before any test wraps it: the cleanups end what a test started with this, never with a wrapper.
+REAL_KILLPG = os.killpg
 
 
 def load_base():
@@ -202,7 +206,7 @@ class OwnProcesses:
     def _end_started(self) -> None:
         for proc in self._started:
             with contextlib.suppress(ProcessLookupError, PermissionError):
-                os.killpg(proc.pid, signal.SIGKILL) if os.getpgid(proc.pid) == proc.pid else None
+                REAL_KILLPG(proc.pid, signal.SIGKILL) if os.getpgid(proc.pid) == proc.pid else None
             with contextlib.suppress(Exception):
                 proc.wait(timeout=5)
 
@@ -224,7 +228,7 @@ if argv == ["--version"]:
 url = argv[-1]
 kind = "file" if url.startswith("file:") else "http"
 mode = os.environ.get("FAKE_BROWSER_MODE_" + kind.upper()) or os.environ.get("FAKE_BROWSER_MODE", "linger")
-note(argv=argv, url=url, kind=kind, mode=mode, home=os.environ.get("HOME"))
+note(argv=argv, url=url, kind=kind, mode=mode, home=os.environ.get("HOME"), t=time.time())
 if mode == "silent":
     time.sleep(30)
 if mode == "crash":
@@ -268,6 +272,39 @@ class BrowserFixture(OwnProcesses):
         self.addCleanup(patched.stop)
         self.addCleanup(self._end_browsers)
         self.environment = import_environment()
+        # Every test of the probe runs with the group signal guarded: a group that is not a fake browser's own (or is this
+        # test process's) is recorded and never sent, and the test fails on it afterwards.
+        self.signalled, self.stray, self.started = [], [], set()
+        real_popen = subprocess.Popen
+
+        def recording_popen(*args, **kw):
+            """Notes the pid of each fake browser the code under test starts (before the fake has written its log line)."""
+            made = real_popen(*args, **kw)
+            argv = args[0] if args else kw.get("args")
+            if isinstance(argv, list) and argv and argv[0] == str(self.browser) and "--dump-dom" in argv:
+                self.started.add(made.pid)
+            return made
+
+        def guarded(group, number):
+            if number == 0:
+                return REAL_KILLPG(group, number)  # asking whether a group is empty signals nothing
+            self.signalled.append(group)
+            own = self.started | {entry["pgid"] for entry in self.launches()}
+            if group == os.getpgrp() or group not in own:
+                self.stray.append(group)
+                return None
+            return REAL_KILLPG(group, number)
+
+        popen_patch = mock.patch.object(subprocess, "Popen", recording_popen)
+        guard = mock.patch.object(os, "killpg", guarded)
+        popen_patch.start()
+        guard.start()
+        self.addCleanup(self._no_stray_signal)
+        self.addCleanup(guard.stop)
+        self.addCleanup(popen_patch.stop)
+
+    def _no_stray_signal(self) -> None:
+        self.assertEqual(self.stray, [], "a group that is not a fake browser's own was signalled")
 
     def launches(self) -> list[dict]:
         return [json.loads(line) for line in self.log.read_text().splitlines()] if self.log.exists() else []
@@ -278,7 +315,7 @@ class BrowserFixture(OwnProcesses):
             for pid in (entry["pid"], entry.get("child")):
                 with contextlib.suppress(ProcessLookupError, PermissionError, TypeError):
                     if os.getpgid(pid) == pid:
-                        os.killpg(pid, signal.SIGKILL)
+                        REAL_KILLPG(pid, signal.SIGKILL)
 
     def alive(self, pid: int) -> bool:
         try:
@@ -339,9 +376,21 @@ class BrowserProbeTest(BrowserFixture, unittest.TestCase):
         self.assertEqual((http["title_seen"], http["output_s"], http["exited"], http["lingered"], http["killed"]),
                          (False, None, False, False, True))
         self.assertGreaterEqual(elapsed, 1.4, "a launch that never prints is waited for up to the ceiling")
-        self.assertLess(elapsed, 4.0, "both kinds were probed together, each in a session of its own")
+        self.assertLess(elapsed, 5.0)
         for entry in self.launches():
             self.assertFalse(self.alive(entry["pid"]))
+
+    def test_the_two_kinds_are_probed_one_after_the_other_so_each_browser_runs_beside_no_other_probe_browser(self):
+        with mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "silent"}):
+            start = time.monotonic()
+            record = self.probe(ceiling=1.5)
+            elapsed = time.monotonic() - start
+        first, second = sorted(self.launches(), key=lambda entry: entry["t"])
+        self.assertEqual((first["kind"], second["kind"]), ("file", "http"))
+        self.assertGreaterEqual(second["t"] - first["t"], 1.4, "the second browser started after the first had been waited for")
+        self.assertGreaterEqual(elapsed, 2.9)
+        self.assertFalse(record["file"]["title_seen"] or record["http"]["title_seen"])
+        self.assertTrue(record["file"]["killed"] and record["http"]["killed"])
 
     def test_a_helper_that_left_the_group_and_keeps_the_output_open_does_not_hang_the_probe(self):
         # Closing a pipe that a thread is still reading blocks until the pipe closes: with this helper holding it for 8 s,
@@ -363,24 +412,19 @@ class BrowserProbeTest(BrowserFixture, unittest.TestCase):
 
     def test_the_probe_signals_only_the_group_it_started_and_a_bystander_is_left_alone(self):
         bystander = self.start_bystander()
-        own = os.getpgrp()
-        real, signalled, stray = os.killpg, [], []
-
-        def guarded(group, number):
-            if number == 0:
-                return real(group, number)  # asking whether a group is empty signals nothing
-            signalled.append(group)
-            if group == own or group not in {entry["pgid"] for entry in self.launches()}:
-                stray.append(group)  # recorded and not sent: a wrong group is never really signalled
-                return None
-            return real(group, number)
-
-        with mock.patch.object(os, "killpg", guarded):
-            self.probe()
-        self.assertEqual(stray, [], "a group that is not a fake browser's own was signalled")
-        self.assertTrue(signalled, "a lingering browser was stopped through its group")
+        self.probe()
+        self.assertTrue(self.signalled, "a lingering browser was stopped through its group")
+        self.assertEqual(self.stray, [], "every group signalled was a fake browser's own")
         self.assertIsNone(bystander.poll(), "a process the probe did not start was not touched")
         self.assertTrue(self.alive(bystander.pid))
+
+    def test_a_guard_that_sees_a_wrong_group_records_it_and_sends_nothing(self):
+        # The guard itself: a mutant that signals a group the probe did not start is caught by the fixture, not by luck.
+        bystander = self.start_bystander()
+        os.killpg(os.getpgid(bystander.pid), signal.SIGKILL)  # the wrapper: this group is not a fake browser's
+        self.assertEqual(self.stray, [os.getpgid(bystander.pid)])
+        self.assertTrue(self.alive(bystander.pid), "a stray signal is recorded and not sent")
+        self.stray.clear()
 
     def test_the_browser_runs_with_a_throwaway_profile_and_the_hygiene_flags(self):
         self.probe()
@@ -391,8 +435,8 @@ class BrowserProbeTest(BrowserFixture, unittest.TestCase):
             profile = next(arg.split("=", 1)[1] for arg in argv if arg.startswith("--user-data-dir="))
             self.assertTrue(os.path.realpath(profile).startswith(os.path.realpath(tempfile.gettempdir())), profile)
             self.assertFalse(Path(profile).exists(), "the throwaway profile is removed")
-            for flag in ("--headless=new", "--dump-dom", "--disable-background-networking", "--disable-default-apps",
-                         "--disable-component-update", "--disable-sync"):
+            for flag in ("--headless=new", "--disable-gpu", "--no-first-run", "--dump-dom", "--disable-background-networking",
+                         "--disable-default-apps", "--disable-component-update", "--disable-sync"):
                 self.assertIn(flag, argv)
             self.assertEqual(argv[-1], entry["url"])
 
@@ -402,6 +446,133 @@ class BrowserProbeTest(BrowserFixture, unittest.TestCase):
         self.assertTrue(urls["file"].startswith("file://"))
         self.assertRegex(urls["http"], r"^http://127\.0\.0\.1:\d+/")
         self.assertTrue(record["file"]["title_seen"] and record["http"]["title_seen"])
+
+    def test_the_stand_in_asks_the_system_for_its_port(self):
+        asked = []
+        real = self.environment.http.server.ThreadingHTTPServer
+
+        class Recording(real):
+            def __init__(inner, address, *args, **kw):
+                asked.append(address)
+                super().__init__(address, *args, **kw)
+
+        with mock.patch.object(self.environment.http.server, "ThreadingHTTPServer", Recording):
+            self.probe()
+        self.assertEqual(asked, [("127.0.0.1", 0)], "a loopback listener on a port the system chooses, never a fixed one")
+
+    def test_the_record_says_the_three_times_it_used(self):
+        record = self.probe(ceiling=3.5, grace=0.4)
+        self.assertEqual((record["ceiling_seconds"], record["grace_seconds"]), (3.5, 0.4))
+        self.assertEqual(record["empty_seconds"], self.environment.EMPTY_SECONDS)
+        self.assertEqual((record["file"]["interrupted"], record["http"]["interrupted"]), (False, False))
+
+    def test_group_empty_is_what_the_group_check_says_after_the_stop(self):
+        with mock.patch.object(self.environment, "EMPTY_SECONDS", 0.3), \
+                mock.patch.object(self.environment, "_group_alive", return_value=True):
+            stuck = self.probe()
+        self.assertEqual((stuck["file"]["group_empty"], stuck["http"]["group_empty"]), (False, False))
+        with mock.patch.object(self.environment, "_group_alive", return_value=False):
+            gone = self.probe()
+        self.assertEqual((gone["file"]["group_empty"], gone["http"]["group_empty"]), (True, True))
+
+    def test_the_reader_thread_ends_and_the_pipe_is_closed_even_when_a_helper_holds_the_output_open(self):
+        threads, procs = [], []
+        real_thread, real_popen = self.environment.threading.Thread, self.environment.subprocess.Popen
+
+        def thread(*args, **kw):
+            made = real_thread(*args, **kw)
+            threads.append(made)
+            return made
+
+        def popen(*args, **kw):
+            made = real_popen(*args, **kw)
+            procs.append(made)
+            return made
+
+        with mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "escape"}), \
+                mock.patch.object(self.environment.threading, "Thread", thread), \
+                mock.patch.object(self.environment.subprocess, "Popen", popen):
+            self.probe()
+        browsers = [made for made in procs if made.args[0] == str(self.browser) and "--dump-dom" in made.args]
+        self.assertEqual(len(browsers), 2)
+        self.assertTrue(all(made.stdout.closed for made in browsers), "the pipe was closed")
+        self.assertFalse(any(made.is_alive() for made in threads), "no reader thread was left running")
+
+    def test_a_probe_that_cannot_confirm_its_group_still_ends_the_browser(self):
+        with mock.patch.object(self.environment.os, "getpgid", side_effect=PermissionError("denied")):
+            record = self.probe()
+        self.assertTrue(record["probed"], record)
+        self.assertEqual(len(self.started), 2)
+        for pid in self.started:
+            self.assertFalse(self.alive(pid), "the browser was ended by its pid when its group could not be confirmed")
+        self.assertTrue(record["file"]["killed"])
+
+    def test_the_harness_ending_its_live_hosts_ends_a_probe_browser_too(self):
+        result = {}
+        url = (self.dir / "page.html").as_uri()
+
+        def probe():
+            result["record"] = self.environment.probe_target(str(self.browser), url, "token", 8.0, 0.3)
+
+        with mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "silent"}):
+            worker = threading.Thread(target=probe)
+            worker.start()
+            for _ in range(100):
+                if self.launches():
+                    break
+                time.sleep(0.05)
+            self.assertTrue(self.launches(), "the browser started")
+            start = time.monotonic()
+            run.end_live_hosts()  # what a SIGTERM to the harness and the exit-time hook both do
+            worker.join(10)
+        self.assertFalse(worker.is_alive())
+        self.assertLess(time.monotonic() - start, 4.0, "the probe did not wait out its 8 s ceiling")
+        self.assertFalse(self.alive(self.launches()[0]["pid"]))
+        self.assertFalse(self.environment.LIVE_PROBE_GROUPS, "a finished probe leaves nothing registered")
+
+    def test_a_probe_told_to_stop_during_the_grace_ends_the_browser_and_does_not_call_it_lingering(self):
+        stop = threading.Event()
+        threading.Timer(0.8, stop.set).start()
+        # A browser that prints the title and lingers, with a 3 s grace the stop request cuts short.
+        with self.environment.StandIn() as page:
+            start = time.monotonic()
+            record = self.environment.probe_target(str(self.browser), page.file_url, page.token, 4.0, 3.0, stop.is_set)
+            elapsed = time.monotonic() - start
+        self.assertTrue(record["title_seen"])
+        self.assertTrue(record["interrupted"])
+        self.assertFalse(record["lingered"], "a browser stopped by the harness did not outlast the grace")
+        self.assertLess(elapsed, 2.5, "the 3 s grace was cut short")
+        for pid in self.started:
+            self.assertFalse(self.alive(pid))
+
+    def test_an_exception_while_the_probe_waits_still_ends_the_browser_and_removes_its_files(self):
+        def boom():
+            raise RuntimeError("the wait failed")
+
+        before = set(Path(tempfile.gettempdir()).glob("e2e-browser-profile-*"))
+        with mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "silent"}):
+            with self.assertRaises(RuntimeError):
+                self.environment.probe_target(str(self.browser), (self.dir / "page.html").as_uri(), "token", 8.0, 0.3, boom)
+        self.assertEqual(len(self.started), 1)
+        for pid in self.started:
+            self.assertFalse(self.alive(pid), "the browser was ended by the probe's finally")
+        self.assertFalse(self.environment.LIVE_PROBE_GROUPS)
+        self.assertEqual(set(Path(tempfile.gettempdir()).glob("e2e-browser-profile-*")), before, "the throwaway profile was removed")
+
+    def test_a_probe_told_to_stop_ends_the_browser_at_once_and_skips_the_target_after_it(self):
+        stop = threading.Event()
+        threading.Timer(0.5, stop.set).start()
+        with mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "silent"}):
+            start = time.monotonic()
+            record = self.probe(ceiling=6.0, should_stop=stop.is_set)
+            elapsed = time.monotonic() - start
+        self.assertLess(elapsed, 3.0)
+        self.assertTrue(record["file"]["interrupted"])
+        self.assertEqual(record["http"]["probed"], False)
+        self.assertIn("told to end", record["http"]["reason"])
+        self.assertEqual(len(self.started), 1, "the second browser was never started")
+        for pid in self.started:
+            self.assertFalse(self.alive(pid))
 
     def test_the_stand_in_server_is_closed_after_the_probe_and_after_a_failure(self):
         made = []
@@ -778,6 +949,9 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
         with mock.patch.object(run, "display_held", return_value=True):
             _, result, _ = self.invoke_printed("grok", "done")
         self.assertIs(result["environment"]["start"]["display_hold"], True)
+        with mock.patch.object(run, "display_held", return_value=False):
+            _, result, _ = self.invoke_printed("grok", "done")
+        self.assertIs(result["environment"]["start"]["display_hold"], False)
 
     def test_a_run_started_beside_a_neighbour_records_the_overlap_with_its_hosts_and_seconds(self):
         now = time.time()
@@ -810,6 +984,27 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
                                                 "--browser-bin", str(self.browser))
             self.assertTrue(flagged["environment"]["start"]["browser"]["probed"])
             self.assertGreater(len(self.browser_launches()), first)
+
+    def test_a_harness_told_to_end_during_the_probe_ends_the_browser_at_once_and_the_run_reads_stopped(self):
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        timer = threading.Timer(0.5, run.terminate, ("SIGTERM",))
+        self.addCleanup(timer.cancel)
+        with mock.patch.object(self.environment, "TITLE_CEILING_SECONDS", 4.0), \
+                mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "silent"}):
+            timer.start()
+            start = time.monotonic()
+            code, result, printed = self.invoke_printed("grok", "done", "--prompt", "p", "--need", "browser",
+                                                        "--browser-bin", str(self.browser))
+            elapsed = time.monotonic() - start
+        self.assertLess(elapsed, 3.0, "the probe did not wait out its 4 s ceiling")
+        self.assertEqual(result["process"]["status"], "stopped")
+        browser = result["environment"]["start"]["browser"]
+        self.assertTrue(browser["file"]["interrupted"])
+        self.assertFalse(browser["http"]["probed"])
+        for entry in self.browser_launches():
+            with self.assertRaises(ProcessLookupError):
+                os.kill(entry["pid"], 0)
 
     def test_an_unknown_need_is_refused_by_the_parser(self):
         self.assertEqual(run.parser().parse_args(["--need", "browser"]).need, ["browser"])
@@ -864,6 +1059,45 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
         regrade_record = json.loads(next(out.glob("invocation-resume-*.json")).read_text())
         self.assertEqual(regrade_record["environment"], {"observed": False, "reason": "regraded: no host was launched"})
         self.assertEqual(self.browser_launches(), [])
+
+
+class StandaloneProbeTest(BrowserFixture, unittest.TestCase):
+    """python3 environment.py --need browser, the calibration command, is a program a person or a task stops."""
+
+    def start(self, tmpdir: Path) -> subprocess.Popen:
+        env = dict(os.environ, TMPDIR=str(tmpdir), FAKE_BROWSER_MODE="silent")
+        proc = subprocess.Popen([sys.executable, str(ROOT / "test" / "shiploop_e2e" / "environment.py"), "--need", "browser",
+                                 "--browser-bin", str(self.browser)], env=env, stdin=subprocess.DEVNULL,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+        self._started.append(proc)
+        for _ in range(200):
+            if self.launches():
+                break
+            time.sleep(0.05)
+        self.assertTrue(self.launches(), "the browser started")
+        return proc
+
+    def test_a_sigterm_to_the_standalone_command_ends_the_browser_and_removes_its_files(self):
+        tmpdir = self.dir / "tmp"
+        tmpdir.mkdir()
+        proc = self.start(tmpdir)
+        time.sleep(0.5)
+        proc.send_signal(signal.SIGTERM)  # the command this test started
+        proc.wait(timeout=15)
+        self.assertNotEqual(proc.returncode, 0)
+        for entry in self.launches():
+            self.assertFalse(self.alive(entry["pid"]), "the browser the command started was ended")
+        self.assertEqual(sorted(path.name for path in tmpdir.iterdir()), [], "its profile and stand-in files were removed")
+
+    def test_a_sighup_to_the_standalone_command_does_the_same(self):
+        tmpdir = self.dir / "tmp"
+        tmpdir.mkdir()
+        proc = self.start(tmpdir)
+        proc.send_signal(signal.SIGHUP)
+        proc.wait(timeout=15)
+        for entry in self.launches():
+            self.assertFalse(self.alive(entry["pid"]))
+        self.assertEqual(sorted(path.name for path in tmpdir.iterdir()), [])
 
 
 class CasesNeedTest(unittest.TestCase):

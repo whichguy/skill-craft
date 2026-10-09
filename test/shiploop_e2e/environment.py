@@ -5,7 +5,7 @@ verdicts, never a verdict.  Nothing here changes ``pass``, the exit code or the 
 not measure instead of guessing: a value nothing measured is ``None`` with its reason, ``[]`` only where something looked and
 found none.
 
-* the tool versions the model's shell sees (``node``, ``python3``, ``git``), the CPU count and the load, at the start of each
+* the tool versions on the harness's PATH (``node``, ``python3``, ``git``), the CPU count and the load, at the start of each
   launch and at the end of the run, and whether the host ran under a display hold;
 * ``hosts_used`` and one entry per launch, read through ``runrecord`` (the one reader of the launch records), so a run that two
   hosts worked on is named so;
@@ -53,13 +53,17 @@ TOOL_TIMEOUT = 10.0
 # lingers, so they are hygiene only.
 BROWSER_FLAGS = ("--headless=new", "--disable-gpu", "--no-first-run", "--disable-background-networking",
                  "--disable-default-apps", "--disable-component-update", "--disable-sync")
-# How long a launch that never prints its page is waited for: a ceiling, not a tuning value (16 of 16 measured launches printed
-# in 0.36 to 0.47 s).  Past it the browser's group is stopped and the target is recorded as no title.
+# How long a launch that never prints its page is waited for: a ceiling, not a tuning value (16 of 16 launches in the design audit
+# printed in 0.36 to 0.47 s).  Past it the browser's group is stopped and the target is recorded as no title.  Recorded as
+# ``ceiling_seconds``.
 TITLE_CEILING_SECONDS = 20.0
-# How long a browser that has printed its page is given to exit by itself before its group is stopped: a ceiling, not a tuning
-# value.  Most launches did not exit at all (only 3 of 16 within 12 to 20 s), so the exit is recorded, not waited for.
+# How long a browser that has printed its page is given to exit by itself before its group is stopped.  A definition, not a
+# ceiling: ``lingered`` means still running after this long, and ``exited`` means it ended within it.  Most launches did not exit at
+# all (the audit: 3 of 16 exited before its 12 to 20 s ceiling; the other 13 were still running there and were killed, so their exit
+# time is unknown), which is why the exit is recorded and not waited for.  Recorded as ``grace_seconds``.
 GRACE_SECONDS = 1.0
-# How long a stopped group is given to be gone before it is recorded as not empty.
+# How long a stopped group is given to be gone before it is recorded as not empty: a ceiling, and the basis of ``group_empty``.
+# Recorded as ``empty_seconds``.
 EMPTY_SECONDS = 2.0
 POLL_SECONDS = 0.02
 # Where a browser is looked for when none is named.  Tests patch `autodetect_browser`, so none of this runs there.
@@ -133,13 +137,14 @@ def machine() -> tuple[dict, dict]:
     return {"cpus": cpus, "loadavg": load}, unread
 
 
-def start_record(display_hold: bool, needs=(), browser_bin: str | None = None) -> dict:
-    """The record of one launch's start: tools, machine, display hold and (only where declared) the browser capability."""
+def start_record(display_hold: bool, needs=(), browser_bin: str | None = None, should_stop=None) -> dict:
+    """The record of one launch's start: tools, machine, display hold and (only where declared) the browser capability.
+    ``should_stop`` (the harness passes its termination flag) ends the browser probe early."""
     versions, unread = tools()
     state, missing = machine()
     return {"observed": True, "at": now_text(), "tools": dict(versions), **state, "display_hold": bool(display_hold),
             "unread": {**unread, **missing},
-            "browser": browser_record(browser_bin) if "browser" in needs else dict(NOT_DECLARED)}
+            "browser": browser_record(browser_bin, should_stop=should_stop) if "browser" in needs else dict(NOT_DECLARED)}
 
 
 def end_record() -> dict:
@@ -335,20 +340,52 @@ def _group_alive(group: int) -> bool:
     return True
 
 
-def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float) -> dict:
+# The process groups of the browsers a probe has started and not yet ended, by the pid of the leader of each (verified at launch).
+# `run.end_live_hosts` ends them too, so a SIGTERM to the harness, a Ctrl-C and the exit-time hook reach a browser the probe started,
+# as they reach a host: only a SIGKILL of the harness can leave one.
+LIVE_PROBE_GROUPS: set[int] = set()
+
+
+def end_live_probes() -> None:
+    """SIGKILL the group of every browser a probe is running now.  A group already gone is left alone."""
+    for group in tuple(LIVE_PROBE_GROUPS):  # a copy: a probe discards its own group as it ends
+        _signal_group(group)
+
+
+def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float, should_stop=None) -> dict:
     """Load one URL in a headless browser and record what the browser did, not what its exit code says.
 
     The browser is started in a session of its own, so its group is its own; that is verified at launch, and only that group
-    is ever signalled.  Success is the stand-in's title appearing in the browser's output.  Once it has, the browser gets
-    ``grace`` seconds to exit by itself; a browser still there is stopped (it lingered: ``lingered`` is True, ``exited`` False).
-    A browser that prints nothing is waited for up to ``ceiling`` seconds.
+    is ever signalled (a browser whose group cannot be confirmed is stopped by its pid alone).  Success is the stand-in's title
+    appearing in the browser's output.  Once it has, the browser gets ``grace`` seconds to exit by itself; a browser still there
+    is stopped (it lingered: ``lingered`` is True, ``exited`` False).  A browser that prints nothing is waited for up to
+    ``ceiling`` seconds.  ``should_stop``, polled with the waits, ends the probe early (``interrupted`` is True).  Whatever
+    ends the probe (a title, the ceiling, a stop request, an exception), the browser it started is stopped before it returns.
     """
     profile = tempfile.mkdtemp(prefix="e2e-browser-profile-")
     record = {"title_seen": False, "output_s": None, "exited": False, "lingered": False, "returncode": None,
-              "killed": False, "group_empty": None, "error": None}
+              "killed": False, "group_empty": None, "interrupted": False, "error": None}
     proc = None
     reader = None
+    group = None
+    leads = False
     stop = threading.Event()
+
+    def asked_to_stop() -> bool:
+        return bool(should_stop is not None and should_stop())
+
+    def end_browser() -> None:
+        """Stop what is still running of the browser this call started: its group if it leads one, else the child alone."""
+        if proc is None:
+            return
+        if leads and (proc.poll() is None or _group_alive(group)):
+            _signal_group(group)
+        elif not leads and proc.poll() is None:
+            with contextlib.suppress(OSError):
+                proc.kill()
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            proc.wait(timeout=5)
+
     try:
         argv = [binary, *BROWSER_FLAGS, f"--user-data-dir={profile}", "--dump-dom", url]
         started = time.monotonic()
@@ -361,8 +398,10 @@ def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float
         group = proc.pid
         try:
             leads = os.getpgid(proc.pid) == group
-        except ProcessLookupError:
-            leads = False  # gone already: nothing is left to signal
+        except OSError:
+            leads = False  # gone already, or not confirmable: the child alone is stopped, never a group that is not ours
+        if leads:
+            LIVE_PROBE_GROUPS.add(group)
         seen: list[float] = []
         data = bytearray()
         needle = token.encode()
@@ -383,27 +422,23 @@ def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float
 
         reader = threading.Thread(target=read, daemon=True)
         reader.start()
-        while not seen and proc.poll() is None and time.monotonic() - started < ceiling:
+        while not seen and proc.poll() is None and time.monotonic() - started < ceiling and not asked_to_stop():
             time.sleep(POLL_SECONDS)
         if proc.poll() is not None:
             reader.join(timeout=2)  # the last of its output
         if seen:
             end = time.monotonic() + grace
-            while proc.poll() is None and time.monotonic() < end:
+            while proc.poll() is None and time.monotonic() < end and not asked_to_stop():
                 time.sleep(POLL_SECONDS)
+        record["interrupted"] = asked_to_stop()
         record["title_seen"] = bool(seen)
         record["output_s"] = round(seen[0] - started, 2) if seen else None
         record["exited"] = proc.poll() is not None
         record["returncode"] = proc.returncode if record["exited"] else None
-        record["lingered"] = bool(seen) and not record["exited"]
+        record["lingered"] = bool(seen) and not record["exited"] and not record["interrupted"]
         if not record["exited"] or (leads and _group_alive(group)):
             record["killed"] = True
-            if leads:
-                _signal_group(group)
-            else:
-                proc.kill()  # not a leader of its own group: the child alone, never a group that is not ours
-            with contextlib.suppress(subprocess.TimeoutExpired):
-                proc.wait(timeout=5)
+            end_browser()
         if leads:
             end = time.monotonic() + EMPTY_SECONDS
             while _group_alive(group) and time.monotonic() < end:
@@ -411,12 +446,15 @@ def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float
             record["group_empty"] = not _group_alive(group)
         return record
     finally:
+        end_browser()  # a no-op after the normal path; the stop for an exception or an interrupt that skipped it
         stop.set()
         if reader is not None:
             reader.join(timeout=2)  # it looks at `stop` every 0.1 s
         if proc is not None and proc.stdout is not None and (reader is None or not reader.is_alive()):
             with contextlib.suppress(OSError):
                 proc.stdout.close()
+        if group is not None:
+            LIVE_PROBE_GROUPS.discard(group)
         shutil.rmtree(profile, ignore_errors=True)
 
 
@@ -432,9 +470,10 @@ def browser_version(binary: str) -> tuple[str | None, str | None]:
     return (line, None) if done.returncode == 0 and line else (None, f"--version exited {done.returncode}")
 
 
-def browser_record(binary: str | None, ceiling: float | None = None, grace: float | None = None) -> dict:
+def browser_record(binary: str | None, ceiling: float | None = None, grace: float | None = None, should_stop=None) -> dict:
     """The browser capability record of a declared need: can a headless browser load a stand-in page here, over ``file:`` and
-    over loopback http?  A record, never a gate.  Never raises: a failing part is the record's reason."""
+    over loopback http?  A record, never a gate.  The two targets are probed one after the other, so each browser is measured
+    beside no other probe browser.  ``should_stop`` ends the probe early.  Never raises: a failing part is the record's reason."""
     ceiling = TITLE_CEILING_SECONDS if ceiling is None else ceiling
     grace = GRACE_SECONDS if grace is None else grace
     try:
@@ -444,34 +483,21 @@ def browser_record(binary: str | None, ceiling: float | None = None, grace: floa
                     "reason": "no browser binary" + (f" at {binary}" if binary else " found in the usual places or on PATH")}
         version, why = browser_version(found)
         record: dict = {"declared": True, "probed": True, "binary": found, "version": version,
-                        "flags": list(BROWSER_FLAGS), "ceiling_seconds": ceiling, "grace_seconds": grace}
+                        "flags": list(BROWSER_FLAGS), "ceiling_seconds": ceiling, "grace_seconds": grace,
+                        "empty_seconds": EMPTY_SECONDS}
         if why:
             record["version_unread"] = why
         with StandIn() as page:
             targets = {"file": page.file_url}
-            skipped = {}
             if page.http_url:
                 targets["http"] = page.http_url
             else:
-                skipped["http"] = {"probed": False, "reason": page.http_error}
-            results: dict = {}
-            failures: dict = {}
-
-            def one(kind: str, url: str) -> None:
-                try:
-                    results[kind] = probe_target(found, url, page.token, ceiling, grace)
-                except Exception as exc:  # noqa: BLE001
-                    failures[kind] = exc
-
-            threads = [threading.Thread(target=one, args=item) for item in targets.items()]
-            for thread in threads:
-                thread.start()
-            for thread in threads:
-                thread.join()
-            if failures:
-                raise next(iter(failures.values()))
-        record.update(results)
-        record.update(skipped)
+                record["http"] = {"probed": False, "reason": page.http_error}
+            for kind, url in targets.items():
+                if should_stop is not None and should_stop():
+                    record[kind] = {"probed": False, "reason": "the harness was told to end before this target was probed"}
+                    continue
+                record[kind] = probe_target(found, url, page.token, ceiling, grace, should_stop)
         return record
     except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
         return {"declared": True, "probed": False, "reason": "probe failed: " + (" ".join(str(exc).split())[:200] or type(exc).__name__)}
@@ -529,6 +555,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--need", action="append", choices=NEEDS, default=[], help="declare a need (browser)")
     parser.add_argument("--browser-bin", help="the browser to probe (default: a detected Chrome or Chromium)")
     args = parser.parse_args(argv)
+
+    def end(number, _frame):
+        raise SystemExit(128 + number)  # unwinds through the probe's `finally`, which ends the browser and removes its files
+
+    for number in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(number, end)
     print(json.dumps(start_record(display_hold=False, needs=tuple(args.need), browser_bin=args.browser_bin), indent=2))
     return 0
 
