@@ -251,7 +251,8 @@ _DURATION_SECONDS = {
     # 7.7 s (the README watcher tests and the through-main tests with the harness's fake hosts are most of it).
     "test/shiploop-e2e-reorientation.test.py": 7.7,
     # The environment record (batch 1011, group G4): its own file for the same reason.  125 tests, 60.5 s locally on 2026-10-09
-    # at load average 7 to 9 (its journal); the browser probe's process-safety tests start the fake browsers.
+    # at load average 7 to 9 (its journal); the browser probe's process-safety tests start the fake browsers.  With the
+    # integration's listeners.end_group tests: 132 tests, 62.3 s at load average about 4.
     "test/shiploop-e2e-environment.test.py": 65.0,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average

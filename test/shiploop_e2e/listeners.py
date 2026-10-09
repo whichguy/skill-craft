@@ -165,6 +165,46 @@ def _signal(pid: int, number: int) -> None:
         os.kill(pid, number)
 
 
+def _unreaped(leader: int) -> str | None:
+    """`running` or `exited` for a child of this process that has not been reaped, else None (reaped already, or never this
+    process's child). It reaps nothing (WNOWAIT): the caller's Popen still collects the exit status."""
+    try:
+        done = os.waitid(os.P_PID, leader, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+    except ChildProcessError:
+        return None
+    return "exited" if done is not None and done.si_pid == leader else "running"
+
+
+def end_group(leader: int) -> bool:
+    """SIGKILL the process group ``leader`` leads; True when the signal was delivered. The harness's one group kill: the host
+    sessions (run.launch and run.end_live_hosts), the review and fan-out agents (hosts.run_agent) and the browser probe
+    (environment.probe_target and end_live_probes) all end a group here.
+
+    A group is signalled only while its number is still its leader's, so a number another group took is never signalled. The
+    leader must be this process's child and not yet reaped: after a reap its pid, and so the group number, may be reused, and
+    nothing is sent. A running leader must lead its own group (``os.getpgid(leader) == leader``: it was started in a session of
+    its own). A leader that has exited but is not reaped is a zombie that keeps its pid, and what it started still shares the
+    group, so that group is ended too (on macOS ``getpgid`` raises for such a zombie while ``killpg`` still reaches the group,
+    which is why the getpgid check is for a running leader only). A group with nothing left in it is not an error (a group that
+    holds only the zombie answers EPERM on macOS). Nothing is reaped here: the caller's Popen does that.
+    """
+    state = _unreaped(leader)
+    if state is None:
+        return False
+    if state == "running":
+        try:
+            if os.getpgid(leader) != leader:
+                return False
+        except ProcessLookupError:
+            if _unreaped(leader) is None:  # reaped between the two looks (by another thread): its number is no longer ours
+                return False
+    try:
+        os.killpg(leader, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        return False
+    return True
+
+
 def inside(folder) -> list[dict]:
     """The listeners under `folder` right now, never this process or its ancestors. Raises Unobserved."""
     items = observe()

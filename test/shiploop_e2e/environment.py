@@ -42,6 +42,7 @@ import time
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import listeners  # noqa: E402
 import runrecord  # noqa: E402
 
 NEEDS = ("browser",)
@@ -368,12 +369,6 @@ class StandIn:
         return False
 
 
-def _signal_group(group: int) -> None:
-    """SIGKILL a process group this module started.  A group that is already gone is the goal, not an error."""
-    with contextlib.suppress(ProcessLookupError, PermissionError):
-        os.killpg(group, signal.SIGKILL)
-
-
 def _group_alive(group: int) -> bool:
     try:
         os.killpg(group, 0)
@@ -391,9 +386,10 @@ LIVE_PROBE_GROUPS: set[int] = set()
 
 
 def end_live_probes() -> None:
-    """SIGKILL the group of every browser a probe is running now.  A group already gone is left alone."""
+    """SIGKILL the group of every browser a probe is running now (listeners.end_group: a group already gone, or one whose leader
+    was already reaped, is left alone)."""
     for group in tuple(LIVE_PROBE_GROUPS):  # a copy: a probe discards its own group as it ends
-        _signal_group(group)
+        listeners.end_group(group)
 
 
 def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float, should_stop=None) -> dict:
@@ -423,7 +419,7 @@ def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float
         if proc is None:
             return
         if leads and (proc.poll() is None or _group_alive(group)):
-            _signal_group(group)
+            listeners.end_group(group)  # nothing is sent once poll() has reaped the leader: its number may be reused
         elif not leads and proc.poll() is None:
             with contextlib.suppress(OSError):
                 proc.kill()

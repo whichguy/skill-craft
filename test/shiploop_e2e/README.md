@@ -829,8 +829,11 @@ The harness stops what a host leaves listening. A model's background server can 
 the task limit: two (`python server.py` and `node server.js`) were found alive about 27 hours after their runs,
 parent pid 1, listening on all interfaces, and were stopped by hand; on 2026-10-08 one such `node server.js` held port
 3457 while two later runs chose the same port, and one of them committed a false lesson about it. Claude Code gives
-each Bash call its own process group; the harness's kill is a group kill of the host's own session (`os.killpg`, on a
-timeout or an interrupt), which does not reach those groups. So when a host session ends, and again after the case
+each Bash call its own process group; the harness's kill is a group kill of the host's own session (on a
+timeout or an interrupt), which does not reach those groups. Every group kill of the harness (a host session, the review and
+fan-out agents, the browser probe) is `listeners.end_group`: it signals a group only while its leader is this process's child
+and not yet reaped, and a running leader only if it leads its group, so a number a reaped leader gave up is never signalled
+(an exited, unreaped leader still pins its number, and what it left in the group is ended with it). So when a host session ends, and again after the case
 checks, the harness stops every TCP listener of your user whose working directory or command line lies under the
 case's output folder (SIGTERM, then SIGKILL after 3 s; a path that only shares a name prefix with the folder does not
 count, and neither the harness nor what launched it is ever stopped). It records what it stopped, and what it could

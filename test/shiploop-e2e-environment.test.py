@@ -16,6 +16,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import signal
 import socket
@@ -631,6 +632,121 @@ class BrowserProbeTest(BrowserFixture, unittest.TestCase):
     def test_the_two_times_are_ceilings_and_say_so(self):
         source = (ROOT / "test" / "shiploop_e2e" / "environment.py").read_text()
         self.assertIn("a ceiling, not a tuning value", " ".join(source.split()))
+
+
+class GroupKillTest(OwnProcesses, unittest.TestCase):
+    """listeners.end_group, the harness's one group kill (batch 1011 integration): a group is signalled only while its number is
+    still its leader's (a running leader that leads its group, or an exited leader not yet reaped), never after a reap. Every
+    process here is this test's own child; the signal is recorded through a wrapper that passes it on to the real one."""
+
+    def setUp(self):
+        super().setUp()
+        import listeners
+        self.listeners = listeners
+        self.dir = Path(tempfile.mkdtemp(prefix="e2e-group-kill-"))
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        self.sent: list[tuple[int, int]] = []
+
+        def recording(group, number):
+            if number:
+                self.sent.append((group, number))
+            return REAL_KILLPG(group, number)
+
+        patched = mock.patch.object(os, "killpg", recording)
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def leader(self, script: str, own_session: bool = True) -> tuple[subprocess.Popen, int | None]:
+        """A shell running ``script``; a background member it starts writes its pid to a file (None when it starts none)."""
+        note = self.dir / f"member-{len(self._started)}"
+        proc = subprocess.Popen(["/bin/sh", "-c", script.replace("NOTE", str(note))], start_new_session=own_session,
+                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self._started.append(proc)
+        if "NOTE" not in script:
+            return proc, None
+        for _ in range(100):
+            if note.exists() and note.read_text().strip():
+                return proc, int(note.read_text())
+            time.sleep(0.05)
+        self.fail("the group member did not start")
+
+    @staticmethod
+    def gone(pid: int) -> bool:
+        for _ in range(60):
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                return True
+            time.sleep(0.05)
+        return False
+
+    def test_a_running_leader_of_its_own_group_has_the_whole_group_ended(self):
+        proc, member = self.leader("sleep 20 & echo $! > NOTE; wait")
+        self.assertTrue(self.listeners.end_group(proc.pid))
+        self.assertEqual(proc.wait(timeout=5), -signal.SIGKILL)
+        self.assertEqual(self.sent, [(proc.pid, signal.SIGKILL)])
+        self.assertTrue(self.gone(member), "the member the leader started shares its group and was ended with it")
+
+    def test_an_exited_leader_that_is_not_yet_reaped_still_has_its_group_ended(self):
+        # The leader is a zombie that keeps its pid, so the number cannot be someone else's yet, and what it left shares the group.
+        # (On macOS getpgid raises for such a zombie while killpg still reaches the group: the leader check is for a running one.)
+        proc, member = self.leader("sleep 20 & echo $! > NOTE; exit 0")
+        for _ in range(100):
+            if os.waitid(os.P_PID, proc.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT):
+                break
+            time.sleep(0.05)
+        self.assertIsNone(proc.returncode, "not reaped")
+        self.assertTrue(self.listeners.end_group(proc.pid))
+        self.assertTrue(self.gone(member))
+        self.assertEqual(proc.wait(timeout=5), 0, "the leader's own exit status is kept")
+
+    def test_a_reaped_leader_is_never_signalled(self):
+        proc, _ = self.leader("exit 0")
+        proc.wait(timeout=5)
+        self.assertFalse(self.listeners.end_group(proc.pid))
+        self.assertEqual(self.sent, [], "after a reap the number may be another group's")
+
+    def test_a_running_child_that_does_not_lead_its_own_group_is_never_signalled(self):
+        proc, _ = self.leader("sleep 20", own_session=False)  # in this test's own group
+        try:
+            self.assertFalse(self.listeners.end_group(proc.pid))
+            self.assertEqual(self.sent, [])
+            self.assertIsNone(proc.poll())
+        finally:
+            proc.kill()
+            proc.wait(timeout=5)
+
+    def test_a_process_that_is_not_this_process_s_child_is_never_signalled(self):
+        self.assertFalse(self.listeners.end_group(os.getppid()))
+        self.assertEqual(self.sent, [])
+
+    def test_every_group_kill_in_the_harness_is_this_one(self):
+        # S-12, one implementation: outside listeners.py a harness module may ask whether a group is empty (signal 0), never send.
+        for path in sorted((ROOT / "test" / "shiploop_e2e").glob("*.py")):
+            if path.name == "listeners.py":
+                continue
+            for call in re.findall(r"killpg\(([^()]*(?:\([^()]*\))?[^()]*)\)", path.read_text()):
+                with self.subTest(module=path.name, call=call):
+                    self.assertTrue(call.replace(" ", "").endswith(",0"), f"{path.name} sends a group signal itself: {call}")
+        self.assertFalse(hasattr(run, "kill_group"), "run ends its hosts through listeners.end_group")
+        self.assertFalse(hasattr(import_environment(), "_signal_group"), "the probe ends its browser through listeners.end_group")
+
+    def test_the_harness_s_callers_end_their_groups_through_it(self):
+        ended = []
+        with mock.patch.object(self.listeners, "end_group", side_effect=lambda pid: ended.append(pid) or False), \
+                mock.patch.object(run, "LIVE_HOST_GROUPS", {101}), \
+                mock.patch.object(import_environment(), "LIVE_PROBE_GROUPS", {202}):
+            run.end_live_hosts()
+        self.assertEqual(sorted(ended), [101, 202])
+        import hosts
+        calls = []
+        real = self.listeners.end_group
+        with mock.patch.object(self.listeners, "end_group", side_effect=lambda pid: calls.append(pid) or real(pid)):
+            done = hosts.run_agent(["/bin/sh", "-c", "sleep 20 & wait"], self.dir, dict(os.environ), self.dir / "events.jsonl",
+                                   self.dir / "stderr.txt", timeout=1)
+        self.assertEqual(done["status"], "timeout")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(self.sent, [(calls[0], signal.SIGKILL)])
 
 
 class ToolsAndMachineTest(OwnProcesses, unittest.TestCase):

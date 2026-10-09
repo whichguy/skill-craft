@@ -64,6 +64,40 @@ answered (engine `active`, last history entry `blocked`) read the old result's `
   holds an answered block).
 - README `end_state` sentence and the G1 journal (marked superseded) updated in the same commit.
 
+### (b) One guarded group kill (firm)
+
+Four group kills existed: `run.kill_group` (unguarded `killpg`, used by `run.launch` and `run.end_live_hosts`), the inline
+`os.killpg` in `hosts.run_agent` (the review and fan-out agents; the brief called it `hosts.run_process`), G4's
+`environment._signal_group` behind the probe's launch-time leader check, and G5's `quality.end_group` (not merged yet). Now one:
+`listeners.end_group(leader: int) -> bool` (True when the SIGKILL was delivered).
+
+The rule: signal only while the number is still the leader's. `os.waitid(P_PID, leader, WEXITED|WNOHANG|WNOWAIT)` (reaps
+nothing) says whether the leader is this process's unreaped child: `ChildProcessError` means reaped already or never ours, and
+nothing is sent. A running leader must also lead its group (`os.getpgid(leader) == leader`). An exited, unreaped leader (a
+zombie) is signalled without the getpgid check, because **on macOS `os.getpgid` raises `ProcessLookupError` for a zombie while
+`os.killpg` still reaches its group** (measured on this machine, Darwin 27.0.0: `sh -c 'sleep 30 & exit 0'` in a new session,
+0.5 s later `getpgid` raised and `killpg(pgid, 0)` succeeded). A literal "only while `os.getpgid(pid) == pid`" guard would
+therefore have stopped ending the group of a host whose leader exited a moment before the kill (the `launch` poll race) while
+its workers lived. A group that holds only the zombie answers `EPERM` to `killpg` on macOS (measured too): reported as nothing
+delivered, never raised.
+
+Callers: `run.launch` and `run.end_live_hosts` call `listeners.end_group` (`run.kill_group` is deleted), `hosts.run_agent` on
+its timeout, and the probe (`end_browser`, `end_live_probes`; `_signal_group` deleted; `_group_alive`, a signal-0 question, stays).
+Behaviour kept for every path a test or a recorded run shows. The one change is the rule itself: a group whose leader was
+already reaped is no longer signalled. In the probe that is the case "the leader exited and `poll()` reaped it while something
+it started stayed in its group" (no fake-browser mode and no recorded run shows it; Chrome's leader lingers, G4 F6): the group
+is then left, and `group_empty` reads false. G5's `quality.end_group` is to be pointed at `listeners.end_group` when G5 merges;
+the source scan below fails until it is.
+
+Tests (`test/shiploop-e2e-environment.test.py`, `GroupKillTest`, 7 tests, red before the function existed): a running leader's
+group (with a member it started) is ended; an exited, unreaped leader's group is ended and the leader's own exit status is kept;
+a reaped leader, a running child that does not lead its group and a process that is not this process's child are never
+signalled (a wrapper records every non-zero `killpg`); no module of `test/shiploop_e2e/` other than `listeners.py` sends a group
+signal (a source scan: only `killpg(..., 0)` outside it), `run.kill_group` and `environment._signal_group` are gone; and
+`run.end_live_hosts` and `hosts.run_agent` end their groups through it. Mutants of `end_group` (each applied to the file, the
+class run, the file restored): signalling after a reap, no leader check, skipping the zombie case: all red. Applying the getpgid
+check to a zombie too survives, as an equivalent mutant (getpgid raises for it on macOS and the fallback re-checks).
+
 ## 3. Open items
 
 - G3 and G5 are not merged. Their duplicates (span/overlap readers, the `--version` probe helper, G5's `quality.end_group`) are
@@ -85,3 +119,5 @@ All runs with `SHIPLOOP_PROGRESS=off` and no exported `GIT_CONFIG_*` variable.
 | | shiploop-e2e-environment / -fidelity / -reorientation / -runrecord | 125 OK 58.5 s / 140 OK 8.4 s / 118 OK 7.6 s / 6 OK |
 | | test-groups / shiploop-run-review | 21 OK 5.5 s / 363 OK 22.4 s |
 | after (a) | shiploop-e2e-fidelity | 142 OK, 8.3 s |
+| after (b) (load about 4) | shiploop-e2e-environment | 132 OK, 62.3 s |
+| | `python3 test/shiploop-e2e.test.py` | 404 OK, 108.2 s |

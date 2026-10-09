@@ -137,19 +137,12 @@ TERMINATED_BY: list[str] = []  # the name of the first signal, for the record
 HANDLED_SIGNALS: list[int] = []  # the signals install_termination_handlers took over
 
 
-def kill_group(pid: int) -> None:
-    """SIGKILL the process group `pid` leads. A group already gone, or a reused one that is not ours, is left alone."""
-    try:
-        os.killpg(pid, signal.SIGKILL)
-    except (ProcessLookupError, PermissionError):
-        pass
-
-
 def end_live_hosts() -> None:
     """Kill every host session that is running, and the browser of a capability probe that is running (the probe registers its
-    group in environment.LIVE_PROBE_GROUPS). Also runs at exit, so a Ctrl-C or a crash leaves no orphan host or browser."""
+    group in environment.LIVE_PROBE_GROUPS). Also runs at exit, so a Ctrl-C or a crash leaves no orphan host or browser. Each
+    group is ended by listeners.end_group, which signals nothing whose leader was already reaped (its number may be reused)."""
     for pid in tuple(LIVE_HOST_GROUPS):  # a copy: suite worker threads add and discard concurrently
-        kill_group(pid)
+        listeners.end_group(pid)
     environment.end_live_probes()
 
 
@@ -576,8 +569,8 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
                 elif stop_when is not None and stop_when():
                     status = "interrupted"
                 if status:
-                    # The whole process group: the host and any native workers it started.
-                    kill_group(proc.pid)
+                    # The whole process group: the host and any native workers it started (not yet reaped, so still its own).
+                    listeners.end_group(proc.pid)
                     proc.wait()
                     break
                 try:

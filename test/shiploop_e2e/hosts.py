@@ -19,11 +19,13 @@ import json
 import os
 from pathlib import Path
 import re
-import signal
 import subprocess
 import sys
 import threading
 import time
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import listeners  # noqa: E402  (the one group kill)
 
 # The user's Grok sign-in; the only file an isolated Grok HOME links to.
 GROK_AUTH = Path.home() / ".grok" / "auth.json"
@@ -116,7 +118,7 @@ def run_agent(argv: list[str], cwd: Path, env: dict, events_path: Path, stderr_p
             proc.wait(timeout=timeout)
             status = "exited" if proc.returncode == 0 else "failed"
         except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGKILL)
+            listeners.end_group(proc.pid)  # the whole group, while the unreaped leader still holds its number
             proc.wait()
             status = "timeout"
         reader.join(timeout=10)
