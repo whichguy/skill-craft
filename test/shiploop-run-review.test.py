@@ -3115,9 +3115,9 @@ class LunaReviewTests(unittest.TestCase):
         self.assertEqual((code, err.getvalue()), (0, ""))
         warned = sorted(line.split(":")[1].strip().split("/")[1] + ":" + ("option" if "no option" in line else "effect")
                         for line in out.getvalue().splitlines() if line.startswith("warning: "))
-        # o16 and o34 have neither (unknown cause; not this run), o17 is the owner's choice, o23 and o30 wait for one
-        self.assertEqual(warned, ["o16:effect", "o16:option", "o17:effect", "o23:option", "o30:option", "o34:effect",
-                                  "o34:option"])
+        # o16 has neither (unknown cause), o17 is the owner's choice, o23 and o30 wait for one; o34 is fixed since R22c
+        # (the harness reads Claude's tool blocks, c7a8187d to 4e656d23), so it no longer warns
+        self.assertEqual(warned, ["o16:effect", "o16:option", "o17:effect", "o23:option", "o30:option"])
 
     def test_every_saved_document_is_kept_and_every_option_is_rewritten_normalised_and_linked(self):
         findings, options = self.docs["observations"], self.docs["actions"]
@@ -4583,6 +4583,31 @@ class RoundRunFindingsTests(unittest.TestCase):
         self.assertIn("FIX SHIPLOOP", texts[0])
         self.assertIn("FIX THE HARNESS", texts[0])
         self.assertLess(texts[0].index("FIX SHIPLOOP"), texts[0].index("FIX THE HARNESS"))
+
+    def test_stale_luna_statements_are_marked_superseded_in_place_with_their_evidence(self):
+        luna = self.bundles["luna1.review.json"]
+        obs, act = luna["observations"], luna["actions"]
+        expect = {  # id: (status, the dated mark, a token of its evidence)
+            "o34": ("fixed", "[Superseded 2026-10-09:", "c7a8187d"), "o40": ("fixed", "[Superseded 2026-10-09:", "9c593a37"),
+            "o41": ("accepted", "[Superseded in part 2026-10-09:", "ce32a143"),
+            "a21": ("done", "[Superseded 2026-10-09:", "9c593a37"), "a17": ("done", "[2026-10-09: shipped in 1.21.0", "1411d5f1"),
+            "a23": ("built", "[2026-10-09: built in 41c45512", "d1cca62f"), "a09": ("built", "is unknown", "1411d5f1")}
+        for i, (status, note, token) in expect.items():
+            doc = (obs if i.startswith("o") else act)[i]
+            text = r22c_texts(doc)
+            self.assertEqual(doc["status"], status, i)
+            self.assertIn(note, text, i)
+            self.assertIn(token, text, i)
+            # kept as written: the dated mark is appended after the old text, never a rewrite (a21 had no ref; its ref is new)
+            marked = [doc[f] for f in ("observed", "why", "ref", "advice") if "2026-10-09" in doc.get(f, "")
+                      and not (i == "a21" and f == "ref")]
+            self.assertTrue(marked, i)
+            for field in marked:
+                self.assertTrue(field.endswith("]"), i)
+                self.assertGreater(field.index("2026-10-09"), 20, i)
+        self.assertIn("f6f1ac2f", obs["o41"]["observed"])
+        self.assertEqual(self.figures["luna_recollect"], {"failures": 13, "generic_tails": 0, "own_line": 13})
+        self.assertIn("[Superseded 2026-10-09: o40 is fixed (9c593a37).]", luna["reviews"]["luna1"]["basis"]["P5"])
 
 
 # ---------------------------------------------------------------- R20a: the stage catalog, the card fields and the stage card
