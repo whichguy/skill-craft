@@ -16,6 +16,17 @@ terminal packet matches the contract rebuilt from run state and, after that,
 every listed command exits 0 when ShipLoop runs it itself.  ``blocked`` is
 always accepted; ``repeat`` never is, because the loop, not the graph, repeats.
 
+A command also may not run fewer tests than the most any run of it that ShipLoop accepted for the same work item has run
+since the item's latest step plan or accepted ``test-refine`` (``accepted_counts``): the model's ``min_tests`` is only its
+first guess, and a test removed, or newly skipped, to pass is not a pass.  The first number is the ``test-author`` probe, a
+revised step plan starts the count again, and ``test-refine`` is not held to a floor because its duty is to explain removed
+or narrowed cases.  The floor is read from the run's own test records, so it needs no state key.  Known limits: the outer
+stages and the end-of-work review rerun commands another stage recorded and have no revise to lower a floor, so they are
+not held to one; tests removed before the first accepted run are not seen; a run whose count ShipLoop cannot read (a
+focused command whose IDs all show, in a reporter it does not recognise) has no number to be held to; and a command whose
+count varies by design (generated cases, a last-failed or changed-only selection, a host-dependent skip) needs a fixed
+count.  Unmeasured for brownfield: every recorded run replayed against it is greenfield, where tests are only added.
+
 Commands are shell strings the step plan recorded; ShipLoop runs them with
 ``/bin/sh -c`` in the run's repository (owner decision 2026-09-25), bounded per
 command and per stage.  Rendering reads files and never runs a command.
@@ -50,6 +61,8 @@ STAGES = stage_spec.with_complete_run("test-loop")
 RED_STAGE, = stage_spec.with_complete_run("test-red")
 # The test-author probe: ShipLoop runs the focused commands once and requires that a test ran.
 PROBE_STAGE, = stage_spec.with_complete_run("test-probe")
+# The stage whose duty is to explain every removed or narrowed case: it is not held to a count floor (``accepted_counts``).
+REFINE_STAGE = "test-refine"
 # What a probe refusal says about a test that cannot load.  test-red forbids product edits, so
 # this is the stage where the missing file can be created.
 PROBE_RULE = ("If the tests load a file or module this item creates, create the smallest loadable placeholder "
@@ -332,7 +345,7 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
     lines.append("Test command list (ShipLoop runs each one from " + str(state["repo"])
                  + " before accepting done):")
     lines += ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)]
-    lines.append(COUNT_RULE)
+    lines += [COUNT_RULE] + _floor_lines(stage)
     return lines
 
 
@@ -431,7 +444,7 @@ def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str
              + " refused runs, then " + _remedy_sentence(stage) + "; a command that times out, cannot "
              "start or is skipped on budget refuses the stage without counting):"]
             + ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)]
-            + [COUNT_RULE] + ([notes[where]] if where in notes else []))
+            + [COUNT_RULE] + _floor_lines(stage) + ([notes[where]] if where in notes else []))
 
 
 def observed_lines(root: Path, state: Mapping[str, Any]) -> List[str]:
@@ -470,19 +483,37 @@ def red_lines(state: Mapping[str, Any], work_item: str) -> List[str]:
         return []
     return (["", "Expected-RED run: on done, ShipLoop runs each focused command from " + str(state["repo"])
              + " and expects it to fail inside a test: the runner must report at least one failing test,"
-             " and every listed ID must appear in the output. A failure before any test runs (syntax,"
-             " import, setup) is not a meaningful RED. If these tests are expected to pass already"
+             " and every listed ID must appear in the output. " + guidance.ID_WORD_RULE + " A failure before any"
+             " test runs (syntax, import, setup) is not a meaningful RED. If these tests are expected to pass already"
              " (characterisation tests), put the reason in the result's red_na; ShipLoop still runs"
              " them and requires that they ran."]
-            + ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)])
+            + ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)]
+            + _floor_lines(RED_STAGE))
 
 
 COUNT_RULE = ("A command passes only when it exits 0 and actually ran tests: ShipLoop reads the runner's summary, "
-              "refuses a run of zero tests, and checks that every listed ID appears in the output. A filter "
+              "refuses a run of zero tests, and checks that every listed ID appears in the output. "
+              + guidance.ID_WORD_RULE + " A filter "
               "that matches nothing is not evidence; running the whole suite instead of the named cases does "
               "not satisfy a listed ID. If ShipLoop cannot read a focused command's test count, it needs ids "
               "and a runner flag that prints test names (for example --verbose; for node --test the spec or tap "
               "reporter, never dot or junit).")
+# What the item's stages say about the floor ``accepted_counts`` sets.  It defers the exit to the refusal, which names it
+# for the stage: revise is free at some stages and gated by the refused-run limit or a stopped loop at others.
+RATCHET_RULE = ("A run must also run at least as many tests as the most any earlier run of the same command that "
+                "ShipLoop accepted for this item has run since its latest step plan or test-refine, so a test removed "
+                "or newly skipped is refused. A test that must go because the plan changed is a revise; the refusal "
+                "says when this stage accepts it, and the redone step plan starts the count again.")
+REFINE_RULE = ("This stage is not held to an earlier count, because its duty is to reconcile removed or narrowed "
+               "cases; the counts ShipLoop accepts from this run on are the least any later run of the same command "
+               "may run for this item.")
+
+
+def _floor_lines(stage: str) -> List[str]:
+    """The packet line about the count floor: none at the outer stages, which are not held to one."""
+    if stage in OUTER_SOURCES:
+        return []
+    return [REFINE_RULE if stage == REFINE_STAGE else RATCHET_RULE]
 
 
 def check_terminal(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str,
@@ -547,6 +578,8 @@ def judge(row: Mapping[str, Any], code: Optional[int], output: str, *, red: bool
     names = counts.named(output, ids) if ids else {"shown": [], "missing": []}
     minimum = int(row.get("min_tests") or 1)
     verdict: Dict[str, Any] = {"counts": tally, "ids_missing": names["missing"]}
+    if names.get("inside"):
+        verdict["ids_inside"] = names["inside"]
     if red:
         if tally is not None and tally["ran"] == 0:
             verdict["status"] = "no-tests"
@@ -603,11 +636,31 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
                 "setting is present, in the test files (the recorded commands cannot change at this stage), then submit "
                 "done again.")
     if status == "too-few-tests":
+        earlier = int(run.get("accepted_ran") or 0)
+        if earlier > int(run.get("min_tests") or 0):
+            exit_ = (("A test that must go because the plan changed is a revise: this stage accepts it once the refused "
+                      "runs below reach the limit or the loop stops as blocked (at once when no Improve card is bound), "
+                      "and the redone step plan starts the count again.") if _has_loop_packet(stage) else
+                     ("A test that must go because the plan changed: report revise naming what was removed and why, "
+                      "and the redone step plan starts the count again."))
+            return ("ran fewer tests than an earlier run of this command that ShipLoop accepted for this item (at "
+                    "least " + str(earlier) + ")" + seen + ". Restore the tests that were removed or now skip. " + exit_)
         return ("ran fewer tests than the step plan requires (at least " + str(run.get("min_tests")) + ")"
                 + seen + ".")
     if status == "ids-missing":
-        return ("did not show " + ", ".join(run["ids_missing"]) + " running" + seen + ". Make the command select "
-                "those cases and print test names (for example --verbose).")
+        inside = run.get("ids_inside") or {}
+        apart = [test_id for test_id in run["ids_missing"] if test_id not in inside]
+        reason = ""
+        if inside:
+            first = next(iter(inside))
+            reason = ("did not show " + ", ".join(inside) + " as a whole word" + seen + ". " + guidance.ID_WORD_RULE
+                      + " " + first + " appears only inside: " + inside[first] + ". Title each test so its listed "
+                      "ID stands alone.")
+        if apart:
+            reason += (" Also " if reason else "") + ("did not show " + ", ".join(apart) + " running"
+                      + ("" if reason else seen) + ". Make the command select those cases and print test names "
+                      "(for example --verbose).")
+        return reason
     if status == "uncounted":
         unread = "exited " + str(run["exit"]) + ", but ShipLoop could not read how many tests it ran. "
         if stage in OUTER_SOURCES:
@@ -647,6 +700,40 @@ def _verify_count(root: Path, action: str) -> int:
     while (Path(root) / verify_path(action, number + 1)).exists():
         number += 1
     return number
+
+
+def accepted_counts(root: Path, state: Mapping[str, Any], work_item: str) -> Dict[str, int]:
+    """Per command, the most tests any run ShipLoop accepted for this work item has run since its count last restarted.
+
+    Read from the item's ``tests/<action>-verify<N>.md`` records, so no state key holds it: the records of the actions
+    accepted after the item's latest accepted step plan, or from its latest accepted ``test-refine`` on when that came
+    later (the history is append-only, so a revised step plan starts the count again).  Only the ``passed`` records count
+    and, in them, the runs ShipLoop accepted (``passed``, or ``red`` at the expected-RED and probe runs) whose output it
+    could count.  The first accepted run of an item is the test-author probe.  Empty for the outer stages and the
+    end-of-work review (``work_item`` is empty): they rerun commands another stage recorded and have no revise to lower
+    a floor.  An action that ShipLoop has not accepted yet (a later gate refused the same done) is not in the history, so
+    its record sets no floor.
+    """
+    plan, _result = _step_plan(state, work_item)
+    if not work_item or plan is None:
+        return {}
+    history = list(state.get("history", ()))
+    first = max(i for i, row in enumerate(history) if row.get("action") == plan) + 1
+    refined = [i for i in range(first, len(history))
+               if history[i].get("workitem") == work_item and history[i].get("stage") == REFINE_STAGE]
+    if refined:
+        first = refined[-1]
+    most: Dict[str, int] = {}
+    for action in dict.fromkeys(row.get("action") for row in history[first:] if row.get("workitem") == work_item):
+        for number in range(1, _verify_count(root, str(action)) + 1):
+            record = store.read_record(Path(root) / verify_path(str(action), number))
+            if not isinstance(record, Mapping) or not record.get("passed"):
+                continue
+            for run in record.get("runs") or ():
+                ran = (run.get("counts") or {}).get("ran")
+                if run.get("status") in ("passed", "red") and isinstance(ran, int):
+                    most[run["command"]] = max(most.get(run["command"], 0), ran)
+    return most
 
 
 def _disposition(runs: List[Dict[str, Any]], good: Tuple[str, ...]) -> str:
@@ -689,6 +776,11 @@ def _remedy(stage: str) -> str:
         if candidate in row.outcomes:
             return candidate
     return ""
+
+
+def _has_loop_packet(stage: str) -> bool:
+    """Whether the stage's revise needs a stopped Until Loop packet, or ShipLoop's own refused-run record, to be accepted."""
+    return stage in STAGES or stage == quality.STAGE
 
 
 def _remedy_sentence(stage: str) -> str:
@@ -802,6 +894,9 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     ran out refuses the stage, but the attempt is recorded ``could-not-run`` and
     does not count toward ``MAX_REFUSED_RUNS``: see ``_disposition``.  ``budget``
     and ``command_timeout`` bound this one invocation, not the stage's total time.
+    At the item's test stages (not ``test-refine``, the outer stages or the end-of-work
+    review) a command that ran fewer tests than ``accepted_counts`` says is refused as
+    ``too-few-tests``, and every run with a floor records it as ``accepted_ran``.
     """
     root = Path(root)
     if commands is None:
@@ -842,6 +937,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     elif observed and observed["where"] == "unknown":
         failure = str(observed["reason"])
     deadline = clock() + budget
+    floors = {} if stage in OUTER_SOURCES or stage == REFINE_STAGE else accepted_counts(root, state, work_item)
     runs: List[Dict[str, Any]] = []
     for row in commands:
         if failure:
@@ -873,6 +969,11 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         else:
             output = out.decode("utf-8", "replace") + "\n" + err.decode("utf-8", "replace")
             run.update(judge(row, code, output, red=red or (probe and code != 0)))
+            earlier = floors.get(row["command"])
+            if earlier:
+                run["accepted_ran"] = earlier
+                if run["status"] in ("passed", "red") and run["counts"] and run["counts"]["ran"] < earlier:
+                    run["status"] = "too-few-tests"
         runs.append(run)
     if stage == "system-test":
         def run_one(command: str) -> Optional[Tuple[int, str]]:
@@ -944,7 +1045,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
                        + (", with the corrective work_items the outer loop must run" if remedy == "replan"
                           else "")
                        + (" (ShipLoop's own record of this attempt is the evidence, so no new loop packet "
-                          "is needed)" if stage in STAGES or stage == quality.STAGE else "")
+                          "is needed)" if _has_loop_packet(stage) else "")
                        if remedy else "")
                     + ". Report blocked only for what the user, an access grant or an outside dependency "
                       "must supply.")
@@ -979,11 +1080,15 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
 
 
 __all__ = (
+    "accepted_counts",
     "MAX_REFUSED_RUNS",
     "PASSING",
     "PROBE_RULE",
     "PROBE_STAGE",
+    "RATCHET_RULE",
     "RED_STAGE",
+    "REFINE_RULE",
+    "REFINE_STAGE",
     "RERUN_STAGES",
     "STAGES",
     "UNAVAILABLE",

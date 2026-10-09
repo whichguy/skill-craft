@@ -1,0 +1,40 @@
+20261003/hello | work-20261003-161423-b7155c                   records  10, runs held to a floor   9, would refuse 0
+20261003/seat-reservations | work-20261003-161429-23c47f       records   9, runs held to a floor   9, would refuse 0
+20261003/v1161-battleship-luna | work-20261003-225401-173a04   records   9, runs held to a floor   0, would refuse 0
+20261003/v1161-hello | work-20261003-225400-725ab3             records   9, runs held to a floor   9, would refuse 0
+20261004/v1180-hello-sonnet | work-20261004-184559-7cc23f      records  10, runs held to a floor   9, would refuse 0
+20261004/v1190-hello-sonnet | work-20261004-183212-0d0d4f      records  10, runs held to a floor   9, would refuse 0
+20261004/v1190-hello-sonnet-2 | work-20261004-184556-4b3f27    records  10, runs held to a floor   9, would refuse 0
+20261004/v1200-hello-sonnet | work-20261004-231618-044fcb      records   9, runs held to a floor   9, would refuse 0
+20261005/v1210-battleship-luna-xhigh | work-20261005-044509-c4 records   1, runs held to a floor   0, would refuse 0
+20261006/gas-battleship-audit | product-battleship-2-20261006- records  16, runs held to a floor   0, would refuse 0
+20261006/v1220-battleship-grok-medium-none | work-20261006-234 records  19, runs held to a floor   0, would refuse 0
+20261006/v1220-battleship-sonnet | work-20261006-150527-5758d8 records  15, runs held to a floor   0, would refuse 0
+20261007/v1230-battleship-grok-none | work-20261007-153345-c5f records  16, runs held to a floor  20, would refuse 0
+    min_tests   6 against  16 accepted ( 38%): node --test test/game.test.js
+    min_tests   8 against  17 accepted ( 47%): node --test test/server.test.js
+    min_tests  20 against  33 accepted ( 61%): node --test
+20261007/v1230-battleship-sonnet | work-20261007-153319-f1996a records  11, runs held to a floor  16, would refuse 0
+    min_tests   7 against   8 accepted ( 88%): node --test --test-reporter spec test/http.test.js
+    min_tests  15 against  16 accepted ( 94%): node --test --test-reporter spec
+20261008/r1-battleship-grok-none | work-20261008-173739-8e3c9a records   9, runs held to a floor  16, would refuse 0
+    min_tests   8 against  20 accepted ( 40%): node --test test/game.test.js
+    min_tests  10 against  24 accepted ( 42%): node --test test/server.test.js
+    min_tests  25 against  44 accepted ( 57%): node --test
+20261008/r1-battleship-sonnet | work-20261008-173654-a943e7    records  10, runs held to a floor  16, would refuse 0
+    min_tests   8 against   9 accepted ( 89%): node --test --test-reporter=spec test/rules.test.js
+    min_tests  13 against  14 accepted ( 93%): node --test --test-reporter=spec
+20261008/r1-checkers-sonnet | work-20261008-174135-41d2f7      records  10, runs held to a floor  16, would refuse 0
+    min_tests   7 against  23 accepted ( 30%): node --test test/rules.test.js
+    min_tests   7 against  23 accepted ( 30%): node --test
+    min_tests   9 against  12 accepted ( 75%): node --test test/http.test.js
+    min_tests   9 against  35 accepted ( 26%): node --test
+20261008/r2-battleship-grok-none | work-20261009-002036-d50cd1 records  19, runs held to a floor  20, would refuse 0
+    min_tests   4 against   5 accepted ( 80%): node --test test/server.test.js
+    min_tests   8 against   9 accepted ( 89%): node --test
+20261008/r2-battleship-sonnet | work-20261009-002022-c0f400    records  10, runs held to a floor  16, would refuse 0
+    min_tests  12 against  27 accepted ( 44%): node --test test/rules.test.js
+    min_tests   8 against  17 accepted ( 47%): node --test test/server.test.js
+20261008/r2-checkers-sonnet | work-20261009-002022-bbe194      records  13, runs held to a floor  16, would refuse 0
+TOTAL: 20 runs, 225 test records, 199 recorded runs held to a floor, 0 would be refused
+model min_tests against the highest accepted count: 39 commands name one, 18 of them sit below it (26% to 94% of it); the floor adds what those leave unheld

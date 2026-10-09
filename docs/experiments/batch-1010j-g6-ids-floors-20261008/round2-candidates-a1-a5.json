@@ -1,0 +1,32 @@
+{
+ "source": "round-2 analysis of the Node Battleship and Node Checkers Sonnet runs, 2026-10-08, synthesis.candidates (the two entries this group built; the full analysis is in the batch scratchpad)",
+ "candidates": [
+  {
+   "id": "A1",
+   "title": "test-author ids-missing refusal gives a wrong remedy and never states the whole-word id rule",
+   "class": "fidelity-defect",
+   "runs_seen": [
+    "checkers-sonnet-r2"
+   ],
+   "evidence": "Verified. Checkers events.jsonl line 384 (00:29:04.8Z) and 410: first line 'ShipLoop test run: test-author is not done ... 2 did not show a usable test run:' carries no remedy; the bullet says 'did not show TC-4, TC-6... running (node reported 23 run, 23 failed). Make the command select those cases and print test names (for example --verbose).' Node had printed the names (line 402: '✖ TC-4a initial position...'); the rule is shiploop_test_counts._id_pattern '(?<![\\w-])id(?![\\w])', so TC-4a does not show TC-4. The 15-line tail under the bullet is a MODULE_NOT_FOUND stack, not the names. The test-author packet says only 'every listed ID shown'. Cost: 9 calls and 50 s to acceptance at line 437, 4 calls reading engine source (415-422), renamed tests to 'TC-4 (a)', then wrote the engine rule into the product's environment.md. Battleship used whole ids and never met it. Text built at shiploop_test_loop.py:609 and :917.",
+   "generic_change": "When a declared id is absent but appears inside a longer token in the runner output (any id scheme), the refusal names that output line and states the rule on its first line ('an ID counts only as its own word: TC-4 appears only inside TC-4a; rename the test or declare the longer id'); drop the '--verbose' hint when names were printed; state the matching rule once in COUNT_RULE and the test-author/step-plan duty. Keep the strict match (substring matching would let TC-4 pass on TC-40).",
+   "for_against": "For: F1 principle (remedy on line 1), S-3/S-6 (the packet must say how it checks), S-4/S-5 (the model should not learn the rule by reading engine source); one function plus one clause. Against: seen once; but the printed hint is wrong for this cause whatever the frequency, and the fix does not loosen the gate.",
+   "verdict": "implement"
+  },
+  {
+   "id": "A5",
+   "title": "min_tests floors are the model's planning guess and never ratchet; a full-suite regression command and consumer checks may carry none",
+   "class": "evidence-gap",
+   "runs_seen": [
+    "checkers-sonnet-r2",
+    "battleship-sonnet-r2",
+    "checkers-sonnet-r1",
+    "battleship-sonnet-r1"
+   ],
+   "evidence": "Verified from the verify records. Checkers: floors 12 and 8 against 27 and 16-17 ran (44-47%) at every stage from test-author to carry-forward; the step plan's regression command `node --test` has no min_tests (ran 43-44) and the release-verify consumer checks (47 and 3 tests) carry none. Battleship: floors 4 and 8 against 5 and 9 after static-checks added a test (80-89%); only the release-verify consumer check got a floor of 11, restated by the model. Round 1 had 43-58%. Deleting half of the focused tests would pass every gate and every id check. The test-red record already holds the true total (23 and 16 ran, all failed).",
+   "generic_change": "Per command key within a run, a rerun must run at least as many tests as the highest count a script record already accepted (the test-red total is the first observation); refuse with 'ran N, an earlier accepted run had M: restore the removed tests, or report revise with the reason'; fill a floor for a recorded regression or consumer command that has none. Compare only within the same run and host.",
+   "for_against": "For: S-9 ('a check that ran less is not a pass'), S-5 (a rerun of a recorded check); round-1 rule 'act if the gap recurs' is met (4 of 4 runs). Against: legitimate consolidation of tests needs the existing revise route (MAX_REVISES 2); counts that vary by host are avoided by comparing within one run; needs the change-admission steps (adversarial evaluation) before coding.",
+   "verdict": "implement"
+  }
+ ]
+}

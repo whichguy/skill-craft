@@ -140,6 +140,70 @@ class CountTests(unittest.TestCase):
         self.assertEqual(names["shown"], ["TC-9", "TC-10"])
         self.assertEqual(names["missing"], ["TC-11", "TC-1"])
 
+    def test_an_id_that_appears_only_inside_a_longer_token_is_reported_with_its_line(self):
+        """A1: the match is a whole word, so `TC-4a` does not show `TC-4`.  The refusal needs the line that proves the
+        ID is there, which is what separates this cause from an ID that never ran."""
+        output = "✖ TC-4a initial position (0.6ms)\n✔ TC-5 one move (0.1ms)\n"
+        names = counts.named(output, ["TC-4", "TC-5", "TC-6"])
+        self.assertEqual((names["shown"], names["missing"]), (["TC-5"], ["TC-4", "TC-6"]))
+        self.assertEqual(names["inside"], {"TC-4": "✖ TC-4a initial position (0.6ms)"})  # TC-6 is just absent
+
+    def test_a_longer_token_that_is_another_id_is_not_the_listed_id_inside_it(self):
+        """A1 audit: `inside` is a whole-token relation, not a substring.  An ID followed by more of its own kind of
+        character (a digit after a digit, a letter after a letter) is a different ID, so `TC-1` is not inside `TC-10`;
+        the common scheme TC-n would otherwise send the model to retitle tests when the real fault is a missing test."""
+        output = "✔ TC-10 a (1ms)\n✔ TC-13 b (1ms)\n✔ TC-2 c (1ms)\n✔ TC-40 d (1ms)\n✔ TC-AB e (1ms)\n"
+        names = counts.named(output, ["TC-1", "TC-3", "TC-4", "TC-A"])
+        self.assertEqual(names["missing"], ["TC-1", "TC-3", "TC-4", "TC-A"])
+        self.assertEqual(names["inside"], {})
+
+    def test_an_id_followed_by_a_new_kind_of_character_is_inside_it(self):
+        for line, test_id in (("✔ TC-4a x", "TC-4"), ("✔ TC-4_a x", "TC-4"), ("✔ TC-A1 x", "TC-A"),
+                              ("✔ TC-A_x x", "TC-A"), ("✔ TC-12b x", "TC-12"), ("ok 3 - TC-7x # time=1ms", "TC-7")):
+            with self.subTest(line=line):
+                names = counts.named(line + "\n", [test_id])
+                self.assertEqual((names["missing"], names["inside"]), ([test_id], {test_id: line}))
+
+    def test_a_longer_token_that_is_itself_a_listed_id_does_not_hold_the_shorter_id_inside(self):
+        """Review of A1: a line that shows `TC-4a` shows the listed ID `TC-4a`, so `TC-4` is simply absent when only that
+        line prints it.  Calling it "inside" would send the model to retitle a test that is titled as listed, and drop
+        the select-and-print remedy the missing `TC-4` needs (the same wrong remedy as `TC-1` against `TC-10`)."""
+        for line, ids in (("✔ TC-4a x", ["TC-4", "TC-4a"]), ("✔ TC-4_a x", ["TC-4", "TC-4_a"]),
+                          ("✔ TC-A1 x", ["TC-A", "TC-A1"])):
+            with self.subTest(line=line):
+                names = counts.named(line + "\n", ids)
+                self.assertEqual((names["shown"], names["missing"], names["inside"]), ([ids[1]], [ids[0]], {}))
+
+    def test_a_line_with_a_listed_longer_token_and_another_longer_token_still_holds_the_id_inside(self):
+        line = "✔ TC-4a first, TC-4b second"
+        names = counts.named(line + "\n", ["TC-4", "TC-4a"])
+        self.assertEqual((names["shown"], names["missing"], names["inside"]), (["TC-4a"], ["TC-4"], {"TC-4": line}))
+
+    def test_only_a_token_that_starts_with_the_id_holds_it_inside(self):
+        """The left edge is the whole-word rule's own: an ID in the middle of a token (`XTC-4a`, `A-TC-4a`) is not
+        printed as a title that starts with it, so the plain remedy applies."""
+        for line in ("✔ XTC-4a x", "✔ A-TC-4a x"):
+            with self.subTest(line=line):
+                names = counts.named(line + "\n", ["TC-4"])
+                self.assertEqual((names["missing"], names["inside"]), (["TC-4"], {}))
+
+    def test_the_line_quoted_is_the_first_one_that_holds_the_id_inside_a_longer_token(self):
+        output = "✔ TC-40 big (1ms)\n✔ TC-4b second (1ms)\n✔ TC-4a third (1ms)\n"
+        self.assertEqual(counts.named(output, ["TC-4"])["inside"], {"TC-4": "✔ TC-4b second (1ms)"})
+
+    def test_a_longer_token_on_a_skip_line_or_an_announcement_is_not_misreported(self):
+        self.assertEqual(counts.named("  - TC-4a skipped\n", ["TC-4"])["inside"], {})
+        self.assertEqual(counts.named("# Subtest: TC-4a\n", ["TC-4"])["inside"], {})
+
+    def test_the_quoted_line_is_cut_for_display_only(self):
+        long_line = "✖ TC-4a " + "x" * 300
+        quoted = counts.named(long_line + "\n", ["TC-4"])["inside"]["TC-4"]
+        self.assertEqual((len(quoted), quoted), (counts.INSIDE_CHARS, long_line[:counts.INSIDE_CHARS]))
+
+    def test_an_id_shown_whole_is_never_also_reported_inside(self):
+        names = counts.named("✔ TC-4a first (1ms)\n✔ TC-4 second (1ms)\n", ["TC-4"])
+        self.assertEqual((names["shown"], names["missing"], names["inside"]), (["TC-4"], [], {}))
+
 
 class JudgeTests(unittest.TestCase):
     FOCUSED = {"command": "npm test -- -t TC-9", "suite": "focused", "ids": ["TC-9", "TC-10"]}

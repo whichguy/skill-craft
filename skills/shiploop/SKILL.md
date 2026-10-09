@@ -525,9 +525,27 @@ runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet, `nod
 reporter, not dot or junit) and
 refuses a run of zero tests (`no-tests`), fewer than `min_tests`
 (`too-few-tests`), or one whose output does not show each listed ID on a line
-that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). A focused command whose count ShipLoop
+that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). An ID counts only as its own
+word in a test's printed name: `TC-4a` does not show `TC-4`. When a missing ID is printed at the start of a longer token that continues it with a
+new kind of character (`TC-4a`, `TC-4_a`; not `TC-40`, which is another ID, nor a longer token that is itself a listed ID and so shows that ID), the refusal says so and quotes the line (`ids_inside` in the record);
+an ID that no line holds that way keeps the select-and-print remedy. A focused command whose count ShipLoop
 cannot read passes only with `ids` that all appear; a regression command without
 `ids` or `min_tests` may pass uncounted.
+
+`min_tests` is the step plan's first guess, so ShipLoop also holds each command to what it has already accepted. At the item's test stages
+(`test-red`, `test-green`, `regression`, `static-checks`, `verify` and `integration-verify`) a run may not run fewer tests than the most any run of the same command
+that ShipLoop accepted for the item ran since the item's latest step plan or accepted `test-refine` (`too-few-tests`, with the earlier
+number as `accepted_ran` in the record). The `test-author` probe sets the first number and a run with more raises it. `test-refine` is
+not held to a floor, because its duty is to explain every removed or narrowed case; the counts it accepts become the floor for the
+stages after it. A test removed on purpose is a plan change: report `revise` with the reason, and the redone step plan starts the
+count again. `revise` is accepted at once at `test-red`, `verify` and `integration-verify`; at `test-green`, `regression` and
+`static-checks` it needs a stopped loop or the 7th refused run, as for any refusal there, and the refusal says so. Known limits: the
+outer `system-test` and `release-verify` and the end-of-work review rerun commands another stage recorded and have no `revise` to
+lower a floor, so they are not held to one; the first number is the first accepted run, so tests removed before it (against the
+baseline) are not seen; a run whose count ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not
+recognise) passes with no floor to hold it to; a command whose test count varies by design (generated cases, a last-failed or changed-only selection, a
+host-dependent skip) needs a fixed count to be held to a floor; and the floor is unmeasured for brownfield items, because every
+recorded run it was replayed against is greenfield, where tests are only added.
 A system command row marked `"host_dependent": true` (its cases need a host tool: a browser, a device,
 an account, a service) is also checked for drift at `system-test`: ShipLoop runs the accepted
 regression commands and refuses when any of that row's `ids` is shown, run or failed, in their
