@@ -1943,8 +1943,9 @@ result.json; they are in the last visit's result record (`results/<action>.md`),
 - *Stale statements (10, 11, 12, 17, 21).* The refusals note and the run-detail heading say "refusal lines or failed ShipLoop commands" (the
   harness reads refusal LINES; r3 Sonnet's one failure has the verb `unknown` and exit null); SCHEMA's refusals/glue row no longer says a
   Claude host cannot measure them (refusals 1 to 5 and glue 0 to 2 on the seven Sonnet runs; glue is a lower bound where a model wraps
-  ShipLoop); `stages[].context` says every Claude visit has one and a Grok run never does; `NO_VISIT_CONTEXT` is a reason per host
-  (`no_visit_context`); the `Checked by:` statements (SCHEMA checklist section, the `CARRIED` comment) say the 11 runs carry it; the default
+  ShipLoop); `stages[].context` says every Claude visit has one and a Grok run never does [SUPERSEDED 2026-10-09 by R23c: harness group G2 (6a5dc5cb)
+  made a Grok stage row carry {calls, peak}; the page now follows the rows, never the host]; `NO_VISIT_CONTEXT` is a reason per host
+  (`no_visit_context`) [SUPERSEDED the same way: removed, no shim]; the `Checked by:` statements (SCHEMA checklist section, the `CARRIED` comment) say the 11 runs carry it; the default
   run name carries the case ("claude claude-sonnet-5-5, battleship, release 1.24.0"; the key rules are unchanged; a Grok run's case is
   `custom`); `test/fixtures/run-review/state-stage.md` resolves the Improve card as the current engine does and the test asserts both modes.
 - *The legend* lists only the kinds the picture draws (`legendKinds`: done, rev, blk, skip, seed, na, tail, imp, and ctx, warn, tri only with a
@@ -2104,3 +2105,85 @@ deliberate defects on a scratch copy (the irregular plural ignored, the header p
 accepting passed over total, the chip green for any count, the refusal note never singular, the count always `total`, `imp` printing "1 children",
 the prompt facts "1 visits"): 9 of 9 caught. Real data (scratch only, `scratchpad/rr22/export-d/`): all 11 runs export with exit 0, pass `--check`
 and re-export byte-identically; `imp` reads "0 children" and "2 children, 4 review passes" and so on.
+
+## 2026-10-09: R23, the export and page read what harness batch 1011 records (local, unpublished)
+
+**Question.** E2E's batch 1011 (origin/main `5e22fd10`, 104 commits, test/ and docs/ only) added records the exporter did not read: outcome
+class, build identity, environment and overlap, product at the stop, quality, the fidelity block, fresh starts with their re-grounding cost, and
+per-visit context for Grok. What does a reader of a run need from them, and what stays out? Rules in force: additive optional fields only (old
+exports still render and validate), a measure not reported is unknown and never zero, generic text, KISS, fail-first script-run tests.
+
+**Base and method.** R22 (`49209d1f`, 7 commits) merged onto `5e22fd10` with no conflict (merge `75fa4436`; Run Review suite 458 OK, the same
+as before the merge). Fixture `d45dea14`: `docs/experiments/run-review-r23-20261009/{collect.py,figures.json}` reuses E2E's read-only
+`generate.py saved_records()` over the seven saved runs of 2026-10-07/08 (no process started, nothing written to the run folders) and adds
+E2E's full-length examples for the keys no saved run has; its hand-off table cuts every example at about 100 characters, which hid the inner
+shapes. Three slices were built in parallel worktrees by three agents and integrated by merge: A `rr23a-3c735b`, B `rr23b-3c2f77`, C
+`rr23c-cc04a4`. (The worktrees were first created from the canonical checkout's stale `main`, not the R23 base; each agent fast-forwarded its
+own branch to `d45dea14` before starting and lost nothing.)
+
+**Facts from E2E's answers (2026-10-09), now relied on.** `outcome_class` is the closed list PASS, FAILED, BLOCKED, STOPPED plus null (a record,
+never a verdict; not in the baseline row). An Improve packet has five labels, goal, done_when, checked_by, output, recovery; engines before
+skill-craft 1.25.0 wrote only the last three, so goal and done_when 0 of 8 on a 1.24.0 run is by design. A Grok stage row carries
+`{calls, peak, peakPct: null}` from G2 (6a5dc5cb); a row with no events has no `context`. `result.json` is written twice when a quality phase
+applies, so an absent `quality` is "not applicable or not yet", never zero.
+
+**R23a (`055bb43b`, `1c59773b`): outcome, build, environment, product at the stop.** Over the seven saved runs: 4 PASS, 2 BLOCKED (v1230 Grok and
+r1 Grok), 1 STOPPED (r3 Grok). Host build is null on the four runs a Grok launch started and `2.1.294` on the three Sonnet runs. All seven were
+only regraded, so `environment.start` and `.end` are unobserved on all seven (the page says so). Every run has an observed overlap with one or two
+siblings: 12 entries, 548.2 to 1249.8 s of shared time; r1 Sonnet's sibling began 0.4 s earlier, which would print `-0.0` (clamped). The harness
+keeps an `identity_unmeasured` note even for hashes a regrade recomputed, so a reason is copied only for a field that is null. The STOPPED run's
+basis embeds the stop file's absolute path, exported as "the stop file". Kept beyond the proposal: `engineStatus`/`engineStage` on
+`productAtStop` (a partial product must not read as a finished one) and browser `targets` (a browser that cannot load a page is the cause of the
+"access" blocked runs). Dropped: cpus, loadavg, the end record, `hosts_used`/`environments`/`mixed_host` (the `hosts` list already comes from the
+launch records), binary paths, `overlap.span`. No saved run has an observed start or a `product_at_stop`; those shapes come from E2E's examples.
+
+**R23b (`fa7bc132`, `6f782896`, `164b2a6a`): the fidelity reading and the Improve packets, scored by the exporter.** On r1 Sonnet the block reads
+script 15, loop 7, file 1, note 12, sentence 0, skipped 2, unclassified 0 over 37 accepted stages; 10 verify records over 29 command runs and 6
+distinct commands, 2 of them red; 23 rows carry a test count and none ran zero tests; 1 script-owned edit (`sed -i` on `return-plan.md`), 0 kills
+by name, 1 git command by the model; 5 refusals, 1 repeated (release 2, release-plan 2, intake 1). The run's own `refusals` stays the one count
+(`metrics.shiploop_failures`, 5, agreeing with the block); the block's detail is dropped with a reason if the two ever disagree. The Improve
+table is scored from the packet files by the exporter, with each marker phrase pinned to `shiploop_navigator.py` by a test, and NOT read from
+`fidelity.improve_packets` (E2E marked that copy temporary and asked the Run Review side to adopt it). By hand, read-only, on the saved runs: r1
+Sonnet (1.24.0) read 8, goal 0, done_when 0, checked_by 8, output 8, recovery 8; r3 Sonnet (1.26.0) 8 of 8 on all five; both equal E2E's
+examples. The page prints the counts beside the run's release and never as a defect flag. E2E's "63 files, 35 with all five, 28 without" is over
+its whole saved set; the seven runs in `figures.json` hold 31 files, 19 with all five (1.25.0 and later) and 12 without (1.22.0 and 1.24.0);
+SCHEMA.md cites the 31. `stages[].evidenceClass` kept (the only place the page shows what evidenced a stage next to the exit check the catalog
+declares). Dropped: `tool_calls_seen`, `end_state` (status/ending/blocked already say it), per-record refs, `by_suite`, event numbers.
+
+**R23c (`6ca53ab9`, `ac0f342f`): fresh starts, delivered quality, and a visit's context follows the data.** The seven saved runs hold 13 fresh
+starts, all Grok compactions (v1230 6, five measured; r1 Grok 4, three; r2 Grok 1, none, the mixed-host window "may span two sessions"; r3 Grok
+2, one). The nine measured windows took 1 to 54 tool calls (median 20) and 8.9 to 465.1 s (median 122); the first grounding was a packet read 7
+times and another ShipLoop command twice. One failed ShipLoop command was counted, in v1230's carry-forward (a loop contract 234 bytes over its
+budget). Failures and rewrites are lower bounds by the harness's own words, kept verbatim as `bound` and `scope` and printed beside the numbers.
+The three Claude runs record `[]` plus a note that compactions are not detected on that host, so `[]` means unknown there: the exporter writes no
+list and `unmeasured.freshStarts` holds the note. Quality: the r3 Checkers block is 21,100 bytes and exports as 1,322: mutation ratio 0.907
+under operator js-1 (78 killed, 8 survived, of 86 sites; one killed mutant was a timeout and two were killed with a fixed port refused, which the
+harness says raise the ratio, so the page prints both beside it); held-out checks 5 of 6 pass (`off-board-keeps-turn` failed); the model made
+two writes to its own memory. The ratio is comparable only within one operator. Visit context: on disk r2 Grok has 33 of 52 rows reading
+`{calls: 0, peak: null}` and r1 Grok has none, so the reason is now read from the rows (`unmeasured.visitContext` also when only some visits lack
+a context); `NO_VISIT_CONTEXT_GROK` and `no_visit_context` are removed (no shim); the R22 sentence that said otherwise is marked superseded in
+place above.
+
+**Integration (`ae9d616c`, `8046f586`, `02a6c393`).** The only conflicts were three slices adding next to the same lines. Two needed more than
+keeping both sides: the stage-item field dict closes on both sides of the conflict, and `renderFreshStarts` and `renderFidelity` shared one
+closing brace in the common text, which left the first without its own (90 page tests failed with "Unexpected end of input" until restored).
+The test file's three classes were aligned by git on their shared `KEY`/`setUp` body, so A+C's side was kept and B's `R23b` block (all prefixed)
+was appended whole from its branch. One bound moved: `facts.md` of the default fixture is 26 lines (fresh starts, fidelity and Improve packets
+add one line each saying what the run does not carry), so the digest guard is 30, not 25. `figures.json` of R22c and R23 now select the Run
+Review suite in `test/suite_catalog.py` (`suite_catalog.targeted` checked).
+
+**Tests.** Run Review suite **572 OK** (458 at the R22 tip; +36 A, +50 C, +28 B). Each slice ran its new tests red first for the right reason
+(A: 18 of 20 export tests and 12 of 12 page tests; B: 4 failures and 12 errors, then 11 of 11 page tests; C: five groups red); A's mutation
+check on the real files caught 24 of 24 deliberate defects. The four committed review bundles `--check` ok with the same warning counts
+(0, 1, 5, 0, 0 with the sample). `check-release-boundary.py --base origin/main` OK. `test-groups` 27 and `marketplace-package` OK; E2E suites
+that call the exporter: quality 128 OK, e2e 404 OK, fidelity 142 with **one red by design**: E2E's tripwire
+`ImprovePacketsTest.test_the_exporter_scores_producer_packets_only_so_the_five_questions_of_an_improve_packet_are_read_here` fails as soon as
+the exporter carries the Improve markers, and tells the E2E owner to delete the harness's temporary `IMPROVE_QUESTIONS`/`OLD_LAYOUT_MARKER`/
+`improve_packets` and its replay tests. That deletion has to land before or with this branch.
+
+**Status.** Findings: firm for the counts above (each is read from `figures.json`, which is read from the saved runs by E2E's read-only code);
+exploratory for how a reader uses the new cards (nobody has looked at them yet). Not built: R23g (a `cells` collection from
+`run.py --baseline-report --json` for a compare view; a data-structure change, the owner's and E2E's call); marking the fresh-start visit in
+the SVG picture. Not checked: a phone-width render (no agent could start a browser). Open for the first real post-merge run: `sessions.jsonl`
+runs (kind first/fresh/continued, reasons) and a `quality` block of a run made after the merge; this entry's fresh-start figures are all Grok
+compactions of regraded runs.
