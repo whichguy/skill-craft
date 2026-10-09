@@ -139,6 +139,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-e2e.test.py",
+    "test/shiploop-e2e-runrecord.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
 )
@@ -238,6 +239,7 @@ _DURATION_SECONDS = {
     # to 116.6 s), so 81.0 scaled by 104.7/84.1 is 100.  The new classes alone take 19.7 s.  Still an estimate and still under
     # QUICK_MAX_SECONDS (120): a further 20 s of tests here moves the suite out of the quick tier.
     "test/shiploop-e2e.test.py": 100.0,
+    "test/shiploop-e2e-runrecord.test.py": 0.2,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
