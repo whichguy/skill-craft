@@ -3,8 +3,8 @@
 
 Reads the full saved runs under /Users/dadleet/e2e-runs (no test does), runs the harness's own metrics.collect on each, and keeps
 one compact row per compaction from ``fresh_starts`` (kind "compaction"): the window to the next accepted action, the first
-grounding call, and the very first tool call after the compaction classified the crude way the SPEC's S-6 evidence was read
-(a read of a packet file, a `next`, the skill card, anything else). Record-only; no verdict.
+grounding call, and the very first tool call after the compaction, classified by the same function the windows use (metrics.call_kind: `next`,
+`improve-next`, `packet`, another ShipLoop `verb`, `skill-card`, `plain`). Record-only; no verdict.
 
     python3 docs/experiments/reorientation-20261009/measure.py > docs/experiments/reorientation-20261009/compactions.json
 """
@@ -32,13 +32,11 @@ PROTOTYPE = ["20261007/v1230-battleship-grok-none", "20261008/r1-battleship-grok
 
 
 def first_call(events: Path, line: int) -> dict | None:
-    """The first tool call at or after ``line``, as a kind (packet / next / skill-card / other) and its tool name."""
+    """The first tool call at or after ``line``, as the harness's own classifier (metrics.call_kind) reads it, and its tool name."""
+    log = metrics.ToolLog()
     for _number, event in metrics.event_range(events, line, line + 3000):
-        for _id, tool, arg in metrics.tool_call_events(event):
-            text = str(arg.get("command") or metrics.call_target(arg))
-            kind = ("packet" if "/packets/" in text else "next" if " next " in text and "shiploop" in text
-                    else "skill-card" if text.rstrip("'\" ").endswith("SKILL.md") else "other")
-            return {"kind": kind, "tool": tool}
+        for call_id, tool, arg in metrics.tool_call_events(event):
+            return {"kind": metrics.call_kind(log.calls[log.call(None, call_id, tool, arg)]), "tool": tool}
     return None
 
 
@@ -54,7 +52,8 @@ def main() -> None:
             window = block["reorientation"]
             first = first_call(out / "events.jsonl", block["events_line"])
             rows.append({"run": name, "host": block["host"], "events_line": block["events_line"],
-                         "measured": window["measured"], "stage_in_flight": block["stage_in_flight"],
+                         "measured": window["measured"], "reason": window.get("reason"),
+                         "stage_in_flight": block["stage_in_flight"],
                          "first_call": first and first["kind"], "first_grounding": window["first_grounding"],
                          "calls_before_grounding": window["calls_before_grounding"], "tool_calls": window.get("tool_calls"),
                          "seconds": window.get("seconds"), "next_calls": window["recovery"]["next_calls"],

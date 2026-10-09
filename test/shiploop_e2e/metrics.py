@@ -770,7 +770,6 @@ def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], gro
 
 # The ShipLoop CLI and run directory a `next` call carries, read from the command as the model wrote it (variables expanded
 # where the same command assigns them), to compare with what the resume prompt told.
-PACKET_REVISION = re.compile(r"^ShipLoop navigator \|[^\n|]*\| revision (\d+)", re.M)
 NEXT_CALL = re.compile(r"""(?P<cli>[^\s"'=]*shiploop)["']?\s+next\b(?P<rest>[^\n]*)""")
 RUN_DIR_ARG = re.compile(r"""--run-dir(?:=|\s+)["']?(?P<dir>[^"'\s]+)""")
 # The ShipLoop verbs whose call can be the one that gets an action accepted (an Improve child's finish accepts its parent).
@@ -811,14 +810,34 @@ def _verbs(call: dict) -> list[str]:
     return [m.group("verb") for m in SHIPLOOP_COMMAND.finditer(call.get("invoked", ""))]
 
 
-def _grounding(call: dict) -> str | None:
-    """Whether a call asks ShipLoop where the run stands: `next`, a read of a packet file, or another ShipLoop verb."""
+# The Improve runtime's own recovery command, printed in an Improve child's packet ("Recover active Improve packet after
+# compaction"): `python3 .../improve/runtime/until-loop/scripts/until_loop_ephemeral.py next --state ...`. Not a ShipLoop verb.
+IMPROVE_NEXT = re.compile(r"until[_-]loop\w*\.py[\"']?\s+next\b")
+SKILL_CARD = re.compile(r"SKILL\.md")
+
+
+def call_kind(call: dict) -> str:
+    """What one tool call is, as far as re-grounding goes: `next` (ShipLoop's), `improve-next` (the Improve runtime's recovery
+    command), `packet` (a read of, or a command naming, a packet file), `verb` (another ShipLoop verb: complete, lint, an
+    improve-* verb), `skill-card` (a read of a SKILL.md), or `plain`. The one classifier: the windows and the evidence script
+    both read a call through it."""
     verbs = _verbs(call)
     if "next" in verbs:
         return "next"
+    if IMPROVE_NEXT.search(call.get("expanded", "")):
+        return "improve-next"
     if call.get("packet"):
         return "packet"
-    return "other" if verbs else None
+    if verbs:
+        return "verb"
+    return "skill-card" if SKILL_CARD.search(call.get("command", "") or call.get("file", "")) else "plain"
+
+
+def _grounding(call: dict) -> str | None:
+    """Whether a call goes to ShipLoop's scripts or reads a packet: `next`, `improve-next`, `packet`, or `other` (another
+    ShipLoop verb, `complete` or `lint` among them), else None. It submits or asks; it is not only a question."""
+    kind = call_kind(call)
+    return {"verb": "other", "skill-card": None, "plain": None}.get(kind, kind)
 
 
 def _same_path(told: str | None, got: str | None) -> str:
@@ -840,8 +859,8 @@ def _recovery(tools: "ToolLog", window: list, told: dict | None, heads: dict) ->
     ``revision_seen`` is the engine revision the first `next` that returned a packet printed (``heads``: the text each `next`
     call returned), which a later comparison sets beside the revision the killed session's end row recorded."""
     nexts = [(number, key) for number, key in enumerate(window, 1) if "next" in _verbs(tools.calls[key])]
-    revision = next((int(found.group(1)) for _number, key in nexts
-                     for found in [PACKET_REVISION.search(heads.get(key, ""))] if found), None)
+    revision = next((int(found.group("revision")) for _number, key in nexts
+                     for found in [PACKET_STAGE.search(heads.get(key, ""))] if found and found.group("revision")), None)
     first = None
     if nexts:
         number, key = nexts[0]
@@ -1271,7 +1290,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
 
 
 NARRATIVE = re.compile(r"=== ShipLoop narrative ===\n(?P<rule>[^\n]*)\n(?P<body>.*?)=== end ShipLoop narrative ===", re.S)
-PACKET_STAGE = re.compile(r"ShipLoop navigator \| (?P<stage>[\w-]+) \|")
+PACKET_STAGE = re.compile(r"ShipLoop navigator \| (?P<stage>[\w-]+) \|(?: revision (?P<revision>\d+))?")
 STATE_BLOCK = re.compile(r"```shiploop-state\n(?P<json>.*?)\n```", re.S)
 
 

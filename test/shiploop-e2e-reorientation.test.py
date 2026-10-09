@@ -1335,6 +1335,56 @@ IMPROVE_NEXT = ('python3 "/p/plugin/skills/improve/runtime/until-loop/scripts/un
                 '"/r/.shiploop-runs/w/run/improve/nav-1/state.json"')
 
 
+class GroundingKindsTest(unittest.TestCase):
+    """One classifier of a call (metrics.call_kind) for the windows and for the evidence script (fix-round item 8)."""
+
+    def kind(self, tool: str, arg: dict) -> str:
+        log = metrics.ToolLog()
+        return metrics.call_kind(log.calls[log.call(None, "c1", tool, arg)])
+
+    def test_the_improve_runtimes_next_is_its_own_kind_and_is_not_a_shiploop_next(self):
+        self.assertEqual(self.kind("run_terminal_command", {"command": IMPROVE_NEXT}), "improve-next")
+        self.assertEqual(self.kind("run_terminal_command", {"command": f"/bin/zsh -lc '{IMPROVE_NEXT}'"}), "improve-next")
+        s = Stream(first=100.0).start()
+        s.shell(0.5, "ls")
+        s.shell(0.5, IMPROVE_NEXT)
+        got = metrics.reorientation(s.rows, s.stamps, [], TOLD)
+        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("improve-next", 1))
+        self.assertEqual(got["recovery"]["next_calls"], 0, "the Improve runtime's next is not the ShipLoop next the prompt named")
+
+    def test_each_kind_is_told_apart_and_a_path_that_merely_contains_shiploop_is_not_a_next(self):
+        shiploop = lambda verb: {"command": f'python3 "{CLI}" {verb} --run-dir={RUN}'}  # noqa: E731
+        self.assertEqual(self.kind("run_terminal_command", shiploop("next")), "next")
+        self.assertEqual(self.kind("run_terminal_command", shiploop("complete")), "verb")
+        self.assertEqual(self.kind("run_terminal_command", shiploop("lint")), "verb")
+        self.assertEqual(self.kind("read_file", {"target_file": f"{RUN}/packets/nav-1.md"}), "packet")
+        self.assertEqual(self.kind("read_file", {"target_file": "/p/skills/shiploop/SKILL.md"}), "skill-card")
+        self.assertEqual(self.kind("run_terminal_command", {"command": "ls /r/.shiploop-runs/w && echo next --state x"}), "plain")
+        self.assertEqual(self.kind("run_terminal_command", {"command": "node --test"}), "plain")
+
+    def test_a_complete_or_a_lint_is_grounding_other_and_a_skill_card_or_a_plain_command_is_not_grounding(self):
+        for command, wanted in ((f'python3 "{CLI}" lint --run-dir={RUN}', "other"), ("cat /p/skills/shiploop/SKILL.md", None),
+                                ("node --test", None)):
+            s = Stream(first=100.0).start()
+            s.shell(0.5, command)
+            self.assertEqual(metrics.reorientation(s.rows, s.stamps, [], TOLD)["first_grounding"], wanted, command)
+
+    def test_the_evidence_script_classifies_with_the_same_function(self):
+        spec = importlib.util.spec_from_file_location("measure", ROOT / "docs" / "experiments" / "reorientation-20261009" / "measure.py")
+        measure = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(measure)
+        with tempfile.TemporaryDirectory() as tmp:
+            events = Path(tmp) / "events.jsonl"
+            lines = [{"type": "auto_compact_completed"},
+                     {"type": "tool_call", "toolCallId": "a", "toolName": "run_terminal_command", "rawInput": {"command": IMPROVE_NEXT}},
+                     {"type": "tool_call", "toolCallId": "b", "toolName": "run_terminal_command", "rawInput": {"command": "ls"}}]
+            events.write_text("".join(json.dumps(e) + "\n" for e in lines))
+            self.assertEqual(measure.first_call(events, 0), {"kind": "improve-next", "tool": "run_terminal_command"})
+            events.write_text("".join(json.dumps(e) + "\n" for e in [lines[0], dict(lines[1], rawInput={
+                "command": "ls /r/.shiploop-runs/w && echo next --state x"})]))
+            self.assertEqual(measure.first_call(events, 0)["kind"], "plain")
+
+
 class SessionLogTest(unittest.TestCase):
     """sessions.jsonl: the harness's append-only record of every host launch and every session end."""
 
