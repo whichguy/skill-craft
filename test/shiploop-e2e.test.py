@@ -3492,7 +3492,7 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
         self.assertIn("no earlier row of mode none", printed)
         self.number_rows(11, 22)
         _, printed = self.run_with("stage")  # [stage, none] then stage: the stage row, found past the none row
-        self.assertIn("planning_review stage): turns 11 -> ", printed)
+        self.assertIn("planning_review stage): turns 11 (lower bound) -> ", printed)
         self.assertNotIn("not compared across", printed)
 
     def test_two_modes_interleaved_each_pick_their_own_last_row(self):
@@ -3500,10 +3500,10 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
             self.run_with(mode)
         self.number_rows(111, 222, 333, 444)
         _, printed = self.run_with("none")
-        self.assertIn("planning_review none): turns 444 -> ", printed)
+        self.assertIn("planning_review none): turns 444 (lower bound) -> ", printed)
         self.number_rows(111, 222, 333, 444, 555)
         _, printed = self.run_with("stage")
-        self.assertIn("planning_review stage): turns 333 -> ", printed)
+        self.assertIn("planning_review stage): turns 333 (lower bound) -> ", printed)
         self.assertNotIn("not compared across", printed)
 
     def test_an_earlier_row_with_no_mode_compares_as_stage_only_when_its_plugin_predates_the_option(self):
@@ -3528,7 +3528,7 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
         _, printed = self.run_with("none")
         self.assertIn("(none vs stage); no earlier row of mode none; ", printed)
         _, printed = self.run_with("stage")  # [old row, none row] then stage: the old row, read as stage
-        self.assertIn("planning_review stage): turns 555 -> ", printed)
+        self.assertIn("planning_review stage): turns 555 (lower bound) -> ", printed)
         self.assertIn("            the earlier row records no mode, read as stage because plugin 1.21.0 predates the option", printed)
 
     def test_a_run_whose_state_named_no_mode_is_compared_with_no_row(self):

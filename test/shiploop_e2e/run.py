@@ -221,7 +221,8 @@ def continue_from(prior: Path, work: Path) -> dict:
     return {"prior": str(prior), "start_head": head.stdout.strip() if head.returncode == 0 else None, "prior_case": earlier.get("case"), "prior_pass": earlier.get("pass"),
             "prior_turns": (earlier.get("metrics") or earlier.get("cli") or {}).get("turns")
             or (earlier.get("cli") or {}).get("num_turns"),
-            "prior_cost_usd": (earlier.get("metrics") or earlier.get("cli") or {}).get("cost_usd")}
+            "prior_cost_usd": (earlier.get("metrics") or earlier.get("cli") or {}).get("cost_usd"),
+            "prior_lower_bound": metrics.lower_bound(earlier.get("metrics") or {})}
 
 
 def new_output_dir(requested: Path | None, name: str) -> Path:
@@ -1411,6 +1412,21 @@ def previous_row(path: Path, case: str, source: str | None, host: str | None = N
     return scan_baseline(path, case, source, host, model, effort, None, prompt_sha256)[0]
 
 
+def row_lower_bound(row: dict) -> bool | None:
+    """Whether a baseline row's cost and turns cover only the sessions that reported. A row carries no count (it is not a
+    baseline key), so: True when the row lists ``unreported_sessions`` among its unmeasured counters (Grok's events cannot
+    show a session that never reported), and True for any Grok row (the rows from before that listing were written the same
+    way); None otherwise, which is unknown and is not marked."""
+    if "unreported_sessions" in (row.get("unmeasured") or []) or row.get("host") == "grok":
+        return True
+    return None
+
+
+def marked(figure, bound: bool | None) -> str:
+    """A printed figure, with '(lower bound)' after it where it is one."""
+    return f"{figure} (lower bound)" if bound else str(figure)
+
+
 def sample_line(row: dict, before: dict, cell: list[dict]) -> str:
     """The facts a comparison rests on, as a line: no claim that the run is within, above or below anything (SPEC, "A
     comparison names its sample"). Whether the plugin tree is the one the earlier row ran on, how the host build changed, and
@@ -2537,19 +2553,22 @@ def _main(argv: list[str] | None, held: list) -> int:
     for failure in run_metrics["shiploop_failures"][:5]:
         print(f"  failed    shiploop {failure['verb']} {metrics.failure_text(failure)}: {failure['line']}")
     if follow_on:
+        prior_bound = follow_on.get("prior_lower_bound")
         print(f"  follow-on of {follow_on['prior_case']} ({follow_on['prior']}): turns {metrics.turns_text(run_metrics)} vs "
-              f"{'not reported' if follow_on['prior_turns'] is None else follow_on['prior_turns']}, cost {metrics.money(run_metrics['cost_usd'])} vs "
-              f"{metrics.money(follow_on['prior_cost_usd'])}")
+              f"{marked('not reported' if follow_on['prior_turns'] is None else follow_on['prior_turns'], prior_bound)}, "
+              f"cost {marked(metrics.money(run_metrics['cost_usd']), metrics.lower_bound(run_metrics))} vs "
+              f"{marked(metrics.money(follow_on['prior_cost_usd']), prior_bound)}")
     print(f"  checks    expected from {expectations['checks']}")
     for check in check_results:
         print(f"  check     {mark(check['pass'])}  {check['command']}")
     print(f"  {exported}")
     if before:
         unknown = lambda value: "not measured" if value is None else value  # noqa: E731
+        was, now = row_lower_bound(before), metrics.lower_bound(run_metrics)  # a lower bound stays marked wherever it is shown
         print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}, same "
               f"{args.host}/{args.model}/{args.effort}, planning_review {row['planning_review']}): "
-              f"turns {unknown(before['turns'])} -> {unknown(row['turns'])}, cost {metrics.money(before['cost_usd'])} -> "
-              f"{metrics.money(row['cost_usd'])}, "
+              f"turns {marked(unknown(before['turns']), was)} -> {marked(unknown(row['turns']), now)}, "
+              f"cost {marked(metrics.money(before['cost_usd']), was)} -> {marked(metrics.money(row['cost_usd']), now)}, "
               f"sessions {before['sessions']} -> {row['sessions']}, "
               f"glue {unknown(before['model_glue'])} -> {unknown(row['model_glue'])}"
               + (f", narrative shown {before['narrative']['shown']}/{before['narrative']['emitted']} -> "

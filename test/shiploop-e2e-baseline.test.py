@@ -32,6 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import hosts  # noqa: E402
 import metrics  # noqa: E402
+import progress  # noqa: E402
 import run  # noqa: E402
 
 FIXTURES = ROOT / "test" / "fixtures" / "baseline-spread"
@@ -694,8 +695,8 @@ exit $rc
         self.once(binary=self.finish_blocked())
         self.edit_rows(r0={"turns": 301}, r1={"turns": 503})
         code, result, printed = self.once()
-        self.assertIn("turns 301 -> ", printed)
-        self.assertNotIn("turns 503 -> ", printed)
+        self.assertIn("turns 301 (lower bound) -> ", printed)  # a Grok figure: marked
+        self.assertNotIn("503", printed.split("  baseline")[1].split("\n")[0])
 
     def test_with_only_a_blocked_row_before_it_nothing_is_compared_and_the_report_says_why(self):
         self.once(binary=self.finish_blocked())
@@ -725,6 +726,34 @@ exit $rc
         self.edit_rows(r0={"prompt_sha256": "0123456789ab"}, r1={"prompt_sha256": "0123456789ab"})
         _, _, printed = self.once()  # both carry a hash and it differs from this run's: another cell
         self.assertIn("(2 another prompt)", printed)
+
+    def line(self, printed: str, prefix: str) -> str:
+        return next(ln for ln in printed.splitlines() if ln.startswith(prefix))
+
+    def test_a_grok_comparison_marks_both_sides_as_lower_bounds(self):
+        # the line that printed r1 Grok's '503 -> 301': both figures cover only the sessions that reported
+        self.once()
+        _, _, printed = self.once()
+        line = self.line(printed, "  baseline  vs")
+        self.assertIn("turns 4 (lower bound) -> 4 (lower bound), cost $0.01 (lower bound) -> $0.01 (lower bound)", line)
+
+    def test_an_old_grok_row_without_the_marker_is_still_marked_by_its_host(self):
+        self.once()
+        self.edit_rows(r0={"unmeasured": []})  # a row from before 073fd4dd lists no unreported_sessions
+        _, _, printed = self.once()
+        self.assertIn("turns 4 (lower bound) -> 4 (lower bound)", self.line(printed, "  baseline  vs"))
+
+    def test_a_claude_comparison_that_ended_whole_marks_nothing(self):
+        self.once("done", host="claude")
+        _, _, printed = self.once("done", host="claude")
+        self.assertNotIn("lower bound", self.line(printed, "  baseline  vs"))
+
+    def test_a_row_that_lists_the_session_count_unmeasured_is_marked_whatever_its_host(self):
+        self.once("done", host="claude")
+        self.edit_rows(r0={"unmeasured": ["unreported_sessions"]})
+        _, _, printed = self.once("done", host="claude")
+        line = self.line(printed, "  baseline  vs")
+        self.assertRegex(line, r"turns \d+ \(lower bound\) -> \d+, cost \$[\d.]+ \(lower bound\) -> \$[\d.]+,")
 
     def test_the_facts_under_the_line_name_the_tree_the_host_build_and_the_cell(self):
         self.once("done", host="claude")
@@ -1340,6 +1369,64 @@ class RecordedLoopRunsTest(unittest.TestCase):
                     self.assertEqual(got["min"], round(min(values), digits))
                     self.assertEqual(got["max"], round(max(values), digits))
                     self.assertEqual(got["median"], round(statistics.median(values), digits))
+
+
+class LowerBoundMarkingTest(main_tests().PrintedCase):
+    """A figure the harness calls a lower bound stays marked wherever it is summarised: the follow-on line and progress.py,
+    not only the process and metrics lines."""
+
+    def prior(self, metrics_record: dict) -> Path:
+        prior = self.tmp / "prior"
+        work = prior / "work"
+        work.mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(work)], check=True)
+        (work / "prior.txt").write_text("kept\n")
+        (prior / "result.json").write_text(json.dumps({"case": "hello", "pass": True, "metrics": metrics_record}))
+        return prior
+
+    def follow_on(self, prior: Path) -> str:
+        os.environ["FAKE_MODE"] = "done"
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(self.tmp / "follow"),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--continue-from", str(prior),
+                             "--prompt", "Add a feature.", "--check", "true"])
+        self.assertEqual(code, 0)
+        return next(ln for ln in printed.getvalue().splitlines() if ln.startswith("  follow-on of"))
+
+    def test_the_follow_on_line_marks_a_grok_run_and_a_prior_that_was_a_lower_bound(self):
+        prior = self.prior({"turns": 40, "cost_usd": 2.5, "unreported_sessions": None,
+                            "unmeasured": {"unreported_sessions": "Grok marks no session start"}})
+        line = self.follow_on(prior)
+        self.assertIn("turns 4 (lower bound) vs 40 (lower bound), cost $0.01 (lower bound) vs $2.5 (lower bound)", line)
+
+    def test_a_prior_that_ended_whole_is_not_marked_and_one_that_predates_the_field_is_not_guessed(self):
+        whole = self.follow_on(self.prior({"turns": 40, "cost_usd": 2.5, "unreported_sessions": 0}))
+        self.assertIn("vs 40, cost $0.01 (lower bound) vs $2.5", whole)
+        shutil.rmtree(self.tmp / "prior")
+        shutil.rmtree(self.tmp / "follow")
+        old = self.follow_on(self.prior({"turns": 40, "cost_usd": 2.5}))
+        self.assertIn("vs 40, cost $0.01 (lower bound) vs $2.5", old)
+
+    def test_progress_marks_the_cost_of_a_grok_run_as_it_marks_its_turns(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            events = [{"type": "available_commands", "commands": [], "tools": []},
+                      {"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
+                      {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.5}]
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+            text = progress.report(out)
+            self.assertIn("turns 1 (lower bound)", text)
+            self.assertIn("cost $1.50 (lower bound)", text)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            events = [{"type": "system", "subtype": "init"},
+                      {"type": "assistant", "message": {"content": [{"type": "text", "text": "hi"}]}},
+                      {"type": "result", "subtype": "success", "num_turns": 1, "total_cost_usd": 1.5}]
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+            text = progress.report(out)
+            self.assertIn("cost $1.50 |", text)
+            self.assertNotIn("lower bound", text)
 
 
 class IdentityDocsTest(unittest.TestCase):
