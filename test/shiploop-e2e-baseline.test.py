@@ -955,16 +955,16 @@ class BaselineReportClassTest(BaselineReportCase):
 
     def test_every_attempt_is_in_the_report_once_whether_the_file_or_a_folder_or_both_know_it(self):
         report = self.report()
-        self.assertEqual(len(report["records"]), 14)
+        self.assertEqual(len(report["records"]), 19)
         sources = [r["record"] for r in report["records"]]
-        self.assertEqual((sources.count("file+folder"), sources.count("folder"), sources.count("file")), (7, 7, 0))
+        self.assertEqual((sources.count("file+folder"), sources.count("folder"), sources.count("file")), (11, 8, 0))
         # a file row whose folder is gone stays, as a file-only record
         lonely = self.tmp / "rows.jsonl"
         lonely.write_text(self.ROWS.read_text() + json.dumps({"case": "hello", "source": "marketplace", "host": "claude",
                                                               "model": "m", "effort": None, "output": "/gone/hello",
                                                               "verdicts": {"shiploop": True}, "turns": 5}) + "\n")
         again = self.report(rows=lonely)
-        self.assertEqual(len(again["records"]), 15)
+        self.assertEqual(len(again["records"]), 20)
         self.assertEqual(self.by_name(again)["hello"]["record"], "file")
 
     def test_a_regrade_is_not_a_resume_and_a_real_resume_a_mixed_host_run_and_a_blocked_run_are_named(self):
@@ -973,7 +973,8 @@ class BaselineReportClassTest(BaselineReportCase):
         self.assertEqual({name for name, c in classes.items() if c == "counted"},
                          {"v1220-battleship-sonnet", "v1230-battleship-sonnet", "r1-battleship-sonnet", "r2-battleship-sonnet",
                           "r3-battleship-sonnet", "r1-checkers-sonnet", "r2-checkers-sonnet", "r3-checkers-sonnet",
-                          "v1220-battleship-grok-medium-none"})
+                          "v1220-battleship-grok-medium-none", "v1161-hello", "v1180-hello-sonnet", "v1190-hello-sonnet",
+                          "v1190-hello-sonnet-2", "v1200-hello-sonnet"})
         self.assertEqual(classes["r2-battleship-grok-none"], "mixed host")
         self.assertEqual(classes["r3-battleship-grok-none"], "resumed")
         self.assertEqual(classes["r1-battleship-grok-none"], "did not reach done")
@@ -1019,14 +1020,6 @@ class BaselineReportClassTest(BaselineReportCase):
         self.assertEqual(found["class"], "no result.json")
         self.assertIn("unreadable", found["why"])
 
-    def test_the_report_writes_nothing(self):
-        def snapshot(root: Path) -> dict:
-            return {str(p.relative_to(root)): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()}
-        before = snapshot(FIXTURES)
-        self.report()
-        self.text()
-        self.assertEqual(snapshot(FIXTURES), before)
-
 
 class BaselineReportCellTest(BaselineReportCase):
     """The cells: attempts, builds and the n, min, median and max of cost, turns, minutes and planning minutes, from the
@@ -1037,8 +1030,8 @@ class BaselineReportCellTest(BaselineReportCase):
     def test_battleship_on_sonnet_is_one_cell_of_five_runs_on_five_builds(self):
         cell = self.cell(self.report(), **self.BATTLESHIP)
         self.assertEqual(cell["attempts"], {"seen": 5, "counted": 5, "passed": 5, "did_not_reach_done": 0, "mixed_host": 0,
-                                            "resumed": 0, "seeded": 0, "process_not_observed": 0, "no_driver_recorded": 0,
-                                            "no_result": 0})
+                                            "resumed": 0, "seeded": 0, "ended_by_harness": 0, "process_not_observed": 0,
+                                            "no_driver_recorded": 0, "no_result": 0})
         self.assertEqual(sum(cell["builds"]["plugin_sha256"].values()), 5)
         self.assertEqual((len(cell["builds"]["plugin_sha256"]), cell["builds"]["unrecorded"]), (5, 0))
         measures = cell["measures"]
@@ -1088,8 +1081,8 @@ class BaselineReportCellTest(BaselineReportCase):
         report = self.report()
         cell = self.cell(report, case="custom", host="grok")
         self.assertEqual(cell["attempts"], {"seen": 5, "counted": 1, "passed": 1, "did_not_reach_done": 2, "mixed_host": 1,
-                                            "resumed": 1, "seeded": 0, "process_not_observed": 0, "no_driver_recorded": 0,
-                                            "no_result": 0})
+                                            "resumed": 1, "seeded": 0, "ended_by_harness": 0, "process_not_observed": 0,
+                                            "no_driver_recorded": 0, "no_result": 0})
         self.assertEqual(cell["cell"]["prompt_sha256"][:8], "5ea67bf3")  # five raw prompts, one masked prompt
         cost = cell["measures"]["cost_usd"]
         self.assertEqual((cost["n"], cost["min"], cost["lower_bound_rows"], cost["lower_bound_unknown_rows"]), (1, 12.5014, 1, 0))
@@ -1141,9 +1134,9 @@ class BaselineReportCellTest(BaselineReportCase):
 
     def test_overlap_is_a_lower_bound_over_the_recorded_runs_and_a_row_with_no_span_is_unknown(self):
         cell = self.cell(self.report(), **self.BATTLESHIP)
-        self.assertEqual(cell["overlap"], {"rows": 5, "overlapped_at_least": 4, "not_seen_overlapping": 1, "unknown": 0})  # v1220 ran alone
+        self.assertEqual(cell["overlap"], {"rows": 5, "overlapped_by_span": 4, "not_seen_overlapping": 1, "unknown": 0})  # v1220 ran alone
         self.assertEqual(self.cell(self.report(), case="checkers", host="claude")["overlap"],
-                         {"rows": 3, "overlapped_at_least": 3, "not_seen_overlapping": 0, "unknown": 0})
+                         {"rows": 3, "overlapped_by_span": 3, "not_seen_overlapping": 0, "unknown": 0})
         spanless = self.tmp / "rows.jsonl"
         spanless.write_text(json.dumps({"case": "battleship", "source": "checkout", "host": "claude",
                                         "model": "claude-sonnet-5-5", "effort": None, "planning_review": "stage",
@@ -1151,7 +1144,7 @@ class BaselineReportCellTest(BaselineReportCase):
                                         "verdicts": {"shiploop": True}, "termination": {"engine_status": "done"},
                                         "turns": 150, "cost_usd": 4.0, "output": "/gone/older", "pass": True}) + "\n")
         wider = self.cell(self.report(rows=spanless), **self.BATTLESHIP)
-        self.assertEqual(wider["overlap"], {"rows": 6, "overlapped_at_least": 4, "not_seen_overlapping": 1, "unknown": 1})
+        self.assertEqual(wider["overlap"], {"rows": 6, "overlapped_by_span": 4, "not_seen_overlapping": 1, "unknown": 1})
         self.assertEqual(wider["attempts"]["counted"], 6)
         self.assertIsNone(self.by_name(self.report(rows=spanless))["older"]["overlaps"])
 
@@ -1178,7 +1171,7 @@ class BaselineReportOverlapTest(BaselineReportCase):
     def test_touching_intervals_do_not_overlap_and_crossing_ones_do_both_ways(self):
         report = self.spans((0.0, 10.0), (10.0, 20.0), (15.0, 30.0))
         self.assertEqual([r["overlaps"] for r in report["records"]], [0, 1, 1])
-        self.assertEqual(report["cells"][0]["overlap"], {"rows": 3, "overlapped_at_least": 2, "not_seen_overlapping": 1, "unknown": 0})
+        self.assertEqual(report["cells"][0]["overlap"], {"rows": 3, "overlapped_by_span": 2, "not_seen_overlapping": 1, "unknown": 0})
 
     def test_a_run_inside_another_overlaps_it_and_the_minutes_come_from_the_span(self):
         report = self.spans((0.0, 600.0), (100.0, 200.0))
@@ -1220,6 +1213,292 @@ class LiveLineAndReportTest(BaselineReportCase):
                          (["v1220-battleship-grok-medium-none"], {"did not reach done": 1}))
 
 
+class RowMatchesTest(unittest.TestCase):
+    """run.row_matches: the one predicate behind matching_rows and the report; None when a row is a basis, else why not."""
+
+    def test_the_source_is_compared_by_its_name_and_not_by_the_note_a_resume_adds(self):
+        resumed = row(source="marketplace (resumed on its original install)")
+        self.assertIsNone(run.row_matches(resumed, "battleship", "marketplace", "claude", "m", None, "stage", None))
+        self.assertEqual(run.row_matches(row(), "battleship", "marketplace", "claude", "m", None, "stage", None),
+                         "another case or source")
+
+    def test_each_reason_has_its_own_words(self):
+        key = ("battleship", "checkout", "claude", "m", None, "stage", None)
+        self.assertIsNone(run.row_matches(row(), *key))
+        self.assertEqual(run.row_matches(row(host="grok"), *key), "another host, model or effort")
+        self.assertEqual(run.row_matches(row(planning_review="none"), *key), "another planning_review mode")
+        self.assertEqual(run.row_matches(row(prompt_sha256="aaaaaaaaaaaa"), *key[:6], "bbbbbbbbbbbb"), "another prompt")
+        self.assertEqual(run.row_matches(row(verdicts={"shiploop": False}), *key), "did not reach done")
+        self.assertEqual(run.row_matches(row(case="checkers"), *key), "another case or source")
+
+    def test_matching_rows_is_this_predicate_and_nothing_else(self):
+        self.assertIn("row_matches(", _source(run.matching_rows))
+        self.assertNotIn("_prompt_differs(", _source(run.matching_rows))
+
+
+class BaselineReportRuleTest(BaselineReportCase):
+    """The report and the live line decide with one predicate; where the report differs on purpose, the difference is
+    listed in `recomputed`."""
+
+    def copy_runs(self) -> Path:
+        copy = self.tmp / "runs"
+        shutil.copytree(self.RUNS, copy)
+        return copy
+
+    def test_runs_before_1_22_read_stage_by_the_same_rule_as_a_row(self):
+        report = self.report()
+        by = self.by_name(report)
+        for name in ("v1161-hello", "v1180-hello-sonnet", "v1190-hello-sonnet", "v1190-hello-sonnet-2", "v1200-hello-sonnet"):
+            self.assertEqual(by[name]["planning_review"], "stage", name)
+        self.assertEqual(self.cell(report, case="hello", source="marketplace")["cell"]["planning_review"], "stage")
+        self.assertFalse([r for r in report["records"] if r["planning_review"] == "not recorded" and r["plugin_version"]
+                          and tuple(int(x) for x in r["plugin_version"].split(".")) < (1, 22, 0)])
+
+    def test_the_live_rule_offers_one_hello_row_and_the_report_counts_four_with_the_difference_listed(self):
+        report = self.report()
+        cell = self.cell(report, case="hello", source="marketplace")
+        live, seen, skipped = run.matching_rows(self.ROWS, "hello", "marketplace", "claude", "claude-sonnet-5-5", None, "stage",
+                                                cell["cell"]["prompt_sha256"])
+        self.assertEqual([Path(r["output"]).name for r in live], ["v1200-hello-sonnet"])
+        self.assertEqual(dict(skipped), {"another host, model or effort": 3})
+        self.assertEqual((cell["attempts"]["seen"], cell["attempts"]["counted"]), (4, 4))
+        by = self.by_name(report)
+        for name in ("v1161-hello", "v1190-hello-sonnet", "v1190-hello-sonnet-2"):  # rows written before the driver fields
+            self.assertTrue({"host", "model"} <= set(by[name]["recomputed"]), (name, by[name]["recomputed"]))
+            self.assertNotIn("effort", by[name]["recomputed"])  # null in the row and in the folder: nothing supplied
+        self.assertNotIn("host", by["v1200-hello-sonnet"]["recomputed"])  # its row names a driver
+
+    def test_every_member_of_a_cell_is_a_row_the_live_predicate_accepts_for_the_cells_key(self):
+        report = self.report()
+        for cell in report["cells"]:
+            c = cell["cell"]
+            for record in report["records"]:
+                if record["class"] != "counted" or Path(record["output"]).name not in cell["outputs"].get("counted", []):
+                    continue
+                member = {k: record[k] for k in ("case", "source", "host", "model", "effort", "planning_review",
+                                                 "prompt_sha256")}
+                member["verdicts"] = {"shiploop": True}
+                if c["host"] is None and c["model"] is None:
+                    continue
+                self.assertIn(run.row_matches(member, c["case"], c["source"], c["host"], c["model"], c["effort"],
+                                              c["planning_review"], c["prompt_sha256"]), (None,), (c, record["output"]))
+
+    def file_rows(self, *specs) -> Path:
+        base = {"case": "csv", "source": "checkout", "host": "claude", "model": "m", "effort": None,
+                "planning_review": "stage", "verdicts": {"shiploop": True}, "termination": {"engine_status": "done"},
+                "pass": True, "turns": 10, "cost_usd": 1.0}
+        path = self.tmp / "rows.jsonl"
+        path.write_text("".join(json.dumps({**base, "output": f"/gone/{name}", **({"prompt_sha256": h} if h else {})}) + "\n"
+                                for name, h in specs))
+        empty = self.tmp / "no-runs"
+        empty.mkdir(exist_ok=True)
+        return path
+
+    def test_a_named_cases_row_with_no_prompt_hash_sits_in_the_only_cell_or_alone_when_there_are_two(self):
+        empty = self.tmp / "no-runs"
+        one = self.report(rows=self.file_rows(("a", "aaaaaaaaaaaa"), ("b", None)), runs=empty)
+        self.assertEqual([(c["cell"]["prompt_sha256"], c["attempts"]["counted"]) for c in one["cells"]], [("aaaaaaaaaaaa", 2)])
+        two = self.report(rows=self.file_rows(("a", "aaaaaaaaaaaa"), ("b", None), ("c", "cccccccccccc")), runs=empty)
+        self.assertEqual([(c["cell"]["prompt_sha256"], c["outputs"]["counted"]) for c in two["cells"]],
+                         [(None, ["b"]), ("aaaaaaaaaaaa", ["a"]), ("cccccccccccc", ["c"])])
+        # the live rule would offer b to a run of either prompt: that is why the report cannot place it
+        live = run.matching_rows(self.tmp / "rows.jsonl", "csv", "checkout", "claude", "m", None, "stage", "cccccccccccc")[0]
+        self.assertEqual(sorted(Path(r["output"]).name for r in live), ["b", "c"])
+
+    def test_a_custom_cases_row_with_no_hash_is_never_in_a_cell_with_a_hash(self):
+        rows = self.tmp / "rows.jsonl"
+        base = {"case": "custom", "source": "checkout", "host": "grok", "model": "m", "effort": "medium",
+                "planning_review": "none", "verdicts": {"shiploop": True}, "termination": {"engine_status": "done"},
+                "pass": True, "turns": 10, "cost_usd": 1.0}
+        rows.write_text(json.dumps({**base, "output": "/gone/a", "prompt_sha256": "aaaaaaaaaaaa"}) + "\n"
+                        + json.dumps({**base, "output": "/gone/b"}) + "\n")
+        empty = self.tmp / "no-runs"
+        empty.mkdir()
+        report = self.report(rows=rows, runs=empty)
+        self.assertEqual([(c["cell"]["prompt_sha256"], c["outputs"]["counted"]) for c in report["cells"]],
+                         [(None, ["b"]), ("aaaaaaaaaaaa", ["a"])])
+
+    def test_a_row_whose_folder_is_gone_and_whose_prompt_is_unrecorded_joins_its_drivers_cell(self):
+        # the reviewer's repro: --runs given only the later date folders, so v1220 is known by its committed row alone
+        copy = self.copy_runs()
+        shutil.rmtree(copy / "v1220-battleship-sonnet")
+        report = self.report(runs=copy)
+        cell = self.cell(report, case="battleship", source="checkout", host="claude")
+        self.assertEqual((cell["attempts"]["seen"], cell["attempts"]["counted"]), (5, 5))
+        self.assertEqual(cell["cell"]["prompt_sha256"], "d0c0cbe71344")
+        self.assertEqual(self.by_name(report)["v1220-battleship-sonnet"]["record"], "file")
+        self.assertEqual(len([c for c in report["cells"] if c["cell"]["case"] == "battleship"
+                              and c["cell"]["source"] == "checkout" and c["cell"]["host"] == "claude"]), 1)
+
+    def test_a_run_the_harness_ended_is_not_counted_though_its_engine_reached_done(self):
+        copy = self.copy_runs()
+        for name, change in (("r2-battleship-sonnet", lambda r: r["process"].update(status="timeout")),
+                             ("r2-checkers-sonnet", lambda r: r["process"].update(status="stopped")),
+                             ("r3-checkers-sonnet", lambda r: r["termination"].update(engine_status="active"))):
+            record = json.loads((copy / name / "result.json").read_text())
+            change(record)
+            (copy / name / "result.json").write_text(json.dumps(record))
+        by = self.by_name(self.report(runs=copy))
+        for name in ("r2-battleship-sonnet", "r2-checkers-sonnet", "r3-checkers-sonnet"):
+            self.assertEqual(by[name]["class"], "ended by the harness", name)
+        self.assertIn("wrote no row", by["r2-battleship-sonnet"]["why"])
+        self.assertEqual(self.cell(self.report(runs=copy), case="battleship", host="claude")["attempts"]["ended_by_harness"], 1)
+
+    def test_a_file_only_grok_row_is_a_lower_bound(self):
+        rows = self.tmp / "rows.jsonl"
+        rows.write_text(json.dumps({"case": "battleship", "source": "checkout", "host": "grok", "model": "m", "effort": "medium",
+                                    "planning_review": "none", "verdicts": {"shiploop": True}, "pass": True, "turns": 301,
+                                    "cost_usd": 8.7455, "output": "/gone/grok", "prompt_sha256": "aaaaaaaaaaaa"}) + "\n"
+                        + json.dumps({"case": "battleship", "source": "checkout", "host": "claude", "model": "m",
+                                      "effort": None, "planning_review": "stage", "verdicts": {"shiploop": True}, "pass": True,
+                                      "turns": 100, "cost_usd": 3.0, "output": "/gone/claude"}) + "\n")
+        empty = self.tmp / "no-runs"
+        empty.mkdir()
+        report = self.report(rows=rows, runs=empty)
+        by = self.by_name(report)
+        self.assertIs(by["grok"]["lower_bound"], True)
+        self.assertIsNone(by["claude"]["lower_bound"])  # a Claude row carries no count: unknown, not marked
+        cell = self.cell(report, host="grok")
+        self.assertEqual((cell["measures"]["cost_usd"]["lower_bound_rows"], cell["measures"]["cost_usd"]["lower_bound_unknown_rows"]), (1, 0))
+        self.assertEqual(self.cell(report, host="claude")["measures"]["cost_usd"]["lower_bound_unknown_rows"], 1)
+
+
+class BaselineReportWalkTest(BaselineReportCase):
+    """Which folders are run folders, and what happens to an input that is not there."""
+
+    def test_a_run_folder_is_found_at_any_depth_and_the_walk_stops_at_it(self):
+        deep = self.tmp / "deep"
+        (deep / "a" / "b" / "c").mkdir(parents=True)
+        shutil.copytree(self.RUNS / "r3-battleship-sonnet", deep / "a" / "b" / "c" / "r3-battleship-sonnet")
+        shutil.copytree(self.RUNS / "r3-checkers-sonnet", deep / "r3-checkers-sonnet")
+        # a look-alike inside a run folder is part of the run's product, not a run
+        inner = deep / "r3-checkers-sonnet" / "work" / "docs"
+        inner.mkdir(parents=True)
+        (inner / "invocation.json").write_text(json.dumps({"case": "hello", "host": "claude"}))
+        # a folder of another harness (the audit's trial folders) is not a run folder
+        audit = deep / "gas" / "battleship-create"
+        audit.mkdir(parents=True)
+        (audit / "result.json").write_text(json.dumps({"schema_version": 1, "trial_id": "x", "step_id": "y"}))
+        names = sorted(Path(r["output"]).name for r in self.report(runs=deep, rows=self.tmp / "none.jsonl")["records"])
+        self.assertEqual(names, ["r3-battleship-sonnet", "r3-checkers-sonnet"])
+
+    def test_the_records_do_not_depend_on_how_runs_is_spelled(self):
+        whole = self.report()
+        children = sorted(p for p in self.RUNS.iterdir() if p.is_dir())
+        by_child = self.report(runs=children[0])
+        for extra in (children[1:],):
+            printed = io.StringIO()
+            with contextlib.redirect_stdout(printed):
+                run.main(["--baseline-report", "--baseline", str(self.ROWS), "--runs", *map(str, reversed(children)),
+                          "--json"])
+            again = json.loads(printed.getvalue())
+        relative = os.path.relpath(self.RUNS, Path.cwd())
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            run.main(["--baseline-report", "--baseline", str(self.ROWS), "--runs", relative + "/", "--json"])
+        spelled = json.loads(printed.getvalue())
+        for other in (again, spelled):
+            self.assertEqual(other["records"], whole["records"])
+            self.assertEqual(other["cells"], whole["cells"])
+        self.assertNotEqual(by_child["records"], whole["records"])  # one folder is one folder
+
+    def test_a_missing_input_is_named_in_the_report_and_the_exit_stays_zero(self):
+        gone = self.tmp / "nowhere"
+        report = self.report(rows=gone, runs=gone)
+        notes = " ".join(report["notes"])
+        self.assertIn(f"the baseline file {gone} does not exist", notes)
+        self.assertIn(f"the --runs directory {gone} does not exist", notes)
+        empty = self.tmp / "empty"
+        empty.mkdir()
+        self.assertIn(f"no run folder was found under {empty}", " ".join(self.report(rows=self.ROWS, runs=empty)["notes"]))
+        self.assertIn("does not exist", self.text(rows=gone, runs=gone))
+        self.assertEqual(self.report(rows=gone, runs=gone)["records"], [])
+
+
+class BaselineReportRobustnessTest(BaselineReportCase):
+    """One bad record is one 'unreadable record' with the exception text; the report goes on and exits 0."""
+
+    def test_malformed_records_become_unreadable_records_and_the_rest_are_unchanged(self):
+        whole = self.report()
+        copy = self.tmp / "runs"
+        shutil.copytree(self.RUNS, copy)
+
+        def edit(folder: str, name: str, change) -> None:
+            path = copy / folder / name
+            record = json.loads(path.read_text())
+            change(record)
+            path.write_text(json.dumps(record))
+
+        edit("r1-battleship-sonnet", "invocation.json", lambda r: r.update(versions="oops"))
+        edit("r1-checkers-sonnet", "result.json", lambda r: r.update(termination="blocked"))
+        edit("r2-battleship-sonnet", "result.json", lambda r: r.update(process="exited"))
+        edit("r2-checkers-sonnet", "result.json", lambda r: r.update(earlier_terminations=3))
+        edit("r3-battleship-sonnet", "result.json", lambda r: r.update(output=5))
+        rows = self.tmp / "rows.jsonl"
+        lines = [json.loads(line) for line in self.ROWS.read_text().splitlines()]
+        for row in lines:
+            if row["output"].endswith("/r3-checkers-sonnet"):
+                row["started"] = "yesterday"
+        rows.write_text("".join(json.dumps(r) + "\n" for r in lines))
+        report = self.report(rows=rows, runs=copy)
+        by = self.by_name(report)
+        bad = {"r1-battleship-sonnet", "r1-checkers-sonnet", "r2-battleship-sonnet", "r2-checkers-sonnet",
+               "r3-battleship-sonnet", "r3-checkers-sonnet"}
+        for name in bad:
+            found = by.get(name) or by.get(str(5))
+            self.assertIsNotNone(found, name)
+        unreadable = [r for r in report["records"] if r["class"] == "unreadable record"]
+        self.assertEqual(len(unreadable), 6, [(r["output"], r["class"]) for r in report["records"]])
+        for record in unreadable:
+            self.assertRegex(record["why"], r"\w+(Error|Exception): ")
+        good = {Path(r["output"]).name: r for r in report["records"] if r["class"] != "unreadable record"}
+        original = {Path(r["output"]).name: r for r in whole["records"]}
+        for name, record in good.items():
+            if name in original and name not in bad:
+                self.assertEqual(record["class"], original[name]["class"], name)
+        self.assertIn("unreadable record", self.text(rows=rows, runs=copy))
+
+    def test_an_unreadable_plugin_file_is_a_null_digest_with_its_reason_and_the_report_exits_zero(self):
+        copy = self.tmp / "runs"
+        shutil.copytree(self.RUNS, copy)
+        locked = copy / "r3-battleship-sonnet" / "build" / "plugins" / "skill-craft" / "skills" / "shiploop" / "scripts" / "shiploop"
+        locked.chmod(0)
+        self.addCleanup(locked.chmod, 0o644)
+        if os.access(locked, os.R_OK):
+            self.skipTest("the user can read a mode 000 file (root)")
+        found = self.by_name(self.report(runs=copy))["r3-battleship-sonnet"]
+        self.assertIsNone(found["plugin_sha256"])
+        self.assertIn("unreadable", found["identity_unmeasured"]["plugin_sha256"])
+        self.assertEqual(found["class"], "counted")
+
+
+class BaselineReportReasonTest(BaselineReportCase):
+    """A null identity field in the report says why, merged from the row, the result and the folder."""
+
+    def test_old_grok_runs_say_their_launch_predates_the_field_and_known_fields_have_no_entry(self):
+        by = self.by_name(self.report())
+        grok = by["r1-battleship-grok-none"]
+        self.assertIsNone(grok["host_build"])
+        self.assertEqual(grok["identity_unmeasured"]["host_build"], "launch predates the field")
+        self.assertNotIn("plugin_sha256", grok["identity_unmeasured"])
+        self.assertEqual(by["r3-battleship-sonnet"]["identity_unmeasured"], {})  # measured and empty
+        self.assertTrue(by["v1220-battleship-sonnet"]["identity_unmeasured"]["planning_seconds"])
+
+    def test_the_host_build_of_a_run_is_its_first_launchs_and_never_a_later_one(self):
+        copy = self.tmp / "runs"
+        shutil.copytree(self.RUNS, copy)
+        resume = next((copy / "r3-battleship-grok-none").glob("invocation-resume-grok-*.json"))
+        record = json.loads(resume.read_text())
+        record["host_build"] = "grok 9.9.9 (later)"
+        resume.write_text(json.dumps(record))
+        self.assertIsNone(self.by_name(self.report(runs=copy))["r3-battleship-grok-none"]["host_build"])
+        first = copy / "r3-battleship-grok-none" / "invocation.json"
+        record = json.loads(first.read_text())
+        record["host_build"] = "grok 1.0.50 (first)"
+        first.write_text(json.dumps(record))
+        self.assertEqual(self.by_name(self.report(runs=copy))["r3-battleship-grok-none"]["host_build"], "grok 1.0.50 (first)")
+
+
 class BaselineReportShapeTest(BaselineReportCase):
     """The keys Run Review reads, and the words the report does not use."""
 
@@ -1231,13 +1510,16 @@ class BaselineReportShapeTest(BaselineReportCase):
                                  "prompt_sha256", "plugin_version", "plugin_sha256", "host_build", "local_head", "started",
                                  "ended", "minutes", "planning_seconds", "planning_minutes", "cost_usd", "turns",
                                  "lower_bound", "pass", "engine_status", "process_status", "hosts_used", "class", "why",
-                                 "recomputed", "overlaps"]))
+                                 "recomputed", "identity_unmeasured", "overlaps"]))
         cell = report["cells"][0]
         self.assertEqual(sorted(cell), ["attempts", "builds", "cell", "host_builds", "measures", "outputs", "overlap"])
         self.assertEqual(sorted(cell["cell"]), ["case", "effort", "host", "model", "planning_review", "prompt_sha256", "source"])
         self.assertEqual(sorted(cell["measures"]), ["cost_usd", "minutes", "planning_minutes", "turns"])
         self.assertEqual(sorted(cell["measures"]["cost_usd"]),
                          ["lower_bound_rows", "lower_bound_unknown_rows", "max", "median", "min", "n", "not_measured"])
+        self.assertEqual(sorted(cell["measures"]["minutes"]),
+                         ["max", "median", "min", "n", "not_measured", "not_seen_overlapping", "overlapped_by_span"])
+        self.assertEqual(sorted(cell["overlap"]), ["not_seen_overlapping", "overlapped_by_span", "rows", "unknown"])
 
     def test_the_text_report_states_facts_and_makes_no_claim_about_any_run(self):
         text = self.text()
@@ -1245,7 +1527,8 @@ class BaselineReportShapeTest(BaselineReportCase):
         self.assertIn("attempts   seen 5, counted 5, passed 5", text)
         self.assertIn("cost_usd   n=5 min 5.6749 median 5.8146 max 9.6543", text)
         self.assertIn("(lower bound in 1 of 1 rows)", text)
-        self.assertIn("at least 4 of 5 rows overlapped another recorded run; 1 not seen to", text)
+        self.assertIn("4 of 5 rows overlapped another recorded span; 1 not seen to", text)
+        self.assertIn("minutes    n=5 min 12.6 median 13.8 max 20.0 (4 of 5 overlapped)", text)
         for word in ("within", "above the", "below the", "regression", "outside the range"):
             self.assertNotIn(word, text)
         self.assertIn("a range across builds is not a noise estimate", text)
@@ -1259,11 +1542,14 @@ RUNS_JSON = ROOT / "docs" / "experiments" / "baseline-spread-20261009" / "runs.j
 
 
 class RecordedLoopRunsTest(unittest.TestCase):
-    """The committed output of `run.py --baseline-report --baseline test/shiploop_e2e/baselines.jsonl --runs
-    /Users/dadleet/e2e-runs --json` over the baseline file and the 22 saved run folders of 2026-10-03 to 2026-10-08. This
-    pins that file and never the live baselines.jsonl or the machine's run folders: the owner committing the four rows that
-    lived in other worktrees, or deleting a run folder, must not turn a test red. To regenerate: run the command again and
-    review the diff."""
+    """A RECORD, not a check of code: the committed output of `run.py --baseline-report --baseline
+    test/shiploop_e2e/baselines.jsonl --runs /Users/dadleet/e2e-runs --json` over the baseline file and the 29 saved run
+    folders of 2026-10-03 to 2026-10-08, read as a static file. These tests pin what that record says (the figures the
+    journal cites) and that it is internally consistent; none of them runs the report. They never read the live
+    baselines.jsonl or the machine's run folders, so the owner committing the four rows that lived in other worktrees, or
+    deleting a run folder, turns nothing red. The report code is pinned by BaselineReport* over the compact extracts and by
+    FixtureReportRegenerationTest, which regenerates a report from them through the shipped command. To regenerate this
+    file: run the command again and review the diff."""
 
     @classmethod
     def setUpClass(cls):
@@ -1278,14 +1564,15 @@ class RecordedLoopRunsTest(unittest.TestCase):
     def test_the_inputs_are_the_command_that_made_it(self):
         self.assertEqual(self.report["inputs"], {"baseline": "test/shiploop_e2e/baselines.jsonl", "runs": ["/Users/dadleet/e2e-runs"]})
 
-    def test_35_attempts_in_15_cells_each_of_the_22_folders_and_the_23_rows_once(self):
+    def test_39_attempts_in_17_cells_each_of_the_29_folders_and_the_23_rows_once(self):
         records = self.report["records"]
-        self.assertEqual((len(records), len(self.report["cells"])), (35, 15))
+        self.assertEqual((len(records), len(self.report["cells"])), (39, 17))
         kinds = [r["record"] for r in records]
-        self.assertEqual((kinds.count("file+folder"), kinds.count("folder"), kinds.count("file")), (13, 12, 10))
+        self.assertEqual((kinds.count("file+folder"), kinds.count("folder"), kinds.count("file")), (13, 16, 10))
         self.assertEqual(kinds.count("file+folder") + kinds.count("file"), 23)  # every committed row, once
+        self.assertEqual(kinds.count("file+folder") + kinds.count("folder"), 29)  # every run folder, once
         classes = {c: sum(1 for r in records if r["class"] == c) for c in {r["class"] for r in records}}
-        self.assertEqual(classes, {"counted": 15, "no driver recorded": 9, "did not reach done": 4, "resumed": 3,
+        self.assertEqual(classes, {"counted": 15, "no driver recorded": 9, "did not reach done": 4, "resumed": 7,
                                    "no result.json": 3, "mixed host": 1})
 
     def test_the_loop_rows_three_of_seven_are_in_the_committed_file(self):
@@ -1297,7 +1584,7 @@ class RecordedLoopRunsTest(unittest.TestCase):
             self.assertEqual(self.by_name[name]["record"], "folder", name)
 
     def test_sonnet_battleship_is_five_runs_on_five_plugin_trees_and_three_host_builds(self):
-        cell = self.cell(case="battleship", host="claude")
+        cell = self.cell(case="battleship", source="checkout", host="claude")
         self.assertEqual((cell["attempts"]["seen"], cell["attempts"]["counted"], cell["attempts"]["passed"]), (5, 5, 5))
         self.assertEqual(len(cell["builds"]["plugin_sha256"]), 5)
         self.assertEqual(cell["host_builds"], {"2.1.291": 1, "2.1.292": 1, "2.1.294": 3, "unrecorded": 0})
@@ -1307,7 +1594,7 @@ class RecordedLoopRunsTest(unittest.TestCase):
         self.assertEqual(stats("minutes"), {"n": 5, "min": 12.6, "median": 13.8, "max": 20.0})
         self.assertEqual(stats("planning_minutes"), {"n": 4, "min": 4.85, "median": 5.56, "max": 6.47})
         self.assertEqual(cell["measures"]["planning_minutes"]["not_measured"], 1)  # v1220 predates the planning block
-        self.assertEqual(cell["overlap"], {"rows": 5, "overlapped_at_least": 4, "not_seen_overlapping": 1, "unknown": 0})
+        self.assertEqual(cell["overlap"], {"rows": 5, "overlapped_by_span": 4, "not_seen_overlapping": 1, "unknown": 0})
 
     def test_the_two_runs_that_said_plugin_1_22_0_are_two_builds_and_three_heads_are_one(self):
         # The "Sonnet cost rise, decomposed" entry explained 238 turns / $6.54 against 294 / $9.65 between two builds.
@@ -1320,19 +1607,47 @@ class RecordedLoopRunsTest(unittest.TestCase):
         self.assertEqual(len(trio), 1, "byte-identical trees under three different heads")
         self.assertNotEqual(self.by_name["r1-battleship-sonnet"]["local_head"], self.by_name["r1-checkers-sonnet"]["local_head"])
 
+    def test_the_only_pair_of_runs_on_one_build_is_the_two_v1190_hello_runs_and_it_is_in_a_cell_of_four_trees(self):
+        # "a cell has no two runs of one build" was said and is false: v1190-hello-sonnet and -2 share a plugin tree and a
+        # Claude Code build, and differ by 60 turns and $1.96. They are the only such pair in the data.
+        a, b = self.by_name["v1190-hello-sonnet"], self.by_name["v1190-hello-sonnet-2"]
+        self.assertEqual((a["plugin_sha256"], a["host_build"]), (b["plugin_sha256"], b["host_build"]))
+        self.assertEqual((a["plugin_sha256"], a["host_build"]), ("643ee0214c57", "2.1.289"))
+        self.assertEqual(((a["turns"], a["cost_usd"], a["minutes"]), (b["turns"], b["cost_usd"], b["minutes"])),
+                         ((194, 5.3678, 12.8), (254, 7.3252, 15.4)))
+        cell = self.cell(case="hello", source="marketplace", host="claude")
+        self.assertEqual((cell["attempts"]["counted"], len(cell["builds"]["plugin_sha256"])), (5, 4))
+        same = [(x["output"], y["output"]) for i, x in enumerate(self.report["records"]) for y in self.report["records"][i + 1:]
+                if x["class"] == y["class"] == "counted" and x["plugin_sha256"] and x["plugin_sha256"] == y["plugin_sha256"]
+                and x["host_build"] == y["host_build"] and x["case"] == y["case"] and x["host"] == y["host"]]
+        self.assertEqual(len(same), 1)  # the only pair
+        # the second of the pair overlapped v1180-hello-sonnet for 722 s, so its minutes are not a clean second sample
+        c = self.by_name["v1180-hello-sonnet"]
+        self.assertAlmostEqual(min(b["ended"], c["ended"]) - max(b["started"], c["started"]), 722.0, delta=1.0)
+        self.assertEqual((a["overlaps"], b["overlaps"]), (0, 1))
+
+    def test_the_four_batch_sonnet_runs_are_real_resumes_and_are_counted_in_no_measure(self):
+        for name in ("battleship", "battleship-scoring", "hello", "seat-reservations"):
+            found = [r for r in self.report["records"] if "/batch-sonnet/" in r["output"] and r["output"].endswith("/" + name)]
+            self.assertEqual(len(found), 1, name)
+            self.assertEqual(found[0]["class"], "resumed", name)
+
+    def test_the_audit_harness_trial_folders_are_not_in_the_report(self):
+        self.assertFalse([r for r in self.report["records"] if "gas-battleship-audit" in r["output"]])
+
     def test_sonnet_checkers_is_three_runs(self):
         cell = self.cell(case="checkers", host="claude")
         self.assertEqual({k: cell["measures"]["cost_usd"][k] for k in ("n", "min", "median", "max")},
                          {"n": 3, "min": 5.1613, "median": 6.6509, "max": 8.5146})
         self.assertEqual({k: cell["measures"]["turns"][k] for k in ("n", "min", "median", "max")},
                          {"n": 3, "min": 185, "median": 232, "max": 293})
-        self.assertEqual(cell["overlap"], {"rows": 3, "overlapped_at_least": 3, "not_seen_overlapping": 0, "unknown": 0})
+        self.assertEqual(cell["overlap"], {"rows": 3, "overlapped_by_span": 3, "not_seen_overlapping": 0, "unknown": 0})
 
     def test_the_grok_cell_names_its_five_attempts_and_one_masked_prompt(self):
         cell = self.cell(case="custom", host="grok")
         self.assertEqual(cell["attempts"], {"seen": 5, "counted": 1, "passed": 1, "did_not_reach_done": 2, "mixed_host": 1,
-                                            "resumed": 1, "seeded": 0, "process_not_observed": 0, "no_driver_recorded": 0,
-                                            "no_result": 0})
+                                            "resumed": 1, "seeded": 0, "ended_by_harness": 0, "process_not_observed": 0,
+                                            "no_driver_recorded": 0, "no_result": 0})
         self.assertEqual(cell["outputs"], {"counted": ["v1220-battleship-grok-medium-none"],
                                            "did not reach done": ["v1230-battleship-grok-none", "r1-battleship-grok-none"],
                                            "mixed host": ["r2-battleship-grok-none"], "resumed": ["r3-battleship-grok-none"]})
@@ -1427,6 +1742,60 @@ class LowerBoundMarkingTest(main_tests().PrintedCase):
             text = progress.report(out)
             self.assertIn("cost $1.50 |", text)
             self.assertNotIn("lower bound", text)
+
+
+class FixtureReportRegenerationTest(BaselineReportCase):
+    """The executable pin: the shipped command over the compact extracts reproduces test/fixtures/baseline-spread/report.json,
+    its own committed output. (The 29-folder runs.json is a record of the live machine; this is the check of the code.)
+    To regenerate: from the repository root,
+      python3 test/shiploop_e2e/run.py --baseline-report --baseline test/fixtures/baseline-spread/rows.jsonl \\
+          --runs test/fixtures/baseline-spread/runs --json | sed "s#$(pwd -P)#<repo>#g" > test/fixtures/baseline-spread/report.json"""
+
+    def test_the_command_reproduces_the_committed_report(self):
+        got = json.loads(json.dumps(self.report()).replace(str(ROOT), "<repo>"))
+        want = json.loads((FIXTURES / "report.json").read_text())
+        got["inputs"] = want["inputs"] = None  # the paths as typed
+        self.assertEqual(got, want)
+
+    def test_the_report_writes_nothing_anywhere_and_changes_no_file_time(self):
+        def snapshot(root: Path) -> dict:
+            return {str(p): (p.read_bytes(), p.stat().st_mtime_ns) for p in sorted(root.rglob("*")) if p.is_file()}
+
+        writes: list[str] = []
+        real_open = open
+
+        def spy_open(file, mode="r", *args, **kwargs):
+            if isinstance(mode, str) and any(c in mode for c in "wax+"):
+                writes.append(f"open {file}")
+            return real_open(file, mode, *args, **kwargs)
+
+        def refuse(name):
+            def fail(self, *args, **kwargs):
+                writes.append(f"{name} {self}")
+                raise AssertionError(f"{name} {self}")
+            return fail
+
+        before = snapshot(FIXTURES)
+        empty_cwd, empty_tmp = self.tmp / "cwd", self.tmp / "tmp"
+        empty_cwd.mkdir()
+        empty_tmp.mkdir()
+        here = Path.cwd()
+        try:
+            os.chdir(empty_cwd)
+            with mock.patch.dict(os.environ, {"TMPDIR": str(empty_tmp)}), mock.patch("builtins.open", spy_open), \
+                    mock.patch.object(Path, "write_text", refuse("write_text")), \
+                    mock.patch.object(Path, "write_bytes", refuse("write_bytes")), \
+                    mock.patch.object(Path, "mkdir", refuse("mkdir")), mock.patch.object(Path, "touch", refuse("touch")), \
+                    mock.patch.object(os, "replace", side_effect=AssertionError("replace")), \
+                    mock.patch.object(os, "remove", side_effect=AssertionError("remove")), \
+                    mock.patch.object(shutil, "rmtree", side_effect=AssertionError("rmtree")):
+                self.report()
+                self.text()
+        finally:
+            os.chdir(here)
+        self.assertEqual(writes, [])
+        self.assertEqual(snapshot(FIXTURES), before)
+        self.assertEqual(list(empty_cwd.iterdir()) + list(empty_tmp.iterdir()), [])
 
 
 class IdentityDocsTest(unittest.TestCase):

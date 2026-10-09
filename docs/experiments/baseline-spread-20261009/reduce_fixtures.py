@@ -42,6 +42,11 @@ RUNS = (
     "20261008/r2-battleship-grok-none",
     "20261008/r3-battleship-grok-none",
     "20261005/v1210-battleship-grok-medium",
+    "20261003/v1161-hello",
+    "20261004/v1180-hello-sonnet",
+    "20261004/v1190-hello-sonnet",
+    "20261004/v1190-hello-sonnet-2",
+    "20261004/v1200-hello-sonnet",
 )
 GROK_PROMPT_RUNS = (
     "20261006/v1220-battleship-grok-medium-none",

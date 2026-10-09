@@ -1,0 +1,96 @@
+{
+ "case": "hello",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "pass": true,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.18.0",
+  "shiploop_version": "0.50.0",
+  "local_head": "4f237af46f5b4e9859f67faec7de1074d9941f48",
+  "regraded": true
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_seconds": 724.5,
+  "stop": null,
+  "pass": true,
+  "regraded": true,
+  "sessions": [
+   {
+    "status": "exited",
+    "stop": null,
+    "host": "claude",
+    "resumed": null
+   }
+  ]
+ },
+ "termination": {
+  "process_status": "not observed (regraded: no host ran)",
+  "returncode": null,
+  "sessions": 0,
+  "resumes": null,
+  "session_stops": [],
+  "resume_stop": "not evaluated (regraded)",
+  "engine_status": "done",
+  "engine_stage": "done",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": null,
+  "regraded": true
+ },
+ "shiploop": {
+  "pass": true,
+  "run_dir": "/Users/dadleet/e2e-runs/20261004/v1180-hello-sonnet/.shiploop-runs/work-20261004-184559-7cc23f/run"
+ },
+ "committed": {
+  "pass": true
+ },
+ "checks": [
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  }
+ ],
+ "resumed_run": {
+  "from_host": "claude",
+  "from_model": "claude-sonnet-5-5",
+  "run_dir": "/Users/dadleet/e2e-runs/20261004/v1180-hello-sonnet/.shiploop-runs/work-20261004-184559-7cc23f/run",
+  "revision": 50,
+  "stage": "done"
+ },
+ "seeded": null,
+ "metrics": {
+  "claude_code_version": null,
+  "turns": 167,
+  "model_calls": 94,
+  "cost_usd": 4.3904,
+  "unreported_sessions": 0,
+  "compactions": null,
+  "truncated_outputs": null,
+  "cancelled_tool_calls": null,
+  "model_glue": null,
+  "tmp_writes": null,
+  "shiploop_failures": null,
+  "unmeasured": {
+   "compactions": "reduced",
+   "truncated_outputs": "reduced",
+   "cancelled_tool_calls": "reduced",
+   "knowledge_reads": "reduced",
+   "stage_tool_calls": "reduced",
+   "shiploop_failures": "reduced",
+   "model_glue": "reduced",
+   "tmp_writes": "reduced"
+  }
+ },
+ "output": "/Users/dadleet/e2e-runs/20261004/v1180-hello-sonnet"
+}

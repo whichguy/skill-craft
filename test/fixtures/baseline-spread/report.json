@@ -1,0 +1,1339 @@
+{
+ "inputs": {
+  "baseline": "test/fixtures/baseline-spread/rows.jsonl",
+  "runs": [
+   "test/fixtures/baseline-spread/runs"
+  ]
+ },
+ "records": [
+  {
+   "output": "/Users/dadleet/e2e-runs/20261003/v1161-hello",
+   "record": "file+folder",
+   "case": "hello",
+   "source": "marketplace",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.16.1",
+   "plugin_sha256": "2645c6d252d9",
+   "host_build": "2.1.288",
+   "local_head": "ddfb591b7e6a599887129ccc41638189d2457098",
+   "started": 1791068034.515,
+   "ended": 1791068515.865,
+   "minutes": 8.0,
+   "planning_seconds": null,
+   "planning_minutes": null,
+   "cost_usd": 3.295,
+   "turns": 143,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host",
+    "host_build",
+    "local_head",
+    "model",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "planning_seconds": "the metrics hold no planning block"
+   },
+   "overlaps": 0
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261004/v1190-hello-sonnet",
+   "record": "file+folder",
+   "case": "hello",
+   "source": "marketplace",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.19.0",
+   "plugin_sha256": "e345826c4c4d",
+   "host_build": "2.1.289",
+   "local_head": "19fa890d7c6aa4772fa19f7a56f0ccc4683ecf35",
+   "started": 1791138727.681,
+   "ended": 1791139493.68,
+   "minutes": 12.8,
+   "planning_seconds": null,
+   "planning_minutes": null,
+   "cost_usd": 5.3678,
+   "turns": 194,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host",
+    "host_build",
+    "local_head",
+    "model",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "planning_seconds": "the metrics hold no planning block"
+   },
+   "overlaps": 0
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261004/v1190-hello-sonnet-2",
+   "record": "file+folder",
+   "case": "hello",
+   "source": "marketplace",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.19.0",
+   "plugin_sha256": "e345826c4c4d",
+   "host_build": "2.1.289",
+   "local_head": "19fa890d7c6aa4772fa19f7a56f0ccc4683ecf35",
+   "started": 1791139552.451,
+   "ended": 1791140474.628,
+   "minutes": 15.4,
+   "planning_seconds": null,
+   "planning_minutes": null,
+   "cost_usd": 7.3252,
+   "turns": 254,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host",
+    "host_build",
+    "local_head",
+    "model",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "planning_seconds": "the metrics hold no planning block"
+   },
+   "overlaps": 1
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261004/v1180-hello-sonnet",
+   "record": "folder",
+   "case": "hello",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.18.0",
+   "plugin_sha256": "42673a23e97b",
+   "host_build": "2.1.289",
+   "local_head": "4f237af46f5b4e9859f67faec7de1074d9941f48",
+   "started": 1791139555.138,
+   "ended": 1791140277.202,
+   "minutes": 12.0,
+   "planning_seconds": null,
+   "planning_minutes": null,
+   "cost_usd": 4.3904,
+   "turns": 167,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host_build",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "planning_seconds": "the metrics hold no planning block"
+   },
+   "overlaps": 1
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261004/v1200-hello-sonnet",
+   "record": "file+folder",
+   "case": "hello",
+   "source": "marketplace",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.20.0",
+   "plugin_sha256": "c0b1e1744bd4",
+   "host_build": "2.1.289",
+   "local_head": "7aff70aa154b1ff70f5c703793aa43400a923be2",
+   "started": 1791155773.366,
+   "ended": 1791156289.621,
+   "minutes": 8.6,
+   "planning_seconds": null,
+   "planning_minutes": null,
+   "cost_usd": 3.6242,
+   "turns": 149,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host_build",
+    "local_head",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "planning_seconds": "the metrics hold no planning block"
+   },
+   "overlaps": 0
+  },
+  {
+   "output": "<repo>/test/fixtures/baseline-spread/runs/v1210-battleship-grok-medium",
+   "record": "folder",
+   "case": "battleship",
+   "source": "marketplace",
+   "host": "grok",
+   "model": "grok-4.7",
+   "effort": "medium",
+   "planning_review": "stage",
+   "prompt_sha256": "d0c0cbe71344",
+   "plugin_version": "1.21.0",
+   "plugin_sha256": null,
+   "host_build": null,
+   "local_head": "1411d5f15056ba39da25b7000aa39d4368868f01",
+   "started": 1791210324.887,
+   "ended": 1791214789.962,
+   "minutes": 74.4,
+   "planning_seconds": null,
+   "planning_minutes": null,
+   "cost_usd": null,
+   "turns": null,
+   "lower_bound": true,
+   "pass": null,
+   "engine_status": null,
+   "process_status": null,
+   "hosts_used": [
+    "grok"
+   ],
+   "class": "no result.json",
+   "why": "the folder holds launch records and no result.json: its harness died before writing the records, or the run is still going",
+   "recomputed": [
+    "ended",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "plugin_sha256": "the plugin build is not inside the run folder",
+    "host_build": "launch predates the field",
+    "planning_seconds": "no metrics.json in the folder"
+   },
+   "overlaps": 0
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261006/v1220-battleship-sonnet",
+   "record": "file+folder",
+   "case": "battleship",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "d0c0cbe71344",
+   "plugin_version": "1.22.0",
+   "plugin_sha256": "3a84627822dc",
+   "host_build": "2.1.291",
+   "local_head": "81e0502fcd90c5a80856189fb05eff45d892c9e2",
+   "started": 1791299123.103,
+   "ended": 1791300181.985,
+   "minutes": 17.6,
+   "planning_seconds": null,
+   "planning_minutes": null,
+   "cost_usd": 6.5405,
+   "turns": 238,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host_build",
+    "local_head",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "planning_seconds": "the metrics hold no planning block"
+   },
+   "overlaps": 0
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261006/v1220-battleship-grok-medium-none",
+   "record": "file+folder",
+   "case": "custom",
+   "source": "checkout",
+   "host": "grok",
+   "model": "grok-4.7",
+   "effort": "medium",
+   "planning_review": "none",
+   "prompt_sha256": "5ea67bf35336",
+   "plugin_version": "1.22.0",
+   "plugin_sha256": "df97fac3da1d",
+   "host_build": null,
+   "local_head": "e824945f26ac9dd207ea8e2e4500eefa5d511596",
+   "started": 1791330223.153,
+   "ended": 1791335838.175,
+   "minutes": 93.6,
+   "planning_seconds": null,
+   "planning_minutes": null,
+   "cost_usd": 12.5014,
+   "turns": 467,
+   "lower_bound": true,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "grok"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "local_head",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "host_build": "launch predates the field",
+    "planning_seconds": "the metrics hold no planning block"
+   },
+   "overlaps": 0
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261007/v1230-battleship-sonnet",
+   "record": "file+folder",
+   "case": "battleship",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "d0c0cbe71344",
+   "plugin_version": "1.22.0",
+   "plugin_sha256": "1f00ed019def",
+   "host_build": "2.1.292",
+   "local_head": "bc1d645232b8026b2851eab2329b26a28752af92",
+   "started": 1791387192.593,
+   "ended": 1791388394.075,
+   "minutes": 20.0,
+   "planning_seconds": 388.0,
+   "planning_minutes": 6.47,
+   "cost_usd": 9.6543,
+   "turns": 294,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host_build",
+    "local_head",
+    "planning_seconds",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {},
+   "overlaps": 1
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261007/v1230-battleship-grok-none",
+   "record": "file+folder",
+   "case": "custom",
+   "source": "checkout",
+   "host": "grok",
+   "model": "grok-4.7",
+   "effort": "medium",
+   "planning_review": "none",
+   "prompt_sha256": "5ea67bf35336",
+   "plugin_version": "1.22.0",
+   "plugin_sha256": "1f00ed019def",
+   "host_build": null,
+   "local_head": "bc1d645232b8026b2851eab2329b26a28752af92",
+   "started": 1791387192.866,
+   "ended": 1791393413.333,
+   "minutes": 103.7,
+   "planning_seconds": null,
+   "planning_minutes": null,
+   "cost_usd": 14.1673,
+   "turns": 503,
+   "lower_bound": true,
+   "pass": false,
+   "engine_status": "blocked",
+   "process_status": "exited",
+   "hosts_used": [
+    "grok"
+   ],
+   "class": "did not reach done",
+   "why": "engine blocked: its turns, cost and stages stop there",
+   "recomputed": [
+    "ended",
+    "local_head",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "host_build": "launch predates the field",
+    "planning_seconds": "the metrics hold no planning block"
+   },
+   "overlaps": 1
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261008/r1-battleship-sonnet",
+   "record": "folder",
+   "case": "battleship",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "d0c0cbe71344",
+   "plugin_version": "1.24.0",
+   "plugin_sha256": "9188573bc89d",
+   "host_build": "2.1.294",
+   "local_head": "587cd90d4d54745f67c5acd6a10535dd12afd769",
+   "started": 1791481009.116,
+   "ended": 1791481838.24,
+   "minutes": 13.8,
+   "planning_seconds": 336.0,
+   "planning_minutes": 5.6,
+   "cost_usd": 5.7046,
+   "turns": 207,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host_build",
+    "planning_seconds",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {},
+   "overlaps": 2
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261008/r1-battleship-grok-none",
+   "record": "folder",
+   "case": "custom",
+   "source": "checkout",
+   "host": "grok",
+   "model": "grok-4.7",
+   "effort": "medium",
+   "planning_review": "none",
+   "prompt_sha256": "5ea67bf35336",
+   "plugin_version": "1.24.0",
+   "plugin_sha256": "9188573bc89d",
+   "host_build": null,
+   "local_head": "587cd90d4d54745f67c5acd6a10535dd12afd769",
+   "started": 1791481009.559,
+   "ended": 1791485559.517,
+   "minutes": 75.8,
+   "planning_seconds": 1396.0,
+   "planning_minutes": 23.27,
+   "cost_usd": 8.7455,
+   "turns": 301,
+   "lower_bound": true,
+   "pass": false,
+   "engine_status": "blocked",
+   "process_status": "exited",
+   "hosts_used": [
+    "grok"
+   ],
+   "class": "did not reach done",
+   "why": "engine blocked: its turns, cost and stages stop there",
+   "recomputed": [
+    "ended",
+    "planning_seconds",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "host_build": "launch predates the field"
+   },
+   "overlaps": 2
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet",
+   "record": "file+folder",
+   "case": "checkers",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "e4da54c7f03d",
+   "plugin_version": "1.24.0",
+   "plugin_sha256": "9188573bc89d",
+   "host_build": "2.1.294",
+   "local_head": "5e209285b8cc17f35bd7366e3733bf822dcac437",
+   "started": 1791481289.999,
+   "ended": 1791482077.041,
+   "minutes": 13.1,
+   "planning_seconds": 367.0,
+   "planning_minutes": 6.12,
+   "cost_usd": 5.1613,
+   "turns": 185,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host_build",
+    "local_head",
+    "planning_seconds",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {},
+   "overlaps": 2
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261008/r2-battleship-sonnet",
+   "record": "folder",
+   "case": "battleship",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "d0c0cbe71344",
+   "plugin_version": "1.25.0",
+   "plugin_sha256": "8a0c8fe6e42d",
+   "host_build": "2.1.294",
+   "local_head": "ea6ce8ce0d92f85c783747316acb7b2f9ba52e9f",
+   "started": 1791505216.323,
+   "ended": 1791506034.754,
+   "minutes": 13.6,
+   "planning_seconds": 331.0,
+   "planning_minutes": 5.52,
+   "cost_usd": 5.8146,
+   "turns": 206,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host_build",
+    "planning_seconds",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {},
+   "overlaps": 2
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261008/r2-checkers-sonnet",
+   "record": "folder",
+   "case": "checkers",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "e4da54c7f03d",
+   "plugin_version": "1.25.0",
+   "plugin_sha256": "8a0c8fe6e42d",
+   "host_build": "2.1.294",
+   "local_head": "ea6ce8ce0d92f85c783747316acb7b2f9ba52e9f",
+   "started": 1791505216.384,
+   "ended": 1791506466.417,
+   "minutes": 20.8,
+   "planning_seconds": 421.0,
+   "planning_minutes": 7.02,
+   "cost_usd": 8.5146,
+   "turns": 293,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host_build",
+    "planning_seconds",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {},
+   "overlaps": 2
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261008/r2-battleship-grok-none",
+   "record": "folder",
+   "case": "custom",
+   "source": "checkout",
+   "host": "grok",
+   "model": "grok-4.7",
+   "effort": "medium",
+   "planning_review": "none",
+   "prompt_sha256": "5ea67bf35336",
+   "plugin_version": "1.25.0",
+   "plugin_sha256": "8a0c8fe6e42d",
+   "host_build": null,
+   "local_head": "ea6ce8ce0d92f85c783747316acb7b2f9ba52e9f",
+   "started": 1791505216.619,
+   "ended": 1791508888.102,
+   "minutes": 61.2,
+   "planning_seconds": 943.0,
+   "planning_minutes": 15.72,
+   "cost_usd": 5.4866,
+   "turns": 268,
+   "lower_bound": true,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "not observed",
+   "hosts_used": [
+    "grok",
+    "claude"
+   ],
+   "class": "mixed host",
+   "why": "launched by grok and claude: it belongs to no host's cell",
+   "recomputed": [
+    "ended",
+    "planning_seconds",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "host_build": "launch predates the field"
+   },
+   "overlaps": 2
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet",
+   "record": "file+folder",
+   "case": "battleship",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "d0c0cbe71344",
+   "plugin_version": "1.26.0",
+   "plugin_sha256": "6e4b8d16b1b8",
+   "host_build": "2.1.294",
+   "local_head": "200c32cec9bf569ae41bac26c511963947db813c",
+   "started": 1791526798.005,
+   "ended": 1791527555.172,
+   "minutes": 12.6,
+   "planning_seconds": 291.0,
+   "planning_minutes": 4.85,
+   "cost_usd": 5.6749,
+   "turns": 197,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host_build",
+    "local_head",
+    "planning_seconds",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {},
+   "overlaps": 1
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none",
+   "record": "folder",
+   "case": "custom",
+   "source": "checkout",
+   "host": "grok",
+   "model": "grok-4.7",
+   "effort": "medium",
+   "planning_review": "none",
+   "prompt_sha256": "5ea67bf35336",
+   "plugin_version": "1.26.0",
+   "plugin_sha256": "6e4b8d16b1b8",
+   "host_build": null,
+   "local_head": "200c32cec9bf569ae41bac26c511963947db813c",
+   "started": 1791526798.536,
+   "ended": 1791530649.634,
+   "minutes": 64.2,
+   "planning_seconds": 1393.0,
+   "planning_minutes": 23.22,
+   "cost_usd": null,
+   "turns": 230,
+   "lower_bound": true,
+   "pass": false,
+   "engine_status": "active",
+   "process_status": "stopped",
+   "hosts_used": [
+    "grok"
+   ],
+   "class": "resumed",
+   "why": "resumed (2 launch(es), 1 earlier termination(s)): a fragment of a run is not a baseline",
+   "recomputed": [
+    "ended",
+    "planning_seconds",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {
+    "host_build": "launch predates the field"
+   },
+   "overlaps": 2
+  },
+  {
+   "output": "/Users/dadleet/e2e-runs/20261008/r3-checkers-sonnet",
+   "record": "file+folder",
+   "case": "checkers",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "stage",
+   "prompt_sha256": "e4da54c7f03d",
+   "plugin_version": "1.26.0",
+   "plugin_sha256": "6e4b8d16b1b8",
+   "host_build": "2.1.294",
+   "local_head": "200c32cec9bf569ae41bac26c511963947db813c",
+   "started": 1791527561.851,
+   "ended": 1791528471.66,
+   "minutes": 15.2,
+   "planning_seconds": 340.0,
+   "planning_minutes": 5.67,
+   "cost_usd": 6.6509,
+   "turns": 232,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [
+    "ended",
+    "host_build",
+    "local_head",
+    "planning_seconds",
+    "plugin_sha256",
+    "prompt_sha256",
+    "started"
+   ],
+   "identity_unmeasured": {},
+   "overlaps": 1
+  }
+ ],
+ "cells": [
+  {
+   "cell": {
+    "case": "battleship",
+    "source": "checkout",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null,
+    "planning_review": "stage",
+    "prompt_sha256": "d0c0cbe71344"
+   },
+   "attempts": {
+    "seen": 5,
+    "counted": 5,
+    "passed": 5,
+    "did_not_reach_done": 0,
+    "mixed_host": 0,
+    "resumed": 0,
+    "seeded": 0,
+    "ended_by_harness": 0,
+    "process_not_observed": 0,
+    "no_driver_recorded": 0,
+    "no_result": 0
+   },
+   "builds": {
+    "plugin_sha256": {
+     "1f00ed019def": 1,
+     "3a84627822dc": 1,
+     "6e4b8d16b1b8": 1,
+     "8a0c8fe6e42d": 1,
+     "9188573bc89d": 1
+    },
+    "unrecorded": 0
+   },
+   "host_builds": {
+    "2.1.291": 1,
+    "2.1.292": 1,
+    "2.1.294": 3,
+    "unrecorded": 0
+   },
+   "measures": {
+    "cost_usd": {
+     "n": 5,
+     "min": 5.6749,
+     "median": 5.8146,
+     "max": 9.6543,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "turns": {
+     "n": 5,
+     "min": 197,
+     "median": 207,
+     "max": 294,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "minutes": {
+     "n": 5,
+     "min": 12.6,
+     "median": 13.8,
+     "max": 20.0,
+     "not_measured": 0,
+     "overlapped_by_span": 4,
+     "not_seen_overlapping": 1
+    },
+    "planning_minutes": {
+     "n": 4,
+     "min": 4.85,
+     "median": 5.56,
+     "max": 6.47,
+     "not_measured": 1
+    }
+   },
+   "overlap": {
+    "rows": 5,
+    "overlapped_by_span": 4,
+    "not_seen_overlapping": 1,
+    "unknown": 0
+   },
+   "outputs": {
+    "counted": [
+     "v1220-battleship-sonnet",
+     "v1230-battleship-sonnet",
+     "r1-battleship-sonnet",
+     "r2-battleship-sonnet",
+     "r3-battleship-sonnet"
+    ]
+   }
+  },
+  {
+   "cell": {
+    "case": "battleship",
+    "source": "marketplace",
+    "host": "grok",
+    "model": "grok-4.7",
+    "effort": "medium",
+    "planning_review": "stage",
+    "prompt_sha256": "d0c0cbe71344"
+   },
+   "attempts": {
+    "seen": 1,
+    "counted": 0,
+    "passed": 0,
+    "did_not_reach_done": 0,
+    "mixed_host": 0,
+    "resumed": 0,
+    "seeded": 0,
+    "ended_by_harness": 0,
+    "process_not_observed": 0,
+    "no_driver_recorded": 0,
+    "no_result": 1
+   },
+   "builds": {
+    "plugin_sha256": {},
+    "unrecorded": 0
+   },
+   "host_builds": {
+    "unrecorded": 0
+   },
+   "measures": {
+    "cost_usd": {
+     "n": 0,
+     "min": null,
+     "median": null,
+     "max": null,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "turns": {
+     "n": 0,
+     "min": null,
+     "median": null,
+     "max": null,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "minutes": {
+     "n": 0,
+     "min": null,
+     "median": null,
+     "max": null,
+     "not_measured": 0,
+     "overlapped_by_span": 0,
+     "not_seen_overlapping": 0
+    },
+    "planning_minutes": {
+     "n": 0,
+     "min": null,
+     "median": null,
+     "max": null,
+     "not_measured": 0
+    }
+   },
+   "overlap": {
+    "rows": 0,
+    "overlapped_by_span": 0,
+    "not_seen_overlapping": 0,
+    "unknown": 0
+   },
+   "outputs": {
+    "no result.json": [
+     "v1210-battleship-grok-medium"
+    ]
+   }
+  },
+  {
+   "cell": {
+    "case": "checkers",
+    "source": "checkout",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null,
+    "planning_review": "stage",
+    "prompt_sha256": "e4da54c7f03d"
+   },
+   "attempts": {
+    "seen": 3,
+    "counted": 3,
+    "passed": 3,
+    "did_not_reach_done": 0,
+    "mixed_host": 0,
+    "resumed": 0,
+    "seeded": 0,
+    "ended_by_harness": 0,
+    "process_not_observed": 0,
+    "no_driver_recorded": 0,
+    "no_result": 0
+   },
+   "builds": {
+    "plugin_sha256": {
+     "6e4b8d16b1b8": 1,
+     "8a0c8fe6e42d": 1,
+     "9188573bc89d": 1
+    },
+    "unrecorded": 0
+   },
+   "host_builds": {
+    "2.1.294": 3,
+    "unrecorded": 0
+   },
+   "measures": {
+    "cost_usd": {
+     "n": 3,
+     "min": 5.1613,
+     "median": 6.6509,
+     "max": 8.5146,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "turns": {
+     "n": 3,
+     "min": 185,
+     "median": 232,
+     "max": 293,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "minutes": {
+     "n": 3,
+     "min": 13.1,
+     "median": 15.2,
+     "max": 20.8,
+     "not_measured": 0,
+     "overlapped_by_span": 3,
+     "not_seen_overlapping": 0
+    },
+    "planning_minutes": {
+     "n": 3,
+     "min": 5.67,
+     "median": 6.12,
+     "max": 7.02,
+     "not_measured": 0
+    }
+   },
+   "overlap": {
+    "rows": 3,
+    "overlapped_by_span": 3,
+    "not_seen_overlapping": 0,
+    "unknown": 0
+   },
+   "outputs": {
+    "counted": [
+     "r1-checkers-sonnet",
+     "r2-checkers-sonnet",
+     "r3-checkers-sonnet"
+    ]
+   }
+  },
+  {
+   "cell": {
+    "case": "custom",
+    "source": "checkout",
+    "host": "grok",
+    "model": "grok-4.7",
+    "effort": "medium",
+    "planning_review": "none",
+    "prompt_sha256": "5ea67bf35336"
+   },
+   "attempts": {
+    "seen": 5,
+    "counted": 1,
+    "passed": 1,
+    "did_not_reach_done": 2,
+    "mixed_host": 1,
+    "resumed": 1,
+    "seeded": 0,
+    "ended_by_harness": 0,
+    "process_not_observed": 0,
+    "no_driver_recorded": 0,
+    "no_result": 0
+   },
+   "builds": {
+    "plugin_sha256": {
+     "df97fac3da1d": 1
+    },
+    "unrecorded": 0
+   },
+   "host_builds": {
+    "unrecorded": 1
+   },
+   "measures": {
+    "cost_usd": {
+     "n": 1,
+     "min": 12.5014,
+     "median": 12.5014,
+     "max": 12.5014,
+     "not_measured": 0,
+     "lower_bound_rows": 1,
+     "lower_bound_unknown_rows": 0
+    },
+    "turns": {
+     "n": 1,
+     "min": 467,
+     "median": 467,
+     "max": 467,
+     "not_measured": 0,
+     "lower_bound_rows": 1,
+     "lower_bound_unknown_rows": 0
+    },
+    "minutes": {
+     "n": 1,
+     "min": 93.6,
+     "median": 93.6,
+     "max": 93.6,
+     "not_measured": 0,
+     "overlapped_by_span": 0,
+     "not_seen_overlapping": 1
+    },
+    "planning_minutes": {
+     "n": 0,
+     "min": null,
+     "median": null,
+     "max": null,
+     "not_measured": 1
+    }
+   },
+   "overlap": {
+    "rows": 1,
+    "overlapped_by_span": 0,
+    "not_seen_overlapping": 1,
+    "unknown": 0
+   },
+   "outputs": {
+    "counted": [
+     "v1220-battleship-grok-medium-none"
+    ],
+    "did not reach done": [
+     "v1230-battleship-grok-none",
+     "r1-battleship-grok-none"
+    ],
+    "mixed host": [
+     "r2-battleship-grok-none"
+    ],
+    "resumed": [
+     "r3-battleship-grok-none"
+    ]
+   }
+  },
+  {
+   "cell": {
+    "case": "hello",
+    "source": "checkout",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null,
+    "planning_review": "stage",
+    "prompt_sha256": "d2d7e2dabeeb"
+   },
+   "attempts": {
+    "seen": 1,
+    "counted": 1,
+    "passed": 1,
+    "did_not_reach_done": 0,
+    "mixed_host": 0,
+    "resumed": 0,
+    "seeded": 0,
+    "ended_by_harness": 0,
+    "process_not_observed": 0,
+    "no_driver_recorded": 0,
+    "no_result": 0
+   },
+   "builds": {
+    "plugin_sha256": {
+     "42673a23e97b": 1
+    },
+    "unrecorded": 0
+   },
+   "host_builds": {
+    "2.1.289": 1,
+    "unrecorded": 0
+   },
+   "measures": {
+    "cost_usd": {
+     "n": 1,
+     "min": 4.3904,
+     "median": 4.3904,
+     "max": 4.3904,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "turns": {
+     "n": 1,
+     "min": 167,
+     "median": 167,
+     "max": 167,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "minutes": {
+     "n": 1,
+     "min": 12.0,
+     "median": 12.0,
+     "max": 12.0,
+     "not_measured": 0,
+     "overlapped_by_span": 1,
+     "not_seen_overlapping": 0
+    },
+    "planning_minutes": {
+     "n": 0,
+     "min": null,
+     "median": null,
+     "max": null,
+     "not_measured": 1
+    }
+   },
+   "overlap": {
+    "rows": 1,
+    "overlapped_by_span": 1,
+    "not_seen_overlapping": 0,
+    "unknown": 0
+   },
+   "outputs": {
+    "counted": [
+     "v1180-hello-sonnet"
+    ]
+   }
+  },
+  {
+   "cell": {
+    "case": "hello",
+    "source": "marketplace",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null,
+    "planning_review": "stage",
+    "prompt_sha256": "d2d7e2dabeeb"
+   },
+   "attempts": {
+    "seen": 4,
+    "counted": 4,
+    "passed": 4,
+    "did_not_reach_done": 0,
+    "mixed_host": 0,
+    "resumed": 0,
+    "seeded": 0,
+    "ended_by_harness": 0,
+    "process_not_observed": 0,
+    "no_driver_recorded": 0,
+    "no_result": 0
+   },
+   "builds": {
+    "plugin_sha256": {
+     "2645c6d252d9": 1,
+     "c0b1e1744bd4": 1,
+     "e345826c4c4d": 2
+    },
+    "unrecorded": 0
+   },
+   "host_builds": {
+    "2.1.288": 1,
+    "2.1.289": 3,
+    "unrecorded": 0
+   },
+   "measures": {
+    "cost_usd": {
+     "n": 4,
+     "min": 3.295,
+     "median": 4.496,
+     "max": 7.3252,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "turns": {
+     "n": 4,
+     "min": 143,
+     "median": 172,
+     "max": 254,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "minutes": {
+     "n": 4,
+     "min": 8.0,
+     "median": 10.7,
+     "max": 15.4,
+     "not_measured": 0,
+     "overlapped_by_span": 1,
+     "not_seen_overlapping": 3
+    },
+    "planning_minutes": {
+     "n": 0,
+     "min": null,
+     "median": null,
+     "max": null,
+     "not_measured": 4
+    }
+   },
+   "overlap": {
+    "rows": 4,
+    "overlapped_by_span": 1,
+    "not_seen_overlapping": 3,
+    "unknown": 0
+   },
+   "outputs": {
+    "counted": [
+     "v1161-hello",
+     "v1190-hello-sonnet",
+     "v1190-hello-sonnet-2",
+     "v1200-hello-sonnet"
+    ]
+   }
+  }
+ ],
+ "notes": [
+  "n, min, median and max describe the rows counted; a range across builds is not a noise estimate, and no run is placed against it.",
+  "A figure marked as a lower bound covers only the sessions that reported; Grok's events cannot show a session that never did, so every Grok cost and turns figure is marked.",
+  "Overlap is a count of rows whose recorded span crossed another recorded span. It misses a run that left no record and a row with no span, and it can include a resumed run's pause (a span runs from the first to the last stamp).",
+  "Where a baseline row and a run folder both describe a run, the row wins wherever it has a value; the folder fills only what the row lacks, and every field it supplied is listed in `recomputed`. A build a run did not record stays null, with its reason in `identity_unmeasured`."
+ ]
+}
