@@ -243,6 +243,32 @@ class UnwrapTest(unittest.TestCase):
             with self.subTest(wrapped=wrapped):
                 self.assertEqual(self.fidelity.unwrap_shell(wrapped), inner)
 
+    def test_a_wrapper_whose_quoting_is_concatenated_is_unwrapped_by_the_shells_own_rules(self):
+        # Review A11: 34 of the 1356 Codex commands of the 1.21.0 run write "..."'...' and were not unwrapped by the regular expression.
+        wrapped = "/bin/zsh -lc \"git commit -m x; P=\"'$HOME'"
+        self.assertEqual(self.fidelity.unwrap_shell(wrapped), "git commit -m x; P=$HOME")
+        self.assertEqual(self.fidelity.commit_forms(wrapped), ["git commit"])
+        self.assertEqual(self.fidelity.unwrap_shell("bash -c 'echo a' extra"), "bash -c 'echo a' extra", "more than one script is no wrapper")
+        self.assertEqual(self.fidelity.unwrap_shell('bash -c "a" && echo "b"'), 'bash -c "a" && echo "b"')
+
+    def test_a_wrapper_the_shell_cannot_read_is_stripped_by_pattern_when_it_spans_the_command(self):
+        # Unbalanced quoting (a model's `it's` inside single quotes): shlex fails, the pattern still finds the wrapper.
+        wrapped = "bash -c 'git commit -m it's'"
+        self.assertEqual(self.fidelity.unwrap_shell(wrapped), "git commit -m it's")
+        self.assertEqual(self.fidelity.commit_forms(wrapped), ["git commit"])
+        self.assertEqual(self.fidelity.unwrap_shell("bash -c 'git commit -m it's' && ls"), "bash -c 'git commit -m it's' && ls")
+
+    def test_every_wrapped_command_of_the_codex_extract_is_unwrapped(self):
+        # A heredoc body the extractor cut can unbalance the quoting of its wrapper (21 of them), so only the uncut ones are asserted; on the
+        # uncut run folder all 1356 wrapped commands of the 1.21.0 run unwrap (checked by the journal's run, not by this test).
+        wrapped = [c["command"] for c in replay(CODEX, engine_scripts=OLD_TABLE)["tools"].sequence
+                   if c["command"].startswith("/bin/zsh -lc ") and "[body cut]" not in c["command"]]
+        self.assertGreater(len(wrapped), 500)
+        left = [c[:60] for c in wrapped if self.fidelity.unwrap_shell(c).startswith("/bin/zsh -lc ")]
+        self.assertEqual(left, [])
+        # and at least one of them is of the concatenated form the regular expression could not read
+        self.assertTrue([c for c in wrapped if re.search(r"\"'", c)])
+
     def test_a_command_that_is_not_one_wrapper_is_returned_as_it_is(self):
         for command in ("git commit -m x", "cd x && bash -c 'ls'", "python3 -c 'print(1)'", "bash script.sh", "echo \"bash -c 'x'\"",
                         '/bin/zsh -lc "unterminated', ""):
@@ -255,6 +281,22 @@ class UnwrapTest(unittest.TestCase):
         self.assertEqual(self.fidelity.commit_forms(wrapped), ["git commit"])
         self.assertEqual(self.fidelity.commit_forms('/bin/zsh -lc "cd w && git -C w add -A && git -C w commit -q -m y"'),
                          ["git add", "git commit"])
+        # Review A7: a subcommand that is not add or commit is not a commit form, whatever else the line says.
+        for command in ("git worktree add ../w", "git remote add origin x", "git notes add -m x", "git submodule add url y",
+                        "git log --grep add", "git diff --stat; git show HEAD -- commit.md", "git commit-tree abc", "git stash",
+                        'echo "git commit -m x"', "echo git add"):
+            with self.subTest(command=command):
+                self.assertEqual(self.fidelity.commit_forms(command), [])
+        # Quoted text that says git is no command; a command that follows a quoted string on the same line still is.
+        self.assertEqual(self.fidelity.commit_forms('echo "done; git commit -m x"'), [])
+        self.assertEqual(self.fidelity.commit_forms('git commit -m "a; git add b"'), ["git commit"])
+        # a commit after then, do, else, an opening parenthesis, env, xargs or a variable assignment is found.
+        for command, forms in (("if x; then git commit -m y; fi", ["git commit"]), ("for f in a; do git add $f; done", ["git add"]),
+                               ("(git add -A)", ["git add"]), ("env GIT_AUTHOR_NAME=a git commit -m x", ["git commit"]),
+                               ("echo a | xargs git add", ["git add"]), ("GIT_AUTHOR_NAME=a git commit -m x", ["git commit"]),
+                               ("x || git commit -m y", ["git commit"])):
+            with self.subTest(command=command):
+                self.assertEqual(self.fidelity.commit_forms(command), forms)
         # The form is the subcommand, not a word of the path or the message.
         self.assertEqual(self.fidelity.commit_forms('git -C /x/add-dir commit -q -m "test: add the thing"'), ["git commit"])
         self.assertEqual(self.fidelity.commit_forms('git -c user.name=a -c user.email=b add -A && git commit -m "add x"'),
@@ -804,6 +846,94 @@ class EditsTest(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertEqual([e["form"] for e in self.fidelity.shell_edits(command)], forms)
 
+    def test_product_files_named_like_engine_files_are_not_script_owned_and_the_engines_own_directories_are(self):
+        # Review A8: the frozen SHIPLOOP_OWNED matches start.json, packet.json, -terminal.json and until-loop anywhere.
+        product = "/runs/x/.shiploop-runs/work-1/worktree"
+        for path in (f"{product}/test/fixtures/start.json", f"{product}/src/packet.json", f"{product}/logs/run-terminal.json",
+                     f"{product}/docs/until-loop.md", f"{product}/docs/shiploop/spec.md"):
+            with self.subTest(path=path):
+                self.assertEqual(self.fidelity.shell_edits(f"echo x > {path}"), [])
+                log = metrics.ToolLog()
+                log.call(1.0, "c", "Write", {"file_path": path}, event=1)
+                self.assertEqual(self.fidelity.edits(log)["script_owned"], [])
+        run = "/runs/x/.shiploop-runs/work-1/run"
+        for path in (f"{run}/state.md", f"{run}/quality/nav-1-terminal.json", f"{run}/until-loop/innerloop-a.json",
+                     f"{product}/.shiploop-improve/nav-1/nav-2/packet.json", f"{product}/.shiploop-improve/nav-1/nav-2/start.json",
+                     "/w/repo/.shiploop/state.md"):
+            with self.subTest(path=path):
+                self.assertEqual([e["form"] for e in self.fidelity.shell_edits(f"echo x > {path}")], [">"])
+
+    def test_every_path_the_frozen_set_flags_inside_a_run_or_improve_directory_is_flagged_here_too(self):
+        run = "/runs/x/.shiploop-runs/work-1/run"
+        for path in (f"{run}/state.md", f"{run}/results/nav-1.md", f"{run}/packets/nav-1.md", f"{run}/tests/nav-1-verify1.md",
+                     f"{run}/quality/nav-1-terminal.json", f"{run}/until-loop/a.json", f"{run}/backchain/nav-1/until-loop-start-contract.json",
+                     "/runs/x/.shiploop-runs/work-1/worktree/.shiploop-improve/nav-1/nav-2/packet.json",
+                     "/runs/x/.shiploop-runs/work-1/worktree/.shiploop-improve/nav-1/nav-2/parent-return.md"):
+            with self.subTest(path=path):
+                self.assertTrue(metrics.SHIPLOOP_OWNED.search(path) and not metrics.MODEL_INPUT.search(path))
+                self.assertTrue(self.fidelity.owned_path(path))
+
+    def test_a_heredoc_marker_line_keeps_its_redirect_or_pipe_and_loses_only_the_body(self):
+        run = "/runs/x/.shiploop-runs/work-1/run"
+        cases = [(f"cat <<'EOF' > {run}/state.md\nbody > {run}/results/x.md\nEOF", [">"]),
+                 (f"cat <<EOF | tee {run}/state.md\nbody\nEOF\nls", ["tee"]),
+                 (f"cat > {run}/state.md <<'EOF'\nbody\nEOF", [">"]),
+                 (f"cat <<'EOF' > {run}/notes/a.md\nsed -i x {run}/state.md\nEOF", [])]
+        for command, forms in cases:
+            with self.subTest(command=command):
+                self.assertEqual([e["form"] for e in self.fidelity.shell_edits(command)], forms)
+
+    def test_a_command_in_parentheses_names_its_target_without_the_parenthesis(self):
+        run = "/runs/x/.shiploop-runs/work-1/run"
+        found = self.fidelity.shell_edits(f"(echo x > {run}/state.md)")
+        self.assertEqual([(e["form"], e["target"]) for e in found], [(">", f"{run}/state.md")])
+
+    def test_perl_in_place_is_found_with_a_digit_flag_and_a_separator_inside_quotes_does_not_split_a_command(self):
+        run = "/runs/x/.shiploop-runs/work-1/run"
+        self.assertEqual([e["form"] for e in self.fidelity.shell_edits(f"perl -0pi -e 's/a/b/' {run}/state.md")], ["perl -i"])
+        self.assertEqual([e["form"] for e in self.fidelity.shell_edits(f"sed -i 's/a;b|c&&d/e/' {run}/state.md")], ["sed -i"])
+        self.assertEqual(self.fidelity.shell_edits(f'echo "x; sed -i s/a/b/ {run}/state.md"'), [])
+
+    def test_the_known_misses_are_pinned_so_they_are_not_forgotten(self):
+        run = "/runs/x/.shiploop-runs/work-1/run"
+        # an edit by interpreter code (the round-1 heredoc), a shell apply_patch or git apply, a relative path after cd:
+        self.assertEqual(self.fidelity.shell_edits(f'python3 - <<EOF\nopen("{run}/state.md", "w").write("x")\nEOF'), [])
+        self.assertEqual(self.fidelity.shell_edits("git apply x.patch"), [])
+        self.assertEqual(self.fidelity.shell_edits(f"apply_patch <<'PATCH'\n*** Update File: {run}/state.md\nPATCH"), [])
+        self.assertEqual(self.fidelity.shell_edits(f"cd {run} && sed -i '' s/a/b/ state.md"), [])
+        self.assertEqual(self.fidelity.shell_edits(f"cd {run} && echo x > state.md"), [])
+        # a kill by numeric pid or by port is not a kill by name:
+        for command in ("kill 67975 67993", "lsof -nP -iTCP:65440 -sTCP:LISTEN -t | xargs -r kill", "kill -9 $(lsof -ti :3000)"):
+            self.assertEqual(self.fidelity.name_kills(command), [])
+        # a ShipLoop verb a wrapper script hides: the refusal is counted from the result text, with the verb `unknown`.
+        log = metrics.ToolLog()
+        log.call(1.0, "w", "Bash", {"command": "cat > /r/run/scratch/sub.sh <<'EOF'\npython3 /x/shiploop complete \"$@\"\nEOF"}, event=1)
+        log.call(2.0, "r", "Bash", {"command": "bash /r/run/scratch/sub.sh nav-1 result.json"}, event=3)
+        log.result("r", "ShipLoop navigator: result requires outcome and summary\n", 0, event=4)
+        self.assertEqual([(f["verb"], f["exit"]) for f in log.failures], [("unknown", 0)])
+        self.assertEqual(self.fidelity.refusals(log, Path("."), None, {})["count"], 1)
+
+    def test_every_glue_write_hit_but_mkdir_and_a_copy_out_of_an_owned_path_is_also_a_script_owned_edit(self):
+        # Review B4: model_glue's write reason is frozen and narrower than the edit list; where it fires on a real write it is listed here.
+        run = "/runs/x/.shiploop-runs/work-1/run"
+        corpus = [f"echo x > {run}/state.md", f"echo x >> {run}/packets/nav-1.md", f"cp /tmp/a {run}/packets/nav-1.md",
+                  f"mv {run}/lint/a.md /tmp/b", f"rm {run}/until-loop/x.json", f"printf x | tee {run}/tests/nav-1-verify1.md",
+                  f"cat <<'EOF' > {run}/results/nav-1.md\nbody\nEOF", f"cd /w && echo x > {run}/state.md"]
+        corpus += [c["command"] for alias in ELEVEN for c in replay(alias)["tools"].sequence if c["command"]]
+        checked = 0
+        for command in corpus:
+            if "shell write into a ShipLoop-owned path" not in metrics.glue_reasons(command):
+                continue
+            verbs = {m.group(0).split()[0] for m in metrics.GLUE_WRITE.finditer(metrics.shell_text(command))
+                     if metrics.SHIPLOOP_OWNED.search(m.group(0)) and not metrics.MODEL_INPUT.search(m.group(0))}
+            if verbs <= {"mkdir"}:
+                continue
+            checked += 1
+            self.assertTrue(self.fidelity.shell_edits(command), command[:120])
+        # 7 of the 8 constructed commands fire the glue reason (the heredoc-marker redirect is one the frozen reader cannot see, because
+        # it drops the rest of the marker line); the saved runs add none, since model_glue is 0 on all of them for this reason.
+        self.assertEqual(checked, 7)
+
     def test_the_three_workspace_files_are_matched_by_name_after_a_cd_and_a_product_file_is_not(self):
         for name in ("return-plan.md", "return-receipt.md", "workspace.md"):
             with self.subTest(name=name):
@@ -862,7 +992,10 @@ class EditsTest(unittest.TestCase):
             "r2-battleship-grok-none": [(2838, 'pkill -f "node server.js"')],
             "r3-battleship-grok-none": [(858, 'pkill -f "http-probe.mjs"'), (7711, 'pkill -f "socketserver.TCPServer"')]})
         for command in ("kill 67975 67993", "kill $SERVER_PID", "kill $!", "kill -9 $(cat server.pid)", "echo pkill", "# pkill -f x",
-                        "man pkill", "ls | grep killall"):
+                        "man pkill", "ls | grep killall",
+                        # quoted text is not a command (review A6's false positives)
+                        "echo 'a; pkill -f node'", 'echo "x | pkill -f server"', 'git commit -m "fix: stop; pkill -f node no longer used"',
+                        "ps aux | grep node | while read p; do echo $p; done", "lsof -ti :3000 | xargs kill"):
             with self.subTest(command=command):
                 self.assertEqual(self.fidelity.name_kills(command), [])
 
@@ -876,6 +1009,14 @@ class EditsTest(unittest.TestCase):
             "sudo pkill -f x": ["pkill -f x"],
             '/bin/zsh -lc "pkill -f node"': ["pkill -f node"],
             "if lsof -i :3000; then pkill -f server.js; fi": ["pkill -f server.js"],
+            "timeout 5 pkill -f server.js": ["pkill -f server.js"],
+            "{ pkill -f server.js; }": ["pkill -f server.js"],
+            "! pkill -f server.js": ["pkill -f server.js"],
+            "echo node | xargs pkill -f": ["pkill -f"],
+            "ps aux | grep node | awk '{print $2}' | xargs kill": ["ps aux | grep node | awk '{print $2}' | xargs kill"],
+            # Review A6: the form of the saved run v1220-battleship-grok-medium-none, event 8493, verbatim.
+            "ps aux | rg 'battleship-chrome' | rg -v rg | awk '{print $2}' | while read p; do kill \"$p\"":
+                ["ps aux | rg 'battleship-chrome' | rg -v rg | awk '{print $2}' | while read p; do kill \"$p\""],
             'pkill -f "http-probe.mjs" 2>/dev/null || true': ['pkill -f "http-probe.mjs"'],
         }
         for command, forms in cases.items():

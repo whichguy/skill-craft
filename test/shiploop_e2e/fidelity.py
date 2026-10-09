@@ -80,12 +80,12 @@ def clip(text, limit: int = 200) -> str | None:
 # --- shell commands -------------------------------------------------------------------------------------------------------
 
 SHELL_WRAPPER = re.compile(r"""^\s*(?:\S*/)?(?:sh|bash|zsh)\s+-[a-z]*c[a-z]*\s+(?P<quote>["'])(?P<body>.*)(?P=quote)\s*$""", re.S)
+WRAPPER_PROGRAM = re.compile(r"(?:\S*/)?(?:sh|bash|zsh)")
+WRAPPER_FLAG = re.compile(r"-[a-z]*c[a-z]*")
 
 
-def unwrap_shell(command: str) -> str:
-    """The script of a command that is one shell wrapper (`/bin/zsh -lc "<script>"`, how Codex prints its commands; a model may
-    write `bash -c '...'` too), else the command as it is. Only a leading wrapper that spans the whole command is stripped. The
-    frozen metrics.glue_reasons does not read inside it, so a Codex glue count is a known undercount; only the detectors here do."""
+def _strip_wrapper(command: str) -> str:
+    """The body of a command that starts `<shell> -c <quote>` and ends with that quote, with `\\"` and `\\\\` unescaped inside double quotes."""
     found = SHELL_WRAPPER.match(command)
     if not found:
         return command
@@ -93,17 +93,67 @@ def unwrap_shell(command: str) -> str:
     return re.sub(r'\\(["\\])', r"\1", body) if found.group("quote") == '"' else body
 
 
+def unwrap_shell(command: str) -> str:
+    """The script of a command that is one shell wrapper (`/bin/zsh -lc "<script>"`, how Codex prints its commands; a model may write
+    `bash -c '...'` too), else the command as it is. The shell's own rules read it (shlex: three words, a shell, `-c` or `-lc`, a
+    script), so concatenated quoting ("..."'...') unwraps: all 1356 wrapped commands of the recorded 1.21.0 Codex run do. A command
+    shlex cannot read (unbalanced quoting) falls back to a pattern for the common shape: a wrapper that spans the command, from its
+    first quote to its last. A wrapper that does not span the command is not stripped. The frozen metrics.glue_reasons reads none of
+    this."""
+    try:
+        argv = shlex.split(command)
+    except ValueError:
+        return _strip_wrapper(command)
+    if len(argv) == 3 and WRAPPER_PROGRAM.fullmatch(argv[0]) and WRAPPER_FLAG.fullmatch(argv[1]):
+        return argv[2]
+    return command
+
+
+HEREDOC = re.compile(r"(<<-?[ \t]*['\"]?(\w+)['\"]?[^\n]*)\n.*?\n[ \t]*\2[ \t]*(?=\n|$)", re.S)
+
+
+def strip_heredocs(text: str) -> str:
+    """The text without heredoc bodies (documents, not commands) and terminators, keeping the marker line: `cat <<'EOF' > owned` still
+    redirects. (metrics.shell_text drops the rest of the marker line too, which the frozen glue reader keeps doing.)"""
+    return HEREDOC.sub(r"\1", text)
+
+
 def shell_view(command: str) -> str:
-    """What the shell reads: the wrapper stripped, the variables the command assigns expanded, heredoc bodies (documents) removed."""
+    """What the shell reads: the wrapper stripped, the variables the command assigns expanded, heredoc bodies removed."""
     text = unwrap_shell(command)
-    return metrics.shell_text(metrics.expand_variables(text, metrics.shell_variables(text)))
+    return strip_heredocs(metrics.expand_variables(text, metrics.shell_variables(text)))
 
 
-SEPARATOR = re.compile(r"&&|\|\||[;|&\n]")
+def blank_quoted(text: str) -> str:
+    """The text with the inside of every closed quoted string replaced by NUL (quotes kept, length kept), so a pattern matches command
+    text only and a span of the result is a span of the text. A quote that never closes is left as it is."""
+    out, i, n = list(text), 0, len(text)
+    while i < n:
+        c = text[i]
+        if c == "\\" and i + 1 < n:
+            i += 2
+            continue
+        if c in "'\"":
+            j = i + 1
+            while j < n and text[j] != c:
+                j += 2 if text[j] == "\\" and c == '"' and j + 1 < n else 1
+            if j < n:
+                out[i + 1:j] = "\0" * (j - i - 1)
+                i = j
+        i += 1
+    return "".join(out)
+
+
+SEPARATOR = re.compile(r"&&|\|\||[;|&\n()]")
 SKIPPED_WORDS = {"sudo", "command", "exec", "time", "nohup", "env", "then", "do", "else", "elif", "if", "while", "until", "!", "{", "(", ")"}
 REDIRECT = re.compile(r"^\d?(>>?)(?!&)(.*)$")
 SED_IN_PLACE = re.compile(r"^(?:-[nEr]*i\S*|--in-place\S*)$")
-PERL_IN_PLACE = re.compile(r"^-[pnlaw]*i\S*$")
+PERL_IN_PLACE = re.compile(r"^-[0-9pnlaw]*i\S*$")
+# What ShipLoop's scripts own, anchored: everything under a run directory (.shiploop-runs/<id>/run, where the Until Loop, quality,
+# backchain, results and packets directories are) and the .shiploop and .shiploop-improve directories (the old state directory, and the
+# Improve children's packet.json, start.json and receipts). The frozen metrics.SHIPLOOP_OWNED also matches start.json, packet.json,
+# -terminal.json and until-loop anywhere, so a product file of that name was listed.
+OWNED = re.compile(r"\.shiploop-runs/[^/\s\"']+/run(?:/|[\"'\s]|$)|(?:^|/)\.shiploop(?:-improve)?(?:/|[\"'\s]|$)")
 
 
 def _word(raw: str) -> str:
@@ -111,8 +161,8 @@ def _word(raw: str) -> str:
 
 
 def _words(segment: str) -> list[str]:
-    """The words of one simple command, quotes resolved; a segment whose quotes do not balance (a separator inside a quoted string
-    cut it in two, or Codex's own quoting) is split at whitespace."""
+    """The words of one simple command, quotes resolved; a segment whose quotes do not balance (Codex's own quoting) is split at
+    whitespace."""
     try:
         return shlex.split(segment)
     except ValueError:
@@ -137,11 +187,11 @@ def _files_of(rest: list[str]) -> list[str]:
 
 
 def owned_path(word: str) -> bool:
-    """Whether a path is ShipLoop's to write: the harness's own SHIPLOOP_OWNED set (its run directory, Improve receipts and record
-    files) and the three workspace files by name, and not a file a packet asks the model to write (MODEL_INPUT)."""
+    """Whether a path is ShipLoop's to write: under a run directory or an Improve or old state directory (OWNED), or one of the three
+    workspace files by name, and not a file a packet asks the model to write (MODEL_INPUT)."""
     word = _word(word)
     return bool(word) and not metrics.MODEL_INPUT.search(word) and bool(
-        metrics.SHIPLOOP_OWNED.search(word) or word.rsplit("/", 1)[-1] in WORKSPACE_FILES)
+        OWNED.search(word) or word.rsplit("/", 1)[-1] in WORKSPACE_FILES)
 
 
 def _written(words: list[str]) -> list[tuple[str, str]]:
@@ -179,40 +229,71 @@ def _written(words: list[str]) -> list[tuple[str, str]]:
 
 
 def shell_edits(command: str) -> list[dict]:
-    """The script-owned files a shell command writes: [{"form", "target"}], each owned target of each simple command. Heredoc bodies
-    are documents and not read; a rewrite by interpreter code (python3 - <<EOF ... open(p, "w")) is a known miss."""
-    hits = []
-    for segment in SEPARATOR.split(shell_view(command)):
-        for form, target in _written(_words(segment)):
+    """The script-owned files a shell command writes: [{"form", "target"}], each owned target of each simple command. The command is
+    split into simple commands where a separator stands outside a quoted string. Heredoc bodies are documents and not read; a rewrite
+    by interpreter code (python3 - <<EOF ... open(p, "w")), apply_patch and git apply are known misses."""
+    text = shell_view(command)
+    hits, start = [], 0
+    cuts = [(m.start(), m.end()) for m in SEPARATOR.finditer(blank_quoted(text))] + [(len(text), len(text))]
+    for end, after in cuts:
+        for form, target in _written(_words(text[start:end])):
             if owned_path(target):
                 hits.append({"form": form, "target": target[:200]})
+        start = after
     return hits
 
 
-NAME_KILL = re.compile(r"(?:(?:^|[;&|(])[ \t]*(?:(?:then|do|else)[ \t]+)?(?:sudo[ \t]+)?(?P<by>(?:pkill|killall)\b[^\n;&|)]*)"
-                       r"|(?P<pipe>\bpgrep\b[^\n;&]*\|[ \t]*xargs[ \t]+(?:-\S+[ \t]+)*kill\b[^\n;&|]*)"
-                       r"|(?P<sub>\bkill\b[^\n;&|]*(?:\$\(|`)[ \t]*pgrep\b[^\n)`]*[)`]))", re.M)
-
-
+# A kill by process name: the command at a command position (after a separator, then/do/else, `!`, `{`, sudo, timeout N, xargs ...), or a
+# process listing piped to kill (xargs kill, or a read loop that kills each line), or kill of a pgrep. Matched on the text with its
+# quoted strings blanked, so a quoted sentence that says pkill is not a command.
+KILL_PREFIX = (r"(?:^|[;&|(])[ \t]*(?:(?:then|do|else|!|\{)[ \t]+)*(?:(?:sudo|nohup|exec|command|env)[ \t]+)*"
+               r"(?:timeout[ \t]+(?:-\S+[ \t]+)*\S+[ \t]+)?(?:xargs[ \t]+(?:-\S+[ \t]+)*)?(?:sudo[ \t]+)?")
+NAME_KILL = re.compile(KILL_PREFIX + r"(?P<by>(?:pkill|killall)\b[^\n;&|)]*)"
+                       r"|(?P<ps>\b(?:ps|pgrep)\b[^\n]*?(?:\|[ \t]*xargs[ \t]+(?:-\S+[ \t]+)*kill\b"
+                       r"|\bwhile[ \t]+read\b[^\n]*?\bdo[ \t]+kill\b)[^\n;&|]*)"
+                       r"|(?P<sub>\bkill\b[^\n;&|]*(?:\$\(|`)[ \t]*pgrep\b[^\n)`]*[)`])", re.M)
 TRAILING_REDIRECT = re.compile(r"(?:\s+\d?>>?\S*)+$")
 
 
 def name_kills(command: str) -> list[str]:
-    """The kills by process name a command runs (pkill, killall, pgrep piped to kill, kill of a pgrep): they match any run's server
-    by its name. A kill by numeric pid is out of scope (a model's own job and a sibling's look alike). Reads strings only."""
-    found = (m.group("by") or m.group("pipe") or m.group("sub") for m in NAME_KILL.finditer(shell_view(command)))
-    return [TRAILING_REDIRECT.sub("", text.strip())[:120] for text in found]
+    """The kills by process name a command runs (pkill, killall, a process listing piped to kill, kill of a pgrep): they match any run's
+    server by its name. A kill by numeric pid or by port is out of scope (a model's own job and a sibling's look alike). Reads strings
+    only; the form is the command as written."""
+    text = shell_view(command)
+    blanked = blank_quoted(text)
+    forms = []
+    for m in NAME_KILL.finditer(blanked):
+        group = next(name for name in ("by", "ps", "sub") if m.group(name))
+        forms.append(TRAILING_REDIRECT.sub("", text[m.start(group):m.end(group)].strip())[:120])
+    return forms
 
 
-# `git [-C path] [-c key=value] [--option] commit|add`: the subcommand, not a word of a path or a message that says add or commit.
-GIT_SUBCOMMAND = re.compile(r"\bgit\b(?:\s+(?:-C|-c|--git-dir|--work-tree)\s+\S+|\s+--?\S+)*\s+(commit|add)\b")
+# `git [-C path] [-c key=value] [--option] <subcommand>`: the subcommand, not a word of a path or a message that says add or commit.
+GIT_AT = re.compile(r"(?:^|[;&|(]|\b(?:then|do|else)\b)[ \t]*(?:\w+=\S*[ \t]+|(?:env|command|sudo|xargs|nohup|exec)[ \t]+(?:-\S+[ \t]+)*)*"
+                    r"git\b(?P<rest>[^\n;&|)]*)", re.M)
+GIT_OPTION_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
+
+
+def _git_subcommand(rest: str) -> str | None:
+    words = rest.split()
+    index = 0
+    while index < len(words):
+        if words[index] in GIT_OPTION_WITH_VALUE:
+            index += 2
+        elif words[index].startswith("-"):
+            index += 1
+        else:
+            return words[index]
+    return None
 
 
 def commit_forms(command: str) -> list[str]:
-    """`git add` and `git commit` invocations of a command, in order, by the frozen glue reader's own pattern (one meaning of a
-    model commit command) applied to the unwrapped command."""
-    return ["git " + (GIT_SUBCOMMAND.search(m.group(0)) or re.search(r"\b(commit|add)\b", m.group(0))).group(1)
-            for m in metrics.GLUE_COMMIT.finditer(shell_view(command))]
+    """`git add` and `git commit` invocations of a command, in order: git at a command position (after a separator, then/do/else, env,
+    xargs or a variable assignment) whose subcommand is add or commit, found on the text with its quoted strings blanked. Any other
+    subcommand (worktree add, remote add, notes add, log --grep add) is not one."""
+    blanked = blank_quoted(shell_view(command))
+    subs = (_git_subcommand(m.group("rest")) for m in GIT_AT.finditer(blanked))
+    return [f"git {sub}" for sub in subs if sub in ("add", "commit")]
 
 
 # --- evidence -------------------------------------------------------------------------------------------------------------
