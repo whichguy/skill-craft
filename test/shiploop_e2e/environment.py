@@ -28,6 +28,7 @@ import contextlib
 from datetime import datetime, timezone
 import http.server
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -155,20 +156,43 @@ def end_record() -> dict:
 
 # ---------------------------------------------------------------- launches and hosts
 
+def _host_build_reason(record: dict) -> str | None:
+    """Why a launch's ``host_build`` is null (None when it holds a build)."""
+    if record.get("host_build") is not None:
+        return None
+    if record.get("host") == "claude":
+        return "Claude: its build is metrics.claude_code_version (from its init event), not probed at launch"
+    if "host_build" not in record:
+        return "the launch record has no host_build (it predates the field)"
+    return "the launch recorded host_build null (its version probe returned none)"
+
+
+def _environment_reason(record: dict) -> str | None:
+    """Why a launch's ``environment`` is null (None when it holds a record)."""
+    if isinstance(record.get("environment"), dict):
+        return None
+    if "environment" not in record:
+        return "the launch record has no environment (it was written before the record existed)"
+    return f"the launch record's environment is not a record ({type(record['environment']).__name__})"
+
+
 def launch_environments(out) -> list[dict]:
-    """One entry per launch of the run, first launch first: who ran it and the start record that launch kept (null for a launch
-    recorded before this record existed).  ``host_build`` is whatever the launch record carries, null where it has none."""
+    """One entry per launch of the run that could be read, first launch first: who ran it and the start record that launch kept.
+    ``host_build`` and ``environment`` are whatever the launch record carries, null with ``host_build_reason`` /
+    ``environment_reason`` saying why (Claude's build is never probed; an old launch has neither)."""
     return [{"launch": name, "host": record.get("host"), "model": record.get("model"), "effort": record.get("effort"),
-             "host_build": record.get("host_build"), "environment": record.get("environment")}
+             "host_build": record.get("host_build"), "host_build_reason": _host_build_reason(record),
+             "environment": record.get("environment") if isinstance(record.get("environment"), dict) else None,
+             "environment_reason": _environment_reason(record)}
             for name, record in runrecord.launches(Path(out))]
 
 
 def restated_start(out) -> dict:
     """A regrade starts no host: the start of the run's last launch, as that launch recorded it."""
-    last = launch_environments(out)[-1:] or [{}]
-    recorded = last[0].get("environment")
-    return recorded if isinstance(recorded, dict) else unobserved(
-        "regraded: the run's last launch recorded no environment (it was launched before the record existed)")
+    last = launch_environments(out)[-1:]
+    if not last:
+        return unobserved("regraded: the run has no readable launch record")
+    return last[0]["environment"] or unobserved("regraded: " + last[0]["environment_reason"])
 
 
 # ---------------------------------------------------------------- overlap with the neighbouring runs
@@ -179,7 +203,13 @@ def _stamp(line: bytes) -> float | None:
     except ValueError:
         return None
     stamp = value.get("t") if isinstance(value, dict) else None
-    return float(stamp) if isinstance(stamp, (int, float)) and not isinstance(stamp, bool) else None
+    if isinstance(stamp, bool) or not isinstance(stamp, (int, float)):
+        return None
+    try:
+        number = float(stamp)
+    except OverflowError:
+        return None
+    return number if math.isfinite(number) else None  # NaN and infinity are not times (and are not valid JSON)
 
 
 def span(timeline: Path) -> tuple[float, float] | None:
@@ -196,11 +226,12 @@ def span(timeline: Path) -> tuple[float, float] | None:
     except OSError:
         return None
     last = next((stamp for stamp in map(_stamp, reversed(tail)) if stamp is not None), None)
-    return (first, last) if first is not None and last is not None else None
+    return (first, last) if first is not None and last is not None and first <= last else None
 
 
-OVERLAP_BASIS = ("the first and last timeline.jsonl stamps of this run and of each sibling output folder in the same parent "
-                 "folder; a run resumed after a pause counts the pause, so the seconds are an upper bound")
+OVERLAP_BASIS = ("the first and last host event of this run and of each sibling folder in the same parent folder (timeline.jsonl holds "
+                 "host events only): it counts a pause between sessions, and misses the setup before the first event and the checks "
+                 "and reap after the last, so the seconds are neither an upper nor a lower bound")
 
 
 def overlap(out) -> dict:
@@ -219,10 +250,14 @@ def overlap(out) -> dict:
         folders = sorted(path for path in out.parent.iterdir() if path.is_dir() and path.name != out.name)
     except OSError as exc:
         return unobserved(f"the folder beside this run could not be listed: {exc}")
-    runs, read = [], 0
+    runs, read, unreadable = [], 0, []
     for folder in folders:
-        other = span(folder / "timeline.jsonl")
+        timeline = folder / "timeline.jsonl"
+        if not (timeline.exists() or timeline.is_symlink()):
+            continue  # not a run, or one that has not had an event yet: not seen
+        other = span(timeline)
         if other is None:
+            unreadable.append(folder.name)  # there, and no span can be read from it: named, never dropped silently
             continue
         read += 1
         low, high = max(own[0], other[0]), min(own[1], other[1])
@@ -232,11 +267,15 @@ def overlap(out) -> dict:
             continue
         seconds = high - low
         launched = runrecord.launches(folder)
+        bad = runrecord.unreadable(folder)
+        hosts = None if bad or not launched else runrecord.hosts_used(folder)
+        why = (f"{len(bad)} launch record(s) could not be read: {', '.join(bad)}" if bad else
+               "no launch record in the folder" if not launched else None)
         runs.append({"folder": folder.name, "case": (launched[0][1].get("case") if launched else None),
-                     "hosts": runrecord.hosts_used(folder), "overlapped_seconds": round(seconds, 1),
+                     "hosts": hosts, "hosts_reason": why, "overlapped_seconds": round(seconds, 1),
                      "started_offset_seconds": round(other[0] - own[0], 1)})
     return {"observed": True, "basis": OVERLAP_BASIS, "span": {"first": own[0], "last": own[1]}, "siblings_read": read,
-            "runs": runs}
+            "siblings_unreadable": unreadable, "runs": runs}
 
 
 def result_block(out, start: dict, end: dict) -> dict:
@@ -248,10 +287,15 @@ def result_block(out, start: dict, end: dict) -> dict:
         except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
             return unobserved(" ".join(str(exc).split())[:200] or type(exc).__name__)
 
-    return {"start": start, "end": end,
-            "hosts_used": part(lambda: runrecord.hosts_used(Path(out))),
-            "mixed_host": part(lambda: runrecord.mixed_host(Path(out))),
-            "environments": part(lambda: launch_environments(out)),
+    bad = part(lambda: runrecord.unreadable(Path(out)))
+    if isinstance(bad, list) and bad:
+        # A launch that cannot be read may be another host's: the list of hosts would be shorter than the truth, so it is unknown.
+        hosts = mixed = unobserved(f"{len(bad)} launch record(s) could not be read: {', '.join(bad)}")
+    else:
+        hosts = part(lambda: runrecord.hosts_used(Path(out)))
+        mixed = part(lambda: runrecord.mixed_host(Path(out)))
+    return {"start": start, "end": end, "hosts_used": hosts, "mixed_host": mixed,
+            "launches_unreadable": bad, "environments": part(lambda: launch_environments(out)),
             "overlap": part(lambda: overlap(out))}
 
 

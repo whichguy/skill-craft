@@ -40,6 +40,22 @@ def launches(out: Path) -> List[Tuple[str, dict]]:
     return [(name, record) for _stamp, name, record in sorted(found, key=lambda item: (item[0], item[1]))]
 
 
+def unreadable(out: Path) -> List[str]:
+    """Launch records that exist and cannot be read as a record (a file cut off mid-write, a directory, a list), by file name, the
+    first launch's record first.  A run with one of these cannot say which hosts launched it: ``hosts_used`` and ``mixed_host`` skip
+    the file, so a caller that must not read a shorter list as a complete one asks this too.  A file that is not there is not
+    unreadable, and a name that is not a launch record's is not looked at."""
+    out = Path(out)
+    names: List[str] = []
+    first = out / "invocation.json"
+    if (first.exists() or first.is_symlink()) and _read(first) is None:
+        names.append(first.name)
+    for path in sorted(out.glob("invocation-resume-*.json")):
+        if _RESUME.match(path.name) and _read(path) is None:
+            names.append(path.name)
+    return names
+
+
 def hosts_used(out: Path) -> List[str]:
     """The distinct hosts that launched the run, in the order they first did."""
     hosts: List[str] = []

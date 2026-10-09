@@ -798,6 +798,44 @@ class OverlapTest(unittest.TestCase):
         self.assertIn("timeline.jsonl", record["reason"])
         self.assertNotIn("runs", record)
 
+    def test_a_neighbour_whose_timeline_cannot_be_read_is_named_and_never_silently_dropped(self):
+        me = self.write_run("me", 1000, 2000)
+        (self.parent / "a-directory" / "timeline.jsonl").mkdir(parents=True)
+        for name, text in (("non-numeric", '{"line": 0, "t": "soon"}\n'),
+                           ("not-a-number", '{"line": 0, "t": NaN}\n{"line": 1, "t": NaN}\n'),
+                           ("infinite", '{"line": 0, "t": 1e999}\n{"line": 1, "t": -1e999}\n')):
+            (self.parent / name).mkdir()
+            (self.parent / name / "timeline.jsonl").write_text(text)
+        self.write_run("backwards", 1800, 1200)  # its first stamp is after its last: not a span
+        (self.parent / "not-yet").mkdir()  # a folder with no timeline yet is not seen (a documented limit)
+        self.write_run("fine", 1500, 1800)
+        record = self.environment.overlap(me)
+        self.assertEqual(record["siblings_unreadable"], ["a-directory", "backwards", "infinite", "non-numeric", "not-a-number"])
+        self.assertEqual(record["siblings_read"], 1)
+        self.assertEqual([entry["folder"] for entry in record["runs"]], ["fine"])
+        json.dumps(record, allow_nan=False)  # no NaN or infinity reaches result.json
+
+    def test_a_stamp_that_is_not_a_finite_time_is_skipped_like_a_half_written_line(self):
+        path = self.parent / "t.jsonl"
+        path.write_text('{"t": 1500}\n{"t": NaN}\n{"t": 1e999}\n')
+        self.assertEqual(self.environment.span(path), (1500.0, 1500.0), "NaN and infinity are not the span's end")
+
+    def test_a_neighbour_whose_launch_records_cannot_be_read_has_unknown_hosts_with_the_reason(self):
+        me = self.write_run("me", 1000, 2000)
+        self.write_run("intact", 1500, 1800, hosts=("grok", "claude"), case="x")
+        broken = self.write_run("broken", 1500, 1800)
+        (broken / "invocation.json").write_text('{"case": "custom", "ho')
+        (self.write_run("none", 1500, 1800) / "invocation.json").unlink()
+        partial = self.write_run("partial", 1500, 1800, hosts=("grok", "claude"))
+        (partial / "invocation-resume-claude-1001.json").write_text('{"case": "custom", "ho')
+        found = self.entries(self.environment.overlap(me))
+        self.assertEqual((found["intact"]["hosts"], found["intact"]["hosts_reason"]), (["grok", "claude"], None))
+        for name in ("broken", "partial"):
+            self.assertIsNone(found[name]["hosts"], name)
+            self.assertIn("could not be read", found[name]["hosts_reason"], name)
+        self.assertIsNone(found["none"]["hosts"])
+        self.assertIn("no launch record", found["none"]["hosts_reason"])
+
     def test_reading_the_neighbours_changes_nothing_in_them(self):
         me = self.write_run("me", 1000, 2000)
         other = self.write_run("other", 1500, 2500)
@@ -875,11 +913,72 @@ class LaunchRecordsTest(unittest.TestCase):
         out = self.r2()
         restated = self.environment.restated_start(out)
         self.assertEqual(restated["observed"], False)
-        self.assertIn("launched before the record existed", restated["reason"])
+        self.assertIn("has no environment", restated["reason"])
         last = json.loads((out / "invocation-resume-claude-1791508003.json").read_text())
         last["environment"] = {"observed": True, "at": "2026-10-09T16:00:00Z"}
         (out / "invocation-resume-claude-1791508003.json").write_text(json.dumps(last))
         self.assertEqual(self.environment.restated_start(out)["at"], "2026-10-09T16:00:00Z")
+
+    def test_a_launch_record_that_cannot_be_read_makes_the_hosts_unknown_and_is_named(self):
+        out = self.r2()
+        name = "invocation-resume-claude-1791508003.json"
+        (out / name).write_text('{"case": "custom", "host": "cla')  # a record cut off mid-write
+        block = self.environment.result_block(out, {"observed": True}, {"observed": True})
+        for key in ("hosts_used", "mixed_host"):
+            self.assertEqual(block[key]["observed"], False, key)
+            self.assertIn(name, block[key]["reason"])
+        self.assertEqual(block["launches_unreadable"], [name])
+        self.assertEqual([entry["launch"] for entry in block["environments"]], ["invocation.json"])
+        intact = self.environment.result_block(self.r2(), {"observed": True}, {"observed": True})
+        self.assertEqual((intact["launches_unreadable"], intact["hosts_used"]), ([], ["grok", "claude"]))
+
+    def test_unreadable_names_a_launch_record_that_exists_and_cannot_be_read_as_a_record(self):
+        import runrecord
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        out = Path(tmp.name)
+        self.assertEqual(runrecord.unreadable(out), [], "a folder with no launch record has none that cannot be read")
+        (out / "invocation.json").mkdir()
+        (out / "invocation-resume-grok-5.json").write_text("[1]")
+        (out / "invocation-resume-grok-6.json").write_text("{bad")
+        (out / "invocation-resume-grok-7.json").write_text(json.dumps({"host": "grok", "versions": {}}))
+        (out / "invocation-other.json").write_text("{bad")  # not a launch record's name
+        (out / "invocation-resume-grok-later.json").write_text("{bad")  # matches the glob, not the name a launch record has
+        self.assertEqual(runrecord.unreadable(out), ["invocation.json", "invocation-resume-grok-5.json", "invocation-resume-grok-6.json"])
+
+    def test_a_null_host_build_or_environment_says_why(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        out = Path(tmp.name)
+
+        def record(name, **kw):
+            (out / name).write_text(json.dumps({"case": "c", "host": kw.pop("host"), "versions": {}, **kw}))
+
+        record("invocation.json", host="grok")
+        record("invocation-resume-claude-1001.json", host="claude")
+        record("invocation-resume-grok-1002.json", host="grok", host_build=None, environment="oops")
+        record("invocation-resume-grok-1003.json", host="grok", host_build="grok 1.0.50 (c58f321264ba)", environment={"observed": True})
+        old, claude, nulled, whole = self.environment.launch_environments(out)
+        self.assertIn("predates", old["host_build_reason"])
+        self.assertIn("no environment", old["environment_reason"])
+        self.assertIn("Claude", claude["host_build_reason"])
+        self.assertIn("claude_code_version", claude["host_build_reason"])
+        self.assertIn("null", nulled["host_build_reason"])
+        self.assertIn("not a record", nulled["environment_reason"])
+        self.assertEqual((whole["host_build"], whole["host_build_reason"], whole["environment_reason"]),
+                         ("grok 1.0.50 (c58f321264ba)", None, None))
+        record("invocation-resume-claude-1004.json", host="claude", host_build="2.1.295")
+        self.assertIsNone(self.environment.launch_environments(out)[-1]["host_build_reason"], "a Claude launch that recorded a build")
+
+    def test_a_start_that_cannot_be_restated_says_what_is_true_about_the_record(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        out = Path(tmp.name)
+        (out / "invocation.json").write_text(json.dumps({"host": "grok", "versions": {}}))
+        self.assertIn("has no environment", self.environment.restated_start(out)["reason"])
+        (out / "invocation.json").write_text(json.dumps({"host": "grok", "versions": {}, "environment": "oops"}))
+        self.assertIn("not a record", self.environment.restated_start(out)["reason"])
+        self.assertNotIn("launched before", self.environment.restated_start(out)["reason"])
 
     def test_a_part_that_cannot_be_read_is_unobserved_and_the_others_stand(self):
         out = self.r2()
