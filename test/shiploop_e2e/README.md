@@ -257,10 +257,32 @@ entry. See SPEC.md, "E2E suites" and "Parallel work".
 Run the runs you compare one after the other. Concurrent runs share the CPU, the host's rate limit and the machine's loopback
 ports, so two runs whose wall time or per-call cost are set side by side (a before/after pair, a host or model comparison)
 are started the second after the first has ended: `--serial` for a suite, or launch the second once the first has ended.
-The suite default of 3 parallel chains stays, because a suite is for finding failures and not for timing them. Nothing
-records an overlap: a baseline row has no overlap field, and each run's `timeline.jsonl` start stamp is the only trace, so
-this is a discipline and not a guarantee (SPEC, "Parallel work"). The two round-2 Sonnet runs were started within 0.1 s of
-each other.
+The suite default of 3 parallel chains stays, because a suite is for finding failures and not for timing them. A baseline
+row has no overlap field. It carries `started` and `ended` (the first and last stamp of the run's stream, epoch seconds), and
+`--baseline-report` counts from them how many rows overlapped another recorded run, as a lower bound: a run that wrote no
+row, and a row written before the span existed, are not seen. So this is a discipline and not a guarantee (SPEC, "Parallel
+work"). The two round-2 Sonnet runs were started within 0.1 s of each other.
+
+What a row and `result.json` say about the run they record (SPEC, "A comparison names its sample"), each field null where it
+is not known and never 0 or empty:
+
+- `plugin_sha256` (also `versions.plugin_sha256`): one digest (12 hex) of the plugin tree the host loads, taken when the run is
+  launched: each file's relative path and the sha256 of its bytes, leaving out `__pycache__` folders, `*.pyc` and symlinks. A
+  version string does not identify a build (the Battleship Sonnet runs of 2026-10-06 and 2026-10-07 both say plugin 1.22.0
+  with different scripts) and a git head over-splits (two heads built byte-identical trees). A regrade restates the recorded
+  digest and never computes one.
+- `prompt_sha256`: the prompt with the run's own output folder replaced by `<output>` (12 hex). The Grok `none` runs' prompt
+  names `<run folder>/build/.../improve/SKILL.md`, so five runs of one prompt had five raw hashes and have one masked hash.
+- `host_build`: Claude's Code build from its init event (`metrics.claude_code_version`); for Grok and Codex the first stdout
+  line of `<cli> --version` (`grok 1.0.50 (c58f321264ba)`, `codex-cli 0.162.0`), probed once when a launch starts and written
+  on that launch's record (`invocation.json`, `invocation-resume-<host>-*.json`), `null` when the CLI does not answer. It is
+  never probed again: a regrade restates what the run recorded, and a Grok or Codex run launched before this field existed
+  stays null, because today's build stamped on it would be a made-up fact. Claude's launch record carries null (its build is
+  read from the events after the run).
+- `started`, `ended` (in `result.json`: `span`): the stream's first and last stamp. `planning_seconds` (in `result.json`'s
+  metrics): the closed planning window on the engine's clock (`metrics.planning.window.seconds`), null while the window is
+  open or unreadable. `local_head`: `versions.local_head` for a checkout run, `versions.released.local_head` for a marketplace
+  run.
 
 The row's `planning_review` is the run option ShipLoop 1.22.0 records in `state.md`
 (`stage`: an Improve child after each of spec, test-strategy, plan, step-plan and

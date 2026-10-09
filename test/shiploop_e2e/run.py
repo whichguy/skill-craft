@@ -87,6 +87,7 @@ import argparse
 import atexit
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+import hashlib
 import importlib.util
 import json
 import os
@@ -312,11 +313,42 @@ def build_candidate(out: Path) -> Path:
     return out / "build" / "plugins" / PLUGIN_NAME
 
 
+def tree_digest(root: Path) -> str | None:
+    """One digest (12 hex) of the plugin tree a host loads: each file's relative path and the sha256 of its bytes.
+
+    A version string does not identify a build (two Battleship Sonnet runs said plugin 1.22.0 with different scripts),
+    and a git head over-splits (two heads built byte-identical trees), so the bytes are what is compared. Left out:
+    ``__pycache__`` folders and ``*.pyc`` (a host compiles them when it runs the scripts, so they differ between a plugin
+    before and after a run), symlinks (their target is not part of the plugin) and anything that is not a regular file.
+    None when ``root`` is not a folder.
+    """
+    root = Path(root)
+    if not root.is_dir():
+        return None
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root)
+        if "__pycache__" in relative.parts or path.suffix == ".pyc" or path.is_symlink() or not path.is_file():
+            continue
+        digest.update(relative.as_posix().encode() + b"\0" + hashlib.sha256(path.read_bytes()).hexdigest().encode() + b"\n")
+    return digest.hexdigest()[:12]
+
+
+def masked_prompt_digest(prompt: str, out: Path) -> str:
+    """The sha256 (12 hex) of a run's prompt with its own output folder replaced by ``<output>``.
+
+    A case that names no path hashes to the plain hash of its text. The Grok ``none`` runs' prompt tells the host to read
+    ``<run folder>/build/.../improve/SKILL.md``, so five runs of one prompt had five raw hashes and one masked hash.
+    """
+    return hashlib.sha256(prompt.replace(str(out), "<output>").strip().encode()).hexdigest()[:12]
+
+
 def installed_versions(plugin_dir: Path) -> dict:
-    """The skill-craft and ShipLoop versions of the plugin a host will actually load."""
+    """The skill-craft and ShipLoop versions of the plugin a host will actually load, and the digest of its tree."""
     manifest = plugin_dir / ".claude-plugin" / "plugin.json"
     return {"plugin_version": json.loads(manifest.read_text()).get("version") if manifest.is_file() else None,
-            "shiploop_version": card_version(plugin_dir / "skills" / "shiploop" / "SKILL.md")}
+            "shiploop_version": card_version(plugin_dir / "skills" / "shiploop" / "SKILL.md"),
+            "plugin_sha256": tree_digest(plugin_dir)}
 
 
 def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None, dict]:
@@ -1184,6 +1216,13 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "tmp_writes": m.get("tmp_writes"),
             "shiploop_failures": m.get("shiploop_failures"), "compactions": m.get("compactions"),
             "truncated_outputs": m.get("truncated_outputs"), "narrative": m.get("narrative"),
+            # Identity: what the run ran on and for how long, null where the result does not say (never 0 or ''). A
+            # checkout run records its head in versions.local_head, a marketplace run under versions.released.
+            "plugin_sha256": versions.get("plugin_sha256"), "prompt_sha256": result.get("prompt_sha256"),
+            "host_build": result.get("host_build"),
+            "local_head": versions.get("local_head") or (versions.get("released") or {}).get("local_head"),
+            "started": (result.get("span") or {}).get("started"), "ended": (result.get("span") or {}).get("ended"),
+            "planning_seconds": m.get("planning_seconds"),
             "output": result.get("output")}
 
 
@@ -1758,11 +1797,15 @@ def _main(argv: list[str] | None, held: list) -> int:
                     permission_mode=args.permission_mode, max_turns=args.max_turns,
                     max_budget_usd=args.max_budget_usd,
                     plugin_dir=None if host.marketplace else plugin_dir)
+    # The host CLI's build, probed once for this launch and written on its launch record. A regrade starts no host: it
+    # restates what the run recorded, and a run recorded before the field existed stays null (today's CLI is not the one
+    # that ran). Claude's build is its init event's (read below), so it is never probed.
+    host_build = recorded.get("host_build") if regrade else host.cli_version(env)
     # `plugin` is the install check made before the host started (Grok, Codex), kept so a resume or a regrade
     # grades the run on its first launch's evidence; None for Claude, whose init event shows it on every launch.
     invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
-                  "checks": checks,
+                  "host_build": host_build, "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
                   "interrupt_at": interrupt_at}
     if resumed:
@@ -1933,6 +1976,11 @@ def _main(argv: list[str] | None, held: list) -> int:
         earlier_terminations.append(earlier_result["termination"])
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
+              # Identity, null where unknown: the prompt with the run's own folder masked, the host CLI's build (Claude's
+              # init event; the others' launch probe) and the stream's first and last stamp.
+              "prompt_sha256": masked_prompt_digest(prompt, out),
+              "host_build": run_metrics["claude_code_version"] if args.host == "claude" else host_build,
+              "span": run_metrics["span"],
               "process": process, "termination": termination,
               **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
               **({"left_behind": left} if left is not None else {}),
@@ -1945,6 +1993,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                                                       "truncated_outputs", "improve_children", "stages", "unmeasured")}
               # None, not 0, where the host's events cannot show the thing counted.
               | {"script_verifications": run_metrics["script_verifications"],
+                 "planning_seconds": metrics.planning_seconds(run_metrics.get("planning")),
                  "model_glue": metrics.count(run_metrics, "model_glue"),
                  "tmp_writes": metrics.count(run_metrics, "tmp_writes"),
                  "asked_user": len(run_metrics["asked_user"]),

@@ -30,6 +30,26 @@ GROK_AUTH = Path.home() / ".grok" / "auth.json"
 
 MARKETPLACE_SOURCE = "whichguy/skill-craft"
 
+# A ceiling for the one `<cli> --version` probe made when a run is launched, not a tuning value: the CLIs answer in about
+# 0.01 s, so a probe that is still running after this long is stuck, and its build is recorded as unknown.
+VERSION_TIMEOUT_SECONDS = 20
+
+
+def probe_version(binary: str, env: dict) -> str | None:
+    """The first line of ``<binary> --version`` on stdout, or None on any failure (not found, non-zero, silent, stuck).
+
+    stdin is closed and stderr is dropped: Codex prints a WARNING there when its CODEX_HOME does not exist yet. This is a
+    record of the build a run was launched on, taken once at launch (run.py) and never at report time, because today's
+    answer stamped on a past run would be a made-up fact.
+    """
+    try:
+        done = subprocess.run([binary, "--version"], env=env or None, stdin=subprocess.DEVNULL, capture_output=True,
+                              text=True, timeout=VERSION_TIMEOUT_SECONDS)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    lines = done.stdout.strip().splitlines() if done.returncode == 0 else []
+    return (lines[0].strip() or None) if lines else None
+
 
 def grok_keepalive(env: dict, plugin_dir: Path) -> dict:
     """Install ShipLoop's global Grok keepalive hooks before the session starts.
@@ -181,6 +201,14 @@ class Host:
     def translator(self):
         return _identity
 
+    def cli_version(self, env: dict) -> str | None:
+        """The build of this host's CLI as its own ``--version`` prints it, probed by the caller once at launch.
+
+        None where the build is read from elsewhere (Claude names its build in its init event, so it is never
+        probed) or cannot be read. Never call it to describe a run that was launched earlier.
+        """
+        return None
+
 
 class GrokHost(Host):
     name, model, effort, skill = "grok", "grok-4.7", "medium", "shiploop"
@@ -243,6 +271,9 @@ class GrokHost(Host):
 
     def plugin_cli(self, home):
         return next((home / ".grok" / "installed-plugins").glob("skill-craft-*/skills/shiploop/scripts/shiploop"), None)
+
+    def cli_version(self, env):
+        return probe_version(self.binary, env)
 
 
 class ClaudeHost(Host):
@@ -331,6 +362,9 @@ class CodexHost(Host):
     def plugin_cli(self, home):
         return next((home / ".codex" / "plugins" / "cache").glob("*/skill-craft/*/skills/shiploop/scripts/shiploop"),
                     None)
+
+    def cli_version(self, env):
+        return probe_version(self.binary, env)
 
     def translator(self):
         return CodexTranslator()

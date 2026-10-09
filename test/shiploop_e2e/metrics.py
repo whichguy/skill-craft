@@ -646,6 +646,22 @@ def planning_window(run_dir: Path | None, state: dict, accepted: list[dict], sta
     return block, (first_event - 1, end), ""
 
 
+def span(stamps: dict) -> dict:
+    """{started, ended}: the earliest and latest arrival stamp of the stream, None for both when there is none."""
+    return {"started": min(stamps.values()) if stamps else None, "ended": max(stamps.values()) if stamps else None}
+
+
+def planning_seconds(planning: dict | None) -> float | None:
+    """The planning window in seconds, from a ``planning`` block, only when it is closed and measured.
+
+    An open window is not the planning time (it is still running) and one that could not be read is unknown: neither
+    is ever 0. The one reader of the window's length, for the baseline row and for a report built from a saved folder.
+    """
+    window = (planning or {}).get("window") if isinstance(planning, dict) else None
+    seconds = window.get("seconds") if isinstance(window, dict) and window.get("closed") else None
+    return seconds if isinstance(seconds, (int, float)) and not isinstance(seconds, bool) else None
+
+
 def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], grok: bool, claude: bool,
                     context: dict | None) -> dict:
     """The planning window's output and reasoning tokens, where the host's per-call counts are exact, on the host clock.
@@ -831,6 +847,9 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "narrative": narrative(out, run_dir),
         "stages": stages,
         "planning": planning,
+        # The first and last stamp of the stream (a resumed run's covers all its launches): the interval another run's
+        # span is compared with to count overlap. None where the runner wrote no timeline.
+        "span": span(stamps),
     }
 
 
