@@ -130,6 +130,31 @@ VERIFY_FIELDS = {"records": (N, True), "passed": (N, True), "red": (N, False), "
                  "observed": (("object", {"where": (S, False), "tree12": (S, False)}), False)}
 UNVERIFIED_FIELDS = {"outcome": (S, False), "reason": (S, False), "check": (S, False), "owner": (S, False), "dueStage": (S, False)}
 WORKTREE_CHECKS = {"passed": (N, True), "total": (N, True)}
+# R23a. The harness's closed list of endings (test/shiploop_e2e/run.py OUTCOME_CLASSES): a record of how the run ended, never a verdict.
+OUTCOME_CLASSES = ("PASS", "FAILED", "BLOCKED", "STOPPED")
+MAX_OUTCOME_BASIS = 400  # characters of the harness's basis kept
+MAX_IDENTITY = 80  # characters of a build string kept (a hash is 12 characters; a host build is a version)
+MAX_TOOLS = 12  # tool versions kept from an observed start
+MAX_OVERLAP_RUNS = 30  # sibling runs listed in the overlap; the rest are counted in `runsOmitted`
+MAX_AT_STOP_CHECKS = 20  # checks listed for the product at the stop; the counts always cover every check
+MAX_AT_STOP_COMMAND = 160  # characters of a check's command kept (the head)
+MAX_AT_STOP_OUTPUT = 240  # characters of a failing check's output kept (the tail: the harness keeps a tail too, the error is last)
+NO_REASON_RECORDED = "no reason recorded"
+OUTCOME_FIELDS = {"class": (("enum", OUTCOME_CLASSES), False), "basis": (S, False)}
+IDENTITY_FIELDS = {"pluginSha": (S, False), "promptSha": (S, False), "hostBuild": (S, False)}
+OVERLAP_RUN = {"folder": (S, True), "case": (S, False), "hosts": (("list", S), False),
+               "overlappedMin": (N, True), "startedOffsetMin": (N, True)}
+ENVIRONMENT_FIELDS = {
+    "tools": (("map", S), False),
+    "browser": (("object", {"declared": (B, True), "probed": (B, True), "reason": (S, False), "version": (S, False),
+                            "targets": (("map", S), False)}), False),
+    "overlap": (("object", {"basis": (S, True), "runs": (("items", OVERLAP_RUN), True), "runsOmitted": (N, False),
+                            "unreadable": (("list", S), False)}), False)}
+AT_STOP_CHECK = {"command": (S, True), "pass": (B, True), "returncode": (N, False), "timedOut": (B, False), "output": (S, False)}
+PRODUCT_AT_STOP_FIELDS = {
+    "ran": (B, True), "reason": (S, False), "engineStatus": (S, False), "engineStage": (S, False),
+    "passed": (N, False), "failed": (N, False), "timedOut": (N, False), "total": (N, False),
+    "checks": (("items", AT_STOP_CHECK), False)}
 LEFT_BEHIND_ITEM = {"command": (S, True), "ports": (("list", N), False),
                     "where": (("enum", ("worktree", "work", "other")), True), "endedBy": (S, False)}
 SCHEMA = {
@@ -234,6 +259,12 @@ SCHEMA = {
         "planning": (("object", {
             "closed": (B, False), "through": (S, False), "windowMin": (N, False), "hostWindowMin": (N, False),
             "improveMin": (N, False), "children": (N, False), "outputTokens": (N, False), "reasoningPct": (N, False)}), False),
+        # R23a. How the harness classed the ending (a record, never a verdict), the build under test, the machine and the other runs
+        # that shared it, and the case checks run in the worktree the run never returned (information only). SCHEMA.md "The run's record".
+        "outcome": (("object", OUTCOME_FIELDS), False),
+        "identity": (("object", IDENTITY_FIELDS), False),
+        "environment": (("object", ENVIRONMENT_FIELDS), False),
+        "productAtStop": (("object", PRODUCT_AT_STOP_FIELDS), False),
     },
     "backchain": {
         "run": (S, False), "loop": (S, False), "phase": (N, False), "order": (N, False), "title": (S, False),
@@ -1273,6 +1304,246 @@ def _blocked(state: dict, history: list[dict], results: Path) -> dict:
     return found
 
 
+# ---------------------------------------------------------------- outcome, build, environment, product at the stop (R23a)
+# All four are read from result.json only, as the merged harness records them (test/shiploop_e2e/run.py, environment.py), and none
+# is a verdict. A part the harness could not observe is absent here and its reason is under its own name in `unmeasured`; a result
+# from before these keys has none of them and gets no note (it is not an unobserved part, it is an older record).
+
+ABSOLUTE_PATH = re.compile(r"(?<![\w.:/~-])(?!/dev/)(?:/[^\s/'\"`;,()<>|]+){2,}")  # two or more names after a leading slash
+
+
+def _line(value, limit: int = MAX_REASON, default: str | None = None) -> str | None:
+    """The text on one line cut at `limit` characters, or `default` when the value is not text."""
+    return " ".join(value.split())[:limit] if _text(value) else default
+
+
+def _without_paths(text: str) -> str:
+    """The text on one line with each absolute path (/a/b/c) replaced by its last name: no local path leaves the exporter."""
+    return ABSOLUTE_PATH.sub(lambda match: match.group(0).rsplit("/", 1)[1], " ".join(text.split()))
+
+
+def _tenths(seconds) -> float | None:
+    """Minutes to a tenth from a number of seconds, or None for no number. Never -0.0 (a sibling that began 0.4 s earlier began 0.0)."""
+    number = _num(seconds)
+    return None if number is None or not math.isfinite(number) else (round(number / 60, 1) or 0.0)
+
+
+def _outcome(result: dict) -> dict | None:
+    """The harness's one-word ending (result.json outcome_class) with its basis: {class?, basis?} or None when the result has neither.
+    A record, never a verdict. The class is one of OUTCOME_CLASSES; null (unknown) leaves it out and the basis says why, and a class
+    off the list is not trusted: it is left out and named in the basis. The stop file's path is replaced by its name."""
+    cls, basis = result.get("outcome_class"), _text(result.get("outcome_basis"))
+    said = _without_paths(STOP_FILE_PATH.sub("the stop file", basis))[:MAX_OUTCOME_BASIS] if basis else ""
+    found: dict = {}
+    if isinstance(cls, str) and cls in OUTCOME_CLASSES:
+        found["class"] = cls
+    elif cls is not None:
+        said = f"outcome class {cls!r} is not one this export knows" + (f"; {said}" if said else "")
+    if said:
+        found["basis"] = said
+    return found or None
+
+
+IDENTITY_SOURCES = (("pluginSha", "plugin_sha256"), ("promptSha", "prompt_sha256"), ("hostBuild", "host_build"))
+
+
+def _identity(result: dict) -> tuple[dict, dict[str, str]]:
+    """({pluginSha, promptSha, hostBuild}, {identity.<field>: why}) from result.json versions.plugin_sha256, prompt_sha256 and host_build.
+    A field is present only when it is text. One the result records as null (or not as text) is unknown, with the harness's reason
+    from identity_unmeasured (the plugin hash also from versions.plugin_sha256_unmeasured); one the result has no key for is from before
+    the field and says nothing. A reason kept for a field that is known (a regrade's stale note) is not copied."""
+    versions = result.get("versions") if isinstance(result.get("versions"), dict) else {}
+    reasons = result.get("identity_unmeasured") if isinstance(result.get("identity_unmeasured"), dict) else {}
+    found, why = {}, {}
+    for field, key in IDENTITY_SOURCES:
+        source = versions if key == "plugin_sha256" else result
+        if key not in source:
+            continue
+        value = source[key]
+        if _text(value):
+            found[field] = _line(value, MAX_IDENTITY)
+            continue
+        reason = _line(reasons.get(key)) or (_line(versions.get("plugin_sha256_unmeasured")) if key == "plugin_sha256" else None)
+        why[f"identity.{field}"] = reason or (NO_REASON_RECORDED if value is None else "recorded as something other than text")
+    return found, why
+
+
+def _part_reason(part) -> str:
+    """Why a part of the environment record is not an observation: the harness's reason, else that it is not a record."""
+    return _line(part.get("reason") if isinstance(part, dict) else None) or (
+        NO_REASON_RECORDED if isinstance(part, dict) else "the result holds no record of it")
+
+
+def _browser_target(record: dict) -> str:
+    """What one probed target (a file: or a loopback http: page) did, in words: the page title seen, or why not."""
+    if record.get("probed") is False:
+        return "not probed: " + _line(record.get("reason"), default=NO_REASON_RECORDED)
+    if _text(record.get("error")):
+        return "not started: " + _line(record["error"])
+    if record.get("title_seen") is True:
+        seconds = _num(record.get("output_s"))
+        return "page title seen" + (f" in {seconds} s" if seconds is not None else "")
+    ended = ("interrupted before a title appeared" if record.get("interrupted") is True else
+             f"the browser exited with {record.get('returncode')}" if record.get("exited") is True else "stopped at the ceiling")
+    return f"no page title ({ended})"
+
+
+def _start(start: dict) -> tuple[dict, dict[str, str]]:
+    """The tools and the browser record of an observed start: ({tools?, browser?}, {environment.<part>: why}). The browser binary's
+    path, the probe's flags and its timings are not kept; the version and what each target did are."""
+    found, why = {}, {}
+    tools = start.get("tools")
+    unread = start.get("unread") if isinstance(start.get("unread"), dict) else {}
+    if isinstance(tools, dict):
+        read = {}
+        for name, version in list(tools.items())[:MAX_TOOLS]:
+            if _text(version):
+                read[str(name)] = _line(version, MAX_IDENTITY)
+            else:
+                why[f"environment.tools.{name}"] = _line(unread.get(name), default=NO_REASON_RECORDED)
+        if read:
+            found["tools"] = read
+    else:
+        why["environment.tools"] = "the start record holds no tool versions"
+    browser = start.get("browser")
+    if isinstance(browser, dict) and isinstance(browser.get("declared"), bool) and isinstance(browser.get("probed"), bool):
+        entry = {"declared": browser["declared"], "probed": browser["probed"]}
+        if _text(browser.get("reason")):
+            entry["reason"] = _line(browser["reason"])
+        if browser["probed"]:
+            if _text(browser.get("version")):
+                entry["version"] = _line(browser["version"], MAX_IDENTITY)
+            else:
+                why["environment.browser.version"] = _line(browser.get("version_unread"), default=NO_REASON_RECORDED)
+            targets = {kind: _browser_target(browser[kind]) for kind in ("file", "http") if isinstance(browser.get(kind), dict)}
+            if targets:
+                entry["targets"] = targets
+        found["browser"] = entry
+    else:
+        why["environment.browser"] = "the start record holds no browser record"
+    return found, why
+
+
+def _overlap(overlap: dict) -> dict | None:
+    """The sibling runs whose host events overlapped this run's, from an observed overlap record: {basis, runs, runsOmitted?, unreadable?}
+    with seconds as minutes to a tenth, or None when the record cannot be read. The harness's basis text is kept verbatim: it says the
+    seconds are neither an upper nor a lower bound. `runs` [] is a measured none (it is not that nothing else ran). A sibling whose
+    entry cannot be read, or that is past MAX_OVERLAP_RUNS, is counted in `runsOmitted`, never dropped without a count."""
+    basis, items = _text(overlap.get("basis")), overlap.get("runs")
+    if not basis or not isinstance(items, list):
+        return None
+    runs = []
+    for item in items:
+        if not isinstance(item, dict) or not _text(item.get("folder")):
+            continue
+        together, offset = _tenths(item.get("overlapped_seconds")), _tenths(item.get("started_offset_seconds"))
+        if together is None or offset is None:
+            continue
+        row = {"folder": item["folder"], "overlappedMin": together, "startedOffsetMin": offset}
+        if _text(item.get("case")):
+            row["case"] = item["case"]
+        hosts = [h for h in item.get("hosts") or [] if _text(h)] if isinstance(item.get("hosts"), list) else []
+        if hosts:
+            row["hosts"] = hosts
+        runs.append(row)
+    found: dict = {"basis": _line(basis, len(basis)), "runs": runs[:MAX_OVERLAP_RUNS]}
+    if len(items) > len(found["runs"]):
+        found["runsOmitted"] = len(items) - len(found["runs"])
+    unreadable = [n for n in overlap.get("siblings_unreadable") or [] if _text(n)] if isinstance(overlap.get("siblings_unreadable"), list) else []
+    if unreadable:
+        found["unreadable"] = unreadable[:MAX_OVERLAP_RUNS]
+    return found
+
+
+def _environment(result: dict) -> tuple[dict, dict[str, str]]:
+    """(the environment object, {} when nothing was observed; {environment.<part>: why}) from result.json environment: the start's tools and browser (only an observed start),
+    and the overlap with the sibling runs (only an observed one). A part the harness did not observe (a run that was only regraded has
+    no start or end) is absent with the harness's reason. `hosts_used`, `environments` and `mixed_host` are not repeated: `hosts` is
+    read from the launch records already. The load average and CPU count are not kept: they are the machine at one instant, not the
+    run's, and the overlap is what a reader can act on."""
+    record = result.get("environment")
+    if "environment" not in result:
+        return {}, {}  # a result from before the record: nothing to say
+    if not isinstance(record, dict):
+        return {}, {"environment": "result.json environment is not a record"}
+    found, why = {}, {}
+    for name in ("start", "end"):
+        part = record.get(name)
+        if not (isinstance(part, dict) and part.get("observed") is True):
+            why[f"environment.{name}"] = _part_reason(part)
+        elif name == "start":
+            started, started_why = _start(part)
+            found.update(started)
+            why.update(started_why)
+    overlap = record.get("overlap")
+    read = _overlap(overlap) if isinstance(overlap, dict) and overlap.get("observed") is True else None
+    if read is not None:
+        found["overlap"] = read
+    else:
+        why["environment.overlap"] = _part_reason(overlap) if not (isinstance(overlap, dict) and overlap.get("observed") is True) else (
+            "the overlap record has no basis or no list of runs")
+    return found, why
+
+
+def _product_at_stop(result: dict) -> tuple[dict | None, dict[str, str]]:
+    """The case checks run in the worktree a run never returned (result.json product_at_stop): information only, never a verdict, and
+    present in result.json only for a run that did not pass. {ran, reason?, engineStatus?, engineStage?} and, when they ran, the counts
+    (passed, failed, timedOut, total, always over every check) and the first MAX_AT_STOP_CHECKS checks. A check passes only when its
+    `pass` is true; one that timed out is neither passed nor failed. The worktree's path is not kept, local paths are cut from the
+    command and output, and a record that cannot be read is absent with a reason (a run without the key says nothing)."""
+    if result.get("product_at_stop") is None:
+        return None, {}
+    record = result["product_at_stop"]
+
+    def unreadable(why: str):
+        return None, {"productAtStop": f"result.json product_at_stop is not readable: {why}"}
+    if not isinstance(record, dict) or not isinstance(record.get("ran"), bool):
+        return unreadable("it is not a record with a boolean ran")
+    found: dict = {"ran": record["ran"]}
+    engine = record.get("engine") if isinstance(record.get("engine"), dict) else {}
+    for field, key in (("engineStatus", "status"), ("engineStage", "stage")):
+        if _text(engine.get(key)) and engine[key] != "unknown":
+            found[field] = _line(engine[key], MAX_IDENTITY)
+    if not record["ran"]:
+        if _text(record.get("reason")):
+            found["reason"] = _without_paths(record["reason"])[:MAX_REASON]
+        return found, {}
+    items = record.get("checks")
+    if not (isinstance(items, list) and items and all(isinstance(i, dict) and _text(i.get("command")) for i in items)):
+        return unreadable("it says the checks ran and holds no list of checks")
+    checks, passed, timed_out = [], 0, 0
+    for item in items:
+        stopped = item.get("timed_out") is True
+        ok = item.get("pass") is True and not stopped
+        passed += ok
+        timed_out += stopped
+        row = {"command": _without_paths(item["command"])[:MAX_AT_STOP_COMMAND], "pass": ok}
+        if _num(item.get("returncode")) is not None:
+            row["returncode"] = item["returncode"]
+        if stopped:
+            row["timedOut"] = True
+        if _text(item.get("output")):
+            row["output"] = _without_paths(item["output"])[-MAX_AT_STOP_OUTPUT:]
+        checks.append(row)
+    found.update(passed=passed, failed=len(items) - passed - timed_out, timedOut=timed_out, total=len(items),
+                 checks=checks[:MAX_AT_STOP_CHECKS])
+    return found, {}
+
+
+def _run_record(result: dict) -> tuple[dict, dict[str, str]]:
+    """({outcome?, identity?, environment?, productAtStop?}, the `unmeasured` entries of the parts that are absent) from result.json."""
+    fields, why = {}, {}
+    outcome = _outcome(result)
+    if outcome:
+        fields["outcome"] = outcome
+    for name, (value, reasons) in (("identity", _identity(result)), ("environment", _environment(result)),
+                                   ("productAtStop", _product_at_stop(result))):
+        why.update(reasons)
+        if value:
+            fields[name] = value
+    return fields, why
+
+
 # ---------------------------------------------------------------- script checks, unverified outcomes, tool use, planning (R22b)
 
 VERIFY_FILE = re.compile(r"(?P<action>[A-Za-z0-9._-]+)-verify(?P<n>\d+)\.md")
@@ -1826,6 +2097,8 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         unmeasured["toolUse"] = why_no_tool_use
     planning, planning_why = _planning(metrics)
     unmeasured.update(planning_why)
+    record_fields, record_why = _run_record(result)  # R23a: outcome, identity, environment, productAtStop
+    unmeasured.update(record_why)
     checkouts = [out / "work", run_dir.parent / "worktree"]
     knowledge, knowledge_root = _knowledge(checkouts if raw_status == "done" else checkouts[::-1])
 
@@ -1883,6 +2156,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         run["blocked"] = blocked
     if (left_behind := _left_behind(result.get("left_behind"))) is not None:
         run["leftBehind"] = left_behind
+    run.update(record_fields)
 
     packet_set, unreadable = packet_docs(key, packets, stages)
     if ending.get("action"):  # the packet issued for the stage the run never accepted: a document like any visit's
@@ -2040,6 +2314,52 @@ def _measure_lines(run, verify_loose: tuple[int, int]) -> list[str]:
     return lines
 
 
+def _record_lines(run) -> list[str]:
+    """The R23a parts as facts lines (a line only for a part the run document has; a missing build field says it is not measured and why)."""
+    lines, unmeasured = [], run["unmeasured"]
+    outcome = run.get("outcome")
+    if outcome:
+        lines.append(f"- Outcome: {outcome.get('class', 'unknown')}" + (f", {outcome['basis']}" if "basis" in outcome else ""))
+    identity = run.get("identity") or {}
+    if identity or any(key.startswith("identity.") for key in unmeasured):
+        lines.append("- Build: " + ", ".join(
+            f"{label} {identity[field]}" if field in identity else f"{label} not measured ({unmeasured.get('identity.' + field, NO_REASON_RECORDED)})"
+            for field, label in (("pluginSha", "plugin"), ("promptSha", "prompt"), ("hostBuild", "host build"))
+            if field in identity or f"identity.{field}" in unmeasured))
+    env = run.get("environment") or {}
+    parts = []
+    if "tools" in env:
+        parts.append("tools " + ", ".join(f"{name} {version}" for name, version in env["tools"].items()))
+    browser = env.get("browser")
+    if browser:
+        parts.append("browser " + (
+            f"{browser.get('version', 'probed')} (" + "; ".join(f"{kind} {what}" for kind, what in browser.get("targets", {}).items()) + ")"
+            if browser["probed"] else ("declared, not probed" if browser["declared"] else "not declared")
+            + (f": {browser['reason']}" if "reason" in browser else "")))
+    overlap = env.get("overlap")
+    if overlap:
+        listed = ", ".join(f"{r['folder']} {r['overlappedMin']} min" for r in overlap["runs"])
+        parts.append((f"ran alongside {_count(len(overlap['runs']) + overlap.get('runsOmitted', 0), 'other run')} ({listed})"
+                      if overlap["runs"] else "no sibling run overlapped (host events of the sibling folders only)")
+                     + "; its seconds are neither an upper nor a lower bound")
+    gone = [f"{key[len('environment.'):]} ({reason})" for key, reason in unmeasured.items() if key.startswith("environment.") and key.count(".") == 1]
+    if gone:
+        parts.append("not observed: " + "; ".join(gone))
+    if parts:
+        lines.append("- Environment: " + "; ".join(parts))
+    at_stop = run.get("productAtStop")
+    if at_stop:
+        position = " ".join(filter(None, (at_stop.get("engineStatus"), "at " + at_stop["engineStage"] if "engineStage" in at_stop else None)))
+        if not at_stop["ran"]:
+            lines.append("- At the stop (information only): the checks did not run (" + at_stop.get("reason", NO_REASON_RECORDED) + ")")
+        else:
+            lines.append(f"- At the stop (information only): {at_stop['passed']} of {at_stop['total']} checks pass in the unreturned worktree"
+                         + (f", {at_stop['timedOut']} timed out" if at_stop["timedOut"] else "") + (f" (engine {position})" if position else ""))
+            lines += [f"  - {'timed out' if c.get('timedOut') else 'failed'}: {c['command']}" + (f": {c['output']}" if "output" in c else "")
+                      for c in at_stop["checks"] if not c["pass"]]
+    return lines
+
+
 def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, loops, unknown, from_state,
            seeded_note, option, packet_set, unreadable, verify_loose=(0, 0)) -> list[str]:
     stages = run["stages"]
@@ -2107,6 +2427,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
              f"- Run directory: {run_dir.relative_to(out).as_posix()}"]
     lines += _ending_lines(run)
     lines += _measure_lines(run, verify_loose)
+    lines += _record_lines(run)
     if untimed:
         lines.append(f"- Stages with no minutes (no accept stamp, or none on the visit before): {untimed} of "
                      f"{len(stages)}; their minutes are null, not 0")

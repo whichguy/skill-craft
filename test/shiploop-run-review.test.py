@@ -7137,5 +7137,307 @@ class WorktreeChecksCountTests(unittest.TestCase):
         self.assertEqual(chips({"checks": True, "worktreeChecks": True}), ["holds:checks pass"])  # not a count: no chip for it
 
 
+# ---------------------------------------------------------------- R23a: how a run ended as a word, its build, its machine, its product at the stop
+
+# The record shapes the merged harness (batch 1011) writes into result.json, frozen in figures.json: `savedRuns[<run>].result` are
+# the exact blocks seven real runs of 2026-10-07/08 carry, `examples.*` the full-length examples the hand-off cuts at 100 characters.
+# No test here reads /Users/dadleet/e2e-runs.
+R23_FIGURES = ROOT / "docs" / "experiments" / "run-review-r23-20261009" / "figures.json"
+R23A_KEYS = ("outcome_class", "outcome_basis", "versions", "prompt_sha256", "host_build", "identity_unmeasured", "environment")
+# An observed start, shaped as test/shiploop_e2e/environment.py start_record writes it (no saved run has one: they were regraded).
+R23A_START = {
+    "observed": True, "at": "2026-10-09T20:33:31Z", "tools": {"node": "v25.9.0", "python3": "Python 3.14.7", "git": None},
+    "cpus": 12, "loadavg": [3.1, 2.8, 2.4], "display_hold": False, "unread": {"git": "not found on PATH"},
+    "browser": {"declared": True, "probed": True, "binary": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                "version": "Google Chrome 141.0.7390.55", "flags": ["--headless=new"], "ceiling_seconds": 20.0, "grace_seconds": 1.0,
+                "empty_seconds": 2.0,
+                "file": {"title_seen": True, "output_s": 0.41, "exited": False, "lingered": True, "returncode": None, "killed": True,
+                         "group_empty": True, "interrupted": False, "error": None},
+                "http": {"title_seen": False, "output_s": None, "exited": False, "lingered": False, "returncode": None, "killed": True,
+                         "group_empty": True, "interrupted": False, "error": None}}}
+
+
+def r23_figures() -> dict:
+    return json.loads(R23_FIGURES.read_text(encoding="utf-8"))
+
+
+def r23a_saved(name: str) -> dict:
+    """The keys this slice reads from one saved run's result.json, exactly as the merged harness recorded them."""
+    saved = r23_figures()["savedRuns"][name]["result"]
+    return copy.deepcopy({key: saved[key] for key in R23A_KEYS if key in saved})
+
+
+def r23a_run(root: Path, saved: str | None = None, **result) -> Path:
+    """A synthetic run output directory whose result.json also carries a saved run's new keys, then `result` over them."""
+    out = make_run(root, loops=False)
+    overlay = {**(r23a_saved(saved) if saved else {}), **result}
+    edit_json(out / "result.json", lambda r: r.update(overlay))
+    return out
+
+
+class R23aExportBase(unittest.TestCase):
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def fresh(self) -> Path:
+        return Path(tempfile.mkdtemp(dir=self.tmp))
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        self.assertNotIn("/Users/", json.dumps(run))  # no absolute local path leaves the exporter
+        self.assertNotIn("/Applications/", json.dumps(run))
+        return run, facts
+
+
+class R23aOutcomeAndBuildExportTests(R23aExportBase):
+    """result.json outcome_class, outcome_basis and the identity fields (versions.plugin_sha256, prompt_sha256, host_build)."""
+
+    def test_each_saved_run_exports_the_class_and_the_basis_the_harness_recorded_and_the_stop_files_path_is_a_name(self):
+        examples = r23_figures()["examples"]["outcomeClassExamples"]
+        self.assertEqual({cls for cls, _ in examples.values()}, {"PASS", "BLOCKED", "STOPPED"})  # the fixture holds three of the four
+        for name, (cls, basis) in examples.items():
+            with self.subTest(name):
+                run, _ = self.build(r23a_run(self.fresh(), name))
+                if cls == "STOPPED":  # the harness writes the stop file's absolute path into the basis
+                    self.assertIn("/e2e-runs/", basis)
+                    basis = "host stopped with the engine active at implement; stopped by the stop file"
+                self.assertEqual(run["outcome"], {"class": cls, "basis": basis})
+
+    def test_a_class_the_harness_could_not_give_is_absent_and_the_basis_says_why_and_a_class_off_the_list_is_not_trusted(self):
+        why = "no host ran (regraded) and the engine is active: the end of the run was not observed"
+        run, _ = self.build(r23a_run(self.fresh(), outcome_class=None, outcome_basis=why))
+        self.assertEqual(run["outcome"], {"basis": why})  # unknown is not a class, and not a pass
+        run, _ = self.build(r23a_run(self.fresh(), outcome_class="ABANDONED", outcome_basis="engine done"))
+        self.assertNotIn("class", run["outcome"])
+        self.assertEqual(run["outcome"]["basis"], "outcome class 'ABANDONED' is not one this export knows; engine done")
+        self.assertEqual(export.OUTCOME_CLASSES, ("PASS", "FAILED", "BLOCKED", "STOPPED"))
+
+    def test_a_result_from_before_these_keys_exports_none_of_them_and_adds_no_unmeasured_note(self):
+        run, facts = self.build(make_run(self.fresh(), loops=False))
+        for field in ("outcome", "identity", "environment", "productAtStop"):
+            self.assertNotIn(field, run)
+        self.assertEqual([k for k in run["unmeasured"] if k.startswith(("identity.", "environment.", "productAtStop"))], [])
+        self.assertNotIn("- Outcome:", "\n".join(facts))
+
+    def test_the_build_is_the_three_strings_and_a_null_one_is_absent_with_the_harness_reason_under_identity_dot_field(self):
+        run, facts = self.build(r23a_run(self.fresh(), "20261008/r1-battleship-sonnet"))
+        self.assertEqual(run["identity"], {"pluginSha": "3a7515d2efd3", "promptSha": "d0c0cbe71344", "hostBuild": "2.1.294"})
+        self.assertEqual([k for k in run["unmeasured"] if k.startswith("identity.")], [])  # the stale "predates the field" notes of known fields are not copied
+        self.assertIn("- Build: plugin 3a7515d2efd3, prompt d0c0cbe71344, host build 2.1.294", "\n".join(facts))
+        run, facts = self.build(r23a_run(self.fresh(), "20261008/r1-battleship-grok-none"))
+        self.assertEqual(run["identity"], {"pluginSha": "3a7515d2efd3", "promptSha": "5ea67bf35336"})
+        self.assertEqual(run["unmeasured"]["identity.hostBuild"], "launch predates the field")
+        self.assertIn("host build not measured (launch predates the field)", "\n".join(facts))
+
+    def test_every_null_identity_field_is_unmeasured_with_its_reason_or_a_plain_none_and_no_identity_is_written(self):
+        run, _ = self.build(r23a_run(self.fresh(), versions={"plugin_sha256": None, "plugin_sha256_unmeasured": "no plugin tree to hash"},
+                                     prompt_sha256=None, host_build=None, identity_unmeasured={"prompt_sha256": "the case prompt is not a string"}))
+        self.assertNotIn("identity", run)
+        self.assertEqual({k: v for k, v in run["unmeasured"].items() if k.startswith("identity.")},
+                         {"identity.pluginSha": "no plugin tree to hash", "identity.promptSha": "the case prompt is not a string",
+                          "identity.hostBuild": "no reason recorded"})
+        run, _ = self.build(r23a_run(self.fresh(), versions={"plugin_sha256": 12}, prompt_sha256="x" * 500, host_build="2.1.294"))
+        self.assertNotIn("pluginSha", run["identity"])  # a number is not a hash
+        self.assertIn("identity.pluginSha", run["unmeasured"])
+        self.assertEqual(len(run["identity"]["promptSha"]), export.MAX_IDENTITY)
+
+
+class R23aEnvironmentExportTests(R23aExportBase):
+    """result.json environment: the start's tools and browser, the overlap with sibling runs, and the parts nothing observed."""
+
+    SAVED = "20261008/r1-battleship-grok-none"
+
+    def test_the_overlap_lists_each_sibling_in_minutes_and_prints_the_harness_basis_verbatim(self):
+        run, _ = self.build(r23a_run(self.fresh(), self.SAVED))
+        saved = r23_figures()["savedRuns"][self.SAVED]["result"]["environment"]["overlap"]
+        overlap = run["environment"]["overlap"]
+        self.assertEqual(overlap["basis"], saved["basis"])
+        self.assertIn("neither an upper nor a lower bound", overlap["basis"])
+        self.assertEqual(overlap["runs"], [
+            {"folder": "r1-battleship-sonnet", "case": "battleship", "hosts": ["claude"], "overlappedMin": 13.8, "startedOffsetMin": 0.0},
+            {"folder": "r1-checkers-sonnet", "case": "checkers", "hosts": ["claude"], "overlappedMin": 13.1, "startedOffsetMin": 4.7}])
+        self.assertNotIn("-0.0", json.dumps(run["environment"]))  # a sibling that began 0.4 s earlier began "with" this run, not -0.0 min before it
+        self.assertNotIn("observed", overlap)  # present means observed; an unobserved one is only in `unmeasured`
+
+    def test_a_run_that_was_only_regraded_has_no_start_or_end_and_says_so_and_hosts_and_launches_are_not_repeated(self):
+        run, _ = self.build(r23a_run(self.fresh(), "20261008/r2-battleship-grok-none"))
+        env = r23_figures()["savedRuns"]["20261008/r2-battleship-grok-none"]["result"]["environment"]
+        self.assertEqual(run["unmeasured"]["environment.start"], env["start"]["reason"])
+        self.assertEqual(run["unmeasured"]["environment.end"], env["end"]["reason"])
+        self.assertNotIn("environment.overlap", run["unmeasured"])
+        self.assertEqual(set(run["environment"]), {"overlap"})  # no tools, no browser: nothing observed them
+        for repeated in ("hosts", "hosts_used", "environments", "mixed_host", "launches_unreadable"):
+            self.assertNotIn(repeated, run["environment"])
+        self.assertEqual([h["host"] for h in run["hosts"]], ["codex"])  # the run's hosts stay what invocation*.json says
+
+    def test_an_observed_start_exports_the_tools_it_read_and_the_browser_without_the_local_binary_path(self):
+        run, facts = self.build(r23a_run(self.fresh(), self.SAVED, environment=dict(
+            r23_figures()["savedRuns"][self.SAVED]["result"]["environment"], start=R23A_START)))
+        env = run["environment"]
+        self.assertEqual(env["tools"], {"node": "v25.9.0", "python3": "Python 3.14.7"})  # git was not found: not a null here
+        self.assertEqual(run["unmeasured"]["environment.tools.git"], "not found on PATH")
+        self.assertNotIn("environment.start", run["unmeasured"])
+        self.assertEqual(env["browser"], {"declared": True, "probed": True, "version": "Google Chrome 141.0.7390.55",
+                                          "targets": {"file": "page title seen in 0.41 s", "http": "no page title (stopped at the ceiling)"}})
+        self.assertIn("- Environment: tools node v25.9.0, python3 Python 3.14.7; browser Google Chrome 141.0.7390.55", "\n".join(facts))
+
+    def test_a_browser_nobody_declared_or_that_could_not_be_probed_is_said_with_its_reason(self):
+        base = r23_figures()["savedRuns"][self.SAVED]["result"]["environment"]
+        for browser, expected in (
+                ({"declared": False, "probed": False, "reason": "no case or --need declares a browser"},
+                 {"declared": False, "probed": False, "reason": "no case or --need declares a browser"}),
+                ({"declared": True, "probed": False, "reason": "no browser binary found in the usual places or on PATH"},
+                 {"declared": True, "probed": False, "reason": "no browser binary found in the usual places or on PATH"}),
+                ({"declared": True, "probed": True, "binary": "/opt/chrome", "version": None, "version_unread": "timed out",
+                  "file": {"probed": False, "reason": "the harness was told to end before this target was probed"},
+                  "http": {"title_seen": False, "exited": True, "returncode": 1, "error": None}},
+                 {"declared": True, "probed": True, "targets": {
+                     "file": "not probed: the harness was told to end before this target was probed",
+                     "http": "no page title (the browser exited with 1)"}})):
+            with self.subTest(browser=browser):
+                run, _ = self.build(r23a_run(self.fresh(), self.SAVED, environment=dict(base, start=dict(R23A_START, browser=browser))))
+                self.assertEqual(run["environment"]["browser"], expected)
+
+    def test_an_overlap_that_found_no_sibling_is_an_empty_list_and_one_that_was_not_observed_is_only_a_reason(self):
+        base = r23_figures()["savedRuns"][self.SAVED]["result"]["environment"]
+        none = dict(base["overlap"], runs=[], siblings_unreadable=["r9-unreadable"])
+        run, _ = self.build(r23a_run(self.fresh(), self.SAVED, environment=dict(base, overlap=none)))
+        self.assertEqual(run["environment"]["overlap"]["runs"], [])  # measured: none was seen alongside
+        self.assertEqual(run["environment"]["overlap"]["unreadable"], ["r9-unreadable"])  # named, never dropped
+        gone = {"observed": False, "reason": "this run's timeline.jsonl has no readable stamp"}
+        run, _ = self.build(r23a_run(self.fresh(), self.SAVED, environment=dict(base, overlap=gone)))
+        self.assertNotIn("overlap", run.get("environment", {}))
+        self.assertEqual(run["unmeasured"]["environment.overlap"], gone["reason"])
+
+    def test_a_sibling_whose_hosts_are_unknown_has_none_listed_and_a_long_list_is_cut_and_counted(self):
+        base = r23_figures()["savedRuns"][self.SAVED]["result"]["environment"]
+        sibling = dict(base["overlap"]["runs"][0], hosts=None, hosts_reason="no launch record in the folder", case=None)
+        many = dict(base["overlap"], runs=[dict(sibling, folder=f"r{n}") for n in range(export.MAX_OVERLAP_RUNS + 5)])
+        run, _ = self.build(r23a_run(self.fresh(), self.SAVED, environment=dict(base, overlap=many)))
+        listed = run["environment"]["overlap"]
+        self.assertEqual(len(listed["runs"]), export.MAX_OVERLAP_RUNS)
+        self.assertEqual(listed["runsOmitted"], 5)
+        self.assertEqual(set(listed["runs"][0]), {"folder", "overlappedMin", "startedOffsetMin"})  # no hosts, no case: unknown, not guessed
+
+    def test_a_malformed_environment_exports_nothing_it_cannot_read_and_does_not_raise(self):
+        for bad in ("hot", {"start": "x", "overlap": ["x"]}, {"start": {"observed": True, "tools": "node"}, "overlap": {"observed": True, "runs": "none"}}):
+            with self.subTest(bad=bad):
+                run, _ = self.build(r23a_run(self.fresh(), environment=bad))
+                self.assertNotIn("tools", run.get("environment", {}))
+                self.assertNotIn("runs", run.get("environment", {}).get("overlap", {}))
+
+
+class R23aProductAtStopExportTests(R23aExportBase):
+    """result.json product_at_stop: the case checks run in the worktree the run never returned. Information only, never a verdict."""
+
+    def examples(self) -> dict:
+        return r23_figures()["examples"]
+
+    def test_the_ran_example_exports_the_counts_and_each_check_and_not_the_worktree_path(self):
+        run, facts = self.build(ended_run(self.fresh(), product_at_stop=self.examples()["productAtStopRan"]))
+        self.assertEqual(run["productAtStop"], {
+            "ran": True, "engineStatus": "active", "engineStage": "implement", "passed": 1, "failed": 1, "timedOut": 0, "total": 2,
+            "checks": [{"command": "sh ok.sh", "pass": True, "returncode": 0},
+                       {"command": "echo 'TypeError: x is not a function' >&2; exit 1", "pass": False, "returncode": 1,
+                        "output": "TypeError: x is not a function"}]})
+        self.assertNotIn("worktree", run["productAtStop"])
+        self.assertIn("- At the stop (information only): 1 of 2 checks pass in the unreturned worktree (engine active at implement)", "\n".join(facts))
+        self.assertIn("failed: echo 'TypeError: x is not a function' >&2; exit 1: TypeError: x is not a function", "\n".join(facts))
+
+    def test_the_not_ran_example_keeps_its_reason_and_claims_no_check(self):
+        run, facts = self.build(ended_run(self.fresh(), product_at_stop=self.examples()["productAtStopNotRan"]))
+        self.assertEqual(run["productAtStop"], {"ran": False, "reason": "no worktree directory under the run's workspace",
+                                                "engineStatus": "blocked", "engineStage": "system-test"})
+        self.assertIn("- At the stop (information only): the checks did not run (no worktree directory under the run's workspace)", "\n".join(facts))
+
+    def test_a_check_that_timed_out_is_neither_passed_nor_failed_and_a_pass_is_only_a_boolean_true(self):
+        record = dict(self.examples()["productAtStopRan"], checks=[
+            {"command": "slow", "pass": False, "returncode": None, "timed_out": True},
+            {"command": "odd", "pass": "yes", "returncode": 0, "timed_out": False},
+            {"command": "fine", "pass": True, "returncode": 0, "timed_out": False}])
+        run, _ = self.build(ended_run(self.fresh(), product_at_stop=record))
+        at_stop = run["productAtStop"]
+        self.assertEqual((at_stop["passed"], at_stop["failed"], at_stop["timedOut"], at_stop["total"]), (1, 1, 1, 3))
+        self.assertEqual(at_stop["checks"][0], {"command": "slow", "pass": False, "timedOut": True})  # no returncode: it never returned one
+        self.assertIs(at_stop["checks"][1]["pass"], False)  # "yes" is not a pass
+
+    def test_the_counts_come_from_the_whole_list_and_the_list_a_command_and_the_output_are_cut_and_local_paths_are_removed(self):
+        long_check = {"command": "sh " + "x" * 400, "pass": False, "returncode": 1, "timed_out": False,
+                      "output": "at /Users/someone/e2e/run-1/worktree/server.js:12:5 " + "y" * 500 + " TypeError: boom"}
+        pathed = {"command": "node /Users/someone/e2e/run-1/checks/x.mjs 2>/dev/null", "pass": False, "returncode": 1, "timed_out": False,
+                  "output": "at /Users/someone/e2e/run-1/worktree/server.js:12:5"}
+        checks = [long_check, pathed] + [{"command": f"c{n}", "pass": True, "returncode": 0, "timed_out": False} for n in range(export.MAX_AT_STOP_CHECKS + 3)]
+        run, _ = self.build(ended_run(self.fresh(), product_at_stop=dict(self.examples()["productAtStopRan"], checks=checks)))
+        at_stop = run["productAtStop"]
+        self.assertEqual((at_stop["total"], at_stop["passed"], at_stop["failed"]), (len(checks), len(checks) - 2, 2))
+        self.assertEqual(len(at_stop["checks"]), export.MAX_AT_STOP_CHECKS)  # the list is cut, the counts above are not
+        self.assertEqual(len(at_stop["checks"][0]["command"]), export.MAX_AT_STOP_COMMAND)  # the head of a command
+        self.assertEqual(len(at_stop["checks"][0]["output"]), export.MAX_AT_STOP_OUTPUT)
+        self.assertTrue(at_stop["checks"][0]["output"].endswith("yyy TypeError: boom"))  # the tail of the output: the error is last
+        self.assertEqual(at_stop["checks"][1], {"command": "node x.mjs 2>/dev/null", "pass": False, "returncode": 1, "output": "at server.js:12:5"})
+
+    def test_a_record_that_cannot_be_read_is_omitted_with_a_reason_and_a_run_without_one_says_nothing(self):
+        for bad in ("yes", {"ran": "no"}, {"ran": True, "checks": "none"}, {"ran": True, "checks": []}, {"ran": True, "checks": ["x"]}):
+            with self.subTest(bad=bad):
+                run, _ = self.build(ended_run(self.fresh(), product_at_stop=bad))
+                self.assertNotIn("productAtStop", run)
+                self.assertTrue(run["unmeasured"]["productAtStop"].startswith("result.json product_at_stop"))
+        run, _ = self.build(ended_run(self.fresh()))
+        self.assertNotIn("productAtStop", run)
+        self.assertNotIn("productAtStop", run["unmeasured"])
+
+    def test_the_older_worktree_checks_are_still_exported_beside_it(self):
+        out = ended_run(self.fresh(), product_at_stop=self.examples()["productAtStopRan"],
+                        shiploop={"pass": False, "worktree_checks": [{"command": "a", "pass": True}, {"command": "b", "pass": False}]})
+        run, _ = self.build(out)
+        self.assertEqual(run["verdicts"]["worktreeChecks"], {"passed": 1, "total": 2})  # the page, not the export, shows only one of the two
+        self.assertEqual(run["productAtStop"]["total"], 2)
+
+
+class R23aContractTests(unittest.TestCase):
+    """SCHEMA.md and the validator: the four fields validate, wrong shapes are named, and the document says what each is."""
+
+    def run_doc(self, **fields) -> dict:
+        return dict({"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}, **fields)
+
+    def test_the_fields_validate_and_wrong_shapes_are_named(self):
+        good = self.run_doc(
+            outcome={"class": "BLOCKED", "basis": "engine blocked at system-test by access"},
+            identity={"pluginSha": "3a7515d2efd3", "promptSha": "d0c0cbe71344", "hostBuild": "2.1.294"},
+            environment={"tools": {"node": "v25.9.0"}, "browser": {"declared": True, "probed": True, "version": "v", "targets": {"file": "ok"}},
+                         "overlap": {"basis": "b", "runs": [{"folder": "f", "case": "c", "hosts": ["claude"], "overlappedMin": 1.5, "startedOffsetMin": -0.2}],
+                                     "runsOmitted": 2, "unreadable": ["g"]}},
+            productAtStop={"ran": True, "engineStatus": "active", "engineStage": "implement", "passed": 1, "failed": 0, "timedOut": 1, "total": 2,
+                           "checks": [{"command": "c", "pass": True, "returncode": 0}, {"command": "d", "pass": False, "timedOut": True, "output": "o"}]})
+        self.assertEqual(export.validate_doc("runs", good), [])
+        bad = self.run_doc(outcome={"class": "MAYBE", "basis": 3}, identity={"pluginSha": 12},
+                           environment={"tools": {"node": 1}, "browser": {"probed": True},
+                                        "overlap": {"basis": "b", "runs": [{"case": "c", "overlappedMin": "1"}]}},
+                           productAtStop={"passed": 1, "checks": [{"command": "c", "pass": "yes"}]})
+        problems = "\n".join(export.validate_doc("runs", bad))
+        for needle in ("outcome.class: 'MAYBE' is not one of PASS, FAILED, BLOCKED, STOPPED", "outcome.basis: expected a string",
+                       "identity.pluginSha: expected a string", "environment.tools.node: expected a string",
+                       "environment.browser: missing required field 'declared'",
+                       "environment.overlap.runs[0]: missing required field 'folder'", "overlappedMin: expected a number",
+                       "productAtStop: missing required field 'ran'", "productAtStop.checks[0].pass: expected a boolean"):
+            self.assertIn(needle, problems)
+
+    def test_schema_md_documents_each_field_and_says_an_outcome_is_a_record_not_a_verdict(self):
+        text = " ".join(SCHEMA_MD.read_text().split())
+        for phrase in ("`outcome`", "`identity`", "`environment`", "`productAtStop`", "a record, never a verdict",
+                       "`identity.hostBuild`", "`environment.start`", "`environment.end`", "`environment.overlap`", "`environment.tools.<name>`",
+                       "neither an upper nor a lower bound", "information only", "`runsOmitted`", "never colours it",
+                       "absent for a run from before", "`productAtStop` and not `verdicts.worktreeChecks`"):
+            self.assertIn(phrase, text)
+        for name in ("MAX_IDENTITY", "MAX_OVERLAP_RUNS", "MAX_AT_STOP_CHECKS"):
+            self.assertTrue(hasattr(export, name), name)
+
+
 if __name__ == "__main__":
     unittest.main()
