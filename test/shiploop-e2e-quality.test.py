@@ -9,7 +9,8 @@ Two things are tested here, both without a host, a model, a browser, a fixed por
   declares it, the memory writes read from a Claude event stream, and how ``run.py`` gates, orders and records them.
 
 The fake hosts are the ones of ``test/shiploop-e2e.test.py`` (loaded, not copied). Real ``node`` is used only by the classes
-that say so, and they skip with a reason that names node when it is not installed.
+that say so, and they skip with a reason that names node when it is not installed. Nothing here binds or connects to a fixed
+port (the port guard's tests declare a free port the test picked).
 """
 
 from __future__ import annotations
@@ -50,24 +51,7 @@ run = e2e.run
 hosts = e2e.hosts
 listeners = e2e.listeners
 
-try:
-    import quality  # noqa: E402
-except ModuleNotFoundError as missing:
-    if missing.name != "quality":
-        raise
-    quality = None  # the state a failing test is first run in: only the quality tests may fail, each on an assertion
-
-
-def needs_quality(cls):
-    """Class decorator: while quality.py does not exist every test of the class fails on this assertion, one by one."""
-    inner = cls.setUp
-
-    def setUp(self):
-        self.assertIsNotNone(quality, "test/shiploop_e2e/quality.py does not exist")
-        inner(self)
-
-    cls.setUp = setUp
-    return cls
+import quality  # noqa: E402
 
 
 needs_node = unittest.skipUnless(shutil.which("node"), "this class runs the real `node --test` and needs node on PATH "
@@ -89,17 +73,16 @@ class PlanningReviewOptionTest(e2e.CaseRunCase):
         self.card.write_text("# Improve\n")
         self.hello = json.loads(run.CASES.read_text())["hello"]["prompt"]
 
-    def sentence(self, mode: str) -> str:
-        return (f"Start ShipLoop with the run option --planning-review none and --improve-skill {self.card}."
-                if mode == "none" else "Start ShipLoop with the run option --planning-review stage.")
+    def sentence(self) -> str:
+        return f"Start ShipLoop with the run option --planning-review none and --improve-skill {self.card}."
 
     def test_none_on_a_named_case_names_the_option_and_the_improve_card_and_keeps_the_case(self):
         code, result, _printed, out = self.case_main("c-none", "--case", "hello", "--planning-review", "none",
                                                      env={"FAKE_PLANNING_REVIEW": "none"})
         self.assertEqual(code, 0, result)
         self.assertEqual(result["case"], "hello", "a named case stays that case: it is not `custom`")
-        self.assertEqual((out / "prompt.txt").read_text().strip(), f"{self.hello} {self.sentence('none')}")
-        self.assertIn(self.sentence("none"), self.seen()["argv"][self.seen()["argv"].index("-p") + 1],
+        self.assertEqual((out / "prompt.txt").read_text().strip(), f"{self.hello} {self.sentence()}")
+        self.assertIn(self.sentence(), self.seen()["argv"][self.seen()["argv"].index("-p") + 1],
                       "the host is given the option")
         invocation = json.loads((out / "invocation.json").read_text())
         self.assertEqual((invocation["planning_review"], invocation["improve_skill"]), ("none", str(self.card)))
@@ -107,9 +90,11 @@ class PlanningReviewOptionTest(e2e.CaseRunCase):
         self.assertEqual((row["case"], row["style"], row["planning_review"]), ("hello", "smoke", "none"),
                          "the baseline row is keyed by the case and its style, and the mode is the engine's")
 
-    def test_stage_names_only_the_option(self):
+    def test_stage_is_the_engines_default_so_it_appends_nothing_and_is_still_recorded(self):
+        # A `stage` run must have the prompt of a run without the option, or its baseline cell and a hash of the prompt differ for nothing.
         _code, _result, _printed, out = self.case_main("c-stage", "--case", "hello", "--planning-review", "stage")
-        self.assertEqual((out / "prompt.txt").read_text().strip(), f"{self.hello} {self.sentence('stage')}")
+        self.assertEqual((out / "prompt.txt").read_text().strip(), self.hello)
+        self.assertNotIn("--planning-review", self.seen()["argv"][self.seen()["argv"].index("-p") + 1])
         invocation = json.loads((out / "invocation.json").read_text())
         self.assertEqual((invocation["planning_review"], invocation["improve_skill"]), ("stage", None))
 
@@ -122,7 +107,7 @@ class PlanningReviewOptionTest(e2e.CaseRunCase):
     def test_a_custom_prompt_takes_the_option_the_same_way(self):
         _code, result, _printed, out = self.case_main("c-custom", "--prompt", "say hello", "--planning-review", "none")
         self.assertEqual(result["case"], "custom")
-        self.assertEqual((out / "prompt.txt").read_text().strip(), f"say hello {self.sentence('none')}")
+        self.assertEqual((out / "prompt.txt").read_text().strip(), f"say hello {self.sentence()}")
 
     def test_none_without_the_improve_card_in_the_plugin_is_refused_before_any_host_starts(self):
         self.card.unlink()
@@ -134,6 +119,18 @@ class PlanningReviewOptionTest(e2e.CaseRunCase):
                       "--planning-review", "none"])
         self.assertIn("--improve-skill", str(raised.exception))
         self.assertFalse(self.log.exists(), "the host must not have started")
+
+    def test_a_missing_improve_card_is_refused_before_any_host_cli_runs(self):
+        # Grok installs the plugin into its profile with its own CLI; the card must be looked for before that, not after.
+        self.card.unlink()
+        os.environ["FAKE_MODE"] = "done"
+        out = self.tmp / "c-grok-refused"
+        with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as raised:
+            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out), "--plugin-dir", str(self.plugin),
+                      "--baseline", str(self.baselines), "--case", "hello", "--planning-review", "none"])
+        self.assertIn("--improve-skill", str(raised.exception))
+        self.assertFalse((out / "home" / ".grok" / "fake-plugins.txt").exists(), "grok plugin install must not have run")
+        self.assertFalse(self.log.exists())
 
     def test_the_choices_are_the_engines_own(self):
         import shiploop_stage_spec as stage_spec
@@ -235,7 +232,6 @@ class QualityCase(unittest.TestCase):
 # The operator catalog
 
 
-@needs_quality
 class MutationOperatorTest(QualityCase):
     """What counts as a place to mutate: operators in code and nowhere else."""
 
@@ -320,7 +316,6 @@ SURVIVORS = [
 ]
 
 
-@needs_quality
 class MutationRunTest(QualityCase):
     def setUp(self):
         super().setUp()
@@ -356,6 +351,19 @@ class MutationRunTest(QualityCase):
             block, _ = self.mutate()
         self.assertEqual({name: row["loaded_by_tests"] for name, row in block["per_file"].items()},
                          {"lib.js": True, "other.js": True, "unused.js": False})
+
+    def test_coverage_counts_only_files_under_the_copy_itself(self):
+        copy = self.tmp / "copy"
+        copy.mkdir()
+        coverage = self.tmp / "coverage"
+        coverage.mkdir()
+        real = os.path.realpath(copy)
+        (coverage / "a.json").write_text(json.dumps({"result": [
+            {"url": f"file://{real}/lib.js"}, {"url": f"file://{real}/sub%20dir/b.js"},
+            {"url": f"file://{real}-other/lib.js"},  # a sibling folder whose name begins with the copy's
+            {"url": "file:///elsewhere/lib.js"}, {"url": "node:internal/x"}]}))
+        self.assertEqual(quality.js_coverage_files(coverage, copy), {"lib.js", "sub dir/b.js"})
+        self.assertIsNone(quality.js_coverage_files(self.tmp / "no-coverage", copy))
 
     def test_test_files_dependencies_docs_and_the_cases_exclusions_are_not_source(self):
         copy = self.tmp / "copy"
@@ -587,7 +595,6 @@ class MutationRunTest(QualityCase):
 
 
 @needs_node
-@needs_quality
 class MutationNodeTest(QualityCase):
     """The same tiny delivery under the real `node --test`, the real syntax check and the real coverage record."""
 
@@ -651,7 +658,6 @@ PARENT_AND_CHILD = (
     "time.sleep(60)\n")
 
 
-@needs_quality
 class ProcessSafetyTest(QualityCase):
     """What the quality phase may signal, and what ends it."""
 
@@ -747,6 +753,12 @@ class ProcessSafetyTest(QualityCase):
             self.assertFalse(quality.end_group(proc), "a leader that was reaped may have its pid reused: nothing is signalled")
         killpg.assert_not_called()
 
+    def test_a_child_never_inherits_the_harnesss_port(self):
+        # A PORT in the harness's own environment would make every product listen there instead of where its default or the case says.
+        with mock.patch.dict(os.environ, {"PORT": "1234"}):
+            self.assertNotIn("PORT", quality.child_env())
+            self.assertEqual(quality.child_env({"PORT": "5678"})["PORT"], "5678", "a caller can still set it for one child")
+
     def test_a_hanging_mutant_is_counted_killed_and_its_whole_group_ends(self):
         copy = self.tmp / "copy"
         shutil.copytree(TINY, copy)
@@ -772,7 +784,6 @@ class ProcessSafetyTest(QualityCase):
 # ---------------------------------------------------------------------------------------------------------------------
 # Fixed ports the phase refuses
 
-@needs_quality
 class PortGuardTest(QualityCase):
     """A mutant must never listen on a port the case names (the product's default): the phase's children run under a preload that
     refuses it and counts the refusals. No test here binds or connects to a real fixed port; the declared port is whatever
@@ -863,7 +874,6 @@ class PortGuardTest(QualityCase):
         self.assertNotIn("refuse_ports", run.case_quality("hello"))
 
 
-@needs_quality
 class PrintedLineTest(unittest.TestCase):
     """quality.line: the one printed line says what the record says, in the record's words."""
 
@@ -890,7 +900,6 @@ class PrintedLineTest(unittest.TestCase):
 
 
 @needs_node
-@needs_quality
 class PortGuardNodeTest(QualityCase):
     """The real preload under the real node. The declared port is a free one the test picked and nothing of the test listens on
     it: if the preload failed, a throwaway node process would bind that free port for a moment, never a fixed one."""
@@ -963,7 +972,6 @@ def checkers_block(defect: str | None, ids: list[str] = CHECKERS_IDS) -> dict:
             "source": "the case prompt", "checks": [{"id": ident, "source": f"quote for {ident}"} for ident in ids]}
 
 
-@needs_quality
 class AcceptanceCalibrationTest(QualityCase):
     """Each held-out check against a hermetic reference service with one defect switch (a check admitted without this once failed
     4 of 5 good deliveries because it kept firing after the game was over)."""
@@ -997,10 +1005,10 @@ class AcceptanceCalibrationTest(QualityCase):
 
     def test_the_cases_declared_ids_are_exactly_the_modules_checks(self):
         module = quality.load_checks("checkers_accept", quality.HERE / "checks")
-        declared = [item["id"] for item in run.case_quality("checkers")["acceptance"][0]["checks"]]
+        declared = [item["id"] for item in run.case_quality("checkers")["acceptance"]["checks"]]
         self.assertEqual(declared, list(module.CHECKS))
         self.assertEqual(declared, CHECKERS_IDS)
-        for item in run.case_quality("checkers")["acceptance"][0]["checks"]:
+        for item in run.case_quality("checkers")["acceptance"]["checks"]:
             self.assertTrue(item["source"], f"{item['id']} quotes the sentence it reads")
 
     def test_the_battleship_set_was_dropped_and_python_cases_declare_nothing(self):
@@ -1010,7 +1018,6 @@ class AcceptanceCalibrationTest(QualityCase):
                          "a follow-on is measured by the followed case's declaration")
 
 
-@needs_quality
 class AcceptanceRunTest(QualityCase):
     def accept(self, block: dict, **kw) -> dict:
         folder = self.tmp / f"run-{len(list(self.tmp.glob('run-*')))}"
@@ -1097,13 +1104,6 @@ class AcceptanceRunTest(QualityCase):
         self.assertEqual((row["id"], row["source"], row["pass"]), ("red-moves-first", "quote for red-moves-first", True))
         self.assertLessEqual(len(row["note"]), 300)
 
-    def test_two_blocks_of_a_followed_case_merge_the_followed_ones_first(self):
-        first = {"observed": True, "source": "a", "ids": ["x"], "passed": ["x"], "checks": [{"id": "x", "pass": True}]}
-        second = {"observed": True, "source": "b", "ids": ["y"], "passed": [], "checks": [{"id": "y", "pass": False}]}
-        merged = quality.merge_acceptance([first, second])
-        self.assertEqual((merged["ids"], merged["passed"], merged["source"]), (["x", "y"], ["x"], "a | b"))
-        self.assertFalse(quality.merge_acceptance([first, {"observed": False, "reason": "no server"}])["observed"])
-        self.assertIs(quality.merge_acceptance([first]), first)
 
 
 
@@ -1117,7 +1117,6 @@ def tool_use_line(name: str, **arg) -> str:
     return json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t1", "name": name, "input": arg}]}})
 
 
-@needs_quality
 class EventFactsTest(QualityCase):
     def events(self, *lines: str, name: str = "events.jsonl") -> Path:
         path = self.tmp / name
@@ -1171,6 +1170,12 @@ class EventFactsTest(QualityCase):
         self.assertIsNone(facts["memory_writes"])
         self.assertIn("no host", unmeasured["memory_writes"])
 
+    def test_launch_records_that_name_no_host_leave_the_memory_list_unknown(self):
+        path = self.events(tool_use_line("Write", file_path="/Users/x/.claude/projects/-a/memory/MEMORY.md"))
+        facts, unmeasured = quality.event_facts(path, None, [])
+        self.assertIsNone(facts["memory_writes"])
+        self.assertIn("launch record", unmeasured["memory_writes"])
+
     def test_held_out_seen_counts_lines_that_name_a_held_out_script_or_the_checks_folder(self):
         blocks = [{"module": "checkers_accept"}]
         path = self.events(json.dumps({"type": "text", "data": "I will read checkers_accept.py"}),
@@ -1200,7 +1205,6 @@ class EventFactsTest(QualityCase):
 # ---------------------------------------------------------------------------------------------------------------------
 # The block of a run
 
-@needs_quality
 class MeasureBlockTest(QualityCase):
     """quality.measure: the gate, the copy, the delivered folder left alone, and what it records."""
 
@@ -1213,16 +1217,20 @@ class MeasureBlockTest(QualityCase):
         self.out.mkdir()
         self.work = self.delivery("out/work")
         (self.out / "events.jsonl").write_text(MEMORY_EVENTS.read_text())
+        self.launch("invocation.json", "claude")
 
-    def measure(self, spec=None, gate=None, hosts=("claude",), **kw) -> dict:
+    def launch(self, name: str, host: str) -> None:
+        """A launch record, as run.main writes one (runrecord reads them)."""
+        (self.out / name).write_text(json.dumps({"case": "q-tiny", "host": host, "versions": {}}))
+
+    def measure(self, spec=None, gate=None, **kw) -> dict:
         spec = {"mutation": {"command": "python3 check.py"}} if spec is None else spec
-        return quality.measure(self.out, self.work, spec, gate=gate, hosts_used=list(hosts), groups=self.groups,
-                               stop=lambda: None, **kw)
+        return quality.measure(self.out, self.work, spec, gate=gate, groups=self.groups, stop=lambda: None, **kw)
 
     def test_a_finished_delivery_is_measured_on_a_copy_under_the_output_folder(self):
         block = self.measure()
         self.assertTrue(block["observed"], block)
-        self.assertEqual((block["hosts"], block["mixed_host"]), (["claude"], False))
+        self.assertEqual((block["hosts_used"], block["mixed_host"]), (["claude"], False))
         self.assertEqual((block["mutation"]["sites"], block["mutation"]["ratio"]), (12, 0.4167))
         self.assertNotIn("reason", block)
         self.assertEqual(block["delivered_files"], len([p for p in TINY.rglob("*") if p.is_file()]))
@@ -1254,7 +1262,7 @@ class MeasureBlockTest(QualityCase):
     def test_a_case_that_declares_nothing_says_so(self):
         for spec in ({}, None):
             with self.subTest(spec=spec):
-                block = quality.measure(self.out, self.work, spec, gate=None, hosts_used=["claude"], groups=self.groups, stop=lambda: None)
+                block = quality.measure(self.out, self.work, spec, gate=None, groups=self.groups, stop=lambda: None)
                 self.assertFalse(block["observed"])
                 self.assertIn("declares no quality measures", block["reason"])
                 self.assertFalse((self.out / "quality").exists())
@@ -1273,13 +1281,39 @@ class MeasureBlockTest(QualityCase):
         self.measure()
         self.assertFalse((self.out / "quality" / "stale.txt").exists())
 
-    def test_hosts_come_from_the_launch_records_given_and_a_run_two_hosts_worked_on_is_marked(self):
-        block = self.measure(hosts=("grok", "claude"))
-        self.assertEqual((block["hosts"], block["mixed_host"]), (["grok", "claude"], True))
+    def test_hosts_are_runrecords_and_a_run_two_hosts_worked_on_is_marked_and_its_memory_list_says_it_covers_claude_only(self):
+        self.launch("invocation.json", "grok")
+        self.launch("invocation-resume-claude-1791508003.json", "claude")
+        block = self.measure()
+        self.assertEqual((block["hosts_used"], block["mixed_host"]), (quality.runrecord.hosts_used(self.out), quality.runrecord.mixed_host(self.out)))
+        self.assertEqual((block["hosts_used"], block["mixed_host"]), (["grok", "claude"], True))
         self.assertEqual(len(block["memory_writes"]), 2)
+        self.assertTrue(any("Claude's" in note and "grok" in note for note in block["notes"]), block["notes"])
+
+    def test_a_run_folder_with_no_launch_record_says_so_and_does_not_guess_a_host(self):
+        (self.out / "invocation.json").unlink()
+        block = self.measure()
+        self.assertEqual((block["hosts_used"], block["mixed_host"]), (None, None))
+        self.assertIn("launch record", block["unmeasured"]["hosts_used"])
+        self.assertIsNone(block["memory_writes"], "which host wrote the events is unknown, so a Claude reader is not assumed")
+        self.assertIn("launch record", block["unmeasured"]["memory_writes"])
+
+    def test_a_held_out_count_says_what_zero_does_not_prove(self):
+        spec = {"mutation": {"command": "python3 check.py"}, "acceptance": checkers_block(None, ["red-moves-first"])}
+        block = self.measure(spec=spec)
+        self.assertEqual(block["held_out_seen"], 0)
+        self.assertTrue(any("not proof" in note and "checks/" in note for note in block["notes"]), block["notes"])
+
+    def test_the_phase_failing_is_a_block_with_the_same_keys_a_reader_looks_for(self):
+        block = quality.failed_block(self.out, {"mutation": {"command": "x"}}, RuntimeError("boom"))
+        self.assertEqual((block["observed"], block["declared"], block["hosts_used"], block["mixed_host"]), (False, ["mutation"], ["claude"], False))
+        self.assertEqual(block["reason"], "the quality phase failed: RuntimeError('boom')")
+        self.assertEqual((block["memory_writes"], block["held_out_seen"]), (None, None))
+        self.assertEqual(set(block["unmeasured"]), {"memory_writes", "held_out_seen"})
+        self.assertEqual(block["seconds"], 0.0)
 
     def test_the_held_out_checks_and_the_mutation_both_run_when_the_case_declares_both(self):
-        spec = {"mutation": {"command": "python3 check.py"}, "acceptance": [checkers_block(None, ["red-moves-first", "legal-moves-alternate"])]}
+        spec = {"mutation": {"command": "python3 check.py"}, "acceptance": checkers_block(None, ["red-moves-first", "legal-moves-alternate"])}
         block = self.measure(spec=spec)
         self.assertTrue(block["acceptance"]["observed"] and block["mutation"]["observed"])
         self.assertEqual(block["acceptance"]["passed"], ["red-moves-first", "legal-moves-alternate"])
@@ -1294,7 +1328,6 @@ class MeasureBlockTest(QualityCase):
 
 
 @e2e.needs_lsof
-@needs_quality
 class QualityReapTest(e2e.RealListeners, unittest.TestCase):
     """The phase stops the listeners under <output>/quality, and only those: the real lsof and signals, scoped to the test's folder."""
 
@@ -1326,8 +1359,7 @@ class QualityReapTest(e2e.RealListeners, unittest.TestCase):
         commit_delivery(work)
         beside, beside_port = self.serve(out / "beside")
         groups = RecordingGroups()
-        block = quality.measure(out, work, {"mutation": {"command": "python3 check.py"}}, gate=None, hosts_used=["claude"],
-                                groups=groups, stop=lambda: None)
+        block = quality.measure(out, work, {"mutation": {"command": "python3 check.py"}}, gate=None, groups=groups, stop=lambda: None)
         self.assertTrue(block["observed"], block)
         reaped = block["left_behind"]["reaped"]
         self.assertEqual(len(reaped), 1, block["left_behind"])
@@ -1359,11 +1391,10 @@ def quality_cases() -> dict:
                    "quality": {"mutation": {"command": "python3 check.py", "source": "test"}}},
         "q-none": {"style": "smoke", "prompt": "Say hello.", "checks": ["true"], "checks_source": "test"},
         "q-ref": {"style": "web-service", "prompt": "Serve the reference.", "checks": ["true"], "checks_source": "test",
-                  "quality": {"acceptance": [checkers_block(None)]}},
+                  "quality": {"acceptance": checkers_block(None)}},
     }
 
 
-@needs_quality
 class QualityThroughMainTest(e2e.CaseRunCase):
     """run.main with the fake hosts delivering a small committed product: the block, its order, its gate and its record."""
 
@@ -1391,44 +1422,51 @@ class QualityThroughMainTest(e2e.CaseRunCase):
                              "--baseline", str(self.baselines)])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue()
 
-    def test_a_finished_delivery_is_measured_and_recorded_in_the_result_the_row_and_the_report(self):
+    def test_a_finished_delivery_is_measured_and_recorded_in_the_result_and_the_report_and_not_in_the_row(self):
         code, result, printed, out = self.finished()
         self.assertEqual(code, 0, result)
         block = result["quality"]
         self.assertTrue(block["observed"], block)
-        self.assertEqual((block["declared"], block["hosts"], block["mixed_host"]), (["mutation"], ["claude"], False))
+        self.assertEqual((block["declared"], block["hosts_used"], block["mixed_host"]), (["mutation"], ["claude"], False))
         self.assertEqual((block["mutation"]["operator_id"], block["mutation"]["sites"], block["mutation"]["ratio"]), ("js-1", 12, 0.4167))
         self.assertEqual(block["memory_writes"], [])
         self.assertTrue(result["pass"], "the verdicts are the same whatever the quality block holds")
         line = next(ln for ln in printed.splitlines() if ln.startswith("  quality"))
         self.assertIn("mutation 5 of 12 caught (ratio 0.4167, js-1, 3 files)", line)
-        quality_row = self.last_row()["quality"]
-        self.assertEqual(quality_row["mutation"], {"operator_id": "js-1", "sites": 12, "killed": 5, "survived": 7, "ratio": 0.4167,
-                                                   "ceiling_hit": False})
-        self.assertEqual((quality_row["hosts"], quality_row["mixed_host"], quality_row["observed"]), (["claude"], False, True))
+        self.assertNotIn("quality", self.last_row(), "the row waited for nothing and carries nothing of the phase")
         status = subprocess.run(["git", "-C", str(out / "work"), "status", "--porcelain"], capture_output=True, text=True).stdout
         self.assertEqual(status, "", "the delivered checkout is exactly as it was committed")
         self.assertTrue((out / "quality" / "copy" / "lib.js").is_file())
 
-    def test_the_result_is_written_before_the_phase_and_again_with_the_block(self):
-        seen = {}
+    def test_the_result_the_export_and_the_row_are_written_before_the_phase_and_the_result_again_with_the_block(self):
+        seen, order = {}, []
 
         def spy(out, work, spec, **kw):
+            order.append("measure")
             seen["on_disk"] = json.loads((out / "result.json").read_text())
+            seen["row_rows"] = self.baselines.read_text().splitlines() if self.baselines.exists() else []
             seen.update(spec=spec, kw=kw, lock_alive=listeners.case_alive(out), stop_clear=kw["stop"]())
             (out / "stop").write_text("")
             seen["stop_asked"] = kw["stop"]()
             with mock.patch.object(run.TERMINATION, "is_set", return_value=True), mock.patch.object(run, "TERMINATED_BY", ["SIGTERM"]):
                 seen["terminated"] = kw["stop"]()
-            return {"observed": False, "reason": "spy", "declared": ["mutation"], "hosts": kw["hosts_used"], "mixed_host": False}
+            return {"observed": False, "reason": "spy", "declared": ["mutation"], "hosts_used": ["claude"], "mixed_host": False}
 
-        with mock.patch.object(quality, "measure", side_effect=spy):
+        def export(out):
+            order.append("export")
+            return "review export: fake"
+
+        with mock.patch.object(quality, "measure", side_effect=spy), mock.patch.object(run, "review_export", side_effect=export):
             code, result, printed, out = self.finished()
+        self.assertEqual(order, ["export", "measure"], "the Run Review export is written before the phase")
+        self.assertEqual(len(seen["row_rows"]), 1, "and so is the baseline row")
+        self.assertNotIn("quality", json.loads(seen["row_rows"][0]))
         self.assertNotIn("quality", seen["on_disk"], "the record that exists today is on disk before the phase starts")
         self.assertEqual(seen["on_disk"]["case"], "q-tiny")
         self.assertEqual(result["quality"]["reason"], "spy", "and result.json is written again with the block")
         self.assertEqual(seen["spec"], run.case_quality("q-tiny"))
         self.assertIsNone(seen["kw"]["gate"])
+        self.assertNotIn("hosts_used", seen["kw"], "the hosts are the launch records', read by the phase")
         self.assertIs(seen["kw"]["groups"], run.LIVE_HOST_GROUPS, "the phase's children end with the harness's signal handling")
         self.assertTrue(seen["lock_alive"], "the phase runs under the case lock the harness holds")
         self.assertIsNone(seen["stop_clear"])
@@ -1437,13 +1475,33 @@ class QualityThroughMainTest(e2e.CaseRunCase):
         self.assertTrue((out / "stop").exists(), "a stop file after the host ended is left for the next resume to remove, as before")
         self.assertEqual(code, 0)
 
+    def test_a_kill_in_the_phase_loses_neither_the_export_nor_the_baseline_row_nor_the_result(self):
+        # Reviewer A's repro: SIGKILL during the phase left 'result.json present, no baseline rows file, no review-export'. A
+        # BaseException stands for the kill here: it is not caught by the phase's fail-open handler.
+        class Killed(BaseException):
+            pass
+
+        exported = []
+        with mock.patch.object(quality, "measure", side_effect=Killed()), \
+                mock.patch.object(run, "review_export", side_effect=lambda out: exported.append(out) or "export"):
+            with self.assertRaises(Killed):
+                self.finished(name="q-killed")
+        out = self.tmp / "q-killed"
+        self.assertEqual(len(exported), 1)
+        self.assertEqual(len(self.baselines.read_text().splitlines()), 1)
+        self.assertNotIn("quality", json.loads((out / "result.json").read_text()))
+        self.assertTrue((out / "metrics.json").is_file())
+
     def test_an_error_in_the_phase_is_recorded_and_changes_neither_the_verdict_nor_the_exit(self):
         with mock.patch.object(quality, "measure", side_effect=RuntimeError("boom")):
             code, result, printed, _ = self.finished()
         self.assertEqual(code, 0)
         self.assertTrue(result["pass"])
-        self.assertEqual(result["quality"], {"observed": False, "hosts": ["claude"], "mixed_host": False,
-                                             "reason": "the quality phase failed: RuntimeError('boom')"})
+        block = result["quality"]
+        self.assertEqual((block["observed"], block["declared"], block["hosts_used"], block["mixed_host"]), (False, ["mutation"], ["claude"], False))
+        self.assertEqual(block["reason"], "the quality phase failed: RuntimeError('boom')")
+        self.assertEqual((block["memory_writes"], block["held_out_seen"]), (None, None))
+        self.assertEqual(set(block["unmeasured"]), {"memory_writes", "held_out_seen"})
         self.assertIn("quality   not observed: the quality phase failed: RuntimeError('boom')", printed)
 
     def test_each_host_is_measured_the_same_way(self):
@@ -1453,7 +1511,7 @@ class QualityThroughMainTest(e2e.CaseRunCase):
                 code, result, _, _ = self.finished(host=host)
                 self.assertEqual(code, 0, result)
                 block = result["quality"]
-                self.assertEqual((block["observed"], block["hosts"], block["mutation"]["ratio"]), (True, [host], 0.4167))
+                self.assertEqual((block["observed"], block["hosts_used"], block["mutation"]["ratio"]), (True, [host], 0.4167))
                 ratios[host] = block["mutation"]["ratio"]
                 if host != "claude":
                     self.assertIsNone(block["memory_writes"], "no Claude session: the detector reads nothing")
@@ -1467,7 +1525,7 @@ class QualityThroughMainTest(e2e.CaseRunCase):
         self.assertIn("ShipLoop did not reach done", block["reason"])
         self.assertNotIn("mutation", block)
         self.assertFalse((out / "quality").exists())
-        self.assertEqual(self.last_row()["quality"]["observed"], False, "the row says the declared measure was not taken")
+        self.assertNotIn("quality", self.last_row())
 
     def test_a_run_whose_engine_is_still_active_is_not_measured(self):
         code, result, _, out = self.case_main("q-active", "--case", "q-tiny", mode="active")
@@ -1492,14 +1550,13 @@ class QualityThroughMainTest(e2e.CaseRunCase):
         self.assertEqual(acceptance["passed"], CHECKERS_IDS)
         self.assertEqual(result["quality"]["held_out_seen"], 0, "the host's events name no held-out script: a measured none")
         self.assertIn("held-out 6 of 6 pass", printed)
-        self.assertEqual(self.last_row()["quality"]["acceptance"], {"ids": 6, "passed": 6})
         events = (Path(result["output"]) / "events.jsonl").read_text()
         self.assertNotIn("checkers_accept", events)
         self.assertNotIn("checkers_accept", (Path(result["output"]) / "invocation.json").read_text())
 
     def test_a_regrade_measures_again_reproduces_the_memory_writes_from_the_events_and_names_both_hosts(self):
         _code, result, _printed, out = self.finished()
-        self.assertEqual(result["quality"]["hosts"], ["claude"])
+        self.assertEqual(result["quality"]["hosts_used"], ["claude"])
         (out / "quality" / "stale.txt").write_text("from the first phase")
         before = len((out / "events.jsonl").read_text().splitlines())
         with (out / "events.jsonl").open("a") as handle:
@@ -1509,23 +1566,47 @@ class QualityThroughMainTest(e2e.CaseRunCase):
         code, regraded, _ = self.regrade(out)
         block = regraded["quality"]
         self.assertTrue(block["observed"], block)
-        self.assertEqual((block["hosts"], block["mixed_host"]), (["claude", "grok"], True),
+        self.assertEqual((block["hosts_used"], block["mixed_host"]), (["claude", "grok"], True),
                          "the run's launch records name the hosts, not the flag of this invocation")
         self.assertEqual([(w["tool"], Path(w["path"]).name, w["line"]) for w in block["memory_writes"]],
                          [("Write", "feedback_no-broad-pkill.md", before + 2), ("Write", "MEMORY.md", before + 6)],
                          "computed from events.jsonl, so a regrade gives the same answer whatever the live profile holds")
         self.assertFalse((out / "quality" / "stale.txt").exists())
         self.assertEqual(self.baselines.read_text(), rows, "a regrade writes no baseline row")
+        self.assertNotIn("quality_regrade_skipped", regraded)
 
-    def test_a_regrade_while_another_harness_holds_the_case_takes_no_measure(self):
-        _code, _result, _printed, out = self.finished()
+    def test_a_regrade_that_cannot_measure_keeps_the_earlier_observed_block_and_says_why_beside_it(self):
+        _code, result, _printed, out = self.finished()
+        earlier = result["quality"]
+        self.assertTrue(earlier["observed"])
         holder = listeners.hold_case(out)
         self.assertIsNotNone(holder)
+        self.addCleanup(holder.close)
+        code, regraded, _ = self.regrade(out)
+        self.assertEqual(regraded["quality"], earlier, "a regrade never replaces a measurement with a gap")
+        self.assertIn("does not hold the case lock", regraded["quality_regrade_skipped"]["reason"])
+
+    def test_a_regrade_with_no_earlier_block_records_why_it_could_not_measure(self):
+        _code, result, _printed, out = self.finished()
+        saved = json.loads((out / "result.json").read_text())
+        saved.pop("quality")
+        (out / "result.json").write_text(json.dumps(saved))
+        holder = listeners.hold_case(out)
         self.addCleanup(holder.close)
         code, regraded, _ = self.regrade(out)
         self.assertFalse(regraded["quality"]["observed"])
         self.assertIn("does not hold the case lock", regraded["quality"]["reason"])
         self.assertEqual(regraded["quality"]["memory_writes"], [], "the events are still read")
+        self.assertNotIn("quality_regrade_skipped", regraded)
+
+    def test_a_custom_run_is_never_measured_by_a_case_declaration_whatever_the_catalog_holds(self):
+        # A saved `none` run is case `custom`: it must not be given another case's measures. The catalog here has a case that declares them.
+        cases = json.loads(self.cases.read_text())
+        cases["battleship"] = cases["q-tiny"]
+        self.cases.write_text(json.dumps(cases))
+        _code, result, _printed, _out = self.case_main("q-custom-with-catalog", "--prompt", "say hello")
+        self.assertEqual(result["quality"]["declared"], [])
+        self.assertIn("declares no quality measures", result["quality"]["reason"])
 
     def test_a_second_lock_in_one_process_fails_so_the_phase_must_reuse_the_one_it_holds(self):
         folder = self.tmp / "lock"
@@ -1536,7 +1617,6 @@ class QualityThroughMainTest(e2e.CaseRunCase):
         self.assertTrue(listeners.case_alive(folder))
 
 
-@needs_quality
 class QualityGateTest(unittest.TestCase):
     """run.quality_gate: every reason a delivery is not measured, in the order they are looked at."""
 
@@ -1585,11 +1665,19 @@ class QualityGateTest(unittest.TestCase):
         self.assertIn("ShipLoop is still active (stage implement)",
                       self.gate(shiploop=rec["shiploop"], committed=rec["committed"], engine=rec["engine"], process={"status": "timeout"}))
 
+    def test_the_phases_stop_is_a_signal_to_the_harness_or_a_stop_file_each_on_its_own(self):
+        with tempfile.TemporaryDirectory() as folder:
+            stop = Path(folder) / "stop"
+            self.assertIsNone(run.quality_stop(stop))
+            with mock.patch.object(run.TERMINATION, "is_set", return_value=True), mock.patch.object(run, "TERMINATED_BY", ["SIGHUP"]):
+                self.assertEqual(run.quality_stop(stop), "terminated by SIGHUP", "a signal with no stop file")
+            stop.write_text("")
+            self.assertEqual(run.quality_stop(stop), f"stopped by {stop}", "a stop file with no signal")
+
     def test_a_stop_outranks_the_other_reasons(self):
         self.assertIn("a stop was requested", self.gate(stop_seen=True, engine={"status": "active"}, shiploop={"pass": False}))
 
 
-@needs_quality
 class CaseQualityTest(unittest.TestCase):
     """run.case_quality: the followed case's declarations first, as load_case orders checks; load_case itself is unchanged."""
 
@@ -1600,14 +1688,14 @@ class CaseQualityTest(unittest.TestCase):
         path.write_text(json.dumps(cases))
         return mock.patch.object(run, "CASES", path)
 
-    def test_the_followed_cases_acceptance_comes_first_and_its_mutation_stands_unless_the_case_names_its_own(self):
+    def test_a_follow_on_is_measured_by_the_followed_cases_declaration_unless_it_names_its_own(self):
         a, b = {"module": "m1", "start": "s", "checks": [{"id": "x"}]}, {"module": "m2", "start": "s", "checks": [{"id": "y"}]}
-        with self.cases(base={"quality": {"mutation": {"command": "base"}, "acceptance": [a]}},
-                        inherits={"follows": "base", "quality": {"acceptance": [b]}},
-                        overrides={"follows": "base", "quality": {"mutation": {"command": "own"}}},
+        with self.cases(base={"quality": {"mutation": {"command": "base"}, "acceptance": a, "refuse_ports": [3000]}},
+                        inherits={"follows": "base"},
+                        overrides={"follows": "base", "quality": {"mutation": {"command": "own"}, "acceptance": b, "refuse_ports": [4000]}},
                         plain={}):
-            self.assertEqual(run.case_quality("inherits"), {"mutation": {"command": "base"}, "acceptance": [a, b]})
-            self.assertEqual(run.case_quality("overrides"), {"mutation": {"command": "own"}, "acceptance": [a]})
+            self.assertEqual(run.case_quality("inherits"), {"mutation": {"command": "base"}, "acceptance": a, "refuse_ports": [3000]})
+            self.assertEqual(run.case_quality("overrides"), {"mutation": {"command": "own"}, "acceptance": b, "refuse_ports": [4000]})
             self.assertEqual(run.case_quality("plain"), {})
             self.assertEqual(run.case_quality("missing"), {})
 

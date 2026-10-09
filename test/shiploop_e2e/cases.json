@@ -185,39 +185,37 @@
         ],
         "source": "the request: the game rules live in a module the server uses and are covered by node:test tests that run with `node --test`; system/ holds the model's own browser and system checks, which `node --test` does not run"
       },
-      "acceptance": [
-        {
-          "module": "checkers_accept",
-          "start": "node server.js",
-          "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged); calibrated against test/fixtures/quality/reference_checkers.py",
-          "checks": [
-            {
-              "id": "red-moves-first",
-              "source": "the request: 'Red starts on rows 0 to 2 and moves first' and 'An illegal move returns \"ok\": false and leaves the turn unchanged'"
-            },
-            {
-              "id": "illegal-keeps-turn",
-              "source": "the request: 'An illegal move returns \"ok\": false and leaves the turn unchanged' and POST /api/move 'returns JSON with \"ok\" true or false, \"turn\" set to \"red\" or \"black\", and \"winner\" null or the winning colour'"
-            },
-            {
-              "id": "off-board-keeps-turn",
-              "source": "the same two sentences, read for a target off the board or with a negative index; a reader could take that for a malformed request, which is why it is its own check"
-            },
-            {
-              "id": "legal-moves-alternate",
-              "source": "the request: 'a legal move switches the turn'"
-            },
-            {
-              "id": "red-jump-mandatory",
-              "source": "the request: 'a jump removes the jumped piece and is mandatory when available'"
-            },
-            {
-              "id": "black-jump-mandatory-and-removal",
-              "source": "the request: 'a jump removes the jumped piece and is mandatory when available', read for black and for the square of the removed piece"
-            }
-          ]
-        }
-      ],
+      "acceptance": {
+        "module": "checkers_accept",
+        "start": "node server.js",
+        "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged); calibrated against test/fixtures/quality/reference_checkers.py",
+        "checks": [
+          {
+            "id": "red-moves-first",
+            "source": "the request: 'Red starts on rows 0 to 2 and moves first' and 'An illegal move returns \"ok\": false and leaves the turn unchanged'"
+          },
+          {
+            "id": "illegal-keeps-turn",
+            "source": "the request: 'An illegal move returns \"ok\": false and leaves the turn unchanged' and POST /api/move 'returns JSON with \"ok\" true or false, \"turn\" set to \"red\" or \"black\", and \"winner\" null or the winning colour'"
+          },
+          {
+            "id": "off-board-keeps-turn",
+            "source": "the same two sentences, read for a target off the board or with a negative index; a reader could take that for a malformed request, which is why it is its own check"
+          },
+          {
+            "id": "legal-moves-alternate",
+            "source": "the request: 'a legal move switches the turn'"
+          },
+          {
+            "id": "red-jump-mandatory",
+            "source": "the request: 'a jump removes the jumped piece and is mandatory when available'"
+          },
+          {
+            "id": "black-jump-mandatory-and-removal",
+            "source": "the request: 'a jump removes the jumped piece and is mandatory when available', read for black and for the square of the removed piece"
+          }
+        ]
+      },
       "refuse_ports": [
         3000
       ],

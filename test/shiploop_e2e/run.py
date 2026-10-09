@@ -204,18 +204,14 @@ def load_case(args) -> tuple[str, str, list[str], str | None]:
 
 
 def case_quality(name: str) -> dict:
-    """The quality measures a case declares, the followed case's first (as load_case orders checks): its held-out acceptance
-    blocks come before the case's own, and its mutation command stands unless the case names its own. ``{}`` for a case that
-    declares none, and for a name that is not a case. Kept apart from load_case, whose four values callers unpack."""
+    """The quality measures a case declares: its own entry, else the one of the case it follows (a follow-on is measured by its
+    followed case's declaration unless it names its own). ``{}`` for a case that declares none, and for a name that is not a
+    case. Kept apart from load_case, whose four values callers unpack."""
     cases = json.loads(CASES.read_text())
     case = cases.get(name) or {}
-    followed = cases.get(case.get("follows")) or {}
-    own, earlier = case.get("quality") or {}, followed.get("quality") or {}
-    blocks = [*(earlier.get("acceptance") or []), *(own.get("acceptance") or [])]
-    mutation = own.get("mutation") or earlier.get("mutation")
-    ports = own.get("refuse_ports") or earlier.get("refuse_ports")
-    return {**({"mutation": mutation} if mutation else {}), **({"acceptance": blocks} if blocks else {}),
-            **({"refuse_ports": ports} if ports else {})}
+    own, earlier = case.get("quality") or {}, (cases.get(case.get("follows")) or {}).get("quality") or {}
+    found = {key: own.get(key) or earlier.get(key) for key in ("mutation", "acceptance", "refuse_ports")}
+    return {key: value for key, value in found.items() if value}
 
 
 def quality_stop(stop_file: Path) -> str | None:
@@ -243,19 +239,31 @@ def quality_gate(*, shiploop: dict, committed: dict, engine: dict, process: dict
 
 def quality_record(out: Path, work: Path, name: str, gate: str | None, stop_file: Path) -> dict:
     """The run's ``quality`` block. Recording fails open: an error is recorded as the reason and never changes a verdict."""
-    used = runrecord.hosts_used(out)
+    spec: dict = {}
     try:
-        return quality.measure(out, work, case_quality(name) if name != "custom" else {}, gate=gate, hosts_used=used,
-                               groups=LIVE_HOST_GROUPS, stop=lambda: quality_stop(stop_file))
+        spec = case_quality(name) if name != "custom" else {}
+        return quality.measure(out, work, spec, gate=gate, groups=LIVE_HOST_GROUPS, stop=lambda: quality_stop(stop_file))
     except Exception as exc:
-        return {"observed": False, "hosts": used, "mixed_host": len(used) > 1, "reason": f"the quality phase failed: {exc!r}"}
+        return quality.failed_block(out, spec, exc)
 
 
-def planning_review_sentence(mode: str, improve_skill: str | None) -> str:
-    """The sentence that makes the model start ShipLoop with the run option. `none` also names the Improve card, which the
-    engine requires there (SPEC S-10 carve-out of 2026-10-05); `stage` is the engine's default and needs only the option."""
-    option = f"--planning-review {mode}" + (f" and --improve-skill {improve_skill}" if improve_skill else "")
-    return f"Start ShipLoop with the run option {option}."
+def improve_card(plugin_dir: Path) -> Path:
+    """The Improve card of a plugin build: the file `--improve-skill` names under `--planning-review none`."""
+    return Path(plugin_dir) / "skills" / "improve" / "SKILL.md"
+
+
+def require_improve_card(planning_review: str | None, plugin_dir: Path) -> None:
+    """`none` needs the plugin's Improve card (SPEC S-10 carve-out of 2026-10-05): refuse as soon as the plugin directory is known,
+    before any host CLI runs, so a refusal leaves no profile, plugin install or host session behind."""
+    if planning_review == "none" and not improve_card(plugin_dir).is_file():
+        raise SystemExit(f"--planning-review none needs the plugin's Improve card (--improve-skill), and {improve_card(plugin_dir)} is "
+                         "not a file: nothing was started")
+
+
+def planning_review_sentence(improve_skill: str) -> str:
+    """The sentence that makes the model start ShipLoop with `--planning-review none`, which needs the Improve card named
+    (`--improve-skill`). `stage` is the engine's default and appends nothing: the run's prompt stays the case's own."""
+    return f"Start ShipLoop with the run option --planning-review none and --improve-skill {improve_skill}."
 
 
 def planning_review_choice(requested: str | None, earlier: dict | None) -> str | None:
@@ -1263,9 +1271,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "tmp_writes": m.get("tmp_writes"),
             "shiploop_failures": m.get("shiploop_failures"), "compactions": m.get("compactions"),
             "truncated_outputs": m.get("truncated_outputs"), "narrative": m.get("narrative"),
-            "output": result.get("output"),
-            # Optional, record only: a run with no block has no key, and scan_baseline never reads it.
-            **({"quality": summary} if (summary := quality.summary(result.get("quality"))) else {})}
+            "output": result.get("output")}
 
 
 # `planning_review` (state.md key, ShipLoop 1.22.0 and later) says which planning results start an Improve child: `stage`
@@ -1809,6 +1815,8 @@ def _main(argv: list[str] | None, held: list) -> int:
                              "Start the case again.")
     elif args.source == "marketplace":
         plugin_dir, plugin, versions = marketplace_preflight(args, out, env)
+        if not resumed:
+            require_improve_card(planning_review, plugin_dir)  # the install above is the only host CLI that could run before this
         if resumed:
             # No original install to reuse: a newer release is still not a reason to refuse the run.
             versions["gate"] = [problem for problem in versions["gate"] if not problem.startswith("installed ")]
@@ -1822,19 +1830,16 @@ def _main(argv: list[str] | None, held: list) -> int:
     else:
         plugin = None
         plugin_dir = args.plugin_dir or build_candidate(out)
+        if not resumed:
+            require_improve_card(planning_review, plugin_dir)  # before the host CLI installs the plugin into its profile
         plugin = host.install_plugin(env, plugin_dir)
         versions = {"source": "checkout", **installed_versions(plugin_dir), "local_head": git("rev-parse", "HEAD").strip()}
     keepalive = hosts.grok_keepalive(env, plugin_dir) if host.keepalive else None
     improve_skill = earlier.get("improve_skill") if resumed else None
-    if planning_review and not resumed:
+    if planning_review == "none" and not resumed:
         # The run option rides in the prompt the model is given (and prompt.txt keeps), as it did in a custom --prompt.
-        if planning_review == "none":
-            card = Path(plugin_dir) / "skills" / "improve" / "SKILL.md"
-            if not card.is_file():
-                raise SystemExit(f"--planning-review none needs the plugin's Improve card (--improve-skill), and {card} is "
-                                 "not a file: nothing was started")
-            improve_skill = str(card.absolute())
-        prompt = f"{prompt} {planning_review_sentence(planning_review, improve_skill)}"
+        improve_skill = str(improve_card(plugin_dir).absolute())
+        prompt = f"{prompt} {planning_review_sentence(improve_skill)}"
     seeded = earlier.get("seeded") if resumed else None
     interrupt_at = earlier.get("interrupt_at") if resumed else args.interrupt_at
     # The CLI of the host and plugin the run started on (a resume on another host keeps it): every prompt below names it.
@@ -2049,12 +2054,6 @@ def _main(argv: list[str] | None, held: list) -> int:
                  "cancelled_tool_calls": metrics.count(run_metrics, "cancelled_tool_calls")},
               "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
-    # The delivered-quality phase can take up to its ceiling after the host ended, and a task launcher's limit is near 30
-    # minutes: the record above is written first, so a kill in the phase loses nothing that exists today (SPEC, Delivered quality).
-    gate = quality_gate(shiploop=shiploop, committed=committed, engine=engine, process=process, stop_seen=stop_seen,
-                        stop_file=stop_file, lock_held=lock is not None)
-    result["quality"] = quality_record(out, work, name, gate, stop_file)
-    (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     exported = review_export(out)
     style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name, metrics.planning_review(engine))
@@ -2128,7 +2127,6 @@ def _main(argv: list[str] | None, held: list) -> int:
               f"took {budget['observed_minutes']} min ({budget['source']})")
     for line in metrics.summary_lines(run_metrics):
         print(f"  metrics   {line}")
-    print(f"  quality   {quality.line(result['quality'])}")
     for failure in run_metrics["shiploop_failures"][:5]:
         print(f"  failed    shiploop {failure['verb']} {metrics.failure_text(failure)}: {failure['line']}")
     if follow_on:
@@ -2208,6 +2206,20 @@ def _main(argv: list[str] | None, held: list) -> int:
         failed.extend(("check", f"`{c['command']}` exits 0 (source: {expectations['checks']})", check_observed(c))
                       for c in check_results if not c["pass"])
         print(f"  mismatch  {write_mismatch(out, name, args.host, failed)}")
+    # The delivered-quality phase runs last: it can take minutes after the host ended and a task launcher's limit is near 30, so
+    # the result, the metrics, the Run Review export and the baseline row are all written before it, and it adds its block to
+    # result.json and to nothing else (SPEC, Delivered quality). The report above is already printed.
+    gate = quality_gate(shiploop=shiploop, committed=committed, engine=engine, process=process, stop_seen=stop_seen,
+                        stop_file=stop_file, lock_held=lock is not None)
+    block = quality_record(out, work, name, gate, stop_file)
+    kept = earlier_result.get("quality") if regrade else None
+    if isinstance(kept, dict) and kept.get("observed") and not block.get("observed"):
+        # A regrade that cannot measure (the case is held by another harness, a port is busy) never replaces a measurement with a gap.
+        result["quality"], result["quality_regrade_skipped"] = kept, {"reason": block.get("reason")}
+    else:
+        result["quality"] = block
+    (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+    print(f"  quality   {quality.line(result['quality'])}")
     return 0 if result["pass"] else 1
 
 

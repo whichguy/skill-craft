@@ -3,15 +3,19 @@
 Three measures, each optional, each `{observed: false, reason}` when it could not be taken (never 0, never a pass):
 
 * ``mutation``: small text mutations of the delivered source, run against the delivered tests on a copy. The ratio is the share
-  of mutants the tests catch. It belongs to one operator catalog (``operator_id``) and is compared only within that id.
+  of confirmed mutants the tests catch. It belongs to one operator catalog (``operator_id``) and is compared only within that id.
 * ``acceptance``: held-out checks, written by hand from the case's prompt and never shown to the model, run against the
   delivered product's server. They run inside the harness process, so no check text or id reaches an argv.
 * ``memory_writes`` and ``held_out_seen``: facts read from the run's own event stream.
 
 The delivered ``work/`` is only read. Everything this module starts runs in a process group of its own, registered with the
-harness's live groups so a signal ends it, and everything it writes lives under ``<output>/quality``. Tool knowledge (the
-mutation operators, how a runner reports its test count, which files a run loaded) sits in one catalog keyed by file extension;
-product knowledge sits in ``cases.json`` and ``checks/``.
+harness's live groups so a signal ends it, under a preload that keeps it off the case's declared fixed ports, and everything it
+writes lives under ``<output>/quality``. Tool knowledge (the mutation operators, how a runner reports its test count, which
+files a run loaded, the port preload) sits in one catalog keyed by file extension; product knowledge sits in ``cases.json`` and
+``checks/``.
+
+Importing this module needs ``skills/shiploop/scripts`` on ``sys.path`` (``shiploop_test_counts``, the engine's one reader of
+test-runner summaries) and this folder, as ``run.py`` and ``progress.py`` arrange.
 """
 
 from __future__ import annotations
@@ -32,6 +36,7 @@ import urllib.parse
 
 import listeners
 import metrics
+import runrecord
 import shiploop_test_counts as test_counts
 
 HERE = Path(__file__).resolve().parent
@@ -659,7 +664,17 @@ def held_out_seen(events_path: Path, blocks: list[dict]) -> int:
     return sum(1 for line in events_path.read_text(errors="replace").splitlines() if any(mark in line for mark in markers))
 
 
-def event_facts(events_path: Path, hosts_used: list[str], blocks: list[dict]) -> tuple[dict, dict]:
+NO_LAUNCH_RECORD = "the run folder has no launch record (invocation.json or invocation-resume-*.json) that names a host"
+
+
+def hosts_facts(out: Path) -> tuple[list | None, bool | None, str | None]:
+    """``(hosts_used, mixed_host, why not)``, runrecord's answers read once; null with the reason when no launch record exists."""
+    if not runrecord.launches(out):
+        return None, None, NO_LAUNCH_RECORD
+    return runrecord.hosts_used(out), runrecord.mixed_host(out), None
+
+
+def event_facts(events_path: Path, hosts_used: list[str] | None, blocks: list[dict]) -> tuple[dict, dict]:
     """``({memory_writes, held_out_seen}, {key: reason})`` for the keys that could not be read (null here, never 0 or [])."""
     facts: dict = {"memory_writes": None, "held_out_seen": None}
     unmeasured: dict = {}
@@ -672,7 +687,9 @@ def event_facts(events_path: Path, hosts_used: list[str], blocks: list[dict]) ->
     if not readable:
         why = f"{events_path.name} is absent or unreadable in the run folder"
         return facts, {"memory_writes": why, "held_out_seen": why}
-    if "claude" in hosts_used:
+    if hosts_used is None:
+        unmeasured["memory_writes"] = f"which host wrote the events is unknown: {NO_LAUNCH_RECORD}"
+    elif "claude" in hosts_used:
         facts["memory_writes"] = memory_writes(events_path)
     else:
         unmeasured["memory_writes"] = ("the detector reads Claude's file-write calls and this run's launch records show "
@@ -687,22 +704,8 @@ def event_facts(events_path: Path, hosts_used: list[str], blocks: list[dict]) ->
 # --------------------------------------------------------------------------------------------------------------------
 # The block
 
-def declared(spec: dict | None) -> bool:
-    return bool(spec and (spec.get("mutation") or spec.get("acceptance")))
-
-
-def summary(block: dict | None) -> dict | None:
-    """The compact form a baseline row carries (None where the run has no block)."""
-    if not isinstance(block, dict) or not block.get("declared"):
-        return None  # a case that declares nothing has nothing to compare
-    row: dict = {"observed": bool(block.get("observed")), "hosts": block.get("hosts"), "mixed_host": block.get("mixed_host")}
-    mut, acc = block.get("mutation"), block.get("acceptance")
-    if mut is not None:
-        row["mutation"] = ({k: mut.get(k) for k in ("operator_id", "sites", "killed", "survived", "ratio", "ceiling_hit")}
-                           if mut.get("observed") else {"observed": False})
-    if acc is not None:
-        row["acceptance"] = ({"ids": len(acc["ids"]), "passed": len(acc["passed"])} if acc.get("observed") else {"observed": False})
-    return row
+def declared_keys(spec: dict | None) -> list[str]:
+    return [key for key in ("mutation", "acceptance") if (spec or {}).get(key)]
 
 
 def line(block: dict) -> str:
@@ -737,23 +740,43 @@ def line(block: dict) -> str:
     return "; ".join(parts)
 
 
-def measure(out: Path, work: Path, spec: dict, *, gate: str | None, hosts_used: list[str], groups: set,
-            stop: Callable[[], str | None], checks_dir: Path = HERE / "checks") -> dict:
+def failed_block(out: Path, spec: dict | None, exc: Exception) -> dict:
+    """The block of a run whose phase raised: the keys a reader looks for, the events unread, and why."""
+    used, mixed, _why = hosts_facts(out)
+    why = "the quality phase failed before the events were read"
+    return {"observed": False, "declared": declared_keys(spec), "hosts_used": used, "mixed_host": mixed,
+            "reason": f"the quality phase failed: {exc!r}", "memory_writes": None, "held_out_seen": None,
+            "unmeasured": {"memory_writes": why, "held_out_seen": why, **({"hosts_used": NO_LAUNCH_RECORD} if used is None else {})},
+            "seconds": 0.0}
+
+
+def measure(out: Path, work: Path, spec: dict, *, gate: str | None, groups: set, stop: Callable[[], str | None],
+            checks_dir: Path = HERE / "checks") -> dict:
     """The ``quality`` block of a run.
 
     `gate` is the reason the delivery is not to be measured (None when it is a finished, returned one). `spec` is what the case
-    declares (``mutation``, ``acceptance``: a list of blocks). Events are read either way. The copy and every log live under
-    ``<out>/quality``, which is removed first and whose listeners are stopped last; nothing outside it is touched.
+    declares (``mutation``, ``acceptance``: one block, ``refuse_ports``). The hosts come from the run's launch records
+    (runrecord), not from a flag. Events are read either way. The copy and every log live under ``<out>/quality``, which is
+    removed first and whose listeners are stopped last; nothing outside it is touched.
     """
     began = time.monotonic()
     ports = list((spec or {}).get("refuse_ports") or [])
-    blocks = list((spec or {}).get("acceptance") or [])
-    block: dict = {"observed": False, "declared": [key for key in ("mutation", "acceptance") if (spec or {}).get(key)],
-                   "hosts": list(hosts_used), "mixed_host": len(hosts_used) > 1}
-    facts, unmeasured = event_facts(out / "events.jsonl", hosts_used, blocks)
+    accept = (spec or {}).get("acceptance")
+    used, mixed, why_hosts = hosts_facts(out)
+    block: dict = {"observed": False, "declared": declared_keys(spec), "hosts_used": used, "mixed_host": mixed}
+    facts, unmeasured = event_facts(out / "events.jsonl", used, [accept] if accept else [])
+    if why_hosts:
+        unmeasured["hosts_used"] = why_hosts
+    notes = []
+    if used and "claude" in used and len(used) > 1:
+        notes.append(f"memory_writes covers Claude's Write/Edit/MultiEdit calls only; this run was also worked on by "
+                     f"{', '.join(host for host in used if host != 'claude')}, whose events it does not read")
+    if facts["held_out_seen"] is not None:
+        notes.append("held_out_seen counts event lines that name a held-out script, the checks folder or E2E_CHECKS; 0 is not proof "
+                     "the model never read the script: the harness prints the path of checks/ in its own command line and resume prompt")
     if gate is not None:
         block["reason"] = gate
-    elif not declared(spec):
+    elif not declared_keys(spec):
         block["reason"] = "the case declares no quality measures (no mutation command, no held-out acceptance)"
     else:
         folder = out / "quality"
@@ -763,10 +786,9 @@ def measure(out: Path, work: Path, spec: dict, *, gate: str | None, hosts_used: 
             copy = folder / "copy"
             copy.mkdir()
             block["delivered_files"] = export_delivery(work, copy)
-            if blocks:
-                parts = [acceptance(copy, one, groups=groups, stop=stop, logs=folder / "logs", checks_dir=checks_dir, ports=ports)
-                         for one in blocks]
-                block["acceptance"] = merge_acceptance(parts)
+            if accept:
+                block["acceptance"] = acceptance(copy, accept, groups=groups, stop=stop, logs=folder / "logs", checks_dir=checks_dir,
+                                                 ports=ports)
             if spec.get("mutation"):
                 block["mutation"] = mutation(copy, spec["mutation"], groups=groups, stop=stop, logs=folder / "logs", ports=ports)
         finally:
@@ -777,19 +799,9 @@ def measure(out: Path, work: Path, spec: dict, *, gate: str | None, hosts_used: 
             block["reason"] = "none of the declared measures could be taken: " + "; ".join(
                 f"{key}: {part.get('reason')}" for key, part in zip(("mutation", "acceptance"), measured) if part)
     block.update(facts)
+    if notes:
+        block["notes"] = notes
     if unmeasured:
         block["unmeasured"] = unmeasured
     block["seconds"] = round(time.monotonic() - began, 1)
     return block
-
-
-def merge_acceptance(parts: list[dict]) -> dict:
-    """One acceptance record from the blocks of a case (a followed case's first). Unobserved when any block could not run."""
-    if len(parts) == 1:
-        return parts[0]
-    bad = [part for part in parts if not part.get("observed")]
-    if bad:
-        return {"observed": False, "reason": "; ".join(str(part.get("reason")) for part in bad)}
-    return {"observed": True, "source": " | ".join(str(part.get("source")) for part in parts),
-            "ids": [i for part in parts for i in part["ids"]], "passed": [i for part in parts for i in part["passed"]],
-            "checks": [row for part in parts for row in part["checks"]]}
