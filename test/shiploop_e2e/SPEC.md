@@ -527,8 +527,9 @@ stands at the commit under test.
   probe at a stage boundary and inside a stage" is the admission test for moving grounding out of a packet, and no run
   ever made one on purpose). Phase 1 of the audited safer alternative: it records what a fresh context did and builds no
   trigger and no kill. The harness writes `<output>/sessions.jsonl`, append-only: a `start` row before each host launch
-  (`kind` `first`, `fresh` or `continued`, `reason`, `events_line`, `t`, and `told`, the CLI and run directory the resume
-  prompt named, stored as values because the Claude host passes its prompt in `-p` and keeps no prompt file) and an `end`
+  (`kind` `first`, `fresh` or `continued`, `reason`, `events_line`, `t`, `told`, the CLI and run directory the resume
+  prompt named, stored as values because the Claude host passes its prompt in `-p` and keeps no prompt file, and `engine`, the
+  ledger as the session inherits it) and an `end`
   row after it (end time, last events line, status, and the engine revision and last accepted action read from the ledger
   at that moment). The host's own events cannot give these boundaries: Grok repeats `available_commands` (the 2026-10-08
   r3 run has 237, so its `unreported_sessions` read 237). `metrics.json` gains a passive `fresh_starts` list: one block for
@@ -537,7 +538,7 @@ stands at the commit under test.
   recorded Claude stream shows one), each over the events from the fresh start to
   the tool call that submitted the next accepted action (the accept stamp is whole-second truncated, so the window ends
   at that call and not at the stamp; both seconds are recorded). A run with no `sessions.jsonl` lists only its
-  compactions and says `fresh_starts` is not recorded in `unmeasured`.
+  compactions, and `fresh_starts_unmeasured` says `not recorded` (a sibling key: the top-level `unmeasured` map is for counters).
   *What it tests.* The production recovery path: the resume prompt, which names the `next` command (the rule above), plus
   the packet that command prints. It is not S-6's "a model holding only the next packet", and a compaction carries no
   recovery command at all. The files of the old session stay on disk and the harness reaps its servers, which a real
@@ -569,8 +570,8 @@ stands at the commit under test.
   and the documented path is an external watcher that creates `<output>/stop` when `state.md` shows the target boundary,
   then `--resume-run`. Phase 2 (`--clear-at`) is built only if the first live probes show that the stop file's overshoot
   (its 2 s poll, up to 2.25 s) or the two-invocation procedure is inadequate. Engine movement between the kill and the
-  fresh session is read from the revisions the `end` row and the fresh session's first `next` result carry, never from an
-  invented wait. *Evidence.* test/shiploop-e2e-reorientation.test.py, over compact extracts of the saved runs named
+  fresh session is read from the revisions the killed session's `end` row, the fresh session's `start` row and its first
+  `next` result carry (`after_kill.moved`), never from an invented wait. *Evidence.* test/shiploop-e2e-reorientation.test.py, over compact extracts of the saved runs named
   above (test/fixtures/reorientation/).
 - Start from an empty directory, or for a follow-on case, from a clean copy of
   an earlier run's checkout. The harness leaves no files of its own behind.
