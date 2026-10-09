@@ -754,22 +754,31 @@ class GrokSessionStartTest(unittest.TestCase):
     """A Grok event stream carries no session-start marker, so a session that never reported cannot be counted from it.
 
     ``available_commands`` is Grok's announcement of its tool and command list and it is repeated inside one session:
-    r1-battleship-grok-none (2026-10-08) holds 314 of them for 2 `end` events (301 model calls), 2 at the head of the
-    first launch and 8 at the head of the resume. Counting each as a start printed "lower bound: 312 session(s) never
-    reported" for a cost that equals the two end events' totals. The count is unknown, and the lower-bound marking stays,
-    because a killed Grok session cannot be told from a long one by the stream alone; the harness's own launch rows can."""
+    r1-battleship-grok-none (2026-10-08) holds 314 of them for 2 `end` events (301 model calls), 2 at the head of the first
+    launch and 8 at the head of the resume. Counting each as a start printed "lower bound: 312 session(s) never
+    reported" for a cost that equals the two end events' totals. The count is unknown and the lower-bound marking stays,
+    because a killed Grok session cannot be told from a long one by the stream alone; the harness's own launch rows can.
+    What the stream does prove: model calls after the last `end` (or with no `end`) belong to a session that never
+    reported, so at least one did. A stream is Grok's by its host (a launch record) or its `usage` events, not by a field
+    of one event."""
 
     ACCEPTED = [("A1", "intake", "done", 105.0)]
 
     def stream(self) -> list[dict]:
         return [json.loads(line) for line in (FIXTURES / "grok-r1-session-shape.jsonl").read_text().splitlines()]
 
-    def collect(self, stream: list[dict]) -> dict:
-        return main_tests().collect_stream(stream, self.ACCEPTED)
+    def collect(self, stream: list[dict], host: str | None = None) -> dict:
+        if host is None:
+            return main_tests().collect_stream(stream, self.ACCEPTED)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = main_tests().write_stream_run(out, stream, self.ACCEPTED)
+            (out / "invocation.json").write_text(json.dumps({"case": "custom", "host": host}))
+            return metrics.collect(out, run_dir)
 
     def test_the_recorded_shape_has_many_announcements_for_two_ended_sessions(self):
         kinds = [event["type"] for event in self.stream()]
-        self.assertEqual((kinds.count("available_commands"), kinds.count("end")), (314, 2))
+        self.assertEqual((kinds.count("available_commands"), kinds.count("usage"), kinds.count("end")), (314, 301, 2))
 
     def test_the_announcements_are_not_counted_as_starts_the_count_is_unknown_with_its_reason(self):
         m = self.collect(self.stream())
@@ -787,13 +796,43 @@ class GrokSessionStartTest(unittest.TestCase):
         self.assertNotIn("312", metrics.summary_lines(m)[0])
         self.assertIn("(lower bound", metrics.summary_lines(m)[0])
 
+    def test_a_grok_stream_that_names_its_session_is_no_more_countable(self):
+        # The old reading told Grok's announcements from Codex's by a `sessionId` field; a Grok build that adds one must
+        # not bring back "312 session(s) never reported".
+        named = [dict(event, sessionId="s1") if event["type"] == "available_commands" else event for event in self.stream()]
+        m = self.collect(named)
+        self.assertIsNone(m["unreported_sessions"])
+        self.assertTrue(metrics.lower_bound(m))
+
+    def test_model_calls_after_the_last_end_prove_a_session_never_reported(self):
+        whole = self.collect(self.stream())
+        self.assertEqual(whole["unreported_sessions_at_least"], 0)
+        events = self.stream()
+        last_end = max(i for i, event in enumerate(events) if event["type"] == "end")
+        cut = events[:last_end]  # the resume's own `end` never came: it was killed
+        m = self.collect(cut)
+        self.assertEqual(m["unreported_sessions_at_least"], 1)
+        self.assertIsNone(m["unreported_sessions"])
+        self.assertIn("at least 1 session(s) never reported", metrics.cost_text(m))
+        self.assertTrue(metrics.turns_text(m).endswith("(lower bound)"))
+        none_ended = [event for event in events if event["type"] != "end"]
+        self.assertEqual(self.collect(none_ended)["unreported_sessions_at_least"], 1)  # r2, r3 and v1210: usage, no `end`
+
+    def test_the_host_of_the_run_decides_when_the_stream_has_no_model_call_yet(self):
+        # a Grok launch killed before its first model call: announcements only, but the launch record names Grok
+        announcements = [{"type": "available_commands", "commands": [], "tools": []}] * 5
+        self.assertIsNone(self.collect(announcements, host="grok")["unreported_sessions"])
+        # with no record and no model call there is no telling hosts apart: a bare announcement opens a session
+        self.assertEqual(self.collect(announcements[:1])["unreported_sessions"], 1)
+
     def test_a_stream_that_mixes_grok_and_claude_events_is_unknown_too(self):
         # r2-battleship-grok-none: Grok started it and was killed with its harness; Claude finished it.
-        grok = [e for e in self.stream()[:6]]  # a launch that never ended
+        grok = self.stream()[:40]  # a launch that never ended, with model calls
         claude = [{"type": "system", "subtype": "init", "claude_code_version": "2.1.294"},
                   {"type": "result", "subtype": "success", "num_turns": 5, "total_cost_usd": 1.0}]
         m = self.collect(grok + claude)
         self.assertIsNone(m["unreported_sessions"])
+        self.assertEqual(m["unreported_sessions_at_least"], 1)
         self.assertTrue(metrics.lower_bound(m))
 
     def test_a_host_that_marks_each_session_start_keeps_an_exact_count(self):
@@ -805,6 +844,7 @@ class GrokSessionStartTest(unittest.TestCase):
         self.assertEqual(self.collect([codex_open, codex_open, end])["unreported_sessions"], 1)
         self.assertEqual(self.collect([init, result])["unreported_sessions"], 0)
         self.assertFalse(metrics.lower_bound(self.collect([init, result])))
+        self.assertIsNone(self.collect([init, result])["unreported_sessions_at_least"])
 
     def test_the_lower_bound_predicate_reads_a_count_a_reason_or_nothing(self):
         for found, want in (({"unreported_sessions": 0}, False), ({"unreported_sessions": 3}, True),
