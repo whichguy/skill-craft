@@ -5620,6 +5620,23 @@ class TerminationSignalTest(CaseRunCase):
         proc.communicate(timeout=30)
         self.assertEqual(proc.returncode, -signal.SIGTERM)
 
+    def test_ctrl_c_on_a_suite_ends_its_hosts_at_once_and_writes_the_records(self):
+        # A suite runs its cases in worker threads and a Ctrl-C reaches only the main thread, which then waits for them: without
+        # its own handling the hosts ran on (the review saw them alive 40 s later) because the atexit kill comes after that wait.
+        proc, out = self.start("suite-int", "--suite", "smoke")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGINT)
+        try:
+            printed, _ = proc.communicate(timeout=45)
+        except subprocess.TimeoutExpired:
+            self.fail("the suite kept running after a Ctrl-C")
+        self.assertTrue(self.gone(host), "the host does not outlive a Ctrl-C of its suite")
+        self.assertEqual(proc.returncode, 1, printed)
+        self.assertEqual([(r["case"], r["pass"]) for r in json.loads((out / "suite-result.json").read_text())["cases"]], [("hello", False)])
+        result = json.loads((out / "hello" / "result.json").read_text())
+        self.assertEqual((result["process"]["status"], result["termination"]["resume_stop"]), ("stopped", "terminated by SIGINT"))
+        self.assertEqual(len(Path(str(self.log) + ".sessions").read_text().splitlines()), 1, "a terminated host is not relaunched")
+
     def test_ctrl_c_leaves_no_host_behind(self):
         proc, out = self.start("case-int")
         host = self.host_pid()
@@ -5732,6 +5749,26 @@ class SignalledHarnessThroughMainTest(CaseRunCase):
         self.assertEqual(code, 1)
         self.assertEqual([(r["case"], r.get("skipped")) for r in rows], [("a", "terminated by SIGTERM"), ("b", "terminated by SIGTERM")])
         self.assertFalse(self.log.exists(), "no host started")
+
+    def test_a_batch_suite_told_to_end_skips_its_gate_and_the_cases_behind_it(self):
+        SuiteTest.use_catalog(self, {"g": {"style": "s", "prompt": "p", "checks": []}, "a": {"style": "t", "prompt": "p", "checks": []}},
+                              {"b": {"kind": "batch", "gate": ["g"], "cases": ["a"]}})
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        run.TERMINATED_BY.append("SIGTERM")
+        run.TERMINATION.set()
+        out = self.tmp / "suite-out"
+        os.environ["FAKE_MODE"] = "done"
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(["--suite", "b", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        rows = json.loads((out / "suite-result.json").read_text())["cases"]
+        self.assertEqual(code, 1)
+        self.assertEqual(rows, [{"case": "g", "pass": False, "skipped": "terminated by SIGTERM", "gate": True},
+                                {"case": "a", "skipped": "the gate failed"}])
+        self.assertIn("gate failed (g)", printed.getvalue())
+        self.assertFalse(self.log.exists(), "no host started, not even the gate's")
 
     def test_a_signal_as_a_session_ends_stops_the_resume_loop_without_a_phantom_session(self):
         self.addCleanup(run.TERMINATION.clear)

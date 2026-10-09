@@ -143,13 +143,18 @@ def end_live_hosts() -> None:
 atexit.register(end_live_hosts)
 
 
-def on_termination(signum, frame) -> None:
-    """A SIGTERM or SIGHUP reached the harness: end every host at once and let main write the records as a requested stop."""
-    TERMINATED_BY.append(signal.Signals(signum).name)
+def terminate(name: str) -> None:
+    """The harness was told to end by `name`: end every host at once and let main write the records as a requested stop."""
+    TERMINATED_BY.append(name)
     TERMINATION.set()  # before the kill, so a launch that finds its host dead already knows why
     end_live_hosts()
     for number in HANDLED_SIGNALS:
         signal.signal(number, signal.SIG_DFL)  # a second signal means it: the default action ends the harness now
+
+
+def on_termination(signum, frame) -> None:
+    """A SIGTERM or SIGHUP reached the harness."""
+    terminate(signal.Signals(signum).name)
 
 
 def install_termination_handlers() -> list[int]:
@@ -1541,7 +1546,15 @@ def run_suite(args, argv: list[str]) -> int:
 
     workers = 1 if args.serial else max(1, min(args.max_parallel, len(chains)))
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        rows = [row for chain_rows in pool.map(run_chain, chains) for row in chain_rows]
+        rows: list[dict] = []
+        for future in [pool.submit(run_chain, chain) for chain in chains]:
+            try:
+                rows += future.result()
+            except KeyboardInterrupt:
+                # A Ctrl-C reaches this thread only, and leaving the pool waits for the chains and for the hosts they run, so
+                # the exit-time kill would come too late: end the hosts now, as a SIGTERM does, and wait for their records.
+                terminate("SIGINT")
+                rows += future.result()
     summary = gate_rows + sorted(rows, key=lambda row: order.index(row["case"]))
     shared = shared_tmp_writes([Path(row["output"]) for row in summary if row.get("output")])
     if shared:

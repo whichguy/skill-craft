@@ -1795,3 +1795,16 @@ test could fail first did, and the mutants named below were applied to a scratch
   (`rsplit(":", 1)[-1]` against `[1]`), so `n123` raised `IndexError` out of `launch()`. lsof prints `host:port` for a TCP endpoint, so this
   cannot happen in a normal run; a name that is not `host:port` now yields no port (`_port`), pinned by a test that failed first on the
   `IndexError`.
+- **A Ctrl-C on a suite did not end its hosts (minor, but it falsified the documented guarantee).** The review ran `run.py --suite breadth`
+  with three fake hosts and sent SIGINT: 40 s later the harness was running and all three hosts were alive, while SIGTERM on the same
+  suite ended in 31 s with rc 1, the hosts gone and `suite-result.json` written. A suite runs its cases in worker threads; the
+  `KeyboardInterrupt` reaches the main thread, which is inside `ThreadPoolExecutor.__exit__` waiting for them, so the `atexit` kill ran only
+  after the hosts had finished. `run_suite` now catches it while waiting for a chain, calls the same `terminate(name)` the SIGTERM handler
+  uses (named `SIGINT`) and waits for the chains' records, so a suite's Ctrl-C reads as a SIGTERM. Red first: the new real-subprocess test
+  waited 45 s and reported `the suite kept running after a Ctrl-C`. Not done: the second-press rule (`SIG_DFL`) of SIGTERM and SIGHUP is
+  not extended to SIGINT, because there is no deterministic test for it; a second Ctrl-C raises `KeyboardInterrupt` again.
+- **The batch suite's gate branch was untested (minor).** The mutant "the gate ignores TERMINATION" survived the whole file because the
+  signalled-suite test used a `breadth` suite, which has no gate. A `batch` suite with a gate now has its own test (gate row skipped as
+  `terminated by SIGTERM`, the cases behind it `the gate failed`, no host started); the mutant is killed. Mutants of the Ctrl-C path:
+  wrong name, rows dropped, `TERMINATION` not set all killed. One survived by construction (setting `TERMINATION` without the immediate
+  kill still ends the host at its next poll, at most 2 s); the immediate kill sits in `terminate`, which `LiveHostTest` pins with a 30 s poll.
