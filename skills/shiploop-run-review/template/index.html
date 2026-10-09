@@ -239,6 +239,8 @@ label.opt .t{min-width:0}
 .sw.s-warn{background:var(--bent)}
 .sqnum{font-weight:600;color:var(--accent)}
 .plancard{margin-top:12px}
+.freshcard,.qualitycard{margin-top:12px}
+.freshcard .facts dd,.qualitycard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
 .pl-line{margin:3px 0 0;font-size:13px}
 .pl-item{border-top:1px solid var(--line);margin-top:8px;padding:6px 6px 4px;border-radius:6px}
 .pl-item.sel{background:var(--accent-bg)}
@@ -310,6 +312,8 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <div id="arc" class="arc"></div>
 <div class="kpis" id="kpis" role="group" aria-label="Six numbers for this run"></div>
 <div class="card plancard" id="plancard" hidden></div>
+<div class="card freshcard" id="freshcard" hidden></div>
+<div class="card qualitycard" id="qualitycard" hidden></div>
 <div class="card seqcard" id="seqcard" hidden>
 <h3>Every visit, in order</h3>
 <p class="sub" id="seqcap" style="margin:2px 0 0"></p>
@@ -1094,7 +1098,7 @@ function sequenceModel(run,opts){
   lay.axisY=lay.bottom+12;lay.height=lay.axisY+5;
   var why=reasonFor(run,"visitContext");
   return {columns:cols,visits:rows.length,maxMin:tallest?{min:maxMin,stage:tallest.stage,visit:tallest.first+1}:null,lay:lay,band:band,
-    bandNote:rows.length&&!anyCtx?"Per-visit context not measured on this host"+(why?": "+why:""):"",cards:kpiCards(run,opts.loops),legend:legendKinds(cols,band)};
+    bandNote:rows.length&&!anyCtx?"Per-visit context not measured for this run"+(why?": "+why:""):"",cards:kpiCards(run,opts.loops),legend:legendKinds(cols,band)};
 }
 /* The keys of the legend entries the picture needs: only a kind that is drawn is listed (done, rev, blk, skip, seed, na, tail,
    imp), and the context band's own entries only when there is a band (ctx), a column at 90% or more (warn) or a measured
@@ -1120,6 +1124,8 @@ function improveText(run,r){
   if(p!==null||m!==null)return (p!==null?plural(p,"pass"):"passes not measured")+(m!==null?", "+m+" min":", minutes not measured");
   return work&&improveByDesign(run,r.stage)?"not run by design (planning_review none)":"";
 }
+/* What a visit without a context says when other visits of the run have one (the export's unmeasured.visitContext counts them). */
+var NO_VISIT_CONTEXT_TEXT="not measured for this visit: no model call was measured in its stage window";
 /* The context line of a visit or column (contextOf's figures): calls, peak, compactions as far as measured. */
 function contextLine(cx){
   var bits=[];
@@ -1158,7 +1164,7 @@ function columnDetail(model,k,run,findings,catalog){
   var imp=one?improveText(run,one):"";
   if(imp)lines.push(["Improve",imp]);
   if(c.context)lines.push(["Context (main thread)",contextLine(c.context)]);
-  else if(model.band)lines.push(["Context (main thread)","not measured for this visit"]);
+  else if(model.band)lines.push(["Context (main thread)",NO_VISIT_CONTEXT_TEXT]);
   var marked=(findings||[]).filter(function(f){return appliesTo(f,key)&&c.phases.indexOf(f.phase)>=0;});
   return {title:title,lines:lines,findings:marked,prev:k>0?k-1:null,next:k<model.columns.length-1?k+1:null,
     packet:one&&packetId(run,one)?{id:packetId(run,one)}:null,card:one?stageCard(run,c.first,catalog):null};
@@ -1309,7 +1315,8 @@ function stageCard(run,i,catalog){
     "; run-level not measured"+(whyNot(run,"refusals")?" (the reason is on the Refusals card)":""))]);
   var cx=contextOf([r],run&&isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:null);
   if(cx)done.push(["Context (main thread)",contextLine(cx)]);
-  else if(rows.some(function(x){return x&&x.context&&typeof x.context==="object";}))done.push(["Context (main thread)","not measured for this visit"]);
+  else if(rows.some(function(x){return x&&x.context&&typeof x.context==="object";}))done.push(["Context (main thread)",NO_VISIT_CONTEXT_TEXT]);
+  var fm=freshMarkText(r.freshStart);if(fm)done.push(["Fresh start",fm]);
   /* written: the result */
   var written=[],summary=typeof r.summary==="string"&&r.summary?r.summary:"";
   if(r.resultFile===false)written.push(["Result file","none: the accepted result is read from state.md"]);
@@ -1406,7 +1413,7 @@ function visitTable(run,model){
     var imp=im&&isCount(im.passes)?plural(im.passes,"pass")+(isCount(im.min)?", "+im.min+" min":""):(im&&isCount(im.min)?im.min+" min":"");
     return [String(i+1),r.stage||"",String(r.outcome||"done")+(r.skipped===true?", skipped":"")+(r.seeded===true?", seeded":""),visitMinutes(r),imp,
       isCount(r.packetBytes)?kbText(r.packetBytes):(r.skipped===true?"none issued":""),isCount(r.resultBytes)?kbText(r.resultBytes):""]
-      .concat(ctx?[c&&isCount(c.peakPct)?pctText(c.peakPct):"not measured",c&&isCount(c.compactions)?String(c.compactions):"not measured"]:[]);
+      .concat(ctx?[c&&isCount(c.peakPct)?pctText(c.peakPct):(c&&isCount(c.peak)?grouped(c.peak)+" tokens":"not measured"),c&&isCount(c.compactions)?String(c.compactions):"not measured"]:[]);
   })};
 }
 /* A column's tooltip and spoken name. */
@@ -1461,6 +1468,107 @@ function sequenceSvg(model,picked){
   if(picked>=0&&picked<n)p.push('<rect class="sq-sel" x="'+(x0+picked*pitch+0.5)+'" y="'+L.head+'" width="'+(pitch-1)+'" height="'+selH+'" rx="3"/>');
   var label="Sequence of "+model.visits+" visits, one column each, taller for more minutes (square-root scale)"+(model.band?", with the context peak of each visit as a strip under the columns":"")+(cols[n-1].kind==="tail"?", and a hatched last column for the stage the run never accepted":"")+". The table below lists every visit.";
   return '<svg class="sq" viewBox="0 0 '+L.width+' '+L.height+'" width="'+L.width+'" height="'+L.height+'" style="min-width:min(100%,'+Math.round(L.width*1.4)+'px)" role="img" aria-label="'+esc(label)+'">'+p.join("")+hits.join("")+'</svg>';
+}
+/* ---- fresh starts (R23c): the cost of losing context, a record and never a score ---- */
+var FIRST_GROUNDING={"packet":"from the packet","next":"with shiploop next","improve-next":"with the Improve runtime's next","other":"with another ShipLoop command"};
+/* A measured start's re-grounding as text: "re-grounded in 29 calls, 327 s, from the packet"; a figure the start lacks is left out. */
+function regroundText(re){
+  var bits=[isCount(re&&re.toolCalls)?"re-grounded in "+plural(re.toolCalls,"call"):"re-grounded"];
+  if(isCount(re&&re.seconds))bits.push(Math.round(re.seconds)+" s");
+  if(typeof(re&&re.firstGrounding)==="string"&&re.firstGrounding)bits.push(FIRST_GROUNDING[re.firstGrounding]||"first grounding "+re.firstGrounding);
+  return bits.join(", ");
+}
+/* A lower-bound count with the harness's own bound and scope beside it: "Failed ShipLoop commands: 0 (lower bound: <scope>)". A count the
+   start lacks reads "not counted", never 0. "" when the block is absent. */
+function boundedText(label,x){
+  if(!x||typeof x!=="object")return "";
+  return label+": "+(isCount(x.count)?x.count:"not counted")+" ("+(typeof x.bound==="string"?x.bound:"unknown")+" bound: "+(typeof x.scope==="string"?x.scope:"no scope recorded")+")";
+}
+/* The "Fresh starts" card as data: {title, lead, rows: [[label, text]], note}, or null when the export says nothing about fresh starts
+   (an older export). A list with `unmeasured.freshStarts` is partial (`note`); no list with it is "not measured"; an empty list with
+   no reason is a measured none. Every figure is the export's; a start that was not measured shows only its reason. */
+function freshStartsModel(run){
+  if(!run)return null;
+  var list=Array.isArray(run.freshStarts)?run.freshStarts:null,why=reasonFor(run,"freshStarts");
+  if(list===null&&!why)return null;
+  if(list===null)return {title:"Fresh starts",lead:"Not measured: "+why,rows:[],note:""};
+  var rows=list.map(function(s){
+    var re=s&&s.reoriented&&typeof s.reoriented==="object"?s.reoriented:{};
+    var fresh=s&&s.kind==="fresh";
+    var label=(fresh?"New host session":"Compaction")+(s&&typeof s.stage==="string"&&s.stage?" in "+stageLabel(s.stage):"")+
+      (s&&typeof s.host==="string"&&s.host?" ("+s.host+")":"")+(fresh&&s&&typeof s.startedBy==="string"&&s.startedBy?", "+s.startedBy:"");
+    if(re.measured!==true)return [label,"not measured: "+(typeof re.reason==="string"&&re.reason?re.reason:"no reason recorded")];
+    var parts=[regroundText(re)];
+    var failed=boundedText("Failed ShipLoop commands",re.failures),wrote=boundedText("Files rewritten",re.rewrote);
+    if(failed)parts.push(failed);
+    if(wrote)parts.push(wrote);
+    if(isCount(re.askedUser))parts.push("Asked a person: "+re.askedUser);
+    return [label,parts.join(". ")];
+  });
+  return {title:"Fresh starts",lead:list.length?plural(list.length,"fresh start")+" recorded.":"None recorded.",rows:rows,note:why?"Not complete: "+why:""};
+}
+/* A visit's mark for the fresh start that its acceptance ended: "compaction during this visit: re-grounded in 29 calls, 327 s before it
+   was accepted", or "" when the visit has none. */
+function freshMarkText(m){
+  if(!m||typeof m!=="object"||typeof m.kind!=="string")return "";
+  var bits=[isCount(m.toolCalls)?"re-grounded in "+plural(m.toolCalls,"call"):"re-grounded"];
+  if(isCount(m.seconds))bits.push(Math.round(m.seconds)+" s");
+  return (m.kind==="fresh"?"new host session":m.kind)+" during this visit: "+bits.join(", ")+" before it was accepted";
+}
+/* ---- quality of the delivered work (R23c): measured after the run on a copy, recorded and never judged ---- */
+/* One surviving mutant as a line: "server.js:33 rel-bound: > became >=". */
+function survivorText(m){
+  var where=(m&&typeof m.file==="string"?m.file:"a file")+(isCount(m&&m.line)?":"+m.line:"");
+  return where+(m&&typeof m.op==="string"?" "+m.op:"")+(m&&typeof m.from==="string"&&typeof m.to==="string"?": "+m.from+" became "+m.to:"");
+}
+/* The mutation row: the ratio with its operator catalog (a ratio is comparable only within one), the counts it is made of and, when
+   there are any, the catches a hang or a refused port could have caused. A count the export lacks is left out, never 0. */
+function mutationText(m){
+  if(m.observed!==true)return "not observed: "+(typeof m.reason==="string"&&m.reason?m.reason:"no reason recorded");
+  var base=(isCount(m.ratio)?"ratio "+m.ratio:"no ratio")+" (operator "+(typeof m.operatorId==="string"&&m.operatorId?m.operatorId:"not recorded")+")";
+  if(isCount(m.killed)&&isCount(m.survived))base+=": "+m.killed+" caught, "+m.survived+" survived"+(isCount(m.sites)?" of "+m.sites+" sites":"");
+  var sentences=[base],odd=[];
+  if(isCount(m.timeout)&&m.timeout>0)odd.push(m.timeout+" timed out");
+  if(isCount(m.portRefused)&&m.portRefused>0)odd.push(m.portRefused+" had a fixed port refused");
+  if(odd.length)sentences.push("Of the caught, "+odd.join(" and ")+": a hang or a refused port can read as a catch");
+  var out=[];
+  if(isCount(m.unconfirmed)&&m.unconfirmed>0)out.push(m.unconfirmed+" unconfirmed");
+  if(isCount(m.invalid)&&m.invalid>0)out.push(m.invalid+" invalid");
+  if(out.length)sentences.push(out.join(" and ")+", out of the ratio");
+  if(isCount(m.notRun)&&m.notRun>0)sentences.push(m.notRun+" not run"+(m.ceilingHit===true?" (the time ceiling was reached)":""));
+  return sentences.join(". ");
+}
+/* The "Quality of the delivered work" card as data: {title, sub, lead, rows: [[label, text]]}, or null when the run has no `quality`
+   (the case measures none, the phase has not run, or an older export). A part the harness could not take shows its reason; a
+   measure that could not be read shows "not measured" with the harness's reason, never a zero. */
+function qualityModel(run){
+  var q=run&&run.quality&&typeof run.quality==="object"?run.quality:null;
+  if(!q)return null;
+  var rows=[],um=q.unmeasured&&typeof q.unmeasured==="object"?q.unmeasured:{};
+  var m=q.mutation&&typeof q.mutation==="object"?q.mutation:null,a=q.acceptance&&typeof q.acceptance==="object"?q.acceptance:null;
+  if(m){
+    rows.push(["Mutation",mutationText(m)]);
+    var sv=m.observed===true&&Array.isArray(m.survivors)?m.survivors:[];
+    if(sv.length)rows.push(["Survivors"+(isCount(m.survived)&&m.survived>sv.length?" ("+sv.length+" of "+m.survived+" shown)":""),sv.map(survivorText).join("\n")]);
+    var un=m.observed===true&&Array.isArray(m.uncovered)?m.uncovered:[];
+    if(un.length)rows.push(["No operator reaches",un.map(function(u){return (u&&u.file||"a file")+": "+(isCount(u&&u.inlineScriptLines)?plural(u.inlineScriptLines,"line")+" of inline script":"inline script of unknown length");}).join("\n")]);
+  }
+  if(a){
+    rows.push(["Held-out checks",a.observed!==true?"not observed: "+(typeof a.reason==="string"&&a.reason?a.reason:"no reason recorded"):
+      (isCount(a.passed)&&isCount(a.total)?a.passed+" of "+a.total+" pass"+(Array.isArray(a.failed)&&a.failed.length?"; failed: "+a.failed.join(", "):""):"observed, counts not recorded")]);
+  }
+  var w=q.memoryWrites&&typeof q.memoryWrites==="object"?q.memoryWrites:null;
+  if(w&&isCount(w.count)){
+    var items=Array.isArray(w.items)?w.items:[];
+    rows.push(["Writes to the model's own memory",w.count===0?"none seen (the model's file-write tool calls only)":
+      [plural(w.count,"write")+(items.length<w.count?"; the first "+items.length+" shown":"")].concat(items.map(function(i){return (i&&i.path||"a file")+(i&&i.tool?" ("+i.tool+")":"");})).join("\n")]);
+  }else if(typeof um.memoryWrites==="string")rows.push(["Writes to the model's own memory","not measured: "+um.memoryWrites]);
+  if(isCount(q.heldOutSeen))rows.push(["Held-out names in the model's events",String(q.heldOutSeen)]);
+  else if(typeof um.heldOutSeen==="string")rows.push(["Held-out names in the model's events","not measured: "+um.heldOutSeen]);
+  if(Array.isArray(q.notes)&&q.notes.length)rows.push(["Notes",q.notes.join("\n")]);
+  return {title:"Quality of the delivered work",
+    sub:"Measured after the run, on a copy of the delivered work. A record, not a verdict. A mutation ratio belongs to one operator: compare it only with a ratio of the same operator.",
+    lead:q.observed===true?"Observed.":"Not observed: "+(typeof q.reason==="string"&&q.reason?q.reason:"no reason recorded"),rows:rows};
 }
 </script>
 <script>
@@ -1655,6 +1763,27 @@ function renderEnding(run){
   box.className="card endcard "+m.kind;
   box.appendChild(h("h3","",m.title));box.appendChild(factsEl(m.rows));
 }
+/* "Fresh starts": the card under the plan, built from freshStartsModel; hidden when the run says nothing about them. */
+function renderFreshStarts(run){
+  var box=byId("freshcard");clear(box);
+  var m=run?freshStartsModel(run):null;box.hidden=!m;
+  if(!m)return;
+  box.appendChild(h("h3","",m.title));
+  box.appendChild(h("p","sub","Each time the model lost its context (a compaction, or a new host session): what re-grounding took until the next action was accepted. A record, not a score. Failure and rewrite counts are lower bounds."));
+  box.appendChild(h("p","pl-line",m.lead));
+  if(m.rows.length)box.appendChild(factsEl(m.rows));
+  if(m.note)box.appendChild(h("p","msg",m.note));
+}
+/* "Quality of the delivered work": the card under the fresh starts, built from qualityModel; hidden when the run has no `quality`. */
+function renderQuality(run){
+  var box=byId("qualitycard");clear(box);
+  var m=run?qualityModel(run):null;box.hidden=!m;
+  if(!m)return;
+  box.appendChild(h("h3","",m.title));
+  box.appendChild(h("p","sub",m.sub));
+  box.appendChild(h("p","pl-line",m.lead));
+  if(m.rows.length)box.appendChild(factsEl(m.rows));
+}
 function openFinding(id){
   L.filter="all";L.crit="";save();renderFindings();go(3);
   try{var n=byId("f-"+id);if(n)n.scrollIntoView({block:"center"});}catch(e){}
@@ -1839,6 +1968,8 @@ function renderCardList(model,run){
     top.appendChild(nm);
     top.appendChild(chipEl(OUTCOME_CHIP[r.outcome]||"muted",r.outcome));
     if(r.check)top.appendChild(chipEl(CHECK_CHIP[r.check]||"muted",r.check));
+    var col=model.columns[r.col],fm=col&&col.n===1&&col.rows[0]?freshMarkText(col.rows[0].freshStart):"";
+    if(fm)top.appendChild(chipEl("bent","fresh start",fm));
     b.appendChild(top);
     if(r.purpose)b.appendChild(h("span","sc-purp",r.purpose));
     var bits=[];
@@ -1858,7 +1989,7 @@ try{window.addEventListener("resize",updateHint);}catch(e){}
 function renderPicture(reveal){
   var o=runOf(),kp=byId("kpis"),sc=byId("seqscroll"),det=byId("seqdetail"),tb=byId("seqtable"),card=byId("seqcard"),box=byId("seqtabbox");
   clear(kp);clear(det);clear(tb);
-  if(!o.run){card.hidden=true;box.hidden=true;byId("plancard").hidden=true;byId("sclist").hidden=true;return;}
+  if(!o.run){card.hidden=true;box.hidden=true;byId("plancard").hidden=true;byId("freshcard").hidden=true;byId("qualitycard").hidden=true;byId("sclist").hidden=true;return;}
   var run=o.run;
   if(pickedRun!==run.key){pickedRun=run.key;pickedCol=-1;pickedItem="";planMsg="";}
   var model=sequenceModel(run,{loops:loopsFor(run),item:pickedItem});lastModel=model;
@@ -1868,7 +1999,7 @@ function renderPicture(reveal){
     d.appendChild(h("span","kl",c.label));d.appendChild(h("b","kv",c.value));if(c.note)d.appendChild(h("span","kn",c.note));
     (c.lines||[]).forEach(function(l){d.appendChild(h("span","kn",l));});kp.appendChild(d);
   });
-  renderPlan(run);
+  renderPlan(run);renderFreshStarts(run);renderQuality(run);
   card.hidden=!model.columns.length;box.hidden=!model.columns.length;
   if(!model.columns.length){byId("sclist").hidden=true;return;}
   byId("seqcap").textContent="Column height is the square root of minutes on this run's own scale"+

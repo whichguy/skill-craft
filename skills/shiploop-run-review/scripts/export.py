@@ -157,6 +157,29 @@ PRODUCT_AT_STOP_FIELDS = {
     "checks": (("items", AT_STOP_CHECK), False)}
 LEFT_BEHIND_ITEM = {"command": (S, True), "ports": (("list", N), False),
                     "where": (("enum", ("worktree", "work", "other")), True), "endedBy": (S, False)}
+# R23c. A fresh start (the model lost its context: a compaction, or a new host session) and what it cost to re-ground; the mark on
+# the visit that followed; the delivered-quality block. Every member is optional unless marked; none is a verdict (SCHEMA.md).
+FRESH_REORIENTED = {
+    "measured": (B, True), "reason": (S, False), "toolCalls": (N, False), "seconds": (N, False), "firstGrounding": (S, False),
+    "callsBeforeGrounding": (N, False), "nextCalls": (N, False), "askedUser": (N, False),
+    "failures": (("object", {"count": (N, True), "bound": (S, True), "scope": (S, True)}), False),
+    "rewrote": (("object", {"count": (N, False), "bound": (S, True), "scope": (S, True)}), False),
+    "accepted": (("object", {"stage": (S, False), "action": (S, False)}), False)}
+FRESH_START_FIELDS = {"kind": (S, True), "host": (S, False), "stage": (S, False), "startedBy": (S, False),
+                      "reoriented": (("object", FRESH_REORIENTED), True)}
+FRESH_MARK_FIELDS = {"kind": (S, True), "toolCalls": (N, False), "seconds": (N, False)}
+QUALITY_MUTATION = {
+    "observed": (B, True), "reason": (S, False), "operatorId": (S, False), "ratio": (N, False), "sites": (N, False),
+    "killed": (N, False), "survived": (N, False), "timeout": (N, False), "invalid": (N, False), "unconfirmed": (N, False),
+    "portRefused": (N, False), "notRun": (N, False), "ceilingHit": (B, False), "seconds": (N, False),
+    "uncovered": (("items", {"file": (S, True), "inlineScriptLines": (N, False)}), False),
+    "survivors": (("items", {"file": (S, True), "line": (N, False), "op": (S, False), "from": (S, False), "to": (S, False)}), False)}
+QUALITY_FIELDS = {
+    "observed": (B, True), "reason": (S, False), "declared": (("list", S), False), "mutation": (("object", QUALITY_MUTATION), False),
+    "acceptance": (("object", {"observed": (B, True), "reason": (S, False), "passed": (N, False), "total": (N, False),
+                               "failed": (("list", S), False)}), False),
+    "memoryWrites": (("object", {"count": (N, True), "items": (("items", {"path": (S, True), "tool": (S, False)}), False)}), False),
+    "heldOutSeen": (N, False), "notes": (("list", S), False), "seconds": (N, False), "unmeasured": (("map", S), False)}
 SCHEMA = {
     # No expectation carries a status: how an expectation stands for a run is derived by the page from the run's
     # findings and review. `clauses` ties a criterion to the S-n clauses of test/shiploop_e2e/SPEC.md.
@@ -211,7 +234,9 @@ SCHEMA = {
                               # R22b: what ShipLoop's own script checks recorded for the visit (tests/<action>-verifyN.md) and
                               # the outcomes a result left unverified, each with its owner and due stage (SCHEMA.md).
                               "verify": (("object", VERIFY_FIELDS), False),
-                              "unverified": (("items", UNVERIFIED_FIELDS), False)}), False),
+                              "unverified": (("items", UNVERIFIED_FIELDS), False),
+                              # R23c: the fresh start this visit's acceptance ended (SCHEMA.md "Fresh starts").
+                              "freshStart": (("object", FRESH_MARK_FIELDS), False)}), False),
         # The plan's work items and how each went through the steps loop, from state.md and results/ only. Absent, with
         # a reason in `unmeasured.workItems`, when the records cannot tell; stepsPlanned and stepsExecuted are absent,
         # with a reason under their own name, when any item's steps or pairing is unknown. Never a zero for those.
@@ -265,6 +290,11 @@ SCHEMA = {
         "identity": (("object", IDENTITY_FIELDS), False),
         "environment": (("object", ENVIRONMENT_FIELDS), False),
         "productAtStop": (("object", PRODUCT_AT_STOP_FIELDS), False),
+        # R23c. Every time the model lost its context and what re-grounding cost (record only), and the delivered-quality block
+        # (SCHEMA.md "Fresh starts" and "Quality"). Absent for a run recorded before the harness wrote them; `unmeasured.freshStarts`
+        # says why a list is absent or partial. An absent `quality` means the case measures none or the phase has not run.
+        "freshStarts": (("items", FRESH_START_FIELDS), False),
+        "quality": (("object", QUALITY_FIELDS), False),
     },
     "backchain": {
         "run": (S, False), "loop": (S, False), "phase": (N, False), "order": (N, False), "title": (S, False),
@@ -1065,32 +1095,33 @@ def _model_measures(metrics: dict, harness: dict[str, str]) -> tuple[dict, dict[
     return found, why
 
 
-NO_VISIT_CONTEXT = ("the harness's stage rows carry no per-stage context (it reads it from Claude's per-message usage and "
-                    "from a Codex run's rollouts)")
-NO_VISIT_CONTEXT_GROK = ("the harness does not read per-stage context from Grok's events (it does from Claude's per-message "
-                         "usage and from a Codex run's rollouts)")
+NO_VISIT_CONTEXT = "the harness's stage rows carry no per-stage context, as this run was recorded"
 
 
-def no_visit_context(host: str | None) -> str:
-    """Why no visit has a context, by the host that wrote the run: Grok's events carry per-call usage but the harness
-    attributes it to no stage; Claude's and Codex's rows have it, so another host (or none) gets the general sentence."""
-    return NO_VISIT_CONTEXT_GROK if host == "grok" else NO_VISIT_CONTEXT
+def visits_without_context_reason(lacking: int, total: int) -> str:
+    """Why some visits carry no context while others do (R23c): read from the stage rows, never from the host. A row has a
+    `context` when the harness measured at least one model call in its stage window (Claude's messages, Grok's usage events,
+    a Codex rollout's calls); a window with no host event has none, which is not a count of zero calls."""
+    return (f"{lacking} of {total} visits carry no context: the harness measured no model call in their stage windows (no host "
+            "event there, or the window could not be placed); that is not zero calls")
 
 
-def _visit_context(metrics: dict, history: list[dict], host: str | None = None) -> tuple[list[dict | None], str | None]:
-    """(context per history entry, why none is shown).
+def _visit_context(metrics: dict, history: list[dict]) -> tuple[list[dict | None], str | None]:
+    """(context per history entry, why some visits have none).
 
     The harness's stage rows (metrics.json `stages`) carry no action id: each is built from one history entry of
     state.md, in order, plus a trailing `incomplete` row for the stage the run stopped in. So a row belongs to the
     history entry at its position, and that entry names the action. The join is used only when the rows line up
     exactly (the same count, and the same stage and outcome at every position); otherwise no visit gets a context,
-    never a guess. A context holds only the figures the harness measured: calls, peak, peakPct, compactions. A row that
-    counts no model call (`calls` 0) has no context: its peak is unmeasured, and "0 calls" beside it would read as a
-    measurement, as it did for the visits a host had no events for."""
+    never a guess. A context holds only the figures the harness measured: calls, peak, peakPct, compactions (a Grok row's
+    peakPct is null: the host reports no window, so none is computed). Whether a visit has one follows its row, not the host.
+    A row that counts no model call (`calls` 0) has none: its peak is unmeasured, and "0 calls" beside it would read as a
+    measurement, as it did for the visits a run recorded before the harness left such a row out. The reason is None when
+    every visit has a context; with none, the rows carry no per-stage context; with some, the visits lacking one are counted."""
     rows = metrics.get("stages")
     rows = [r for r in rows if isinstance(r, dict) and not r.get("incomplete")] if isinstance(rows, list) else []
     if not any(isinstance(r.get("context"), dict) for r in rows):
-        return [None] * len(history), no_visit_context(host)
+        return [None] * len(history), NO_VISIT_CONTEXT
     if len(rows) != len(history) or any(
             (row.get("stage"), row.get("outcome")) != (entry.get("stage") or "?", entry.get("outcome"))
             for row, entry in zip(rows, history)):
@@ -1105,7 +1136,8 @@ def _visit_context(metrics: dict, history: list[dict], host: str | None = None) 
             continue
         found.append({k: figures[k] for k in ("calls", "peak", "peakPct", "compactions")
                       if _num(figures.get(k)) is not None} or None)
-    return found, None if any(found) else no_visit_context(host)
+    lacking = sum(1 for context in found if context is None)
+    return found, visits_without_context_reason(lacking, len(found)) if lacking else None
 
 
 def _seeded(seeded, history: list[dict]) -> tuple[set[str], str | None]:
@@ -1693,6 +1725,242 @@ def _planning(metrics: dict) -> tuple[dict, dict[str, str]]:
     return found, reasons
 
 
+# ---------------------------------------------------------------- fresh starts and delivered quality (R23c)
+
+MAX_FRESH_STARTS = 30  # fresh starts kept in the run document; a longer list is cut and unmeasured.freshStarts says so
+MAX_FRESH_TEXT = 300  # characters of one start's reason, scope or startedBy
+MAX_FRESH_NOTE = 600  # characters of the run's unmeasured.freshStarts
+NO_FRESH_RECORD = ("metrics.json has no fresh_starts record: it was written before the harness recorded fresh contexts "
+                   "(regrade the run)")
+NO_REORIENTATION = "metrics.json holds no reorientation record for this start"
+NO_REASON = "the harness gives no reason"
+
+
+def _short(value, limit: int) -> str | None:
+    """The value's text on one line, cut at `limit` characters, or None when it is not a non-blank string."""
+    text = " ".join(value.split())[:limit] if isinstance(value, str) else ""
+    return text or None
+
+
+def _nonneg(value):
+    """The value when it is a number of zero or more, else None (unknown, never 0)."""
+    number = _num(value)
+    return number if number is not None and number >= 0 else None
+
+
+def _lower_bound(block, listed: str, counted: bool) -> dict | None:
+    """A lower-bound block of a reorientation (`failures`, `rewrote`) as {count, bound, scope}: the count is how many items
+    `listed` holds, kept only when that is a list (a `rewrote` whose paths are unknown keeps its bound and scope, which say
+    why). The harness's own words for the bound and its scope are kept whole; a block without both is not exported."""
+    if not isinstance(block, dict):
+        return None
+    bound, scope = _short(block.get("bound"), MAX_FRESH_TEXT), _short(block.get("scope"), MAX_FRESH_TEXT)
+    if bound is None or scope is None:
+        return None
+    if isinstance(block.get(listed), list):
+        return {"count": len(block[listed]), "bound": bound, "scope": scope}
+    return None if counted else {"bound": bound, "scope": scope}
+
+
+def _reoriented(block) -> dict:
+    """What a fresh context did from its start to the next accepted action, from the harness's `reorientation` block. A window
+    that was not measured has no figure, only its reason: the harness's counts for it (first grounding, calls before it) are not
+    counts of a window it could not place. `failures` and `rewrote` are lower bounds by the harness's own words."""
+    if not isinstance(block, dict):
+        return {"measured": False, "reason": NO_REORIENTATION}
+    if block.get("measured") is not True:
+        return {"measured": False, "reason": _short(block.get("reason"), MAX_FRESH_TEXT) or NO_REASON}
+    recovery = block.get("recovery") if isinstance(block.get("recovery"), dict) else {}
+    out: dict = {"measured": True}
+    for field, value in (("toolCalls", _nonneg(block.get("tool_calls"))), ("seconds", _nonneg(block.get("seconds"))),
+                         ("firstGrounding", _short(block.get("first_grounding"), 40)),
+                         ("callsBeforeGrounding", _nonneg(block.get("calls_before_grounding"))),
+                         ("nextCalls", _nonneg(recovery.get("next_calls"))), ("askedUser", _nonneg(block.get("asked_user"))),
+                         ("failures", _lower_bound(block.get("failures"), "items", True)),
+                         ("rewrote", _lower_bound(block.get("rewrote"), "paths", False))):
+        if value is not None:
+            out[field] = value
+    accepted = block.get("accepted") if isinstance(block.get("accepted"), dict) else {}
+    named = {k: v for k in ("stage", "action") if (v := _short(accepted.get(k), 80))}
+    if named:
+        out["accepted"] = named
+    return out
+
+
+def fresh_starts_of(metrics: dict) -> tuple[list[dict] | None, str | None]:
+    """(freshStarts, why it is absent or partial) from metrics.json `fresh_starts` and `fresh_starts_unmeasured`.
+
+    Each start keeps its kind (compaction or fresh, as the harness names it), host, the stage in flight when the harness names one,
+    why a fresh session began (`startedBy`) and the `reoriented` block; its time stamp and events line are dropped. An empty list
+    is a measured none only when the harness gave no note: with one it is unknown, and the result is None with the note, so
+    "no fresh starts" is never said of a run that could not record them. A list with a note is kept and the note is its reason
+    (the list is partial). A record from before the harness wrote the key says so."""
+    blocks = metrics.get("fresh_starts")
+    if not isinstance(blocks, list):
+        return None, NO_FRESH_RECORD
+    found, unread = [], 0
+    for item in blocks:
+        kind = _short(item.get("kind"), 40) if isinstance(item, dict) else None
+        if kind is None:
+            unread += 1
+            continue
+        entry = {"kind": kind}
+        for field, value in (("host", _short(item.get("host"), 40)), ("stage", _short(item.get("stage_in_flight"), 80)),
+                             ("startedBy", _short(item.get("reason"), MAX_FRESH_TEXT))):
+            if value:
+                entry[field] = value
+        entry["reoriented"] = _reoriented(item.get("reorientation"))
+        found.append(entry)
+    notes = [_short(metrics.get("fresh_starts_unmeasured"), MAX_FRESH_NOTE)]
+    if unread:
+        notes.append(f"{unread} of {len(blocks)} entries of metrics.json fresh_starts could not be read (no kind)")
+    if len(found) > MAX_FRESH_STARTS:
+        notes.append(f"the list shows the first {MAX_FRESH_STARTS} of {len(found)} fresh starts")
+        found = found[:MAX_FRESH_STARTS]
+    why = "; ".join(note for note in notes if note) or None
+    if not found:
+        return ([], None) if why is None else (None, why)
+    return found, why
+
+
+def _mark_fresh_starts(stages: list[dict], starts: list[dict] | None) -> None:
+    """Mark on a visit's row the fresh start its acceptance ended: the measured start whose accepted action is the visit's action.
+    A start names the first action accepted after it, so two starts inside one stage name the same visit, which keeps the first
+    mark; the run's `freshStarts` list holds both."""
+    rows = {row["action"]: row for row in stages if "action" in row}
+    for start in starts or []:
+        figures = start["reoriented"]
+        row = rows.get((figures.get("accepted") or {}).get("action"))
+        if figures["measured"] is True and row is not None and "freshStart" not in row:
+            row["freshStart"] = {"kind": start["kind"], **{k: figures[k] for k in ("toolCalls", "seconds") if k in figures}}
+
+
+MAX_QUALITY_ITEMS = 5  # survivors, uncovered files and memory writes kept in the quality object (the counts stay whole)
+MAX_QUALITY_NOTES = 4  # notes kept
+MAX_QUALITY_TEXT = 400  # characters of a quality reason, a note or a failed check id
+MAX_MUTANT_TEXT = 40  # characters of what a surviving mutant replaced and what it became
+NO_QUALITY_FLAG = "result.json's quality block has no observed flag, so it is not read"
+NO_QUALITY_FIGURE = "the quality block does not record it"
+HOME_MARK = ".claude/projects/"  # every memory path the harness reports has this under the home directory (its detector's own pattern)
+
+
+def memory_path(path: str) -> str:
+    """A memory-write path relative to the home directory (`~/.claude/projects/<project>/memory/<file>`), the form the harness's
+    detector matches; a path already written that way is kept, and any other path is reduced to its file name. The home directory
+    itself (a user name) is never exported."""
+    if path.startswith("~/"):
+        return path[:MAX_QUALITY_TEXT]
+    cut = path.find(HOME_MARK)
+    return ("~/" + path[cut:] if cut >= 0 else Path(path).name)[:MAX_QUALITY_TEXT]
+
+
+def _survivor(item) -> dict | None:
+    """One surviving mutant as {file, line, op, from, to}: the file by name (a delivered file's path is the harness's, not the
+    reader's), and what the operator replaced cut at MAX_MUTANT_TEXT. None when it names no file."""
+    name = _short(item.get("file"), 200) if isinstance(item, dict) else None
+    if name is None:
+        return None
+    row = {"file": Path(name).name if name.startswith("/") else name}
+    for field, value in (("line", _nonneg(item.get("line"))), ("op", _short(item.get("op"), MAX_MUTANT_TEXT)),
+                         ("from", _short(item.get("from"), MAX_MUTANT_TEXT)), ("to", _short(item.get("to"), MAX_MUTANT_TEXT))):
+        if value is not None:
+            row[field] = value
+    return row
+
+
+def _quality_mutation(block) -> dict | None:
+    """The mutation part of a quality block: its ratio with the operator catalog it belongs to, the counts that make the ratio
+    (a hang and a refused port can read as a caught mutant, so they are counted apart), the first survivors and the page script no
+    operator reaches. `kills`, `per_file`, the baseline and the commands are not exported. A part that was not observed keeps only
+    its reason; a ratio the harness could not form is absent, never 0."""
+    if not isinstance(block, dict) or not isinstance(block.get("observed"), bool):
+        return None
+    if not block["observed"]:
+        return {"observed": False, "reason": _short(block.get("reason"), MAX_QUALITY_TEXT) or NO_REASON}
+    out: dict = {"observed": True}
+    for field, value in (("operatorId", _short(block.get("operator_id"), 40)), ("ratio", _nonneg(block.get("ratio"))),
+                         ("sites", _nonneg(block.get("sites"))), ("killed", _nonneg(block.get("killed"))),
+                         ("survived", _nonneg(block.get("survived"))), ("timeout", _nonneg(block.get("timeout"))),
+                         ("invalid", _nonneg(block.get("invalid"))), ("unconfirmed", _nonneg(block.get("unconfirmed"))),
+                         ("portRefused", _nonneg(block.get("port_refused"))), ("notRun", _nonneg(block.get("not_run"))),
+                         ("seconds", _nonneg(block.get("seconds")))):
+        if value is not None:
+            out[field] = value
+    if isinstance(block.get("ceiling_hit"), bool):
+        out["ceilingHit"] = block["ceiling_hit"]
+    uncovered = [{"file": name, **({"inlineScriptLines": lines} if (lines := _nonneg(item.get("inline_script_lines"))) is not None else {})}
+                 for item in block.get("uncovered") or [] if isinstance(item, dict) and (name := _short(item.get("file"), 200))]
+    if uncovered:
+        out["uncovered"] = uncovered[:MAX_QUALITY_ITEMS]
+    survivors = [row for item in block.get("survivors") or [] if (row := _survivor(item))]
+    if survivors:
+        out["survivors"] = survivors[:MAX_QUALITY_ITEMS]
+    return out
+
+
+def _quality_acceptance(block) -> dict | None:
+    """The held-out checks of a quality block: how many of the declared ones passed and which did not. The check text, its source
+    and its note are the harness's and are not exported."""
+    if not isinstance(block, dict) or not isinstance(block.get("observed"), bool):
+        return None
+    if not block["observed"]:
+        return {"observed": False, "reason": _short(block.get("reason"), MAX_QUALITY_TEXT) or NO_REASON}
+    ids, passed = block.get("ids"), block.get("passed")
+    out: dict = {"observed": True}
+    if isinstance(passed, list):
+        out["passed"] = len(passed)
+    if isinstance(ids, list):
+        out["total"] = len(ids)
+        if isinstance(passed, list):
+            failed = [text for ident in ids if ident not in passed and (text := _short(ident, MAX_QUALITY_TEXT))]
+            if failed:
+                out["failed"] = failed[:MAX_QUALITY_ITEMS]
+    return out
+
+
+def quality_of(record) -> dict | None:
+    """The run's `quality` object from result.json's `quality` block, or None when the key is absent or null (the case measures
+    none, or the phase has not run: result.json is written twice and the second write holds it; no reason and no zero is made up
+    for that). A block with no `observed` flag is not read as a measurement. The harness's `memory_writes` and `held_out_seen`
+    are null when they could not be read: they are then absent and `unmeasured` holds the harness's reason."""
+    if record is None:
+        return None
+    if not isinstance(record, dict) or not isinstance(record.get("observed"), bool):
+        return {"observed": False, "reason": NO_QUALITY_FLAG}
+    out: dict = {"observed": record["observed"]}
+    if (reason := _short(record.get("reason"), MAX_QUALITY_TEXT)):
+        out["reason"] = reason
+    elif not record["observed"]:
+        out["reason"] = NO_REASON
+    declared = [text for item in record.get("declared") or [] if (text := _short(item, 40))] if isinstance(record.get("declared"), list) else []
+    if declared:
+        out["declared"] = declared
+    for field, part in (("mutation", _quality_mutation(record.get("mutation"))), ("acceptance", _quality_acceptance(record.get("acceptance")))):
+        if part is not None:
+            out[field] = part
+    unmeasured: dict[str, str] = {}
+    said = record.get("unmeasured") if isinstance(record.get("unmeasured"), dict) else {}
+    writes = record.get("memory_writes")
+    if isinstance(writes, list):
+        items = [{"path": memory_path(item["path"]), **({"tool": tool} if (tool := _short(item.get("tool"), 40)) else {})}
+                 for item in writes if isinstance(item, dict) and isinstance(item.get("path"), str)]
+        out["memoryWrites"] = {"count": len(items), **({"items": items[:MAX_QUALITY_ITEMS]} if items else {})}
+    else:
+        unmeasured["memoryWrites"] = _short(said.get("memory_writes"), MAX_QUALITY_TEXT) or NO_QUALITY_FIGURE
+    if _nonneg(record.get("held_out_seen")) is not None:
+        out["heldOutSeen"] = record["held_out_seen"]
+    else:
+        unmeasured["heldOutSeen"] = _short(said.get("held_out_seen"), MAX_QUALITY_TEXT) or NO_QUALITY_FIGURE
+    notes = [text for item in record.get("notes") or [] if (text := _short(item, MAX_QUALITY_TEXT))] if isinstance(record.get("notes"), list) else []
+    if notes:
+        out["notes"] = notes[:MAX_QUALITY_NOTES]
+    if (seconds := _nonneg(record.get("seconds"))) is not None:
+        out["seconds"] = seconds
+    if unmeasured:
+        out["unmeasured"] = unmeasured
+    return out
+
+
 def _clip(text: str) -> tuple[str, bool]:
     """(the first MAX_CLIP characters of a work item title or a step task, whether it was cut)."""
     return (text[:MAX_CLIP], True) if len(text) > MAX_CLIP else (text, False)
@@ -1987,7 +2255,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     children = _improve_children(run_dir)
     verify_blocks, verify_unreadable = _verify_by_action(run_dir / "tests")
     hosts = _hosts(out)
-    visit_context, visit_context_why = _visit_context(metrics, history, _text(invocation.get("host")) or _text(result.get("host")))
+    visit_context, visit_context_why = _visit_context(metrics, history)
     if len(hosts) > 1:  # one figure over two hosts' events: not a measure, for any visit either
         visit_context, visit_context_why = [None] * len(history), _hosts_why(hosts)
     actions, stages, phases_seen = [], [], []
@@ -2090,7 +2358,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     unmeasured.update(plan_why)
     for index, mark in marks.items():  # one stage row per history entry, in order
         stages[index].update(mark)
-    if visit_context_why:  # set only when no visit has a context
+    if visit_context_why:  # some or all visits have no context (R23c: the reason counts them)
         unmeasured["visitContext"] = visit_context_why
     tool_use, why_no_tool_use = _tool_use(metrics, hosts)
     if tool_use is None:
@@ -2099,6 +2367,10 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     unmeasured.update(planning_why)
     record_fields, record_why = _run_record(result)  # R23a: outcome, identity, environment, productAtStop
     unmeasured.update(record_why)
+    fresh_starts, fresh_why = fresh_starts_of(metrics)  # R23c
+    if fresh_why:
+        unmeasured["freshStarts"] = fresh_why
+    _mark_fresh_starts(stages, fresh_starts)
     checkouts = [out / "work", run_dir.parent / "worktree"]
     knowledge, knowledge_root = _knowledge(checkouts if raw_status == "done" else checkouts[::-1])
 
@@ -2150,6 +2422,10 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         run["toolUse"] = tool_use
     if planning:
         run["planning"] = planning
+    if fresh_starts is not None:
+        run["freshStarts"] = fresh_starts
+    if (quality := quality_of(result.get("quality"))) is not None:
+        run["quality"] = quality
     if ending:
         run["ending"] = ending
     if raw_status == "blocked" and (blocked := _blocked(state, history, results)):
@@ -2360,6 +2636,70 @@ def _record_lines(run) -> list[str]:
     return lines
 
 
+GROUNDED_BY = {"packet": "from the packet", "next": "with shiploop next", "improve-next": "with the Improve runtime's next",
+               "other": "with another ShipLoop command"}
+
+
+def _regrounded(figures: dict) -> str:
+    """"re-grounded in 29 calls, 327 s, from the packet": what re-grounding a measured fresh start took."""
+    parts = [f"re-grounded in {_count(figures['toolCalls'], 'call')}" if "toolCalls" in figures else "re-grounded"]
+    if "seconds" in figures:
+        parts.append(f"{round(figures['seconds'])} s")
+    if "firstGrounding" in figures:
+        parts.append(GROUNDED_BY.get(figures["firstGrounding"], f"first grounding {figures['firstGrounding']}"))
+    return ", ".join(parts)
+
+
+def _fresh_lines(run) -> list[str]:
+    """The run's fresh starts as one facts line: none recorded, not measured and why, or each start with what re-grounding took
+    (a start that was not measured says why), and why the list is not complete when it is not."""
+    starts, why = run.get("freshStarts"), run["unmeasured"].get("freshStarts")
+    if starts is None:
+        return [f"- Fresh starts: not measured ({why or 'no reason recorded'})"]
+    if not starts:
+        return ["- Fresh starts: none recorded"]
+    each = []
+    for start in starts:
+        figures, where = start["reoriented"], f" at {start['stage']}" if "stage" in start else ""
+        each.append(f"{start['kind']}{where}: " + (_regrounded(figures) if figures["measured"]
+                                                   else f"not measured ({figures.get('reason', NO_REASON)})"))
+    return [f"- Fresh starts: {len(starts)} ({'; '.join(each)})" + (f"; not complete: {why}" if why else "")]
+
+
+def _quality_lines(run) -> list[str]:
+    """The delivered quality as one facts line (none when the run has no `quality`): the ratio with its operator and the counts, the
+    held-out checks and the memory writes; a part that was not observed says why."""
+    quality = run.get("quality")
+    if quality is None:
+        return []
+    head = "- Quality (recorded after the run, never a verdict): "
+    if not quality["observed"]:
+        return [f"{head}not observed ({quality.get('reason', NO_REASON)})"]
+    parts = []
+    mutation, acceptance, writes = quality.get("mutation"), quality.get("acceptance"), quality.get("memoryWrites")
+    if mutation is not None and not mutation["observed"]:
+        parts.append(f"mutation not observed ({mutation.get('reason', NO_REASON)})")
+    elif mutation is not None:
+        inside = [f"operator {mutation.get('operatorId', 'unknown')}"]
+        if all(key in mutation for key in ("killed", "survived", "sites")):
+            inside.append(f"{mutation['killed']} caught, {mutation['survived']} survived of {mutation['sites']} sites")
+        apart = [_count(mutation["timeout"], "timeout") if mutation.get("timeout") else "",
+                 f"{mutation['portRefused']} with a fixed port refused" if mutation.get("portRefused") else "",
+                 "time ceiling hit" if mutation.get("ceilingHit") else ""]
+        parts.append(f"mutation {'ratio ' + str(mutation['ratio']) if 'ratio' in mutation else 'no ratio'} ({'; '.join(inside)}"
+                     + ("; " + ", ".join(a for a in apart if a) if any(apart) else "") + ")")
+    if acceptance is not None and not acceptance["observed"]:
+        parts.append(f"held-out checks not observed ({acceptance.get('reason', NO_REASON)})")
+    elif acceptance is not None and "passed" in acceptance and "total" in acceptance:
+        parts.append(f"held-out checks {acceptance['passed']} of {acceptance['total']} pass"
+                     + (f" (failed: {', '.join(acceptance['failed'])})" if acceptance.get("failed") else ""))
+    elif acceptance is not None:
+        parts.append("held-out checks observed, counts not recorded")
+    if writes is not None:
+        parts.append(_count(writes["count"], "memory write"))
+    return [head + ("; ".join(parts) if parts else "observed, nothing measured")]
+
+
 def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, loops, unknown, from_state,
            seeded_note, option, packet_set, unreadable, verify_loose=(0, 0)) -> list[str]:
     stages = run["stages"]
@@ -2428,6 +2768,8 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
     lines += _ending_lines(run)
     lines += _measure_lines(run, verify_loose)
     lines += _record_lines(run)
+    lines += _fresh_lines(run)
+    lines += _quality_lines(run)
     if untimed:
         lines.append(f"- Stages with no minutes (no accept stamp, or none on the visit before): {untimed} of "
                      f"{len(stages)}; their minutes are null, not 0")
