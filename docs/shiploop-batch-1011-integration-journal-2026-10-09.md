@@ -7,8 +7,8 @@ group reviews found are unified, each with a failing test first. Harness only: n
 changes, so no change note and no release. Status words: firm (a test or a recomputed figure), interim, exploratory, superseded.
 
 Group journals: G1 `docs/shiploop-batch-1011m-g1-fidelity-journal-2026-10-09.md`, G2
-`docs/shiploop-batch-1011n-g2-reorientation-journal-2026-10-09.md`, G4 `docs/shiploop-batch-1011o-g4-environment-journal-2026-10-09.md`
-(G3 and G5 not merged yet).
+`docs/shiploop-batch-1011n-g2-reorientation-journal-2026-10-09.md`, G4 `docs/shiploop-batch-1011o-g4-environment-journal-2026-10-09.md`,
+G3 `docs/shiploop-batch-1011q-g3-baseline-journal-2026-10-09.md` (G5 not merged yet).
 
 ## 1. Merges
 
@@ -17,6 +17,7 @@ Group journals: G1 `docs/shiploop-batch-1011m-g1-fidelity-journal-2026-10-09.md`
 | G1 fidelity record | `cee214aa` (made before this journal) | `d46bdc9e` | none recorded here |
 | G2 clear-context re-orientation | `6ff8ffb8` | `ceebbe17` | metrics.py (9), SPEC.md (1), README.md (1), LEARNINGS.md (1), suite_catalog.py (2); test-groups.test.py merged textually but wrong |
 | G4 environment, product at stop, outcome class | `1c0a7c8d` | `35aef538` | run.py (3), metrics.py (1), runrecord.py (1), README.md (1), LEARNINGS.md (1), suite_catalog.py (2), test-groups.test.py (2) |
+| G3 run identity and the baseline report | `63605571` | `64d9d1fa` | run.py (5), metrics.py (2), SPEC.md (2), README.md (1), LEARNINGS.md (1), suite_catalog.py (2), test-groups.test.py (2); hosts.py and test/shiploop-e2e.test.py merged textually |
 
 ### What was kept, per hunk class (firm: every suite of the family green after each merge, section 4)
 
@@ -44,6 +45,24 @@ Group journals: G1 `docs/shiploop-batch-1011m-g1-fidelity-journal-2026-10-09.md`
 - **`test-groups.test.py` pinned counts.** Each branch made the identical 70->71 / 111->112 edit, so the G2 merge was textually
   clean and wrong. The pinned numbers are the real catalog, computed from `suite_catalog` after each merge: 72/113 after G2,
   73/114 after G4.
+
+- **G3 merge, `run.py` (5 hunks).** Imports: hashlib (G3) without importlib.util (G1 had dropped its last use); runrecord and
+  sessionlog. Parser: G4's `--allow-host-change`/`--need` and G3's `--baseline-report`/`--runs`/`--json`. Launch record: G4's
+  `needs`/`environment` and G3's `identity_unmeasured`. Result: G3's `prompt_sha256`/`host_build`/`span`/`identity_unmeasured`
+  and G4's `outcome_class`/`outcome_basis`/`environment`. One semantic meeting fixed in the merge: G4 made a regrade's `recorded`
+  the LAST launch record, while G3's regrade read the run's `host_build` (the FIRST launch's) from it; the run's build is now
+  restated from the result, else invocation.json, and the regrade's own record restates the last launch's.
+- **G3 merge, `metrics.py` (2 hunks).** Imports (runrecord, sessionlog) and `collect`'s return (G2's `fresh_starts` keys and
+  G3's `span`). G3's session-count rule (Grok's `available_commands` is no session start; `unreported_sessions` null for a Grok
+  stream, `unreported_sessions_at_least`) merged textually beside G2's feed bookkeeping; they read different events.
+- **G3 merge, text.** The clauses table keeps G4's three rows and G3's S-12 identity row. The SPEC "Parallel work" paragraph had
+  two authors and is now one paragraph naming two records, neither a verdict: G4's `environment.overlap` and G3's report count.
+  The README's overlap paragraph likewise, keeping the phrases both suites pin. LEARNINGS: G3's entry after G4's (merge order).
+- **G3 merge, tests.** Two G3 tests failed for the merge's reasons and were adapted: a `metrics.collect` stand-in that did not
+  take G1's `tools=` (now `**kw` passed through), and a Grok run resumed on Codex that G4 refuses without `--allow-host-change`
+  (now passed). G3's seven assertion edits in `test/shiploop-e2e.test.py` still hold. Counts: 74 ShipLoop suites, 115 in all;
+  `E2EFamilySelectionTest.FAMILY` gained `shiploop-e2e-baseline`; `docs/experiments/baseline-spread-20261009/` now selects the
+  baseline suite (`65f642c7`, test first).
 
 ## 2. Unified readers
 
@@ -114,13 +133,66 @@ equals the catalog's E2E suites, so a merged group that adds one must update the
 `quick` (red before: only shiploop-e2e and -reorientation); the apparatus is not selected. Pinned counts stay the real catalog:
 73 ShipLoop suites, 114 in all (`test_audited_catalog_counts_and_fixed_commands`). test-groups: 24 OK.
 
+### (d) One span reader and one interval rule (firm) — `9766e036`
+
+`metrics.span(stamps) -> {"started", "ended"}` takes a timeline mapping or the path of a timeline.jsonl: the first and last
+finite stamp in line order, None for both when none can be read, the first is after the last, or the file cannot be read.
+`metrics.spans_overlap(a, b) -> bool`: each starts before the other ends (touching spans do not overlap, an instant inside the
+other does, an unknown end is no overlap). G3's `metrics.span` (min/max: a NaN or infinity became the end, a backwards file
+still had a span) and `run.span_overlaps`, and G4's `environment.span` (first and last parseable line) and its shared-time test,
+read through these now; `environment.span` and `environment._stamp` are gone. The two predicates were shown equal on valid spans
+before the swap, so no pinned figure moved. Outputs and populations stay each group's own (G4: siblings in the parent folder,
+`runs[]`, `started_offset_seconds`, `siblings_read`, `siblings_unreadable`; G3: --runs roots plus file rows, `overlaps`,
+`overlapped_by_span`, `not_seen_overlapping`, `unknown`). Recorded difference: a stamp is parsed by `metrics.timeline` like every
+other reader of the timeline, so a line needs its `line` key, and a bool or numeric-string `t` reads as a number (G4's parser
+refused those; the runner writes neither). Tests: `SpanAndPlanningTest` (2, red first).
+
+### (e) One `--version` reader (firm) — `93de071b`
+
+`hosts.probe_version(binary, env=None) -> (first stdout line, None) | (None, reason)` with the one ceiling
+`hosts.VERSION_TIMEOUT_SECONDS = 20` and G3's reasons (`probe failed: not found | non-zero exit N | silent | hung (still running
+after 20 s)`). Host CLIs pass the launch's isolated environment; G4's tool reads (node, python3, git) and the browser version
+pass None (the harness's environment). `environment.browser_version` and `environment.TOOL_TIMEOUT` (10 s) are gone; G4's
+shapes stay (`tools`/`unread`, `version`/`version_unread`), with "not found on PATH" when no binary is found. Tests: one wiring
+test (red first) and G4's hang/fail test under the one ceiling and reasons.
+
+### (f) The baseline row keeps no record of the ending (firm) — `dc9ee8a7`
+
+`run.ROW_EXCLUDED_TERMINATION` (derived from `metrics.blocked_detail`'s keys) and `run.row_termination`: the row's termination
+leaves out `engine_blocked_by`, `engine_awaiting_kind`, `engine_awaiting_no_default` and the regrade's `engine_stage_at_regrade`,
+`engine_status_reason_at_regrade` and blocked `*_at_regrade` keys; `result.json` keeps them. Row key diff against the G4 merge:
+those eight termination keys removed; nothing else. The row keeps every pre-batch termination key (with `engine_status`, which
+`row_reached_done` reads, and `engine_status_at_regrade`), G3's identity keys and `identity_unmeasured`; `outcome_class`,
+`outcome_basis`, `environment` and `quality` are pinned absent. Two existing assertions that equated the row's termination with
+the result's now compare with `run.row_termination(t)`.
+
+### (g) One host_build contract (firm) — `ea09ef4f`
+
+`runrecord.host_build(record) -> (build, None) | (None, reason)` reads one launch record: a recorded build; else Claude's "Claude:
+read from the init event after the run"; else the reason the launch recorded (`identity_unmeasured.host_build`); else "launch
+predates the field"; else "no reason recorded". Users: the report's folder reader, `_main`'s regrade and resume branches (the
+result keeps "first launch predates the field" and "resumed on another host: see the launch records", which are about the run),
+and `environment.launch_environments`, whose entries now use the launch record's key names: `host_build` and
+`identity_unmeasured` ({"host_build": reason} or {}). G4's `host_build_reason` and `_host_build_reason` are gone (a failed
+probe's recorded reason used to read as "returned none"). Test: a through-main Grok run with a versioned first launch and a silent
+resume probe reads back exactly what each launch record wrote.
+
+### (h) G3's prompt hash and G5's planning-review sentence (note, for the G5 merge)
+
+When G5 merges, `masked_prompt_digest` must hash the case prompt BEFORE any appended "Start ShipLoop with the run option
+--planning-review none and --improve-skill <abs path>." sentence (G5 appends nothing for `stage`; only `none` appends), so a `none`
+run of a named case hashes like the case's other `none` runs whatever `--plugin-dir` is (the mode is a key of its own).
+
 ## 3. Open items
 
-- G3 and G5 are not merged. Their duplicates (span/overlap readers, the `--version` probe helper, G5's `quality.end_group`) are
-  for the second half.
-- `baseline_row` copies `result["termination"]`, so since G4 a baseline row's `termination` also carries `engine_blocked_by`,
-  `engine_awaiting_kind` and `engine_awaiting_no_default` (G4 removed `outcome_class` from the row; these keys came in through
-  `termination`, not through the merge). For the second half's row review (integration item 14); not changed here.
+- G5 is not merged: `quality.end_group` is to call `listeners.end_group`, the prompt hash rule (h) is to be built, and the
+  quality suite id is to join `E2EFamilySelectionTest.FAMILY`.
+- ~~`baseline_row` copies `result["termination"]` ...~~ Superseded 2026-10-09 by (f).
+- `hosts.ClaudeHost.cli_version` returns the same text as `runrecord.CLAUDE_BUILD` as a literal (two copies of one string).
+- The quick tier for this branch selects 71 suites (1104 s), not 33: G3's compact run folders keep copies of the CLI entry at
+  `test/fixtures/baseline-spread/runs/<run>/build/plugins/skill-craft/skills/shiploop/scripts/shiploop` (19 files), whose stem
+  `shiploop` selects every `shiploop-*` suite by the name rule. A selection cost, not a failure; a fixture-path exclusion in
+  `suite_catalog.targeted` would fix it and is left to the coordinator.
 - The SPEC S-6 evidence line and the G2 owner finding stay as G2 left them (main session's item).
 - `runrecord.launch_epochs` (G2) reads the second in a resume record's name; G4's `launch_stamp` can bump that number past the
   real second when two launches share one. It is read only for runs without `sessions.jsonl` (runs from before 2026-10-09), so
@@ -145,6 +217,14 @@ All runs with `SHIPLOOP_PROGRESS=off` and no exported `GIT_CONFIG_*` variable.
 | final head, before this journal commit (load 3.4 to 4.5) | shiploop-e2e / -environment / -fidelity / -reorientation / -runrecord | 404 OK 108.7 s / 132 OK 61.1 s / 142 OK 8.6 s / 118 OK 7.6 s / 6 OK |
 | | test-groups / shiploop-run-review | 24 OK 2.2 s / 363 OK 22.2 s |
 | | `bash test/run-all.sh --group quick --changed-from 30a3b40a` | PASS, 33 of 33 suites, 645 s wall (the five E2E family suites selected; shiploop-e2e 103.8 s in the runner) |
+
+| after the G3 merge (load 1.7 to 2.4) | shiploop-e2e / -baseline / -environment / -fidelity / -reorientation / -runrecord | 404 OK 108.6 s / 139 OK 22.9 s / 132 OK 57.9 s / 142 OK 9.0 s / 118 OK 7.9 s / 6 OK |
+| | test-groups / shiploop-run-review | 24 OK / 363 OK 22.2 s |
+| after (d) (load about 2.2) | shiploop-e2e / -baseline / -environment / -fidelity / -reorientation / -runrecord / test-groups / run-review | 404 OK 108.5 s / 141 OK 24.0 s / 132 OK 59.7 s / 142 OK 8.6 s / 118 OK 7.6 s / 6 OK / 25 OK / 363 OK 21.7 s |
+| after (e) (load about 2) | the same list | 404 OK 108.1 s / 141 OK 23.9 s / 133 OK 59.7 s / 142 OK 8.7 s / 118 OK 7.6 s / 6 OK / 25 OK / 363 OK 21.6 s |
+| after (f) | the same list | 404 OK 110.1 s / 142 OK 24.1 s / 133 OK 62.3 s / 142 OK 8.6 s / 118 OK 7.6 s / 6 OK / 25 OK / 363 OK 21.5 s |
+| after (g) | the same list | 404 OK 108.3 s / 143 OK 25.0 s / 133 OK 62.2 s / 142 OK 8.6 s / 118 OK 7.7 s / 6 OK / 25 OK / 363 OK 21.6 s |
+| after (g), G3 part done | `bash test/run-all.sh --group quick --changed-from 30a3b40a` | PASS, 71 of 71 suites, 1104 s wall (see the open item on the fixture CLI copies) |
 
 `test/shiploop-e2e.test.py` stays at 404 tests and 108 to 111 s across the merges, against `QUICK_MAX_SECONDS` 120 (no test was
 added to it; its catalog duration is 100.0).
