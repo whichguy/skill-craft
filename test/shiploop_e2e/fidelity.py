@@ -392,20 +392,27 @@ def evidence(run_dir: Path | None, state: dict, declared: dict | None) -> dict:
             "unmapped_runs": sorted(unmapped), "stages": rows}
 
 
-_EXPORTERS: dict[Path, object] = {}
+_EXPORTERS: dict[tuple, object] = {}
+
+
+def load_exporter(path):
+    """The Run Review exporter (skills/shiploop-run-review/scripts/export.py) loaded as a module, once per file version. The one loader:
+    run.review_export and the stage-table reader below both use it."""
+    path = Path(path)
+    stat = path.stat()
+    key = (path, stat.st_mtime_ns, stat.st_size)
+    if key not in _EXPORTERS:
+        spec = importlib.util.spec_from_file_location("run_review_export", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _EXPORTERS[key] = module
+    return _EXPORTERS[key]
 
 
 def _exporter(path):
-    """The Run Review exporter loaded as a module (the route run.review_export takes), once per file."""
     if path is None or not Path(path).is_file():
         raise Unmeasured("the Run Review exporter is missing, so the stage table cannot be read")
-    path = Path(path)
-    if path not in _EXPORTERS:
-        spec = importlib.util.spec_from_file_location("fidelity_run_review_export", path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        _EXPORTERS[path] = module
-    return _EXPORTERS[path]
+    return load_exporter(path)
 
 
 def declared_checks(state: dict, engine_scripts, exporter) -> dict:
@@ -674,7 +681,32 @@ def build(out: Path, run_dir: Path | None, tools, *, engine_scripts=None, export
                                  + "), so the stages that declare them are not judged")
     if block["end_state"] and block["end_state"]["unverified"] is None:
         gone["end_state.unverified"] = UNVERIFIED_REASON
-    return block
+    return portable(block, out)
+
+
+def portable(value, out: Path):
+    """``value`` with the run folder written ``<run>`` and the home folder ``~`` in every string, so a block names no machine. The run
+    folder goes first (it is usually inside the home folder); both its given and resolved forms are replaced, and a /private prefix
+    macOS adds to a temporary folder is read either way. A run folder given as a relative path names no machine and is left."""
+    roots = []
+    if Path(out).is_absolute():
+        resolved = str(Path(out).resolve())
+        roots = [str(out), resolved] + ([resolved[len("/private"):]] if resolved.startswith("/private/") else [])
+    roots = sorted({r for r in roots if len(r) > 1}, key=len, reverse=True)
+    home = str(Path.home())
+
+    def clean(item):
+        if isinstance(item, str):
+            for root in roots:
+                item = item.replace(root, "<run>")
+            return item.replace(home, "~") if len(home) > 1 else item
+        if isinstance(item, dict):
+            return {key: clean(inner) for key, inner in item.items()}
+        if isinstance(item, list):
+            return [clean(inner) for inner in item]
+        return item
+
+    return clean(value)
 
 
 def safe_build(out: Path, run_dir: Path | None, tools, **options) -> dict:

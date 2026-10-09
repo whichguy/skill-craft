@@ -256,7 +256,8 @@ is the one reader of that.
   (`lint-gate` is a lint gate record, `test-loop`, `test-probe`, `test-red` and `test-rerun` are verify records,
   `quality-terminal` is a quality record; none for a run with the `lint` option `off`) and `lacks` the ones the action has
   none of; `declared_script_run_without_record` lists the done stages with a `lacks`, so a stage that declares two scripts
-  and has one record is listed (none in the eleven saved Claude and Grok runs). The class comes from the records that
+  and has one record is listed (none in the eleven saved Claude and Grok runs); a declared run the harness has no record kind for
+  (`unmapped_runs`) is not judged and is named in `unmeasured["declared.runs"]`. The class comes from the records that
   exist, never from `declared`: a lint-only `implement` row reads `script` because a lint gate record exists, and its
   `records` say lint only. `file` is satisfied by citing any file, so it is a reading aid and never a target;
 - `validation`: the verify records read as JSON. `by_suite` counts `runs`, `counted` (counts.ran is a number),
@@ -287,7 +288,7 @@ is the one reader of that.
   `event`, `verb` (`unknown` behind a wrapper script), `stage` (from the same stage windows `per_stage` uses, whole seconds;
   null without a timeline) and `repeat_of`, the index of the refusal just before it when its whole first line (not the
   200-character cut) is the same in the same known stage. `repeated` is null, with `unmeasured["refusals.repeated"]`, when no
-  refusal could be given a stage. The same line twice is a pointer, neutral about cause: a remedy that misled or an honest
+  refusal could be given a stage, and `unmeasured["refusals.stage"]` says how many have none when only some do. The same line twice is a pointer, neutral about cause: a remedy that misled or an honest
   second failed try; `limits` says what it cannot see;
 - `end_state`: the engine's `status`, `stage`, the stage it never accepted, its `status_reason`, and for a run that ended on a
   blocked result the last accepted entry's `blocked_by` and `awaiting` (its `kind`, and whether `no_default` states why no

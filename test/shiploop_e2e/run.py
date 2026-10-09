@@ -89,7 +89,6 @@ import argparse
 import atexit
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -1034,10 +1033,7 @@ def review_export(out: Path) -> str:
     try:
         if not REVIEW_EXPORTER.is_file():
             return f"review export skipped: no exporter at {REVIEW_EXPORTER}"
-        spec = importlib.util.spec_from_file_location("run_review_export", REVIEW_EXPORTER)
-        exporter = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(exporter)
-        return f"review export: {exporter.export_run(out)}"
+        return f"review export: {fidelity.load_exporter(REVIEW_EXPORTER).export_run(out)}"
     except Exception as exc:  # noqa: BLE001 - any export failure is reported, never raised
         return f"review export skipped: {' '.join(str(exc).split())[:300] or type(exc).__name__}"
 

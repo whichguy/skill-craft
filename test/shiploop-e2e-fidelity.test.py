@@ -590,10 +590,51 @@ class EvidenceTest(unittest.TestCase):
         self.assertEqual((counts["script"], counts["loop"], counts["file"] + counts["note"]), (8, 5, 10))
         self.assertEqual(sum(counts.values()), 23)
 
-    def test_the_block_holds_no_packet_text_and_no_machine_path(self):
+    def test_the_block_holds_no_packet_text(self):
         text = json.dumps(replay("r1-battleship-sonnet")["block"])
-        self.assertNotIn("/Users/", text)
         self.assertNotIn("Result template:", text)
+        self.assertNotIn("Reviewing the returned", text)
+
+    def test_the_block_names_the_run_folder_and_the_home_folder_by_a_placeholder_not_by_the_machine(self):
+        # Review A9/B: a block that names /Users/<name> is not portable. The saved extracts were already path-rewritten by extract.py, so
+        # this runs on a copy whose events and state name the copy's real temporary path, as a live run's do.
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "r1-battleship-sonnet"
+            self.copy_run("r1-battleship-sonnet", out)
+            real = str(out.resolve())
+            for path in list(out.rglob("events.jsonl")) + list(out.rglob("state.md")):
+                path.write_text(path.read_text().replace("/runs/r1-battleship-sonnet", real))
+            run_dir = out / ".shiploop-runs" / "work-1" / "run"
+            tools = metrics.ToolLog()
+            metrics.collect(out, run_dir, tools=tools)
+            block = self.fidelity.build(out, run_dir, tools, engine_scripts=CURRENT_TABLE, exporter=EXPORTER)
+            text = json.dumps(block)
+            self.assertNotIn(real, text)
+            self.assertNotIn(tmp, text)
+            edit = block["edits"]["script_owned"][0]
+            self.assertTrue(edit["target"].startswith("<run>/.shiploop-runs/work-1/"), edit["target"])
+            self.assertTrue(any("<run>/" in item["line"] for item in block["refusals"]["items"]))
+            self.assertNotIn("/Users/", text)
+
+    def test_portable_replaces_the_run_folder_first_and_then_the_home_folder_in_every_string(self):
+        out = Path(tempfile.gettempdir()).resolve() / "case-folder"
+        home = str(Path.home())
+        value = {"a": f"{out}/work/x.md", "b": [f"{home}/skills/s.md", f"{out}"], "c": {"d": f"see {out}/y and {home}/z"}, "n": 3, "none": None}
+        self.assertEqual(self.fidelity.portable(value, out), {"a": "<run>/work/x.md", "b": ["~/skills/s.md", "<run>"],
+                                                              "c": {"d": "see <run>/y and ~/z"}, "n": 3, "none": None})
+        # a run folder given as a relative path names no machine: its resolved form is not replaced (only the home folder is)
+        resolved = str(Path("relative-case").resolve())
+        self.assertEqual(self.fidelity.portable({"a": f"{resolved}/x", "b": "relative-case/x"}, Path("relative-case")),
+                         {"a": f"{resolved}/x".replace(home, "~"), "b": "relative-case/x"})
+        # the run folder is usually inside the home folder, and then it must become <run>, not ~/...
+        inside = Path(home) / "x-case-folder"
+        self.assertEqual(self.fidelity.portable({"a": f"{inside}/work/y", "b": f"{home}/other"}, inside), {"a": "<run>/work/y", "b": "~/other"})
+
+    def test_a_private_prefix_of_the_run_folder_is_replaced_too(self):
+        # macOS reports /var/folders/... as /private/var/folders/...; a model's command may carry either.
+        out = Path(tempfile.gettempdir()).resolve() / "case-folder"
+        plain = str(out)[len("/private"):] if str(out).startswith("/private/") else str(out)
+        self.assertEqual(self.fidelity.portable({"a": f"{plain}/x"}, out), {"a": "<run>/x"})
 
     @staticmethod
     def copy_run(alias: str, target: Path) -> None:
@@ -1462,6 +1503,38 @@ class FidelityThroughMainTest(HARNESS.PrintedCase):
         super().setUp()
         HARNESS.isolate_git(self)
         self.fidelity = fidelity_module()
+
+    def give_the_plugin_a_stage_table(self):
+        """The fake plugin build holds a ShipLoop CLI file but no stage table; write the frozen one beside it, as an installed plugin has."""
+        import shutil
+        shutil.copy(CURRENT_TABLE / "shiploop_stage_spec.py", self.cli.parent / "shiploop_stage_spec.py")
+
+    def test_the_wiring_hands_the_builder_the_tool_log_and_the_stage_table_of_the_run(self):
+        # Review A4: a run_main that passed no ToolLog, or no scripts directory, still passed every test.
+        self.give_the_plugin_a_stage_table()
+        for host in ("claude", "grok", "codex"):
+            # Grok and Codex install the plugin into the run's own profile, which the fake host never does: the CLI is the build's.
+            with self.subTest(host=host), mock.patch.object(HARNESS.run, "run_cli", return_value=self.cli):
+                code, result, printed, written, out = self.written(host)
+                block = written["fidelity"]
+                self.assertGreater(block["tool_calls_seen"], 0)
+                self.assertIsNotNone(block["edits"], block["unmeasured"])
+                self.assertIsNotNone(block["refusals"], block["unmeasured"])
+                self.assertNotIn("declared", block["unmeasured"], "the stage table beside the CLI was read")
+
+    def test_without_a_stage_table_beside_the_cli_declared_is_unmeasured_and_the_rest_still_runs(self):
+        code, result, printed, written, out = self.written("grok")
+        self.assertIn("declared", written["fidelity"]["unmeasured"])
+        self.assertIsNotNone(written["fidelity"]["edits"])
+
+    def test_the_exporter_the_builder_and_the_run_report_load_come_from_one_helper(self):
+        calls = []
+        real = self.fidelity.load_exporter
+        with mock.patch.object(self.fidelity, "load_exporter", side_effect=lambda path: calls.append(Path(path).name) or real(path)):
+            self.give_the_plugin_a_stage_table()
+            self.written("grok")
+        self.assertIn("export.py", calls)
+        self.assertGreaterEqual(calls.count("export.py"), 2, "fidelity.declared_checks and run.review_export both call it")
 
     def written(self, host="grok", mode="done", *extra):
         code, result, printed = self.invoke_printed(host, mode, *extra)
