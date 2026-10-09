@@ -337,12 +337,28 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   its follow-ons) concurrently, up to `--max-parallel` (default 3); a
   follow-on always waits for its predecessor in the same chain. Separate
   suites or cases started by hand may also run at once, each in its own
-  output folder.
+  output folder. This is for finding failures sooner; a pair whose figures
+  are compared is the exception stated in the bullet "Runs compared on wall
+  time or per-call cost run one after the other".
 - Concurrency must not change a verdict. Concurrent runs are quiet (no
   interleaved live view), share no files, and pass the same checks. A
   failure seen only in a parallel run (for example two products' own tests
   binding the same fixed port, or a host rate limit) is rerun alone
   (`--serial`) before it is attributed to ShipLoop.
+- **Runs compared on wall time or per-call cost run one after the other**
+  (amended 2026-10-08; anchor "Concurrency must not change a verdict"). A
+  before/after pair, or a host or model comparison, is started the second
+  after the first has ended: `--serial` for a suite, or launch the second
+  once the first has ended. Overlap is for runs whose point is concurrency.
+  The suite default (`--max-parallel 3`) stays, because a suite's job is to
+  find failures; its figures are not a timing comparison. Basis: the two
+  round-2 Sonnet runs (r2-battleship-sonnet, r2-checkers-sonnet) were started
+  within 0.1 s of each other (first `timeline.jsonl` stamps), shared loopback
+  and CPU, and one model ran `pkill -f "node server.js"`, which matches any
+  run's server by its name. Known limit: a baseline row carries no overlap field, so a
+  later comparison cannot exclude an overlapped run; each run's
+  `timeline.jsonl` start stamp is the only record. This is a discipline, not a
+  guarantee.
 - Agents do not replace evidence: an agent's analysis is a lead, and a
   claim it makes is checked against the event log or a script before it
   drives a change (Change admission).
@@ -449,6 +465,21 @@ stands at the commit under test.
   or by the task and have no metrics.json, result.json or export; the 8 that
   ended on their own have all three. A stop that names a stage (`--stop-at`) is
   not part of this amendment: it stays deferred until planning probes are routine.
+  A SIGTERM to the harness (a task runner's stop, `kill`) is a requested stop
+  too, and so is a SIGHUP unless the launch ignored it (`nohup` keeps a
+  detached run alive, as the README allows): the harness ends every live host
+  at once, writes the same records and records `stopped` with the reason
+  `terminated by SIGTERM`; a Ctrl-C on a suite is handled as a SIGTERM, and on
+  a single case ends the hosts as the harness exits. This
+  covers `run.py` started as a program, not `iterate.py`, which calls it in its
+  own process. A SIGKILL gives the harness no chance to run anything:
+  `--grade-only` is the remedy, and an orphan host of a SIGKILLed harness is
+  not looked for (open). Basis: the r2 Grok run's log ends `exit 241` (-15 mod
+  256, a SIGTERM) 855 s in; its host, started in a session of its own, was not
+  signalled and went on writing ledger files for about 28 minutes while no
+  events, metrics or result.json were being written. Which signal a task
+  runner sends at its time limit is unknown (open), so the handler is proven
+  for SIGTERM only.
 - **A baseline row is a finished run's** (amended 2026-10-08; anchor S-12, one
   meaning for a baseline). No row is written for a resumed or seeded run, for a
   run whose engine is still active when the harness ends (a deadline, a stop, a
@@ -462,6 +493,36 @@ stands at the commit under test.
   `timeout` and engine status `unknown`, which `scan_baseline` then offered as the
   last comparable row (the first form of this rule covered only an active engine
   and let that row through; corrected the same day).
+- **A run leaves nothing listening** (amended 2026-10-08; anchor S-11, a
+  lesson a contaminated run commits is retained as knowledge, and "Concurrency
+  must not change a verdict"). When a host session ends, and once after the
+  case checks, the harness stops every TCP listener of its own user whose
+  working directory or command line lies under that case's output folder, and
+  records what it stopped, or could not stop, as `left_behind` in result.json
+  (an optional key: where the process table could not be read the record says
+  `observed: false` and why, and never reads as none). It is a record and not a
+  verdict, and a regrade (`--grade-only`) reaps nothing, since a live host may
+  be running. A launch, and `--preflight-only`, is refused while a listener sits
+  under another case's output folder whose harness is not alive (liveness is a
+  held lock on `<output>/.harness-lock`, which the kernel drops on any death, so
+  parallel runs are not refused); the refusal has no override and names the
+  process, because a leaked process is stopped by pid. A `--resume-run` of a
+  case whose harness is running (its lock is held) is refused too; a regrade
+  is not, since it starts and stops nothing. That a finished case
+  folder served by hand blocks every later launch the same way is a choice: a
+  printed warning with a recorded `stale_listeners_at_start` was weighed and not
+  taken, because the round-2 contamination was a launch that went ahead.
+  Basis: pid 63973, the
+  `node server.js` of the r1 Checkers run's model, parent pid 1, bound `*:3457`
+  from 10:49 local on 2026-10-08 (that run exited rc 0, so no kill ran, and the
+  model's Bash call has a process group of its own, which the harness's
+  group kill never reaches); both r2 runs chose `PORT=3457`, both met
+  `EADDRINUSE`, and the Checkers run committed a false lesson about a
+  "foreign" server to its returned repository (r2-checkers-sonnet
+  `docs/shiploop/environment.md`). Limits: non-listening leftovers, UDP and
+  unix-socket servers, and a server whose working directory and command line are
+  both outside the folder are not reaped; a pair of concurrent runs still
+  shares loopback (see Parallel work).
 - Start from an empty directory, or for a follow-on case, from a clean copy of
   an earlier run's checkout. The harness leaves no files of its own behind.
 - Case products are disposable probes. The repository a run builds (and any

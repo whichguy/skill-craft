@@ -254,6 +254,14 @@ run writes no row. When rows do compare, the stage lines show where a whole-run
 difference landed; they gate nothing. Commit the new rows with the run's learnings
 entry. See SPEC.md, "E2E suites" and "Parallel work".
 
+Run the runs you compare one after the other. Concurrent runs share the CPU, the host's rate limit and the machine's loopback
+ports, so two runs whose wall time or per-call cost are set side by side (a before/after pair, a host or model comparison)
+are started the second after the first has ended: `--serial` for a suite, or launch the second once the first has ended.
+The suite default of 3 parallel chains stays, because a suite is for finding failures and not for timing them. Nothing
+records an overlap: a baseline row has no overlap field, and each run's `timeline.jsonl` start stamp is the only trace, so
+this is a discipline and not a guarantee (SPEC, "Parallel work"). The two round-2 Sonnet runs were started within 0.1 s of
+each other.
+
 The row's `planning_review` is the run option ShipLoop 1.22.0 records in `state.md`
 (`stage`: an Improve child after each of spec, test-strategy, plan, step-plan and
 test-spec; `none`: after none of them), read as written from the run's own state, and
@@ -490,8 +498,8 @@ uses it on purpose. Publish (`scripts/release.py`, then
 ### Launching long runs
 
 Launch a run as a Claude Desktop background task (`run_in_background`) so it can be tracked. A task is killed at the
-timeout it was given, taking the harness and its host with it, so the limit is whatever the launcher set and not a
-platform constant: the dated observations are 10 minutes (2026-10-03, the tool's 600000 ms maximum), a 30-minute
+timeout it was given and the harness is signalled (see below; its host is a separate process group), so the limit is
+whatever the launcher set and not a platform constant: the dated observations are 10 minutes (2026-10-03, the tool's 600000 ms maximum), a 30-minute
 kill at 1798 s (2026-10-03) and 120.3 minutes (2026-10-05). Pass `--timeout` (seconds) below it, with margin: the
 deadline starts after preflight and install, and when it is spent the harness still runs the product checks (180 s
 each, again against an unreturned worktree) and the review export before it exits. A spent deadline is a clean
@@ -508,15 +516,52 @@ On macOS each host session runs under `caffeinate -d -i`, which keeps the displa
 idle-sleeping for the whole session; elsewhere nothing is wrapped. The display hold removes one variable from the
 runs where a model-driven headless Chrome never loaded a page (see LEARNINGS, 2026-10-08).
 
-A task kill before the deadline stops the harness where it stands and no harness code runs: nothing is written
-afterwards (no termination record, no `result.json`, no baseline row), and nothing looks for what the host left
-behind. Give the run its records afterwards with `--resume-run <output directory> --grade-only`. A
-model's background server can outlive its run by far more than the task limit: two (`python server.py` and
-`node server.js`) were found alive about 27 hours after their runs, parent pid 1, listening on all interfaces,
-and were stopped by hand. Claude Code gives each Bash call its own process group; the harness's kill is a
-group kill of the host's own session (`os.killpg`, on a timeout or an interrupt), which does not reach those
-groups. No verdict reads these processes. After a long run, list what still has its working directory under
-the run's output directory, check each one, and kill it by pid:
+A SIGTERM or SIGHUP to the harness ends every live host at once, and the harness then writes the records of any other
+ending: `result.json`, `metrics.json` and the review export, `process.status` `stopped` with no process verdict, the reason
+`terminated by SIGTERM` (or `SIGHUP`) in `termination.resume_stop`, no baseline row and no relaunch; the exit code is 1, and
+a suite starts no further case. A second signal ends the harness at once. A SIGHUP that the launch ignored stays ignored,
+so a detached `nohup` launch ignores the hangup and keeps its run. A Ctrl-C on a suite is handled as a SIGTERM (the hosts end at
+once and the records are written; the chains finish their case checks first, and a second Ctrl-C is not handled specially),
+while a Ctrl-C on a single case ends the hosts as the harness exits and writes no records. This covers
+`run.py` started as a program, not `iterate.py`, which calls it in its own process (a Ctrl-C there still ends the hosts; a
+SIGTERM does not), and not the review and fan-out agents (`hosts.run_agent`). Which signal a task runner sends at its time limit is not known, so this is proven for SIGTERM only.
+Only a SIGKILL gives the harness no chance to run anything: nothing is written afterwards (no termination record, no
+`result.json`, no baseline row) and the host can outlive the harness, because it starts in a session of its own (the Grok
+host of a round-2 run went on writing for about 28 minutes after the harness died of `exit 241`, a SIGTERM, before this
+handler). Stop any orphan host first (the lsof recipe below finds what still has its working directory under the output
+directory; nothing looks for an orphan host yet), then give the run its records with
+`--resume-run <output directory> --grade-only`.
+
+The harness stops what a host leaves listening. A model's background server can outlive its run by far more than
+the task limit: two (`python server.py` and `node server.js`) were found alive about 27 hours after their runs,
+parent pid 1, listening on all interfaces, and were stopped by hand; on 2026-10-08 one such `node server.js` held port
+3457 while two later runs chose the same port, and one of them committed a false lesson about it. Claude Code gives
+each Bash call its own process group; the harness's kill is a group kill of the host's own session (`os.killpg`, on a
+timeout or an interrupt), which does not reach those groups. So when a host session ends, and again after the case
+checks, the harness stops every TCP listener of your user whose working directory or command line lies under the
+case's output folder (SIGTERM, then SIGKILL after 3 s; a path that only shares a name prefix with the folder does not
+count, and neither the harness nor what launched it is ever stopped). It records what it stopped, and what it could
+not stop, as `left_behind` in `result.json` and prints one `left` line when there is something to say. Where `lsof`
+or `ps` cannot be read the record says `observed: false` and why: unmeasured never reads as none. A leftover is a
+record and not a verdict. A regrade (`--grade-only`) reaps nothing, because the run it grades may have a live host.
+So do not serve a case folder by hand while its run ends (say with `python3 -m http.server` inside it): the harness
+stops that too.
+
+A launch is refused while a listener sits under another case's output folder and that case's harness is not running
+(`--preflight-only` fails the same way, and a suite is refused once, before any case starts). A harness is running while it
+holds an exclusive lock on `<output>/.harness-lock`; the kernel drops that lock on any death, SIGKILL included, so parallel
+runs and pairs started by hand never refuse each other. The run's own folder is never refused (a resume stops its
+leftovers first), and a regrade starts nothing so it is never refused. The refusal names the pid, the port and the case
+folder and has no override: stop it by pid with `kill <pid>`. A finished case folder you serve by hand blocks later
+launches the same way until you stop that process. A harness started before the lock existed holds none, so a launch refuses its
+listeners as stale while it is still running: wait for it to end, or stop the server by pid. A `--resume-run` of a case whose
+harness is running is refused too (nothing is started or stopped, and its stop request is left for that harness); a regrade is
+not. Where `lsof` cannot be read the check is skipped with a printed note.
+
+Not covered: a process that does not listen (a file watcher, `npm --watch`), a UDP or unix-socket server, a server
+whose working directory and command line are both outside the folder, and anything left by a harness that was
+killed without a chance to run (SIGKILL). For those, list what still has its working directory under the run's
+output directory, check each one, and kill it by pid:
 
 ```sh
 OUT=/Users/dadleet/e2e-runs/<day>/<suite>/<case>     # the run's output directory, no trailing slash

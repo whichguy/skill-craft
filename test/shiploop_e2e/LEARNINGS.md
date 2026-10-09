@@ -1664,3 +1664,155 @@ through the one classifier Grok's `tool_call` events use (`metrics.ToolLog`), an
   `improve_reviews.identical` (the required pair of clean passes is not waste).
 - **Known limits:** main thread only; a result saved to a file is unread; a document line that starts with a prefix would count;
   script runs are lower bounds (r1 Checkers: 29 against 30 by hand for sub.sh).
+
+## A run leaves nothing listening, and a signalled harness leaves no orphan host (batch 1010, item A6) — 2026-10-08 — status: firm for the facts read from this machine (pid 63973, the r2 events, the Grok log, the timings); the new paths are hermetic-tested and not yet seen in a live run
+
+Round-2 analysis candidate A6 (`round2-analysis.json`): two round-2 Sonnet runs met a stale server on port 3457 and one committed
+a false lesson. SPEC amendment first, in its own commit (`4ec2a54a`): "A run leaves nothing listening", the SIGTERM and SIGHUP
+sentence under "Every ending leaves its records", and "Runs compared on wall time or per-call cost run one after the other".
+
+- **The leak, verified live.** Pid 63973 is `node .../r1-checkers-sonnet/.shiploop-runs/work-20261008-174135-41d2f7/worktree/server.js`,
+  parent pid 1, process group 63956 (the host's was 57814), started 10:49:51 on 2026-10-08, cwd `.../r1-checkers-sonnet/work`, bound
+  `*:3457`. r1-checkers-sonnet exited rc 0 after 787.8 s, so no kill ran: `launch()` kills only on a deadline, a stop or an
+  interrupt, and Claude Code gives each Bash call its own process group, which a group kill of the host never reaches. r2-battleship
+  events 362 to 363 (`PORT=3457 node server.js ... &`, then `EADDRINUSE :::3457`) and r2-checkers events 557 to 558 met it; r2-checkers
+  event 562 (`... & sleep 1; ...; kill %1; wait`, job control is off so `%1` names nothing) hung to the 120 s timeout at 570, and 572 ran
+  `pkill -f "node server.js"`, which does not match the leaked `node /abs/path/server.js`. The false lesson is at
+  r2-checkers-sonnet `work/docs/shiploop/environment.md` line 17 and `features/*/outcome.md` line 9 (S-11). Both models chose 3457 by
+  habit: neither the cases nor `skills/` name a port.
+- **Census** (read-only, the design workflow): 26 case folders under `/Users/dadleet/e2e-runs`, exactly one with a listener under it
+  (r1-checkers-sonnet); the other seven user listeners have cwd `/`, so "cwd or an argv path under the case folder" had no false positive
+  here. Measured again at build time: 8 own listeners, `observe()` 0.115 to 0.121 s over three scans (lsof twice, ps once), `protected_pids`
+  0.02 s, a detect-only `listeners.inside` of r1-checkers-sonnet finds pid 63973 on port 3457 with that cwd, and of the name
+  `r1-checkers-sonne` (a bare prefix) finds nothing. Pid 63973 was not stopped on purpose (that needed the owner's go); it ended later in the mutation-run incident the reap commit describes (a test scope that called the mutated selector let the real reap signal this user's other listeners: Ollama and its server, the OrbStack engine and the leaked pid; launchd restarted the rest, and the restart of Ollama and OrbStack was not done by this work).
+- **Probes of the design** (scratch, reproduced as hermetic tests): SIGTERM freed a listener's port in 0.27 s and left a `case-10` sibling
+  alone when `case-1` was reaped; an exclusive `flock` holds across a second open file description in one process and across processes and
+  is released when the holder is SIGKILLed; a host started with `start_new_session=True` survives a SIGTERM to the harness by default and
+  dies with a handler; `subprocess.run(shell=True, timeout=1)` leaves `sleep 301 &` alive after the timeout, so a timed-out case check
+  leaks too.
+- **Built: reap** (this entry's first commit). `listeners.py` observes with `lsof -iTCP -sTCP:LISTEN -Fpcun`, `lsof -a -d cwd -p` and `ps -ww`,
+  keeps the harness user's, matches the working directory (a real path) or any command-line word (as given and as resolved, a leading
+  `--opt=` stripped) on a path boundary, never pid 1, the harness or its ancestors, and stops with SIGTERM then, after 3 s, SIGKILL, reading
+  the table again before each signal. `run.launch` reaps when a session ends, `main` reaps again after the case checks and before a resumed
+  session starts (an earlier invocation's harness may have been killed), and a regrade reaps nothing. The record is `left_behind` in result.json
+  (`observed`, `reaped`, `survived`, or `observed: false` and the reason, the passes merged so an unseen pass never reads as none).
+  Ordinary harness tests patch the observer to return nothing, so none reads this machine's table (pid 63973 would otherwise be seen).
+  The classes that use the real lsof scope what it shows to their own temporary folder. A test whose lsof is absent skips with a stated reason.
+- **Built: the stale-listener refusal.** A launch, `--preflight-only` and a suite (once, before its folder or any case exists) are refused
+  while a listener sits under another case's output folder and that case's harness is not alive. Liveness is an exclusive `flock` on
+  `<output>/.harness-lock`, taken by `main` and released when it returns; the kernel drops it on any death (reproduced: a holder
+  SIGKILLed frees it), so parallel suite cases and pairs started by hand are never refused. Looking is read-only (`os.open` with
+  `O_RDONLY` and a shared lock; the first design's `open(path, "a")` would have created a lock file in every old case folder it
+  inspected), the run's own folder is reaped and not refused, a regrade is never refused, and a case a suite starts skips its own check
+  (a `SystemExit` in a worker thread reaches the suite only after the running chains finish, with no suite-result.json). No listener
+  is ever stopped by the refusal. Where lsof cannot be read a line is printed and the launch goes ahead. Measured at build time: 26 case
+  folders, 0 listeners under any of them, 0 lock files (old folders have none), `stale()` 0.14 s. The leaked pid 63973 was already
+  gone by then (see the incident in the reap commit), so the first launch on this check is not refused by it.
+- **Decision (reversible, the owner's to take): refuse rather than warn.** The refusal has no override, so a finished case folder served
+  by hand blocks every later launch until its process is stopped by pid. The smaller alternative is a printed warning plus a recorded
+  `stale_listeners_at_start`, which drops the lock, `case_folder`, `stale` and about 40 lines. Refusal was kept because the round-2
+  contamination was a launch that went ahead and the round-2 criterion asks for the refusal; after the reap, a stale listener arises only
+  from a SIGKILLed harness or a leak from before this change.
+- **Built: a signalled harness ends its hosts and writes its records.** The exit-241 defect of the r2 Grok run: `r2-grok.log` ends
+  `exit 241` (-15 mod 256, a SIGTERM) 855 s in, `r2-battleship-grok-none/timeline.jsonl` stops at +854 s and restarts at +2788 s, and 139
+  ledger files of `.shiploop-runs/work-20261009-002036-d50cd1` were written between 17:35:01 and 18:02:11, after the harness died at
+  about 17:34:30: `launch()` starts the host with `start_new_session=True` and Python's default SIGTERM runs no code, so the host kept
+  working as an orphan for about 28 minutes with no events or metrics being collected and no result.json. (The design's probe: a
+  start_new_session host survives a SIGTERM to its parent by default and dies with a handler. Why the orphan stopped at 18:02 is not
+  known, U5, and is not needed.) `run.py` as a program now takes over SIGTERM and SIGHUP: the handler records the signal, sets
+  `TERMINATION`, kills every registered host group at once (`LIVE_HOST_GROUPS`, a copy iterated because suite worker threads add and
+  discard concurrently; a group is dropped from the set as soon as its leader is reaped, so a reused pgid is never signalled), and
+  restores the default action so a second signal ends the harness at once. `launch` and the resume loop read `TERMINATION` as a requested
+  stop (`stopped`, no process verdict, `termination.resume_stop` `terminated by SIGTERM`, exit 1, no baseline row, no relaunch), a suite
+  starts no further case, and an `atexit` kill covers a Ctrl-C or an exception (superseded for a suite on 2026-10-08: the kill came
+  too late there, see the review section below). The reused route is the stop file's (`StopFileTest`).
+  A SIGHUP the launch ignored stays ignored (the audit's correction: an unconditional handler would have overridden `nohup`, the README's
+  stated exception for multi-hour runs). The tests run the harness as a real subprocess so the `__main__` wiring and the real signals
+  are what is tested and the test process's own handlers are never touched; a fake `lsof` first on PATH gives it an empty process table.
+- **Decisions and limits.** Proven for SIGTERM only; U1 (which signal a task runner sends at its time limit, and with what grace) stays
+  open, to be settled by the audit's probe (a short background task whose Python child traps TERM, HUP and INT and spawns a detached
+  heartbeat). A SIGKILL is uncatchable: `--grade-only` is the remedy, and a `host.pid` check that refuses a resume while an orphan host
+  of a SIGKILLed harness is alive (A6-host-pid) is not built, since the only observed kill was a SIGTERM. A signal that arrives during
+  the case checks lets them finish (up to 180 s each) before the records are written, and a second signal ends the harness at once.
+  `iterate.py` and the review and fan-out agents (`hosts.run_agent`) are not covered by the handlers; `iterate.py` still gets the
+  `atexit` kill. A mutant that dropped the early return for a session begun after the signal survived, so that code was removed: the
+  poll loop ends such a session at its first poll.
+- **Sequencing** (A6-sequence) is a rule and a README sentence with no code: runs compared on wall time or per-call cost run one after the
+  other (`--serial` for a suite, or launch the second after the first ends). The suite default of 3 parallel chains stays for finding
+  failures. A baseline row has no overlap field, so a later comparison cannot exclude an overlapped run; `timeline.jsonl` t0 is the only
+  record. The r2 pair started within 0.1 s of each other (1791505216.323 and .384).
+- **Dropped:** A6-sentence (a ShipLoop line about loopback ports): the contamination came from the leak, not from a missing rule, the
+  scratch-directory line already sits in every packet (`shiploop_navigator._run_rules`, pinned by `test/shiploop-navigator-v4.test.py`),
+  and it would need a change note and a release for an unmeasured benefit. Reopen only if a post-fix rerun still writes a port lesson
+  into durable knowledge.
+- **Decision (reversible): a leftover is a record, not a verdict.** `pass` is unchanged. Making it a verdict would fail a run for a
+  model's habit the harness already cleaned up.
+- **Open:** U2 whether `lsof` exists on the `ubuntu-latest` CI runner (the pure parse and selection tests run either way; the real-process
+  classes skip with a reason if it is missing); U3 whether lsof may read the user's processes inside a Desktop background-task sandbox
+  (`left_behind.observed` and `reason` will say); U4 whether the Codex or Grok host keeps a listener of its own with a cwd under the case folder
+  (`left_behind.reaped` should then name it; exclude by command name rather than weaken the folder rule); U6 the leak rate (one of 26 case
+  folders today and two found by hand earlier; `left_behind` measures it from now on); U7 Run Review's `facts.md` does not render
+  `left_behind` yet (skills/shiploop-run-review is another session's; the exporter ignores unknown result.json keys, so nothing breaks).
+  Not covered, documented in the README: non-listening leftovers, UDP and unix-socket servers, and a server with cwd and command line both
+  outside the folder.
+
+## A6 adversarial review, first round: what it found and what was fixed (batch 1010, item A6) — 2026-10-08 — status: firm for the fixes that have a test that failed first; the incident below is an environment fact
+
+The review of `f1329599`..`b1065a15` returned `fix-needed` (2 major, 9 minor). Fixed in this order, one commit each; every fix whose
+test could fail first did, and the mutants named below were applied to a scratch copy and not to the worktree.
+
+- **A missing module took the whole test file down (major).** `test/shiploop-e2e.test.py` imported `listeners` at module level, so with
+  production reverted to `b73c30ba` and `listeners.py` absent, all 398 tests died at the import (reproduced: `ModuleNotFoundError`
+  at the import line). The audit had asked for the import inside the new tests. Now the import is guarded (`listeners = None` only for
+  a missing `listeners` module; any other import error still raises), the seven listener classes carry `@needs_listeners` and fail one by
+  one on `listeners.py does not exist`, and the older tests (`HarnessCase`, `KeepAwakeTest`) take their "no listener" patch from
+  `nothing_listens()`, which patches nothing where the module is absent. Same experiment after the fix: 398 tests, 41 failures and 2
+  errors, all in the new classes (36 on the guard, 5 on real assertions, 2 on `run.TERMINATION` missing), every older test green.
+- **A failing signal test left orphan hosts (minor).** Only the first session's pid was killed, so a harness that relaunched its host (mutant
+  "the handler does not set TERMINATION") left ppid-1 fake hosts sleeping 600 s: the defect the work fixes. One cleanup now reads every pid
+  in `<FAKE_LOG>.sessions` and kills its group (only when the pid leads its own group), registered so it runs after the harness itself is
+  killed. Before/after on that mutant, one test each: the old file left one ppid-1 host, the new left none.
+- **Fixtures that look like a leak (minor).** The regrade test held a real server under a finished, lock-free case folder, which another
+  session's real launch would have refused on, naming `kill <pid>`. It now holds the case lock, as a live host's harness would. The
+  refusal test cannot hold it (it asserts the lock-free state); its case record is written last and the lock taken as soon as the
+  refusal is seen, a window of one scan. `test_a_resume_stops_what_the_earlier_invocation_left_before_its_host_starts` still has such a
+  window of a few seconds, because a resume must be lock-free to be allowed; accepted.
+- **The incident (environment, not code; the owner's to undo).** While mutation-testing the reap, a first mutant ("every listener
+  selected") ran against a test scope that called the mutated selector, so the real reap sent SIGTERM to this user's other listeners:
+  Ollama (app and server) and the OrbStack engine stopped and were not restarted, the leaked pid 63973 ended, and launchd respawned the
+  rest. Checked read-only after the review: no Ollama process, `orbctl status` prints `Stopped`. To restore: `open -a Ollama` and
+  `orbctl start`. The scope guard (`scope_to_tmp`, `guarded_signal`) now checks by the test's own folder and refuses to signal any
+  pid outside it, independent of the code under test; mutants of the selector fail on that guard and signal nothing. Mutants that widen the
+  selection are not run against the real-process classes.
+- **A second harness for a running case went on silently (minor).** `hold_case` returns None where another harness holds the lock, and
+  `main` carried on: a second `--resume-run` of a live run would have reaped the live harness's servers, started a second host in the same
+  work directory and consumed the stop request its owner had made. Now `main` refuses (`another harness is running <out>`, nothing
+  started or stopped) unless the invocation is a regrade, which starts and stops nothing and may read a case that is running; and only the
+  invocation that holds the lock removes a stale stop file (the removal moved from the top of the resume branch to after the lock; the
+  existing `test_a_stop_never_answers_a_blocked_run` pins that a regrade still clears it when it holds the case). Red first:
+  `SystemExit not raised` and the stop file gone after a regrade. Mutants killed: refuse a regrade too, never refuse, remove the stop file
+  whatever the lock, never remove it (6 of 6 with the port mutants below).
+- **`listeners_of` raised on a name with no colon (minor, latent).** The test and the value used different indexes
+  (`rsplit(":", 1)[-1]` against `[1]`), so `n123` raised `IndexError` out of `launch()`. lsof prints `host:port` for a TCP endpoint, so this
+  cannot happen in a normal run; a name that is not `host:port` now yields no port (`_port`), pinned by a test that failed first on the
+  `IndexError`.
+- **A Ctrl-C on a suite did not end its hosts (minor, but it falsified the documented guarantee).** The review ran `run.py --suite breadth`
+  with three fake hosts and sent SIGINT: 40 s later the harness was running and all three hosts were alive, while SIGTERM on the same
+  suite ended in 31 s with rc 1, the hosts gone and `suite-result.json` written. A suite runs its cases in worker threads; the
+  `KeyboardInterrupt` reaches the main thread, which is inside `ThreadPoolExecutor.__exit__` waiting for them, so the `atexit` kill ran only
+  after the hosts had finished. `run_suite` now catches it while waiting for a chain, calls the same `terminate(name)` the SIGTERM handler
+  uses (named `SIGINT`) and waits for the chains' records, so a suite's Ctrl-C reads as a SIGTERM. Red first: the new real-subprocess test
+  waited 45 s and reported `the suite kept running after a Ctrl-C`. Not done: the second-press rule (`SIG_DFL`) of SIGTERM and SIGHUP is
+  not extended to SIGINT, because there is no deterministic test for it; a second Ctrl-C raises `KeyboardInterrupt` again.
+- **The batch suite's gate branch was untested (minor).** The mutant "the gate ignores TERMINATION" survived the whole file because the
+  signalled-suite test used a `breadth` suite, which has no gate. A `batch` suite with a gate now has its own test (gate row skipped as
+  `terminated by SIGTERM`, the cases behind it `the gate failed`, no host started); the mutant is killed. Mutants of the Ctrl-C path:
+  wrong name, rows dropped, `TERMINATION` not set all killed. One survived by construction (setting `TERMINATION` without the immediate
+  kill still ends the host at its next poll, at most 2 s); the immediate kill sits in `terminate`, which `LiveHostTest` pins with a 30 s poll.
+- **The documents said more than the code did (minor).** `run.py`'s module docstring (which is also `--help`) described the stop file and
+  `--grade-only` but not the signals, `left_behind` or the two refusals; it does now, pinned by a test. The README gained the transition
+  case (a harness started before the lock existed holds none, so a launch refuses its listeners as stale while it is still running:
+  wait, or stop the server by pid), the second-harness refusal and the exact Ctrl-C behaviour for a suite and for a single case (the
+  latter pinned: no `result.json`). SPEC: the cross-reference "the exception in the bullet after next" broke when a bullet is added, so it
+  now names the bullet and a test forbids the positional form; the Ctrl-C sentence and the second-harness refusal are amended in the
+  rule they belong to (the same-day refinement of the 2026-10-08 amendment, made with the code that needed it).

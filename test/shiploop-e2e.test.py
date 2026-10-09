@@ -21,6 +21,8 @@ import os
 from pathlib import Path
 import re
 import shlex
+import signal
+import socket
 import stat
 import subprocess
 import sys
@@ -40,6 +42,36 @@ import review  # noqa: E402
 import rollouts  # noqa: E402
 import run  # noqa: E402
 import fanout  # noqa: E402
+
+# listeners.py is the module the leftover-listener tests are about. Where it does not exist (the state a failing test is first run
+# in) only those tests may fail, each on an assertion (needs_listeners), so a missing module never takes the other tests down.
+try:
+    import listeners  # noqa: E402
+except ModuleNotFoundError as missing:
+    if missing.name != "listeners":
+        raise
+    listeners = None
+
+# The real observer, kept before any test patches it: the classes that exercise lsof scope what it sees to their own folder.
+REAL_OBSERVE = listeners.observe if listeners else None
+
+
+def needs_listeners(cls):
+    """Class decorator: while listeners.py does not exist every test of the class fails on this assertion, one by one."""
+    inner = cls.setUp
+
+    def setUp(self):
+        self.assertIsNotNone(listeners, "test/shiploop_e2e/listeners.py does not exist")
+        inner(self)
+
+    cls.setUp = setUp
+    return cls
+
+
+def nothing_listens():
+    """A patch that makes the machine's process table show no listener, so no test reads it (nothing to patch where listeners.py
+    does not exist yet, and the older tests then run as before)."""
+    return mock.patch.object(listeners, "observe", return_value=[]) if listeners else contextlib.nullcontext()
 
 # Shared product writer for both fakes: the hello case's files plus a done run.
 PRODUCT = f"""
@@ -70,12 +102,59 @@ def product():
     subprocess.run(["git", *ident, "commit", "-q", "--allow-empty", "-m", "product"], check=True)
 """
 
+# A TCP server in a process of its own, as a model's `node server.js &` is: its own session (a host's group kill cannot
+# reach it), no stdio shared with its parent, and it expires by itself after two minutes. argv[1] is a port file that
+# appears, complete, once the server listens ("<pid> <port>"); argv[2] == "ignore-term" makes it ignore SIGTERM. It accepts and
+# drops each connection: a listener that never accepts resets some probes once its backlog fills, which made `answers` flaky.
+LISTENER_SOURCE = (
+    "import os, socket, sys, time\n"
+    "s = socket.socket(); s.bind(('127.0.0.1', 0)); s.listen(1)\n"
+    "if sys.argv[2:] == ['ignore-term']:\n"
+    "    import signal; signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+    "open(sys.argv[1] + '.part', 'w').write('%d %d' % (os.getpid(), s.getsockname()[1]))\n"
+    "os.rename(sys.argv[1] + '.part', sys.argv[1])\n"
+    "s.settimeout(0.5)\n"
+    "end = time.time() + 120\n"
+    "while time.time() < end:\n"
+    "    try:\n"
+    "        s.accept()[0].close()\n"  # accept and drop, so a probe's connect is not queued behind earlier ones and reset
+    "    except OSError:\n"
+    "        pass\n")
+
+# What both fake hosts can do with a listener: FAKE_LISTEN=<port file> leaves one running from the working directory, as a
+# model's backgrounded server does; FAKE_PROBE_PORT=<port file> records, in FAKE_LOG.probe, whether that server still
+# answers when the session starts.
+LISTEN = f"""
+def leak_a_listener():
+    portfile = os.environ.get("FAKE_LISTEN")
+    if not portfile:
+        return
+    import subprocess, time
+    subprocess.Popen([sys.executable, "-c", {LISTENER_SOURCE!r}, portfile], start_new_session=True,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(200):
+        if os.path.exists(portfile):
+            break
+        time.sleep(0.05)
+def probe_a_port():
+    portfile = os.environ.get("FAKE_PROBE_PORT")
+    if not portfile or not os.path.exists(portfile):
+        return
+    import socket
+    probe = socket.socket()
+    probe.settimeout(2)
+    answered = probe.connect_ex(("127.0.0.1", int(open(portfile).read().split()[1]))) == 0
+    with open(os.environ["FAKE_LOG"] + ".probe", "a") as log:
+        log.write("answers\\n" if answered else "refused\\n")
+"""
+
 # FAKE_MODE: done (product + done run), nothing (exit 0, no work), no-skill (done,
 # but no ShipLoop command registered).
 FAKE_CLAUDE = f"""#!{sys.executable}
 import json, os, sys
 from pathlib import Path
 {PRODUCT}
+{LISTEN}
 argv = sys.argv[1:]
 Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{"argv": argv, "cwd_listing": os.listdir(".")}}))
 mode = os.environ.get("FAKE_MODE")
@@ -88,6 +167,7 @@ print(json.dumps({{"type": "assistant", "message": {{"content": [{{"type": "tool
 if os.environ.get("FAKE_COMMAND"):  # one more tool call, for a test that needs the run to do something
     print(json.dumps({{"type": "assistant", "message": {{"content": [{{"type": "tool_use", "name": "Bash",
                       "input": {{"command": os.environ["FAKE_COMMAND"]}}}}]}}}}))
+leak_a_listener()
 if mode in ("done", "no-skill"):
     product()
 if mode == "active":
@@ -131,6 +211,7 @@ FAKE_GROK = f"""#!{sys.executable}
 import json, os, sys
 from pathlib import Path
 {PRODUCT}
+{LISTEN}
 argv = sys.argv[1:]
 home = Path(os.environ["HOME"])
 registry = home / ".grok" / "fake-plugins.txt"
@@ -142,10 +223,11 @@ if argv[:2] == ["plugin", "list"]:
     print(registry.read_text() if registry.exists() else "")
     sys.exit(0)
 os.chdir(argv[argv.index("--cwd") + 1])
+probe_a_port()
 prompt = Path(argv[argv.index("--prompt-file") + 1]).read_text()
 resumed = argv[argv.index("--resume") + 1] if "--resume" in argv else None
 with open(os.environ["FAKE_LOG"] + ".sessions", "a") as log:
-    log.write(json.dumps({{"resumed": resumed, "prompt": prompt}}) + "\\n")
+    log.write(json.dumps({{"resumed": resumed, "prompt": prompt, "pid": os.getpid()}}) + "\\n")
 if os.environ.get("FAKE_MODE") == "crash-resumed" and resumed:
     sys.exit(1)  # a resumed session dies without writing any event
 Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{
@@ -156,6 +238,7 @@ print(json.dumps({{"type": "available_commands", "tools": [], "commands": ["ship
 print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "shiploop next"}}}}))
 for chunk in ("Ship", "ped."):
     print(json.dumps({{"type": "text", "data": chunk}}))
+leak_a_listener()
 mode = os.environ.get("FAKE_MODE")
 if mode == "done" or (mode == "resume" and resumed):
     import shutil
@@ -268,6 +351,11 @@ class HarnessCase(unittest.TestCase):
         patched = mock.patch.dict(os.environ, {"CODEX_HOME": str(codex_home)})
         patched.start()
         self.addCleanup(patched.stop)
+        # No harness case reads the machine's process table: a listener another session (or a leaked server) holds
+        # must not change a verdict here. The classes that exercise the real lsof scope what they see to their own folder.
+        patch = nothing_listens()
+        patch.__enter__()
+        self.addCleanup(patch.__exit__, None, None, None)
 
     def invoke(self, host: str, mode: str, *extra: str) -> tuple[int, dict]:
         os.environ["FAKE_MODE"] = mode
@@ -4745,7 +4833,8 @@ class KeepAwakeTest(unittest.TestCase):
             log = temp / "caffeinate.log"
             with mock.patch.dict(os.environ, {"PATH": f"{tool.parent}{os.pathsep}{os.environ['PATH']}",
                                               "CAFFEINATE_LOG": str(log)}), \
-                    mock.patch.object(sys, "platform", platform):
+                    mock.patch.object(sys, "platform", platform), \
+                    nothing_listens():  # launch looks for leftovers; not in the real table
                 result = run.launch(self.ARGV, out / "work", out, dict(os.environ), 60, watch=False)
             self.assertEqual((result["status"], result["returncode"]), ("exited", 0))
             return (json.loads(log.read_text()) if log.exists() else None), (out / "events.jsonl").read_text()
@@ -4759,6 +4848,999 @@ class KeepAwakeTest(unittest.TestCase):
         argv, events = self.launched("linux")
         self.assertIsNone(argv, "caffeinate was not run")
         self.assertEqual(events.strip(), "hi")
+
+
+LSOF_LISTENING = """p969
+crapportd
+u501
+f14
+n*:58318
+f15
+n*:58318
+p2059
+cOllama
+u501
+f3
+n127.0.0.1:11434
+p300
+cmDNSResponder
+u0
+f7
+n*:5353
+p63973
+cnode
+u501
+f12
+n*:3457
+f13
+n[::1]:3457
+"""
+LSOF_CWD = "p2059\nfcwd\nn/\np63973\nfcwd\nn/Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/work\n"
+PS_COMMANDS = ("  300 /usr/sbin/mDNSResponder\n 2059 /Applications/Ollama.app/Contents/Resources/ollama serve\n"
+               "63973 node /Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/.shiploop-runs/work-1/worktree/server.js\n")
+
+
+def listener(pid: int, cwd: str | None, argv: str = "", ports: tuple = (3457,)) -> dict:
+    return {"pid": pid, "command": argv.split()[0] if argv else "x", "ports": list(ports), "cwd": cwd, "argv": argv}
+
+
+@needs_listeners
+class ListenerParseSelectionTest(unittest.TestCase):
+    """Which processes the harness stops: read from lsof's field output, chosen by place, and never the harness itself.
+
+    Pure checks over captured output, so they run on a runner with no lsof (the real-process classes skip there)."""
+
+    def test_lsof_field_output_is_parsed_into_pid_ports_cwd_and_argv(self):
+        self.assertEqual(listeners.listeners_of(LSOF_LISTENING, 501),
+                         [{"pid": 969, "command": "rapportd", "ports": [58318]},
+                          {"pid": 2059, "command": "Ollama", "ports": [11434]},
+                          {"pid": 63973, "command": "node", "ports": [3457]}], "own user only; one port listed once")
+        self.assertEqual(listeners.cwds_of(LSOF_CWD), {2059: "/", 63973: "/Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/work"})
+        self.assertEqual(listeners.argvs_of(PS_COMMANDS)[63973],
+                         "node /Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/.shiploop-runs/work-1/worktree/server.js")
+
+        def fake_run(argv):
+            return LSOF_LISTENING if "-iTCP" in argv else LSOF_CWD if "cwd" in argv else PS_COMMANDS
+        with mock.patch.object(listeners, "_run", side_effect=fake_run), mock.patch.object(listeners.os, "getuid", return_value=501):
+            seen = {item["pid"]: item for item in listeners.observe()}
+        self.assertEqual(sorted(seen), [969, 2059, 63973])
+        self.assertEqual((seen[63973]["ports"], seen[63973]["cwd"]),
+                         ([3457], "/Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/work"))
+        self.assertTrue(seen[63973]["argv"].endswith("/worktree/server.js"))
+        self.assertEqual((seen[969]["cwd"], seen[969]["argv"]), (None, ""), "a process that vanished between the calls has neither")
+
+    def test_a_name_that_is_not_host_and_port_is_not_a_port_and_never_raises(self):
+        # lsof prints host:port for a TCP listener; a name without a colon (an all-digit one included) is no endpoint to list.
+        odd = "p1\ncx\nu501\nn123\nnno-colon-here\nn*:80\nnhost:notaport\n"
+        self.assertEqual(listeners.listeners_of(odd, 501), [{"pid": 1, "command": "x", "ports": [80]}])
+
+    def test_only_a_listener_inside_the_case_folder_on_a_path_boundary_is_selected(self):
+        folder = "/e2e/case-1"
+        chosen = [listener(10, "/e2e/case-1/work"), listener(11, "/e2e/case-1"),
+                  listener(12, "/", "node /e2e/case-1/.shiploop-runs/x/server.js"),
+                  listener(13, "/", "node server.js --root=/e2e/case-1/site"), listener(14, "/e2e/case-1/work/deep/er")]
+        left = [listener(20, "/e2e/case-10/work"),
+                listener(21, "/", "node /e2e/case-10/server.js"), listener(22, "/", "tail -f /e2e/case-1-other/log"),
+                listener(23, "/e2e/case-1/work"), listener(24, None, ""), listener(25, "/", "python3 -m http.server"),
+                listener(1, "/e2e/case-1/work"), listener(26, "/e2e")]
+        got = {item["pid"] for item in listeners.under(chosen + left, folder, protected={23})}
+        self.assertEqual(got, {10, 11, 12, 13, 14}, "pid 23 is protected, pid 1 is never touched, siblings and parents are not inside")
+
+    def test_a_folder_reached_through_a_symlink_is_matched_by_either_spelling(self):
+        with tempfile.TemporaryDirectory() as temp:
+            real = Path(temp).resolve() / "real"
+            (real / "case").mkdir(parents=True)
+            link = Path(temp) / "link"
+            link.symlink_to(real)
+            asked = str(link / "case")  # how the output folder was spelled; lsof reports a cwd as the real path
+            by_cwd, by_argv = listener(30, str(real / "case" / "work")), listener(31, "/", f"node {asked}/server.js")
+            self.assertEqual({i["pid"] for i in listeners.under([by_cwd, by_argv], asked)}, {30, 31})
+
+    def test_the_harness_and_its_ancestors_are_protected(self):
+        parents = {500: 400, 400: 300, 300: 1, 600: 1}
+        self.assertEqual(listeners.ancestors(parents, 500), {500, 400, 300})
+        self.assertEqual(listeners.ancestors(parents, 999), {999}, "a pid with no parent row is only itself")
+        with mock.patch.object(listeners, "_run", return_value="  1 0\n 500 400\n 400 300\n 300 1\n"), \
+                mock.patch.object(listeners.os, "getpid", return_value=500):
+            self.assertEqual(listeners.protected_pids(), {500, 400, 300})
+        with mock.patch.object(listeners, "_run", side_effect=listeners.Unobserved("ps not found")), \
+                mock.patch.object(listeners.os, "getpid", return_value=500), mock.patch.object(listeners.os, "getppid", return_value=400):
+            self.assertEqual(listeners.protected_pids(), {500, 400}, "no process table: at least this process and its parent")
+
+    def test_a_tool_that_cannot_run_is_unobserved_with_its_reason(self):
+        with mock.patch.object(listeners.subprocess, "run", side_effect=FileNotFoundError):
+            with self.assertRaisesRegex(listeners.Unobserved, "lsof not found"):
+                listeners.observe()
+        with mock.patch.object(listeners.subprocess, "run",
+                               side_effect=listeners.subprocess.TimeoutExpired(["lsof"], listeners.LSOF_TIMEOUT)):
+            with self.assertRaisesRegex(listeners.Unobserved, "lsof timed out"):
+                listeners.observe()
+        failed = subprocess.CompletedProcess(["lsof"], 2, stdout="", stderr="lsof: permission denied\nmore\n")
+        with mock.patch.object(listeners.subprocess, "run", return_value=failed):
+            with self.assertRaisesRegex(listeners.Unobserved, r"lsof exited 2: lsof: permission denied"):
+                listeners.observe()
+        none_listening = subprocess.CompletedProcess(["lsof"], 1, stdout="", stderr="")
+        with mock.patch.object(listeners.subprocess, "run", return_value=none_listening):
+            self.assertEqual(listeners.observe(), [], "exit 1 with no output is a measured none")
+
+    def pass_record(self, *reaped: int, survived: tuple = (), observed: bool = True, reason: str | None = None) -> dict:
+        if not observed:
+            return {"observed": False, "reason": reason}
+        return {"observed": True, "reaped": [dict(listener(pid, "/x"), ended_by="SIGTERM") for pid in reaped],
+                "survived": [listener(pid, "/x") for pid in survived]}
+
+    def test_the_passes_of_a_run_merge_and_an_unseen_pass_never_reads_as_none(self):
+        self.assertIsNone(listeners.merge_left_behind([]), "a regrade ran no pass")
+        self.assertIsNone(listeners.merge_left_behind([None, None]))
+        merged = listeners.merge_left_behind([self.pass_record(7), self.pass_record(8, survived=(9,)), self.pass_record(survived=(9,))])
+        self.assertIsNotNone(merged)
+        self.assertEqual(merged["observed"], True)
+        self.assertEqual([i["pid"] for i in merged["reaped"]], [7, 8])
+        self.assertEqual([i["pid"] for i in merged["survived"]], [9], "one process seen twice is listed once")
+        later = listeners.merge_left_behind([self.pass_record(survived=(9,)), self.pass_record(9)])
+        self.assertEqual(([i["pid"] for i in later["reaped"]], later["survived"]), ([9], []), "stopped by a later pass: not a survivor")
+        nothing = listeners.merge_left_behind([self.pass_record(), self.pass_record()])
+        self.assertEqual(nothing, {"observed": True, "reaped": [], "survived": []}, "two passes that looked and found none")
+        blind = listeners.merge_left_behind([self.pass_record(observed=False, reason="lsof not found"),
+                                             self.pass_record(observed=False, reason="lsof not found")])
+        self.assertEqual(blind, {"observed": False, "reason": "lsof not found"}, "no pass looked: no reaped key to read as none")
+        partial = listeners.merge_left_behind([self.pass_record(7), self.pass_record(observed=False, reason="lsof timed out after 30s")])
+        self.assertIsNotNone(partial)
+        self.assertEqual((partial["observed"], partial["reason"]), (False, "lsof timed out after 30s"))
+        self.assertEqual([i["pid"] for i in partial["reaped"]], [7], "what the pass that looked found is kept beside the reason")
+        again = listeners.merge_left_behind([partial, self.pass_record(8)])  # a resume merges the earlier record with its own
+        self.assertIsNotNone(again)
+        self.assertEqual(([i["pid"] for i in again["reaped"]], again["observed"]), ([7, 8], False))
+
+    def test_the_printed_line_names_what_was_stopped_and_what_could_not_be_seen(self):
+        self.assertIsNone(listeners.left_behind_line(None))
+        self.assertIsNone(listeners.left_behind_line({"observed": True, "reaped": [], "survived": []}), "a clean run prints nothing")
+        line = listeners.left_behind_line(listeners.merge_left_behind([self.pass_record(7), self.pass_record(survived=(9,))]))
+        self.assertEqual(line, "  left      stopped pid 7 x (port 3457) by SIGTERM; could not stop pid 9 x (port 3457)")
+        blind = listeners.left_behind_line({"observed": False, "reason": "lsof not found"})
+        self.assertEqual(blind, "  left      not observed: lsof not found")
+
+
+needs_lsof = unittest.skipUnless(shutil.which("lsof") and shutil.which("ps"),
+                                 "the real-process tests need lsof and ps on PATH (the pure parse and selection tests still run)")
+
+
+def end_quietly(proc: subprocess.Popen) -> None:
+    with contextlib.suppress(ProcessLookupError):
+        proc.kill()
+    proc.wait()
+    if proc.stdout:
+        proc.stdout.close()
+
+
+def kill_leaked(portfile: Path) -> None:
+    """Stop a listener a fake host left behind (it was reparented, so there is no Popen); it also expires on its own."""
+    if portfile.exists():
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(int(portfile.read_text().split()[0]), 9)
+
+
+def answers(port: int) -> bool:
+    with socket.socket() as probe:
+        probe.settimeout(2)
+        return probe.connect_ex(("127.0.0.1", port)) == 0
+
+
+def refuses_soon(port: int, seconds: float = 5.0) -> bool:
+    end = time.time() + seconds
+    while time.time() < end:
+        if not answers(port):
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def isolate_git(case: unittest.TestCase) -> None:
+    """A fake host runs real git: neither the machine's system nor its global config (signing, an lfs filter) may reach it."""
+    patched = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+    patched.start()
+    case.addCleanup(patched.stop)
+
+
+class CaseRunCase(PrintedCase):
+    """A harness case that runs one named case into its own folder and returns what the run recorded."""
+
+    def case_main(self, name: str, *extra: str, mode: str = "done", host: str = "claude", env: dict | None = None):
+        out = self.tmp / name
+        os.environ["FAKE_MODE"] = mode
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), mock.patch.dict(os.environ, env or {}):
+            code = run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue(), out
+
+    def reaped(self, result: dict) -> list[int]:
+        return [i["pid"] for i in (result.get("left_behind") or {}).get("reaped", [])]
+
+
+class RealListeners:
+    """Mixin: tests that start real servers and let the harness stop them, in a world scoped to the test's own folder."""
+
+    def scope_to_tmp(self) -> None:
+        """What lsof shows is only what has its working directory under self.tmp, so no other session's server (or a leaked one
+        on this machine) can change a result; the real lsof, ps and signals are still used. The scope is checked here, not by
+        listeners.under, and a signal to any pid outside it is refused: a defect in the code under test (or a mutant of it) must
+        never be able to stop a process of the machine's user that the test did not start."""
+        root = os.path.realpath(self.tmp)
+
+        def in_tmp() -> list[dict]:
+            return [item for item in REAL_OBSERVE() if item.get("cwd") and (item["cwd"] == root or item["cwd"].startswith(root + os.sep))]
+
+        real_signal = listeners._signal
+
+        def guarded_signal(pid: int, number: int) -> None:
+            if pid not in {item["pid"] for item in in_tmp()}:
+                raise AssertionError(f"refusing to signal pid {pid}: it is not a listener under the test's own folder")
+            real_signal(pid, number)
+
+        for patcher in (mock.patch.object(listeners, "observe", side_effect=in_tmp),
+                        mock.patch.object(listeners, "_signal", side_effect=guarded_signal)):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        isolate_git(self)
+
+    def serve(self, cwd: Path, *flags: str) -> tuple[subprocess.Popen, int]:
+        """A listening server whose working directory is `cwd`, as a model leaves one; killed when the test ends."""
+        cwd.mkdir(parents=True, exist_ok=True)
+        portfile = self.tmp / f"port-{len(list(self.tmp.glob('port-*')))}"
+        proc = subprocess.Popen([sys.executable, "-c", LISTENER_SOURCE, str(portfile), *flags], cwd=cwd, start_new_session=True,
+                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.addCleanup(end_quietly, proc)
+        for _ in range(200):
+            if portfile.exists():
+                break
+            time.sleep(0.05)
+        else:
+            raise AssertionError("the test's listener never started")
+        proc.portfile = portfile
+        return proc, int(portfile.read_text().split()[1])
+
+
+@needs_lsof
+@needs_listeners
+class ReapTest(RealListeners, unittest.TestCase):
+    """listeners.reap with the real lsof, ps and signals, on servers the test starts."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.scope_to_tmp()
+
+    def test_a_folder_with_nothing_under_it_is_a_measured_none(self):
+        self.assertEqual(listeners.reap(self.tmp / "empty"), {"observed": True, "reaped": [], "survived": []})
+
+    def test_a_listener_under_the_folder_is_stopped_and_a_sibling_with_the_same_prefix_is_not(self):
+        inside, port = self.serve(self.tmp / "case-1" / "work")
+        beside, beside_port = self.serve(self.tmp / "case-10" / "work")
+        record = listeners.reap(self.tmp / "case-1")
+        self.assertEqual([(i["pid"], i["ports"], i["ended_by"]) for i in record.get("reaped", [])], [(inside.pid, [port], "SIGTERM")])
+        self.assertEqual(record.get("survived"), [])
+        self.assertTrue(refuses_soon(port))
+        self.assertTrue(answers(beside_port), "case-10 is not inside case-1")
+
+    def test_a_listener_that_ignores_sigterm_is_killed_after_the_grace(self):
+        stubborn, port = self.serve(self.tmp / "case-1", "ignore-term")
+        with mock.patch.object(listeners, "GRACE_SECONDS", 0.3):
+            record = listeners.reap(self.tmp / "case-1")
+        self.assertEqual([(i["pid"], i["ended_by"]) for i in record.get("reaped", [])], [(stubborn.pid, "SIGKILL")])
+        self.assertTrue(refuses_soon(port))
+
+    def test_a_listener_that_stays_is_reported_as_survived_and_never_as_reaped(self):
+        stays, port = self.serve(self.tmp / "case-1")
+        with mock.patch.object(listeners, "_signal"), mock.patch.object(listeners, "GRACE_SECONDS", 0.2), \
+                mock.patch.object(listeners, "FORCE_SECONDS", 0.2):
+            record = listeners.reap(self.tmp / "case-1")
+        self.assertEqual(record.get("reaped"), [])
+        self.assertEqual([(i["pid"], i["ports"]) for i in record.get("survived", [])], [(stays.pid, [port])])
+        self.assertTrue(answers(port))
+
+    def test_a_world_that_cannot_be_read_is_unobserved_even_for_a_folder_with_a_listener(self):
+        with mock.patch.object(listeners, "observe", side_effect=listeners.Unobserved("lsof not found")):
+            self.assertEqual(listeners.reap(self.tmp / "case-1"), {"observed": False, "reason": "lsof not found"})
+
+
+@needs_lsof
+@needs_listeners
+class LeftBehindThroughMainTest(RealListeners, CaseRunCase):
+    """What a host or a check leaves listening is stopped, recorded in result.json and printed (SPEC: a run leaves nothing listening)."""
+
+    def setUp(self):
+        super().setUp()
+        self.scope_to_tmp()
+
+    def test_a_server_a_host_leaves_running_is_stopped_and_recorded(self):
+        for host in ("claude", "grok"):
+            with self.subTest(host=host):
+                portfile = self.tmp / f"leak-{host}"
+                self.addCleanup(kill_leaked, portfile)
+                code, result, printed, out = self.case_main(f"case-{host}", host=host, env={"FAKE_LISTEN": str(portfile)})
+                pid, port = map(int, portfile.read_text().split())
+                self.assertEqual(code, 0, result)
+                self.assertIn("left_behind", result)
+                left = result.get("left_behind", {})
+                self.assertEqual(left.get("observed"), True, left)
+                self.assertEqual([(i["pid"], i["ports"], i["ended_by"]) for i in left.get("reaped", [])], [(pid, [port], "SIGTERM")])
+                self.assertEqual([i["cwd"] for i in left.get("reaped", [])], [str((out / "work").resolve())])
+                self.assertEqual(left.get("survived"), [])
+                self.assertTrue(refuses_soon(port), "the server no longer answers")
+                self.assertRegex(printed, rf"(?m)^  left      stopped pid {pid} .*\(port {port}\) by SIGTERM$")
+                self.assertTrue(result["pass"], "a leftover is a record, not a verdict")
+
+    def test_a_clean_run_records_a_measured_none_and_prints_no_left_line(self):
+        code, result, printed, out = self.case_main("case-clean")
+        self.assertEqual(result.get("left_behind"), {"observed": True, "reaped": [], "survived": []})
+        self.assertNotRegex(printed, r"(?m)^  left ")
+
+    def test_listeners_outside_the_case_folder_are_left_alone(self):
+        portfile = self.tmp / "leak"
+        self.addCleanup(kill_leaked, portfile)
+        elsewhere, elsewhere_port = self.serve(self.tmp / "elsewhere")
+        sibling, sibling_port = self.serve(self.tmp / "case-10" / "work")  # shares a name prefix with the case folder
+        code, result, printed, out = self.case_main("case-1", env={"FAKE_LISTEN": str(portfile)})
+        self.assertEqual(self.reaped(result), [int(portfile.read_text().split()[0])])
+        self.assertTrue(answers(elsewhere_port) and answers(sibling_port))
+
+    def test_a_listener_a_check_leaves_is_stopped_after_the_checks(self):
+        portfile = self.tmp / "leak-check"
+        self.addCleanup(kill_leaked, portfile)
+        spawner = ("import os, subprocess, sys, time\n"
+                   f"subprocess.Popen([sys.executable, '-c', {LISTENER_SOURCE!r}, {str(portfile)!r}], start_new_session=True,\n"
+                   "                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+                   f"while not os.path.exists({str(portfile)!r}):\n    time.sleep(0.05)\n")
+        check = f"{shlex.quote(sys.executable)} -c {shlex.quote(spawner)}"
+        code, result, printed, out = self.case_main("case-check", "--prompt", "say hello", "--check", check)
+        pid, port = map(int, portfile.read_text().split())
+        self.assertEqual(self.reaped(result), [pid], "the session ended before the check started it")
+        self.assertTrue(refuses_soon(port))
+        self.assertTrue(all(c["pass"] for c in result["checks"]), result["checks"])
+
+    def test_launch_reaps_when_its_session_ends_and_returns_the_record(self):
+        portfile = self.tmp / "leak-launch"
+        self.addCleanup(kill_leaked, portfile)
+        out = self.tmp / "case-launch"
+        (out / "work").mkdir(parents=True)
+        spawner = ("import os, subprocess, sys, time\n"
+                   f"subprocess.Popen([sys.executable, '-c', {LISTENER_SOURCE!r}, {str(portfile)!r}], start_new_session=True,\n"
+                   "                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+                   f"while not os.path.exists({str(portfile)!r}):\n    time.sleep(0.05)\n")
+        session = run.launch([sys.executable, "-c", spawner], out / "work", out, dict(os.environ), 60, watch=False)
+        pid, port = map(int, portfile.read_text().split())
+        self.assertEqual(session["status"], "exited")
+        self.assertEqual(self.reaped(session), [pid])
+        self.assertTrue(refuses_soon(port))
+
+    def test_a_regrade_and_grade_only_reap_nothing_and_keep_the_earlier_record(self):
+        code, first, _, out = self.case_main("case-done")
+        live = listeners.hold_case(out)  # a live host means a live harness: without the lock this folder would look like a leak to other launches
+        self.assertIsNotNone(live)
+        self.addCleanup(live.close)
+        proc, port = self.serve(out / "work")  # something a live host could be serving: a regrade starts no host and must not touch it
+        recorded = first.get("left_behind")
+        self.assertIsNotNone(recorded, "the run being regraded recorded what it left behind")
+        for extra in ((), ("--grade-only",)):
+            with contextlib.redirect_stdout(io.StringIO()):
+                run.main(["--resume-run", str(out), "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+            self.assertTrue(answers(port), f"a regrade {extra} reaped")
+            self.assertEqual(json.loads((out / "result.json").read_text()).get("left_behind"), recorded)
+        old = json.loads((out / "result.json").read_text())
+        old.pop("left_behind", None)  # a result written before the key existed
+        (out / "result.json").write_text(json.dumps(old))
+        with contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--resume-run", str(out), "--grade-only", "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        self.assertNotIn("left_behind", json.loads((out / "result.json").read_text()), "not recorded is not none")
+        self.assertTrue(answers(port))
+
+    def test_a_world_that_cannot_be_read_is_recorded_as_unobserved_and_the_run_is_not_failed(self):
+        with mock.patch.object(listeners, "observe", side_effect=listeners.Unobserved("lsof not found")):
+            code, result, printed, out = self.case_main("case-blind")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result.get("left_behind"), {"observed": False, "reason": "lsof not found"})
+        self.assertIn("  left      not observed: lsof not found", printed)
+
+    def test_a_resume_stops_what_the_earlier_invocation_left_before_its_host_starts(self):
+        code, first, _, out = self.case_main("case-resume", "--max-resumes", "0", mode="stuck", host="grok")
+        self.assertEqual(first["shiploop"]["status"], "active")
+        orphan, port = self.serve(out / "work")  # a model's server that outlived a killed harness
+        self.log.unlink()
+        Path(str(self.log) + ".probe").unlink(missing_ok=True)
+        os.environ["FAKE_MODE"] = "done"
+        released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False, "catalog_version": None,
+                    "shiploop_version": None, "unreleased": [], "ci": "success"}  # a resume on its own install checks main's state
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.dict(os.environ, {"FAKE_PROBE_PORT": str(orphan.portfile)}), \
+                mock.patch.object(run, "released_versions", return_value=released):
+            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        self.assertEqual(Path(str(self.log) + ".probe").read_text().split(), ["refused"], "gone before the new session began")
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual(self.reaped(result), [orphan.pid])
+
+
+@needs_listeners
+class CaseLockTest(unittest.TestCase):
+    """A case's harness is alive exactly while it holds an exclusive lock on <output>/.harness-lock; the kernel drops it on any death."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name).resolve()
+
+    def case(self, name: str) -> Path:
+        folder = self.tmp / name
+        (folder / "work").mkdir(parents=True)
+        (folder / "invocation.json").write_text("{}")
+        return folder
+
+    def test_a_case_folder_is_the_nearest_ancestor_with_an_invocation_record_and_a_work_directory(self):
+        folder = self.case("case-1")
+        self.assertEqual(listeners.case_folder(folder / "work" / "deep" / "server.js"), folder)
+        self.assertEqual(listeners.case_folder(folder), folder)
+        self.assertIsNone(listeners.case_folder(self.tmp / "elsewhere" / "a"))
+        (self.tmp / "half").mkdir()
+        (self.tmp / "half" / "invocation.json").write_text("{}")  # a record without a work directory is not a case
+        self.assertIsNone(listeners.case_folder(self.tmp / "half" / "x"))
+
+    def test_the_lock_is_held_while_its_file_is_open_and_a_second_holder_gets_none(self):
+        folder = self.case("case-1")
+        self.assertFalse(listeners.case_alive(folder), "no lock file: no live harness")
+        self.assertFalse((folder / ".harness-lock").exists(), "looking creates nothing in a folder the run does not own")
+        held = listeners.hold_case(folder)
+        self.assertIsNotNone(held)
+        self.assertTrue(listeners.case_alive(folder), "a second open file description in this very process sees it held")
+        self.assertIsNone(listeners.hold_case(folder), "one harness per case folder; the second gets None, not an exception (main refuses on it)")
+        held.close()
+        self.assertFalse(listeners.case_alive(folder))
+        self.assertIsNone(listeners.hold_case(self.tmp / "no-such-folder"), "never raises")
+
+    def test_the_kernel_drops_the_lock_when_its_holder_is_killed(self):
+        folder = self.case("case-1")
+        holder = subprocess.Popen([sys.executable, "-c", "import fcntl, sys, time\nf = open(sys.argv[1], 'a')\n"
+                                   "fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)\nprint('held', flush=True)\ntime.sleep(60)\n",
+                                   str(folder / ".harness-lock")], stdout=subprocess.PIPE, text=True)
+        self.addCleanup(end_quietly, holder)
+        self.assertEqual(holder.stdout.readline().strip(), "held")
+        self.assertTrue(listeners.case_alive(folder))
+        holder.kill()
+        holder.wait()
+        self.assertFalse(listeners.case_alive(folder), "a SIGKILLed harness leaves no lock behind")
+
+    def test_stale_lists_the_listeners_of_ended_cases_other_than_its_own(self):
+        alive, ended, own = self.case("alive"), self.case("ended"), self.case("own")
+        held = listeners.hold_case(alive)
+        self.assertIsNotNone(held)
+        self.addCleanup(held.close)
+        items = [listener(900001, str(ended / "work"), "node server.js"),
+                 listener(900002, str(alive / "work"), "node server.js"),
+                 listener(900003, str(own / "work"), "node server.js"),
+                 listener(900004, "/", f"node {ended}/.shiploop-runs/x/server.js"),
+                 listener(900005, "/", "node unrelated.js"),
+                 listener(900006, str(ended / "work"), "node protected.js")]
+        with mock.patch.object(listeners, "observe", return_value=items), \
+                mock.patch.object(listeners, "protected_pids", return_value={900006}):
+            found = listeners.stale(own)
+            everything = listeners.stale(None)
+        self.assertEqual({(i["pid"], i["case"]) for i in found}, {(900001, str(ended)), (900004, str(ended))},
+                         "a live harness, the run's own folder, an unrelated process and a protected pid are not stale")
+        self.assertEqual({i["pid"] for i in everything}, {900001, 900003, 900004}, "with no folder of its own, the own case is stale too")
+
+
+@needs_listeners
+class StalePreflightThroughMainTest(CaseRunCase):
+    """A launch is refused, whole, while another case leaves a listener and its harness is not alive (SPEC: a run leaves nothing listening)."""
+
+    def setUp(self):
+        super().setUp()
+        isolate_git(self)
+        patched = mock.patch.object(run, "POLL_SECONDS", 0.2, create=True)
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def ended_case(self, name: str = "case-old") -> Path:
+        folder = self.tmp / name
+        (folder / "work").mkdir(parents=True)
+        (folder / "invocation.json").write_text("{}")
+        return folder
+
+    def leaking(self, folder: Path, pid: int = 900001) -> mock._patch:
+        return mock.patch.object(listeners, "observe", return_value=[listener(pid, str(folder / "work"), "node server.js", (3457,))])
+
+    def test_a_launch_is_refused_while_an_ended_case_leaves_a_listener_and_no_host_starts(self):
+        ended = self.ended_case()
+        with self.leaking(ended), self.assertRaises(SystemExit) as refused:
+            self.case_main("case-new")
+        for part in ("pid 900001", "port 3457", str(ended), "kill 900001"):
+            self.assertIn(part, str(refused.exception))
+        self.assertFalse(self.log.exists(), "no host started")
+        self.assertFalse((self.tmp / "case-new").exists(), "a refused launch leaves no output folder behind")
+
+    def test_preflight_only_refuses_the_same_way_and_a_clean_machine_passes(self):
+        ended = self.ended_case()
+        for leaks, want in ((True, 1), (False, 0)):
+            printed = io.StringIO()
+            with (self.leaking(ended) if leaks else mock.patch.object(listeners, "observe", return_value=[])), \
+                    mock.patch.object(run, "marketplace_preflight", return_value=(self.plugin, None, {"gate": []})), \
+                    contextlib.redirect_stdout(printed):
+                code = run.main(["--preflight-only", "--host", "claude", "--output", str(self.tmp / f"pf-{leaks}")])
+            self.assertEqual(code, want, printed.getvalue())
+            self.assertEqual("kill 900001" in printed.getvalue(), leaks)
+
+    def test_a_case_whose_harness_is_alive_is_not_stale_even_in_the_same_process(self):
+        ended = self.ended_case()
+        held = listeners.hold_case(ended)  # what a sibling case of a parallel suite holds
+        self.assertIsNotNone(held)
+        self.addCleanup(held.close)
+        with self.leaking(ended):
+            code, result, printed, out = self.case_main("case-new")
+        self.assertEqual(code, 0, result)
+
+    def resume_argv(self, out: Path, *extra: str) -> list[str]:
+        return ["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out), "--plugin-dir", str(self.plugin),
+                "--baseline", str(self.baselines), *extra]
+
+    def test_a_second_harness_for_a_case_whose_harness_is_alive_is_refused_and_touches_nothing(self):
+        code, first, _, out = self.case_main("case-live", "--max-resumes", "0", mode="stuck", host="grok")
+        self.assertEqual(first["shiploop"]["status"], "active")
+        live = listeners.hold_case(out)  # the harness that is running this case
+        self.assertIsNotNone(live)
+        self.addCleanup(live.close)
+        (out / "stop").write_text("")  # its owner has asked it to end
+        self.log.unlink()
+        reaped: list = []
+        released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False, "catalog_version": None,
+                    "shiploop_version": None, "unreleased": [], "ci": "success"}
+        with mock.patch.object(listeners, "reap", side_effect=lambda folder: reaped.append(folder)), \
+                mock.patch.object(run, "released_versions", return_value=released), \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as refused:
+            run.main(self.resume_argv(out))
+        self.assertIn("another harness is running", str(refused.exception))
+        self.assertIn(str(out), str(refused.exception))
+        self.assertTrue((out / "stop").exists(), "the stop request belongs to the harness that is running")
+        self.assertFalse(self.log.exists(), "no host started")
+        self.assertEqual(reaped, [], "the live harness's servers are not this invocation's to stop")
+
+    def test_a_regrade_of_a_case_whose_harness_is_alive_is_not_refused_and_leaves_its_stop_request(self):
+        code, first, _, out = self.case_main("case-done")
+        live = listeners.hold_case(out)
+        self.assertIsNotNone(live)
+        self.addCleanup(live.close)
+        (out / "stop").write_text("")
+        for extra in ((), ("--grade-only",)):
+            with contextlib.redirect_stdout(io.StringIO()):
+                run.main(self.resume_argv(out, *extra))
+            self.assertTrue(json.loads((out / "result.json").read_text())["process"]["regraded"], extra)
+            self.assertTrue((out / "stop").exists(), f"a regrade {extra} starts nothing, so it owns no stop request")
+
+    def test_a_regrade_is_never_refused_because_it_starts_nothing(self):
+        code, first, _, out = self.case_main("case-done")
+        ended = self.ended_case()
+        for extra in ((), ("--grade-only",)):
+            with self.leaking(ended), contextlib.redirect_stdout(io.StringIO()):
+                run.main(["--resume-run", str(out), "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+            self.assertTrue(json.loads((out / "result.json").read_text())["process"]["regraded"], extra)
+
+    def test_a_listener_that_cannot_be_looked_for_is_noted_and_the_launch_goes_ahead(self):
+        with mock.patch.object(listeners, "observe", side_effect=listeners.Unobserved("lsof not found")):
+            code, result, printed, out = self.case_main("case-new")
+        self.assertEqual(code, 0, result)
+        self.assertIn("stale-listener check skipped: lsof not found", printed)
+
+    def test_the_harness_holds_its_case_lock_while_it_runs_and_drops_it_when_it_ends(self):
+        out = self.tmp / "case-lock"
+        seen: list[bool] = []
+
+        def watch():
+            sessions = Path(str(self.log) + ".sessions")
+            for _ in range(400):
+                if sessions.exists():
+                    break
+                time.sleep(0.05)
+            seen.append(listeners.case_alive(out))
+            (out / "stop").write_text("")
+
+        threading.Thread(target=watch, daemon=True).start()
+        code, result, printed, _ = self.case_main("case-lock", "--timeout", "30", mode="hang-active", host="grok")
+        self.assertEqual(seen, [True], "alive while the host runs")
+        self.assertFalse(listeners.case_alive(out), "dropped when main returns")
+
+    def test_a_suite_refuses_once_before_any_case_starts_and_its_cases_do_not_check_again(self):
+        SuiteTest.use_catalog(self, {"a": {"style": "s", "prompt": "p", "checks": []}, "b": {"style": "t", "prompt": "p", "checks": []}},
+                              {"wide": {"kind": "breadth", "cases": ["a", "b"]}})
+        ended = self.ended_case()
+        os.environ["FAKE_MODE"] = "done"
+        argv = ["--suite", "wide", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(self.tmp / "suite-out"),
+                "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)]
+        with self.leaking(ended), contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as refused:
+            run.main(argv)
+        self.assertIn("kill 900001", str(refused.exception))
+        self.assertFalse((self.tmp / "suite-out").exists(), "refused before the suite's folder or any case existed")
+        self.assertFalse(self.log.exists())
+        # A case the suite starts has been checked by the suite, once: it must not raise inside a worker thread.
+        with self.leaking(ended):
+            code, result, printed, out = self.case_main("case-in-suite", "--case", "a", "--suite-name", "wide")
+        self.assertEqual(code, 0, result)
+
+
+@needs_lsof
+@needs_listeners
+class StaleListenerRealTest(RealListeners, CaseRunCase):
+    """The same refusal against a real server and the real lsof."""
+
+    def setUp(self):
+        super().setUp()
+        self.scope_to_tmp()
+
+    def test_a_real_server_an_ended_case_left_refuses_the_launch_and_is_never_stopped_by_the_refusal(self):
+        ended = self.tmp / "case-old"
+        leaked, port = self.serve(ended / "work")
+        # The one state this test is about is a case with no live harness, which another session's real launch would also refuse
+        # on: so the case record is written last and the lock taken as soon as the refusal is seen, a window of one scan.
+        (ended / "invocation.json").write_text("{}")
+        with self.assertRaises(SystemExit) as refused:
+            self.case_main("case-new")
+        held = listeners.hold_case(ended)
+        self.assertIsNotNone(held)
+        self.addCleanup(held.close)
+        for part in (f"pid {leaked.pid}", f"port {port}", str(ended), f"kill {leaked.pid}"):
+            self.assertIn(part, str(refused.exception))
+        self.assertTrue(answers(port), "a refusal names the process and leaves it to the owner")
+        code, result, _, _ = self.case_main("case-new")
+        self.assertEqual(code, 0, result)
+        self.assertTrue(answers(port), "the other case's server is not this run's to stop")
+
+
+class TerminationSignalTest(CaseRunCase):
+    """The harness as a task runner meets it: a program that is sent a signal while its host works.
+
+    The harness runs as a real subprocess (python3 run.py), so the signal wiring under __main__ is the one tested, and the test
+    process's own handlers are never touched. A fake `lsof` first on PATH shows an empty process table, so no real listener of
+    this machine can refuse or change a run."""
+
+    def setUp(self):
+        super().setUp()
+        isolate_git(self)
+        self.home = self.tmp / "home"
+        (self.home / ".grok").mkdir(parents=True)
+        (self.home / ".grok" / "auth.json").write_text("{}")
+        tools = self.tmp / "tools"
+        tools.mkdir()
+        (tools / "lsof").write_text("#!/bin/sh\nexit 1\n")
+        (tools / "lsof").chmod(0o755)
+        self.env = dict(os.environ, HOME=str(self.home), PATH=f"{tools}{os.pathsep}{os.environ['PATH']}", FAKE_LOG=str(self.log),
+                        FAKE_MODE="hang-active", SHIPLOOP_PROGRESS="off")
+
+    # What the task runner's child starts with is not what this test process inherited: a job a shell started in the background
+    # has SIGINT ignored (and one under nohup has SIGHUP ignored), and Python installs no Ctrl-C handler for an ignored SIGINT.
+    # The harness is started through this, which sets the named signals to their defaults first and keeps the rest as inherited.
+    DEFAULT_SIGNALS = ("import os, signal, sys\n[signal.signal(getattr(signal, n), signal.SIG_DFL) for n in sys.argv[1].split(',') if n]\n"
+                       "os.execv(sys.executable, [sys.executable] + sys.argv[2:])\n")
+
+    def start(self, name: str, *extra: str, launcher: tuple = (), reset: str = "SIGINT,SIGTERM,SIGHUP") -> tuple[subprocess.Popen, Path]:
+        out = self.tmp / name
+        proc = subprocess.Popen([*launcher, sys.executable, "-c", self.DEFAULT_SIGNALS, reset, str(run.HERE / "run.py"), "--host", "grok",
+                                 "--grok-bin", str(self.fakes["grok"]), "--output", str(out), "--plugin-dir", str(self.plugin),
+                                 "--baseline", str(self.baselines), "--timeout", "120", *extra],
+                                env=self.env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        # Registered before the harness's own kill, so it runs after it: a harness that is still alive would start another host.
+        self.addCleanup(self.kill_hosts)
+        self.addCleanup(end_quietly, proc)
+        return proc, out
+
+    def kill_hosts(self) -> None:
+        """Every host the harness ever started in this test (the fake logs one line per session), whole group, whatever the code
+        under test did: a test that fails must not leave an orphan host (each also sleeps for at most 600 s)."""
+        sessions = Path(str(self.log) + ".sessions")
+        for line in sessions.read_text().splitlines() if sessions.exists() else []:
+            with contextlib.suppress(ValueError, KeyError, ProcessLookupError, PermissionError):
+                pid = json.loads(line)["pid"]
+                if os.getpgid(pid) == pid:  # a host leads the session it was started in; a reused pid does not
+                    os.killpg(pid, signal.SIGKILL)
+
+    def host_pid(self) -> int:
+        """The fake host's pid, once it is running."""
+        sessions = Path(str(self.log) + ".sessions")
+        for _ in range(600):
+            if sessions.exists() and sessions.read_text().strip():
+                break
+            time.sleep(0.05)
+        else:
+            raise AssertionError("the host never started")
+        return json.loads(sessions.read_text().splitlines()[0])["pid"]
+
+    @staticmethod
+    def kill_pid(pid: int) -> None:
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(pid, 9)
+
+    @staticmethod
+    def gone(pid: int, seconds: float = 5.0) -> bool:
+        end = time.time() + seconds
+        while time.time() < end:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                return True
+            time.sleep(0.05)
+        return False
+
+    def test_sigterm_kills_the_host_writes_the_records_and_reads_as_stopped(self):
+        proc, out = self.start("case-term")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGTERM)
+        printed, _ = proc.communicate(timeout=60)
+        self.assertTrue(self.gone(host), "the host does not outlive its harness")
+        self.assertEqual(proc.returncode, 1, printed)
+        self.assertTrue((out / "result.json").is_file(), printed)
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        self.assertEqual(result["termination"]["resume_stop"], "terminated by SIGTERM")
+        self.assertTrue((out / "metrics.json").is_file())
+        self.assertFalse(self.baselines.exists(), "a stopped run is not a baseline")
+        self.assertEqual(len(Path(str(self.log) + ".sessions").read_text().splitlines()), 1, "a terminated host is not relaunched")
+        self.assertRegex(printed, r"(?m)^STOPPED  shiploop e2e case=")
+
+    def test_sighup_ends_the_run_the_same_way_unless_the_launch_ignored_it(self):
+        proc, out = self.start("case-hup")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGHUP)
+        printed, _ = proc.communicate(timeout=60)
+        self.assertTrue(self.gone(host))
+        self.assertEqual(proc.returncode, 1, printed)
+        self.assertEqual(json.loads((out / "result.json").read_text())["termination"]["resume_stop"], "terminated by SIGHUP")
+
+    @unittest.skipUnless(shutil.which("nohup"), "needs nohup")
+    def test_a_nohup_launch_keeps_its_run_through_a_hangup(self):
+        proc, out = self.start("case-nohup", launcher=("nohup",), reset="SIGINT,SIGTERM")  # nohup's own SIGHUP is ignored; keep it so
+        host = self.host_pid()
+        proc.send_signal(signal.SIGHUP)  # the terminal went away; nohup's whole purpose is that the run does not
+        time.sleep(1.5)
+        self.assertIsNone(proc.poll(), "the harness ended on a hangup that its launch ignored")
+        self.assertFalse(self.gone(host, 0.1), "the host was killed by a hangup that its launch ignored")
+        proc.send_signal(signal.SIGTERM)  # an explicit stop still works
+        printed, _ = proc.communicate(timeout=60)
+        self.assertTrue((out / "result.json").is_file(), printed)
+        self.assertEqual(json.loads((out / "result.json").read_text())["termination"]["resume_stop"], "terminated by SIGTERM", printed)
+
+    def test_a_second_signal_ends_the_harness_at_once_even_while_a_check_runs(self):
+        marker, pidfile = self.tmp / "check-started", self.tmp / "check-pid"
+        proc, out = self.start("case-twice", "--prompt", "say hello", "--check", f"echo $$ > {pidfile}; touch {marker}; exec sleep 20")
+        self.host_pid()
+        proc.send_signal(signal.SIGTERM)  # ends the host; the harness goes on to its checks
+        for _ in range(600):
+            if marker.exists():
+                break
+            time.sleep(0.05)
+        self.addCleanup(lambda: pidfile.exists() and self.kill_pid(int(pidfile.read_text())))
+        self.assertTrue(marker.exists(), "the harness reached its checks after the first signal")
+        proc.send_signal(signal.SIGTERM)  # the person means it
+        proc.communicate(timeout=30)
+        self.assertEqual(proc.returncode, -signal.SIGTERM)
+
+    def test_ctrl_c_on_a_suite_ends_its_hosts_at_once_and_writes_the_records(self):
+        # A suite runs its cases in worker threads and a Ctrl-C reaches only the main thread, which then waits for them: without
+        # its own handling the hosts ran on (the review saw them alive 40 s later) because the atexit kill comes after that wait.
+        proc, out = self.start("suite-int", "--suite", "smoke")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGINT)
+        try:
+            printed, _ = proc.communicate(timeout=45)
+        except subprocess.TimeoutExpired:
+            self.fail("the suite kept running after a Ctrl-C")
+        self.assertTrue(self.gone(host), "the host does not outlive a Ctrl-C of its suite")
+        self.assertEqual(proc.returncode, 1, printed)
+        self.assertEqual([(r["case"], r["pass"]) for r in json.loads((out / "suite-result.json").read_text())["cases"]], [("hello", False)])
+        result = json.loads((out / "hello" / "result.json").read_text())
+        self.assertEqual((result["process"]["status"], result["termination"]["resume_stop"]), ("stopped", "terminated by SIGINT"))
+        self.assertEqual(len(Path(str(self.log) + ".sessions").read_text().splitlines()), 1, "a terminated host is not relaunched")
+
+    def test_ctrl_c_leaves_no_host_behind(self):
+        proc, out = self.start("case-int")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGINT)
+        printed, _ = proc.communicate(timeout=60)
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertTrue(self.gone(host), "a Ctrl-C on the harness must not orphan its host")
+        self.assertFalse((out / "result.json").exists(), "a Ctrl-C on a single case writes no records (the README says so)")
+
+
+@needs_listeners
+class LiveHostTest(unittest.TestCase):
+    """The harness's bookkeeping of the hosts it started, driven without any real signal.
+
+    The poll interval is long here, so a session can only end promptly because the harness killed its group, not because the
+    poll loop noticed."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        for patcher in (mock.patch.object(listeners, "observe", return_value=[]), mock.patch.object(run, "POLL_SECONDS", 30, create=True)):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        self.addCleanup(run.end_live_hosts)  # runs first: a failing test leaves no host (each also sleeps for at most 20 s)
+
+    def session(self, name: str) -> tuple[threading.Thread, dict, Path]:
+        out = self.tmp / name
+        (out / "work").mkdir(parents=True)
+        result: dict = {}
+        thread = threading.Thread(target=lambda: result.update(run.launch(
+            [sys.executable, "-c", "import time; time.sleep(20)"], out / "work", out, dict(os.environ), 60, watch=False)))
+        thread.start()
+        return thread, result, out
+
+    @staticmethod
+    def registered(count: int) -> bool:
+        for _ in range(100):
+            if len(run.LIVE_HOST_GROUPS) == count:
+                return True
+            time.sleep(0.05)
+        return False
+
+    def test_end_live_hosts_kills_every_registered_group_and_launch_discards_its_own(self):
+        threads = [self.session(f"case-{n}") for n in range(2)]
+        self.assertTrue(self.registered(2), "each running session is registered")
+        groups = sorted(run.LIVE_HOST_GROUPS)
+        run.end_live_hosts()
+        for thread, result, _ in threads:
+            thread.join(timeout=15)
+            self.assertFalse(thread.is_alive(), "the session ended at once, not at the next poll")
+            self.assertEqual(result["status"], "failed")  # no one asked for a stop: only the groups were killed
+        self.assertEqual(run.LIVE_HOST_GROUPS, set(), "a session that ended is no longer registered, so a reused pgid is never signalled")
+        for pid in groups:
+            with self.assertRaises(ProcessLookupError):
+                os.killpg(pid, 0)
+
+    def test_a_termination_ends_a_running_session_at_once_as_stopped_and_starts_no_later_one(self):
+        thread, result, out = self.session("case-running")
+        self.assertTrue(self.registered(1))
+        run.on_termination(signal.SIGTERM, None)
+        thread.join(timeout=15)
+        self.assertFalse(thread.is_alive(), "the handler killed the group; the 30 s poll did not have to notice")
+        self.assertEqual(result.get("status"), "stopped", result)
+        self.assertTrue(run.TERMINATION.is_set())
+        self.assertEqual(run.TERMINATED_BY, ["SIGTERM"])
+
+    def test_a_session_that_begins_after_the_harness_was_told_to_end_is_ended_at_its_first_poll(self):
+        run.TERMINATED_BY.append("SIGTERM")
+        run.TERMINATION.set()  # say, during the install, before any host
+        later = self.tmp / "case-later"
+        (later / "work").mkdir(parents=True)
+        started = time.time()
+        after = run.launch([sys.executable, "-c", "import time; time.sleep(20)"], later / "work", later, dict(os.environ), 60, watch=False)
+        self.assertEqual(after["status"], "stopped")
+        self.assertLess(time.time() - started, 10, "it did not run to its end")
+        self.assertEqual(run.LIVE_HOST_GROUPS, set())
+        self.assertTrue((later / "events.jsonl").is_file(), "the session's files exist so the records can be written")
+
+    def test_a_signal_that_arrives_before_the_host_is_registered_still_ends_it(self):
+        real_popen = subprocess.Popen
+
+        def popen_then_signal(*args, **kwargs):
+            proc = real_popen(*args, **kwargs)
+            run.on_termination(signal.SIGTERM, None)  # the handler runs now and cannot know this group yet
+            return proc
+
+        with mock.patch.object(run.subprocess, "Popen", side_effect=popen_then_signal):
+            thread, result, out = self.session("case-race")
+            thread.join(timeout=15)
+        self.assertFalse(thread.is_alive(), "the poll loop must notice the termination and end the group")
+        self.assertEqual(result.get("status"), "stopped")
+
+
+class SignalledHarnessThroughMainTest(CaseRunCase):
+    def test_a_suite_told_to_end_starts_no_further_case(self):
+        SuiteTest.use_catalog(self, {"a": {"style": "s", "prompt": "p", "checks": []}, "b": {"style": "t", "prompt": "p", "checks": []}},
+                              {"wide": {"kind": "breadth", "cases": ["a", "b"]}})
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        run.TERMINATED_BY.append("SIGTERM")
+        run.TERMINATION.set()
+        out = self.tmp / "suite-out"
+        os.environ["FAKE_MODE"] = "done"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = run.main(["--suite", "wide", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        rows = json.loads((out / "suite-result.json").read_text())["cases"]
+        self.assertEqual(code, 1)
+        self.assertEqual([(r["case"], r.get("skipped")) for r in rows], [("a", "terminated by SIGTERM"), ("b", "terminated by SIGTERM")])
+        self.assertFalse(self.log.exists(), "no host started")
+
+    def test_a_batch_suite_told_to_end_skips_its_gate_and_the_cases_behind_it(self):
+        SuiteTest.use_catalog(self, {"g": {"style": "s", "prompt": "p", "checks": []}, "a": {"style": "t", "prompt": "p", "checks": []}},
+                              {"b": {"kind": "batch", "gate": ["g"], "cases": ["a"]}})
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        run.TERMINATED_BY.append("SIGTERM")
+        run.TERMINATION.set()
+        out = self.tmp / "suite-out"
+        os.environ["FAKE_MODE"] = "done"
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(["--suite", "b", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        rows = json.loads((out / "suite-result.json").read_text())["cases"]
+        self.assertEqual(code, 1)
+        self.assertEqual(rows, [{"case": "g", "pass": False, "skipped": "terminated by SIGTERM", "gate": True},
+                                {"case": "a", "skipped": "the gate failed"}])
+        self.assertIn("gate failed (g)", printed.getvalue())
+        self.assertFalse(self.log.exists(), "no host started, not even the gate's")
+
+    def test_a_signal_as_a_session_ends_stops_the_resume_loop_without_a_phantom_session(self):
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        calls: list[int] = []
+
+        def host_that_ends_as_the_signal_arrives(argv, work, out, *args, **kwargs):
+            calls.append(1)
+            for name in ("events.jsonl", "stderr.txt", "timeline.jsonl"):
+                (out / name).write_text("")
+            run.TERMINATED_BY.append("SIGHUP")
+            run.TERMINATION.set()
+            return {"status": "exited", "returncode": 0, "elapsed_seconds": 1.0, "stop": None, "left_behind": None}
+
+        with mock.patch.object(run, "launch", side_effect=host_that_ends_as_the_signal_arrives):
+            code, result, printed, out = self.case_main("case-between", host="grok")
+        self.assertEqual(len(calls), 1, "no second session is started or recorded for a harness that was told to end")
+        self.assertEqual(result["termination"]["resume_stop"], "terminated by SIGHUP")
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        self.assertEqual(len(result["process"]["sessions"]), 1)
+        self.assertEqual(code, 1)
+
+
+class LeftBehindReadmeTest(unittest.TestCase):
+    def test_the_readme_says_what_the_harness_does_with_a_leftover_listener(self):
+        readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
+        for phrase in ("stops every TCP listener of your user whose working directory or command line lies under the case's output folder",
+                       "`left_behind` in `result.json`", "never reads as none", "do not serve a case folder by hand while its run ends"):
+            self.assertIn(phrase, readme)
+        self.assertNotIn("nothing looks for what the host left behind", readme)
+
+    def test_the_readme_says_when_a_launch_is_refused_and_how_liveness_is_known(self):
+        readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
+        for phrase in ("A launch is refused while a listener sits under another case's output folder",
+                       "`<output>/.harness-lock`", "no override", "stop it by pid with `kill <pid>`",
+                       "A `--resume-run` of a case whose harness is running is refused too",
+                       "A harness started before the lock existed holds none, so a launch refuses its listeners as stale while it is still running"):
+            self.assertIn(phrase, readme)
+
+    def test_the_operator_contract_in_the_module_docstring_names_signals_left_behind_and_the_refusals(self):
+        doc = " ".join(run.__doc__.split())
+        for phrase in ("A SIGTERM or SIGHUP to the harness", "`left_behind`", "A launch is refused while", "--resume-run of a case whose harness is running"):
+            self.assertIn(phrase, doc)
+
+    def test_the_readme_says_to_run_compared_runs_one_after_the_other_and_what_that_cannot_promise(self):
+        readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
+        for phrase in ("Run the runs you compare one after the other", "`--serial` for a suite",
+                       "The suite default of 3 parallel chains stays", "no overlap field", "a discipline and not a guarantee"):
+            self.assertIn(phrase, readme)
+
+    def test_the_spec_carries_the_rules_this_code_serves(self):
+        spec = " ".join((ROOT / "test" / "shiploop_e2e" / "SPEC.md").read_text().split())
+        for phrase in ("**A run leaves nothing listening**", "`<output>/.harness-lock`", "`left_behind`",
+                       "A SIGTERM to the harness (a task runner's stop, `kill`) is a requested stop too",
+                       "**Runs compared on wall time or per-call cost run one after the other**",
+                       "a pair whose figures are compared is the exception stated in the bullet "
+                       "\"Runs compared on wall time or per-call cost run one after the other\"",
+                       "a Ctrl-C on a suite is handled as a SIGTERM",
+                       "A `--resume-run` of a case whose harness is running (its lock is held) is refused too; a regrade is not"):
+            self.assertIn(phrase, spec)
+        self.assertNotIn("bullet after next", spec, "a position breaks when a bullet is added: the bullet is named")
+
+    def test_the_readme_says_what_a_signal_to_the_harness_does(self):
+        readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
+        for phrase in ("A SIGTERM or SIGHUP to the harness ends every live host at once", "`terminated by SIGTERM`",
+                       "a detached `nohup` launch ignores the hangup", "Only a SIGKILL gives the harness no chance to run anything",
+                       "not `iterate.py`", "A Ctrl-C on a suite is handled as a SIGTERM",
+                       "a Ctrl-C on a single case ends the hosts as the harness exits and writes no records"):
+            self.assertIn(phrase, readme)
+        self.assertNotIn("no harness code runs", readme)
+        self.assertNotIn("taking the harness and its host with it", readme)
 
 
 def grok_usage(count: int, output: int = 100, reasoning: int = 40) -> list[dict]:

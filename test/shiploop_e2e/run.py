@@ -67,7 +67,11 @@ metrics.json and result.json. An active run is a real resume. --grade-only does 
 same regrade for a run in any status that has a ShipLoop state, for a run whose harness
 was killed with its host and so never wrote its records. Creating <output>/stop ends a
 running host on purpose: it is not relaunched, the records are written, and the exit
-code is non-zero.
+code is non-zero. A SIGTERM or SIGHUP to the harness (not a SIGHUP the launch ignored, as under nohup) ends every live host at
+once and is recorded the same way, as `terminated by SIGTERM`; a Ctrl-C does so for a suite. After each host session and after the
+case checks the harness stops the TCP listeners left under the case's output folder and records them as `left_behind` in
+result.json. A launch is refused while an ended case's listener is still bound, and so is a --resume-run of a case whose harness
+is running (README, "Launching long runs").
 This launches a real model and costs money; it is never part of default CI.
 
   python3 test/shiploop_e2e/run.py --case battleship
@@ -80,6 +84,7 @@ This launches a real model and costs money; it is never part of default CI.
 from __future__ import annotations
 
 import argparse
+import atexit
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import importlib.util
@@ -102,6 +107,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import hosts  # noqa: E402
+import listeners  # noqa: E402
 import metrics  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_chain_ledger as chain_ledger  # noqa: E402
@@ -114,6 +120,63 @@ REVIEW_EXPORTER = ROOT / "skills" / "shiploop-run-review" / "scripts" / "export.
 PLUGIN_NAME = "skill-craft"
 # How often a running host is checked for its deadline, a requested stop and an interrupt.
 POLL_SECONDS = 2
+# Hosts this process has started and not yet reaped, by the pid of the leader of the group it leads. A host starts in a
+# session of its own (start_new_session=True), so a SIGTERM to the harness does not reach it: on 2026-10-08 the Grok host of a
+# round-2 run went on working for about 28 minutes after the harness died of one, with nothing collecting its events.
+LIVE_HOST_GROUPS: set[int] = set()
+# Set when the harness was told to end (SIGTERM, SIGHUP): every launch and every resume treats it as a requested stop.
+TERMINATION = threading.Event()
+TERMINATED_BY: list[str] = []  # the name of the first signal, for the record
+HANDLED_SIGNALS: list[int] = []  # the signals install_termination_handlers took over
+
+
+def kill_group(pid: int) -> None:
+    """SIGKILL the process group `pid` leads. A group already gone, or a reused one that is not ours, is left alone."""
+    try:
+        os.killpg(pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
+def end_live_hosts() -> None:
+    """Kill every host session that is running. Also runs at exit, so a Ctrl-C or a crash leaves no orphan host."""
+    for pid in tuple(LIVE_HOST_GROUPS):  # a copy: suite worker threads add and discard concurrently
+        kill_group(pid)
+
+
+atexit.register(end_live_hosts)
+
+
+def terminate(name: str) -> None:
+    """The harness was told to end by `name`: end every host at once and let main write the records as a requested stop."""
+    TERMINATED_BY.append(name)
+    TERMINATION.set()  # before the kill, so a launch that finds its host dead already knows why
+    end_live_hosts()
+    for number in HANDLED_SIGNALS:
+        signal.signal(number, signal.SIG_DFL)  # a second signal means it: the default action ends the harness now
+
+
+def on_termination(signum, frame) -> None:
+    """A SIGTERM or SIGHUP reached the harness."""
+    terminate(signal.Signals(signum).name)
+
+
+def install_termination_handlers() -> list[int]:
+    """Take over SIGTERM and SIGHUP, except one the launch ignored: `nohup` keeps a run alive through a hangup by ignoring it."""
+    for number in (signal.SIGTERM, signal.SIGHUP):
+        if signal.getsignal(number) is not signal.SIG_IGN:
+            signal.signal(number, on_termination)
+            HANDLED_SIGNALS.append(number)
+    return list(HANDLED_SIGNALS)
+
+
+def stop_cause(stop_file: Path) -> str:
+    """Why a run ended on purpose: a signal that told the harness to end, or a stop file."""
+    if TERMINATION.is_set():
+        return f"terminated by {TERMINATED_BY[0] if TERMINATED_BY else 'a signal'}"
+    return f"stopped by {stop_file}"
+
+
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
 def the_host(args) -> "hosts.Host":
     """The selected host, with the binary its --<host>-bin flag names."""
@@ -359,11 +422,17 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     """Run one host session. `stop_when`, polled every POLL_SECONDS, kills the session (status "interrupted").
 
     A `stop_file` that exists kills it the same way with status "stopped": a person's request to end the run
-    (the caller consumes the file). The deadline wins over both.
+    (the caller consumes the file). So does a SIGTERM or SIGHUP to the harness (TERMINATION, set by on_termination, which
+    has already killed the host's group): the session reads as "stopped". One that begins after the harness was told to end
+    (during the install, say) is ended at its first poll, with its files in place so the run's records can still be written.
+    The deadline wins over all.
 
     The result carries ``stop``: the host's own reason from the last end/result event this
     session wrote, or None when it wrote none (killed, crashed), so a termination record can
     hold one entry per session and say unknown for the ones that never reported.
+
+    It also carries ``left_behind``: the listeners the session left under `out` (a model's backgrounded
+    server), stopped as the session ends and recorded (see listeners.py).
     """
     if first and fresh:
         # The skill must start from a directory with nothing in it.
@@ -385,6 +454,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
             (out / "timeline.jsonl").open("w" if first else "a") as stamps:
         proc = subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=stderr, env=env, start_new_session=True)
+        LIVE_HOST_GROUPS.add(proc.pid)  # a signal to the harness now ends this group (on_termination)
 
         def record(raw: bytes):
             nonlocal line, stop
@@ -415,29 +485,34 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         reader.start()
         deadline = time.time() + timeout
         status = None
-        while proc.poll() is None:
-            if time.time() >= deadline:
-                status = "timeout"
-            elif stop_file is not None and stop_file.exists():
-                status = "stopped"
-            elif stop_when is not None and stop_when():
-                status = "interrupted"
-            if status:
-                # The whole process group: the host and any native workers it started.
-                os.killpg(proc.pid, signal.SIGKILL)
-                proc.wait()
-                break
-            try:
-                # Wake the moment the session ends; a plain sleep held the caller for the rest of the tick.
-                proc.wait(timeout=POLL_SECONDS)
-            except subprocess.TimeoutExpired:
-                pass
+        try:
+            while proc.poll() is None:
+                if time.time() >= deadline:
+                    status = "timeout"
+                elif (stop_file is not None and stop_file.exists()) or TERMINATION.is_set():
+                    status = "stopped"
+                elif stop_when is not None and stop_when():
+                    status = "interrupted"
+                if status:
+                    # The whole process group: the host and any native workers it started.
+                    kill_group(proc.pid)
+                    proc.wait()
+                    break
+                try:
+                    # Wake the moment the session ends; a plain sleep held the caller for the rest of the tick.
+                    proc.wait(timeout=POLL_SECONDS)
+                except subprocess.TimeoutExpired:
+                    pass
+        finally:
+            if proc.poll() is not None:
+                LIVE_HOST_GROUPS.discard(proc.pid)  # reaped: its pgid may be reused, so it is never signalled again
         if status is None:
-            status = "exited" if proc.returncode == 0 else "failed"
+            # A signal may have killed the group before this loop saw it: that is a stop, not a host failure.
+            status = "stopped" if TERMINATION.is_set() else "exited" if proc.returncode == 0 else "failed"
         reader.join(timeout=10)
         proc.stdout.close()
     return {"status": status, "returncode": proc.returncode,
-            "elapsed_seconds": round(time.time() - start, 1), "stop": stop}
+            "elapsed_seconds": round(time.time() - start, 1), "stop": stop, "left_behind": listeners.reap(out)}
 
 
 def summarize_events(path: Path) -> dict:
@@ -1377,12 +1452,38 @@ def suite_chains(order: list[str], cases: dict) -> list[list[str]]:
     return chains
 
 
+def stale_listener_lines(own: Path | None) -> list[str]:
+    """One line per listener an ended case left behind (see listeners.stale): the process, its port, its case and the command.
+
+    Where the process table cannot be read the check is skipped with a printed note, never refused on a guess.
+    """
+    try:
+        found = listeners.stale(own)
+    except listeners.Unobserved as exc:
+        print(f"stale-listener check skipped: {exc}", flush=True)
+        return []
+    return [f"pid {item['pid']} {item['command']} listens on port {','.join(map(str, item['ports']))} (working directory "
+            f"{item['cwd']}), left by {item['case']}, whose harness is not running: stop it by pid with `kill {item['pid']}`"
+            for item in found]
+
+
+def refuse_stale_listeners(own: Path | None) -> None:
+    """Start nothing while an ended case still has a server bound: a later run would meet it (SPEC: a run leaves nothing listening)."""
+    lines = stale_listener_lines(own)
+    if lines:
+        raise SystemExit("a listener an ended case left is still bound, so no host is started (no override: stop it by pid):\n  "
+                         + "\n  ".join(lines))
+
+
 def run_suite(args, argv: list[str]) -> int:
     """Run a suite's cases in order; a follow-on starts from its predecessor and is skipped if it failed."""
     suites = json.loads(SUITES.read_text())
     if args.suite not in suites or args.suite.startswith("_"):
         raise SystemExit(f"unknown suite {args.suite!r}; known: {', '.join(k for k in suites if not k.startswith('_'))}")
     cases = json.loads(CASES.read_text())
+    # Once, up front (like the version gate): a refusal raised inside a case's worker thread would reach the suite only after
+    # the running chains finish, with no suite-result.json. Its cases skip their own check (--suite-name).
+    refuse_stale_listeners(None)
     base = new_output_dir(args.output, "suite-" + args.suite)
     passthrough, skip = [], {"--suite", "--output", "--case", "--continue-from", "--max-parallel"}
     it = iter(argv)
@@ -1405,6 +1506,9 @@ def run_suite(args, argv: list[str]) -> int:
     gate_rows = []
     for case in gate:
         # A batch suite's gate runs first and alone: a cheap case that fails stops the costly ones.
+        if TERMINATION.is_set():
+            gate_rows.append({"case": case, "pass": False, "skipped": stop_cause(base / "stop"), "gate": True})
+            continue
         out = base / case
         code = main([*passthrough, "--case", case, "--output", str(out), "--suite-name", args.suite])
         gate_rows.append({"case": case, "pass": code == 0, "output": str(out), "gate": True})
@@ -1423,6 +1527,10 @@ def run_suite(args, argv: list[str]) -> int:
         outputs: dict[str, Path] = {}
         rows = []
         for case in chain:
+            if TERMINATION.is_set():
+                # Not main's own early return: a case that wrote no result.json would break the readers of the rows below.
+                rows.append({"case": case, "skipped": stop_cause(base / "stop")})
+                continue
             follows = cases[case].get("follows")
             prior = outputs.get(follows) if follows else None
             if follows and prior is None:
@@ -1442,7 +1550,15 @@ def run_suite(args, argv: list[str]) -> int:
 
     workers = 1 if args.serial else max(1, min(args.max_parallel, len(chains)))
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        rows = [row for chain_rows in pool.map(run_chain, chains) for row in chain_rows]
+        rows: list[dict] = []
+        for future in [pool.submit(run_chain, chain) for chain in chains]:
+            try:
+                rows += future.result()
+            except KeyboardInterrupt:
+                # A Ctrl-C reaches this thread only, and leaving the pool waits for the chains and for the hosts they run, so
+                # the exit-time kill would come too late: end the hosts now, as a SIGTERM does, and wait for their records.
+                terminate("SIGINT")
+                rows += future.result()
     summary = gate_rows + sorted(rows, key=lambda row: order.index(row["case"]))
     shared = shared_tmp_writes([Path(row["output"]) for row in summary if row.get("output")])
     if shared:
@@ -1457,12 +1573,25 @@ def run_suite(args, argv: list[str]) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run one case (or a suite) and return the exit code; see _main."""
+    held: list = []  # the case lock, taken inside once the output folder is known, and released here whatever happens
+    try:
+        return _main(argv, held)
+    finally:
+        for handle in held:
+            handle.close()
+
+
+def _main(argv: list[str] | None, held: list) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
     if args.preflight_only:
         # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
         out = new_output_dir(args.output, "preflight")
-        refused = False
+        problems = stale_listener_lines(None)
+        for line in problems:
+            print(f"refused: {line}", flush=True)
+        refused = bool(problems)
         for name in (sorted(hosts.HOSTS) if args.host == "all" else [args.host]):
             args.host = name
             check = out / name
@@ -1490,7 +1619,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.resume_run:
         # Continue a stopped run in place: same work directory, run state and event stream.
         out = args.resume_run.expanduser().resolve()
-        (out / "stop").unlink(missing_ok=True)  # a request left by an earlier invocation must not stop this one
         earlier = json.loads((out / "invocation.json").read_text())
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
         prompt = (out / "prompt.txt").read_text().strip()
@@ -1504,6 +1632,8 @@ def main(argv: list[str] | None = None) -> int:
         if state.get("status") != "active" and not regrade:
             raise SystemExit(f"--resume-run needs an active, blocked or finished ShipLoop run; found "
                              f"{state.get('status')!r} in {out}")
+        if not regrade and not args.suite_name:
+            refuse_stale_listeners(out)  # the run's own leftovers are stopped below, not refused
         # The one CLI value every prompt of this invocation names (a record with no plugin_dir yields a path that is not a file).
         resumed_cli = run_cli(earlier["host"], out, Path(earlier.get("plugin_dir") or out / "missing-plugin"))
         if not regrade and not resumed_cli.is_file():
@@ -1534,11 +1664,32 @@ def main(argv: list[str] | None = None) -> int:
         name, prompt, checks, follows = load_case(args)
         if follows and not args.continue_from:
             raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
+        if not args.suite_name:
+            refuse_stale_listeners(None)  # before the folder exists, so a refusal leaves nothing behind
         out = new_output_dir(args.output, name)
         work = out / "work"
         work.mkdir()
         follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
     stop_file = out / "stop"  # a person (or a watcher) creates it to end the run; main consumes it
+    # This harness is alive while main runs: a launch elsewhere reads the lock to tell a sibling's server from a leftover.
+    # The kernel also drops it on any death, SIGKILL included, which is why a lock and not a pid file.
+    lock = listeners.hold_case(out)
+    if lock is not None:
+        held.append(lock)
+    elif not regrade and listeners.case_alive(out):
+        # Two harnesses in one case: the second would stop the first's servers and consume its stop request. A regrade starts
+        # and stops nothing, so it may read a case that is running.
+        raise SystemExit(f"--resume-run: another harness is running {out} (it holds {out / listeners.LOCK_NAME}), so nothing was "
+                         f"started or stopped. Create {stop_file} to end that run, or wait for it, then resume.")
+    if resumed and lock is not None:
+        stop_file.unlink(missing_ok=True)  # an earlier invocation's request must not stop this one; only the harness holding the case owns it
+    left_behind: list = []  # what each reap pass of this invocation found (see listeners.py)
+
+    def session(*launch_args, **launch_kw) -> dict:
+        done = launch(*launch_args, **launch_kw)
+        left_behind.append(done.pop("left_behind", None))  # a run's one record is built below, not repeated per session
+        return done
+
     host = the_host(args)
     args.model = args.model or host.model
     args.effort = args.effort or host.effort
@@ -1630,13 +1781,17 @@ def main(argv: list[str] | None = None) -> int:
             print(f"resume: {resume_command(out, args)}", flush=True)
 
     deadline = time.time() + args.timeout
+    if resumed and not regrade:
+        # A server an earlier invocation's model left (its harness may have been killed before it could stop it) must
+        # not answer the new session's probes: that is how two runs met the same port in round 2.
+        left_behind.append(listeners.reap(out))
     if regrade:
         # ShipLoop is done or blocked: no host is started, and the verdicts are computed from what is on disk.
         process = regraded_process(earlier_result.get("process"))
     else:
         interrupt_file = out / "interrupt.json"
         stop_when = ((lambda: chain_in_flight(out)) if interrupt_at and not interrupt_file.exists() else None)
-        process = launch(cli, work, out, env, args.timeout, watch=not args.quiet,
+        process = session(cli, work, out, env, args.timeout, watch=not args.quiet,
                          fresh=follow_on is None and seeded is None,
                          first=resumed is None, translate=host.translator(), stop_when=stop_when,
                          stop_file=stop_file)
@@ -1653,7 +1808,7 @@ def main(argv: list[str] | None = None) -> int:
                          prompt_file=out / "resume-after-interrupt.txt", cwd=work, model=args.model,
                          effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
                          max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir)
-        process = launch(argv, work, out, env, max(60, int(deadline - time.time())), watch=not args.quiet,
+        process = session(argv, work, out, env, max(60, int(deadline - time.time())), watch=not args.quiet,
                          first=False, translate=host.translator(), stop_file=stop_file)
         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
@@ -1673,7 +1828,7 @@ def main(argv: list[str] | None = None) -> int:
         if state.get("status") not in ("active", None):
             resume_stop = f"ShipLoop run is {state.get('status')}"
             break
-        if stop_seen or stop_file.exists():
+        if stop_seen or stop_file.exists() or TERMINATION.is_set():
             stop_seen = True  # asked for between two sessions, or the host was stopped: never relaunched
             break
         if not session_id:
@@ -1689,7 +1844,7 @@ def main(argv: list[str] | None = None) -> int:
                          prompt_file=out / f"resume-{len(sessions)}.txt", cwd=work, model=args.model,
                          effort=args.effort, permission_mode=args.permission_mode,
                          max_turns=args.max_turns, resume=session_id)
-        process = launch(argv, work, out, env, remaining, watch=not args.quiet, first=False,
+        process = session(argv, work, out, env, remaining, watch=not args.quiet, first=False,
                          translate=host.translator(), stop_file=stop_file)
         sessions.append(dict(process, resumed=session_id, host=host.name))
         stop_seen = process["status"] == "stopped"
@@ -1698,13 +1853,13 @@ def main(argv: list[str] | None = None) -> int:
         # was allowed may have finished it: say what the run is, not that the budget was spent.
         status = grade_shiploop(out).get("status")
         resume_stop = (f"ShipLoop run is {status}" if status not in ("active", None)
-                       else f"stopped by {stop_file}" if stop_seen
+                       else stop_cause(stop_file) if stop_seen
                        else f"resume budget spent ({args.max_resumes})")
     if not regrade:
         if stop_seen:
             stop_file.unlink(missing_ok=True)  # consumed: the request is answered, a later resume starts clean
             if resume_stop == "host is not resumable":
-                resume_stop = f"stopped by {stop_file}"  # the stop, not the host kind, is why this one is over
+                resume_stop = stop_cause(stop_file)  # the stop, not the host kind, is why this one is over
             # However the request arrived (it killed the host, or it was found as a session ended on its own), the run
             # ends stopped; the last session keeps its own status in `sessions`.
             process = dict(process, status="stopped")
@@ -1738,6 +1893,12 @@ def main(argv: list[str] | None = None) -> int:
         # Informational only: does the unreturned candidate already pass?
         shiploop["worktree_checks"] = [{k: c[k] for k in ("command", "pass")}
                                        for c in run_checks(Path(shiploop["worktree"]), checks, env=check_env)]
+    if not regrade:
+        # A check may leave a server too (a timed-out check leaves its `node server.js &`). A regrade reaps nothing: it
+        # starts no host, and the run it grades may have a live one.
+        left_behind.append(listeners.reap(out))
+    left = (earlier_result.get("left_behind") if regrade
+            else listeners.merge_left_behind([earlier_result.get("left_behind") if resumed else None, *left_behind]))
     case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
     expect = case.get("chain")
     chain = chain_facts(out, expect) if (seeded or interrupt_at or expect) else None
@@ -1774,6 +1935,7 @@ def main(argv: list[str] | None = None) -> int:
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
               "process": process, "termination": termination,
               **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
+              **({"left_behind": left} if left is not None else {}),
               "keepalive": keepalive,
               "shiploop": shiploop, "committed": committed, "checks": check_results, "cli": cli_seen, "follow_on": follow_on,
               "resumed_run": resumed, "seeded": seeded, "chain": chain, "recovery": recovery, "budget": budget,
@@ -1827,6 +1989,8 @@ def main(argv: list[str] | None = None) -> int:
               f"decisions {keepalive['decisions'] or 'none (hooks never ran)'}")
     print(f"  shiploop  {mark(shiploop['pass'])}  {shiploop.get('status') or shiploop.get('reason')}")
     print(f"  stopped   {stopped_line(termination)}")
+    if line := listeners.left_behind_line(left):
+        print(line)
     if shiploop.get("worktree_checks") is not None:
         passed = sum(c["pass"] for c in shiploop["worktree_checks"])
         print(f"            unreturned product in {shiploop['worktree']}: "
@@ -1945,4 +2109,5 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    install_termination_handlers()  # a program only: signal.signal is main-thread-only, and tests call main() from workers
     raise SystemExit(main())
