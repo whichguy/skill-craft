@@ -910,5 +910,83 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(block["schema"], "shiploop-e2e-fidelity/v1")
 
 
+def load_harness_tests():
+    spec = importlib.util.spec_from_file_location("e2e_harness_tests", ROOT / "test" / "shiploop-e2e.test.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+HARNESS = load_harness_tests()
+
+
+class FidelityThroughMainTest(HARNESS.PrintedCase):
+    """run._main builds the block once, writes it to metrics.json only, prints at most five lines and never lets it change a verdict."""
+
+    def setUp(self):
+        super().setUp()
+        HARNESS.isolate_git(self)
+        self.fidelity = fidelity_module()
+
+    def written(self, host="grok", mode="done", *extra):
+        code, result, printed = self.invoke_printed(host, mode, *extra)
+        out = Path(result["output"])
+        return code, result, printed, json.loads((out / "metrics.json").read_text()), out
+
+    def test_metrics_json_carries_the_block_and_result_json_does_not(self):
+        for host in ("claude", "grok", "codex"):
+            with self.subTest(host=host):
+                code, result, printed, written, out = self.written(host)
+                self.assertEqual(code, 0, result)
+                self.assertEqual(written["fidelity"]["schema"], "shiploop-e2e-fidelity/v1")
+                self.assertNotIn("fidelity", result["metrics"], "result.json keeps its explicit subset; metrics.json is the evidence")
+                self.assertNotIn("fidelity", json.loads((out / "result.json").read_text()))
+
+    def test_the_report_prints_at_most_five_fidelity_lines_after_the_metrics_lines(self):
+        code, result, printed, written, out = self.written("grok")
+        lines = [ln for ln in printed.splitlines() if ln.startswith("  fidelity")]
+        self.assertTrue(1 <= len(lines) <= 5, printed)
+        order = [ln.split()[0] for ln in printed.splitlines() if ln.startswith("  ")]
+        self.assertGreater(order.index("fidelity"), max(i for i, name in enumerate(order) if name == "metrics"))
+
+    def test_a_builder_failure_is_recorded_and_changes_neither_the_verdict_nor_the_exit_code_nor_the_baseline_row(self):
+        _, clean_result, _, _, _ = self.written("grok")
+        clean_row = self.last_row()
+        self.baselines.unlink()
+        with mock.patch.object(self.fidelity, "build", side_effect=RuntimeError("builder broke")):
+            code, result, printed, written, out = self.written("grok")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["pass"], clean_result["pass"])
+        self.assertEqual(written["fidelity"], {"schema": "shiploop-e2e-fidelity/v1", "error": "RuntimeError: builder broke"})
+        self.assertIn("  fidelity  skipped: RuntimeError: builder broke", printed)
+        row = self.last_row()
+        for key in ("turns", "cost_usd", "sessions", "model_glue", "stages", "unmeasured"):
+            self.assertEqual(row[key], clean_row[key], key)
+
+    def test_the_baseline_row_has_no_fidelity_key(self):
+        self.written("grok")
+        self.assertNotIn("fidelity", self.last_row())
+
+    def test_grade_only_adds_the_block_to_a_run_that_had_none(self):
+        code, result, printed, written, out = self.written("grok")
+        metrics_file = out / "metrics.json"
+        old = json.loads(metrics_file.read_text())
+        del old["fidelity"]
+        metrics_file.write_text(json.dumps(old))
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            HARNESS.run.main(["--resume-run", str(out), "--grade-only", "--baseline", str(self.baselines),
+                              "--plugin-dir", str(self.plugin)])
+        self.assertEqual(json.loads(metrics_file.read_text())["fidelity"]["schema"], "shiploop-e2e-fidelity/v1")
+        self.assertIn("  fidelity  ", printed.getvalue())
+        self.assertNotIn("fidelity", json.loads((out / "result.json").read_text())["metrics"])
+
+    def test_collect_without_a_tool_log_is_what_progress_calls_and_it_is_unchanged(self):
+        code, result, printed, written, out = self.written("grok")
+        again = metrics.collect(out, Path(result["shiploop"]["run_dir"]) if result["shiploop"].get("run_dir") else None)
+        self.assertNotIn("fidelity", again)
+
+
 if __name__ == "__main__":
     unittest.main()

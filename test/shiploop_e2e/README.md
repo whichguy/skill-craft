@@ -175,7 +175,9 @@ Grok events carry no time) and ShipLoop's run directory:
   one prompt on different builds are not a controlled pair: the Sonnet runs of 2026-10-06 and 2026-10-07 ran on
   2.1.291 and 2.1.292, which no record named before;
 - every `shiploop` command that exited non-zero, with its failing line;
-- which `docs/shiploop/` files the model read.
+- which `docs/shiploop/` files the model read;
+- `fidelity` (SPEC, 2026-10-09), a record-only block of what the run's own records show about how ShipLoop was
+  carried: "The fidelity block" below. It is in `metrics.json` only, never in `result.json` or a baseline row.
 
 `result.json` also reports how the run left the source checkout
 (`shiploop.knowledge`): whether `docs/shiploop/spec.md` exists and is committed,
@@ -221,6 +223,81 @@ what changed since its last call (new accepted stages with turns and minutes,
 failed ShipLoop commands, truncations, compactions, ended sessions). It never
 prints packet text or run markers, so a ShipLoop keepalive in the watching
 session cannot bind to the run.
+
+### The fidelity block
+
+`metrics.json` carries `fidelity` (built by `test/shiploop_e2e/fidelity.py` through `run._main`, so a regrade with
+`--resume-run <dir> --grade-only` adds it to a run that has none). It reads what the run left: ShipLoop's ledger
+(`state.md`, `tests/`, `lint/`, `quality/`, `backchain/`, `improve/`, `packets/`) and the tool calls of the event stream
+that `metrics.ToolLog` already classifies for every host. It is a **record, never a verdict** (SPEC): it changes no
+verdict, exit code, baseline row or run, the model never sees it, and it starts no process. At most five `fidelity` lines
+print after the `metrics` lines; the block holds the rest. Every part fails open: an input it cannot read, a stage table or
+packet layout of another ShipLoop, or an event stream with no tool call makes the part null with its reason in the block's
+`unmeasured` map (a regrade of a run whose `events.jsonl` is gone reads the ledger parts and leaves `edits` and
+`refusals` unmeasured), never 0 and never a pass. `hosts` and `mixed_host` come from `runrecord`, so a run that two hosts
+worked on (r2 Grok, finished by Claude) is named as such.
+
+- `evidence`: one row per accepted action (`stages`, keyed by `action`), with the class of evidence it rests on:
+  `skipped` (the engine's own `Not applicable to this item` entry), `script` (a record ShipLoop's scripts wrote for the
+  action: `tests/<action>-verify*.md`, the lint gate `lint/<action>.gate*.md` (an advisory lint pass is not evidence), `quality/<action>-terminal.json`,
+  `backchain/<action>/check-*.json`), `loop` (an Improve child: `improve/<action>/receipt.md` or an `improve_results`
+  entry), `file` (a cited file that is neither the stage's own packet, inbox or result nor a model note), `note` (only
+  model-authored notes, by the harness's own `MODEL_INPUT`: `run/notes`, `run/evidence`, `run/scratch`, Improve reviews),
+  `sentence` (nothing beyond its own packet, inbox or result file). The first class that fits wins, so `records` lists
+  every kind found: a carry-forward with a verify record and an Improve child reads `script` and shows `improve` in its
+  records. `declared` is the check the stage table declares (`script-run`, `review loop`, `model judgement`), read from the
+  run's own `shiploop_stage_spec.py` through the exporter's `stage_catalog` and `effective_exit_check` (so
+  `planning_review none` needs no special case), and `declared_script_run_without_record` lists the done stages that
+  declare a script-run check and have no script-written record (none in the eleven saved Claude and Grok runs). A
+  lint-only `implement` row reads `script` because the table declares the lint gate for it; its `records` say lint only.
+  `file` is satisfied by citing any file, so it is a reading aid and never a target;
+- `validation`: the verify records read as JSON. `by_suite` counts `runs`, `counted` (counts.ran is a number),
+  `counts_null` and `zero_ran` per suite; `tests_ran_unmeasured` is the focused and regression rows whose counts are null
+  (the v1220 Sonnet run has 34 of 34, the Grok run 30 of 30), which does not show that a test ran and so is unmeasured
+  (S-9), never a pass. A `check` row is judged by its exit code, so its null counts are by design. `red` counts the
+  records in which a command ran red, `accepted_ran` the rows that carry a floor and the stages they belong to,
+  `release_verify` the `where` and `kind` the release-verify record observed. The older regex reader
+  `metrics.verifications` stays what baselines use; a test pins that both agree on the saved runs;
+- `edits`: **heuristic, a lower bound**, listed as facts with the `event` (the line of `events.jsonl`) of each:
+  `script_owned` (the model's edit of a file ShipLoop's scripts own, by an edit tool or by a shell `>`, `>>`, `tee`, `cp`,
+  `mv`, `rm`, `sed -i` or `perl -i`; the owned set is `metrics.SHIPLOOP_OWNED` and the three workspace files by name, minus
+  `MODEL_INPUT`), `name_kills` (`pkill`, `killall`, `kill $(pgrep ...)`, `pgrep | xargs kill`: they match any run's
+  server by its name) and `model_commits` (the calls that ran `git add` or `git commit`). The detectors unwrap a leading
+  `sh|bash|zsh -c|-lc "<script>"`, which is how Codex prints every command; the frozen `metrics.glue_reasons` does not, so a
+  **Codex `model_glue` is a known undercount** (and it reads prose in a heredoc body as a commit, event 731 of the 1.21.0 Luna
+  run), while the lists here read inside the wrapper;
+- `refusals`: each ShipLoop refusal from the same list as `shiploop_failures` (`count` equals its length), with its
+  `event`, `verb`, `stage` (from the same stage windows `per_stage` uses; null without a timeline) and `repeat_of`, the
+  index of the refusal just before it when its whole first line (not the 200-character cut) is the same in the same known
+  stage. The same line twice is a pointer, neutral about cause: a remedy that misled or an honest second failed try;
+- `end_state`: the engine's `status`, `stage`, the stage it never accepted, its `status_reason`, and for a run that ended on a
+  blocked result the last accepted entry's `blocked_by` and `awaiting` (its `kind`, and whether `no_default` states why no
+  default would do); `unverified` is the product-acceptance list (`entries`, `owners`), null when no result carries the key
+  (a result without the key says nothing, it is not an empty list, which says every outcome was observed);
+- `improve_packets`: whether each `packets/<action>-improve.md` carries the five questions an Improve packet answers for a
+  model that holds only that packet (`goal`, `done_when`, `checked_by`, `output`, `recovery`), as counts and a `missing`
+  list of action, stage and the labels lacking; never the packet text. Of the 63 such files in the saved Claude and Grok runs,
+  35 carry all five and 28 lack goal and done when. The exporter scores producer packets only (`carried`), so this table is
+  the harness's own until the exporter owns it; it then goes (S-12). A run of the old packet layout (ShipLoop 1.22.0 and
+  earlier) has no such file and is unmeasured.
+
+**What no script checks.** Whether one call carries one step (S-2), whether the cards agree with the scripts (S-3), packet
+size (S-7), technology-agnostic wording (S-8), one implementation of each mechanism (S-12) and generality (S-13); and the
+truth of a model's sentence, the strength of a test's oracle (a suite can pass beside surviving mutants), and whether a text
+is clear. They stay with a reviewer. The block does not decide the S-1, S-4 or S-5 clauses either: a clean `edits` is not
+proof of no glue.
+
+**Known blind spots.** An edit of a script-owned file by interpreter code (a `python3 - <<EOF ... open(p, "w")` heredoc
+rewrote `return-plan.md` at event 487 of the r1 Sonnet Battleship run; the `sed -i` of the same file at event 493 is listed); a
+shell `apply_patch` or `git apply`; a kill by numeric pid (`kill 67975`), which a model's own job and a sibling's process look
+alike in; a relative path after `cd` for any file but the three workspace files, which are matched by their name (a product
+file of that name would be listed too); a ShipLoop verb a model's wrapper script hides from the command (refusals are still
+read from the result text); the refs of a result are paths of the machine that ran, so whether they still exist is not asked;
+and the round-3 loop criterion (2), which was author-based (who committed), is measurable only on Claude on a machine with no
+configured git identity, because ShipLoop's commits defer to a configured identity and the Grok and Codex profiles give one
+(the r2 Grok log has three authors because Claude finished that run), so the block does not read authors at all. The first
+call after a Grok compaction, the one script measure of the main tenet in action, belongs to the clear-context group's
+`fresh_starts`, not here.
 
 ### Suites and baselines
 
