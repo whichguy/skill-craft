@@ -34,6 +34,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+import environment  # noqa: E402
 import hosts  # noqa: E402
 import iterate  # noqa: E402
 import metrics  # noqa: E402
@@ -356,6 +357,11 @@ class HarnessCase(unittest.TestCase):
         patch = nothing_listens()
         patch.__enter__()
         self.addCleanup(patch.__exit__, None, None, None)
+        # No harness case starts a real browser: a case that declares the browser need would otherwise find one on this
+        # machine. The classes that exercise the capability record pass a fake with --browser-bin.
+        browser = mock.patch.object(environment, "autodetect_browser", return_value=None)
+        browser.start()
+        self.addCleanup(browser.stop)
 
     def invoke(self, host: str, mode: str, *extra: str) -> tuple[int, dict]:
         os.environ["FAKE_MODE"] = mode

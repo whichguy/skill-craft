@@ -1,0 +1,22 @@
+{
+ "pass": true,
+ "host": "grok",
+ "process": {
+  "status": "not observed",
+  "returncode": null,
+  "regraded": true
+ },
+ "termination": {
+  "process_status": "not observed (regraded: no host ran)",
+  "returncode": null,
+  "sessions": 0,
+  "resumes": null,
+  "session_stops": [],
+  "resume_stop": "not evaluated (regraded)",
+  "engine_status": "done",
+  "engine_stage": "done",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": null,
+  "regraded": true
+ }
+}

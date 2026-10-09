@@ -106,9 +106,11 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
+import environment  # noqa: E402
 import hosts  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
+import runrecord  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_chain_ledger as chain_ledger  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -415,6 +417,20 @@ def keep_awake(argv: list[str]) -> list[str]:
     """
     caffeinate = shutil.which("caffeinate") if sys.platform == "darwin" else None
     return [caffeinate, "-d", "-i", *argv] if caffeinate else argv
+
+
+def display_held() -> bool:
+    """Whether a host session runs under a display hold: the one decision is keep_awake's, asked and not repeated."""
+    marker = ["host"]
+    return keep_awake(marker) != marker
+
+
+def declared_needs(name: str, args, earlier: dict | None = None) -> list[str]:
+    """The needs this launch declares (SPEC: a record exists only where something declares its need): the case's, the
+    ``--need`` flags', and those the run's own first launch recorded. A custom prompt declares none by itself."""
+    case = json.loads(CASES.read_text()).get(name, {}) if name != "custom" else {}
+    found = [*case.get("needs", []), *(args.need or []), *((earlier or {}).get("needs") or [])]
+    return list(dict.fromkeys(found))
 
 
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
@@ -1160,9 +1176,15 @@ def parser() -> argparse.ArgumentParser:
                    help="suites: run every case one after another (rerun a failure that appears only in parallel "
                         "this way before attributing it to ShipLoop)")
     p.add_argument("--suite-name", help=argparse.SUPPRESS)
+    p.add_argument("--need", action="append", choices=environment.NEEDS, default=[],
+                   help="declare a need of this run, which records its capability on the harness side before the host "
+                        "starts (browser: can a headless browser load a stand-in page here). A named case declares its own "
+                        "(`needs` in cases.json); a custom --prompt declares none by itself. A record, never a verdict")
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
     p.add_argument("--codex-bin", default="codex")
+    p.add_argument("--browser-bin", default=None,
+                   help="the browser the capability record probes (default: a Chrome or Chromium found in the usual places)")
     return p
 
 
@@ -1779,6 +1801,16 @@ def _main(argv: list[str] | None, held: list) -> int:
     interrupt_at = earlier.get("interrupt_at") if resumed else args.interrupt_at
     # The CLI of the host and plugin the run started on (a resume on another host keeps it): every prompt below names it.
     the_cli = resumed_cli if resumed else run_cli(host.name, out, plugin_dir)
+    # The machine and any declared capability, recorded before the host starts and before the deadline is set, so the probe
+    # spends none of the run's time (SPEC: a record, not a verdict). A regrade launches nothing and so reads nothing.
+    needs = declared_needs(name, args, earlier if resumed else None)
+    if regrade:
+        start_environment = environment.unobserved("regraded: no host was launched")
+    else:
+        try:
+            start_environment = environment.start_record(display_held(), needs, args.browser_bin)
+        except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
+            start_environment = environment.unobserved("could not be recorded: " + (" ".join(str(exc).split())[:200] or type(exc).__name__))
     if args.seed_at and not resumed:
         seeded = seed_run(the_cli, work, out, prompt, args.seed_at)
         if not args.quiet:
@@ -1800,7 +1832,7 @@ def _main(argv: list[str] | None, held: list) -> int:
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
                   "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
-                  "interrupt_at": interrupt_at}
+                  "interrupt_at": interrupt_at, "needs": needs, "environment": start_environment}
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
         (out / f"invocation-resume-{host.name}-{int(time.time())}.json").write_text(
@@ -1815,6 +1847,13 @@ def _main(argv: list[str] | None, held: list) -> int:
             # Before any host spend: a later session that finds only this log, even after the harness was
             # killed, holds the output directory and the command that continues the run.
             print(f"resume: {resume_command(out, args)}", flush=True)
+            if needs:
+                print(f"  environment  {environment.browser_line(start_environment.get('browser') or {})}"
+                      if "browser" in needs and start_environment.get("observed") else
+                      f"  environment  needs declared ({', '.join(needs)}); the start record could not be made", flush=True)
+            elif name == "custom" and not resumed:
+                print("  environment  a custom prompt declares no need by itself, so no browser capability is recorded "
+                      "(pass --need browser if this run uses a browser)", flush=True)
 
     deadline = time.time() + args.timeout
     if resumed and not regrade:
@@ -1966,13 +2005,24 @@ def _main(argv: list[str] | None, held: list) -> int:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
     termination = termination_facts(process, engine, resume_stop,
                                     earlier_result.get("termination") if regrade else None)
+    # The machine at the end and the whole run's hosts and neighbours; each part that cannot be read says so (SPEC).
+    if regrade:
+        end_environment = environment.unobserved("regraded: the end of the run was not observed")
+        result_start = environment.restated_start(out)
+    else:
+        try:
+            end_environment = environment.end_record()
+        except Exception as exc:  # noqa: BLE001
+            end_environment = environment.unobserved("could not be recorded: " + (" ".join(str(exc).split())[:200] or type(exc).__name__))
+        result_start = start_environment
+    run_environment = environment.result_block(out, result_start, end_environment)
     # A resumed run overwrites result.json: keep the termination each earlier invocation recorded.
     earlier_terminations = list(earlier_result.get("earlier_terminations") or []) if resumed else []
     if resumed and not regrade and isinstance(earlier_result.get("termination"), dict):
         earlier_terminations.append(earlier_result["termination"])
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
-              "process": process, "termination": termination,
+              "process": process, "termination": termination, "environment": run_environment,
               **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
               **({"left_behind": left} if left is not None else {}),
               "keepalive": keepalive,
@@ -2029,6 +2079,8 @@ def _main(argv: list[str] | None, held: list) -> int:
               f"decisions {keepalive['decisions'] or 'none (hooks never ran)'}")
     print(f"  shiploop  {mark(shiploop['pass'])}  {shiploop.get('status') or shiploop.get('reason')}")
     print(f"  stopped   {stopped_line(termination)}")
+    for line in environment.summary_lines(run_environment):
+        print(f"  environment  {line}")
     if line := listeners.left_behind_line(left):
         print(line)
     if at_stop is not None and at_stop["ran"]:

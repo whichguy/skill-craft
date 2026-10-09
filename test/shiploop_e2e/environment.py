@@ -1,0 +1,524 @@
+"""What the machine, the launches and the neighbouring runs were while a case ran: the ``environment`` record.
+
+SPEC (2026-10-09, "A record of the machine, of the product at stop or of the ending is not a verdict"): a record beside the
+verdicts, never a verdict.  Nothing here changes ``pass``, the exit code or the control flow, and every part says what it could
+not measure instead of guessing: a value nothing measured is ``None`` with its reason, ``[]`` only where something looked and
+found none.
+
+* the tool versions the model's shell sees (``node``, ``python3``, ``git``), the CPU count and the load, at the start of each
+  launch and at the end of the run, and whether the host ran under a display hold;
+* ``hosts_used`` and one entry per launch, read through ``runrecord`` (the one reader of the launch records), so a run that two
+  hosts worked on is named so;
+* ``overlap``: the sibling output folders whose ``timeline.jsonl`` span overlaps this run's, read at the end of the run and only
+  for reading;
+* a browser capability record, only where a case or ``--need browser`` declares one.
+
+The host CLI build is not read here: a launch record carries ``host_build`` where the harness captured it at launch, and the
+per-launch entry passes it through (null where the record has none).
+
+Run it as a program to see the browser record for a browser by hand (the calibration the SPEC asks for before any use of it)::
+
+    python3 test/shiploop_e2e/environment.py --need browser [--browser-bin PATH]
+"""
+
+from __future__ import annotations
+
+import argparse
+import contextlib
+from datetime import datetime, timezone
+import http.server
+import json
+import os
+from pathlib import Path
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import uuid
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import runrecord  # noqa: E402
+
+NEEDS = ("browser",)
+TOOLS = ("node", "python3", "git")
+# One `--version` call's ceiling in seconds: a ceiling, not a tuning value (they answer in 0.01 to 0.05 s).
+TOOL_TIMEOUT = 10.0
+
+# A browser started headless to dump the DOM of a stand-in page.  The hygiene flags keep a fresh profile from phoning home
+# (a first launch registered with a push service and tried to install a default app); they did not change how long a launch
+# lingers, so they are hygiene only.
+BROWSER_FLAGS = ("--headless=new", "--disable-gpu", "--no-first-run", "--disable-background-networking",
+                 "--disable-default-apps", "--disable-component-update", "--disable-sync")
+# How long a launch that never prints its page is waited for: a ceiling, not a tuning value (16 of 16 measured launches printed
+# in 0.36 to 0.47 s).  Past it the browser's group is stopped and the target is recorded as no title.
+TITLE_CEILING_SECONDS = 20.0
+# How long a browser that has printed its page is given to exit by itself before its group is stopped: a ceiling, not a tuning
+# value.  Most launches did not exit at all (only 3 of 16 within 12 to 20 s), so the exit is recorded, not waited for.
+GRACE_SECONDS = 1.0
+# How long a stopped group is given to be gone before it is recorded as not empty.
+EMPTY_SECONDS = 2.0
+POLL_SECONDS = 0.02
+# Where a browser is looked for when none is named.  Tests patch `autodetect_browser`, so none of this runs there.
+BROWSER_PATHS = ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                 "/Applications/Chromium.app/Contents/MacOS/Chromium")
+BROWSER_NAMES = ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "chrome")
+
+NOT_DECLARED = {"declared": False, "probed": False, "reason": "no case or --need declares a browser"}
+
+
+def now_text() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def unobserved(reason: str) -> dict:
+    """A part of the record nothing measured: said so, with why, never an empty value that reads as a measured none."""
+    return {"observed": False, "reason": reason}
+
+
+# ---------------------------------------------------------------- tools, load, the start and the end
+
+def read_tools(timeout: float | None = None) -> tuple[dict, dict]:
+    """(``{tool: first stdout line of tool --version or None}``, ``{tool: why None}``), the tools found on this PATH."""
+    timeout = TOOL_TIMEOUT if timeout is None else timeout
+    versions: dict = {}
+    unread: dict = {}
+    for name in TOOLS:
+        path = shutil.which(name)
+        if path is None:
+            versions[name], unread[name] = None, "not found on PATH"
+            continue
+        try:
+            done = subprocess.run([path, "--version"], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            versions[name], unread[name] = None, f"--version timed out after {timeout:g}s"
+            continue
+        except OSError as exc:
+            versions[name], unread[name] = None, f"--version could not run: {exc}"
+            continue
+        line = next((text.strip() for text in done.stdout.splitlines() if text.strip()), "")
+        if done.returncode == 0 and line:
+            versions[name] = line
+        else:
+            versions[name], unread[name] = None, (f"--version exited {done.returncode}" if done.returncode
+                                                  else "--version printed nothing on stdout")
+    return versions, unread
+
+
+_TOOLS: tuple[dict, dict] | None = None
+
+
+def tools() -> tuple[dict, dict]:
+    """The tool versions, read once per process: they do not change while a harness runs, and every test case calls main()."""
+    global _TOOLS
+    if _TOOLS is None:
+        _TOOLS = read_tools()
+    return _TOOLS
+
+
+def machine() -> tuple[dict, dict]:
+    """(``{cpus, loadavg}``, ``{field: why None}``): None where the machine would not say, with the reason."""
+    unread: dict = {}
+    cpus = os.cpu_count()
+    if cpus is None:
+        unread["cpus"] = "os.cpu_count() could not tell"
+    try:
+        load = [round(value, 2) for value in os.getloadavg()]
+    except OSError as exc:
+        load = None
+        unread["loadavg"] = f"os.getloadavg() failed: {exc}"
+    return {"cpus": cpus, "loadavg": load}, unread
+
+
+def start_record(display_hold: bool, needs=(), browser_bin: str | None = None) -> dict:
+    """The record of one launch's start: tools, machine, display hold and (only where declared) the browser capability."""
+    versions, unread = tools()
+    state, missing = machine()
+    return {"observed": True, "at": now_text(), "tools": dict(versions), **state, "display_hold": bool(display_hold),
+            "unread": {**unread, **missing},
+            "browser": browser_record(browser_bin) if "browser" in needs else dict(NOT_DECLARED)}
+
+
+def end_record() -> dict:
+    """The machine at the end of the run (the tools are not read again)."""
+    state, unread = machine()
+    return {"observed": True, "at": now_text(), **state, "unread": unread}
+
+
+# ---------------------------------------------------------------- launches and hosts
+
+def launch_environments(out) -> list[dict]:
+    """One entry per launch of the run, first launch first: who ran it and the start record that launch kept (null for a launch
+    recorded before this record existed).  ``host_build`` is whatever the launch record carries, null where it has none."""
+    return [{"launch": name, "host": record.get("host"), "model": record.get("model"), "effort": record.get("effort"),
+             "host_build": record.get("host_build"), "environment": record.get("environment")}
+            for name, record in runrecord.launches(Path(out))]
+
+
+def restated_start(out) -> dict:
+    """A regrade starts no host: the start of the run's last launch, as that launch recorded it."""
+    last = launch_environments(out)[-1:] or [{}]
+    recorded = last[0].get("environment")
+    return recorded if isinstance(recorded, dict) else unobserved(
+        "regraded: the run's last launch recorded no environment (it was launched before the record existed)")
+
+
+# ---------------------------------------------------------------- overlap with the neighbouring runs
+
+def _stamp(line: bytes) -> float | None:
+    try:
+        value = json.loads(line)
+    except ValueError:
+        return None
+    stamp = value.get("t") if isinstance(value, dict) else None
+    return float(stamp) if isinstance(stamp, (int, float)) and not isinstance(stamp, bool) else None
+
+
+def span(timeline: Path) -> tuple[float, float] | None:
+    """The first and the last stamp of a ``timeline.jsonl`` (epoch seconds), or None where it has none that can be read.
+
+    The file grows while its run is going, so a last line may be half written: the last line that parses counts.
+    """
+    try:
+        with open(timeline, "rb") as handle:
+            first = _stamp(handle.readline())
+            size = handle.seek(0, os.SEEK_END)
+            handle.seek(max(0, size - 8192))
+            tail = handle.read().splitlines()
+    except OSError:
+        return None
+    last = next((stamp for stamp in map(_stamp, reversed(tail)) if stamp is not None), None)
+    return (first, last) if first is not None and last is not None else None
+
+
+OVERLAP_BASIS = ("the first and last timeline.jsonl stamps of this run and of each sibling output folder in the same parent "
+                 "folder; a run resumed after a pause counts the pause, so the seconds are an upper bound")
+
+
+def overlap(out) -> dict:
+    """Which neighbouring runs were running while this one was, read-only (SPEC "Parallel work").
+
+    A count taken at the start of a run misses an overlap that begins later: of the nine round runs of 2026-10-08 all nine
+    overlapped another run, and three saw the overlap begin more than a second after their own start.  So the whole span is
+    compared, at the end.  ``started_offset_seconds`` is the sibling's start minus this run's: negative when it was already
+    running, positive when it began later.  Siblings in other parent folders are not seen.
+    """
+    out = Path(out)
+    own = span(out / "timeline.jsonl")
+    if own is None:
+        return unobserved("this run's timeline.jsonl has no readable stamp")
+    try:
+        folders = sorted(path for path in out.parent.iterdir() if path.is_dir() and path.name != out.name)
+    except OSError as exc:
+        return unobserved(f"the folder beside this run could not be listed: {exc}")
+    runs, read = [], 0
+    for folder in folders:
+        other = span(folder / "timeline.jsonl")
+        if other is None:
+            continue
+        read += 1
+        low, high = max(own[0], other[0]), min(own[1], other[1])
+        # Concurrent when they share time; a shared instant counts only if it is inside one of the two spans (a run whose
+        # stamps are all one instant, inside a neighbour's span), not where one ends as the other begins.
+        if high < low or (high == low and not any(a < low < b for a, b in (own, other))):
+            continue
+        seconds = high - low
+        launched = runrecord.launches(folder)
+        runs.append({"folder": folder.name, "case": (launched[0][1].get("case") if launched else None),
+                     "hosts": runrecord.hosts_used(folder), "overlapped_seconds": round(seconds, 1),
+                     "started_offset_seconds": round(other[0] - own[0], 1)})
+    return {"observed": True, "basis": OVERLAP_BASIS, "span": {"first": own[0], "last": own[1]}, "siblings_read": read,
+            "runs": runs}
+
+
+def result_block(out, start: dict, end: dict) -> dict:
+    """The ``environment`` block of result.json: this launch's start and the run's end, the hosts and launches of the whole run,
+    and the overlap.  Each part that cannot be made says so and the others stand."""
+    def part(make):
+        try:
+            return make()
+        except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
+            return unobserved(" ".join(str(exc).split())[:200] or type(exc).__name__)
+
+    return {"start": start, "end": end,
+            "hosts_used": part(lambda: runrecord.hosts_used(Path(out))),
+            "mixed_host": part(lambda: runrecord.mixed_host(Path(out))),
+            "environments": part(lambda: launch_environments(out)),
+            "overlap": part(lambda: overlap(out))}
+
+
+# ---------------------------------------------------------------- the browser capability record
+
+def autodetect_browser() -> str | None:
+    """A browser binary in the usual places, or None.  Nothing is launched to find it."""
+    for path in BROWSER_PATHS:
+        if os.access(path, os.X_OK) and Path(path).is_file():
+            return path
+    for name in BROWSER_NAMES:
+        found = shutil.which(name)
+        if found:
+            return found
+    return None
+
+
+def find_browser(named: str | None) -> str | None:
+    """The browser binary to probe: the named one if it is runnable, else a detected one; None if there is none."""
+    if named:
+        path = shutil.which(named) if os.sep not in named else named
+        return path if path and os.access(path, os.X_OK) and Path(path).is_file() else None
+    return autodetect_browser()
+
+
+class _Page(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):  # noqa: N802 - the http.server name
+        body = self.server.page.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):  # a stand-in logs nothing
+        pass
+
+
+class StandIn:
+    """One page, served two ways for a browser to load: a ``file:`` URL and a loopback ``http://127.0.0.1:<port>/`` URL on a
+    port the system chooses.  The server runs in this process and is closed, with its thread and its files, on exit."""
+
+    def __enter__(self):
+        self.token = "e2e-stand-in-" + uuid.uuid4().hex[:12]
+        self.page = f"<!doctype html><html><head><title>{self.token}</title></head><body>ok</body></html>"
+        self.dir = Path(tempfile.mkdtemp(prefix="e2e-stand-in-"))
+        (self.dir / "index.html").write_text(self.page)
+        self.file_url = (self.dir / "index.html").as_uri()
+        self.server, self.thread, self.http_url, self.http_error = None, None, None, None
+        try:
+            self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _Page)
+            self.server.daemon_threads = True
+            self.server.page = self.page
+            self.thread = threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
+            self.thread.start()
+            self.http_url = f"http://127.0.0.1:{self.server.server_address[1]}/"
+        except OSError as exc:
+            self.http_error = f"the loopback stand-in could not listen: {exc}"
+            if self.server is not None:
+                self.server.server_close()
+        return self
+
+    def __exit__(self, *exc_info):
+        if self.thread is not None:
+            self.server.shutdown()
+            self.thread.join(timeout=5)
+        if self.server is not None:
+            self.server.server_close()
+        shutil.rmtree(self.dir, ignore_errors=True)
+        return False
+
+
+def _signal_group(group: int) -> None:
+    """SIGKILL a process group this module started.  A group that is already gone is the goal, not an error."""
+    with contextlib.suppress(ProcessLookupError, PermissionError):
+        os.killpg(group, signal.SIGKILL)
+
+
+def _group_alive(group: int) -> bool:
+    try:
+        os.killpg(group, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def probe_target(binary: str, url: str, token: str, ceiling: float, grace: float) -> dict:
+    """Load one URL in a headless browser and record what the browser did, not what its exit code says.
+
+    The browser is started in a session of its own, so its group is its own; that is verified at launch, and only that group
+    is ever signalled.  Success is the stand-in's title appearing in the browser's output.  Once it has, the browser gets
+    ``grace`` seconds to exit by itself; a browser still there is stopped (it lingered: ``lingered`` is True, ``exited`` False).
+    A browser that prints nothing is waited for up to ``ceiling`` seconds.
+    """
+    profile = tempfile.mkdtemp(prefix="e2e-browser-profile-")
+    record = {"title_seen": False, "output_s": None, "exited": False, "lingered": False, "returncode": None,
+              "killed": False, "group_empty": None, "error": None}
+    proc = None
+    try:
+        argv = [binary, *BROWSER_FLAGS, f"--user-data-dir={profile}", "--dump-dom", url]
+        started = time.monotonic()
+        try:
+            proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                    start_new_session=True)
+        except OSError as exc:
+            record["error"] = f"could not start: {exc}"
+            return record
+        group = proc.pid
+        try:
+            leads = os.getpgid(proc.pid) == group
+        except ProcessLookupError:
+            leads = False  # gone already: nothing is left to signal
+        seen: list[float] = []
+        data = bytearray()
+        needle = token.encode()
+
+        def read() -> None:
+            for chunk in iter(lambda: proc.stdout.read1(65536), b""):
+                data.extend(chunk)
+                if not seen and needle in data:
+                    seen.append(time.monotonic())
+
+        reader = threading.Thread(target=read, daemon=True)
+        reader.start()
+        while not seen and proc.poll() is None and time.monotonic() - started < ceiling:
+            time.sleep(POLL_SECONDS)
+        if proc.poll() is not None:
+            reader.join(timeout=2)  # the last of its output
+        if seen:
+            end = time.monotonic() + grace
+            while proc.poll() is None and time.monotonic() < end:
+                time.sleep(POLL_SECONDS)
+        record["title_seen"] = bool(seen)
+        record["output_s"] = round(seen[0] - started, 2) if seen else None
+        record["exited"] = proc.poll() is not None
+        record["returncode"] = proc.returncode if record["exited"] else None
+        record["lingered"] = bool(seen) and not record["exited"]
+        if not record["exited"] or (leads and _group_alive(group)):
+            record["killed"] = True
+            if leads:
+                _signal_group(group)
+            else:
+                proc.kill()  # not a leader of its own group: the child alone, never a group that is not ours
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                proc.wait(timeout=5)
+        if leads:
+            end = time.monotonic() + EMPTY_SECONDS
+            while _group_alive(group) and time.monotonic() < end:
+                time.sleep(POLL_SECONDS)
+            record["group_empty"] = not _group_alive(group)
+        reader.join(timeout=2)
+        return record
+    finally:
+        if proc is not None and proc.stdout is not None:
+            with contextlib.suppress(OSError):
+                proc.stdout.close()
+        shutil.rmtree(profile, ignore_errors=True)
+
+
+def browser_version(binary: str) -> tuple[str | None, str | None]:
+    """(the first stdout line of ``binary --version``, why not)."""
+    try:
+        done = subprocess.run([binary, "--version"], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=TOOL_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        return None, f"--version timed out after {TOOL_TIMEOUT:g}s"
+    except OSError as exc:
+        return None, f"--version could not run: {exc}"
+    line = next((text.strip() for text in done.stdout.splitlines() if text.strip()), "")
+    return (line, None) if done.returncode == 0 and line else (None, f"--version exited {done.returncode}")
+
+
+def browser_record(binary: str | None, ceiling: float | None = None, grace: float | None = None) -> dict:
+    """The browser capability record of a declared need: can a headless browser load a stand-in page here, over ``file:`` and
+    over loopback http?  A record, never a gate.  Never raises: a failing part is the record's reason."""
+    ceiling = TITLE_CEILING_SECONDS if ceiling is None else ceiling
+    grace = GRACE_SECONDS if grace is None else grace
+    try:
+        found = find_browser(binary)
+        if found is None:
+            return {"declared": True, "probed": False,
+                    "reason": "no browser binary" + (f" at {binary}" if binary else " found in the usual places or on PATH")}
+        version, why = browser_version(found)
+        record: dict = {"declared": True, "probed": True, "binary": found, "version": version,
+                        "flags": list(BROWSER_FLAGS), "ceiling_seconds": ceiling, "grace_seconds": grace}
+        if why:
+            record["version_unread"] = why
+        with StandIn() as page:
+            targets = {"file": page.file_url}
+            skipped = {}
+            if page.http_url:
+                targets["http"] = page.http_url
+            else:
+                skipped["http"] = {"probed": False, "reason": page.http_error}
+            results: dict = {}
+            failures: dict = {}
+
+            def one(kind: str, url: str) -> None:
+                try:
+                    results[kind] = probe_target(found, url, page.token, ceiling, grace)
+                except Exception as exc:  # noqa: BLE001
+                    failures[kind] = exc
+
+            threads = [threading.Thread(target=one, args=item) for item in targets.items()]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+            if failures:
+                raise next(iter(failures.values()))
+        record.update(results)
+        record.update(skipped)
+        return record
+    except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
+        return {"declared": True, "probed": False, "reason": "probe failed: " + (" ".join(str(exc).split())[:200] or type(exc).__name__)}
+
+
+def browser_line(record: dict) -> str:
+    """One printed line for a declared browser capability: what the browser did, said as a record and not as a verdict."""
+    if not record.get("probed"):
+        return f"browser declared, not probed: {record.get('reason')}"
+    parts = []
+    for kind in ("file", "http"):
+        target = record.get(kind)
+        if not isinstance(target, dict):
+            continue
+        if target.get("probed") is False:
+            parts.append(f"{kind} not probed ({target.get('reason')})")
+        elif target.get("title_seen"):
+            ending = ("lingered and was stopped" if target.get("lingered") else
+                      "exited by itself" if target.get("exited") else "stopped")
+            parts.append(f"{kind} title in {target.get('output_s')} s, {ending}")
+        else:
+            parts.append(f"{kind} no title ({'exited ' + str(target.get('returncode')) if target.get('exited') else 'stopped at the ceiling'})"
+                         if not target.get("error") else f"{kind} not started ({target['error']})")
+    return f"browser {record.get('version') or record.get('binary')}: " + "; ".join(parts) + " (a record, not a verdict)"
+
+
+def summary_lines(block: dict) -> list[str]:
+    """The printed lines for a run's environment block: the machine, a mixed-host run, and the neighbours."""
+    lines = []
+    start, end = block.get("start") or {}, block.get("end") or {}
+    if start.get("observed") and end.get("observed"):
+        first, last = (start.get("loadavg") or [None])[0], (end.get("loadavg") or [None])[0]
+        lines.append(f"load {'not read' if first is None else first} -> {'not read' if last is None else last} on "
+                     f"{start.get('cpus') if start.get('cpus') is not None else 'an unknown number of'} cpus; display "
+                     f"{'held' if start.get('display_hold') else 'not held'}")
+    else:
+        lines.append("machine: " + (start.get("reason") if not start.get("observed") else "end not observed (" + str(end.get("reason")) + ")"))
+    if block.get("mixed_host") is True:
+        lines.append(f"MIXED HOST: {', '.join(block.get('hosts_used') or [])} worked on this run; its verdicts and costs belong to no one host")
+    seen = block.get("overlap") or {}
+    if not seen.get("observed"):
+        lines.append("overlap not observed: " + str(seen.get("reason")))
+    elif seen.get("runs"):
+        lines.append("overlap: " + "; ".join(
+            f"{r['folder']} ({', '.join(r.get('hosts') or []) or 'no host'}) {r['overlapped_seconds']} s, began "
+            + (f"{r['started_offset_seconds']} s after this run started" if r["started_offset_seconds"] > 0 else
+               f"{-r['started_offset_seconds']} s before this run started") for r in seen["runs"]))
+    else:
+        lines.append(f"overlap: none ({seen.get('siblings_read')} neighbouring runs read)")
+    return lines
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Print the environment start record, for a calibration by hand.")
+    parser.add_argument("--need", action="append", choices=NEEDS, default=[], help="declare a need (browser)")
+    parser.add_argument("--browser-bin", help="the browser to probe (default: a detected Chrome or Chromium)")
+    args = parser.parse_args(argv)
+    print(json.dumps(start_record(display_hold=False, needs=tuple(args.need), browser_bin=args.browser_bin), indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
