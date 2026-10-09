@@ -86,6 +86,18 @@ polls the raw descriptor with `select` and a stop flag, and the pipe is closed o
   nine round runs, `recorded/<date>/<run>.json` (pass, host, process, termination) for 11 results, `engine/<run>/state.md` (reduced) for the
   three Grok runs that did not pass. `extract.py` rebuilds them from `/Users/dadleet/e2e-runs`; no test reads that folder.
 
+## Verification at the final tree (ee246a81), machine load 7 to 9 from the sibling groups' runs
+
+- `python3 test/shiploop-e2e-environment.test.py`: 93 tests OK, 32.4 to 33.0 s (three runs).
+- `python3 test/shiploop-e2e.test.py`: 404 tests OK, 113.1 s (115.6 s at the base before any change; 115.0, 119.0 and 120.5 s on the way, the
+  last two under heavier load). No test was added to it.
+- `python3 test/shiploop-e2e-runrecord.test.py`: 6 OK. `python3 test/test-groups.test.py`: 21 OK.
+- `bash test/run-all.sh --group quick --changed-from 30a3b40a`: PASS, 28 suites (including `shiploop-e2e`, `shiploop-e2e-runrecord`,
+  `shiploop-e2e-environment`, `shiploop-run-review`, `shiploop-navigator-contract` and the apparatus mock replay).
+- A first quick-tier run with `GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null` exported failed `shiploop-chain-async` (3 tests: "prepare
+  refuses Git context environment overrides"). That suite refuses those overrides by design, so the quick tier is run without them; the e2e
+  harness tests isolate Git themselves (`isolate_git`). Not a product defect; the rerun without them passed.
+
 ## Deviations from the design, and why
 
 1. **No `--version` probe of any host CLI.** The design called the host CLI with `--version` for every host. The brief assigns the host build to
