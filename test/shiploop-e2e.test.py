@@ -3970,7 +3970,10 @@ class CodexRolloutMetricsTest(unittest.TestCase):
         stream = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}] * 2
         m = collect_stream(stream, self.ACCEPTED, rollout_files=self.rollouts())
         self.assertEqual((m["model_calls"], m["compactions"]), (2, 0), "Grok's own events: no compaction event")
-        self.assertTrue(all("context" not in r for r in m["stages"]))
+        # The stage rows carry the stream's own calls (batch 1011: a Grok usage event is a model call, and a stage with no
+        # event has no context); none of the rollouts' figures (calls 2 peak 3000 / calls 1 peak 2000) reach them.
+        self.assertEqual(m["stages"][0]["context"], {"calls": 2, "peak": 1, "peakPct": None})
+        self.assertNotIn("context", m["stages"][1])
 
     def test_rollouts_that_hold_no_call_are_unmeasured_with_the_reason(self):
         m = collect_stream(codex_stream(3), self.ACCEPTED, rollout_files=[[rollout_line("session_meta", 1, {})]])

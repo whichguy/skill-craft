@@ -757,6 +757,54 @@ class FreshStartsCollectTest(unittest.TestCase):
         self.assertEqual(got["fresh_starts"], [])
 
 
+class PerStageContextTest(unittest.TestCase):
+    """The two corrections the Run Review fork asked of per_stage: a stage with no events has no `context`, and a Grok model
+    call is counted (a mixed-host run showed `calls: 0` beside a real peak)."""
+
+    ACCEPTED = [("A1", "intake", "done", 104.5), ("A2", "spec", "done", 111.5), ("A3", "plan", "done", 118.5)]
+
+    def test_a_stage_with_no_events_has_no_context_instead_of_a_zero_call_one(self):
+        accepted = [{"stage": "a", "outcome": "done", "t": 105.0}, {"stage": "b", "outcome": "done", "t": 112.0},
+                    {"stage": "c", "outcome": "done", "t": 125.0}]
+        stamps = {n: 100.0 + n for n in range(30)}
+        turns = [{"t": 101.5, "input": 10, "call": True}, {"t": 106.0, "input": 40, "call": True}]
+        rows = metrics.per_stage(accepted, turns, {}, stamps, None, context_window=100)
+        self.assertEqual([r["context"]["calls"] for r in rows[:2]], [1, 1])
+        self.assertNotIn("context", rows[2], "no event fell in stage c: nothing was measured there, which is not 0 calls")
+        self.assertEqual(rows[2]["turns"], 0, "the existing count of events in the window is unchanged")
+
+    def test_a_grok_usage_event_is_a_model_call_and_counts_in_its_stage(self):
+        stream = [usage(1000), usage(3000), usage(2000), {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "ls"}},
+                  usage(500), usage(700), usage(9000), usage(400),
+                  {"type": "end", "stopReason": "end_turn", "num_turns": 7, "total_cost_usd": 1.0}]
+        # One second between events from t 100; the engine's stamps are whole seconds: A1 at 104, A2 at 111.
+        got = MAIN.collect_stream(stream, self.ACCEPTED[:2])
+        self.assertEqual([r["context"] for r in got["stages"]], [
+            {"calls": 4, "peak": 3000, "peakPct": None},      # usage events at t 100, 101, 102 and 104
+            {"calls": 3, "peak": 9000, "peakPct": None}], "Grok reports no window: peakPct is None, not 0")
+        self.assertEqual(got["model_calls"], 7)
+        self.assertEqual(sum(r["context"]["calls"] for r in got["stages"]), got["model_calls"],
+                         "the stages add up to the whole-run count the same events give")
+
+    def test_a_run_two_hosts_worked_on_counts_the_calls_of_both(self):
+        # r2's shape: Grok usage events, then a Claude resume whose assistant messages carry `id` and usage.
+        claude = [{"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": 50 * (n + 1)}, "content": [
+            {"type": "text", "text": "x"}]}} for n in range(3)]
+        stream = [usage(1000), usage(2000), *claude, usage(10), usage(20), usage(30), usage(40), usage(50), usage(60)]
+        got = MAIN.collect_stream(stream, [("A1", "intake", "done", 105.0), ("A2", "spec", "done", 109.0)])
+        self.assertEqual([r["context"]["calls"] for r in got["stages"]], [6, 4])
+        self.assertEqual([r["context"]["peak"] for r in got["stages"]], [2000, 50])
+
+    def test_the_existing_mixed_row_behaviour_is_kept_rows_without_a_call_key_are_ignored(self):
+        # test/shiploop-e2e.test.py :: MixedHostTurnsTest, restated: a row with no `call` key adds no call.
+        accepted = [{"stage": "a", "outcome": "done", "t": 105.0}, {"stage": "b", "outcome": "done", "t": 112.0}]
+        stamps = {n: 100.0 + n for n in range(21)}
+        turns = [{"t": 101.5, "input": 10, "call": True}, {"t": 102.0, "input": 20},
+                 {"t": 103.0, "input": 30, "call": False}, {"t": 106.0, "input": 40, "call": True}]
+        rows = metrics.per_stage(accepted, turns, {}, stamps, None, context_window=100)
+        self.assertEqual([(r["context"]["calls"], r["context"]["peak"], r["turns"]) for r in rows], [(1, 30, 3), (1, 40, 1)])
+
+
 class SessionLogTest(unittest.TestCase):
     """sessions.jsonl: the harness's append-only record of every host launch and every session end."""
 

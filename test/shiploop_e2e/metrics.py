@@ -1023,7 +1023,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         if kind == "usage":
             grok = True
             usage_events += 1
-            turns.append({"t": t, "input": context_tokens(event.get("usage"))})
+            # A usage event is one model call, as `model_calls` counts it: the stage rows count it too (per_stage reads ``call``).
+            turns.append({"t": t, "input": context_tokens(event.get("usage")), "call": True})
             used = event.get("usage") if isinstance(event.get("usage"), dict) else {}
             usage_rows.append((t, *(v if isinstance(v, int) and not isinstance(v, bool) else None
                                     for v in (used.get("output_tokens"), used.get("reasoning_tokens")))))
@@ -1342,9 +1343,10 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
     count that needs per-call usage when the host has none) is ``None`` in the
     row, never 0.
 
-    Where the turns carry a ``call`` flag (Claude: the first event of a message) a timed row also has ``context``
-    {calls, peak, peakPct}, the shape Codex's rollouts give: the messages that began in the window, the largest input
-    side any of its events reported, and that peak as a percentage of ``context_window`` (None when none was reported).
+    Where the turns carry a ``call`` flag (Claude: the first event of a message; Grok: each usage event) a timed row that
+    holds at least one event also has ``context`` {calls, peak, peakPct}, the shape Codex's rollouts give: the model calls
+    that began in the window, the largest input side any of its events reported, and that peak as a percentage of
+    ``context_window`` (None when none was reported). A stage with no event has none: nothing was measured there.
     ``turns`` keeps counting events, and a call after the last accepted stage is in no row.
 
     Limits, not fixed: engine stamps are whole seconds (truncated) while runner times
@@ -1376,7 +1378,7 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
         events = [x for x in turns if x["t"] is not None and after < x["t"] <= until]
         tools = [c for c in calls.values() if c["t"] is not None and after < c["t"] <= until]
         row = {**base, "seconds": round(until - since, 1), **counted(events, tools)}
-        if any("call" in x for x in turns):
+        if events and any("call" in x for x in turns):  # a stage with no event measured nothing: no context, not 0 calls
             peak = max((x["input"] for x in events if x["input"] is not None), default=None)
             row["context"] = {"calls": sum(bool(x.get("call")) for x in events), "peak": peak,
                               "peakPct": rollouts.share(peak, context_window)}
