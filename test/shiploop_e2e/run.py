@@ -1258,7 +1258,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "termination": result.get("termination"), "unmeasured": sorted(m.get("unmeasured") or {}),
             "source": versions.get("source"), "plugin_version": versions.get("plugin_version"),
             "shiploop_version": versions.get("shiploop_version"), "planning_review": planning_review,
-            "pass": result.get("pass"), "outcome_class": result.get("outcome_class"),
+            "pass": result.get("pass"),
             "verdicts": {k: (result.get(k) or {}).get("pass") for k in ("invoked", "plugin", "process",
                                                                        "shiploop", "committed")},
             "checks_passed": sum(bool(c.get("pass")) for c in result.get("checks") or []),
@@ -1372,28 +1372,6 @@ def regraded_process(observed: dict | None) -> dict:
             "resumes": None, "pass": None, "regraded": True}
 
 
-def blocked_detail(engine: dict) -> dict:
-    """What the engine recorded when it blocked, read from the state's accepted record of its last action: who can unblock it
-    (``blocked_by``), what kind of wait it asked for, and whether it stated why no recorded default would do (SPEC S-14).
-    None for each where the engine is not blocked or the state holds no accepted blocked result (an old state): never a guess
-    from the prose of ``status_reason``."""
-    detail = {"engine_blocked_by": None, "engine_awaiting_kind": None, "engine_awaiting_no_default": None}
-    history, accepted = engine.get("history"), engine.get("accepted")
-    last = history[-1] if isinstance(history, list) and history and isinstance(history[-1], dict) else {}
-    record = accepted.get(last.get("action")) if (engine.get("status") == "blocked" and last.get("outcome") == "blocked"
-                                                  and isinstance(accepted, dict)) else None
-    if not isinstance(record, dict):
-        return detail
-    if isinstance(record.get("blocked_by"), str):
-        detail["engine_blocked_by"] = record["blocked_by"]
-    awaiting = record.get("awaiting")
-    if isinstance(awaiting, dict):
-        if isinstance(awaiting.get("kind"), str):
-            detail["engine_awaiting_kind"] = awaiting["kind"]
-        detail["engine_awaiting_no_default"] = bool(str(awaiting.get("no_default") or "").strip())
-    return detail
-
-
 def termination_facts(process: dict, engine: dict, resume_stop: str | None, earlier: dict | None = None) -> dict:
     """Why this run is not still going, from the observer that owns the process.
 
@@ -1423,7 +1401,7 @@ def termination_facts(process: dict, engine: dict, resume_stop: str | None, earl
         # The engine's own recorded cause for a blocked, paused or halted run.
         "engine_status_reason": " ".join(reason.split())[:200] if isinstance(reason, str) and reason.strip() else None,
         # What the engine accepted when it blocked (null where it did not block, or recorded no blocked result).
-        **blocked_detail(engine),
+        **{f"engine_{key}": value for key, value in metrics.blocked_detail(engine).items()},
     }
     if process.get("regraded"):
         if isinstance(earlier, dict) and earlier.get("process_status"):

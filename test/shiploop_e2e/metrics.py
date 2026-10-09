@@ -350,6 +350,35 @@ def engine_state(run_dir: Path | None) -> dict:
     return value if isinstance(value, dict) else {}
 
 
+def blocked_detail(state: dict) -> dict:
+    """What the engine recorded when it blocked: the one reader of the blocked detail, over the parsed ``state.md``.
+
+    Read from the accepted record of the last history action, and only while the engine is blocked and that action's
+    outcome is blocked (a block that was answered leaves the last history entry blocked while the engine is active again, and
+    reads as nothing). ``blocked_by`` is who can unblock it (user, access or external), ``awaiting_kind`` the kind of wait it
+    asked for (answer or present), ``awaiting_no_default`` whether it stated why no recorded default would do (SPEC S-14; None
+    when it awaits no one). Each is None where the state holds no accepted blocked result (an old state): never a guess from the
+    prose of ``status_reason``.
+    """
+    detail = {"blocked_by": None, "awaiting_kind": None, "awaiting_no_default": None}
+    if not isinstance(state, dict):
+        return detail
+    history, accepted = state.get("history"), state.get("accepted")
+    last = history[-1] if isinstance(history, list) and history and isinstance(history[-1], dict) else {}
+    record = accepted.get(last.get("action")) if (state.get("status") == "blocked" and last.get("outcome") == "blocked"
+                                                  and isinstance(accepted, dict)) else None
+    if not isinstance(record, dict):
+        return detail
+    if isinstance(record.get("blocked_by"), str):
+        detail["blocked_by"] = record["blocked_by"]
+    awaiting = record.get("awaiting")
+    if isinstance(awaiting, dict):
+        if isinstance(awaiting.get("kind"), str):
+            detail["awaiting_kind"] = awaiting["kind"]
+        detail["awaiting_no_default"] = bool(str(awaiting.get("no_default") or "").strip())
+    return detail
+
+
 NOT_RECORDED = "not recorded"
 
 

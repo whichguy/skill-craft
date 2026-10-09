@@ -1106,18 +1106,35 @@ class RecordedOutcomeClassTest(unittest.TestCase):
         self.assertIn("by access", run.outcome_class(False, blocked)[1])
 
     def test_the_detail_is_read_only_while_the_engine_is_blocked_and_says_when_no_default_was_stated(self):
+        # metrics.blocked_detail is the one reader of the blocked detail (the fidelity record can call it too).
+        detail = run.metrics.blocked_detail
         history = [{"action": "a1", "outcome": "blocked", "stage": "x"}]
         accepted = {"a1": {"outcome": "blocked", "blocked_by": "user", "awaiting": {"kind": "answer", "question": "q"}}}
-        blocked = run.blocked_detail({"status": "blocked", "history": history, "accepted": accepted})
-        self.assertEqual(blocked, {"engine_blocked_by": "user", "engine_awaiting_kind": "answer", "engine_awaiting_no_default": False})
+        blocked = detail({"status": "blocked", "history": history, "accepted": accepted})
+        self.assertEqual(blocked, {"blocked_by": "user", "awaiting_kind": "answer", "awaiting_no_default": False})
         spaces = {"a1": {"outcome": "blocked", "blocked_by": "user", "awaiting": {"kind": "answer", "no_default": "  "}}}
-        self.assertIs(run.blocked_detail({"status": "blocked", "history": history, "accepted": spaces})["engine_awaiting_no_default"], False)
+        self.assertIs(detail({"status": "blocked", "history": history, "accepted": spaces})["awaiting_no_default"], False)
         # The block was answered and the run went on: the last history entry still says blocked, but the engine is active.
-        self.assertEqual(run.blocked_detail({"status": "active", "history": history, "accepted": accepted}),
+        self.assertEqual(detail({"status": "active", "history": history, "accepted": accepted}), {key: None for key in blocked})
+        # A blocked engine whose last accepted action was not the blocked one (its record is some earlier block's).
+        self.assertEqual(detail({"status": "blocked", "history": [{"action": "a1", "outcome": "done"}], "accepted": accepted}),
                          {key: None for key in blocked})
-        external = run.blocked_detail({"status": "blocked", "history": history,
-                                       "accepted": {"a1": {"outcome": "blocked", "blocked_by": "external"}}})
-        self.assertEqual(external, {"engine_blocked_by": "external", "engine_awaiting_kind": None, "engine_awaiting_no_default": None})
+        external = detail({"status": "blocked", "history": history,
+                           "accepted": {"a1": {"outcome": "blocked", "blocked_by": "external"}}})
+        self.assertEqual(external, {"blocked_by": "external", "awaiting_kind": None, "awaiting_no_default": None})
+        for garbage in ({}, {"status": "blocked"}, {"status": "blocked", "history": "x", "accepted": []},
+                        {"status": "blocked", "history": [1], "accepted": {"a1": 1}}):
+            self.assertEqual(detail(garbage), {key: None for key in blocked}, garbage)
+
+    def test_termination_carries_the_shared_readers_detail_under_the_engine_prefix(self):
+        history = [{"action": "a1", "outcome": "blocked", "stage": "x"}]
+        engine = {"status": "blocked", "stage": "x", "history": history,
+                  "accepted": {"a1": {"outcome": "blocked", "blocked_by": "access",
+                                      "awaiting": {"kind": "present", "no_default": "d"}}}}
+        t = run.termination_facts({"status": "exited", "sessions": []}, engine, "ShipLoop run is blocked")
+        self.assertEqual({k: v for k, v in t.items() if k.startswith("engine_awaiting") or k == "engine_blocked_by"},
+                         {"engine_blocked_by": "access", "engine_awaiting_kind": "present", "engine_awaiting_no_default": True})
+        self.assertFalse(hasattr(run, "blocked_detail"), "one reader: the function lives in metrics.py")
 
     def test_a_state_with_no_accepted_record_gives_none_and_not_a_parsed_guess(self):
         engine = {"status": "blocked", "stage": "x", "status_reason": "access: waiting for a person",
@@ -1165,7 +1182,7 @@ class OutcomeClassThroughMainTest(QuietHarnessCase):
                 code, result, printed = self.invoke_printed(host, "done")
                 self.assertEqual(code, 0, result)
                 self.assertEqual((result["outcome_class"], result["outcome_basis"]), ("PASS", "every verdict passed"))
-                self.assertEqual(self.last_row()["outcome_class"], "PASS")
+                self.assertNotIn("outcome_class", self.last_row(), "the class is in result.json only")
                 self.assertIn("  outcome   PASS", printed)
 
     def test_a_requested_stop_is_stopped_and_its_header_and_exit_code_are_unchanged(self):
@@ -1197,7 +1214,7 @@ class OutcomeClassThroughMainTest(QuietHarnessCase):
         for text in ("blocked at system-test-author by access", "answer", "no default"):
             self.assertIn(text, result["outcome_basis"])
         self.assertIn("  outcome   BLOCKED", printed)
-        self.assertEqual(self.last_row()["outcome_class"], "BLOCKED")
+        self.assertNotIn("outcome_class", self.last_row(), "the class is in result.json only")
         self.assertEqual(self.last_row()["termination"], t)
 
     def test_a_regrade_of_a_blocked_run_is_blocked_and_starts_no_host(self):
