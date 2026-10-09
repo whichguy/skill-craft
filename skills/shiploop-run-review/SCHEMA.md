@@ -393,7 +393,7 @@ with its marker, and a test pins each phrase against the navigator's source, so 
 `{read, carried: {goal, doneWhen, checkedBy, output, recovery}}`: the files read and, per label, how many carried it. The numbers are read
 next to the run's `release` and are **never a defect**: skill-craft 1.25.0 added Goal and Done when to the packet, so an earlier release reads 0
 for both by design. The saved runs: r1 Sonnet (skill-craft 1.24.0) read 8, goal 0, doneWhen 0, checkedBy 8, output 8, recovery 8; r3 Sonnet
-(1.26.0) all five 8 of 8; over the seven saved runs of batch 1011, 63 files, 35 with all five and 28 without Goal and Done when. The page prints
+(1.26.0) all five 8 of 8; over the seven saved runs frozen in `docs/experiments/run-review-r23-20261009/figures.json`, 31 files, 19 with all five (the runs of skill-craft 1.25.0 and 1.26.0) and 12 without Goal and Done when (1.22.0 and 1.24.0). The page prints
 "Improve packets, skill-craft 1.24.0, ShipLoop 0.56.0: Checked by 8/8, Output 8/8, Recovery 8/8, Goal 0/8, Done when 0/8" on its Improve card.
 
 A run of the current layout with no Improve child has `read` 0 and every count 0: a measured none, not unmeasured. A run whose packets cannot be
