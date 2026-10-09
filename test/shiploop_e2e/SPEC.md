@@ -384,7 +384,11 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   overlapped another recorded run's span (`overlapped_by_span`). That count is
   neither a floor nor a ceiling either: it misses a run that left no record and a
   row from before the span existed ("unknown"), and it can include a resumed
-  run's pause. Nothing is excluded, because 4 of the 5 recorded Battleship Sonnet
+  run's pause. Both read a span with one reader (`metrics.span`: finite stamps
+  only, and a stream whose first stamp is after its last has none, so it is named
+  unreadable or counted unknown) and decide overlap by one interval rule
+  (`metrics.spans_overlap`: spans that only touch do not overlap, an instant
+  inside the other span does). Nothing is excluded, because 4 of the 5 recorded Battleship Sonnet
   runs and all 3 Checkers runs of the 2026-10-08 loop overlapped a sibling. This
   does not close the known limit above: the baseline row still carries no
   overlap field and no rule excludes an overlapped run, so a comparison cannot

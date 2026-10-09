@@ -15,6 +15,7 @@ import bisect
 from datetime import datetime, timezone
 import itertools
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -816,9 +817,35 @@ def claude_builds(path: Path) -> str | None:
     return ", ".join(sorted(b for b in found if b)) or None
 
 
-def span(stamps: dict) -> dict:
-    """{started, ended}: the earliest and latest arrival stamp of the stream, None for both when there is none."""
-    return {"started": min(stamps.values()) if stamps else None, "ended": max(stamps.values()) if stamps else None}
+def span(stamps) -> dict:
+    """{started, ended}: the first and the last stamp of a run's stream (epoch seconds), from a timeline mapping (``timeline``)
+    or from the path of a timeline.jsonl. The one span reader: the run's own span (metrics.json, result.json, the baseline row),
+    the baseline report's rows and environment.overlap's neighbours.
+
+    Defensive, so a span is never made up: only finite stamps count (NaN and infinity are not times), a line that does not
+    parse is skipped (a growing file's half-written last line), and where the first stamp in line order is after the last, or
+    no stamp can be read, or the file cannot be read, both are None: no readable span, which a caller names, never a negative
+    or shorter one. For the runner's own timeline (appended in order) first and last are its earliest and latest stamps.
+    """
+    if not isinstance(stamps, dict):
+        try:
+            stamps = timeline(Path(stamps))
+        except OSError:
+            stamps = {}
+    ordered = [stamps[line] for line in sorted(stamps)
+               if isinstance(stamps[line], (int, float)) and not isinstance(stamps[line], bool) and math.isfinite(stamps[line])]
+    if not ordered or ordered[0] > ordered[-1]:
+        return {"started": None, "ended": None}
+    return {"started": ordered[0], "ended": ordered[-1]}
+
+
+def spans_overlap(a, b) -> bool:
+    """Whether two (start, end) spans share time: they cross (each starts before the other ends), so spans that only touch do
+    not, and an instant strictly inside the other span does. False when any end is unknown (a caller counts that as unknown).
+    The one interval rule: the baseline report's count (run.span_overlaps) and environment.overlap both ask it."""
+    if any(value is None for value in (*a, *b)):
+        return False
+    return a[0] < b[1] and b[0] < a[1]
 
 
 def planning_seconds(planning: dict | None) -> float | None:

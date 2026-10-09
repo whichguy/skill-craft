@@ -293,6 +293,51 @@ class SpanAndPlanningTest(unittest.TestCase):
                          {"started": 1791481009.116, "ended": 1791481838.24})
         self.assertEqual(self.collect(None)["span"], {"started": None, "ended": None})
 
+    def test_the_one_span_reader_counts_finite_stamps_only_and_refuses_a_backwards_stream(self):
+        # Integration of batch 1011: G3's metrics.span and G4's environment.span were two readers of one timeline. The one
+        # left keeps G4's defences: NaN and infinity are not times, and a stream whose first stamp is after its last has no span.
+        nothing = {"started": None, "ended": None}
+        self.assertEqual(metrics.span({0: 100.0, 1: float("nan"), 2: 200.0, 3: float("inf")}), {"started": 100.0, "ended": 200.0})
+        self.assertEqual(metrics.span({0: 300.0, 1: 200.0, 2: 100.0}), nothing, "a backwards stream is no span")
+        self.assertEqual(metrics.span({0: float("nan")}), nothing)
+        self.assertEqual(self.collect([1800.0, 1500.0, 1200.0])["span"], nothing)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "timeline.jsonl"
+            path.write_text('{"line": 0, "t": 1500}\n{"line": 1, "t": NaN}\n{"line": 2, "t": 1600.5}\n{"line": 3, "t": 19')
+            self.assertEqual(metrics.span(path), {"started": 1500.0, "ended": 1600.5}, "a path is read; a half-written line skipped")
+            folder = Path(tmp) / "a-directory.jsonl"
+            folder.mkdir()
+            self.assertEqual(metrics.span(folder), nothing, "what cannot be read has no span, and nothing raises")
+            self.assertEqual(metrics.span(Path(tmp) / "missing.jsonl"), nothing)
+
+    def test_one_interval_rule_serves_the_report_and_the_environment_record(self):
+        rule = metrics.spans_overlap
+        self.assertTrue(rule((0.0, 10.0), (5.0, 20.0)))
+        self.assertFalse(rule((0.0, 10.0), (10.0, 20.0)), "touching spans do not overlap")
+        self.assertTrue(rule((15.0, 15.0), (10.0, 20.0)), "an instant inside the other span does")
+        self.assertFalse(rule((10.0, 10.0), (10.0, 20.0)), "an instant at the other's start does not")
+        self.assertFalse(rule((None, 10.0), (0.0, 20.0)), "an unknown end is no overlap (the report counts it as unknown)")
+        import environment
+        self.assertFalse(hasattr(environment, "span"), "one span reader: metrics.span")
+        asked = []
+
+        def recording(a, b):
+            asked.append((tuple(a), tuple(b)))
+            return rule(a, b)
+
+        with mock.patch.object(metrics, "spans_overlap", side_effect=recording):
+            self.assertEqual(run.span_overlaps([(0.0, 10.0), (5.0, 20.0)]), [1, 1])
+            self.assertTrue(asked, "the report counts overlap through metrics.spans_overlap")
+            asked.clear()
+            with tempfile.TemporaryDirectory() as tmp:
+                for name, (a, b) in (("me", (1000.0, 2000.0)), ("other", (1500.0, 2500.0))):
+                    (Path(tmp) / name).mkdir()
+                    (Path(tmp) / name / "timeline.jsonl").write_text(
+                        json.dumps({"line": 0, "t": a}) + "\n" + json.dumps({"line": 1, "t": b}) + "\n")
+                record = environment.overlap(Path(tmp) / "me")
+            self.assertEqual(asked, [((1000.0, 2000.0), (1500.0, 2500.0))], "and so does environment.overlap")
+            self.assertEqual([(e["folder"], e["overlapped_seconds"]) for e in record["runs"]], [("other", 500.0)])
+
     def test_planning_seconds_is_the_closed_window_and_never_an_open_one_or_a_zero(self):
         closed = {"window": {"closed": True, "through": "test-spec", "seconds": 336.0}}
         self.assertEqual(metrics.planning_seconds(closed), 336.0)

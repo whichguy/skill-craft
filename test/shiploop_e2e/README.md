@@ -573,8 +573,9 @@ checks or setup around them; neither an upper nor a lower bound); and a row carr
 stamp of the run's stream, epoch seconds), from which `--baseline-report` counts how many rows overlapped another recorded
 run's span. That count is neither a floor nor a ceiling: it misses a run that wrote no row and a row written before the span
 existed (`unknown`), and it can include a resumed run's pause (a span runs from the first to the last stamp;
-r2-battleship-grok-none has a 32-minute gap). So this is a discipline and not a guarantee (SPEC, "Parallel
-work"). The two round-2 Sonnet runs were started within 0.1 s of each other.
+r2-battleship-grok-none has a 32-minute gap). Both read spans with `metrics.span` (finite stamps only; a stream whose first
+stamp is after its last has no span) and one interval rule, `metrics.spans_overlap`. So this is a discipline and not a
+guarantee (SPEC, "Parallel work"). The two round-2 Sonnet runs were started within 0.1 s of each other.
 
 What a row and `result.json` say about the run they record (SPEC, "A comparison names its sample"), each field null where it
 is not known and never 0 or empty:

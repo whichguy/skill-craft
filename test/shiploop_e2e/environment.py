@@ -28,7 +28,6 @@ import contextlib
 from datetime import datetime, timezone
 import http.server
 import json
-import math
 import os
 from pathlib import Path
 import shutil
@@ -43,6 +42,7 @@ import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import listeners  # noqa: E402
+import metrics  # noqa: E402
 import runrecord  # noqa: E402
 
 NEEDS = ("browser",)
@@ -198,38 +198,6 @@ def restated_start(out) -> dict:
 
 # ---------------------------------------------------------------- overlap with the neighbouring runs
 
-def _stamp(line: bytes) -> float | None:
-    try:
-        value = json.loads(line)
-    except ValueError:
-        return None
-    stamp = value.get("t") if isinstance(value, dict) else None
-    if isinstance(stamp, bool) or not isinstance(stamp, (int, float)):
-        return None
-    try:
-        number = float(stamp)
-    except OverflowError:
-        return None
-    return number if math.isfinite(number) else None  # NaN and infinity are not times (and are not valid JSON)
-
-
-def span(timeline: Path) -> tuple[float, float] | None:
-    """The first and the last stamp of a ``timeline.jsonl`` (epoch seconds), or None where it has none that can be read.
-
-    The file grows while its run is going, so a last line may be half written: the last line that parses counts.
-    """
-    try:
-        with open(timeline, "rb") as handle:
-            first = _stamp(handle.readline())
-            size = handle.seek(0, os.SEEK_END)
-            handle.seek(max(0, size - 8192))
-            tail = handle.read().splitlines()
-    except OSError:
-        return None
-    last = next((stamp for stamp in map(_stamp, reversed(tail)) if stamp is not None), None)
-    return (first, last) if first is not None and last is not None and first <= last else None
-
-
 OVERLAP_BASIS = ("the first and last host event of this run and of each sibling folder in the same parent folder (timeline.jsonl holds "
                  "host events only): it counts a pause between sessions, and misses the setup before the first event and the checks "
                  "and reap after the last, so the seconds are neither an upper nor a lower bound")
@@ -244,9 +212,10 @@ def overlap(out) -> dict:
     running, positive when it began later.  Siblings in other parent folders are not seen.
     """
     out = Path(out)
-    own = span(out / "timeline.jsonl")
-    if own is None:
+    mine = metrics.span(out / "timeline.jsonl")  # the one span reader (finite stamps, first <= last)
+    if mine["started"] is None:
         return unobserved("this run's timeline.jsonl has no readable stamp")
+    own = (mine["started"], mine["ended"])
     try:
         folders = sorted(path for path in out.parent.iterdir() if path.is_dir() and path.name != out.name)
     except OSError as exc:
@@ -256,17 +225,17 @@ def overlap(out) -> dict:
         timeline = folder / "timeline.jsonl"
         if not (timeline.exists() or timeline.is_symlink()):
             continue  # not a run, or one that has not had an event yet: not seen
-        other = span(timeline)
-        if other is None:
+        theirs = metrics.span(timeline)
+        if theirs["started"] is None:
             unreadable.append(folder.name)  # there, and no span can be read from it: named, never dropped silently
             continue
         read += 1
-        low, high = max(own[0], other[0]), min(own[1], other[1])
-        # Concurrent when they share time; a shared instant counts only if it is inside one of the two spans (a run whose
-        # stamps are all one instant, inside a neighbour's span), not where one ends as the other begins.
-        if high < low or (high == low and not any(a < low < b for a, b in (own, other))):
+        other = (theirs["started"], theirs["ended"])
+        # Concurrent when they share time (metrics.spans_overlap, the one interval rule): an instant inside the other span
+        # counts (a run whose stamps are all one instant, inside a neighbour's span), one span ending as the other begins does not.
+        if not metrics.spans_overlap(own, other):
             continue
-        seconds = high - low
+        seconds = min(own[1], other[1]) - max(own[0], other[0])
         launched = runrecord.launches(folder)
         bad = runrecord.unreadable(folder)
         hosts = None if bad or not launched else runrecord.hosts_used(folder)

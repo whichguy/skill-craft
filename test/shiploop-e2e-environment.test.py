@@ -951,9 +951,11 @@ class OverlapTest(unittest.TestCase):
         json.dumps(record, allow_nan=False)  # no NaN or infinity reaches result.json
 
     def test_a_stamp_that_is_not_a_finite_time_is_skipped_like_a_half_written_line(self):
+        # The span is read by the one span reader, metrics.span (batch 1011 integration; it was environment.span).
+        import metrics
         path = self.parent / "t.jsonl"
-        path.write_text('{"t": 1500}\n{"t": NaN}\n{"t": 1e999}\n')
-        self.assertEqual(self.environment.span(path), (1500.0, 1500.0), "NaN and infinity are not the span's end")
+        path.write_text('{"line": 0, "t": 1500}\n{"line": 1, "t": NaN}\n{"line": 2, "t": 1e999}\n')
+        self.assertEqual(metrics.span(path), {"started": 1500.0, "ended": 1500.0}, "NaN and infinity are not the span's end")
 
     def test_a_neighbour_whose_launch_records_cannot_be_read_has_unknown_hosts_with_the_reason(self):
         me = self.write_run("me", 1000, 2000)

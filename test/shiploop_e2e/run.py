@@ -1721,7 +1721,7 @@ def folder_record(folder: Path, cases: dict) -> dict:
     else:  # the build the FIRST launch recorded; a run launched before the field existed has none, and none is not asked for now
         fill("host_build", first_launch.get("host_build"),
              (first_launch.get("identity_unmeasured") or {}).get("host_build") or LAUNCH_PREDATES)
-    span = metrics.span(metrics.timeline(folder / "timeline.jsonl"))
+    span = metrics.span(folder / "timeline.jsonl")
     fill("started", span["started"], "no timeline.jsonl stamps")
     fill("ended", span["ended"], "no timeline.jsonl stamps")
     fill("planning_seconds", metrics.planning_seconds(saved.get("planning")),
@@ -1778,14 +1778,14 @@ def _stats(values: list, digits: int) -> dict:
 
 def span_overlaps(spans: list[tuple[float | None, float | None]]) -> list[int | None]:
     """For each (started, ended) span, how many of the others it crosses (touching spans do not cross); None for a span with
-    an end unknown. The one place overlap is computed."""
+    an end unknown. The interval rule is metrics.spans_overlap, which environment.overlap asks too."""
     counts: list[int | None] = []
     for index, (start, end) in enumerate(spans):
         if start is None or end is None:
             counts.append(None)
             continue
-        counts.append(sum(1 for other, (s, e) in enumerate(spans)
-                          if other != index and s is not None and e is not None and start < e and s < end))
+        counts.append(sum(1 for other, pair in enumerate(spans)
+                          if other != index and metrics.spans_overlap((start, end), pair)))
     return counts
 
 
