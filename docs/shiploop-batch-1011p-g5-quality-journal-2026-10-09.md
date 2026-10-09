@@ -103,7 +103,9 @@ argument carry the case prompt in the host's argv (standard input stays closed, 
   raises for an exited, unreaped process while `killpg` works), then reaps. A reaped leader is never signalled; a running one is signalled only
   if `getpgid(pid) == pid`, which `start()` also checks at registration. `end_group` is the one function the phase signals through; the
   harness's other group kills (`run.kill_group`, `hosts.run_process`) are unguarded and only the test helper `kill_hosts` uses the guard (the
-  first-round docstring said otherwise). The stop is asked before every run and once after the last.
+  first-round docstring said otherwise). **Superseded 2026-10-09 by the integration branch:** every group kill of the harness, this one included, is now
+  `listeners.end_group` (the same rule), and `quality.end_group` keeps its contract and reaps after it; see
+  `docs/shiploop-batch-1011-integration-journal-2026-10-09.md`. The stop is asked before every run and once after the last.
 
 ## Part 3. Held-out acceptance, Checkers only
 

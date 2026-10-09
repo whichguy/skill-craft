@@ -27,7 +27,6 @@ from pathlib import Path
 import re
 import shlex
 import shutil
-import signal
 import socket
 import subprocess
 import time
@@ -220,41 +219,24 @@ CATALOGS = {extension: JS for extension in JS.extensions}
 
 def exited(proc: subprocess.Popen) -> bool:
     """Whether the leader has exited, without reaping it: an exited, unreaped leader is a zombie that still pins its pid."""
-    if proc.returncode is not None:
-        return True
-    try:
-        done = os.waitid(os.P_PID, proc.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
-    except ChildProcessError:
-        return True
-    return done is not None and done.si_pid != 0
+    return proc.returncode is not None or listeners.unreaped(proc.pid) != "running"
 
 
 def end_group(proc: subprocess.Popen) -> bool:
-    """SIGKILL the whole process group `proc` leads and reap `proc`; False (nothing signalled) when it was already reaped, or
-    is alive and does not lead a group of its own.
+    """End the whole process group `proc` leads and reap `proc`; True when the signal was sent, False (nothing signalled) when it
+    was already reaped, is alive and does not lead a group of its own, or its group is already empty.
 
-    This is the one place the phase signals a group. A group is ended while its leader is alive and leads it, or has exited and
-    is not yet reaped: an unreaped leader keeps its pid, so the number cannot have been reused for someone else's group, and
-    anything a test run left behind shares that group (a reaped leader would leave it orphaned and unreachable). On macOS
-    ``getpgid`` raises for an exited, unreaped process while ``killpg`` still works, so the guard is applied only to a leader
-    that is still running. The harness's other group kills (``run.kill_group``, ``hosts.run_process``) signal without this
-    guard; a test helper (``kill_hosts``) uses it.
+    The signal is listeners.end_group's, the harness's one guarded group kill: a group is ended while its leader is alive and
+    leads it, or has exited and is not yet reaped (an unreaped leader keeps its pid, so the number cannot have been reused for
+    someone else's group, and anything a test run left behind shares that group), never after a reap. The leader is reaped
+    here once it was signalled or has exited; a running process that leads no group of its own is left alone.
     """
     if proc.returncode is not None:  # reaped: the pid may belong to someone else now
         return False
-    if not exited(proc):
-        try:
-            if os.getpgid(proc.pid) != proc.pid:
-                return False
-        except ProcessLookupError:
-            pass  # it exited just now: still an unreaped zombie holding the id
-    try:
-        os.killpg(proc.pid, signal.SIGKILL)
-    except (ProcessLookupError, PermissionError):
+    sent = listeners.end_group(proc.pid)
+    if sent or exited(proc):
         proc.wait()
-        return False
-    proc.wait()
-    return True
+    return sent
 
 
 def start(argv: list[str], cwd: Path, env: dict, log: Path, groups: set) -> subprocess.Popen:

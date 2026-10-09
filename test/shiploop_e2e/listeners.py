@@ -165,9 +165,10 @@ def _signal(pid: int, number: int) -> None:
         os.kill(pid, number)
 
 
-def _unreaped(leader: int) -> str | None:
+def unreaped(leader: int) -> str | None:
     """`running` or `exited` for a child of this process that has not been reaped, else None (reaped already, or never this
-    process's child). It reaps nothing (WNOWAIT): the caller's Popen still collects the exit status."""
+    process's child). It reaps nothing (WNOWAIT): the caller's Popen still collects the exit status. The one place the harness
+    asks whether a leader has exited without reaping it (end_group below; quality.exited)."""
     try:
         done = os.waitid(os.P_PID, leader, os.WEXITED | os.WNOHANG | os.WNOWAIT)
     except ChildProcessError:
@@ -177,8 +178,9 @@ def _unreaped(leader: int) -> str | None:
 
 def end_group(leader: int) -> bool:
     """SIGKILL the process group ``leader`` leads; True when the signal was delivered. The harness's one group kill: the host
-    sessions (run.launch and run.end_live_hosts), the review and fan-out agents (hosts.run_agent) and the browser probe
-    (environment.probe_target and end_live_probes) all end a group here.
+    sessions (run.launch and run.end_live_hosts), the review and fan-out agents (hosts.run_agent), the browser probe
+    (environment.probe_target and end_live_probes) and the quality phase's test runs and servers (quality.end_group) all end
+    a group here.
 
     A group is signalled only while its number is still its leader's, so a number another group took is never signalled. The
     leader must be this process's child and not yet reaped: after a reap its pid, and so the group number, may be reused, and
@@ -188,7 +190,7 @@ def end_group(leader: int) -> bool:
     which is why the getpgid check is for a running leader only). A group with nothing left in it is not an error (a group that
     holds only the zombie answers EPERM on macOS). Nothing is reaped here: the caller's Popen does that.
     """
-    state = _unreaped(leader)
+    state = unreaped(leader)
     if state is None:
         return False
     if state == "running":
@@ -196,7 +198,7 @@ def end_group(leader: int) -> bool:
             if os.getpgid(leader) != leader:
                 return False
         except ProcessLookupError:
-            if _unreaped(leader) is None:  # reaped between the two looks (by another thread): its number is no longer ours
+            if unreaped(leader) is None:  # reaped between the two looks (by another thread): its number is no longer ours
                 return False
     try:
         os.killpg(leader, signal.SIGKILL)

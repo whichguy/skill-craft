@@ -702,7 +702,7 @@ class ProcessSafetyTest(QualityCase):
 
     def test_a_group_the_phase_started_is_ended_by_the_harness_when_it_is_told_to_end(self):
         # run.end_live_hosts is what a SIGTERM to the harness and the exit hook call; the phase registers in the same set.
-        # end_live_hosts signals every pid of the process-global set without a guard: the set is the test's own for its length.
+        # end_live_hosts ends every pid of the process-global set through listeners.end_group: the set is the test's own for its length.
         with mock.patch.object(run, "LIVE_HOST_GROUPS", set()):
             proc = quality.start([sys.executable, "-c", "import time; time.sleep(30)"], self.tmp, quality.child_env(), self.tmp / "log",
                                  run.LIVE_HOST_GROUPS)
@@ -752,6 +752,24 @@ class ProcessSafetyTest(QualityCase):
         with mock.patch.object(os, "getpgid", return_value=proc.pid), mock.patch.object(os, "killpg") as killpg:
             self.assertFalse(quality.end_group(proc), "a leader that was reaped may have its pid reused: nothing is signalled")
         killpg.assert_not_called()
+
+    def test_the_phase_ends_its_groups_through_the_harnesss_one_group_kill(self):
+        # Batch 1011 integration: quality.end_group keeps its contract (end the group, reap the leader, say whether a signal was
+        # sent) and signals through listeners.end_group, the one guarded group kill of the harness.
+        import listeners
+        self.assertIsNone(getattr(quality, "killpg", None))
+        calls = []
+        real = listeners.end_group
+        proc = quality.start([sys.executable, "-c", "import time; time.sleep(30)"], self.tmp, quality.child_env(), self.tmp / "log",
+                             self.groups)
+        self.addCleanup(kill_quietly, proc.pid)
+        with mock.patch.object(listeners, "end_group", side_effect=lambda pid: calls.append(pid) or real(pid)):
+            self.assertTrue(quality.end_group(proc))
+        self.assertEqual(calls, [proc.pid])
+        self.assertEqual(proc.returncode, -signal.SIGKILL, "and the leader is reaped")
+        source = (ROOT / "test" / "shiploop_e2e" / "quality.py").read_text()
+        self.assertNotIn("os.killpg(", source, "no group signal of its own")
+        self.assertNotIn("os.waitid(", source, "the unreaped-leader question is listeners.unreaped's")
 
     def test_a_child_never_inherits_the_harnesss_port(self):
         # A PORT in the harness's own environment would make every product listen there instead of where its default or the case says.

@@ -852,7 +852,8 @@ stands at the commit under test.
     the whole group before it reaps the leader, because a process a test run left behind
     shares the group and an unreaped leader still pins its id; a hung leader is ended the
     same way. A group is signalled only while its leader is alive and leads it, or has
-    exited and is not yet reaped, never after the leader was reaped. A requested stop (a
+    exited and is not yet reaped, never after the leader was reaped (the harness's one guarded
+    group kill, `listeners.end_group`, since the 2026-10-09 integration). A requested stop (a
     signal or `<output>/stop`) is checked before every run and ends the phase; listeners are
     stopped under `<output>/quality` only, also in a regrade, which reaps nothing else. The
     time limits are ceilings and not tuning values: a test run that reaches the first
