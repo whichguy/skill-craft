@@ -63,7 +63,9 @@ model, effort, plugin verdict and the process block, whatever --host, --model or
 failed stays failed; a run with no record of its exit says "not observed" and leaves
 the process verdict out of the result. A blocked run waits for a person (SPEC S-14), so
 it is never resumed as if answered: it is only graded again, which refreshes its
-metrics.json and result.json. An active run is a real resume. --grade-only does the
+metrics.json and result.json. An active run is a real resume, on the host, model and effort its last launch recorded (no --host
+means that host, not Claude); another --host is refused unless --allow-host-change says the change is deliberate, which makes a mixed-host
+run. --grade-only does the
 same regrade for a run in any status that has a ShipLoop state, for a run whose harness
 was killed with its host and so never wrote its records. Creating <output>/stop ends a
 running host on purpose: it is not relaunched, the records are written, and the exit

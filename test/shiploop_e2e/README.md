@@ -49,15 +49,17 @@ python3 test/shiploop_e2e/fanout.py --host codex --model gpt-6-luna --effort med
 ```
 
 A run that stops while ShipLoop is still active, for example because a host ran
-out of credits, can continue in place on any host:
+out of credits, can continue in place:
 
 ```sh
-bash test/run-integration.sh shiploop-e2e --resume-run <that run's output directory> --host codex --effort xhigh
+bash test/run-integration.sh shiploop-e2e --resume-run <that run's output directory>
 ```
 
-It keeps the same work directory, run state and event stream, and prompts with
-the ShipLoop CLI of the host that started the run, so the run's version does not
-change. The case and checks come from the earlier run, and the result is graded
+With no `--host` it continues on the host, model and effort its last launch recorded (it prints that it did).
+Naming another host is refused, with both hosts named, unless `--allow-host-change` says the change is deliberate
+(`--host codex --effort xhigh --allow-host-change`); the run is then a mixed-host run, and `environment.hosts_used`
+says so ("Records beside the verdicts", below). It keeps the same work directory, run state and event stream, and
+prompts with the ShipLoop CLI of the host that started the run, so the run's version does not change. The case and checks come from the earlier run, and the result is graded
 as usual. The original `invocation.json` is kept, and each resume is recorded
 beside it as `invocation-resume-<host>-<time>.json`.
 
@@ -122,8 +124,9 @@ The output directory keeps the prompt, argv, raw events, a readable
 `transcript.md` (built from the text the model actually saw), stderr and the
 result. `result.json` also lists tool outputs the host truncated before the
 model saw them (Grok cuts shell output at about 20 KB). When ShipLoop has not
-yet returned its candidate to `work/`, the result names ShipLoop's worktree and
-reports, for information only, how many checks already pass there. A Grok
+yet returned its candidate to `work/`, the result's `product_at_stop` names ShipLoop's worktree and
+reports, for information only, how many checks already pass there, with the engine's position
+("Records beside the verdicts", below). A Grok
 session that ends while the run is still active is resumed (`--max-resumes`).
 
 ### What ShipLoop did
@@ -221,6 +224,80 @@ what changed since its last call (new accepted stages with turns and minutes,
 failed ShipLoop commands, truncations, compactions, ended sessions). It never
 prints packet text or run markers, so a ShipLoop keepalive in the watching
 session cannot bind to the run.
+
+### Records beside the verdicts (2026-10-09): `environment`, `product_at_stop`, `outcome_class`
+
+Three records that tell a reader what a verdict was about. None of them is a verdict (SPEC, "A record of the machine, of the
+product at stop or of the ending is not a verdict"): they never change `pass`, the exit code, a baseline rule or the control flow,
+each fails open (a part that cannot be made says so, with its reason, and the run goes on), and a value nothing measured is
+`null` or `{"observed": false, "reason": ...}`, never 0, a pass or an empty list that reads as a measured none.
+
+**`environment`** is in `result.json`, and each launch's own start is in that launch's record (`invocation.json`,
+`invocation-resume-<host>-<seconds>.json`).
+
+- `start` and `end`: the node, python3 and git versions the model's shell sees (`tools`, the first line of `--version`, read
+  once per harness process), `cpus`, `loadavg`, `display_hold` (whether the host ran under `caffeinate -d -i`; `keep_awake` is
+  the one decider) and `unread` (why a value is null). `start` is the launch's, taken before the deadline is set, so it spends
+  none of the run's time; `end` is read after the checks and has no `tools`. A regrade starts no host: its `start` restates the
+  last launch's record and its `end` says it was not observed. The host CLI build is not read here: a launch record carries
+  `host_build` where the harness captured it at launch, and the per-launch entry passes it through (null where there is none).
+- `hosts_used`, `mixed_host`, `environments`: who launched the run, read through `runrecord.py` (the one reader). `environments`
+  has one entry per launch, first launch first, with its host, model, effort, `host_build` and the `environment` that launch
+  recorded (null for a launch recorded before this record existed). `r2-battleship-grok-none` reads `["grok", "claude"]`: Grok
+  started it and Claude Sonnet finished it, though its `result.json` says host grok. A regrade is not a launch. A folder
+  written before this record existed is regraded, not refused (the point of a regrade is old runs): its entries have
+  `environment: null` and `host_build: null`, and its `start` says it was not recorded.
+- `overlap`: which neighbouring runs were running while this one was, read-only, at the end of the run, from the first and last
+  `timeline.jsonl` stamp of this run and of each folder beside it in the same parent folder. Each entry has `folder`, `case`,
+  `hosts`, `overlapped_seconds` and `started_offset_seconds` (the neighbour's start minus this run's: negative when it was
+  already running, positive when it began later). A count taken when a run starts would miss the second kind: of the nine round
+  runs of 2026-10-08 all nine overlapped another run and three saw an overlap begin more than a second after their own start.
+  Limits: a span runs from the first stamp to the last, so a run resumed after a pause counts the pause (an upper bound); a run
+  started with `--output` in another folder is not seen; `runs: []` means the neighbours were read and none overlapped. The
+  baseline row has no overlap field and no rule excludes an overlapped run.
+- `start.browser`: the browser capability record, present as a probe only where something declares the need: a case's
+  `needs` in `cases.json` (the three browser cases do, each with its `needs_source`) or `--need browser`. **A custom prompt
+  (`--prompt`) declares none by itself**, which is why the Grok runs that motivated the record, all case `custom`, would have
+  had none: pass `--need browser` with a prompt that serves a page, and the harness prints a note when a custom run declares
+  nothing. The probe runs on the harness side, before the host starts, against a page it serves itself (a `file:` page and a
+  loopback `http://127.0.0.1:<port>/` page from a server in the harness process that is closed afterwards), in a headless
+  browser with a throwaway profile. For each of the two it records `title_seen` (the stand-in's title appeared in the
+  browser's output: the evidence, not the exit code), `output_s`, `exited`, `lingered` (the title was seen and the browser
+  was still running after the grace), `killed`, `returncode` and `group_empty`. Measured 2026-10-09 in the design audit:
+  16 of 16 launches of Chrome 154.0.8037.99 printed the title in 0.36 to 0.47 s and only 3 of 16 exited within 12 to 20 s, so
+  waiting for the exit would call a healthy load a timeout. After the title and a one-second grace the browser's own process
+  group is stopped (and only that group: the probe starts the browser in a session of its own, checks it leads its group,
+  and signals nothing else); a browser that prints nothing is waited for up to a 20-second ceiling. Both numbers are
+  ceilings, not tuning values. It is a record and no gate: it never refuses a launch, and nothing reads it. See it by hand, as
+  the calibration the SPEC asks for before any use of it (10 launches from a Terminal tab and from a Desktop task):
+  `python3 test/shiploop_e2e/environment.py --need browser`. `--browser-bin` names the browser (tests pass a fake one).
+
+**`product_at_stop`** (replaces `shiploop.worktree_checks`, 2026-10-09) is in `result.json` for a run whose ShipLoop did not
+reach `done`: the case checks run against ShipLoop's unreturned worktree, information only (`information_only: true`; checks
+graded in the worktree stay dropped as a verdict, because a run that never delivered must not pass, SPEC S-11). It carries the
+engine's `status` and `stage` (a partial product at `implement` is not a finished one), each check's `returncode` and
+`timed_out` (a check that hit its 180 s ceiling is `timed_out`, not a product failure), `output` for a check that failed, and the
+counts `passed`, `failed`, `timed_out`, `total`. `{"ran": false, "reason": ...}` says why nothing ran (no ShipLoop state, no
+worktree, no checks). A run that passed has none.
+
+**`outcome_class`** with `outcome_basis` is in `result.json` and in each baseline row: `PASS`, `FAILED`, `BLOCKED`, `STOPPED`, or
+`null` (unknown, the basis says why), a pure function of `termination` and `pass`. `termination` now also carries what the engine
+recorded when it blocked: `engine_blocked_by`, `engine_awaiting_kind` and `engine_awaiting_no_default` (null where there is no
+accepted blocked result to read). BLOCKED means the engine accepted a blocked result (a paused engine, which awaits resume the same
+way, is BLOCKED with no blocker named); it does not say the block was warranted, which is a model judgement S-9 excludes as
+evidence. FAILED: the engine finished or halted without passing, or the host ended on its own with the engine unfinished
+(`host is not resumable`, `no host session id to resume`). STOPPED: the harness ended the run (the stop file, a signal, the
+deadline, a spent resume budget). A regrade that observed no host and an engine still active is `null`. **Nothing consumes the
+class yet**: `scan_baseline` still offers a finished run that did not pass (the blocked 20261007 Grok row, 503 turns, pass false)
+as the last comparable row; that is a limit to fix where the baseline rules live.
+
+### Resuming a run
+
+`--resume-run <output directory>` continues the run on the host, model and effort its last launch record names, so omitting
+`--host` no longer means Claude. It prints that it took them from the record. A `--host` that names another host is refused
+before any host starts, with both hosts named; `--allow-host-change` says the change is deliberate (a run finished by a second
+host is then a mixed-host run, named so by `environment.hosts_used`). An explicit `--model` or `--effort` wins, and the
+recorded ones apply only while the host is unchanged. A regrade still restates the recorded identity whatever the flags say.
 
 ### Suites and baselines
 
