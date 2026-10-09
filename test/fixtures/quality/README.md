@@ -9,3 +9,6 @@ Fixtures of the delivered-quality tests (`test/shiploop-e2e-quality.test.py`).
 * `memory-write-events.jsonl`: the shape of `events.jsonl` lines 599 to 606 of the saved run
   `/Users/dadleet/e2e-runs/20261008/r3-checkers-sonnet` (a Claude session writing two files under its profile's memory folder),
   reduced to the keys the detector reads, with the home folder renamed, plus one Grok-shaped line.
+* `gate-records.json`: the keys `run._main` hands to `quality_gate`, extracted from the saved `result.json` of
+  `/Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none` (stopped by hand, engine active, no tracked file),
+  `r3-checkers-sonnet` (a finished delivery) and `r2-battleship-grok-none` (a regraded, mixed-host run).

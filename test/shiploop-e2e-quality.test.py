@@ -1263,6 +1263,21 @@ class QualityGateTest(unittest.TestCase):
             stop.write_text("")
             self.assertIn(f"stopped by {stop}", self.gate(stop_file=stop))
 
+    def test_the_saved_records_of_round_3_are_gated_as_the_audit_read_them(self):
+        # r3-battleship-grok-none: stopped by hand with the engine active and no tracked file (the audit's example of a run that
+        # must not be measured); r3-checkers-sonnet: a finished delivery; r2-battleship-grok-none: a regrade whose host the
+        # record does not observe and whose delivery is done and committed.
+        records = json.loads((FIXTURES / "gate-records.json").read_text())
+        gates = {name: self.gate(shiploop=rec["shiploop"], committed=rec["committed"], engine=rec["engine"], process=rec["process"])
+                 for name, rec in records.items()}
+        self.assertIn("a stop was requested", gates["r3-battleship-grok-none"])
+        self.assertIsNone(gates["r3-checkers-sonnet"])
+        self.assertIsNone(gates["r2-battleship-grok-none"])
+        # the same record without the stop is still not a delivery: the engine is active
+        rec = records["r3-battleship-grok-none"]
+        self.assertIn("ShipLoop is still active (stage implement)",
+                      self.gate(shiploop=rec["shiploop"], committed=rec["committed"], engine=rec["engine"], process={"status": "timeout"}))
+
     def test_a_stop_outranks_the_other_reasons(self):
         self.assertIn("a stop was requested", self.gate(stop_seen=True, engine={"status": "active"}, shiploop={"pass": False}))
 
