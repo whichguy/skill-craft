@@ -999,7 +999,7 @@ function sequenceModel(run,opts){
   lay.axisY=lay.bottom+12;lay.height=lay.axisY+5;
   var why=reasonFor(run,"visitContext");
   return {columns:cols,visits:rows.length,maxMin:tallest?{min:maxMin,stage:tallest.stage,visit:tallest.first+1}:null,lay:lay,band:band,
-    bandNote:rows.length&&!anyCtx?"Per-visit context not measured on this host"+(why?": "+why:""):"",cards:kpiCards(run,opts.loops),legend:legendKinds(cols,band)};
+    bandNote:rows.length&&!anyCtx?"Per-visit context not measured for this run"+(why?": "+why:""):"",cards:kpiCards(run,opts.loops),legend:legendKinds(cols,band)};
 }
 /* The keys of the legend entries the picture needs: only a kind that is drawn is listed (done, rev, blk, skip, seed, na, tail,
    imp), and the context band's own entries only when there is a band (ctx), a column at 90% or more (warn) or a measured
@@ -1025,6 +1025,8 @@ function improveText(run,r){
   if(p!==null||m!==null)return (p!==null?plural(p,"pass"):"passes not measured")+(m!==null?", "+m+" min":", minutes not measured");
   return work&&improveByDesign(run,r.stage)?"not run by design (planning_review none)":"";
 }
+/* What a visit without a context says when other visits of the run have one (the export's unmeasured.visitContext counts them). */
+var NO_VISIT_CONTEXT_TEXT="not measured for this visit: no model call was measured in its stage window";
 /* The context line of a visit or column (contextOf's figures): calls, peak, compactions as far as measured. */
 function contextLine(cx){
   var bits=[];
@@ -1063,7 +1065,7 @@ function columnDetail(model,k,run,findings,catalog){
   var imp=one?improveText(run,one):"";
   if(imp)lines.push(["Improve",imp]);
   if(c.context)lines.push(["Context (main thread)",contextLine(c.context)]);
-  else if(model.band)lines.push(["Context (main thread)","not measured for this visit"]);
+  else if(model.band)lines.push(["Context (main thread)",NO_VISIT_CONTEXT_TEXT]);
   var marked=(findings||[]).filter(function(f){return appliesTo(f,key)&&c.phases.indexOf(f.phase)>=0;});
   return {title:title,lines:lines,findings:marked,prev:k>0?k-1:null,next:k<model.columns.length-1?k+1:null,
     packet:one&&packetId(run,one)?{id:packetId(run,one)}:null,card:one?stageCard(run,c.first,catalog):null};
@@ -1214,7 +1216,7 @@ function stageCard(run,i,catalog){
     "; run-level not measured"+(whyNot(run,"refusals")?" (the reason is on the Refusals card)":""))]);
   var cx=contextOf([r],run&&isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:null);
   if(cx)done.push(["Context (main thread)",contextLine(cx)]);
-  else if(rows.some(function(x){return x&&x.context&&typeof x.context==="object";}))done.push(["Context (main thread)","not measured for this visit"]);
+  else if(rows.some(function(x){return x&&x.context&&typeof x.context==="object";}))done.push(["Context (main thread)",NO_VISIT_CONTEXT_TEXT]);
   /* written: the result */
   var written=[],summary=typeof r.summary==="string"&&r.summary?r.summary:"";
   if(r.resultFile===false)written.push(["Result file","none: the accepted result is read from state.md"]);
@@ -1311,7 +1313,7 @@ function visitTable(run,model){
     var imp=im&&isCount(im.passes)?plural(im.passes,"pass")+(isCount(im.min)?", "+im.min+" min":""):(im&&isCount(im.min)?im.min+" min":"");
     return [String(i+1),r.stage||"",String(r.outcome||"done")+(r.skipped===true?", skipped":"")+(r.seeded===true?", seeded":""),visitMinutes(r),imp,
       isCount(r.packetBytes)?kbText(r.packetBytes):(r.skipped===true?"none issued":""),isCount(r.resultBytes)?kbText(r.resultBytes):""]
-      .concat(ctx?[c&&isCount(c.peakPct)?pctText(c.peakPct):"not measured",c&&isCount(c.compactions)?String(c.compactions):"not measured"]:[]);
+      .concat(ctx?[c&&isCount(c.peakPct)?pctText(c.peakPct):(c&&isCount(c.peak)?grouped(c.peak)+" tokens":"not measured"),c&&isCount(c.compactions)?String(c.compactions):"not measured"]:[]);
   })};
 }
 /* A column's tooltip and spoken name. */

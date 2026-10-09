@@ -1034,32 +1034,33 @@ def _model_measures(metrics: dict, harness: dict[str, str]) -> tuple[dict, dict[
     return found, why
 
 
-NO_VISIT_CONTEXT = ("the harness's stage rows carry no per-stage context (it reads it from Claude's per-message usage and "
-                    "from a Codex run's rollouts)")
-NO_VISIT_CONTEXT_GROK = ("the harness does not read per-stage context from Grok's events (it does from Claude's per-message "
-                         "usage and from a Codex run's rollouts)")
+NO_VISIT_CONTEXT = "the harness's stage rows carry no per-stage context, as this run was recorded"
 
 
-def no_visit_context(host: str | None) -> str:
-    """Why no visit has a context, by the host that wrote the run: Grok's events carry per-call usage but the harness
-    attributes it to no stage; Claude's and Codex's rows have it, so another host (or none) gets the general sentence."""
-    return NO_VISIT_CONTEXT_GROK if host == "grok" else NO_VISIT_CONTEXT
+def visits_without_context_reason(lacking: int, total: int) -> str:
+    """Why some visits carry no context while others do (R23c): read from the stage rows, never from the host. A row has a
+    `context` when the harness measured at least one model call in its stage window (Claude's messages, Grok's usage events,
+    a Codex rollout's calls); a window with no host event has none, which is not a count of zero calls."""
+    return (f"{lacking} of {total} visits carry no context: the harness measured no model call in their stage windows (no host "
+            "event there, or the window could not be placed); that is not zero calls")
 
 
-def _visit_context(metrics: dict, history: list[dict], host: str | None = None) -> tuple[list[dict | None], str | None]:
-    """(context per history entry, why none is shown).
+def _visit_context(metrics: dict, history: list[dict]) -> tuple[list[dict | None], str | None]:
+    """(context per history entry, why some visits have none).
 
     The harness's stage rows (metrics.json `stages`) carry no action id: each is built from one history entry of
     state.md, in order, plus a trailing `incomplete` row for the stage the run stopped in. So a row belongs to the
     history entry at its position, and that entry names the action. The join is used only when the rows line up
     exactly (the same count, and the same stage and outcome at every position); otherwise no visit gets a context,
-    never a guess. A context holds only the figures the harness measured: calls, peak, peakPct, compactions. A row that
-    counts no model call (`calls` 0) has no context: its peak is unmeasured, and "0 calls" beside it would read as a
-    measurement, as it did for the visits a host had no events for."""
+    never a guess. A context holds only the figures the harness measured: calls, peak, peakPct, compactions (a Grok row's
+    peakPct is null: the host reports no window, so none is computed). Whether a visit has one follows its row, not the host.
+    A row that counts no model call (`calls` 0) has none: its peak is unmeasured, and "0 calls" beside it would read as a
+    measurement, as it did for the visits a run recorded before the harness left such a row out. The reason is None when
+    every visit has a context; with none, the rows carry no per-stage context; with some, the visits lacking one are counted."""
     rows = metrics.get("stages")
     rows = [r for r in rows if isinstance(r, dict) and not r.get("incomplete")] if isinstance(rows, list) else []
     if not any(isinstance(r.get("context"), dict) for r in rows):
-        return [None] * len(history), no_visit_context(host)
+        return [None] * len(history), NO_VISIT_CONTEXT
     if len(rows) != len(history) or any(
             (row.get("stage"), row.get("outcome")) != (entry.get("stage") or "?", entry.get("outcome"))
             for row, entry in zip(rows, history)):
@@ -1074,7 +1075,8 @@ def _visit_context(metrics: dict, history: list[dict], host: str | None = None) 
             continue
         found.append({k: figures[k] for k in ("calls", "peak", "peakPct", "compactions")
                       if _num(figures.get(k)) is not None} or None)
-    return found, None if any(found) else no_visit_context(host)
+    lacking = sum(1 for context in found if context is None)
+    return found, visits_without_context_reason(lacking, len(found)) if lacking else None
 
 
 def _seeded(seeded, history: list[dict]) -> tuple[set[str], str | None]:
@@ -1716,7 +1718,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     children = _improve_children(run_dir)
     verify_blocks, verify_unreadable = _verify_by_action(run_dir / "tests")
     hosts = _hosts(out)
-    visit_context, visit_context_why = _visit_context(metrics, history, _text(invocation.get("host")) or _text(result.get("host")))
+    visit_context, visit_context_why = _visit_context(metrics, history)
     if len(hosts) > 1:  # one figure over two hosts' events: not a measure, for any visit either
         visit_context, visit_context_why = [None] * len(history), _hosts_why(hosts)
     actions, stages, phases_seen = [], [], []
@@ -1819,7 +1821,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     unmeasured.update(plan_why)
     for index, mark in marks.items():  # one stage row per history entry, in order
         stages[index].update(mark)
-    if visit_context_why:  # set only when no visit has a context
+    if visit_context_why:  # some or all visits have no context (R23c: the reason counts them)
         unmeasured["visitContext"] = visit_context_why
     tool_use, why_no_tool_use = _tool_use(metrics, hosts)
     if tool_use is None:

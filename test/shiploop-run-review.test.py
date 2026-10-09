@@ -755,8 +755,10 @@ class RunVisitsTest(unittest.TestCase):
         self.assertEqual(by_action[IDS["implement"]], self.CTX[6])  # implement, revise
         self.assertEqual(by_action[IDS["extra"]], {"calls": 3, "compactions": 0})  # implement, done: no peak figure, omitted
         self.assertIsNone(by_action[IDS["plan"]])  # the harness could not attribute it: no context, not an empty one
-        self.assertNotIn("visitContext", run["unmeasured"])
         self.assertEqual(sum("context" in r for r in run["stages"]), 3)  # the trailing incomplete row joins no visit
+        # R23c: the visits without one are counted and the reason is derived from the rows, no host named (see
+        # VisitContextFollowsRowsTests for the whole rule)
+        self.assertIn("5 of 8 visits carry no context", run["unmeasured"]["visitContext"])
 
     def test_rows_that_do_not_line_up_with_the_history_join_nothing_and_the_run_says_why(self):
         accepts = [*ACCEPTS, ("extra", "implement", 150, "done")]
@@ -3494,10 +3496,10 @@ class SequenceModelTests(unittest.TestCase):
             with self.subTest(run=key):
                 model = self.models[key]
                 self.assertIsNone(model["band"])
-                self.assertEqual(model["bandNote"], "Per-visit context not measured on this host: "
+                self.assertEqual(model["bandNote"], "Per-visit context not measured for this run: "
                                  + self.runs[key]["unmeasured"]["visitContext"])
         self.assertEqual(run_logic('sequenceModel({stages:[{stage:"intake",min:1}]}).bandNote'),
-                         "Per-visit context not measured on this host")
+                         "Per-visit context not measured for this run")
 
     def test_a_visit_without_a_context_in_a_run_that_has_some_is_not_measured_never_a_zero_bar(self) -> None:
         model = run_logic(
@@ -3696,7 +3698,7 @@ class SequencePictureTests(unittest.TestCase):
         self.assertIn("Improve19 passes", hello[0])
         self.assertIn("Refusalsnot measured", hello[0])
         self.assertIn(evidence_run("hello-1190b")["unmeasured"]["shiploop_failures"], hello[0])
-        self.assertEqual(hello[1], "Per-visit context not measured on this host: " + evidence_run("hello-1190b")["unmeasured"]["visitContext"])
+        self.assertEqual(hello[1], "Per-visit context not measured for this run: " + evidence_run("hello-1190b")["unmeasured"]["visitContext"])
         self.assertEqual((hello[2], hello[3], hello[4]), (False, True, 7))
         for text in (luna[3], hello[0], hello[1]):
             self.assertNotRegex(text, r"undefined|NaN|null")
@@ -6124,20 +6126,7 @@ class RunHostsExportTests(unittest.TestCase):
         self.assertNotIn('"calls": 0', json.dumps(run))
         for row in run["stages"]:
             self.assertNotEqual((row.get("context") or {}).get("calls"), 0)
-        self.assertNotIn("visitContext", run["unmeasured"])  # some visits are measured
-
-    def test_the_reason_no_visit_has_a_context_is_per_host_and_names_what_the_harness_reads(self):
-        for host, same in (("grok", False), ("claude", True), ("codex", True)):
-            with self.subTest(host=host):
-                out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False, metrics={"stages": harness_rows(ACCEPTS)})
-                edit_json(out / "invocation.json", lambda r: r.update(host=host))
-                run = next(iter(export.build_run(out)[0]["runs"].values()))  # the key names the host: it moved with it
-                self.assertEqual(export.validate_doc("runs", run), [])
-                reason = run["unmeasured"]["visitContext"]
-                self.assertEqual(reason, export.NO_VISIT_CONTEXT if same else export.NO_VISIT_CONTEXT_GROK)
-                self.assertNotIn("only from a Codex run", reason)
-        self.assertIn("Grok's events", export.NO_VISIT_CONTEXT_GROK)
-        self.assertIn("Claude's per-message usage", export.NO_VISIT_CONTEXT)
+        self.assertIn("6 of 7 visits carry no context", run["unmeasured"]["visitContext"])  # R23c: the others are counted, not silent
 
 
 class RunBlockedAndLeftBehindExportTests(unittest.TestCase):
@@ -6271,11 +6260,12 @@ class RunEndingContractTests(unittest.TestCase):
     def test_schema_md_documents_the_new_fields_and_states_what_the_runs_showed(self):
         text = " ".join(SCHEMA_MD.read_text().split())
         for phrase in ("`hosts`", "`ending`", "`blocked`", "`leftBehind`", "`worktreeChecks`", "ending.unacceptedMin", "`stopped`",
-                       "How the run ended", "not a measure", "refusal lines", "never on a Grok run", "a reason per host",
+                       "How the run ended", "not a measure", "refusal lines",
                        "every producer packet carries a `Checked by:` line"):
             self.assertIn(phrase, text)
         for stale in ("such as Claude's", "Today only a Codex run", "no packet on disk has a 'Checked by:' line yet",
-                      "ShipLoop commands that exited non-zero"):
+                      "ShipLoop commands that exited non-zero",
+                      "never on a Grok run", "a reason per host"):  # R23c: a visit's context follows the rows, not the host
             self.assertNotIn(stale, text)
         self.assertNotIn("no packet on disk has", (SKILL_ROOT / "scripts" / "export.py").read_text())
 
@@ -7135,6 +7125,106 @@ class WorktreeChecksCountTests(unittest.TestCase):
         self.assertEqual(chips({"checks": False, "worktreeChecks": {"passed": 4, "total": 4}}), ["broken:checks fail", "holds:worktree checks 4/4"])
         self.assertEqual(chips({"worktreeChecks": {"passed": 2, "total": 4}}), ["broken:worktree checks 2/4"])
         self.assertEqual(chips({"checks": True, "worktreeChecks": True}), ["holds:checks pass"])  # not a count: no chip for it
+
+
+# ---------------------------------------------------------------- R23c: per-visit context follows the rows, fresh starts, quality
+
+R23C_FIGURES = json.loads((ROOT / "docs" / "experiments" / "run-review-r23-20261009" / "figures.json").read_text(encoding="utf-8"))
+
+
+class VisitContextFollowsRowsTests(unittest.TestCase):
+    """R23c: whether a visit has a context, and why one has none, is read from the harness's stage rows, never from the host.
+
+    The harness (batch 1011, group G2) counts a Grok stage's usage events as calls, so its rows carry {calls, peak, peakPct: null},
+    and a row whose window holds no event carries no `context` at all; a run recorded before that keeps its old rows."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, rows: list[dict], host: str = "codex") -> dict:
+        out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False, metrics={"stages": rows})
+        edit_json(out / "invocation.json", lambda r: r.update(host=host))
+        run = next(iter(export.build_run(out)[0]["runs"].values()))
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run
+
+    def test_a_grok_run_whose_rows_carry_a_context_shows_it_and_a_percentage_is_never_computed(self):
+        contexts = {i: {"calls": 3 + i, "peak": 60_000 + i, "peakPct": None} for i in range(len(ACCEPTS))}  # Grok reports no window
+        for host in ("grok", "claude", "codex"):
+            with self.subTest(host=host):
+                run = self.build(harness_rows(ACCEPTS, contexts), host)
+                self.assertEqual(run["stages"][0]["context"], {"calls": 3, "peak": 60_000})  # peakPct null is unknown, not exported
+                self.assertTrue(all("context" in row for row in run["stages"]))
+                self.assertNotIn("visitContext", run["unmeasured"])  # every visit is measured: nothing to explain
+                self.assertNotIn("peakPct", json.dumps(run["stages"]))
+
+    def test_visits_whose_rows_hold_no_model_call_are_counted_and_the_reason_is_derived_from_the_rows(self):
+        contexts = {2: {"calls": 4, "peak": 70_000, "peakPct": 7.0}, 3: {"calls": 2, "peak": None, "peakPct": None}}
+        for host in ("grok", "claude"):
+            with self.subTest(host=host):
+                run = self.build(harness_rows(ACCEPTS, contexts), host)
+                self.assertEqual([("context" in row) for row in run["stages"]], [False, False, True, True, False, False, False])
+                reason = run["unmeasured"]["visitContext"]
+                self.assertEqual(reason, export.visits_without_context_reason(5, 7))
+                self.assertIn("5 of 7 visits carry no context", reason)
+                self.assertIn("no model call", reason)
+                self.assertIn("not zero", reason)
+
+    def test_when_no_row_carries_a_context_every_host_gets_the_same_reason_and_it_names_no_host(self):
+        for host in ("grok", "claude", "codex"):
+            with self.subTest(host=host):
+                run = self.build(harness_rows(ACCEPTS), host)
+                self.assertTrue(all("context" not in row for row in run["stages"]))
+                self.assertEqual(run["unmeasured"]["visitContext"], export.NO_VISIT_CONTEXT)
+        for host in ("Grok", "Claude", "Codex"):
+            self.assertNotIn(host, export.NO_VISIT_CONTEXT)
+        self.assertIn("as this run was recorded", export.NO_VISIT_CONTEXT)
+        self.assertFalse(hasattr(export, "NO_VISIT_CONTEXT_GROK"), "the host no longer decides the reason")
+        self.assertFalse(hasattr(export, "no_visit_context"))
+
+    def test_the_rows_of_a_run_recorded_before_the_correction_keep_their_old_reading(self):
+        # r1-battleship-grok-none: no row has a context. A row of the old shape {calls: 0, peak: null} (a window with no event, which
+        # the harness used to count as a context of zero calls) is not read as a measurement either.
+        old = {i: {"calls": 0, "peak": None, "peakPct": None} for i in range(len(ACCEPTS))}
+        run = self.build(harness_rows(ACCEPTS, old), "grok")
+        self.assertTrue(all("context" not in row for row in run["stages"]))
+        self.assertEqual(run["unmeasured"]["visitContext"], export.visits_without_context_reason(7, 7))
+
+    def test_a_run_two_hosts_wrote_still_has_no_visit_context(self):
+        out = make_run(self.tmp, loops=False, metrics={"stages": harness_rows(ACCEPTS, {0: {"calls": 3, "peak": 5, "peakPct": None}})})
+        write_json(out / "invocation-resume-claude-1791508003.json", {"host": "claude", "model": "claude-sonnet-5-5", "case": "custom"})
+        run = next(iter(export.build_run(out)[0]["runs"].values()))
+        self.assertTrue(all("context" not in row for row in run["stages"]))
+        self.assertIn("not a measure", run["unmeasured"]["visitContext"])
+
+    def test_schema_md_and_skill_md_do_not_say_only_one_host_carries_a_context(self):
+        schema = " ".join(SCHEMA_MD.read_text().split())
+        skill = " ".join(SKILL_MD.read_text().split())
+        for text in (schema, skill):
+            self.assertNotIn("never on a Grok run", text)
+            self.assertNotIn("a reason per host", text)
+        for phrase in ("Whether a visit has a `context` follows the harness's stage rows, not the host",
+                       "Grok stage row counts its usage events as calls and has no `peakPct`",
+                       "a stage whose window holds no event has no `context`",
+                       "The visits without one are counted in `unmeasured.visitContext`"):
+            self.assertIn(phrase, schema)
+
+    def test_the_page_says_per_visit_context_is_not_measured_for_the_run_not_for_a_host(self):
+        self.assertEqual(run_logic('sequenceModel({stages:[{stage:"intake",min:1}]}).bandNote'), "Per-visit context not measured for this run")
+        self.assertNotIn("on this host", script_text())
+
+    def test_a_visit_with_only_a_peak_in_tokens_shows_the_tokens_where_no_window_gives_a_percentage(self):
+        rows = [{"stage": "intake", "outcome": "done", "min": 1, "context": {"calls": 4, "peak": 63417}},
+                {"stage": "spec", "outcome": "done", "min": 2, "context": {"calls": 2, "peak": 90000, "peakPct": 9}},
+                {"stage": "plan", "outcome": "done", "min": 2}]
+        table = run_logic("visitTable(%s,sequenceModel(%s))" % (json.dumps({"stages": rows}), json.dumps({"stages": rows})))
+        self.assertEqual([row[7] for row in table["rows"]], ["63,417 tokens", "9%", "not measured"])
+        detail = page_probe('textOf("seqdetail")', setup=ended_page(dict(DONE_RUN, stages=rows)) + "setCol(2);")
+        self.assertIn("Context (main thread)not measured for this visit: no model call was measured in its stage window", detail)
 
 
 if __name__ == "__main__":
