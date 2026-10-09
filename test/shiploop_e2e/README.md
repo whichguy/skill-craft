@@ -359,7 +359,7 @@ hash). Per cell the report prints the attempts (seen, counted, passed, and the o
 `lower_bound_rows` (the rows whose figure `metrics.lower_bound` calls a lower bound: every Grok run, because its events
 cannot show a session that never reported) and `lower_bound_unknown_rows` (a row from the file alone, whose
 `unreported_sessions` is not a baseline key). Overlap is `overlapped_at_least` of `rows`: a run that left no record and a row
-with no span are not seen, so it is a lower bound, and `unknown` counts the rows with no span. The report places no run
+with no span are not seen, so it is a lower bound; `not_seen_overlapping` counts the rows with a span that no recorded run crossed (the most that can be called clean, since an unrecorded run may have crossed it) and `unknown` the rows with no span, so a wall-time or cost range is read beside them and not pooled silently. The report places no run
 within or outside a range and sets no threshold (SPEC, "A comparison names its sample").
 
 `--json` prints `{inputs, records, cells, notes}`. A record has `output`, `record` (`file`, `folder` or `file+folder`), the
@@ -368,7 +368,10 @@ cell key fields (`case`, `source`, `host`, `model`, `effort`, `planning_review`,
 `cost_usd`, `turns`, `lower_bound` (true, false, or null where the run's own metrics are not there), `pass`,
 `engine_status`, `process_status`, `hosts_used`, `class`, `why`, `recomputed` and `overlaps` (the number of other recorded runs
 whose span crosses it, null with no span). A cell has `cell`, `attempts`, `builds`, `host_builds`, `measures`, `overlap` and
-`outputs`.
+`outputs`. The committed `docs/experiments/baseline-spread-20261009/runs.json` is this command's output over the baseline
+file and the saved runs of 2026-10-03 to 2026-10-08 (`--baseline test/shiploop_e2e/baselines.jsonl --runs
+/Users/dadleet/e2e-runs --json`): the tests pin that file, never the live `baselines.jsonl`, so committing the rows that
+lived in other worktrees does not turn one red.
 
 `metrics.json` also reports `script_verifications` (the checks ShipLoop itself
 ran and recorded, from its `*-verify*.md` records) and `model_glue`: shell

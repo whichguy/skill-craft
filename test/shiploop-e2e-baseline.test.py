@@ -890,9 +890,9 @@ class BaselineReportCellTest(BaselineReportCase):
 
     def test_overlap_is_a_lower_bound_over_the_recorded_runs_and_a_row_with_no_span_is_unknown(self):
         cell = self.cell(self.report(), **self.BATTLESHIP)
-        self.assertEqual(cell["overlap"], {"rows": 5, "overlapped_at_least": 4, "unknown": 0})  # v1220 ran alone
+        self.assertEqual(cell["overlap"], {"rows": 5, "overlapped_at_least": 4, "not_seen_overlapping": 1, "unknown": 0})  # v1220 ran alone
         self.assertEqual(self.cell(self.report(), case="checkers", host="claude")["overlap"],
-                         {"rows": 3, "overlapped_at_least": 3, "unknown": 0})
+                         {"rows": 3, "overlapped_at_least": 3, "not_seen_overlapping": 0, "unknown": 0})
         spanless = self.tmp / "rows.jsonl"
         spanless.write_text(json.dumps({"case": "battleship", "source": "checkout", "host": "claude",
                                         "model": "claude-sonnet-5-5", "effort": None, "planning_review": "stage",
@@ -900,7 +900,7 @@ class BaselineReportCellTest(BaselineReportCase):
                                         "verdicts": {"shiploop": True}, "termination": {"engine_status": "done"},
                                         "turns": 150, "cost_usd": 4.0, "output": "/gone/older", "pass": True}) + "\n")
         wider = self.cell(self.report(rows=spanless), **self.BATTLESHIP)
-        self.assertEqual(wider["overlap"], {"rows": 6, "overlapped_at_least": 4, "unknown": 1})
+        self.assertEqual(wider["overlap"], {"rows": 6, "overlapped_at_least": 4, "not_seen_overlapping": 1, "unknown": 1})
         self.assertEqual(wider["attempts"]["counted"], 6)
         self.assertIsNone(self.by_name(self.report(rows=spanless))["older"]["overlaps"])
 
@@ -927,7 +927,7 @@ class BaselineReportOverlapTest(BaselineReportCase):
     def test_touching_intervals_do_not_overlap_and_crossing_ones_do_both_ways(self):
         report = self.spans((0.0, 10.0), (10.0, 20.0), (15.0, 30.0))
         self.assertEqual([r["overlaps"] for r in report["records"]], [0, 1, 1])
-        self.assertEqual(report["cells"][0]["overlap"], {"rows": 3, "overlapped_at_least": 2, "unknown": 0})
+        self.assertEqual(report["cells"][0]["overlap"], {"rows": 3, "overlapped_at_least": 2, "not_seen_overlapping": 1, "unknown": 0})
 
     def test_a_run_inside_another_overlaps_it_and_the_minutes_come_from_the_span(self):
         report = self.spans((0.0, 600.0), (100.0, 200.0))
@@ -994,7 +994,7 @@ class BaselineReportShapeTest(BaselineReportCase):
         self.assertIn("attempts   seen 5, counted 5, passed 5", text)
         self.assertIn("cost_usd   n=5 min 5.6749 median 5.8146 max 9.6543", text)
         self.assertIn("(lower bound in 1 of 1 rows)", text)
-        self.assertIn("at least 4 of 5 rows overlapped another recorded run", text)
+        self.assertIn("at least 4 of 5 rows overlapped another recorded run; 1 not seen to", text)
         for word in ("within", "above the", "below the", "regression", "outside the range"):
             self.assertNotIn(word, text)
         self.assertIn("a range across builds is not a noise estimate", text)
@@ -1002,6 +1002,122 @@ class BaselineReportShapeTest(BaselineReportCase):
     def test_the_inputs_are_recorded_as_given_so_the_command_can_be_run_again(self):
         report = self.report()
         self.assertEqual(report["inputs"], {"baseline": str(self.ROWS), "runs": [str(self.RUNS)]})
+
+
+RUNS_JSON = ROOT / "docs" / "experiments" / "baseline-spread-20261009" / "runs.json"
+
+
+class RecordedLoopRunsTest(unittest.TestCase):
+    """The committed output of `run.py --baseline-report --baseline test/shiploop_e2e/baselines.jsonl --runs
+    /Users/dadleet/e2e-runs --json` over the baseline file and the 22 saved run folders of 2026-10-03 to 2026-10-08. This
+    pins that file and never the live baselines.jsonl or the machine's run folders: the owner committing the four rows that
+    lived in other worktrees, or deleting a run folder, must not turn a test red. To regenerate: run the command again and
+    review the diff."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.report = json.loads(RUNS_JSON.read_text())
+        cls.by_name = {Path(r["output"]).name: r for r in cls.report["records"]}
+
+    def cell(self, **want) -> dict:
+        found = [c for c in self.report["cells"] if all(c["cell"].get(k) == v for k, v in want.items())]
+        self.assertEqual(len(found), 1, (want, [c["cell"] for c in self.report["cells"]]))
+        return found[0]
+
+    def test_the_inputs_are_the_command_that_made_it(self):
+        self.assertEqual(self.report["inputs"], {"baseline": "test/shiploop_e2e/baselines.jsonl", "runs": ["/Users/dadleet/e2e-runs"]})
+
+    def test_35_attempts_in_15_cells_each_of_the_22_folders_and_the_23_rows_once(self):
+        records = self.report["records"]
+        self.assertEqual((len(records), len(self.report["cells"])), (35, 15))
+        kinds = [r["record"] for r in records]
+        self.assertEqual((kinds.count("file+folder"), kinds.count("folder"), kinds.count("file")), (13, 12, 10))
+        self.assertEqual(kinds.count("file+folder") + kinds.count("file"), 23)  # every committed row, once
+        classes = {c: sum(1 for r in records if r["class"] == c) for c in {r["class"] for r in records}}
+        self.assertEqual(classes, {"counted": 15, "no driver recorded": 9, "did not reach done": 4, "resumed": 3,
+                                   "no result.json": 3, "mixed host": 1})
+
+    def test_the_loop_rows_three_of_seven_are_in_the_committed_file(self):
+        in_file = {"r1-checkers-sonnet", "r3-battleship-sonnet", "r3-checkers-sonnet"}
+        folder_only = {"r1-battleship-sonnet", "r1-battleship-grok-none", "r2-battleship-sonnet", "r2-checkers-sonnet"}
+        for name in in_file:
+            self.assertEqual(self.by_name[name]["record"], "file+folder", name)
+        for name in folder_only:
+            self.assertEqual(self.by_name[name]["record"], "folder", name)
+
+    def test_sonnet_battleship_is_five_runs_on_five_plugin_trees_and_three_host_builds(self):
+        cell = self.cell(case="battleship", host="claude")
+        self.assertEqual((cell["attempts"]["seen"], cell["attempts"]["counted"], cell["attempts"]["passed"]), (5, 5, 5))
+        self.assertEqual(len(cell["builds"]["plugin_sha256"]), 5)
+        self.assertEqual(cell["host_builds"], {"2.1.291": 1, "2.1.292": 1, "2.1.294": 3, "unrecorded": 0})
+        stats = lambda name: {k: cell["measures"][name][k] for k in ("n", "min", "median", "max")}  # noqa: E731
+        self.assertEqual(stats("cost_usd"), {"n": 5, "min": 5.6749, "median": 5.8146, "max": 9.6543})
+        self.assertEqual(stats("turns"), {"n": 5, "min": 197, "median": 207, "max": 294})
+        self.assertEqual(stats("minutes"), {"n": 5, "min": 12.6, "median": 13.8, "max": 20.0})
+        self.assertEqual(stats("planning_minutes"), {"n": 4, "min": 4.85, "median": 5.56, "max": 6.47})
+        self.assertEqual(cell["measures"]["planning_minutes"]["not_measured"], 1)  # v1220 predates the planning block
+        self.assertEqual(cell["overlap"], {"rows": 5, "overlapped_at_least": 4, "not_seen_overlapping": 1, "unknown": 0})
+
+    def test_the_two_runs_that_said_plugin_1_22_0_are_two_builds_and_three_heads_are_one(self):
+        # The "Sonnet cost rise, decomposed" entry explained 238 turns / $6.54 against 294 / $9.65 between two builds.
+        a, b = self.by_name["v1220-battleship-sonnet"], self.by_name["v1230-battleship-sonnet"]
+        self.assertEqual((a["plugin_version"], b["plugin_version"]), ("1.22.0", "1.22.0"))
+        self.assertNotEqual(a["plugin_sha256"], b["plugin_sha256"])
+        self.assertNotEqual(a["local_head"], b["local_head"])
+        self.assertNotEqual(a["host_build"], b["host_build"])
+        trio = {self.by_name[n]["plugin_sha256"] for n in ("r1-battleship-sonnet", "r1-checkers-sonnet", "r1-battleship-grok-none")}
+        self.assertEqual(len(trio), 1, "byte-identical trees under three different heads")
+        self.assertNotEqual(self.by_name["r1-battleship-sonnet"]["local_head"], self.by_name["r1-checkers-sonnet"]["local_head"])
+
+    def test_sonnet_checkers_is_three_runs(self):
+        cell = self.cell(case="checkers", host="claude")
+        self.assertEqual({k: cell["measures"]["cost_usd"][k] for k in ("n", "min", "median", "max")},
+                         {"n": 3, "min": 5.1613, "median": 6.6509, "max": 8.5146})
+        self.assertEqual({k: cell["measures"]["turns"][k] for k in ("n", "min", "median", "max")},
+                         {"n": 3, "min": 185, "median": 232, "max": 293})
+        self.assertEqual(cell["overlap"], {"rows": 3, "overlapped_at_least": 3, "not_seen_overlapping": 0, "unknown": 0})
+
+    def test_the_grok_cell_names_its_five_attempts_and_one_masked_prompt(self):
+        cell = self.cell(case="custom", host="grok")
+        self.assertEqual(cell["attempts"], {"seen": 5, "counted": 1, "passed": 1, "did_not_reach_done": 2, "mixed_host": 1,
+                                            "resumed": 1, "seeded": 0, "process_not_observed": 0, "no_driver_recorded": 0,
+                                            "no_result": 0})
+        self.assertEqual(cell["outputs"], {"counted": ["v1220-battleship-grok-medium-none"],
+                                           "did not reach done": ["v1230-battleship-grok-none", "r1-battleship-grok-none"],
+                                           "mixed host": ["r2-battleship-grok-none"], "resumed": ["r3-battleship-grok-none"]})
+        hashes = {self.by_name[n]["prompt_sha256"] for names in cell["outputs"].values() for n in names}
+        self.assertEqual(hashes, {cell["cell"]["prompt_sha256"]})  # five raw prompts, one masked prompt
+        self.assertTrue(cell["cell"]["prompt_sha256"].startswith("5ea67bf3"))
+        self.assertEqual(self.by_name["r2-battleship-grok-none"]["hosts_used"], ["grok", "claude"])
+
+    def test_every_grok_cost_and_turns_figure_is_marked_a_lower_bound(self):
+        grok = [r for r in self.report["records"] if r["host"] == "grok" and r["cost_usd"] is not None and r["record"] != "file"]
+        self.assertGreaterEqual(len(grok), 4)
+        for record in grok:
+            self.assertIs(record["lower_bound"], True, record["output"])
+        cell = self.cell(case="custom", host="grok")
+        self.assertEqual((cell["measures"]["cost_usd"]["lower_bound_rows"], cell["measures"]["turns"]["lower_bound_rows"]), (1, 1))
+
+    def test_the_session_count_is_not_in_the_report_and_no_run_is_placed_against_a_range(self):
+        text = RUNS_JSON.read_text()
+        for word in ("unreported_sessions", "within", "regression", "outside the range"):
+            self.assertNotIn(word, text)
+
+    def test_the_cell_figures_are_the_records_summarised_and_nothing_else(self):
+        import statistics
+        for cell in self.report["cells"]:
+            counted = [r for r in self.report["records"] if r["class"] == "counted"
+                       and all(r[k] == cell["cell"][k] for k in cell["cell"])]
+            self.assertEqual(len(counted), cell["attempts"]["counted"])
+            for name in ("cost_usd", "turns", "minutes", "planning_minutes"):
+                values = [r[name] for r in counted if r[name] is not None]
+                got = cell["measures"][name]
+                self.assertEqual(got["n"], len(values), (cell["cell"], name))
+                if values:
+                    digits = {"cost_usd": 4, "turns": 0, "minutes": 1, "planning_minutes": 2}[name]
+                    self.assertEqual(got["min"], round(min(values), digits))
+                    self.assertEqual(got["max"], round(max(values), digits))
+                    self.assertEqual(got["median"], round(statistics.median(values), digits))
 
 
 class IdentityDocsTest(unittest.TestCase):
@@ -1046,7 +1162,8 @@ class IdentityDocsTest(unittest.TestCase):
                        "`no result.json`", "`mixed host`", "`process not observed`", "`did not reach done`", "`counted`",
                        "`lower_bound_rows`", "`lower_bound_unknown_rows`", "`overlapped_at_least`",
                        "so it is a lower bound", "The report places no run within or outside a range and sets no threshold",
-                       "`--json` prints `{inputs, records, cells, notes}`"):
+                       "`--json` prints `{inputs, records, cells, notes}`",
+                       "the tests pin that file, never the live `baselines.jsonl`"):
             self.assertIn(phrase, readme)
 
     def test_the_spec_carries_the_rules_this_group_serves(self):

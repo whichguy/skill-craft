@@ -1605,6 +1605,7 @@ def baseline_report(baseline: Path | None, runs: list[Path]) -> dict:
             "host_builds": {**dict(sorted(hosts_seen.items())), "unrecorded": sum(1 for r in counted if not r["host_build"])},
             "measures": measures,
             "overlap": {"rows": len(counted), "overlapped_at_least": sum(1 for r in counted if r["overlaps"]),
+                        "not_seen_overlapping": sum(1 for r in counted if r["overlaps"] == 0),
                         "unknown": sum(1 for r in counted if r["overlaps"] is None)},
             "outputs": {c: [Path(str(r["output"])).name for r in members if r["class"] == c]
                         for c in ATTEMPT_COUNTS if any(r["class"] == c for r in members)}})
@@ -1648,7 +1649,8 @@ def render_report(report: dict) -> str:
             lines.append(f"  {label} n={m['n']} min {m['min']} median {m['median']} max {m['max']}{note}"
                          + (f"; {m['not_measured']} not measured" if m["not_measured"] else ""))
         o = cell["overlap"]
-        lines.append(f"  overlap    at least {o['overlapped_at_least']} of {o['rows']} rows overlapped another recorded run"
+        lines.append(f"  overlap    at least {o['overlapped_at_least']} of {o['rows']} rows overlapped another recorded run; "
+                     f"{o['not_seen_overlapping']} not seen to"
                      + (f"; {o['unknown']} row(s) record no span" if o["unknown"] else ""))
         for klass, names in cell["outputs"].items():
             if klass != "counted":
