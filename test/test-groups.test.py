@@ -440,6 +440,16 @@ class E2EFamilySelectionTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn("shiploop-e2e-baseline", suite_catalog.targeted([path]))
 
+    def test_a_frozen_copy_of_the_cli_entry_in_a_fixture_selects_only_the_suite_that_reads_it(self) -> None:
+        # The baseline-report fixtures hold frozen copies of the CLI entry, each a file named shiploop. A name match ran
+        # every ShipLoop suite for an edit of one fixture (71 suites, about nineteen minutes of the quick tier).
+        path = "test/fixtures/baseline-spread/runs/x/build/plugins/skill-craft/skills/shiploop/scripts/shiploop"
+        self.assertLessEqual(suite_catalog.targeted([path]), {"shiploop-e2e-baseline"})
+        self.assertIn("shiploop-e2e-baseline", suite_catalog.targeted([path]))
+
+    def test_the_real_cli_entry_still_selects_its_hub_consumers(self) -> None:
+        self.assertGreater(len(suite_catalog.targeted(["skills/shiploop/scripts/shiploop"])), 1)
+
     def test_the_apparatus_is_not_part_of_the_family(self) -> None:
         self.assertNotIn("shiploop-e2e-apparatus", suite_catalog.targeted(["test/shiploop_e2e/run.py"]))
 

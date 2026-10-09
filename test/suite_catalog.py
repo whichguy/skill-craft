@@ -508,6 +508,12 @@ _PREFIX_SUITE_IDS = {
     "test/shiploop_e2e/": _E2E_FAMILY_IDS,
     # The committed output of `run.py --baseline-report` and the script that cut its fixtures: the baseline suite pins both.
     "docs/experiments/baseline-spread-20261009/": ("shiploop-e2e-baseline",),
+    # Frozen extracts of saved runs, each read by the one family suite named here (their file names select nothing).
+    "test/fixtures/baseline-spread/": ("shiploop-e2e-baseline",),
+    "test/fixtures/fidelity/": ("shiploop-e2e-fidelity",),
+    "test/fixtures/reorientation/": ("shiploop-e2e-reorientation",),
+    "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
+    "test/fixtures/quality/": ("shiploop-e2e-quality",),
     "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
 }
 
@@ -534,8 +540,11 @@ def _prefixed(stem: str, suites: Iterable[Suite]) -> set[str]:
 # evidence and fixtures carry them (PLAN.md, SPEC.md, review.json, frames/plan.txt: 56 tracked files, all but two
 # of them not read by the suites those names matched), and a name match would run eight plan-dispatcher suites, or
 # shiploop-e2e, shiploop-navigator-contract and shiploop-run-review, for a push that edits one.  The two real files
-# are named explicitly in _PATH_SUITE_IDS and _PREFIX_SUITE_IDS.
-_GENERIC_STEMS = frozenset({"skill", "readme", "changelog", "license", "--init--", "plan", "review", "spec"})
+# are named explicitly in _PATH_SUITE_IDS and _PREFIX_SUITE_IDS.  shiploop joins the list because the baseline-report
+# fixtures carry nineteen frozen copies of the CLI entry, each named shiploop, and a name match ran all seventy-one
+# ShipLoop suites (about nineteen minutes) for a push that edits one; the real entry is the leaf's own file name, which the
+# leaf rule already skips, and _SHIPLOOP_WIDE_PATHS selects its hub consumers.
+_GENERIC_STEMS = frozenset({"skill", "readme", "changelog", "license", "--init--", "plan", "review", "spec", "shiploop"})
 
 _ROOT = Path(__file__).resolve().parents[1]
 
