@@ -228,7 +228,7 @@ class RunReviewTest(unittest.TestCase):
         self.assertEqual((run["stages"][0]["packetBytes"], run["wallMin"], run["order"]),
                          (100, 140.0, int(T0.timestamp())))
         self.assertGreater(run["stages"][0]["resultBytes"], 0)
-        self.assertEqual((run["refusals"], run["glue"], run["imp"]), (1, 2, "1 children, 3 review passes"))
+        self.assertEqual((run["refusals"], run["glue"], run["imp"]), (1, 2, "1 child, 3 review passes"))
         self.assertEqual(len(run["failures"][0]["line"]), 240)
         self.assertEqual((run["improvePasses"], run["improveMin"]), (3, 12.5))
         self.assertEqual(run["stages"][3]["improve"], {"passes": 3, "min": 12.5})  # the plan visit started the child
@@ -635,8 +635,8 @@ class RunVisitsTest(unittest.TestCase):
         run, facts = self.build(make_run(self.tmp, loops=False))
         self.assertEqual(self.row(run, "plan")["improve"], {"passes": 3, "min": 12.5})
         self.assertTrue(all("improve" not in r for r in run["stages"] if r["action"] != IDS["plan"]))
-        self.assertEqual((run["improvePasses"], run["improveMin"], run["imp"]), (3, 12.5, "1 children, 3 review passes"))
-        self.assertIn("- Improve: 1 children, 3 review passes; most passes in one child: 3; 12.5 min bind to receipt",
+        self.assertEqual((run["improvePasses"], run["improveMin"], run["imp"]), (3, 12.5, "1 child, 3 review passes"))
+        self.assertIn("- Improve: 1 child, 3 review passes; most passes in one child: 3; 12.5 min bind to receipt",
                       "\n".join(facts))
 
     def test_a_child_with_no_receipt_has_passes_only_and_the_run_total_minutes_are_unknown_with_a_reason(self):
@@ -6220,12 +6220,14 @@ class RunBlockedAndLeftBehindExportTests(unittest.TestCase):
         shiploop = {"pass": False, "worktree_checks": [{"command": "node --test", "pass": True}, {"command": "curl", "pass": True}]}
         out = ended_run(self.tmp, shiploop=shiploop)
         run = self.build(out)
-        self.assertEqual((run["verdicts"]["checks"], run["verdicts"]["worktreeChecks"]), (False, True))
+        self.assertEqual((run["verdicts"]["checks"], run["verdicts"]["worktreeChecks"]), (False, {"passed": 2, "total": 2}))
         failing = dict(shiploop, worktree_checks=[{"command": "a", "pass": True}, {"command": "b", "pass": False}])
-        self.assertFalse(self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), shiploop=failing))["verdicts"]["worktreeChecks"])
+        self.assertEqual(self.build(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), shiploop=failing))["verdicts"]["worktreeChecks"],
+                         {"passed": 1, "total": 2})
         self.assertNotIn("worktreeChecks", self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False))["verdicts"])  # none ran there
         text = "\n".join(export.build_run(ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), shiploop=shiploop))[1])
-        self.assertIn("- Checks in the worktree (product not returned): all pass; in the work folder: not all pass", text)
+        self.assertIn("- Checks in the worktree (product not returned): 2/2 pass; in the work folder: not all pass", text)
+        self.assertIn("worktreeChecks 2/2", text)  # the Verdicts line prints the count, not "pass" for an object
 
     def test_the_default_run_name_carries_the_case_and_a_given_name_still_wins(self):
         out = make_run(self.tmp, loops=False)
@@ -6254,14 +6256,16 @@ class RunEndingContractTests(unittest.TestCase):
                             blocked={"by": "access", "options": ["a", "b"]},
                             leftBehind={"observed": True, "reaped": [{"command": "node", "ports": [3000], "where": "work", "endedBy": "SIGTERM"}],
                                         "survived": []},
-                            verdicts={"checks": False, "worktreeChecks": True})
+                            verdicts={"checks": False, "worktreeChecks": {"passed": 4, "total": 4}})
         self.assertEqual(export.validate_doc("runs", good), [])
         bad = self.run_doc(status="sleeping", hosts=[{"model": "m"}], ending={"unacceptedMin": "27", "earlier": [{"by": 1}]},
-                           blocked={"options": "one"}, leftBehind={"reaped": [{"command": "node", "where": "attic"}]})
+                           blocked={"options": "one"}, leftBehind={"reaped": [{"command": "node", "where": "attic"}]},
+                           verdicts={"checks": "yes", "worktreeChecks": True})
         problems = "\n".join(export.validate_doc("runs", bad))
         for needle in ("'sleeping' is not one of", "hosts[0]: missing required field 'host'", "ending.unacceptedMin: expected a number",
                        "ending.earlier[0].by: expected a string", "blocked.options: expected an array",
-                       "leftBehind: missing required field 'observed'", "'attic' is not one of"):
+                       "leftBehind: missing required field 'observed'", "'attic' is not one of",
+                       "verdicts.checks: expected a boolean", "verdicts.worktreeChecks: expected an object {passed, total}"):
             self.assertIn(needle, problems)
 
     def test_schema_md_documents_the_new_fields_and_states_what_the_runs_showed(self):
@@ -6297,7 +6301,7 @@ STOPPED_RUN = {
     "leftBehind": {"observed": True, "survived": [], "reaped": [
         {"command": "node", "ports": [64332], "where": "worktree", "endedBy": "SIGTERM"},
         {"command": "Google Chrome", "ports": [64335], "where": "work", "endedBy": "SIGTERM"}]},
-    "verdicts": {"checks": False, "worktreeChecks": True}, "unmeasured": {}}
+    "verdicts": {"checks": False, "worktreeChecks": {"passed": 4, "total": 4}}, "unmeasured": {}}
 BLOCKED_RUN = {
     "key": "b1", "name": "grok grok-4.7 medium, custom, release 1.24.0", "order": 4, "release": "skill-craft 1.24.0", "status": "blocked",
     "phases": ["done", "done", "done", "done", "done", "done", "blocked", "none"], "imp": "0 children", "time": "blocked after 90 min",
@@ -6306,7 +6310,7 @@ BLOCKED_RUN = {
                 "question": "Headless Chrome does not finish loading the page. How should TC-16 proceed?",
                 "options": ["Accept the HTTP check and leave the browser steps unverified", "Wait until a browser can open the page"],
                 "noDefault": "Recording a pass would claim an observation that did not happen."},
-    "verdicts": {"checks": False, "worktreeChecks": False}}
+    "verdicts": {"checks": False, "worktreeChecks": {"passed": 2, "total": 4}}}
 DONE_RUN = {"key": "d1", "name": "claude claude-sonnet-5-5, battleship, release 1.26.0", "order": 3, "release": "skill-craft 1.26.0",
             "status": "done", "phases": ["done"] * 8, "imp": "5 children", "time": "done in 80 min", "stages": ROWS_STOPPED,
             "unmeasured": {}, "verdicts": {"checks": True}}
@@ -6344,7 +6348,7 @@ class EndingCardLogicTests(unittest.TestCase):
         self.assertEqual(rows["Listeners the harness ended"],
                          "node :64332 (in the worktree, ended by SIGTERM); Google Chrome :64335 (in the work folder, ended by SIGTERM)")
         self.assertEqual(rows["Product that was never returned"],
-                         "passes its checks in the worktree; the copy in the work folder fails them because nothing was returned there")
+                         "passes 4/4 checks in the worktree; the copy in the work folder fails them because nothing was returned there")
         self.assertNotIn("Sessions", rows)  # one session, no resume: nothing to say
         self.assertEqual([label for label, _ in model["rows"]][:2], ["Stopped by", "Never accepted"])
 
@@ -6365,7 +6369,8 @@ class EndingCardLogicTests(unittest.TestCase):
         self.assertEqual(rows["Question put to a person"], BLOCKED_RUN["blocked"]["question"])
         self.assertEqual(rows["Options"], "1. Accept the HTTP check and leave the browser steps unverified\n2. Wait until a browser can open the page")
         self.assertEqual(rows["Why no default was taken"], BLOCKED_RUN["blocked"]["noDefault"])
-        self.assertEqual(rows["Product that was never returned"], "fails its checks in the worktree too, as the work folder does")
+        self.assertEqual(rows["Product that was never returned"],
+                         "passes 2/4 checks in the worktree, and the copy in the work folder fails its checks too")
 
     def test_a_finished_run_shows_the_card_only_for_what_it_resumed_or_left_behind_and_a_plain_one_has_none(self):
         self.assertIsNone(run_logic("endingModel(%s)" % json.dumps(DONE_RUN)))
@@ -6381,8 +6386,8 @@ class EndingCardLogicTests(unittest.TestCase):
                          {"Listeners": "not observed: lsof timed out after 5s"})
         survivor = dict(DONE_RUN, leftBehind={"observed": True, "reaped": [], "survived": [{"command": "node", "ports": [3000], "where": "other"}]})
         self.assertEqual(ending_rows(survivor), {"Listeners still running": "node :3000 (elsewhere)"})
-        passes = dict(DONE_RUN, verdicts={"checks": True, "worktreeChecks": True})
-        self.assertEqual(ending_rows(passes), {"Product that was never returned": "checks in the worktree pass"})
+        passes = dict(DONE_RUN, verdicts={"checks": True, "worktreeChecks": {"passed": 3, "total": 3}})
+        self.assertEqual(ending_rows(passes), {"Product that was never returned": "passes 3/3 checks in the worktree"})
 
     def test_the_host_chip_appears_only_for_a_run_two_hosts_wrote_and_names_the_later_host(self):
         chip = run_logic("hostChip(%s)" % json.dumps(TWO_HOSTS_RUN))
@@ -6675,7 +6680,7 @@ class VerifyAndUnverifiedExportTests(unittest.TestCase):
         self.assertEqual(self.row(run, "implement")["verify"]["records"], 1)
         self.assertNotIn("verify", self.row(run, "plan"))
         text = "\n".join(facts)
-        self.assertIn("; 1 records name an action that is no visit; 1 unreadable", text)
+        self.assertIn("; 1 record names an action that is no visit; 1 unreadable", text)
         none = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
         run, facts = self.build(none)
         self.assertTrue(all("verify" not in r for r in run["stages"]))
@@ -6920,7 +6925,7 @@ class ChecksPlanningPageLogicTests(unittest.TestCase):
                                       "packets": {"files": 45, "bytes": 1_802_659, "printed": 47, "printedChars": 104_849, "readWhole": 1,
                                                   "readPartial": 0, "shellReads": 19, "shellChars": 90_112}}}
         self.assertEqual(run_logic("packetUseText(%s)" % json.dumps(run)),
-                         "Packets: 45 packet files (1760.4 KB) on disk; 47 printed replies (104,849 characters); 1 read whole, 0 in part; "
+                         "Packets: 45 packet files (1.7 MB) on disk; 47 printed replies (104,849 characters); 1 read whole, 0 in part; "
                          "19 shell reads (90,112 characters)")
         self.assertEqual(run_logic("glueText(%s)" % json.dumps(run)),
                          "2 commands + 37 runs of 2 wrapper scripts (done.py, istart.sh): a lower bound, since a wrapper hides what it runs")
@@ -6989,6 +6994,147 @@ class ChecksPlanningPageTests(unittest.TestCase):
         out = page_probe('textOf("rundetail")', setup=ended_page(run))
         self.assertIn("Model glue2 commands + 30 runs of 1 wrapper script (done.py): a lower bound", out)
         self.assertIn("Planning window23.2 min on the engine's clock; closed at test-spec", out)
+
+
+# ---------------------------------------------------------------- R22d: counts in the right number, MB sizes, the worktree checks as N/N
+
+class CountsInTheRightNumberTests(unittest.TestCase):
+    """One pure helper, `plural`, puts every counted noun the page prints in the right number: "1 refusal", never "1 refusals"."""
+
+    def test_the_one_helper_reads_one_and_many_and_takes_an_irregular_plural(self):
+        self.assertEqual(run_logic('[plural(1,"refusal"),plural(0,"refusal"),plural(13,"refusal"),plural(1,"pass"),plural(2,"pass"),'
+                                   'plural(1,"child","children"),plural(2,"child","children"),plural(0,"child","children"),'
+                                   'plural(1,"printed reply","printed replies"),plural(3,"printed reply","printed replies")]'),
+                         ["1 refusal", "0 refusals", "13 refusals", "1 pass", "2 passes", "1 child", "2 children", "0 children",
+                          "1 printed reply", "3 printed replies"])
+
+    def test_the_header_line_counts_refusals_in_the_right_number_and_glue_stays_a_mass_noun(self):
+        heads = run_logic('[1,0,13].map(function(n){return headerFacts({release:"r",time:"t",imp:"i",refusals:n,glue:n});})')
+        self.assertEqual(heads, ["r | t | 1 refusal | 1 glue | i", "r | t | 0 refusals | 0 glue | i", "r | t | 13 refusals | 13 glue | i"])
+        self.assertEqual(run_logic('headerFacts({release:"r",time:"t",imp:"i"})'), "r | t | refusals not measured | glue not measured | i")
+        self.assertNotIn("1 refusals", page_probe('textOf("runfacts")', setup=ended_page(dict(DONE_RUN, refusals=1, glue=1))))
+        self.assertIn("| 1 refusal |", page_probe('textOf("runfacts")', setup=ended_page(dict(DONE_RUN, refusals=1, glue=1))))
+
+    def test_the_prompts_run_facts_count_visits_improve_passes_and_refusals_in_the_right_number(self):
+        one = run_logic('runFactsLine({stages:[{stage:"intake"}],wallMin:5,improvePasses:1,refusals:1,glue:1})')
+        many = run_logic('runFactsLine({stages:[{stage:"intake"},{stage:"spec"}],wallMin:5,improvePasses:2,refusals:2,glue:2})')
+        self.assertEqual(one, "Run facts: 1 visit, 5 min elapsed, 1 Improve pass, 1 refusal, 1 glue.")
+        self.assertEqual(many, "Run facts: 2 visits, 5 min elapsed, 2 Improve passes, 2 refusals, 2 glue.")
+        self.assertEqual(run_logic('runFactsLine({stages:[{stage:"intake"}]})'),
+                         "Run facts: 1 visit; Improve passes not measured, refusals not measured, glue not measured.")
+
+    def test_the_refusals_card_and_the_failures_heading_say_one_refusal_line_for_one(self):
+        card = lambda n: {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(dict(DONE_RUN, refusals=n)))}["refusals"]
+        self.assertEqual((card(1)["value"], card(1)["note"]), ("1", "refusal line or failed ShipLoop command"))
+        self.assertEqual((card(13)["value"], card(13)["note"]), ("13", "refusal lines or failed ShipLoop commands"))
+        self.assertEqual(card(0)["note"], "refusal lines or failed ShipLoop commands")  # a measured 0 reads as many
+        one = page_probe('textOf("rundetail")', setup=ended_page(dict(DONE_RUN, refusals=1, failures=[{"verb": "complete", "line": "refused"}])))
+        self.assertIn("1 refusal: refusal line or failed ShipLoop command", one)
+        self.assertNotIn("1 refusals", one)
+
+    def test_irregular_and_regular_plurals_inside_the_run_detail_use_the_helper(self):
+        self.assertEqual(run_logic('planningText({planning:{windowMin:5,children:1,improveMin:2}})'), "5 min on the engine's clock; Improve 2 min over 1 child")
+        self.assertIn("1 printed reply (9 characters)", run_logic('packetUseText({toolUse:{packets:{printed:1,printedChars:9}}})'))
+        self.assertIn("2 printed replies", run_logic('packetUseText({toolUse:{packets:{printed:2}}})'))
+        strip = run_logic('whereStrip({stages:[{stage:"intake",outcome:"done"}]},{phase:0})')
+        self.assertIn("Understand: 1 of 1 visit<", strip)
+        self.assertNotIn("1 of 1 visits", strip)
+
+    def test_the_exporters_header_text_counts_children_and_review_passes_in_the_right_number(self):
+        self.assertEqual([export._count(1, "child", "children"), export._count(2, "child", "children"), export._count(0, "child", "children"),
+                          export._count(1, "review pass"), export._count(2, "review pass"), export._count(1, "check"), export._count(3, "check")],
+                         ["1 child", "2 children", "0 children", "1 review pass", "2 review passes", "1 check", "3 checks"])
+        with tempfile.TemporaryDirectory() as tmp:
+            out = make_run(Path(tmp), loops=False)
+            make_improve_child(run_dir_of(out), IDS["plan"], passes=1)
+            run = export.build_run(out)[0]["runs"][RunReviewTest.KEY]
+            self.assertEqual(run["imp"], "1 child, 1 review pass")
+            facts = "\n".join(export.build_run(out)[1])
+            self.assertIn("- Improve: 1 child, 1 review pass;", facts)
+            self.assertIn("7 accepted actions", facts)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = make_run(Path(tmp), [ACCEPTS[0]], loops=False)
+            shutil.rmtree(run_dir_of(out) / "improve")
+            docs, facts = export.build_run(out)
+            self.assertEqual(docs["runs"][RunReviewTest.KEY]["imp"], "0 children")
+            self.assertIn("1 accepted action;", "\n".join(facts))  # one accepted action, not "1 accepted actions"
+            self.assertIn("over 1 accepted action", "\n".join(facts))
+
+
+class MegabyteSizeTests(unittest.TestCase):
+    """kbText prints bytes, KB, and from 1000 KB up MB with one decimal."""
+
+    def test_a_size_reads_in_b_kb_or_mb_with_one_decimal_and_the_edges_are_pinned(self):
+        self.assertEqual(run_logic("[0,814,1023,1024,1536,47475,55492,1023897,1023999,1048576,1802659,5242880,52428800].map(kbText)"),
+                         ["0 B", "814 B", "1023 B", "1 KB", "1.5 KB", "46.4 KB", "54.2 KB", "999.9 KB", "1 MB", "1 MB", "1.7 MB", "5 MB", "50 MB"])
+
+    def test_the_packet_use_line_and_the_cards_print_megabytes_not_a_thousand_kilobytes(self):
+        text = run_logic('packetUseText({toolUse:{packets:{files:45,bytes:1802659}}})')
+        self.assertEqual(text, "Packets: 45 packet files (1.7 MB) on disk")
+        self.assertNotIn("1760", text)
+        self.assertEqual(run_logic("kbText(2*1024*1024)"), "2 MB")
+
+
+class WorktreeChecksCountTests(unittest.TestCase):
+    """The unreturned product's checks are {passed, total}: N of M pass in the worktree, not a bare boolean."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def checks(self, results: list[bool]) -> dict:
+        return {"pass": False, "worktree_checks": [{"command": f"check {n}", "pass": ok} for n, ok in enumerate(results)]}
+
+    def test_the_export_holds_how_many_of_the_checks_pass_in_the_worktree(self):
+        for results, expected in (([True] * 4, {"passed": 4, "total": 4}), ([True, False, True, False], {"passed": 2, "total": 4}),
+                                  ([False], {"passed": 0, "total": 1})):
+            with self.subTest(results=results):
+                out = ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), shiploop=self.checks(results))
+                docs, facts = export.build_run(out)
+                run = docs["runs"][self.KEY]
+                self.assertEqual(run["verdicts"]["worktreeChecks"], expected)
+                self.assertEqual(export.validate_doc("runs", run), [])
+                self.assertIn(f"- Checks in the worktree (product not returned): {expected['passed']}/{expected['total']} pass", "\n".join(facts))
+        none = ended_run(Path(tempfile.mkdtemp(dir=self.tmp)), shiploop={"pass": False, "worktree_checks": []})
+        self.assertNotIn("worktreeChecks", export.build_run(none)[0]["runs"][self.KEY].get("verdicts", {}))  # no checks ran there: no count
+
+    def test_the_contract_rejects_the_boolean_the_first_export_wrote_and_a_count_without_both_numbers(self):
+        base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
+        self.assertEqual(export.validate_doc("runs", dict(base, verdicts={"checks": True, "worktreeChecks": {"passed": 2, "total": 4}})), [])
+        problems = "\n".join(export.validate_doc("runs", dict(base, verdicts={"worktreeChecks": True})))
+        self.assertIn("verdicts.worktreeChecks: expected an object {passed, total}", problems)
+        problems = "\n".join(export.validate_doc("runs", dict(base, verdicts={"worktreeChecks": {"passed": "2"}})))
+        self.assertIn("verdicts.worktreeChecks: missing required field 'total'", problems)
+        self.assertIn("verdicts.worktreeChecks.passed: expected a number", problems)
+
+    def test_schema_md_documents_the_count_and_says_the_boolean_is_not_read(self):
+        text = " ".join(SCHEMA_MD.read_text().split())
+        for phrase in ("`worktreeChecks` is the one exception, an object `{passed, total}`", "passes 4/4 checks in the worktree",
+                       "An earlier R22a export wrote it as a boolean; that shape is not read"):
+            self.assertIn(phrase, text)
+        self.assertNotIn("true when every one passes there", text)
+
+    def test_the_page_says_how_many_checks_pass_and_reads_only_the_count_shape(self):
+        self.assertEqual(run_logic('[worktreeOf({passed:4,total:4}),worktreeOf({passed:2,total:4}),worktreeOf(true),worktreeOf(false),worktreeOf(null),'
+                                   'worktreeOf({passed:5,total:4}),worktreeOf({passed:0,total:0}),worktreeOf({passed:"2",total:4}),worktreeOf({passed:0,total:3})]'),
+                         [{"passed": 4, "total": 4, "all": True}, {"passed": 2, "total": 4, "all": False}, None, None, None, None, None, None,
+                          {"passed": 0, "total": 3, "all": False}])
+        rows = lambda v: ending_rows(dict(DONE_RUN, verdicts=v))
+        self.assertEqual(rows({"checks": False, "worktreeChecks": {"passed": 4, "total": 4}}),
+                         {"Product that was never returned": "passes 4/4 checks in the worktree; the copy in the work folder fails them because nothing was returned there"})
+        self.assertEqual(rows({"checks": False, "worktreeChecks": {"passed": 0, "total": 3}}),
+                         {"Product that was never returned": "passes 0/3 checks in the worktree, and the copy in the work folder fails its checks too"})
+        self.assertEqual(rows({"worktreeChecks": True}), {})  # the old boolean is not read, so no verdict is invented from it
+
+    def test_the_run_detail_chip_reads_the_count_and_is_green_only_when_every_check_passes(self):
+        chips = lambda v: page_probe('byClass("rundetail","chip").map(function(c){return c.className.split(" ").pop()+":"+c.textContent;})',
+                                     setup=ended_page(dict(DONE_RUN, verdicts=v)))
+        self.assertEqual(chips({"checks": False, "worktreeChecks": {"passed": 4, "total": 4}}), ["broken:checks fail", "holds:worktree checks 4/4"])
+        self.assertEqual(chips({"worktreeChecks": {"passed": 2, "total": 4}}), ["broken:worktree checks 2/4"])
+        self.assertEqual(chips({"checks": True, "worktreeChecks": True}), ["holds:checks pass"])  # not a count: no chip for it
 
 
 if __name__ == "__main__":

@@ -129,6 +129,7 @@ VERIFY_FIELDS = {"records": (N, True), "passed": (N, True), "red": (N, False), "
                  "runs": (("items", {"status": (S, True), "ran": (N, False), "failed": (N, False), "acceptedRan": (N, False)}), False),
                  "observed": (("object", {"where": (S, False), "tree12": (S, False)}), False)}
 UNVERIFIED_FIELDS = {"outcome": (S, False), "reason": (S, False), "check": (S, False), "owner": (S, False), "dueStage": (S, False)}
+WORKTREE_CHECKS = {"passed": (N, True), "total": (N, True)}
 LEFT_BEHIND_ITEM = {"command": (S, True), "ports": (("list", N), False),
                     "where": (("enum", ("worktree", "work", "other")), True), "endedBy": (S, False)}
 SCHEMA = {
@@ -160,7 +161,8 @@ SCHEMA = {
         "planningReview": (S, False), "improveScope": (S, False),
         "status": (("enum", ("done", "active", "paused", "blocked", "failed", "stopped")), False),
         "startedAt": (ISO, False), "endedAt": (ISO, False),
-        "verdicts": (("map", B), False),
+        # invoked, plugin, process, shiploop, committed and checks are booleans; worktreeChecks is {passed, total} (see _worktree_checks).
+        "verdicts": (("verdicts", None), False),
         # min is null when the visit has no accept stamp, the one before it has none, the stamps run backwards, or the
         # harness seeded the visit: unknown, not 0. seeded and skipped are present only when true; improve and context
         # hold only the numbers that were measured (SCHEMA.md).
@@ -317,6 +319,13 @@ def _type_problem(spec, value, where: str) -> list[str]:
     kind, arg = spec
     if kind == "figure":
         return _figure_problems(value, where)
+    if kind == "verdicts":
+        if not isinstance(value, dict):
+            return [f"{where}: expected an object"]
+        return [p for k, v in value.items() for p in (
+            _fields_problems(WORKTREE_CHECKS, v, f"{where}.{k}") if k == "worktreeChecks" and isinstance(v, dict)
+            else [f"{where}.{k}: expected an object {{passed, total}}"] if k == "worktreeChecks"
+            else _type_problem(B, v, f"{where}.{k}"))]
     if kind == "object":
         if not isinstance(value, dict):
             return [f"{where}: expected an object"]
@@ -1127,13 +1136,14 @@ def _process_status(result: dict) -> str | None:
     return status if isinstance(status, str) else None
 
 
-def _worktree_checks(result: dict):
-    """Whether every check passes in the worktree: the harness runs them there when the product was not returned
-    (shiploop.worktree_checks), as information next to `checks`. None when it did not."""
+def _worktree_checks(result: dict) -> dict | None:
+    """How many of the checks pass in the worktree, {passed, total}: the harness runs them there when the product was not
+    returned (shiploop.worktree_checks), as information next to `checks`. None when it did not. Every check passing is
+    `passed` equal to `total`."""
     checks = (result.get("shiploop") or {}).get("worktree_checks") if isinstance(result.get("shiploop"), dict) else None
     if not (isinstance(checks, list) and checks and all(isinstance(c, dict) for c in checks)):
         return None
-    return all(bool(c.get("pass")) for c in checks)
+    return {"passed": sum(1 for c in checks if c.get("pass") is True), "total": len(checks)}
 
 
 def _where(cwd) -> str:
@@ -1822,7 +1832,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     run = {"key": key, "name": name, "order": order, "release": release,
            "phases": derive_phases(phases_seen, current, "stopped" if ended else raw_status),
            "time": _time_text(status, wall, len(stages), ending),
-           "imp": f"{len(children)} children" + (f", {improve['improvePasses']} review passes"
+           "imp": _count(len(children), "child", "children") + (f", {_count(improve['improvePasses'], 'review pass')}"
                                                  if improve.get("improvePasses") else ""),
            "stages": stages, "unmeasured": unmeasured, **improve, **measures,
            "knowledge": knowledge, "evidence": str(out),
@@ -1982,7 +1992,7 @@ def _ending_lines(run) -> list[str]:
             if left["observed"] else f"not observed ({left.get('reason', 'no reason recorded')})"))
     verdicts = run.get("verdicts") or {}
     if "worktreeChecks" in verdicts:
-        lines.append(f"- Checks in the worktree (product not returned): {'all pass' if verdicts['worktreeChecks'] else 'not all pass'}"
+        lines.append(f"- Checks in the worktree (product not returned): {verdicts['worktreeChecks']['passed']}/{verdicts['worktreeChecks']['total']} pass"
                      + (f"; in the work folder: {'all pass' if verdicts['checks'] else 'not all pass'}" if "checks" in verdicts else ""))
     return lines
 
@@ -1993,10 +2003,10 @@ def _measure_lines(run, verify_loose: tuple[int, int]) -> list[str]:
     unmeasured, rows, lines = run["unmeasured"], run["stages"], []
     checked = [r["verify"] for r in rows if "verify" in r]
     loose, unreadable = verify_loose
-    lines.append((f"- Script checks (tests/<action>-verifyN.md): {sum(v['records'] for v in checked)} records on {len(checked)} visits, "
+    lines.append((f"- Script checks (tests/<action>-verifyN.md): {_count(sum(v['records'] for v in checked), 'record')} on {_count(len(checked), 'visit')}, "
                   f"{sum(v['passed'] for v in checked)} passed, {sum(v['red'] for v in checked)} ran red"
                   + (f"; {sum(v.get('couldNotRun', 0) for v in checked)} could not run" if any("couldNotRun" in v for v in checked) else "")
-                  + (f"; {loose} records name an action that is no visit" if loose else "")
+                  + (f"; {_count(loose, 'record')} {'names' if loose == 1 else 'name'} an action that is no visit" if loose else "")
                   + (f"; {unreadable} unreadable" if unreadable else ""))
                  if checked or loose or unreadable else "- Script checks (tests/<action>-verifyN.md): none recorded")
     listed = [r for r in rows if "unverified" in r]
@@ -2021,7 +2031,8 @@ def _measure_lines(run, verify_loose: tuple[int, int]) -> list[str]:
              f"not measured ({unmeasured.get('planning', 'no reason recorded')})"]
             + ([f"{plan['hostWindowMin']} min on the host's"] if "hostWindowMin" in plan else [])
             + ([f"{'closed at' if plan.get('closed') else 'still open through'} {plan['through']}"] if "through" in plan else [])
-            + ([f"Improve {plan['improveMin']} min over {plan.get('children', '?')} children"] if "improveMin" in plan else [])
+            + ([f"Improve {plan['improveMin']} min over " + (_count(plan["children"], "child", "children") if "children" in plan else "? children")]
+               if "improveMin" in plan else [])
             + ([f"{plan['outputTokens']:,} output tokens" + (f", {plan['reasoningPct']}% reasoning" if "reasoningPct" in plan else "")]
                if "outputTokens" in plan else [])))
     else:
@@ -2048,11 +2059,12 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
     knowledge = run["knowledge"]
     largest = next(iter(knowledge.items()), None)
     lines = [f"# Run Review facts: {run['key']}", "",
-             f"- Run: ShipLoop status {raw_status or 'unknown'}; {len(stages)} accepted actions{kinds}; "
+             f"- Run: ShipLoop status {raw_status or 'unknown'}; {_count(len(stages), 'accepted action')}{kinds}; "
              f"{run.get('wallMin', 'unknown')} min from start to the last accept",
              f"- Driver: {' '.join(run[k] for k in ('host', 'model', 'effort') if k in run) or 'unknown'}; "
              f"case {run.get('case', 'unknown')}; {run['release']}",
-             "- Verdicts: " + (", ".join(f"{k} {'pass' if v else 'fail'}" for k, v in run["verdicts"].items())
+             "- Verdicts: " + (", ".join(f"{k} {v['passed']}/{v['total']}" if isinstance(v, dict) else f"{k} {'pass' if v else 'fail'}"
+                                         for k, v in run["verdicts"].items())
                                if run.get("verdicts") else "no result.json"),
              "- Slowest stages (min, accept to accept): " + (", ".join(
                  f"{stage} {sum(m):.1f}" + (f" ({len(m)}x)" if len(m) > 1 else "") for stage, m in slowest) or "none"),
@@ -2076,7 +2088,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
              + (f" in {knowledge_root.relative_to(out).as_posix() if knowledge_root.is_relative_to(out) else knowledge_root}"
                 f"; largest {largest[0]} {largest[1] / 1024:.1f} KB" if largest else ""),
              f"- Packets {sum(r.get('packetBytes', 0) for r in stages) / 1024:.1f} KB, results "
-             f"{sum(r.get('resultBytes', 0) for r in stages) / 1024:.1f} KB over {len(stages)} accepted actions",
+             f"{sum(r.get('resultBytes', 0) for r in stages) / 1024:.1f} KB over {_count(len(stages), 'accepted action')}",
              _plan_line(run),
              f"- Packet documents: {len(packet_set)} written, {sum(d['bytes'] for d in packet_set.values()) / 1024:.1f} KB "
              f"of packet files, {sum(1 for d in packet_set.values() if d.get('truncated'))} truncated; "
@@ -2458,8 +2470,9 @@ def _read_bundle(path: Path):
         raise ExportError(f"cannot read the review bundle {path}: {exc}") from exc
 
 
-def _count(n: int, word: str) -> str:
-    return f"{n} {word}" + ("" if n == 1 else "s")
+def _count(n: int, word: str, plural: str | None = None) -> str:
+    """"1 check", "2 checks", "1 review pass", "2 review passes", "1 child", "2 children" (the third argument is an irregular plural)."""
+    return f"{n} " + (word if n == 1 else plural or word + ("es" if word.endswith("s") else "s"))
 
 
 def check_file(path: Path) -> tuple[int, dict | None]:

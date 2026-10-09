@@ -414,11 +414,11 @@ function planningReview(run){var v=run&&run.planningReview;return typeof v==="st
 var PLANNING_REVIEW_STAGES=["spec","test-strategy","plan","step-plan","test-spec"];
 /* True only for a run that recorded none and a stage in that list; stage, an unknown value and "not recorded" claim nothing. */
 function improveByDesign(run,stage){return planningReview(run)==="none"&&PLANNING_REVIEW_STAGES.indexOf(stage)>=0;}
-/* The run header line; a counter reads "13 refusals" or "refusals not measured", never "undefined refusals". A run that
+/* The run header line; a counter reads "13 refusals", "1 refusal" or "refusals not measured", never "undefined refusals" (glue is a mass noun: "1 glue"). A run that
    recorded its planning_review option says which; a run that did not reads as it always did. */
 function headerFacts(run){
-  function phrase(name){var t=countText(run,name);return t==="not measured"?name+" not measured":t+" "+name;}
-  var mode=planningReview(run),parts=[run.release,run.time,phrase("refusals"),phrase("glue"),run.imp];
+  function phrase(name,one){var t=countText(run,name);return t==="not measured"?name+" not measured":(one?plural(+t,one,name):t+" "+name);}
+  var mode=planningReview(run),parts=[run.release,run.time,phrase("refusals","refusal"),phrase("glue"),run.imp];
   if(mode)parts.push("planning review: "+mode);
   return parts.join(" | ");
 }
@@ -438,7 +438,12 @@ function streakNote(d){var n=streakTarget(d);return n===0?"no trivial-streak req
 /* A percentage to one decimal ("97.5%", "27%"): the same text on a card, in a facts row and in a column's detail. */
 function pctText(p){return (Math.round(p*10)/10)+"%";}
 /* A byte size the way the page prints one. */
-function kbText(n){return n>=1024?(Math.round(n/102.4)/10)+" KB":n+" B";}
+/* Bytes as B, KB or MB (one decimal): a size that reads 1000 KB or more is printed in MB, "1.7 MB", never "1760.4 KB". */
+function kbText(n){
+  if(n<1024)return n+" B";
+  var kb=Math.round(n/102.4)/10;
+  return kb>=1000?(Math.round(n/104857.6)/10)+" MB":kb+" KB";
+}
 /* The main thread's context peak, as a share of the window when both were measured. */
 function contextText(run){
   if(!run||!isCount(run.contextPeak))return measuredText(run,"contextPeak");
@@ -564,14 +569,17 @@ function groupOptions(options){
     return {kind:k,options:list.map(function(o,i){return {o:o,i:i};}).sort(function(a,b){return rankOf(EFFORT_ORDER,a.o.effort)-rankOf(EFFORT_ORDER,b.o.effort)||a.i-b.i;}).map(function(x){return x.o;})};
   }).filter(function(g){return g.options.length;});
 }
-function plural(n,w){return n+" "+w+(n===1?"":(/s$/.test(w)?"es":"s"));}
+/* A count with its noun in the right number: "1 refusal", "13 refusals", "1 pass", "2 passes". The one helper every counted noun the
+   page prints goes through; an irregular plural is the third argument ("1 child", "2 children"). A mass noun such as glue is not counted
+   through it. */
+function plural(n,w,pl){return n+" "+(n===1?w:(pl||w+(/s$/.test(w)?"es":"s")));}
 /* Run facts for the prompt: measured values only; a counter the run does not carry is named "not measured", never 0. */
 function runFactsLine(run){
   var have=[],miss=[];
-  if(run&&run.stages&&run.stages.length)have.push(run.stages.length+" visits");
+  if(run&&run.stages&&run.stages.length)have.push(plural(run.stages.length,"visit"));
   if(run&&isCount(run.wallMin))have.push(run.wallMin+" min elapsed");
-  [["improvePasses","Improve passes"],["refusals","refusals"],["glue","glue"]].forEach(function(p){
-    if(run&&isCount(run[p[0]]))have.push(run[p[0]]+" "+p[1]);else miss.push(p[1]+" not measured");});
+  [["improvePasses","Improve pass","Improve passes"],["refusals","refusal","refusals"],["glue","glue","glue"]].forEach(function(p){
+    if(run&&isCount(run[p[0]]))have.push(plural(run[p[0]],p[1],p[2]));else miss.push(p[2]+" not measured");});
   return "Run facts: "+have.join(", ")+(have.length&&miss.length?"; ":"")+miss.join(", ")+".";
 }
 /* One prompt for Claude Code from what the viewer ticked. state: {run, runs, findings, options, expectations (key to
@@ -689,7 +697,7 @@ function whereStrip(run,finding){
     if(skip)cells.push('<path class="ws-hatch" d="M'+x+' '+(top+ch)+'L'+(x+cw)+' '+top+'M'+x+' '+(top+ch/2)+'L'+(x+cw/2)+' '+top+'M'+(x+cw/2)+' '+(top+ch)+'L'+(x+cw)+' '+(top+ch/2)+'"/>');
     if(out!=="done")marks.push('<text class="ws-mark" x="'+(x+cw/2)+'" y="'+(top+ch+13)+'" text-anchor="middle">'+esc(out.charAt(0).toUpperCase())+'</text>');
   });
-  var label=hits.length?title+": "+hits.length+" of "+n+" visits":title+": no visit in this run";
+  var label=hits.length?title+": "+hits.length+" of "+plural(n,"visit"):title+": no visit in this run";
   var shape=hits.length?'<path class="ws-br" d="M'+(pad+hits[0]*pitch)+' '+(top-3)+'L'+(pad+hits[0]*pitch)+' '+(top-7)+'L'+(pad+hits[hits.length-1]*pitch+cw)+' '+(top-7)+'L'+(pad+hits[hits.length-1]*pitch+cw)+' '+(top-3)+'"/>':"";
   var x0=pad+(hits.length?hits[0]:0)*pitch,x1=pad+(hits.length?hits[hits.length-1]:0)*pitch+cw;
   var lw=label.length*6.4,atEnd=x0+lw>W-pad;  /* a label that would run past the strip hangs from the right end of the bracket */
@@ -758,12 +766,22 @@ function endingModel(run){
       if(Array.isArray(lb.survived)&&lb.survived.length)rows.push(["Listeners still running",lb.survived.map(listenerText).join("; ")]);
     }
   }
-  if(typeof v.worktreeChecks==="boolean")rows.push(["Product that was never returned",v.checks===false&&v.worktreeChecks?
-    "passes its checks in the worktree; the copy in the work folder fails them because nothing was returned there":
-    v.checks===false?"fails its checks in the worktree too, as the work folder does":
-    "checks in the worktree "+(v.worktreeChecks?"pass":"do not all pass")]);
+  var wt=worktreeOf(v.worktreeChecks);
+  if(wt){
+    var of=wt.passed+"/"+wt.total;
+    rows.push(["Product that was never returned",v.checks===false&&wt.all?
+      "passes "+of+" checks in the worktree; the copy in the work folder fails them because nothing was returned there":
+      v.checks===false?"passes "+of+" checks in the worktree, and the copy in the work folder fails its checks too":
+      "passes "+of+" checks in the worktree"]);
+  }
   if(!rows.length)return null;
   return {kind:kind,title:kind==="stopped"?"How it ended: stopped by the harness":kind==="blocked"?"How it ended: blocked":"How it ended: "+(run.status||"unknown"),rows:rows};
+}
+/* The checks of a product that was never returned, run in the worktree: {passed, total, all}, or null when the run has none or the
+   record is not {passed, total} of numbers with at least one check. `all` is passed equal to total. */
+function worktreeOf(w){
+  if(!w||typeof w!=="object"||!isCount(w.passed)||!isCount(w.total)||w.total<1||w.passed<0||w.passed>w.total)return null;
+  return {passed:w.passed,total:w.total,all:w.passed===w.total};
 }
 /* The chip beside the header for a run two hosts wrote: {text, title}, or null. The later hosts resumed it. */
 function hostChip(run){
@@ -820,7 +838,7 @@ function planningText(run){
   var bits=[p.windowMin+" min on the engine's clock"];
   if(isCount(p.hostWindowMin))bits.push(p.hostWindowMin+" min on the host's");
   if(p.through)bits.push((p.closed===true?"closed at ":"still open through ")+p.through);
-  if(isCount(p.improveMin))bits.push("Improve "+p.improveMin+" min"+(isCount(p.children)?" over "+p.children+(p.children===1?" child":" children"):""));
+  if(isCount(p.improveMin))bits.push("Improve "+p.improveMin+" min"+(isCount(p.children)?" over "+plural(p.children,"child","children"):""));
   if(isCount(p.outputTokens))bits.push(grouped(p.outputTokens)+" output tokens"+(isCount(p.reasoningPct)?", "+pctText(p.reasoningPct)+" reasoning":""));
   return bits.join("; ");
 }
@@ -831,7 +849,7 @@ function packetUseText(run){
   if(!p)return "";
   var bits=[];
   if(isCount(p.files))bits.push(plural(p.files,"packet file")+(isCount(p.bytes)?" ("+kbText(p.bytes)+")":"")+" on disk");
-  if(isCount(p.printed))bits.push(p.printed+(p.printed===1?" printed reply":" printed replies")+(isCount(p.printedChars)?" ("+grouped(p.printedChars)+" characters)":""));
+  if(isCount(p.printed))bits.push(plural(p.printed,"printed reply","printed replies")+(isCount(p.printedChars)?" ("+grouped(p.printedChars)+" characters)":""));
   if(isCount(p.readWhole)||isCount(p.readPartial))bits.push((isCount(p.readWhole)?p.readWhole:0)+" read whole, "+(isCount(p.readPartial)?p.readPartial:0)+" in part");
   if(isCount(p.shellReads))bits.push(plural(p.shellReads,"shell read")+(isCount(p.shellChars)?" ("+grouped(p.shellChars)+" characters)":""));
   return bits.length?"Packets: "+bits.join("; "):"";
@@ -889,6 +907,8 @@ function kpi(key,label,value,note,measured,lines){
 }
 /* The six cards of step 1: visits, elapsed, Improve, Backchain loops, context (main thread), refusals. `loops` is the
    run's Backchain documents (null while they load). */
+/* What the Refusals counter counts, in the number the count asks for: "refusal lines or failed ShipLoop commands", or for one, "refusal line or failed ShipLoop command". */
+function refusalNote(n){return n===1?"refusal line or failed ShipLoop command":"refusal lines or failed ShipLoop commands";}
 function kpiCards(run,loops){
   var rows=(run&&Array.isArray(run.stages))?run.stages:[],wall=run&&isCount(run.wallMin)&&run.wallMin>0?run.wallMin:0,out=[];
   var skipped=rows.filter(function(r){return kindOf(r)==="skipped";}).length,seeded=rows.filter(function(r){return kindOf(r)==="seeded";}).length;
@@ -920,7 +940,7 @@ function kpiCards(run,loops){
       (w?grouped(run.contextPeak)+" of "+grouped(w)+" tokens":"window not measured")+"; "+
       (isCount(run.compactions)?plural(run.compactions,"compaction"):"compactions not measured"),true,[packetUseText(run)]));
   }else out.push(kpi("context","Context (main thread)","not measured",whyNot(run,"contextPeak")||"no reason recorded",false,[packetUseText(run)]));
-  out.push(isCount(run&&run.refusals)?kpi("refusals","Refusals",String(run.refusals),"refusal lines or failed ShipLoop commands",true)
+  out.push(isCount(run&&run.refusals)?kpi("refusals","Refusals",String(run.refusals),refusalNote(run.refusals),true)
     :kpi("refusals","Refusals","not measured",whyNot(run,"refusals")||"no reason recorded",false));
   return out;
 }
@@ -2049,7 +2069,10 @@ function renderRunDetail(){
   var card=h("div","card");card.appendChild(h("h3","",A.name+(B?" compared with "+B.name:"")));
   var facts=factRows(A);
   var dl=h("dl","facts");facts.forEach(function(f){dl.appendChild(h("dt","",f[0]));dl.appendChild(h("dd","",f[1]));});card.appendChild(dl);
-  if(A.verdicts){var vc=h("div","vchips");Object.keys(A.verdicts).forEach(function(k){vc.appendChild(h("span","chip "+(A.verdicts[k]?"holds":"broken"),k+(A.verdicts[k]?" pass":" fail")));});card.appendChild(vc);}
+  if(A.verdicts){var vc=h("div","vchips");Object.keys(A.verdicts).forEach(function(k){
+    var v=A.verdicts[k],wt=k==="worktreeChecks"?worktreeOf(v):null;
+    if(k==="worktreeChecks"&&!wt)return;  /* not {passed, total}: no verdict is invented */
+    vc.appendChild(h("span","chip "+((wt?wt.all:v)?"holds":"broken"),wt?"worktree checks "+wt.passed+"/"+wt.total:k+(v?" pass":" fail")));});card.appendChild(vc);}
   box.appendChild(card);
   // the same six numbers for the second run, side by side (the picture and its table are in the step above)
   if(B){
@@ -2082,7 +2105,7 @@ function renderRunDetail(){
     c3.appendChild(tb2);box.appendChild(c3);
   }
   if(A.failures&&A.failures.length){
-    var c5=h("div","card");c5.appendChild(h("h3","",plural(A.failures.length,"refusal")+": refusal lines or failed ShipLoop commands"));
+    var c5=h("div","card");c5.appendChild(h("h3","",plural(A.failures.length,"refusal")+": "+refusalNote(A.failures.length)));
     A.failures.slice(0,10).forEach(function(f){var p=h("p","sub",f.verb+": "+f.line);p.style.margin="2px 0";c5.appendChild(p);});
     box.appendChild(c5);
   }

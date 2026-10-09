@@ -1939,7 +1939,7 @@ result.json; they are in the last visit's result record (`results/<action>.md`),
 - *Blocked, left behind, unreturned product (5, 6, 7).* `blocked` {by, reason, headline, question, options, noDefault}; `leftBehind` {observed,
   reason?, reaped[], survived[]} with entries {command, ports, where, endedBy}, no pid, argument list or absolute path, `where` read from the
   path's components (worktree, work, other); `verdicts.worktreeChecks`. The card words the pair: "passes its checks in the worktree; the copy
-  in the work folder fails them because nothing was returned there". Only a boolean is exported, not N/N (the count is in result.json).
+  in the work folder fails them because nothing was returned there". Only a boolean was exported, not N/N [superseded 2026-10-09: R22d exports `{passed, total}`] (the count is in result.json).
 - *Stale statements (10, 11, 12, 17, 21).* The refusals note and the run-detail heading say "refusal lines or failed ShipLoop commands" (the
   harness reads refusal LINES; r3 Sonnet's one failure has the verb `unknown` and exit null); SCHEMA's refusals/glue row no longer says a
   Claude host cannot measure them (refusals 1 to 5 and glue 0 to 2 on the seven Sonnet runs; glue is a lower bound where a model wraps
@@ -2063,3 +2063,44 @@ Grok Battleship runs of different prompts would collide in the picker (the keys 
 still active (a spent resume budget): is that the label you want, or `ended`? (3) The unaccepted tail's packet is exported as a `packets` document
 like any visit's (47 KB on r3 Grok); say if you would rather not upload it. (4) The N/N for the worktree checks was left out (a boolean was
 asked for); the count is one line to add. (5) Items 18, 19, 20, 22 and 23 of the audit were not part of this brief and were not touched.
+
+
+## 2026-10-09: R22d, counts in the right number, megabyte sizes, and the worktree checks as N/N (local, unpublished)
+
+Status: firm. One local commit on `rr22c-eed87d` on top of `b3140b16` (the integrated R22a, R22b and the findings layer, base `origin/main`
+`923a3bd6`); change note `changes/shiploop-run-review/plurals-megabytes-worktree-counts.md`. Same boundaries as R22a and R22b: no push, no
+`scripts/release.py`, no Artifact or ArtifactData call, nothing exported to the draft page, no process signalled, no e2e-runs write, hermetic
+fixtures. The coordinator's answers to the R22b open questions: the worktree checks are exported as counts (done here), `stopped` stays the
+status label (the ending block already says by what), and the unaccepted tail's packet document stays. The case-`custom` question was not
+answered and is still open.
+
+**(1) Plurals.** The header read "1 refusals" because `headerFacts` printed the number and the plural noun without asking the number. One
+pure helper in the logic block now owns it: `plural(n, word, irregular?)` (the page already had `plural(n, word)`; it gains the third argument for
+"1 child, 2 children" and "1 printed reply, 3 printed replies"). Every counted noun the page printed another way now goes through it: the header
+line ("1 refusal", "0 refusals", "13 refusals"; glue is a mass noun and stays "1 glue"), the prompt's run facts ("1 visit", "1 Improve pass", "1
+refusal"), the Refusals card note and the run-detail heading ("refusal line or failed ShipLoop command" for one: `refusalNote`), the planning
+text ("over 1 child"), the packet-use line ("1 printed reply") and the where strip ("1 of 1 visit"). `passes`/`pass` and `children` had the
+same bug in the exporter's `imp` header text ("1 children, 1 review passes"): `_count(n, word, irregular?)` fixes it there ("1 child, 1 review
+pass"), and the facts lines ("1 accepted action", "1 record names an action that is no visit"). The card label "Refusals" names the measure, like
+"Visits", and stays. Not changed: exports already in the database and the committed evidence files keep their stored `imp` text ("1 children"),
+which the page prints as it is (it is data; a re-export gives the new text).
+
+**(2) Sizes.** `kbText` prints bytes, KB, and from 1000 KB up MB with one decimal ("1.7 MB", not "1760.4 KB"; 999.9 KB is the last KB, 1023999
+bytes already reads "1 MB"). Pinned at 0, 814, 1023, 1024, 1536, 47475, 55492, 1023897, 1023999, 1048576, 1802659, 5 MiB and 50 MiB bytes.
+
+**(3) Worktree checks.** `verdicts.worktreeChecks` is `{passed, total}` (the harness's `shiploop.worktree_checks`, counted: r3 Grok, r1 Grok and
+the 1.22.0 Grok run each 4/4); `passed` equal to `total` is the old boolean's true, so one shape carries both. `verdicts` is no longer a map of
+booleans only (SCHEMA.md, validator kind `verdicts`): a boolean in that place is refused, and the page reads only the count shape (`worktreeOf`),
+so an R22a-shaped boolean invents no verdict. The page says "passes 4/4 checks in the worktree; the copy in the work folder fails them because
+nothing was returned there" (or "... and the copy in the work folder fails its checks too" when fewer pass), a chip "worktree checks 4/4" green only
+when all pass, and the facts line "Checks in the worktree (product not returned): 4/4 pass". The R22a entry's sentence that only a boolean was
+exported is marked superseded in place.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: **458 OK** (445 at `b3140b16`). 13 new tests in three classes
+(`CountsInTheRightNumberTests` 6, `MegabyteSizeTests` 2, `WorktreeChecksCountTests` 5) and nine changed existing ones (the `imp` strings, the
+worktree verdict tests and fixtures, the ending-card texts, the packet-use size, the orphan-record fact, the contract test). Fail-first, against a
+`git archive` of `b3140b16` with only the test file copied in: all 13 new tests fail on it and so do the nine changed ones (22 failing). Nine
+deliberate defects on a scratch copy (the irregular plural ignored, the header printing the plural for one, the MB threshold at 1024 KB, a count
+accepting passed over total, the chip green for any count, the refusal note never singular, the count always `total`, `imp` printing "1 children",
+the prompt facts "1 visits"): 9 of 9 caught. Real data (scratch only, `scratchpad/rr22/export-d/`): all 11 runs export with exit 0, pass `--check`
+and re-export byte-identically; `imp` reads "0 children" and "2 children, 4 review passes" and so on.
