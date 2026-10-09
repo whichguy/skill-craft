@@ -182,6 +182,49 @@ class ToolLogRecordTest(unittest.TestCase):
         self.assertNotIn("fidelity", metrics.collect(FIXTURES / alias, run_dir_of(alias)))
 
 
+class SharedHelpersTest(unittest.TestCase):
+    """One constant, one window rule and one path reader for the metrics and the fidelity block (review B11, B18)."""
+
+    def test_the_not_applicable_prefix_is_one_constant_and_it_is_the_engines_own(self):
+        engine = (ENGINE / "shiploop_item_scope.py").read_text()
+        self.assertIn(f'NOT_APPLICABLE = "{metrics.NOT_APPLICABLE}"', engine)
+        literal = "Not applicable to this item"
+        self.assertEqual((ROOT / "test" / "shiploop_e2e" / "metrics.py").read_text().count(literal), 1,
+                         "metrics.py defines the prefix once and the narrative reader uses the constant")
+        self.assertNotIn(literal, (ROOT / "test" / "shiploop_e2e" / "fidelity.py").read_text(),
+                         "fidelity.py uses metrics.NOT_APPLICABLE and does not repeat the literal")
+
+    def test_the_narrative_reader_still_skips_the_engines_not_applicable_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            (run_dir / "results").mkdir(parents=True)
+            for name, summary in (("a.md", "Not applicable to this item: no tests"), ("b.md", "did the work")):
+                (run_dir / "results" / name).write_text("```shiploop-state\n" + json.dumps(
+                    {"result": {"summary": summary, "headline": "h"}}) + "\n```\n")
+            self.assertEqual(metrics.narrative(Path(tmp), run_dir)["results"], 1)
+
+    def test_a_stage_window_holds_its_end_and_not_its_start(self):
+        self.assertTrue(metrics.within(5.0, 4.0, 5.0))
+        self.assertFalse(metrics.within(4.0, 4.0, 5.0))
+        self.assertFalse(metrics.within(5.1, 4.0, 5.0))
+
+    def test_an_event_on_a_stage_boundary_belongs_to_the_stage_that_ends_there(self):
+        fidelity = fidelity_module()
+        stamps = {1: 10.0, 2: 10.5, 3: 0.0, 4: 25.0}
+        windows = [(0.0, 10.0, 0.0), (10.0, 20.0, 10.0)]
+        self.assertEqual([fidelity.stage_of(n, stamps, ["a", "b"], windows) for n in (1, 2, 3, 4, 9)], ["a", "b", None, None, None])
+
+    def test_the_target_of_a_call_is_the_first_path_target_paths_names(self):
+        log = metrics.ToolLog()
+        log.call(1.0, "c1", "Read", {"paths": ["/r/.shiploop-runs/w/run/packets/nav-1.md"]}, event=1)
+        self.assertTrue(log.calls["c1"]["packet"])
+        self.assertEqual(log.calls["c1"]["file"], "/r/.shiploop-runs/w/run/packets/nav-1.md")
+        log.call(2.0, "c2", "Read", {"target_file": "/a/b.md", "paths": ["/c/d.md"]}, event=2)
+        self.assertEqual(log.calls["c2"]["file"], "/a/b.md")
+        log.call(3.0, "c3", "Bash", {"command": "ls"}, event=3)
+        self.assertEqual(log.calls["c3"]["file"], "")
+
+
 class UnwrapTest(unittest.TestCase):
     def setUp(self):
         self.fidelity = fidelity_module()
@@ -258,7 +301,7 @@ class EvidenceTest(unittest.TestCase):
 
     def test_the_engines_not_applicable_entries_are_skipped_and_the_prefix_is_the_engines_own(self):
         source = (ENGINE / "shiploop_item_scope.py").read_text()
-        self.assertIn(f'NOT_APPLICABLE = "{self.fidelity.NOT_APPLICABLE}"', source)
+        self.assertIn(f'NOT_APPLICABLE = "{metrics.NOT_APPLICABLE}"', source)
         for alias, skipped in (("r1-battleship-sonnet", 2), ("r2-battleship-grok-none", 4), ("r3-battleship-sonnet", 0)):
             with self.subTest(run=alias):
                 self.assertEqual(replay(alias)["block"]["evidence"]["counts"]["skipped"], skipped)

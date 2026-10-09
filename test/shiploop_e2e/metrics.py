@@ -18,6 +18,9 @@ import re
 
 import rollouts
 
+# The prefix of the summary ShipLoop itself records for a stage not applicable to a work item (shiploop_item_scope.NOT_APPLICABLE;
+# a test pins the two equal). The narrative reader and fidelity.py both key on it.
+NOT_APPLICABLE = "Not applicable to this item"
 SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
 # Model-written glue (SPEC S-4, S-5): shell commands that do a mechanical step
 # ShipLoop owns. Defined by ShipLoop's own paths and verbs, never by product
@@ -235,6 +238,12 @@ def plural(count: int, noun: str) -> str:
     return f"{count} {noun}{'' if count == 1 else 's'}"
 
 
+def within(t: float, after: float, until: float) -> bool:
+    """Whether an event at ``t`` belongs to the stage window (after, until]: a stage holds the event of its own acceptance stamp
+    and not the stamp it started at (that one belongs to the stage before)."""
+    return after < t <= until
+
+
 def target_paths(arg: dict) -> list[str]:
     """The file paths a tool call names, each once and in the order it names them: the single target of Claude's and
     Grok's edit tools, and Codex's `paths` (its file_change repeats the first path as `target_file`)."""
@@ -292,8 +301,9 @@ class ToolLog:
         shell = shell_text(expanded)
         for script in self.scripts.values():  # a run is a tool call that runs the script, however many lines do
             script["runs"] += bool(script["pattern"].search(shell))
-        target = arg.get("target_file") or arg.get("file_path") or arg.get("path")
-        self.sequence.append({"event": event, "t": t, "tool": tool, "command": command, "paths": target_paths(arg)})
+        paths = target_paths(arg)
+        target = paths[0] if paths else None
+        self.sequence.append({"event": event, "t": t, "tool": tool, "command": command, "paths": paths})
         self.by_tool[tool] = self.by_tool.get(tool, 0) + 1
         self.calls[call_id if call_id is not None else f"#{len(self.calls)}"] = {
             "t": t, "command": command, "expanded": expanded, "invoked": expanded + wrappers, "tool": tool,
@@ -917,7 +927,7 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
         except (ValueError, KeyError, TypeError):
             result = None
         # ShipLoop records not-applicable stages itself; only steps the model reported count.
-        if not isinstance(result, dict) or str(result.get("summary", "")).startswith("Not applicable to this item"):
+        if not isinstance(result, dict) or str(result.get("summary", "")).startswith(NOT_APPLICABLE):
             continue
         results += 1
         with_headline += bool(str(result.get("headline") or "").strip())
@@ -1079,8 +1089,8 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
             rows.append({**base, "timing": "unavailable"})
             continue
         after, until, since = window
-        events = [x for x in turns if x["t"] is not None and after < x["t"] <= until]
-        tools = [c for c in calls.values() if c["t"] is not None and after < c["t"] <= until]
+        events = [x for x in turns if x["t"] is not None and within(x["t"], after, until)]
+        tools = [c for c in calls.values() if c["t"] is not None and within(c["t"], after, until)]
         row = {**base, "seconds": round(until - since, 1), **counted(events, tools)}
         if any("call" in x for x in turns):
             peak = max((x["input"] for x in events if x["input"] is not None), default=None)

@@ -28,8 +28,6 @@ import metrics
 import runrecord
 
 SCHEMA = "shiploop-e2e-fidelity/v1"
-# The prefix of a stage the engine itself recorded as not applicable to a work item (shiploop_item_scope.NOT_APPLICABLE).
-NOT_APPLICABLE = "Not applicable to this item"
 # Files the engine keeps beside a run (shiploop_workspace.MANIFEST, RETURN_PLAN, RETURN_RECEIPT): script-owned, and named in a
 # command that has changed directory first, so they are matched by their name.
 WORKSPACE_FILES = ("return-plan.md", "return-receipt.md", "workspace.md")
@@ -272,7 +270,7 @@ def evidence(run_dir: Path | None, state: dict, declared: dict | None) -> dict:
         summary = str((entry or {}).get("summary") or item.get("summary") or "")
         if entry is None:
             klass = "unclassified"
-        elif summary.startswith(NOT_APPLICABLE):
+        elif summary.startswith(metrics.NOT_APPLICABLE):
             klass = "skipped"
         elif set(SCRIPT_KINDS) & set(records):
             klass = "script"
@@ -407,7 +405,7 @@ def stage_of(event, stamps: dict, labels: list, windows: list):
     if t is None:
         return None
     for label, window in zip(labels, windows):
-        if window is not None and window[0] < t <= window[1]:
+        if window is not None and metrics.within(t, window[0], window[1]):
             return label
     return None
 
