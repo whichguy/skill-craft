@@ -405,6 +405,23 @@ def engine_state(run_dir: Path | None) -> dict:
     return value if isinstance(value, dict) else {}
 
 
+def engine_position(run_dir: Path | None) -> dict | None:
+    """Where the ledger stands: ``{status, stage, revision, accepted, last_accepted}``, or None when the run has no state.
+
+    ``accepted`` is the length of the append-only history and ``last_accepted`` its newest entry's stage and action (None
+    while nothing is accepted). The harness records it at the end of every host session (sessions.jsonl), so the
+    engine's position at the moment a session ended is a fact of the record and not a reading made afterwards.
+    """
+    state = engine_state(run_dir)
+    if not state:
+        return None
+    history = state.get("history") if isinstance(state.get("history"), list) else []
+    last = history[-1] if history and isinstance(history[-1], dict) else None
+    return {"status": state.get("status"), "stage": current_stage(state), "revision": state.get("revision"),
+            "accepted": len(history),
+            "last_accepted": None if last is None else {"stage": last.get("stage"), "action": last.get("action")}}
+
+
 NOT_RECORDED = "not recorded"
 
 

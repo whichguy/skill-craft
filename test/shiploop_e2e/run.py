@@ -109,6 +109,7 @@ sys.path.insert(0, str(HERE))
 import hosts  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
+import sessionlog  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_chain_ledger as chain_ledger  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -417,6 +418,26 @@ def keep_awake(argv: list[str]) -> list[str]:
     return [caffeinate, "-d", "-i", *argv] if caffeinate else argv
 
 
+def events_line_count(events_path: Path, repair: bool = True) -> int:
+    """The lines events.jsonl already holds: the number of the next session's first event, in the file and in the runner's
+    timeline. A session killed mid-write leaves a last line without its newline, which the next session's first event
+    would join (one unparsable line instead of two events, and every later number off by one), so ``repair`` ends the
+    line first. The one count: the start and end rows of sessions.jsonl and ``launch`` all call it."""
+    if not events_path.is_file():
+        return 0
+    lines, last = 0, b"\n"
+    with events_path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            lines += chunk.count(b"\n")
+            last = chunk[-1:]
+    if last != b"\n":  # a last line with no newline is a line too
+        lines += 1
+        if repair:
+            with events_path.open("ab") as handle:
+                handle.write(b"\n")
+    return lines
+
+
 def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watch: bool,
            first: bool = True, fresh: bool = True, translate=None, stop_when=None, stop_file: Path | None = None) -> dict:
     """Run one host session. `stop_when`, polled every POLL_SECONDS, kills the session (status "interrupted").
@@ -444,11 +465,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     mode = "wb" if first else "ab"  # a resumed session appends to the same streams
     stop = None
     events_path = out / "events.jsonl"
-    if first:
-        line = 0
-    else:
-        with events_path.open("rb") as existing:
-            line = sum(1 for _ in existing)
+    line = 0 if first else events_line_count(events_path)
     argv = keep_awake(argv)
     with events_path.open(mode) as events, (out / "stderr.txt").open(mode) as stderr, \
             (out / "timeline.jsonl").open("w" if first else "a") as stamps:
@@ -610,6 +627,12 @@ def resume_prompt(run_dir: str | None, cli: Path) -> str:
     return ("This session ended while the ShipLoop run was still active. Continue it now: run "
             f"`python3 \"{cli}\" next --run-dir \"{run_dir}\"` and follow the packet it prints, to the end of the "
             "run. Never end the turn while a ShipLoop command is still running.")
+
+
+def resume_told(run_dir: str | None, cli: Path) -> dict | None:
+    """What ``resume_prompt`` names, as values: the CLI and the run directory (None where the prompt names no recovery command).
+    The Claude host passes its prompt in ``-p`` and keeps no prompt file, so sessions.jsonl stores these."""
+    return None if run_dir is None else {"cli": str(cli), "run_dir": run_dir}
 
 
 def resume_command(out: Path, args) -> str:
@@ -1685,8 +1708,22 @@ def _main(argv: list[str] | None, held: list) -> int:
         stop_file.unlink(missing_ok=True)  # an earlier invocation's request must not stop this one; only the harness holding the case owns it
     left_behind: list = []  # what each reap pass of this invocation found (see listeners.py)
 
-    def session(*launch_args, **launch_kw) -> dict:
-        done = launch(*launch_args, **launch_kw)
+    def session(*launch_args, kind: str, reason: str, told: dict | None = None, resumed_session: str | None = None,
+                **launch_kw) -> dict:
+        """One host launch, bracketed in sessions.jsonl: the start row before the host runs (a harness that dies keeps the
+        boundary), the end row after it, with the ledger as it stands at that moment (also when the launch raises)."""
+        events_path = out / "events.jsonl"
+        row = sessionlog.start(out, kind=kind, reason=reason, host=host.name, model=args.model, told=told,
+                               events_line=0 if launch_kw.get("first", True) else events_line_count(events_path),
+                               resumed_session=resumed_session)
+        done = None
+        try:
+            done = launch(*launch_args, **launch_kw)
+        finally:
+            running = grade_shiploop(out)
+            sessionlog.end(out, row, events_line=events_line_count(events_path, repair=False), status=(done or {}).get("status", "crashed"),
+                           returncode=(done or {}).get("returncode"),
+                           engine=metrics.engine_position(Path(running["run_dir"]) if running.get("run_dir") else None))
         left_behind.append(done.pop("left_behind", None))  # a run's one record is built below, not repeated per session
         return done
 
@@ -1794,7 +1831,9 @@ def _main(argv: list[str] | None, held: list) -> int:
         process = session(cli, work, out, env, args.timeout, watch=not args.quiet,
                          fresh=follow_on is None and seeded is None,
                          first=resumed is None, translate=host.translator(), stop_when=stop_when,
-                         stop_file=stop_file)
+                         stop_file=stop_file, kind="first" if resumed is None else "fresh",
+                         reason="start" if resumed is None else "resume-run",
+                         told=resume_told(resumed["run_dir"], the_cli) if resumed else None)
     sessions = [] if regrade else [dict(process, resumed=None, host=host.name)]  # a regrade launched no session
     if process["status"] == "interrupted":
         state = grade_shiploop(out)
@@ -1809,7 +1848,8 @@ def _main(argv: list[str] | None, held: list) -> int:
                          effort=args.effort, permission_mode=args.permission_mode, max_turns=args.max_turns,
                          max_budget_usd=args.max_budget_usd, plugin_dir=None if host.marketplace else plugin_dir)
         process = session(argv, work, out, env, max(60, int(deadline - time.time())), watch=not args.quiet,
-                         first=False, translate=host.translator(), stop_file=stop_file)
+                         first=False, translate=host.translator(), stop_file=stop_file,
+                         kind="fresh", reason="after-interrupt", told=resume_told(state.get("run_dir"), the_cli))
         sessions.append(dict(process, resumed="after-interrupt", host=host.name))
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session (bounded) instead of losing the run.
@@ -1845,7 +1885,8 @@ def _main(argv: list[str] | None, held: list) -> int:
                          effort=args.effort, permission_mode=args.permission_mode,
                          max_turns=args.max_turns, resume=session_id)
         process = session(argv, work, out, env, remaining, watch=not args.quiet, first=False,
-                         translate=host.translator(), stop_file=stop_file)
+                         translate=host.translator(), stop_file=stop_file, kind="continued", reason="resume-loop",
+                         told=resume_told(state.get("run_dir"), the_cli), resumed_session=session_id)
         sessions.append(dict(process, resumed=session_id, host=host.name))
         stop_seen = process["status"] == "stopped"
     if resume_stop is None and host.resumable:
