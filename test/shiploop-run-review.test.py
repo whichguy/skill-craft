@@ -4664,6 +4664,54 @@ class RoundRunFindingsTests(unittest.TestCase):
         self.assertIn(f"{proposed['S-14'][0]} P7 Add a criterion for S-14: unattended by default: target page. Now: {{", text)
         self.assertIn(" Was: (not recorded) Why: ", text)
 
+    def test_the_two_round_3_reviews_ground_every_basis_line_and_derive_the_chips_they_describe(self):
+        findings = [{"id": i, **d} for docs in self.bundles.values() for i, d in (docs.get("observations") or {}).items()]
+        criteria = [k for k, e in self.defaults.items() if e["kind"] == "criterion"]
+        expected = {"r3-battleship-sonnet": {"P1": "holds", "P2": "holds", "P3": "bent", "P4": "holds", "P5": "broken",
+                                             "P6": "unexamined", "B1": "unexamined", "B2": "bent", "B3": "unexamined",
+                                             "B4": "unexamined", "B5": "unexamined"},
+                    "r3-battleship-grok-none": {"P1": "holds", "P2": "holds", "P3": "unexamined", "P4": "holds", "P5": "broken",
+                                                "P6": "broken", "B1": "unexamined", "B2": "bent", "B3": "unexamined",
+                                                "B4": "unexamined", "B5": "unexamined"}}
+        for key, chips in expected.items():
+            with self.subTest(run=key):
+                name = f"{key}.review.json"
+                self.assertIn(name, self.bundles)
+                self.assertEqual(sorted(self.bundles[name]), ["reviews"])  # its findings live in general.review.json
+                review = self.bundles[name]["reviews"][key]
+                self.assertTrue(3 <= len(review["summary"]) <= 6)
+                self.assertEqual(review["reviewedAt"], "2026-10-09T16:00:00Z")
+                out, err = io.StringIO(), io.StringIO()
+                with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    code = export.main(["--check", str(EVIDENCE_DIR / name)])
+                self.assertEqual((code, err.getvalue(), out.getvalue().strip()), (0, "", "check: ok (1 document, 0 failures, 0 warnings)"))
+                applying = {f["id"]: f for f in findings if key in (f.get("runs") or []) and f.get("status", "open") == "open"}
+                for criterion, line in review["basis"].items():
+                    mine = {fid: f for fid, f in applying.items() if f["criterion"] == criterion}
+                    if line.startswith("Holds"):
+                        self.assertEqual(mine, {}, criterion)
+                    else:
+                        cited = set(re.findall(r"\bo\d+\b", line))
+                        self.assertEqual(cited, set(mine), criterion)  # every open finding of the criterion, and only those
+                        for fid in cited:
+                            word = "Broken by" if mine[fid]["effect"] == "broken" else "Bent by"
+                            self.assertRegex(line, rf"(?i){word}[^.;]*\b{fid}\b", f"{criterion} {fid}")
+                    self.assertTrue(re.search(r"\b(?:o\d+|state\.md|metrics\.json|result\.json|run/backchain/|revision \d+)", line), criterion)
+                got = run_logic("(function(F,R){return %s.map(function(k){return chipFor(k,%s,F,R);});})(%s,%s)"
+                                % (json.dumps(criteria), json.dumps(key), json.dumps(findings), json.dumps(review)))
+                self.assertEqual(dict(zip(criteria, got)), chips)
+        runs, g3 = self.figures["runs"], self.figures["r3_grok"]
+        sonnet = self.bundles["r3-battleship-sonnet.review.json"]["reviews"]["r3-battleship-sonnet"]["summary"][0]
+        bs = runs["r3-battleship-sonnet"]
+        for fact in (f"in {bs['wall_min']} min", f"{bs['visits']} accepted visits", f"{bs['calls']} model calls", f"${bs['cost_usd']:.2f}",
+                     f"{bs['planning_window_min']} min ({bs['planning_window_seconds']:.0f} s)"):
+            self.assertIn(fact, sonnet)
+        grok = " ".join(self.bundles["r3-battleship-grok-none.review.json"]["reviews"]["r3-battleship-grok-none"]["summary"])
+        for fact in ("STOPPED", f"{g3['accepted_visits']} accepted visits", f"{g3['open_implement_min']} unaccepted minutes",
+                     f"{g3['resumed_session_min']} minutes", f"{g3['first_browser_line_second']} s in", "Grok host"):
+            self.assertIn(fact, grok)
+        self.assertEqual((g3["stop"], g3["earlier_stop"], g3["last_accepted_stage"]), ("stopped", ["terminated by SIGTERM"], "implement"))
+
 
 # ---------------------------------------------------------------- R20a: the stage catalog, the card fields and the stage card
 

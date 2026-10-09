@@ -1812,3 +1812,86 @@ through the alias and the old-layout mark); re-exporting them only adds the R20a
 real new-layout run exists and commit that one. (2) The E2E session needs a `changes/shiploop-e2e-audit` note (or a trailer) for `bf958708`
 before its branch passes the release-boundary check. (3) Upload: `config/stages` first (the new name), then each run's `runs` document; never
 the synthetic run to the live page; the Improve packet documents add one document per reviewed visit of any new-layout run.
+
+## 2026-10-09: R22c, the findings layer for the runs of 2026-10-07 and 2026-10-08 (local, unpublished)
+
+Status: firm for every status, number and commit below (each checked against git log of origin/main, the release commits, the
+committed analyses or the run folders through a committed extract); interim where a line says `Inferred:`. Local commits on branch
+`rr22c-eed87d` (worktree `.claude/worktrees/rr22c-eed87d`, from origin/main `1854938b`, rebased onto `923a3bd6` before the first commit):
+`04874306` (findings and options), `c258c19d` (stale Luna statements), `078ea087` (expectation-change options) and this entry with the
+two run reviews. No push, no `scripts/release.py`, no E2E run, no Artifact or ArtifactData call, nothing written under
+`/Users/dadleet/e2e-runs`; the exporter, SCHEMA.md, SKILL.md and the template are untouched (R22a/R22b own them in another worktree).
+Every commit passes `scripts/check-release-boundary.py --base origin/main` with a `No-Change-Note` trailer (no skill file changed).
+
+**Sources.** The synthesis objects only (never the lens `reports`): `docs/experiments/batch-1009-round1-analysis-20261008/analysis.json`
+(round 1 candidates), `batch-1010-round2-round3-analysis-20261008/round2-analysis.json` (batch-3 scorecard, cost finding, candidates,
+round-1 status) and `round3-analysis.json` (batch-4 scorecard, loop-done check, R3-1 to R3-11, remaining known limits);
+`test/shiploop_e2e/LEARNINGS.md` 'Round 1', 'Rounds 2 and 3' and 'Correction of 2026-10-09' (`923a3bd6`). The run folders were read
+through `docs/experiments/run-review-r22c-20261009/collect.py`, which writes `figures.json` (planning blocks, graph-check receipts, skipped
+skill visits, narrative counts, r2's host split, r3's open visit, a replay of the credential screen on the submitted lines, and a read-only
+re-collect of the Luna run); the tests read that file, never the run folders. Page keys are the folder names.
+
+**What the bundles hold now.** `general.review.json`: findings o45 to o80 (36: 19 open, 13 fixed, 4 accepted; of the open, 5 broken,
+13 bent, 1 not rated on purpose, o68), options a27 to a91 (65: fix-shiploop 26, accept 20, gather-evidence 7, fix-harness 6,
+change-expectation 6; open 43, done 20, built 2; 17 recommended, at most one per finding), 10 figures. `r3-battleship-sonnet.review.json`
+and `r3-battleship-grok-none.review.json`: one review each (a five-line arc; basis lines for P1, P2, P3, P4, P5 and B2, and P1, P2, P4,
+P5, P6 and B2, each citing the run's record or an open finding). Derived chips: Sonnet P1, P2, P4 hold, P3 and B2 bent, P5 broken; Grok
+P1, P2, P4 hold, B2 bent, P5 and P6 broken; the rest not examined (no Backchain loop ran, so B1, B3 to B5 have no basis). Every
+bundle passes `export.py --check` with exit 0; the only warning in any new document is o68 (the owner's choice, never exercised).
+`luna1.review.json`: o34 and o40 fixed, a21 and a17 done, a23 built, o41 and a09 marked, each with a dated mark after the old text.
+
+**Statuses verified, and where they differ from the brief.** Fixed since 1.23.0 and verified in a later round (each a done option with the
+commit): A2 (`62b6ac89`, `6049ae17`, 1.26.0), A3 with N1 (`1b9918ab`, `bd3785cb`; `4fc3b3b8`), A5 (`53ab8b78`; its refusal never fired),
+A6 (`f1329599`, `ab01b29a`; the launch refusal never fired), H1 (`c7a8187d` to `4e656d23`), R1 (`e39160ae`, `3bac0b19`, `55bee172`),
+R2 (`8eb93c21`), U1 (`b3a8e3f1`), S1 (`84d4d9da`), K1 (`3a7bc9f4`), B1a (`0d7a35dd`), W1 (`2b2f4513`), I2 (`1f5006e7`), BC1's packet
+text (`4c2a8a98`, `cc705b9d`). Built but never exercised live, so their findings stay open: A1 (`178b514c`), F1 (`e4435c85`). Open on
+origin/main: R3-1 to R3-5 (the stage-spec and navigator strings are unchanged since `200c32ce`). Luna review: a21's Done when was checked
+today (13 failures, 0 generic tails, 13 own lines on a re-collect with this checkout's harness), so a21 is done, not built; a17 is done
+(1.21.0, and the one-pass loop was seen live on Luna xhigh 1.21.0), the brief said shipped; a09's live republish is **unknown** (journal
+entries R16 to R21 each leave the template republish to the owner, and this increment made no Artifact call).
+
+**Where the evidence disagreed with a stated claim.** (1) X1: the audit inferred that CSS hex colours trip the credential screen. The replay
+says no: r3's refused line carries 7 hex colours and is flagged only for "Signature: the grid reads as an instrument" (`_KEY_VALUE_SECRET`
+matches "Signature: the"); without the label it passes, and r2's flagged line has no hex colour. Inferred: the label comes from the Grok
+host's frontend-design guidance that r2's spec cites. (2) "35 minutes of Chrome debugging inside implement" (LEARNINGS 'Rounds 2 and 3' and
+the round evidence) is the resumed session's length (2114.2 s); the open implement visit is 27.1 min (1626.6 s, 104 turns) and browser work
+began 490 s into the session, when that visit opened. (3) The round evidence's `planning_minutes` is a second definition: for round 1 it is
+the harness's stage seconds from intake to prepare (1,308 s for Grok, 268 s for Sonnet Battleship); metrics.json's planning window runs to the
+first accepted test-spec on the engine clock (Grok 23.3, 15.7, 23.2 min; Sonnet 4.8 to 7.0). Filed as o70 for the E2E session. (4) The brief's
+Sonnet 4.9 for r3 Battleship is 291 s; the harness prints 4.8, and so does the bundle. (5) r2-battleship-grok-none is mixed host (the E2E
+session's correction, `923a3bd6`): Grok accepted visits 1 to 31 (9 to 31 with no harness after the first harness ended at 855 s), Claude
+Sonnet 5.5 accepted 32 to 52 from 01:06:43Z, 32.2 minutes after the harness ended; its planning window (visits 1 to 10) is Grok's on the
+engine clock, its tokens and cost are not.
+
+**The three LEARNINGS corrections and the page's own claims.** A grep of every committed review bundle, the page snapshot, the template,
+the defaults, SKILL.md, SCHEMA.md, the advice rubric and this journal for "asleep", "caffeinate", "SIGTERM", "pkill", "plugin-dir",
+"about:blank", "Chrome" and "display" found none of the three corrected claims (every "display" is CSS or a display name). So no page claim
+needed a superseded finding; the corrections appear as engine or harness findings: the SIGTERM cause in o47, the resume line without
+`--plugin-dir` in o74 (unfixed on origin/main: `resume_command` adds it only when the command line gave one), and the withdrawn
+explanation is stated nowhere (a test holds it so, on its precise phrases). The Chrome findings say "Grok host".
+
+**Not included, on purpose.** What the synthesizer dropped (round-1 X1 as stated, B7, B8, R3-11); round-1 P1, D1, D2, R3 and S2 (did not
+recur or are folded into a later candidate); the document-only R3-8, R3-9, R3-10, B3, B6, B10, L1 and U2, except where they explain a kept
+finding. v1230-battleship-sonnet has no review (the E2E session regraded it; it appears only in figures.json).
+
+**Not verified.** That r3-checkers-sonnet's release-verify default-port answer came from another listener (the round-3 analysis infers it;
+o47 says so); the source of the 'Signature:' label (inferred); whether the live page shows the v2 exports (a09); the cause of the Grok host's
+Chrome failure (unproven; o71's first option is the probe that would settle it).
+
+**Tests.** `test/shiploop-run-review.test.py`: 375 tests OK (363 at `923a3bd6`). New, in one block after the bundle classes,
+`RoundRunFindingsTests` (12): every bundle passes `--check` and warns only on o68; ids unique across bundles and continuous from o45 and
+a27; every `runs` key is a run folder and every criterion a default key (or a key the option proposes); fixed findings cite their commit
+in a done option and every done or built option has a ref; no bundle states the withdrawn explanation and the Chrome findings name the
+Grok host; the figures equal the analyses' and the extract's numbers; the credential finding names the trigger the screen's replay shows;
+a prompt for two new options (and each live option alone, and the first two page changes) stays within the size contract and names no
+unticked option; the stale Luna statements carry their marks and evidence; the phase changes keep the current text and the owner's
+sentence; the new criteria validate as expectations documents in the SPEC's words for clauses no criterion carries; the two reviews ground
+every basis line and derive the chips above. Changed, to follow the data: three `GeneralReviewBundleTests` assertions (the bundle is no
+longer two documents) and the `LunaReviewTests` warning list (o34 no longer open). Fail first: on a `git archive` of `923a3bd6` with only
+the test file and the extract copied in, all 12 new tests fail (10 failures and 4 errors across 12 tests and 2 subtests: the new bundles
+and marks are absent there).
+
+**Open for the owner.** Tick or drop: a87 (phase-2, keeping "there is no limit to this"), a88 (phase-4), a89 to a91 (P7 for S-14, which
+shares its key with the Luna review's open S-14 option: tick one; P8 for S-15; P9 for S-3), and a65 (a SPEC carve-out for the refused-run
+cap, only if the cap stays). The E2E session's items: a75 and a77 (resume host and plugin directory), a68 (one planning figure per run),
+the X1 decision (a79 recommended), and the round-3 text batch (a27, a29, a31, a34, a37). Publishing needs the R22a/R22b exporter first.
