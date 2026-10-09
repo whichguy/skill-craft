@@ -68,6 +68,10 @@ the listeners the harness ended, whether the unreturned product passes its check
 Each visit also carries the checks ShipLoop recorded for it (`verify`, read from `tests/<action>-verifyN.md`) and the outcomes its
 result left unverified; the run carries the planning window and, for a Claude run, its wrapper scripts and packet use (read from
 `metrics.json`, never recomputed); a stage that only ran `backchain-check` is a graph-check Backchain document, not no loop.
+The run document also records what losing context cost and what the run delivered: `freshStarts` (each compaction or new host session, with the calls
+and seconds the model took to re-ground and the harness's lower bounds for failures and rewrites; absent, with the reason in `unmeasured.freshStarts`,
+for a run that could not record them, never an empty list) and `quality` (the mutation ratio with its operator, the survivors, the held-out checks and
+the writes to the model's own memory; absent when the case measures none). See "Fresh starts" and "Quality" in [SCHEMA.md](SCHEMA.md).
 
 ## advise RUN_DIR_OR_KEY
 

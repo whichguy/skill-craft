@@ -150,6 +150,8 @@ def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = 
         "model_calls": 120, "window_tokens": 1_000_000, "tokens": {"input_peak": 250_000}, "compactions": 0,
         # what the harness writes today: no tool_use for a host it does not read it from, and the planning block (R22b)
         "tool_use": None, "planning": PLANNING_BLOCK,
+        # R23c: the fresh contexts the run had, none, with nothing unmeasured about them
+        "fresh_starts": [], "fresh_starts_unmeasured": None,
         **(metrics or {})})
     if loops:
         make_plan_loop(run / "scratch" / "backchain-plan")
@@ -7225,6 +7227,546 @@ class VisitContextFollowsRowsTests(unittest.TestCase):
         self.assertEqual([row[7] for row in table["rows"]], ["63,417 tokens", "9%", "not measured"])
         detail = page_probe('textOf("seqdetail")', setup=ended_page(dict(DONE_RUN, stages=rows)) + "setCol(2);")
         self.assertIn("Context (main thread)not measured for this visit: no model call was measured in its stage window", detail)
+
+
+def r23c_example(name: str):
+    """A deep copy of one full-length example the harness's batch 1011 produced (figures.json `examples`)."""
+    return copy.deepcopy(R23C_FIGURES["examples"][name])
+
+
+def r23c_saved(name: str) -> dict:
+    """A deep copy of one saved run's frozen record blocks (figures.json `savedRuns`)."""
+    return copy.deepcopy(R23C_FIGURES["savedRuns"][name])
+
+
+class FreshStartsExportTests(unittest.TestCase):
+    """R23c: the cost of losing context. metrics.json fresh_starts becomes `freshStarts`, the visit that followed a start is
+    marked, and fresh_starts_unmeasured goes into `unmeasured` so a run that could not record them never reads "none"."""
+
+    KEY = RunReviewTest.KEY
+    SCOPE = "the window's own calls only: a ShipLoop command run through a script written in an earlier session is not seen"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, starts, note=None, **metrics) -> tuple[dict, list[str]]:
+        out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False,
+                       metrics={"fresh_starts": starts, "fresh_starts_unmeasured": note, **metrics})
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def measured_start(self, stage="test-strategy"):
+        """The first start of r3-battleship-grok-none (measured), its accepted action pointed at a visit of the fixture."""
+        start = r23c_example("freshStartsR3GrokMeasured")[0]
+        start["reorientation"]["accepted"] = {"stage": stage, "action": IDS[stage]}
+        start["stage_in_flight"] = stage
+        return start
+
+    def test_a_measured_start_keeps_its_counts_and_the_bounds_the_harness_gave_and_drops_the_rest(self):
+        run, _ = self.build([self.measured_start()])
+        self.assertEqual(run["freshStarts"], [{
+            "kind": "compaction", "host": "grok", "stage": "test-strategy",
+            "reoriented": {"measured": True, "toolCalls": 29, "seconds": 326.7, "firstGrounding": "packet", "callsBeforeGrounding": 0,
+                           "nextCalls": 0, "askedUser": 0,
+                           "failures": {"count": 0, "bound": "lower", "scope": self.SCOPE},
+                           "rewrote": {"count": 0, "bound": "lower", "scope": "none seen by file-edit tools"},
+                           "accepted": {"stage": "test-strategy", "action": IDS["test-strategy"]}}}])
+        text = json.dumps(run["freshStarts"])
+        for dropped in ("events_line", "seconds_to_accept_stamp", "recovery", "first_next", "revision_seen", "1791527512"):
+            self.assertNotIn(dropped, text)
+        self.assertNotIn("freshStarts", run["unmeasured"])  # nothing unmeasured: the list is complete
+
+    def test_a_failure_the_window_made_is_counted_and_still_called_a_lower_bound(self):
+        saved = r23c_saved("20261007/v1230-battleship-grok-none")["metrics"]["fresh_starts"]
+        starts = [s for s in saved if s["reorientation"]["measured"]]
+        run, _ = self.build(starts)
+        figures = [s["reoriented"] for s in run["freshStarts"]]
+        self.assertEqual([f["toolCalls"] for f in figures], [54, 16, 4, 20, 46])  # v1230-battleship-grok-none, five measured compactions
+        self.assertEqual([f["failures"]["count"] for f in figures], [0, 0, 0, 0, 1])
+        self.assertEqual([f["firstGrounding"] for f in figures], ["packet", "packet", "other", "packet", "packet"])
+        self.assertEqual({f["failures"]["bound"] for f in figures} | {f["rewrote"]["bound"] for f in figures}, {"lower"})
+        self.assertEqual([s["stage"] for s in run["freshStarts"]], ["plan", "test-author", "step-plan", "test-green", "carry-forward"])
+
+    def test_a_start_the_harness_could_not_measure_carries_its_reason_and_no_figure(self):
+        mixed = r23c_example("freshStartsR2MixedHost")  # a start whose window may span two sessions
+        self.assertEqual(mixed[0]["reorientation"]["calls_before_grounding"], 0)  # the block holds a count of its own: it is not exported
+        run, _ = self.build(mixed + [r23c_example("freshStartsR3GrokMeasured")[1]])
+        first, second = run["freshStarts"]
+        self.assertEqual(first, {"kind": "compaction", "host": "grok", "reoriented": {
+            "measured": False, "reason": "session bounds not recorded: a host system event at line 2704 before the next accepted action, "
+                                         "so this window may span two sessions"}})
+        self.assertEqual(second["reoriented"], {"measured": False, "reason": "the ledger accepted no action after this start"})
+        self.assertNotIn("stage", second)  # no stage was in flight that the records name
+
+    def test_the_visit_that_followed_a_fresh_start_carries_a_small_marker(self):
+        run, _ = self.build([self.measured_start("test-strategy"), r23c_example("freshStartsR3GrokMeasured")[1]])
+        marked = [row for row in run["stages"] if "freshStart" in row]
+        self.assertEqual([row["stage"] for row in marked], ["test-strategy"])
+        self.assertEqual(marked[0]["freshStart"], {"kind": "compaction", "toolCalls": 29, "seconds": 326.7})
+        elsewhere = self.measured_start()
+        elsewhere["reorientation"]["accepted"]["action"] = "nav-not-a-visit-of-this-run"
+        self.assertTrue(all("freshStart" not in row for row in self.build([elsewhere])[0]["stages"]))
+        twice = self.build([self.measured_start(), self.measured_start()])[0]  # two compactions inside one stage wait for one accept
+        self.assertEqual(len(twice["freshStarts"]), 2)
+        self.assertEqual(sum("freshStart" in row for row in twice["stages"]), 1)
+
+    def test_a_session_start_says_why_it_began(self):
+        start = self.measured_start()
+        start.update(kind="fresh", n=2, reason="resume-run", host="claude")
+        row = self.build([start])[0]["freshStarts"][0]
+        self.assertEqual((row["kind"], row["host"], row["startedBy"]), ("fresh", "claude", "resume-run"))
+        self.assertNotIn("startedBy", self.build([self.measured_start()])[0]["freshStarts"][0])  # a compaction has none
+
+    def test_an_empty_list_is_a_measured_none_only_when_nothing_is_unmeasured(self):
+        none, facts = self.build([])
+        self.assertEqual(none["freshStarts"], [])
+        self.assertNotIn("freshStarts", none["unmeasured"])
+        self.assertIn("- Fresh starts: none recorded", "\n".join(facts))
+        for name in ("20261008/r1-battleship-sonnet", "20261008/r2-checkers-sonnet", "20261008/r3-battleship-sonnet"):
+            with self.subTest(saved=name):  # these runs have no sessions.jsonl and no compaction signal: [] means unknown
+                blocks = r23c_saved(name)["metrics"]
+                self.assertEqual(blocks["fresh_starts"], [])
+                run, lines = self.build(blocks["fresh_starts"], blocks["fresh_starts_unmeasured"])
+                self.assertNotIn("freshStarts", run)  # absent, never an empty list that reads "no fresh starts"
+                self.assertEqual(run["unmeasured"]["freshStarts"], blocks["fresh_starts_unmeasured"])
+                line = next(l for l in lines if l.startswith("- Fresh starts"))
+                self.assertTrue(line.startswith("- Fresh starts: not measured ("), line)
+                self.assertNotIn("none", line)
+
+    def test_a_partial_list_keeps_what_it_has_and_says_what_is_missing(self):
+        blocks = r23c_saved("20261008/r3-battleship-grok-none")["metrics"]
+        run, lines = self.build(blocks["fresh_starts"], blocks["fresh_starts_unmeasured"])
+        self.assertEqual(len(run["freshStarts"]), 2)
+        self.assertEqual(run["unmeasured"]["freshStarts"], blocks["fresh_starts_unmeasured"])
+        self.assertIn("only its compactions are listed", run["unmeasured"]["freshStarts"])
+        line = next(l for l in lines if l.startswith("- Fresh starts"))
+        self.assertIn("compaction at test-strategy: re-grounded in 29 calls, 327 s, from the packet", line)
+        self.assertIn("compaction: not measured (the ledger accepted no action after this start)", line)
+        self.assertIn("not complete: not recorded: this run has no sessions.jsonl", line)
+
+    def test_a_metrics_file_from_before_the_record_says_so_instead_of_reading_none(self):
+        out = make_run(self.tmp, loops=False)
+        edit_json(out / "metrics.json", lambda m: (m.pop("fresh_starts", None), m.pop("fresh_starts_unmeasured", None)))
+        run = export.build_run(out)[0]["runs"][self.KEY]
+        self.assertNotIn("freshStarts", run)
+        self.assertIn("metrics.json has no fresh_starts record", run["unmeasured"]["freshStarts"])
+
+    def test_the_list_and_every_text_are_capped(self):
+        many = [self.measured_start() for _ in range(export.MAX_FRESH_STARTS + 4)]
+        many[0]["reorientation"]["failures"]["scope"] = "S" * 5000
+        run, _ = self.build(many)
+        self.assertEqual(len(run["freshStarts"]), export.MAX_FRESH_STARTS)
+        self.assertEqual(len(run["freshStarts"][0]["reoriented"]["failures"]["scope"]), export.MAX_FRESH_TEXT)
+        self.assertIn(f"the list shows the first {export.MAX_FRESH_STARTS} of {export.MAX_FRESH_STARTS + 4} fresh starts",
+                      run["unmeasured"]["freshStarts"])
+        long_reason = self.build([{"kind": "compaction", "host": "grok", "reorientation": {"measured": False, "reason": "R" * 5000}}])[0]
+        self.assertEqual(len(long_reason["freshStarts"][0]["reoriented"]["reason"]), export.MAX_FRESH_TEXT)
+
+    def test_every_saved_run_exports_its_fresh_starts_to_a_valid_document(self):
+        base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
+        for name, saved in R23C_FIGURES["savedRuns"].items():
+            with self.subTest(saved=name):
+                starts, why = export.fresh_starts_of(saved["metrics"])
+                self.assertEqual(export.validate_doc("runs", {**base, **({} if starts is None else {"freshStarts": starts})}), [])
+                self.assertEqual(len(starts or []), len(saved["metrics"]["fresh_starts"]) if starts is not None else 0)
+                self.assertEqual(why, saved["metrics"]["fresh_starts_unmeasured"])  # every saved run predates sessions.jsonl
+
+    def test_a_malformed_record_is_never_read_as_a_measurement(self):
+        base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
+        starts, _ = export.fresh_starts_of({"fresh_starts": [
+            {"host": "grok", "reorientation": {"measured": True}},  # no kind: dropped
+            {"kind": "compaction", "host": "grok"},  # no reorientation record at all
+            {"kind": "compaction", "reorientation": {"measured": True, "tool_calls": 3, "seconds": "x", "failures": {"items": [], "bound": "lower"}}}],
+            "fresh_starts_unmeasured": None})
+        self.assertEqual(len(starts), 2)
+        self.assertIn("1 of 3 entries of metrics.json fresh_starts could not be read", _)  # the one without a kind is counted, not silent
+        self.assertEqual(starts[0]["reoriented"], {"measured": False, "reason": "metrics.json holds no reorientation record for this start"})
+        self.assertEqual(starts[1]["reoriented"], {"measured": True, "toolCalls": 3})  # seconds is not a number; failures lacks its scope
+        self.assertEqual(export.validate_doc("runs", {**base, "freshStarts": starts}), [])
+
+    def test_the_contract_requires_a_kind_and_a_measured_flag_and_a_lower_bound_names_its_scope(self):
+        base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
+        self.assertEqual(export.validate_doc("runs", {**base, "freshStarts": []}), [])
+        problems = "\n".join(export.validate_doc("runs", {**base, "freshStarts": [{"reoriented": {"measured": True}}]}))
+        self.assertIn("freshStarts[0]: missing required field 'kind'", problems)
+        problems = "\n".join(export.validate_doc("runs", {**base, "freshStarts": [{"kind": "fresh", "reoriented": {
+            "measured": True, "failures": {"count": 1}}}]}))
+        self.assertIn("missing required field 'bound'", problems)
+        self.assertIn("missing required field 'scope'", problems)
+        self.assertIn("freshStart", export.SCHEMA["runs"]["stages"][0][1])
+        row = {"stage": "plan", "outcome": "done", "freshStart": {"kind": "compaction", "toolCalls": 3, "seconds": 2.5}}
+        self.assertEqual(export.validate_doc("runs", {**base, "stages": [row]}), [])
+        self.assertIn("missing required field 'kind'", "\n".join(export.validate_doc("runs", {**base, "stages": [dict(row, freshStart={})]})))
+
+    def test_schema_md_documents_the_fresh_start_fields_and_their_rules(self):
+        text = " ".join(SCHEMA_MD.read_text().split())
+        for phrase in ("`freshStarts`", "`freshStarts[].reoriented.measured`", "`stages[].freshStart`", "`freshStarts[].startedBy`",
+                       "`failures` and `rewrote` are lower bounds", "print `bound` and `scope` beside the numbers",
+                       "An empty list with `unmeasured.freshStarts` is unknown, never \"no fresh starts\"",
+                       "A start that was not measured has no count", "When two starts wait for the same accepted action",
+                       "An empty `freshStarts` is a measured none only when `unmeasured.freshStarts` is absent"):
+            self.assertIn(phrase, text, phrase)
+
+
+def r23c_export(root: Path, metrics: dict, result: dict | None = None) -> dict:
+    """The run document the exporter writes for the fixture run with these metrics.json keys (and result.json keys) overlaid."""
+    out = make_run(root, loops=False, metrics=metrics)
+    if result:
+        edit_json(out / "result.json", lambda record: record.update(result))
+    run = export.build_run(out)[0]["runs"][RunReviewTest.KEY]
+    assert export.validate_doc("runs", run) == []
+    return run
+
+
+class FreshStartsPageTests(unittest.TestCase):
+    """R23c: the "Fresh starts" card and the marker at the visit that followed a start. freshStartsModel is pure; the page draws it."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def run_with(self, starts, note=None) -> dict:
+        return r23c_export(Path(tempfile.mkdtemp(dir=self.tmp)), {"fresh_starts": starts, "fresh_starts_unmeasured": note})
+
+    def two_starts(self) -> list[dict]:
+        first, second = r23c_example("freshStartsR3GrokMeasured")
+        first["reorientation"]["accepted"] = {"stage": "test-strategy", "action": IDS["test-strategy"]}
+        return [first, second]
+
+    def model(self, run: dict):
+        return run_logic("freshStartsModel(%s)" % json.dumps(run))
+
+    def test_a_run_that_says_nothing_about_fresh_starts_has_no_card_and_never_reads_none(self):
+        self.assertIsNone(run_logic("freshStartsModel({})"))
+        self.assertIsNone(run_logic("freshStartsModel(null)"))
+        hidden = page_probe('REG.freshcard.hidden', setup=ended_page(DONE_RUN))
+        self.assertTrue(hidden)
+
+    def test_a_run_whose_fresh_starts_were_not_recorded_says_not_measured_with_the_harness_reason(self):
+        blocks = r23c_saved("20261008/r1-battleship-sonnet")["metrics"]
+        run = self.run_with(blocks["fresh_starts"], blocks["fresh_starts_unmeasured"])
+        model = self.model(run)
+        self.assertEqual(model["rows"], [])
+        self.assertEqual(model["lead"], "Not measured: " + blocks["fresh_starts_unmeasured"])
+        text = page_probe('[REG.freshcard.hidden, textOf("freshcard")]', setup=ended_page(run))
+        self.assertFalse(text[0])
+        self.assertIn("Fresh starts", text[1])
+        self.assertIn("Not measured: not recorded: this run has no sessions.jsonl", text[1])
+        self.assertNotRegex(text[1], r"(?i)\bnone\b|no fresh start")
+
+    def test_a_measured_none_reads_none_recorded(self):
+        model = self.model(self.run_with([]))
+        self.assertEqual((model["lead"], model["rows"], model["note"]), ("None recorded.", [], ""))
+
+    def test_each_start_is_one_row_with_its_kind_stage_host_and_what_re_grounding_took(self):
+        run = self.run_with(self.two_starts())
+        model = self.model(run)
+        self.assertEqual(model["lead"], "2 fresh starts recorded.")
+        label, text = model["rows"][0]
+        self.assertEqual(label, "Compaction in Test strategy (grok)")
+        self.assertTrue(text.startswith("re-grounded in 29 calls, 327 s, from the packet. "), text)
+        # the lower bounds are printed with the harness's own scope text beside the numbers
+        self.assertIn("Failed ShipLoop commands: 0 (lower bound: the window's own calls only: a ShipLoop command run through a script "
+                      "written in an earlier session is not seen)", text)
+        self.assertIn("Files rewritten: 0 (lower bound: none seen by file-edit tools)", text)
+        self.assertIn("Asked a person: 0", text)
+        self.assertEqual(model["rows"][1], ["Compaction (grok)", "not measured: the ledger accepted no action after this start"])
+
+    def test_a_session_start_is_named_for_how_it_began_and_a_count_of_one_is_singular(self):
+        start = self.two_starts()[0]
+        start.update(kind="fresh", n=2, reason="resume-run", host="claude")
+        start["reorientation"].update(tool_calls=1, seconds=0.4)
+        model = self.model(self.run_with([start]))
+        self.assertEqual(model["lead"], "1 fresh start recorded.")
+        self.assertEqual(model["rows"][0][0], "New host session in Test strategy (claude), resume-run")
+        self.assertTrue(model["rows"][0][1].startswith("re-grounded in 1 call, 0 s, from the packet. "), model["rows"][0][1])
+
+    def test_a_partial_list_prints_why_it_is_not_complete(self):
+        blocks = r23c_saved("20261008/r3-battleship-grok-none")["metrics"]
+        model = self.model(self.run_with(blocks["fresh_starts"], blocks["fresh_starts_unmeasured"]))
+        self.assertEqual(model["note"], "Not complete: " + blocks["fresh_starts_unmeasured"])
+        card = page_probe('textOf("freshcard")', setup=ended_page(self.run_with(blocks["fresh_starts"], blocks["fresh_starts_unmeasured"])))
+        self.assertIn("Not complete: not recorded: this run has no sessions.jsonl", card)
+        self.assertIn("Compaction in Test strategy (grok)", card)
+
+    def test_the_first_grounding_is_worded_for_each_kind_and_an_unknown_one_is_shown_as_it_came(self):
+        for grounding, said in (("packet", "from the packet"), ("next", "with shiploop next"), ("other", "with another ShipLoop command"),
+                                ("improve-next", "with the Improve runtime's next"), ("future-kind", "first grounding future-kind")):
+            with self.subTest(grounding=grounding):
+                run = {"freshStarts": [{"kind": "compaction", "reoriented": {"measured": True, "toolCalls": 3, "seconds": 9.4, "firstGrounding": grounding}}]}
+                self.assertEqual(self.model(run)["rows"][0][1], "re-grounded in 3 calls, 9 s, " + said)
+
+    def test_a_count_the_start_lacks_is_not_printed_as_a_zero(self):
+        run = {"freshStarts": [{"kind": "compaction", "reoriented": {"measured": True, "rewrote": {"bound": "lower", "scope": "unknown: no earlier portion"}}}]}
+        text = self.model(run)["rows"][0][1]
+        self.assertEqual(text, "re-grounded. Files rewritten: not counted (lower bound: unknown: no earlier portion)")
+
+    def test_the_visit_that_followed_a_start_carries_a_chip_in_the_stage_cards_and_a_line_on_its_card(self):
+        run = self.run_with(self.two_starts())
+        setup = ended_page(run)
+        chips = page_probe('byClass("sclist","chip").map(function(c){return c.textContent;})', setup=setup)
+        self.assertEqual(chips.count("fresh start"), 1)
+        rows = page_probe('byClass("sclist","sc-row").map(function(r){return r.textContent;})', setup=setup)
+        marked = [r for r in rows if "fresh start" in r]
+        self.assertEqual(len(marked), 1)
+        self.assertIn("Test strategy", marked[0])
+        detail = page_probe('textOf("seqdetail")', setup=setup + "setCol(2);")
+        self.assertIn("Fresh startcompaction during this visit: re-grounded in 29 calls, 327 s before it was accepted", detail)
+        other = page_probe('textOf("seqdetail")', setup=setup + "setCol(1);")
+        self.assertNotIn("Fresh start", other)
+
+    def test_skill_md_says_what_the_run_document_now_records_about_lost_context_and_quality(self):
+        text = " ".join(SKILL_MD.read_text().split())
+        for phrase in ("`freshStarts`", "the calls and seconds the model took to re-ground", "never an empty list", "`unmeasured.freshStarts`",
+                       "`quality`", "the mutation ratio with its operator", "the writes to the model's own memory",
+                       "\"Fresh starts\" and \"Quality\" in [SCHEMA.md](SCHEMA.md)"):
+            self.assertIn(phrase, text, phrase)
+
+    def test_the_card_is_in_the_page_hidden_until_a_run_has_something_to_say(self):
+        html = TEMPLATE.read_text(encoding="utf-8")
+        self.assertRegex(html, r'<div class="card freshcard" id="freshcard" hidden></div>')
+        self.assertLess(html.index('id="plancard"'), html.index('id="freshcard"'))
+        self.assertLess(html.index('id="freshcard"'), html.index('id="seqcard"'))
+
+
+class QualityExportTests(unittest.TestCase):
+    """R23c: the delivered-quality block of result.json (mutation ratio, held-out checks, memory writes) as a small `quality` object.
+    The real block of r3-checkers-sonnet is ~21 KB; a reader needs the ratio with its operator, the survivors and the counts."""
+
+    HOME_PATH = ("/Users/dadleet/.claude/projects/-Users-dadleet-e2e-runs-20261008-r3-checkers-sonnet-work/memory/")
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def export(self, block, **metrics):
+        return r23c_export(Path(tempfile.mkdtemp(dir=self.tmp)), metrics, {"quality": block} if block is not None else None)
+
+    def test_the_real_block_becomes_a_small_object_with_the_operator_beside_the_ratio(self):
+        block = r23c_example("qualityBlockR3Checkers")
+        quality = self.export(block)["quality"]
+        mutation = quality["mutation"]
+        self.assertEqual({k: mutation[k] for k in ("observed", "operatorId", "ratio", "sites", "killed", "survived", "timeout", "invalid",
+                                                    "unconfirmed", "portRefused", "notRun", "ceilingHit", "seconds")},
+                         {"observed": True, "operatorId": "js-1", "ratio": 0.907, "sites": 86, "killed": 78, "survived": 8, "timeout": 1,
+                          "invalid": 0, "unconfirmed": 0, "portRefused": 2, "notRun": 0, "ceilingHit": False, "seconds": 71.9})
+        self.assertEqual(mutation["survivors"][:2], [{"file": "server.js", "line": 33, "op": "rel-bound", "from": ">", "to": ">="},
+                                                       {"file": "server.js", "line": 51, "op": "rel-bound", "from": ">=", "to": ">"}])
+        self.assertEqual(len(mutation["survivors"]), export.MAX_QUALITY_ITEMS)  # 5 of the 8 that survived
+        self.assertEqual(mutation["uncovered"], [{"file": "index.html", "inlineScriptLines": 80}])
+        self.assertEqual(quality["acceptance"], {"observed": True, "passed": 5, "total": 6, "failed": ["off-board-keeps-turn"]})
+        self.assertEqual((quality["observed"], quality["declared"], quality["heldOutSeen"], quality["seconds"]), (True, ["mutation", "acceptance"], 0, 72.2))
+        self.assertEqual(quality["notes"], block["notes"])
+        self.assertNotIn("unmeasured", quality)  # every part was measured
+        self.assertLess(len(json.dumps(quality)), 3000)  # the block it came from is 21 KB
+        text = json.dumps(quality)
+        for dropped in ("kills", "per_file", "baseline", "refuse_ports", "left_behind", "hosts_used", "delivered_files", "_wall_seconds",
+                        "evidence", "the request"):
+            self.assertNotIn(dropped, text)
+
+    def test_memory_writes_are_counted_and_shown_relative_to_the_home_directory_and_nothing_else_of_the_path(self):
+        block = r23c_example("qualityBlockR3Checkers")
+        quality = self.export(block)["quality"]
+        self.assertEqual(quality["memoryWrites"], {"count": 2, "items": [
+            {"path": "~/.claude/projects/-Users-dadleet-e2e-runs-20261008-r3-checkers-sonnet-work/memory/feedback_no-broad-pkill.md", "tool": "Write"},
+            {"path": "~/.claude/projects/-Users-dadleet-e2e-runs-20261008-r3-checkers-sonnet-work/memory/MEMORY.md", "tool": "Write"}]})
+        self.assertNotIn("/Users/", json.dumps(quality))
+        for given, shown in ((self.HOME_PATH + "a.md", "~/.claude/projects/-Users-dadleet-e2e-runs-20261008-r3-checkers-sonnet-work/memory/a.md"),
+                             ("/home/ci/.claude/projects/p/memory/b.md", "~/.claude/projects/p/memory/b.md"),
+                             ("~/.claude/projects/p/memory/c.md", "~/.claude/projects/p/memory/c.md"),
+                             ("/srv/elsewhere/d.md", "d.md")):
+            self.assertEqual(export.memory_path(given), shown)
+        block["memory_writes"] = [{"path": f"/Users/x/.claude/projects/p/memory/{n}.md", "tool": "Edit", "line": n} for n in range(8)]
+        capped = self.export(block)["quality"]["memoryWrites"]
+        self.assertEqual((capped["count"], len(capped["items"])), (8, export.MAX_QUALITY_ITEMS))
+        block["memory_writes"] = []
+        self.assertEqual(self.export(block)["quality"]["memoryWrites"], {"count": 0})  # a measured none (Claude's file-write calls)
+
+    def test_a_block_that_was_not_observed_is_exported_as_it_is_with_the_reason_and_no_zero(self):
+        failed = {"observed": False, "declared": ["mutation", "acceptance"], "hosts_used": None, "mixed_host": None,
+                  "reason": "the quality phase failed: RuntimeError('boom')", "memory_writes": None, "held_out_seen": None,
+                  "unmeasured": {"memory_writes": "the quality phase failed before the events were read",
+                                 "held_out_seen": "the quality phase failed before the events were read", "hosts_used": "no launch record"},
+                  "seconds": 0.0}
+        quality = self.export(failed)["quality"]
+        self.assertEqual(quality, {"observed": False, "reason": "the quality phase failed: RuntimeError('boom')", "declared": ["mutation", "acceptance"],
+                                   "seconds": 0.0, "unmeasured": {"memoryWrites": "the quality phase failed before the events were read",
+                                                                 "heldOutSeen": "the quality phase failed before the events were read"}})
+        for absent in ("memoryWrites", "heldOutSeen", "mutation", "acceptance"):
+            self.assertNotIn(absent, quality)
+
+    def test_a_part_that_was_not_observed_keeps_its_reason_inside_an_observed_block(self):
+        block = r23c_example("qualityBlockR3Checkers")
+        block["mutation"] = {"observed": False, "baseline": {"returncode": 1}, "reason": "the unmutated copy's test run exited 1: with a red baseline every mutant would read as caught"}
+        block["acceptance"] = {"observed": False, "reason": "the product's server (node server.js) did not listen on PORT=1"}
+        block["memory_writes"], block["held_out_seen"] = None, None
+        block["unmeasured"] = {"memory_writes": "the detector reads Claude's file-write calls and this run's launch records show grok"}
+        quality = self.export(block)["quality"]
+        self.assertEqual(quality["mutation"], {"observed": False, "reason": block["mutation"]["reason"]})
+        self.assertEqual(quality["acceptance"], {"observed": False, "reason": block["acceptance"]["reason"]})
+        self.assertEqual(quality["unmeasured"], {"memoryWrites": "the detector reads Claude's file-write calls and this run's launch records show grok",
+                                                 "heldOutSeen": "the quality block does not record it"})
+        self.assertNotIn("memoryWrites", quality)
+
+    def test_a_run_with_no_quality_key_has_no_quality_and_no_reason_for_one(self):
+        run = self.export(None)
+        self.assertNotIn("quality", run)
+        self.assertNotIn("quality", json.dumps(run["unmeasured"]))
+        out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        docs, facts = export.build_run(out)
+        self.assertFalse(any("Quality" in line for line in facts))
+        edit_json(out / "result.json", lambda record: record.update(quality=None))
+        self.assertNotIn("quality", export.build_run(out)[0]["runs"][RunReviewTest.KEY])  # null is the same as absent
+
+    def test_a_block_with_no_observed_flag_is_not_read_as_a_measurement(self):
+        quality = self.export({"mutation": {"ratio": 1.0}})["quality"]
+        self.assertEqual(quality, {"observed": False, "reason": "result.json's quality block has no observed flag, so it is not read"})
+
+    def test_lists_and_texts_are_capped_and_a_survivor_names_only_a_file_not_a_path(self):
+        block = r23c_example("qualityBlockR3Checkers")
+        mutation = block["mutation"]
+        mutation["survivors"] = [{"file": "/Users/x/work/src/a.js", "line": n, "op": "eq-flip", "from": "===" * 30, "to": "!=="} for n in range(9)]
+        mutation["uncovered"] = [{"file": f"p{n}.html", "inline_script_lines": n} for n in range(9)]
+        block["notes"] = ["N" * 2000] * 9
+        quality = self.export(block)["quality"]
+        self.assertEqual(len(quality["mutation"]["survivors"]), export.MAX_QUALITY_ITEMS)
+        self.assertEqual(quality["mutation"]["survivors"][0]["file"], "a.js")
+        self.assertEqual(len(quality["mutation"]["survivors"][0]["from"]), export.MAX_MUTANT_TEXT)
+        self.assertEqual(len(quality["mutation"]["uncovered"]), export.MAX_QUALITY_ITEMS)
+        self.assertEqual((len(quality["notes"]), len(quality["notes"][0])), (export.MAX_QUALITY_NOTES, export.MAX_QUALITY_TEXT))
+        block["reason"] = "R" * 3000
+        block["observed"] = False
+        self.assertEqual(len(self.export(block)["quality"]["reason"]), export.MAX_QUALITY_TEXT)
+
+    def test_a_ratio_the_harness_could_not_form_is_absent_never_zero(self):
+        block = r23c_example("qualityBlockR3Checkers")
+        block["mutation"].update(ratio=None, killed=0, survived=0)
+        mutation = self.export(block)["quality"]["mutation"]
+        self.assertNotIn("ratio", mutation)
+        self.assertEqual((mutation["killed"], mutation["survived"]), (0, 0))  # these are counts the harness measured
+
+    def test_the_facts_line_says_the_operator_the_counts_and_that_it_is_a_record(self):
+        out = make_run(self.tmp, loops=False)
+        edit_json(out / "result.json", lambda record: record.update(quality=r23c_example("qualityBlockR3Checkers")))
+        line = next(l for l in export.build_run(out)[1] if l.startswith("- Quality"))
+        self.assertEqual(line, "- Quality (recorded after the run, never a verdict): mutation ratio 0.907 (operator js-1; 78 caught, 8 survived of 86 sites; "
+                               "1 timeout, 2 with a fixed port refused); held-out checks 5 of 6 pass (failed: off-board-keeps-turn); 2 memory writes")
+        edit_json(out / "result.json", lambda record: record.update(quality={"observed": False, "reason": "the case declares no quality measures"}))
+        line = next(l for l in export.build_run(out)[1] if l.startswith("- Quality"))
+        self.assertEqual(line, "- Quality (recorded after the run, never a verdict): not observed (the case declares no quality measures)")
+
+    def test_the_contract_requires_the_observed_flag_of_each_part(self):
+        base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
+        self.assertEqual(export.validate_doc("runs", {**base, "quality": {"observed": True, "mutation": {"observed": True, "ratio": 0.5}}}), [])
+        problems = "\n".join(export.validate_doc("runs", {**base, "quality": {"mutation": {"ratio": 0.5}, "memoryWrites": {"items": []}}}))
+        self.assertIn("quality: missing required field 'observed'", problems)
+        self.assertIn("quality.mutation: missing required field 'observed'", problems)
+        self.assertIn("quality.memoryWrites: missing required field 'count'", problems)
+
+    def test_schema_md_documents_the_quality_fields_and_their_rules(self):
+        text = " ".join(SCHEMA_MD.read_text().split())
+        for phrase in ("`quality`", "`quality.mutation.operatorId`", "compare a ratio only with a ratio of the same operator",
+                       "An absent `quality` means the case measures none or the phase has not run: no reason and no zero is exported for it",
+                       "`quality.memoryWrites`", "relative to the home directory", "`quality.acceptance`", "`quality.unmeasured`",
+                       "`kills`, `per_file` and the baseline are not exported", "at most 5"):
+            self.assertIn(phrase, text, phrase)
+
+
+class QualityPageTests(unittest.TestCase):
+    """R23c: the "Quality" card. qualityModel is pure; the page draws its rows."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def run_with(self, block) -> dict:
+        return r23c_export(Path(tempfile.mkdtemp(dir=self.tmp)), {}, {"quality": block})
+
+    def model(self, run: dict):
+        return run_logic("qualityModel(%s)" % json.dumps(run))
+
+    def rows(self, run: dict) -> dict:
+        model = self.model(run)
+        return {label: text for label, text in model["rows"]}
+
+    def test_a_run_with_no_quality_has_no_card(self):
+        self.assertIsNone(run_logic("qualityModel({})"))
+        self.assertIsNone(run_logic("qualityModel(null)"))
+        self.assertTrue(page_probe("REG.qualitycard.hidden", setup=ended_page(DONE_RUN)))
+
+    def test_the_ratio_is_printed_with_its_operator_the_counts_and_the_warning_that_raises_it(self):
+        run = self.run_with(r23c_example("qualityBlockR3Checkers"))
+        rows = self.rows(run)
+        self.assertEqual(rows["Mutation"], "ratio 0.907 (operator js-1): 78 caught, 8 survived of 86 sites. Of the caught, 1 timed out and 2 had "
+                                           "a fixed port refused: a hang or a refused port can read as a catch")
+        self.assertEqual(rows["Survivors (5 of 8 shown)"].split("\n")[:2], ["server.js:33 rel-bound: > became >=", "server.js:51 rel-bound: >= became >"])
+        self.assertEqual(rows["No operator reaches"], "index.html: 80 lines of inline script")
+        self.assertEqual(rows["Held-out checks"], "5 of 6 pass; failed: off-board-keeps-turn")
+        self.assertEqual(rows["Writes to the model's own memory"].split("\n")[0], "2 writes")
+        self.assertIn("~/.claude/projects/-Users-dadleet-e2e-runs-20261008-r3-checkers-sonnet-work/memory/MEMORY.md (Write)", rows["Writes to the model's own memory"])
+        self.assertEqual(rows["Held-out names in the model's events"], "0")
+        self.assertIn("0 is not proof the model never read the script", rows["Notes"])
+        model = self.model(run)
+        self.assertIn("compare it only with a ratio of the same operator", model["sub"])
+        self.assertEqual(model["lead"], "Observed.")
+
+    def test_more_writes_than_are_listed_say_how_many_are_shown(self):
+        block = r23c_example("qualityBlockR3Checkers")
+        block["memory_writes"] = [{"path": f"/Users/x/.claude/projects/p/memory/{n}.md", "tool": "Edit"} for n in range(8)]
+        self.assertEqual(self.rows(self.run_with(block))["Writes to the model's own memory"].split("\n")[0], "8 writes; the first 5 shown")
+        block["memory_writes"] = []
+        self.assertEqual(self.rows(self.run_with(block))["Writes to the model's own memory"], "none seen (the model's file-write tool calls only)")
+
+    def test_counts_that_are_zero_are_not_dressed_as_warnings_and_unknown_counts_are_left_out(self):
+        block = r23c_example("qualityBlockR3Checkers")
+        block["mutation"].update(timeout=0, port_refused=0, ceiling_hit=True, not_run=12, unconfirmed=2, invalid=1)
+        text = self.rows(self.run_with(block))["Mutation"]
+        self.assertNotIn("timed out", text)
+        self.assertNotIn("fixed port", text)
+        self.assertIn("12 not run (the time ceiling was reached)", text)
+        self.assertIn("2 unconfirmed and 1 invalid, out of the ratio", text)
+        bare = run_logic('qualityModel({quality:{observed:true,mutation:{observed:true,ratio:0.5,operatorId:"js-1"}}}).rows')
+        self.assertEqual(bare, [["Mutation", "ratio 0.5 (operator js-1)"]])
+
+    def test_a_part_that_was_not_observed_says_so_with_its_reason_and_a_missing_measure_says_not_measured(self):
+        failed = {"observed": False, "reason": "the quality phase failed: RuntimeError('boom')", "declared": ["mutation"],
+                  "memory_writes": None, "held_out_seen": None, "unmeasured": {"memory_writes": "which host wrote the events is unknown"}, "seconds": 0.0}
+        model = self.model(self.run_with(failed))
+        self.assertEqual(model["lead"], "Not observed: the quality phase failed: RuntimeError('boom')")
+        rows = {label: text for label, text in model["rows"]}
+        self.assertEqual(rows["Writes to the model's own memory"], "not measured: which host wrote the events is unknown")
+        self.assertEqual(rows["Held-out names in the model's events"], "not measured: the quality block does not record it")
+        self.assertNotIn("Mutation", rows)
+        inner = r23c_example("qualityBlockR3Checkers")
+        inner["mutation"] = {"observed": False, "reason": "its tests bind a fixed port; not run"}
+        self.assertEqual(self.rows(self.run_with(inner))["Mutation"], "not observed: its tests bind a fixed port; not run")
+
+    def test_the_card_is_drawn_for_a_run_that_has_quality_and_names_the_ratio_and_the_memory_writes(self):
+        run = self.run_with(r23c_example("qualityBlockR3Checkers"))
+        out = page_probe('[REG.qualitycard.hidden, textOf("qualitycard")]', setup=ended_page(run))
+        self.assertFalse(out[0])
+        for text in ("Quality of the delivered work", "ratio 0.907 (operator js-1)", "Survivors (5 of 8 shown)", "Held-out checks5 of 6 pass",
+                     "Writes to the model's own memory2 writes"):
+            self.assertIn(text, out[1])
+        self.assertNotRegex(out[1], r"undefined|NaN|null")
+
+    def test_the_rows_keep_their_line_breaks_and_a_long_path_wraps_on_a_phone(self):
+        css = TEMPLATE.read_text(encoding="utf-8").split("</style>")[0]  # survivors and memory paths are joined with a newline
+        self.assertRegex(css, r"\.freshcard \.facts dd,\.qualitycard \.facts dd\{[^}]*white-space:pre-line")
+        self.assertRegex(css, r"\.freshcard \.facts dd,\.qualitycard \.facts dd\{[^}]*overflow-wrap:anywhere")
+
+    def test_the_card_is_in_the_page_after_the_fresh_starts(self):
+        html = TEMPLATE.read_text(encoding="utf-8")
+        self.assertRegex(html, r'<div class="card qualitycard" id="qualitycard" hidden></div>')
+        self.assertLess(html.index('id="freshcard"'), html.index('id="qualitycard"'))
+        self.assertLess(html.index('id="qualitycard"'), html.index('id="seqcard"'))
 
 
 if __name__ == "__main__":
