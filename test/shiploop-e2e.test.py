@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import signal
 import socket
 import stat
 import subprocess
@@ -77,7 +78,8 @@ def product():
 
 # A TCP server in a process of its own, as a model's `node server.js &` is: its own session (a host's group kill cannot
 # reach it), no stdio shared with its parent, and it expires by itself after two minutes. argv[1] is a port file that
-# appears, complete, once the server listens ("<pid> <port>"); argv[2] == "ignore-term" makes it ignore SIGTERM.
+# appears, complete, once the server listens ("<pid> <port>"); argv[2] == "ignore-term" makes it ignore SIGTERM. It accepts and
+# drops each connection: a listener that never accepts resets some probes once its backlog fills, which made `answers` flaky.
 LISTENER_SOURCE = (
     "import os, socket, sys, time\n"
     "s = socket.socket(); s.bind(('127.0.0.1', 0)); s.listen(1)\n"
@@ -85,7 +87,13 @@ LISTENER_SOURCE = (
     "    import signal; signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
     "open(sys.argv[1] + '.part', 'w').write('%d %d' % (os.getpid(), s.getsockname()[1]))\n"
     "os.rename(sys.argv[1] + '.part', sys.argv[1])\n"
-    "time.sleep(120)\n")
+    "s.settimeout(0.5)\n"
+    "end = time.time() + 120\n"
+    "while time.time() < end:\n"
+    "    try:\n"
+    "        s.accept()[0].close()\n"  # accept and drop, so a probe's connect is not queued behind earlier ones and reset
+    "    except OSError:\n"
+    "        pass\n")
 
 # What both fake hosts can do with a listener: FAKE_LISTEN=<port file> leaves one running from the working directory, as a
 # model's backgrounded server does; FAKE_PROBE_PORT=<port file> records, in FAKE_LOG.probe, whether that server still
@@ -193,7 +201,7 @@ probe_a_port()
 prompt = Path(argv[argv.index("--prompt-file") + 1]).read_text()
 resumed = argv[argv.index("--resume") + 1] if "--resume" in argv else None
 with open(os.environ["FAKE_LOG"] + ".sessions", "a") as log:
-    log.write(json.dumps({{"resumed": resumed, "prompt": prompt}}) + "\\n")
+    log.write(json.dumps({{"resumed": resumed, "prompt": prompt, "pid": os.getpid()}}) + "\\n")
 if os.environ.get("FAKE_MODE") == "crash-resumed" and resumed:
     sys.exit(1)  # a resumed session dies without writing any event
 Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{
@@ -5407,6 +5415,251 @@ class StaleListenerRealTest(RealListeners, CaseRunCase):
         self.assertTrue(answers(port), "the other case's server is not this run's to stop")
 
 
+class TerminationSignalTest(CaseRunCase):
+    """The harness as a task runner meets it: a program that is sent a signal while its host works.
+
+    The harness runs as a real subprocess (python3 run.py), so the signal wiring under __main__ is the one tested, and the test
+    process's own handlers are never touched. A fake `lsof` first on PATH shows an empty process table, so no real listener of
+    this machine can refuse or change a run."""
+
+    def setUp(self):
+        super().setUp()
+        isolate_git(self)
+        self.home = self.tmp / "home"
+        (self.home / ".grok").mkdir(parents=True)
+        (self.home / ".grok" / "auth.json").write_text("{}")
+        tools = self.tmp / "tools"
+        tools.mkdir()
+        (tools / "lsof").write_text("#!/bin/sh\nexit 1\n")
+        (tools / "lsof").chmod(0o755)
+        self.env = dict(os.environ, HOME=str(self.home), PATH=f"{tools}{os.pathsep}{os.environ['PATH']}", FAKE_LOG=str(self.log),
+                        FAKE_MODE="hang-active", SHIPLOOP_PROGRESS="off")
+
+    def start(self, name: str, *extra: str, launcher: tuple = ()) -> tuple[subprocess.Popen, Path]:
+        out = self.tmp / name
+        proc = subprocess.Popen([*launcher, sys.executable, str(run.HERE / "run.py"), "--host", "grok", "--grok-bin", str(self.fakes["grok"]),
+                                 "--output", str(out), "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines),
+                                 "--timeout", "120", *extra],
+                                env=self.env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        self.addCleanup(end_quietly, proc)
+        return proc, out
+
+    def host_pid(self) -> int:
+        """The fake host's pid, once it is running; it is killed when the test ends, and its sleep expires by itself."""
+        sessions = Path(str(self.log) + ".sessions")
+        for _ in range(600):
+            if sessions.exists() and sessions.read_text().strip():
+                break
+            time.sleep(0.05)
+        else:
+            raise AssertionError("the host never started")
+        pid = json.loads(sessions.read_text().splitlines()[0])["pid"]
+        self.addCleanup(self.kill_pid, pid)
+        return pid
+
+    @staticmethod
+    def kill_pid(pid: int) -> None:
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(pid, 9)
+
+    @staticmethod
+    def gone(pid: int, seconds: float = 5.0) -> bool:
+        end = time.time() + seconds
+        while time.time() < end:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                return True
+            time.sleep(0.05)
+        return False
+
+    def test_sigterm_kills_the_host_writes_the_records_and_reads_as_stopped(self):
+        proc, out = self.start("case-term")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGTERM)
+        printed, _ = proc.communicate(timeout=60)
+        self.assertTrue(self.gone(host), "the host does not outlive its harness")
+        self.assertEqual(proc.returncode, 1, printed)
+        self.assertTrue((out / "result.json").is_file(), printed)
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        self.assertEqual(result["termination"]["resume_stop"], "terminated by SIGTERM")
+        self.assertTrue((out / "metrics.json").is_file())
+        self.assertFalse(self.baselines.exists(), "a stopped run is not a baseline")
+        self.assertEqual(len(Path(str(self.log) + ".sessions").read_text().splitlines()), 1, "a terminated host is not relaunched")
+        self.assertRegex(printed, r"(?m)^STOPPED  shiploop e2e case=")
+
+    def test_sighup_ends_the_run_the_same_way_unless_the_launch_ignored_it(self):
+        proc, out = self.start("case-hup")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGHUP)
+        printed, _ = proc.communicate(timeout=60)
+        self.assertTrue(self.gone(host))
+        self.assertEqual(proc.returncode, 1, printed)
+        self.assertEqual(json.loads((out / "result.json").read_text())["termination"]["resume_stop"], "terminated by SIGHUP")
+
+    @unittest.skipUnless(shutil.which("nohup"), "needs nohup")
+    def test_a_nohup_launch_keeps_its_run_through_a_hangup(self):
+        proc, out = self.start("case-nohup", launcher=("nohup",))
+        host = self.host_pid()
+        proc.send_signal(signal.SIGHUP)  # the terminal went away; nohup's whole purpose is that the run does not
+        time.sleep(1.5)
+        self.assertIsNone(proc.poll(), "the harness ended on a hangup that its launch ignored")
+        self.assertFalse(self.gone(host, 0.1), "the host was killed by a hangup that its launch ignored")
+        proc.send_signal(signal.SIGTERM)  # an explicit stop still works
+        printed, _ = proc.communicate(timeout=60)
+        self.assertTrue((out / "result.json").is_file(), printed)
+        self.assertEqual(json.loads((out / "result.json").read_text())["termination"]["resume_stop"], "terminated by SIGTERM", printed)
+
+    def test_a_second_signal_ends_the_harness_at_once_even_while_a_check_runs(self):
+        marker, pidfile = self.tmp / "check-started", self.tmp / "check-pid"
+        proc, out = self.start("case-twice", "--prompt", "say hello", "--check", f"echo $$ > {pidfile}; touch {marker}; exec sleep 20")
+        self.host_pid()
+        proc.send_signal(signal.SIGTERM)  # ends the host; the harness goes on to its checks
+        for _ in range(600):
+            if marker.exists():
+                break
+            time.sleep(0.05)
+        self.addCleanup(lambda: pidfile.exists() and self.kill_pid(int(pidfile.read_text())))
+        self.assertTrue(marker.exists(), "the harness reached its checks after the first signal")
+        proc.send_signal(signal.SIGTERM)  # the person means it
+        proc.communicate(timeout=30)
+        self.assertEqual(proc.returncode, -signal.SIGTERM)
+
+    def test_ctrl_c_leaves_no_host_behind(self):
+        proc, out = self.start("case-int")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGINT)
+        printed, _ = proc.communicate(timeout=60)
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertTrue(self.gone(host), "a Ctrl-C on the harness must not orphan its host")
+
+
+class LiveHostTest(unittest.TestCase):
+    """The harness's bookkeeping of the hosts it started, driven without any real signal.
+
+    The poll interval is long here, so a session can only end promptly because the harness killed its group, not because the
+    poll loop noticed."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        for patcher in (mock.patch.object(listeners, "observe", return_value=[]), mock.patch.object(run, "POLL_SECONDS", 30, create=True)):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        self.addCleanup(run.end_live_hosts)  # runs first: a failing test leaves no host (each also sleeps for at most 20 s)
+
+    def session(self, name: str) -> tuple[threading.Thread, dict, Path]:
+        out = self.tmp / name
+        (out / "work").mkdir(parents=True)
+        result: dict = {}
+        thread = threading.Thread(target=lambda: result.update(run.launch(
+            [sys.executable, "-c", "import time; time.sleep(20)"], out / "work", out, dict(os.environ), 60, watch=False)))
+        thread.start()
+        return thread, result, out
+
+    @staticmethod
+    def registered(count: int) -> bool:
+        for _ in range(100):
+            if len(run.LIVE_HOST_GROUPS) == count:
+                return True
+            time.sleep(0.05)
+        return False
+
+    def test_end_live_hosts_kills_every_registered_group_and_launch_discards_its_own(self):
+        threads = [self.session(f"case-{n}") for n in range(2)]
+        self.assertTrue(self.registered(2), "each running session is registered")
+        groups = sorted(run.LIVE_HOST_GROUPS)
+        run.end_live_hosts()
+        for thread, result, _ in threads:
+            thread.join(timeout=15)
+            self.assertFalse(thread.is_alive(), "the session ended at once, not at the next poll")
+            self.assertEqual(result["status"], "failed")  # no one asked for a stop: only the groups were killed
+        self.assertEqual(run.LIVE_HOST_GROUPS, set(), "a session that ended is no longer registered, so a reused pgid is never signalled")
+        for pid in groups:
+            with self.assertRaises(ProcessLookupError):
+                os.killpg(pid, 0)
+
+    def test_a_termination_ends_a_running_session_at_once_as_stopped_and_starts_no_later_one(self):
+        thread, result, out = self.session("case-running")
+        self.assertTrue(self.registered(1))
+        run.on_termination(signal.SIGTERM, None)
+        thread.join(timeout=15)
+        self.assertFalse(thread.is_alive(), "the handler killed the group; the 30 s poll did not have to notice")
+        self.assertEqual(result.get("status"), "stopped", result)
+        self.assertTrue(run.TERMINATION.is_set())
+        self.assertEqual(run.TERMINATED_BY, ["SIGTERM"])
+
+    def test_a_session_that_begins_after_the_harness_was_told_to_end_is_ended_at_its_first_poll(self):
+        run.TERMINATED_BY.append("SIGTERM")
+        run.TERMINATION.set()  # say, during the install, before any host
+        later = self.tmp / "case-later"
+        (later / "work").mkdir(parents=True)
+        started = time.time()
+        after = run.launch([sys.executable, "-c", "import time; time.sleep(20)"], later / "work", later, dict(os.environ), 60, watch=False)
+        self.assertEqual(after["status"], "stopped")
+        self.assertLess(time.time() - started, 10, "it did not run to its end")
+        self.assertEqual(run.LIVE_HOST_GROUPS, set())
+        self.assertTrue((later / "events.jsonl").is_file(), "the session's files exist so the records can be written")
+
+    def test_a_signal_that_arrives_before_the_host_is_registered_still_ends_it(self):
+        real_popen = subprocess.Popen
+
+        def popen_then_signal(*args, **kwargs):
+            proc = real_popen(*args, **kwargs)
+            run.on_termination(signal.SIGTERM, None)  # the handler runs now and cannot know this group yet
+            return proc
+
+        with mock.patch.object(run.subprocess, "Popen", side_effect=popen_then_signal):
+            thread, result, out = self.session("case-race")
+            thread.join(timeout=15)
+        self.assertFalse(thread.is_alive(), "the poll loop must notice the termination and end the group")
+        self.assertEqual(result.get("status"), "stopped")
+
+
+class SignalledHarnessThroughMainTest(CaseRunCase):
+    def test_a_suite_told_to_end_starts_no_further_case(self):
+        SuiteTest.use_catalog(self, {"a": {"style": "s", "prompt": "p", "checks": []}, "b": {"style": "t", "prompt": "p", "checks": []}},
+                              {"wide": {"kind": "breadth", "cases": ["a", "b"]}})
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        run.TERMINATED_BY.append("SIGTERM")
+        run.TERMINATION.set()
+        out = self.tmp / "suite-out"
+        os.environ["FAKE_MODE"] = "done"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = run.main(["--suite", "wide", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        rows = json.loads((out / "suite-result.json").read_text())["cases"]
+        self.assertEqual(code, 1)
+        self.assertEqual([(r["case"], r.get("skipped")) for r in rows], [("a", "terminated by SIGTERM"), ("b", "terminated by SIGTERM")])
+        self.assertFalse(self.log.exists(), "no host started")
+
+    def test_a_signal_as_a_session_ends_stops_the_resume_loop_without_a_phantom_session(self):
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        calls: list[int] = []
+
+        def host_that_ends_as_the_signal_arrives(argv, work, out, *args, **kwargs):
+            calls.append(1)
+            for name in ("events.jsonl", "stderr.txt", "timeline.jsonl"):
+                (out / name).write_text("")
+            run.TERMINATED_BY.append("SIGHUP")
+            run.TERMINATION.set()
+            return {"status": "exited", "returncode": 0, "elapsed_seconds": 1.0, "stop": None, "left_behind": None}
+
+        with mock.patch.object(run, "launch", side_effect=host_that_ends_as_the_signal_arrives):
+            code, result, printed, out = self.case_main("case-between", host="grok")
+        self.assertEqual(len(calls), 1, "no second session is started or recorded for a harness that was told to end")
+        self.assertEqual(result["termination"]["resume_stop"], "terminated by SIGHUP")
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        self.assertEqual(len(result["process"]["sessions"]), 1)
+        self.assertEqual(code, 1)
+
+
 class LeftBehindReadmeTest(unittest.TestCase):
     def test_the_readme_says_what_the_harness_does_with_a_leftover_listener(self):
         readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
@@ -5420,6 +5673,15 @@ class LeftBehindReadmeTest(unittest.TestCase):
         for phrase in ("A launch is refused while a listener sits under another case's output folder",
                        "`<output>/.harness-lock`", "no override", "stop it by pid with `kill <pid>`"):
             self.assertIn(phrase, readme)
+
+    def test_the_readme_says_what_a_signal_to_the_harness_does(self):
+        readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
+        for phrase in ("A SIGTERM or SIGHUP to the harness ends every live host at once", "`terminated by SIGTERM`",
+                       "a detached `nohup` launch ignores the hangup", "Only a SIGKILL gives the harness no chance to run anything",
+                       "not `iterate.py`"):
+            self.assertIn(phrase, readme)
+        self.assertNotIn("no harness code runs", readme)
+        self.assertNotIn("taking the harness and its host with it", readme)
 
 
 def grok_usage(count: int, output: int = 100, reasoning: int = 40) -> list[dict]:

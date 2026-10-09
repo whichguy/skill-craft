@@ -1713,6 +1713,29 @@ sentence under "Every ending leaves its records", and "Runs compared on wall tim
   `stale_listeners_at_start`, which drops the lock, `case_folder`, `stale` and about 40 lines. Refusal was kept because the round-2
   contamination was a launch that went ahead and the round-2 criterion asks for the refusal; after the reap, a stale listener arises only
   from a SIGKILLed harness or a leak from before this change.
+- **Built: a signalled harness ends its hosts and writes its records.** The exit-241 defect of the r2 Grok run: `r2-grok.log` ends
+  `exit 241` (-15 mod 256, a SIGTERM) 855 s in, `r2-battleship-grok-none/timeline.jsonl` stops at +854 s and restarts at +2788 s, and 139
+  ledger files of `.shiploop-runs/work-20261009-002036-d50cd1` were written between 17:35:01 and 18:02:11, after the harness died at
+  about 17:34:30: `launch()` starts the host with `start_new_session=True` and Python's default SIGTERM runs no code, so the host kept
+  working as an orphan for about 28 minutes with no events or metrics being collected and no result.json. (The design's probe: a
+  start_new_session host survives a SIGTERM to its parent by default and dies with a handler. Why the orphan stopped at 18:02 is not
+  known, U5, and is not needed.) `run.py` as a program now takes over SIGTERM and SIGHUP: the handler records the signal, sets
+  `TERMINATION`, kills every registered host group at once (`LIVE_HOST_GROUPS`, a copy iterated because suite worker threads add and
+  discard concurrently; a group is dropped from the set as soon as its leader is reaped, so a reused pgid is never signalled), and
+  restores the default action so a second signal ends the harness at once. `launch` and the resume loop read `TERMINATION` as a requested
+  stop (`stopped`, no process verdict, `termination.resume_stop` `terminated by SIGTERM`, exit 1, no baseline row, no relaunch), a suite
+  starts no further case, and an `atexit` kill covers a Ctrl-C or an exception. The reused route is the stop file's (`StopFileTest`).
+  A SIGHUP the launch ignored stays ignored (the audit's correction: an unconditional handler would have overridden `nohup`, the README's
+  stated exception for multi-hour runs). The tests run the harness as a real subprocess so the `__main__` wiring and the real signals
+  are what is tested and the test process's own handlers are never touched; a fake `lsof` first on PATH gives it an empty process table.
+- **Decisions and limits.** Proven for SIGTERM only; U1 (which signal a task runner sends at its time limit, and with what grace) stays
+  open, to be settled by the audit's probe (a short background task whose Python child traps TERM, HUP and INT and spawns a detached
+  heartbeat). A SIGKILL is uncatchable: `--grade-only` is the remedy, and a `host.pid` check that refuses a resume while an orphan host
+  of a SIGKILLed harness is alive (A6-host-pid) is not built, since the only observed kill was a SIGTERM. A signal that arrives during
+  the case checks lets them finish (up to 180 s each) before the records are written, and a second signal ends the harness at once.
+  `iterate.py` and the review and fan-out agents (`hosts.run_agent`) are not covered by the handlers; `iterate.py` still gets the
+  `atexit` kill. A mutant that dropped the early return for a session begun after the signal survived, so that code was removed: the
+  poll loop ends such a session at its first poll.
 - **Decision (reversible): a leftover is a record, not a verdict.** `pass` is unchanged. Making it a verdict would fail a run for a
   model's habit the harness already cleaned up.
 - **Open:** U2 whether `lsof` exists on the `ubuntu-latest` CI runner (the pure parse and selection tests run either way; the real-process

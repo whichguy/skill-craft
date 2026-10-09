@@ -80,6 +80,7 @@ This launches a real model and costs money; it is never part of default CI.
 from __future__ import annotations
 
 import argparse
+import atexit
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import importlib.util
@@ -115,6 +116,58 @@ REVIEW_EXPORTER = ROOT / "skills" / "shiploop-run-review" / "scripts" / "export.
 PLUGIN_NAME = "skill-craft"
 # How often a running host is checked for its deadline, a requested stop and an interrupt.
 POLL_SECONDS = 2
+# Hosts this process has started and not yet reaped, by the pid of the leader of the group it leads. A host starts in a
+# session of its own (start_new_session=True), so a SIGTERM to the harness does not reach it: on 2026-10-08 the Grok host of a
+# round-2 run went on working for about 28 minutes after the harness died of one, with nothing collecting its events.
+LIVE_HOST_GROUPS: set[int] = set()
+# Set when the harness was told to end (SIGTERM, SIGHUP): every launch and every resume treats it as a requested stop.
+TERMINATION = threading.Event()
+TERMINATED_BY: list[str] = []  # the name of the first signal, for the record
+HANDLED_SIGNALS: list[int] = []  # the signals install_termination_handlers took over
+
+
+def kill_group(pid: int) -> None:
+    """SIGKILL the process group `pid` leads. A group already gone, or a reused one that is not ours, is left alone."""
+    try:
+        os.killpg(pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
+def end_live_hosts() -> None:
+    """Kill every host session that is running. Also runs at exit, so a Ctrl-C or a crash leaves no orphan host."""
+    for pid in tuple(LIVE_HOST_GROUPS):  # a copy: suite worker threads add and discard concurrently
+        kill_group(pid)
+
+
+atexit.register(end_live_hosts)
+
+
+def on_termination(signum, frame) -> None:
+    """A SIGTERM or SIGHUP reached the harness: end every host at once and let main write the records as a requested stop."""
+    TERMINATED_BY.append(signal.Signals(signum).name)
+    TERMINATION.set()  # before the kill, so a launch that finds its host dead already knows why
+    end_live_hosts()
+    for number in HANDLED_SIGNALS:
+        signal.signal(number, signal.SIG_DFL)  # a second signal means it: the default action ends the harness now
+
+
+def install_termination_handlers() -> list[int]:
+    """Take over SIGTERM and SIGHUP, except one the launch ignored: `nohup` keeps a run alive through a hangup by ignoring it."""
+    for number in (signal.SIGTERM, signal.SIGHUP):
+        if signal.getsignal(number) is not signal.SIG_IGN:
+            signal.signal(number, on_termination)
+            HANDLED_SIGNALS.append(number)
+    return list(HANDLED_SIGNALS)
+
+
+def stop_cause(stop_file: Path) -> str:
+    """Why a run ended on purpose: a signal that told the harness to end, or a stop file."""
+    if TERMINATION.is_set():
+        return f"terminated by {TERMINATED_BY[0] if TERMINATED_BY else 'a signal'}"
+    return f"stopped by {stop_file}"
+
+
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
 def the_host(args) -> "hosts.Host":
     """The selected host, with the binary its --<host>-bin flag names."""
@@ -360,7 +413,10 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
     """Run one host session. `stop_when`, polled every POLL_SECONDS, kills the session (status "interrupted").
 
     A `stop_file` that exists kills it the same way with status "stopped": a person's request to end the run
-    (the caller consumes the file). The deadline wins over both.
+    (the caller consumes the file). So does a SIGTERM or SIGHUP to the harness (TERMINATION, set by on_termination, which
+    has already killed the host's group): the session reads as "stopped". One that begins after the harness was told to end
+    (during the install, say) is ended at its first poll, with its files in place so the run's records can still be written.
+    The deadline wins over all.
 
     The result carries ``stop``: the host's own reason from the last end/result event this
     session wrote, or None when it wrote none (killed, crashed), so a termination record can
@@ -389,6 +445,7 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
             (out / "timeline.jsonl").open("w" if first else "a") as stamps:
         proc = subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=stderr, env=env, start_new_session=True)
+        LIVE_HOST_GROUPS.add(proc.pid)  # a signal to the harness now ends this group (on_termination)
 
         def record(raw: bytes):
             nonlocal line, stop
@@ -419,25 +476,30 @@ def launch(argv: list[str], work: Path, out: Path, env: dict, timeout: int, watc
         reader.start()
         deadline = time.time() + timeout
         status = None
-        while proc.poll() is None:
-            if time.time() >= deadline:
-                status = "timeout"
-            elif stop_file is not None and stop_file.exists():
-                status = "stopped"
-            elif stop_when is not None and stop_when():
-                status = "interrupted"
-            if status:
-                # The whole process group: the host and any native workers it started.
-                os.killpg(proc.pid, signal.SIGKILL)
-                proc.wait()
-                break
-            try:
-                # Wake the moment the session ends; a plain sleep held the caller for the rest of the tick.
-                proc.wait(timeout=POLL_SECONDS)
-            except subprocess.TimeoutExpired:
-                pass
+        try:
+            while proc.poll() is None:
+                if time.time() >= deadline:
+                    status = "timeout"
+                elif (stop_file is not None and stop_file.exists()) or TERMINATION.is_set():
+                    status = "stopped"
+                elif stop_when is not None and stop_when():
+                    status = "interrupted"
+                if status:
+                    # The whole process group: the host and any native workers it started.
+                    kill_group(proc.pid)
+                    proc.wait()
+                    break
+                try:
+                    # Wake the moment the session ends; a plain sleep held the caller for the rest of the tick.
+                    proc.wait(timeout=POLL_SECONDS)
+                except subprocess.TimeoutExpired:
+                    pass
+        finally:
+            if proc.poll() is not None:
+                LIVE_HOST_GROUPS.discard(proc.pid)  # reaped: its pgid may be reused, so it is never signalled again
         if status is None:
-            status = "exited" if proc.returncode == 0 else "failed"
+            # A signal may have killed the group before this loop saw it: that is a stop, not a host failure.
+            status = "stopped" if TERMINATION.is_set() else "exited" if proc.returncode == 0 else "failed"
         reader.join(timeout=10)
         proc.stdout.close()
     return {"status": status, "returncode": proc.returncode,
@@ -1435,6 +1497,9 @@ def run_suite(args, argv: list[str]) -> int:
     gate_rows = []
     for case in gate:
         # A batch suite's gate runs first and alone: a cheap case that fails stops the costly ones.
+        if TERMINATION.is_set():
+            gate_rows.append({"case": case, "pass": False, "skipped": stop_cause(base / "stop"), "gate": True})
+            continue
         out = base / case
         code = main([*passthrough, "--case", case, "--output", str(out), "--suite-name", args.suite])
         gate_rows.append({"case": case, "pass": code == 0, "output": str(out), "gate": True})
@@ -1453,6 +1518,10 @@ def run_suite(args, argv: list[str]) -> int:
         outputs: dict[str, Path] = {}
         rows = []
         for case in chain:
+            if TERMINATION.is_set():
+                # Not main's own early return: a case that wrote no result.json would break the readers of the rows below.
+                rows.append({"case": case, "skipped": stop_cause(base / "stop")})
+                continue
             follows = cases[case].get("follows")
             prior = outputs.get(follows) if follows else None
             if follows and prior is None:
@@ -1736,7 +1805,7 @@ def _main(argv: list[str] | None, held: list) -> int:
         if state.get("status") not in ("active", None):
             resume_stop = f"ShipLoop run is {state.get('status')}"
             break
-        if stop_seen or stop_file.exists():
+        if stop_seen or stop_file.exists() or TERMINATION.is_set():
             stop_seen = True  # asked for between two sessions, or the host was stopped: never relaunched
             break
         if not session_id:
@@ -1761,13 +1830,13 @@ def _main(argv: list[str] | None, held: list) -> int:
         # was allowed may have finished it: say what the run is, not that the budget was spent.
         status = grade_shiploop(out).get("status")
         resume_stop = (f"ShipLoop run is {status}" if status not in ("active", None)
-                       else f"stopped by {stop_file}" if stop_seen
+                       else stop_cause(stop_file) if stop_seen
                        else f"resume budget spent ({args.max_resumes})")
     if not regrade:
         if stop_seen:
             stop_file.unlink(missing_ok=True)  # consumed: the request is answered, a later resume starts clean
             if resume_stop == "host is not resumable":
-                resume_stop = f"stopped by {stop_file}"  # the stop, not the host kind, is why this one is over
+                resume_stop = stop_cause(stop_file)  # the stop, not the host kind, is why this one is over
             # However the request arrived (it killed the host, or it was found as a session ended on its own), the run
             # ends stopped; the last session keeps its own status in `sessions`.
             process = dict(process, status="stopped")
@@ -2017,4 +2086,5 @@ def _main(argv: list[str] | None, held: list) -> int:
 
 
 if __name__ == "__main__":
+    install_termination_handlers()  # a program only: signal.signal is main-thread-only, and tests call main() from workers
     raise SystemExit(main())

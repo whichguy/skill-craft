@@ -490,8 +490,8 @@ uses it on purpose. Publish (`scripts/release.py`, then
 ### Launching long runs
 
 Launch a run as a Claude Desktop background task (`run_in_background`) so it can be tracked. A task is killed at the
-timeout it was given, taking the harness and its host with it, so the limit is whatever the launcher set and not a
-platform constant: the dated observations are 10 minutes (2026-10-03, the tool's 600000 ms maximum), a 30-minute
+timeout it was given and the harness is signalled (see below; its host is a separate process group), so the limit is
+whatever the launcher set and not a platform constant: the dated observations are 10 minutes (2026-10-03, the tool's 600000 ms maximum), a 30-minute
 kill at 1798 s (2026-10-03) and 120.3 minutes (2026-10-05). Pass `--timeout` (seconds) below it, with margin: the
 deadline starts after preflight and install, and when it is spent the harness still runs the product checks (180 s
 each, again against an unreturned worktree) and the review export before it exits. A spent deadline is a clean
@@ -508,8 +508,18 @@ On macOS each host session runs under `caffeinate -d -i`, which keeps the displa
 idle-sleeping for the whole session; elsewhere nothing is wrapped. The display hold removes one variable from the
 runs where a model-driven headless Chrome never loaded a page (see LEARNINGS, 2026-10-08).
 
-A task kill before the deadline stops the harness where it stands and no harness code runs: nothing is written
-afterwards (no termination record, no `result.json`, no baseline row). Give the run its records afterwards with
+A SIGTERM or SIGHUP to the harness ends every live host at once, and the harness then writes the records of any other
+ending: `result.json`, `metrics.json` and the review export, `process.status` `stopped` with no process verdict, the reason
+`terminated by SIGTERM` (or `SIGHUP`) in `termination.resume_stop`, no baseline row and no relaunch; the exit code is 1, and
+a suite starts no further case. A second signal ends the harness at once. A SIGHUP that the launch ignored stays ignored,
+so a detached `nohup` launch ignores the hangup and keeps its run. A Ctrl-C ends the hosts as the harness exits. This covers
+`run.py` started as a program, not `iterate.py`, which calls it in its own process (a Ctrl-C there still ends the hosts; a
+SIGTERM does not), and not the review and fan-out agents (`hosts.run_agent`). Which signal a task runner sends at its time limit is not known, so this is proven for SIGTERM only.
+Only a SIGKILL gives the harness no chance to run anything: nothing is written afterwards (no termination record, no
+`result.json`, no baseline row) and the host can outlive the harness, because it starts in a session of its own (the Grok
+host of a round-2 run went on writing for about 28 minutes after the harness died of `exit 241`, a SIGTERM, before this
+handler). Stop any orphan host first (the lsof recipe below finds what still has its working directory under the output
+directory; nothing looks for an orphan host yet), then give the run its records with
 `--resume-run <output directory> --grade-only`.
 
 The harness stops what a host leaves listening. A model's background server can outlive its run by far more than
