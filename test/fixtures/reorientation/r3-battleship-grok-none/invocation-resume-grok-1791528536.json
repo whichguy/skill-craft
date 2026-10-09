@@ -1,0 +1,20 @@
+{
+ "case": "custom",
+ "host": "grok",
+ "model": "grok-4.7",
+ "versions": {
+  "source": "marketplace (resumed on its original install)",
+  "plugin_version": "1.26.0",
+  "shiploop_version": "0.58.0",
+  "released": {
+   "origin_main": "200c32cec9bf569ae41bac26c511963947db813c",
+   "local_head": "200c32cec9bf569ae41bac26c511963947db813c",
+   "local_behind_main": true,
+   "catalog_version": "1.26.0",
+   "shiploop_version": "0.58.0",
+   "unreleased": [],
+   "ci": "success"
+  },
+  "gate": []
+ }
+}

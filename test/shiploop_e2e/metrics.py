@@ -11,12 +11,17 @@ Never returns packet text: ShipLoop CLI output is reduced to the failing line.
 
 from __future__ import annotations
 
+import bisect
 from datetime import datetime, timezone
+import itertools
 import json
+import os
 from pathlib import Path
 import re
 
 import rollouts
+import runrecord
+import sessionlog
 
 # The prefix of the summary ShipLoop itself records for a stage not applicable to a work item (shiploop_item_scope.NOT_APPLICABLE;
 # a test pins the two equal). The narrative reader and fidelity.py both key on it.
@@ -141,18 +146,27 @@ def failure_line(shown: str, limit: int | None = 200) -> str:
     return own.strip() if limit is None else own.strip()[:limit]
 
 
-def events(path: Path):
-    """(line number, event) for every JSON object line."""
+def event_range(path: Path, start: int = 0, stop: int | None = None):
+    """(line number, event) for every JSON object line in [start, stop): a line before ``start`` is counted, not parsed."""
     if not path.is_file():
         return
     with path.open(errors="replace") as handle:
         for number, line in enumerate(handle):
+            if number < start:
+                continue
+            if stop is not None and number >= stop:
+                return
             try:
                 event = json.loads(line)
             except ValueError:
                 continue
             if isinstance(event, dict):
                 yield number, event
+
+
+def events(path: Path):
+    """(line number, event) for every JSON object line."""
+    yield from event_range(path)
 
 
 def timeline(path: Path) -> dict[int, float]:
@@ -255,6 +269,37 @@ def target_paths(arg: dict) -> list[str]:
     return found
 
 
+def call_target(arg: dict) -> str:
+    """The file a tool call names first (``target_paths``: Grok `target_file`, Claude `file_path`, a bare `path`, Codex's
+    `paths`), or an empty string. ``ToolLog.call`` keeps it as a call's ``file``, and ``written_paths`` reads the same."""
+    paths = target_paths(arg)
+    return paths[0] if paths else ""
+
+
+def tool_call_events(event: dict) -> list[tuple]:
+    """``(call id, tool name, input)`` of each tool call one event starts, whatever host wrote it.
+
+    Claude writes one `assistant` event per content block of a message, so an event holds the `tool_use` blocks of
+    that block's message (none for a text block); Grok, and Codex after the harness translator, write one `tool_call`
+    event per call. The one reader: ``ToolLog.feed`` and so the whole-run reading and a window read calls this way.
+    """
+    kind = event.get("type")
+    if kind == "assistant":
+        return [(block.get("id"), str(block.get("name") or ""), block["input"] if isinstance(block.get("input"), dict) else {})
+                for block in (event.get("message") or {}).get("content") or []
+                if isinstance(block, dict) and block.get("type") == "tool_use"]
+    if kind == "tool_call":
+        return [(event.get("toolCallId"), str(event.get("toolName") or event.get("title") or ""),
+                 event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {})]
+    return []
+
+
+def cancelled_update(event: dict) -> bool:
+    """Grok's headless permission check refused the call: a failed update whose content says the user cancelled it."""
+    return (event.get("type") == "tool_call_update" and event.get("status") == "failed"
+            and "cancelled" in json.dumps(event.get("content") or "").lower())
+
+
 class ToolLog:
     """The tool calls of one host stream and what each returned, classified once for every host: Grok's `tool_call` and
     `tool_call_update` events, Codex's after the harness translator, and Claude's `tool_use` and `tool_result` blocks.
@@ -279,16 +324,21 @@ class ToolLog:
         # its calls again in each session), and for each entry of ``failures`` the event it was found at and its whole first line.
         self.sequence: list[dict] = []
         self.failure_events: list[dict] = []
+        self.failure_of: dict = {}  # call id -> its entry in ``failures``, so a window can count the failures of its own calls
+        self.answered: set = set()  # call ids whose final result arrived: a failure is known only once the result is
         self.scripts: dict[str, dict] = {}  # path -> {body, wraps, bytes, runs, pattern}: the model-written scripts so far
         self.by_tool: dict[str, int] = {}  # Claude only below: what the model called, what came back, how it used packets
         self.result_chars = 0
         self.packets = {"printed": [0, 0], "shell": [0, 0], "read_tool": []}
 
-    def call(self, t, call_id, tool: str, arg: dict, event: int | None = None) -> None:
+    def call(self, t, call_id, tool: str, arg: dict, event: int | None = None):
         """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written.
+        Returns the key it is kept under in ``calls`` (the call id, or a number for a call that had none).
 
         ``event`` is the call's line number in events.jsonl, kept in ``sequence`` so a listed fact can cite it."""
         self.failed.discard(call_id)  # Codex numbers its calls again in each session: a reused id is a new call
+        self.failure_of.pop(call_id, None)
+        self.answered.discard(call_id)
         if ASK_PERSON.search(tool):  # SPEC S-14: an unattended run never asks a person
             self.asked.append(" ".join(str(arg.get("question") or arg or "").split())[:160])
         command = str(arg.get("command") or "")
@@ -302,10 +352,11 @@ class ToolLog:
         for script in self.scripts.values():  # a run is a tool call that runs the script, however many lines do
             script["runs"] += bool(script["pattern"].search(shell))
         paths = target_paths(arg)
-        target = paths[0] if paths else None
+        target = paths[0] if paths else ""  # call_target(arg), from the one list
         self.sequence.append({"event": event, "t": t, "tool": tool, "command": command, "paths": paths})
         self.by_tool[tool] = self.by_tool.get(tool, 0) + 1
-        self.calls[call_id if call_id is not None else f"#{len(self.calls)}"] = {
+        key = call_id if call_id is not None else f"#{len(self.calls)}"
+        self.calls[key] = {
             "t": t, "command": command, "expanded": expanded, "invoked": expanded + wrappers, "tool": tool,
             "packet": "/packets/" in expanded or "/packets/" in str(target or ""),
             "whole": "offset" not in arg and "limit" not in arg, "file": str(target or "")}
@@ -318,6 +369,7 @@ class ToolLog:
             self.reads.append(str(target))
             if WRITE_TOOL.search(tool) and str(target).startswith("/tmp/"):
                 self.shared.add(str(target))
+        return key
 
     def measure(self, call_id, shown: str) -> None:
         """What one tool result held, for a stream whose results arrive once and whole (Claude's): characters, and how the
@@ -351,8 +403,31 @@ class ToolLog:
                             "read": {"read_tool": self.packets["read_tool"],
                                      "shell": dict(zip(("calls", "chars"), self.packets["shell"]))}}}
 
+    def feed(self, event: dict, t, number: int | None = None) -> list:
+        """One host event, read the one way for every host: the calls it starts and the results it carries.
+
+        Claude's `tool_use` blocks, Grok's `tool_call` events and Codex's after the translator start calls; Claude's
+        `tool_result` blocks and Grok's final `tool_call_update` carry results. A running update (Grok repeats one, with a
+        placeholder exit 0) and a cancelled one (a permission refusal, which ends the turn) are no result. The whole-run
+        reading (``collect``, and through it fidelity.py's ``sequence`` and ``failure_events``) and a window
+        (``reorientation``) all feed a log this way, so they cannot differ. ``number`` is the event's line in events.jsonl,
+        passed on as ``event`` to ``call`` and ``result``. Returns the keys, in ``calls``, of the calls this event started.
+        """
+        started = [self.call(t, call_id, tool, arg, event=number) for call_id, tool, arg in tool_call_events(event)]
+        kind = event.get("type")
+        if kind == "user":  # Claude: the tool_result blocks, whose text may begin with the host's `Exit code N`
+            for call_id, shown in tool_results(event):
+                self.measure(call_id, shown)
+                self.result(call_id, shown, claude_exit(shown), event=number)
+        elif kind == "tool_call_update" and isinstance(event.get("rawOutput"), dict) and not cancelled_update(event) \
+                and event.get("status") != "in_progress":
+            for call_id, shown in tool_results(event):
+                self.result(call_id, shown, event["rawOutput"].get("exit_code"), event=number)
+        return started
+
     def result(self, call_id, shown: str, code: int | None, event: int | None = None) -> None:
         """One tool result, with the exit code the host showed (None when it showed none) and its line in events.jsonl."""
+        self.answered.add(call_id)
         refusal = REFUSAL_LINE.search(shown)
         call = self.calls.get(call_id) or {}
         exited = code not in (None, 0) and SHIPLOOP_COMMAND.search(call.get("invoked", ""))
@@ -364,6 +439,7 @@ class ToolLog:
         source = shown[refusal.start():] if refusal else shown
         self.failures.append({"verb": verb.group("verb") if verb else "unknown", "exit": code, "line": failure_line(source)})
         self.failure_events.append({"event": event, "line": failure_line(source, None)})
+        self.failure_of[call_id] = self.failures[-1]
 
 
 def engine_state(run_dir: Path | None) -> dict:
@@ -378,6 +454,23 @@ def engine_state(run_dir: Path | None) -> dict:
     except ValueError:
         return {}
     return value if isinstance(value, dict) else {}
+
+
+def engine_position(run_dir: Path | None) -> dict | None:
+    """Where the ledger stands: ``{status, stage, revision, accepted, last_accepted}``, or None when the run has no state.
+
+    ``accepted`` is the length of the append-only history and ``last_accepted`` its newest entry's stage and action (None
+    while nothing is accepted). The harness records it at the end of every host session (sessions.jsonl), so the
+    engine's position at the moment a session ended is a fact of the record and not a reading made afterwards.
+    """
+    state = engine_state(run_dir)
+    if not state:
+        return None
+    history = state.get("history") if isinstance(state.get("history"), list) else []
+    last = history[-1] if history and isinstance(history[-1], dict) else None
+    return {"status": state.get("status"), "stage": current_stage(state), "revision": state.get("revision"),
+            "accepted": len(history),
+            "last_accepted": None if last is None else {"stage": last.get("stage"), "action": last.get("action")}}
 
 
 NOT_RECORDED = "not recorded"
@@ -705,9 +798,357 @@ def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], gro
     return {**got, "clock": "host", "source": "rollout token_usage_records"}
 
 
+# ---------------------------------------------------------------------------------------------------------------------------
+# What a fresh context did (SPEC "A fresh context is recorded, not scored"). Record-only: nothing here is a verdict.
+
+# The ShipLoop CLI and run directory a `next` call carries, read from the command as the model wrote it (variables expanded
+# where the same command assigns them), to compare with what the resume prompt told.
+NEXT_CALL = re.compile(r"""(?P<cli>[^\s"'=]*shiploop)["']?\s+next\b(?P<rest>[^\n]*)""")
+RUN_DIR_ARG = re.compile(r"""--run-dir(?:=|\s+)["']?(?P<dir>[^"'\s]+)""")
+# The ShipLoop verbs whose call can be the one that gets an action accepted (an Improve child's finish accepts its parent).
+ACCEPTING_VERBS = ("complete", "improve-complete")
+# Why `rewrote` and the window's failures are lower bounds (the scope strings in a block say it short; this says it whole).
+# `rewrote` sees file-edit tools only: a file a shell command writes (cat >, sed -i, cp, tee, a script) is invisible to the tool
+# log, so an empty list is "none seen", not a measured none. The window's failures are the window's own calls only: a wrapper
+# script the model wrote in an earlier session is not known to the window, so a ShipLoop command run through one is not
+# recognised, and a refusal behind a pipe that lost its prefix line is missed.
+FAILURES_SCOPE = "the window's own calls only: a ShipLoop command run through a script written in an earlier session is not seen"
+FRESH_STARTS_UNREADABLE = ("not recorded: sessions.jsonl exists but cannot be read, so the host session starts are unknown; only "
+                           "the compactions are listed")
+FRESH_STARTS_NOT_RECORDED = ("not recorded: this run has no sessions.jsonl (the harness wrote it from 2026-10-09), so its host "
+                             "session starts are unknown; only its compactions are listed")
+NO_EVENT = "the session wrote no event"
+NO_LATER_ACCEPT = "the ledger accepted no action after this start"
+AMBIGUOUS_ACCEPT = ("an action accepted after this start has no accept stamp, so which accept came next cannot be told")
+NO_SUBMISSION = ("the next accepted action ({stage}, {action}) was not submitted by a tool call this window recognises: it was "
+                 "accepted by something that left no event (an orphan host), by a script this window does not see, or the "
+                 "session ended before it")
+PARKED = ("every call that names the next accepted action ({stage}, {action}) returned before its accept stamp: it was parked "
+          "(an Improve child) or accepted by a call this window does not recognise")
+SESSION_BOUNDS = "session bounds not recorded: {why}"
+
+
+def written_paths(rows) -> set:
+    """The paths file-edit tools (write, edit, replace, create) wrote in these (line, event) rows, normalised."""
+    found = set()
+    for _line, event in rows:
+        for _call_id, tool, arg in tool_call_events(event):
+            if WRITE_TOOL.search(tool) and call_target(arg):
+                found.add(os.path.normpath(call_target(arg)))
+    return found
+
+
+def _verbs(call: dict) -> list[str]:
+    """The ShipLoop verbs a call runs, directly or through a script the model wrote earlier in the same window."""
+    return [m.group("verb") for m in SHIPLOOP_COMMAND.finditer(call.get("invoked", ""))]
+
+
+# The Improve runtime's own recovery command, printed in an Improve child's packet ("Recover active Improve packet after
+# compaction"): `python3 .../improve/runtime/until-loop/scripts/until_loop_ephemeral.py next --state ...`. Not a ShipLoop verb.
+IMPROVE_NEXT = re.compile(r"until[_-]loop\w*\.py[\"']?\s+next\b")
+SKILL_CARD = re.compile(r"SKILL\.md")
+
+
+def call_kind(call: dict) -> str:
+    """What one tool call is, as far as re-grounding goes: `next` (ShipLoop's), `improve-next` (the Improve runtime's recovery
+    command), `packet` (a read of, or a command naming, a packet file), `verb` (another ShipLoop verb: complete, lint, an
+    improve-* verb), `skill-card` (a read of a SKILL.md), or `plain`. The one classifier: the windows and the evidence script
+    both read a call through it."""
+    verbs = _verbs(call)
+    if "next" in verbs:
+        return "next"
+    if IMPROVE_NEXT.search(call.get("expanded", "")):
+        return "improve-next"
+    if call.get("packet"):
+        return "packet"
+    if verbs:
+        return "verb"
+    return "skill-card" if SKILL_CARD.search(call.get("command", "") or call.get("file", "")) else "plain"
+
+
+def _grounding(call: dict) -> str | None:
+    """Whether a call goes to ShipLoop's scripts or reads a packet: `next`, `improve-next`, `packet`, or `other` (another
+    ShipLoop verb, `complete` or `lint` among them), else None. It submits or asks; it is not only a question."""
+    kind = call_kind(call)
+    return {"verb": "other", "skill-card": None, "plain": None}.get(kind, kind)
+
+
+def _same_path(told: str | None, got: str | None) -> str:
+    """How a path in the model's command compares with the one it was told: `exact` (the same text), `equivalent` (the same
+    place after normpath and resolve: the recorded Luna `/./` ran), `different` (another place), or `unreadable` (a relative
+    path or an unexpanded variable, which cannot be compared)."""
+    if got is None or not isinstance(told, str):
+        return "unreadable"
+    if got == told:
+        return "exact"
+    if "$" in got or not os.path.isabs(got):
+        return "unreadable"
+    return "equivalent" if os.path.realpath(got) == os.path.realpath(told) else "different"
+
+
+def _recovery(tools: "ToolLog", window: list, told: dict | None, heads: dict) -> dict:
+    """Was the recovery command repeated as told? The first `next` call of the window, its CLI and run directory compared with
+    the ones the prompt named (None where it named none: a compaction), whether it failed, and how many `next` calls there were.
+    ``revision_seen`` is the engine revision the first `next` that returned a packet printed (``heads``: the text each `next`
+    call returned), which a later comparison sets beside the revision the killed session's end row recorded."""
+    nexts = [(number, key) for number, key in enumerate(window, 1) if "next" in _verbs(tools.calls[key])]
+    revision = next((int(found.group("revision")) for _number, key in nexts
+                     for found in [PACKET_STAGE.search(heads.get(key, ""))] if found and found.group("revision")), None)
+    first = None
+    if nexts:
+        number, key = nexts[0]
+        found = NEXT_CALL.search(tools.calls[key]["expanded"])
+        run_dir = RUN_DIR_ARG.search(found.group("rest")) if found else None
+        failed = key in tools.failed
+        first = {"call": number, "failed": failed, "exit": tools.failure_of[key]["exit"] if failed else None,
+                 "cli": None if told is None else _same_path(told.get("cli"), found.group("cli") if found else None),
+                 "run_dir": None if told is None else _same_path(told.get("run_dir"), run_dir.group("dir") if run_dir else None)}
+    return {"told": told, "next_calls": len(nexts), "first_next": first, "revision_seen": revision}
+
+
+def _scoped(event: dict, token) -> dict:
+    """The event with its call ids made unique to one session, so a host that numbers its calls again in a continued session
+    (Codex: item_1 in every session) cannot have one call replace another in a window's log."""
+    prefix = f"{token}:"
+    kind = event.get("type")
+    if kind == "assistant" and isinstance(event.get("message"), dict):
+        blocks = [dict(b, id=prefix + str(b.get("id"))) if isinstance(b, dict) and b.get("type") == "tool_use" else b
+                  for b in event["message"].get("content") or []]
+        return dict(event, message=dict(event["message"], content=blocks))
+    if kind == "user" and isinstance(event.get("message"), dict):
+        blocks = [dict(b, tool_use_id=prefix + str(b.get("tool_use_id"))) if isinstance(b, dict) and b.get("type") == "tool_result"
+                  else b for b in event["message"].get("content") or []]
+        return dict(event, message=dict(event["message"], content=blocks))
+    if kind in ("tool_call", "tool_call_update") and event.get("toolCallId") is not None:
+        return dict(event, toolCallId=prefix + str(event["toolCallId"]))
+    return event
+
+
+def _next_accept(accepted: list[dict], start_t: float | None, ledger_at_start: int | None) -> tuple:
+    """(index in ``accepted`` of the first action the ledger accepted after the start, None), or (None, why it cannot be told).
+
+    The start row's ledger length (``ledger_at_start``) names it exactly. Without it the first row stamped at or after the start's
+    second is taken, and a row with no stamp between the last earlier one and that one could be the next accept, so it is
+    refused rather than guessed. (An accept in the start's own second, before the start, is taken for the next: its submission
+    is then not found in the window, and the window is not measured: safe, not wrong.)
+    """
+    if ledger_at_start is not None:
+        return (ledger_at_start, None) if 0 <= ledger_at_start < len(accepted) else (None, NO_LATER_ACCEPT)
+    if start_t is None:
+        return None, NO_EVENT
+    unstamped = False
+    for index, row in enumerate(accepted):
+        if row["t"] is None:
+            unstamped = True
+        elif row["t"] < int(start_t):
+            unstamped = False
+        else:
+            return (None, AMBIGUOUS_ACCEPT) if unstamped else (index, None)
+    return (None, AMBIGUOUS_ACCEPT) if unstamped else (None, NO_LATER_ACCEPT)
+
+
+def reorientation(rows, stamps: dict, accepted: list[dict], told: dict | None = None, earlier=None, *,
+                  ledger_at_start: int | None = None, scope=None, session_marks: list | None = None) -> dict:
+    """What a fresh context did from its start to the next accepted action: a record, never a verdict.
+
+    ``rows`` are the (line, event) pairs of one session's events from the fresh start, read lazily (this stops reading at
+    the window's end); ``stamps`` the runner's timeline; ``accepted`` the ledger's accepted rows (``stage_results``);
+    ``told`` the CLI and run directory the resume prompt named (None for a start with no recovery command, a compaction);
+    ``earlier(after)`` the (line, event) pairs before the start whose stamp is after ``after`` (None: from the beginning),
+    the stage's pre-start portion that `rewrote` compares. ``ledger_at_start`` is how many actions the ledger had accepted
+    when the context began (a start row's engine.accepted); ``scope(line)`` names the host session a line belongs to, so call
+    ids reused by a continued session stay apart; ``session_marks`` is None for a run whose sessions.jsonl bounded the rows,
+    else the epoch seconds at which other launches began (runrecord), and then a host's own end or init event in the window
+    counts as a session boundary too.
+
+    The action waited for is the FIRST the ledger accepted after the start (``_next_accept``). The window ends at the LAST
+    `complete` or `improve-complete` call that names it, did not fail, began before its accept stamp's second ended and
+    returned at or after the stamp. The stamp is whole-second truncated, so a cut at the stamp would lose the call (it starts
+    after the truncated stamp) or keep the next one (it starts in the same second); an Improve park's parent `complete`
+    returns long before the accept and is not the call. Both clocks are recorded: ``seconds`` to the call, on the runner's
+    clock, and ``seconds_to_accept_stamp``, good to a second. A window the records cannot place that way is never extended
+    to a later action: it is ``measured: false`` with its reason.
+
+    Always present: ``first_grounding`` (see ``_grounding``) with ``calls_before_grounding``, and ``recovery``. A window that is
+    not measured has no count: unknown is not zero. ``failures`` and ``rewrote`` are lower bounds and say so.
+    """
+    iterator = iter(rows)
+    head, start_t = [], None
+    for line, event in iterator:  # the first stamped event is the start; the action waited for is chosen from its time
+        head.append((line, event))
+        if stamps.get(line) is not None:
+            start_t = stamps[line]
+            break
+    index, why = _next_accept(accepted, start_t, ledger_at_start) if head else (None, NO_EVENT)
+    row = accepted[index] if index is not None else None
+    target = row["action"] if row and isinstance(row.get("action"), str) else None
+    stamp = row["t"] if row else None
+    pattern = re.compile(r"(?<![\w-])" + re.escape(target) + r"(?![\w-])") if target else None
+    tools, order = ToolLog(), []
+    candidates: list = []  # calls that name the target in an accepting verb and began before its accept stamp's second ended
+    line_of: dict = {}
+    result_t: dict = {}
+    heads: dict = {}  # `next` call -> the first characters of what it returned (the last update of a running Grok call wins)
+    marker = None  # (line, what) of the first host session boundary inside the window, when the run's sessions are not recorded
+    last_t = start_t
+    for line, event in itertools.chain(head, iterator):
+        t = stamps.get(line)
+        last_t = t if t is not None else last_t
+        if session_marks is not None and marker is None and line != head[0][0] and (
+                event.get("type") in ("end", "result") or (event.get("type") == "system" and event.get("subtype") == "init")):
+            marker = (line, f"a host {event.get('type')} event at line {line}")
+        seen = _scoped(event, scope(line)) if scope else event
+        for key in tools.feed(seen, t, line):
+            order.append(key)
+            line_of[key] = line
+            if pattern and _submits(tools.calls[key], pattern) and _plausible_submission(stamp, tools.calls[key]["t"]):
+                candidates.append(key)
+        for call_id, shown in tool_results(seen):
+            if call_id in tools.calls and "next" in _verbs(tools.calls[call_id]):
+                heads[call_id] = shown[:400]
+        for key in candidates:
+            if key in tools.answered and key not in result_t:
+                result_t[key] = last_t
+        resolved = all(key in tools.answered for key in candidates)
+        if stamp is None:  # no time to wait for: the first submission that did not fail is the one
+            if any(key in tools.answered and key not in tools.failed for key in candidates):
+                break
+        elif resolved and t is not None and t >= stamp + 1:  # every call that could have got it accepted has been seen
+            break
+    placed = [key for key in candidates if key in tools.answered and key not in tools.failed
+              and (stamp is None or result_t.get(key) is None or result_t[key] >= stamp)]
+    parked = [key for key in candidates if key in tools.answered and key not in tools.failed and key not in placed]
+    end_key = (placed[0] if stamp is None else placed[-1]) if placed else None
+    window = order if end_key is None else order[:order.index(end_key) + 1]
+    grounding = next(((number, _grounding(tools.calls[key])) for number, key in enumerate(window)
+                      if _grounding(tools.calls[key])), (None, None))
+    common = {"first_grounding": grounding[1], "calls_before_grounding": grounding[0],
+              "recovery": _recovery(tools, window, told, heads)}
+    # A host session that began or ended inside the window means a run with no recorded bounds cannot place it.
+    if session_marks is not None and start_t is not None:
+        until = tools.calls[end_key]["t"] if end_key is not None else (stamp + 1 if stamp is not None else last_t)
+        crossed = [f"another launch began at {m}" for m in session_marks if until is not None and start_t < m <= until]
+        if marker and (end_key is None or marker[0] < line_of[end_key]):
+            crossed.append(marker[1])
+        if crossed:
+            return {"measured": False, "reason": SESSION_BOUNDS.format(why="; ".join(crossed) + " before the next accepted "
+                                                                      "action, so this window may span two sessions"), **common}
+    if target is None:
+        return {"measured": False, "reason": why or NO_LATER_ACCEPT, **common}
+    if end_key is None:
+        text = PARKED if parked else NO_SUBMISSION
+        return {"measured": False, "reason": text.format(stage=row["stage"], action=target), **common}
+    submitted_at = tools.calls[end_key]["t"]
+    failures = [tools.failure_of[key] for key in window if key in tools.failure_of]
+    return {"measured": True, "accepted": {"stage": row["stage"], "action": target}, "tool_calls": len(window),
+            "seconds": None if start_t is None or submitted_at is None else round(submitted_at - start_t, 1),
+            "seconds_to_accept_stamp": None if start_t is None or stamp is None else round(stamp - start_t, 1),
+            **common,
+            "failures": {"items": failures, "bound": "lower", "scope": FAILURES_SCOPE},
+            "rewrote": _rewrote(tools, window, earlier, accepted, index),
+            "asked_user": sum(bool(ASK_PERSON.search(tools.calls[key]["tool"])) for key in window)}
+
+
+def _submits(call: dict, pattern) -> bool:
+    """Whether a tool call runs a `complete` or `improve-complete` that names the action ``pattern`` matches."""
+    return any(verb in ACCEPTING_VERBS for verb in _verbs(call)) and bool(pattern.search(call.get("invoked", "")))
+
+
+def _plausible_submission(stamp: float | None, call_t: float | None) -> bool:
+    """A call can have got an action accepted only if it did not begin after the accept's second: the stamp is truncated, so
+    the accept lies in [stamp, stamp + 1). A call of this session that names an action accepted before the session began
+    is therefore never the submission (it starts after that stamp's second)."""
+    return stamp is None or call_t is None or call_t < stamp + 1
+
+
+def _rewrote(tools: "ToolLog", window: list, earlier, accepted: list[dict], index: int) -> dict:
+    """Paths a file-edit tool wrote both in the stage's pre-start portion (since the last accepted action) and in the window."""
+    previous = accepted[index - 1] if index else None
+    if earlier is None:
+        paths, scope = None, "unknown: no earlier portion of the stage was given"
+    elif previous is not None and previous["t"] is None:
+        paths, scope = None, "unknown: the previous accepted action has no accept stamp"
+    else:
+        after = {os.path.normpath(call["file"]) for key in window
+                 for call in [tools.calls[key]] if WRITE_TOOL.search(call["tool"]) and call["file"]}
+        paths = sorted(written_paths(earlier(previous["t"] if previous else None)) & after)
+        scope = f"{len(paths)} seen by file-edit tools" if paths else "none seen by file-edit tools"
+    return {"paths": paths, "bound": "lower", "scope": scope}
+
+
+def fresh_starts(out: Path, stamps: dict, accepted: list[dict], sessions: list[dict] | None, compactions: list[dict],
+                 launch_epochs: list | None = None) -> list[dict]:
+    """One block for every fresh context the run had, in the order of its first event: a host session started with no host
+    session id passed (``sessions`` rows of kind `fresh`: a --resume-run, the session after an --interrupt-at) and every
+    compaction (``compactions``: {"host": "grok", "line": n} where the host's event stream marks it, {"host": "codex", "t": epoch}
+    where only its rollouts do). Each block is ``reorientation`` over the events from that point to the next recorded FRESH
+    start (or the end of the file); a `continued` session keeps the context and the window; a compaction's has no told command.
+
+    A start row's ``engine.accepted`` names the action a fresh session waits for exactly. Where the sessions are not recorded
+    (no sessions.jsonl, or events before its first row) nothing bounds a window, so ``launch_epochs`` (runrecord) and the host's
+    own end and init events say where another session began, and a window that spans one is not measured.
+
+    Record-only. ``sessions`` None (a run from before sessions.jsonl) lists no session start, only compactions; the caller
+    says so. ``stage_in_flight`` is the stage whose acceptance ends the window, else the one the previous session's end row
+    left in flight, else None. A fresh start also has ``after_kill``: the engine revision in the killed session's end row, in
+    this session's start row and in the first `next` result it got, and ``moved`` (None while fewer than two are known).
+    """
+    path = out / "events.jsonl"
+    rows = [row for row in sessions or [] if isinstance(row.get("events_line"), int)]
+    fresh_lines = sorted(row["events_line"] for row in rows if row.get("kind") == "fresh")
+    start_lines = sorted(row["events_line"] for row in rows)
+    recorded_from = None if not rows else (0 if rows[0].get("kind") == "first" and rows[0]["events_line"] == 0
+                                           else rows[0]["events_line"])
+    ordered = sorted(stamps)
+    times = [stamps[n] for n in ordered]
+
+    def first_line_after(after: float | None) -> int:
+        """The first stamped line whose stamp is after ``after`` (line 0 where there is no bound)."""
+        if after is None:
+            return 0
+        index = bisect.bisect_right(times, after)
+        return ordered[index] if index < len(ordered) else (ordered[-1] + 1 if ordered else 0)
+
+    points = [(row["events_line"], "fresh", row) for row in rows if row.get("kind") == "fresh"]
+    for compaction in compactions:
+        line = compaction["line"] if "line" in compaction else first_line_after(compaction.get("t"))
+        points.append((line, "compaction", compaction))
+    blocks = []
+    for line, kind, info in sorted(points, key=lambda point: point[0]):
+        bound = next((b for b in fresh_lines if b > line), None)
+        told = info.get("told") if kind == "fresh" and isinstance(info.get("told"), dict) else None
+        started = info.get("engine") if kind == "fresh" and isinstance(info.get("engine"), dict) else {}
+        at_start = started.get("accepted") if isinstance(started.get("accepted"), int) else None
+        unrecorded = recorded_from is None or line < recorded_from
+        block = reorientation(event_range(path, line, bound), stamps, accepted, told,
+                              earlier=lambda after, line=line: event_range(path, first_line_after(after), line),
+                              ledger_at_start=at_start, scope=lambda n: bisect.bisect_right(start_lines, n),
+                              session_marks=list(launch_epochs or []) if unrecorded else None)
+        entry = {"kind": kind, "n": None, "reason": None, "host": info.get("host"),
+                 "t": info.get("t") if "t" in info else stamps.get(line), "events_line": line}
+        left = {}
+        if kind == "fresh":
+            entry.update(n=info["n"], reason=info.get("reason"))
+            previous = next((row for row in rows if row["n"] == info["n"] - 1), None)
+            left = ((previous or {}).get("end") or {}).get("engine")
+            left = left if isinstance(left, dict) else {}
+        entry["stage_in_flight"] = block["accepted"]["stage"] if block["measured"] else left.get("stage")
+        if kind == "fresh":
+            # The engine at the kill, at the launch and in the fresh session's first `next` result: any difference is something
+            # that advanced the run after the host was killed (an in-flight command of the killed session, an orphan).
+            seen = {"end_revision": left.get("revision"), "start_revision": started.get("revision"),
+                    "first_next_revision": block["recovery"]["revision_seen"]}
+            known = {r for r in seen.values() if isinstance(r, int)}
+            entry["after_kill"] = {**seen, "moved": len(known) > 1 if sum(isinstance(r, int) for r in seen.values()) > 1 else None}
+        entry["reorientation"] = block
+        blocks.append(entry)
+    return blocks
+
+
 def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None) -> dict:
     """The run's metrics. ``tools`` is the ToolLog to fill (a caller that reads the tool calls itself, as fidelity.py does,
-    passes an empty one); without it the log is this call's own."""
+    passes an empty one); without it the log is this call's own. It is fed through ``ToolLog.feed``, the one reader the
+    windows of ``fresh_starts`` use too, with each event's line number (``sequence``, ``failure_events``)."""
     stamps = timeline(out / "timeline.jsonl")
     tools = ToolLog() if tools is None else tools
     turns: list[dict] = []
@@ -718,6 +1159,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     starts = 0  # sessions the host began, to tell how many never reported an end
     messages: set[str] = set()  # Claude message ids seen: one API call writes one assistant event per content block
     claude_calls = usage_events = 0
+    compaction_lines: list[int] = []  # where Grok's stream says a compaction completed: a fresh context for the model
     usage_rows: list[tuple] = []  # (t, output, reasoning) of Grok's per-call usage events: the planning window's tokens
     reported: set[int] = set()  # context windows the result events reported
     versions: set[str] = set()  # Claude Code builds that opened a session: the host CLI changes between runs of one prompt
@@ -726,6 +1168,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     for number, event in events(out / "events.jsonl"):
         kind = event.get("type")
         t = stamps.get(number)
+        tools.feed(event, t, number)  # Claude tool_use / tool_result blocks, Grok and Codex tool_call / tool_call_update
         if kind in ("usage", "assistant"):
             calls_in_session += 1
         if kind == "available_commands" or (kind == "system" and event.get("subtype") == "init"):
@@ -735,7 +1178,8 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         if kind == "usage":
             grok = True
             usage_events += 1
-            turns.append({"t": t, "input": context_tokens(event.get("usage"))})
+            # A usage event is one model call, as `model_calls` counts it: the stage rows count it too (per_stage reads ``call``).
+            turns.append({"t": t, "input": context_tokens(event.get("usage")), "call": True})
             used = event.get("usage") if isinstance(event.get("usage"), dict) else {}
             usage_rows.append((t, *(v if isinstance(v, int) and not isinstance(v, bool) else None
                                     for v in (used.get("output_tokens"), used.get("reasoning_tokens")))))
@@ -748,30 +1192,16 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
                 claude_calls += 1
                 if isinstance(message_id, str) and message_id:
                     messages.add(message_id)
-            for block in (event.get("message") or {}).get("content") or []:
-                if isinstance(block, dict) and block.get("type") == "tool_use":
-                    tools.call(t, block.get("id"), str(block.get("name") or ""),
-                               block["input"] if isinstance(block.get("input"), dict) else {}, event=number)
             turns.append({"t": t, "input": context_tokens((event.get("message") or {}).get("usage")), "call": first})
-        elif kind == "user":  # Claude: the tool_result blocks, whose text may begin with the host's `Exit code N`
-            for call_id, shown in tool_results(event):
-                tools.measure(call_id, shown)
-                tools.result(call_id, shown, claude_exit(shown), event=number)
-        elif kind == "tool_call":
-            arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
-            tools.call(t, event.get("toolCallId"), str(event.get("toolName") or event.get("title") or ""), arg, event=number)
-        elif kind == "tool_call_update" and event.get("status") == "failed" and "cancelled" in json.dumps(
-                event.get("content") or "").lower():
+        elif kind == "tool_call_update" and cancelled_update(event):
             # Grok's headless permission check refused the call; the turn ends with it.
             cancelled.append((tools.calls.get(event.get("toolCallId")) or {}).get("command", "")[:160])
         elif kind == "tool_call_update" and isinstance(event.get("rawOutput"), dict):
             if event["rawOutput"].get("truncated"):  # Grok repeats the update; count each call once
                 truncated.add(event.get("toolCallId"))
-            if event.get("status") != "in_progress":  # Grok's running updates carry a placeholder exit 0 and the output so far
-                for call_id, shown in tool_results(event):
-                    tools.result(call_id, shown, event["rawOutput"].get("exit_code"), event=number)
         elif kind == "auto_compact_completed":
             compactions += 1
+            compaction_lines.append(number)
         elif kind in ("end", "result"):
             reported |= context_windows(event)
             # The host's own usage is kept as it wrote it: its shape differs by host (Claude's nests), and
@@ -820,6 +1250,31 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         unmeasured["window_tokens"] = (f"{NO_WINDOW}; {why_not}" if why_not else
                                        NO_ROLLOUT_WINDOW if context else NO_WINDOW)
     planning["tokens"] = planning_tokens(bounds, why_not_tokens, usage_rows, grok, bool(claude_calls), context)
+    # Fresh contexts: the sessions the harness recorded (sessions.jsonl; a run from before it says so) and every compaction the
+    # host's events (Grok) or its rollouts (Codex) show. Claude's compactions are not detected (see GROK_SIGNALS).
+    compaction_points = ([{"host": "grok", "line": n} for n in compaction_lines] if "compactions" not in unmeasured else [])
+    if context and "unmeasured" not in context:
+        compaction_points = [{"host": "codex", "t": t} for t in context.get("compaction_times", [])]
+    try:
+        sessions_recorded = sessionlog.read(out)
+        notes = []
+        if sessions_recorded is None:
+            notes.append(FRESH_STARTS_NOT_RECORDED if not (out / sessionlog.SESSIONS).exists()
+                         else FRESH_STARTS_UNREADABLE)
+        else:
+            first = sessions_recorded[0] if sessions_recorded else None
+            events_before = first["events_line"] if first and isinstance(first.get("events_line"), int) else None
+            if first is None and (out / "events.jsonl").is_file() and (out / "events.jsonl").stat().st_size:
+                events_before = sum(1 for _ in (out / "events.jsonl").open("rb"))
+            if events_before:
+                notes.append(f"partial: sessions before events line {events_before} are not recorded")
+        if "compactions" in unmeasured:
+            notes.append(f"compactions not detected on this host: {unmeasured['compactions']}")
+        fresh_list = fresh_starts(out, stamps, accepted, sessions_recorded, compaction_points,
+                                  runrecord.launch_epochs(out))
+        fresh_note = "; ".join(notes) or None
+    except Exception as exc:  # noqa: BLE001 - a passive record never takes the run's metrics down (per_stage once did)
+        fresh_list, fresh_note = [], f"failed: {type(exc).__name__}: {' '.join(str(exc).split())[:200]}"
     stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
     if context and "unmeasured" not in context:
         for row, figures in zip(stages, context["perStage"]):
@@ -863,11 +1318,15 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         "narrative": narrative(out, run_dir),
         "stages": stages,
         "planning": planning,
+        # Record-only (SPEC "A fresh context is recorded, not scored"): see fresh_starts. The list holds the compactions only,
+        # and `fresh_starts_unmeasured` says why, where the run has no sessions.jsonl; None where it is complete.
+        "fresh_starts": fresh_list,
+        "fresh_starts_unmeasured": fresh_note,
     }
 
 
 NARRATIVE = re.compile(r"=== ShipLoop narrative ===\n(?P<rule>[^\n]*)\n(?P<body>.*?)=== end ShipLoop narrative ===", re.S)
-PACKET_STAGE = re.compile(r"ShipLoop navigator \| (?P<stage>[\w-]+) \|")
+PACKET_STAGE = re.compile(r"ShipLoop navigator \| (?P<stage>[\w-]+) \|(?: revision (?P<revision>\d+))?")
 STATE_BLOCK = re.compile(r"```shiploop-state\n(?P<json>.*?)\n```", re.S)
 
 
@@ -1058,9 +1517,10 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
     count that needs per-call usage when the host has none) is ``None`` in the
     row, never 0.
 
-    Where the turns carry a ``call`` flag (Claude: the first event of a message) a timed row also has ``context``
-    {calls, peak, peakPct}, the shape Codex's rollouts give: the messages that began in the window, the largest input
-    side any of its events reported, and that peak as a percentage of ``context_window`` (None when none was reported).
+    Where the turns carry a ``call`` flag (Claude: the first event of a message; Grok: each usage event) a timed row that
+    holds at least one event also has ``context`` {calls, peak, peakPct}, the shape Codex's rollouts give: the model calls
+    that began in the window, the largest input side any of its events reported, and that peak as a percentage of
+    ``context_window`` (None when none was reported). A stage with no event has none: nothing was measured there.
     ``turns`` keeps counting events, and a call after the last accepted stage is in no row.
 
     Limits, not fixed: engine stamps are whole seconds (truncated) while runner times
@@ -1092,7 +1552,7 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
         events = [x for x in turns if x["t"] is not None and within(x["t"], after, until)]
         tools = [c for c in calls.values() if c["t"] is not None and within(c["t"], after, until)]
         row = {**base, "seconds": round(until - since, 1), **counted(events, tools)}
-        if any("call" in x for x in turns):
+        if events and any("call" in x for x in turns):  # a stage with no event measured nothing: no context, not 0 calls
             peak = max((x["input"] for x in events if x["input"] is not None), default=None)
             row["context"] = {"calls": sum(bool(x.get("call")) for x in events), "peak": peak,
                               "peakPct": rollouts.share(peak, context_window)}

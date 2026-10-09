@@ -305,8 +305,8 @@ on quickly before the breadth of everything is checked.
 |---|---|
 | S-1, S-2 | ShipLoop command failures and refusals (`shiploop_failures`: a tool result with a line that begins a ShipLoop refusal prefix, or a nonzero exit of a command that names a ShipLoop verb; read on every host, from Claude's `tool_result` blocks too, where a refusal behind a pipe shows no exit); resumed sessions continue from `next`; no state edits outside ShipLoop verbs |
 | S-4, S-5 | host-cancelled tool calls; `model_glue` (model `git commit`/`add`, shell writes into ShipLoop-owned paths, hand-built loop contracts), counted per command on every host: a script the model wrote that wraps the CLI hides its ShipLoop calls from it, so Claude's `tool_use.scratch_scripts` lists those scripts and their runs beside it, and a Claude glue of 0 is a lower bound |
-| S-6 | runs survive compaction and session resumes without losing their place |
-| S-7 | truncated outputs, peak context, compactions, packet head size; for Claude, per-stage `context` (model calls, peak, share of the window) and `tool_use.packets` (packet bytes on disk, printed heads and Reads, whole or ranged) |
+| S-6 | runs survive compaction and session resumes without losing their place; `sessions.jsonl` (added 2026-10-09: every host launch and every session end, written by the harness) and `fresh_starts` in metrics.json: for every fresh session and every compaction, what the model did from the fresh start to the next accepted action (tool calls, seconds, its first grounding call, whether the recovery command was repeated as told, ShipLoop failures, files written again). Recorded beside the verdicts and never scored; see "A fresh context is recorded, not scored" |
+| S-7 | truncated outputs, peak context, compactions, packet head size; per-stage `context` (model calls, peak, share of the window; a stage with no events carries none, and a Grok `usage` event is a model call like a Claude message) and, for Claude, `tool_use.packets` (packet bytes on disk, printed heads and Reads, whole or ranged) |
 | S-9, S-10 | `script_verifications` (ShipLoop's own verify records, with the count that ran red, which a test-red record or a probe passes by design), Improve children; a zero-test pass fails |
 | S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner's 30-minute planning rule is read from it, and it is the one place these figures are computed |
 | S-12 | `claude_code_version` in metrics.json and result.json (added 2026-10-08): the host CLI build the sessions ran on, so two runs of one prompt on different builds (the Sonnet pair of 2026-10-06 and 2026-10-07 ran on 2.1.291 and 2.1.292) are not read as a controlled comparison. Null where the host's events do not carry it |
@@ -566,6 +566,67 @@ stands at the commit under test.
   is not built here. Non-regression: only keys are added (`fidelity` in `metrics.json`, and a `tools` argument to `metrics.collect`, an `event` argument to
   `ToolLog.call` and `ToolLog.result`, an optional `limit` to `failure_line`, and the new `ToolLog.sequence`, `ToolLog.failure_events` and `metrics.target_paths`); `shiploop_failures`, `model_glue`, `script_verifications`, the planning
   block and every baseline row keep their shape, and S-1 through S-15 are not weakened because nothing here gates a run.
+- **A fresh context is recorded, not scored** (amended 2026-10-09; anchor S-6, the main tenet: "a clear-the-context
+  probe at a stage boundary and inside a stage" is the admission test for moving grounding out of a packet, and no run
+  ever made one on purpose). Phase 1 of the audited safer alternative: it records what a fresh context did and builds no
+  trigger and no kill. The harness writes `<output>/sessions.jsonl`, append-only: a `start` row before each host launch
+  (`kind` `first`, `fresh` or `continued`, `reason`, `events_line`, `t`, `told`, the CLI and run directory the resume
+  prompt named, stored as values because the Claude host passes its prompt in `-p` and keeps no prompt file, and `engine`, the
+  ledger as the session inherits it) and an `end`
+  row after it (end time, last events line, status, and the engine revision and last accepted action read from the ledger
+  at that moment). The host's own events cannot give these boundaries: Grok repeats `available_commands` (the 2026-10-08
+  r3 run has 237, so its `unreported_sessions` read 237). `metrics.json` gains a passive `fresh_starts` list: one block for
+  every `fresh` start (a `--resume-run`, the session after an `--interrupt-at`) and every compaction (Grok's
+  `auto_compact_completed` event; a Codex compaction from its rollouts; no Claude compaction is detected, because no
+  recorded Claude stream shows one), each over the events from the fresh start to
+  the tool call that got the next accepted action accepted. The action is the first one the ledger accepted after the
+  start (the start row's `engine.accepted` names it exactly; without it, the first one stamped at or after the start's
+  second). The call is the last `complete` or `improve-complete` that names it, did not fail, began before the second of
+  its accept stamp ended and returned at or after the stamp. The stamp is whole-second truncated, so a cut at the stamp
+  loses the call and a cut a second later keeps the next one (both seconds are recorded), and an Improve park's parent
+  `complete` returns long before the accept and is not the call. A window the records cannot place this way is
+  `measured: false` with its reason and is never extended to a later action: the action was accepted by something that
+  left no event (an orphan host, a script the window does not see), only a call that parked it was seen, or, in a run
+  with no `sessions.jsonl`, another host session began or ended inside the window. A `continued` session does not cut a
+  window (it keeps the context); the next `fresh` one does. A run with no `sessions.jsonl` lists only its
+  compactions, and `fresh_starts_unmeasured` says `not recorded` (a sibling key: the top-level `unmeasured` map is for counters). The same
+  key says `partial` where the first recorded session is not the run's first, and names a host whose compactions are not
+  detected (Claude's, a Codex run without rollouts), so an empty list is never read as a measured none.
+  *What it tests.* The production recovery path: the resume prompt, which names the `next` command (the rule above), plus
+  the packet that command prints. It is not S-6's "a model holding only the next packet", and a compaction carries no
+  recovery command at all. The files of the old session stay on disk and the harness reaps its servers, which a real
+  `/clear` would not; Claude's auto-memory and the user's global instructions load into both sessions.
+  *Lower bounds and unknowns.* `rewrote` (a path a file-edit tool wrote both in the same stage before the fresh start and
+  after it) is a lower bound whose scope reads "none seen by file-edit tools": the tool log sees write, edit, replace and
+  create tools only, and Claude writes most files by shell. Failures in the window are a lower bound too (a wrapper
+  script written in an earlier session is not known to the window). A figure the records cannot show is null with its
+  reason; an unknown is never a pass and never a zero.
+  *No verdict.* The engine's own records cannot show redone work: S-1 and the navigator refuse a stale or replayed action,
+  so such a check cannot fail on a live run, while the r3 fresh session spent its 164 s reading five product files and
+  running the test command three times. If a later phase adds such a check it is named `continuity`, it is necessary
+  and not sufficient for S-6, it never reads a null as a pass, and S-6's "shows no redone work" stays a reader's
+  judgement over the recorded blocks until a redo measure is settled (after three live probes). Nothing here names a
+  pass, adds a verdict, a threshold or a baseline key.
+  *The recorded accidental probes are not clean samples.* The r3 Grok session was resumed after its old session went
+  silent for 126 s at an unfinished auto-compaction; the r2 Claude fresh start follows a 1933 s gap that holds stages
+  accepted by an orphan Grok host which wrote no events; the four Luna xhigh resumes mistyped the run directory in two
+  of their first `next` calls. They reproduce as fixtures (r2 Claude start: 6 calls, 21.8 s to the submitting call, accept
+  stamp 22.7 s; r3 Grok: 23 calls, 163.2 s to the `complete` call, stamp 164.0 s; Luna xhigh: of 4 first `next` calls 2
+  failed with exit 2, 1 was exact and 1 differed only by `/./`), and they are not used to set expectations.
+  *Non-regression.* Additive keys and one additive file: the baseline row, every verdict and S-6's own text are unchanged,
+  and `result.json` gains no key. A fresh context gets no new gate. `ToolLog` is fed through one method for the whole-run
+  reading and the windowed one (S-12). The stage rows change in two ways, both corrections, and `result.json` carries the
+  stage rows too (it copies `metrics.stages`), so it changes with them: a stage with no events no longer carries a zero-call
+  `context`, and a Grok model call is counted in a stage's `context.calls` (a mixed-host run showed `calls: 0` beside a real
+  peak; r2's `result.json` carries such a zero context).
+  *Dispositions.* `--clear-at`, its kill logic, an `accepted_files` hash compare, the extra snapshot fields and a redo
+  measure are not built. The README and LEARNINGS deferral of a stage-named trigger stands: phase 1 does not reverse it,
+  and the documented path is an external watcher that creates `<output>/stop` when `state.md` shows the target boundary,
+  then `--resume-run`. Phase 2 (`--clear-at`) is built only if the first live probes show that the stop file's overshoot
+  (the watcher's 0.5 s poll plus the harness's 2 s one) or the two-invocation procedure is inadequate. Engine movement between the kill and the
+  fresh session is read from the revisions the killed session's `end` row, the fresh session's `start` row and its first
+  `next` result carry (`after_kill.moved`), never from an invented wait. *Evidence.* test/shiploop-e2e-reorientation.test.py, over compact extracts of the saved runs named
+  above (test/fixtures/reorientation/).
 - Start from an empty directory, or for a follow-on case, from a clean copy of
   an earlier run's checkout. The harness leaves no files of its own behind.
 - Case products are disposable probes. The repository a run builds (and any
