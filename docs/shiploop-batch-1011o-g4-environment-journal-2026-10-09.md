@@ -99,6 +99,17 @@ polls the raw descriptor with `select` and a stop flag, and the pipe is closed o
   refuses Git context environment overrides"). That suite refuses those overrides by design, so the quick tier is run without them; the e2e
   harness tests isolate Git themselves (`isolate_git`). Not a product defect; the rerun without them passed.
 
+### Verification after the fix round (head 3519a1d1 and this entry's commit), load 7 to 9
+
+- `python3 test/shiploop-e2e-environment.test.py`: 125 tests OK, 60.5 s (93 tests, 33 s before the fix round; the probe's process-safety tests
+  start real fake browsers). Catalog duration 65 s, under `QUICK_MAX_SECONDS` 120.
+- `python3 test/shiploop-e2e.test.py`: 404 OK, 113.8 s. `python3 test/shiploop-e2e-runrecord.test.py`: 6 OK. `python3 test/test-groups.test.py`: 21 OK.
+- `bash test/run-all.sh --group quick --changed-from 30a3b40a`, run without exported `GIT_CONFIG_*` variables: PASS, 28 suites OK, 0 FAIL.
+- Mutants of scratch copies that survived the first fix-round tests and now turn red: the grace not polled for a stop, `lingered` counting an
+  interrupted browser, a non-finite stamp accepted, a glob-only launch-record name counted unreadable, the needs read from the first launch or
+  ignored, the stamp never bumped. Item 8 and 17's named mutants (E6, E2, E16, E19, R12, R20, R21, R27, E4, E5, the killpg guard, the fixed port) all
+  turn red.
+
 ## Deviations from the design, and why
 
 1. **No `--version` probe of any host CLI.** The design called the host CLI with `--version` for every host. The brief assigns the host build to
