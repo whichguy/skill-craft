@@ -1381,12 +1381,38 @@ def suite_chains(order: list[str], cases: dict) -> list[list[str]]:
     return chains
 
 
+def stale_listener_lines(own: Path | None) -> list[str]:
+    """One line per listener an ended case left behind (see listeners.stale): the process, its port, its case and the command.
+
+    Where the process table cannot be read the check is skipped with a printed note, never refused on a guess.
+    """
+    try:
+        found = listeners.stale(own)
+    except listeners.Unobserved as exc:
+        print(f"stale-listener check skipped: {exc}", flush=True)
+        return []
+    return [f"pid {item['pid']} {item['command']} listens on port {','.join(map(str, item['ports']))} (working directory "
+            f"{item['cwd']}), left by {item['case']}, whose harness is not running: stop it by pid with `kill {item['pid']}`"
+            for item in found]
+
+
+def refuse_stale_listeners(own: Path | None) -> None:
+    """Start nothing while an ended case still has a server bound: a later run would meet it (SPEC: a run leaves nothing listening)."""
+    lines = stale_listener_lines(own)
+    if lines:
+        raise SystemExit("a listener an ended case left is still bound, so no host is started (no override: stop it by pid):\n  "
+                         + "\n  ".join(lines))
+
+
 def run_suite(args, argv: list[str]) -> int:
     """Run a suite's cases in order; a follow-on starts from its predecessor and is skipped if it failed."""
     suites = json.loads(SUITES.read_text())
     if args.suite not in suites or args.suite.startswith("_"):
         raise SystemExit(f"unknown suite {args.suite!r}; known: {', '.join(k for k in suites if not k.startswith('_'))}")
     cases = json.loads(CASES.read_text())
+    # Once, up front (like the version gate): a refusal raised inside a case's worker thread would reach the suite only after
+    # the running chains finish, with no suite-result.json. Its cases skip their own check (--suite-name).
+    refuse_stale_listeners(None)
     base = new_output_dir(args.output, "suite-" + args.suite)
     passthrough, skip = [], {"--suite", "--output", "--case", "--continue-from", "--max-parallel"}
     it = iter(argv)
@@ -1461,12 +1487,25 @@ def run_suite(args, argv: list[str]) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run one case (or a suite) and return the exit code; see _main."""
+    held: list = []  # the case lock, taken inside once the output folder is known, and released here whatever happens
+    try:
+        return _main(argv, held)
+    finally:
+        for handle in held:
+            handle.close()
+
+
+def _main(argv: list[str] | None, held: list) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
     if args.preflight_only:
         # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
         out = new_output_dir(args.output, "preflight")
-        refused = False
+        problems = stale_listener_lines(None)
+        for line in problems:
+            print(f"refused: {line}", flush=True)
+        refused = bool(problems)
         for name in (sorted(hosts.HOSTS) if args.host == "all" else [args.host]):
             args.host = name
             check = out / name
@@ -1508,6 +1547,8 @@ def main(argv: list[str] | None = None) -> int:
         if state.get("status") != "active" and not regrade:
             raise SystemExit(f"--resume-run needs an active, blocked or finished ShipLoop run; found "
                              f"{state.get('status')!r} in {out}")
+        if not regrade and not args.suite_name:
+            refuse_stale_listeners(out)  # the run's own leftovers are stopped below, not refused
         # The one CLI value every prompt of this invocation names (a record with no plugin_dir yields a path that is not a file).
         resumed_cli = run_cli(earlier["host"], out, Path(earlier.get("plugin_dir") or out / "missing-plugin"))
         if not regrade and not resumed_cli.is_file():
@@ -1538,11 +1579,18 @@ def main(argv: list[str] | None = None) -> int:
         name, prompt, checks, follows = load_case(args)
         if follows and not args.continue_from:
             raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
+        if not args.suite_name:
+            refuse_stale_listeners(None)  # before the folder exists, so a refusal leaves nothing behind
         out = new_output_dir(args.output, name)
         work = out / "work"
         work.mkdir()
         follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
     stop_file = out / "stop"  # a person (or a watcher) creates it to end the run; main consumes it
+    # This harness is alive while main runs: a launch elsewhere reads the lock to tell a sibling's server from a leftover.
+    # The kernel also drops it on any death, SIGKILL included, which is why a lock and not a pid file.
+    lock = listeners.hold_case(out)
+    if lock is not None:
+        held.append(lock)
     left_behind: list = []  # what each reap pass of this invocation found (see listeners.py)
 
     def session(*launch_args, **launch_kw) -> dict:

@@ -1684,7 +1684,7 @@ sentence under "Every ending leaves its records", and "Runs compared on wall tim
   (r1-checkers-sonnet); the other seven user listeners have cwd `/`, so "cwd or an argv path under the case folder" had no false positive
   here. Measured again at build time: 8 own listeners, `observe()` 0.115 to 0.121 s over three scans (lsof twice, ps once), `protected_pids`
   0.02 s, a detect-only `listeners.inside` of r1-checkers-sonnet finds pid 63973 on port 3457 with that cwd, and of the name
-  `r1-checkers-sonne` (a bare prefix) finds nothing. The leaked pid was not signalled by this work: stopping it needs the owner's go.
+  `r1-checkers-sonne` (a bare prefix) finds nothing. Pid 63973 was not stopped on purpose (that needed the owner's go); it ended later in the mutation-run incident the reap commit describes (a test scope that called the mutated selector let the real reap signal this user's other listeners: Ollama and its server, the OrbStack engine and the leaked pid; launchd restarted the rest, and the restart of Ollama and OrbStack was not done by this work).
 - **Probes of the design** (scratch, reproduced as hermetic tests): SIGTERM freed a listener's port in 0.27 s and left a `case-10` sibling
   alone when `case-1` was reaped; an exclusive `flock` holds across a second open file description in one process and across processes and
   is released when the holder is SIGKILLed; a host started with `start_new_session=True` survives a SIGTERM to the harness by default and
@@ -1698,6 +1698,21 @@ sentence under "Every ending leaves its records", and "Runs compared on wall tim
   (`observed`, `reaped`, `survived`, or `observed: false` and the reason, the passes merged so an unseen pass never reads as none).
   Ordinary harness tests patch the observer to return nothing, so none reads this machine's table (pid 63973 would otherwise be seen).
   The classes that use the real lsof scope what it shows to their own temporary folder. A test whose lsof is absent skips with a stated reason.
+- **Built: the stale-listener refusal.** A launch, `--preflight-only` and a suite (once, before its folder or any case exists) are refused
+  while a listener sits under another case's output folder and that case's harness is not alive. Liveness is an exclusive `flock` on
+  `<output>/.harness-lock`, taken by `main` and released when it returns; the kernel drops it on any death (reproduced: a holder
+  SIGKILLed frees it), so parallel suite cases and pairs started by hand are never refused. Looking is read-only (`os.open` with
+  `O_RDONLY` and a shared lock; the first design's `open(path, "a")` would have created a lock file in every old case folder it
+  inspected), the run's own folder is reaped and not refused, a regrade is never refused, and a case a suite starts skips its own check
+  (a `SystemExit` in a worker thread reaches the suite only after the running chains finish, with no suite-result.json). No listener
+  is ever stopped by the refusal. Where lsof cannot be read a line is printed and the launch goes ahead. Measured at build time: 26 case
+  folders, 0 listeners under any of them, 0 lock files (old folders have none), `stale()` 0.14 s. The leaked pid 63973 was already
+  gone by then (see the incident in the reap commit), so the first launch on this check is not refused by it.
+- **Decision (reversible, the owner's to take): refuse rather than warn.** The refusal has no override, so a finished case folder served
+  by hand blocks every later launch until its process is stopped by pid. The smaller alternative is a printed warning plus a recorded
+  `stale_listeners_at_start`, which drops the lock, `case_folder`, `stale` and about 40 lines. Refusal was kept because the round-2
+  contamination was a launch that went ahead and the round-2 criterion asks for the refusal; after the reap, a stale listener arises only
+  from a SIGKILLed harness or a leak from before this change.
 - **Decision (reversible): a leftover is a record, not a verdict.** `pass` is unchanged. Making it a verdict would fail a run for a
   model's habit the harness already cleaned up.
 - **Open:** U2 whether `lsof` exists on the `ubuntu-latest` CI runner (the pure parse and selection tests run either way; the real-process

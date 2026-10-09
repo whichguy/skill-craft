@@ -4969,6 +4969,8 @@ def end_quietly(proc: subprocess.Popen) -> None:
     with contextlib.suppress(ProcessLookupError):
         proc.kill()
     proc.wait()
+    if proc.stdout:
+        proc.stdout.close()
 
 
 def kill_leaked(portfile: Path) -> None:
@@ -4993,6 +4995,29 @@ def refuses_soon(port: int, seconds: float = 5.0) -> bool:
     return False
 
 
+def isolate_git(case: unittest.TestCase) -> None:
+    """A fake host runs real git: neither the machine's system nor its global config (signing, an lfs filter) may reach it."""
+    patched = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+    patched.start()
+    case.addCleanup(patched.stop)
+
+
+class CaseRunCase(PrintedCase):
+    """A harness case that runs one named case into its own folder and returns what the run recorded."""
+
+    def case_main(self, name: str, *extra: str, mode: str = "done", host: str = "claude", env: dict | None = None):
+        out = self.tmp / name
+        os.environ["FAKE_MODE"] = mode
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), mock.patch.dict(os.environ, env or {}):
+            code = run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue(), out
+
+    def reaped(self, result: dict) -> list[int]:
+        return [i["pid"] for i in (result.get("left_behind") or {}).get("reaped", [])]
+
+
 class RealListeners:
     """Mixin: tests that start real servers and let the harness stop them, in a world scoped to the test's own folder."""
 
@@ -5014,10 +5039,10 @@ class RealListeners:
             real_signal(pid, number)
 
         for patcher in (mock.patch.object(listeners, "observe", side_effect=in_tmp),
-                        mock.patch.object(listeners, "_signal", side_effect=guarded_signal),
-                        mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})):
+                        mock.patch.object(listeners, "_signal", side_effect=guarded_signal)):
             patcher.start()
             self.addCleanup(patcher.stop)
+        isolate_git(self)
 
     def serve(self, cwd: Path, *flags: str) -> tuple[subprocess.Popen, int]:
         """A listening server whose working directory is `cwd`, as a model leaves one; killed when the test ends."""
@@ -5080,24 +5105,12 @@ class ReapTest(RealListeners, unittest.TestCase):
 
 
 @needs_lsof
-class LeftBehindThroughMainTest(RealListeners, PrintedCase):
+class LeftBehindThroughMainTest(RealListeners, CaseRunCase):
     """What a host or a check leaves listening is stopped, recorded in result.json and printed (SPEC: a run leaves nothing listening)."""
 
     def setUp(self):
         super().setUp()
         self.scope_to_tmp()
-
-    def case_main(self, name: str, *extra: str, mode: str = "done", host: str = "claude", env: dict | None = None):
-        out = self.tmp / name
-        os.environ["FAKE_MODE"] = mode
-        printed = io.StringIO()
-        with contextlib.redirect_stdout(printed), mock.patch.dict(os.environ, env or {}):
-            code = run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
-                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
-        return code, json.loads((out / "result.json").read_text()), printed.getvalue(), out
-
-    def reaped(self, result: dict) -> list[int]:
-        return [i["pid"] for i in (result.get("left_behind") or {}).get("reaped", [])]
 
     def test_a_server_a_host_leaves_running_is_stopped_and_recorded(self):
         for host in ("claude", "grok"):
@@ -5203,6 +5216,197 @@ class LeftBehindThroughMainTest(RealListeners, PrintedCase):
         self.assertEqual(self.reaped(result), [orphan.pid])
 
 
+class CaseLockTest(unittest.TestCase):
+    """A case's harness is alive exactly while it holds an exclusive lock on <output>/.harness-lock; the kernel drops it on any death."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name).resolve()
+
+    def case(self, name: str) -> Path:
+        folder = self.tmp / name
+        (folder / "work").mkdir(parents=True)
+        (folder / "invocation.json").write_text("{}")
+        return folder
+
+    def test_a_case_folder_is_the_nearest_ancestor_with_an_invocation_record_and_a_work_directory(self):
+        folder = self.case("case-1")
+        self.assertEqual(listeners.case_folder(folder / "work" / "deep" / "server.js"), folder)
+        self.assertEqual(listeners.case_folder(folder), folder)
+        self.assertIsNone(listeners.case_folder(self.tmp / "elsewhere" / "a"))
+        (self.tmp / "half").mkdir()
+        (self.tmp / "half" / "invocation.json").write_text("{}")  # a record without a work directory is not a case
+        self.assertIsNone(listeners.case_folder(self.tmp / "half" / "x"))
+
+    def test_the_lock_is_held_while_its_file_is_open_and_a_second_holder_is_refused_quietly(self):
+        folder = self.case("case-1")
+        self.assertFalse(listeners.case_alive(folder), "no lock file: no live harness")
+        self.assertFalse((folder / ".harness-lock").exists(), "looking creates nothing in a folder the run does not own")
+        held = listeners.hold_case(folder)
+        self.assertIsNotNone(held)
+        self.assertTrue(listeners.case_alive(folder), "a second open file description in this very process sees it held")
+        self.assertIsNone(listeners.hold_case(folder), "one harness per case folder; the second is told, not raised at")
+        held.close()
+        self.assertFalse(listeners.case_alive(folder))
+        self.assertIsNone(listeners.hold_case(self.tmp / "no-such-folder"), "never raises")
+
+    def test_the_kernel_drops_the_lock_when_its_holder_is_killed(self):
+        folder = self.case("case-1")
+        holder = subprocess.Popen([sys.executable, "-c", "import fcntl, sys, time\nf = open(sys.argv[1], 'a')\n"
+                                   "fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)\nprint('held', flush=True)\ntime.sleep(60)\n",
+                                   str(folder / ".harness-lock")], stdout=subprocess.PIPE, text=True)
+        self.addCleanup(end_quietly, holder)
+        self.assertEqual(holder.stdout.readline().strip(), "held")
+        self.assertTrue(listeners.case_alive(folder))
+        holder.kill()
+        holder.wait()
+        self.assertFalse(listeners.case_alive(folder), "a SIGKILLed harness leaves no lock behind")
+
+    def test_stale_lists_the_listeners_of_ended_cases_other_than_its_own(self):
+        alive, ended, own = self.case("alive"), self.case("ended"), self.case("own")
+        held = listeners.hold_case(alive)
+        self.assertIsNotNone(held)
+        self.addCleanup(held.close)
+        items = [listener(900001, str(ended / "work"), "node server.js"),
+                 listener(900002, str(alive / "work"), "node server.js"),
+                 listener(900003, str(own / "work"), "node server.js"),
+                 listener(900004, "/", f"node {ended}/.shiploop-runs/x/server.js"),
+                 listener(900005, "/", "node unrelated.js"),
+                 listener(900006, str(ended / "work"), "node protected.js")]
+        with mock.patch.object(listeners, "observe", return_value=items), \
+                mock.patch.object(listeners, "protected_pids", return_value={900006}):
+            found = listeners.stale(own)
+            everything = listeners.stale(None)
+        self.assertEqual({(i["pid"], i["case"]) for i in found}, {(900001, str(ended)), (900004, str(ended))},
+                         "a live harness, the run's own folder, an unrelated process and a protected pid are not stale")
+        self.assertEqual({i["pid"] for i in everything}, {900001, 900003, 900004}, "with no folder of its own, the own case is stale too")
+
+
+class StalePreflightThroughMainTest(CaseRunCase):
+    """A launch is refused, whole, while another case leaves a listener and its harness is not alive (SPEC: a run leaves nothing listening)."""
+
+    def setUp(self):
+        super().setUp()
+        isolate_git(self)
+        patched = mock.patch.object(run, "POLL_SECONDS", 0.2, create=True)
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def ended_case(self, name: str = "case-old") -> Path:
+        folder = self.tmp / name
+        (folder / "work").mkdir(parents=True)
+        (folder / "invocation.json").write_text("{}")
+        return folder
+
+    def leaking(self, folder: Path, pid: int = 900001) -> mock._patch:
+        return mock.patch.object(listeners, "observe", return_value=[listener(pid, str(folder / "work"), "node server.js", (3457,))])
+
+    def test_a_launch_is_refused_while_an_ended_case_leaves_a_listener_and_no_host_starts(self):
+        ended = self.ended_case()
+        with self.leaking(ended), self.assertRaises(SystemExit) as refused:
+            self.case_main("case-new")
+        for part in ("pid 900001", "port 3457", str(ended), "kill 900001"):
+            self.assertIn(part, str(refused.exception))
+        self.assertFalse(self.log.exists(), "no host started")
+        self.assertFalse((self.tmp / "case-new").exists(), "a refused launch leaves no output folder behind")
+
+    def test_preflight_only_refuses_the_same_way_and_a_clean_machine_passes(self):
+        ended = self.ended_case()
+        for leaks, want in ((True, 1), (False, 0)):
+            printed = io.StringIO()
+            with (self.leaking(ended) if leaks else mock.patch.object(listeners, "observe", return_value=[])), \
+                    mock.patch.object(run, "marketplace_preflight", return_value=(self.plugin, None, {"gate": []})), \
+                    contextlib.redirect_stdout(printed):
+                code = run.main(["--preflight-only", "--host", "claude", "--output", str(self.tmp / f"pf-{leaks}")])
+            self.assertEqual(code, want, printed.getvalue())
+            self.assertEqual("kill 900001" in printed.getvalue(), leaks)
+
+    def test_a_case_whose_harness_is_alive_is_not_stale_even_in_the_same_process(self):
+        ended = self.ended_case()
+        held = listeners.hold_case(ended)  # what a sibling case of a parallel suite holds
+        self.assertIsNotNone(held)
+        self.addCleanup(held.close)
+        with self.leaking(ended):
+            code, result, printed, out = self.case_main("case-new")
+        self.assertEqual(code, 0, result)
+
+    def test_a_regrade_is_never_refused_because_it_starts_nothing(self):
+        code, first, _, out = self.case_main("case-done")
+        ended = self.ended_case()
+        for extra in ((), ("--grade-only",)):
+            with self.leaking(ended), contextlib.redirect_stdout(io.StringIO()):
+                run.main(["--resume-run", str(out), "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+            self.assertTrue(json.loads((out / "result.json").read_text())["process"]["regraded"], extra)
+
+    def test_a_listener_that_cannot_be_looked_for_is_noted_and_the_launch_goes_ahead(self):
+        with mock.patch.object(listeners, "observe", side_effect=listeners.Unobserved("lsof not found")):
+            code, result, printed, out = self.case_main("case-new")
+        self.assertEqual(code, 0, result)
+        self.assertIn("stale-listener check skipped: lsof not found", printed)
+
+    def test_the_harness_holds_its_case_lock_while_it_runs_and_drops_it_when_it_ends(self):
+        out = self.tmp / "case-lock"
+        seen: list[bool] = []
+
+        def watch():
+            sessions = Path(str(self.log) + ".sessions")
+            for _ in range(400):
+                if sessions.exists():
+                    break
+                time.sleep(0.05)
+            seen.append(listeners.case_alive(out))
+            (out / "stop").write_text("")
+
+        threading.Thread(target=watch, daemon=True).start()
+        code, result, printed, _ = self.case_main("case-lock", "--timeout", "30", mode="hang-active", host="grok")
+        self.assertEqual(seen, [True], "alive while the host runs")
+        self.assertFalse(listeners.case_alive(out), "dropped when main returns")
+
+    def test_a_suite_refuses_once_before_any_case_starts_and_its_cases_do_not_check_again(self):
+        SuiteTest.use_catalog(self, {"a": {"style": "s", "prompt": "p", "checks": []}, "b": {"style": "t", "prompt": "p", "checks": []}},
+                              {"wide": {"kind": "breadth", "cases": ["a", "b"]}})
+        ended = self.ended_case()
+        os.environ["FAKE_MODE"] = "done"
+        argv = ["--suite", "wide", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(self.tmp / "suite-out"),
+                "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)]
+        with self.leaking(ended), contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as refused:
+            run.main(argv)
+        self.assertIn("kill 900001", str(refused.exception))
+        self.assertFalse((self.tmp / "suite-out").exists(), "refused before the suite's folder or any case existed")
+        self.assertFalse(self.log.exists())
+        # A case the suite starts has been checked by the suite, once: it must not raise inside a worker thread.
+        with self.leaking(ended):
+            code, result, printed, out = self.case_main("case-in-suite", "--case", "a", "--suite-name", "wide")
+        self.assertEqual(code, 0, result)
+
+
+@needs_lsof
+class StaleListenerRealTest(RealListeners, CaseRunCase):
+    """The same refusal against a real server and the real lsof."""
+
+    def setUp(self):
+        super().setUp()
+        self.scope_to_tmp()
+
+    def test_a_real_server_an_ended_case_left_refuses_the_launch_and_is_never_stopped_by_the_refusal(self):
+        ended = self.tmp / "case-old"
+        (ended).mkdir()
+        (ended / "invocation.json").write_text("{}")
+        leaked, port = self.serve(ended / "work")
+        with self.assertRaises(SystemExit) as refused:
+            self.case_main("case-new")
+        for part in (f"pid {leaked.pid}", f"port {port}", str(ended), f"kill {leaked.pid}"):
+            self.assertIn(part, str(refused.exception))
+        self.assertTrue(answers(port), "a refusal names the process and leaves it to the owner")
+        held = listeners.hold_case(ended)
+        self.assertIsNotNone(held)
+        self.addCleanup(held.close)
+        code, result, _, _ = self.case_main("case-new")
+        self.assertEqual(code, 0, result)
+        self.assertTrue(answers(port), "the other case's server is not this run's to stop")
+
+
 class LeftBehindReadmeTest(unittest.TestCase):
     def test_the_readme_says_what_the_harness_does_with_a_leftover_listener(self):
         readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
@@ -5210,6 +5414,12 @@ class LeftBehindReadmeTest(unittest.TestCase):
                        "`left_behind` in `result.json`", "never reads as none", "do not serve a case folder by hand while its run ends"):
             self.assertIn(phrase, readme)
         self.assertNotIn("nothing looks for what the host left behind", readme)
+
+    def test_the_readme_says_when_a_launch_is_refused_and_how_liveness_is_known(self):
+        readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
+        for phrase in ("A launch is refused while a listener sits under another case's output folder",
+                       "`<output>/.harness-lock`", "no override", "stop it by pid with `kill <pid>`"):
+            self.assertIn(phrase, readme)
 
 
 def grok_usage(count: int, output: int = 100, reasoning: int = 40) -> list[dict]:

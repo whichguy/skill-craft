@@ -527,6 +527,14 @@ record and not a verdict. A regrade (`--grade-only`) reaps nothing, because the 
 So do not serve a case folder by hand while its run ends (say with `python3 -m http.server` inside it): the harness
 stops that too.
 
+A launch is refused while a listener sits under another case's output folder and that case's harness is not running
+(`--preflight-only` fails the same way, and a suite is refused once, before any case starts). A harness is running while it
+holds an exclusive lock on `<output>/.harness-lock`; the kernel drops that lock on any death, SIGKILL included, so parallel
+runs and pairs started by hand never refuse each other. The run's own folder is never refused (a resume stops its
+leftovers first), and a regrade starts nothing so it is never refused. The refusal names the pid, the port and the case
+folder and has no override: stop it by pid with `kill <pid>`. A finished case folder you serve by hand blocks later
+launches the same way until you stop that process. Where `lsof` cannot be read the check is skipped with a printed note.
+
 Not covered: a process that does not listen (a file watcher, `npm --watch`), a UDP or unix-socket server, a server
 whose working directory and command line are both outside the folder, and anything left by a harness that was
 killed without a chance to run (SIGKILL). For those, list what still has its working directory under the run's

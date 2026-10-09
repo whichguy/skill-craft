@@ -127,6 +127,11 @@ def protected_pids() -> set[int]:
     return ancestors({int(a): int(b) for a, b in (row for row in rows if len(row) == 2 and all(x.isdigit() for x in row))}, me)
 
 
+def _words(item: dict) -> list[str]:
+    """The words of a listener's command line, a leading `--option=` taken off each (`--root=/x` names /x)."""
+    return [re.sub(r"^--?[\w-]+=", "", word) for word in (item.get("argv") or "").split()]
+
+
 def _inside(place: str, spellings: set[str]) -> bool:
     return any(place == folder or place.startswith(folder + os.sep) for folder in spellings)
 
@@ -144,8 +149,7 @@ def under(items: list[dict], folder, protected=frozenset()) -> list[dict]:
     for item in items:
         if item["pid"] <= 1 or item["pid"] in protected:
             continue
-        words = [re.sub(r"^--?[\w-]+=", "", word) for word in (item.get("argv") or "").split()]
-        if (item.get("cwd") and _inside(item["cwd"], {real})) or any(_inside(word, spellings) for word in words):
+        if (item.get("cwd") and _inside(item["cwd"], {real})) or any(_inside(word, spellings) for word in _words(item)):
             chosen.append(item)
     return chosen
 
@@ -246,3 +250,70 @@ def left_behind_line(record: dict | None) -> str | None:
     if not record.get("observed"):
         parts.append(f"not observed: {record.get('reason')}")
     return "  left      " + "; ".join(parts) if parts else None
+
+
+
+def hold_case(out):
+    """Take the exclusive lock that says this case's harness is alive: ``<out>/.harness-lock``.
+
+    Returns the open file (keep it referenced: the lock lasts as long as the file is open, and the kernel drops it on any
+    death, SIGKILL included), or None where another holder has it or the file cannot be made. It never raises.
+    """
+    try:
+        handle = open(Path(out) / LOCK_NAME, "a")
+    except OSError:
+        return None
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        return None
+    return handle
+
+
+def case_alive(folder) -> bool:
+    """Whether a harness holds `folder`'s lock right now. It only reads: a folder with no lock file has no live harness,
+    and looking never creates the file in a folder the caller does not own."""
+    try:
+        descriptor = os.open(Path(folder) / LOCK_NAME, os.O_RDONLY)
+    except OSError:
+        return False
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_SH | fcntl.LOCK_NB)  # refused while another description holds it exclusively
+    except BlockingIOError:
+        return True
+    except OSError:
+        return False
+    finally:
+        os.close(descriptor)
+    return False
+
+
+def case_folder(path) -> Path | None:
+    """The nearest folder at or above `path` that is a case's output folder: it has invocation.json and a work/ directory."""
+    path = Path(path)
+    for folder in (path, *path.parents):
+        if (folder / "invocation.json").is_file() and (folder / "work").is_dir():
+            return folder
+    return None
+
+
+def stale(own) -> list[dict]:
+    """The listeners under a case folder other than `own` whose harness is not alive (no one holds its lock).
+
+    Each carries ``case``, the folder it belongs to. Pid 1, this process and its ancestors are never listed. Raises Unobserved.
+    """
+    items = observe()
+    if not items:
+        return []
+    protected = protected_pids()
+    mine = os.path.realpath(own) if own else None
+    found = []
+    for item in items:
+        if item["pid"] <= 1 or item["pid"] in protected:
+            continue
+        folder = next((case_folder(place) for place in (item.get("cwd"), *_words(item))
+                       if place and os.path.isabs(place) and case_folder(place)), None)
+        if folder and os.path.realpath(folder) != mine and not case_alive(folder):
+            found.append(dict(item, case=str(folder)))
+    return found
