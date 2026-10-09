@@ -310,7 +310,9 @@ on quickly before the breadth of everything is checked.
 | S-9, S-10 | `script_verifications` (ShipLoop's own verify records, with the count that ran red, which a test-red record or a probe passes by design), Improve children; a zero-test pass fails |
 | S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner's 30-minute planning rule is read from it, and it is the one place these figures are computed |
 | S-12 | `claude_code_version` in metrics.json and result.json (added 2026-10-08): the host CLI build the sessions ran on, so two runs of one prompt on different builds (the Sonnet pair of 2026-10-06 and 2026-10-07 ran on 2.1.291 and 2.1.292) are not read as a controlled comparison. Null where the host's events do not carry it |
-| S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew) |
+| S-12, "Concurrency must not change a verdict" | `environment` in result.json, and `environment` in every launch record (`invocation*.json`) (added 2026-10-09): the node, python3 and git versions the model's shell sees, the CPU count and load at the start of each launch and at the end of the run, whether the host ran under a display hold (`keep_awake`, the one place that decides it), `hosts_used`, `mixed_host` and one `environments` entry per launch read through `runrecord.launches` (host, model, effort, and the `host_build` the launch record carries or null), the browser capability record of a declared need (below), and `overlap`: the sibling output folders whose `timeline.jsonl` span overlaps this run's, with case, hosts and overlapped seconds, read at the end of the run. A record beside the verdicts: it never changes `pass`, the exit code or a baseline rule, and a field nothing measured is null with its reason, never 0 or a pass |
+| S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew); `product_at_stop` (added 2026-10-09; replaces `shiploop.worktree_checks`): for a run whose ShipLoop did not reach `done`, the case checks run against ShipLoop's unreturned worktree, with the engine's status and stage, each check's return code and whether it timed out, and counts. Information only: checks graded in the worktree stay dropped as a verdict (a run that never delivered must not pass), so it never touches `checks`, `committed`, `pass` or the exit code. Absent for a run that passed; `ran: false` with its reason where there was nothing to run |
+| S-14, and a blocked result's honesty is a model judgement S-9 excludes as evidence | `outcome_class` (added 2026-10-09): PASS, FAILED, BLOCKED, STOPPED or null (unknown, with `outcome_basis`), a pure function of `termination` (which now also carries the blocked detail the engine recorded: `engine_blocked_by`, `engine_awaiting_kind`, `engine_awaiting_no_default`) and `pass`. BLOCKED says the engine accepted a blocked result and what it named, never that the block was warranted; a paused engine, which awaits resume as a blocked one does, is BLOCKED with no `blocked_by`; a halted engine, terminal and unfinished, is FAILED. Nothing consumes the class yet: `scan_baseline` still offers a finished run that did not pass as the last comparable row, which is a limit to fix where the baseline rules are |
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
 | S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered; a requested stop (`<output>/stop`, added 2026-10-08) ends the host and is recorded as `stopped`, and never answers a blocked or awaiting run |
 | S-15 | `narrative`: milestone narratives ShipLoop emitted for the model to show, how many the model showed (heading present) and showed verbatim (every line), the stages whose narrative it skipped, and the share of accepted step results that carry a headline. Scored beside reliability, not a verdict, until a style has a baseline |
@@ -356,9 +358,20 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   within 0.1 s of each other (first `timeline.jsonl` stamps), shared loopback
   and CPU, and one model ran `pkill -f "node server.js"`, which matches any
   run's server by its name. Known limit: a baseline row carries no overlap field, so a
-  later comparison cannot exclude an overlapped run; each run's
-  `timeline.jsonl` start stamp is the only record. This is a discipline, not a
-  guarantee.
+  later comparison cannot exclude an overlapped run. Amended 2026-10-09 (anchor
+  "Concurrency must not change a verdict"): a run's result.json now records
+  `environment.overlap`, read at the end of the run and only for reading, from
+  the first and last `timeline.jsonl` stamps of this run and of each sibling
+  output folder in the same parent folder (a run started with `--output`
+  elsewhere is not seen). It lists case, hosts and overlapped seconds, and the
+  sibling's start relative to this run's, because a count taken when the run
+  starts misses an overlap that begins later: of the 9 round runs of 2026-10-08
+  all 9 overlapped another run, and 3 of them saw the overlap begin more than a
+  second after their own start (a Checkers run launched 280 s and 763 s in).
+  A span is first stamp to last, so a run resumed after a pause counts its
+  pause as overlap: an upper bound. The baseline row still carries no overlap
+  field and no rule excludes an overlapped run; the record lets a reader do
+  that. This is a discipline, not a guarantee.
 - Agents do not replace evidence: an agent's analysis is a lead, and a
   claim it makes is checked against the event log or a script before it
   drives a change (Change admission).
@@ -447,6 +460,55 @@ stands at the commit under test.
   those flags are the run's own: not by a regrade (`--grade-only`), whose flags
   are the grader's, and not for a run that wrote no ShipLoop state, which
   `--resume-run` refuses.
+- **A resume continues the run's own driver** (amended 2026-10-09; anchor S-12, a
+  baseline compares only runs of the same host, model and effort, so a run's
+  identity is not a default; and S-6, the prompt that continues a run names what
+  the run uses). `--resume-run` takes host, model and effort from the run's last
+  launch record (`runrecord.launches`), so omitting `--host` continues on the
+  host that last ran it, and it prints that it did. A `--host` that names another
+  host is refused, before any host starts and with both hosts named, unless
+  `--allow-host-change` says the change is deliberate; a run that two hosts
+  worked on is then a mixed-host run, named so by `environment.hosts_used` and
+  `mixed_host`, read through the one reader (`runrecord`) every part of the
+  harness uses. `--model` and `--effort` given explicitly
+  still win, and the recorded ones apply only when the host is unchanged. A
+  regrade is unchanged: it restates the recorded identity whatever the flags
+  say. Basis: the round-2 Grok run (r2-battleship-grok-none) was resumed without
+  `--host`, the harness defaulted to Claude, and Claude Sonnet did visits 31 to
+  52 under a Grok label (`invocation-resume-claude-1791508003.json`, and
+  `metrics.claude_code_version` 2.1.294 in a result that says host grok); it is
+  the only run of the nine whose launch records name two hosts. The flag is the
+  one way to a cross-host finish because an unrecorded one cannot be told from a
+  mistake.
+- **A record of the machine, of the product at stop or of the ending is not a
+  verdict** (amended 2026-10-09; anchors S-12 and "Concurrency must not change a
+  verdict" for `environment`, S-11 for `product_at_stop`, S-14 for
+  `outcome_class`; a blocked result's honesty is a model judgement S-9 excludes
+  as evidence). None of them changes `pass`, the exit code, a verdict, a baseline
+  rule or the control flow, and each fails open: a part that cannot be read is
+  recorded as not observed with its reason, and the run goes on. A blocked run is
+  never resumed or answered because a class names it (S-14). The record names
+  what was measured and its limit: `overlap` is a span from first to last stamp
+  and sees only siblings in the same parent folder; the host CLI build is read
+  from the launch record and is null for a launch that recorded none, never
+  probed here; `outcome_class` is unconsumed, so no baseline or comparison
+  skips a run because of it. A browser capability record exists only where a
+  case (`needs` in cases.json) or `--need browser` declares one, and a custom
+  prompt (`--prompt`) declares none by itself: say so with `--need browser`.
+  The probe runs on the harness side against a stand-in page, over `file:` and
+  over `http://127.0.0.1`, and its evidence is the page title read from the
+  browser's output, not the browser's exit (the audit of this design measured it on
+  2026-10-09: 16 of 16 bounded launches of Chrome 154.0.8037.99 printed the title
+  in 0.36 to 0.47 s, and only 3 of 16 exited within 12 to 20 s; this change has
+  not run a real browser). It stops only the process group of the
+  browser it started, after the title and a short grace; its two times are
+  ceilings, not tuning values. Nothing reads the record: an overlay that
+  turned a failed probe into an environment verdict was rejected, because no
+  recorded run can be suspect (the three Grok runs that motivated it were case
+  `custom`, so nothing declared a browser for them) and, by the same audit's
+  measurement, a correct probe passes on exactly those runs, since the failure
+  is specific to Chrome in the Grok host. It waits for a real-browser calibration (10 launches from a Terminal
+  tab and 10 from a Desktop task) journaled before any use is considered.
 - **Every ending leaves its records** (amended 2026-10-08; anchor S-14, a run
   is judged from files, and S-9). A run the harness ends (a deadline, a
   requested stop, a spent resume budget) writes metrics.json, result.json and the
