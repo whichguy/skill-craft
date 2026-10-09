@@ -777,6 +777,12 @@ class OverlapTest(unittest.TestCase):
         self.assertEqual(record["runs"], [], "looked at three neighbours and none overlapped: an empty list, not unknown")
         self.assertEqual(record["siblings_read"], 3)
 
+    def test_the_basis_says_what_the_seconds_are_and_are_not(self):
+        basis = self.environment.overlap(self.write_run("me", 1000, 2000))["basis"]
+        for phrase in ("host events only", "pause between sessions", "setup before the first event", "checks and reap after the last",
+                       "neither an upper nor a lower bound"):
+            self.assertIn(phrase, " ".join(basis.split()))
+
     def test_a_run_whose_stamps_are_one_instant_inside_a_neighbours_span_overlaps_it_for_zero_seconds(self):
         me = self.write_run("me", 1500, 1500)
         self.write_run("wide", 1000, 2000)

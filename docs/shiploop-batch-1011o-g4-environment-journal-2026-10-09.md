@@ -126,10 +126,10 @@ polls the raw descriptor with `select` and a stop flag, and the pipe is closed o
 9. **`outcome_class` is in result.json only.** An earlier version also wrote it to the baseline row; the review removed it. Which baseline rows are
    comparable is the baseline code's own rule (`scan_baseline`, which group G3 changes in a sibling worktree: a row whose engine did not reach done
    is never compared); no baseline rule reads `outcome_class`, and this change does not touch `scan_baseline`.
-10. **Launch records are named by the second they began in, so two launches of one host in one second overwrite one file.** This is existing
-    behaviour (`invocation-resume-<host>-<seconds>.json`); a real resume is never that fast, and the one test that resumes twice waits 1.1 s.
-    Not changed. Interim: noted, not fixed.
-
+10. **Launch records are named by the second they began in** (`invocation-resume-<host>-<seconds>.json`). I first left this as existing behaviour
+    ("a real resume is never that fast"). The fix round's regrade test showed otherwise: a regrade that began in the same second as the launch before
+    it, on the same host, overwrote that launch's record and the run then read as one host's. `run.launch_stamp` now takes the next free number
+    for the record and the prompt file, so neither is overwritten; fixed in the fix round.
 11. **Not built from the design:** the `## Ended as` section of `mismatch.md` and a `host_cli_version` key in the baseline row. Neither is in the
     brief's scope; the host build is G3's launch-record field, and a second field beside `claude_code_version` is what the audit warned against
     (correction 9).
@@ -178,6 +178,34 @@ The lingering `--dump-dom` fact: Chrome 154 printed the dumped DOM and then ofte
 12 to 20 s ceiling and the other 13 were still running there and were killed; the audit's measurement). A probe duty in a packet or platform reference should read the browser's output and stop the process it started
 once the expected content appears, not wait for the process to exit. This fits the Grok r1 record, where the `--dump-dom` call returned only
 "still running after 30s ... moved to the background", but that is unproven.
+
+## Fix round (review of 056a16be by two adversarial reviewers), 2026-10-09
+
+Text corrections came first (a4b56729), then one code commit per behaviour. Item numbers are the coordinator's.
+
+| Item | Disposition | Where | Test |
+|---|---|---|---|
+| 1 B1 overlap bound | fixed (text and the `OVERLAP_BASIS` constant) | SPEC Parallel work, README, LEARNINGS, journal, `environment.OVERLAP_BASIS` | `OverlapTest` basis assertion |
+| 2 A1 probe process safety | fixed | `probe_target` (`finally` ends the browser, `should_stop`, `getpgid` OSError), `LIVE_PROBE_GROUPS` + `end_live_probes` (called by `run.end_live_hosts`), `environment.main` SIGTERM/SIGHUP handler, `run` passes `TERMINATION.is_set` | `test_a_harness_told_to_end_during_the_probe_...`, `StandaloneProbeTest` (SIGTERM and SIGHUP), `test_a_probe_that_cannot_confirm_its_group_...`, `test_the_harness_ending_its_live_hosts_...`, `test_an_exception_while_the_probe_waits_...`, `test_a_probe_told_to_stop_...` |
+| 3 A2+B7 regrade identity | fixed | regrade restates `runrecord.launches(out)[-1]`; `resumed_run.from_host` meaning documented; refusal text honest for an already-mixed run | `test_a_regrade_restates_the_identity_of_the_last_launch_...`, `test_a_resume_of_a_mixed_run_names_the_last_launch_...`, `test_the_refusal_names_the_recorded_host_...` |
+| 4 B3 baseline row | fixed | `outcome_class` removed from `baseline_row`; sentences replaced by a pointer | two through-main tests assert it is absent |
+| 5 B4 one blocked reader | fixed | `metrics.blocked_detail(state)` | `RecordedOutcomeClassTest` shared-reader tests |
+| 6 B6 null reasons | fixed | `host_build_reason`, `environment_reason`, `restated_start` reason | `test_a_null_host_build_or_environment_says_why`, `test_a_start_that_cannot_be_restated_...` |
+| 7 B2 SPEC wording | fixed (text) | SPEC machine-record rule | |
+| 8 A3 vacuous tests | fixed | E6 display hold False case; E2 sequential timestamps; E16 reader thread and closed pipe; E19 `group_empty` follows `_group_alive` | see the mutant table |
+| 9 B9 sequential probes | fixed | `browser_record` | `test_the_two_kinds_are_probed_one_after_the_other_...` |
+| 10 A5 unmeasured read as measured | fixed | `runrecord.unreadable`, `result_block`, `overlap` (`siblings_unreadable`, finite stamps, first <= last, hosts null with a reason) | `OverlapTest`, `LaunchRecordsTest` |
+| 11 B8 labels | fixed | comments, `empty_seconds` recorded, SPEC and README wording | `test_the_record_says_the_three_times_it_used` |
+| 12 B10 cap stops | fixed | `run.CAP_STOPS` | `test_a_host_session_that_ended_on_the_cap_...` |
+| 13 A7 halted | documented | SPEC S-14 row, README | |
+| 14 A8 PATH label | fixed (text and the `environment.py` docstring) | | |
+| 15 A9 regrade server | documented, not reaped | comment in `_main`, README | |
+| 16 A10 model/effort note | fixed | `_main` resume branch | `test_a_model_or_effort_that_differs_...` |
+| 17 A4 gaps | fixed | R12 needs carry from the last launch; R20 follow-on env through main; R27 refusal names the recorded host; flags pinned; killpg guard in the fixture; port 0 | see tests |
+| 18 B11 text slips | fixed (text) | journal, LEARNINGS | |
+| 19 B12 flag rationale | fixed (text) | SPEC, README | |
+| 20 B13 shapes | fixed (journal data shapes, README) | `version_unread`, absent `engine_*` keys of an old regrade, the `start` duplicate (documented, kept) | |
+| 21 A6 | documented: unreproduced, nothing built | journal open risks | |
 
 ## Data shapes for the Run Review session (exact keys)
 
