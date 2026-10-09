@@ -232,15 +232,23 @@ in `events.jsonl`; `told`, the CLI and run directory the resume prompt named, as
 inherits it) and an `end` row after it (status, last events line, `engine` at that moment). `metrics.json` `fresh_starts`
 lists one block for every fresh session (`--resume-run`, the session after `--interrupt-at`) and every compaction (Grok's
 `auto_compact_completed`; Codex's from its rollouts; Claude's are not detected), each over the events from that start to the
-tool call that SUBMITTED the next accepted action (the accept stamp is whole-second truncated, so the window ends at the call,
-not at the stamp): `tool_calls`, `seconds` (to the call) and `seconds_to_accept_stamp`, `first_grounding` (`next`, `packet`,
-`other`) with `calls_before_grounding`, `recovery` (was the first `next` as told: `cli` and `run_dir` are exact, equivalent after
-normpath and realpath, different or unreadable; `revision_seen`), `failures` and `rewrote` (both lower bounds: `rewrote` sees
-file-edit tools only, not a file a shell command wrote, and says `none seen by file-edit tools`), `asked_user`. A window that
-reaches no accepted action is `measured: false` with its reason and no count. A fresh start also has `after_kill` (the engine
-revision in the killed session's end row, in this session's start row and in its first `next` result; `moved` is true when
-they differ). A run with no `sessions.jsonl` (before 2026-10-09) lists its compactions only and `fresh_starts_unmeasured`
-says `not recorded`.
+tool call that got the next accepted action accepted. That action is the first one the ledger accepted after the start, and the
+call is the last `complete` or `improve-complete` that names it, did not fail and returned at or after the accept stamp (the
+stamp is whole-second truncated, so the window ends at the call, not at the stamp, and an Improve park's parent `complete`, which
+returns long before the accept, is not the call): `tool_calls`, `seconds` (to the call) and `seconds_to_accept_stamp`,
+`first_grounding` (the first call that goes to ShipLoop's scripts or reads a packet: `next`, `improve-next` (the Improve
+runtime's own recovery command), `packet`, or `other` for another ShipLoop verb such as `complete` or `lint`) with
+`calls_before_grounding`, `recovery` (was the first `next` as told: `cli` and `run_dir` are exact, equivalent after normpath and
+realpath, different or unreadable; `revision_seen`), `failures` and `rewrote` (both lower bounds: `rewrote` sees file-edit tools
+only, not a file a shell command wrote, and says `none seen by file-edit tools`), `asked_user`. A window the records cannot place
+(the action was accepted by something that left no event, only a call that parked it was seen, the session ended before it, or
+in a run with no `sessions.jsonl` another host session began or ended inside the window) is `measured: false` with its reason
+and no count, never extended to a later action; it keeps `first_grounding` and `recovery`. A `continued` session (a Grok or
+Codex resume of the same context) does not cut a window; the next fresh session does. A fresh start also has `after_kill` (the
+engine revision in the killed session's end row, in this session's start row and in its first `next` result; `moved` is true when
+they differ). `fresh_starts_unmeasured` says what the list lacks: `not recorded` where the run has no `sessions.jsonl` (before
+2026-10-09; the list then holds compactions only), `partial` where the first recorded session is not the run's first, the host
+whose compactions are not detected (Claude's, a Codex run without rollouts), or `failed`.
 
 The probe tests the production recovery path (the resume prompt, which names the `next` command, plus the packet it prints),
 not "a model holding only the next packet". The old session's servers are reaped, Claude's auto-memory and the user's global
@@ -250,7 +258,9 @@ The S-6 pair, a stage boundary and the inside of a stage, with no trigger in the
 `--resume-run` gives the fresh session. One run at a time (SPEC: runs compared on wall time run one after the other). The case
 is hello, restated with `--prompt` and `--check` because `--case hello` cannot be combined with `--prompt`; `--planning-review
 none` is a ShipLoop `init` flag that ShipLoop refuses without `--improve-skill <absolute path of the Improve SKILL.md>`, so the
-prompt carries both, and a `none` probe never sits inside an Improve park (the longest context windows of a default run):
+prompt carries both. Under `none` the planning stages (intake to test-spec) have no Improve park, the longest context windows
+of a default run, so a probe at one of them never sits inside one; the later Improve children still run (the saved v1220 `none`
+run parked at system-test-author, release-plan and carry-forward), so a probe past planning can:
 
 ```sh
 OUT=/Users/dadleet/e2e-runs/$(date +%Y%m%d)/s6-after-spec        # the prompt names a path under it; a new folder
@@ -284,11 +294,15 @@ while True:
 The example builds this checkout (`--source checkout`), which is why the Improve card's path is known before the run starts; with
 `--source marketplace` it is `$OUT/marketplace/plugins/skill-craft/skills/improve/SKILL.md` for Claude and carries a hash or
 version under `$OUT/home` for Grok and Codex, so a Grok probe uses a checkout build (the r3 run did). Pass the first launch's
-`--host`, `--model` and `--effort` to both commands. The stop file is polled
-every 2 s and the kill is a group kill, so the host runs up to about 2.25 s past the boundary, and a `complete` already started
-in a Claude Bash call (its own process group) can finish after the kill: the engine can move between the kill and the fresh
-session. `after_kill` records that (it compares revisions, it does not wait), and a difference is overshoot after the kill, not
-a failed probe. The result file and `complete` are often one shell command, so the `inside` boundary can race the submission:
+`--host`, `--model` and `--effort` to both commands. The watcher polls every 0.5 s and the harness checks the stop file
+every 2 s (`run.POLL_SECONDS`), so the host runs up to about 2.5 s past the boundary, and a `complete` already started in a
+Claude Bash call (its own process group) can finish after the kill: the engine can move between the kill and the fresh session.
+`after_kill` compares revisions and does not wait; `moved` means the engine moved between the kill and the fresh session's first
+`next`, which a command of the killed session that was still running can do, and so can an orphan host or the fresh session's own
+ShipLoop calls before that `next` (an `improve-bind` increments the revision): a difference is not a failed probe. The keepalive
+owner binding a Grok host keeps under `home/.local/state/shiploop/keepalive` (stale after `OWNER_STALE_SECONDS`, 1800 s) survives the
+stop, and a fresh Grok session started seconds after the kill is not the owner, which can inflate early session ends and `continued`
+resumes in a probe; it is not recorded. The result file and `complete` are often one shell command, so the `inside` boundary can race the submission:
 `fresh_starts[].stage_in_flight` says which stage the clear landed in. A probed run is a resumed run and writes no baseline row.
 The watcher matches a stage by name, so it is for the stages that happen once (intake to step-plan): a stage that repeats per work item
 matches its first row. Read `$OUT/metrics.json` `fresh_starts`: the block with `reason: resume-run`. Phase 2 (`--clear-at`, a trigger and kill in the

@@ -536,9 +536,19 @@ stands at the commit under test.
   every `fresh` start (a `--resume-run`, the session after an `--interrupt-at`) and every compaction (Grok's
   `auto_compact_completed` event; a Codex compaction from its rollouts; no Claude compaction is detected, because no
   recorded Claude stream shows one), each over the events from the fresh start to
-  the tool call that submitted the next accepted action (the accept stamp is whole-second truncated, so the window ends
-  at that call and not at the stamp; both seconds are recorded). A run with no `sessions.jsonl` lists only its
-  compactions, and `fresh_starts_unmeasured` says `not recorded` (a sibling key: the top-level `unmeasured` map is for counters).
+  the tool call that got the next accepted action accepted. The action is the first one the ledger accepted after the
+  start (the start row's `engine.accepted` names it exactly; without it, the first one stamped at or after the start's
+  second). The call is the last `complete` or `improve-complete` that names it, did not fail, began before the second of
+  its accept stamp ended and returned at or after the stamp. The stamp is whole-second truncated, so a cut at the stamp
+  loses the call and a cut a second later keeps the next one (both seconds are recorded), and an Improve park's parent
+  `complete` returns long before the accept and is not the call. A window the records cannot place this way is
+  `measured: false` with its reason and is never extended to a later action: the action was accepted by something that
+  left no event (an orphan host, a script the window does not see), only a call that parked it was seen, or, in a run
+  with no `sessions.jsonl`, another host session began or ended inside the window. A `continued` session does not cut a
+  window (it keeps the context); the next `fresh` one does. A run with no `sessions.jsonl` lists only its
+  compactions, and `fresh_starts_unmeasured` says `not recorded` (a sibling key: the top-level `unmeasured` map is for counters). The same
+  key says `partial` where the first recorded session is not the run's first, and names a host whose compactions are not
+  detected (Claude's, a Codex run without rollouts), so an empty list is never read as a measured none.
   *What it tests.* The production recovery path: the resume prompt, which names the `next` command (the rule above), plus
   the packet that command prints. It is not S-6's "a model holding only the next packet", and a compaction carries no
   recovery command at all. The files of the old session stay on disk and the harness reaps its servers, which a real
@@ -560,11 +570,12 @@ stands at the commit under test.
   of their first `next` calls. They reproduce as fixtures (r2 Claude start: 6 calls, 21.8 s to the submitting call, accept
   stamp 22.7 s; r3 Grok: 23 calls, 163.2 s to the `complete` call, stamp 164.0 s; Luna xhigh: of 4 first `next` calls 2
   failed with exit 2, 1 was exact and 1 differed only by `/./`), and they are not used to set expectations.
-  *Non-regression.* Additive keys and one additive file: `result.json`, the baseline row, every verdict and S-6's own
-  text are unchanged. A fresh context gets no new gate. `ToolLog` is fed through one method for the whole-run reading and
-  the windowed one (S-12). The stage rows of `metrics.json` change in two ways, both corrections: a stage with no events
-  no longer carries a zero-call `context`, and a Grok model call is counted in a stage's `context.calls` (a mixed-host run
-  showed `calls: 0` beside a real peak).
+  *Non-regression.* Additive keys and one additive file: the baseline row, every verdict and S-6's own text are unchanged,
+  and `result.json` gains no key. A fresh context gets no new gate. `ToolLog` is fed through one method for the whole-run
+  reading and the windowed one (S-12). The stage rows change in two ways, both corrections, and `result.json` carries the
+  stage rows too (it copies `metrics.stages`), so it changes with them: a stage with no events no longer carries a zero-call
+  `context`, and a Grok model call is counted in a stage's `context.calls` (a mixed-host run showed `calls: 0` beside a real
+  peak; r2's `result.json` carries such a zero context).
   *Dispositions.* `--clear-at`, its kill logic, an `accepted_files` hash compare, the extra snapshot fields and a redo
   measure are not built. The README and LEARNINGS deferral of a stage-named trigger stands: phase 1 does not reverse it,
   and the documented path is an external watcher that creates `<output>/stop` when `state.md` shows the target boundary,

@@ -894,8 +894,11 @@ class ReadmeRecipeTest(unittest.TestCase):
     def test_the_recipe_names_the_flags_the_audit_found_missing_and_the_overshoot(self):
         text = self.section()
         for needed in ("--prompt", "--check", "--planning-review none", "--improve-skill", "--resume-run",
-                       "--plugin-dir", "2.25 s", "after_kill", "fresh_starts", "never sits inside an Improve park"):
+                       "--plugin-dir", "after_kill", "fresh_starts", "no Improve park", "system-test-author",
+                       "OWNER_STALE_SECONDS", "improve-bind"):
             self.assertIn(needed, text)
+        self.assertNotIn("2.25", text, "the overshoot is the watcher's poll plus the harness's, not a pinned number")
+        self.assertNotIn("never sits inside an Improve park", text, "a none run still parks later (v1220: system-test-author)")
         self.assertNotIn("--case hello --prompt", text, "--case and --prompt cannot be combined")
 
 
