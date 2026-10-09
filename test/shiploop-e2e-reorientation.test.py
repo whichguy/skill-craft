@@ -403,6 +403,21 @@ class WindowPlacementTest(unittest.TestCase):
         self.assertFalse(got["measured"], got)
         self.assertIn("no accept stamp", got["reason"])
 
+    def test_the_rows_are_read_lazily_and_no_further_than_the_second_after_the_accept_stamp(self):
+        s = Stream(first=1000.0).start()
+        s.next(after=0.5)
+        s.complete("nav-b", after=1.0)                       # accepted at about 1001.7: stamp 1001
+        accepted = accepted_rows(("nav-b", "spec", stamp(s)))
+        s.shell(1.0, "after the accept")                     # begins 1002.7: past stamp + 1
+        last = min(i for i, t in s.stamps.items() if t >= 1002.0)   # the first event past the stamp's following second
+
+        def rows():
+            yield from s.rows[:last + 1]
+            raise AssertionError("read past the window's end")
+
+        got = metrics.reorientation(rows(), s.stamps, accepted, TOLD)
+        self.assertEqual((got["measured"], got["tool_calls"]), (True, 2))
+
     def test_a_resubmission_after_the_accept_is_not_the_call_that_got_it_accepted(self):
         # The model submits nav-b again after it was accepted (an idempotent replay, answered without a failure): it begins after the
         # accept stamp's second, so it is not the call that got the action accepted.
@@ -468,6 +483,10 @@ class WindowPlacementTest(unittest.TestCase):
         got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", stamp(s))), TOLD)
         self.assertEqual((got["measured"], got["tool_calls"]), (True, 4), "the refused attempt is in the window, the end is the second")
         self.assertEqual(len(got["failures"]["items"]), 1)
+        # With no accept stamp to wait for, the first answered submission that did not fail ends the window: a placeholder read as an
+        # answer would end it at the refused call.
+        unstamped = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", None)), TOLD, ledger_at_start=0)
+        self.assertEqual((unstamped["measured"], unstamped["tool_calls"]), (True, 4))
 
 
 class SessionBoundsTest(unittest.TestCase):
