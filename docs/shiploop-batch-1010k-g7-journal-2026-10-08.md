@@ -118,3 +118,63 @@ Risk accepted: a failing mkdir is swallowed (the refusal path stays intact); in 
 `.shiploop-improve/<run>/<action>/` appears at bind instead of at start (Git lists no empty directory and `.shiploop-improve` is a
 protected runtime path). Related commits: 4fc3b3b8 (the same fix for `notes/`). Change note:
 `changes/shiploop/improve-opening-directory-created-at-emit.md` (patch).
+
+## A4: the test-strategy Done-when asks for a probe of each host tool (2026-10-08)
+
+**Built (status: interim; the condition is model-judged, so whether it changes probing is unmeasured).** The test-strategy duty
+(`shiploop_prompts.DUTIES['test-strategy']`, commits 482fff76 and earlier) tells the model to probe a host-dependent case's tool
+now by doing the case's first step, against a stand-in while the product does not exist, and to record a failed probe as the access
+gap. The paragraph sits deep in a long packet. Neither round-2 Sonnet run read it: no tool result of either run holds "probed now
+by doing" or "stand-in" (checked against both `events.jsonl` files), both read only the head (Battleship `sed -n 3,14p`, Checkers
+one grep), Checkers' first browser tool use was event 648 against the test-strategy head at events 175 to 183, and Battleship
+never ran a command naming Chrome. Done-when is the text every run displays, and the Improve parent packet and the Improve contract
+repeat it (`loop_contract.stage_exit`), so the obligation goes there and the how stays in the duty.
+
+What changed (`shiploop_stage_spec._ROWS`, the `test-strategy` row, one fourth `done_when` entry, 303 characters on one line):
+"each case that needs a host tool (a browser, a device, an account, a service) names it and cites the output of probing it now by
+doing the case's first step, against a stand-in while the product does not exist; only a failed probe is recorded as the access
+gap, with the requirement it leaves unobserved". No change to the duty, to `_COMMON_GATES` or to `GATE_WORDS`.
+
+Two audit corrections shaped the wording, both from the designed text's defects.
+- *Not a free exit.* The design said "either cites the output of probing it ... or records the access gap". Both round-2 runs
+  already wrote an access-gap line (Battleship: "no browser tool may be available"; Checkers: "optional, recorded as unverified
+  if not run"), so each would have satisfied that condition unchanged while the head grew. The gap is now only the result of a
+  failed probe, which is also what the duty says.
+- *The stand-in clause travels with it.* 482fff76 exists because "do the case's first step" at test-strategy, with no product to
+  run, sent a Grok run to the product's own address (connection refused, "no browser"). Leaving the stand-in in the unread
+  duty paragraph would repeat that wording in the only text the models read.
+
+Honest limit, stated where the check is. ShipLoop machine-checks only the form: a cited absolute `evidence_refs` path must exist.
+The `Checked by` line is unchanged and says the model confirms each Done-when condition; nothing checks the probe itself. Where
+`planning_review` is `stage` the test-strategy Improve child judges the condition; under `none` only the model's own check
+applies, as for the stage's other conditions (S-9). A script-run or script-recorded probe field would be the stronger option; it
+is a new mechanism and is deferred, not built.
+
+Measured (graph-dry-run packets, base b73c30ba against this tree, equal tree path lengths so only the change differs; 574 packets,
+24 change). Each changed packet grows by 306 characters (the entry, its "- " and the newline): the test-strategy producer's status
+block ends at 4829 then 5135 and its full file is 32,939 then 33,245 characters (inline delivery; ask-agent 32,973 then 33,279);
+its Improve parent packet's status block ends at 2970 then 3276 and the file is 18,093 then 18,399. The largest status end of any
+packet, which sets the kept-head window (the ask-agent revise packet of the step plan, 7971 of 8000 at this worktree's
+62-character path), does not move. The test-strategy Improve-opening allowance falls from 4,718 to 4,413 bytes (305, probed
+through the refusal's own "may use about N bytes in all"; the spec stage's 4,680 does not change) while the design reported the
+largest opening in five runs at 1,719 bytes. The design's smaller figures (+241) were for its shorter, defective wording.
+
+Test, fail first: `RefusalRouteTests.test_the_test_strategy_done_when_asks_for_a_probe_of_each_host_tool_and_only_a_failed_probe_is_the_access_gap`
+in `test/shiploop-callback-contract.test.py`, through the real CLI. It reads the printed head's Done-when (before `Checked by`)
+and asserts the five clauses and that "probing" appears once; the `Checked by` line still says the model confirms each condition
+and names no probe; a result citing a probe-output path that does not exist is refused with "evidence_refs cite files that do not
+exist" and the same command is accepted once the file exists. It failed at base on the first clause (AssertionError: not found).
+
+Observed after the change (SHIPLOOP_PROGRESS=off, isolated Git configuration): status-display 15 (the head-window test),
+packet-completeness 6 (its Improve-packet check asserts every done_when line, so the new entry is covered), stage-spec 9,
+rehydration, guidance, packet-bounds, navigator-contract 102, delegation 47, revise, improve-schedule and navigator-v4, all OK.
+
+Not verified, and how to settle it. (1) Whether the line changes probing: read the next paired runs for a tool call that opens a
+stand-in page or lists the host tools before test-strategy is accepted, or an access-gap line in `test-strategy.md` that names
+the requirement it leaves unobserved and cites the failed probe's output. (2) Cost: a revalidating run re-probes every host tool,
+and under `planning_review: stage` the Improve child may send back results with no cited probe (S-10 leaves iterations
+uncapped); read the stage-level call counts in the next pairs, no threshold is invented here. (3) A Chrome-flag iteration at
+test-strategy is a possible time sink; the duty already says a failing probe is a gap to record.
+
+Related commits: 482fff76 (the stand-in duty), 1f5006e7 (the Improve parent packet restates the Done-when), 62b6ac89 and 1b9918ab
+(A2 and A3, this group). Change note: `changes/shiploop/test-strategy-done-when-host-tool-probe.md` (patch).

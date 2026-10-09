@@ -171,6 +171,9 @@ _ROWS = (
             "every criterion maps to a check, its surface and the stage it is due",
             "the test harness is selected or revalidated, with setup and isolation stated",
             "planned checks are marked planned, not passed",
+            "each case that needs a host tool (a browser, a device, an account, a service) names it and cites the "
+            "output of probing it now by doing the case's first step, against a stand-in while the product does not "
+            "exist; only a failed probe is recorded as the access gap, with the requirement it leaves unobserved",
         ),
         test="Choose target-native tests across unit, integration, system and consumer layers.",
         deploy="Plan which checks run against the deployed target, and how.",

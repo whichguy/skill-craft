@@ -560,6 +560,38 @@ class RefusalRouteTests(RealCliCase):
         self.accepted(command)
         self.assertEqual([row["id"] for row in self.recorded(run, action)["criteria"]], ["C1"])
 
+    def test_the_test_strategy_done_when_asks_for_a_probe_of_each_host_tool_and_only_a_failed_probe_is_the_access_gap(self) -> None:
+        """Batch 1010 A4: the text every run displays carries the probe obligation, and the entry is not a free exit.
+
+        The probe paragraph of the test-strategy duty sits deep in a long packet; neither round-2 Sonnet run read it
+        (no tool result holds "probed now by doing" or "stand-in"), both read only the head, Checkers first ran Chrome
+        about 470 events after that head and Battleship never ran a command naming it.  Done-when is the text every run
+        displays, so the obligation goes there and the how stays in the duty.  Two defects the audit found are held
+        here.  A condition that let "record the access gap" stand in for the probe passed both runs unchanged, so the
+        gap must be the result of a failed probe.  And "do the case's first step" with no stand-in repeats the wording
+        that sent a run to the product's own address before the product existed (482fff76).  The one automatic check
+        stays the form check: a cited path must exist.
+        """
+        run, head = self.new_run("test-strategy")
+        command, path, _ = printed_callback(head)
+        done_when = " ".join(head.split("Done when", 1)[1].split("Checked by:", 1)[0].split())
+        for part in ("each case that needs a host tool (a browser, a device, an account, a service)",
+                     "cites the output of probing it now by doing the case's first step",
+                     "against a stand-in while the product does not exist",
+                     "only a failed probe is recorded as the access gap",
+                     "the requirement it leaves unobserved"):
+            self.assertIn(part, done_when)
+        self.assertEqual(done_when.count("probing"), 1)  # one entry, stated once
+        # The Checked-by line claims no script check of the probe: the model confirms it, and a cited path must exist.
+        checked = head.split("Checked by:", 1)[1].split("\n", 1)[0]
+        self.assertIn("you confirm each Done-when condition", checked)
+        self.assertNotIn("probe", checked)
+        output = self.base / "probe-output.txt"
+        write_block(path, {**self.fill_done(head), "evidence_refs": [str(output)]})
+        self.assertIn("evidence_refs cite files that do not exist", self.refused(command, run))
+        output.write_text("page title read back by the tool: stand-in\n")
+        self.accepted(command)
+
     def test_the_implement_packet_does_not_ask_for_a_field_the_accepted_plan_does_not_hold(self) -> None:
         """Batch 1009 S1: an item that records no test command has no `criteria` and no `Confirm by` text, yet the
         implement Done-when told the model to confirm each criterion by its `Confirm by`.  The row names no field
