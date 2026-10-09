@@ -1708,6 +1708,11 @@ def _main(argv: list[str] | None, held: list) -> int:
         stop_file.unlink(missing_ok=True)  # an earlier invocation's request must not stop this one; only the harness holding the case owns it
     left_behind: list = []  # what each reap pass of this invocation found (see listeners.py)
 
+    def engine_now() -> dict | None:
+        """Where the ledger stands now (None before ShipLoop has written any state)."""
+        running = grade_shiploop(out)
+        return metrics.engine_position(Path(running["run_dir"]) if running.get("run_dir") else None)
+
     def session(*launch_args, kind: str, reason: str, told: dict | None = None, resumed_session: str | None = None,
                 **launch_kw) -> dict:
         """One host launch, bracketed in sessions.jsonl: the start row before the host runs (a harness that dies keeps the
@@ -1715,15 +1720,14 @@ def _main(argv: list[str] | None, held: list) -> int:
         events_path = out / "events.jsonl"
         row = sessionlog.start(out, kind=kind, reason=reason, host=host.name, model=args.model, told=told,
                                events_line=0 if launch_kw.get("first", True) else events_line_count(events_path),
-                               resumed_session=resumed_session)
+                               resumed_session=resumed_session, engine=engine_now())
         done = None
         try:
             done = launch(*launch_args, **launch_kw)
         finally:
-            running = grade_shiploop(out)
-            sessionlog.end(out, row, events_line=events_line_count(events_path, repair=False), status=(done or {}).get("status", "crashed"),
-                           returncode=(done or {}).get("returncode"),
-                           engine=metrics.engine_position(Path(running["run_dir"]) if running.get("run_dir") else None))
+            sessionlog.end(out, row, events_line=events_line_count(events_path, repair=False),
+                           status=(done or {}).get("status", "crashed"), returncode=(done or {}).get("returncode"),
+                           engine=engine_now())
         left_behind.append(done.pop("left_behind", None))  # a run's one record is built below, not repeated per session
         return done
 

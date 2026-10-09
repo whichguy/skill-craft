@@ -12,8 +12,9 @@ gone.  So the harness that launches the hosts writes the boundary, in the one pl
            (``start``, ``resume-run``, ``after-interrupt``, ``resume-loop``), ``host``, ``model``, ``t`` (epoch seconds),
            ``events_line`` (the lines events.jsonl already held, which is the number of the session's first event),
            ``told`` (the CLI and run directory the resume prompt named, stored as VALUES because the Claude host passes
-           its prompt in ``-p`` and keeps no prompt file; None where the prompt named no recovery command) and
-           ``resumed_session`` (the host session id a ``continued`` launch passed).
+           its prompt in ``-p`` and keeps no prompt file; None where the prompt named no recovery command),
+           ``resumed_session`` (the host session id a ``continued`` launch passed) and ``engine``, the ledger as the
+           session inherits it, read before the host starts (metrics.engine_position; None before any ShipLoop state).
 ``end``    written after the session: ``n``, ``t``, ``events_line`` (the lines events.jsonl holds now), ``status`` and
            ``returncode`` (the launch's own), and ``engine``, the ledger at that moment (metrics.engine_position).  A
            harness killed with its host writes none: the start row stays without one.
@@ -55,12 +56,12 @@ def _append(out: Path, row: dict) -> None:
 
 
 def start(out: Path, *, kind: str, reason: str, host: str, model: str | None, events_line: int, told: dict | None,
-          resumed_session: str | None = None, t: float | None = None) -> dict:
+          resumed_session: str | None = None, engine: dict | None = None, t: float | None = None) -> dict:
     """Append the ``start`` row of a launch that is about to happen, and return it (the caller closes it with ``end``)."""
     number = 1 + sum(1 for row in _lines(out) or [] if row["row"] == "start")
     row = {"row": "start", "n": number, "kind": kind, "reason": reason, "host": host, "model": model,
            "t": round(time.time() if t is None else t, 3), "events_line": events_line, "told": told,
-           "resumed_session": resumed_session}
+           "resumed_session": resumed_session, "engine": engine}
     _append(out, row)
     return row
 

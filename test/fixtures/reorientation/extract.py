@@ -11,7 +11,7 @@ What is kept, per window the spec names (a fresh start or a compaction at line L
 action's stamp to the accepting action's stamp plus MARGIN seconds, reduced to the keys the readers look at (tool calls, their
 final results, session and compaction markers). For a compaction the part BEFORE the line is cut further to the file-edit calls
 (`rewrote` compares only those), because a compaction comes late in a long stage. Dropped everywhere: thought and text chunks,
-usage events, running updates, file contents, command output other than ShipLoop's own (a refusal line is what a reader needs).
+running updates, file contents, command output other than ShipLoop's own (a refusal line is what a reader needs).
 
 sessions.jsonl is RECONSTRUCTED (the saved runs predate it): a start row per host launch with the `told` values parsed from
 the resume prompt the run kept (`resume-*.txt` for Grok and Codex, the `-p` argument of invocation-resume-claude-*.json for
@@ -120,6 +120,9 @@ def reduce_event(event: dict, shiploop_calls: set, write_only: bool = False):
                 (event["content"][0].get("content") or {}).get("text") if event["content"] and isinstance(event["content"][0], dict)
                 else "", 600 if keep else 0)}}]
         return out
+    if kind == "usage":  # Grok's one event per model call: it is also how a stream is known to be Grok's, so compactions count
+        used = event.get("usage") if isinstance(event.get("usage"), dict) else {}
+        return {"type": "usage", "usage": {k: v for k, v in used.items() if isinstance(v, int)}}
     if kind in ("available_commands",):
         return {"type": kind, "commands": [], "sessionId": event.get("sessionId")}
     if kind in ("auto_compact_started", "auto_compact_completed", "end", "result"):

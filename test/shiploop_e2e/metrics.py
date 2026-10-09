@@ -769,6 +769,7 @@ def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], gro
 # The ShipLoop CLI and run directory a `next` call carries, read from the command as the model wrote it (variables expanded
 # where the same command assigns them), to compare with what the resume prompt told.
 NEXT_CALL = re.compile(r"""(?P<cli>[^\s"'=]*shiploop)["']?\s+next\b(?P<rest>[^\n]*)""")
+PACKET_REVISION = re.compile(r"^ShipLoop navigator \|[^\n|]*\| revision (\d+)", re.M)
 RUN_DIR_ARG = re.compile(r"""--run-dir(?:=|\s+)["']?(?P<dir>[^"'\s]+)""")
 # The ShipLoop verbs whose call can be the one that gets an action accepted (an Improve child's finish accepts its parent).
 ACCEPTING_VERBS = ("complete", "improve-complete")
@@ -778,6 +779,8 @@ ACCEPTING_VERBS = ("complete", "improve-complete")
 # script the model wrote in an earlier session is not known to the window, so a ShipLoop command run through one is not
 # recognised, and a refusal behind a pipe that lost its prefix line is missed.
 FAILURES_SCOPE = "the window's own calls only: a ShipLoop command run through a script written in an earlier session is not seen"
+FRESH_STARTS_NOT_RECORDED = ("not recorded: this run has no sessions.jsonl (the harness wrote it from 2026-10-09), so its host "
+                             "session starts are unknown; only its compactions are listed")
 NO_EVENT = "the session wrote no event"
 NO_ACCEPT = ("no tool call submitted an action accepted after this start (the ledger names none, or the session ended before "
              "it submitted one)")
@@ -821,10 +824,14 @@ def _same_path(told: str | None, got: str | None) -> str:
     return "equivalent" if os.path.realpath(got) == os.path.realpath(told) else "different"
 
 
-def _recovery(tools: "ToolLog", window: list, told: dict | None) -> dict:
+def _recovery(tools: "ToolLog", window: list, told: dict | None, heads: dict) -> dict:
     """Was the recovery command repeated as told? The first `next` call of the window, its CLI and run directory compared with
-    the ones the prompt named (None where it named none: a compaction), whether it failed, and how many `next` calls there were."""
+    the ones the prompt named (None where it named none: a compaction), whether it failed, and how many `next` calls there were.
+    ``revision_seen`` is the engine revision the first `next` that returned a packet printed (``heads``: the text each `next`
+    call returned), which a later comparison sets beside the revision the killed session's end row recorded."""
     nexts = [(number, key) for number, key in enumerate(window, 1) if "next" in _verbs(tools.calls[key])]
+    revision = next((int(found.group(1)) for _number, key in nexts
+                     for found in [PACKET_REVISION.search(heads.get(key, ""))] if found), None)
     first = None
     if nexts:
         number, key = nexts[0]
@@ -834,7 +841,7 @@ def _recovery(tools: "ToolLog", window: list, told: dict | None) -> dict:
         first = {"call": number, "failed": failed, "exit": tools.failure_of[key]["exit"] if failed else None,
                  "cli": None if told is None else _same_path(told.get("cli"), found.group("cli") if found else None),
                  "run_dir": None if told is None else _same_path(told.get("run_dir"), run_dir.group("dir") if run_dir else None)}
-    return {"told": told, "next_calls": len(nexts), "first_next": first}
+    return {"told": told, "next_calls": len(nexts), "first_next": first, "revision_seen": revision}
 
 
 def reorientation(rows, stamps: dict, accepted: list[dict], told: dict | None = None, earlier=None) -> dict:
@@ -862,6 +869,7 @@ def reorientation(rows, stamps: dict, accepted: list[dict], told: dict | None = 
     tools, order = ToolLog(), []
     start_t = None
     pending: list[tuple] = []  # calls that submit an accepted action, until their result says whether it was accepted
+    heads: dict = {}  # `next` call -> the first characters of what it returned (the last update of a running Grok call wins)
     ended = None
     for line, event in rows:
         t = stamps.get(line)
@@ -872,6 +880,9 @@ def reorientation(rows, stamps: dict, accepted: list[dict], told: dict | None = 
             action = _submitted(tools.calls[key], ids)
             if action is not None and _plausible_submission(by_action[action][1]["t"], tools.calls[key]["t"]):
                 pending.append((key, action))
+        for call_id, shown in tool_results(event):
+            if call_id in tools.calls and "next" in _verbs(tools.calls[call_id]):
+                heads[call_id] = shown[:400]
         pending = [item for item in pending if item[0] not in tools.failed]
         ended = next((item for item in pending if item[0] in tools.answered), None)
         if ended:
@@ -880,7 +891,7 @@ def reorientation(rows, stamps: dict, accepted: list[dict], told: dict | None = 
     grounding = next(((number, _grounding(tools.calls[key])) for number, key in enumerate(window)
                       if _grounding(tools.calls[key])), (None, None))
     common = {"first_grounding": grounding[1], "calls_before_grounding": grounding[0],
-              "recovery": _recovery(tools, window, told)}
+              "recovery": _recovery(tools, window, told, heads)}
     if not order and start_t is None:
         return {"measured": False, "reason": NO_EVENT, **common}
     if ended is None:
@@ -929,6 +940,59 @@ def _rewrote(tools: "ToolLog", window: list, earlier, accepted: list[dict], inde
     return {"paths": paths, "bound": "lower", "scope": scope}
 
 
+def fresh_starts(out: Path, stamps: dict, accepted: list[dict], sessions: list[dict] | None, compactions: list[dict]) -> list[dict]:
+    """One block for every fresh context the run had, in the order of its first event: a host session started with no host
+    session id passed (``sessions`` rows of kind `fresh`: a --resume-run, the session after an --interrupt-at) and every
+    compaction (``compactions``: {"host": "grok", "line": n} where the host's event stream marks it, {"host": "codex", "t": epoch}
+    where only its rollouts do). Each block is ``reorientation`` over the events from that point to the session's end
+    (the next recorded session start, or the end of the file); a compaction's has no told command.
+
+    Record-only. ``sessions`` None (a run from before sessions.jsonl) lists no session start, only compactions; the caller
+    says so. ``stage_in_flight`` is the stage whose acceptance ends the window, else the one the previous session's end row
+    left in flight, else None. A fresh start also has ``after_kill``: the engine revision in the killed session's end row, in
+    this session's start row and in the first `next` result it got, and ``moved`` (None while fewer than two are known).
+    """
+    path = out / "events.jsonl"
+    boundaries = sorted(row["events_line"] for row in sessions or [] if isinstance(row.get("events_line"), int))
+    ordered = sorted(stamps)
+    times = [stamps[n] for n in ordered]
+
+    def first_line_after(after: float | None) -> int:
+        """The first stamped line whose stamp is after ``after`` (line 0 where there is no bound)."""
+        if after is None:
+            return 0
+        index = bisect.bisect_right(times, after)
+        return ordered[index] if index < len(ordered) else (ordered[-1] + 1 if ordered else 0)
+
+    points = [(row["events_line"], "fresh", row) for row in sessions or [] if row.get("kind") == "fresh"]
+    for compaction in compactions:
+        line = compaction["line"] if "line" in compaction else first_line_after(compaction.get("t"))
+        points.append((line, "compaction", compaction))
+    blocks = []
+    for line, kind, info in sorted(points, key=lambda point: point[0]):
+        bound = next((b for b in boundaries if b > line), None)
+        block = reorientation(event_range(path, line, bound), stamps, accepted, info.get("told") if kind == "fresh" else None,
+                              earlier=lambda after, line=line: event_range(path, first_line_after(after), line))
+        entry = {"kind": kind, "n": None, "reason": None, "host": info.get("host"),
+                 "t": info.get("t") if "t" in info else stamps.get(line), "events_line": line}
+        left = {}
+        if kind == "fresh":
+            entry.update(n=info["n"], reason=info.get("reason"))
+            previous = next((row for row in sessions or [] if row["n"] == info["n"] - 1), None)
+            left = ((previous or {}).get("end") or {}).get("engine") or {}
+        entry["stage_in_flight"] = block["accepted"]["stage"] if block["measured"] else left.get("stage")
+        if kind == "fresh":
+            # The engine at the kill, at the launch and in the fresh session's first `next` result: any difference is something
+            # that advanced the run after the host was killed (an in-flight command of the killed session, an orphan).
+            seen = {"end_revision": left.get("revision"), "start_revision": (info.get("engine") or {}).get("revision"),
+                    "first_next_revision": block["recovery"]["revision_seen"]}
+            known = {r for r in seen.values() if isinstance(r, int)}
+            entry["after_kill"] = {**seen, "moved": len(known) > 1 if sum(isinstance(r, int) for r in seen.values()) > 1 else None}
+        entry["reorientation"] = block
+        blocks.append(entry)
+    return blocks
+
+
 def collect(out: Path, run_dir: Path | None = None) -> dict:
     stamps = timeline(out / "timeline.jsonl")
     tools = ToolLog()
@@ -940,6 +1004,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     starts = 0  # sessions the host began, to tell how many never reported an end
     messages: set[str] = set()  # Claude message ids seen: one API call writes one assistant event per content block
     claude_calls = usage_events = 0
+    compaction_lines: list[int] = []  # where Grok's stream says a compaction completed: a fresh context for the model
     usage_rows: list[tuple] = []  # (t, output, reasoning) of Grok's per-call usage events: the planning window's tokens
     reported: set[int] = set()  # context windows the result events reported
     versions: set[str] = set()  # Claude Code builds that opened a session: the host CLI changes between runs of one prompt
@@ -980,6 +1045,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
                 truncated.add(event.get("toolCallId"))
         elif kind == "auto_compact_completed":
             compactions += 1
+            compaction_lines.append(number)
         elif kind in ("end", "result"):
             reported |= context_windows(event)
             # The host's own usage is kept as it wrote it: its shape differs by host (Claude's nests), and
@@ -1028,6 +1094,12 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         unmeasured["window_tokens"] = (f"{NO_WINDOW}; {why_not}" if why_not else
                                        NO_ROLLOUT_WINDOW if context else NO_WINDOW)
     planning["tokens"] = planning_tokens(bounds, why_not_tokens, usage_rows, grok, bool(claude_calls), context)
+    # Fresh contexts: the sessions the harness recorded (sessions.jsonl; a run from before it says so) and every compaction the
+    # host's events (Grok) or its rollouts (Codex) show. Claude's compactions are not detected (see GROK_SIGNALS).
+    sessions_recorded = sessionlog.read(out)
+    compaction_points = ([{"host": "grok", "line": n} for n in compaction_lines] if "compactions" not in unmeasured else [])
+    if context and "unmeasured" not in context:
+        compaction_points = [{"host": "codex", "t": t} for t in context.get("compaction_times", [])]
     stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
     if context and "unmeasured" not in context:
         for row, figures in zip(stages, context["perStage"]):
@@ -1071,6 +1143,10 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "narrative": narrative(out, run_dir),
         "stages": stages,
         "planning": planning,
+        # Record-only (SPEC "A fresh context is recorded, not scored"): see fresh_starts. The list holds the compactions only,
+        # and `fresh_starts_unmeasured` says why, where the run has no sessions.jsonl; None where it is complete.
+        "fresh_starts": fresh_starts(out, stamps, accepted, sessions_recorded, compaction_points),
+        "fresh_starts_unmeasured": None if sessions_recorded is not None else FRESH_STARTS_NOT_RECORDED,
     }
 
 

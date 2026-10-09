@@ -22,6 +22,7 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 import sys
 import tempfile
 import types
@@ -156,6 +157,11 @@ class ToolLogFeedTest(unittest.TestCase):
 
 CLI = "/p/build/plugins/skill-craft/skills/shiploop/scripts/shiploop"
 RUN = "/r/.shiploop-runs/w/run"
+
+
+def usage(tokens: int) -> dict:
+    """One Grok usage event: one model call."""
+    return {"type": "usage", "usage": {"input_tokens": tokens, "output_tokens": 10}}
 
 
 class Stream:
@@ -333,7 +339,7 @@ class RecoveryCommandTest(unittest.TestCase):
     def test_the_command_as_told_is_exact(self):
         got = self.first_next(f'python3 "{CLI}" next --run-dir "{RUN}"')
         self.assertEqual(got["first_next"], {"call": 1, "failed": False, "exit": None, "cli": "exact", "run_dir": "exact"})
-        self.assertEqual((got["told"], got["next_calls"]), (TOLD, 1))
+        self.assertEqual((got["told"], got["next_calls"], got["revision_seen"]), (TOLD, 1, 3))
 
     def test_a_dot_segment_is_equivalent_and_a_wrong_directory_is_different(self):
         same = self.first_next(f'python3 "{CLI}" next --run-dir "/r/./.shiploop-runs/w/run"')["first_next"]
@@ -367,6 +373,20 @@ class RecoveryCommandTest(unittest.TestCase):
         told_none = self.first_next(f'python3 "{CLI}" next --run-dir "{RUN}"', told=None)
         self.assertIsNone(told_none["told"])
         self.assertEqual(told_none["first_next"], {"call": 1, "failed": False, "exit": None, "cli": None, "run_dir": None})
+
+    def test_the_revision_the_first_good_next_showed_is_recorded_beside_the_recovery_facts(self):
+        s = Stream().start()
+        s.next(after=0.5, run_dir="/r/typo", output="error: no ShipLoop run directory\n", code=2)
+        s.next(after=1.0, output="ShipLoop navigator | spec | revision 12\nCallback ...\n")
+        s.next(after=1.0, output="ShipLoop navigator | spec | revision 13\n")
+        got = metrics.reorientation(s.rows, s.stamps, [], TOLD)["recovery"]
+        self.assertEqual(got["revision_seen"], 12, "the first next that returned a packet, not the failed one or a later one")
+        none = Stream().start()
+        none.shell(0.5, "ls")
+        self.assertIsNone(metrics.reorientation(none.rows, none.stamps, [], TOLD)["recovery"]["revision_seen"])
+        failed = Stream().start()
+        failed.next(after=0.5, output="error: no ShipLoop run directory\n", code=2)
+        self.assertIsNone(metrics.reorientation(failed.rows, failed.stamps, [], TOLD)["recovery"]["revision_seen"])
 
     def test_only_the_first_next_is_compared_and_every_next_is_counted(self):
         s = Stream().start()
@@ -561,6 +581,182 @@ class RecordedFreshStartReproductionTest(unittest.TestCase):
                           sum(x["run_dir"] == "exact" for x in seen)), (2, 1, 1))
 
 
+class FreshStartsCollectTest(unittest.TestCase):
+    """metrics.collect lists a block for every fresh start and every compaction, from sessions.jsonl and the host's events."""
+
+    def collect(self, name: str, without: tuple = ()) -> dict:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / name
+            shutil.copytree(FIXTURES / name, out, ignore=shutil.ignore_patterns(*without) if without else None)
+            return metrics.collect(out, out / ".shiploop-runs" / "work-fixture" / "run")
+
+    def test_r3_lists_two_compactions_and_the_resume_in_the_order_of_their_first_event(self):
+        got = self.collect("r3-battleship-grok-none")
+        self.assertIsNone(got["fresh_starts_unmeasured"])
+        starts = got["fresh_starts"]
+        self.assertEqual([(b["kind"], b["events_line"]) for b in starts],
+                         [("compaction", 1536), ("fresh", 4121), ("compaction", 8341)])
+        resume = starts[1]
+        self.assertEqual((resume["n"], resume["reason"], resume["host"], resume["stage_in_flight"]),
+                         (2, "resume-run", "grok", "test-author"))
+        self.assertEqual((resume["reorientation"]["tool_calls"], resume["reorientation"]["seconds"]), (23, 163.2))
+        self.assertEqual(got["compactions"], 2, "the count the old reading gives is the number of compaction entries")
+
+    def test_a_compaction_has_a_window_but_no_told_command_and_its_first_call_is_recorded(self):
+        first = self.collect("r3-battleship-grok-none")["fresh_starts"][0]
+        self.assertEqual((first["n"], first["reason"], first["host"]), (None, None, "grok"))
+        window = first["reorientation"]
+        self.assertTrue(window["measured"], window)
+        self.assertEqual(window["accepted"]["stage"], "test-strategy")
+        self.assertEqual(first["stage_in_flight"], "test-strategy")
+        self.assertIsNone(window["recovery"]["told"], "a compaction is not given a recovery command")
+        self.assertEqual((window["first_grounding"], window["calls_before_grounding"]), ("packet", 0),
+                         "the first call after the first r3 compaction was a read of the current packet")
+        self.assertEqual((window["recovery"]["next_calls"], window["recovery"]["first_next"]), (0, None),
+                         "after that compaction the model never ran `next`: it read the packet by its path")
+
+    def test_a_compaction_after_the_last_accepted_action_is_unmeasured_not_zero(self):
+        last = self.collect("r3-battleship-grok-none")["fresh_starts"][2]
+        self.assertFalse(last["reorientation"]["measured"])
+        self.assertIsNone(last["stage_in_flight"])
+        self.assertNotIn("tool_calls", last["reorientation"])
+
+    def test_without_sessions_jsonl_only_the_compactions_are_listed_and_the_gap_is_named(self):
+        got = self.collect("r3-battleship-grok-none", without=("sessions.jsonl",))
+        self.assertEqual([b["kind"] for b in got["fresh_starts"]], ["compaction", "compaction"])
+        self.assertTrue(got["fresh_starts_unmeasured"].startswith("not recorded"), got["fresh_starts_unmeasured"])
+        self.assertIn("sessions.jsonl", got["fresh_starts_unmeasured"])
+
+    def test_a_recorded_empty_sessions_file_is_recorded_empty_not_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text(json.dumps({"type": "usage", "usage": {"input_tokens": 1}}) + "\n")
+            (out / "sessions.jsonl").write_text("")
+            got = metrics.collect(out, None)
+        self.assertEqual((got["fresh_starts"], got["fresh_starts_unmeasured"]), ([], None))
+
+    def test_r2_is_a_mixed_host_run_and_its_fresh_start_belongs_to_the_claude_host_that_began_it(self):
+        got = self.collect("r2-battleship-grok-none")
+        self.assertEqual(len(got["fresh_starts"]), 1)
+        start = got["fresh_starts"][0]
+        self.assertEqual((start["kind"], start["host"], start["stage_in_flight"]), ("fresh", "claude", "implement"))
+        self.assertEqual(start["reorientation"]["tool_calls"], 6)
+
+    def test_the_four_luna_resumes_are_four_unmeasured_blocks_that_keep_their_recovery_facts(self):
+        got = self.collect("v1210-battleship-luna-xhigh")
+        self.assertEqual([b["n"] for b in got["fresh_starts"]], [2, 3, 4, 5])
+        self.assertEqual([b["host"] for b in got["fresh_starts"]], ["codex"] * 4)
+        first_next = [b["reorientation"]["recovery"]["first_next"] for b in got["fresh_starts"]]
+        self.assertEqual([x["run_dir"] for x in first_next], ["different", "different", "exact", "equivalent"])
+        self.assertTrue(all(not b["reorientation"]["measured"] for b in got["fresh_starts"]))
+
+    def test_a_window_stops_at_the_next_session_start_and_never_reads_into_it(self):
+        # Three Codex sessions; each numbers its calls item_1.. again. Session 2 never submits anything; session 3 does. Read
+        # on past its own end, session 2's window would end at session 3's `complete` and take its item_1 for its own.
+        first, second, third = Stream(first=100.0).start(), Stream(first=200.0).start(), Stream(first=300.0).start()
+        first.shell(1.0, "echo old session")
+        second.shell(1.0, "ls")
+        third.next(after=1.0)
+        third.complete("nav-b", after=1.0)
+        streams = (first, second, third)
+        for stream in streams:
+            for number, (_line, event) in enumerate(stream.rows[1:]):
+                event["toolCallId"] = f"item_{number // 2 + 1}"
+        starts, offset, lines, stamps = [], 0, [], {}
+        for stream in streams:
+            starts.append(offset)
+            lines += [event for _l, event in stream.rows]
+            stamps.update({offset + n: t for n, t in stream.stamps.items()})
+            offset += len(stream.rows)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in lines))
+            (out / "timeline.jsonl").write_text("".join(json.dumps({"line": n, "t": t}) + "\n" for n, t in stamps.items()))
+            run_dir = out / "run"
+            MAIN.write_engine_records(run_dir, [("nav-b", "spec", "done", float(int(third.t - 0.05)))], status="active",
+                                      stage="spec")
+            kinds = (("first", "start"), ("fresh", "resume-run"), ("fresh", "resume-run"))
+            (out / "sessions.jsonl").write_text("".join(json.dumps(
+                {"row": "start", "n": n + 1, "kind": kind, "reason": reason, "host": "codex", "t": stamps[start] - 1.0,
+                 "events_line": start, "told": None if kind == "first" else TOLD}) + "\n"
+                for n, (start, (kind, reason)) in enumerate(zip(starts, kinds))))
+            got = metrics.collect(out, run_dir)
+        two, three = (b["reorientation"] for b in got["fresh_starts"])
+        self.assertEqual((two["measured"], two["reason"][:30]), (False, "no tool call submitted an acti"))
+        self.assertEqual((three["measured"], three["tool_calls"]), (True, 2))
+        self.assertEqual(three["recovery"]["first_next"]["call"], 1)
+
+    def test_a_stream_that_is_not_groks_lists_no_compaction_even_if_a_look_alike_event_appears(self):
+        # Compactions are Grok's signal (GROK_SIGNALS): on another host the count is unmeasured, so the list stays empty too.
+        stream = [{"type": "available_commands", "commands": []}, {"type": "auto_compact_completed"},
+                  {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}]
+        got = MAIN.collect_stream(stream, [("A1", "intake", "done", 105.0)])
+        self.assertIsNone(got["compactions"])
+        self.assertEqual(got["fresh_starts"], [])
+
+    def after_kill(self, end_revision, start_revision, next_output):
+        """The `after_kill` of a two-session folder: the first session ended at ``end_revision``, the fresh one was launched
+        at ``start_revision`` and its first `next` showed ``next_output``."""
+        old, fresh = Stream(first=100.0).start(), Stream(first=300.0).start()
+        old.shell(1.0, "ls")
+        fresh.next(after=1.0, output=next_output)
+        fresh.complete("nav-b", after=1.0)
+        lines = [event for _l, event in old.rows] + [event for _l, event in fresh.rows]
+        stamps = {**old.stamps, **{len(old.rows) + n: t for n, t in fresh.stamps.items()}}
+        position = lambda revision: None if revision is None else {  # noqa: E731
+            "status": "active", "stage": "spec", "revision": revision, "accepted": 1, "last_accepted": None}
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in lines))
+            (out / "timeline.jsonl").write_text("".join(json.dumps({"line": n, "t": t}) + "\n" for n, t in stamps.items()))
+            run_dir = out / "run"
+            MAIN.write_engine_records(run_dir, [("nav-b", "spec", "done", float(int(fresh.t - 0.05)))], status="active", stage="spec")
+            rows = [{"row": "start", "n": 1, "kind": "first", "reason": "start", "host": "codex", "t": 99.0, "events_line": 0,
+                     "told": None, "engine": None},
+                    {"row": "end", "n": 1, "t": 200.0, "events_line": len(old.rows), "status": "stopped", "returncode": -9,
+                     "engine": position(end_revision)},
+                    {"row": "start", "n": 2, "kind": "fresh", "reason": "resume-run", "host": "codex", "t": 299.0,
+                     "events_line": len(old.rows), "told": TOLD, "engine": position(start_revision)}]
+            (out / "sessions.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+            return metrics.collect(out, run_dir)["fresh_starts"][0]["after_kill"]
+
+    def test_the_engine_revision_at_the_kill_is_compared_with_the_one_the_fresh_sessions_first_next_showed(self):
+        quiet = self.after_kill(11, 11, "ShipLoop navigator | spec | revision 11\n")
+        self.assertEqual(quiet, {"end_revision": 11, "start_revision": 11, "first_next_revision": 11, "moved": False})
+        moved = self.after_kill(11, 11, "ShipLoop navigator | spec | revision 12\n")
+        self.assertEqual((moved["moved"], moved["first_next_revision"]), (True, 12),
+                         "something advanced the engine after the kill: an in-flight command of the killed session")
+        before_launch = self.after_kill(11, 12, "ShipLoop navigator | spec | revision 12\n")
+        self.assertTrue(before_launch["moved"], "it moved between the end row and the launch")
+
+    def test_a_missing_revision_leaves_the_comparison_unknown_not_unmoved(self):
+        only_one = self.after_kill(None, None, "ShipLoop navigator | spec | revision 12\n")
+        self.assertEqual((only_one["moved"], only_one["end_revision"]), (None, None))
+        two = self.after_kill(None, 12, "ShipLoop navigator | spec | revision 12\n")
+        self.assertEqual(two["moved"], False, "two known values that agree")
+
+    def test_a_compaction_has_no_kill_to_compare(self):
+        first = MAIN.collect_stream([usage(1), {"type": "auto_compact_completed"}, usage(2)], [])["fresh_starts"]
+        self.assertEqual([b["kind"] for b in first], ["compaction"])
+        self.assertNotIn("after_kill", first[0])
+
+    def test_a_codex_compaction_is_placed_from_its_rollouts(self):
+        accepted = [("A1", "intake", "done", 105.0), ("A2", "spec", "done", 113.0)]
+        root = MAIN.thread_calls("root", "root", 10000, [(101, "r1", 1000, False), (104.5, "r2", 3000, False),
+                                                       (108, "rq", 3500, True), (110, "r3", 2000, False)])
+        got = MAIN.collect_stream(MAIN.codex_stream(12), accepted, rollout_files=[root])
+        compactions = [b for b in got["fresh_starts"] if b["kind"] == "compaction"]
+        self.assertEqual(len(compactions), 1)
+        self.assertEqual((compactions[0]["host"], compactions[0]["t"]), ("codex", 108.01))
+        self.assertEqual(compactions[0]["events_line"], 9, "the first event the runner stamped after the compaction (t 109)")
+        self.assertTrue(got["fresh_starts_unmeasured"].startswith("not recorded"), "collect_stream writes no sessions.jsonl")
+        self.assertEqual(got["compactions"], 1)
+
+    def test_a_claude_stream_lists_no_compaction_because_none_is_detected(self):
+        got = MAIN.collect_stream(MAIN.claude_stream(["ls"]), [("A1", "intake", "done", 105.0)])
+        self.assertEqual(got["fresh_starts"], [])
+
+
 class SessionLogTest(unittest.TestCase):
     """sessions.jsonl: the harness's append-only record of every host launch and every session end."""
 
@@ -592,6 +788,14 @@ class SessionLogTest(unittest.TestCase):
                                                                          "stage": "research", "action": "nav-3"}}})
         self.assertIsNone(got[1]["end"], "a harness killed mid-session writes no end row: the start row stays")
         self.assertEqual(got[1]["told"], {"cli": "/p/shiploop", "run_dir": "/r/run"}, "stored as values")
+
+    def test_the_start_row_can_carry_the_ledger_as_the_session_inherits_it(self):
+        import sessionlog
+        engine = {"status": "active", "stage": "spec", "revision": 11, "accepted": 4,
+                  "last_accepted": {"stage": "research", "action": "nav-4"}}
+        row = self.start(kind="fresh", reason="resume-run", engine=engine)
+        self.assertEqual(sessionlog.read(self.out)[0]["engine"], engine)
+        self.assertIsNone(self.start()["engine"], "no ShipLoop state yet: the first launch records none")
 
     def test_the_file_is_append_only_one_json_object_per_line(self):
         import sessionlog
@@ -778,6 +982,10 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
                                                                            (2, "fresh", "resume-run")])
         self.assertEqual(got[1]["events_line"], got[0]["end"]["events_line"])
         self.assertEqual(got[1]["told"]["cli"], str(self.cli))
+        self.assertIsNone(got[0]["engine"], "the first launch began before any ShipLoop state existed")
+        self.assertEqual((got[1]["engine"]["status"], got[1]["engine"]["revision"]), ("active", 25),
+                         "the ledger as the fresh session inherits it, read before the host started")
+        self.assertEqual(got[1]["engine"], got[0]["end"]["engine"])
         argv = self.seen()["argv"]
         prompt = argv[argv.index("-p") + 1]
         self.assertIn(f'python3 "{got[1]["told"]["cli"]}" next --run-dir "{got[1]["told"]["run_dir"]}"', prompt)

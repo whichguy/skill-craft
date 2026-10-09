@@ -157,7 +157,8 @@ def rollout_context(out: Path, windows: list | None = None, tokens_window: tuple
     ``[start, end]`` pair of epoch seconds per stage row, ``None`` for a stage with no known window; a record
     belongs to a window when start < t <= end, the rule the harness uses for turns. Returns ``window`` (the
     model context window a main-thread token_count reported), ``calls``, ``peak`` (the largest total_tokens of a
-    call), ``peakPct`` (peak as a percentage of the window), ``compactions``, ``subagents`` and ``perStage``
+    call), ``peakPct`` (peak as a percentage of the window), ``compactions`` and ``compaction_times`` (when each main-thread
+    compaction was recorded), ``subagents`` and ``perStage``
     (one {calls, peak, peakPct, compactions} per window, or None where the window was None). With
     ``tokens_window`` (start, end) it also returns ``tokens``: ``window_tokens`` over every file, read in this pass.
     """
@@ -189,6 +190,8 @@ def rollout_context(out: Path, windows: list | None = None, tokens_window: tuple
         [(t, total) for t, total in main if t is not None and w[0] < t <= w[1]],
         [t for t in own if t is not None and w[0] < t <= w[1]]) for w in (windows or [])]
     return {"window": window, **figures(main, own), "perStage": per_stage,
+            # When each main-thread compaction was recorded (epoch seconds): the fresh contexts a reader can place in the events.
+            "compaction_times": sorted(t for t in own if t is not None),
             "subagents": {"calls": sum(1 for _, _, is_main in calls if not is_main),
                           "peak": max(side, default=None),
                           "compactions": sum(1 for _, is_main in compactions if not is_main)},
