@@ -742,6 +742,27 @@ class FreshStartsCollectTest(unittest.TestCase):
         self.assertEqual([b["kind"] for b in first], ["compaction"])
         self.assertNotIn("after_kill", first[0])
 
+    def test_a_row_the_reader_cannot_use_is_skipped_and_never_takes_the_metrics_down(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text(json.dumps({"type": "available_commands", "commands": []}) + "\n")
+            (out / "sessions.jsonl").write_text("".join(json.dumps(r) + "\n" for r in (
+                {"row": "start", "n": 1, "kind": "fresh", "reason": "resume-run", "host": "grok", "events_line": None, "told": TOLD},
+                {"row": "start", "n": 2, "kind": "fresh", "reason": "resume-run", "host": "grok", "events_line": 0,
+                 "told": "not a mapping", "engine": "nor this"})))
+            got = metrics.collect(out, None)
+        self.assertEqual([b["n"] for b in got["fresh_starts"]], [2], "the row with no line is skipped, the other is read")
+        self.assertEqual(got["fresh_starts"][0]["reorientation"]["recovery"]["told"], None)
+
+    def test_a_defect_in_the_passive_record_never_takes_the_runs_metrics_down(self):
+        # An earlier per_stage defect crashed after the host had finished and cost the run its metrics and its review export.
+        with mock.patch.object(metrics, "fresh_starts", side_effect=ValueError("boom")):
+            got = MAIN.collect_stream(MAIN.claude_stream(["ls"]), [("A1", "intake", "done", 105.0)])
+        self.assertEqual(got["fresh_starts"], [])
+        self.assertTrue(got["fresh_starts_unmeasured"].startswith("failed"), got["fresh_starts_unmeasured"])
+        self.assertIn("ValueError: boom", got["fresh_starts_unmeasured"])
+        self.assertEqual(len(got["stages"]), 1, "the rest of the metrics are intact")
+
     def test_a_codex_compaction_is_placed_from_its_rollouts(self):
         accepted = [("A1", "intake", "done", 105.0), ("A2", "spec", "done", 113.0)]
         root = MAIN.thread_calls("root", "root", 10000, [(101, "r1", 1000, False), (104.5, "r2", 3000, False),
@@ -848,7 +869,7 @@ class ReadmeRecipeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = self.folder(tmp, [("A1", "intake", "done", 100.0)], "spec")
             with self.assertRaises(subprocess.TimeoutExpired):
-                self.run_watcher(out, "after", "spec", wait=2.0)
+                self.run_watcher(out, "after", "spec", wait=1.2)
             self.assertFalse((out / "stop").exists())
 
     def test_inside_a_stage_it_stops_when_a_result_file_waits_for_an_action_the_ledger_has_not_accepted(self):
@@ -862,12 +883,12 @@ class ReadmeRecipeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = self.folder(tmp, [("A1", "intake", "done", 100.0)], "spec", inbox=("A1",))
             with self.assertRaises(subprocess.TimeoutExpired):
-                self.run_watcher(out, "inside", "spec", wait=2.0)
+                self.run_watcher(out, "inside", "spec", wait=1.2)
             self.assertFalse((out / "stop").exists())
         with tempfile.TemporaryDirectory() as tmp:
             out = self.folder(tmp, [("A1", "intake", "done", 100.0)], "plan", inbox=("A1", "A2"))
             with self.assertRaises(subprocess.TimeoutExpired):
-                self.run_watcher(out, "inside", "spec", wait=2.0)
+                self.run_watcher(out, "inside", "spec", wait=1.2)
             self.assertFalse((out / "stop").exists(), "a result file waiting in another stage is not this stage's")
 
     def test_the_recipe_names_the_flags_the_audit_found_missing_and_the_overshoot(self):
@@ -982,6 +1003,10 @@ class EventsLineCountTest(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.out = Path(self._tmp.name)
+        # launch() reaps what a session left listening under the folder: that reads the machine's process table, which no test does
+        patched = MAIN.nothing_listens()
+        patched.__enter__()
+        self.addCleanup(patched.__exit__, None, None, None)
 
     def test_the_count_is_the_lines_already_written_and_a_missing_file_is_zero(self):
         self.assertEqual(run.events_line_count(self.out / "events.jsonl"), 0)

@@ -964,14 +964,16 @@ def fresh_starts(out: Path, stamps: dict, accepted: list[dict], sessions: list[d
         index = bisect.bisect_right(times, after)
         return ordered[index] if index < len(ordered) else (ordered[-1] + 1 if ordered else 0)
 
-    points = [(row["events_line"], "fresh", row) for row in sessions or [] if row.get("kind") == "fresh"]
+    points = [(row["events_line"], "fresh", row) for row in sessions or []
+              if row.get("kind") == "fresh" and isinstance(row.get("events_line"), int)]
     for compaction in compactions:
         line = compaction["line"] if "line" in compaction else first_line_after(compaction.get("t"))
         points.append((line, "compaction", compaction))
     blocks = []
     for line, kind, info in sorted(points, key=lambda point: point[0]):
         bound = next((b for b in boundaries if b > line), None)
-        block = reorientation(event_range(path, line, bound), stamps, accepted, info.get("told") if kind == "fresh" else None,
+        told = info.get("told") if kind == "fresh" and isinstance(info.get("told"), dict) else None
+        block = reorientation(event_range(path, line, bound), stamps, accepted, told,
                               earlier=lambda after, line=line: event_range(path, first_line_after(after), line))
         entry = {"kind": kind, "n": None, "reason": None, "host": info.get("host"),
                  "t": info.get("t") if "t" in info else stamps.get(line), "events_line": line}
@@ -979,12 +981,14 @@ def fresh_starts(out: Path, stamps: dict, accepted: list[dict], sessions: list[d
         if kind == "fresh":
             entry.update(n=info["n"], reason=info.get("reason"))
             previous = next((row for row in sessions or [] if row["n"] == info["n"] - 1), None)
-            left = ((previous or {}).get("end") or {}).get("engine") or {}
+            left = ((previous or {}).get("end") or {}).get("engine")
+            left = left if isinstance(left, dict) else {}
         entry["stage_in_flight"] = block["accepted"]["stage"] if block["measured"] else left.get("stage")
         if kind == "fresh":
             # The engine at the kill, at the launch and in the fresh session's first `next` result: any difference is something
             # that advanced the run after the host was killed (an in-flight command of the killed session, an orphan).
-            seen = {"end_revision": left.get("revision"), "start_revision": (info.get("engine") or {}).get("revision"),
+            started = info.get("engine") if isinstance(info.get("engine"), dict) else {}
+            seen = {"end_revision": left.get("revision"), "start_revision": started.get("revision"),
                     "first_next_revision": block["recovery"]["revision_seen"]}
             known = {r for r in seen.values() if isinstance(r, int)}
             entry["after_kill"] = {**seen, "moved": len(known) > 1 if sum(isinstance(r, int) for r in seen.values()) > 1 else None}
@@ -1101,6 +1105,11 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
     compaction_points = ([{"host": "grok", "line": n} for n in compaction_lines] if "compactions" not in unmeasured else [])
     if context and "unmeasured" not in context:
         compaction_points = [{"host": "codex", "t": t} for t in context.get("compaction_times", [])]
+    try:
+        fresh_list, fresh_note = (fresh_starts(out, stamps, accepted, sessions_recorded, compaction_points),
+                                  None if sessions_recorded is not None else FRESH_STARTS_NOT_RECORDED)
+    except Exception as exc:  # noqa: BLE001 - a passive record never takes the run's metrics down (per_stage once did)
+        fresh_list, fresh_note = [], f"failed: {type(exc).__name__}: {' '.join(str(exc).split())[:200]}"
     stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
     if context and "unmeasured" not in context:
         for row, figures in zip(stages, context["perStage"]):
@@ -1146,8 +1155,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
         "planning": planning,
         # Record-only (SPEC "A fresh context is recorded, not scored"): see fresh_starts. The list holds the compactions only,
         # and `fresh_starts_unmeasured` says why, where the run has no sessions.jsonl; None where it is complete.
-        "fresh_starts": fresh_starts(out, stamps, accepted, sessions_recorded, compaction_points),
-        "fresh_starts_unmeasured": None if sessions_recorded is not None else FRESH_STARTS_NOT_RECORDED,
+        "fresh_starts": fresh_list,
+        "fresh_starts_unmeasured": fresh_note,
     }
 
 
