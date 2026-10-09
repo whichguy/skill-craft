@@ -7475,5 +7475,187 @@ class R23bFidelityExportTests(unittest.TestCase):
             self.assertIn(phrase, text, phrase)
 
 
+
+# ---------------------------------------------------------------- R23b: the page
+
+R23B_RELEASE_OLD = "skill-craft 1.24.0, ShipLoop 0.56.0"
+R23B_RELEASE_NEW = "skill-craft 1.26.0, ShipLoop 0.58.0"
+
+
+def r23b_run_doc(packets: str | None = None, block=None, release: str = R23B_RELEASE_OLD) -> dict:
+    """The run document the exporter writes for the fixture run carrying the real r1 fidelity block (figures.json) and, when given,
+    an Improve packet of that text on eight visits. The page tests read the exporter's own output."""
+    root = Path(tempfile.mkdtemp())
+    try:
+        block = r23b_block() if block is None else block
+        metrics = {"fidelity": block}
+        if isinstance(block, dict) and isinstance(block.get("refusals"), dict):
+            metrics["shiploop_failures"] = r23b_failures(block)
+        out = make_run(root, accepts=ACCEPTS_8, loops=False, metrics=metrics)
+        if packets is not None:
+            r23b_write_improve_packets(out, packets, [a[0] for a in ACCEPTS_8])
+        run = export.build_run(out)[0]["runs"][RunReviewTest.KEY]
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    run["release"] = release
+    return run
+
+
+class R23bFidelityPageLogicTests(unittest.TestCase):
+    """fidelityModel, improvePacketsText and improveCarriedText are pure: the run document in, the text out, only what the export holds."""
+
+    def model(self, run: dict):
+        return run_logic("fidelityModel(%s)" % json.dumps(run))
+
+    def test_the_real_reading_becomes_rows_a_bar_of_the_nonzero_classes_and_the_harnesss_limits_verbatim(self):
+        run = r23b_run_doc()
+        model = self.model(run)
+        rows = dict(model["rows"])
+        self.assertEqual(rows["Exit evidence"], "script 15, loop 7, file 1, note 12, sentence 0, skipped 2, unclassified 0 (37 accepted stages)")
+        self.assertEqual(rows["Declared script checks with no script record"], "none")
+        self.assertEqual(rows["Validation"], "10 records, 29 command runs, 6 distinct commands; 10 passed, 2 ran red, 0 could not run, "
+                                             "0 unreadable; 0 of 23 rows with a test count ran no test; 0 focused or regression rows with no test count")
+        self.assertEqual(rows["Edits of ShipLoop's own files (a list to confirm)"],
+                         "1 script-owned edit: sed -i .shiploop-runs/work-20261008-173654-a943e7/return-plan.md (Bash)\n"
+                         "0 kills by process name; 1 command that ran git add or commit")
+        self.assertEqual(rows["Refusals (a list to confirm)"], "5 refusals, 1 repeated\nby stage: release 2, release-plan 2, intake 1")
+        self.assertEqual([(b["key"], b["n"]) for b in model["bar"]], [("script", 15), ("loop", 7), ("file", 1), ("note", 12), ("skipped", 2)])
+        self.assertTrue(all(b["meaning"] for b in model["bar"]))  # a zero-count class has no segment
+        self.assertEqual(model["limits"], [["Edits", run["fidelity"]["edits"]["limits"]], ["Refusals", run["fidelity"]["refusals"]["limits"]]])
+        self.assertEqual(model["notes"], [])
+
+    def test_refusals_say_one_in_the_right_number_and_an_unknown_repeat_is_not_zero(self):
+        run = r23b_run_doc()
+        one = json.loads(json.dumps(run))
+        one["refusals"], one["fidelity"]["refusals"]["byStage"] = 1, [{"stage": "intake", "count": 1}]
+        self.assertEqual(dict(self.model(one)["rows"])["Refusals (a list to confirm)"], "1 refusal, 1 repeated\nby stage: intake 1")
+        unknown = json.loads(json.dumps(run))
+        del unknown["fidelity"]["refusals"]["repeated"]
+        unknown["fidelity"]["refusals"]["unstaged"] = 2
+        self.assertEqual(dict(self.model(unknown)["rows"])["Refusals (a list to confirm)"],
+                         "5 refusals, repeated not measured, 2 with no stage\nby stage: release 2, release-plan 2, intake 1")
+
+    def test_a_missing_declared_list_and_script_run_stages_without_a_record_are_said_apart(self):
+        run = r23b_run_doc()
+        missing = json.loads(json.dumps(run))
+        missing["fidelity"]["evidence"]["scriptRunWithoutRecord"] = ["test-green", "verify"]
+        self.assertEqual(dict(self.model(missing)["rows"])["Declared script checks with no script record"], "test-green, verify")
+        unknown = json.loads(json.dumps(run))
+        del unknown["fidelity"]["evidence"]["scriptRunWithoutRecord"]
+        unknown["unmeasured"]["fidelity.declared"] = "the ShipLoop scripts directory of the run is not known"
+        rows = dict(self.model(unknown)["rows"])
+        self.assertEqual(rows["Declared script checks with no script record"], "not measured (the ShipLoop scripts directory of the run is not known)")
+
+    def test_a_run_with_no_reading_says_why_or_says_nothing_and_a_part_that_was_not_measured_is_listed_with_its_reason(self):
+        self.assertIsNone(self.model(dict(DONE_RUN)))  # an export from before the reading: nothing is claimed
+        failed = dict(DONE_RUN, unmeasured={"fidelity": "the harness could not build its fidelity block: ValueError: no stage table"})
+        model = self.model(failed)
+        self.assertEqual(model["rows"], [["Fidelity", "not measured (the harness could not build its fidelity block: ValueError: no stage table)"]])
+        self.assertEqual((model["bar"], model["limits"]), ([], []))
+        orphan = self.model(dict(DONE_RUN, unmeasured={"fidelity.edits": "the event stream holds no tool call"}))  # a part reason with no block reason
+        self.assertEqual(orphan["rows"], [["Fidelity", "not measured (no reason recorded)"]])
+        self.assertEqual(orphan["notes"], ["edits: the event stream holds no tool call"])
+        partial = r23b_run_doc()
+        partial["fidelity"].pop("edits")
+        partial["unmeasured"]["fidelity.edits"] = "the event stream holds no tool call"
+        model = self.model(partial)
+        self.assertNotIn("Edits of ShipLoop's own files (a list to confirm)", dict(model["rows"]))
+        self.assertEqual(model["notes"], ["edits: the event stream holds no tool call"])
+        self.assertEqual(model["limits"], [["Refusals", partial["fidelity"]["refusals"]["limits"]]])
+
+    def test_the_improve_packet_counts_read_beside_the_release_and_the_old_release_is_never_a_defect(self):
+        old = json.dumps(r23b_run_doc(R23B_OLD_PACKET))
+        self.assertEqual(run_logic("improvePacketsText(%s)" % old),
+                         "Improve packets, skill-craft 1.24.0, ShipLoop 0.56.0: Checked by 8/8, Output 8/8, Recovery 8/8, Goal 0/8, Done when 0/8. "
+                         "Goal and Done when are printed from skill-craft 1.25.0 on, so an earlier release has none by design.")
+        new = json.dumps(r23b_run_doc(R23B_NEW_PACKET, release=R23B_RELEASE_NEW))
+        self.assertEqual(run_logic("improvePacketsText(%s)" % new),
+                         "Improve packets, skill-craft 1.26.0, ShipLoop 0.58.0: Goal 8/8, Done when 8/8, Checked by 8/8, Output 8/8, Recovery 8/8")
+        none = {"release": "r", "improvePackets": {"read": 0, "carried": {k: 0 for k in R23B_IMPROVE_KEYS}}}
+        unmeasured = {"release": "r", "unmeasured": {"improvePackets": "ShipLoop 1.22.0 or earlier wrote one packet file per action"}}
+        self.assertEqual(run_logic("[improvePacketsText(%s),improvePacketsText(%s),improvePacketsText({}),improvePacketsText(null)]"
+                                   % (json.dumps(none), json.dumps(unmeasured))),
+                         ["Improve packets: none read (the run has no Improve child)",
+                          "Improve packets: not measured (ShipLoop 1.22.0 or earlier wrote one packet file per action)", "", ""])
+
+    def test_a_visit_names_the_labels_its_improve_packet_carried_and_the_class_its_exit_was_evidenced_by(self):
+        run = r23b_run_doc(R23B_OLD_PACKET)
+        carried = run["stages"][3]["improveCarried"]
+        self.assertEqual(run_logic("improveCarriedText(%s)" % json.dumps(carried)),
+                         "Checked by, Output, Recovery; not in the packet text: Goal, Done when")
+        self.assertEqual(run_logic("improveCarriedText(%s)" % json.dumps({k: True for k in R23B_IMPROVE_KEYS})), "Goal, Done when, Checked by, Output, Recovery")
+        self.assertEqual(run_logic("[improveCarriedText(null),improveCarriedText({}),improveCarriedText(1)]"), ["", "", ""])
+        card = run_logic("stageCard(%s,3,null)" % json.dumps(run))
+        self.assertEqual(card["sent"]["improveCarried"], "Checked by, Output, Recovery; not in the packet text: Goal, Done when")
+        done = dict(card["done"]["lines"])
+        self.assertEqual(done["Exit evidenced by"], "loop: an Improve review")  # the real block's class of that visit (the plan stage)
+        bare = run_logic("stageCard(%s,3,null)" % json.dumps(r23b_run_doc()))
+        self.assertEqual(bare["sent"]["improveCarried"], "")
+        self.assertNotIn("Exit evidenced by", dict(run_logic("stageCard(%s,0,null)" % json.dumps(dict(DONE_RUN, stages=[{"stage": "intake", "outcome": "done"}])))["done"]["lines"]))
+
+    def test_the_improve_card_carries_the_packet_line_and_the_page_keeps_the_exporters_tables(self):
+        run = r23b_run_doc(R23B_OLD_PACKET)
+        cards = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(run))}
+        self.assertEqual(cards["improve"]["lines"], [run_logic("improvePacketsText(%s)" % json.dumps(run))])
+        plain = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(dict(DONE_RUN)))}
+        self.assertEqual(plain["improve"]["lines"], [])
+        self.assertEqual([k for k, _ in run_logic("IMPROVE_CARRIED_LABELS")], [k for k, _, _ in export.IMPROVE_CARRIED])
+        self.assertEqual([k for k, _, _ in run_logic("EVIDENCE_CLASSES")], list(export.EVIDENCE_CLASSES))
+        self.assertEqual(run_logic("IMPROVE_GOAL_SINCE"), "skill-craft 1.25.0")
+
+
+class R23bFidelityPageTests(unittest.TestCase):
+    """What the page draws: the Fidelity card in the run view, the Improve card's packet line and the stage card's two lines."""
+
+    def test_the_card_has_the_bar_a_legend_the_rows_and_the_limits_labelled_as_lists_to_confirm(self):
+        run = r23b_run_doc(R23B_OLD_PACKET)
+        text = page_probe('textOf("fidcard")', setup=ended_page(run))
+        for needle in ("Fidelity: how ShipLoop was carried", "Exit evidence", "script 15, loop 7", "Declared script checks with no script record",
+                       "Validation", "Edits of ShipLoop's own files (a list to confirm)", "return-plan.md", "Refusals (a list to confirm)",
+                       "5 refusals, 1 repeated", "by stage: release 2", "A record, never a verdict",
+                       run["fidelity"]["edits"]["limits"], run["fidelity"]["refusals"]["limits"]):
+            self.assertIn(needle, text, needle)
+        segments = page_probe('byClass("fidcard","fe-seg").map(function(s){return s.className.split(" ").pop()+":"+s.style.flexGrow;})', setup=ended_page(run))
+        self.assertEqual(segments, ["fe-script:15", "fe-loop:7", "fe-file:1", "fe-note:12", "fe-skipped:2"])
+        legend = page_probe('byClass("fidcard","felegend").map(function(l){return l.textContent;})', setup=ended_page(run))
+        self.assertIn("script 15", legend[0])
+        self.assertIn("unclassified", legend[0])
+
+    def test_the_card_is_hidden_for_an_export_from_before_the_reading_and_says_why_for_a_failed_one(self):
+        old = page_probe('REG.fidcard.hidden', setup=ended_page(dict(DONE_RUN)))
+        self.assertTrue(old)
+        failed = dict(DONE_RUN, unmeasured={"fidelity": "the harness could not build its fidelity block: ValueError: boom"})
+        self.assertFalse(page_probe('REG.fidcard.hidden', setup=ended_page(failed)))
+        self.assertIn("not measured (the harness could not build its fidelity block: ValueError: boom)",
+                      page_probe('textOf("fidcard")', setup=ended_page(failed)))
+        self.assertEqual(page_probe('byClass("fidcard","fe-seg").length', setup=ended_page(failed)), 0)
+
+    def test_the_improve_card_and_the_stage_card_print_the_packet_counts_and_the_evidence_class(self):
+        run = r23b_run_doc(R23B_OLD_PACKET)
+        kpis = page_probe('textOf("kpis")', setup=ended_page(run))
+        self.assertIn("Improve packets, skill-craft 1.24.0, ShipLoop 0.56.0: Checked by 8/8, Output 8/8, Recovery 8/8, Goal 0/8, Done when 0/8", kpis)
+        detail = page_probe('setCol(3);textOf("seqdetail")', setup=ended_page(run))
+        self.assertIn("Improve child's packet carriedChecked by, Output, Recovery; not in the packet text: Goal, Done when", detail)
+        self.assertIn("Exit evidenced byloop: an Improve review", detail)
+
+    def test_schema_md_and_skill_md_describe_what_the_page_draws_from_the_new_fields(self):
+        schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ('the "Fidelity" card in the run view', "word for word", "\"Exit evidenced by\" from `evidenceClass`",
+                       "\"Improve child's packet carried\""):
+            self.assertIn(phrase, schema, phrase)
+        skill = " ".join(SKILL_MD.read_text(encoding="utf-8").split())
+        for phrase in ("`fidelity`", "`improvePackets`", '"The Improve packet checklist"'):
+            self.assertIn(phrase, skill, phrase)
+
+    def test_the_template_keeps_the_card_beside_the_others_and_no_inline_style_colour(self):
+        html = TEMPLATE.read_text(encoding="utf-8")
+        self.assertIn('<div class="card fidcard" id="fidcard" hidden></div>', html)
+        css = html.split("</style>")[0]
+        self.assertRegex(css, r"\.fidcard \.facts dd\{[^}]*white-space:pre-line")
+        self.assertRegex(css, r"@media \(max-width:640px\)\{\.fidcard \.facts\{grid-template-columns:1fr\}\}")
+        for key in export.EVIDENCE_CLASSES:
+            self.assertIn(f".fe-{key}", css)
+
+
 if __name__ == "__main__":
     unittest.main()

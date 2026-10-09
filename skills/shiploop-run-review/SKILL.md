@@ -68,6 +68,10 @@ the listeners the harness ended, whether the unreturned product passes its check
 Each visit also carries the checks ShipLoop recorded for it (`verify`, read from `tests/<action>-verifyN.md`) and the outcomes its
 result left unverified; the run carries the planning window and, for a Claude run, its wrapper scripts and packet use (read from
 `metrics.json`, never recomputed); a stage that only ran `backchain-check` is a graph-check Backchain document, not no loop.
+From R23b the run also carries the harness's fidelity reading (`fidelity`: how each accepted stage's exit was evidenced, what ShipLoop's
+script checks recorded, the model's edits of ShipLoop's own files and its refusals by stage, with the harness's limits text) and, scored by
+the exporter itself, which labels each Improve child's packet carried (`improvePackets`). Both are record only; a part the run lacks is
+absent with its reason in `unmeasured`. See "Fidelity" and "The Improve packet checklist" in [SCHEMA.md](SCHEMA.md).
 
 ## advise RUN_DIR_OR_KEY
 

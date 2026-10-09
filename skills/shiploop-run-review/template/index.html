@@ -193,6 +193,20 @@ label.opt .t{min-width:0}
 .endcard.blocked{border-left-color:var(--broken)}
 .endcard .facts{grid-template-columns:minmax(120px,210px) minmax(0,1fr)}
 .endcard .facts dd{white-space:pre-line}
+.fidcard{margin-top:12px}
+.fidcard .facts{grid-template-columns:minmax(120px,210px) minmax(0,1fr)}
+.fidcard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
+.fe-bar{height:18px;margin:8px 0 4px}
+.fe-bar div{line-height:18px;padding:0}
+.fe-script{background:var(--accent)}
+.fe-loop{background:var(--accent-bg);box-shadow:inset 0 0 0 1px var(--accent)}
+.fe-file{background:var(--code-bg);box-shadow:inset 0 0 0 1px var(--line)}
+.fe-note{background:var(--none-bg);box-shadow:inset 0 0 0 1px var(--muted)}
+.fe-sentence{background:repeating-linear-gradient(135deg,var(--none-bg) 0 4px,var(--line) 4px 8px)}
+.fe-skipped{background:repeating-linear-gradient(45deg,transparent 0 2px,var(--muted) 2px 3px);border:1px dashed var(--muted)}
+.fe-unclassified{background:transparent;border:1.5px dotted var(--muted)}
+.felegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-bottom:6px}
+.felegend span{display:inline-flex;gap:5px;align-items:center}
 .seqscroll{overflow-x:auto;padding-bottom:6px;margin-top:6px}
 .sq{display:block;height:auto;max-width:none}
 .sq text{font-family:var(--sans);font-size:11px;fill:var(--muted)}
@@ -291,6 +305,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 .steps{gap:4px}.steps button{font-size:12px;padding:6px 6px}.steps button small{font-size:10.5px}
 .stickybar{display:flex;position:sticky;bottom:0;z-index:5;justify-content:space-between;align-items:center;gap:10px;margin:14px -16px -56px;padding:10px 16px;background:var(--surface);border-top:1px solid var(--line)}
 .stickybar[hidden]{display:none}}
+@media (max-width:640px){.fidcard .facts{grid-template-columns:1fr}}
 </style>
 
 <div class="wrap">
@@ -318,6 +333,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <div id="seqdetail" aria-live="polite"></div>
 <div class="card sclist" id="sclist" hidden></div>
 <details id="seqtabbox" hidden><summary id="seqtabsum"></summary><div class="rtabbox" id="seqtable"></div></details>
+<div class="card fidcard" id="fidcard" hidden></div>
 <h3 style="margin-top:22px">The path every run takes</h3>
 <p class="sub">Expected, observed, Backchain time and numbered findings for each stage. Select a stage to read what we expect of it.</p>
 <div class="flowbox"><div class="flow" id="flow"></div></div>
@@ -867,6 +883,95 @@ function glueText(run){
 /* A Backchain document of a stage that only ran backchain-check: no loop, no passes. */
 function isGraphCheck(d){return !!d&&d.graphCheckOnly===true;}
 
+/* ---- fidelity: how ShipLoop was carried, and the Improve packets (R23b) ---- */
+/* The harness's classes of how an accepted stage's exit was evidenced, in its order: [key, label, what it means]. A test keeps the keys
+   equal to the exporter's EVIDENCE_CLASSES. A reading aid, never a score: citing any file makes a stage `file`. */
+var EVIDENCE_CLASSES=[
+  ["script","script","a check ShipLoop's script ran and recorded"],
+  ["loop","loop","an Improve review"],
+  ["file","file","a file the result cited (not the stage's own, not a note)"],
+  ["note","note","notes the model wrote"],
+  ["sentence","sentence","the model's own sentence alone (nothing beyond the stage's own files)"],
+  ["skipped","skipped","the engine's not-applicable entry"],
+  ["unclassified","unclassified","no accepted entry for the visit"]];
+/* The five labels of an Improve child's packet, [key, label]; a test keeps the keys and their order equal to the exporter's IMPROVE_CARRIED. */
+var IMPROVE_CARRIED_LABELS=[["goal","Goal"],["doneWhen","Done when"],["checkedBy","Checked by"],["output","Output"],["recovery","Recovery"]];
+/* The release that started printing Goal and Done when in the Improve packet (ShipLoop 0.57.0): a run of an earlier release has none by design. */
+var IMPROVE_GOAL_SINCE="skill-craft 1.25.0";
+/* A visit's Improve packet labels as text: the ones its packet carried, then the ones not found in its text. "" without the object. */
+function improveCarriedText(c){
+  if(!c||typeof c!=="object")return "";
+  var yes=[],no=[];
+  IMPROVE_CARRIED_LABELS.forEach(function(l){if(c[l[0]]===true)yes.push(l[1]);else if(c[l[0]]===false)no.push(l[1]);});
+  if(!yes.length&&!no.length)return "";
+  return yes.join(", ")+(yes.length&&no.length?"; ":"")+(no.length?"not in the packet text: "+no.join(", "):"");
+}
+/* The run's Improve packet counts beside its release: "Improve packets, skill-craft 1.24.0, ShipLoop 0.56.0: Checked by 8/8, Output 8/8, ..." with
+   the labels carried by most first. A run of a release before the one that added Goal and Done when reads 0 for them by design, and the
+   text says so; it is never drawn as a defect. "" for an export with no such record and no reason. */
+function improvePacketsText(run){
+  var p=run&&run.improvePackets&&typeof run.improvePackets==="object"?run.improvePackets:null,why=reasonFor(run,"improvePackets");
+  if(!p||!isCount(p.read)||!p.carried||typeof p.carried!=="object")return why?"Improve packets: not measured ("+why+")":"";
+  if(p.read===0)return "Improve packets: none read (the run has no Improve child)";
+  var counts=IMPROVE_CARRIED_LABELS.map(function(l,i){return {label:l[1],n:isCount(p.carried[l[0]])?p.carried[l[0]]:0,i:i};})
+    .sort(function(a,b){return b.n-a.n||a.i-b.i;}).map(function(x){return x.label+" "+x.n+"/"+p.read;});
+  var late=isCount(p.carried.goal)&&isCount(p.carried.doneWhen)&&(p.carried.goal<p.read||p.carried.doneWhen<p.read);
+  var rel=run&&typeof run.release==="string"&&run.release?", "+run.release:"";
+  return "Improve packets"+rel+": "+counts.join(", ")+(late?". Goal and Done when are printed from "+IMPROVE_GOAL_SINCE+" on, so an earlier release has none by design.":"");
+}
+/* A visit's exit evidence as text, "script: a check ShipLoop's script ran and recorded"; "" for a class this page does not know. */
+function evidenceLine(key){
+  for(var i=0;i<EVIDENCE_CLASSES.length;i++)if(EVIDENCE_CLASSES[i][0]===key)return EVIDENCE_CLASSES[i][1]+": "+EVIDENCE_CLASSES[i][2];
+  return "";
+}
+/* The Fidelity card as data: {bar: [{key, label, n, meaning}] (the classes with a count), rows: [[label, text]], limits: [[part, text]] (the
+   harness's own words on what its lists miss), notes: ["part: reason"] for each part that was not measured}, or null when the run has no
+   reading and no reason (an export from before it). Only what the export holds is printed; a heuristic list is labelled a list to confirm. */
+function fidelityModel(run){
+  var f=run&&run.fidelity&&typeof run.fidelity==="object"?run.fidelity:null,u=run&&run.unmeasured&&typeof run.unmeasured==="object"?run.unmeasured:{};
+  var keys=Object.keys(u).filter(function(k){return k==="fidelity"||k.indexOf("fidelity.")===0;});
+  if(!f&&!keys.length)return null;
+  var notes=keys.filter(function(k){return k!=="fidelity";}).map(function(k){return k.slice("fidelity.".length)+": "+u[k];});
+  if(!f)return {bar:[],rows:[["Fidelity","not measured ("+(typeof u.fidelity==="string"?u.fidelity:"no reason recorded")+")"]],limits:[],notes:notes};
+  var rows=[],bar=[],limits=[],e=f.evidence,v=f.validation,ed=f.edits,r=f.refusals;
+  if(e&&typeof e==="object"){
+    var total=0,parts=[];
+    EVIDENCE_CLASSES.forEach(function(c){if(!isCount(e[c[0]]))return;total+=e[c[0]];parts.push(c[1]+" "+e[c[0]]);
+      if(e[c[0]]>0)bar.push({key:c[0],label:c[1],n:e[c[0]],meaning:c[2]});});
+    rows.push(["Exit evidence",parts.join(", ")+" ("+plural(total,"accepted stage")+")"]);
+    if(Array.isArray(e.scriptRunWithoutRecord))rows.push(["Declared script checks with no script record",e.scriptRunWithoutRecord.length?e.scriptRunWithoutRecord.join(", "):"none"]);
+    else if(reasonFor(run,"fidelity.declared"))rows.push(["Declared script checks with no script record","not measured ("+reasonFor(run,"fidelity.declared")+")"]);
+  }
+  if(v&&typeof v==="object"){
+    var head=[["records","record"],["runs","command run"],["distinctCommands","distinct command"]].filter(function(p){return isCount(v[p[0]]);}).map(function(p){return plural(v[p[0]],p[1]);});
+    var outc=[["passed","passed"],["red","ran red"],["couldNotRun","could not run"],["unread","unreadable"]].filter(function(p){return isCount(v[p[0]]);}).map(function(p){return v[p[0]]+" "+p[1];});
+    var bits=[head.join(", "),outc.join(", ")].filter(Boolean);
+    if(isCount(v.counted))bits.push(isCount(v.zeroRan)?v.zeroRan+" of "+plural(v.counted,"row")+" with a test count ran no test":plural(v.counted,"row")+" with a test count");
+    if(isCount(v.testsRanUnmeasured))bits.push(plural(v.testsRanUnmeasured,"focused or regression row")+" with no test count");
+    rows.push(["Validation",bits.join("; ")]);
+  }
+  if(ed&&typeof ed==="object"){
+    var lines=[],so=ed.scriptOwned&&typeof ed.scriptOwned==="object"?ed.scriptOwned:null;
+    if(so&&isCount(so.count)){
+      var items=Array.isArray(so.items)?so.items:[];
+      lines.push(plural(so.count,"script-owned edit")+(items.length?": "+items.map(function(i){return i.form+" "+i.target+(i.tool?" ("+i.tool+")":"");}).join("; ")+(so.count>items.length?"; and "+(so.count-items.length)+" more":""):""));
+    }
+    var other=[];
+    if(isCount(ed.nameKills))other.push(plural(ed.nameKills,"kill")+" by process name");
+    if(isCount(ed.modelCommits))other.push(plural(ed.modelCommits,"command")+" that ran git add or commit");
+    if(other.length)lines.push(other.join("; "));
+    rows.push(["Edits of ShipLoop's own files (a list to confirm)",lines.join("\n")]);
+    if(typeof ed.limits==="string"&&ed.limits)limits.push(["Edits",ed.limits]);
+  }
+  if(r&&typeof r==="object"){
+    var by=Array.isArray(r.byStage)?r.byStage.filter(function(b){return b&&typeof b.stage==="string"&&isCount(b.count);}):[];
+    var t=(isCount(run.refusals)?plural(run.refusals,"refusal"):"refusal count not measured")+", "+(isCount(r.repeated)?r.repeated+" repeated":"repeated not measured")+(isCount(r.unstaged)&&r.unstaged>0?", "+r.unstaged+" with no stage":"");
+    rows.push(["Refusals (a list to confirm)",t+(by.length?"\nby stage: "+by.map(function(b){return b.stage+" "+b.count;}).join(", "):"")]);
+    if(typeof r.limits==="string"&&r.limits)limits.push(["Refusals",r.limits]);
+  }
+  return {bar:bar,rows:rows,limits:limits,notes:notes};
+}
+
 /* ---- the sequence picture (step 1): a column per visit, a context band under it, six cards ---- */
 /* Its geometry in user units (a pixel at natural size). A column is one visit; the tallest work visit is `plot` high. */
 var SQ={pitch:16,gap:3,padL:8,padLBand:34,padR:8,head:6,num:14,plot:96,markH:13,bandGap:4,band:34,tickH:13,
@@ -923,9 +1028,9 @@ function kpiCards(run,loops){
      share of elapsed is not printed: a bare 0% beside a stage run's share would read as Improve costing nothing, when no
      Improve child starts at the planning stages in that mode. A stage run, an unknown value and a run with no record read as before. */
   var im=improveFacts(run),none=planningReview(run)==="none",scope=none?"no Improve at planning stages (planning_review none)":"";
-  if(im.passes===null)out.push(kpi("improve","Improve","not measured",(whyNot(run,"improvePasses")||"no Improve record")+(scope?"; "+scope:""),false));
+  if(im.passes===null)out.push(kpi("improve","Improve","not measured",(whyNot(run,"improvePasses")||"no Improve record")+(scope?"; "+scope:""),false,[improvePacketsText(run)]));
   else out.push(kpi("improve","Improve",plural(im.passes,"pass"),(im.min!==null?(Math.round(im.min*10)/10)+" min"+(!none&&im.share!==null?", "+im.share+"% of elapsed":""):
-    "minutes not measured"+(whyNot(run,"improveMin")?": "+whyNot(run,"improveMin"):""))+(scope?"; "+scope:""),true));
+    "minutes not measured"+(whyNot(run,"improveMin")?": "+whyNot(run,"improveMin"):""))+(scope?"; "+scope:""),true,[improvePacketsText(run)]));
   if(!Array.isArray(loops))out.push(kpi("loops","Backchain loops","not loaded","the loop record has not loaded yet",false));
   else if(!loops.length)out.push(kpi("loops","Backchain loops","none","no Backchain loop recorded for this run",true));
   else{
@@ -1189,6 +1294,7 @@ function stageCard(run,i,catalog){
   /* sent: the packet */
   var sent={bytes:isCount(r.packetBytes)?r.packetBytes:null,bytesLabel:r.packetImprove===true?"Packet file kept (the Improve child's)":"Packet size",
     improveBytes:isCount(r.improvePacketBytes)?r.improvePacketBytes:null,improvePacket:improvePacketId(run,r)?{id:improvePacketId(run,r)}:null,
+    improveCarried:improveCarriedText(r.improveCarried),
     note:"",carried:null,carriedNote:"",packet:packetId(run,r)?{id:packetId(run,r)}:null};
   if(kind==="skipped")sent.note="No packet was issued: the engine found this stage not applicable to the item.";
   else if(kind==="seeded")sent.note="The harness recorded this visit itself, so no packet was sent for it.";
@@ -1210,6 +1316,7 @@ function stageCard(run,i,catalog){
   if(item&&isCount(item.revises))done.push(["Revises of this item",String(item.revises)+(item.revises===0?" (never sent back to step-plan)":" (each sent it back to step-plan)")]);
   var imp=improveText(run,r);if(imp)done.push(["Improve",imp]);
   var vt=verifyText(r.verify);if(vt)done.push(["Checked by the script",vt]);
+  var ev=evidenceLine(r.evidenceClass);if(ev)done.push(["Exit evidenced by",ev]);
   done.push(["Refusals","not recorded per visit"+(isCount(run&&run.refusals)?"; run-level: "+run.refusals+" (not attributed to a visit)":
     "; run-level not measured"+(whyNot(run,"refusals")?" (the reason is on the Refusals card)":""))]);
   var cx=contextOf([r],run&&isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:null);
@@ -1492,7 +1599,7 @@ function renderFlow(){
   o.rs.forEach(function(r){var op=h("option","",r.name);op.value=r.key;sel.appendChild(op);});
   var f=byId("flow");clear(f);
   var P=phases();
-  renderEnding(o.run);
+  renderEnding(o.run);renderFidelity(o.run);
   var hc=byId("runhosts"),hostc=o.run?hostChip(o.run):null;hc.hidden=!hostc;hc.textContent=hostc?hostc.text:"";hc.title=hostc?hostc.title:"";
   if(!o.run){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.runs?"No runs recorded yet.":"Loading the shared record."));byId("runfacts").textContent="";byId("runmode").hidden=true;return;}
   if(!P.length){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.exp?"No stages are defined yet. Seed the starting expectations (the shiploop-run-review skill, SKILL.md).":"Loading the shared record."));return;}
@@ -1543,6 +1650,30 @@ function renderEnding(run){
   if(!m)return;
   box.className="card endcard "+m.kind;
   box.appendChild(h("h3","",m.title));box.appendChild(factsEl(m.rows));
+}
+/* "Fidelity": the card in the run view, built from fidelityModel: the evidence mix as a bar with a legend, then the rows and the harness's own
+   words on what its lists miss. Hidden for an export from before the reading. */
+function renderFidelity(run){
+  var box=byId("fidcard");clear(box);
+  var m=run?fidelityModel(run):null;box.hidden=!m;
+  if(!m)return;
+  box.appendChild(h("h3","","Fidelity: how ShipLoop was carried"));
+  box.appendChild(h("p","sub","What the harness's records show of the run's ShipLoop work. A record, never a verdict: the exit-evidence classes are a reading aid, and the two lists marked to confirm are heuristic."));
+  if(m.bar.length){
+    var bar=h("div","bar fe-bar");bar.setAttribute("aria-hidden","true");
+    m.bar.forEach(function(p){var x=h("div","fe-seg fe-"+p.key);x.style.flexGrow=String(p.n);x.title=p.label+" "+p.n+": "+p.meaning;bar.appendChild(x);});
+    box.appendChild(bar);
+    var lg=h("div","felegend");
+    EVIDENCE_CLASSES.forEach(function(c){var n=run.fidelity&&run.fidelity.evidence?run.fidelity.evidence[c[0]]:undefined;
+      if(!isCount(n))return;var sp=h("span");sp.title=c[2];sp.appendChild(h("i","sw fe-"+c[0]));sp.appendChild(document.createTextNode(c[1]+" "+n));lg.appendChild(sp);});
+    box.appendChild(lg);
+  }
+  box.appendChild(factsEl(m.rows));
+  if(m.notes.length)box.appendChild(factsEl([["Not measured",m.notes.join("\n")]]));
+  if(m.limits.length){
+    box.appendChild(h("p","legend","How to read the lists to confirm, in the harness's own words:"));
+    m.limits.forEach(function(l){box.appendChild(h("p","legend",l[0]+": "+l[1]));});
+  }
 }
 function openFinding(id){
   L.filter="all";L.crit="";save();renderFindings();go(3);
@@ -1687,6 +1818,7 @@ function renderCard(dc,c){
   var sizes=[];
   if(c.sent.bytes!==null)sizes.push([c.sent.bytesLabel,kbText(c.sent.bytes)]);
   if(c.sent.improveBytes!==null)sizes.push(["Improve child's packet file",kbText(c.sent.improveBytes)]);
+  if(c.sent.improveCarried)sizes.push(["Improve child's packet carried",c.sent.improveCarried]);
   if(sizes.length)s.appendChild(factsEl(sizes));
   if(c.sent.carried){
     s.appendChild(h("div","meta","What the packet text carried"));

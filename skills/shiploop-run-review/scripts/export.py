@@ -2287,12 +2287,15 @@ def _fidelity_lines(run) -> list[str]:
         if val is None:
             lines.append(f"- Fidelity, validation: {why('validation')}")
         else:
-            lines.append("- Fidelity, validation: " + ", ".join(
-                f"{val[k]} {label}" for k, label in (("records", "records"), ("runs", "command runs"), ("distinctCommands", "distinct commands"),
-                                                     ("passed", "records passed"), ("red", "ran red"), ("couldNotRun", "could not run"),
-                                                     ("unread", "unreadable"), ("testsRanUnmeasured", "rows with no test count among the "
-                                                                                                    "focused and regression runs")) if k in val)
-                         + (f"; {val['zeroRan']} of {val['counted']} rows with a test count ran no test" if "zeroRan" in val else ""))
+            groups = [", ".join(f"{val[k]} {label}" for k, label in group if k in val) for group in (
+                (("records", "records"), ("runs", "command runs"), ("distinctCommands", "distinct commands")),
+                (("passed", "passed"), ("red", "ran red"), ("couldNotRun", "could not run"), ("unread", "unreadable")))]
+            if "counted" in val:
+                groups.append(f"{val['zeroRan']} of {val['counted']} rows with a test count ran no test" if "zeroRan" in val
+                              else f"{val['counted']} rows with a test count")
+            if "testsRanUnmeasured" in val:
+                groups.append(f"{val['testsRanUnmeasured']} focused or regression rows with no test count")
+            lines.append("- Fidelity, validation: " + "; ".join(g for g in groups if g))
         if edits is None:
             lines.append(f"- Fidelity, edits: {why('edits')}")
         else:

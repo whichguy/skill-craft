@@ -149,6 +149,10 @@ error text for a failed block, under `unmeasured.fidelity`. The harness's reason
 | `fidelity.edits` | object | the model's edits of ShipLoop's side of the work, **a list to confirm**: no hit is not proof and a hit can be quoted text. `scriptOwned` is `{count, items}`: edits of files ShipLoop's scripts own (a shell write such as `sed -i`, or an edit tool), at most 5 items `{form, target, tool?}`, `count` the number found. `target` is a path inside the run folder: the harness's `<run>/` prefix is removed, a path that stays absolute is cut to what follows its `.shiploop*` component (else its file name), at most 200 characters. `nameKills` and `modelCommits` count the kills by process name and the commands that ran git add or commit (not listed). `limits` is the harness's own text on what the lists miss, kept whole, and the page prints it beside the list. The event numbers and commit forms are not kept |
 | `fidelity.refusals` | object | `repeated` (refusals whose whole first line came back in the same stage; absent, with `unmeasured.fidelity.refusals.repeated`, when no refusal could be given a stage), `unstaged` (refusals with no stage), `byStage` (`[{stage, count}]`, most refusals first, at most 40) and `limits` (the harness's text, kept whole). The refusal lines themselves are the run's `failures` |
 
+The page draws `fidelity` as the "Fidelity" card in the run view: the evidence mix as a thin bar with a legend (one segment per class
+that has a count, the legend all seven), the rows above as text, and the harness's `limits` for the two lists marked to confirm printed
+word for word under them. A part that was not measured is listed with its reason, and a run exported before the reading has no card.
+
 **One count of refusals.** The run's `refusals` is the one count (the length of `metrics.json` `shiploop_failures`); `fidelity.refusals`
 has no count of its own. The harness builds both from the same list, and the exporter checks it: when the block's count differs from
 `refusals`, or the run's count is unmeasured, the block's refusal detail is not exported and `unmeasured.fidelity.refusals` says so (r1 Sonnet:
@@ -412,12 +416,14 @@ and, when it differs, as secondary text, and is what every other part of the pag
   `improvePacketDoc`, a second closed box "Improve child's packet" with its size. The head is the first 12 non-empty lines of the
   visit's producer `packets` document counted from its first line beginning `ShipLoop navigator |` (the delegation preamble before
   it is left out; a packet with no such line shows its first 12 non-empty lines), and every packet text is loaded on demand by
-  the same single `get` and cache.
+  the same single `get` and cache. With `improveCarried` the block also says which of the five Improve packet labels that child's
+  packet carried ("Improve child's packet carried": the labels found, then "not in the packet text: ...").
 - **Done: how the visit went.** Outcome, minutes and their share of the run, work item, steps-loop pass and step, the item's
   revise count, Improve passes and minutes for the visit, refusals, and context where measured. Refusals are a run-level count
   (`failures` carry a verb and a line, no action), so the card says "not recorded per visit" and prints the run's figure
   labelled run-level, or "not measured" and points to the Refusals card for the reason.
-- **Done also** prints "Checked by the script" from `verify`: the records and how many passed, the commands of the last record with what ran,
+- **Done also** prints "Exit evidenced by" from `evidenceClass` ("loop: an Improve review"), beside the exit-check chip the catalog gives the stage,
+  and "Checked by the script" from `verify`: the records and how many passed, the commands of the last record with what ran,
   failed and was accepted, and where release-verify's checks ran. **Written also** prints "Left unverified (owner, due stage)" from
   `unverified` (each outcome with its reason and check, or "none listed") on the visits whose result has the list.
 - **Written: the result.** The summary (cut at 300 characters, said so), whether the result file exists and its size, and
