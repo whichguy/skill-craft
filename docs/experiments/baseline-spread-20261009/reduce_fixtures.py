@@ -12,6 +12,12 @@ as they were (they point at the machine the run was made on), which is also the 
 
     python3 reduce_fixtures.py [--from /Users/dadleet/e2e-runs] [--to test/fixtures/baseline-spread]
 
+The pinned output of the report over these extracts, test/fixtures/baseline-spread/report.json, is made by the shipped
+command, not by this script (from the repository root):
+
+    python3 test/shiploop_e2e/run.py --baseline-report --baseline test/fixtures/baseline-spread/rows.jsonl \\
+        --runs test/fixtures/baseline-spread/runs --json | sed "s#$(pwd -P)#<repo>#g" > test/fixtures/baseline-spread/report.json
+
 Provenance: the extracts in the repository were made from the folders listed in RUNS on 2026-10-09.  The saved runs are
 the evidence and live outside the repository; no test reads them.
 """

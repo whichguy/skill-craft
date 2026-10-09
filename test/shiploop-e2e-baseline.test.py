@@ -1596,7 +1596,7 @@ class RecordedLoopRunsTest(unittest.TestCase):
         self.assertEqual(cell["measures"]["planning_minutes"]["not_measured"], 1)  # v1220 predates the planning block
         self.assertEqual(cell["overlap"], {"rows": 5, "overlapped_by_span": 4, "not_seen_overlapping": 1, "unknown": 0})
 
-    def test_the_two_runs_that_said_plugin_1_22_0_are_two_builds_and_three_heads_are_one(self):
+    def test_the_two_runs_that_said_plugin_1_22_0_are_two_builds_and_two_heads_that_built_one_tree_are_one_build(self):
         # The "Sonnet cost rise, decomposed" entry explained 238 turns / $6.54 against 294 / $9.65 between two builds.
         a, b = self.by_name["v1220-battleship-sonnet"], self.by_name["v1230-battleship-sonnet"]
         self.assertEqual((a["plugin_version"], b["plugin_version"]), ("1.22.0", "1.22.0"))
@@ -1604,7 +1604,7 @@ class RecordedLoopRunsTest(unittest.TestCase):
         self.assertNotEqual(a["local_head"], b["local_head"])
         self.assertNotEqual(a["host_build"], b["host_build"])
         trio = {self.by_name[n]["plugin_sha256"] for n in ("r1-battleship-sonnet", "r1-checkers-sonnet", "r1-battleship-grok-none")}
-        self.assertEqual(len(trio), 1, "byte-identical trees under three different heads")
+        self.assertEqual(len(trio), 1, "three runs from two heads (587cd90d, 5e209285): one byte-identical tree")
         self.assertNotEqual(self.by_name["r1-battleship-sonnet"]["local_head"], self.by_name["r1-checkers-sonnet"]["local_head"])
 
     def test_the_only_pair_of_runs_on_one_build_is_the_two_v1190_hello_runs_and_it_is_in_a_cell_of_four_trees(self):
@@ -1852,6 +1852,7 @@ class IdentityDocsTest(unittest.TestCase):
                        "so it is a count and not a bound", "(4 of 5 overlapped)",
                        "listed under the cell of the host their result names and are counted in no measure",
                        "The report places no run within or outside a range and sets no threshold",
+                       "Whether a run is a basis is this report's own rule", "its class does not replace this rule",
                        "`--json` prints `{inputs, records, cells, notes}`",
                        "the tests pin that file, never the live `baselines.jsonl`"):
             self.assertIn(phrase, readme)

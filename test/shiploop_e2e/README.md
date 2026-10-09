@@ -396,7 +396,10 @@ pause, so it is a count and not a bound; `not_seen_overlapping` counts the rows 
 most that can be called clean, since an unrecorded run may have crossed it) and `unknown` the rows with no span. The minutes line
 says how many of its rows overlapped (`minutes   n=5 min 12.6 median 13.8 max 20.0 (4 of 5 overlapped)`), so a wall-time range
 is read beside them and not pooled silently. The report places no run within or outside a range and sets no threshold (SPEC, "A
-comparison names its sample").
+comparison names its sample"). Whether a run is a basis is this report's own rule (`row_reached_done` on the engine status the
+row recorded; a regraded run keeps the original run's): group G4's `outcome_class` reads `engine_status_at_regrade`, so a run that
+was active when recorded and done at the regrade is `did not reach done` here and PASS or FAILED there, and its class does not
+replace this rule.
 
 `--json` prints `{inputs, records, cells, notes}`. A record has `output`, `record` (`file`, `folder` or `file+folder`), the
 cell key fields (`case`, `source`, `host`, `model`, `effort`, `planning_review`, `prompt_sha256`), `plugin_version`,
