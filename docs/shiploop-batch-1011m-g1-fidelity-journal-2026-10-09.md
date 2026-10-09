@@ -87,7 +87,7 @@ Listed facts with the `event` (the line of `events.jsonl`, counted from 0 as `me
 - Script-owned edits in the eleven runs: exactly two, both `sed -i` on `return-plan.md`: **r1-battleship-sonnet event 493** and **r1-checkers-sonnet event 414**. No false positive.
   (A first reading flagged `sed -i` on `$R/scratch/...` because the sed script word held an expanded `$R`; the script operand of an in-place sed or perl is now not a file.)
 - Known miss, pinned: the python heredoc that rewrote `return-plan.md` at **r1-battleship-sonnet event 487** (`open(p, "w")`) is not seen.
-- Name-pattern kills: **five**, not the four-run set of three the plan row named. r2-checkers-sonnet 571, r3-checkers-sonnet 548 and r2-battleship-grok-none 2838
+- Name-pattern kills: **five**, the set the audit verified (the design prototype and the audit list exactly these; the plan row names no count), all reproduced. r2-checkers-sonnet 571, r3-checkers-sonnet 548 and r2-battleship-grok-none 2838
   are `pkill -f "node server.js"`; r3-battleship-grok-none 858 is `pkill -f "http-probe.mjs"` and r3-battleship-grok-none 7711 is
   `pkill -f "socketserver.TCPServer"`. The last two are a pattern kill of the model's own probe server by a distinctive name; they are listed as
   facts like the others, and whether they could hit a sibling run is not claimed. A numeric-pid kill (`kill 67975`, v1230 Grok) is out of scope and not listed.
@@ -139,7 +139,7 @@ starts to carry the Improve wording.
 
 ### Printing
 
-`run._main` prints at most five lines after the `metrics` lines, each saying what it counts and, for the heuristic one, that it is a lower bound. Example (r1-battleship-sonnet extract):
+`run._main` prints at most five lines after the `metrics` lines, each saying what it counts and, for the heuristic one, that no hit is not proof. Example (r1-battleship-sonnet extract):
 
     fidelity  evidence 37 accepted: script 15, loop 7, file 1, note 12, sentence 0, skipped 2 (records: verify 10, lint 8, quality 1, backchain 1, improve 8); declared script-run without a record: none
     fidelity  validation 10 records / 29 runs / 6 commands: test counts unmeasured 0, zero-ran 0, red 2, accepted_ran at 0 stages, release verified returned-result
@@ -159,12 +159,12 @@ starts to carry the Improve wording.
 - **`ToolLog` additions** (the only edits to `metrics.py`): `call(..., event=None)` and `result(..., event=None)` take the line number; `sequence` keeps every call in order (the
   `calls` dict keeps one per id, and Codex numbers its calls again in each session, so a scan of `calls` would lose earlier ones); `failure_events` runs in step with `failures`;
   `failure_line(shown, limit=200)` can return the whole line; `target_paths(arg)` is the single reader of `target_file`/`file_path`/`path`/`paths` and de-duplicates Codex's repeat.
-- **The Improve table is kept** (the exporter has no Improve labels), as the plan row allows; it is documented as temporary.
-- **Fixtures**: events keep their original line numbers (the unselected events are blank lines), so `event 493` is line 493 of the saved stream. Heredoc bodies over 600 characters
+- **The Improve table is kept** (the exporter has no Improve labels). The plan row does not list it; the audit's `safer_alternative` allows it only as a temporary table, deleted when the exporter owns it. It is marked TEMPORARY in the SPEC row and the README, and the Run Review owner is asked to adopt it (hand-off below).
+- **Fixtures**: events keep their original line numbers (the unselected events are blank lines), so `event 493` is the 0-based line index 493 of the saved stream (line 494 in an editor). Heredoc bodies over 600 characters
   are cut except one whose prose matters; a cut body can drop a ShipLoop verb that only the body named, so the Codex extract has 9 of the full run's 10 refusals.
 - **A stage table stub** built from the engine's table (`stage_table.json`, frozen by the extractor) replaces the engine's live table in the tests, so a later change to the
   engine's table cannot move a saved run's declared checks.
-- **Disagreement**: none with the audit's corrections. The plan row says three name-pattern kills; the detector finds five (two more in r3-battleship-grok-none), recorded above.
+- **Disagreement**: none with the audit's corrections.
 
 ## Known limits (also in the README and pinned where a test can)
 
@@ -212,7 +212,7 @@ Absent from `result.json`. Null parts have a reason string in `unmeasured` (keys
 "blocked_by": "access", "awaiting": {"kind": "present", "no_default": true}, "status_reason": "access: ...", ...}` (v1230-battleship-grok-none). A page could show per stage
 `evidence.stages[]` joined to `stages[]` by `action` (the block carries the action id, no positional match): `class`, `records`, `declared`, and a chip "declared script-run, no
 record" where the stage is in `declared_script_run_without_record`. `refusals.items[].repeat_of` can mark the stage card. `hosts` and `mixed_host` mark a run two hosts worked on;
-`edits.limits` and the word "heuristic" mark the lower bounds. Contract names the harness reads from the exporter (it degrades to `unmeasured` if they move): `stage_catalog`,
+`edits.limits` and the word "heuristic" mark the lists to confirm. Contract names the harness reads from the exporter (it degrades to `unmeasured` if they move): `stage_catalog`,
 `load_stage_spec`, `effective_exit_check`.
 
 ## Review of my own detectors, and what it changed
@@ -224,7 +224,7 @@ Each of these was found by rereading the detectors against the saved commands, a
 - The first kill pattern had no multi-line anchoring, so it found 858 and missed 7711 (`r3-battleship-grok-none`); it also missed a `pkill` after `then`, `do` or `else`.
 - A commit's form was the last word `add` or `commit` of the matched text, so `git -C /x/add-dir commit -m "add x"` read as `git add`; it is now the git subcommand.
 - The lint evidence is the gate (`lint/<action>.gate<N>.md`) only: an advisory lint pass says it is "not exit-criteria evidence" (v1230-battleship-sonnet's carry-forward has two advisory
-  passes and no gate and reads `loop`). No saved run's class changes between the variants.
+  passes and no gate; it reads `script` through its verify record, with `improve` in its records). No saved run's class changes between the variants.
 - The extractor paired a result with the last call that had its id, so Codex's repeated `item_N` ids lost earlier calls from the extract (event 1012 was missing); results now belong to the
   latest call with the id, and one Claude message with several `tool_use` blocks keeps them all. Refusal text was joined to its prefix on one line, which hid the refusal line from the
   `^ShipLoop` anchor; and a heredoc cut at the end of a Codex wrapper string needed the closing quote in its terminator pattern.
