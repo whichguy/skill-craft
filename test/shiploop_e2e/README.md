@@ -235,40 +235,54 @@ each fails open (a part that cannot be made says so, with its reason, and the ru
 **`environment`** is in `result.json`, and each launch's own start is in that launch's record (`invocation.json`,
 `invocation-resume-<host>-<seconds>.json`).
 
-- `start` and `end`: the node, python3 and git versions the model's shell sees (`tools`, the first line of `--version`, read
+- `start` and `end`: the node, python3 and git versions on the harness's PATH (`tools`, the first line of `--version`, read
   once per harness process), `cpus`, `loadavg`, `display_hold` (whether the host ran under `caffeinate -d -i`; `keep_awake` is
   the one decider) and `unread` (why a value is null). `start` is the launch's, taken before the deadline is set, so it spends
   none of the run's time; `end` is read after the checks and has no `tools`. A regrade starts no host: its `start` restates the
   last launch's record and its `end` says it was not observed. The host CLI build is not read here: a launch record carries
-  `host_build` where the harness captured it at launch, and the per-launch entry passes it through (null where there is none).
+  `host_build` where the harness captured it at launch, and the per-launch entry passes it through. It is null for every
+  Claude launch (Claude's build is `metrics.claude_code_version`, from its init event) and for a launch recorded before the field
+  existed; `host_build_reason` says which.
 - `hosts_used`, `mixed_host`, `environments`: who launched the run, read through `runrecord.py` (the one reader). `environments`
-  has one entry per launch, first launch first, with its host, model, effort, `host_build` and the `environment` that launch
-  recorded (null for a launch recorded before this record existed). `r2-battleship-grok-none` reads `["grok", "claude"]`: Grok
-  started it and Claude Sonnet finished it, though its `result.json` says host grok. A regrade is not a launch. A folder
-  written before this record existed is regraded, not refused (the point of a regrade is old runs): its entries have
-  `environment: null` and `host_build: null`, and its `start` says it was not recorded.
-- `overlap`: which neighbouring runs were running while this one was, read-only, at the end of the run, from the first and last
+  has one entry per launch, first launch first, with its host, model, effort, `host_build` (and `host_build_reason` where it is
+  null) and the `environment` that launch recorded (null, with `environment_reason`, for a launch recorded before this record
+  existed). `r2-battleship-grok-none` reads `["grok", "claude"]`: Grok started it and Claude Sonnet finished it, though its saved
+  `result.json` says host grok (a regrade now restates the last launch's identity, so it would say claude). A regrade is not a
+  launch. A launch record that cannot be read makes `hosts_used` and `mixed_host` unknown (`{"observed": false, "reason": ...}`,
+  and the file names are in `launches_unreadable`), never a shorter list. A folder written before this record existed is
+  regraded, not refused (the point of a regrade is old runs): its entries have `environment: null` and `host_build: null` with
+  their reasons, and its `start` says why it was not recorded.
+- `overlap`: which neighbouring runs had host events while this one did, read-only, at the end of the run, from the first and last
   `timeline.jsonl` stamp of this run and of each folder beside it in the same parent folder. Each entry has `folder`, `case`,
-  `hosts`, `overlapped_seconds` and `started_offset_seconds` (the neighbour's start minus this run's: negative when it was
-  already running, positive when it began later). A count taken when a run starts would miss the second kind: of the nine round
-  runs of 2026-10-08 all nine overlapped another run and three saw an overlap begin more than a second after their own start.
-  Limits: a span runs from the first stamp to the last, so a run resumed after a pause counts the pause (an upper bound); a run
-  started with `--output` in another folder is not seen; `runs: []` means the neighbours were read and none overlapped. The
-  baseline row has no overlap field and no rule excludes an overlapped run.
+  `hosts` (null with `hosts_reason` where its launch records cannot be read), `overlapped_seconds` and
+  `started_offset_seconds` (the neighbour's start minus this run's: negative when it was already running, positive when it
+  began later). A count taken when a run starts would miss the second kind: of the nine round runs of 2026-10-08 all nine
+  overlapped another run and three saw an overlap begin more than a second after their own start. Limits: `timeline.jsonl` holds
+  host events only, so a span is first to last host event; it counts a pause between sessions, and it misses the setup before the
+  first event and the case checks, the product-at-stop run and the reap after the last (34.6 s and 37.4 s on the r1 and r3 Grok
+  runs, by the review's measurement), so the seconds are neither an upper nor a lower bound. A run started with `--output` in
+  another folder, and a sibling with no timeline yet, are not seen; a sibling whose timeline cannot be read is named in
+  `siblings_unreadable`. `runs: []` means the neighbours read had no host events in common with this run, not that nothing else
+  ran. The baseline row has no overlap field and no rule excludes an overlapped run.
 - `start.browser`: the browser capability record, present as a probe only where something declares the need: a case's
   `needs` in `cases.json` (the three browser cases do, each with its `needs_source`) or `--need browser`. **A custom prompt
   (`--prompt`) declares none by itself**, which is why the Grok runs that motivated the record, all case `custom`, would have
   had none: pass `--need browser` with a prompt that serves a page, and the harness prints a note when a custom run declares
-  nothing. The probe runs on the harness side, before the host starts, against a page it serves itself (a `file:` page and a
-  loopback `http://127.0.0.1:<port>/` page from a server in the harness process that is closed afterwards), in a headless
-  browser with a throwaway profile. For each of the two it records `title_seen` (the stand-in's title appeared in the
+  nothing. The probe runs on the harness side, before the host starts, against a page it serves itself (a `file:` page, then a
+  loopback `http://127.0.0.1:<port>/` page from a server in the harness process that is closed afterwards), one after the other so
+  each browser is measured beside no other probe browser, in a headless browser with a throwaway profile. For each of the two it
+  records `title_seen` (the stand-in's title appeared in the
   browser's output: the evidence, not the exit code), `output_s`, `exited`, `lingered` (the title was seen and the browser
   was still running after the grace), `killed`, `returncode` and `group_empty`. Measured 2026-10-09 in the design audit:
-  16 of 16 launches of Chrome 154.0.8037.99 printed the title in 0.36 to 0.47 s and only 3 of 16 exited within 12 to 20 s, so
-  waiting for the exit would call a healthy load a timeout. After the title and a one-second grace the browser's own process
-  group is stopped (and only that group: the probe starts the browser in a session of its own, checks it leads its group,
-  and signals nothing else); a browser that prints nothing is waited for up to a 20-second ceiling. Both numbers are
-  ceilings, not tuning values. It is a record and no gate: it never refuses a launch, and nothing reads it. See it by hand, as
+  16 of 16 launches of Chrome 154.0.8037.99 printed the title in 0.36 to 0.47 s; 3 of the 16 exited before the audit's 12 to 20 s
+  ceiling and the other 13 were still running there and were killed (their exit time is unknown), so waiting for the exit would
+  call a healthy load a timeout. After the title and a one-second grace the browser's own process group is stopped (and only that
+  group: the probe starts the browser in a session of its own, checks it leads its group, and signals nothing else; it also stops
+  it at once when the harness is told to end, and a harness SIGTERM or the standalone command's SIGTERM ends it too; only a SIGKILL
+  of the harness can leave it); a browser that prints nothing is waited for up to a 20-second ceiling, and the stopped group up to
+  2 s to empty (`group_empty`). The 20 s and the 2 s are ceilings, not tuning values; the 1 s grace is a definition (`lingered` means
+  still running after it); all three are recorded (`ceiling_seconds`, `grace_seconds`, `empty_seconds`). Two targets that never print
+  cost about 43 s before the host starts. It is a record and no gate: it never refuses a launch, and nothing reads it. See it by hand, as
   the calibration the SPEC asks for before any use of it (10 launches from a Terminal tab and from a Desktop task):
   `python3 test/shiploop_e2e/environment.py --need browser`. `--browser-bin` names the browser (tests pass a fake one).
 
@@ -278,26 +292,39 @@ graded in the worktree stay dropped as a verdict, because a run that never deliv
 engine's `status` and `stage` (a partial product at `implement` is not a finished one), each check's `returncode` and
 `timed_out` (a check that hit its 180 s ceiling is `timed_out`, not a product failure), `output` for a check that failed, and the
 counts `passed`, `failed`, `timed_out`, `total`. `{"ran": false, "reason": ...}` says why nothing ran (no ShipLoop state, no
-worktree, no checks). A run that passed has none.
+worktree, no checks). A run that passed has none. A regrade reaps nothing (the run it grades may have a live host), so a check that
+times out in a regrade's worktree run can leave the server it started listening (say `node server.js`): stop it by pid.
 
-**`outcome_class`** with `outcome_basis` is in `result.json` and in each baseline row: `PASS`, `FAILED`, `BLOCKED`, `STOPPED`, or
+**`outcome_class`** with `outcome_basis` is in `result.json` only: `PASS`, `FAILED`, `BLOCKED`, `STOPPED`, or
 `null` (unknown, the basis says why), a pure function of `termination` and `pass`. `termination` now also carries what the engine
 recorded when it blocked: `engine_blocked_by`, `engine_awaiting_kind` and `engine_awaiting_no_default` (null where there is no
 accepted blocked result to read). BLOCKED means the engine accepted a blocked result (a paused engine, which awaits resume the same
 way, is BLOCKED with no blocker named); it does not say the block was warranted, which is a model judgement S-9 excludes as
-evidence. FAILED: the engine finished or halted without passing, or the host ended on its own with the engine unfinished
-(`host is not resumable`, `no host session id to resume`). STOPPED: the harness ended the run (the stop file, a signal, the
-deadline, a spent resume budget). A regrade that observed no host and an engine still active is `null`. **Nothing consumes the
-class yet**: `scan_baseline` still offers a finished run that did not pass (the blocked 20261007 Grok row, 503 turns, pass false)
-as the last comparable row; that is a limit to fix where the baseline rules live.
+evidence. FAILED: the engine finished without passing, or halted (terminal and unfinished: the engine's `halt` takes a reason and,
+in an unattended run, the model issues it; no recorded run has been halted, so this is a definition), or the host ended on its own
+with the engine unfinished (`host is not resumable`, `no host session id to resume`). STOPPED: the harness ended the run (the
+stop file, a signal, the deadline, a spent resume budget, or a host session that ended on the cap the harness gave it:
+`--max-turns` or `--max-budget-usd`, read from the session's recorded stop). A regrade that observed no host and an engine still
+active is `null`. Which baseline rows are comparable is the baseline code's rule, not this record's: no baseline rule reads
+`outcome_class`.
 
 ### Resuming a run
 
-`--resume-run <output directory>` continues the run on the host, model and effort its last launch record names, so omitting
-`--host` no longer means Claude. It prints that it took them from the record. A `--host` that names another host is refused
-before any host starts, with both hosts named; `--allow-host-change` says the change is deliberate (a run finished by a second
-host is then a mixed-host run, named so by `environment.hosts_used`). An explicit `--model` or `--effort` wins, and the
-recorded ones apply only while the host is unchanged. A regrade still restates the recorded identity whatever the flags say.
+`--resume-run <output directory>` continues the run on the host, model and effort its last launch record names (for a mixed-host
+run, the last launch's), so omitting `--host` no longer means Claude. It prints that it took them from the record, and prints a
+model or effort that differs from it. A `--host` that names another host is refused before any host starts, with both hosts
+named; `--allow-host-change` says the change is deliberate (a run finished by a second host is then a mixed-host run, named so by
+`environment.hosts_used`). The flag guards against a mistaken explicit `--host`, which no recorded run shows; r2's mistake was an
+omitted `--host`, which the default from the record prevents by itself. An explicit `--model` or `--effort` wins, and the
+recorded ones apply only while the host is unchanged. The needs a launch declared (`--need browser`) carry to the next launch.
+A regrade restates the identity of the run's last launch whatever the flags say, so a regraded mixed-host run is named by its last
+launch (the saved r2 result says grok); `resumed_run.from_host` and `from_model` now name the last launch's host and model (results
+written before name the first launch's).
+
+Shapes worth knowing: the browser record carries `version_unread` when `--version` printed nothing; a regrade of a result written
+before 2026-10-09 has no `engine_blocked_by` or `engine_awaiting_*` keys in its `termination` (only the `*_at_regrade` ones, from
+the regrade's own reading); and `environment.start` is a copy of the last launch's `environments[-1].environment`, so the browser
+record appears twice in `result.json` by design (the copy in `start` is this invocation's, the entries are the whole run's).
 
 ### Suites and baselines
 
@@ -334,9 +361,9 @@ entry. See SPEC.md, "E2E suites" and "Parallel work".
 Run the runs you compare one after the other. Concurrent runs share the CPU, the host's rate limit and the machine's loopback
 ports, so two runs whose wall time or per-call cost are set side by side (a before/after pair, a host or model comparison)
 are started the second after the first has ended: `--serial` for a suite, or launch the second once the first has ended.
-The suite default of 3 parallel chains stays, because a suite is for finding failures and not for timing them. Nothing
-records an overlap: a baseline row has no overlap field, and each run's `timeline.jsonl` start stamp is the only trace, so
-this is a discipline and not a guarantee (SPEC, "Parallel work"). The two round-2 Sonnet runs were started within 0.1 s of
+The suite default of 3 parallel chains stays, because a suite is for finding failures and not for timing them. A baseline row records no
+overlap (it has no overlap field); `result.json` carries `environment.overlap` for the run, which names the neighbours whose host
+events overlapped (not the checks or setup around them), so this is a discipline and not a guarantee (SPEC, "Parallel work"). The two round-2 Sonnet runs were started within 0.1 s of
 each other.
 
 The row's `planning_review` is the run option ShipLoop 1.22.0 records in `state.md`

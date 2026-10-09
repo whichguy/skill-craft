@@ -25,7 +25,8 @@ counts 71 and 112), because `test/shiploop-e2e.test.py` measures about 115 to 12
 `runrecord.launches` on the fixtures: `r2-battleship-grok-none` names `["grok", "claude"]` (invocation.json grok, then
 `invocation-resume-claude-1791508003.json`; the `invocation-resume-grok-1791509021.json` beside them is a regrade and is not a launch). The other
 eight are single-host. `r3-battleship-grok-none`'s only resume record is a Grok launch (`--host grok` was passed; its resume log shows the
-printed command carried it), so nothing in r3's records shows a wrong-host launch. I did not claim it in the SPEC. The r2 resume log's first line
+printed command carried it), so nothing in r3's records shows a wrong-host launch. The claim came from the dispatching brief; no file in the
+repository says it (commit 4337522a's message wrongly says "the brief and LEARNINGS say" it: LEARNINGS says r2 only). I did not claim it in the SPEC. The r2 resume log's first line
 is `host=claude model=claude-sonnet-5-5` and its printed resume command carries `--host claude`, which is the harness repeating the default it
 took (the resume had been started without `--host`).
 
@@ -56,7 +57,7 @@ Claude is not resumable, so its `resume_stop` is "host is not resumable" even wh
 `timeout` tells the two apart. The classifier checks `process_status` before the resume_stop prefixes, and a test case pins it.
 
 **F6. The browser probe has not been run against a real browser by this change. Interim: nothing here measured Chrome.**
-The design audit's numbers (16 of 16 bounded launches of Chrome 154.0.8037.99 printed the title in 0.36 to 0.47 s; 3 of 16 exited in 12 to 20 s) are
+The design audit's numbers (16 of 16 bounded launches of Chrome 154.0.8037.99 printed the title in 0.36 to 0.47 s; 3 of the 16 exited before the audit's 12 to 20 s ceiling and the other 13 were still running there and were killed, so their exit time is unknown) are
 the basis for reading the title, not the exit, and are quoted as the audit's. The tests use a fake browser that prints the title and then lingers,
 exits by itself, exits slowly, never prints, or dies. The calibration is still to do, from a Terminal tab and from a Desktop background task, ten
 launches each, thirty seconds apart, with no other Chrome running:
@@ -101,8 +102,8 @@ polls the raw descriptor with `select` and a stop flag, and the pipe is closed o
 ## Deviations from the design, and why
 
 1. **No `--version` probe of any host CLI.** The design called the host CLI with `--version` for every host. The brief assigns the host build to
-   G3, which records `host_build` on each launch record; this change reads `launch_environments[i].host_build` and never starts a CLI. For the
-   saved runs it is null (their records predate it). Consequence: the three base fakes needed no `--version` branch, and `claude_code_version`
+   G3, which records `host_build` on each launch record; this change reads `launch_environments[i].host_build` and never starts a CLI. It is null for the saved runs (their records predate it) and,
+   by G3's design, for every Claude launch (Host.cli_version returns None for Claude); each entry carries `host_build_reason` to say which. Consequence: the three base fakes needed no `--version` branch, and `claude_code_version`
    (from Claude's init event) stays the one authority for Claude, with no second competing field (audit correction 9).
 2. **`other_harnesses_alive` is replaced by `overlap`** (audit correction 2), read at the end from sibling timelines instead of at the start
    from `.harness-lock`. The lock read also raced a sibling's `hold_case` (`case_alive` takes a brief shared lock), which the end-of-run read does
@@ -122,9 +123,9 @@ polls the raw descriptor with `select` and a stop flag, and the pipe is closed o
    cannot be told from the mistake that produced r2, and the SPEC records why.
 8. **A custom prompt prints a one-line note and the README documents the limit** (audit correction 8; both options were allowed). The note
    is printed for a fresh custom launch with no `--need`, not for a named case, a resume or a regrade.
-9. **`outcome_class` is also written to the baseline row** (one key), so a future skip rule can read it; `scan_baseline` is not changed here
-   (G3 changes it in a sibling worktree). Until that rule exists the blocked 20261007 Grok row (503 turns, pass false) is still offered as the
-   last comparable row; the SPEC says so.
+9. **`outcome_class` is in result.json only.** An earlier version also wrote it to the baseline row; the review removed it. Which baseline rows are
+   comparable is the baseline code's own rule (`scan_baseline`, which group G3 changes in a sibling worktree: a row whose engine did not reach done
+   is never compared); no baseline rule reads `outcome_class`, and this change does not touch `scan_baseline`.
 10. **Launch records are named by the second they began in, so two launches of one host in one second overwrite one file.** This is existing
     behaviour (`invocation-resume-<host>-<seconds>.json`); a real resume is never that fast, and the one test that resumes twice waits 1.1 s.
     Not changed. Interim: noted, not fixed.
@@ -135,9 +136,12 @@ polls the raw descriptor with `select` and a stop flag, and the pipe is closed o
 
 ## Open risks
 
-- A harness killed with SIGKILL during the (at most about 21 s) browser probe leaves the headless browser it started, which the harness cannot
-  stop; the probe's own `finally` runs on every other ending. Chrome 154 was seen to linger after printing, so an orphan would persist until
-  killed by pid. The window is the probe only, and only for a case that declares a browser.
+- A harness killed with SIGKILL during the (at most about 43 s) browser probe leaves the headless browser it started, which the harness cannot
+  stop; a SIGTERM or SIGHUP to the harness, a Ctrl-C, an exception and the standalone command's SIGTERM all end the browser (the probe stops it
+  at once, its group is registered with the harness's host registry, and its `finally` kills what is still running). Chrome 154 was seen to
+  linger after printing, so an orphan would persist until killed by pid. The window is the probe only, and only for a case that declares a
+  browser. A process-group signal sent after the leader was reaped could in theory reach a reused group; that gap is unreproduced on macOS and
+  nothing was built for it (no `waitid`).
 - Three cases now declare a browser (`battleship`, `battleship-scoring`, `checkers`), so every run of them starts a headless browser on the harness
   side for about a second before the host starts. A suite of three starts up to six together. The cost is recorded in the `output_s` fields; if a
   real calibration shows the browser load disturbs a run, the declaration is one line per case in `cases.json`.
@@ -162,7 +166,6 @@ polls the raw descriptor with `select` and a stop flag, and the pipe is closed o
 ## Deferred, with the reason
 
 - The real-browser calibration (F6) and any use of the record: needs a real browser run from a Terminal and from a Desktop task.
-- A skip rule in `scan_baseline` for rows whose `outcome_class` is not PASS: G3 owns `scan_baseline`; one line plus a test once it lands.
 - The ENVIRONMENT-SUSPECT overlay, `unverified`, a start-time `other_harnesses_alive`: rejected or dropped by the audit and the plan.
 - Overlap across output roots (a run started with `--output` elsewhere is invisible) and a pause-aware overlap (the span counts a pause
   between sessions): documented limits, not built.
@@ -171,8 +174,8 @@ polls the raw descriptor with `select` and a stop flag, and the pipe is closed o
 
 ## Hand-off for the packet group (do not edit skills/ here)
 
-The lingering `--dump-dom` fact: Chrome 154 printed the dumped DOM and then often did not exit (3 of 16 bounded launches exited within 12 to 20 s;
-the audit's measurement). A probe duty in a packet or platform reference should read the browser's output and stop the process it started
+The lingering `--dump-dom` fact: Chrome 154 printed the dumped DOM and then often did not exit (3 of the 16 bounded launches exited before the audit's
+12 to 20 s ceiling and the other 13 were still running there and were killed; the audit's measurement). A probe duty in a packet or platform reference should read the browser's output and stop the process it started
 once the expected content appears, not wait for the process to exit. This fits the Grok r1 record, where the `--dump-dom` call returned only
 "still running after 30s ... moved to the background", but that is unproven.
 
@@ -180,20 +183,24 @@ once the expected content appears, not wait for the process to exit. This fits t
 
 Everything is additive and optional. `result.json`, top level:
 
-- `outcome_class`: `"PASS" | "FAILED" | "BLOCKED" | "STOPPED" | null`. `outcome_basis`: string (for null, why it is unknown). Also `outcome_class`
-  in each baseline row. Not a verdict: do not put it inside a `verdicts` map.
+- `outcome_class`: `"PASS" | "FAILED" | "BLOCKED" | "STOPPED" | null`. `outcome_basis`: string (for null, why it is unknown). In result.json only (not in
+  the baseline row). Not a verdict: do not put it inside a `verdicts` map.
 - `termination` gains `engine_blocked_by` (`"user" | "access" | "external" | null`), `engine_awaiting_kind` (`"answer" | "present" | null`),
   `engine_awaiting_no_default` (`true | false | null`: true when the engine stated why no default would do), and, on a regrade that kept the original
   ending, `engine_stage_at_regrade`, `engine_status_reason_at_regrade`, `engine_blocked_by_at_regrade`, `engine_awaiting_kind_at_regrade`,
-  `engine_awaiting_no_default_at_regrade` beside the existing `engine_status_at_regrade`.
+  `engine_awaiting_no_default_at_regrade` beside the existing `engine_status_at_regrade`. A regrade of a result written before this change has
+  none of the `engine_blocked_by` / `engine_awaiting_*` keys (only the `*_at_regrade` ones), not nulls. The shared reader of the blocked detail is
+  `metrics.blocked_detail(engine)` (keys `blocked_by`, `awaiting_kind`, `awaiting_no_default`); `termination` prefixes them with `engine_`.
 - `product_at_stop`: absent for a run that passed; otherwise
   `{"information_only": true, "ran": true, "worktree": "<path>", "engine": {"status": "blocked", "stage": "system-test-author"}, "checks": [{"command": "...", "pass": true, "returncode": 0, "timed_out": false}, {"command": "...", "pass": false, "returncode": null, "timed_out": true}, {"command": "...", "pass": false, "returncode": 1, "timed_out": false, "output": "<=300 chars"}], "passed": 4, "failed": 0, "timed_out": 0, "total": 4}`
   or `{"information_only": true, "ran": false, "reason": "...", "engine": {"status", "stage"}}`. `shiploop.worktree_checks` is gone.
-- `environment`: `{"start": <start record>, "end": <end record or {"observed": false, "reason": ...}>, "hosts_used": ["grok", "claude"], "mixed_host": true, "environments": [{"launch": "invocation.json", "host": "grok", "model": "grok-4.7", "effort": "medium", "host_build": null, "environment": null | <start record>}, ...], "overlap": {...}}`.
+- `environment`: `{"start": <start record>, "end": <end record or {"observed": false, "reason": ...}>, "hosts_used": ["grok", "claude"], "mixed_host": true, "environments": [{"launch": "invocation.json", "host": "grok", "model": "grok-4.7", "effort": "medium", "host_build": null, "host_build_reason": "...", "environment": null | <start record>, "environment_reason": null | "..."}, ...], "launches_unreadable": [], "overlap": {...}}`. `hosts_used` and `mixed_host` are `{"observed": false, "reason": ...}` when a launch record cannot be read (its file names are then in `launches_unreadable`). `environment.start` is a copy of `environments[-1].environment` for a launch (the browser record appears in both).
   - start record: `{"observed": true, "at": "2026-10-09T16:42:10Z", "tools": {"node": "v25.9.0", "python3": "Python 3.14.7", "git": "git version 2.54.0 (Apple Git-157)"}, "cpus": 18, "loadavg": [8.11, 6.96, 6.06], "display_hold": true, "unread": {}, "browser": <browser record>}`; a value that could not be read is `null` and its reason is in `unread` (`{"node": "not found on PATH"}`).
   - end record: `{"observed": true, "at": "...", "cpus": 18, "loadavg": [...], "unread": {}}`; for a regrade `{"observed": false, "reason": "regraded: the end of the run was not observed"}`.
-  - overlap: `{"observed": true, "basis": "...", "span": {"first": 1791481009.559, "last": 1791485559.3}, "siblings_read": 8, "runs": [{"folder": "r1-checkers-sonnet", "case": "custom", "hosts": ["claude"], "overlapped_seconds": 787.1, "started_offset_seconds": 280.4}]}`; `runs: []` means read and none overlapped; `{"observed": false, "reason": ...}` means unknown.
-  - browser record: not declared `{"declared": false, "probed": false, "reason": "no case or --need declares a browser"}`; declared but not runnable `{"declared": true, "probed": false, "reason": "..."}`; probed `{"declared": true, "probed": true, "binary": "...", "version": "Google Chrome 154.0.8037.99", "flags": [...], "ceiling_seconds": 20.0, "grace_seconds": 1.0, "file": <target>, "http": <target>}` where a target is `{"title_seen": true, "output_s": 0.41, "exited": false, "lingered": true, "returncode": null, "killed": true, "group_empty": true, "error": null}` (`http` may be `{"probed": false, "reason": ...}` if the loopback stand-in could not listen).
+  - overlap: `{"observed": true, "basis": "...", "span": {"first": 1791481009.559, "last": 1791485559.3}, "siblings_read": 8, "siblings_unreadable": [], "runs": [{"folder": "r1-checkers-sonnet", "case": "custom", "hosts": ["claude"], "overlapped_seconds": 787.1, "started_offset_seconds": 280.4}]}`; an entry's `hosts` is null with `hosts_reason` when its launch records cannot be read; `runs: []` means the neighbours read had no host events in common with this run (first to last host event: neither an upper nor a lower bound), not that nothing else ran; `{"observed": false, "reason": ...}` means unknown.
+  - browser record: not declared `{"declared": false, "probed": false, "reason": "no case or --need declares a browser"}`; declared but not runnable `{"declared": true, "probed": false, "reason": "..."}`; probed `{"declared": true, "probed": true, "binary": "...", "version": "Google Chrome 154.0.8037.99", "flags": [...], "ceiling_seconds": 20.0, "grace_seconds": 1.0, "empty_seconds": 2.0, "version_unread"?: "...", "file": <target>, "http": <target>}` where a target is `{"title_seen": true, "output_s": 0.41, "exited": false, "lingered": true, "returncode": null, "killed": true, "group_empty": true, "interrupted": false, "error": null}` (`http` may be `{"probed": false, "reason": ...}` if the loopback stand-in could not listen).
 - Each launch record (`invocation.json`, `invocation-resume-<host>-<seconds>.json`) gains `needs` (array) and `environment` (the start record; for a regrade's own record `{"observed": false, "reason": "regraded: no host was launched"}`).
-- `metrics.json` is unchanged. A mixed-host run is named by `environment.mixed_host` and `hosts_used`; its `host` in `result.json` is the host that ran last.
+- `metrics.json` is unchanged. A mixed-host run is named by `environment.mixed_host` and `hosts_used`; its `host` in `result.json` is, from this fix round on, the host of the run's last launch (a regrade restates it
+  through `runrecord.launches`); the saved r2 result still says grok beside a Claude-finished run, and `resumed_run.from_host` and `from_model`
+  now name the last launch's host and model (they named the first launch's; results written before keep the old meaning).
 - Suggested rendering: a class chip with the basis (not in the verdict map); a "Product at stop" card (n of m at the stated stage, labelled information only); an "Environment" block with the machine, a MIXED HOST banner, the overlap list with the start offsets, and the browser rows with seconds.
