@@ -36,7 +36,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import hosts  # noqa: E402
 import iterate  # noqa: E402
-import listeners  # noqa: E402
 import metrics  # noqa: E402
 import progress  # noqa: E402
 import review  # noqa: E402
@@ -44,8 +43,35 @@ import rollouts  # noqa: E402
 import run  # noqa: E402
 import fanout  # noqa: E402
 
+# listeners.py is the module the leftover-listener tests are about. Where it does not exist (the state a failing test is first run
+# in) only those tests may fail, each on an assertion (needs_listeners), so a missing module never takes the other tests down.
+try:
+    import listeners  # noqa: E402
+except ModuleNotFoundError as missing:
+    if missing.name != "listeners":
+        raise
+    listeners = None
+
 # The real observer, kept before any test patches it: the classes that exercise lsof scope what it sees to their own folder.
-REAL_OBSERVE = listeners.observe
+REAL_OBSERVE = listeners.observe if listeners else None
+
+
+def needs_listeners(cls):
+    """Class decorator: while listeners.py does not exist every test of the class fails on this assertion, one by one."""
+    inner = cls.setUp
+
+    def setUp(self):
+        self.assertIsNotNone(listeners, "test/shiploop_e2e/listeners.py does not exist")
+        inner(self)
+
+    cls.setUp = setUp
+    return cls
+
+
+def nothing_listens():
+    """A patch that makes the machine's process table show no listener, so no test reads it (nothing to patch where listeners.py
+    does not exist yet, and the older tests then run as before)."""
+    return mock.patch.object(listeners, "observe", return_value=[]) if listeners else contextlib.nullcontext()
 
 # Shared product writer for both fakes: the hello case's files plus a done run.
 PRODUCT = f"""
@@ -327,9 +353,9 @@ class HarnessCase(unittest.TestCase):
         self.addCleanup(patched.stop)
         # No harness case reads the machine's process table: a listener another session (or a leaked server) holds
         # must not change a verdict here. The classes that exercise the real lsof scope what they see to their own folder.
-        nothing_listens = mock.patch.object(listeners, "observe", return_value=[])
-        nothing_listens.start()
-        self.addCleanup(nothing_listens.stop)
+        patch = nothing_listens()
+        patch.__enter__()
+        self.addCleanup(patch.__exit__, None, None, None)
 
     def invoke(self, host: str, mode: str, *extra: str) -> tuple[int, dict]:
         os.environ["FAKE_MODE"] = mode
@@ -4808,7 +4834,7 @@ class KeepAwakeTest(unittest.TestCase):
             with mock.patch.dict(os.environ, {"PATH": f"{tool.parent}{os.pathsep}{os.environ['PATH']}",
                                               "CAFFEINATE_LOG": str(log)}), \
                     mock.patch.object(sys, "platform", platform), \
-                    mock.patch.object(listeners, "observe", return_value=[]):  # launch looks for leftovers; not in the real table
+                    nothing_listens():  # launch looks for leftovers; not in the real table
                 result = run.launch(self.ARGV, out / "work", out, dict(os.environ), 60, watch=False)
             self.assertEqual((result["status"], result["returncode"]), ("exited", 0))
             return (json.loads(log.read_text()) if log.exists() else None), (out / "events.jsonl").read_text()
@@ -4858,6 +4884,7 @@ def listener(pid: int, cwd: str | None, argv: str = "", ports: tuple = (3457,)) 
     return {"pid": pid, "command": argv.split()[0] if argv else "x", "ports": list(ports), "cwd": cwd, "argv": argv}
 
 
+@needs_listeners
 class ListenerParseSelectionTest(unittest.TestCase):
     """Which processes the harness stops: read from lsof's field output, chosen by place, and never the harness itself.
 
@@ -5070,6 +5097,7 @@ class RealListeners:
 
 
 @needs_lsof
+@needs_listeners
 class ReapTest(RealListeners, unittest.TestCase):
     """listeners.reap with the real lsof, ps and signals, on servers the test starts."""
 
@@ -5113,6 +5141,7 @@ class ReapTest(RealListeners, unittest.TestCase):
 
 
 @needs_lsof
+@needs_listeners
 class LeftBehindThroughMainTest(RealListeners, CaseRunCase):
     """What a host or a check leaves listening is stopped, recorded in result.json and printed (SPEC: a run leaves nothing listening)."""
 
@@ -5183,6 +5212,9 @@ class LeftBehindThroughMainTest(RealListeners, CaseRunCase):
 
     def test_a_regrade_and_grade_only_reap_nothing_and_keep_the_earlier_record(self):
         code, first, _, out = self.case_main("case-done")
+        live = listeners.hold_case(out)  # a live host means a live harness: without the lock this folder would look like a leak to other launches
+        self.assertIsNotNone(live)
+        self.addCleanup(live.close)
         proc, port = self.serve(out / "work")  # something a live host could be serving: a regrade starts no host and must not touch it
         recorded = first.get("left_behind")
         self.assertIsNotNone(recorded, "the run being regraded recorded what it left behind")
@@ -5224,6 +5256,7 @@ class LeftBehindThroughMainTest(RealListeners, CaseRunCase):
         self.assertEqual(self.reaped(result), [orphan.pid])
 
 
+@needs_listeners
 class CaseLockTest(unittest.TestCase):
     """A case's harness is alive exactly while it holds an exclusive lock on <output>/.harness-lock; the kernel drops it on any death."""
 
@@ -5291,6 +5324,7 @@ class CaseLockTest(unittest.TestCase):
         self.assertEqual({i["pid"] for i in everything}, {900001, 900003, 900004}, "with no folder of its own, the own case is stale too")
 
 
+@needs_listeners
 class StalePreflightThroughMainTest(CaseRunCase):
     """A launch is refused, whole, while another case leaves a listener and its harness is not alive (SPEC: a run leaves nothing listening)."""
 
@@ -5390,6 +5424,7 @@ class StalePreflightThroughMainTest(CaseRunCase):
 
 
 @needs_lsof
+@needs_listeners
 class StaleListenerRealTest(RealListeners, CaseRunCase):
     """The same refusal against a real server and the real lsof."""
 
@@ -5399,17 +5434,18 @@ class StaleListenerRealTest(RealListeners, CaseRunCase):
 
     def test_a_real_server_an_ended_case_left_refuses_the_launch_and_is_never_stopped_by_the_refusal(self):
         ended = self.tmp / "case-old"
-        (ended).mkdir()
-        (ended / "invocation.json").write_text("{}")
         leaked, port = self.serve(ended / "work")
+        # The one state this test is about is a case with no live harness, which another session's real launch would also refuse
+        # on: so the case record is written last and the lock taken as soon as the refusal is seen, a window of one scan.
+        (ended / "invocation.json").write_text("{}")
         with self.assertRaises(SystemExit) as refused:
             self.case_main("case-new")
-        for part in (f"pid {leaked.pid}", f"port {port}", str(ended), f"kill {leaked.pid}"):
-            self.assertIn(part, str(refused.exception))
-        self.assertTrue(answers(port), "a refusal names the process and leaves it to the owner")
         held = listeners.hold_case(ended)
         self.assertIsNotNone(held)
         self.addCleanup(held.close)
+        for part in (f"pid {leaked.pid}", f"port {port}", str(ended), f"kill {leaked.pid}"):
+            self.assertIn(part, str(refused.exception))
+        self.assertTrue(answers(port), "a refusal names the process and leaves it to the owner")
         code, result, _, _ = self.case_main("case-new")
         self.assertEqual(code, 0, result)
         self.assertTrue(answers(port), "the other case's server is not this run's to stop")
@@ -5447,11 +5483,23 @@ class TerminationSignalTest(CaseRunCase):
                                  "--grok-bin", str(self.fakes["grok"]), "--output", str(out), "--plugin-dir", str(self.plugin),
                                  "--baseline", str(self.baselines), "--timeout", "120", *extra],
                                 env=self.env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        # Registered before the harness's own kill, so it runs after it: a harness that is still alive would start another host.
+        self.addCleanup(self.kill_hosts)
         self.addCleanup(end_quietly, proc)
         return proc, out
 
+    def kill_hosts(self) -> None:
+        """Every host the harness ever started in this test (the fake logs one line per session), whole group, whatever the code
+        under test did: a test that fails must not leave an orphan host (each also sleeps for at most 600 s)."""
+        sessions = Path(str(self.log) + ".sessions")
+        for line in sessions.read_text().splitlines() if sessions.exists() else []:
+            with contextlib.suppress(ValueError, KeyError, ProcessLookupError, PermissionError):
+                pid = json.loads(line)["pid"]
+                if os.getpgid(pid) == pid:  # a host leads the session it was started in; a reused pid does not
+                    os.killpg(pid, signal.SIGKILL)
+
     def host_pid(self) -> int:
-        """The fake host's pid, once it is running; it is killed when the test ends, and its sleep expires by itself."""
+        """The fake host's pid, once it is running."""
         sessions = Path(str(self.log) + ".sessions")
         for _ in range(600):
             if sessions.exists() and sessions.read_text().strip():
@@ -5459,9 +5507,7 @@ class TerminationSignalTest(CaseRunCase):
             time.sleep(0.05)
         else:
             raise AssertionError("the host never started")
-        pid = json.loads(sessions.read_text().splitlines()[0])["pid"]
-        self.addCleanup(self.kill_pid, pid)
-        return pid
+        return json.loads(sessions.read_text().splitlines()[0])["pid"]
 
     @staticmethod
     def kill_pid(pid: int) -> None:
@@ -5541,6 +5587,7 @@ class TerminationSignalTest(CaseRunCase):
         self.assertTrue(self.gone(host), "a Ctrl-C on the harness must not orphan its host")
 
 
+@needs_listeners
 class LiveHostTest(unittest.TestCase):
     """The harness's bookkeeping of the hosts it started, driven without any real signal.
 

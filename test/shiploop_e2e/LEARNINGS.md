@@ -1754,3 +1754,32 @@ sentence under "Every ending leaves its records", and "Runs compared on wall tim
   `left_behind` yet (skills/shiploop-run-review is another session's; the exporter ignores unknown result.json keys, so nothing breaks).
   Not covered, documented in the README: non-listening leftovers, UDP and unix-socket servers, and a server with cwd and command line both
   outside the folder.
+
+## A6 adversarial review, first round: what it found and what was fixed (batch 1010, item A6) — 2026-10-08 — status: firm for the fixes that have a test that failed first; the incident below is an environment fact
+
+The review of `f1329599`..`b1065a15` returned `fix-needed` (2 major, 9 minor). Fixed in this order, one commit each; every fix whose
+test could fail first did, and the mutants named below were applied to a scratch copy and not to the worktree.
+
+- **A missing module took the whole test file down (major).** `test/shiploop-e2e.test.py` imported `listeners` at module level, so with
+  production reverted to `b73c30ba` and `listeners.py` absent, all 398 tests died at the import (reproduced: `ModuleNotFoundError`
+  at the import line). The audit had asked for the import inside the new tests. Now the import is guarded (`listeners = None` only for
+  a missing `listeners` module; any other import error still raises), the seven listener classes carry `@needs_listeners` and fail one by
+  one on `listeners.py does not exist`, and the older tests (`HarnessCase`, `KeepAwakeTest`) take their "no listener" patch from
+  `nothing_listens()`, which patches nothing where the module is absent. Same experiment after the fix: 398 tests, 41 failures and 2
+  errors, all in the new classes (36 on the guard, 5 on real assertions, 2 on `run.TERMINATION` missing), every older test green.
+- **A failing signal test left orphan hosts (minor).** Only the first session's pid was killed, so a harness that relaunched its host (mutant
+  "the handler does not set TERMINATION") left ppid-1 fake hosts sleeping 600 s: the defect the work fixes. One cleanup now reads every pid
+  in `<FAKE_LOG>.sessions` and kills its group (only when the pid leads its own group), registered so it runs after the harness itself is
+  killed. Before/after on that mutant, one test each: the old file left one ppid-1 host, the new left none.
+- **Fixtures that look like a leak (minor).** The regrade test held a real server under a finished, lock-free case folder, which another
+  session's real launch would have refused on, naming `kill <pid>`. It now holds the case lock, as a live host's harness would. The
+  refusal test cannot hold it (it asserts the lock-free state); its case record is written last and the lock taken as soon as the
+  refusal is seen, a window of one scan. `test_a_resume_stops_what_the_earlier_invocation_left_before_its_host_starts` still has such a
+  window of a few seconds, because a resume must be lock-free to be allowed; accepted.
+- **The incident (environment, not code; the owner's to undo).** While mutation-testing the reap, a first mutant ("every listener
+  selected") ran against a test scope that called the mutated selector, so the real reap sent SIGTERM to this user's other listeners:
+  Ollama (app and server) and the OrbStack engine stopped and were not restarted, the leaked pid 63973 ended, and launchd respawned the
+  rest. Checked read-only after the review: no Ollama process, `orbctl status` prints `Stopped`. To restore: `open -a Ollama` and
+  `orbctl start`. The scope guard (`scope_to_tmp`, `guarded_signal`) now checks by the test's own folder and refuses to signal any
+  pid outside it, independent of the code under test; mutants of the selector fail on that guard and signal nothing. Mutants that widen the
+  selection are not run against the real-process classes.
