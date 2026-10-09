@@ -11,12 +11,15 @@ Never returns packet text: ShipLoop CLI output is reduced to the failing line.
 
 from __future__ import annotations
 
+import bisect
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import re
 
 import rollouts
+import sessionlog
 
 SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
 # Model-written glue (SPEC S-4, S-5): shell commands that do a mechanical step
@@ -137,18 +140,27 @@ def failure_line(shown: str) -> str:
     return own.strip()[:200]
 
 
-def events(path: Path):
-    """(line number, event) for every JSON object line."""
+def event_range(path: Path, start: int = 0, stop: int | None = None):
+    """(line number, event) for every JSON object line in [start, stop): a line before ``start`` is counted, not parsed."""
     if not path.is_file():
         return
     with path.open(errors="replace") as handle:
         for number, line in enumerate(handle):
+            if number < start:
+                continue
+            if stop is not None and number >= stop:
+                return
             try:
                 event = json.loads(line)
             except ValueError:
                 continue
             if isinstance(event, dict):
                 yield number, event
+
+
+def events(path: Path):
+    """(line number, event) for every JSON object line."""
+    yield from event_range(path)
 
 
 def timeline(path: Path) -> dict[int, float]:
@@ -290,8 +302,9 @@ class ToolLog:
         self.result_chars = 0
         self.packets = {"printed": [0, 0], "shell": [0, 0], "read_tool": []}
 
-    def call(self, t, call_id, tool: str, arg: dict) -> None:
-        """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written."""
+    def call(self, t, call_id, tool: str, arg: dict):
+        """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written.
+        Returns the key it is kept under in ``calls`` (the call id, or a number for a call that had none)."""
         self.failed.discard(call_id)  # Codex numbers its calls again in each session: a reused id is a new call
         self.failure_of.pop(call_id, None)
         self.answered.discard(call_id)
@@ -309,7 +322,8 @@ class ToolLog:
             script["runs"] += bool(script["pattern"].search(shell))
         target = call_target(arg)
         self.by_tool[tool] = self.by_tool.get(tool, 0) + 1
-        self.calls[call_id if call_id is not None else f"#{len(self.calls)}"] = {
+        key = call_id if call_id is not None else f"#{len(self.calls)}"
+        self.calls[key] = {
             "t": t, "command": command, "expanded": expanded, "invoked": expanded + wrappers, "tool": tool,
             "packet": "/packets/" in expanded or "/packets/" in str(target or ""),
             "whole": "offset" not in arg and "limit" not in arg, "file": str(target or "")}
@@ -322,6 +336,7 @@ class ToolLog:
             self.reads.append(str(target))
             if WRITE_TOOL.search(tool) and str(target).startswith("/tmp/"):
                 self.shared.add(str(target))
+        return key
 
     def measure(self, call_id, shown: str) -> None:
         """What one tool result held, for a stream whose results arrive once and whole (Claude's): characters, and how the
@@ -355,16 +370,16 @@ class ToolLog:
                             "read": {"read_tool": self.packets["read_tool"],
                                      "shell": dict(zip(("calls", "chars"), self.packets["shell"]))}}}
 
-    def feed(self, event: dict, t) -> None:
+    def feed(self, event: dict, t) -> list:
         """One host event, read the one way for every host: the calls it starts and the results it carries.
 
         Claude's `tool_use` blocks, Grok's `tool_call` events and Codex's after the translator start calls; Claude's
         `tool_result` blocks and Grok's final `tool_call_update` carry results. A running update (Grok repeats one, with a
         placeholder exit 0) and a cancelled one (a permission refusal, which ends the turn) are no result. The whole-run
-        reading (``collect``) and a window (``reorientation``) both feed a log this way, so they cannot differ.
+        reading (``collect``) and a window (``reorientation``) both feed a log this way, so they cannot differ. Returns the
+        keys, in ``calls``, of the calls this event started.
         """
-        for call_id, tool, arg in tool_call_events(event):
-            self.call(t, call_id, tool, arg)
+        started = [self.call(t, call_id, tool, arg) for call_id, tool, arg in tool_call_events(event)]
         kind = event.get("type")
         if kind == "user":  # Claude: the tool_result blocks, whose text may begin with the host's `Exit code N`
             for call_id, shown in tool_results(event):
@@ -374,6 +389,7 @@ class ToolLog:
                 and event.get("status") != "in_progress":
             for call_id, shown in tool_results(event):
                 self.result(call_id, shown, event["rawOutput"].get("exit_code"))
+        return started
 
     def result(self, call_id, shown: str, code: int | None) -> None:
         """One tool result, with the exit code the host showed (None when it showed none)."""
@@ -745,6 +761,172 @@ def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], gro
     if got is None or "unmeasured" in got:
         return {"unmeasured": (got or {}).get("unmeasured", NO_HOST_USAGE)}
     return {**got, "clock": "host", "source": "rollout token_usage_records"}
+
+
+# ---------------------------------------------------------------------------------------------------------------------------
+# What a fresh context did (SPEC "A fresh context is recorded, not scored"). Record-only: nothing here is a verdict.
+
+# The ShipLoop CLI and run directory a `next` call carries, read from the command as the model wrote it (variables expanded
+# where the same command assigns them), to compare with what the resume prompt told.
+NEXT_CALL = re.compile(r"""(?P<cli>[^\s"'=]*shiploop)["']?\s+next\b(?P<rest>[^\n]*)""")
+RUN_DIR_ARG = re.compile(r"""--run-dir(?:=|\s+)["']?(?P<dir>[^"'\s]+)""")
+# The ShipLoop verbs whose call can be the one that gets an action accepted (an Improve child's finish accepts its parent).
+ACCEPTING_VERBS = ("complete", "improve-complete")
+# Why `rewrote` and the window's failures are lower bounds (the scope strings in a block say it short; this says it whole).
+# `rewrote` sees file-edit tools only: a file a shell command writes (cat >, sed -i, cp, tee, a script) is invisible to the tool
+# log, so an empty list is "none seen", not a measured none. The window's failures are the window's own calls only: a wrapper
+# script the model wrote in an earlier session is not known to the window, so a ShipLoop command run through one is not
+# recognised, and a refusal behind a pipe that lost its prefix line is missed.
+FAILURES_SCOPE = "the window's own calls only: a ShipLoop command run through a script written in an earlier session is not seen"
+NO_EVENT = "the session wrote no event"
+NO_ACCEPT = ("no tool call submitted an action accepted after this start (the ledger names none, or the session ended before "
+             "it submitted one)")
+
+
+def written_paths(rows) -> set:
+    """The paths file-edit tools (write, edit, replace, create) wrote in these (line, event) rows, normalised."""
+    found = set()
+    for _line, event in rows:
+        for _call_id, tool, arg in tool_call_events(event):
+            if WRITE_TOOL.search(tool) and call_target(arg):
+                found.add(os.path.normpath(call_target(arg)))
+    return found
+
+
+def _verbs(call: dict) -> list[str]:
+    """The ShipLoop verbs a call runs, directly or through a script the model wrote earlier in the same window."""
+    return [m.group("verb") for m in SHIPLOOP_COMMAND.finditer(call.get("invoked", ""))]
+
+
+def _grounding(call: dict) -> str | None:
+    """Whether a call asks ShipLoop where the run stands: `next`, a read of a packet file, or another ShipLoop verb."""
+    verbs = _verbs(call)
+    if "next" in verbs:
+        return "next"
+    if call.get("packet"):
+        return "packet"
+    return "other" if verbs else None
+
+
+def _same_path(told: str | None, got: str | None) -> str:
+    """How a path in the model's command compares with the one it was told: `exact` (the same text), `equivalent` (the same
+    place after normpath and resolve: the recorded Luna `/./` ran), `different` (another place), or `unreadable` (a relative
+    path or an unexpanded variable, which cannot be compared)."""
+    if got is None or not isinstance(told, str):
+        return "unreadable"
+    if got == told:
+        return "exact"
+    if "$" in got or not os.path.isabs(got):
+        return "unreadable"
+    return "equivalent" if os.path.realpath(got) == os.path.realpath(told) else "different"
+
+
+def _recovery(tools: "ToolLog", window: list, told: dict | None) -> dict:
+    """Was the recovery command repeated as told? The first `next` call of the window, its CLI and run directory compared with
+    the ones the prompt named (None where it named none: a compaction), whether it failed, and how many `next` calls there were."""
+    nexts = [(number, key) for number, key in enumerate(window, 1) if "next" in _verbs(tools.calls[key])]
+    first = None
+    if nexts:
+        number, key = nexts[0]
+        found = NEXT_CALL.search(tools.calls[key]["expanded"])
+        run_dir = RUN_DIR_ARG.search(found.group("rest")) if found else None
+        failed = key in tools.failed
+        first = {"call": number, "failed": failed, "exit": tools.failure_of[key]["exit"] if failed else None,
+                 "cli": None if told is None else _same_path(told.get("cli"), found.group("cli") if found else None),
+                 "run_dir": None if told is None else _same_path(told.get("run_dir"), run_dir.group("dir") if run_dir else None)}
+    return {"told": told, "next_calls": len(nexts), "first_next": first}
+
+
+def reorientation(rows, stamps: dict, accepted: list[dict], told: dict | None = None, earlier=None) -> dict:
+    """What a fresh context did from its start to the next accepted action: a record, never a verdict.
+
+    ``rows`` are the (line, event) pairs of one session's events from the fresh start, read lazily (this stops reading at
+    the window's end); ``stamps`` the runner's timeline; ``accepted`` the ledger's accepted rows (``stage_results``);
+    ``told`` the CLI and run directory the resume prompt named (None for a start with no recovery command, a compaction);
+    ``earlier(after)`` the (line, event) pairs before the start whose stamp is after ``after`` (None: from the beginning),
+    the stage's pre-start portion that `rewrote` compares.
+
+    The window ends at the tool call that SUBMITTED the next accepted action: a `complete` (or an Improve child's finish)
+    naming an action the ledger accepted, that did not fail and does not start after its accept stamp's second (so never an
+    action accepted before the start). The stamp is whole-second truncated, so a cut at the stamp would lose the submitting
+    call (it starts after the truncated stamp) or keep the next one (it starts in the same second). Both are recorded:
+    ``seconds`` to the submitting call, on the runner's clock, and ``seconds_to_accept_stamp``, good to a second.
+
+    Always present: ``first_grounding`` (`next`, `packet`, `other`, or None where the window held no such call) with
+    ``calls_before_grounding``, and ``recovery``. A window that reaches no accepted action is ``measured: false`` with its
+    reason and has no count: unknown is not zero. ``failures`` and ``rewrote`` are lower bounds and say so.
+    """
+    by_action = {row["action"]: (index, row) for index, row in enumerate(accepted) if isinstance(row.get("action"), str)}
+    ids = re.compile(r"(?<![\w-])(" + "|".join(re.escape(a) for a in sorted(by_action, key=len, reverse=True)) + r")(?![\w-])") \
+        if by_action else None
+    tools, order = ToolLog(), []
+    start_t = None
+    pending: list[tuple] = []  # calls that submit an accepted action, until their result says whether it was accepted
+    ended = None
+    for line, event in rows:
+        t = stamps.get(line)
+        if start_t is None and t is not None:
+            start_t = t
+        for key in tools.feed(event, t):
+            order.append(key)
+            action = _submitted(tools.calls[key], ids)
+            if action is not None and _plausible_submission(by_action[action][1]["t"], tools.calls[key]["t"]):
+                pending.append((key, action))
+        pending = [item for item in pending if item[0] not in tools.failed]
+        ended = next((item for item in pending if item[0] in tools.answered), None)
+        if ended:
+            break
+    window = order if ended is None else order[:order.index(ended[0]) + 1]
+    grounding = next(((number, _grounding(tools.calls[key])) for number, key in enumerate(window)
+                      if _grounding(tools.calls[key])), (None, None))
+    common = {"first_grounding": grounding[1], "calls_before_grounding": grounding[0],
+              "recovery": _recovery(tools, window, told)}
+    if not order and start_t is None:
+        return {"measured": False, "reason": NO_EVENT, **common}
+    if ended is None:
+        return {"measured": False, "reason": NO_ACCEPT, **common}
+    index, row = by_action[ended[1]]
+    submitted_at = tools.calls[ended[0]]["t"]
+    stage_stamp = row["t"]
+    failures = [tools.failure_of[key] for key in window if key in tools.failure_of]
+    return {"measured": True, "accepted": {"stage": row["stage"], "action": ended[1]}, "tool_calls": len(window),
+            "seconds": None if start_t is None or submitted_at is None else round(submitted_at - start_t, 1),
+            "seconds_to_accept_stamp": None if start_t is None or stage_stamp is None else round(stage_stamp - start_t, 1),
+            **common,
+            "failures": {"items": failures, "bound": "lower", "scope": FAILURES_SCOPE},
+            "rewrote": _rewrote(tools, window, earlier, accepted, index),
+            "asked_user": sum(bool(ASK_PERSON.search(tools.calls[key]["tool"])) for key in window)}
+
+
+def _submitted(call: dict, ids) -> str | None:
+    """The accepted action a tool call submits: a `complete` (or `improve-complete`) that names its id, else None."""
+    text = call.get("invoked", "")
+    if ids is None or not any(verb in ACCEPTING_VERBS for verb in _verbs(call)):
+        return None
+    found = ids.search(text)
+    return found.group(1) if found else None
+
+
+def _plausible_submission(stamp: float | None, call_t: float | None) -> bool:
+    """A call can have got an action accepted only if it did not begin after the accept's second: the stamp is truncated, so
+    the accept lies in [stamp, stamp + 1). A call of this session that names an action accepted before the session began
+    is therefore never the submission (it starts after that stamp's second)."""
+    return stamp is None or call_t is None or call_t < stamp + 1
+
+
+def _rewrote(tools: "ToolLog", window: list, earlier, accepted: list[dict], index: int) -> dict:
+    """Paths a file-edit tool wrote both in the stage's pre-start portion (since the last accepted action) and in the window."""
+    previous = accepted[index - 1] if index else None
+    if earlier is None:
+        paths, scope = None, "unknown: no earlier portion of the stage was given"
+    elif previous is not None and previous["t"] is None:
+        paths, scope = None, "unknown: the previous accepted action has no accept stamp"
+    else:
+        after = {os.path.normpath(call["file"]) for key in window
+                 for call in [tools.calls[key]] if WRITE_TOOL.search(call["tool"]) and call["file"]}
+        paths = sorted(written_paths(earlier(previous["t"] if previous else None)) & after)
+        scope = f"{len(paths)} seen by file-edit tools" if paths else "none seen by file-edit tools"
+    return {"paths": paths, "bound": "lower", "scope": scope}
 
 
 def collect(out: Path, run_dir: Path | None = None) -> dict:

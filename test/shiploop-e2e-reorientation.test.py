@@ -154,6 +154,413 @@ class ToolLogFeedTest(unittest.TestCase):
         self.assertEqual(log.answered, {"u1", "u2", "u3"})
 
 
+CLI = "/p/build/plugins/skill-craft/skills/shiploop/scripts/shiploop"
+RUN = "/r/.shiploop-runs/w/run"
+
+
+class Stream:
+    """A hand-built host stream with its runner stamps, one event per line, for the windowed reading.
+
+    ``rows`` is what metrics.event_range yields ((line, event) pairs) and ``stamps`` the runner's timeline. Grok-shaped
+    events (a `tool_call` and its final `tool_call_update`) unless ``claude`` is used.
+    """
+
+    def __init__(self, first: float = 1000.0) -> None:
+        self.rows: list[tuple] = []
+        self.stamps: dict = {}
+        self.t = first
+        self.calls = 0
+
+    def add(self, event: dict, after: float = 0.0) -> None:
+        self.t += after
+        line = len(self.rows)
+        self.rows.append((line, event))
+        self.stamps[line] = round(self.t, 3)
+
+    def start(self) -> "Stream":
+        self.add({"type": "available_commands", "commands": []})
+        return self
+
+    def call(self, after: float, tool: str, arg: dict, output: str = "", code: int = 0) -> str:
+        """One Grok-shaped call that starts ``after`` seconds after the previous event and answers 0.1 s later."""
+        self.calls += 1
+        call_id = f"c{self.calls}"
+        self.add({"type": "tool_call", "toolCallId": call_id, "toolName": tool, "rawInput": arg}, after)
+        self.add({"type": "tool_call_update", "toolCallId": call_id, "status": "completed",
+                  "rawOutput": {"exit_code": code, "output_for_prompt": output}}, 0.1)
+        return call_id
+
+    def shell(self, after: float, command: str, output: str = "", code: int = 0) -> str:
+        return self.call(after, "run_terminal_command", {"command": command}, output, code)
+
+    def next(self, after: float = 1.0, run_dir: str = RUN, cli: str = CLI, output: str = "ShipLoop navigator | spec | revision 3\n",
+             code: int = 0) -> str:
+        return self.shell(after, f'python3 "{cli}" next --run-dir "{run_dir}"', output, code)
+
+    def complete(self, action: str, after: float = 1.0, output: str = "ShipLoop navigator | test-red | revision 4\n") -> str:
+        return self.shell(after, f'python3 "{CLI}" complete --run-dir={RUN} --action={action} --result={RUN}/inbox/{action}.md',
+                          output)
+
+    def claude(self, after: float, tool: str, arg: dict, output: str = "", message: str | None = None) -> str:
+        """One Claude-shaped call: an assistant event with a tool_use block, then the user event with its result."""
+        self.calls += 1
+        call_id = f"u{self.calls}"
+        self.add({"type": "assistant", "message": {"id": message or f"m{self.calls}", "content": [
+            {"type": "tool_use", "id": call_id, "name": tool, "input": arg}]}}, after)
+        self.add({"type": "user", "message": {"content": [
+            {"type": "tool_result", "tool_use_id": call_id, "content": output}]}}, 0.1)
+        return call_id
+
+
+def stamp(stream: "Stream") -> float:
+    """The engine's whole-second stamp for an action accepted just before the stream's last event (truncated, as it writes)."""
+    return float(int(stream.t - 0.05))
+
+
+def accepted_rows(*rows: tuple) -> list[dict]:
+    """The accepted-history rows metrics.stage_results gives: (action, stage, stamp)."""
+    return [{"stage": stage, "outcome": "done", "work_item": None, "action": action, "t": stamp}
+            for action, stage, stamp in rows]
+
+
+TOLD = {"cli": CLI, "run_dir": RUN}
+
+
+class WindowEndRuleTest(unittest.TestCase):
+    """The window runs from the fresh start to the tool call that SUBMITTED the next accepted action. The accept stamp is
+    whole-second truncated, so a window cut at the stamp is off by up to a call in both directions (the audit's correction 4)."""
+
+    def test_the_window_ends_at_the_submitting_call_even_when_the_truncated_stamp_is_before_it(self):
+        s = Stream(first=1000.0).start()           # t 1000.0
+        s.next(after=0.5)                           # call 1 at 1000.5
+        s.shell(2.0, "ls")                          # call 2 at 1002.6
+        s.complete("nav-b", after=1.0)              # call 3 at 1003.7: the engine accepts at 1003.8, stamp 1003 (truncated)
+        s.shell(0.1, "echo after")                  # call 4 at 1003.9: after the accept, inside the stamp's second
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-a", "intake", 990.0), ("nav-b", "spec", 1003.0)), TOLD)
+        self.assertTrue(got["measured"], got)
+        # A cut at `t <= stamp` would read 2 calls (the submitting one, at 1003.7, is after the truncated stamp 1003.0); a cut at
+        # `t < stamp + 1` would read 4 (call 4 starts at 1003.9, after the accept but inside the same second).
+        self.assertEqual(got["tool_calls"], 3, "call 4 starts inside the stamp's second but after the accept")
+        self.assertEqual(got["accepted"], {"stage": "spec", "action": "nav-b"})
+        self.assertEqual(got["seconds"], 3.7, "to the submitting call, on the runner's clock")
+        self.assertEqual(got["seconds_to_accept_stamp"], 3.0, "the engine's stamp, good to a second")
+
+    def test_a_refused_complete_is_in_the_window_and_the_accepted_one_ends_it(self):
+        s = Stream(first=2000.0).start()
+        s.next(after=0.5)
+        s.complete("nav-b", after=4.0, output="ShipLoop navigator: result requires outcome and summary\n")
+        s.shell(3.0, "edit the result")
+        s.complete("nav-b", after=1.0)
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", stamp(s))), TOLD)
+        self.assertEqual(got["tool_calls"], 4)
+        self.assertEqual([f["verb"] for f in got["failures"]["items"]], ["complete"])
+
+    def test_reading_the_packet_of_the_pending_action_does_not_end_the_window(self):
+        s = Stream(first=3000.0).start()
+        s.shell(0.5, f"cat {RUN}/packets/nav-b.md")
+        s.shell(1.0, "node --test")
+        s.complete("nav-b", after=2.0)
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", stamp(s))), TOLD)
+        self.assertEqual(got["tool_calls"], 3, "the packet read names nav-b but submits nothing")
+        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("packet", 0))
+
+    def test_a_submission_of_an_action_accepted_before_the_start_ends_nothing(self):
+        # The model resubmits nav-a, accepted long before this session began: not the action this window waits for.
+        s = Stream(first=4000.0).start()
+        s.next(after=0.5)
+        s.complete("nav-a", after=1.0)
+        s.shell(1.0, "ls")
+        s.complete("nav-b", after=1.0)
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-a", "intake", 3500.0), ("nav-b", "spec", stamp(s))), TOLD)
+        self.assertEqual((got["tool_calls"], got["accepted"]["action"]), (4, "nav-b"))
+
+    def test_a_window_with_no_accepted_action_is_unmeasured_with_its_reason_and_keeps_the_recovery_facts(self):
+        s = Stream().start()
+        s.shell(0.5, "cat SKILL.md")
+        s.next(after=1.0, run_dir="/r/.shiploop-runs/w/run/../typo")
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-a", "intake", 900.0)), TOLD)
+        self.assertFalse(got["measured"])
+        self.assertIn("no tool call submitted an action accepted after this start", got["reason"])
+        for name in ("tool_calls", "seconds", "failures", "rewrote"):
+            self.assertNotIn(name, got, "an unmeasured window has no count: unknown is not zero")
+        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("next", 1))
+        self.assertEqual(got["recovery"]["first_next"]["run_dir"], "different")
+
+    def test_a_session_that_wrote_no_event_is_unmeasured(self):
+        got = metrics.reorientation([], {}, accepted_rows(("nav-a", "intake", 900.0)), TOLD)
+        self.assertEqual((got["measured"], got["reason"]), (False, "the session wrote no event"))
+
+
+class FirstGroundingTest(unittest.TestCase):
+    """The first call that asks ShipLoop where the run stands: `next`, a read of a packet file, or another ShipLoop verb."""
+
+    def window(self, build) -> dict:
+        s = Stream(first=5000.0).start()
+        build(s)
+        s.complete("nav-b", after=1.0)
+        return metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", stamp(s))), TOLD)
+
+    def test_next_first_is_zero_calls_before_grounding(self):
+        got = self.window(lambda s: s.next(after=0.5))
+        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("next", 0))
+
+    def test_reading_the_skill_card_first_is_one_call_before_grounding(self):
+        got = self.window(lambda s: (s.shell(0.5, "cat /p/skills/shiploop/SKILL.md"), s.next()))
+        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("next", 1))
+
+    def test_a_packet_read_is_grounding_and_so_is_another_shiploop_verb(self):
+        got = self.window(lambda s: (s.shell(0.5, "ls"), s.shell(0.5, f"cat {RUN}/packets/nav-b.md"), s.next()))
+        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("packet", 1))
+        got = self.window(lambda s: (s.shell(0.5, "ls"), s.shell(0.5, f'python3 "{CLI}" lint --run-dir={RUN}')))
+        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("other", 1))
+
+    def test_a_window_with_no_call_at_all_has_no_first_grounding_not_zero(self):
+        s = Stream().start()
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", 1100.0)), TOLD)
+        self.assertEqual((got["measured"], got["first_grounding"], got["calls_before_grounding"]), (False, None, None))
+
+
+class RecoveryCommandTest(unittest.TestCase):
+    """Was the recovery command repeated as the prompt told it? Compared after normpath and resolve: a path that differs in
+    text but names the same directory ran (the recorded Luna `/./`), one that names another directory did not."""
+
+    def first_next(self, command: str, told=TOLD, output: str = "ShipLoop navigator | spec | revision 3\n", code: int = 0):
+        s = Stream().start()
+        s.shell(0.5, command, output, code)
+        got = metrics.reorientation(s.rows, s.stamps, [], told)
+        return got["recovery"]
+
+    def test_the_command_as_told_is_exact(self):
+        got = self.first_next(f'python3 "{CLI}" next --run-dir "{RUN}"')
+        self.assertEqual(got["first_next"], {"call": 1, "failed": False, "exit": None, "cli": "exact", "run_dir": "exact"})
+        self.assertEqual((got["told"], got["next_calls"]), (TOLD, 1))
+
+    def test_a_dot_segment_is_equivalent_and_a_wrong_directory_is_different(self):
+        same = self.first_next(f'python3 "{CLI}" next --run-dir "/r/./.shiploop-runs/w/run"')["first_next"]
+        self.assertEqual((same["cli"], same["run_dir"]), ("exact", "equivalent"))
+        also = self.first_next(f'python3 "{CLI}" next --run-dir "/r/.shiploop-runs//w/run/"')["first_next"]
+        self.assertEqual(also["run_dir"], "equivalent")
+        wrong = self.first_next(f'python3 "/p/other/shiploop" next --run-dir "/r/20261005/.shiploop-runs/w/run"',
+                                output="error: no ShipLoop run directory at x; check --run-dir\n", code=2)["first_next"]
+        self.assertEqual((wrong["cli"], wrong["run_dir"], wrong["failed"], wrong["exit"]), ("different", "different", True, 2))
+
+    def test_the_equals_form_and_a_shell_wrapper_are_read(self):
+        wrapped = f"/bin/zsh -lc 'python3 \"{CLI}\" next --run-dir \"/r/./.shiploop-runs/w/run\"'"
+        got = self.first_next(wrapped)["first_next"]
+        self.assertEqual((got["cli"], got["run_dir"]), ("exact", "equivalent"))
+        got = self.first_next(f"python3 {CLI} next --run-dir={RUN}")["first_next"]
+        self.assertEqual((got["cli"], got["run_dir"]), ("exact", "exact"))
+
+    def test_a_path_that_cannot_be_compared_is_unreadable_not_different(self):
+        for command in (f'python3 "{CLI}" next --run-dir run', f'python3 "{CLI}" next',
+                        f'python3 skills/shiploop/scripts/shiploop next --run-dir "{RUN}"'):
+            with self.subTest(command):
+                got = self.first_next(command)["first_next"]
+                self.assertIn("unreadable", (got["cli"], got["run_dir"]))
+                self.assertNotIn("different", (got["cli"], got["run_dir"]))
+
+    def test_no_next_call_and_no_told_command_are_said_as_they_are(self):
+        s = Stream().start()
+        s.shell(0.5, "ls")
+        got = metrics.reorientation(s.rows, s.stamps, [], TOLD)["recovery"]
+        self.assertEqual((got["first_next"], got["next_calls"]), (None, 0))
+        told_none = self.first_next(f'python3 "{CLI}" next --run-dir "{RUN}"', told=None)
+        self.assertIsNone(told_none["told"])
+        self.assertEqual(told_none["first_next"], {"call": 1, "failed": False, "exit": None, "cli": None, "run_dir": None})
+
+    def test_only_the_first_next_is_compared_and_every_next_is_counted(self):
+        s = Stream().start()
+        s.next(after=0.5, run_dir="/r/typo", output="error: no ShipLoop run directory\n", code=2)
+        s.next(after=1.0)
+        got = metrics.reorientation(s.rows, s.stamps, [], TOLD)["recovery"]
+        self.assertEqual((got["next_calls"], got["first_next"]["call"], got["first_next"]["run_dir"]), (2, 1, "different"))
+
+
+class RewroteTest(unittest.TestCase):
+    """`rewrote`: a path a file-edit tool wrote both before the fresh start (in the same stage) and after it. A lower bound."""
+
+    def before(self, *paths: str):
+        s = Stream(first=100.0)
+        for path in paths:
+            s.call(1.0, "search_replace", {"file_path": path})
+        return s
+
+    def window(self, after_calls, earlier):
+        s = Stream(first=1000.0).start()
+        for tool, arg in after_calls:
+            s.call(1.0, tool, arg)
+        s.complete("nav-b", after=1.0)
+        return metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-a", "intake", 90.0), ("nav-b", "spec", stamp(s))),
+                                     TOLD, earlier=earlier)
+
+    def test_a_file_edited_in_the_stage_before_and_again_after_the_start_is_rewritten(self):
+        old = self.before("/w/rules.js", "/w/server.js")
+        asked = []
+
+        def earlier(after_t):
+            asked.append(after_t)
+            return old.rows
+
+        got = self.window([("write", {"file_path": "/w/rules.js"}), ("write", {"file_path": "/w/new.js"})], earlier)
+        self.assertEqual(got["rewrote"]["paths"], ["/w/rules.js"])
+        self.assertEqual(asked, [90.0], "the stage's pre-start portion starts at the previous accept's stamp")
+        self.assertEqual(got["rewrote"]["bound"], "lower")
+        self.assertEqual(got["rewrote"]["scope"], "1 seen by file-edit tools")
+
+    def test_nothing_seen_reads_none_seen_by_file_edit_tools_not_an_empty_measurement(self):
+        got = self.window([("write", {"file_path": "/w/new.js"})], lambda after_t: self.before("/w/old.js").rows)
+        self.assertEqual(got["rewrote"], {"paths": [], "bound": "lower", "scope": "none seen by file-edit tools"})
+
+    def test_a_shell_write_is_invisible_which_is_why_the_figure_is_a_lower_bound(self):
+        got = self.window([("run_terminal_command", {"command": "sed -i s/a/b/ /w/rules.js"})],
+                          lambda after_t: self.before("/w/rules.js").rows)
+        self.assertEqual(got["rewrote"]["paths"], [])
+        self.assertEqual(got["rewrote"]["bound"], "lower")
+
+    def test_a_read_is_not_a_write(self):
+        got = self.window([("read_file", {"target_file": "/w/rules.js"})], lambda after_t: self.before("/w/rules.js").rows)
+        self.assertEqual(got["rewrote"]["paths"], [])
+
+    def test_without_an_earlier_portion_or_a_previous_stamp_it_is_unknown_with_a_reason(self):
+        s = Stream(first=1000.0).start()
+        s.complete("nav-b", after=1.0)
+        no_earlier = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", stamp(s))), TOLD)
+        self.assertIsNone(no_earlier["rewrote"]["paths"])
+        self.assertIn("earlier", no_earlier["rewrote"]["scope"])
+        unstamped = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-a", "intake", None), ("nav-b", "spec", stamp(s))),
+                                          TOLD, earlier=lambda after_t: [])
+        self.assertIsNone(unstamped["rewrote"]["paths"])
+        self.assertIn("no accept stamp", unstamped["rewrote"]["scope"])
+        first = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", stamp(s))), TOLD,
+                                      earlier=lambda after_t: [])
+        self.assertEqual(first["rewrote"]["paths"], [], "the first accepted action has no previous one: the whole stream before")
+
+
+class WindowFailuresTest(unittest.TestCase):
+    def test_failures_count_only_the_windows_own_calls_and_say_they_are_a_lower_bound(self):
+        s = Stream(first=100.0).start()
+        s.next(after=0.5, output="ShipLoop navigator: stale action\n", code=2)
+        s.shell(1.0, "node --test", code=1)       # not a ShipLoop command: not a ShipLoop failure
+        s.next(after=1.0)
+        s.complete("nav-b", after=1.0)
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", stamp(s))), TOLD)
+        self.assertEqual([(f["verb"], f["exit"]) for f in got["failures"]["items"]], [("next", 2)])
+        self.assertEqual(got["failures"]["bound"], "lower")
+        self.assertIn("earlier session", got["failures"]["scope"])
+
+    def test_a_question_put_to_a_person_is_counted(self):
+        s = Stream(first=100.0).start()
+        s.call(0.5, "ask_user_question", {"question": "Which port?"})
+        s.complete("nav-b", after=1.0)
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", stamp(s))), TOLD)
+        self.assertEqual(got["asked_user"], 1)
+
+
+class WindowHostShapesTest(unittest.TestCase):
+    def test_a_claude_window_counts_each_tool_use_block_and_reads_the_exit_code_it_shows(self):
+        s = Stream(first=100.0)
+        s.add({"type": "system", "subtype": "init"})
+        s.claude(1.0, "Bash", {"command": f'python3 "{CLI}" next --run-dir "{RUN}"'})
+        s.claude(2.0, "Read", {"file_path": f"{RUN}/packets/nav-b.md"})
+        s.add({"type": "assistant", "message": {"id": "m9", "content": [
+            {"type": "tool_use", "id": "ua", "name": "Bash", "input": {"command": "ls"}},
+            {"type": "tool_use", "id": "ub", "name": "Bash", "input": {
+                "command": f'python3 "{CLI}" complete --run-dir={RUN} --action=nav-b --result=x'}}]}}, 1.0)
+        s.add({"type": "user", "message": {"content": [
+            {"type": "tool_result", "tool_use_id": "ua", "content": "a.txt"},
+            {"type": "tool_result", "tool_use_id": "ub", "content": "ShipLoop navigator | test-red | revision 4"}]}}, 0.1)
+        got = metrics.reorientation(s.rows, s.stamps, accepted_rows(("nav-b", "spec", stamp(s))), TOLD)
+        self.assertEqual((got["measured"], got["tool_calls"]), (True, 4))
+        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("next", 0))
+
+
+def fixture(name: str) -> types.SimpleNamespace:
+    """A compact extract of a saved run (test/fixtures/reorientation/<name>/, see extract.py there)."""
+    import sessionlog
+    out = FIXTURES / name
+    run_dir = out / ".shiploop-runs" / "work-fixture" / "run"
+    return types.SimpleNamespace(out=out, run_dir=run_dir, events=out / "events.jsonl",
+                                 stamps=metrics.timeline(out / "timeline.jsonl"), accepted=metrics.stage_results(run_dir),
+                                 sessions=sessionlog.read(out))
+
+
+def window_of(f: types.SimpleNamespace, session: int, earlier: bool = True) -> dict:
+    """metrics.reorientation over the fixture's session number ``session`` (1-based), as the collector reads it."""
+    start = f.sessions[session - 1]
+    following = [x["events_line"] for x in f.sessions if x["events_line"] > start["events_line"]]
+    ordered = sorted(f.stamps)
+    times = [f.stamps[n] for n in ordered]
+    import bisect
+
+    def before(after):
+        low = 0 if after is None else ordered[min(bisect.bisect_right(times, after), len(ordered) - 1)]
+        return metrics.event_range(f.events, low, start["events_line"])
+
+    return metrics.reorientation(metrics.event_range(f.events, start["events_line"], following[0] if following else None),
+                                 f.stamps, f.accepted, start["told"], earlier=before if earlier else None)
+
+
+class RecordedFreshStartReproductionTest(unittest.TestCase):
+    """The three accidental probes of 2026-10-05..08, replayed from compact extracts. These are NOT clean samples (SPEC): they
+    pin that the measure reproduces what was seen in the saved runs, not what a fresh context should do."""
+
+    def test_the_r3_grok_resume_is_23_calls_and_163_seconds_to_the_complete_that_was_accepted(self):
+        f = fixture("r3-battleship-grok-none")
+        self.assertEqual([(x["kind"], x["reason"], x["events_line"]) for x in f.sessions],
+                         [("first", "start", 0), ("fresh", "resume-run", 4121)])
+        got = window_of(f, 2)
+        self.assertTrue(got["measured"], got)
+        self.assertEqual(got["accepted"]["stage"], "test-author")
+        self.assertEqual(got["tool_calls"], 23)
+        self.assertEqual(got["seconds"], 163.2, "to the `complete` call; the design text's 164 is the stamp")
+        self.assertEqual(got["seconds_to_accept_stamp"], 164.0)
+        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("next", 1), "SKILL.md was read first")
+        self.assertEqual(got["recovery"]["first_next"], {"call": 2, "failed": False, "exit": None, "cli": "exact",
+                                                         "run_dir": "exact"})
+        self.assertEqual(got["failures"]["items"], [])
+        before = metrics.written_paths(metrics.event_range(f.events, 3554, 4121))
+        self.assertTrue({p for p in before if p.endswith("/worktree/rules.js") or p.endswith("/worktree/server.js")},
+                        "the old session edited the product in this stage: the comparison is not vacuous")
+        self.assertEqual(got["rewrote"]["paths"], [], "the old session edited rules.js and server.js; the fresh one wrote notes only")
+        self.assertEqual(got["rewrote"]["scope"], "none seen by file-edit tools")
+        self.assertEqual(got["asked_user"], 0)
+
+    def test_the_r2_claude_fresh_start_is_6_calls_not_7_and_22_point_7_seconds_to_the_accept(self):
+        f = fixture("r2-battleship-grok-none")
+        got = window_of(f, 2)
+        self.assertTrue(got["measured"], got)
+        self.assertEqual(got["accepted"]["stage"], "implement")
+        self.assertEqual(got["tool_calls"], 6, "next, a packet Read, ls, cat, lint, complete: the 7th call is 3 s after the accept")
+        self.assertEqual(got["seconds"], 21.8)
+        self.assertEqual(got["seconds_to_accept_stamp"], 22.7)
+        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("next", 0))
+        self.assertEqual(got["recovery"]["first_next"]["cli"], "exact")
+        self.assertEqual(got["recovery"]["first_next"]["run_dir"], "exact")
+        self.assertEqual(got["failures"]["items"], [])
+
+    def test_the_r2_session_wrote_the_result_by_shell_which_a_file_edit_log_cannot_see(self):
+        # The sixth call is `cat > .../inbox/<action>.md <<'EOF' ... complete`: a shell write. rewrote can only be a lower bound.
+        f = fixture("r2-battleship-grok-none")
+        last = [e for _n, e in metrics.event_range(f.events, 2704) if e["type"] == "assistant"][5]
+        self.assertIn("cat >", last["message"]["content"][0]["input"]["command"])
+        self.assertEqual(window_of(f, 2)["rewrote"]["bound"], "lower")
+
+    def test_of_the_four_luna_xhigh_first_next_calls_two_failed_one_is_equivalent_and_one_exact(self):
+        f = fixture("v1210-battleship-luna-xhigh")
+        seen = []
+        for number in (2, 3, 4, 5):
+            got = window_of(f, number)
+            self.assertFalse(got["measured"], "the extract holds only the start of each session")
+            seen.append(got["recovery"]["first_next"])
+        self.assertEqual([(x["failed"], x["exit"], x["run_dir"]) for x in seen],
+                         [(True, 2, "different"), (True, 2, "different"), (False, None, "exact"), (False, None, "equivalent")])
+        self.assertEqual({x["cli"] for x in seen}, {"exact"}, "the CLI was typed right every time")
+        self.assertEqual([x["call"] for x in seen], [2, 2, 2, 2], "SKILL.md first, then the first next")
+        # Said the way the audit asked: two failed, one equivalent, one exact.
+        self.assertEqual((sum(x["failed"] for x in seen), sum(x["run_dir"] == "equivalent" for x in seen),
+                          sum(x["run_dir"] == "exact" for x in seen)), (2, 1, 1))
+
+
 class SessionLogTest(unittest.TestCase):
     """sessions.jsonl: the harness's append-only record of every host launch and every session end."""
 
