@@ -565,8 +565,11 @@ stands at the commit under test.
     round-robin across files so that a ceiling hit leaves a sample of every file.
   - **Comparability.** A ratio belongs to one operator catalog (`operator_id`) and is
     compared only with a ratio of the same id. It is the share of mutants the tests catch,
-    and equivalent mutants survive, so it never reaches 1. A file the tests never load is
-    reported as such (`loaded_by_tests`), because all its sites survive. The saved
+    and equivalent mutants survive, so it never reaches 1. A file with no sign of being
+    loaded by the tests is reported as such (`loaded_by_tests: false`), because all its sites
+    survive; the signs are the baseline run's coverage record and a caught mutant of the file,
+    and false is therefore a lower bound (a server the tests stop with a signal writes no
+    coverage). The saved
     deliveries keep the page's JavaScript in an HTML file or in a string of `server.js`,
     which no operator reaches: a known limit, and a layout that moves page code into a
     `.js` file changes the ratio for a reason that is not quality. A delivery in a language
