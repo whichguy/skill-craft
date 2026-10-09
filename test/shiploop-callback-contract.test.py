@@ -518,6 +518,21 @@ class RefusalRouteTests(RealCliCase):
                                    encoding="utf-8")
                 self.assertEqual(json.loads(self.accepted(start))["status"], "active")
 
+    def test_a_directory_that_cannot_be_made_does_not_stop_the_bind_packet(self) -> None:
+        """Batch 1010 A3 review: emit's mkdir is a courtesy, so its failure must not take the packet down with it.
+
+        A regular file where ``.shiploop-improve`` belongs makes the mkdir fail.  The bind packet must still print its
+        start command, and ``improve-start`` must still say what is missing: the opening file.
+        """
+        run, head = self.new_run("spec")
+        command, path, _ = printed_callback(head)
+        write_block(path, self.fill_done(head))
+        bind = next(row for row in self.accepted(command).splitlines() if row.startswith("Next command (bind"))
+        (self.repo_of(run) / ".shiploop-improve").write_text("a file, not a directory\n", encoding="utf-8")
+        started = self.accepted(bind.split("details below): ", 1)[1])
+        start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
+        self.assertIn("write the opening file first", self.refused(start_line.split("details below): ", 1)[1], run))
+
     def test_an_empty_section_is_refused_naming_it_and_the_filled_opening_is_accepted(self) -> None:
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
