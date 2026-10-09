@@ -22,7 +22,9 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import types
@@ -803,6 +805,77 @@ class PerStageContextTest(unittest.TestCase):
                  {"t": 103.0, "input": 30, "call": False}, {"t": 106.0, "input": 40, "call": True}]
         rows = metrics.per_stage(accepted, turns, {}, stamps, None, context_window=100)
         self.assertEqual([(r["context"]["calls"], r["context"]["peak"], r["turns"]) for r in rows], [(1, 30, 3), (1, 40, 1)])
+
+
+README = ROOT / "test" / "shiploop_e2e" / "README.md"
+
+
+class ReadmeRecipeTest(unittest.TestCase):
+    """The README's S-6 recipe: a watcher that creates `<output>/stop` at a stage boundary, then `--resume-run`. The watcher in
+    the README is the one run here, so the recipe cannot rot into a snippet nobody ran."""
+
+    def section(self) -> str:
+        text = README.read_text()
+        start = text.index("### A fresh context (S-6)")
+        return text[start:text.index("\n### ", start + 5)]
+
+    def watcher(self) -> str:
+        found = re.search(r"```python\n(# stop-watcher.*?)```", self.section(), re.S)
+        self.assertIsNotNone(found, "the README holds no watcher block starting with `# stop-watcher`")
+        return found.group(1)
+
+    def run_watcher(self, out: Path, where: str, stage: str, wait: float = 15.0):
+        return subprocess.run([sys.executable, "-", str(out), where, stage], input=self.watcher(), text=True, cwd=ROOT,
+                              capture_output=True, timeout=wait)
+
+    def folder(self, tmp: str, accepted: list, stage: str, inbox: tuple = ()) -> Path:
+        out = Path(tmp)
+        run_dir = out / ".shiploop-runs" / "work-1" / "run"
+        MAIN.write_engine_records(run_dir, accepted, status="active", stage=stage)
+        (run_dir / "inbox").mkdir()
+        for action in inbox:
+            (run_dir / "inbox" / f"{action}.md").write_text("result\n")
+        return out
+
+    def test_after_a_stage_the_watcher_stops_the_run_once_the_stages_row_is_in_the_ledger(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = self.folder(tmp, [("A1", "intake", "done", 100.0), ("A2", "spec", "done", 110.0)], "test-strategy")
+            done = self.run_watcher(out, "after", "spec")
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertTrue((out / "stop").is_file())
+
+    def test_after_a_stage_that_is_not_accepted_yet_it_keeps_waiting_and_stops_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = self.folder(tmp, [("A1", "intake", "done", 100.0)], "spec")
+            with self.assertRaises(subprocess.TimeoutExpired):
+                self.run_watcher(out, "after", "spec", wait=2.0)
+            self.assertFalse((out / "stop").exists())
+
+    def test_inside_a_stage_it_stops_when_a_result_file_waits_for_an_action_the_ledger_has_not_accepted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = self.folder(tmp, [("A1", "intake", "done", 100.0)], "spec", inbox=("A1", "A2"))
+            done = self.run_watcher(out, "inside", "spec")
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertTrue((out / "stop").is_file())
+
+    def test_inside_a_stage_an_accepted_actions_result_file_is_not_the_boundary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = self.folder(tmp, [("A1", "intake", "done", 100.0)], "spec", inbox=("A1",))
+            with self.assertRaises(subprocess.TimeoutExpired):
+                self.run_watcher(out, "inside", "spec", wait=2.0)
+            self.assertFalse((out / "stop").exists())
+        with tempfile.TemporaryDirectory() as tmp:
+            out = self.folder(tmp, [("A1", "intake", "done", 100.0)], "plan", inbox=("A1", "A2"))
+            with self.assertRaises(subprocess.TimeoutExpired):
+                self.run_watcher(out, "inside", "spec", wait=2.0)
+            self.assertFalse((out / "stop").exists(), "a result file waiting in another stage is not this stage's")
+
+    def test_the_recipe_names_the_flags_the_audit_found_missing_and_the_overshoot(self):
+        text = self.section()
+        for needed in ("--prompt", "--check", "--planning-review none", "--improve-skill", "--resume-run",
+                       "--plugin-dir", "2.25 s", "after_kill", "fresh_starts", "never sits inside an Improve park"):
+            self.assertIn(needed, text)
+        self.assertNotIn("--case hello --prompt", text, "--case and --prompt cannot be combined")
 
 
 class SessionLogTest(unittest.TestCase):
