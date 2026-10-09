@@ -34,7 +34,9 @@ get $PRIOR_WORK (the earlier checkout, read only).
 
 Besides the verdicts, metrics.json records where ShipLoop spent turns, tokens,
 cost and time (per accepted stage), its failed commands, host truncations,
-compactions and the knowledge-home facts (see metrics.py). The run's Run Review
+compactions and the knowledge-home facts (see metrics.py), and a record-only `fidelity`
+block (see fidelity.py: what the run's own records show about how ShipLoop was carried; in
+metrics.json only, at most five printed lines, never a verdict). The run's Run Review
 documents go to <output>/review-export/ (skills/shiploop-run-review/);
 an export problem is printed and never changes a verdict.
 
@@ -87,7 +89,6 @@ import argparse
 import atexit
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -106,6 +107,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
+import fidelity  # noqa: E402
 import hosts  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
@@ -1031,10 +1033,7 @@ def review_export(out: Path) -> str:
     try:
         if not REVIEW_EXPORTER.is_file():
             return f"review export skipped: no exporter at {REVIEW_EXPORTER}"
-        spec = importlib.util.spec_from_file_location("run_review_export", REVIEW_EXPORTER)
-        exporter = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(exporter)
-        return f"review export: {exporter.export_run(out)}"
+        return f"review export: {fidelity.load_exporter(REVIEW_EXPORTER).export_run(out)}"
     except Exception as exc:  # noqa: BLE001 - any export failure is reported, never raised
         return f"review export skipped: {' '.join(str(exc).split())[:300] or type(exc).__name__}"
 
@@ -1883,7 +1882,12 @@ def _main(argv: list[str] | None, held: list) -> int:
     start_head = (follow_on or {}).get("start_head") or (seeded or {}).get("start_head")
     knowledge = shiploop["knowledge"]
     committed = committed_facts(knowledge, start_head)
-    run_metrics = metrics.collect(out, Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
+    ledger = Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None
+    tool_log = metrics.ToolLog()
+    run_metrics = metrics.collect(out, ledger, tools=tool_log)
+    # The fidelity block is a record in metrics.json only (SPEC 2026-10-09): built once here, so a regrade adds it too, and never
+    # a reason for a different verdict, exit code or baseline row. A builder failure is its error block and one printed line.
+    run_metrics["fidelity"] = fidelity.safe_build(out, ledger, tool_log, engine_scripts=the_cli.parent, exporter=REVIEW_EXPORTER)
     if "truncated_outputs" in (run_metrics.get("unmeasured") or {}):
         cli_seen["truncated_outputs"] = None  # [] would read as a measured none
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
@@ -2026,6 +2030,8 @@ def _main(argv: list[str] | None, held: list) -> int:
               f"took {budget['observed_minutes']} min ({budget['source']})")
     for line in metrics.summary_lines(run_metrics):
         print(f"  metrics   {line}")
+    for line in fidelity.lines(run_metrics["fidelity"]):
+        print(f"  fidelity  {line}")
     for failure in run_metrics["shiploop_failures"][:5]:
         print(f"  failed    shiploop {failure['verb']} {metrics.failure_text(failure)}: {failure['line']}")
     if follow_on:

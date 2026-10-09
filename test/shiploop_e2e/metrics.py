@@ -18,6 +18,9 @@ import re
 
 import rollouts
 
+# The prefix of the summary ShipLoop itself records for a stage not applicable to a work item (shiploop_item_scope.NOT_APPLICABLE;
+# a test pins the two equal). The narrative reader and fidelity.py both key on it.
+NOT_APPLICABLE = "Not applicable to this item"
 SHIPLOOP_COMMAND = re.compile(r"shiploop\S*\s+(?P<verb>complete|next|improve-[\w-]+|init|workspace|lint|resume|pause)\b")
 # Model-written glue (SPEC S-4, S-5): shell commands that do a mechanical step
 # ShipLoop owns. Defined by ShipLoop's own paths and verbs, never by product
@@ -124,17 +127,18 @@ TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is s
                           r"Request failure: no in-memory result|Durable cursor recovery: )")
 
 
-def failure_line(shown: str) -> str:
+def failure_line(shown: str, limit: int | None = 200) -> str:
     """The line that names why a ShipLoop command was refused: its own, not the script's fixed trailer.
 
-    Where no line but a trailer matches, the first trailer match is kept (what this recorded before).
+    Where no line but a trailer matches, the first trailer match is kept (what this recorded before). ``limit`` cuts the
+    line for a printed or recorded row (200 characters); None keeps it whole, which is what two refusals are compared by.
     """
     lines = [ln for ln in shown.splitlines() if not MARKER.search(ln)]
     own = next((ln for ln in lines if (FAILURE_LINE.search(ln) or REFUSAL_LINE.search(ln))
                 and not TRAILER_LINE.search(ln)), None)
     if own is None:
         own = next((ln for ln in lines if FAILURE_LINE.search(ln)), "")
-    return own.strip()[:200]
+    return own.strip() if limit is None else own.strip()[:limit]
 
 
 def events(path: Path):
@@ -234,6 +238,23 @@ def plural(count: int, noun: str) -> str:
     return f"{count} {noun}{'' if count == 1 else 's'}"
 
 
+def within(t: float, after: float, until: float) -> bool:
+    """Whether an event at ``t`` belongs to the stage window (after, until]: a stage holds the event of its own acceptance stamp
+    and not the stamp it started at (that one belongs to the stage before)."""
+    return after < t <= until
+
+
+def target_paths(arg: dict) -> list[str]:
+    """The file paths a tool call names, each once and in the order it names them: the single target of Claude's and
+    Grok's edit tools, and Codex's `paths` (its file_change repeats the first path as `target_file`)."""
+    found: list[str] = []
+    listed = arg.get("paths") if isinstance(arg.get("paths"), list) else []
+    for value in (arg.get("target_file"), arg.get("file_path"), arg.get("path"), *listed):
+        if isinstance(value, str) and value and value not in found:
+            found.append(value)
+    return found
+
+
 class ToolLog:
     """The tool calls of one host stream and what each returned, classified once for every host: Grok's `tool_call` and
     `tool_call_update` events, Codex's after the harness translator, and Claude's `tool_use` and `tool_result` blocks.
@@ -254,13 +275,19 @@ class ToolLog:
         self.reads: list[str] = []
         self.failures: list[dict] = []
         self.failed: set = set()  # call ids already counted: Grok repeats an update for one call, which is a failure once
+        # Read by fidelity.py: every tool call in the order the stream made it (``calls`` keeps one per id, and Codex numbers
+        # its calls again in each session), and for each entry of ``failures`` the event it was found at and its whole first line.
+        self.sequence: list[dict] = []
+        self.failure_events: list[dict] = []
         self.scripts: dict[str, dict] = {}  # path -> {body, wraps, bytes, runs, pattern}: the model-written scripts so far
         self.by_tool: dict[str, int] = {}  # Claude only below: what the model called, what came back, how it used packets
         self.result_chars = 0
         self.packets = {"printed": [0, 0], "shell": [0, 0], "read_tool": []}
 
-    def call(self, t, call_id, tool: str, arg: dict) -> None:
-        """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written."""
+    def call(self, t, call_id, tool: str, arg: dict, event: int | None = None) -> None:
+        """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written.
+
+        ``event`` is the call's line number in events.jsonl, kept in ``sequence`` so a listed fact can cite it."""
         self.failed.discard(call_id)  # Codex numbers its calls again in each session: a reused id is a new call
         if ASK_PERSON.search(tool):  # SPEC S-14: an unattended run never asks a person
             self.asked.append(" ".join(str(arg.get("question") or arg or "").split())[:160])
@@ -274,7 +301,9 @@ class ToolLog:
         shell = shell_text(expanded)
         for script in self.scripts.values():  # a run is a tool call that runs the script, however many lines do
             script["runs"] += bool(script["pattern"].search(shell))
-        target = arg.get("target_file") or arg.get("file_path") or arg.get("path")
+        paths = target_paths(arg)
+        target = paths[0] if paths else None
+        self.sequence.append({"event": event, "t": t, "tool": tool, "command": command, "paths": paths})
         self.by_tool[tool] = self.by_tool.get(tool, 0) + 1
         self.calls[call_id if call_id is not None else f"#{len(self.calls)}"] = {
             "t": t, "command": command, "expanded": expanded, "invoked": expanded + wrappers, "tool": tool,
@@ -322,8 +351,8 @@ class ToolLog:
                             "read": {"read_tool": self.packets["read_tool"],
                                      "shell": dict(zip(("calls", "chars"), self.packets["shell"]))}}}
 
-    def result(self, call_id, shown: str, code: int | None) -> None:
-        """One tool result, with the exit code the host showed (None when it showed none)."""
+    def result(self, call_id, shown: str, code: int | None, event: int | None = None) -> None:
+        """One tool result, with the exit code the host showed (None when it showed none) and its line in events.jsonl."""
         refusal = REFUSAL_LINE.search(shown)
         call = self.calls.get(call_id) or {}
         exited = code not in (None, 0) and SHIPLOOP_COMMAND.search(call.get("invoked", ""))
@@ -332,8 +361,9 @@ class ToolLog:
         self.failed.add(call_id)
         verb = SHIPLOOP_COMMAND.search(call.get("expanded", ""))
         # From the refusal's own line on: the model's shell errors before it are not why ShipLoop refused.
-        self.failures.append({"verb": verb.group("verb") if verb else "unknown", "exit": code,
-                              "line": failure_line(shown[refusal.start():] if refusal else shown)})
+        source = shown[refusal.start():] if refusal else shown
+        self.failures.append({"verb": verb.group("verb") if verb else "unknown", "exit": code, "line": failure_line(source)})
+        self.failure_events.append({"event": event, "line": failure_line(source, None)})
 
 
 def engine_state(run_dir: Path | None) -> dict:
@@ -675,9 +705,11 @@ def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], gro
     return {**got, "clock": "host", "source": "rollout token_usage_records"}
 
 
-def collect(out: Path, run_dir: Path | None = None) -> dict:
+def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None) -> dict:
+    """The run's metrics. ``tools`` is the ToolLog to fill (a caller that reads the tool calls itself, as fidelity.py does,
+    passes an empty one); without it the log is this call's own."""
     stamps = timeline(out / "timeline.jsonl")
-    tools = ToolLog()
+    tools = ToolLog() if tools is None else tools
     turns: list[dict] = []
     sessions, compactions = [], 0
     truncated: set = set()
@@ -719,15 +751,15 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             for block in (event.get("message") or {}).get("content") or []:
                 if isinstance(block, dict) and block.get("type") == "tool_use":
                     tools.call(t, block.get("id"), str(block.get("name") or ""),
-                               block["input"] if isinstance(block.get("input"), dict) else {})
+                               block["input"] if isinstance(block.get("input"), dict) else {}, event=number)
             turns.append({"t": t, "input": context_tokens((event.get("message") or {}).get("usage")), "call": first})
         elif kind == "user":  # Claude: the tool_result blocks, whose text may begin with the host's `Exit code N`
             for call_id, shown in tool_results(event):
                 tools.measure(call_id, shown)
-                tools.result(call_id, shown, claude_exit(shown))
+                tools.result(call_id, shown, claude_exit(shown), event=number)
         elif kind == "tool_call":
             arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
-            tools.call(t, event.get("toolCallId"), str(event.get("toolName") or event.get("title") or ""), arg)
+            tools.call(t, event.get("toolCallId"), str(event.get("toolName") or event.get("title") or ""), arg, event=number)
         elif kind == "tool_call_update" and event.get("status") == "failed" and "cancelled" in json.dumps(
                 event.get("content") or "").lower():
             # Grok's headless permission check refused the call; the turn ends with it.
@@ -737,7 +769,7 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
                 truncated.add(event.get("toolCallId"))
             if event.get("status") != "in_progress":  # Grok's running updates carry a placeholder exit 0 and the output so far
                 for call_id, shown in tool_results(event):
-                    tools.result(call_id, shown, event["rawOutput"].get("exit_code"))
+                    tools.result(call_id, shown, event["rawOutput"].get("exit_code"), event=number)
         elif kind == "auto_compact_completed":
             compactions += 1
         elif kind in ("end", "result"):
@@ -895,7 +927,7 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
         except (ValueError, KeyError, TypeError):
             result = None
         # ShipLoop records not-applicable stages itself; only steps the model reported count.
-        if not isinstance(result, dict) or str(result.get("summary", "")).startswith("Not applicable to this item"):
+        if not isinstance(result, dict) or str(result.get("summary", "")).startswith(NOT_APPLICABLE):
             continue
         results += 1
         with_headline += bool(str(result.get("headline") or "").strip())
@@ -1057,8 +1089,8 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
             rows.append({**base, "timing": "unavailable"})
             continue
         after, until, since = window
-        events = [x for x in turns if x["t"] is not None and after < x["t"] <= until]
-        tools = [c for c in calls.values() if c["t"] is not None and after < c["t"] <= until]
+        events = [x for x in turns if x["t"] is not None and within(x["t"], after, until)]
+        tools = [c for c in calls.values() if c["t"] is not None and within(c["t"], after, until)]
         row = {**base, "seconds": round(until - since, 1), **counted(events, tools)}
         if any("call" in x for x in turns):
             peak = max((x["input"] for x in events if x["input"] is not None), default=None)

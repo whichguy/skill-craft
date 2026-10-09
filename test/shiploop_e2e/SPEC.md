@@ -314,6 +314,7 @@ on quickly before the breadth of everything is checked.
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
 | S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered; a requested stop (`<output>/stop`, added 2026-10-08) ends the host and is recorded as `stopped`, and never answers a blocked or awaiting run |
 | S-15 | `narrative`: milestone narratives ShipLoop emitted for the model to show, how many the model showed (heading present) and showed verbatim (every line), the stages whose narrative it skipped, and the share of accepted step results that carry a headline. Scored beside reliability, not a verdict, until a style has a baseline |
+| S-1, S-4, S-5, S-6, S-9, S-10 (as evidence, never a verdict) | `fidelity` in metrics.json only (added 2026-10-09; not in result.json or a baseline row, like `planning`): the evidence class of each accepted action against the check its stage declares (script, loop, file, note, sentence, skipped, with the records behind it), ShipLoop's verify records read as JSON (a focused or regression row whose counts are null is unmeasured, never a pass), the model's edits of script-owned files and its name-pattern kills and `git commit`/`add` commands as listed facts with event numbers, each ShipLoop refusal with whether the same first line came back, the engine's end state, and the five questions each Improve packet carries. Heuristic rows are lists to confirm, not counts to trust: no hit is not proof and a hit can be quoted text, and they say so. The five-question part for Improve packets is TEMPORARY (the exporter scores producer packets only; the table is deleted when the exporter owns it). Every part fails open and an input it cannot read is `unmeasured` with the reason; the paths in the block are relative to the run folder (`<run>`) and the home folder (`~`), so a block names no machine |
 
 Verdicts (invoked, plugin, process, shiploop, committed, checks) must all pass.
 Reliability (sessions, cancellations, failures) and cost (turns, dollars, per
@@ -523,6 +524,48 @@ stands at the commit under test.
   unix-socket servers, and a server whose working directory and command line are
   both outside the folder are not reaped; a pair of concurrent runs still
   shares loopback (see Parallel work).
+- **A fidelity block is a record, never a verdict** (amended 2026-10-09; anchor S-9, "a check that ran nothing is not a pass", and S-1, S-4, S-5
+  and S-6, the clauses its rows are evidence about; the S-15 rule that a measure is scored beside reliability until a style has a baseline).
+  Basis: rounds 1 to 3 of the bounded improvement loop spent 17 hand-mined lens reports on counts the run's own records hold (which stages
+  rest on a script-run record, how many verify rows ran a test, which refusals came back unchanged, the two `sed -i` edits of
+  `return-plan.md` in the round-1 Sonnet runs, the `pkill -f "node server.js"` commands that stopped sibling servers). `metrics.json` therefore
+  carries a `fidelity` block (`test/shiploop_e2e/fidelity.py`, built once per run or regrade by `run._main`), and these rules bound it:
+  1. It changes no verdict, exit code, baseline row, comparison or run, it is not shown to the model, and it starts no process and sends nothing to a
+     model. It is not copied into `result.json`, whose explicit subset is the same as for `planning`.
+  2. Unmeasured is unknown. A part whose input is absent, whose engine records are of another layout (an older stage table, a packet layout
+     without `-improve.md` files) or whose event stream holds no tool call (a regrade of a run whose stream is gone) is null with its reason in the
+     block's `unmeasured` map, never 0 and never a pass. A focused or regression row of a verify record whose `counts` are null is unmeasured, not
+     a pass (S-9): such a row does not show that a test ran (the v1220 Sonnet run has 34 of 34 such rows and the v1220 Grok run 30 of 30). The same
+     holds for a figure nothing measured: `accepted_ran` is null when no verify row carries the key (an engine that does not record it), `zero_ran` is
+     null for a suite with no counted row, and `repeated` is null when no refusal could be given a stage. The release-verify record is shown with its
+     own `passed` and is never worded as a pass: the engine writes what it observed before it decides. Two readers of the verify records exist (the
+     regex `metrics.verifications`, which baselines use, and the JSON reader); a block built from a folder where they disagree names both values in
+     `unmeasured["validation.readers"]`.
+  3. A heuristic part (script-owned edits, name-pattern kills, model commits, refusals read from tool results) is a list of facts for a reviewer to
+     confirm: no hit is not proof, and a hit can be a quoted string that read as a command, so the list is neither a lower nor an upper bound. Known
+     misses, each pinned by a test so it is not forgotten: an edit of a script-owned file by interpreter code (the round-1 `python3 - <<EOF ...
+     open(p, "w")` rewrite of `return-plan.md`), a shell `apply_patch` or `git apply`, a kill by numeric pid (a model's own job and a sibling's
+     process look alike), a relative path after `cd` for any file but the three workspace files that are matched by name (`return-plan.md`,
+     `return-receipt.md`, `workspace.md`), and a ShipLoop verb a model's wrapper script hides from the command (the refusal is still found from the
+     result text, with the verb `unknown`). The README lists the rest (a kill by port, `install`, `truncate`, `cp -t`, `find -exec` and `xargs`
+     writes, a redirect written without a space). The owned set the edit detector reads is anchored to the run directory and the Improve and
+     Until Loop directories, so a product file named `start.json` or `packet.json` is not listed. `model_glue` stays frozen so baselines compare, and
+     its write reason is narrower than the edit list (it does not read `sed -i`, `perl -i` or the workspace names, and it reads `mkdir`). It also does
+     not read inside a Codex `zsh -lc "..."` string, so a Codex glue count is not comparable with the fidelity lists: it misses a command at the
+     first position of the wrapper (shown on a constructed string) and, on the one recorded 1.21.0 run, it read three lines of a heredoc's prose as
+     commits (events 731, 776 and 779). Only the fidelity detectors unwrap such a string.
+  4. There is no pass or fail table. No row of the block is a clause verdict until a style has a baseline for it and a later dated amendment says
+     which rows are verdicts. An earlier design that scored eight clauses was set aside because S-10 as written would have failed 2 of the 11
+     saved Claude and Grok runs (a work item's first carry-forward has no Improve child by design), S-9 would have passed null counts, S-4
+     would have passed beside wrapper scripts, and S-15 says narratives are not a verdict.
+  5. What no script checks stays with a reviewer, and the README names it: whether one call carries one step (S-2), whether the cards agree with the
+     scripts (S-3), packet size (S-7), technology-agnostic wording (S-8), one implementation of each mechanism (S-12) and generality (S-13), and also
+     the truth of a model's sentence, the strength of a test's oracle, and whether a text is clear. The `file` class is satisfied by citing any
+     file, so it is a reading aid and never a target.
+  The one measure of the main tenet in action (the first call after a Grok compaction) belongs to the clear-context group, as `fresh_starts`, and
+  is not built here. Non-regression: only keys are added (`fidelity` in `metrics.json`, and a `tools` argument to `metrics.collect`, an `event` argument to
+  `ToolLog.call` and `ToolLog.result`, an optional `limit` to `failure_line`, and the new `ToolLog.sequence`, `ToolLog.failure_events` and `metrics.target_paths`); `shiploop_failures`, `model_glue`, `script_verifications`, the planning
+  block and every baseline row keep their shape, and S-1 through S-15 are not weakened because nothing here gates a run.
 - Start from an empty directory, or for a follow-on case, from a clean copy of
   an earlier run's checkout. The harness leaves no files of its own behind.
 - Case products are disposable probes. The repository a run builds (and any

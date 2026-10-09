@@ -1,0 +1,7 @@
+{
+ "case": "custom",
+ "host": "grok",
+ "versions": {
+  "source": "marketplace (resumed on its original install)"
+ }
+}

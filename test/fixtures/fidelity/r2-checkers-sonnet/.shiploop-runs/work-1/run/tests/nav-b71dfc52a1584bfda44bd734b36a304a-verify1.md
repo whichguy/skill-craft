@@ -1,0 +1,72 @@
+# ShipLoop test-loop verification
+
+```shiploop-state
+{
+  "action": "nav-b71dfc52a1584bfda44bd734b36a304a",
+  "created_at": "2026-10-09T00:30:22Z",
+  "disposition": "passed",
+  "expect": "red",
+  "passed": true,
+  "runs": [
+    {
+      "command": "node --test test/rules.test.js",
+      "counts": {
+        "failed": 23,
+        "ran": 23,
+        "runners": [
+          "node"
+        ]
+      },
+      "criteria": [
+        "C1"
+      ],
+      "exit": 1,
+      "ids": [
+        "TC-4",
+        "TC-6",
+        "TC-7",
+        "TC-8",
+        "TC-9",
+        "TC-10",
+        "TC-11"
+      ],
+      "ids_missing": [],
+      "min_tests": 12,
+      "seconds": 0.123,
+      "status": "red",
+      "suite": "focused"
+    },
+    {
+      "command": "node --test test/server.test.js",
+      "counts": {
+        "failed": 16,
+        "ran": 16,
+        "runners": [
+          "node"
+        ]
+      },
+      "criteria": [
+        "C2",
+        "C3"
+      ],
+      "exit": 1,
+      "ids": [
+        "TC-1",
+        "TC-2",
+        "TC-3",
+        "TC-5",
+        "TC-13",
+        "TC-14"
+      ],
+      "ids_missing": [],
+      "min_tests": 8,
+      "seconds": 10.36,
+      "status": "red",
+      "suite": "focused"
+    }
+  ],
+  "schema": "shiploop-test-loop/v1",
+  "stage": "test-red",
+  "work_item": "W1"
+}
+```

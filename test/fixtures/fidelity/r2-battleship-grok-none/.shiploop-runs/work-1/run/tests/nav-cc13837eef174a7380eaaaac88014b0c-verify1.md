@@ -1,0 +1,92 @@
+# ShipLoop test-loop verification
+
+```shiploop-state
+{
+  "action": "nav-cc13837eef174a7380eaaaac88014b0c",
+  "created_at": "2026-10-09T01:11:36Z",
+  "disposition": "passed",
+  "passed": true,
+  "runs": [
+    {
+      "command": "node --test test/http.test.js",
+      "counts": {
+        "failed": 0,
+        "ran": 12,
+        "runners": [
+          "node"
+        ]
+      },
+      "criteria": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6"
+      ],
+      "exit": 0,
+      "ids": [
+        "TC-deps",
+        "TC-port",
+        "TC-title",
+        "TC-new",
+        "TC-sweep",
+        "TC-bad",
+        "TC-404",
+        "TC-restart",
+        "TC-contract"
+      ],
+      "ids_missing": [],
+      "min_tests": 9,
+      "seconds": 0.549,
+      "status": "passed",
+      "suite": "focused"
+    },
+    {
+      "command": "node --test",
+      "counts": {
+        "failed": 0,
+        "ran": 35,
+        "runners": [
+          "node"
+        ]
+      },
+      "criteria": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6"
+      ],
+      "exit": 0,
+      "ids": [
+        "TC-deps",
+        "TC-port",
+        "TC-title",
+        "TC-new",
+        "TC-sweep",
+        "TC-bad",
+        "TC-404",
+        "TC-restart",
+        "TC-contract",
+        "TC-miss",
+        "TC-hit",
+        "TC-sunk",
+        "TC-repeat",
+        "TC-win",
+        "TC-after",
+        "TC-args"
+      ],
+      "ids_missing": [],
+      "min_tests": 9,
+      "seconds": 0.558,
+      "status": "passed",
+      "suite": "regression"
+    }
+  ],
+  "schema": "shiploop-test-loop/v1",
+  "stage": "verify",
+  "work_item": "W2"
+}
+```
