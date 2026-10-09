@@ -98,6 +98,22 @@ signal (a source scan: only `killpg(..., 0)` outside it), `run.kill_group` and `
 class run, the file restored): signalling after a reap, no leader check, skipping the zombie case: all red. Applying the getpgid
 check to a zombie too survives, as an equivalent mutant (getpgid raises for it on macOS and the fallback re-checks).
 
+### (c) The quick tier selects the whole E2E family (firm)
+
+Before: `_PREFIX_SUITE_IDS["test/shiploop_e2e/"]` was `("shiploop-e2e",)` on G1 and G4 and `("shiploop-e2e",
+"shiploop-e2e-reorientation")` on G2, so an edit of `metrics.py` or `fidelity.py` (names too common for the stem rule) ran
+neither `shiploop-e2e-fidelity`, `-runrecord` nor `-environment` in the quick tier, although each reads those modules. Now the
+prefix maps to `_E2E_FAMILY_IDS`, read from the catalog (every ShipLoop suite whose id is `shiploop-e2e` or starts with
+`shiploop-e2e-`; the apparatus is another family), so G3's `-baseline` and G5's `-quality` are selected once their files are
+registered, with no second list. Cost for a harness edit: about 182 s of catalog durations (shiploop-e2e 100, -environment 65,
+-fidelity 9, -reorientation 7.7, -runrecord 0.2), each suite under `QUICK_MAX_SECONDS`.
+
+Tests first (`test/test-groups.test.py`, `E2EFamilySelectionTest`, 3 tests): the pinned family (five suites on this branch)
+equals the catalog's E2E suites, so a merged group that adds one must update the pin on purpose; an edit of `run.py`,
+`metrics.py`, `fidelity.py`, `sessionlog.py` or `environment.py` selects the whole family through `targeted` and through
+`quick` (red before: only shiploop-e2e and -reorientation); the apparatus is not selected. Pinned counts stay the real catalog:
+73 ShipLoop suites, 114 in all (`test_audited_catalog_counts_and_fixed_commands`). test-groups: 24 OK.
+
 ## 3. Open items
 
 - G3 and G5 are not merged. Their duplicates (span/overlap readers, the `--version` probe helper, G5's `quality.end_group`) are
@@ -121,3 +137,4 @@ All runs with `SHIPLOOP_PROGRESS=off` and no exported `GIT_CONFIG_*` variable.
 | after (a) | shiploop-e2e-fidelity | 142 OK, 8.3 s |
 | after (b) (load about 4) | shiploop-e2e-environment | 132 OK, 62.3 s |
 | | `python3 test/shiploop-e2e.test.py` | 404 OK, 108.2 s |
+| after (c) | test-groups | 24 OK, 2.5 s |

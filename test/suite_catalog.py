@@ -485,11 +485,19 @@ _PATH_SUITE_IDS = {
     "test/shiploop_e2e/SPEC.md": ("shiploop-e2e", "shiploop-navigator-contract", "shiploop-run-review"),
 }
 
+# Every suite of the E2E harness family that the catalog holds (shiploop-e2e and its shiploop-e2e-<topic> files; the
+# apparatus is another family and not a ShipLoop suite).  Read from the catalog, so a group that adds a family suite is
+# selected without a second list here; test-groups pins the family as it stands.
+_E2E_FAMILY_IDS = tuple(suite.id for suite in SHIPLOOP_SUITES
+                        if suite.id == "shiploop-e2e" or suite.id.startswith("shiploop-e2e-"))
+
 # Directories whose files have names too common to select by (run.py, hosts.py), and the leaf whose
 # ShipLoop-family suite its name does not select (the leaf-name rule skips that family).  A new leaf's
-# package build is its release gate, so the Run Review leaf also selects marketplace-package.
+# package build is its release gate, so the Run Review leaf also selects marketplace-package.  Each family
+# suite reads the harness's modules (run.py, metrics.py) itself, so an edit of one runs them all: about 182 s
+# of the quick tier on 2026-10-09 (shiploop-e2e 100, -environment 65, -fidelity 9, -reorientation 7.7, -runrecord 0.2).
 _PREFIX_SUITE_IDS = {
-    "test/shiploop_e2e/": ("shiploop-e2e", "shiploop-e2e-reorientation"),
+    "test/shiploop_e2e/": _E2E_FAMILY_IDS,
     "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
 }
 

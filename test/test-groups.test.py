@@ -410,5 +410,32 @@ class QuickSelectionNameCollisionTest(unittest.TestCase):
                 self.assertGreaterEqual(self.selected(path), expected)
 
 
+class E2EFamilySelectionTest(unittest.TestCase):
+    """An edit under test/shiploop_e2e/ runs every suite of the E2E harness family in the quick tier (batch 1011 integration).
+
+    The harness's modules (run.py, metrics.py, fidelity.py, sessionlog.py, environment.py) have names too common to select by,
+    and each family suite reads them through run.py or metrics.py: before, the prefix selected shiploop-e2e alone (and, after
+    group G2, shiploop-e2e-reorientation), so an edit of metrics.py skipped the fidelity, runrecord and environment suites.
+    The family is pinned as it stands on this branch, so a merged group that adds a suite updates this list on purpose.
+    """
+
+    FAMILY = {"shiploop-e2e", "shiploop-e2e-runrecord", "shiploop-e2e-fidelity", "shiploop-e2e-reorientation",
+              "shiploop-e2e-environment"}
+
+    def test_the_pinned_family_is_every_e2e_suite_in_the_catalog(self) -> None:
+        catalog = {suite.id for suite in suite_catalog.SHIPLOOP_SUITES if suite.id.startswith("shiploop-e2e")}
+        self.assertEqual(catalog, self.FAMILY)
+
+    def test_an_edit_of_the_harness_runs_the_whole_family_in_the_quick_tier(self) -> None:
+        for path in ("test/shiploop_e2e/run.py", "test/shiploop_e2e/metrics.py", "test/shiploop_e2e/fidelity.py",
+                     "test/shiploop_e2e/sessionlog.py", "test/shiploop_e2e/environment.py"):
+            with self.subTest(path=path):
+                self.assertGreaterEqual(suite_catalog.targeted([path]), self.FAMILY)
+                self.assertGreaterEqual({suite.id for suite in suite_catalog.quick([path])}, self.FAMILY)
+
+    def test_the_apparatus_is_not_part_of_the_family(self) -> None:
+        self.assertNotIn("shiploop-e2e-apparatus", suite_catalog.targeted(["test/shiploop_e2e/run.py"]))
+
+
 if __name__ == "__main__":
     unittest.main()
