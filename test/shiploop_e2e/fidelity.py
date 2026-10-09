@@ -11,9 +11,10 @@ the part null with its reason in the block's ``unmeasured`` map, never 0 and nev
   edits          the model's edits of script-owned files, name-pattern kills and git commit/add commands, as listed facts
   refusals       each ShipLoop refusal, and whether the same first line came back in the same stage
   end_state      the engine's status and, for a blocked run, what it awaits
-  improve_packets  whether each Improve packet carries its five questions
+  improve_packets  whether each Improve packet carries its five questions (TEMPORARY: deleted when the exporter scores Improve packets)
 
-The heuristic parts (edits, refusals) are a lower bound: no hit is not proof. Known misses are in the README and pinned by tests.
+The heuristic parts (edits, refusals) are lists to confirm: no hit is not proof and a hit can be quoted text. Known misses are in the README
+and pinned by tests.
 """
 
 from __future__ import annotations
@@ -57,8 +58,9 @@ IMPROVE_QUESTIONS = (
 REFUSAL_LIMITS = ("a repeat needs a known stage (the stage join is whole seconds and needs timeline.jsonl) and the same whole first line as the "
                   "refusal just before it; the same line twice is a pointer, neutral about cause (a remedy that misled or an honest second "
                   "failed try); a result the host saved to a file is not read")
-EDIT_LIMITS = ("a lower bound: a script-owned file rewritten by interpreter code (a python3 heredoc), a shell apply_patch or git apply, "
-               "a kill by numeric pid and a relative path after cd (other than the three workspace files, matched by name) are not seen")
+EDIT_LIMITS = ("a list to confirm: no hit is not proof (an edit by interpreter code such as a python3 heredoc, a shell apply_patch or git "
+               "apply, a kill by numeric pid or by port, and a relative path after cd other than the three workspace files, matched by "
+               "name, are not seen) and a hit can be quoted text read as a command (a quoted > word reads as a redirect)")
 UNREAD_REASON = ("a verify record that is not shiploop-test-loop/v1 or cannot be read as JSON is not read, so its rows are in no "
                  "count below")
 COUNTS_REASON = ("a focused or regression row whose counts are null does not show that a test ran (S-9: a check that ran nothing "
@@ -508,7 +510,7 @@ def reader_disagreement(found: dict, regex: dict) -> str | None:
 
 def edits(tools) -> dict:
     """What the model ran that touches ShipLoop's side of the work, as listed facts with the event number of each (a line of
-    events.jsonl). Heuristic and a lower bound (``limits``). ``script_owned`` are edits of files ShipLoop's scripts own, by an edit
+    events.jsonl). Heuristic: a list to confirm (``limits``). ``script_owned`` are edits of files ShipLoop's scripts own, by an edit
     tool or a shell write; ``name_kills`` are kills by process name; ``model_commits`` are the calls that ran git commit or add
     (the frozen model_glue counts them too, but does not read inside a Codex `zsh -lc` string)."""
     if tools is None or not tools.sequence:

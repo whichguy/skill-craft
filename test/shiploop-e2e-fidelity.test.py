@@ -1096,8 +1096,11 @@ class EditsTest(unittest.TestCase):
                 self.assertIn("no tool call", block["unmeasured"]["refusals"])
                 self.assertIsNotNone(block["evidence"], "the parts that read the run folder do not need the stream")
 
-    def test_the_list_says_it_is_a_lower_bound(self):
-        self.assertIn("lower bound", replay("r1-battleship-sonnet")["block"]["edits"]["limits"])
+    def test_the_list_says_it_is_a_list_to_confirm_and_names_what_it_cannot_see(self):
+        limits = replay("r1-battleship-sonnet")["block"]["edits"]["limits"]
+        for phrase in ("a list to confirm", "no hit is not proof", "numeric pid", "apply_patch", "quoted text"):
+            self.assertIn(phrase, limits)
+        self.assertNotIn("lower bound", limits, "a hit can be quoted text, so the list is not a lower bound")
 
 
 class RefusalsTest(unittest.TestCase):
