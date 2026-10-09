@@ -622,13 +622,12 @@ def memory_writes(events_path: Path) -> list[dict]:
     events, so a regrade gives the same answer whatever the live profile holds now; a write made by a shell command is not seen."""
     found = []
     for number, event in metrics.events(events_path):
-        if event.get("type") != "assistant":
+        if event.get("type") != "assistant":  # Claude's calls only: the tool names below are Claude's
             continue
-        for block in (event.get("message") or {}).get("content") or []:
-            if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") in MEMORY_TOOLS:
-                path = (block.get("input") or {}).get("file_path")
-                if isinstance(path, str) and CLAUDE_MEMORY.search(path):
-                    found.append({"path": path, "tool": block["name"], "line": number + 1})
+        for _call_id, tool, arg in metrics.tool_call_events(event):  # the one reader of a host event's tool calls
+            path = arg.get("file_path")
+            if tool in MEMORY_TOOLS and isinstance(path, str) and CLAUDE_MEMORY.search(path):
+                found.append({"path": path, "tool": tool, "line": number + 1})
     return found
 
 

@@ -1188,6 +1188,22 @@ class EventFactsTest(QualityCase):
             tool_use_line("Bash", command="echo hi > /Users/x/.claude/projects/-a-b/memory/shell.md"))
         self.assertEqual([(w["tool"], w["line"]) for w in quality.memory_writes(path)], [("Edit", 1), ("MultiEdit", 2), ("Write", 4)])
 
+    def test_the_memory_writes_are_read_through_the_one_tool_call_reader(self):
+        # Batch 1011 integration: a tool call is read one way (metrics.tool_call_events, which ToolLog.feed uses); the memory
+        # reader asks it for Claude's calls instead of walking the content blocks itself.
+        import metrics
+        seen = []
+        real = metrics.tool_call_events
+
+        def reader(event):
+            seen.append(event.get("type"))
+            return real(event)
+
+        with mock.patch.object(metrics, "tool_call_events", side_effect=reader):
+            found = quality.memory_writes(MEMORY_EVENTS)
+        self.assertEqual([w["line"] for w in found], [2, 6])  # the compact extract of r3-checkers-sonnet 599 and 605
+        self.assertTrue(seen and set(seen) == {"assistant"}, "Claude's assistant events, each read by the one reader")
+
     def test_a_run_that_wrote_nothing_there_is_a_measured_empty_list(self):
         path = self.events(tool_use_line("Write", file_path="/work/server.js", content="x"))
         facts, unmeasured = quality.event_facts(path, ["claude"], [])

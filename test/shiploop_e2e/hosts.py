@@ -26,6 +26,7 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import listeners  # noqa: E402  (the one group kill)
+import runrecord  # noqa: E402  (the one set of host-build reasons)
 
 # The user's Grok sign-in; the only file an isolated Grok HOME links to.
 GROK_AUTH = Path.home() / ".grok" / "auth.json"
@@ -222,7 +223,7 @@ class Host:
         Claude names its build in its init event, so it is never probed. Never call it to describe a run that was
         launched earlier.
         """
-        return None, "Claude: read from the init event after the run"
+        return None, runrecord.CLAUDE_BUILD  # "Claude: read from the init event after the run"
 
 
 class GrokHost(Host):
