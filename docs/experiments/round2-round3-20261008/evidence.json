@@ -1,0 +1,83 @@
+{
+ "builds": {
+  "r1": "1.24.0 / ShipLoop 0.56.0",
+  "r2": "1.25.0 / 0.57.0",
+  "r3": "1.26.0 / 0.58.0"
+ },
+ "runs": {
+  "r1_battleship_sonnet": {
+   "pass": true,
+   "cost_usd": 5.7046,
+   "turns": 207,
+   "accepted_rows": 37,
+   "minutes": 13.7,
+   "planning_minutes": 4.5
+  },
+  "r1_checkers_sonnet": {
+   "pass": true,
+   "cost_usd": 5.1613,
+   "turns": 185,
+   "accepted_rows": 36,
+   "minutes": 12.9,
+   "planning_minutes": 4.4
+  },
+  "r1_battleship_grok_none": {
+   "pass": false,
+   "cost_usd": 8.7455,
+   "turns": 301,
+   "accepted_rows": 27,
+   "minutes": 75.6,
+   "planning_minutes": 21.8
+  },
+  "r2_battleship_sonnet": {
+   "pass": true,
+   "cost_usd": 5.8146,
+   "turns": 206,
+   "accepted_rows": 36,
+   "minutes": 13.4,
+   "planning_minutes": 3.9
+  },
+  "r2_checkers_sonnet": {
+   "pass": true,
+   "cost_usd": 8.5146,
+   "turns": 293,
+   "accepted_rows": 37,
+   "minutes": 20.7,
+   "planning_minutes": 5.1
+  },
+  "r2_battleship_grok_none": {
+   "pass": true,
+   "cost_usd": 5.4866,
+   "turns": 268,
+   "accepted_rows": 52,
+   "minutes": 61.0,
+   "planning_minutes": 10.7,
+   "outcome": "harness SIGTERMed at ~15 min (a concurrent Checkers model ran pkill -f 'node server.js', which matched this harness's argv); host orphaned, resumed in place under the harness, ShipLoop done (52 accepted), regraded PASS after fixing a metrics KeyError"
+  },
+  "r3_battleship_sonnet": {
+   "pass": true,
+   "cost_usd": 5.6749,
+   "turns": 197,
+   "accepted_rows": 36,
+   "minutes": 12.5,
+   "planning_minutes": 3.7
+  },
+  "r3_checkers_sonnet": {
+   "pass": true,
+   "cost_usd": 6.6509,
+   "turns": 232,
+   "accepted_rows": 38,
+   "minutes": 14.9,
+   "planning_minutes": 4.1
+  },
+  "r3_battleship_grok_none": {
+   "pass": false,
+   "cost_usd": null,
+   "turns": 230,
+   "accepted_rows": 16,
+   "minutes": 64.2,
+   "planning_minutes": 20.7,
+   "outcome": "STOPPED by the loop's same-error-3x rule after 35 min of Chrome debugging inside implement (104 turns, 27 min in that stage); headless Chrome did not load the real page over http://127.0.0.1 in 3 of 3 Grok runs where it was tried (r1 blocked at system-test-author, r2 worked, r3 hung); a file: stand-in page loaded fine in the planning probe"
+  }
+ }
+}
