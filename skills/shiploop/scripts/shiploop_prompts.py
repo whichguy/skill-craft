@@ -1318,7 +1318,9 @@ Authoring is complete only when selected clauses have executable check bindings
 or justified reproducible manual procedures at their required surfaces. Keep
 unavailable execution prerequisites and later-phase observations pending.
 On done, ShipLoop runs the item's focused commands once and refuses unless a test
-ran (a counted test with every listed ID shown, or a failing test). """ + ID_WORD_RULE + """ Tests that
+ran (a counted test with every listed ID shown, or a failing test). """ + ID_WORD_RULE + """ The number
+of tests that run here is the least any later run of the command may run for this item, until test-refine reconciles any
+removed case. Tests that
 load something this item creates need it loadable now: create the smallest
 loadable placeholder at a path the step plan's `paths` names, or load it inside
 the test so a missing file fails that test and not the run.

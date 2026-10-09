@@ -212,9 +212,10 @@ _DURATION_SECONDS = {
     "test/shiploop-improve-schedule.test.py": 14.0,
     "test/shiploop-lint.test.py": 36.0,
     "test/shiploop-quality.test.py": 5.0,
-    # 3.0 was written when the suite had a fraction of its tests.  Local wall seconds, 2026-10-08, the faster of two
-    # serial runs at load average 4.7 to 6.8: 67 tests, 79.0 s (the other run 83.0 s).  Under QUICK_MAX_SECONDS.
-    "test/shiploop-test-loop.test.py": 79.0,
+    # 3.0 was written when the suite had a fraction of its tests.  Local wall seconds, 2026-10-08, one serial run at load
+    # average 3.7 to 5.3 (batch 1010 G6, after the whole-word and count-floor tests and their review): 115 tests, 94.0 s (user
+    # plus system CPU 81.2 s); the 79.0 s before was 67 tests at a higher load.  Under QUICK_MAX_SECONDS.
+    "test/shiploop-test-loop.test.py": 94.0,
     "test/shiploop-test-counts.test.py": 0.2,
     "test/shiploop-backchain-check.test.py": 1.0,
     "test/shiploop-improve-changes.test.py": 1.5,
