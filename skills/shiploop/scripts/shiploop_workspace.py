@@ -1482,18 +1482,26 @@ def expected_return(workspace_root: Path) -> Optional[str]:
                         any(row["in_final_delta"] and row["disposition"] == "keep" for row in rows))
 
 
+# Said right after the route's first sentence, because a model reads this line cut short and a file written after the
+# last work item was committed by hand ahead of the return.  It describes plan-return (commit_leftovers) in both routes:
+# the files it skips are the credential-like ones, which its own notice tells the model to fix and then commit.
+_LEFTOVERS_CLAUSE = ("plan-return commits files left uncommitted, so commit nothing for the return except a file it "
+                    "reports as not committed.")
+
+
 def route_sentence(workspace_root: Path) -> str:
     """How this run's return will go, from workspace.md alone (read-only; raises WorkspaceError when unreadable)."""
     manifest = _manifest(_resolved_directory(Path(workspace_root), label="workspace root"))
     branch = manifest["source_branch"]
     if manifest["start_clean"]:
-        return (f"Return route (from workspace.md): this run started from a clean {branch}. The return fast-forwards "
-                f"{branch} to the run branch {manifest['branch']} when the candidate is committed and every path in "
-                "its history is kept; if the plan excludes a committed path or leaves a file uncommitted, it applies "
-                "only the kept files to the working tree instead, which is not a Git merge or commit.")
-    return (f"Return route (from workspace.md): this run started from a dirty {branch}. The return applies only the "
-            "kept files to the working tree: it is not a Git merge or commit, and your original index and work are "
-            "left as they were.")
+        return (f"Return route (from workspace.md): this run started from a clean {branch}. {_LEFTOVERS_CLAUSE} The "
+                f"return fast-forwards {branch} to the run branch {manifest['branch']} when the candidate is committed "
+                "and every path in its history is kept; if the plan excludes a committed path or leaves a file "
+                "uncommitted, it applies only the kept files to the working tree instead, which is not a Git merge or "
+                "commit.")
+    return (f"Return route (from workspace.md): this run started from a dirty {branch}. {_LEFTOVERS_CLAUSE} The return "
+            "applies only the kept files to the working tree: it is not a Git merge or commit, and your original "
+            "index and work are left as they were.")
 
 
 def rollback_lines(workspace_root: Path) -> List[str]:

@@ -711,5 +711,60 @@ class ReturnRouteTests(ReturnReviewCase):
             self.assertNotIn("Rollback of the return", packet)
 
 
+    def test_the_route_sentence_says_plan_return_commits_files_left_uncommitted_and_plan_return_does_exactly_that(self) -> None:
+        """Batch 1010 A2: the sentence a model reads before the return must not leave a model hand-committing a leftover.
+
+        The sentence used to say the fast-forward needs "the candidate is committed" and that the plan "leaves a file
+        uncommitted" otherwise, and never that plan-return commits such a file first.  In the Battleship round-2 run the
+        model read that line through a ``cut`` of 250 characters and committed a late-written file by hand, and its
+        outcome note kept the false rule "commit them before the return".  So the clause that matters comes straight
+        after the first sentence, and each thing it says is held against the real verb below.
+        """
+        root, worktree = self.start("route leftovers")
+        self.write(worktree, "app.js", "product\n")
+        self.commit(worktree, "work item")
+        self.write(worktree, "late.js", "written after the last work item\n")
+        self.write(worktree, "settings.env", "Authorization: Bearer 0123456789abcdefghij\n")
+        self.write(worktree, ".shiploop-improve/child/review.md", "run evidence\n")
+        self.at(root, "release-plan")
+
+        def route(of: Path) -> str:
+            return next(line for line in self.render(of, "release-plan").splitlines()
+                        if line.startswith("Return route (from workspace.md)"))
+
+        clause = ("plan-return commits files left uncommitted, so commit nothing for the return except a file it "
+                  "reports as not committed.")
+        with self.subTest("the clean-start sentence"):
+            line = route(root)
+            self.assertIn(clause, line)
+            self.assertEqual(line.count("plan-return"), 1)
+            # It follows the first sentence and comes before the fast-forward rule, and ends inside the 250
+            # characters the Battleship run read of this line.
+            self.assertLess(line.index(clause), line.index("The return fast-forwards"))
+            self.assertLessEqual(line.index(clause) + len(clause), 250)
+        with self.subTest("the dirty-start sentence says it too: the hazard does not depend on the route"):
+            (self.repo / "existing.txt").write_text("edited by the user\n", encoding="utf-8")
+            dirty_root, _ = self.start("route leftovers dirty")
+            self.git("checkout", "-q", "--", "existing.txt")
+            line = route(dirty_root)
+            self.assertIn("this run started from a dirty main", line)
+            self.assertIn(clause, line)
+            self.assertLess(line.index(clause), line.index("The return applies only the kept files"))
+        with self.subTest("plan-return commits the late file, screens the credential-like one and skips run evidence"):
+            out = self.plan_return(root).stdout
+            self.assertIn("ShipLoop committed these files that were left uncommitted (no action needed): late.js", out)
+            self.assertIn("Not committed, they look like they hold a credential: settings.env", out)
+            self.assertEqual(self.git("ls-files", cwd=worktree).stdout.split(), ["app.js", "existing.txt", "late.js"])
+        with self.subTest("the exception is real: the file it reports as not committed keeps the return off the branch"):
+            self.review(root, "--keep", "app.js", "late.js", "settings.env")
+            self.assertEqual(workspace.expected_return(root), "working-tree-return")
+        with self.subTest("committing that file as the report says (value replaced) restores the fast-forward"):
+            self.write(worktree, "settings.env", "Authorization: set from the environment\n")
+            self.git("add", "settings.env", cwd=worktree)  # only that file: `add -A` would take the run evidence too
+            self.git("commit", "-qm", "reference the credential, not its value", cwd=worktree)
+            self.plan_return(root)  # the earlier keep decisions carry, so nothing is left to decide
+            self.assertEqual(workspace.expected_return(root), "fast-forward-merge")
+
+
 if __name__ == "__main__":
     unittest.main()
