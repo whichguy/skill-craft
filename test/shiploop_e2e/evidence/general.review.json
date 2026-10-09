@@ -1715,6 +1715,94 @@
     ],
     "goal": "Do: keep phase-4's text, since a skipped skill stage is still recorded by the script with its own result file, and change no file. Files and symbols: skills/shiploop-run-review/defaults/expectations.json (phase-4, unchanged). Test: none; this records a known limit. Done when: the journal notes the reading.",
     "why": "The other side: the stage is still script-served, only not run; but the text reads as if each stage ran."
+   },
+   "a87": {
+    "title": "Say in the Plan expectation that the Backchain child is the host's choice",
+    "criterion": "phase-2",
+    "kind": "change-expectation",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o65"
+    ],
+    "change": {
+     "target": "page",
+     "to": "The script opens the planning stages. Backchain turns the spec into a dependency graph, and the item's step plan is built the same way. The script, not the model, writes every loop contract and decides when each plan is closed. there is no limit to this. Since skill-craft 1.25.0 (4c2a8a98) the plan packet makes the Backchain child the host's choice under backchain_passes one: in the nine round runs of 2026-10-08 none ran the Backchain loop and 3 ran the structural backchain-check, and a plan made without the child is a prose dependency audit that no script checks.",
+     "reason": "The text says Backchain turns the spec into a dependency graph; since 4c2a8a98 the child is optional, 0 of 9 round runs ran it and 3 of 9 checked a graph. The owner's sentence 'there is no limit to this' is kept word for word; only a full stop is added before the appended sentence."
+    },
+    "goal": "Do: replace phase-2's text in skills/shiploop-run-review/defaults/expectations.json with change.to, append a revs entry naming this option and its finding, and journal it. Files and symbols: phase-2 in skills/shiploop-run-review/defaults/expectations.json; docs/shiploop-run-review-journal.md. Test: python3 -B test/shiploop-run-review.test.py. Done when: the defaults carry the amended phase-2 text, it still contains the owner's sentence, its revs entry names this option, and the suite passes.",
+    "why": "For: the page then states what the engine does under one pass, and keeps the owner's words. Against: a longer phase text. Verdict: apply it; B2 stays as the aim for runs that build a graph."
+   },
+   "a88": {
+    "title": "Say in the Prove expectation that skill stages can be recorded not applicable",
+    "criterion": "phase-4",
+    "kind": "change-expectation",
+    "effort": "S",
+    "recommended": true,
+    "status": "open",
+    "findings": [
+     "o80"
+    ],
+    "change": {
+     "target": "page",
+     "to": "Regression, documentation, skill assessment and validation, and static checks each run as a script-served stage with their own result file. Skill assessment and validation are recorded by the script as not applicable, with a result file and no packet, when the accepted step plan records skill_na (skill-craft 1.24.0, 8af12178).",
+     "reason": "Since 8af12178 the script records both skill stages as not applicable under skill_na; 10 visits in 4 of the 9 round runs were recorded so, while the text says each runs as a script-served stage."
+    },
+    "goal": "Do: replace phase-4's text in skills/shiploop-run-review/defaults/expectations.json with change.to, append a revs entry naming this option and its finding, and journal it. Files and symbols: phase-4 in skills/shiploop-run-review/defaults/expectations.json; docs/shiploop-run-review-journal.md. Test: python3 -B test/shiploop-run-review.test.py. Done when: the defaults carry the amended phase-4 text with its revs entry and the suite passes.",
+    "why": "For: a run that skips both stages by design then reads as the expectation. Against: none found. Verdict: apply it."
+   },
+   "a89": {
+    "title": "Add a criterion for S-14: unattended by default",
+    "criterion": "P7",
+    "kind": "change-expectation",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o72"
+    ],
+    "change": {
+     "target": "page",
+     "to": "{\"key\": \"P7\", \"kind\": \"criterion\", \"group\": \"group-principles\", \"order\": 7, \"title\": \"Unattended by default\", \"text\": \"When a step meets an open question, it takes a stated, recorded default instead of waiting. When a step needs something only a person can supply, the run records it as an open item, continues with everything that does not depend on it, and prompts only when it truly cannot proceed.\", \"clauses\": [\"S-14\"]}",
+     "reason": "No criterion of skills/shiploop-run-review/defaults/expectations.json carries S-14 (their clauses are S-1, S-2, S-4, S-5, S-6, S-7, S-9, S-10 and S-11), so step 2 has no row for it; S-3, S-8, S-12, S-13, S-14 and S-15 have none either. The SPEC's S-14 says a step takes a stated, recorded default for an open question, records what only a person can supply as an open item, continues, and prompts only when the run truly cannot proceed; the round-1 Grok block (o72) and the unverified list bear on it. An open option in the Luna review proposes the same key for the person-only half of S-14: tick one of the two."
+    },
+    "goal": "Do: add change.to as a new criterion document to skills/shiploop-run-review/defaults/expectations.json (key P7, group-principles, clauses S-14) with a revs entry naming this option and its findings, set the criterion of finding o72 to P7 in test/shiploop_e2e/evidence/general.review.json, and journal it. Files and symbols: skills/shiploop-run-review/defaults/expectations.json; test/shiploop_e2e/evidence/general.review.json; docs/shiploop-run-review-journal.md. Test: python3 -B test/shiploop-run-review.test.py and export.py --check on every bundle. Done when: the defaults carry P7 with clauses S-14, every bundle passes --check and the suite passes.",
+    "why": "For: S-14 is the clause the Grok block tests, and step 2 cannot show it. Against: one more row, and a headless run can only show S-14 through its records. Verdict: tick it with the owner's S-14 decision on o72."
+   },
+   "a90": {
+    "title": "Add a criterion for S-15: the user follows the run from the script's status",
+    "criterion": "P8",
+    "kind": "change-expectation",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o76"
+    ],
+    "change": {
+     "target": "page",
+     "to": "{\"key\": \"P8\", \"kind\": \"criterion\", \"group\": \"group-principles\", \"order\": 8, \"title\": \"The user follows the run from the script's status\", \"text\": \"What the user sees about progress is rendered by ShipLoop's scripts from saved state: a short status at every step and, at milestones, a narrative of what is achieved, what is happening, what comes next and the observed pace. The model never composes, paraphrases or estimates progress itself.\", \"clauses\": [\"S-15\"]}",
+     "reason": "No criterion of skills/shiploop-run-review/defaults/expectations.json carries S-15 (their clauses are S-1, S-2, S-4, S-5, S-6, S-7, S-9, S-10 and S-11), so step 2 has no row for it; S-3, S-8, S-12, S-13, S-14 and S-15 have none either. The SPEC's S-15 says progress is rendered by ShipLoop's scripts from saved state and the model never composes or estimates it; every round run measured it (o76), with 'shown 0' on every headless Sonnet run."
+    },
+    "goal": "Do: add change.to as a new criterion document to skills/shiploop-run-review/defaults/expectations.json (key P8, group-principles, clauses S-15) with a revs entry naming this option and its findings, set the criterion of finding o76 to P8 in test/shiploop_e2e/evidence/general.review.json, and journal it. Files and symbols: skills/shiploop-run-review/defaults/expectations.json; test/shiploop_e2e/evidence/general.review.json; docs/shiploop-run-review-journal.md. Test: python3 -B test/shiploop-run-review.test.py and export.py --check on every bundle. Done when: the defaults carry P8 with clauses S-15, every bundle passes --check and the suite passes.",
+    "why": "For: the narrative measure exists in every run and has no row to land on. Against: on a headless run the row would read not examined at best (o76). Verdict: add it with the headless caveat recorded."
+   },
+   "a91": {
+    "title": "Add a criterion for S-3: the scripts are authoritative",
+    "criterion": "P9",
+    "kind": "change-expectation",
+    "effort": "S",
+    "status": "open",
+    "findings": [
+     "o45",
+     "o49"
+    ],
+    "change": {
+     "target": "page",
+     "to": "{\"key\": \"P9\", \"kind\": \"criterion\", \"group\": \"group-principles\", \"order\": 9, \"title\": \"The scripts are authoritative\", \"text\": \"SKILL.md and the reference cards tell the model how to invoke the scripts and to follow what they return. When a card and a script disagree, the script wins, and the disagreement is a defect to fix.\", \"clauses\": [\"S-3\"]}",
+     "reason": "No criterion of skills/shiploop-run-review/defaults/expectations.json carries S-3 (their clauses are S-1, S-2, S-4, S-5, S-6, S-7, S-9, S-10 and S-11), so step 2 has no row for it; S-3, S-8, S-12, S-13, S-14 and S-15 have none either. The SPEC's S-3 says that when a card and a script disagree the script wins and the disagreement is a defect; the round-3 integrate notice (o45) and the host_dependent guard (o49) are such disagreements, and both analyses cite S-3 for them."
+    },
+    "goal": "Do: add change.to as a new criterion document to skills/shiploop-run-review/defaults/expectations.json (key P9, group-principles, clauses S-3) with a revs entry naming this option and its findings, set the criterion of finding o45 and o49 to P9 in test/shiploop_e2e/evidence/general.review.json, and journal it. Files and symbols: skills/shiploop-run-review/defaults/expectations.json; test/shiploop_e2e/evidence/general.review.json; docs/shiploop-run-review-journal.md. Test: python3 -B test/shiploop-run-review.test.py and export.py --check on every bundle. Done when: the defaults carry P9 with clauses S-3, every bundle passes --check and the suite passes.",
+    "why": "For: the round-3 text defects are S-3 defects, filed under P3 for want of a row. Against: P3 already reads 'the packet is the only instruction'. Verdict: the owner's choice; S-8, S-12 and S-13 stay without a row (they are judged on the diff, not on a run)."
    }
   }
  }

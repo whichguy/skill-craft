@@ -4609,6 +4609,61 @@ class RoundRunFindingsTests(unittest.TestCase):
         self.assertEqual(self.figures["luna_recollect"], {"failures": 13, "generic_tails": 0, "own_line": 13})
         self.assertIn("[Superseded 2026-10-09: o40 is fixed (9c593a37).]", luna["reviews"]["luna1"]["basis"]["P5"])
 
+    def test_the_phase_changes_keep_the_current_text_and_the_owners_sentence_and_append_the_engine_today(self):
+        changes = {o["criterion"]: (i, o) for i, o in self.new_options.items()
+                   if o.get("kind") == "change-expectation" and o["change"]["target"] == "page"}
+        for key, finding, appended in (("phase-2", "o65", "the plan packet makes the Backchain child the host's choice"),
+                                       ("phase-4", "o80", "when the accepted step plan records skill_na")):
+            aid, option = changes[key]
+            now = self.defaults[key]["text"]
+            self.assertTrue(option["change"]["to"].startswith(now), key)  # nothing of the current text is removed
+            self.assertIn(appended, option["change"]["to"][len(now):], key)
+            self.assertEqual((option["findings"], option.get("recommended")), ([finding], True), key)
+            self.assertIn(key, option["goal"])
+        self.assertTrue(self.defaults["phase-2"]["text"].endswith("there is no limit to this"))  # the owner's sentence
+        self.assertIn("there is no limit to this", changes["phase-2"][1]["change"]["to"])
+        self.assertIn("'there is no limit to this' is kept word for word", changes["phase-2"][1]["change"]["reason"])
+
+    def test_the_new_criteria_are_documents_in_the_specs_words_for_clauses_no_criterion_carries(self):
+        spec = " ".join(SPEC_MD.read_text(encoding="utf-8").split())
+        carried = {c for e in self.defaults.values() for c in e.get("clauses") or []}
+        phrases = {"S-14": ("When a step meets an open question, it takes a stated, recorded default", "instead of waiting",
+                            "When a step needs something only a person can supply",
+                            "the run records it as an open item, continues with everything that does not depend on it",
+                            "truly cannot proceed"),
+                   "S-15": ("What the user sees about progress is rendered by ShipLoop's scripts from saved state: a short status at every "
+                            "step and, at milestones, a narrative of what is achieved, what is happening, what comes next and the observed pace.",
+                            "The model never composes, paraphrases or estimates progress itself"),
+                   "S-3": ("SKILL.md and the reference cards tell the model how to invoke the scripts and to follow what they return.",
+                           "When a card and a script disagree, the script wins, and the disagreement is a defect to fix.")}
+        proposed = {}
+        for aid, option in self.new_options.items():
+            if option.get("kind") == "change-expectation" and option["change"]["to"].startswith("{"):
+                doc = json.loads(option["change"]["to"])
+                proposed[doc["clauses"][0]] = (aid, option, doc)
+        self.assertEqual(sorted(proposed), ["S-14", "S-15", "S-3"])
+        for clause, (aid, option, doc) in proposed.items():
+            self.assertNotIn(clause, carried, clause)  # the gap is real
+            self.assertNotIn(doc["key"], self.defaults, clause)
+            self.assertEqual((option["criterion"], doc["kind"], doc["group"]), (doc["key"], "criterion", "group-principles"))
+            self.assertEqual(export.validate_doc("expectations", {k: v for k, v in doc.items() if k != "key"}), [], clause)
+            self.assertLessEqual(len(re.findall(r"[.!?](?:\s|$)", doc["text"])), 2, clause)
+            for phrase in phrases[clause]:
+                self.assertIn(phrase, spec, clause)
+                self.assertIn(phrase.rstrip("."), doc["text"], clause)
+            reason = option["change"]["reason"]
+            for gap in ("S-3", "S-8", "S-12", "S-13", "S-14", "S-15"):
+                self.assertIn(gap, reason, clause)
+            self.assertTrue(option["findings"] and all(self.new_findings[f].get("status", "open") == "open" for f in option["findings"]))
+            self.assertIn(f"key {doc['key']}", option["goal"])
+        # the prompt reads a new criterion as one with no current text
+        text = run_logic("buildPrompt(%s)" % json.dumps({
+            "run": {"key": "r1-battleship-grok-none"}, "findings": [{"id": i, **d} for i, d in self.new_findings.items()],
+            "options": [{"id": i, **d} for i, d in self.new_options.items()], "expectations": self.defaults,
+            "selected": {"options": {proposed["S-14"][0]: True}, "find": {}}, "config": {}}))
+        self.assertIn(f"{proposed['S-14'][0]} P7 Add a criterion for S-14: unattended by default: target page. Now: {{", text)
+        self.assertIn(" Was: (not recorded) Why: ", text)
+
 
 # ---------------------------------------------------------------- R20a: the stage catalog, the card fields and the stage card
 
