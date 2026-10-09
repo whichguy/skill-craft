@@ -213,7 +213,9 @@ def case_quality(name: str) -> dict:
     own, earlier = case.get("quality") or {}, followed.get("quality") or {}
     blocks = [*(earlier.get("acceptance") or []), *(own.get("acceptance") or [])]
     mutation = own.get("mutation") or earlier.get("mutation")
-    return {**({"mutation": mutation} if mutation else {}), **({"acceptance": blocks} if blocks else {})}
+    ports = own.get("refuse_ports") or earlier.get("refuse_ports")
+    return {**({"mutation": mutation} if mutation else {}), **({"acceptance": blocks} if blocks else {}),
+            **({"refuse_ports": ports} if ports else {})}
 
 
 def quality_stop(stop_file: Path) -> str | None:

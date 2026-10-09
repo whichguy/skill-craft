@@ -52,7 +52,6 @@ NOTE_CHARS = 300  # display only: a held-out check's note is cut here
 # The operator catalog a ratio belongs to. Any change to the operators or to the masking is a new id: ratios of two ids
 # are never compared.
 OPERATOR_ID = "js-1"
-TAIL_BYTES = 200_000  # how much of a test run's output is read back: the summary is at the end
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -144,19 +143,33 @@ def js_coverage_files(coverage: Path, copy: Path) -> set[str] | None:
     return loaded if wrote else None
 
 
+REFUSE_PORTS_PRELOAD = HERE / "refuse_ports.cjs"
+
+
+def js_guard_env(ports: list[int], log: Path, preload: Path = REFUSE_PORTS_PRELOAD) -> dict:
+    """The environment that makes every Node process of a run (a test's children included) refuse the declared ports and note each
+    refusal in `log`: the preload is added to NODE_OPTIONS beside whatever was there."""
+    quoted = f'"{preload}"' if " " in str(preload) else str(preload)
+    options = " ".join(part for part in (os.environ.get("NODE_OPTIONS", "").strip(), f"--require {quoted}") if part)
+    return {"NODE_OPTIONS": options, "SHIPLOOP_E2E_REFUSE_PORTS": ",".join(str(port) for port in ports),
+            "SHIPLOOP_E2E_REFUSE_LOG": str(log)}
+
+
 class Catalog:
-    """What the harness knows about one language: its operators, its test files, how to check a syntax, how a runner counts."""
+    """What the harness knows about one language: its operators, its test files, how to check a syntax, how a runner counts, which
+    ports a run is kept off, and which files a run loaded."""
 
     def __init__(self, ident: str, extensions: tuple, operators, not_source: tuple, test_file, syntax_check, count, coverage_env,
-                 coverage_files):
+                 coverage_files, guard_env):
         self.ident, self.extensions, self.operators = ident, extensions, operators
         self.not_source, self.test_file = not_source, test_file
         self.syntax_check, self.count, self.coverage_env, self.coverage_files = syntax_check, count, coverage_env, coverage_files
+        self.guard_env = guard_env
 
 
 JS = Catalog(OPERATOR_ID, (".js", ".mjs", ".cjs"), JS_OPERATORS, JS_NOT_SOURCE_FOLDERS, JS_TEST_FILE.search,
              lambda path: ["node", "--check", str(path)], js_test_count,
-             lambda directory: {"NODE_V8_COVERAGE": str(directory)}, js_coverage_files)
+             lambda directory: {"NODE_V8_COVERAGE": str(directory)}, js_coverage_files, js_guard_env)
 CATALOGS = {extension: JS for extension in JS.extensions}
 
 
@@ -256,6 +269,14 @@ def run_once(argv: list[str], cwd: Path, env: dict, log: Path, ceiling: float, g
             "seconds": round(time.monotonic() - began, 3), "output": output}
 
 
+def count_refusals(log: Path) -> int:
+    """How many times the preload refused a declared port in one run (one line each); 0 when it wrote nothing."""
+    try:
+        return len(log.read_text().splitlines())
+    except OSError:
+        return 0
+
+
 def child_env(extra: dict | None = None) -> dict:
     """The harness's environment for a delivered product's own commands: no PORT of ours, no colour."""
     env = {key: value for key, value in os.environ.items() if key != "PORT"}
@@ -327,12 +348,14 @@ def ratio(killed: int, survived: int) -> float | None:
 
 
 def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | None], logs: Path,
-             clock: Callable[[], float] = time.monotonic) -> dict:
+             clock: Callable[[], float] = time.monotonic, ports: list[int] | tuple = ()) -> dict:
     """The mutation block for the copy of a delivery: ``{observed: true, ...}`` or ``{observed: false, reason}``.
 
     `spec` is the case's ``quality.mutation``: ``command`` (the delivered tests' command, run in the copy) and optionally
-    ``exclude`` (path prefixes that are not source). `stop` returns a reason when a stop was requested; it is asked before
-    every mutant, and the phase then ends with no ratio. `clock` measures the phase against its ceiling.
+    ``exclude`` (path prefixes that are not source). `ports` are the fixed ports the case declares: every run is kept off them
+    and the refusals are counted; a delivery whose own unmutated tests touch one is not run. `stop` returns a reason when a stop
+    was requested; it is asked before every mutant, and the phase then ends with no ratio. `clock` measures the phase against its
+    ceiling.
     """
     command = shlex.split(spec["command"])
     chosen = targets(copy, list(spec.get("exclude") or []))
@@ -342,19 +365,34 @@ def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | No
     originals = {name: (copy / name).read_bytes().decode("utf-8", "surrogateescape") for name in chosen}  # exact: CRLF stays
     found = {name: sites(text) for name, text in originals.items()}
     total = sum(len(items) for items in found.values())
-    per_file = {name: {"sites": len(found[name]), "loaded_by_tests": None, "killed": 0, "timeout": 0, "survived": 0, "invalid": 0,
-                       "not_run": 0} for name in sorted(found)}
+    per_file = {name: {"sites": len(found[name]), "loaded_by_tests": None, "killed": 0, "timeout": 0, "port_refusals": 0, "survived": 0,
+                       "invalid": 0, "not_run": 0} for name in sorted(found)}
     if not total:
         return {"observed": False, "reason": f"no operator applies to any of the {len(chosen)} delivered source files: "
                 + ", ".join(sorted(chosen))}
     logs.mkdir(parents=True, exist_ok=True)
     began = clock()
     catalog = next(iter(chosen.values()))
+    ports = list(ports)
+    refusal_logs = logs / "refusals"
+    refusal_logs.mkdir(exist_ok=True)
+
+    def run_tests(label: str, extra: dict | None = None) -> tuple[dict, int]:
+        """One run of the case's command under the port guard; its result and how many refusals it saw."""
+        log = refusal_logs / f"{label}.log"
+        env = {**(extra or {}), **(catalog.guard_env(ports, log) if ports else {})}
+        result = run_once(command, copy, child_env(env), logs / "run.log", RUN_CEILING_SECONDS, groups)
+        return result, count_refusals(log)
+
     coverage = logs / "coverage"
     shutil.rmtree(coverage, ignore_errors=True)
-    base = run_once(command, copy, child_env(catalog.coverage_env(coverage)), logs / "baseline.log", RUN_CEILING_SECONDS, groups)
+    base, base_refusals = run_tests("baseline", catalog.coverage_env(coverage))
     tests = catalog.count(base["output"], base["returncode"]) if not base["timeout"] else None
-    baseline = {"returncode": base["returncode"], "seconds": base["seconds"], "tests": tests}
+    baseline = {"returncode": base["returncode"], "seconds": base["seconds"], "tests": tests, "port_refusals": base_refusals}
+    if base_refusals:
+        return {"observed": False, "baseline": baseline, "refuse_ports": ports, "reason": f"its tests bind a fixed port; not run: "
+                f"the unmutated copy's test run touched a declared port ({', '.join(map(str, ports))}) {base_refusals} "
+                f"time{'s' if base_refusals != 1 else ''}"}
     if base["timeout"]:
         return {"observed": False, "baseline": baseline, "reason": f"the unmutated copy's test run did not finish within the "
                 f"ceiling ({RUN_CEILING_SECONDS} s): a mutant could not be told from it"}
@@ -368,8 +406,9 @@ def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | No
     loaded = catalog.coverage_files(coverage, copy)
     for name, row in per_file.items():
         row["loaded_by_tests"] = None if loaded is None else name in loaded
-    sites_seen = ceiling_hit = False
-    killed = timeouts = survived = invalid = not_run = 0
+    ceiling_hit = False
+    killed = timeouts = survived = invalid = not_run = port_refusals = port_refused = 0
+    kills: list[dict] = []
     survivors: list[dict] = []
     ordered = round_robin(found)
     for position, (name, site) in enumerate(ordered):
@@ -386,6 +425,7 @@ def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | No
         path = copy / name
         text = originals[name]
         row = per_file[name]
+        mutant = {"file": name, "line": site["line"], "op": site["op"], "from": site["old"], "to": site["new"]}
         try:
             path.write_bytes((text[:site["start"]] + site["new"] + text[site["end"]:]).encode("utf-8", "surrogateescape"))
             if catalog.syntax_check is not None:
@@ -394,19 +434,24 @@ def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | No
                     invalid += 1
                     row["invalid"] += 1
                     continue
-            result = run_once(command, copy, child_env(), logs / "mutant.log", RUN_CEILING_SECONDS, groups)
+            result, refusals = run_tests(f"mutant-{position}")
         finally:
             path.write_bytes(text.encode("utf-8", "surrogateescape"))
+        port_refusals += refusals
+        row["port_refusals"] += refusals
         if result["timeout"] or result["returncode"] != 0:
             killed += 1
             row["killed"] += 1
             if result["timeout"]:
                 timeouts += 1
                 row["timeout"] += 1
+            if refusals:
+                port_refused += 1
+            kills.append({**mutant, "timeout": result["timeout"], "port_refusals": refusals})
         else:
             survived += 1
             row["survived"] += 1
-            survivors.append({"file": name, "line": site["line"], "op": site["op"], "from": site["old"], "to": site["new"]})
+            survivors.append({**mutant, **({"port_refusals": refusals} if refusals else {})})
     why = stop()  # a run the stop itself killed reads as a failing run: never let it into a ratio
     if why:
         return {"observed": False, "reason": f"{why}: the mutation phase ended during its last mutant and records no ratio",
@@ -418,11 +463,12 @@ def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | No
         if row["killed"] and row["loaded_by_tests"] is not True:
             row["loaded_by_tests"] = True
     return {"observed": True, "operator_id": catalog.ident, "command": spec["command"], "source": spec.get("source"),
-            "baseline": baseline,
-            "sites": total, "killed": killed, "timeout": timeouts, "survived": survived, "invalid": invalid, "not_run": not_run,
+            "baseline": baseline, "refuse_ports": ports,
+            "sites": total, "killed": killed, "timeout": timeouts, "port_refused": port_refused, "port_refusals": port_refusals,
+            "survived": survived, "invalid": invalid, "not_run": not_run,
             "ratio": ratio(killed, survived), "ceiling_hit": ceiling_hit,
             "ceilings": {"run_seconds": RUN_CEILING_SECONDS, "phase_seconds": PHASE_CEILING_SECONDS},
-            "per_file": per_file, "survivors": survivors, "seconds": round(clock() - began, 1)}
+            "per_file": per_file, "kills": kills, "survivors": survivors, "seconds": round(clock() - began, 1)}
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -444,12 +490,13 @@ def load_checks(module: str, checks_dir: Path):
 
 
 def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str | None], logs: Path,
-               checks_dir: Path = HERE / "checks") -> dict:
+               checks_dir: Path = HERE / "checks", ports: list[int] | tuple = ()) -> dict:
     """One block of held-out checks run against the copy's server: ``{observed, source, checks: [{id, source, pass, note}]}``.
 
     The server is started as ``block['start']`` with PORT set to a free port, in the copy, in a group of its own; each check
     gets its base URL. A check that raises fails with the exception as its note; a server that never listens leaves every check
     unrun and the block unobserved. The checks run in this process: nothing but the server's own command line reaches an argv.
+    The server runs under the same port guard as the mutation runs (`ports`): a product that ignores PORT and meets it says so.
     """
     declared = [item["id"] for item in block["checks"]]
     try:
@@ -461,8 +508,10 @@ def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str |
         return {"observed": False, "reason": f"the held-out module {block['module']!r} has no check for: {', '.join(missing)}"}
     logs.mkdir(parents=True, exist_ok=True)
     port = free_port()
+    refusals_log = logs / f"refusals-{block['module']}.log"
+    guard = JS.guard_env(list(ports), refusals_log) if ports else {}
     try:
-        proc = start(shlex.split(block["start"]), copy, child_env({"PORT": str(port)}), logs / f"server-{block['module']}.log",
+        proc = start(shlex.split(block["start"]), copy, child_env({"PORT": str(port), **guard}), logs / f"server-{block['module']}.log",
                      groups)
     except OSError as exc:
         return {"observed": False, "reason": f"the product's server ({block['start']}) could not be started: {exc}"}
@@ -470,8 +519,10 @@ def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str |
         end = time.monotonic() + LISTEN_CEILING_SECONDS
         while True:
             if proc.poll() is not None:
+                refused = count_refusals(refusals_log)
                 return {"observed": False, "reason": f"the product's server ({block['start']}) exited {proc.returncode} before it "
-                        f"listened on PORT={port}"}
+                        f"listened on PORT={port}" + (f"; it touched a declared port ({', '.join(map(str, ports))}) {refused} "
+                                                      f"time{'s' if refused != 1 else ''}, so it may ignore PORT" if refused else "")}
             try:
                 socket.create_connection(("127.0.0.1", port), timeout=0.2).close()
                 break
@@ -614,6 +665,7 @@ def measure(out: Path, work: Path, spec: dict, *, gate: str | None, hosts_used: 
     ``<out>/quality``, which is removed first and whose listeners are stopped last; nothing outside it is touched.
     """
     began = time.monotonic()
+    ports = list((spec or {}).get("refuse_ports") or [])
     blocks = list((spec or {}).get("acceptance") or [])
     block: dict = {"observed": False, "declared": [key for key in ("mutation", "acceptance") if (spec or {}).get(key)],
                    "hosts": list(hosts_used), "mixed_host": len(hosts_used) > 1}
@@ -631,11 +683,11 @@ def measure(out: Path, work: Path, spec: dict, *, gate: str | None, hosts_used: 
             copy.mkdir()
             block["delivered_files"] = export_delivery(work, copy)
             if blocks:
-                parts = [acceptance(copy, one, groups=groups, stop=stop, logs=folder / "logs", checks_dir=checks_dir)
+                parts = [acceptance(copy, one, groups=groups, stop=stop, logs=folder / "logs", checks_dir=checks_dir, ports=ports)
                          for one in blocks]
                 block["acceptance"] = merge_acceptance(parts)
             if spec.get("mutation"):
-                block["mutation"] = mutation(copy, spec["mutation"], groups=groups, stop=stop, logs=folder / "logs")
+                block["mutation"] = mutation(copy, spec["mutation"], groups=groups, stop=stop, logs=folder / "logs", ports=ports)
         finally:
             block["left_behind"] = listeners.reap(folder)  # only this folder: a regrade reaps nothing of the run's own
         measured = [block.get(key) for key in ("mutation", "acceptance")]

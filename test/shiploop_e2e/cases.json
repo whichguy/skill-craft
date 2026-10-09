@@ -25,7 +25,11 @@
           "system"
         ],
         "source": "the request: the game rules live in a module the server uses and are covered by node:test tests that run with `node --test`; system/ holds the model's own browser and system checks, which `node --test` does not run"
-      }
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the request: 'server.js starts the server on the port in the PORT environment variable (default 3000)'. A product defaults to 3000, and a mutant of the line that reads PORT listens there whatever PORT says; the quality phase refuses it and counts the refusals"
     }
   },
   "battleship-scoring": {
@@ -213,7 +217,11 @@
             }
           ]
         }
-      ]
+      ],
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the request: 'server.js starts the server on the port in the PORT environment variable (default 3000)'. A product defaults to 3000, and a mutant of the line that reads PORT listens there whatever PORT says; the quality phase refuses it and counts the refusals"
     }
   }
 }

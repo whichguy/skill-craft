@@ -670,6 +670,151 @@ class ProcessSafetyTest(QualityCase):
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Fixed ports the phase refuses
+
+@needs_quality
+class PortGuardTest(QualityCase):
+    """A mutant must never listen on a port the case names (the product's default): the phase's children run under a preload that
+    refuses it and counts the refusals. No test here binds or connects to a real fixed port; the declared port is whatever
+    the stand-in writes into the log, or a free port picked by the test."""
+
+    def setUp(self):
+        super().setUp()
+        patch = no_syntax_check()
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def test_the_catalog_puts_the_preload_in_node_options_beside_what_was_there(self):
+        env = quality.js_guard_env([3000, 4000], Path("/x/refusals.log"))
+        self.assertIn("--require", env["NODE_OPTIONS"])
+        self.assertIn(str(quality.REFUSE_PORTS_PRELOAD), env["NODE_OPTIONS"])
+        self.assertEqual((env["SHIPLOOP_E2E_REFUSE_PORTS"], env["SHIPLOOP_E2E_REFUSE_LOG"]), ("3000,4000", "/x/refusals.log"))
+        with mock.patch.dict(os.environ, {"NODE_OPTIONS": "--max-old-space-size=100"}):
+            self.assertTrue(quality.js_guard_env([1], Path("/x")) ["NODE_OPTIONS"].startswith("--max-old-space-size=100 --require"))
+        spaced = quality.js_guard_env([1], Path("/x"), preload=Path("/a dir/refuse ports.cjs"))["NODE_OPTIONS"]
+        self.assertIn('"/a dir/refuse ports.cjs"', spaced, "a path with a space is quoted for NODE_OPTIONS")
+
+    def test_every_child_of_the_phase_gets_the_ports_and_its_own_refusal_log(self):
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+        with mock.patch.dict(os.environ, {"DUMP_ENV": "1"}):
+            block = quality.mutation(copy, {"command": "python3 check.py"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l",
+                                     ports=[39999])
+        self.assertTrue(block["observed"], block)
+        options, ports, log = (copy / "env.txt").read_text().split("|")
+        self.assertIn(str(quality.REFUSE_PORTS_PRELOAD), options)
+        self.assertEqual(ports, "39999")
+        self.assertTrue(log.startswith(str(self.tmp / "l")), "each run has a log of its own under the phase's logs")
+        self.assertEqual((block["refuse_ports"], block["port_refusals"], block["port_refused"]), ([39999], 0, 0))
+
+    def test_without_declared_ports_no_preload_is_added(self):
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+        with mock.patch.dict(os.environ, {"DUMP_ENV": "1"}):
+            quality.mutation(copy, {"command": "python3 check.py"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l")
+        self.assertEqual((copy / "env.txt").read_text().split("|")[1:], ["None", "None"])
+
+    def test_a_delivery_whose_own_tests_touch_a_declared_port_is_not_run(self):
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+        with mock.patch.dict(os.environ, {"REFUSE_BASELINE": "1"}):
+            block = quality.mutation(copy, {"command": "python3 check.py"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l",
+                                     ports=[3000])
+        self.assertFalse(block["observed"])
+        self.assertIn("its tests bind a fixed port; not run", block["reason"])
+        self.assertIn("3000", block["reason"])
+        self.assertEqual(len(self.groups.added), 1, "only the baseline was started: no mutant ran")
+        self.assertNotIn("ratio", block)
+
+    def test_a_mutant_caught_with_a_refusal_keeps_the_marker_and_the_count_and_no_other_run_shares_it(self):
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+        with mock.patch.dict(os.environ, {"REFUSE_ON_ADULT": "1"}):  # the first mutant tried refuses a bind; eleven more run after it
+            block = quality.mutation(copy, {"command": "python3 check.py"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l",
+                                     ports=[3000])
+        self.assertTrue(block["observed"], block)
+        self.assertEqual((block["port_refusals"], block["port_refused"]), (1, 1))
+        self.assertEqual((block["killed"], block["survived"]), (5, 7), "the counts are the ordinary ones: the marker is beside them")
+        self.assertEqual([(kill["file"], kill["from"], kill["to"], kill["port_refusals"]) for kill in block["kills"] if kill["port_refusals"]],
+                         [("lib.js", ">=", ">", 1)], "each run has its own refusal log, so a later run does not inherit the count")
+        self.assertEqual(sum(kill["port_refusals"] for kill in block["kills"]), 1)
+        self.assertTrue(all(not item.get("port_refusals") for item in block["survivors"]))
+        self.assertEqual(block["per_file"]["lib.js"]["port_refusals"], 1)
+        self.assertEqual(block["per_file"]["other.js"]["port_refusals"], 0)
+
+    def test_a_product_that_ignores_port_and_meets_the_guard_says_so_instead_of_exited_1(self):
+        directory = self.tmp / "checks"
+        directory.mkdir()
+        (directory / "tmpmod.py").write_text("CHECKS = {'one': lambda base: (True, base)}\n")
+        crash = ("import os, sys; open(os.environ['SHIPLOOP_E2E_REFUSE_LOG'], 'a').write('1 listen 3000\\n'); sys.exit(1)")
+        block = {"module": "tmpmod", "start": f"{sys.executable} -c \"{crash}\"", "source": "s", "checks": [{"id": "one", "source": "q"}]}
+        folder = self.tmp / "accept"
+        folder.mkdir()
+        result = quality.acceptance(folder, block, groups=self.groups, stop=lambda: None, logs=folder / "logs", checks_dir=directory,
+                                    ports=[3000])
+        self.assertFalse(result["observed"])
+        self.assertIn("exited 1", result["reason"])
+        self.assertIn("declared port", result["reason"])
+        self.assertIn("1 time", result["reason"])
+
+    def test_the_cases_that_default_to_3000_declare_it(self):
+        for name in ("battleship", "battleship-scoring", "checkers"):
+            self.assertEqual(run.case_quality(name)["refuse_ports"], [3000], name)
+        self.assertNotIn("refuse_ports", run.case_quality("hello"))
+
+
+@needs_node
+@needs_quality
+class PortGuardNodeTest(QualityCase):
+    """The real preload under the real node. The declared port is a free one the test picked and nothing of the test listens on
+    it: if the preload failed, a throwaway node process would bind that free port for a moment, never a fixed one."""
+
+    def run_script(self, source: str, port: int) -> tuple[str, int]:
+        log = self.tmp / "refusals.log"
+        log.write_text("")
+        env = quality.child_env(quality.js_guard_env([port], log))
+        done = subprocess.run(["node", "-e", source], env=env, capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
+        return done.stdout + done.stderr, len(log.read_text().splitlines())
+
+    def test_listening_on_the_declared_port_fails_like_an_address_in_use_in_every_form(self):
+        port = quality.free_port()
+        forms = {"number": f"{port}", "number and host": f"{port}, '127.0.0.1'", "string": f"'{port}'", "options": f"{{ port: {port} }}",
+                 "options and callback": f"{{ port: {port}, host: '127.0.0.1' }}, () => {{}}"}
+        for form, arguments in forms.items():
+            with self.subTest(form=form):
+                out, refusals = self.run_script(
+                    f"const s = require('net').createServer(); s.on('error', e => {{ console.log('ERR ' + e.code); }}); s.listen({arguments});", port)
+                self.assertIn("ERR EADDRINUSE", out)
+                self.assertEqual(refusals, 1)
+        out, refusals = self.run_script(
+            f"const s = require('http').createServer(); s.on('error', e => console.log('ERR ' + e.code)); s.listen({port});", port)
+        self.assertEqual((out.strip(), refusals), ("ERR EADDRINUSE", 1), "an http server listens through net.Server")
+
+    def test_connecting_to_the_declared_port_is_refused_by_net_http_and_fetch(self):
+        port = quality.free_port()
+        scripts = {
+            "net": f"require('net').connect({port}, '127.0.0.1').on('error', e => console.log('ERR ' + e.code));",
+            "http": f"require('http').get('http://127.0.0.1:{port}/').on('error', e => console.log('ERR ' + e.code));",
+            "fetch": f"fetch('http://127.0.0.1:{port}/').catch(e => console.log('ERR ' + (e.cause && e.cause.code)));",
+        }
+        for name, script in scripts.items():
+            with self.subTest(kind=name):
+                out, refusals = self.run_script(script, port)
+                self.assertIn("ERR ECONNREFUSED", out)
+                self.assertEqual(refusals, 1)
+
+    def test_other_ports_and_ephemeral_listens_are_untouched_and_children_inherit_the_guard(self):
+        port = quality.free_port()
+        out, refusals = self.run_script("const s = require('net').createServer().listen(0, () => { console.log('LISTENING'); s.close(); });", port)
+        self.assertEqual((out.strip(), refusals), ("LISTENING", 0))
+        child = (f"require('child_process').spawnSync(process.execPath, ['-e', \"require('net').createServer().on('error', e => "
+                 f"console.log('CHILD ' + e.code)).listen({port})\"], {{ stdio: 'inherit' }});")
+        out, refusals = self.run_script(child, port)
+        self.assertIn("CHILD EADDRINUSE", out)
+        self.assertEqual(refusals, 1)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Held-out acceptance
 
 # The failing set each defect of the reference service must give: the exact set, so every check is shown to pass the correct
