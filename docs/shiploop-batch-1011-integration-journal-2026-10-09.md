@@ -8,7 +8,8 @@ changes, so no change note and no release. Status words: firm (a test or a recom
 
 Group journals: G1 `docs/shiploop-batch-1011m-g1-fidelity-journal-2026-10-09.md`, G2
 `docs/shiploop-batch-1011n-g2-reorientation-journal-2026-10-09.md`, G4 `docs/shiploop-batch-1011o-g4-environment-journal-2026-10-09.md`,
-G3 `docs/shiploop-batch-1011q-g3-baseline-journal-2026-10-09.md` (G5 not merged yet).
+G3 `docs/shiploop-batch-1011q-g3-baseline-journal-2026-10-09.md`, G5 `docs/shiploop-batch-1011p-g5-quality-journal-2026-10-09.md`.
+Run Review hand-off (generated): `docs/shiploop-batch-1011-run-review-handoff-2026-10-09.md`.
 
 ## 1. Merges
 
@@ -17,6 +18,7 @@ G3 `docs/shiploop-batch-1011q-g3-baseline-journal-2026-10-09.md` (G5 not merged 
 | G1 fidelity record | `cee214aa` (made before this journal) | `d46bdc9e` | none recorded here |
 | G2 clear-context re-orientation | `6ff8ffb8` | `ceebbe17` | metrics.py (9), SPEC.md (1), README.md (1), LEARNINGS.md (1), suite_catalog.py (2); test-groups.test.py merged textually but wrong |
 | G4 environment, product at stop, outcome class | `1c0a7c8d` | `35aef538` | run.py (3), metrics.py (1), runrecord.py (1), README.md (1), LEARNINGS.md (1), suite_catalog.py (2), test-groups.test.py (2) |
+| G5 delivered quality | `a027227f` | `595982fe` | run.py (2), cases.json (2), SPEC.md (2), LEARNINGS.md (1), suite_catalog.py (2), test-groups.test.py (2) |
 | G3 run identity and the baseline report | `63605571` | `64d9d1fa` | run.py (5), metrics.py (2), SPEC.md (2), README.md (1), LEARNINGS.md (1), suite_catalog.py (2), test-groups.test.py (2); hosts.py and test/shiploop-e2e.test.py merged textually |
 
 ### What was kept, per hunk class (firm: every suite of the family green after each merge, section 4)
@@ -63,6 +65,15 @@ G3 `docs/shiploop-batch-1011q-g3-baseline-journal-2026-10-09.md` (G5 not merged 
   (now passed). G3's seven assertion edits in `test/shiploop-e2e.test.py` still hold. Counts: 74 ShipLoop suites, 115 in all;
   `E2EFamilySelectionTest.FAMILY` gained `shiploop-e2e-baseline`; `docs/experiments/baseline-spread-20261009/` now selects the
   baseline suite (`65f642c7`, test first).
+
+- **G5 merge.** run.py: imports (quality, runrecord, sessionlog) and the launch record (G4's `needs`/`environment`, G5's
+  `planning_review`/`improve_skill`, G3's `identity_unmeasured`); the phase wiring merged textually and still runs last, after
+  the export and the baseline row. cases.json: battleship and checkers keep G4's `needs` and gain G5's `quality`
+  declarations (the file parses). SPEC: G1's fidelity row and G5's quality row; G5's two rules after G1's and G2's. LEARNINGS:
+  G5's entry last. Counts: 75 ShipLoop suites, 116 in all; `E2EFamilySelectionTest.FAMILY` gained `shiploop-e2e-quality` (the
+  pin went red at the merge) and the quick tier selects all seven family suites for a run.py edit. The merge commit carries one
+  known red test on purpose, `GroupKillTest.test_every_group_kill_in_the_harness_is_this_one` (quality.py's own killpg), fixed
+  by the next commit.
 
 ## 2. Unified readers
 
@@ -183,12 +194,54 @@ When G5 merges, `masked_prompt_digest` must hash the case prompt BEFORE any appe
 --planning-review none and --improve-skill <abs path>." sentence (G5 appends nothing for `stage`; only `none` appends), so a `none`
 run of a named case hashes like the case's other `none` runs whatever `--plugin-dir` is (the mode is a key of its own).
 
+### (i) The quality phase's group kill (firm) — `5d949f72`
+
+`quality.end_group(proc) -> bool` keeps its contract (end the group, reap the leader once signalled or exited, say whether
+a signal was sent) and signals through `listeners.end_group(proc.pid)`; `quality.exited(proc)` asks `listeners.unreaped(pid)`
+(renamed from `_unreaped`). quality.py holds no `os.killpg`, `os.waitid` or `signal` import. Tests: the source scan (red at the
+merge) and a new wiring test; G5's process-safety tests (whole group with its child, non-leader untouched, registration,
+end_live_hosts, a helper left by a run that exits 0, the zombie leader, the reaped leader with getpgid mocked) unchanged.
+
+### (j) The prompt hash and the planning-review sentence (firm) — `5e4e810a`
+
+`run.case_prompt(prompt, improve_skill) -> str` strips the exact trailing sentence `planning_review_sentence(improve_skill)`;
+result.json's `prompt_sha256` (fresh and resumed) and the report's folder reader hash it. Measured before: two `none` runs of
+hello with two plugin builds hashed 5afa6a617bf2 and d35e3ba3d3b7. Test: those two hash equal, `stage` equals no option, the
+`none` hash is the case prompt's, and the report reading prompt.txt agrees.
+
+### (k) The row and result.json key sets (firm, no change needed) — verified at `5e4e810a`
+
+A fake hello run through `run.main` (Claude, Grok, Grok stopped) at the merged head: result.json top level is case, host,
+model, effort, pass, invoked, plugin, versions, prompt_sha256 (G3), host_build (G3), span (G3), identity_unmeasured (G3),
+process, termination (+ blocked detail, G4), outcome_class (G4), outcome_basis (G4), environment (G4), left_behind, keepalive,
+shiploop, committed, checks, cli, follow_on, resumed_run, seeded, chain, recovery, budget, expectations, product_at_stop (G4,
+when not passed), metrics, output, quality (G5); `fidelity` is in metrics.json only. The row's tail is G3's seven identity keys
+and identity_unmeasured; no quality, outcome_class or blocked detail; its planning_review is the engine's (state.md). The table
+with groups is section 1 of the hand-off.
+
+### (l) Leftovers (firm) — `8a0d19ce`
+
+`quality.memory_writes` reads tool calls through `metrics.tool_call_events` (test first); `hosts.Host.cli_version` returns
+`runrecord.CLAUDE_BUILD`. compileall and `python3 -W error` imports of every harness module are clean; the replaced names occur
+only in tests asserting their absence or in docs naming the replacement. One implementation each: `metrics.span` /
+`metrics.spans_overlap`, `hosts.probe_version`, `metrics.blocked_detail`, `runrecord.host_build`, `listeners.end_group` (with
+`listeners.unreaped`), `metrics.tool_call_events` / `ToolLog.feed`. Pre-batch readers left alone: run.shiploop_cli_ran and the
+truncation reader in run.py.
+
+### (m) The Run Review hand-off (generated) — `c9869792`
+
+`docs/experiments/batch-1011-run-review-handoff-20261009/generate.py` writes the hand-off and `shapes.json`, from seven saved
+runs read only (no file under them changed), fake-host runs through `run.main`, G2's reconstructed sessions fixture and G5's
+committed quality block.
+
 ## 3. Open items
 
-- G5 is not merged: `quality.end_group` is to call `listeners.end_group`, the prompt hash rule (h) is to be built, and the
-  quality suite id is to join `E2EFamilySelectionTest.FAMILY`.
+- ~~G5 is not merged ...~~ Done: (i), (j), and FAMILY in the G5 merge.
 - ~~`baseline_row` copies `result["termination"]` ...~~ Superseded 2026-10-09 by (f).
-- `hosts.ClaudeHost.cli_version` returns the same text as `runrecord.CLAUDE_BUILD` as a literal (two copies of one string).
+- ~~`hosts.ClaudeHost.cli_version` returns a literal copy of `runrecord.CLAUDE_BUILD`~~ Done in (l).
+- G5's mutant list (`docs/experiments/batch-1011p-g5-quality-20261009/mutants.py`) patches the text of the old `quality.end_group`;
+  it is G5's round's evidence and was not re-run against the delegating version.
+- The real-browser calibration (G4 F6) and live runs of the merged harness are the main session's.
 - The quick tier for this branch selects 71 suites (1104 s), not 33: G3's compact run folders keep copies of the CLI entry at
   `test/fixtures/baseline-spread/runs/<run>/build/plugins/skill-craft/skills/shiploop/scripts/shiploop` (19 files), whose stem
   `shiploop` selects every `shiploop-*` suite by the name rule. A selection cost, not a failure; a fixture-path exclusion in
@@ -225,6 +278,12 @@ All runs with `SHIPLOOP_PROGRESS=off` and no exported `GIT_CONFIG_*` variable.
 | after (f) | the same list | 404 OK 110.1 s / 142 OK 24.1 s / 133 OK 62.3 s / 142 OK 8.6 s / 118 OK 7.6 s / 6 OK / 25 OK / 363 OK 21.5 s |
 | after (g) | the same list | 404 OK 108.3 s / 143 OK 25.0 s / 133 OK 62.2 s / 142 OK 8.6 s / 118 OK 7.7 s / 6 OK / 25 OK / 363 OK 21.6 s |
 | after (g), G3 part done | `bash test/run-all.sh --group quick --changed-from 30a3b40a` | PASS, 71 of 71 suites, 1104 s wall (see the open item on the fixture CLI copies) |
+| after the G5 merge (load 1.2 to 1.8) | the same list plus -quality | 404 OK 110.2 s / -quality 125 OK 42.2 s / -baseline 143 OK / -environment 133, 1 failure (the planned red scan) / others OK |
+| after (i) | the same list | 404 OK 108.6 s / -quality 126 OK 41.9 s / -environment 133 OK 62.6 s / all OK |
+| after (j) | the same list | 404 OK 107.2 s / -quality 127 OK 42.7 s / all OK |
+| after (l) | the same list | 404 OK 110.2 s / -quality 128 OK 43.2 s / all OK |
+| final head `c9869792` + this journal (load 2.9 to 4.9) | shiploop-e2e / -environment / -quality / -baseline / -fidelity / -reorientation / -runrecord / test-groups / run-review | 404 OK 108.3 s / 133 OK 62.1 s / 128 OK 42.6 s / 143 OK 25.6 s / 142 OK 8.7 s / 118 OK 7.7 s / 6 OK / 25 OK 2.2 s / 363 OK 22.0 s |
+| | `bash test/run-all.sh --group quick --changed-from 30a3b40a` | PASS, 72 of 72 suites, 1145 s wall (the seven family suites among them) |
 
-`test/shiploop-e2e.test.py` stays at 404 tests and 108 to 111 s across the merges, against `QUICK_MAX_SECONDS` 120 (no test was
+`test/shiploop-e2e.test.py` stays at 404 tests and 107 to 111 s across all five merges and every unification, against `QUICK_MAX_SECONDS` 120 (no test was
 added to it; its catalog duration is 100.0).
