@@ -1724,7 +1724,8 @@ sentence under "Every ending leaves its records", and "Runs compared on wall tim
   discard concurrently; a group is dropped from the set as soon as its leader is reaped, so a reused pgid is never signalled), and
   restores the default action so a second signal ends the harness at once. `launch` and the resume loop read `TERMINATION` as a requested
   stop (`stopped`, no process verdict, `termination.resume_stop` `terminated by SIGTERM`, exit 1, no baseline row, no relaunch), a suite
-  starts no further case, and an `atexit` kill covers a Ctrl-C or an exception. The reused route is the stop file's (`StopFileTest`).
+  starts no further case, and an `atexit` kill covers a Ctrl-C or an exception (superseded for a suite on 2026-10-08: the kill came
+  too late there, see the review section below). The reused route is the stop file's (`StopFileTest`).
   A SIGHUP the launch ignored stays ignored (the audit's correction: an unconditional handler would have overridden `nohup`, the README's
   stated exception for multi-hour runs). The tests run the harness as a real subprocess so the `__main__` wiring and the real signals
   are what is tested and the test process's own handlers are never touched; a fake `lsof` first on PATH gives it an empty process table.
@@ -1808,3 +1809,10 @@ test could fail first did, and the mutants named below were applied to a scratch
   `terminated by SIGTERM`, the cases behind it `the gate failed`, no host started); the mutant is killed. Mutants of the Ctrl-C path:
   wrong name, rows dropped, `TERMINATION` not set all killed. One survived by construction (setting `TERMINATION` without the immediate
   kill still ends the host at its next poll, at most 2 s); the immediate kill sits in `terminate`, which `LiveHostTest` pins with a 30 s poll.
+- **The documents said more than the code did (minor).** `run.py`'s module docstring (which is also `--help`) described the stop file and
+  `--grade-only` but not the signals, `left_behind` or the two refusals; it does now, pinned by a test. The README gained the transition
+  case (a harness started before the lock existed holds none, so a launch refuses its listeners as stale while it is still running:
+  wait, or stop the server by pid), the second-harness refusal and the exact Ctrl-C behaviour for a suite and for a single case (the
+  latter pinned: no `result.json`). SPEC: the cross-reference "the exception in the bullet after next" broke when a bullet is added, so it
+  now names the bullet and a test forbids the positional form; the Ctrl-C sentence and the second-harness refusal are amended in the
+  rule they belong to (the same-day refinement of the 2026-10-08 amendment, made with the code that needed it).

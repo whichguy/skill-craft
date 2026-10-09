@@ -67,7 +67,11 @@ metrics.json and result.json. An active run is a real resume. --grade-only does 
 same regrade for a run in any status that has a ShipLoop state, for a run whose harness
 was killed with its host and so never wrote its records. Creating <output>/stop ends a
 running host on purpose: it is not relaunched, the records are written, and the exit
-code is non-zero.
+code is non-zero. A SIGTERM or SIGHUP to the harness (not a SIGHUP the launch ignored, as under nohup) ends every live host at
+once and is recorded the same way, as `terminated by SIGTERM`; a Ctrl-C does so for a suite. After each host session and after the
+case checks the harness stops the TCP listeners left under the case's output folder and records them as `left_behind` in
+result.json. A launch is refused while an ended case's listener is still bound, and so is a --resume-run of a case whose harness
+is running (README, "Launching long runs").
 This launches a real model and costs money; it is never part of default CI.
 
   python3 test/shiploop_e2e/run.py --case battleship

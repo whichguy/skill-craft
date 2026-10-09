@@ -338,7 +338,8 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   follow-on always waits for its predecessor in the same chain. Separate
   suites or cases started by hand may also run at once, each in its own
   output folder. This is for finding failures sooner; a pair whose figures
-  are compared is the exception in the bullet after next.
+  are compared is the exception stated in the bullet "Runs compared on wall
+  time or per-call cost run one after the other".
 - Concurrency must not change a verdict. Concurrent runs are quiet (no
   interleaved live view), share no files, and pass the same checks. A
   failure seen only in a parallel run (for example two products' own tests
@@ -468,7 +469,8 @@ stands at the commit under test.
   too, and so is a SIGHUP unless the launch ignored it (`nohup` keeps a
   detached run alive, as the README allows): the harness ends every live host
   at once, writes the same records and records `stopped` with the reason
-  `terminated by SIGTERM`; a Ctrl-C ends the hosts as the harness exits. This
+  `terminated by SIGTERM`; a Ctrl-C on a suite is handled as a SIGTERM, and on
+  a single case ends the hosts as the harness exits. This
   covers `run.py` started as a program, not `iterate.py`, which calls it in its
   own process. A SIGKILL gives the harness no chance to run anything:
   `--grade-only` is the remedy, and an orphan host of a SIGKILLed harness is
@@ -504,7 +506,9 @@ stands at the commit under test.
   under another case's output folder whose harness is not alive (liveness is a
   held lock on `<output>/.harness-lock`, which the kernel drops on any death, so
   parallel runs are not refused); the refusal has no override and names the
-  process, because a leaked process is stopped by pid. That a finished case
+  process, because a leaked process is stopped by pid. A `--resume-run` of a
+  case whose harness is running (its lock is held) is refused too; a regrade
+  is not, since it starts and stops nothing. That a finished case
   folder served by hand blocks every later launch the same way is a choice: a
   printed warning with a recorded `stale_listeners_at_start` was weighed and not
   taken, because the round-2 contamination was a launch that went ahead.

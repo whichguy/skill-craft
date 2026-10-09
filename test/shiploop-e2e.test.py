@@ -5644,6 +5644,7 @@ class TerminationSignalTest(CaseRunCase):
         printed, _ = proc.communicate(timeout=60)
         self.assertNotEqual(proc.returncode, 0)
         self.assertTrue(self.gone(host), "a Ctrl-C on the harness must not orphan its host")
+        self.assertFalse((out / "result.json").exists(), "a Ctrl-C on a single case writes no records (the README says so)")
 
 
 @needs_listeners
@@ -5803,8 +5804,15 @@ class LeftBehindReadmeTest(unittest.TestCase):
     def test_the_readme_says_when_a_launch_is_refused_and_how_liveness_is_known(self):
         readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
         for phrase in ("A launch is refused while a listener sits under another case's output folder",
-                       "`<output>/.harness-lock`", "no override", "stop it by pid with `kill <pid>`"):
+                       "`<output>/.harness-lock`", "no override", "stop it by pid with `kill <pid>`",
+                       "A `--resume-run` of a case whose harness is running is refused too",
+                       "A harness started before the lock existed holds none, so a launch refuses its listeners as stale while it is still running"):
             self.assertIn(phrase, readme)
+
+    def test_the_operator_contract_in_the_module_docstring_names_signals_left_behind_and_the_refusals(self):
+        doc = " ".join(run.__doc__.split())
+        for phrase in ("A SIGTERM or SIGHUP to the harness", "`left_behind`", "A launch is refused while", "--resume-run of a case whose harness is running"):
+            self.assertIn(phrase, doc)
 
     def test_the_readme_says_to_run_compared_runs_one_after_the_other_and_what_that_cannot_promise(self):
         readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
@@ -5817,14 +5825,19 @@ class LeftBehindReadmeTest(unittest.TestCase):
         for phrase in ("**A run leaves nothing listening**", "`<output>/.harness-lock`", "`left_behind`",
                        "A SIGTERM to the harness (a task runner's stop, `kill`) is a requested stop too",
                        "**Runs compared on wall time or per-call cost run one after the other**",
-                       "a pair whose figures are compared is the exception in the bullet after next"):
+                       "a pair whose figures are compared is the exception stated in the bullet "
+                       "\"Runs compared on wall time or per-call cost run one after the other\"",
+                       "a Ctrl-C on a suite is handled as a SIGTERM",
+                       "A `--resume-run` of a case whose harness is running (its lock is held) is refused too; a regrade is not"):
             self.assertIn(phrase, spec)
+        self.assertNotIn("bullet after next", spec, "a position breaks when a bullet is added: the bullet is named")
 
     def test_the_readme_says_what_a_signal_to_the_harness_does(self):
         readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
         for phrase in ("A SIGTERM or SIGHUP to the harness ends every live host at once", "`terminated by SIGTERM`",
                        "a detached `nohup` launch ignores the hangup", "Only a SIGKILL gives the harness no chance to run anything",
-                       "not `iterate.py`"):
+                       "not `iterate.py`", "A Ctrl-C on a suite is handled as a SIGTERM",
+                       "a Ctrl-C on a single case ends the hosts as the harness exits and writes no records"):
             self.assertIn(phrase, readme)
         self.assertNotIn("no harness code runs", readme)
         self.assertNotIn("taking the harness and its host with it", readme)

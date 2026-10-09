@@ -520,7 +520,9 @@ A SIGTERM or SIGHUP to the harness ends every live host at once, and the harness
 ending: `result.json`, `metrics.json` and the review export, `process.status` `stopped` with no process verdict, the reason
 `terminated by SIGTERM` (or `SIGHUP`) in `termination.resume_stop`, no baseline row and no relaunch; the exit code is 1, and
 a suite starts no further case. A second signal ends the harness at once. A SIGHUP that the launch ignored stays ignored,
-so a detached `nohup` launch ignores the hangup and keeps its run. A Ctrl-C ends the hosts as the harness exits. This covers
+so a detached `nohup` launch ignores the hangup and keeps its run. A Ctrl-C on a suite is handled as a SIGTERM (the hosts end at
+once and the records are written; the chains finish their case checks first, and a second Ctrl-C is not handled specially),
+while a Ctrl-C on a single case ends the hosts as the harness exits and writes no records. This covers
 `run.py` started as a program, not `iterate.py`, which calls it in its own process (a Ctrl-C there still ends the hosts; a
 SIGTERM does not), and not the review and fan-out agents (`hosts.run_agent`). Which signal a task runner sends at its time limit is not known, so this is proven for SIGTERM only.
 Only a SIGKILL gives the harness no chance to run anything: nothing is written afterwards (no termination record, no
@@ -551,7 +553,10 @@ holds an exclusive lock on `<output>/.harness-lock`; the kernel drops that lock 
 runs and pairs started by hand never refuse each other. The run's own folder is never refused (a resume stops its
 leftovers first), and a regrade starts nothing so it is never refused. The refusal names the pid, the port and the case
 folder and has no override: stop it by pid with `kill <pid>`. A finished case folder you serve by hand blocks later
-launches the same way until you stop that process. Where `lsof` cannot be read the check is skipped with a printed note.
+launches the same way until you stop that process. A harness started before the lock existed holds none, so a launch refuses its
+listeners as stale while it is still running: wait for it to end, or stop the server by pid. A `--resume-run` of a case whose
+harness is running is refused too (nothing is started or stopped, and its stop request is left for that harness); a regrade is
+not. Where `lsof` cannot be read the check is skipped with a printed note.
 
 Not covered: a process that does not listen (a file watcher, `npm --watch`), a UDP or unix-socket server, a server
 whose working directory and command line are both outside the folder, and anything left by a harness that was
