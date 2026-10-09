@@ -1226,6 +1226,14 @@ def host_given(argv: list[str]) -> bool:
     return probe.parse_args(argv).host is not None
 
 
+# The identity fields of a row and a result: what the run ran on and for how long. Each is null where it is not known, and
+# `identity_unmeasured` says why for each null one.
+IDENTITY_FIELDS = ("plugin_sha256", "prompt_sha256", "host_build", "local_head", "started", "ended", "planning_seconds")
+PREDATES = "not recorded by this result (it predates the field)"
+LAUNCH_PREDATES = "launch predates the field"
+FIRST_PREDATES = "first launch predates the field"
+
+
 def baseline_stages(stages: list | None) -> list | None:
     """The per-stage fields worth committing: enough to locate a regression, no more.
 
@@ -1256,7 +1264,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
     """
     m = result.get("metrics") or {}
     versions = result.get("versions") or {}
-    return {"date": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "case": result.get("case"), "style": style,
+    row = {"date": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "case": result.get("case"), "style": style,
             "suite": suite, "host": result.get("host"), "model": result.get("model"),
             "effort": result.get("effort"), "stages": baseline_stages(m.get("stages")),
             "termination": result.get("termination"), "unmeasured": sorted(m.get("unmeasured") or {}),
@@ -1281,6 +1289,9 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "started": (result.get("span") or {}).get("started"), "ended": (result.get("span") or {}).get("ended"),
             "planning_seconds": m.get("planning_seconds"),
             "output": result.get("output")}
+    reasons = result.get("identity_unmeasured") if isinstance(result.get("identity_unmeasured"), dict) else {}
+    row["identity_unmeasured"] = {name: reasons.get(name) or PREDATES for name in IDENTITY_FIELDS if row[name] is None}
+    return row
 
 
 # `planning_review` (state.md key, ShipLoop 1.22.0 and later) says which planning results start an Improve child: `stage`
@@ -2207,17 +2218,39 @@ def _main(argv: list[str] | None, held: list) -> int:
                     permission_mode=args.permission_mode, max_turns=args.max_turns,
                     max_budget_usd=args.max_budget_usd,
                     plugin_dir=None if host.marketplace else plugin_dir)
-    # The host CLI's build, probed once for this launch and written on its launch record. A regrade starts no host: it
+    # The host CLI's build, probed once for this launch and written on this launch's record. A regrade starts no host: it
     # restates what the run recorded, and a run recorded before the field existed stays null (today's CLI is not the one
     # that ran). Claude's build is its init event's (read below), so it is never probed.
-    host_build = recorded.get("host_build") if regrade else host.cli_version(env)
+    if regrade:
+        launch_build = recorded.get("host_build")
+        launch_why = None if launch_build else (recorded.get("identity_unmeasured") or {}).get("host_build") or LAUNCH_PREDATES
+    else:
+        launch_build, launch_why = host.cli_version(env)
+    # The run's `host_build` has one meaning, the first launch's: this launch's when it is the first, else the first
+    # launch's record, and never a probe made now for a launch made before the field existed.
+    if args.host == "claude":
+        host_build, host_build_why = None, None  # the init event, read after the run
+    elif regrade:
+        host_build, host_build_why = launch_build, launch_why
+    elif resumed and earlier.get("host") != args.host:
+        host_build, host_build_why = None, "resumed on another host: see the launch records"
+    elif resumed:
+        host_build = earlier.get("host_build")
+        host_build_why = None if host_build else (earlier.get("identity_unmeasured") or {}).get("host_build") or FIRST_PREDATES
+    else:
+        host_build, host_build_why = launch_build, launch_why
+    plugin_why = versions.get("plugin_sha256_unmeasured") or (
+        LAUNCH_PREDATES if regrade and "plugin_sha256" not in versions else "no reason recorded")
     # `plugin` is the install check made before the host started (Grok, Codex), kept so a resume or a regrade
     # grades the run on its first launch's evidence; None for Claude, whose init event shows it on every launch.
     invocation = {"case": name, "host": args.host, "model": args.model, "effort": args.effort, "argv": cli,
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
-                  "host_build": host_build, "checks": checks,
+                  "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "resumed_run": resumed, "seeded": seeded,
-                  "interrupt_at": interrupt_at}
+                  "interrupt_at": interrupt_at,
+                  # why each null identity field of this launch is null (empty: all known)
+                  "identity_unmeasured": {**({} if launch_build else {"host_build": launch_why}),
+                                          **({} if versions.get("plugin_sha256") else {"plugin_sha256": plugin_why})}}
     if resumed:
         # The original invocation stays as it was; each resume is recorded beside it.
         (out / f"invocation-resume-{host.name}-{int(time.time())}.json").write_text(
@@ -2384,6 +2417,16 @@ def _main(argv: list[str] | None, held: list) -> int:
     earlier_terminations = list(earlier_result.get("earlier_terminations") or []) if resumed else []
     if resumed and not regrade and isinstance(earlier_result.get("termination"), dict):
         earlier_terminations.append(earlier_result["termination"])
+    stamps_why = "no timeline.jsonl stamps"
+    local_head = versions.get("local_head") or (versions.get("released") or {}).get("local_head")
+    known = {"plugin_sha256": versions.get("plugin_sha256"), "prompt_sha256": True,
+             "host_build": run_metrics["claude_code_version"] if args.host == "claude" else host_build,
+             "local_head": local_head, "started": run_metrics["span"]["started"], "ended": run_metrics["span"]["ended"],
+             "planning_seconds": metrics.planning_seconds(run_metrics.get("planning"))}
+    why = {"plugin_sha256": plugin_why, "host_build": "the init events name no Claude Code build" if args.host == "claude"
+           else host_build_why, "local_head": "no head recorded", "started": stamps_why, "ended": stamps_why,
+           "planning_seconds": metrics.planning_unmeasured(run_metrics.get("planning"))}
+    identity_unmeasured = {name: why.get(name) or "no reason recorded" for name, value in known.items() if value is None}
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
               # Identity, null where unknown: the prompt with the run's own folder masked, the host CLI's build (Claude's
@@ -2391,6 +2434,7 @@ def _main(argv: list[str] | None, held: list) -> int:
               "prompt_sha256": masked_prompt_digest(prompt, out, args.resume_run or args.output),
               "host_build": run_metrics["claude_code_version"] if args.host == "claude" else host_build,
               "span": run_metrics["span"],
+              "identity_unmeasured": identity_unmeasured,
               "process": process, "termination": termination,
               **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
               **({"left_behind": left} if left is not None else {}),

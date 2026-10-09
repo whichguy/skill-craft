@@ -21,8 +21,10 @@ import os
 from pathlib import Path
 import shutil
 import stat
+import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -53,7 +55,7 @@ def script(path: Path, body: str) -> Path:
 
 
 class CliVersionTest(unittest.TestCase):
-    """Host.cli_version: the first stdout line of `<cli> --version`, None on any failure, and never a Claude probe."""
+    """Host.cli_version: (the first stdout line of `<cli> --version`, None) or (None, why), and never a Claude probe."""
 
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
@@ -64,26 +66,47 @@ class CliVersionTest(unittest.TestCase):
         grok = script(self.tmp / "grok", "#!/bin/sh\necho 'grok 1.0.50 (c58f321264ba)'\necho 'a second line'\n")
         # codex warns on stderr when CODEX_HOME does not exist; only stdout is the build
         codex = script(self.tmp / "codex", "#!/bin/sh\necho 'WARNING: CODEX_HOME does not exist' >&2\necho 'codex-cli 0.162.0'\n")
-        self.assertEqual(hosts.GrokHost(str(grok)).cli_version({}), "grok 1.0.50 (c58f321264ba)")
-        self.assertEqual(hosts.CodexHost(str(codex)).cli_version({}), "codex-cli 0.162.0")
+        self.assertEqual(hosts.GrokHost(str(grok)).cli_version({}), ("grok 1.0.50 (c58f321264ba)", None))
+        self.assertEqual(hosts.CodexHost(str(codex)).cli_version({}), ("codex-cli 0.162.0", None))
 
-    def test_a_probe_that_fails_prints_nothing_or_is_not_there_is_none(self):
+    def test_a_probe_that_fails_says_which_way(self):
         failing = script(self.tmp / "fails", "#!/bin/sh\necho 'grok 9'\nexit 1\n")
         silent = script(self.tmp / "silent", "#!/bin/sh\nexit 0\n")
-        for binary in (failing, silent, self.tmp / "missing"):
+        for binary, why in ((failing, "probe failed: non-zero exit 1"), (silent, "probe failed: silent"),
+                            (self.tmp / "missing", "probe failed: not found")):
             with self.subTest(binary=binary.name):
-                self.assertIsNone(hosts.GrokHost(str(binary)).cli_version({}))
-                self.assertIsNone(hosts.CodexHost(str(binary)).cli_version({}))
+                self.assertEqual(hosts.GrokHost(str(binary)).cli_version({}), (None, why))
+                self.assertEqual(hosts.CodexHost(str(binary)).cli_version({}), (None, why))
 
     def test_a_probe_that_hangs_is_ended_by_the_timeout_and_is_none(self):
-        hangs = script(self.tmp / "hangs", "#!/bin/sh\nexec sleep 30\n")
+        # It would print a version if it were left to finish: only the timeout makes it unknown.
+        hangs = script(self.tmp / "hangs", f"#!{sys.executable}\nimport time\ntime.sleep(30)\nprint('grok late')\n")
+        started = time.time()
         with mock.patch.object(hosts, "VERSION_TIMEOUT_SECONDS", 1):
-            self.assertIsNone(hosts.GrokHost(str(hangs)).cli_version({}))
+            build, why = hosts.GrokHost(str(hangs)).cli_version({})
+        self.assertEqual(build, None)
+        self.assertTrue(why.startswith("probe failed: hung"), why)
+        self.assertLess(time.time() - started, 10)
+
+    def test_the_probe_runs_in_the_launchs_own_environment_with_stdin_closed_and_a_ceiling(self):
+        # `grok --version` creates ~/.grok under whatever HOME it runs in: the probe must run in the run's isolated one.
+        echo = script(self.tmp / "grok", '#!/bin/sh\necho "grok home=$HOME codex=$CODEX_HOME"\n')
+        env = {"HOME": "/isolated/home", "CODEX_HOME": "/isolated/home/.codex"}
+        self.assertEqual(hosts.GrokHost(str(echo)).cli_version(env)[0], "grok home=/isolated/home codex=/isolated/home/.codex")
+        done = mock.Mock(returncode=0, stdout="grok 1\n", stderr="")
+        with mock.patch.object(hosts.subprocess, "run", return_value=done) as called:
+            hosts.GrokHost("grok").cli_version(env)
+        self.assertEqual(called.call_args.args[0], ["grok", "--version"])
+        self.assertEqual(called.call_args.kwargs["env"], env)
+        self.assertEqual(called.call_args.kwargs["stdin"], subprocess.DEVNULL)
+        self.assertEqual(called.call_args.kwargs["timeout"], hosts.VERSION_TIMEOUT_SECONDS)
 
     def test_claude_is_never_probed_its_build_is_in_its_init_event(self):
         marker = self.tmp / "called"
         binary = script(self.tmp / "claude", f"#!/bin/sh\ntouch {marker}\necho '2.1.295 (Claude Code)'\n")
-        self.assertIsNone(hosts.ClaudeHost(str(binary)).cli_version({}))
+        build, why = hosts.ClaudeHost(str(binary)).cli_version({})
+        self.assertIsNone(build)
+        self.assertIn("init event", why)
         self.assertFalse(marker.exists())
 
 
@@ -300,6 +323,19 @@ class BaselineRowIdentityTest(unittest.TestCase):
                          {"plugin_sha256": "3a7515d2efd3", "prompt_sha256": "5ea67bf3a1c2", "host_build": "2.1.294",
                           "local_head": "587cd90d", "started": 100.5, "ended": 900.25, "planning_seconds": 336.0})
 
+    def test_a_null_field_carries_the_reason_the_result_gave_or_says_the_result_predates_it(self):
+        row = run.baseline_row({"case": "hello", "host_build": None, "prompt_sha256": "aaaaaaaaaaaa",
+                                "identity_unmeasured": {"host_build": "probe failed: hung (still running after 20 s)"},
+                                "metrics": {}}, None, None)
+        self.assertEqual(row["identity_unmeasured"]["host_build"], "probe failed: hung (still running after 20 s)")
+        self.assertIn("predates", row["identity_unmeasured"]["plugin_sha256"])  # no reason given: the result is old
+        self.assertNotIn("prompt_sha256", row["identity_unmeasured"])  # known fields have no entry
+        full = run.baseline_row({"identity_unmeasured": {}, "prompt_sha256": "a", "host_build": "b",
+                                 "span": {"started": 1.0, "ended": 2.0},
+                                 "versions": {"plugin_sha256": "c", "local_head": "d"}, "metrics": {"planning_seconds": 3.0}},
+                                None, None)
+        self.assertEqual(full["identity_unmeasured"], {})  # measured and empty
+
     def test_local_head_is_read_from_a_marketplace_run_too(self):
         # a checkout run records versions.local_head; a marketplace run records it under versions.released
         row = run.baseline_row({"versions": {"source": "marketplace", "released": {"local_head": "7aff70aa"}}, "metrics": {}},
@@ -346,10 +382,13 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
         self.assertEqual(code, 0, result)
         self.assertEqual(result["host_build"], "0.0.1-fake")  # the fake's init event, not a --version line
         self.assertEqual(self.last_row()["host_build"], "0.0.1-fake")
-        self.assertIsNone(json.loads((Path(result["output"]) / "invocation.json").read_text())["host_build"])
+        launch = json.loads((Path(result["output"]) / "invocation.json").read_text())
+        self.assertIsNone(launch["host_build"])
+        self.assertEqual(launch["identity_unmeasured"]["host_build"], "Claude: read from the init event after the run")
+        self.assertNotIn("host_build", result["identity_unmeasured"])  # the result has it, from the init event
         self.assertFalse(Path(f"{wrapper}.probes").exists(), "Claude was probed")
 
-    def test_a_build_that_cannot_be_read_is_null_and_the_run_still_finishes(self):
+    def test_a_build_that_cannot_be_read_is_null_with_its_reason_and_the_run_still_finishes(self):
         for host in ("grok", "codex"):
             with self.subTest(host=host):
                 code, result, _ = self.run_as(host)  # the shared fakes exit non-zero on --version
@@ -357,6 +396,17 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
                 self.assertIn("host_build", result)
                 self.assertIsNone(result["host_build"])
                 self.assertIsNone(self.last_row()["host_build"])
+                reason = result["identity_unmeasured"]["host_build"]
+                self.assertTrue(reason.startswith("probe failed: non-zero exit"), reason)
+                self.assertEqual(self.last_row()["identity_unmeasured"]["host_build"], reason)
+                launch = json.loads((Path(result["output"]) / "invocation.json").read_text())
+                self.assertEqual((launch["host_build"], launch["identity_unmeasured"]["host_build"]), (None, reason))
+
+    def test_the_probe_runs_in_the_isolated_home_of_the_launch_not_the_users(self):
+        # `grok --version` creates ~/.grok: a probe under the user's real HOME would write into their profile
+        wrapper = self.versioned("grok", "grok home=$HOME")
+        code, result, _ = self.run_as("grok", binary=wrapper)
+        self.assertEqual(result["host_build"], f"grok home={Path(result['output']) / 'home'}")
 
     def test_the_version_is_probed_once_per_launch_not_once_per_session_or_at_the_end(self):
         wrapper = self.versioned("grok", "grok 1.0.50 (c58f321264ba)")
@@ -365,22 +415,47 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
         self.assertGreater(len(result["process"]["sessions"]), 1)
         self.assertEqual(len(Path(f"{wrapper}.probes").read_text().split()), 1)
 
-    def test_a_resume_launch_writes_the_build_it_ran_on_its_own_record(self):
+    CATALOG = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False, "catalog_version": "9.9.9",
+               "shiploop_version": None, "unreleased": [], "ci": "success"}
+
+    def resume_on(self, host: str, out: Path, line: str) -> dict:
+        os.environ["FAKE_MODE"] = "done"
+        (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(run, "released_versions", return_value=self.CATALOG):
+            run.main(["--host", host, f"--{host}-bin", str(self.versioned(host, line)), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--max-resumes", "0"])
+        return json.loads((out / "result.json").read_text())
+
+    def test_a_resume_launch_records_its_own_build_and_the_result_keeps_the_first_launchs(self):
         code, stopped, _ = self.run_as("grok", "stuck", "--max-resumes", "0", binary=self.versioned("grok", "grok 1.0.50 (aaa)"))
         out = Path(stopped["output"])
-        os.environ["FAKE_MODE"] = "done"
-        newer = self.versioned("grok", "grok 1.0.51 (bbb)")
-        # the same-host resume reads the catalog: a canned release, so nothing reaches git or the network
-        released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False,
-                    "catalog_version": "9.9.9", "shiploop_version": None, "unreleased": [], "ci": "success"}
-        (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
-        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(run, "released_versions", return_value=released):
-            run.main(["--host", "grok", "--grok-bin", str(newer), "--resume-run", str(out), "--plugin-dir", str(self.plugin),
-                      "--baseline", str(self.baselines), "--max-resumes", "0"])
+        result = self.resume_on("grok", out, "grok 1.0.51 (bbb)")
         records = sorted(out.glob("invocation-resume-grok-*.json"))
         self.assertEqual(len(records), 1)
         self.assertEqual(json.loads(records[0].read_text())["host_build"], "grok 1.0.51 (bbb)")
         self.assertEqual(json.loads((out / "invocation.json").read_text())["host_build"], "grok 1.0.50 (aaa)")
+        self.assertEqual(result["host_build"], "grok 1.0.50 (aaa)")  # one meaning: the first launch's
+
+    def test_a_run_resumed_whose_first_launch_predates_the_field_does_not_get_todays_build(self):
+        code, stopped, _ = self.run_as("grok", "stuck", "--max-resumes", "0")
+        out = Path(stopped["output"])
+        first = json.loads((out / "invocation.json").read_text())
+        first.pop("host_build", None)
+        first.pop("identity_unmeasured", None)
+        (out / "invocation.json").write_text(json.dumps(first))  # a launch made before the probe existed
+        result = self.resume_on("grok", out, "grok 1.0.51 (bbb)")
+        self.assertIsNone(result["host_build"])
+        self.assertEqual(result["identity_unmeasured"]["host_build"], "first launch predates the field")
+        record = json.loads(next(out.glob("invocation-resume-grok-*.json")).read_text())
+        self.assertEqual(record["host_build"], "grok 1.0.51 (bbb)")  # the resume launch itself was probed
+
+    def test_a_run_resumed_on_another_host_names_no_single_build(self):
+        code, stopped, _ = self.run_as("grok", "stuck", "--max-resumes", "0", binary=self.versioned("grok", "grok 1.0.50 (aaa)"))
+        out = Path(stopped["output"])
+        result = self.resume_on("codex", out, "codex-cli 0.162.0")
+        self.assertIsNone(result["host_build"])
+        self.assertEqual(result["identity_unmeasured"]["host_build"], "resumed on another host: see the launch records")
+        self.assertEqual(json.loads(next(out.glob("invocation-resume-codex-*.json")).read_text())["host_build"], "codex-cli 0.162.0")
 
     def test_a_regrade_restates_the_recorded_build_and_never_asks_the_cli(self):
         code, first, _ = self.run_as("grok", binary=self.versioned("grok", "grok 1.0.50 (c58f321264ba)"))
@@ -398,7 +473,9 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
             record = json.loads((out / name).read_text())
             record.pop("host_build", None)
             (out / name).write_text(json.dumps(record))
-        self.assertIsNone(regrade()["host_build"])
+        old_run = regrade()
+        self.assertIsNone(old_run["host_build"])
+        self.assertEqual(old_run["identity_unmeasured"]["host_build"], "launch predates the field")
 
     def test_the_plugin_tree_digest_is_taken_at_launch_and_a_regrade_keeps_it(self):
         code, result, _ = self.run_as("claude")
@@ -450,6 +527,24 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
         self.assertIn("planning_seconds", result["metrics"])
         self.assertIsNone(result["metrics"]["planning_seconds"])  # no accepted test-spec: unknown, never 0
         self.assertIsNone(row["planning_seconds"])
+        self.assertIn("no stage has been accepted", result["identity_unmeasured"]["planning_seconds"])
+        self.assertEqual(row["identity_unmeasured"], result["identity_unmeasured"])
+
+    def test_a_closed_planning_window_reaches_the_result_and_the_row_through_main(self):
+        real = metrics.collect
+
+        def with_a_window(out, run_dir=None):
+            found = real(out, run_dir)
+            found["planning"]["window"].update(closed=True, through="test-spec", seconds=336.0, host_seconds=340.0,
+                                               before_engine_seconds=4.0)
+            found["planning"]["unmeasured"] = {}
+            return found
+
+        with mock.patch.object(metrics, "collect", side_effect=with_a_window):
+            code, result, _ = self.run_as("claude")
+        self.assertEqual(result["metrics"]["planning_seconds"], 336.0)
+        self.assertEqual(self.last_row()["planning_seconds"], 336.0)
+        self.assertNotIn("planning_seconds", result["identity_unmeasured"])
 
     def test_local_head_is_in_the_row_for_a_checkout_run(self):
         code, result, _ = self.run_as("claude")
@@ -944,7 +1039,8 @@ class BaselineReportCellTest(BaselineReportCase):
         by = self.by_name(self.report())
         self.assertEqual(by["r1-battleship-sonnet"]["plugin_sha256"], by["r1-checkers-sonnet"]["plugin_sha256"])
         self.assertNotEqual(by["v1220-battleship-sonnet"]["plugin_sha256"], by["v1230-battleship-sonnet"]["plugin_sha256"])
-        self.assertEqual(by["v1220-battleship-sonnet"]["plugin_version"], by["v1230-battleship-sonnet"]["plugin_version"])
+        self.assertEqual((by["v1220-battleship-sonnet"]["plugin_version"], by["v1230-battleship-sonnet"]["plugin_version"]),
+                         ("1.22.0", "1.22.0"))
         for name in ("r1-battleship-sonnet", "v1220-battleship-sonnet"):
             self.assertIn("plugin_sha256", by[name]["recomputed"])  # the old run did not record it: the report derived it
 

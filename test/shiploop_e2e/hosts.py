@@ -35,20 +35,29 @@ MARKETPLACE_SOURCE = "whichguy/skill-craft"
 VERSION_TIMEOUT_SECONDS = 20
 
 
-def probe_version(binary: str, env: dict) -> str | None:
-    """The first line of ``<binary> --version`` on stdout, or None on any failure (not found, non-zero, silent, stuck).
+def probe_version(binary: str, env: dict) -> tuple[str | None, str | None]:
+    """(the first line of ``<binary> --version`` on stdout, None) or (None, why it could not be read).
 
-    stdin is closed and stderr is dropped: Codex prints a WARNING there when its CODEX_HOME does not exist yet. This is a
-    record of the build a run was launched on, taken once at launch (run.py) and never at report time, because today's
-    answer stamped on a past run would be a made-up fact.
+    The reasons: ``probe failed: not found``, ``non-zero exit N``, ``silent`` (no stdout) and ``hung`` (still running after
+    VERSION_TIMEOUT_SECONDS). stdin is closed and stderr is dropped: Codex prints a WARNING there when its CODEX_HOME does
+    not exist yet. ``env`` is the launch's own isolated environment (``grok --version`` creates ``~/.grok`` in whatever HOME
+    it runs under). This is a record of the build a run was launched on, taken once at launch (run.py) and never at report
+    time, because today's answer stamped on a past run would be a made-up fact. It is the one place a CLI is asked.
     """
     try:
         done = subprocess.run([binary, "--version"], env=env or None, stdin=subprocess.DEVNULL, capture_output=True,
                               text=True, timeout=VERSION_TIMEOUT_SECONDS)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    lines = done.stdout.strip().splitlines() if done.returncode == 0 else []
-    return (lines[0].strip() or None) if lines else None
+    except subprocess.TimeoutExpired:
+        return None, f"probe failed: hung (still running after {VERSION_TIMEOUT_SECONDS} s)"
+    except FileNotFoundError:
+        return None, "probe failed: not found"
+    except (OSError, subprocess.SubprocessError) as error:
+        return None, f"probe failed: {type(error).__name__}"
+    if done.returncode != 0:
+        return None, f"probe failed: non-zero exit {done.returncode}"
+    lines = done.stdout.strip().splitlines()
+    first = lines[0].strip() if lines else ""
+    return (first, None) if first else (None, "probe failed: silent")
 
 
 def grok_keepalive(env: dict, plugin_dir: Path) -> dict:
@@ -201,13 +210,14 @@ class Host:
     def translator(self):
         return _identity
 
-    def cli_version(self, env: dict) -> str | None:
-        """The build of this host's CLI as its own ``--version`` prints it, probed by the caller once at launch.
+    def cli_version(self, env: dict) -> tuple[str | None, str | None]:
+        """(the build of this host's CLI as its own ``--version`` prints it, None) or (None, why not), probed by the
+        caller once at launch.
 
-        None where the build is read from elsewhere (Claude names its build in its init event, so it is never
-        probed) or cannot be read. Never call it to describe a run that was launched earlier.
+        Claude names its build in its init event, so it is never probed. Never call it to describe a run that was
+        launched earlier.
         """
-        return None
+        return None, "Claude: read from the init event after the run"
 
 
 class GrokHost(Host):

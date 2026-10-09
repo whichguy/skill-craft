@@ -679,6 +679,21 @@ def planning_seconds(planning: dict | None) -> float | None:
     return seconds if isinstance(seconds, (int, float)) and not isinstance(seconds, bool) else None
 
 
+def planning_unmeasured(planning: dict | None) -> str | None:
+    """Why ``planning_seconds`` is null, None when it is measured: the block's own reason for the window, else that it is
+    still open, else that there is no block."""
+    if planning_seconds(planning) is not None:
+        return None
+    block = planning if isinstance(planning, dict) else {}
+    window = block.get("window") if isinstance(block.get("window"), dict) else {}
+    reason = (block.get("unmeasured") or {}).get("window") if isinstance(block.get("unmeasured"), dict) else None
+    if reason:
+        return reason
+    if window and not window.get("closed"):
+        return f"the planning window is still open (through {window.get('through')})"
+    return "the metrics hold no planning block"
+
+
 def planning_tokens(bounds: tuple | None, why: str, usage_rows: list[tuple], grok: bool, claude: bool,
                     context: dict | None) -> dict:
     """The planning window's output and reasoning tokens, where the host's per-call counts are exact, on the host clock.
