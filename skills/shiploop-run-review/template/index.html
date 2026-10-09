@@ -275,6 +275,7 @@ label.opt .t{min-width:0}
 .sqd .row{margin:10px 0 0}
 .sqd .btn{min-height:44px}
 .sqd .facts{grid-template-columns:minmax(0,34%) minmax(0,1fr);gap:4px 10px}
+.sqd .facts dd{white-space:pre-line}
 .sqd .chips button.chip{text-align:left;border-radius:12px}
 .chev span.fc{font-size:11px;font-family:var(--mono);margin-top:2px}
 table.vt,table.cmp{border-collapse:collapse;font-size:12.5px;width:100%}
@@ -456,6 +457,8 @@ function factRows(run){
   rows.push(["Model calls (main thread)",measuredText(run,"calls")]);
   rows.push(["Context peak (main thread)",contextText(run)]);
   rows.push(["Compactions",measuredText(run,"compactions")]);
+  if(run&&(isCount(run.glue)||run.toolUse))rows.push(["Model glue",glueText(run)]);
+  if(run&&(run.planning||reasonFor(run,"planning")))rows.push(["Planning window",planningText(run)]);
   return rows;
 }
 /* Improve's work on a run, as far as it was measured: the run's totals, and the visits that carry an `improve`
@@ -779,6 +782,73 @@ function tailOf(run){
     packetId:e.packetDoc===true&&typeof e.action==="string"&&typeof run.key==="string"?run.key+"--"+e.action:""};
 }
 
+/* ---- script checks, unverified outcomes, tool use and the planning window (R22b) ---- */
+/* A visit's script checks as one sentence: how many records ShipLoop kept for it and how many passed, the commands of the
+   last record with what ran, failed and was accepted, and where the checks ran (a release-verify record names it). "" without a block. */
+function verifyText(v){
+  if(!v||typeof v!=="object"||!isCount(v.records))return "";
+  var head=[plural(v.records,"record")+", "+(isCount(v.passed)?v.passed:"?")+" passed"];
+  if(isCount(v.red)&&v.red>0)head.push(v.red+" ran red");
+  if(isCount(v.couldNotRun)&&v.couldNotRun>0)head.push(v.couldNotRun+" could not run");
+  var t=head.join(", ");
+  if(Array.isArray(v.runs)&&v.runs.length)t+="; last record: "+v.runs.map(function(r){
+    var d=[];if(isCount(r.ran))d.push("ran "+r.ran);if(isCount(r.failed))d.push("failed "+r.failed);if(isCount(r.acceptedRan))d.push("accepted "+r.acceptedRan);
+    return String(r.status)+(d.length?" ("+d.join(", ")+")":"");}).join(", ");
+  var o=v.observed&&typeof v.observed==="object"?v.observed:null;
+  if(o&&(o.where||o.tree12))t+="; ran in "+(o.where||"a place the record does not name")+(o.tree12?", tree "+o.tree12:"");
+  return t;
+}
+/* The outcomes a result left unverified, one per line with its owner and due stage; "none listed" for an empty list, "" when the
+   visit's result has no such list (nothing is claimed then). */
+function unverifiedText(list){
+  if(!Array.isArray(list))return "";
+  if(!list.length)return "none listed";
+  function dot(t){return /[.!?\u2026]$/.test(t)?t:t+".";}
+  return list.map(function(u){return (u.outcome||"an outcome")+" ("+(u.owner||"no owner")+", due "+(u.dueStage||"no stage")+")."+(u.reason?" Reason: "+dot(u.reason):"")+(u.check?" Check: "+dot(u.check):"");}).join("\n");
+}
+/* The planning window as a short note for the Elapsed card: "planning 23.2 min, closed at test-spec". "" when not measured. */
+function planningNote(run){
+  var p=run&&run.planning&&typeof run.planning==="object"?run.planning:null;
+  if(!p||!isCount(p.windowMin))return "";
+  return "planning "+p.windowMin+" min"+(p.closed===true?", closed at "+(p.through||"its last stage"):p.closed===false?", still open"+(p.through?" through "+p.through:""):"");
+}
+/* The planning window in full for the run detail: the engine's clock and the host's, where it closed, the Improve share and the
+   output tokens; "not measured" with the exporter's reason when the run has none. */
+function planningText(run){
+  var p=run&&run.planning&&typeof run.planning==="object"?run.planning:null,why=reasonFor(run,"planning");
+  if(!p||!isCount(p.windowMin))return "not measured"+(why?" ("+why+")":"");
+  var bits=[p.windowMin+" min on the engine's clock"];
+  if(isCount(p.hostWindowMin))bits.push(p.hostWindowMin+" min on the host's");
+  if(p.through)bits.push((p.closed===true?"closed at ":"still open through ")+p.through);
+  if(isCount(p.improveMin))bits.push("Improve "+p.improveMin+" min"+(isCount(p.children)?" over "+p.children+(p.children===1?" child":" children"):""));
+  if(isCount(p.outputTokens))bits.push(grouped(p.outputTokens)+" output tokens"+(isCount(p.reasoningPct)?", "+pctText(p.reasoningPct)+" reasoning":""));
+  return bits.join("; ");
+}
+/* How the model met the packet files, for the Context card: files on disk, replies that printed one, packets read whole or in part,
+   and shell commands that named one. "" when the run has no tool_use record. */
+function packetUseText(run){
+  var p=run&&run.toolUse&&run.toolUse.packets&&typeof run.toolUse.packets==="object"?run.toolUse.packets:null;
+  if(!p)return "";
+  var bits=[];
+  if(isCount(p.files))bits.push(plural(p.files,"packet file")+(isCount(p.bytes)?" ("+kbText(p.bytes)+")":"")+" on disk");
+  if(isCount(p.printed))bits.push(p.printed+(p.printed===1?" printed reply":" printed replies")+(isCount(p.printedChars)?" ("+grouped(p.printedChars)+" characters)":""));
+  if(isCount(p.readWhole)||isCount(p.readPartial))bits.push((isCount(p.readWhole)?p.readWhole:0)+" read whole, "+(isCount(p.readPartial)?p.readPartial:0)+" in part");
+  if(isCount(p.shellReads))bits.push(plural(p.shellReads,"shell read")+(isCount(p.shellChars)?" ("+grouped(p.shellChars)+" characters)":""));
+  return bits.length?"Packets: "+bits.join("; "):"";
+}
+/* The model's glue as a run-detail row: the commands the harness counted, and, when the run's tool use was read, the runs of the
+   wrapper scripts it wrote around ShipLoop. A wrapper hides what it runs, so with one the figure is a lower bound. */
+function glueText(run){
+  var base=isCount(run&&run.glue)?plural(run.glue,"command"):"not measured"+(reasonFor(run,"model_glue")?" ("+reasonFor(run,"model_glue")+")":"");
+  var w=run&&run.toolUse&&Array.isArray(run.toolUse.wrappers)?run.toolUse.wrappers:null;
+  if(!w)return base;
+  if(!w.length)return base+"; no wrapper script was run";
+  var runs=w.reduce(function(a,x){return a+(isCount(x&&x.runs)?x.runs:0);},0);
+  return base+" + "+plural(runs,"run")+" of "+plural(w.length,"wrapper script")+" ("+w.map(function(x){return x.name;}).join(", ")+"): a lower bound, since a wrapper hides what it runs";
+}
+/* A Backchain document of a stage that only ran backchain-check: no loop, no passes. */
+function isGraphCheck(d){return !!d&&d.graphCheckOnly===true;}
+
 /* ---- the sequence picture (step 1): a column per visit, a context band under it, six cards ---- */
 /* Its geometry in user units (a pixel at natural size). A column is one visit; the tallest work visit is `plot` high. */
 var SQ={pitch:16,gap:3,padL:8,padLBand:34,padR:8,head:6,num:14,plot:96,markH:13,bandGap:4,band:34,tickH:13,
@@ -814,8 +884,8 @@ function contextOf(rows,win){
   return any?{calls:calls,peak:peak,peakPct:pct,compactions:comp}:null;
 }
 /* A KPI card: `value` and `note` as printed. A card that is not measured says "not measured" and gives the reason. */
-function kpi(key,label,value,note,measured){
-  return {key:key,label:label,value:value,note:note,measured:measured,text:measured?value+(note?" ("+note+")":""):value+(note?": "+note:"")};
+function kpi(key,label,value,note,measured,lines){
+  return {key:key,label:label,value:value,note:note,measured:measured,lines:(lines||[]).filter(Boolean),text:measured?value+(note?" ("+note+")":""):value+(note?": "+note:"")};
 }
 /* The six cards of step 1: visits, elapsed, Improve, Backchain loops, context (main thread), refusals. `loops` is the
    run's Backchain documents (null while they load). */
@@ -827,7 +897,7 @@ function kpiCards(run,loops){
   out.push(rows.length?kpi("visits","Visits",String(rows.length),parts.join(", "),true):kpi("visits","Visits","0","none accepted yet",true));
   out.push(isCount(run&&run.wallMin)?kpi("elapsed","Elapsed (accept to accept)",spanText(run.wallMin),
     "start to the last accept"+(run.wallMin>=120?", "+String(Math.round(run.wallMin*10)/10).replace(/\B(?=(\d{3})+(?!\d))/g,",")+" min":"")+
-    (tl&&tl.min!==null?"; then "+tl.min+" min never accepted":""),true)
+    (tl&&tl.min!==null?"; then "+tl.min+" min never accepted":"")+(planningNote(run)?"; "+planningNote(run):""),true)
     :kpi("elapsed","Elapsed (accept to accept)","not measured",reasonFor(run,"wallMin")||"no accept times recorded",false));
   /* A run that recorded planning_review none keeps its measured passes and minutes and says where Improve did not run. Its
      share of elapsed is not printed: a bare 0% beside a stage run's share would read as Improve costing nothing, when no
@@ -839,15 +909,17 @@ function kpiCards(run,loops){
   if(!Array.isArray(loops))out.push(kpi("loops","Backchain loops","not loaded","the loop record has not loaded yet",false));
   else if(!loops.length)out.push(kpi("loops","Backchain loops","none","no Backchain loop recorded for this run",true));
   else{
-    var stage=loops.reduce(function(n,d){return n+(isCount(d.stageMin)?d.stageMin:0);},0);
-    out.push(kpi("loops","Backchain loops",plural(loops.length,"loop"),(Math.round(stage*10)/10)+" min as stages"+(wall?", "+Math.round(100*stage/wall)+"% of elapsed":""),true));
+    var real=loops.filter(function(d){return !isGraphCheck(d);}),checks=loops.length-real.length;
+    var stage=real.reduce(function(n,d){return n+(isCount(d.stageMin)?d.stageMin:0);},0),gc=checks?plural(checks,"graph check")+" only":"";
+    if(!real.length)out.push(kpi("loops","Backchain loops","none","no Backchain loop recorded; "+gc,true));
+    else out.push(kpi("loops","Backchain loops",plural(real.length,"loop"),(Math.round(stage*10)/10)+" min as stages"+(wall?", "+Math.round(100*stage/wall)+"% of elapsed":"")+(gc?"; "+gc:""),true));
   }
   if(isCount(run&&run.contextPeak)){
     var w=isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:0;
     out.push(kpi("context","Context (main thread)",w?pctText(100*run.contextPeak/w):grouped(run.contextPeak)+" tokens",
       (w?grouped(run.contextPeak)+" of "+grouped(w)+" tokens":"window not measured")+"; "+
-      (isCount(run.compactions)?plural(run.compactions,"compaction"):"compactions not measured"),true));
-  }else out.push(kpi("context","Context (main thread)","not measured",whyNot(run,"contextPeak")||"no reason recorded",false));
+      (isCount(run.compactions)?plural(run.compactions,"compaction"):"compactions not measured"),true,[packetUseText(run)]));
+  }else out.push(kpi("context","Context (main thread)","not measured",whyNot(run,"contextPeak")||"no reason recorded",false,[packetUseText(run)]));
   out.push(isCount(run&&run.refusals)?kpi("refusals","Refusals",String(run.refusals),"refusal lines or failed ShipLoop commands",true)
     :kpi("refusals","Refusals","not measured",whyNot(run,"refusals")||"no reason recorded",false));
   return out;
@@ -1117,6 +1189,7 @@ function stageCard(run,i,catalog){
   var item=typeof r.workitem==="string"&&run&&Array.isArray(run.workItems)?run.workItems.filter(function(w){return w&&w.id===r.workitem;})[0]:null;
   if(item&&isCount(item.revises))done.push(["Revises of this item",String(item.revises)+(item.revises===0?" (never sent back to step-plan)":" (each sent it back to step-plan)")]);
   var imp=improveText(run,r);if(imp)done.push(["Improve",imp]);
+  var vt=verifyText(r.verify);if(vt)done.push(["Checked by the script",vt]);
   done.push(["Refusals","not recorded per visit"+(isCount(run&&run.refusals)?"; run-level: "+run.refusals+" (not attributed to a visit)":
     "; run-level not measured"+(whyNot(run,"refusals")?" (the reason is on the Refusals card)":""))]);
   var cx=contextOf([r],run&&isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:null);
@@ -1126,6 +1199,7 @@ function stageCard(run,i,catalog){
   var written=[],summary=typeof r.summary==="string"&&r.summary?r.summary:"";
   if(r.resultFile===false)written.push(["Result file","none: the accepted result is read from state.md"]);
   else if(r.resultFile===true||isCount(r.resultBytes))written.push(["Result file","written"+(isCount(r.resultBytes)?", "+kbText(r.resultBytes):"")]);
+  if(Array.isArray(r.unverified))written.push(["Left unverified (owner, due stage)",unverifiedText(r.unverified)]);
   var readers=readersOf(catalog,r.stage);
   if(kind!=="skipped"&&kind!=="seeded"&&readers!==null)written.push(["Read by (declared by the stage spec)",readersText(readers)]);
   return {visit:i+1,title:"Visit "+(i+1)+": "+stageLabel(r.stage),stage:String(r.stage||""),label:stageLabel(r.stage),rawShown:rawShown(r.stage),kind:kind,purpose:purpose,
@@ -1427,7 +1501,7 @@ function renderFlow(){
     var cell=h("div","cell");
     data.bc.filter(function(d){return d.run===run.key&&d.phase===p.order;}).sort(byOrder).forEach(function(d){
       if(d.segments&&d.segments.length){cell.appendChild(document.createTextNode(d.loop+" "+d.stageMin+" min"));cell.appendChild(miniBar(d));}
-      else cell.appendChild(h("div","",d.loop==="none"?"no loop":d.loop+": no result"));
+      else cell.appendChild(h("div","",d.loop==="none"?"no loop":d.loop+(isGraphCheck(d)?": graph check only":": no result")));
     });
     f.appendChild(cell);
   });
@@ -1660,7 +1734,8 @@ function renderPicture(reveal){
   if(pickedCol>=model.columns.length)pickedCol=-1;
   model.cards.forEach(function(c){
     var d=h("div","kpi"+(c.measured?"":" nm")+(!c.measured&&c.note.length>60?" wide":""));d.setAttribute("role","group");d.setAttribute("aria-label",c.label+": "+c.text);
-    d.appendChild(h("span","kl",c.label));d.appendChild(h("b","kv",c.value));if(c.note)d.appendChild(h("span","kn",c.note));kp.appendChild(d);
+    d.appendChild(h("span","kl",c.label));d.appendChild(h("b","kv",c.value));if(c.note)d.appendChild(h("span","kn",c.note));
+    (c.lines||[]).forEach(function(l){d.appendChild(h("span","kn",l));});kp.appendChild(d);
   });
   renderPlan(run);
   card.hidden=!model.columns.length;box.hidden=!model.columns.length;
@@ -1821,6 +1896,7 @@ function setVerdict(d,i,kind){
 function loopCard(d){
   var c=h("div","card");
   c.appendChild(h("h3","",d.title+(d.stageMin?" | "+d.stageMin+" min as a stage":"")));
+  if(isGraphCheck(d))c.appendChild(h("p","sub","Graph check only: this stage checked its graph with backchain-check and ran no Until Loop, so there are no passes or minutes to draw."));
   if(d.segments&&d.segments.length){
     var bar=h("div","bar");bar.setAttribute("aria-hidden","true");
     var tot=d.segments.reduce(function(n,s){return n+(+s.min||0);},0);

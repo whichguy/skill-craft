@@ -65,6 +65,9 @@ The run document also says how the run ended, from the harness's own records: `s
 while the engine still read `active` (with the stage it never accepted and what that cost), a blocked run's question and options,
 the listeners the harness ended, whether the unreturned product passes its checks in the worktree, and which hosts wrote the run
 (a run resumed on another host exports no calls, context or compaction figure). See "How the run ended" in [SCHEMA.md](SCHEMA.md).
+Each visit also carries the checks ShipLoop recorded for it (`verify`, read from `tests/<action>-verifyN.md`) and the outcomes its
+result left unverified; the run carries the planning window and, for a Claude run, its wrapper scripts and packet use (read from
+`metrics.json`, never recomputed); a stage that only ran `backchain-check` is a graph-check Backchain document, not no loop.
 
 ## advise RUN_DIR_OR_KEY
 
