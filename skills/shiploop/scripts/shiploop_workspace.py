@@ -1496,7 +1496,7 @@ def route_sentence(workspace_root: Path) -> str:
     if manifest["start_clean"]:
         return (f"Return route (from workspace.md): this run started from a clean {branch}. {_LEFTOVERS_CLAUSE} The "
                 f"return fast-forwards {branch} to the run branch {manifest['branch']} when the candidate is committed "
-                "and every path in its history is kept; if the plan excludes a committed path or leaves a file "
+                "and every path in its history is kept; if the plan excludes a committed path or still leaves a file "
                 "uncommitted, it applies only the kept files to the working tree instead, which is not a Git merge or "
                 "commit.")
     return (f"Return route (from workspace.md): this run started from a dirty {branch}. {_LEFTOVERS_CLAUSE} The return "

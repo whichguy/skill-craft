@@ -710,8 +710,7 @@ class ReturnRouteTests(ReturnReviewCase):
             self.assertIn("Return route unknown: workspace.md cannot be read", packet)
             self.assertNotIn("Rollback of the return", packet)
 
-
-    def test_the_route_sentence_says_plan_return_commits_files_left_uncommitted_and_plan_return_does_exactly_that(self) -> None:
+    def test_route_sentence_says_plan_return_commits_leftovers_and_it_does(self) -> None:
         """Batch 1010 A2: the sentence a model reads before the return must not leave a model hand-committing a leftover.
 
         The sentence used to say the fast-forward needs "the candidate is committed" and that the plan "leaves a file
@@ -742,14 +741,23 @@ class ReturnRouteTests(ReturnReviewCase):
             # characters the Battleship run read of this line.
             self.assertLess(line.index(clause), line.index("The return fast-forwards"))
             self.assertLessEqual(line.index(clause) + len(clause), 250)
+            # Read after the clause, the rule's tail must not seem to contradict it: what is left uncommitted is what
+            # plan-return still leaves.
+            self.assertIn("or still leaves a file uncommitted", line)
         with self.subTest("the dirty-start sentence says it too: the hazard does not depend on the route"):
             (self.repo / "existing.txt").write_text("edited by the user\n", encoding="utf-8")
-            dirty_root, _ = self.start("route leftovers dirty")
-            self.git("checkout", "-q", "--", "existing.txt")
+            dirty_root, dirty_worktree = self.start("route leftovers dirty")
             line = route(dirty_root)
             self.assertIn("this run started from a dirty main", line)
             self.assertIn(clause, line)
             self.assertLess(line.index(clause), line.index("The return applies only the kept files"))
+            # The verb does what the sentence says on this route too; the source edit stays in place until it has
+            # run, because a moved source blocks plan-return.
+            self.write(dirty_worktree, "late.js", "written after the last work item\n")
+            self.assertIn("ShipLoop committed these files that were left uncommitted (no action needed): late.js",
+                          self.plan_return(dirty_root).stdout)
+            self.assertIn("late.js", self.git("ls-files", cwd=dirty_worktree).stdout.split())
+            self.git("checkout", "-q", "--", "existing.txt")
         with self.subTest("plan-return commits the late file, screens the credential-like one and skips run evidence"):
             out = self.plan_return(root).stdout
             self.assertIn("ShipLoop committed these files that were left uncommitted (no action needed): late.js", out)
