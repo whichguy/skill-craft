@@ -1976,3 +1976,90 @@ there because its cases are guards, so it now begins with the positive case. Als
 **Declined or left.** No rename, removal, new collection or id bump was needed; the schema id stays `run-review-export/v2`. Not done: an N/N
 for the worktree checks (a boolean was asked for), the `blocked` object for a paused or halted run (its `status_reason` is only used for
 `blocked`), and the header's "1 refusals" plural (cosmetic, a test pins the text).
+
+
+## 2026-10-09: R22b, script checks, unverified outcomes, tool use, the planning window and graph-check Backchain (local, unpublished)
+
+Status: firm for the definitions, the real-data results, the sizes, the tests and the render below. Local commit on `rr22-940ad8` after
+R22a `7ff90399` (change note `changes/shiploop-run-review/script-checks-unverified-tool-use-planning.md`); same boundaries as R22a (no push,
+no `scripts/release.py`, no E2E run, no Artifact or ArtifactData call, nothing written under `/Users/dadleet/e2e-runs`, no process signalled,
+`listeners.py` never imported). Related: R12 (`_model_measures` and the unmeasured rules this follows), R16 (`find_backchain_loops`, which
+required an `until-loop-receipt.json`), R20a (the stage card these lines join), and the harness's `verifications`, `ToolLog.tool_use` and
+`planning_window` in `test/shiploop_e2e/metrics.py`.
+
+**The audit, re-verified.** `accepted_ran` lives in `run/tests/<action>-verifyN.md` `runs[]` and the exporter never read it; a record is
+`{action, stage, disposition, passed, expect?, runs[{status, exit, counts{ran, failed}, accepted_ran?, ids_missing}], observed?}`, and one
+action can have several records (r2 Checkers: 13 records on 11 visits, the test-author visit has three, two refused for ids-missing, 11
+passed). The harness's `script_verifications.red` counts the records in which a command ran red; a test-red record passes because red is what
+it accepts. release-verify's `observed` is `{where, copy, tree, head, kind, source, plan, receipt, ahead}` (r3 Sonnet: `returned-result`, tree
+`5f846af6...`, while the result's summary says "not a clean consumer-check copy"). `unverified` is `[{outcome, reason, check, owner,
+due_stage}]` on `product-acceptance` (r3 and r2 Battleship Sonnet one item each; `[]` on r2 Checkers, r3 Checkers and r2 Grok; no key on
+`handoff` in any run). `tool_use` exists only for a Claude run (None on every Grok run, so also on the two-host r2 Grok run), with
+`scratch_scripts[{path, bytes, wraps_shiploop, runs}]` and `packets{on_disk{files, bytes}, printed{replies, chars}, read{read_tool[{packet,
+whole, chars}], shell{calls, chars}}}`. The `planning` block is on 10 of the 11 runs (the 1.22.0 Grok run has none), its `tokens` is
+`{output, reasoning, clock, source}` on Grok and `{unmeasured}` on Claude. Backchain: `run/backchain/<action>/` with only `check-*.json` and
+`candidate-*.json` and no `until-loop-receipt.json` on r1 Grok, r1 Sonnet, r2 Checkers (two receipts, the invalid one seven seconds before the ok one by
+file time, so the last is ok as the audit reads it; the exporter takes the newest by `(mtime, name)`, as `_last_check` always did) and the 1.22.0
+Grok run.
+*Correction to my own first reading:* the audit's two tolerances hold, with one precision: the block's per-stage seconds equal the exporter's
+`min` within 3 s (a tenth of a minute is 6 s of rounding), and the Improve seconds differ from `improve.min` by at most 1.2 s **per child**
+(0.0 to 1.2 on the 10 runs; the total over five children is up to 3.9 s).
+
+**Field shapes** (all optional, nothing renamed or removed, schema id unchanged):
+
+| Field | Shape |
+| --- | --- |
+| `stages[].verify` | `{records, passed, red?, couldNotRun?, runs?[{status, ran?, failed?, acceptedRan?}], observed?{where?, tree12?}}`; `runs` of the last record, `red` and `passed` over all |
+| `stages[].unverified` | `[{outcome?, reason?, check?, owner?, dueStage?}]`, texts cut at 300 characters with an ellipsis; `[]` is "none listed", no key claims nothing |
+| `toolUse` | `{wrappers?[{name, runs}], packets?{files?, bytes?, printed?, printedChars?, readWhole?, readPartial?, shellReads?, shellChars?}}`; absent with `unmeasured.toolUse` where the harness has no record |
+| `planning` | `{closed?, through?, windowMin?, hostWindowMin?, improveMin?, children?, outputTokens?, reasoningPct?}` read from the block; reasons `unmeasured.planning`, `planningHostWindow`, `planningImprove`, `planningTokens` |
+| backchain `graphCheckOnly` | `true` on the document of a stage that ran only `backchain-check`; no segments, fact "graph check only: N checks, last ok (complete)", `candidateMatch` as for a loop |
+
+`readPartial` is one more than the audit named (the packets Read by offset); everything else is as proposed. The page: "Checked by the script"
+in the Done block, "Left unverified (owner, due stage)" in the Written block on the visits whose result has the list, "planning X min, closed
+at <stage>" on the Elapsed card, the packet-use line on the Context card (also when the context is not measured), a "Model glue" row that reads
+"2 commands + 41 runs of 3 wrapper scripts (...): a lower bound" and a "Planning window" row in the run detail, a graph-check card with a sentence
+saying no Until Loop ran, "plan: graph check only" in the lane, and the Backchain card counting a graph check apart from a loop.
+
+**Real data (scratch only).** All 11 runs export with exit 0, pass `--check` and re-export byte-identically; `review-export.json` 13.9 to 39.5
+KB (R22a: 13.4 to 36.9). Script checks: 2 to 19 records a run (r3 Grok stopped after 2), r2 Checkers 13/11. Unverified: r3 and r2 Battleship
+Sonnet one item each. Wrappers: r3 Sonnet `done.py` 30, `istart.sh` 7, `ifinish.sh` 4 (glue 2); r1 Sonnet `sub.sh` 30, `istart.sh` 7; r1 Checkers
+`sub.sh` 29, `ih.sh` 10. Planning: 23.3, 15.7 and 23.2 min on the three Grok Battleship runs (r1, r2, r3) and 4.8 to 7.0 on the Sonnet runs, all closed at
+test-spec (a Grok window is roughly three to four times a Sonnet one; none crosses the owner's 30-minute rule). Graph checks: four runs.
+
+**What the four rendered runs show now** (a local server over the template with a fake database holding the 11 scratch exports; 375 px and a
+1024 px pane, light and dark each; `scrollWidth` equals the viewport at 375). r3 Sonnet (done): "How it ended: done" with the two node listeners
+the harness ended, Elapsed note "planning 4.8 min, closed at test-spec", the Context card with its packet line, a Backchain card that says none, and
+on the product-acceptance card the unverified browser check with its owner and due stage. r3 Grok (stopped): the card first (stopped by the stop
+file, Implement 27.1 min and 104 turns never accepted, the earlier SIGTERM at Test author, two listeners, the unreturned product passes in the
+worktree), the Build chevron hatched "stopped by the harness", a hatched `U` column that opens a detail with a packet head read from the packets
+document, a legend of two entries. r1 Grok (blocked): the question, the two options one per line, why no default, 2 sessions and 1 resume, "blocked
+here" on System test. r2 Grok (two hosts): the chip "resumed on claude-sonnet-5-5", the Context card "not measured" with the two-host reason, no
+visit context. **Defects found in this pass:** (1) the unverified item read "... was done Check: Open ..." as one run-on; it is now "Reason: ...
+Check: ..." with full stops; (2) the first draft printed "47 printed replys" (the plural helper adds an s; the test caught it); (3) not fixed, noted:
+the Context card grows tall with the packet line on a phone (it sits beside the Refusals card, which stretches), and `kbText` prints "1760.4 KB"
+where "1.7 MB" would read better; the header still says "1 refusals".
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: **433 OK** (409 after R22a, 363 at the base). 24 new tests in five classes
+(`VerifyAndUnverifiedExportTests`, `ToolUseAndPlanningExportTests`, `GraphCheckOnlyBackchainTests`, `ChecksPlanningPageLogicTests`,
+`ChecksPlanningPageTests`) and four changed ones, each deliberate: `make_run`'s fixture now carries `tool_use: None` and a planning block as a
+current harness writes them, the two tests that pinned the exact `unmeasured` set add the `toolUse` reason, and the R16 test that said a folder with
+only check receipts is no loop now says it is a graph check. Fail-first, against a `git archive` of `7ff90399` with only the test file copied in:
+**all 24 new test methods fail or error** on it, and so do the three changed ones (26 failing in the run that also holds them); one (the planning block's
+seconds against the stage minutes) first passed there because it only restated existing behaviour, so it now also asserts the run carries the
+`planning` object. **20 deliberate defects** on a scratch copy (red counted from passed runs, the stop path kept, only `stopped` ending a run, argv
+leaked, two hosts keeping calls, zero-call context kept, the planning window rounded to whole minutes, a legend listing everything, the tail setting
+the scale, an empty unverified list saying nothing, glue without its lower bound, the oldest receipt named, a loop folder read as a graph check,
+the reason not cut, a regrade stopped, the first record's runs, "0 calls" back on the page, a missing chevron label, the tail drawing a band
+dash, and `where` taking the farthest component): 18 caught first; the two survivors (`where` precedence, the tail's not-measured dash) got an
+assertion each (`_where` now takes the component nearest the process, and a test says so), then 20 of 20. Also green:
+`node test/skill-frontmatter.test.js` (22), `test/test-groups.test.py` (21), `test/marketplace-package.test.py` (29),
+`scripts/check-release-boundary.py --base origin/main` (OK).
+
+**Sizes.** Template 150,592 (base) to 160,905 (R22a) to 167,327 bytes. Export sizes above. `MAX_COMPACT_BYTES` (200,000) is not near.
+
+**Open questions for the owner.** (1) Should a Grok run's case read `custom` in the picker, or should the harness record the prompt's case? Two
+Grok Battleship runs of different prompts would collide in the picker (the keys differ by date). (2) `stopped` includes `exited` with the engine
+still active (a spent resume budget): is that the label you want, or `ended`? (3) The unaccepted tail's packet is exported as a `packets` document
+like any visit's (47 KB on r3 Grok); say if you would rather not upload it. (4) The N/N for the worktree checks was left out (a boolean was
+asked for); the count is one line to add. (5) Items 18, 19, 20, 22 and 23 of the audit were not part of this brief and were not touched.

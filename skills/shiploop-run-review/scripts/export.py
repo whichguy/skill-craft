@@ -125,6 +125,10 @@ COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "reviews", "o
 S, N, B, ISO = "string", "number", "boolean", "iso"
 BOOL_OR_UNKNOWN = "bool-or-unknown"  # true, false or the string "unknown": a fact that may not be knowable from the records
 PHASE_STATES = ("done", "running", "blocked", "stopped", "none")
+VERIFY_FIELDS = {"records": (N, True), "passed": (N, True), "red": (N, False), "couldNotRun": (N, False),
+                 "runs": (("items", {"status": (S, True), "ran": (N, False), "failed": (N, False), "acceptedRan": (N, False)}), False),
+                 "observed": (("object", {"where": (S, False), "tree12": (S, False)}), False)}
+UNVERIFIED_FIELDS = {"outcome": (S, False), "reason": (S, False), "check": (S, False), "owner": (S, False), "dueStage": (S, False)}
 LEFT_BEHIND_ITEM = {"command": (S, True), "ports": (("list", N), False),
                     "where": (("enum", ("worktree", "work", "other")), True), "endedBy": (S, False)}
 SCHEMA = {
@@ -176,7 +180,11 @@ SCHEMA = {
                               "carried": (("map", B), False), "packetImprove": (B, False),
                               # an Improve child's own packet file packets/<action>-improve.md (the layout after ShipLoop 1.22.0): its
                               # size, and true when a packets document `<runKey>--<action>-improve` was written for it.
-                              "improvePacketBytes": (N, False), "improvePacketDoc": (B, False)}), False),
+                              "improvePacketBytes": (N, False), "improvePacketDoc": (B, False),
+                              # R22b: what ShipLoop's own script checks recorded for the visit (tests/<action>-verifyN.md) and
+                              # the outcomes a result left unverified, each with its owner and due stage (SCHEMA.md).
+                              "verify": (("object", VERIFY_FIELDS), False),
+                              "unverified": (("items", UNVERIFIED_FIELDS), False)}), False),
         # The plan's work items and how each went through the steps loop, from state.md and results/ only. Absent, with
         # a reason in `unmeasured.workItems`, when the records cannot tell; stepsPlanned and stepsExecuted are absent,
         # with a reason under their own name, when any item's steps or pairing is unknown. Never a zero for those.
@@ -212,6 +220,18 @@ SCHEMA = {
         "leftBehind": (("object", {
             "observed": (B, True), "reason": (S, False),
             "reaped": (("items", LEFT_BEHIND_ITEM), False), "survived": (("items", LEFT_BEHIND_ITEM), False)}), False),
+        # R22b. How the model used its tools and the packets (a Claude run's main thread, record only): the wrapper scripts it wrote
+        # around ShipLoop and how it met the packets. Absent, with `unmeasured.toolUse`, on a host the harness does not read it from.
+        "toolUse": (("object", {
+            "wrappers": (("items", {"name": (S, True), "runs": (N, True)}), False),
+            "packets": (("object", {"files": (N, False), "bytes": (N, False), "printed": (N, False), "printedChars": (N, False),
+                                    "readWhole": (N, False), "readPartial": (N, False), "shellReads": (N, False),
+                                    "shellChars": (N, False)}), False)}), False),
+        # R22b. The planning window of the owner's 30-minute rule, read from metrics.json's `planning` block, not recomputed:
+        # its length on the engine's clock and the host's, the stage it closed at, the Improve share and the output tokens.
+        "planning": (("object", {
+            "closed": (B, False), "through": (S, False), "windowMin": (N, False), "hostWindowMin": (N, False),
+            "improveMin": (N, False), "children": (N, False), "outputTokens": (N, False), "reasoningPct": (N, False)}), False),
     },
     "backchain": {
         "run": (S, False), "loop": (S, False), "phase": (N, False), "order": (N, False), "title": (S, False),
@@ -220,6 +240,8 @@ SCHEMA = {
         # the last backchain-check receipt is for the loop's final candidate (true, false or "unknown"), and the
         # trivial reviews the loop's receipt required (0 on a one-pass loop).
         "backchainPasses": (S, False), "candidateMatch": (BOOL_OR_UNKNOWN, False), "trivialRequired": (N, False),
+        # R22b: true on a document for a stage that ran only `shiploop backchain-check` (no Until Loop): graph checks, no passes.
+        "graphCheckOnly": (B, False),
         "segments": (("items", {"label": (S, True), "min": (N, True),
                                 "kind": (("enum", ("added", "wasted", "insurance", "unclear", "neutral")), True),
                                 "note": (S, True), "pass": (N, False), "change": (S, False),
@@ -879,6 +901,42 @@ def find_backchain_loops(run_dir: Path) -> list[Path]:
     return [p.parent for p in sorted((run_dir / "backchain").glob("*/until-loop-receipt.json")) if p.is_file()]
 
 
+def find_graph_check_dirs(run_dir: Path) -> list[Path]:
+    """The run/backchain/<action>/ directories that hold `shiploop backchain-check` receipts (check-*.json) and no
+    until-loop-receipt.json: a stage that checked its graph and ran no Until Loop (a one-pass option). They were read as no
+    loop at all, so a run whose plan was checked read "none"."""
+    return [p for p in sorted((run_dir / "backchain").glob("*")) if p.is_dir() and not (p / "until-loop-receipt.json").is_file()
+            and any(p.glob("check-*.json"))]
+
+
+def graph_check_doc(run_key: str, run_dir: Path, folder: Path, order: int, option: str = NOT_RECORDED,
+                    stage_of: dict[str, str] | None = None) -> dict:
+    """The backchain/<runKey>-<stage> document for a stage that only ran `backchain-check`: no segments, `graphCheckOnly`
+    true, and a fact "graph check only: N checks, last ok (complete)" read from the newest receipt (file time, then name).
+    `candidateMatch` is as for a loop: whether that receipt is for the final candidate the folder's records name, which a
+    folder with no loop record never does ("unknown", with the reason)."""
+    name = (stage_of or {}).get(folder.name) or _loop_name(folder.name)
+    receipts = []
+    for path in sorted(folder.glob("check-*.json")):
+        data = _optional_json(path)
+        if isinstance(data, dict):
+            receipts.append(((path.stat().st_mtime, path.name), data))
+    receipts.sort(key=lambda t: t[0])
+    last = receipts[-1][1] if receipts else {}
+    ok = {True: "ok", False: "not ok"}.get(last.get("ok"), "ok not recorded")
+    completion = _text(last.get("completion"))
+    final = _record_digests(run_dir, folder)[1]
+    match, said = _candidate_match(final, _last_check(folder))
+    checks = _count(len(receipts), "check")
+    return {"run": run_key, "loop": name, "phase": STAGE_PHASE.get(name, 2), "order": order,
+            "title": f"{name[:1].upper()}{name[1:]} graph check", "stageMin": None, "segments": [], "graphCheckOnly": True,
+            "backchainPasses": option, "candidateMatch": match,
+            "facts": [{"k": "Graph check", "v": f"graph check only: {checks}, last {ok}" + (f" ({completion})" if completion else "")},
+                      {"k": "Backchain passes option", "v": option}, {"k": "Candidate match", "v": said},
+                      {"k": "Receipt", "v": folder.relative_to(run_dir).as_posix() + "/" + (
+                          max(folder.glob("check-*.json"), key=lambda p: (p.stat().st_mtime, p.name)).name)}]}
+
+
 # ---------------------------------------------------------------- the run document
 
 def _clean_key(text: str) -> str:
@@ -1080,9 +1138,10 @@ def _worktree_checks(result: dict):
 
 def _where(cwd) -> str:
     """Where a listener ran: in the worktree (the product not yet returned), in the work folder (the returned result), or
-    elsewhere. Read from the path's own components, so a copied run directory classifies the same."""
+    elsewhere. Read from the path's own components, so a copied run directory classifies the same; the component nearest
+    the process's own directory decides when a path holds both."""
     parts = Path(cwd).parts if isinstance(cwd, str) else ()
-    return "worktree" if "worktree" in parts else "work" if "work" in parts else "other"
+    return next((name for name in reversed(parts) if name in ("worktree", "work")), "other")
 
 
 def _left_behind(record) -> dict | None:
@@ -1202,6 +1261,155 @@ def _blocked(state: dict, history: list[dict], results: Path) -> dict:
     if options:
         found["options"] = options
     return found
+
+
+# ---------------------------------------------------------------- script checks, unverified outcomes, tool use, planning (R22b)
+
+VERIFY_FILE = re.compile(r"(?P<action>[A-Za-z0-9._-]+)-verify(?P<n>\d+)\.md")
+MAX_VERIFY_RUNS = 12  # runs of one record kept on a stage row (a record lists one per command, a handful in practice)
+TREE_DIGEST = re.compile(r"[0-9a-f]{12,64}")
+
+
+def _verify_by_action(tests: Path) -> tuple[dict[str, dict], int]:
+    """({action id: verify block}, readable-record count missed) from `tests/<action>-verifyN.md`, the checks ShipLoop itself
+    ran and recorded. A visit's block counts every record of its action (`records`, `passed`, `red`: records in which a command
+    ran red, which a test-red record accepts; `couldNotRun`, only when some record never reached a verdict) and keeps the
+    `runs` of the last record, the one that decided it: status, tests ran, failed and accepted. `observed` is where the last
+    record that names one ran its checks (release-verify: returned-result, work-area or in-place) and the first 12 digits of the
+    tree. No command, no stdout, no path is copied. A record with no readable shiploop-state fence is counted unreadable."""
+    groups: dict[str, list[tuple[int, dict]]] = {}
+    unreadable = 0
+    for path in sorted(tests.glob("*-verify*.md")) if tests.is_dir() else []:
+        named = VERIFY_FILE.fullmatch(path.name)
+        if not named:
+            continue
+        found = _record(path)
+        if found is None:
+            unreadable += 1
+        else:
+            groups.setdefault(named["action"], []).append((int(named["n"]), found))
+    blocks = {}
+    for action, numbered in groups.items():
+        records = [r for _, r in sorted(numbered, key=lambda t: t[0])]
+        block: dict = {"records": len(records), "passed": sum(1 for r in records if r.get("passed") is True),
+                       "red": sum(1 for r in records if any(isinstance(x, dict) and x.get("status") == "red"
+                                                            for x in r.get("runs") or []))}
+        if (never := sum(1 for r in records if r.get("disposition") == "could-not-run")):
+            block["couldNotRun"] = never
+        runs = []
+        for entry in (records[-1].get("runs") if isinstance(records[-1].get("runs"), list) else [])[:MAX_VERIFY_RUNS]:
+            if isinstance(entry, dict) and isinstance(entry.get("status"), str):
+                counts = entry.get("counts") if isinstance(entry.get("counts"), dict) else {}
+                runs.append({"status": entry["status"], **{name: value for name, value in (
+                    ("ran", counts.get("ran")), ("failed", counts.get("failed")), ("acceptedRan", entry.get("accepted_ran")))
+                    if _num(value) is not None}})
+        if runs:
+            block["runs"] = runs
+        watched = next((r["observed"] for r in reversed(records) if isinstance(r.get("observed"), dict)), None)
+        if watched is not None:
+            seen = {k: v for k, v in (("where", _text(watched.get("where"))),
+                                      ("tree12", watched["tree"][:12] if isinstance(watched.get("tree"), str)
+                                       and TREE_DIGEST.fullmatch(watched["tree"]) else None)) if v}
+            if seen:
+                block["observed"] = seen
+        blocks[action] = block
+    return blocks, unreadable
+
+
+def _unverified(body: dict) -> list[dict] | None:
+    """The outcomes a result left unverified, [{outcome, reason, check, owner, dueStage}] with each text cut at MAX_SUMMARY
+    characters: `[]` when the result lists none (a measured "none listed"), None when it has no `unverified` key at all."""
+    raw = body.get("unverified")
+    if not isinstance(raw, list):
+        return None
+    found = []
+    for item in raw:
+        if isinstance(item, dict):
+            row = {field: (text.strip()[:MAX_SUMMARY] + ("\u2026" if len(text.strip()) > MAX_SUMMARY else ""))
+                   for field, key in (("outcome", "outcome"), ("reason", "reason"), ("check", "check"), ("owner", "owner"),
+                                      ("dueStage", "due_stage")) if (text := _text(item.get(key)))}
+            if row:
+                found.append(row)
+    return found
+
+
+NO_TOOL_USE = ("metrics.json has no tool_use record: the harness reads tool use from a Claude run's tool_use blocks only, and "
+               "only for a run whose events are all Claude's")
+
+
+def _tool_use(metrics: dict, hosts: list[dict]) -> tuple[dict | None, str | None]:
+    """(toolUse, why it is absent) from metrics.json's `tool_use`, a record the harness writes for a Claude run's main thread.
+    `wrappers` are the model-written scripts that wrap a ShipLoop command and were run (basename and number of tool calls that
+    ran each; `[]` is a measured none), so glue is a lower bound where one exists. `packets` is how the model met the packet
+    files: the files on disk, the ShipLoop replies that printed one, the packets it Read whole or in part, and the shell
+    commands that named one. Absent members stay absent."""
+    use = metrics.get("tool_use")
+    if not isinstance(use, dict):
+        names = ", ".join(dict.fromkeys(h["host"] for h in hosts)) or "unknown"
+        return None, f"{NO_TOOL_USE} (host: {names})"
+    out: dict = {}
+    scripts = use.get("scratch_scripts")
+    if isinstance(scripts, list):
+        out["wrappers"] = sorted(({"name": Path(x["path"]).name, "runs": x["runs"]} for x in scripts
+                                  if isinstance(x, dict) and x.get("wraps_shiploop") is True and isinstance(x.get("path"), str)
+                                  and _num(x.get("runs")) is not None), key=lambda w: (w["name"], w["runs"]))
+    packets = use.get("packets") if isinstance(use.get("packets"), dict) else {}
+    disk, printed = packets.get("on_disk") if isinstance(packets.get("on_disk"), dict) else {}, \
+        packets.get("printed") if isinstance(packets.get("printed"), dict) else {}
+    read = packets.get("read") if isinstance(packets.get("read"), dict) else {}
+    tool = [r for r in read.get("read_tool") or [] if isinstance(r, dict)] if isinstance(read.get("read_tool"), list) else None
+    shell = read.get("shell") if isinstance(read.get("shell"), dict) else {}
+    seen = {"files": disk.get("files"), "bytes": disk.get("bytes"), "printed": printed.get("replies"),
+            "printedChars": printed.get("chars"), "shellReads": shell.get("calls"), "shellChars": shell.get("chars"),
+            **({"readWhole": sum(1 for r in tool if r.get("whole") is True),
+                "readPartial": sum(1 for r in tool if r.get("whole") is False)} if tool is not None else {})}
+    seen = {k: v for k, v in seen.items() if _num(v) is not None}
+    if seen:
+        out["packets"] = seen
+    return out, None
+
+
+def _planning(metrics: dict) -> tuple[dict, dict[str, str]]:
+    """(planning, {reason name: why}) from metrics.json's `planning` block, read as the harness wrote it (the window on the
+    engine's clock and the host's, the stage it closed at, the Improve share, the output tokens), never recomputed. A member
+    the block holds as None stays absent with its reason: `planning` (the window), `planningHostWindow`, `planningImprove`,
+    `planningTokens`. The block's per-stage seconds equal the run's accept-to-accept minutes within 3 s (the export keeps a
+    tenth of a minute), and its Improve seconds run bind to accept where `improveMin` runs bind to receipt (at most 1.2 s a
+    child on the 10 runs that have the block)."""
+    block = metrics.get("planning")
+    if not isinstance(block, dict):
+        return {}, {"planning": "metrics.json has no planning block: it was written before the harness measured the planning "
+                                "window (regrade the run)"}
+    window = block.get("window") if isinstance(block.get("window"), dict) else {}
+    why = block.get("unmeasured") if isinstance(block.get("unmeasured"), dict) else {}
+    found: dict = {}
+    reasons: dict[str, str] = {}
+    if isinstance(window.get("closed"), bool):
+        found["closed"] = window["closed"]
+    if _text(window.get("through")):
+        found["through"] = window["through"]
+    for field, key, reason in (("windowMin", "seconds", "planning"), ("hostWindowMin", "host_seconds", "planningHostWindow")):
+        if _num(window.get(key)) is not None and window[key] >= 0:
+            found[field] = round(window[key] / 60, 1)
+        else:
+            reasons[reason] = str(why.get("window" if reason == "planning" else "host_seconds")
+                                  or "the planning block gives no figure and names no reason")
+    improve = block.get("improve") if isinstance(block.get("improve"), dict) else None
+    if improve is not None and _num(improve.get("seconds")) is not None and improve["seconds"] >= 0:
+        found["improveMin"] = round(improve["seconds"] / 60, 1)
+        if _num(improve.get("children")) is not None:
+            found["children"] = improve["children"]
+    else:
+        reasons["planningImprove"] = str(why.get("improve") or reasons.get("planning")
+                                         or "the planning block gives no Improve figure and names no reason")
+    tokens = block.get("tokens") if isinstance(block.get("tokens"), dict) else {}
+    if _num(tokens.get("output")) is not None and tokens["output"] > 0:
+        found["outputTokens"] = tokens["output"]
+        if _num(tokens.get("reasoning")) is not None and tokens["reasoning"] >= 0:
+            found["reasoningPct"] = round(100 * tokens["reasoning"] / tokens["output"], 1)
+    else:
+        reasons["planningTokens"] = str(tokens.get("unmeasured") or "the planning block gives no token figure and names no reason")
+    return found, reasons
 
 
 def _clip(text: str) -> tuple[str, bool]:
@@ -1496,6 +1704,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     packets = run_dir / "packets"
     issued = packets.is_dir() and any(p.is_file() for p in packets.iterdir())  # some packet exists: absence means something
     children = _improve_children(run_dir)
+    verify_blocks, verify_unreadable = _verify_by_action(run_dir / "tests")
     hosts = _hosts(out)
     visit_context, visit_context_why = _visit_context(metrics, history, _text(invocation.get("host")) or _text(result.get("host")))
     if len(hosts) > 1:  # one figure over two hosts' events: not a measure, for any visit either
@@ -1543,6 +1752,10 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         figures = {k: v for k, v in (children.get(action) or {}).items() if v is not None}
         if figures:
             row["improve"] = figures
+        if isinstance(action, str) and action in verify_blocks:
+            row["verify"] = verify_blocks[action]
+        if isinstance(action, str) and (outcomes := _unverified(_result_body(results, state, action))) is not None:
+            row["unverified"] = outcomes
         if visit_context[index]:
             row["context"] = visit_context[index]
         stages.append(row)
@@ -1598,6 +1811,11 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         stages[index].update(mark)
     if visit_context_why:  # set only when no visit has a context
         unmeasured["visitContext"] = visit_context_why
+    tool_use, why_no_tool_use = _tool_use(metrics, hosts)
+    if tool_use is None:
+        unmeasured["toolUse"] = why_no_tool_use
+    planning, planning_why = _planning(metrics)
+    unmeasured.update(planning_why)
     checkouts = [out / "work", run_dir.parent / "worktree"]
     knowledge, knowledge_root = _knowledge(checkouts if raw_status == "done" else checkouts[::-1])
 
@@ -1645,6 +1863,10 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         run["verdicts"] = verdicts
     if hosts:
         run["hosts"] = hosts
+    if tool_use is not None:
+        run["toolUse"] = tool_use
+    if planning:
+        run["planning"] = planning
     if ending:
         run["ending"] = ending
     if raw_status == "blocked" and (blocked := _blocked(state, history, results)):
@@ -1675,6 +1897,9 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
                    "facts": [{"k": "Ledger", "v": f"not built: {type(exc).__name__}: {exc}"}]}
         start = _start_record(run_dir, loop) or loop / "until-loop-receipt.json"
         loops.append(((start.stat().st_mtime if start.is_file() else 0.0), loop.name, doc))
+    for folder in find_graph_check_dirs(run_dir):  # R22b: a stage that only checked its graph is not "no loop"
+        first = min(p.stat().st_mtime for p in folder.glob("check-*.json"))
+        loops.append((first, folder.name, graph_check_doc(key, run_dir, folder, 0, option, stage_of)))
     loops.sort(key=lambda t: (t[0], t[1]))
     for index, (_, _, doc) in enumerate(loops, 1):
         doc["order"] = index
@@ -1683,8 +1908,10 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             doc_id, suffix = f"{key}-{doc['loop']}-{suffix}", suffix + 1
         docs["backchain"][doc_id] = doc
 
+    visited = {row["action"] for row in stages if "action" in row}
     facts = _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, docs["backchain"],
-                   unknown, from_state, seeded_note, option, packet_set, unreadable)
+                   unknown, from_state, seeded_note, option, packet_set, unreadable,
+                   (sum(b["records"] for a, b in verify_blocks.items() if a not in visited), verify_unreadable))
     return docs, facts
 
 
@@ -1760,8 +1987,50 @@ def _ending_lines(run) -> list[str]:
     return lines
 
 
+def _measure_lines(run, verify_loose: tuple[int, int]) -> list[str]:
+    """The R22b measures as facts lines: the script checks ShipLoop recorded, the unverified outcomes, the tool use and the
+    planning window (a measure the run lacks reads "not measured" and why)."""
+    unmeasured, rows, lines = run["unmeasured"], run["stages"], []
+    checked = [r["verify"] for r in rows if "verify" in r]
+    loose, unreadable = verify_loose
+    lines.append((f"- Script checks (tests/<action>-verifyN.md): {sum(v['records'] for v in checked)} records on {len(checked)} visits, "
+                  f"{sum(v['passed'] for v in checked)} passed, {sum(v['red'] for v in checked)} ran red"
+                  + (f"; {sum(v.get('couldNotRun', 0) for v in checked)} could not run" if any("couldNotRun" in v for v in checked) else "")
+                  + (f"; {loose} records name an action that is no visit" if loose else "")
+                  + (f"; {unreadable} unreadable" if unreadable else ""))
+                 if checked or loose or unreadable else "- Script checks (tests/<action>-verifyN.md): none recorded")
+    listed = [r for r in rows if "unverified" in r]
+    if listed:
+        lines.append("- Unverified outcomes: " + "; ".join(f"{r['stage']} {len(r['unverified'])}" for r in listed))
+    use = run.get("toolUse")
+    if use is None:
+        lines.append(f"- Tool use: not measured ({unmeasured.get('toolUse', 'no reason recorded')})")
+    else:
+        wrappers = use.get("wrappers")
+        packets = use.get("packets") or {}
+        lines.append("- Tool use: " + ("no wrapper script" if wrappers == [] else "wrapper scripts " + ", ".join(
+            f"{w['name']} {w['runs']}" for w in wrappers) if wrappers else "wrappers not recorded")
+                     + "; packets " + (", ".join(f"{name} {packets[key]:,}" for key, name in (
+                         ("files", "files"), ("bytes", "bytes"), ("printed", "printed"), ("printedChars", "printed chars"),
+                         ("readWhole", "read whole"), ("readPartial", "read in part"), ("shellReads", "shell reads"),
+                         ("shellChars", "shell chars")) if key in packets) or "not recorded"))
+    plan = run.get("planning")
+    if plan:
+        lines.append("- Planning window: " + ", ".join(
+            [f"{plan['windowMin']} min on the engine clock" if "windowMin" in plan else
+             f"not measured ({unmeasured.get('planning', 'no reason recorded')})"]
+            + ([f"{plan['hostWindowMin']} min on the host's"] if "hostWindowMin" in plan else [])
+            + ([f"{'closed at' if plan.get('closed') else 'still open through'} {plan['through']}"] if "through" in plan else [])
+            + ([f"Improve {plan['improveMin']} min over {plan.get('children', '?')} children"] if "improveMin" in plan else [])
+            + ([f"{plan['outputTokens']:,} output tokens" + (f", {plan['reasoningPct']}% reasoning" if "reasoningPct" in plan else "")]
+               if "outputTokens" in plan else [])))
+    else:
+        lines.append(f"- Planning window: not measured ({unmeasured.get('planning', 'no reason recorded')})")
+    return lines
+
+
 def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, loops, unknown, from_state,
-           seeded_note, option, packet_set, unreadable) -> list[str]:
+           seeded_note, option, packet_set, unreadable, verify_loose=(0, 0)) -> list[str]:
     stages = run["stages"]
     totals: dict[str, list] = {}
     for row in stages:
@@ -1817,6 +2086,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
              f"- Planning review option (state.md): {run['planningReview']}",
              f"- Backchain passes option (state.md): {option}",
              "- Backchain loops: " + ("; ".join(
+                 f"{d['loop']}: {next(f['v'] for f in d['facts'] if f['k'] == 'Graph check')}" if d.get("graphCheckOnly") else
                  f"{d['loop']} {next((f['v'] for f in d['facts'] if f['k'] == 'Passes'), '?')} passes, "
                  f"{next((f['v'] for f in d['facts'] if f['k'] == 'Final status'), '?')}"
                  + (f", stage {d['stageMin']} min" if d.get("stageMin") is not None else "")
@@ -1824,6 +2094,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
                  for d in loops.values()) or "none found under scratch/ or backchain/"),
              f"- Run directory: {run_dir.relative_to(out).as_posix()}"]
     lines += _ending_lines(run)
+    lines += _measure_lines(run, verify_loose)
     if untimed:
         lines.append(f"- Stages with no minutes (no accept stamp, or none on the visit before): {untimed} of "
                      f"{len(stages)}; their minutes are null, not 0")

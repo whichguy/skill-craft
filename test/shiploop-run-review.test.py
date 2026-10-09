@@ -96,6 +96,16 @@ def make_improve_child(run: Path, action: str, passes: int | None = 3, bind_at: 
     return child
 
 
+# An excerpt of the planning block a current harness writes (a real Grok run's, two of its ten rows): the window on the engine's
+# clock and the host's, the Improve share, and the output tokens the host's usage events gave.
+PLANNING_BLOCK = {
+    "window": {"closed": True, "through": "test-spec", "seconds": 1393.0, "host_seconds": 1429.5, "before_engine_seconds": 36.5},
+    "stages": [{"stage": "intake", "outcome": "done", "action": "nav-5195", "seconds": 73.0, "improve_seconds": 0.0},
+               {"stage": "test-spec", "outcome": "done", "action": "nav-7a4a", "seconds": 51.0, "improve_seconds": 0.0}],
+    "improve": {"children": 0, "seconds": 0.0}, "producer_seconds": 1393.0, "unmeasured": {},
+    "tokens": {"output": 88480, "reasoning": 36447, "clock": "host", "source": "usage events"}}
+
+
 def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = True,
              metrics: dict | None = None) -> Path:
     """A run output directory shaped like test/shiploop_e2e/run.py writes it; `metrics` overrides keys of its metrics.json."""
@@ -138,6 +148,8 @@ def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = 
         "model_glue": [{"reasons": ["git commit/add by the model"], "command": "git commit"}] * 2,
         "unmeasured": {},  # every counter measured, as on a Grok run
         "model_calls": 120, "window_tokens": 1_000_000, "tokens": {"input_peak": 250_000}, "compactions": 0,
+        # what the harness writes today: no tool_use for a host it does not read it from, and the planning block (R22b)
+        "tool_use": None, "planning": PLANNING_BLOCK,
         **(metrics or {})})
     if loops:
         make_plan_loop(run / "scratch" / "backchain-plan")
@@ -416,7 +428,8 @@ class RunReviewTest(unittest.TestCase):
         run = self.docs(target)["runs"][self.KEY]
         for field in ("refusals", "glue", "failures"):
             self.assertNotIn(field, run)
-        self.assertEqual(run["unmeasured"], {**reasons, "visitContext": export.NO_VISIT_CONTEXT})  # no stage row has one
+        self.assertEqual(run["unmeasured"], {**reasons, "visitContext": export.NO_VISIT_CONTEXT,  # no stage row has one
+                                             "toolUse": f"{export.NO_TOOL_USE} (host: codex)"})
         self.assertEqual(export.validate_doc("runs", run), [])
         facts = (target / "facts.md").read_text()
         self.assertIn(f"- ShipLoop command failures: not measured ({reasons['shiploop_failures']})", facts)
@@ -433,7 +446,8 @@ class RunReviewTest(unittest.TestCase):
         run = self.docs(target)["runs"][self.KEY]
         self.assertEqual((run["refusals"], run["glue"], len(run["failures"])), (13, 2, 13))
         self.assertEqual(run["unmeasured"], {"stage_turns": "no per-call usage events",
-                                             "visitContext": export.NO_VISIT_CONTEXT})
+                                             "visitContext": export.NO_VISIT_CONTEXT,
+                                             "toolUse": f"{export.NO_TOOL_USE} (host: codex)"})
         self.assertIn("- ShipLoop command failures: 13 (complete 13)", (target / "facts.md").read_text())
 
     def test_a_metrics_file_without_the_unmeasured_key_is_refused_and_says_how_to_get_one(self):
@@ -996,15 +1010,21 @@ class BackchainLoopRecordsTest(unittest.TestCase):
         self.assertEqual(self.facts_of(doc)["Passes"], "1")
         self.assertIs(doc["candidateMatch"], True)  # the digests do not need the start
 
-    def test_a_directory_with_only_check_receipts_is_no_loop_and_the_facts_name_both_places_looked(self):
+    def test_a_directory_with_only_check_receipts_is_a_graph_check_only_document_not_a_loop_and_not_nothing(self):
         out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
         set_state(out, backchain_passes="none")
         write_json(run_dir_of(out) / "backchain" / IDS["plan"] / f"check-{FINAL_DIGEST[:12]}.json",
                    {"candidate_sha256": FINAL_DIGEST, "ok": True})
         loops, facts = self.export(out)
-        self.assertEqual(loops, {})
-        self.assertIn("- Backchain loops: none found under scratch/ or backchain/", facts)
-        self.assertIn("- Backchain passes option (state.md): none", facts)  # a run with option none has no loop to carry it
+        self.assertEqual(list(loops), [self.PLAN])  # read as no loop before R22b: a run whose plan was checked said "none"
+        doc = loops[self.PLAN]
+        self.assertEqual((doc["graphCheckOnly"], doc["segments"], doc["loop"], doc["stageMin"], doc["title"]),
+                         (True, [], "plan", None, "Plan graph check"))
+        self.assertEqual(self.facts_of(doc)["Graph check"], "graph check only: 1 check, last ok")
+        self.assertEqual(doc["candidateMatch"], "unknown")  # no loop record names a final candidate to compare with
+        self.assertIn("- Backchain loops: plan: graph check only: 1 check, last ok", facts)
+        self.assertIn("- Backchain passes option (state.md): none", facts)  # the option is kept on the document too
+        self.assertEqual(doc["backchainPasses"], "none")
 
     def test_a_second_loop_is_ordered_by_its_start_and_named_by_its_stage(self):
         out = self.run_out()
@@ -6194,6 +6214,7 @@ class RunBlockedAndLeftBehindExportTests(unittest.TestCase):
         self.assertEqual([export._where(p) for p in ("/a/.shiploop-runs/work-1/worktree", "/b/worktree/src", "/a/run-out/work",
                                                       "/a/work/sub", "/a/.shiploop-runs/work-1/run", None)],
                          ["worktree", "worktree", "work", "work", "other", "other"])
+        self.assertEqual([export._where(p) for p in ("/a/work/x/worktree/src", "/a/worktree/x/work")], ["worktree", "work"])  # the nearest wins
 
     def test_the_unreturned_products_checks_are_a_verdict_beside_the_checks_that_ran_where_it_was_not_returned(self):
         shiploop = {"pass": False, "worktree_checks": [{"command": "node --test", "pass": True}, {"command": "curl", "pass": True}]}
@@ -6500,6 +6521,7 @@ class TailColumnTests(unittest.TestCase):
         self.assertIn('id="sq-tail"', svg)
         self.assertEqual(svg.count(">U</text>"), 1)
         self.assertEqual(len(re.findall(r'class="sq-ctx[ "]', svg)), 3)  # the three visits have a bar, the tail has none
+        self.assertEqual(svg.count("sq-nm"), 0)  # nor a "not measured" dash: the tail is not a visit that lacked a figure
         self.assertEqual(svg.count('class="sq-hit"'), 4)
         self.assertIn("a hatched last column for the stage the run never accepted", svg)
         self.assertNotRegex(svg, r"NaN|undefined|null|Infinity")
@@ -6555,6 +6577,418 @@ class TailColumnTests(unittest.TestCase):
                          setup=ended_page(STOPPED_RUN))
         self.assertEqual(out, ["done", "tail"])
         self.assertEqual(page_probe('REG.sqlegband.hidden', setup=ended_page(STOPPED_RUN)), True)
+
+
+# ---------------------------------------------------------------- R22b: script checks, unverified outcomes, tool use, planning, graph checks
+
+# Excerpts of the real records (ShipLoop 0.58.0), the shapes the exporter reads; ids, paths and texts are synthetic where they
+# would be long. A tests/<action>-verifyN.md record, a Claude run's metrics `tool_use`, and a Grok run's planning tokens.
+VERIFY_PASSED = {"action": "A", "created_at": "2026-10-09T06:29:00Z", "cwd": "/e2e/r3/worktree", "disposition": "passed", "passed": True,
+                 "schema": "shiploop-test-loop/v1", "stage": "static-checks", "work_item": "W1", "runs": [
+                     {"accepted_ran": 5, "command": "node --test test/game.test.js", "counts": {"failed": 0, "ran": 5, "runners": ["node"]},
+                      "exit": 0, "seconds": 0.117, "status": "passed", "stderr": "", "stdout": "✔ TC-1 builds a legal fleet", "suite": "focused"},
+                     {"command": "grep -q title index.html", "counts": None, "exit": 0, "status": "passed", "stdout": "", "suite": "check"}]}
+VERIFY_RED = {"action": "A", "disposition": "passed", "expect": "red", "passed": True, "stage": "test-red", "runs": [
+    {"accepted_ran": 5, "command": "node --test", "counts": {"failed": 5, "ran": 5}, "exit": 1, "status": "red", "stdout": "x"},
+    {"accepted_ran": 8, "command": "node --test", "counts": {"failed": 8, "ran": 8}, "exit": 1, "status": "red", "stdout": "x"}]}
+VERIFY_IDS_MISSING = {"action": "A", "disposition": "failed", "expect": "a test ran", "passed": False, "stage": "test-author", "runs": [
+    {"command": "node --test", "counts": {"failed": 23, "ran": 23}, "exit": 1, "ids_missing": ["TC-4", "TC-6"], "status": "ids-missing"}]}
+VERIFY_RELEASE = {"action": "A", "disposition": "passed", "passed": True, "stage": "release-verify", "runs": [
+    {"command": "node --test", "counts": {"failed": 0, "ran": 15}, "exit": 0, "status": "passed"}],
+    "observed": {"ahead": False, "copy": "/e2e/r3/consumer-check", "head": "e2f70e4e14b67438dd60950ca43e56aa959cc21d", "kind": "fast-forward-merge",
+                 "source": "/e2e/r3/work", "tree": "5f846af6e5e56cf52e64a8f02ffddd369c1cbf59", "where": "returned-result"}}
+TOOL_USE = {"calls": 110, "by_tool": {"Bash": 105, "Read": 2, "Write": 3}, "result_chars": 294209, "scratch_scripts": [
+    {"path": "/e2e/r3/run/scratch/done.py", "bytes": 1019, "wraps_shiploop": True, "runs": 30},
+    {"path": "/e2e/r3/run/scratch/ifinish.sh", "bytes": 782, "wraps_shiploop": True, "runs": 4},
+    {"path": "/e2e/r3/run/scratch/istart.sh", "bytes": 971, "wraps_shiploop": True, "runs": 7},
+    {"path": "/e2e/r3/run/scratch/uicheck.js", "bytes": 1544, "wraps_shiploop": False, "runs": 1}],
+    "packets": {"on_disk": {"files": 45, "bytes": 1802659}, "printed": {"replies": 47, "chars": 104849},
+                "read": {"read_tool": [{"packet": "nav-a", "whole": True, "chars": 29527}, {"packet": "nav-b", "whole": False, "chars": 8484},
+                                       {"packet": "nav-b-improve", "whole": True, "chars": 24549}],
+                         "shell": {"calls": 19, "chars": 90112}}}}
+UNVERIFIED_ITEM = {"check": "Open the page after node server.js, click cells until the fleet is sunk and report whether it looks right",
+                   "due_stage": "handoff", "outcome": "The page looks right and is playable by mouse in a real browser", "owner": "user",
+                   "reason": "No browser tool was used in this run; only a fake-DOM execution of the page script was done"}
+
+
+def add_record(out: Path, action: str, number: int, value: dict) -> None:
+    record(run_dir_of(out) / "tests" / f"{action}-verify{number}.md", dict(value, action=action))
+
+
+class VerifyAndUnverifiedExportTests(unittest.TestCase):
+    """R22b gaps 8 and 9: what ShipLoop's own script checks recorded, and what a result left unverified."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def row(self, run: dict, name: str) -> dict:
+        return run["stages"][[a[0] for a in ACCEPTS].index(name)]
+
+    def test_a_visit_reads_its_records_by_action_id_with_the_last_records_runs_and_no_command_or_output(self):
+        out = make_run(self.tmp, loops=False)
+        for number, value in ((1, VERIFY_IDS_MISSING), (2, VERIFY_IDS_MISSING), (3, VERIFY_RED)):
+            add_record(out, IDS["implement"], number, value)  # a retried visit: two refused records, then the one that passed
+        add_record(out, IDS["step-plan"], 1, VERIFY_PASSED)
+        run, facts = self.build(out)
+        self.assertEqual(self.row(run, "implement")["verify"], {
+            "records": 3, "passed": 1, "red": 1,
+            "runs": [{"status": "red", "ran": 5, "failed": 5, "acceptedRan": 5}, {"status": "red", "ran": 8, "failed": 8, "acceptedRan": 8}]})
+        self.assertEqual(self.row(run, "step-plan")["verify"], {
+            "records": 1, "passed": 1, "red": 0,
+            "runs": [{"status": "passed", "ran": 5, "failed": 0, "acceptedRan": 5}, {"status": "passed"}]})  # counts null: no figure
+        self.assertNotIn("verify", self.row(run, "plan"))
+        text = json.dumps(run)
+        for leaked in ("stdout", "node --test", "/e2e", "cwd", "TC-1 builds"):
+            self.assertNotIn(leaked, text)
+        self.assertIn("- Script checks (tests/<action>-verifyN.md): 4 records on 2 visits, 2 passed, 1 ran red", "\n".join(facts))
+
+    def test_a_record_that_never_reached_a_verdict_is_counted_and_a_release_check_names_where_it_ran_without_a_path(self):
+        out = make_run(self.tmp, loops=False)
+        add_record(out, IDS["implement"], 1, dict(VERIFY_PASSED, disposition="could-not-run", passed=False))
+        add_record(out, IDS["step-plan"], 1, VERIFY_RELEASE)
+        run, _ = self.build(out)
+        self.assertEqual(self.row(run, "implement")["verify"]["couldNotRun"], 1)
+        self.assertNotIn("couldNotRun", self.row(run, "step-plan")["verify"])
+        self.assertEqual(self.row(run, "step-plan")["verify"]["observed"], {"where": "returned-result", "tree12": "5f846af6e5e5"})
+        self.assertNotIn("consumer-check", json.dumps(run))
+        self.assertNotIn("e2f70e4e", json.dumps(run))
+
+    def test_files_that_are_no_records_are_ignored_and_orphan_and_unreadable_records_are_counted_in_the_facts(self):
+        out = make_run(self.tmp, loops=False)
+        run_dir = run_dir_of(out)
+        add_record(out, IDS["implement"], 1, VERIFY_PASSED)
+        write_json(run_dir / "tests" / f"{IDS['implement']}-contract.json", {"x": 1})
+        write_json(run_dir / "tests" / f"{IDS['implement']}-terminal.json", {"x": 1})
+        add_record(out, "nav-ghost", 1, VERIFY_PASSED)  # an action no visit of state.md has
+        (run_dir / "tests" / f"{IDS['plan']}-verify1.md").write_text("no fenced record here")
+        run, facts = self.build(out)
+        self.assertEqual(self.row(run, "implement")["verify"]["records"], 1)
+        self.assertNotIn("verify", self.row(run, "plan"))
+        text = "\n".join(facts)
+        self.assertIn("; 1 records name an action that is no visit; 1 unreadable", text)
+        none = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        run, facts = self.build(none)
+        self.assertTrue(all("verify" not in r for r in run["stages"]))
+        self.assertIn("- Script checks (tests/<action>-verifyN.md): none recorded", "\n".join(facts))
+
+    def test_unverified_outcomes_are_exported_with_owner_and_due_stage_and_an_empty_list_is_a_measured_none(self):
+        out = make_run(self.tmp, loops=False)
+        run_dir = run_dir_of(out)
+        long = dict(UNVERIFIED_ITEM, reason="r" * 400)
+        for action, stage, items in ((IDS["step-plan"], "step-plan", [UNVERIFIED_ITEM, long]), (IDS["implement"], "implement", [])):
+            record(run_dir / "results" / f"{action}.md", {"action": action, "stage": stage, "result": {
+                "outcome": "revise" if stage == "implement" else "done", "summary": "s", "unverified": items}})
+        run, facts = self.build(out)
+        first = self.row(run, "step-plan")["unverified"]
+        self.assertEqual(first[0], {"outcome": UNVERIFIED_ITEM["outcome"], "reason": UNVERIFIED_ITEM["reason"],
+                                    "check": UNVERIFIED_ITEM["check"], "owner": "user", "dueStage": "handoff"})
+        self.assertEqual(len(first[1]["reason"]), 301)  # cut at 300 characters, marked with an ellipsis
+        self.assertTrue(first[1]["reason"].endswith("…"))
+        self.assertEqual(self.row(run, "implement")["unverified"], [])
+        self.assertNotIn("unverified", self.row(run, "plan"))  # a result with no such key claims nothing
+        self.assertIn("- Unverified outcomes: step-plan 2; implement 0", "\n".join(facts))
+
+    def test_the_contract_types_verify_and_unverified_and_rejects_wrong_shapes(self):
+        base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
+        good = dict(base, stages=[{"stage": "s", "outcome": "done", "verify": {
+            "records": 2, "passed": 1, "red": 1, "couldNotRun": 1, "runs": [{"status": "red", "ran": 5, "failed": 5, "acceptedRan": 5}],
+            "observed": {"where": "returned-result", "tree12": "5f846af6e5e5"}}, "unverified": [{
+                "outcome": "o", "reason": "r", "check": "c", "owner": "user", "dueStage": "handoff"}]}])
+        self.assertEqual(export.validate_doc("runs", good), [])
+        bad = dict(base, stages=[{"stage": "s", "outcome": "done", "verify": {"passed": "1", "runs": [{"ran": 5}]},
+                                  "unverified": [{"owner": 1}], }])
+        problems = "\n".join(export.validate_doc("runs", bad))
+        for needle in ("verify: missing required field 'records'", "verify.passed: expected a number",
+                       "verify.runs[0]: missing required field 'status'", "unverified[0].owner: expected a string"):
+            self.assertIn(needle, problems)
+
+
+class ToolUseAndPlanningExportTests(unittest.TestCase):
+    """R22b gaps 13, 14 and 15: the wrapper scripts and packet use of a Claude run, and the planning window, read not recomputed."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, out: Path) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        return run, facts
+
+    def test_a_claude_runs_wrapper_scripts_and_packet_use_are_exported_by_name_and_count(self):
+        run, facts = self.build(make_run(self.tmp, loops=False, metrics={"tool_use": TOOL_USE}))
+        self.assertEqual(run["toolUse"]["wrappers"], [{"name": "done.py", "runs": 30}, {"name": "ifinish.sh", "runs": 4},
+                                                       {"name": "istart.sh", "runs": 7}])  # uicheck.js does not wrap ShipLoop
+        self.assertEqual(run["toolUse"]["packets"], {"files": 45, "bytes": 1_802_659, "printed": 47, "printedChars": 104_849,
+                                                      "readWhole": 2, "readPartial": 1, "shellReads": 19, "shellChars": 90_112})
+        self.assertNotIn("toolUse", run["unmeasured"])
+        self.assertNotIn("/e2e", json.dumps(run))  # the script's name only, never its path
+        self.assertIn("- Tool use: wrapper scripts done.py 30, ifinish.sh 4, istart.sh 7; packets files 45, bytes 1,802,659, printed 47", "\n".join(facts))
+
+    def test_a_run_that_wrote_no_wrapper_has_a_measured_empty_list_and_a_host_with_no_record_has_none_with_a_reason(self):
+        none = dict(TOOL_USE, scratch_scripts=[{"path": "/x/a.js", "bytes": 1, "wraps_shiploop": False, "runs": 3}])
+        run, _ = self.build(make_run(self.tmp, loops=False, metrics={"tool_use": none}))
+        self.assertEqual(run["toolUse"]["wrappers"], [])
+        bare, facts = self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False))  # tool_use None, as a Grok or Codex run writes it
+        self.assertNotIn("toolUse", bare)
+        self.assertEqual(bare["unmeasured"]["toolUse"], f"{export.NO_TOOL_USE} (host: codex)")
+        self.assertIn("- Tool use: not measured (", "\n".join(facts))
+        two = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        write_json(two / "invocation-resume-claude-1791508003.json", {"host": "claude", "model": "claude-sonnet-5-5"})
+        self.assertIn("(host: codex, claude)", self.build(two)[0]["unmeasured"]["toolUse"])
+
+    def test_the_planning_window_is_read_from_the_harnesss_block_with_its_two_clocks_improve_share_and_tokens(self):
+        run, facts = self.build(make_run(self.tmp, loops=False))
+        self.assertEqual(run["planning"], {"closed": True, "through": "test-spec", "windowMin": 23.2, "hostWindowMin": 23.8,
+                                           "improveMin": 0.0, "children": 0, "outputTokens": 88_480, "reasoningPct": 41.2})
+        for name in ("planning", "planningHostWindow", "planningImprove", "planningTokens"):
+            self.assertNotIn(name, run["unmeasured"])
+        self.assertIn("- Planning window: 23.2 min on the engine clock, 23.8 min on the host's, closed at test-spec, Improve 0.0 min "
+                      "over 0 children, 88,480 output tokens, 41.2% reasoning", "\n".join(facts))
+
+    def test_a_planning_member_the_block_holds_as_unknown_is_absent_with_the_blocks_own_reason(self):
+        sonnet = dict(PLANNING_BLOCK, tokens={"unmeasured": "this host's per-message output counts are streaming snapshots"},
+                      improve={"children": 5, "seconds": None}, unmeasured={"improve": "the plan Improve child has no bind file"})
+        run, _ = self.build(make_run(self.tmp, loops=False, metrics={"planning": sonnet}))
+        self.assertEqual(run["planning"], {"closed": True, "through": "test-spec", "windowMin": 23.2, "hostWindowMin": 23.8})
+        self.assertEqual(run["unmeasured"]["planningTokens"], "this host's per-message output counts are streaming snapshots")
+        self.assertEqual(run["unmeasured"]["planningImprove"], "the plan Improve child has no bind file")
+        unwindowed = {"window": {"closed": False, "through": None, "seconds": None, "host_seconds": None, "before_engine_seconds": None},
+                      "stages": [], "improve": None, "producer_seconds": None, "tokens": {"unmeasured": "no window"},
+                      "unmeasured": {"window": "the planning window is not measured: the timeline was recreated"}}
+        open_run, _ = self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False, metrics={"planning": unwindowed}))
+        self.assertEqual(open_run["planning"], {"closed": False})
+        self.assertEqual(open_run["unmeasured"]["planning"], "the planning window is not measured: the timeline was recreated")
+        self.assertEqual(open_run["unmeasured"]["planningImprove"], open_run["unmeasured"]["planning"])
+        self.assertNotIn("windowMin", open_run["planning"])  # never 0
+
+    def test_a_metrics_file_with_no_planning_block_has_none_and_says_why(self):
+        out = make_run(self.tmp, loops=False)
+        metrics = json.loads((out / "metrics.json").read_text())
+        del metrics["planning"]
+        write_json(out / "metrics.json", metrics)
+        run, facts = self.build(out)
+        self.assertNotIn("planning", run)
+        self.assertIn("no planning block", run["unmeasured"]["planning"])
+        self.assertIn("- Planning window: not measured (metrics.json has no planning block", "\n".join(facts))
+
+    def test_the_blocks_stage_seconds_equal_the_exporters_accept_to_accept_minutes_within_three_seconds(self):
+        stages = []
+        previous = 0
+        for action, stage, minute, outcome in ACCEPTS[:6]:
+            stages.append({"stage": stage, "outcome": outcome, "action": IDS[action], "seconds": float((minute - previous) * 60) + 2.0,
+                           "improve_seconds": 0.0})  # the engine's whole-second stamps are up to a second off
+            previous = minute
+        run, _ = self.build(make_run(self.tmp, loops=False, metrics={"planning": dict(PLANNING_BLOCK, stages=stages)}))
+        self.assertIn("planning", run)  # the run carries the block's window, and the two readings of the same visits agree
+        for block_row, row in zip(stages, run["stages"]):
+            self.assertLessEqual(abs(block_row["seconds"] - row["min"] * 60), 3.0, row["stage"])
+
+    def test_the_contract_types_the_new_run_fields_and_documents_them_and_the_two_tolerances(self):
+        base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
+        good = dict(base, toolUse={"wrappers": [{"name": "done.py", "runs": 30}], "packets": {"files": 45, "readWhole": 1}},
+                    planning={"closed": True, "through": "test-spec", "windowMin": 23.2, "outputTokens": 5})
+        self.assertEqual(export.validate_doc("runs", good), [])
+        problems = "\n".join(export.validate_doc("runs", dict(base, toolUse={"wrappers": [{"runs": "x"}]}, planning={"closed": "yes", "windowMin": "5"})))
+        for needle in ("toolUse.wrappers[0]: missing required field 'name'", "toolUse.wrappers[0].runs: expected a number",
+                       "planning.closed: expected a boolean", "planning.windowMin: expected a number"):
+            self.assertIn(needle, problems)
+        text = " ".join(SCHEMA_MD.read_text().split())
+        for phrase in ("`toolUse`", "`planning`", "stages[].verify", "stages[].unverified", "`graphCheckOnly`", "**lower bound**",
+                       "within 3 s", "at most 1.2 s a child", "`unmeasured.planning`", "Left unverified (owner, due stage)",
+                       "Checked by the script"):
+            self.assertIn(phrase, text)
+
+
+class GraphCheckOnlyBackchainTests(unittest.TestCase):
+    """R22b gap 16: a stage that only ran `backchain-check` is a graph check, not no loop."""
+
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def checks(self, out: Path, action: str, *receipts: tuple) -> Path:
+        """check-<sha12>.json receipts of one run/backchain/<action>/ folder: (candidate digest, ok, completion, mtime in minutes)."""
+        folder = run_dir_of(out) / "backchain" / IDS[action]
+        for digest, ok, completion, at in receipts:
+            write_json(folder / f"check-{digest[:12]}.json", {"schema": "shiploop-backchain-check/v1", "candidate_sha256": digest,
+                                                              "ok": ok, "completion": completion}, at=at)
+        return folder
+
+    def test_two_checks_one_invalid_then_one_ok_read_as_a_graph_check_with_the_last_one_named(self):
+        out = make_run(self.tmp, loops=False)
+        self.checks(out, "plan", ("a" * 64, False, "invalid", 60), ("b" * 64, True, "complete", 70))
+        docs, facts = export.build_run(out)
+        doc = docs["backchain"][f"{self.KEY}-plan"]
+        self.assertEqual((doc["graphCheckOnly"], doc["segments"], doc["loop"], doc["phase"], doc["title"], doc["stageMin"]),
+                         (True, [], "plan", 2, "Plan graph check", None))
+        fact = {f["k"]: f["v"] for f in doc["facts"]}
+        self.assertEqual(fact["Graph check"], "graph check only: 2 checks, last ok (complete)")
+        self.assertTrue(fact["Receipt"].endswith("check-bbbbbbbbbbbb.json"), fact["Receipt"])
+        self.assertEqual(export.validate_doc("backchain", doc), [])
+        self.assertIn("- Backchain loops: plan: graph check only: 2 checks, last ok (complete)", "\n".join(facts))
+        reversed_order = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
+        self.checks(reversed_order, "plan", ("a" * 64, False, "invalid", 80), ("b" * 64, True, "complete", 70))
+        text = {f["k"]: f["v"] for f in export.build_run(reversed_order)[0]["backchain"][f"{self.KEY}-plan"]["facts"]}["Graph check"]
+        self.assertEqual(text, "graph check only: 2 checks, last not ok (invalid)")  # the newest by file time, not by name
+
+    def test_a_stage_with_a_real_loop_is_unchanged_and_sits_beside_a_graph_check_in_start_order(self):
+        out = make_run(self.tmp, loops=False)
+        make_1_21_loop(out, action="plan", start_at=40, receipt_at=80)
+        self.checks(out, "step-plan", ("c" * 64, True, "complete", 130))
+        docs = export.build_run(out)[0]["backchain"]
+        self.assertEqual([(d["loop"], d.get("graphCheckOnly"), d["order"]) for d in docs.values()],
+                         [("plan", None, 1), ("step-plan", True, 2)])
+        self.assertEqual(export.find_graph_check_dirs(run_dir_of(out)), [run_dir_of(out) / "backchain" / IDS["step-plan"]])
+        self.assertEqual(docs[f"{self.KEY}-plan"]["segments"][0]["label"], "Before the loop")
+
+    def test_the_page_counts_a_graph_check_apart_from_a_loop_and_says_so_in_the_lane_and_the_card(self):
+        graph = {"title": "Plan graph check", "run": "r1", "order": 1, "loop": "plan", "phase": 2, "segments": [], "graphCheckOnly": True,
+                 "facts": [{"k": "Graph check", "v": "graph check only: 2 checks, last ok (complete)"}]}
+        real = {"title": "Step-plan loop", "run": "r1", "order": 2, "loop": "step-plan", "phase": 2, "stageMin": 4,
+                "segments": [{"label": "Pass 1", "min": 4, "kind": "unclear", "note": "n"}], "facts": []}
+        cards = lambda loops: {c["key"]: c for c in run_logic("sequenceModel({wallMin:20,stages:[]},{loops:%s}).cards" % json.dumps(loops))}["loops"]
+        only = cards([graph])
+        self.assertEqual((only["value"], only["note"]), ("none", "no Backchain loop recorded; 1 graph check only"))
+        mixed = cards([graph, real])
+        self.assertEqual((mixed["value"], mixed["note"]), ("1 loop", "4 min as stages, 20% of elapsed; 1 graph check only"))
+        self.assertEqual(cards([real])["note"], "4 min as stages, 20% of elapsed")
+        self.assertEqual(run_logic("[isGraphCheck(%s),isGraphCheck(%s),isGraphCheck(null)]" % (json.dumps(graph), json.dumps(real))), [True, False, False])
+        card = page_probe("loopCard(%s).textContent" % json.dumps(graph), setup="live=false;")
+        self.assertIn("Graph check only: this stage checked its graph with backchain-check and ran no Until Loop", card)
+        self.assertIn("Graph checkgraph check only: 2 checks, last ok (complete)", card)
+        lane = page_probe('byClass("flow","cell").map(function(c){return c.textContent;}).join("|")',
+                          setup=SAMPLE_SETUP + "data.bc=[" + json.dumps(dict(graph, run="r1", phase=1)) + "];renderAll();")
+        self.assertIn("plan: graph check only", lane)
+        self.assertNotIn("no result", lane)
+
+
+# ---------------------------------------------------------------- R22b: the page
+
+class ChecksPlanningPageLogicTests(unittest.TestCase):
+    """The pure text functions of the card, the KPI cards and the run detail."""
+
+    def test_the_script_checks_read_as_records_runs_and_where_they_ran(self):
+        verify = {"records": 3, "passed": 1, "red": 1, "couldNotRun": 1, "runs": [
+            {"status": "red", "ran": 5, "failed": 5, "acceptedRan": 5}, {"status": "passed"}],
+            "observed": {"where": "returned-result", "tree12": "5f846af6e5e5"}}
+        self.assertEqual(run_logic("verifyText(%s)" % json.dumps(verify)),
+                         "3 records, 1 passed, 1 ran red, 1 could not run; last record: red (ran 5, failed 5, accepted 5), passed; "
+                         "ran in returned-result, tree 5f846af6e5e5")
+        self.assertEqual(run_logic('verifyText({records:1,passed:1,red:0})'), "1 record, 1 passed")
+        self.assertEqual(run_logic("[verifyText(null),verifyText({}),verifyText({records:'1'})]"), ["", "", ""])
+        self.assertEqual(run_logic('verifyText({records:1,passed:0,observed:{tree12:"abc"}})'), "1 record, 0 passed; ran in a place the record does not name, tree abc")
+
+    def test_unverified_outcomes_read_one_per_line_with_owner_and_due_stage_and_none_listed_is_said(self):
+        item = {"outcome": "The page works", "owner": "user", "dueStage": "handoff", "reason": "no browser", "check": "open it"}
+        self.assertEqual(run_logic("unverifiedText(%s)" % json.dumps([item, {"outcome": "Two"}])),
+                         "The page works (user, due handoff). Reason: no browser. Check: open it.\nTwo (no owner, due no stage).")
+        self.assertEqual(run_logic("[unverifiedText([]),unverifiedText(null),unverifiedText(undefined),unverifiedText('x')]"), ["none listed", "", "", ""])
+
+    def test_the_planning_note_and_text_use_the_blocks_numbers_and_never_a_zero_for_a_window_that_was_not_measured(self):
+        plan = {"closed": True, "through": "test-spec", "windowMin": 23.2, "hostWindowMin": 23.8, "improveMin": 0, "children": 0,
+                "outputTokens": 88_480, "reasoningPct": 41.2}
+        self.assertEqual(run_logic("planningNote({planning:%s})" % json.dumps(plan)), "planning 23.2 min, closed at test-spec")
+        self.assertEqual(run_logic('planningNote({planning:{windowMin:6,closed:false,through:"plan"}})'), "planning 6 min, still open through plan")
+        self.assertEqual(run_logic("[planningNote({}),planningNote({planning:{closed:true}}),planningNote(null)]"), ["", "", ""])
+        self.assertEqual(run_logic("planningText({planning:%s})" % json.dumps(plan)),
+                         "23.2 min on the engine's clock; 23.8 min on the host's; closed at test-spec; Improve 0 min over 0 children; "
+                         "88,480 output tokens, 41.2% reasoning")
+        self.assertEqual(run_logic('planningText({unmeasured:{planning:"no planning block"}})'), "not measured (no planning block)")
+        self.assertEqual(run_logic('planningText({planning:{closed:false},unmeasured:{planning:"timeline recreated"}})'), "not measured (timeline recreated)")
+        self.assertEqual(run_logic('planningText({planning:{windowMin:5,children:1,improveMin:2}})'), "5 min on the engine's clock; Improve 2 min over 1 child")
+
+    def test_packet_use_and_glue_read_from_tool_use_and_glue_is_a_lower_bound_with_wrappers(self):
+        run = {"glue": 2, "toolUse": {"wrappers": [{"name": "done.py", "runs": 30}, {"name": "istart.sh", "runs": 7}],
+                                      "packets": {"files": 45, "bytes": 1_802_659, "printed": 47, "printedChars": 104_849, "readWhole": 1,
+                                                  "readPartial": 0, "shellReads": 19, "shellChars": 90_112}}}
+        self.assertEqual(run_logic("packetUseText(%s)" % json.dumps(run)),
+                         "Packets: 45 packet files (1760.4 KB) on disk; 47 printed replies (104,849 characters); 1 read whole, 0 in part; "
+                         "19 shell reads (90,112 characters)")
+        self.assertEqual(run_logic("glueText(%s)" % json.dumps(run)),
+                         "2 commands + 37 runs of 2 wrapper scripts (done.py, istart.sh): a lower bound, since a wrapper hides what it runs")
+        self.assertEqual(run_logic('glueText({glue:0,toolUse:{wrappers:[]}})'), "0 commands; no wrapper script was run")
+        self.assertEqual(run_logic('glueText({glue:3})'), "3 commands")
+        self.assertEqual(run_logic('glueText({unmeasured:{model_glue:"a host that cannot show it"}})'), "not measured (a host that cannot show it)")
+        self.assertEqual(run_logic("[packetUseText({}),packetUseText({toolUse:{}}),packetUseText(null)]"), ["", "", ""])
+
+    def test_the_run_detail_rows_add_glue_and_the_planning_window_only_when_the_run_has_them(self):
+        rows = run_logic('[factRows({glue:1,planning:{windowMin:5}}),factRows({}),factRows({unmeasured:{planning:"none"}})]')
+        names = lambda r: [x[0] for x in r]
+        self.assertEqual(names(rows[0])[-2:], ["Model glue", "Planning window"])
+        self.assertEqual(names(rows[1]), ["Model calls (main thread)", "Context peak (main thread)", "Compactions"])  # as before
+        self.assertEqual(rows[2][-1], ["Planning window", "not measured (none)"])
+
+
+class ChecksPlanningPageTests(unittest.TestCase):
+    """What the page draws from them: the stage card's two lines, the Elapsed and Context cards, and the run detail."""
+
+    ROWS = [{"stage": "test-red", "outcome": "done", "min": 1, "action": "nav-a", "verify": {
+        "records": 1, "passed": 1, "red": 1, "runs": [{"status": "red", "ran": 5, "failed": 5, "acceptedRan": 5}]}},
+            {"stage": "product-acceptance", "outcome": "done", "min": 2, "action": "nav-b", "unverified": [{
+                "outcome": "Plays in a browser", "owner": "user", "dueStage": "handoff", "reason": "no browser"}]},
+            {"stage": "handoff", "outcome": "done", "min": 3, "action": "nav-c", "unverified": []},
+            {"stage": "release", "outcome": "done", "min": 3, "action": "nav-d"}]
+
+    def run_of(self, **extra) -> dict:
+        return dict(DONE_RUN, stages=self.ROWS, wallMin=30, **extra)
+
+    def test_the_stage_card_prints_checked_by_the_script_and_left_unverified_only_where_the_export_has_them(self):
+        card_for = lambda i: {k: v for k, v in run_logic("stageCard(%s,%d,null)" % (json.dumps(self.run_of()), i))["done"]["lines"]}
+        written_for = lambda i: {k: v for k, v in run_logic("stageCard(%s,%d,null)" % (json.dumps(self.run_of()), i))["written"]["lines"]}
+        self.assertEqual(card_for(0)["Checked by the script"],
+                         "1 record, 1 passed, 1 ran red; last record: red (ran 5, failed 5, accepted 5)")
+        self.assertNotIn("Checked by the script", card_for(1))
+        self.assertEqual(written_for(1)["Left unverified (owner, due stage)"], "Plays in a browser (user, due handoff). Reason: no browser.")
+        self.assertEqual(written_for(2)["Left unverified (owner, due stage)"], "none listed")
+        self.assertNotIn("Left unverified (owner, due stage)", written_for(3))
+        self.assertNotIn("Left unverified (owner, due stage)", written_for(0))
+
+    def test_the_page_shows_the_card_lines_and_keeps_their_line_breaks(self):
+        text = page_probe('setCol(1);textOf("seqdetail")', setup=ended_page(self.run_of()))
+        self.assertIn("Left unverified (owner, due stage)Plays in a browser (user, due handoff). Reason: no browser.", text)
+        css = TEMPLATE.read_text(encoding="utf-8").split("</style>")[0]
+        self.assertRegex(css, r"\.sqd \.facts dd\{[^}]*white-space:pre-line")  # several unverified outcomes are one per line
+
+    def test_the_elapsed_card_says_when_planning_closed_and_the_context_card_gains_the_packet_use_line(self):
+        planning = {"closed": True, "through": "test-spec", "windowMin": 23.2}
+        tool_use = {"wrappers": [], "packets": {"files": 45, "printed": 47, "readWhole": 1, "readPartial": 0}}
+        cards = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(
+            self.run_of(planning=planning, toolUse=tool_use, contextPeak=5000, contextWindow=10000)))}
+        self.assertEqual(cards["elapsed"]["note"], "start to the last accept; planning 23.2 min, closed at test-spec")
+        self.assertEqual(cards["context"]["lines"], ["Packets: 45 packet files on disk; 47 printed replies; 1 read whole, 0 in part"])
+        unmeasured = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(self.run_of(toolUse=tool_use)))}
+        self.assertEqual(unmeasured["context"]["value"], "not measured")
+        self.assertEqual(len(unmeasured["context"]["lines"]), 1)  # the packet line is independent of the context figure
+        plain = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(self.run_of()))}
+        self.assertEqual((plain["context"]["lines"], plain["elapsed"]["note"]), ([], "start to the last accept"))
+        out = page_probe('textOf("kpis")', setup=ended_page(self.run_of(planning=planning, toolUse=tool_use, contextPeak=5000, contextWindow=10000)))
+        self.assertIn("Packets: 45 packet files on disk; 47 printed replies; 1 read whole, 0 in part", out)
+        self.assertIn("planning 23.2 min, closed at test-spec", out)
+
+    def test_the_run_detail_gives_the_glue_lower_bound_and_the_planning_window(self):
+        run = self.run_of(glue=2, planning={"closed": True, "through": "test-spec", "windowMin": 23.2},
+                          toolUse={"wrappers": [{"name": "done.py", "runs": 30}]})
+        out = page_probe('textOf("rundetail")', setup=ended_page(run))
+        self.assertIn("Model glue2 commands + 30 runs of 1 wrapper script (done.py): a lower bound", out)
+        self.assertIn("Planning window23.2 min on the engine's clock; closed at test-spec", out)
 
 
 if __name__ == "__main__":
