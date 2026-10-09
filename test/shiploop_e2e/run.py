@@ -98,6 +98,7 @@ import secrets
 import shlex
 import shutil
 import signal
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -111,6 +112,7 @@ sys.path.insert(0, str(HERE))
 import hosts  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
+import runrecord  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_chain_ledger as chain_ledger  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -1157,6 +1159,13 @@ def parser() -> argparse.ArgumentParser:
                    help="suites: run every case one after another (rerun a failure that appears only in parallel "
                         "this way before attributing it to ShipLoop)")
     p.add_argument("--suite-name", help=argparse.SUPPRESS)
+    p.add_argument("--baseline-report", action="store_true",
+                   help="read-only: print, per cell of the baseline file and the run folders, how many attempts there were, "
+                        "which count, on how many builds, and the n, min, median and max of cost, turns, minutes and "
+                        "planning minutes. Starts no host and writes nothing; exits 0")
+    p.add_argument("--runs", type=Path, nargs="+",
+                   help="with --baseline-report: run folders (or folders of run folders) to read beside the baseline file")
+    p.add_argument("--json", action="store_true", help="with --baseline-report: print JSON instead of text")
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
     p.add_argument("--codex-bin", default="codex")
@@ -1363,6 +1372,296 @@ def sample_line(row: dict, before: dict, cell: list[dict]) -> str:
     rows = (f"{len(cell)} earlier row(s) in this cell on {len(recorded)} recorded build(s)"
             + (f", {unrecorded} with no recorded tree" if unrecorded else ""))
     return f"{trees}; {builds}; {rows}"
+
+
+# ------------------------------------------------------------------------------- run.py --baseline-report
+#
+# Read-only. It unions the baseline file with the run folders (by the run's recorded output path) and says, per cell, how
+# many attempts there were, which of them count, on how many builds, and the n, min, median and max of what they cost. It
+# states facts: no run is placed within or outside a range (SPEC, "A comparison names its sample"). It writes nothing and
+# starts no host or CLI: a build a run did not record stays null, because today's CLI is not the one that ran.
+
+IDENTITY_KEYS = ("plugin_sha256", "prompt_sha256", "host_build", "local_head", "started", "ended", "planning_seconds")
+# The class of each attempt; exactly one applies, the first that does, in this order.
+ATTEMPT_COUNTS = {"counted": "counted", "did not reach done": "did_not_reach_done", "mixed host": "mixed_host",
+                  "resumed": "resumed", "seeded": "seeded", "process not observed": "process_not_observed",
+                  "no driver recorded": "no_driver_recorded", "no result.json": "no_result"}
+REPORT_NOTES = (
+    "n, min, median and max describe the rows counted; a range across builds is not a noise estimate, and no run is placed "
+    "against it.",
+    "A figure marked as a lower bound covers only the sessions that reported; Grok's events cannot show a session that "
+    "never did, so every Grok cost and turns figure is marked.",
+    "Overlap is a lower bound: a run that left no record, and a record with no span, are not seen.",
+    "Where a baseline row and a run folder both describe a run, the row wins wherever it has a value; the folder fills "
+    "only what the row lacks, and the fields the report derived are listed in `recomputed`. A build a run did not record "
+    "stays null.",
+)
+
+
+def _json_file(path: Path) -> dict | None:
+    try:
+        value = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _source_name(text) -> str | None:
+    """'marketplace (resumed on its original install)' is a marketplace run: the part before the note."""
+    return text.split(" (")[0] if isinstance(text, str) else text
+
+
+def _inside(folder: Path, recorded_output: str | None, recorded) -> Path | None:
+    """A path a run recorded, found under its folder as the folder lies now: a copied or moved run folder keeps the
+    absolute paths it was made with. None for a path outside the run's own folder: what lies there now is not what the run
+    used, so nothing is derived from it."""
+    if not isinstance(recorded, str) or not recorded_output:
+        return None
+    if recorded == recorded_output or recorded.startswith(recorded_output + "/"):
+        return folder / recorded[len(recorded_output):].lstrip("/")
+    return None
+
+
+def run_folders(roots: list[Path]) -> list[Path]:
+    """The run folders at or one or two levels under each root: a folder with a result.json or an invocation.json."""
+    found, seen = [], set()
+    for root in roots:
+        root = Path(root).expanduser()
+        if (root / "result.json").is_file() or (root / "invocation.json").is_file():
+            candidates = [root]
+        else:
+            candidates = sorted(p for pattern in ("*", "*/*") for p in root.glob(pattern) if p.is_dir())
+        for candidate in candidates:
+            key = str(candidate.resolve())
+            if key not in seen and ((candidate / "result.json").is_file() or (candidate / "invocation.json").is_file()):
+                seen.add(key)
+                found.append(candidate)
+    return found
+
+
+def folder_record(folder: Path, cases: dict) -> dict:
+    """What a run folder says about its run: the row its result stands for, the identity fields the report derived from the
+    folder's other files, and the facts that decide whether the run counts. Nothing here starts a process."""
+    result = _json_file(folder / "result.json")
+    first = _json_file(folder / "invocation.json") or {}
+    saved = _json_file(folder / "metrics.json") or {}
+    identity = first if result is None else result
+    recorded = (result or {}).get("output") or str(folder)
+    run_dir = _inside(folder, (result or {}).get("output"), ((result or {}).get("shiploop") or {}).get("run_dir"))
+    name = identity.get("case")
+    style = None if name == "custom" else (cases.get(name) or {}).get("style")
+    stand_in = result if result is not None else {"case": name, "host": identity.get("host"), "model": identity.get("model"),
+                                                  "effort": identity.get("effort"), "versions": identity.get("versions"),
+                                                  "output": recorded, "metrics": {}}
+    row = baseline_row(stand_in, style, None, metrics.planning_review(metrics.engine_state(run_dir)))
+    row["source"] = _source_name((first.get("versions") or {}).get("source") or row.get("source"))
+    filled: list[str] = []
+
+    def fill(key: str, value) -> None:
+        if row.get(key) is None and value is not None:
+            row[key] = value
+            filled.append(key)
+
+    plugin_dir = _inside(folder, (result or {}).get("output"), first.get("plugin_dir"))
+    fill("plugin_sha256", tree_digest(plugin_dir) if plugin_dir else None)
+    try:
+        fill("prompt_sha256", masked_prompt_digest((folder / "prompt.txt").read_text(), Path(recorded)))
+    except OSError:
+        pass
+    if row.get("host") == "claude":
+        fill("host_build", ((result or {}).get("metrics") or {}).get("claude_code_version") or saved.get("claude_code_version")
+             or metrics.claude_builds(folder / "events.jsonl"))
+    else:  # the build the launch recorded; a run launched before the field existed has none, and none is not asked for now
+        fill("host_build", next((rec["host_build"] for _name, rec in runrecord.launches(folder) if rec.get("host_build")), None))
+    span = metrics.span(metrics.timeline(folder / "timeline.jsonl"))
+    fill("started", span["started"])
+    fill("ended", span["ended"])
+    fill("planning_seconds", metrics.planning_seconds(saved.get("planning")))
+    unreadable = result is None and (folder / "result.json").is_file()
+    return {"row": row, "filled": filled, "folder": folder, "has_result": result is not None, "unreadable": unreadable,
+            "hosts_used": runrecord.hosts_used(folder), "mixed_host": runrecord.mixed_host(folder),
+            "launches": len(runrecord.launches(folder)),
+            "seeded": bool((result or {}).get("seeded")),
+            "earlier": len((result or {}).get("earlier_terminations") or []),
+            "process_status": ((result or {}).get("process") or {}).get("status"),
+            "termination": (result or {}).get("termination") or {},
+            "lower_bound": metrics.lower_bound((result or {}).get("metrics") or {})}
+
+
+def classify_attempt(row: dict, folder: dict | None) -> tuple[str, str | None]:
+    """(the class of an attempt, why it is not counted). The first that applies: a run nobody recorded the end of, seeded,
+    worked on by two hosts, really resumed (a regrade is not a resume: it started no host), its host never observed, not
+    done, or with no driver named."""
+    if folder is not None:
+        if not folder["has_result"]:
+            return "no result.json", ("result.json is unreadable" if folder["unreadable"] else
+                                      "the folder holds launch records and no result.json: its harness died before writing "
+                                      "the records, or the run is still going")
+        if folder["seeded"]:
+            return "seeded", "seeded at a later stage: it did not start from intake"
+        if folder["mixed_host"]:
+            return "mixed host", f"launched by {' and '.join(folder['hosts_used'])}: it belongs to no host's cell"
+        if folder["earlier"] or folder["launches"] > 1:
+            return "resumed", (f"resumed ({folder['launches']} launch(es), {folder['earlier']} earlier termination(s)): "
+                               "a fragment of a run is not a baseline")
+        if folder["process_status"] == "not observed":
+            return "process not observed", "no host ran in this record and none was recorded: nothing says it ended"
+    if not row_reached_done(row):
+        status = (row.get("termination") or {}).get("engine_status") or (
+            "blocked" if (row.get("verdicts") or {}).get("shiploop") is False else "unknown")
+        return "did not reach done", f"engine {status}: its turns, cost and stages stop there"
+    if row.get("host") is None and row.get("model") is None and row.get("effort") is None:
+        return "no driver recorded", "the row names no host, model or effort, so no run is compared with it"
+    return "counted", None
+
+
+def _stats(values: list, digits: int) -> dict:
+    """n, min, median and max of the measured values; None for each when there is none."""
+    got = sorted(v for v in values if v is not None)
+    if not got:
+        return {"n": 0, "min": None, "median": None, "max": None}
+    middle = statistics.median(got)
+    return {"n": len(got), "min": round(got[0], digits), "median": round(middle, digits), "max": round(got[-1], digits)}
+
+
+def baseline_report(baseline: Path | None, runs: list[Path]) -> dict:
+    """The report: every attempt once (a baseline row and a run folder that describe the same run are one record, keyed by
+    the run's recorded output path), its class, and per cell the attempts, builds, measures and overlap."""
+    cases = json.loads(CASES.read_text())
+    entries: dict[str, dict] = {}
+    if baseline is not None and baseline.is_file():
+        for number, line in enumerate(baseline.read_text().splitlines()):
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(row, dict):
+                entries[os.path.normpath(row.get("output") or f"<row {number}>")] = {"file": row}
+    for folder in run_folders(runs):
+        found = folder_record(folder, cases)
+        entries.setdefault(os.path.normpath(found["row"].get("output") or str(folder)), {})["folder"] = found
+    records = []
+    for key, entry in entries.items():
+        file_row, found = entry.get("file"), entry.get("folder")
+        row = dict(found["row"]) if found else {}
+        if file_row:
+            row.update({k: v for k, v in file_row.items() if v is not None})
+            row["source"] = _source_name(row.get("source"))
+        derived = sorted(k for k in (found["filled"] if found else []) if not file_row or file_row.get(k) is None)
+        klass, why = classify_attempt(row, found)
+        started, ended = row.get("started"), row.get("ended")
+        planning = row.get("planning_seconds")
+        records.append({
+            "output": row.get("output") or key, "record": "file+folder" if file_row and found else "folder" if found else "file",
+            "case": row.get("case"), "source": row.get("source"), "host": row.get("host"), "model": row.get("model"),
+            "effort": row.get("effort"), "planning_review": row_planning_review(row)[0],
+            "prompt_sha256": row.get("prompt_sha256"), "plugin_version": row.get("plugin_version"),
+            "plugin_sha256": row.get("plugin_sha256"), "host_build": row.get("host_build"), "local_head": row.get("local_head"),
+            "started": started, "ended": ended,
+            "minutes": round((ended - started) / 60, 1) if started is not None and ended is not None else None,
+            "planning_seconds": planning, "planning_minutes": round(planning / 60, 2) if planning is not None else None,
+            "cost_usd": row.get("cost_usd"), "turns": row.get("turns"),
+            "lower_bound": found["lower_bound"] if found else None,
+            "pass": row.get("pass"),
+            "engine_status": (found["termination"].get("engine_status") if found and found["termination"] else None)
+            or (row.get("termination") or {}).get("engine_status"),
+            "process_status": (found["process_status"] if found else None)
+            or (row.get("termination") or {}).get("process_status"),
+            "hosts_used": found["hosts_used"] if found else None, "class": klass, "why": why, "recomputed": derived,
+            "overlaps": None})
+    spans = [(r["started"], r["ended"], i) for i, r in enumerate(records) if r["started"] is not None and r["ended"] is not None]
+    for start, end, index in spans:
+        records[index]["overlaps"] = sum(1 for s, e, other in spans if other != index and start < e and s < end)
+    records.sort(key=lambda r: (r["started"] is None, r["started"] or 0.0, str(r["output"])))
+    groups: dict[tuple, list[dict]] = {}
+    for record in records:
+        key = tuple(record[k] for k in ("case", "source", "host", "model", "effort", "planning_review", "prompt_sha256"))
+        groups.setdefault(key, []).append(record)
+    cells = []
+    for key in sorted(groups, key=lambda k: tuple("" if part is None else str(part) for part in k)):
+        members = groups[key]
+        counted = [r for r in members if r["class"] == "counted"]
+        attempts = {"seen": len(members), "counted": len(counted), "passed": sum(1 for r in counted if r["pass"] is True),
+                    **{ATTEMPT_COUNTS[c]: sum(1 for r in members if r["class"] == c) for c in ATTEMPT_COUNTS if c != "counted"}}
+        trees = Counter(r["plugin_sha256"] for r in counted if r["plugin_sha256"])
+        hosts_seen = Counter(r["host_build"] for r in counted if r["host_build"])
+        measures = {}
+        for name, field, digits in (("cost_usd", "cost_usd", 4), ("turns", "turns", 0), ("minutes", "minutes", 1),
+                                    ("planning_minutes", "planning_minutes", 2)):
+            values = [r[field] for r in counted]
+            stat = _stats(values, digits)
+            if name == "turns":
+                stat = {k: (int(v) if isinstance(v, float) and v == int(v) else v) for k, v in stat.items()}
+            stat["not_measured"] = sum(1 for v in values if v is None)
+            if name in ("cost_usd", "turns"):
+                stat["lower_bound_rows"] = sum(1 for r in counted if r[field] is not None and r["lower_bound"] is True)
+                stat["lower_bound_unknown_rows"] = sum(1 for r in counted if r[field] is not None and r["lower_bound"] is None)
+            measures[name] = stat
+        cells.append({
+            "cell": dict(zip(("case", "source", "host", "model", "effort", "planning_review", "prompt_sha256"), key)),
+            "attempts": attempts,
+            "builds": {"plugin_sha256": dict(sorted(trees.items())),
+                       "unrecorded": sum(1 for r in counted if not r["plugin_sha256"])},
+            "host_builds": {**dict(sorted(hosts_seen.items())), "unrecorded": sum(1 for r in counted if not r["host_build"])},
+            "measures": measures,
+            "overlap": {"rows": len(counted), "overlapped_at_least": sum(1 for r in counted if r["overlaps"]),
+                        "unknown": sum(1 for r in counted if r["overlaps"] is None)},
+            "outputs": {c: [Path(str(r["output"])).name for r in members if r["class"] == c]
+                        for c in ATTEMPT_COUNTS if any(r["class"] == c for r in members)}})
+    return {"inputs": {"baseline": str(baseline) if baseline else None, "runs": [str(r) for r in runs]},
+            "records": records, "cells": cells, "notes": list(REPORT_NOTES)}
+
+
+def render_report(report: dict) -> str:
+    """The report as text: one block per cell, then the notes."""
+    records = report["records"]
+    kinds = Counter(r["record"] for r in records)
+    lines = [f"baseline report: {len(records)} record(s) ({kinds['file+folder']} in the file and a folder, {kinds['folder']} in "
+             f"a folder only, {kinds['file']} in the file only) in {len(report['cells'])} cell(s)"]
+    for cell in report["cells"]:
+        c = cell["cell"]
+        lines += ["", "cell " + " | ".join([str(c["case"]), str(c["source"]), c["host"] or "host not recorded",
+                                            c["model"] or "model not recorded", f"effort {c['effort'] or '-'}",
+                                            f"planning_review {c['planning_review']}",
+                                            f"prompt {c['prompt_sha256'] or 'not recorded'}"])]
+        a = cell["attempts"]
+        extra = "".join(f", {label} {a[key]}" for label, key in (
+            ("did not reach done", "did_not_reach_done"), ("mixed host", "mixed_host"), ("resumed", "resumed"),
+            ("seeded", "seeded"), ("process not observed", "process_not_observed"),
+            ("no driver recorded", "no_driver_recorded"), ("no result.json", "no_result")) if a[key])
+        lines.append(f"  attempts   seen {a['seen']}, counted {a['counted']}, passed {a['passed']}{extra}")
+        trees = cell["builds"]["plugin_sha256"]
+        lines.append(f"  builds     {len(trees)} plugin tree(s)" + (f" ({', '.join(str(n) for n in trees.values())} row(s) each)"
+                     if trees else "") + f", {cell['builds']['unrecorded']} row(s) with no recorded tree")
+        lines.append("  host build " + (", ".join(f"{b} x{n}" for b, n in cell["host_builds"].items() if b != "unrecorded")
+                                        or "none recorded") + f"; {cell['host_builds']['unrecorded']} unrecorded")
+        for name, label, digits in (("cost_usd", "cost_usd  ", 4), ("turns", "turns     ", 0), ("minutes", "minutes   ", 1),
+                                    ("planning_minutes", "planning  ", 2)):
+            m = cell["measures"][name]
+            if not m["n"]:
+                lines.append(f"  {label} n=0 ({m['not_measured']} not measured)")
+                continue
+            note = ""
+            if "lower_bound_rows" in m and (m["lower_bound_rows"] or m["lower_bound_unknown_rows"]):
+                note = (f" (lower bound in {m['lower_bound_rows']} of {m['n']} rows"
+                        + (f", unknown in {m['lower_bound_unknown_rows']}" if m["lower_bound_unknown_rows"] else "") + ")")
+            lines.append(f"  {label} n={m['n']} min {m['min']} median {m['median']} max {m['max']}{note}"
+                         + (f"; {m['not_measured']} not measured" if m["not_measured"] else ""))
+        o = cell["overlap"]
+        lines.append(f"  overlap    at least {o['overlapped_at_least']} of {o['rows']} rows overlapped another recorded run"
+                     + (f"; {o['unknown']} row(s) record no span" if o["unknown"] else ""))
+        for klass, names in cell["outputs"].items():
+            if klass != "counted":
+                lines.append(f"  {klass}: {', '.join(names)}")
+    lines += ["", *report["notes"]]
+    return "\n".join(lines) + "\n"
+
+
+def baseline_report_main(args) -> int:
+    """`--baseline-report`: print the report (JSON with --json). Reads files only and always exits 0."""
+    report = baseline_report(args.baseline, args.runs or [])
+    print(json.dumps(report, indent=1) if args.json else render_report(report), end="\n" if args.json else "")
+    return 0
 
 
 NOT_OBSERVED = "not observed (regraded: no host ran)"
@@ -1682,6 +1981,10 @@ def main(argv: list[str] | None = None) -> int:
 def _main(argv: list[str] | None, held: list) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    if args.baseline_report:
+        return baseline_report_main(args)
+    if args.runs or args.json:
+        raise SystemExit("--runs and --json belong to --baseline-report")
     if args.preflight_only:
         # Before a rerun, every host must get the latest release (SPEC: publish, refresh, then run).
         out = new_output_dir(args.output, "preflight")

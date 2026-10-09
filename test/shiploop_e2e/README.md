@@ -328,6 +328,48 @@ exists. Under the `baseline  vs` line, a `sample:` line states facts and no verd
 (`plugin_sha256`) is the one the earlier row ran on, how `host_build` changed (`Claude Code build 2.1.292 -> 2.1.294`), and
 how many earlier rows the cell has on how many recorded builds. A fact one side does not record is `unknown`, not guessed.
 
+### The baseline report
+
+```sh
+python3 test/shiploop_e2e/run.py --baseline-report [--baseline FILE] [--runs DIR ...] [--json]
+```
+
+Read-only: it starts no host, probes no CLI and writes nothing, and always exits 0. It unions the baseline file with the run
+folders (a folder with a `result.json` or an `invocation.json`, at or one or two levels under each `--runs` directory) by the
+run's recorded `output`, so a run that a baseline file and a folder both describe is one record. This matters because the
+baseline file is appended in whichever worktree the run was started from and is not always committed: of the loop's 7
+finished rows of 2026-10-08, the committed file holds 3. Where both describe a run, the row wins wherever it has a value; the
+folder fills only what the row lacks (v1230-battleship-sonnet's row has no planning figure, its regraded `metrics.json` has a
+closed 388 s window), and the identity fields the report derived from the folder's other files are listed in `recomputed`:
+`plugin_sha256` from the folder's plugin build (`plugin_dir` under the folder), `prompt_sha256` from `prompt.txt`,
+`host_build` (Claude: `metrics.claude_code_version`, else the init event in `events.jsonl`; Grok and Codex: only what a launch
+record wrote, never a probe), `started` and `ended` from `timeline.jsonl`, `planning_seconds` from `metrics.json`.
+
+Each attempt has exactly one class, the first that applies: `no result.json` (a folder with launch records and no result: the
+harness died before writing its records, or the run is still going), `seeded`, `mixed host` (`runrecord.mixed_host`: two
+hosts launched it, as Grok and then Claude did r2-battleship-grok-none), `resumed` (a real resume: `earlier_terminations`
+not empty or more than one launch record), `process not observed` (`process.status` is `not observed`), `did not reach done`
+(`verdicts.shiploop` false or the engine not done), `no driver recorded` (a row that names no host, model or effort) and
+`counted`. A regrade is not a resume: `versions.regraded` runs started no host, and the finished ones (v1230-battleship-sonnet,
+r1-battleship-sonnet, r1-checkers-sonnet, both v1190 hello runs) are counted; the rule "`resumed_run` is set" would have
+dropped them. A cell is the key of the live comparison (case, source, host, model, effort, `planning_review` mode, prompt
+hash). Per cell the report prints the attempts (seen, counted, passed, and the others by class), the builds
+(`plugin_sha256` counts and rows with none recorded), the host builds, the n, min, median and max of `cost_usd`, `turns`,
+`minutes` (`ended - started`) and `planning_minutes` (the closed planning window), and the overlap. Cost and turns carry
+`lower_bound_rows` (the rows whose figure `metrics.lower_bound` calls a lower bound: every Grok run, because its events
+cannot show a session that never reported) and `lower_bound_unknown_rows` (a row from the file alone, whose
+`unreported_sessions` is not a baseline key). Overlap is `overlapped_at_least` of `rows`: a run that left no record and a row
+with no span are not seen, so it is a lower bound, and `unknown` counts the rows with no span. The report places no run
+within or outside a range and sets no threshold (SPEC, "A comparison names its sample").
+
+`--json` prints `{inputs, records, cells, notes}`. A record has `output`, `record` (`file`, `folder` or `file+folder`), the
+cell key fields (`case`, `source`, `host`, `model`, `effort`, `planning_review`, `prompt_sha256`), `plugin_version`,
+`plugin_sha256`, `host_build`, `local_head`, `started`, `ended`, `minutes`, `planning_seconds`, `planning_minutes`,
+`cost_usd`, `turns`, `lower_bound` (true, false, or null where the run's own metrics are not there), `pass`,
+`engine_status`, `process_status`, `hosts_used`, `class`, `why`, `recomputed` and `overlaps` (the number of other recorded runs
+whose span crosses it, null with no span). A cell has `cell`, `attempts`, `builds`, `host_builds`, `measures`, `overlap` and
+`outputs`.
+
 `metrics.json` also reports `script_verifications` (the checks ShipLoop itself
 ran and recorded, from its `*-verify*.md` records) and `model_glue`: shell
 commands that did a step ShipLoop owns (`git commit`/`add`, shell writes into

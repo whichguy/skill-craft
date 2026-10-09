@@ -1,0 +1,12 @@
+{
+ "claude_code_version": "2.1.294",
+ "planning": {
+  "window": {
+   "closed": true,
+   "through": "test-spec",
+   "seconds": 367.0,
+   "host_seconds": 373.0,
+   "before_engine_seconds": 6.0
+  }
+ }
+}

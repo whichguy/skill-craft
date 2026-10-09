@@ -1,0 +1,15 @@
+{
+ "case": "checkers",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "plugin_dir": "/Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/build/plugins/skill-craft",
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.24.0",
+  "shiploop_version": "0.56.0",
+  "local_head": "5e209285b8cc17f35bd7366e3733bf822dcac437"
+ },
+ "resumed_run": null,
+ "seeded": null
+}

@@ -649,6 +649,20 @@ def planning_window(run_dir: Path | None, state: dict, accepted: list[dict], sta
     return block, (first_event - 1, end), ""
 
 
+def init_build(event: dict) -> str | None:
+    """The Claude Code build a session's ``system/init`` event names, None for any other event."""
+    build = event.get("claude_code_version")
+    return build if isinstance(build, str) and build else None
+
+
+def claude_builds(path: Path) -> str | None:
+    """The build(s) named by the init events of an events file, ', '-joined, None where it names none: the run's own record
+    of the host build, for a run whose metrics did not keep it."""
+    found = {init_build(event) for _number, event in events(path) if event.get("type") == "system"
+             and event.get("subtype") == "init"}
+    return ", ".join(sorted(b for b in found if b)) or None
+
+
 def span(stamps: dict) -> dict:
     """{started, ended}: the earliest and latest arrival stamp of the stream, None for both when there is none."""
     return {"started": min(stamps.values()) if stamps else None, "ended": max(stamps.values()) if stamps else None}
@@ -722,8 +736,8 @@ def collect(out: Path, run_dir: Path | None = None) -> dict:
             announced += 1
         elif kind == "available_commands" or (kind == "system" and event.get("subtype") == "init"):
             starts += 1  # Codex (its translator names the thread) opens a session with available_commands, Claude with system/init
-            if isinstance(event.get("claude_code_version"), str):
-                versions.add(event["claude_code_version"])
+            if init_build(event):
+                versions.add(init_build(event))
         if kind == "usage":
             grok = True
             usage_events += 1
