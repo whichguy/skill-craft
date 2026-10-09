@@ -10,8 +10,7 @@ line numbers and runner stamps of the saved run: lines that no reader looks at a
 What is kept, per window the spec names (a fresh start or a compaction at line L): every event from the previous accepted
 action's stamp to the accepting action's stamp plus MARGIN seconds, reduced to the keys the readers look at (tool calls, their
 final results, session and compaction markers). For a compaction the part BEFORE the line is cut further to the file-edit calls
-(`rewrote` compares only those), because a compaction comes late in a long stage. Dropped everywhere: thought and text chunks,
-running updates, file contents, command output other than ShipLoop's own (a refusal line is what a reader needs).
+(`rewrote` compares only those), because a compaction comes late in a long stage. Dropped everywhere: thought and text chunks, file contents, command output other than ShipLoop's own (a refusal line is what a reader needs).
 
 sessions.jsonl is RECONSTRUCTED (the saved runs predate it): a start row per host launch with the `told` values parsed from
 the resume prompt the run kept (`resume-*.txt` for Grok and Codex, the `-p` argument of invocation-resume-claude-*.json for
@@ -46,7 +45,7 @@ SPECS = [
      "sessions": [("first", "start", 0, "invocation.json"),
                   ("fresh", "resume-run", 4121, "invocation-resume-grok-1791528536.json")]},
     {"name": "r2-battleship-grok-none", "run": "20261008/r2-battleship-grok-none",
-     "windows": [{"line": 2704, "before": "all"}],
+     "windows": [{"line": 1900, "before": "writes"}, {"line": 2704, "before": "all"}],
      "sessions": [("first", "start", 0, "invocation.json"),
                   ("fresh", "resume-run", 2704, "invocation-resume-claude-1791508003.json")]},
     # The four fresh sessions of the Luna xhigh run: only the start of each, to the first `next` that worked and a few events.
@@ -65,23 +64,27 @@ def text_of(value, limit: int) -> str:
 
 
 def reduce_event(event: dict, shiploop_calls: set, write_only: bool = False):
-    """The event cut to what the readers look at, or None when no reader looks at it."""
+    """The event cut to what the readers look at, or None when no reader looks at it. The calls an event starts and whether an
+    update is Grok's permission refusal are read by the harness's own readers (metrics.tool_call_events, cancelled_update), so
+    the fixtures are built by the code the tests then run."""
     kind = event.get("type")
+    calls = [(call_id, tool, reduce_input(arg)) for call_id, tool, arg in metrics.tool_call_events(event)]
+    for call_id, _tool, arg in calls:
+        if "shiploop" in json.dumps(arg).lower():
+            shiploop_calls.add(call_id)
     if kind == "system" and event.get("subtype") == "init":
         return {"type": "system", "subtype": "init", "claude_code_version": event.get("claude_code_version"),
                 "session_id": event.get("session_id")}
+    if write_only:  # the part of a compaction's stage before it: only the file-edit calls matter to `rewrote`
+        calls = [c for c in calls if WRITE_TOOL.search(c[1] or "")]
+        if kind == "assistant":
+            return {"type": "assistant", "message": {"id": (event.get("message") or {}).get("id"), "content": [
+                {"type": "tool_use", "id": i, "name": n, "input": a} for i, n, a in calls]}} if calls else None
+        return {"type": "tool_call", "toolCallId": calls[0][0], "toolName": calls[0][1], "rawInput": calls[0][2]} \
+            if kind == "tool_call" and calls else None
     if kind == "assistant":
-        blocks = [{"type": "tool_use", "id": b.get("id"), "name": b.get("name"), "input": reduce_input(b.get("input"))}
-                  for b in (event.get("message") or {}).get("content") or []
-                  if isinstance(b, dict) and b.get("type") == "tool_use"]
-        if write_only:
-            blocks = [b for b in blocks if WRITE_TOOL.search(b["name"] or "")]
-        for b in blocks:
-            if "shiploop" in json.dumps(b["input"]).lower():
-                shiploop_calls.add(b["id"])
-        return {"type": "assistant", "message": {"id": (event.get("message") or {}).get("id"), "content": blocks}} if blocks else None
-    if write_only:
-        return None
+        return {"type": "assistant", "message": {"id": (event.get("message") or {}).get("id"), "content": [
+            {"type": "tool_use", "id": i, "name": n, "input": a} for i, n, a in calls]}} if calls else None
     if kind == "user":
         blocks = []
         for b in (event.get("message") or {}).get("content") or []:
@@ -92,33 +95,21 @@ def reduce_event(event: dict, shiploop_calls: set, write_only: bool = False):
                 blocks.append({"type": "tool_result", "tool_use_id": b.get("tool_use_id"),
                                "content": text_of(content, 600 if b.get("tool_use_id") in shiploop_calls else 40)})
         return {"type": "user", "message": {"content": blocks}} if blocks else None
-    if kind == "tool_call":
-        arg = reduce_input(event.get("rawInput"))
-        if "shiploop" in json.dumps(arg).lower():
-            shiploop_calls.add(event.get("toolCallId"))
-        return {"type": "tool_call", "toolCallId": event.get("toolCallId"), "toolName": event.get("toolName") or event.get("title"),
-                "rawInput": arg}
+    if kind == "tool_call" and calls:
+        return {"type": "tool_call", "toolCallId": calls[0][0], "toolName": calls[0][1], "rawInput": calls[0][2]}
     if kind == "tool_call_update":
-        if event.get("status") == "in_progress" or not isinstance(event.get("rawOutput"), dict):
-            cancelled = event.get("status") == "failed" and "cancelled" in json.dumps(event.get("content") or "").lower()
-            if not cancelled:
-                return None
         raw = event.get("rawOutput") if isinstance(event.get("rawOutput"), dict) else None
-        shown = metrics.visible(raw) if raw else ""
+        refused = metrics.cancelled_update(event)
+        if raw is None and not refused:
+            return None
         keep = event.get("toolCallId") in shiploop_calls
-        if not raw and not keep:
-            shown = ""
         out = {"type": "tool_call_update", "toolCallId": event.get("toolCallId"), "status": event.get("status")}
-        if raw is not None:
-            out["rawOutput"] = {"exit_code": raw.get("exit_code"), "output_for_prompt": text_of(shown, 600 if keep else 0)}
-        else:
-            out["rawOutput"] = None
-        if event.get("status") == "failed" and "cancelled" in json.dumps(event.get("content") or "").lower():
+        # A running update (status in_progress, a placeholder exit 0) is kept, with no output: it is the shape ToolLog.feed
+        # must not read as a result.
+        out["rawOutput"] = None if raw is None else {
+            "exit_code": raw.get("exit_code"), "output_for_prompt": text_of(metrics.visible(raw), 600 if keep else 0)}
+        if refused:
             out["content"] = event["content"]
-        if raw is None and isinstance(event.get("content"), list) and event.get("status") in ("completed", "failed"):
-            out["content"] = [{"type": "content", "content": {"type": "text", "text": text_of(
-                (event["content"][0].get("content") or {}).get("text") if event["content"] and isinstance(event["content"][0], dict)
-                else "", 600 if keep else 0)}}]
         return out
     if kind == "usage":  # Grok's one event per model call: it is also how a stream is known to be Grok's, so compactions count
         used = event.get("usage") if isinstance(event.get("usage"), dict) else {}

@@ -868,12 +868,17 @@ class FreshStartsCollectTest(unittest.TestCase):
         self.assertEqual(got["fresh_starts"], [])
         self.assertNotIn("partial", got["fresh_starts_unmeasured"] or "", "no event, so nothing came before the first row")
 
-    def test_r2_is_a_mixed_host_run_and_its_fresh_start_belongs_to_the_claude_host_that_began_it(self):
+    def test_r2_is_a_mixed_host_run_whose_grok_compaction_and_claude_fresh_start_are_both_listed(self):
         got = self.collect("r2-battleship-grok-none")
-        self.assertEqual(len(got["fresh_starts"]), 1)
-        start = got["fresh_starts"][0]
-        self.assertEqual((start["kind"], start["host"], start["stage_in_flight"]), ("fresh", "claude", "implement"))
-        self.assertEqual(start["reorientation"]["tool_calls"], 6)
+        self.assertEqual([(b["kind"], b["host"], b["events_line"]) for b in got["fresh_starts"]],
+                         [("compaction", "grok", 1900), ("fresh", "claude", 2704)])
+        compaction, start = got["fresh_starts"]
+        self.assertEqual(got["compactions"], 1)
+        self.assertFalse(compaction["reorientation"]["measured"],
+                         "the stages after it were accepted by an orphan Grok host that wrote no event")
+        self.assertEqual((start["stage_in_flight"], start["reorientation"]["tool_calls"]), ("implement", 6))
+        events = (FIXTURES / "r2-battleship-grok-none" / "events.jsonl").read_text()
+        self.assertIn('"status": "in_progress"', events, "the fixture keeps the running updates ToolLog.feed must not read as results")
 
     def test_the_four_luna_resumes_are_four_unmeasured_blocks_that_keep_their_recovery_facts(self):
         got = self.collect("v1210-battleship-luna-xhigh")
