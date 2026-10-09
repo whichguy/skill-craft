@@ -1,0 +1,8 @@
+{
+ "case": "checkers",
+ "host": "claude",
+ "versions": {
+  "regraded": true,
+  "source": "checkout"
+ }
+}

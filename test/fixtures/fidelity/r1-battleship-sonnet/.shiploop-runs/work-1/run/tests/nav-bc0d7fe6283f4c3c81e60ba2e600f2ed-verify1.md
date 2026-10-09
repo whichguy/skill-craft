@@ -1,0 +1,106 @@
+# ShipLoop test-loop verification
+
+```shiploop-state
+{
+  "action": "nav-bc0d7fe6283f4c3c81e60ba2e600f2ed",
+  "created_at": "2026-10-08T17:47:29Z",
+  "disposition": "passed",
+  "passed": true,
+  "runs": [
+    {
+      "command": "node --test test/game.test.js",
+      "counts": {
+        "failed": 0,
+        "ran": 20,
+        "runners": [
+          "node"
+        ]
+      },
+      "criteria": [
+        "C1"
+      ],
+      "exit": 0,
+      "ids": [
+        "TC-6",
+        "TC-7",
+        "TC-8",
+        "TC-9",
+        "TC-10",
+        "TC-11"
+      ],
+      "ids_missing": [],
+      "min_tests": 8,
+      "seconds": 0.128,
+      "status": "passed",
+      "suite": "focused"
+    },
+    {
+      "command": "node --test test/server.test.js",
+      "counts": {
+        "failed": 0,
+        "ran": 24,
+        "runners": [
+          "node"
+        ]
+      },
+      "criteria": [
+        "C2",
+        "C3"
+      ],
+      "exit": 0,
+      "ids": [
+        "TC-1",
+        "TC-2",
+        "TC-3",
+        "TC-4",
+        "TC-5",
+        "TC-9",
+        "TC-10",
+        "TC-13"
+      ],
+      "ids_missing": [],
+      "min_tests": 10,
+      "seconds": 0.295,
+      "status": "passed",
+      "suite": "focused"
+    },
+    {
+      "command": "grep -q 'node server.js' README.md && grep -q 'node --test' README.md",
+      "counts": null,
+      "criteria": [
+        "C4"
+      ],
+      "exit": 0,
+      "ids_missing": [],
+      "seconds": 0.009,
+      "status": "passed",
+      "suite": "check"
+    },
+    {
+      "command": "node --test",
+      "counts": {
+        "failed": 0,
+        "ran": 44,
+        "runners": [
+          "node"
+        ]
+      },
+      "criteria": [
+        "C5"
+      ],
+      "exit": 0,
+      "ids": [
+        "TC-12"
+      ],
+      "ids_missing": [],
+      "min_tests": 25,
+      "seconds": 0.305,
+      "status": "passed",
+      "suite": "regression"
+    }
+  ],
+  "schema": "shiploop-test-loop/v1",
+  "stage": "integration-verify",
+  "work_item": "W1"
+}
+```

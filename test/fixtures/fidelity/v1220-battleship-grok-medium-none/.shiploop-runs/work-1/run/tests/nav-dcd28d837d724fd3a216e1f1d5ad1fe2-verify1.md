@@ -1,0 +1,47 @@
+# ShipLoop test-loop verification
+
+```shiploop-state
+{
+  "action": "nav-dcd28d837d724fd3a216e1f1d5ad1fe2",
+  "created_at": "2026-10-07T00:32:25Z",
+  "disposition": "passed",
+  "passed": true,
+  "runs": [
+    {
+      "command": "node --test test/server.test.js",
+      "counts": null,
+      "criteria": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C10"
+      ],
+      "exit": 0,
+      "ids": [
+        "TC-1",
+        "TC-2",
+        "TC-3",
+        "TC-5",
+        "TC-8",
+        "TC-9",
+        "TC-12",
+        "TC-13",
+        "TC-14"
+      ],
+      "ids_missing": [],
+      "min_tests": 9,
+      "seconds": 0.329,
+      "status": "passed",
+      "suite": "focused"
+    }
+  ],
+  "schema": "shiploop-test-loop/v1",
+  "stage": "test-green",
+  "work_item": "W2"
+}
+```
