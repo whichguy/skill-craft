@@ -860,5 +860,360 @@ class CasesNeedTest(unittest.TestCase):
         self.assertEqual(sorted(declared), ["battleship", "battleship-scoring", "checkers"])
 
 
+def facts(**kw) -> dict:
+    """A termination block as run.termination_facts writes it, with the engine finished and the host exited, unless told."""
+    block = {"process_status": "exited", "returncode": 0, "sessions": 1, "resumes": 0, "session_stops": ["success"],
+             "resume_stop": "host is not resumable", "engine_status": "done", "engine_stage": "done",
+             "engine_unaccepted_stage": None, "engine_status_reason": None, "engine_blocked_by": None,
+             "engine_awaiting_kind": None, "engine_awaiting_no_default": None}
+    block.update(kw)
+    return block
+
+
+class OutcomeClassTest(unittest.TestCase):
+    """SPEC: outcome_class is a pure function of termination and pass: PASS, FAILED, BLOCKED, STOPPED, or null with a basis."""
+
+    def cls(self, passed: bool, **kw) -> tuple:
+        return run.outcome_class(passed, facts(**kw))
+
+    def test_the_classes_are_exactly_these_and_nothing_adds_an_environment_overlay(self):
+        self.assertEqual(run.OUTCOME_CLASSES, ("PASS", "FAILED", "BLOCKED", "STOPPED"))
+
+    def test_a_run_that_passed_is_pass_whatever_the_rest_says(self):
+        self.assertEqual(self.cls(True)[0], "PASS")
+        self.assertEqual(self.cls(True, process_status="stopped", engine_status="active")[0], "PASS")
+
+    def test_an_engine_that_reached_done_with_a_failing_verdict_is_failed(self):
+        cls, basis = self.cls(False)
+        self.assertEqual(cls, "FAILED")
+        self.assertIn("done", basis)
+
+    def test_a_host_that_ended_on_its_own_with_the_engine_still_active_is_failed(self):
+        for stop in ("host is not resumable", "no host session id to resume"):
+            with self.subTest(resume_stop=stop):
+                cls, basis = self.cls(False, engine_status="active", engine_stage="implement", resume_stop=stop,
+                                      process_status="failed", returncode=1)
+                self.assertEqual(cls, "FAILED")
+                self.assertIn(stop, basis)
+
+    def test_a_host_that_wrote_no_state_and_ended_on_its_own_is_failed(self):
+        self.assertEqual(self.cls(False, engine_status="unknown", engine_stage="unknown", resume_stop="host is not resumable")[0],
+                         "FAILED")
+
+    def test_a_blocked_engine_is_blocked_and_names_what_it_recorded(self):
+        cls, basis = self.cls(False, engine_status="blocked", engine_stage="system-test-author", resume_stop="ShipLoop run is blocked",
+                              engine_blocked_by="access", engine_awaiting_kind="answer", engine_awaiting_no_default=True)
+        self.assertEqual(cls, "BLOCKED")
+        for text in ("blocked at system-test-author", "by access", "answer", "no default"):
+            self.assertIn(text, basis)
+
+    def test_a_blocked_engine_without_a_stated_default_or_without_awaiting_or_without_a_record_is_still_blocked(self):
+        cases = {"by user, awaiting, no default stated": dict(engine_blocked_by="user", engine_awaiting_kind="present",
+                                                               engine_awaiting_no_default=False),
+                 "external, no person awaited": dict(engine_blocked_by="external"),
+                 "no accepted blocked result in the state (an old state)": dict()}
+        for label, kw in cases.items():
+            with self.subTest(label):
+                cls, basis = self.cls(False, engine_status="blocked", engine_stage="test-refine",
+                                      resume_stop="ShipLoop run is blocked", **kw)
+                self.assertEqual(cls, "BLOCKED")
+        self.assertIn("no blocked result", self.cls(False, engine_status="blocked", engine_stage="x")[1])
+        self.assertIn("external", self.cls(False, engine_status="blocked", engine_blocked_by="external")[1])
+        self.assertIn("gives no reason", self.cls(False, engine_status="blocked", engine_blocked_by="user",
+                                                  engine_awaiting_kind="answer", engine_awaiting_no_default=False)[1])
+
+    def test_a_paused_engine_awaits_resume_as_a_blocked_one_does_and_names_no_blocker(self):
+        cls, basis = self.cls(False, engine_status="paused", engine_stage="implement", engine_status_reason="user asked",
+                              resume_stop="ShipLoop run is paused")
+        self.assertEqual(cls, "BLOCKED")
+        self.assertIn("paused at implement", basis)
+        self.assertIn("no blocked result", basis)
+
+    def test_a_halted_engine_is_terminal_and_unfinished_so_it_is_failed(self):
+        cls, basis = self.cls(False, engine_status="halted", engine_stage="implement", engine_status_reason="cannot continue",
+                              resume_stop="ShipLoop run is halted")
+        self.assertEqual(cls, "FAILED")
+        self.assertIn("halted at implement", basis)
+        self.assertIn("cannot continue", basis)
+
+    def test_a_run_the_harness_ended_is_stopped(self):
+        cases = {"the stop file": dict(process_status="stopped", resume_stop="stopped by /out/stop"),
+                 "a SIGTERM": dict(process_status="stopped", resume_stop="terminated by SIGTERM"),
+                 "the deadline killed the host": dict(process_status="timeout", returncode=-9, resume_stop="run deadline spent"),
+                 "the deadline killed a host that is never resumed": dict(process_status="timeout", returncode=-9,
+                                                                          resume_stop="host is not resumable"),
+                 "the deadline was spent between sessions": dict(resume_stop="run deadline spent"),
+                 "the resume budget was spent": dict(resume_stop="resume budget spent (20)")}
+        for label, kw in cases.items():
+            with self.subTest(label):
+                self.assertEqual(self.cls(False, engine_status="active", engine_stage="implement", **kw)[0], "STOPPED")
+
+    def test_a_requested_stop_after_the_engine_blocked_does_not_turn_the_block_into_a_stop(self):
+        self.assertEqual(self.cls(False, engine_status="blocked", process_status="stopped", resume_stop="stopped by /out/stop")[0],
+                         "BLOCKED")
+
+    def test_a_regrade_that_observed_nothing_is_unknown_with_a_basis(self):
+        cls, basis = self.cls(False, process_status=run.NOT_OBSERVED, returncode=None, sessions=0, session_stops=[],
+                              resume_stop="not evaluated (regraded)", engine_status="active", engine_stage="implement",
+                              regraded=True)
+        self.assertEqual((cls, "no host ran" in basis), (None, True))
+
+    def test_a_regrade_reads_the_engine_as_it_is_now_and_the_ending_as_it_was_recorded(self):
+        earlier = facts(process_status="stopped", engine_status="active", resume_stop="stopped by /out/stop", regraded=True)
+        self.assertEqual(run.outcome_class(False, dict(earlier, engine_status_at_regrade="active"))[0], "STOPPED")
+        self.assertEqual(run.outcome_class(False, dict(earlier, engine_status_at_regrade="blocked"))[0], "BLOCKED")
+        self.assertEqual(run.outcome_class(False, dict(earlier, engine_status_at_regrade="done"))[0], "FAILED")
+
+    def test_an_ending_the_classifier_does_not_know_is_unknown_and_names_it_never_failed_by_default(self):
+        cls, basis = self.cls(False, engine_status="active", resume_stop="something new")
+        self.assertEqual(cls, None)
+        self.assertIn("something new", basis)
+
+    def test_a_block_with_nothing_in_it_does_not_raise(self):
+        self.assertEqual(run.outcome_class(False, {})[0], None)
+        self.assertEqual(run.outcome_class(True, {})[0], "PASS")
+
+    def test_the_input_is_not_changed(self):
+        block = facts(engine_status="blocked", engine_blocked_by="access")
+        before = json.loads(json.dumps(block))
+        run.outcome_class(False, block)
+        self.assertEqual(block, before)
+
+    def test_every_engine_status_and_every_process_status_gets_a_class_or_a_stated_unknown(self):
+        import shiploop_navigator
+        statuses = sorted(shiploop_navigator._STATUSES) + ["unknown"]
+        self.assertEqual(set(statuses) - {"unknown"}, {"active", "paused", "blocked", "halted", "done"},
+                         "the engine has a status this classifier was not written for")
+        processes = ["exited", "failed", "timeout", "stopped", "unknown", run.NOT_OBSERVED]
+        stops = [stop for stop, _ in run.RESUME_STOP_CLASSES] + ["ShipLoop run is blocked", "not evaluated (regraded)", "unknown"]
+        for engine in statuses:
+            for process in processes:
+                for stop in stops:
+                    with self.subTest(engine=engine, process=process, resume_stop=stop):
+                        cls, basis = run.outcome_class(False, facts(engine_status=engine, process_status=process,
+                                                                    resume_stop=stop))
+                        self.assertIn(cls, (*run.OUTCOME_CLASSES, None))
+                        self.assertNotEqual(cls, "PASS")
+                        self.assertTrue(basis and isinstance(basis, str))
+
+    def test_every_resume_stop_the_harness_can_write_is_known_to_the_classifier(self):
+        """resume_stop is built from several strings in run.py (some with a variable in them), so it is read from the source:
+        a new one must be given a class, or the classifier would call it unknown."""
+        import ast
+        tree = ast.parse((ROOT / "test" / "shiploop_e2e" / "run.py").read_text())
+        found: set[str] = set()
+
+        def heads(node):
+            """The fixed text each string a value can be begins with (an f-string: up to its first variable)."""
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                yield node.value
+            elif isinstance(node, ast.JoinedStr) and node.values and isinstance(node.values[0], ast.Constant):
+                yield node.values[0].value
+            elif isinstance(node, ast.IfExp):
+                yield from heads(node.body)
+                yield from heads(node.orelse)
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "resume_stop" for t in node.targets):
+                found.update(heads(node.value))
+            if isinstance(node, ast.FunctionDef) and node.name == "stop_cause":
+                for ret in ast.walk(node):
+                    if isinstance(ret, ast.Return):
+                        found.update(heads(ret.value))
+        found.discard("")
+        self.assertGreaterEqual(len(found), 7, found)
+        known = tuple(prefix for prefix, _ in run.RESUME_STOP_CLASSES)
+        engine_decides = ("ShipLoop run is ", "not evaluated (regraded)")
+        for text in sorted(found):
+            with self.subTest(resume_stop=text):
+                self.assertTrue(text.startswith(known + engine_decides), f"resume_stop {text!r} has no class in run.RESUME_STOP_CLASSES")
+
+
+class LearningsOutcomeLineTest(unittest.TestCase):
+    def message(self, result: dict) -> str:
+        import iterate
+        verdict = dict(base.LearningsTest.VERDICT, actionable=[])
+        return iterate.learnings_message(2, iterate.argparse.Namespace(case="battleship"), "0123456789ab", result, verdict, [])
+
+    def test_the_learnings_message_says_how_the_run_ended_where_the_result_has_a_class(self):
+        result = dict(base.LearningsTest.RESULT, outcome_class="BLOCKED", outcome_basis="engine blocked at x by access")
+        self.assertIn("- ended as: BLOCKED (engine blocked at x by access)", self.message(result))
+        unknown = dict(base.LearningsTest.RESULT, outcome_class=None, outcome_basis="no host ran")
+        self.assertIn("- ended as: unknown (no host ran)", self.message(unknown))
+        self.assertNotIn("ended as", self.message(base.LearningsTest.RESULT), "a result written before the class has none")
+
+
+class RecordedOutcomeClassTest(unittest.TestCase):
+    """The 11 recorded results of 2026-10-07 and 2026-10-08, and the engine states of the three that did not pass."""
+
+    EXPECTED = {"v1230-battleship-grok-none": "BLOCKED", "r1-battleship-grok-none": "BLOCKED", "r3-battleship-grok-none": "STOPPED"}
+
+    def recorded(self) -> dict:
+        return {path.stem: json.loads(path.read_text()) for path in sorted((FIXTURES / "recorded").glob("*/*.json"))}
+
+    def test_only_the_three_grok_runs_that_did_not_pass_have_another_class_and_the_rest_pass(self):
+        records = self.recorded()
+        self.assertEqual(len(records), 11)
+        for name, record in records.items():
+            with self.subTest(run=name):
+                cls, _ = run.outcome_class(record["pass"], record["termination"])
+                self.assertEqual(cls, self.EXPECTED.get(name, "PASS"))
+
+    def test_the_two_blocked_runs_are_blocked_whether_or_not_their_old_record_has_the_blocked_detail(self):
+        # Their results predate the detail: the class is BLOCKED and says no blocked result was read.
+        for name in ("v1230-battleship-grok-none", "r1-battleship-grok-none"):
+            record = self.recorded()[name]
+            self.assertNotIn("engine_blocked_by", record["termination"])
+            cls, basis = run.outcome_class(record["pass"], record["termination"])
+            self.assertEqual(cls, "BLOCKED")
+            self.assertIn("no blocked result", basis)
+
+    def test_the_engine_states_give_the_blocked_detail_the_old_records_lack(self):
+        want = {"v1230-battleship-grok-none": ("access", "present", True), "r1-battleship-grok-none": ("access", "answer", True),
+                "r3-battleship-grok-none": (None, None, None)}
+        records = self.recorded()
+        for name, (by, kind, no_default) in want.items():
+            with self.subTest(run=name):
+                engine = run.metrics.engine_state(FIXTURES / "engine" / name)
+                self.assertTrue(engine, "the extract holds a readable state.md")
+                process = records[name]["process"]
+                t = run.termination_facts(process, engine, records[name]["termination"]["resume_stop"])
+                self.assertEqual((t["engine_blocked_by"], t["engine_awaiting_kind"], t["engine_awaiting_no_default"]),
+                                 (by, kind, no_default))
+                cls, basis = run.outcome_class(records[name]["pass"], t)
+                self.assertEqual(cls, self.EXPECTED[name])
+        blocked = run.termination_facts(records["r1-battleship-grok-none"]["process"],
+                                        run.metrics.engine_state(FIXTURES / "engine" / "r1-battleship-grok-none"), "ShipLoop run is blocked")
+        self.assertIn("by access", run.outcome_class(False, blocked)[1])
+
+    def test_the_detail_is_read_only_while_the_engine_is_blocked_and_says_when_no_default_was_stated(self):
+        history = [{"action": "a1", "outcome": "blocked", "stage": "x"}]
+        accepted = {"a1": {"outcome": "blocked", "blocked_by": "user", "awaiting": {"kind": "answer", "question": "q"}}}
+        blocked = run.blocked_detail({"status": "blocked", "history": history, "accepted": accepted})
+        self.assertEqual(blocked, {"engine_blocked_by": "user", "engine_awaiting_kind": "answer", "engine_awaiting_no_default": False})
+        spaces = {"a1": {"outcome": "blocked", "blocked_by": "user", "awaiting": {"kind": "answer", "no_default": "  "}}}
+        self.assertIs(run.blocked_detail({"status": "blocked", "history": history, "accepted": spaces})["engine_awaiting_no_default"], False)
+        # The block was answered and the run went on: the last history entry still says blocked, but the engine is active.
+        self.assertEqual(run.blocked_detail({"status": "active", "history": history, "accepted": accepted}),
+                         {key: None for key in blocked})
+        external = run.blocked_detail({"status": "blocked", "history": history,
+                                       "accepted": {"a1": {"outcome": "blocked", "blocked_by": "external"}}})
+        self.assertEqual(external, {"engine_blocked_by": "external", "engine_awaiting_kind": None, "engine_awaiting_no_default": None})
+
+    def test_a_state_with_no_accepted_record_gives_none_and_not_a_parsed_guess(self):
+        engine = {"status": "blocked", "stage": "x", "status_reason": "access: waiting for a person",
+                  "history": [{"action": "a1", "outcome": "blocked", "stage": "x"}]}
+        t = run.termination_facts({"status": "exited", "sessions": []}, engine, "ShipLoop run is blocked")
+        self.assertEqual((t["engine_blocked_by"], t["engine_awaiting_kind"], t["engine_awaiting_no_default"]), (None, None, None))
+        # An active or finished engine has no blocked detail either.
+        active = run.termination_facts({"status": "exited", "sessions": []}, {"status": "active"}, "x")
+        self.assertEqual((active["engine_blocked_by"], active["engine_awaiting_kind"], active["engine_awaiting_no_default"]),
+                         (None, None, None))
+
+
+# A fake Grok that ends its session with the engine blocked on a person, as a real run does at a stage that needs one: the
+# state the engine accepted (a blocked result naming who can unblock it, awaiting an answer with a stated reason). It is the
+# base fake with one more mode, so the arguments, the plugin install and the session log are the base fake's own.
+BLOCKING_GROK_ANCHOR = 'if mode == "done" or (mode == "resume" and resumed):'
+BLOCKING_GROK = base.FAKE_GROK.replace(BLOCKING_GROK_ANCHOR, '''if mode == "blocked":
+    Path(".shiploop").mkdir(exist_ok=True)
+    store.write_record(Path(".shiploop/state.md"), {"status": "blocked", "stage": "system-test-author",
+        "status_reason": "access: no browser is connected",
+        "history": [{"action": "a1", "outcome": "blocked", "stage": "system-test-author"}],
+        "accepted": {"a1": {"outcome": "blocked", "blocked_by": "access", "headline": "needs a browser",
+                            "awaiting": {"kind": "answer", "question": "How should it proceed?",
+                                         "no_default": "nothing else can proceed without a browser"}}}})
+elif mode == "done" or (mode == "resume" and resumed):''', 1)
+
+
+class OutcomeClassThroughMainTest(QuietHarnessCase):
+    """run.main writes the class and its basis into result.json, the baseline row and the printed report; it decides nothing."""
+
+    def setUp(self):
+        super().setUp()
+        self.assertIn(BLOCKING_GROK_ANCHOR, base.FAKE_GROK, "the base fake changed: the blocking mode needs a new anchor")
+        self.blocking = self.tmp / "grok-blocking"
+        self.blocking.write_text(BLOCKING_GROK)
+        self.blocking.chmod(self.blocking.stat().st_mode | stat.S_IXUSR)
+
+    def sessions(self) -> list[dict]:
+        path = Path(str(self.log) + ".sessions")
+        return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
+
+    def test_a_run_that_passed_is_pass_on_every_host_and_is_in_the_baseline_row_and_the_report(self):
+        for host in ("claude", "grok", "codex"):
+            with self.subTest(host=host):
+                code, result, printed = self.invoke_printed(host, "done")
+                self.assertEqual(code, 0, result)
+                self.assertEqual((result["outcome_class"], result["outcome_basis"]), ("PASS", "every verdict passed"))
+                self.assertEqual(self.last_row()["outcome_class"], "PASS")
+                self.assertIn("  outcome   PASS", printed)
+
+    def test_a_requested_stop_is_stopped_and_its_header_and_exit_code_are_unchanged(self):
+        code, result, printed = self.invoke_printed("grok", "stuck-stop", "--max-resumes", "3")
+        self.assertEqual(code, 1)
+        self.assertEqual(result["outcome_class"], "STOPPED")
+        self.assertIn("stopped by", result["outcome_basis"])
+        self.assertTrue(printed.splitlines()[next(i for i, ln in enumerate(printed.splitlines()) if ln.startswith("STOPPED  shiploop e2e"))])
+
+    def test_a_spent_resume_budget_is_stopped_and_a_host_that_gave_up_is_failed(self):
+        _, spent, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "1")
+        self.assertEqual((spent["outcome_class"], spent["termination"]["resume_stop"]), ("STOPPED", "resume budget spent (1)"))
+        _, anonymous, _ = self.invoke_printed("grok", "anon")
+        self.assertEqual((anonymous["outcome_class"], anonymous["termination"]["resume_stop"]), ("FAILED", "no host session id to resume"))
+        _, errored, _ = self.invoke_printed("claude", "api-error")
+        self.assertEqual(errored["outcome_class"], "FAILED")
+
+    def test_a_blocked_run_is_blocked_with_the_detail_the_engine_recorded_and_is_neither_resumed_nor_answered(self):
+        code, result, printed = self.invoke_printed("grok", "blocked", "--grok-bin", str(self.blocking))
+        self.assertEqual(code, 1)
+        self.assertFalse(result["pass"])
+        self.assertEqual(result["outcome_class"], "BLOCKED")
+        t = result["termination"]
+        self.assertEqual((t["engine_blocked_by"], t["engine_awaiting_kind"], t["engine_awaiting_no_default"]), ("access", "answer", True))
+        self.assertEqual(t["resume_stop"], "ShipLoop run is blocked")
+        self.assertEqual(len(self.sessions()), 1, "one host session: a blocked run is never resumed as if answered (SPEC S-14)")
+        self.assertFalse((Path(result["output"]) / "stop").exists())
+        self.assertTrue((Path(result["output"]) / "mismatch.md").is_file(), "the class does not excuse the failure")
+        for text in ("blocked at system-test-author by access", "answer", "no default"):
+            self.assertIn(text, result["outcome_basis"])
+        self.assertIn("  outcome   BLOCKED", printed)
+        self.assertEqual(self.last_row()["outcome_class"], "BLOCKED")
+        self.assertEqual(self.last_row()["termination"], t)
+
+    def test_a_regrade_of_a_blocked_run_is_blocked_and_starts_no_host(self):
+        out = self.first_run()
+        self.blocked_workspace(out, state={
+            "status": "blocked", "stage": "x", "history": [{"action": "a1", "outcome": "blocked", "stage": "x"}],
+            "accepted": {"a1": {"outcome": "blocked", "blocked_by": "user", "awaiting": {"kind": "present", "steps": ["s"],
+                                                                                        "report": "r", "no_default": "d"}}}})
+        before = len(self.sessions())
+        code, result, _ = self.grade_only(out)
+        self.assertEqual(result["outcome_class"], "BLOCKED")
+        self.assertIn("by user", result["outcome_basis"])
+        self.assertEqual(len(self.sessions()), before, "no host was started")
+
+    def test_a_regrade_keeps_the_ending_it_recorded_and_one_that_observed_nothing_is_unknown(self):
+        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        self.assertEqual(first["outcome_class"], "STOPPED")
+        _, kept, _ = self.grade_only(out)
+        self.assertTrue(kept["termination"]["regraded"])
+        self.assertEqual(kept["outcome_class"], "STOPPED", "the original ending, read against the engine as it is")
+        (out / "result.json").unlink()
+        _, unknown, printed = self.grade_only(out)
+        self.assertIsNone(unknown["outcome_class"])
+        self.assertIn("no host ran", unknown["outcome_basis"])
+        self.assertIn("  outcome   unknown", printed)
+
+    def test_a_class_that_cannot_be_computed_is_null_with_the_reason_and_changes_nothing(self):
+        with mock.patch.object(run, "outcome_class", side_effect=RuntimeError("boom")):
+            code, result, _ = self.invoke_printed("grok", "done")
+        self.assertEqual(code, 0, result)
+        self.assertTrue(result["pass"])
+        self.assertIsNone(result["outcome_class"])
+        self.assertIn("boom", result["outcome_basis"])
+
+
 if __name__ == "__main__":
     unittest.main()

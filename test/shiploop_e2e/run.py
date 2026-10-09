@@ -1231,7 +1231,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "termination": result.get("termination"), "unmeasured": sorted(m.get("unmeasured") or {}),
             "source": versions.get("source"), "plugin_version": versions.get("plugin_version"),
             "shiploop_version": versions.get("shiploop_version"), "planning_review": planning_review,
-            "pass": result.get("pass"),
+            "pass": result.get("pass"), "outcome_class": result.get("outcome_class"),
             "verdicts": {k: (result.get(k) or {}).get("pass") for k in ("invoked", "plugin", "process",
                                                                        "shiploop", "committed")},
             "checks_passed": sum(bool(c.get("pass")) for c in result.get("checks") or []),
@@ -1345,6 +1345,28 @@ def regraded_process(observed: dict | None) -> dict:
             "resumes": None, "pass": None, "regraded": True}
 
 
+def blocked_detail(engine: dict) -> dict:
+    """What the engine recorded when it blocked, read from the state's accepted record of its last action: who can unblock it
+    (``blocked_by``), what kind of wait it asked for, and whether it stated why no recorded default would do (SPEC S-14).
+    None for each where the engine is not blocked or the state holds no accepted blocked result (an old state): never a guess
+    from the prose of ``status_reason``."""
+    detail = {"engine_blocked_by": None, "engine_awaiting_kind": None, "engine_awaiting_no_default": None}
+    history, accepted = engine.get("history"), engine.get("accepted")
+    last = history[-1] if isinstance(history, list) and history and isinstance(history[-1], dict) else {}
+    record = accepted.get(last.get("action")) if (engine.get("status") == "blocked" and last.get("outcome") == "blocked"
+                                                  and isinstance(accepted, dict)) else None
+    if not isinstance(record, dict):
+        return detail
+    if isinstance(record.get("blocked_by"), str):
+        detail["engine_blocked_by"] = record["blocked_by"]
+    awaiting = record.get("awaiting")
+    if isinstance(awaiting, dict):
+        if isinstance(awaiting.get("kind"), str):
+            detail["engine_awaiting_kind"] = awaiting["kind"]
+        detail["engine_awaiting_no_default"] = bool(str(awaiting.get("no_default") or "").strip())
+    return detail
+
+
 def termination_facts(process: dict, engine: dict, resume_stop: str | None, earlier: dict | None = None) -> dict:
     """Why this run is not still going, from the observer that owns the process.
 
@@ -1373,10 +1395,16 @@ def termination_facts(process: dict, engine: dict, resume_stop: str | None, earl
         "engine_unaccepted_stage": pending,
         # The engine's own recorded cause for a blocked, paused or halted run.
         "engine_status_reason": " ".join(reason.split())[:200] if isinstance(reason, str) and reason.strip() else None,
+        # What the engine accepted when it blocked (null where it did not block, or recorded no blocked result).
+        **blocked_detail(engine),
     }
     if process.get("regraded"):
         if isinstance(earlier, dict) and earlier.get("process_status"):
-            return {**earlier, "regraded": True, "engine_status_at_regrade": engine_facts["engine_status"]}
+            # The ending stays the one the original run recorded; the engine is read again, so the class can name what it is now.
+            return {**earlier, "regraded": True, "engine_status_at_regrade": engine_facts["engine_status"],
+                    **{f"{key}_at_regrade": engine_facts[key] for key in (
+                        "engine_stage", "engine_status_reason", "engine_blocked_by", "engine_awaiting_kind",
+                        "engine_awaiting_no_default")}}
         return {"process_status": NOT_OBSERVED, "returncode": None, "sessions": 0, "resumes": None,
                 "session_stops": [], "resume_stop": "not evaluated (regraded)", **engine_facts, "regraded": True}
     sessions = process.get("sessions") or []
@@ -1389,6 +1417,74 @@ def termination_facts(process: dict, engine: dict, resume_stop: str | None, earl
         "resume_stop": resume_stop or "unknown",
         **engine_facts,
     }
+
+
+# How the run ended, as one word (SPEC: outcome_class is a record and not a verdict; it changes neither pass nor the exit code).
+OUTCOME_CLASSES = ("PASS", "FAILED", "BLOCKED", "STOPPED")
+
+# The wordings of `termination.resume_stop` the harness itself writes when the engine's own status is not the reason the
+# resume loop ended, with the class each means (prefixes: some carry a number or a path). "ShipLoop run is <status>" and "not
+# evaluated (regraded)" are decided by the engine's status. A new wording must be added here: a test reads this file's source
+# for every `resume_stop` and fails on one that is not, so an unlisted ending is never silently called FAILED.
+RESUME_STOP_CLASSES = (
+    ("host is not resumable", "FAILED"),
+    ("no host session id to resume", "FAILED"),
+    ("run deadline spent", "STOPPED"),
+    ("resume budget spent", "STOPPED"),
+    ("stopped by ", "STOPPED"),
+    ("terminated by ", "STOPPED"),
+)
+
+
+def _head(text, size: int = 100) -> str:
+    return " ".join(str(text).split())[:size]
+
+
+def outcome_class(passed: bool, t: dict) -> tuple[str | None, str]:
+    """(class, basis): how a run ended, a pure function of ``pass`` and the termination block (SPEC S-14).
+
+    PASS: every verdict passed. BLOCKED: the engine accepted a blocked result, or is paused (it awaits resume the same way);
+    the class says what the engine recorded and never that the block was warranted, which is a model judgement S-9 excludes
+    as evidence. FAILED: the engine finished or halted without passing, or the host ended on its own with the engine
+    unfinished. STOPPED: the harness ended the run (a requested stop, a signal, the deadline, a spent resume budget). None:
+    unknown, and the basis says why (a regrade that observed no host, or an ending this function does not know). The engine's
+    status wins over how the host ended: a stop requested after the engine blocked does not turn the block into a stop.
+    A regrade that kept the original ending reads the engine as it is now (the ``*_at_regrade`` fields) and the ending as it
+    was recorded.
+    """
+    if passed:
+        return "PASS", "every verdict passed"
+    regraded = "engine_status_at_regrade" in t
+
+    def now(key: str):
+        return t.get(f"{key}_at_regrade") if regraded else t.get(key)
+
+    engine = now("engine_status") or "unknown"
+    stage = now("engine_stage") or "unknown"
+    reason = now("engine_status_reason")
+    why = f" ({_head(reason)})" if reason else ""
+    if engine == "paused":
+        return "BLOCKED", f"engine paused at {stage}{why}: it awaits resume; no blocked result names who can unblock it"
+    if engine == "blocked":
+        by, kind, no_default = now("engine_blocked_by"), now("engine_awaiting_kind"), now("engine_awaiting_no_default")
+        if by is None:
+            return "BLOCKED", f"engine blocked at {stage}{why}; no blocked result was read from the state (an old state, or none accepted)"
+        wait = ("" if kind is None else
+                f"; waits for a person's {kind}, " + ("and states why no default would do" if no_default else "and gives no reason that no default would do"))
+        return "BLOCKED", f"engine blocked at {stage} by {by}{wait}"
+    if engine == "halted":
+        return "FAILED", f"engine halted at {stage}{why}"
+    if engine == "done":
+        return "FAILED", "engine done; at least one verdict failed"
+    process, stop = t.get("process_status"), t.get("resume_stop") or ""
+    if process in ("stopped", "timeout"):
+        return "STOPPED", f"host {process} with the engine {engine}" + (f" at {stage}" if stage != "unknown" else "") + f"; {_head(stop)}"
+    for prefix, cls in RESUME_STOP_CLASSES:
+        if stop.startswith(prefix):
+            return cls, f"engine {engine}" + (f" at {stage}" if stage != "unknown" else "") + f"; {_head(stop)}"
+    if stop.startswith("not evaluated"):
+        return None, f"no host ran (regraded) and the engine is {engine}: the end of the run was not observed"
+    return None, f"engine {engine}; the ending {_head(stop)!r} has no class"
 
 
 def stopped_line(t: dict) -> str:
@@ -2005,6 +2101,10 @@ def _main(argv: list[str] | None, held: list) -> int:
         keepalive["decisions"] = hosts.keepalive_decisions(out / "home")
     termination = termination_facts(process, engine, resume_stop,
                                     earlier_result.get("termination") if regrade else None)
+    try:
+        outcome, outcome_basis = outcome_class(all(verdicts), termination)
+    except Exception as exc:  # noqa: BLE001 - a record that cannot be made is reported, never raised
+        outcome, outcome_basis = None, "could not be computed: " + (_head(exc, 200) or type(exc).__name__)
     # The machine at the end and the whole run's hosts and neighbours; each part that cannot be read says so (SPEC).
     if regrade:
         end_environment = environment.unobserved("regraded: the end of the run was not observed")
@@ -2022,7 +2122,8 @@ def _main(argv: list[str] | None, held: list) -> int:
         earlier_terminations.append(earlier_result["termination"])
     result = {"case": name, "host": args.host, "model": args.model, "effort": args.effort,
               "pass": all(verdicts), "invoked": invoked, "plugin": plugin, "versions": versions,
-              "process": process, "termination": termination, "environment": run_environment,
+              "process": process, "termination": termination, "outcome_class": outcome, "outcome_basis": outcome_basis,
+              "environment": run_environment,
               **({"earlier_terminations": earlier_terminations} if earlier_terminations else {}),
               **({"left_behind": left} if left is not None else {}),
               "keepalive": keepalive,
@@ -2079,6 +2180,7 @@ def _main(argv: list[str] | None, held: list) -> int:
               f"decisions {keepalive['decisions'] or 'none (hooks never ran)'}")
     print(f"  shiploop  {mark(shiploop['pass'])}  {shiploop.get('status') or shiploop.get('reason')}")
     print(f"  stopped   {stopped_line(termination)}")
+    print(f"  outcome   {outcome or 'unknown'}  {outcome_basis}")
     for line in environment.summary_lines(run_environment):
         print(f"  environment  {line}")
     if line := listeners.left_behind_line(left):
