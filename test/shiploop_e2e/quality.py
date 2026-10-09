@@ -49,6 +49,7 @@ LISTEN_CEILING_SECONDS = 10
 POLL_SECONDS = 0.01  # how often a running child is looked at
 TAIL_BYTES = 200_000  # how much of the end of a test run's output is read back: the summary is last
 NOTE_CHARS = 300  # display only: a held-out check's note is cut here
+EVIDENCE_CHARS = 200  # display only: the failing line kept for a caught mutant is cut here
 # The operator catalog a ratio belongs to. Any change to the operators or to the masking is a new id: ratios of two ids
 # are never compared.
 OPERATOR_ID = "js-1"
@@ -143,6 +144,42 @@ def js_coverage_files(coverage: Path, copy: Path) -> set[str] | None:
     return loaded if wrote else None
 
 
+# node's reporters mark a failing test with a cross (spec, the default when piped) or `not ok` (TAP)
+JS_FAILING_TEST = re.compile(r"^\s*(?:\u2716|not ok)\s+(.+?)\s*$", re.M)
+JS_TIMING = re.compile(r"\s*\([\d.]+ms\)$")
+HTML_SCRIPT = re.compile(r"<script\b([^>]*)>(.*?)</script>", re.S | re.I)
+
+
+def js_failing_line(output: str) -> str:
+    """The first failing test of a run's output, as its reporter named it (timing and TAP numbering removed, so two runs read the
+    same); the last non-empty line when no test is named (a file that cannot load)."""
+    found = JS_FAILING_TEST.search(output)
+    if found:
+        name = re.sub(r"^(?:\d+\s+)?-?\s*", "", JS_TIMING.sub("", found.group(1)))
+        return (("not ok - " if found.group(0).lstrip().startswith("not ok") else "\u2716 ") + name)[:EVIDENCE_CHARS]
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    return (lines[-1] if lines else "no output")[:EVIDENCE_CHARS]
+
+
+def js_page_scripts(copy: Path, exclude: list[str]) -> list[dict]:
+    """The HTML files of the delivery that carry inline script, with the lines of script: JavaScript no text operator of this
+    catalog reaches, because it is not in a `.js` file. A script with a `src` is a file, not inline."""
+    found = []
+    for path in sorted(copy.rglob("*")):
+        relative = path.relative_to(copy).as_posix()
+        if path.suffix.lower() not in (".html", ".htm") or not path.is_file() or path.is_symlink():
+            continue
+        if any(part in JS_NOT_SOURCE_FOLDERS for part in path.relative_to(copy).parts[:-1]):
+            continue
+        if any(relative == prefix or relative.startswith(prefix.rstrip("/") + "/") for prefix in exclude):
+            continue
+        lines = sum(len(body.strip("\n").splitlines()) for attrs, body in HTML_SCRIPT.findall(path.read_text(errors="replace"))
+                    if "src=" not in attrs.lower())
+        if lines:
+            found.append({"file": relative, "inline_script_lines": lines})
+    return found
+
+
 REFUSE_PORTS_PRELOAD = HERE / "refuse_ports.cjs"
 
 
@@ -156,20 +193,20 @@ def js_guard_env(ports: list[int], log: Path, preload: Path = REFUSE_PORTS_PRELO
 
 
 class Catalog:
-    """What the harness knows about one language: its operators, its test files, how to check a syntax, how a runner counts, which
-    ports a run is kept off, and which files a run loaded."""
+    """What the harness knows about one language: its operators, its test files, how to check a syntax, how a runner counts and
+    names a failure, which ports a run is kept off, which files a run loaded and which page script no operator reaches."""
 
     def __init__(self, ident: str, extensions: tuple, operators, not_source: tuple, test_file, syntax_check, count, coverage_env,
-                 coverage_files, guard_env):
+                 coverage_files, guard_env, failing_line, page_scripts):
         self.ident, self.extensions, self.operators = ident, extensions, operators
         self.not_source, self.test_file = not_source, test_file
         self.syntax_check, self.count, self.coverage_env, self.coverage_files = syntax_check, count, coverage_env, coverage_files
-        self.guard_env = guard_env
+        self.guard_env, self.failing_line, self.page_scripts = guard_env, failing_line, page_scripts
 
 
 JS = Catalog(OPERATOR_ID, (".js", ".mjs", ".cjs"), JS_OPERATORS, JS_NOT_SOURCE_FOLDERS, JS_TEST_FILE.search,
              lambda path: ["node", "--check", str(path)], js_test_count,
-             lambda directory: {"NODE_V8_COVERAGE": str(directory)}, js_coverage_files, js_guard_env)
+             lambda directory: {"NODE_V8_COVERAGE": str(directory)}, js_coverage_files, js_guard_env, js_failing_line, js_page_scripts)
 CATALOGS = {extension: JS for extension in JS.extensions}
 
 
@@ -354,19 +391,24 @@ def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | No
     `spec` is the case's ``quality.mutation``: ``command`` (the delivered tests' command, run in the copy) and optionally
     ``exclude`` (path prefixes that are not source). `ports` are the fixed ports the case declares: every run is kept off them
     and the refusals are counted; a delivery whose own unmutated tests touch one is not run. `stop` returns a reason when a stop
-    was requested; it is asked before every mutant, and the phase then ends with no ratio. `clock` measures the phase against its
+    was requested; it is asked before every run, and the phase then ends with no ratio. `clock` measures the phase against its
     ceiling.
+
+    A failing run is run once more before the mutant counts as caught: a failure that does not repeat is ``unconfirmed``, out of
+    the ratio, and a hang is not repeated. ``killed + survived + invalid + unconfirmed + not_run == sites``.
     """
     command = shlex.split(spec["command"])
-    chosen = targets(copy, list(spec.get("exclude") or []))
+    exclude = list(spec.get("exclude") or [])
+    chosen = targets(copy, exclude)
     if not chosen:
         return {"observed": False, "reason": "no delivered source file has an operator catalog (" + ", ".join(CATALOGS)
                 + f") outside the test folders and the case's exclusions; the delivery's files by extension: {extension_census(copy)}"}
     originals = {name: (copy / name).read_bytes().decode("utf-8", "surrogateescape") for name in chosen}  # exact: CRLF stays
     found = {name: sites(text) for name, text in originals.items()}
     total = sum(len(items) for items in found.values())
-    per_file = {name: {"sites": len(found[name]), "loaded_by_tests": None, "killed": 0, "timeout": 0, "port_refusals": 0, "survived": 0,
-                       "invalid": 0, "not_run": 0} for name in sorted(found)}
+    per_file = {name: {"sites": len(found[name]), "lines": len(originals[name].splitlines()), "loaded_by_tests": None, "killed": 0,
+                       "timeout": 0, "port_refusals": 0, "survived": 0, "invalid": 0, "unconfirmed": 0, "not_run": 0}
+                for name in sorted(found)}
     if not total:
         return {"observed": False, "reason": f"no operator applies to any of the {len(chosen)} delivered source files: "
                 + ", ".join(sorted(chosen))}
@@ -383,6 +425,9 @@ def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | No
         env = {**(extra or {}), **(catalog.guard_env(ports, log) if ports else {})}
         result = run_once(command, copy, child_env(env), logs / "run.log", RUN_CEILING_SECONDS, groups)
         return result, count_refusals(log)
+
+    def failed(result: dict) -> bool:
+        return result["timeout"] or result["returncode"] != 0
 
     coverage = logs / "coverage"
     shutil.rmtree(coverage, ignore_errors=True)
@@ -407,20 +452,28 @@ def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | No
     for name, row in per_file.items():
         row["loaded_by_tests"] = None if loaded is None else name in loaded
     ceiling_hit = False
-    killed = timeouts = survived = invalid = not_run = port_refusals = port_refused = 0
+    killed = timeouts = survived = invalid = unconfirmed = not_run = port_refusals = port_refused = 0
+    not_run_reasons: dict[str, int] = {}
     kills: list[dict] = []
     survivors: list[dict] = []
+    unconfirmed_mutants: list[dict] = []
     ordered = round_robin(found)
-    for position, (name, site) in enumerate(ordered):
+
+    def stopped(position: int, where: str) -> dict | None:
         why = stop()
-        if why:
-            return {"observed": False, "reason": f"{why}: the mutation phase ended after {position} of {total} mutants and "
-                    "records no ratio", "baseline": baseline}
+        return None if not why else {"observed": False, "baseline": baseline,
+                                     "reason": f"{why}: the mutation phase ended {where} and records no ratio"}
+
+    for position, (name, site) in enumerate(ordered):
+        ended = stopped(position, f"after {position} of {total} mutants")
+        if ended:
+            return ended
         if clock() - began >= PHASE_CEILING_SECONDS:
             ceiling_hit = True
             for rest_name, _site in ordered[position:]:
                 per_file[rest_name]["not_run"] += 1
-            not_run = len(ordered) - position
+            not_run += len(ordered) - position
+            not_run_reasons["the phase ceiling was reached"] = len(ordered) - position
             break
         path = copy / name
         text = originals[name]
@@ -430,16 +483,38 @@ def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | No
             path.write_bytes((text[:site["start"]] + site["new"] + text[site["end"]:]).encode("utf-8", "surrogateescape"))
             if catalog.syntax_check is not None:
                 syntax = run_once(catalog.syntax_check(path), copy, child_env(), logs / "syntax.log", RUN_CEILING_SECONDS, groups)
+                if syntax["timeout"] or syntax["returncode"] == 127:
+                    # Neither a program nor a non-program was seen: the mutant is out of the ratio for a reason that is not the delivery's
+                    reason = "its syntax check did not finish" if syntax["timeout"] else "its syntax check could not start"
+                    not_run += 1
+                    row["not_run"] += 1
+                    not_run_reasons[reason] = not_run_reasons.get(reason, 0) + 1
+                    continue
                 if syntax["returncode"] != 0:
                     invalid += 1
                     row["invalid"] += 1
                     continue
             result, refusals = run_tests(f"mutant-{position}")
+            again = None
+            if failed(result) and not result["timeout"]:
+                ended = stopped(position, f"during mutant {position + 1} of {total}")  # a run the stop killed must not confirm anything
+                if ended:
+                    return ended
+                again, _ = run_tests(f"mutant-{position}-again")
         finally:
             path.write_bytes(text.encode("utf-8", "surrogateescape"))
         port_refusals += refusals
         row["port_refusals"] += refusals
-        if result["timeout"] or result["returncode"] != 0:
+        if not failed(result):
+            survived += 1
+            row["survived"] += 1
+            survivors.append({**mutant, **({"port_refusals": refusals} if refusals else {})})
+        elif again is not None and not failed(again):
+            unconfirmed += 1
+            row["unconfirmed"] += 1
+            unconfirmed_mutants.append({**mutant, "first": {"returncode": result["returncode"], "evidence": catalog.failing_line(result["output"])},
+                                        "second": {"returncode": again["returncode"]}})
+        else:
             killed += 1
             row["killed"] += 1
             if result["timeout"]:
@@ -447,28 +522,27 @@ def mutation(copy: Path, spec: dict, *, groups: set, stop: Callable[[], str | No
                 row["timeout"] += 1
             if refusals:
                 port_refused += 1
-            kills.append({**mutant, "timeout": result["timeout"], "port_refusals": refusals})
-        else:
-            survived += 1
-            row["survived"] += 1
-            survivors.append({**mutant, **({"port_refusals": refusals} if refusals else {})})
-    why = stop()  # a run the stop itself killed reads as a failing run: never let it into a ratio
-    if why:
-        return {"observed": False, "reason": f"{why}: the mutation phase ended during its last mutant and records no ratio",
-                "baseline": baseline}
-    for row in per_file.values():
-        # A mutant the tests caught proves the file ran, even in a process the coverage record misses: a server the tests spawn and
-        # then stop with a signal exits without writing its coverage (the saved r1 Checkers run: 23 of server.js's 32 mutants were
-        # caught and the coverage record alone said it was never loaded).
-        if row["killed"] and row["loaded_by_tests"] is not True:
+            kills.append({**mutant, "timeout": result["timeout"], "port_refusals": refusals,
+                          "evidence": f"timed out after {RUN_CEILING_SECONDS} s" if result["timeout"] else catalog.failing_line(result["output"])})
+    ended = stopped(len(ordered), "during its last mutant")  # a run the stop itself killed reads as a failing run
+    if ended:
+        return ended
+    signs = {kill["file"] for kill in kills if not kill["timeout"]}
+    for name, row in per_file.items():
+        # A confirmed, non-timeout caught mutant is a sign the file ran, even in a process the coverage record misses: a server the
+        # tests spawn and then stop with a signal exits without writing its coverage (the saved r1 Checkers run: 23 of server.js's 32
+        # mutants were caught and the coverage record alone said it was never loaded). A hang or an unconfirmed failure is no sign:
+        # load or a port collision can cause either in a file that never ran.
+        if name in signs and row["loaded_by_tests"] is not True:
             row["loaded_by_tests"] = True
     return {"observed": True, "operator_id": catalog.ident, "command": spec["command"], "source": spec.get("source"),
             "baseline": baseline, "refuse_ports": ports,
             "sites": total, "killed": killed, "timeout": timeouts, "port_refused": port_refused, "port_refusals": port_refusals,
-            "survived": survived, "invalid": invalid, "not_run": not_run,
+            "survived": survived, "invalid": invalid, "unconfirmed": unconfirmed, "not_run": not_run, "not_run_reasons": not_run_reasons,
             "ratio": ratio(killed, survived), "ceiling_hit": ceiling_hit,
             "ceilings": {"run_seconds": RUN_CEILING_SECONDS, "phase_seconds": PHASE_CEILING_SECONDS},
-            "per_file": per_file, "kills": kills, "survivors": survivors, "seconds": round(clock() - began, 1)}
+            "per_file": per_file, "uncovered": catalog.page_scripts(copy, exclude), "kills": kills, "survivors": survivors,
+            "unconfirmed_mutants": unconfirmed_mutants, "seconds": round(clock() - began, 1)}
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -636,12 +710,19 @@ def line(block: dict) -> str:
     parts = []
     mut, acc = block.get("mutation"), block.get("acceptance")
     if mut is not None:
-        parts.append(
-            f"mutation {mut['killed']} of {mut['killed'] + mut['survived']} caught (ratio {mut['ratio']}, {mut['operator_id']}, "
-            f"{len(mut['per_file'])} files{', ceiling hit' if mut['ceiling_hit'] else ''}"
-            + (f", never loaded by the tests: {', '.join(n for n, r in mut['per_file'].items() if r['loaded_by_tests'] is False)}"
-               if any(r["loaded_by_tests"] is False for r in mut["per_file"].values()) else "") + ")"
-            if mut.get("observed") else f"mutation not observed: {mut.get('reason')}")
+        if mut.get("observed"):
+            counts = [f"{mut['unconfirmed']} unconfirmed" if mut.get("unconfirmed") else "",
+                      f"{mut['timeout']} timeout{'s' if mut['timeout'] != 1 else ''}" if mut.get("timeout") else "",
+                      f"{mut['port_refusals']} port refusal{'s' if mut['port_refusals'] != 1 else ''}" if mut.get("port_refusals") else "",
+                      "ceiling hit" if mut.get("ceiling_hit") else ""]
+            idle = [name for name, row in mut["per_file"].items() if row["loaded_by_tests"] is False]
+            pages = [f"{page['file']} {page['inline_script_lines']} lines" for page in mut.get("uncovered") or []]
+            parts.append(f"mutation {mut['killed']} of {mut['killed'] + mut['survived']} caught (ratio {mut['ratio']}, {mut['operator_id']}, "
+                         f"{len(mut['per_file'])} files" + "".join(f", {count}" for count in counts if count)
+                         + (f", no sign of a load in: {', '.join(idle)}" if idle else "")
+                         + (f", page script no operator reaches: {', '.join(pages)}" if pages else "") + ")")
+        else:
+            parts.append(f"mutation not observed: {mut.get('reason')}")
     if acc is not None:
         failed = [i for i in acc.get("ids", []) if i not in acc.get("passed", [])]
         parts.append(f"held-out {len(acc['passed'])} of {len(acc['ids'])} pass" + (f" (failed: {', '.join(failed)})" if failed else "")

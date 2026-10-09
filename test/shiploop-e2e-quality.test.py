@@ -347,7 +347,7 @@ class MutationRunTest(QualityCase):
         block, _copy = self.mutate()
         self.assertEqual({name: row["loaded_by_tests"] for name, row in block["per_file"].items()},
                          {"lib.js": True, "other.js": True, "unused.js": None},
-                         "a file a mutant of which was caught ran; with no coverage record the others are unknown, not false")
+                         "a file with a confirmed caught mutant shows a sign of a load; with no coverage record the others are unknown, not false")
 
     def test_a_file_the_coverage_misses_but_a_caught_mutant_proves_is_loaded(self):
         # The saved r1 Checkers run: server.js is run only by a child the tests stop with a signal, so it writes no coverage,
@@ -432,6 +432,7 @@ class MutationRunTest(QualityCase):
         self.assertEqual(sum(tested.values()), 4)
         self.assertEqual(sorted(tested.values()), [1, 1, 2], "the first mutant of every file ran before a second of any")
         self.assertEqual(block["not_run"], 8)
+        self.assertEqual(block["not_run_reasons"], {"the phase ceiling was reached": 8})
         self.assertEqual(block["killed"] + block["survived"] + block["invalid"] + block["not_run"], block["sites"])
         self.assertEqual(sum(row["not_run"] for row in block["per_file"].values()), 8)
         self.assertIsNotNone(block["ratio"], "a ratio over the mutants that did run is recorded beside ceiling_hit")
@@ -447,17 +448,31 @@ class MutationRunTest(QualityCase):
         block, copy = self.mutate(stop=stop)
         self.assertFalse(block["observed"])
         self.assertIn("terminated by SIGTERM", block["reason"])
-        self.assertIn("ended after 3 of 12 mutants", block["reason"])
+        self.assertRegex(block["reason"], r"ended (after \d+ of 12 mutants|during mutant \d+ of 12)")
         self.assertNotIn("ratio", block)
         self.assertEqual(tree_digest(copy), before)
+
+    def test_a_stop_between_a_failing_run_and_its_confirmation_confirms_nothing(self):
+        # The first mutant fails; the stop is asked before it is run again. A run the stop itself killed would confirm anything.
+        asked = []
+
+        def stop():
+            asked.append(1)
+            return "stopped by x" if len(asked) == 2 else None  # call 1: before the first mutant; call 2: before its second run
+
+        block, copy = self.mutate(stop=stop)
+        self.assertFalse(block["observed"])
+        self.assertIn("during mutant 1 of 12", block["reason"])
+        self.assertNotIn("kills", block)
+        self.assertEqual(tree_digest(copy), tree_digest(TINY))
 
     def test_a_stop_that_arrives_during_the_last_mutant_discards_the_ratio_too(self):
         # A run the stop killed exits non-zero and would read as a caught mutant: the ratio must not include it.
         asked = []
 
         def stop():
-            asked.append(1)  # asked before each of the 12 mutants, then once more after the last
-            return "terminated by SIGTERM" if len(asked) > 12 else None
+            asked.append(1)  # asked before each of the 12 mutants, before each of the 5 confirmations, then once more after the last
+            return "terminated by SIGTERM" if len(asked) > 12 + 5 else None
 
         block, _ = self.mutate(stop=stop)
         self.assertFalse(block["observed"])
@@ -474,6 +489,91 @@ class MutationRunTest(QualityCase):
         self.assertTrue(block["observed"], block)
         self.assertEqual(block["sites"], 3)
         self.assertEqual((copy / "a.js").read_bytes(), original)
+
+    def test_every_caught_mutant_is_confirmed_by_a_second_run_and_records_the_first_failing_line(self):
+        block, _ = self.mutate()
+        self.assertEqual((block["killed"], block["unconfirmed"]), (5, 0))
+        self.assertEqual(block["killed"] + block["survived"] + block["invalid"] + block["unconfirmed"] + block["not_run"], block["sites"])
+        by_site = {(k["file"], k["from"], k["to"]): k for k in block["kills"]}
+        self.assertEqual(len(by_site), 5)
+        self.assertEqual(by_site[("lib.js", ">=", ">")]["evidence"], "not ok - an adult is 18 or more")
+        self.assertEqual(by_site[("other.js", "+", "-")]["evidence"], "not ok - sum adds")
+        self.assertTrue(all(not k["timeout"] and k["port_refusals"] == 0 for k in block["kills"]))
+        self.assertEqual(len(self.groups.added), 1 + 12 + 5, "the baseline, each mutant, and one more run for each failure")
+
+    def test_a_failure_that_does_not_repeat_is_unconfirmed_and_stays_out_of_the_ratio(self):
+        # Reviewer A: five sweeps of one saved delivery gave 78 of 86 four times and 80 of 86 once, the two extra kills passing 3 of 3 alone.
+        with mock.patch.dict(os.environ, {"FLAKY_ONCE": "1"}):
+            block, _ = self.mutate()
+        self.assertEqual((block["killed"], block["survived"], block["unconfirmed"], block["sites"]), (4, 7, 1, 12))
+        self.assertEqual(block["ratio"], 0.3636, "4 of the 11 mutants that were decided")
+        (flaky,) = block["unconfirmed_mutants"]
+        self.assertEqual((flaky["file"], flaky["from"], flaky["to"]), ("lib.js", ">=", ">"))
+        self.assertEqual((flaky["first"]["returncode"], flaky["first"]["evidence"]), (1, "not ok - an adult is 18 or more"))
+        self.assertEqual(flaky["second"]["returncode"], 0)
+        self.assertEqual(block["per_file"]["lib.js"]["unconfirmed"], 1)
+        self.assertNotIn(("lib.js", ">="), {(k["file"], k["from"]) for k in block["kills"]})
+
+    def test_a_hang_is_not_run_twice_and_is_a_kill_that_says_it_timed_out(self):
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+        with no_syntax_check(), mock.patch.dict(os.environ, {"HANG_ON_SPIN": "1"}), mock.patch.object(quality, "RUN_CEILING_SECONDS", 1):
+            block = quality.mutation(copy, {"command": "python3 check.py"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l")
+        (hung,) = [k for k in block["kills"] if k["timeout"]]
+        self.assertEqual((hung["file"], hung["to"], hung["evidence"]), ("lib.js", "true", "timed out after 1 s"))
+        self.assertEqual(len(self.groups.added), 1 + 12 + 4, "the four ordinary failures were run again, the hang was not")
+
+    def test_only_a_confirmed_failure_that_is_not_a_hang_shows_a_sign_of_a_load(self):
+        # A hang, or a failure that does not repeat, can come from load or a port collision in a file that never ran.
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+
+        def fake(argv, cwd, env, log, ceiling, groups):
+            spin = "const spin = true" in (cwd / "lib.js").read_text()
+            return {"returncode": None if spin else 0, "timeout": spin, "seconds": 0.1,
+                    "output": "# tests 4\n# pass 4\n# fail 0\n# cancelled 0\n"}
+
+        with mock.patch.object(quality, "run_once", fake), mock.patch.object(quality.JS, "coverage_files", lambda directory, copy: set()), \
+                no_syntax_check():
+            block = quality.mutation(copy, {"command": "python3 check.py"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l")
+        self.assertEqual((block["killed"], block["timeout"]), (1, 1))
+        self.assertEqual({name: row["loaded_by_tests"] for name, row in block["per_file"].items()},
+                         {"lib.js": False, "other.js": False, "unused.js": False},
+                         "the only kill was a hang: no sign of a load, not a proof of one")
+
+    def test_a_syntax_check_that_does_not_finish_is_not_run_with_its_reason_and_not_invalid(self):
+        hangs = "import sys, time; text = open(sys.argv[1]).read(); time.sleep(5) if 'const spin = true' in text else sys.exit(0)"
+        with mock.patch.object(quality.JS, "syntax_check", lambda path: [sys.executable, "-c", hangs, str(path)]), \
+                mock.patch.object(quality, "RUN_CEILING_SECONDS", 1):
+            block, _ = self.mutate(name="copy-slow-syntax")
+        self.assertEqual((block["invalid"], block["not_run"], block["killed"], block["survived"], block["sites"]), (0, 1, 4, 7, 12))
+        self.assertEqual(block["not_run_reasons"], {"its syntax check did not finish": 1})
+        self.assertEqual(block["per_file"]["lib.js"]["not_run"], 1)
+        self.assertEqual(block["ratio"], 0.3636)
+
+    def test_a_syntax_check_that_cannot_start_is_not_run_not_invalid(self):
+        with mock.patch.object(quality.JS, "syntax_check", lambda path: ["no-such-syntax-checker-xyz", str(path)]):
+            block, _ = self.mutate(name="copy-no-checker")
+        self.assertEqual((block["invalid"], block["not_run"], block["killed"]), (0, 12, 0))
+        self.assertEqual(block["not_run_reasons"], {"its syntax check could not start": 12})
+        self.assertIsNone(block["ratio"])
+
+    def test_page_script_no_operator_reaches_is_named_with_its_lines_beside_the_lines_mutated(self):
+        copy = self.tmp / "copy"
+        shutil.copytree(TINY, copy)
+        (copy / "public").mkdir()
+        (copy / "public" / "index.html").write_text("<!doctype html>\n<script src=\"x.js\">\nignored();\nignored();\n</script>\n<script>\nlet a = 1;\na += 2;\n</script>\n"
+                                                   "<script type=\"module\">\nb();\n</script>\n")
+        (copy / "docs").mkdir()
+        (copy / "docs" / "page.html").write_text("<script>\nc();\n</script>\n")  # a ShipLoop record, not the delivery
+        (copy / "static.html").write_text("<p>no script</p>\n")
+        block, _ = self.mutate()
+        self.assertEqual(block["uncovered"], [{"file": "public/index.html", "inline_script_lines": 3}])
+        self.assertEqual({name: row["lines"] for name, row in block["per_file"].items()}, {"lib.js": 10, "other.js": 3, "unused.js": 2})
+
+    def test_a_delivery_with_no_inline_page_script_names_none(self):
+        block, _ = self.mutate()
+        self.assertEqual(block["uncovered"], [])
 
     def test_the_block_records_its_ceilings_and_the_command(self):
         block, _ = self.mutate()
@@ -630,7 +730,7 @@ class ProcessSafetyTest(QualityCase):
             block = quality.mutation(copy, {"command": "python3 check.py"}, groups=self.groups, stop=lambda: None, logs=self.tmp / "l")
         self.assertTrue(block["observed"], block)
         helpers = self.orphans(copy)
-        self.assertEqual(len(helpers), block["sites"] + 1, "one per run: the baseline and each mutant")
+        self.assertEqual(len(helpers), block["sites"] + 1 + block["killed"], "one per run: the baseline, each mutant and each confirmation")
         self.assertTrue(all(gone_soon(pid) for pid in helpers))
 
     def test_a_group_whose_leader_has_exited_but_is_not_reaped_is_ended_and_one_already_reaped_is_not(self):
@@ -761,6 +861,32 @@ class PortGuardTest(QualityCase):
         for name in ("battleship", "battleship-scoring", "checkers"):
             self.assertEqual(run.case_quality(name)["refuse_ports"], [3000], name)
         self.assertNotIn("refuse_ports", run.case_quality("hello"))
+
+
+@needs_quality
+class PrintedLineTest(unittest.TestCase):
+    """quality.line: the one printed line says what the record says, in the record's words."""
+
+    MUT = {"observed": True, "operator_id": "js-1", "sites": 12, "killed": 5, "survived": 7, "unconfirmed": 0, "ratio": 0.4167,
+           "ceiling_hit": False, "timeout": 0, "port_refused": 0, "port_refusals": 0, "uncovered": [],
+           "per_file": {"lib.js": {"loaded_by_tests": True}, "unused.js": {"loaded_by_tests": False}}}
+
+    def test_a_file_with_no_sign_of_a_load_is_not_called_never_loaded(self):
+        line = quality.line({"mutation": self.MUT})
+        self.assertIn("no sign of a load in: unused.js", line)
+        self.assertNotIn("never loaded", line)
+
+    def test_unconfirmed_timeouts_refusals_and_unreached_page_script_are_in_the_line_when_there_are_any(self):
+        plain = quality.line({"mutation": self.MUT})
+        for word in ("unconfirmed", "timeout", "refus", "page script"):
+            self.assertNotIn(word, plain)
+        mutation = dict(self.MUT, unconfirmed=2, timeout=3, port_refused=1, port_refusals=4,
+                        uncovered=[{"file": "public/index.html", "inline_script_lines": 69}])
+        line = quality.line({"mutation": mutation})
+        self.assertIn("2 unconfirmed", line)
+        self.assertIn("3 timeouts", line)
+        self.assertIn("4 port refusals", line)
+        self.assertIn("page script no operator reaches: public/index.html 69 lines", line)
 
 
 @needs_node

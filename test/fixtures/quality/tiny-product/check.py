@@ -7,7 +7,8 @@ whose `spin` constant is true start a child and hang, as a mutant that loops wou
 ORPHAN=1 starts a child in this process's group that outlives it (a test that leaves a helper behind), recording its pid in
 orphans.txt; DUMP_ENV=1 writes the guard variables it was given to env.txt; REFUSE_BASELINE=1, REFUSE_ON_ADULT=1 and REFUSE_ON_SPIN=1 record a refused
 declared-port bind (the line the port-refusing preload writes) in the unmutated copy and in the copy whose `spin` is true, the
-second then exiting 1 as a server that met EADDRINUSE would."""
+second then exiting 1 as a server that met EADDRINUSE would; FLAKY_ONCE=1 makes the first run of the copy whose adult check is
+broken fail and every later one pass (a failure that does not repeat). A failing check prints `not ok - <name>`, as node does."""
 import os, re, subprocess, sys, time
 
 if os.environ.get("SLOW"):
@@ -49,9 +50,16 @@ results = {
     "sum adds": "a + b" in other,
     "spin is off": "const spin = false" in lib,
 }
+if os.environ.get("FLAKY_ONCE") and "age > 18" in lib:
+    if os.path.exists("flaky.seen"):
+        results["an adult is 18 or more"] = True  # the second time it passes
+    else:
+        open("flaky.seen", "w").close()
 if mode == "zero":
     results = {}
 failed = sum(1 for ok in results.values() if not ok) + (1 if mode == "red" else 0)
 print("TAP version 13")
+for name, ok in results.items():
+    print(f"{'ok' if ok else 'not ok'} - {name}")
 print(f"# tests {len(results)}\n# suites 0\n# pass {len(results) - failed}\n# fail {failed}\n# cancelled 0\n# skipped 0\n# todo 0")
 sys.exit(1 if failed else 0)
