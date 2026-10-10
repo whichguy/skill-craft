@@ -13,6 +13,41 @@ This plan merges the design with its three adversarial audits. Nothing in the ch
 - `workspace.follow_up_knowledge_return`
 - `STATE_VERSION = 4`
 
+## 0. Engineer's critique (2026-10-10) and the revised plan of action
+
+**This section supersedes the order in section 5 and the release bundling in section 6; the rest of the plan stands.** A critique of the plan as it was approved for decision, written before any code. Each point was checked against the repository where it could be.
+
+### Critique
+
+1. **Unpublished work sits on the critical path (blocker).** The canonical checkout `/Users/dadleet/src/skill-craft` is 263 commits behind `origin/main` and holds 1,148 uncommitted lines across 19 files from earlier sessions (Oct 6 to 8): a storage-and-recovery change (`shiploop_store.py` +282, `shiploop_protocol.py`, `shiploop_navigator.py`, `scripts/shiploop`, four test suites, `changes/shiploop/storage-and-recovery-audit.md`). They are the files this plan edits, and `STATE_VERSION` lives in that area. The plan called this "slice 0 housekeeping"; it is the first task and it is also data at risk (one disk, no commit).
+2. **The frozen Improve contract may not have room (blocker until measured).** The audit found the spec contract at 8,775 of 9,216 bytes; slice 1 adds about 350. The budget is derived from the vendored runtime and cannot be raised. Measure every contract's headroom before committing to "put the rule in the frozen contract"; the carrier may have to be the Improve card or the work string.
+3. **Three kinds of change in one release.** Gates that refuse, packet content, and a text diet, released together, cannot be told apart in a live run, and a same-build cell already ranges 1.75 times in cost. Success must be mechanical counters (refusals by first line, commits with and without a lessons section, citations, packet bytes, calls to re-orient), never cost or wall time, and each change should ship alone.
+4. **Refusals before evidence.** 12 of 13 recent Improve commits already carry all labels on their own; 91% of knowledge commits are subject-only because the script builds them. Split the two kinds of change: *the script adds content* (a body from sections it already holds, trailers; no refusal, no false-refusal risk) and *the model must write content* (a refusal costs a turn and invites filler). Keep the one refusal you asked for (an Improve commit needs Key learnings); make the delivery-stage and plan-ID checks **notices that are counted for one release**, then decide from the counts.
+5. **The look-back block costs bytes in every packet and its value is unmeasured.** In a fresh repository (every E2E example) the last commits are subject-only knowledge commits, so the block is noise exactly where it is tested. It also works against the packet diet. Show it only when a lesson-bearing commit exists, and count citations as the "was it used" signal.
+6. **Spec merge by replacement assumes one run at a time.** Freeze-and-replace refuses (or loses) a legitimate concurrent edit to the living spec. The plan already records the living spec's blob when the copy is made, so a three-way merge (`git merge-file` with that base, the living spec now, and the feature spec) is nearly free and keeps concurrent edits; a conflict stops with a named fix. Evaluate it in the spike instead of the freeze.
+7. **The `STATE_VERSION` bump is not shown to be necessary.** The base blob and planned commit are run-directory files, not state keys. If nothing in slice 3 adds a state key or changes the graph, there is no bump, no refusal of in-flight runs, and no need to wait for the live batch. The plan asserts the bump without naming what forces it.
+8. **The feature index is unaudited** (D7; the review is running). The smallest option that closes the gap may be the script maintaining the feature list inside the README, not a new generated file that every run rewrites (noisy diffs, concurrent-run conflicts).
+9. **No test of the goal itself.** Nothing shows that a later run reuses a lesson. Add a hermetic scenario on a toy repository (run one records a lesson; run two's packet shows it and its result cites it) and measure citations that name an earlier run's commit in the first live pair.
+10. **The maintainer loop is not covered.** The cheapest way to make our own loop commit with lessons is a `release.py` preflight, not ShipLoop code.
+
+### Revised plan of action
+
+| Step | What | Gate to start | Released as | Measured by (no thresholds) |
+|---|---|---|---|---|
+| 0 | **Preserve and reconcile the unpublished work**: commit the canonical checkout's changes to a branch (no reset, no stash, main untouched), port them onto current main, decide ship or drop. **Owner decision.** | Owner says whose it is | n/a | The branch exists; the suites it touches pass on current main |
+| 0b | **Spike** (read-only, no release): every Improve contract's byte headroom; what, if anything, forces a `STATE_VERSION` bump; look-back bytes on three real repositories; three-way merge on a toy living spec | Step 0 started | n/a | A table in the journal; D6 and the merge choice decided from it |
+| A | **Packet diet**: Improve wording only where an Improve child runs; status once; callback and result path once; the eight binding rules as invariants; policy links filtered to the stage; a Locators table in `context-index.md`; path variables only after a trial | 0b | its own minor release | Packet bytes per stage; the cleared-context probe before and after (6 to 7 calls, 16 to 21 s today) |
+| B | **Commits slice 1**: script-built bodies and trailers; Improve commit needs Key learnings and resolves `Learned-from:`; look-back only when lesson-bearing commits exist; notices for model-typed commits without lessons | A, and the contract carrier chosen in 0b | its own minor release | Commits with a lessons section; refusals by first line; citations; bypasses (`model_commits`); packet bytes |
+| C | **Commits slice 2**: delivery-stage lessons (notice first), integrate lessons (D5), remote-change commit with no files | B | its own minor release | Delivery commits with lessons; empty-diff commits and their trailers |
+| D | **Spec lifecycle and index**: working copy, merge at handoff (three-way or replace, per 0b), cleanup, index; the bump only if 0b says so | 0b, C | its own release | Merge commit trailers; feature spec recoverable at Planned; handoff attempts; refusals at spec, plan, prepare |
+| M | **Maintainer preflight**: `release.py` refuses a release with no `LEARNINGS.md` commit since the last release, unless the range carries `No-E2E-Round: <reason>` | none | with any release | Releases refused and overridden |
+
+Every step: fail-first hermetic tests, one adversarial review of the diff, one live pair measured by the counters above, a journal entry in the same commit, and a change note. Release order is the table order; none waits for another to be "bundled".
+
+### Decisions changed by the critique
+
+D6 becomes "decided by the spike (0b)", not "yes". D5 stays yes. D7 stays open until the index review finishes. New: **D8**, whose work is the uncommitted change set in the canonical checkout, and whether it ships.
+
 ## 1. What you asked for
 
 | # | Requirement | Answer |
