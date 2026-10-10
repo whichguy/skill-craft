@@ -1196,9 +1196,9 @@ planning never starts the dispatcher or expands this item's scope.
 List the item's completion criteria in `criteria` (`[{"id": "C1", "text": "..."}]`)
 and name, in each test command's `criteria`, the criteria that command confirms.
 Every criterion needs a command: a passing test ShipLoop runs is the only
-confirmation. For content that has no test runner, such as a README that must
-document a flag, add a `check` command (suite `check`, judged by its exit code),
-for example `grep -q -- '--greeting' README.md`.
+confirmation. For content that has no test runner (for example a document a
+criterion requires), add a `check` command (suite `check`, judged by its exit code),
+for example a search for the required terms in that file.
 Record the item's test command list in the result's `test_commands`:
 `[{"command": "<shell command>", "suite": "focused" | "regression" | "check", "ids": ["TC-9", ...]}]`.
 Focused commands exercise this item's tests; regression commands run the retained

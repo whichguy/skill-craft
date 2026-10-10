@@ -223,6 +223,15 @@ class ObservedHarmPacketTests(unittest.TestCase):
                 self.assertNotRegex(text, r"(?i)readme")
                 self.assertNotRegex(text, r"[\w-]+\.(md|txt|py|js|json|html)\b")
 
+    # row 6, second source: the verification run of 2026-10-10 (pc1i-checkers-sonnet) still built a README nobody asked
+    # for; the step-plan duty's own `check` example named a README and a flag.  A duty example must not suggest product
+    # content: the check example is a generic one.
+    def test_the_step_plan_duty_suggests_no_product_file_as_its_check_example(self) -> None:
+        duty = prompts.DUTIES["step-plan"]
+        self.assertNotRegex(duty, r"(?i)readme[^/]")  # README/AGENTS links of repository-local skills stay (a path, not a product file)
+        self.assertNotIn("--greeting", duty)
+        self.assertIn("add a `check` command (suite `check`, judged by its exit code)", duty)
+
     # row 7: the step plan declares the ids; test-spec titles its cases with them; check is a suite.
     def test_the_step_plan_declares_ids_it_will_title_and_names_every_suite(self) -> None:
         text = flat(self.found[("step-plan", "producer")])
