@@ -21,7 +21,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+import clear  # noqa: E402
 import flow  # noqa: E402
+import metrics  # noqa: E402
 import packets  # noqa: E402
 import run  # noqa: E402
 import slice as step_slice  # noqa: E402
@@ -35,6 +37,8 @@ FAKE_HOST = textwrap.dedent('''
     import json, subprocess, sys, time
     from pathlib import Path
     scripts, cli, run_dir, mode = sys.argv[1:5]
+    pause_at = sys.argv[5] if len(sys.argv) > 5 else ""
+    paused = set()
     sys.path.insert(0, scripts)
     import shiploop_navigator as nav, shiploop_stage_spec as spec, shiploop_store as store
     run_dir = Path(run_dir)
@@ -51,6 +55,10 @@ FAKE_HOST = textwrap.dedent('''
         if past:
             extra_outer -= 1
         action = nav.current_action(state)["id"]
+        if stage == pause_at and action not in paused:
+            paused.add(action)
+            time.sleep(6)  # a model reading the packet: the probe's poll stops it here
+            continue
         extra = {}
         if stage == "step-plan":
             extra["test_commands"] = [{"command": "test -f src/feature.js", "suite": "focused"}]
@@ -85,13 +93,14 @@ class SliceCase(unittest.TestCase):
         return run.seed_run(CLI, self.work, self.out, CASE["prompt"], "step-plan", fixture=fixture,
                             work_item=item or CASE["work_item"], delegation="inline")
 
-    def fake(self, seeded: dict, mode: str) -> dict:
+    def fake(self, seeded: dict, mode: str, *, pause_at: str = "", clear_at: dict | None = None,
+             first: bool = True) -> dict:
         script = self.out / "fake_host.py"
         script.write_text(FAKE_HOST)
-        argv = [sys.executable, str(script), str(CLI.parent), str(CLI), seeded["run_dir"], mode]
+        argv = [sys.executable, str(script), str(CLI.parent), str(CLI), seeded["run_dir"], mode, pause_at]
         started = time.time()
         process = step_slice.drive(argv, work=self.work, out=self.out, env=GIT_ENV, run_dir=Path(seeded["run_dir"]),
-                                   timeout=90, watch=False)
+                                   timeout=90, watch=False, clear_at=clear_at, first=first)
         process["wall"] = time.time() - started
         return process
 
@@ -232,6 +241,108 @@ class ArchiveTests(SliceCase):
     def test_overlap_counts_lines_sent_before(self):
         line = "a line long enough to be counted as repeated text"
         self.assertEqual(packets.overlap_shares([line, line + "\n" + line.upper()]), [0.0, 0.5])
+
+
+def _stream(path: Path, rows: list[dict]) -> None:
+    """A Claude-shaped stream. Each row: {"call": command or {tool input}, "tool": name, "result": text or None}.
+    A row whose result is None is a call cut off before its result."""
+    lines = []
+    for n, row in enumerate(rows):
+        call = row["call"]
+        lines.append({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": f"t{n}",
+                      "name": row.get("tool", "Bash"), "input": call if isinstance(call, dict) else {"command": call}}]}})
+        if row.get("result") is not None:
+            lines.append({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": f"t{n}",
+                                                                    "content": row["result"]}]}})
+    path.write_text("".join(json.dumps(x) + "\n" for x in lines))
+
+
+class ClearMetricTests(unittest.TestCase):
+    """clear.redone: only completed state-changing work repeated after the clear counts (SPEC S-6)."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-clear-")
+        self.addCleanup(self.temp.cleanup)
+        self.events = Path(self.temp.name) / "events.jsonl"
+
+    def redone(self, before: list[dict], after: list[dict]) -> list[dict]:
+        _stream(self.events, before)
+        clear_line = len(self.events.read_text().splitlines())
+        _stream(self.events, before + after)
+        return clear.redone(self.events, clear_line)
+
+    WRITE = {"tool": "Write", "call": {"file_path": "/w/src/a.js", "content": "x = 1"}, "result": "ok"}
+
+    def test_a_completed_write_repeated_is_redone_work(self):
+        found = self.redone([self.WRITE], [self.WRITE])
+        self.assertEqual([f["kind"] for f in found], ["write"])
+
+    def test_an_unfinished_write_repeated_is_not(self):
+        self.assertEqual(self.redone([dict(self.WRITE, result=None)], [self.WRITE]), [])
+
+    def test_a_write_with_other_content_is_new_work(self):
+        other = {"tool": "Write", "call": {"file_path": "/w/src/a.js", "content": "x = 2"}, "result": "ok"}
+        self.assertEqual(self.redone([self.WRITE], [other]), [])
+
+    def test_a_heredoc_write_is_a_write(self):
+        heredoc = {"call": "cat > src/a.js <<'EOF'\nx = 1\nEOF\nnpm test", "result": "ok"}
+        found = self.redone([heredoc], [heredoc])
+        self.assertEqual(sorted(f["kind"] for f in found), ["test", "write"])
+
+    def test_a_test_rerun_after_a_change_is_legitimate_and_without_one_is_redone(self):
+        test = {"call": "npm test 2>&1 | tail -3", "result": "pass 9"}
+        self.assertEqual(self.redone([test], [self.WRITE, test]), [])
+        self.assertEqual([f["kind"] for f in self.redone([test], [test])], ["test"])
+
+    def test_read_only_orientation_never_counts(self):
+        rows = [{"call": "python3 /p/scripts/shiploop next --run-dir /r", "result": "ShipLoop navigator | implement | revision 3"},
+                {"call": "cat /r/packets/nav-1.md; git status --short; git diff", "result": "..."}]
+        self.assertEqual(self.redone(rows, rows), [])
+
+    def test_a_repeated_callback_for_the_same_action_is_redone(self):
+        done = {"call": "python3 /p/scripts/shiploop complete --run-dir=/r --action=nav-" + "a" * 32 + " --result=/r/x.md",
+                "result": "ShipLoop navigator | test-green | revision 4"}
+        self.assertEqual([f["kind"] for f in self.redone([done], [done])], ["callback"])
+
+
+class ClearTriggerTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-clear-trigger-")
+        self.addCleanup(self.temp.cleanup)
+        self.events = Path(self.temp.name) / "events.jsonl"
+        self.state = {"status": "active", "stage": "implement", "action": {"id": "nav-x"}, "revision": 9}
+
+    def stage_of(self, state):
+        return state["stage"]
+
+    def test_the_boundary_stops_once_the_stage_is_current_and_inside_waits_for_a_completed_call(self):
+        head = {"call": "python3 /p/scripts/shiploop complete --run-dir=/r --action=nav-y", "result":
+                "ShipLoop navigator | implement | revision 9"}
+        _stream(self.events, [head])
+        at = clear.trigger(self.events, self.state, {"stage": "implement", "inside": False}, self.stage_of)
+        self.assertEqual((at["stage"], at["action"], at["revision"]), ("implement", "nav-x", 9))
+        inside = {"stage": "implement", "inside": True}
+        self.assertIsNone(clear.trigger(self.events, self.state, inside, self.stage_of))
+        _stream(self.events, [head, {"call": "sed -n 1,5p src/a.js", "result": None}])  # in flight: not yet
+        self.assertIsNone(clear.trigger(self.events, self.state, inside, self.stage_of))
+        _stream(self.events, [head, {"call": "sed -n 1,5p src/a.js", "result": "..."}])
+        self.assertIsNotNone(clear.trigger(self.events, self.state, inside, self.stage_of))
+        self.assertIsNone(clear.trigger(self.events, dict(self.state, stage="test-red"), inside, self.stage_of))
+
+
+class ClearProbeTests(SliceCase):
+    def test_a_clear_at_the_boundary_records_the_stop_and_a_fresh_session_finishes_the_slice(self):
+        seeded = self.seed()
+        first = self.fake(seeded, "normal", pause_at="implement", clear_at={"stage": "implement", "inside": False})
+        self.assertEqual(first["status"], "cleared")
+        record = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
+        self.assertEqual(record["stopped"]["stage"], "implement")
+        self.assertEqual(record["triggered"]["action"], record["stopped"]["action"])
+        second = self.fake(seeded, "normal", first=False)  # the fresh session: the fake reads the packet again
+        self.assertEqual(second["status"], "slice-complete")
+        result = step_slice.grade(self.out, Path(seeded["run_dir"]), seeded, CASE, [first, second])
+        self.assertTrue(result["verdicts"]["no_redo"])  # the fake's stream holds no calls: nothing to redo
+        self.assertTrue(result["pass"], result["verdicts"])
 
 
 class FlowTests(SliceCase):

@@ -50,6 +50,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import run  # noqa: E402  (also puts skills/shiploop/scripts on sys.path)
+import clear  # noqa: E402
 import hosts  # noqa: E402
 import metrics  # noqa: E402
 import packets  # noqa: E402
@@ -147,14 +148,28 @@ def checks_on_candidate(worktree: Path | None, out: Path, checks: list[str]) -> 
     return run.run_checks(export, checks)
 
 
+CLEAR_RECORD = "clear.json"
+
+
 def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, timeout: int, watch: bool,
           translate=None, host_name: str = "fake", model: str | None = None, first: bool = True,
-          resumed_session: str | None = None) -> dict:
+          resumed_session: str | None = None, clear_at: dict | None = None) -> dict:
     """One host session that the slice stop ends. Its status is ``slice-complete`` when the slice ended it, or when the
-    session ended by itself with the slice already complete."""
+    session ended by itself with the slice already complete.
+
+    With `clear_at` (clear.parse_spec) and no clear recorded yet, the session is also ended at that point (status
+    ``cleared``) and the stop point is written to clear.json: the caller then continues in a fresh session."""
+    hit: list = []
+
     def stop_when() -> bool:
         packets.archive_packets(run_dir, out)
-        return slice_complete(read_state(run_dir))
+        state = read_state(run_dir)
+        if clear_at and not (out / CLEAR_RECORD).exists():
+            found = clear.trigger(out / "events.jsonl", state, clear_at, metrics.current_stage)
+            if found:
+                hit.append(found)
+                return True
+        return slice_complete(state)
 
     started: list = []
     events_path = out / "events.jsonl"
@@ -174,9 +189,24 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
                            engine=None)
     packets.archive_packets(run_dir, out)
     process.pop("left_behind", None)
-    if process["status"] == "interrupted" or (process["status"] == "exited" and slice_complete(read_state(run_dir))):
+    if hit and process["status"] == "interrupted":
+        # Recorded after the kill, so the point is where the stop actually landed (an overrun is work done before it).
+        actual = clear.point(out / "events.jsonl", read_state(run_dir) or {}, metrics.current_stage)
+        (out / CLEAR_RECORD).write_text(json.dumps({**clear_at, "triggered": hit[0], "stopped": actual}, indent=2) + "\n")
+        process["status"] = "cleared"
+    elif process["status"] == "interrupted" or (process["status"] == "exited" and slice_complete(read_state(run_dir))):
         process["status"] = "slice-complete"
     return process
+
+
+def clear_facts(out: Path) -> dict | None:
+    """The probe's record and the redone work measured against the actual stop point (None without a probe)."""
+    try:
+        record = json.loads((out / CLEAR_RECORD).read_text())
+    except (OSError, ValueError):
+        return None
+    found = clear.redone(out / "events.jsonl", record["stopped"]["events_line"])
+    return {**record, "redone": found, "pass": not found}
 
 
 def grade(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dict]) -> dict:
@@ -190,10 +220,13 @@ def grade(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dic
     check_results = checks_on_candidate(worktree, out, case["checks"])
     verdicts = {"process": sessions[-1]["status"] == "slice-complete", "inner_loop": carried, "no_overshoot": not over,
                 "assembled": assembled["pass"], "checks": all(c["pass"] for c in check_results)}
+    probe = clear_facts(out)
+    if probe is not None:
+        verdicts["no_redo"] = probe["pass"]
     return {"pass": all(verdicts.values()), "verdicts": verdicts, "item": item, "item_history": history,
             "overshoot": over, "queue_growth": max(0, len(state.get("work_items") or []) - 1),
             "run_status": state.get("status"), "stage_at_stop": metrics.current_stage(state) if state else None,
-            "assembled": assembled, "checks": check_results, "sessions": sessions,
+            "assembled": assembled, "checks": check_results, "sessions": sessions, "clear": probe,
             "not_reached": "system tests, release and the report: a slice ends after the item's inner loop"}
 
 
@@ -215,6 +248,9 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--permission-mode", default="auto")
     p.add_argument("--max-resumes", type=int, default=5,
                    help="resumable hosts (grok, codex): continue a session that ended before the slice was complete")
+    p.add_argument("--clear-at", metavar="STAGE[:inside]",
+                   help="the S-6 probe: stop the host when STAGE's packet arrives (or, with :inside, after its first "
+                        "completed call), continue in a fresh session, and grade no_redo (clear.py)")
     p.add_argument("--quiet", action="store_true")
     for name in sorted(hosts.HOSTS):
         p.add_argument(f"--{name}-bin", default=name)
@@ -282,9 +318,19 @@ def main(argv: list[str] | None = None) -> int:
     deadline = time.time() + args.timeout
     session_args = dict(work=work, out=out, env=env, run_dir=run_dir, watch=not args.quiet,
                         translate=host.translator(), host_name=host.name, model=model)
+    clear_at = clear.parse_spec(args.clear_at)
     process = drive(host.argv(prompt=opening, prompt_file=out / "host-prompt.txt", **common),
-                    timeout=args.timeout, **session_args)
+                    timeout=args.timeout, clear_at=clear_at, **session_args)
     sessions = [process]
+    if process["status"] == "cleared":
+        # A fresh session: no --resume, so the model holds nothing but what the recovery command prints.
+        if not args.quiet:
+            print(f"cleared at {json.loads((out / CLEAR_RECORD).read_text())['stopped']}; continuing in a fresh session",
+                  flush=True)
+        process = drive(host.argv(prompt=run.resume_prompt(str(run_dir), cli), prompt_file=out / "resume-after-clear.txt",
+                                  **common),
+                        timeout=max(60, int(deadline - time.time())), first=False, **session_args)
+        sessions.append(process)
     # A headless Grok or Codex session ends whenever the model ends its turn; continue it while the slice is unfinished.
     while (host.resumable and process["status"] == "exited" and len(sessions) <= args.max_resumes
            and (read_state(run_dir) or {}).get("status") == "active" and deadline - time.time() > 60):
