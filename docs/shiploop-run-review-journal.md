@@ -2202,3 +2202,33 @@ width and at 375 px: no horizontal overflow on any new card. One defect found on
 with the page's own tint and the bar has no track, so the second-largest class read as a gap; it now has a fill of its own (pinned by a test,
 red then green). Still not seen: a run that did not pass with a real `product_at_stop` (no real run has one yet), and dark mode.
 
+**Second follow-up, 2026-10-10: reading the whole page, one place per figure, what was delivered, and links (`2a603293`, `06dbd479`, `2cde45c9`, `5618977a`).**
+Owner asked for the draft to be read as one report, clear and not duplicative, then for insight into what a run delivered (what was
+built, tested and documented, whether a skill was chosen or produced, what kind of release, whether it was merged back to the original
+branch) and for links wherever a reference can be one.
+*One place per figure.* Measured on the rendered page for s6-after-spec: refusals appeared in the header line, a KPI card, the Fidelity
+card and the run detail; compactions three times with the same harness sentence; elapsed and context peak on a card and in the detail;
+the Improve packet counts and the packet reads as extra lines inside two KPI cards. Now each is on one card; the Fidelity, Fresh starts
+and Quality cards are one group after the stage cards. Step 1 for that run went 16,580 to 16,267 characters (the gain is not length).
+Refusal lines carried the run's absolute folder; `failure_line` keeps `<run>/.shiploop-runs/...`. Findings and options (80 and 91): every
+option links to a finding; 13 findings have no option, 10 closed and 3 open (o16, o23, o30) that say "no option yet" in their advice; the
+overlaps are themes recorded at different times, left as they are because ticks are keyed by option id.
+*What was delivered (D).* The answer is in three records beside the run directory: workspace.md (source branch and head, run branch,
+status), return-plan.md (each path, change, disposition) and return-receipt.md (kind, status, heads). Over the 14 runs in the draft: 9
+returned by fast-forward-merge; 1 (v1230-battleship-sonnet) return-planned, not returned; 3 Grok runs (r1 blocked, r3 stopped, v1230
+blocked) never returned (workspace status prepared, no plan, no receipt), so the card says "Not merged back: the product is on branch X;
+main was not changed" and its file lists "not measured". Kept files for the returned Checkers run: source 3, tests 4 (two under system/,
+two under test/), docs 1, ShipLoop records 10, skills 0; the hello run: 1/1/0/10/0. Tests: the widest command of the release-verify
+visit, never a sum (a regression visit lists 21+11+32 for a 32-test suite). Both returned runs were returned twice, so "before" is the
+workspace's source_head, not the receipt's source_before. r3 Grok's last counted run is "17 ran, 15 failed, at test-red": the card says
+the new tests are meant to fail there. A run with no return plan says so in one row, not five.
+*Links (E).* `config/page.repoUrl` (https only; `--check` refuses anything else; `--defaults --live` adds it to a live page without
+overwriting the owner's). `linkParts` links, over the committed general, luna1 and r3 review files: 143 ids (83 findings, 60 options),
+338 repo paths, 220 commits (83 distinct), 178 spec clauses. Words that look like hex (`defaced`, `decade`, 1234567) stay text; 11 ids
+that exist only in another bundle stay text in that bundle (they link on the live page, where all are loaded). Run-local paths are not
+links: they are files on the machine that ran the case. The step-4 prompt stays plain text (pinned). Links to documents that exist only
+on unpushed branches (for example docs/experiments/run-review-r22c-20261009/) will 404 until the push.
+*Tests.* Run Review suite 620 OK. Slices D (24 tests) and E (19) ran red first; the two follow-ups on the card were pinned and the red-run
+note was written after its fix. Draft v12 carries all of it; the page was read in the built-in browser through a stub database at desktop
+width and at 375 px (first pass; the later cards were read as text and by screenshot at desktop width only).
+
