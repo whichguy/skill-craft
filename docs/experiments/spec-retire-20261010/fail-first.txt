@@ -1,0 +1,28 @@
+Fail-first record (batch 1012 task R). Each new test was written and run before the code it tests.
+
+1. Pure functions (test/shiploop-knowledge.test.py, RetireRecordTests, 12 tests): 15 errors before the code, every one 'module shiploop_knowledge_home has no attribute <new name>'.
+2. Feature list (FeatureListTests, 13 tests): 13 errors before the code, the same kind (FEATURE_LIST, feature_list, earlier_features missing).
+3. Retire (RetireTests, 14 tests): 14 errors before the code ('no attribute retire').
+4. test/shiploop-workspace.test.py, 3 tests: 3 errors ('no attribute return_kind').
+5. test/shiploop-progress-data.test.py: 3 of 3 new tests red before the code (two retired-row cases 'missing' != 'retired', the guard case an AttributeError on retired_by); the guard 'removed by any other commit is still missing' passes before and after and is labelled a guard.
+   test/shiploop-progress-render.test.py: 1 of 1 red (>Retired</span> not found).
+6. test/shiploop-e2e-commit-counters.test.py: the real retire commit counted 'other' before the change (('other', False, ...) != ('script', False, ...)); the lookalike and pin tests pass before and after and say so.
+
+7. test/shiploop-retire.test.py (17 tests) against the navigator of b8c1680e, every other file of the branch in place: 14 of 17 tests fail
+   (failures=12, errors=3; a test with two sub-cases counts twice there), and 3 pass; the passing ones are labelled guards in their docstrings
+   (today's fail-closed rule kept when a knowledge commit was made at the handoff; nothing said before a return; a non-terminal close never retires).
+   failing at the base navigator:
+     test_a_fast_forward_return_retires_the_feature_spec_and_returns_the_removal
+     test_a_follow_up_that_fails_after_only_the_retire_commit_does_not_replace_the_guards_commands
+     test_a_follow_up_the_source_refuses_leaves_the_guards_commands_and_the_retry_after_the_fix_succeeds
+     test_a_handoff_before_the_return_is_refused_and_leaves_the_feature_spec_until_the_return
+     test_a_handoff_refused_after_the_retire_is_retried_with_exactly_one_retire_commit
+     test_a_list_that_is_not_shiploops_is_named_in_one_notice_and_left_alone
+     test_a_retire_that_cannot_commit_refuses_the_handoff_with_the_file_in_place
+     test_a_working_tree_or_no_change_return_keeps_the_file_and_says_why
+     test_a_working_tree_return_keeps_the_feature_spec_and_says_why
+     test_a_worktree_run_commits_and_retires_before_the_follow_up_return_and_reports_it_returned
+     test_an_own_checkout_commits_the_pending_knowledge_then_retires_and_says_so_once
+     test_ids_the_living_spec_lacks_keep_the_file_with_one_notice_and_never_refuse_the_handoff
+     test_the_removal_is_not_reported_returned_when_the_follow_up_returned_nothing
+     test_the_run_commits_reach_the_branch_by_mode_and_by_the_recorded_return

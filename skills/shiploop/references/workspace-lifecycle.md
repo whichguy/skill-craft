@@ -253,6 +253,15 @@ commit already succeeded still checks the return; it does not repeat product
 execution or create another knowledge commit. In-place runs use the same pending
 handoff recovery for the commit, without a workspace return.
 
+In that order, between the knowledge commit and the follow-up return, ShipLoop also
+retires the run's feature spec when the run's commits reach your branch: an in-place
+run, or a worktree run whose recorded return is a fast-forward. The removal is a
+commit of its own and travels with the follow-up return. After a working-tree or
+no-change return, or before any return, the file is kept (before any return nothing
+is said; the retry after the return decides). If that follow-up return fails after
+the retire commit alone, the handoff guard still refuses a stale return and prints
+the commands; a retry makes no second retire commit.
+
 The new receipt keeps the previous one as `previous_receipt`. If the source
 already holds exactly the result the follow-up would produce (the fix was copied
 in by hand), `return` records that without writing and marks the receipt

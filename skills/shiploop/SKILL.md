@@ -359,7 +359,11 @@ ShipLoop runs the same credential and ID checks and commits it too, so never
 commit it yourself. The `release-verify` commit's message is the feature
 `outcome.md`'s `Learned`, `Key considerations` and `Open for the next run`
 sections, and intake and discovery packets quote the last three commit messages
-as inherited learnings. The next run starts from these files; see
+as inherited learnings. At the final handoff ShipLoop checks that each requirement ID
+in the run's `features/<slug>/spec.md` is in the living spec and, when the run's
+commits reach the user's branch, removes that file in a commit of its own (it stays
+after a working-tree return); `features/README.md` lists the feature folders. The
+next run starts from these files; see
 [repository knowledge home](references/project-knowledge.md#repository-knowledge-home).
 
 ### Script-owned lint

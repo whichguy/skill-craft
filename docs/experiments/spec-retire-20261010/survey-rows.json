@@ -1,0 +1,761 @@
+[
+ {
+  "repo": "20261003/batch-sonnet/battleship/work",
+  "folder": "build-a-small-single-player-battleship-545b0f",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261003/batch-sonnet/battleship-scoring/work",
+  "folder": "add-scoring-to-the-existing-battleship-45ad3f",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261003/batch-sonnet/battleship-scoring/work",
+  "folder": "build-a-small-single-player-battleship-545b0f",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261003/batch-sonnet/hello/work",
+  "folder": "create-hello-py-that-prints-exactly-bbad47",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": true,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261003/batch-sonnet/seat-reservations/work",
+  "folder": "build-a-small-seat-reservation-http-89469f",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261003/hello/work",
+  "folder": "create-hello-py-that-prints-exactly-c03d7d",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261003/seat-reservations/work",
+  "folder": "build-a-small-seat-reservation-http-5e572c",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261003/v1161-hello/work",
+  "folder": "create-hello-py-that-prints-exactly-698b90",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261004/v1180-hello-sonnet/work",
+  "folder": "create-hello-py-that-prints-exactly-1fa295",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261004/v1190-hello-sonnet/work",
+  "folder": "create-hello-py-that-prints-exactly-b2ea62",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261004/v1190-hello-sonnet-2/work",
+  "folder": "create-hello-py-that-prints-exactly-45db3b",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261004/v1200-hello-sonnet/work",
+  "folder": "create-hello-py-that-prints-exactly-3dbf63",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261006/v1220-battleship-grok-medium-none/work",
+  "folder": "build-a-small-single-player-battleship-242618",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261006/v1220-battleship-sonnet/work",
+  "folder": "build-a-small-single-player-battleship-cf29e9",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261007/v1230-battleship-sonnet/work",
+  "folder": "build-a-small-single-player-battleship-187638",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261008/r1-battleship-sonnet/work",
+  "folder": "build-a-small-single-player-battleship-40e530",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": true,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261008/r1-checkers-sonnet/work",
+  "folder": "build-a-small-two-player-checkers-b3450a",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261008/r2-battleship-grok-none/work",
+  "folder": "build-a-small-single-player-battleship-ef3173",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261008/r2-battleship-sonnet/work",
+  "folder": "build-a-small-single-player-battleship-9cd81b",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261008/r2-checkers-sonnet/work",
+  "folder": "build-a-small-two-player-checkers-37f387",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261008/r3-battleship-sonnet/work",
+  "folder": "build-a-small-single-player-battleship-8f4f83",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261008/r3-checkers-sonnet/work",
+  "folder": "build-a-small-two-player-checkers-7f78be",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261009/s6-after-spec/work",
+  "folder": "create-hello-py-that-prints-exactly-325325",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": true,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261009/s6-inside-implement/work",
+  "folder": "create-hello-py-that-prints-exactly-72e2f1",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": true,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261009/s6-inside-implement-k2/work",
+  "folder": "create-hello-py-that-prints-exactly-3cb706",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": true,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261009/s6-inside-implement-mtime/work",
+  "folder": "create-hello-py-that-prints-exactly-640e13",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": true,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261009/s6-inside-implement-write/work",
+  "folder": "create-hello-py-that-prints-exactly-e7ac9a",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": true,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261009/s6-inside-test-strategy/work",
+  "folder": "create-hello-py-that-prints-exactly-837f7e",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": true,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261009/s6-inside-test-strategy-2/work",
+  "folder": "create-hello-py-that-prints-exactly-fee9d9",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261010/battleship-1/work",
+  "folder": "build-a-small-single-player-battleship-1e8e04",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261010/checkers-1/work",
+  "folder": "build-a-small-two-player-checkers-818ac9",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261010/hello-1270-claude-2/work",
+  "folder": "create-hello-py-that-prints-exactly-c86469",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ },
+ {
+  "repo": "20261010/pc1i-checkers-sonnet/work",
+  "folder": "build-a-small-two-player-checkers-a0ada7",
+  "unmerged": [],
+  "planned_found": true,
+  "planned_equals_final": true,
+  "planned_in_path_log": false,
+  "retire": {
+   "commit": true,
+   "kept": "",
+   "changed": [
+    "A README.md",
+    "D spec.md"
+   ],
+   "subject_ok": true,
+   "retired_by": true,
+   "planned_line": true,
+   "gone": true
+  },
+  "retry": {
+   "commit": false
+  }
+ }
+]
