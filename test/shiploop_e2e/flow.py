@@ -126,13 +126,13 @@ def claude_items(out: Path, short: Shortener, first_action: str | None) -> tuple
         t = round(stamps.get(number, t0) - t0, 1)
         kind = event.get("type")
         if kind == "system" and event.get("subtype") == "informational":
-            items.append({"kind": "hook", "t": t, **current, "body": clip(event.get("content", ""), 1500, short)})
+            items.append({"kind": "hook", "t": t, "line": number, **current, "body": clip(event.get("content", ""), 1500, short)})
             continue
         if kind not in ("assistant", "user") or not isinstance((event.get("message") or {}).get("content"), list):
             continue
         for block in event["message"]["content"]:
             if block.get("type") == "text" and block.get("text", "").strip():
-                items.append({"kind": "say", "t": t, **current, "body": clip(block["text"], TEXT_LIMIT, short)})
+                items.append({"kind": "say", "t": t, "line": number, **current, "body": clip(block["text"], TEXT_LIMIT, short)})
             elif block.get("type") == "tool_use":
                 call = block.get("input") or {}
                 body = call.get("command") or call.get("file_path") or json.dumps(call)
@@ -141,14 +141,14 @@ def claude_items(out: Path, short: Shortener, first_action: str | None) -> tuple
                     reads.setdefault(key, []).append("read tool, whole file" if whole else (
                         "read tool, part" if block.get("name") == "Read" else
                         "shell, " + next((w for w in ("grep", "sed", "head", "tail", "cat") if w in body), "other")))
-                items.append({"kind": "call", "t": t, **current, "tool": block.get("name"),
+                items.append({"kind": "call", "t": t, "line": number, **current, "tool": block.get("name"),
                               "body": clip(body, CALL_LIMIT, short), "flags": call_flags(body, scripts),
                               "reads_packets": sorted(set(PACKET_FILE.findall(body)))})
             elif block.get("type") == "tool_result":
                 content = block.get("content")
                 content = content if isinstance(content, str) else "\n".join(
                     part.get("text", "") for part in content or [] if isinstance(part, dict))
-                items.append({"kind": "result", "t": t, **current, "body": clip(content, RESULT_LIMIT, short)})
+                items.append({"kind": "result", "t": t, "line": number, **current, "body": clip(content, RESULT_LIMIT, short)})
                 for match in HEAD.finditer(content):
                     tail = content[match.start():]
                     found = ACTION.search(tail[:3000]) or ANY_ACTION.search(tail[:3000])
@@ -264,6 +264,18 @@ def build(out: Path) -> dict:
         "run_status": state.get("status"), "prompt": prompt, "events_source": "claude" if claude else "toollog",
         "packets_source": source, "paths": short.legend(), "totals": report.get("totals") or {},
         "stages": report.get("stages") or [], "actions": actions,
+        "case_details": {
+            "expect_paths": invocation.get("expect_paths") or [],
+            "checks": [{"command": c.get("command"), "pass": c.get("pass"), "output": short(str(c.get("output") or ""))[-1500:]}
+                       for c in (result.get("checks") or []) if isinstance(c, dict)],
+            "assembled": {k: (result.get("assembled") or {}).get(k) for k in ("changed", "missing", "uncommitted_product")}
+                         if result.get("assembled") else None,
+            "item_history": result.get("item_history") or [],
+            "overshoot": result.get("overshoot"), "queue_growth": result.get("queue_growth"),
+        },
+        "clear": ({**{k: result["clear"].get(k) for k in ("stage", "inside")},
+                   "stopped": result["clear"].get("stopped"), "redone": result["clear"].get("redone"),
+                   "pass": result["clear"].get("pass")} if result.get("clear") else None),
         "unattributed": [i for i in items if not i["action"]],
     }
 

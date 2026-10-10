@@ -97,6 +97,12 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
 .sec { display: grid; grid-template-columns: minmax(0, 1fr) 90px 160px; gap: 10px; align-items: center; font-size: 12.5px }
 .sec .bar { height: 8px }
 .empty { padding: 28px 20px; color: var(--muted) }
+.case { display: grid; gap: 8px }
+.checks { display: grid; gap: 6px }
+.check { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start }
+.check summary { cursor: pointer }
+.cleared { border-left: 3px solid var(--flag); background: var(--flag-soft); padding: 8px 12px; border-radius: 6px }
+.ev.divider .b { color: var(--flag); font-weight: 600; border-top: 2px dashed var(--flag); padding-top: 6px }
 .muted { color: var(--muted) }
 @media (max-width: 700px) {
   .row, .lanes { grid-template-columns: minmax(0, 1fr) }
@@ -175,6 +181,22 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
     return run.pass ? `<span class="pill pass">PASS</span>` : `<span class="pill fail">FAIL</span>`;
   }
 
+  function renderCase(run) {
+    const c = run.case_details;
+    if (!c || (!c.checks.length && !c.expect_paths.length)) return "";
+    const checks = c.checks.map((k) => `<div class="check"><span class="pill ${k.pass ? "pass" : "fail"}">${k.pass ? "pass" : "fail"}</span>
+      <details><summary class="mono">${esc((k.command || "").slice(0, 160))}${(k.command || "").length > 160 ? "…" : ""}</summary>
+      <pre>${esc(k.command)}${k.output ? "\n\n" + esc(k.output) : ""}</pre></details></div>`).join("");
+    const a = c.assembled;
+    return `<div class="case"><div class="eyebrow">Case</div>
+      ${c.expect_paths.length ? `<div>Expected paths: <span class="mono">${c.expect_paths.map(esc).join(", ")}</span></div>` : ""}
+      ${a ? `<div>Changed by the item: <span class="mono">${(a.changed || []).map(esc).join(", ") || "none"}</span>${(a.missing || []).length ? ` · <span class="pill fail">missing ${a.missing.map(esc).join(", ")}</span>` : ""}${(a.uncommitted_product || []).length ? ` · <span class="muted">uncommitted (assembled for the release): ${a.uncommitted_product.map(esc).join(", ")}</span>` : ""}</div>` : ""}
+      ${checks ? `<div class="checks"><div class="muted">Case checks, run on a clean copy of the assembled candidate:</div>${checks}</div>` : ""}
+      ${c.queue_growth ? `<div>Work items added at carry-forward: ${c.queue_growth}</div>` : ""}
+      ${(c.overshoot || []).length ? `<div><span class="pill fail">overshoot</span> ${c.overshoot.map(esc).join(", ")}</div>` : ""}
+    </div>`;
+  }
+
   let current = 0;
   let open = null;
 
@@ -225,6 +247,19 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
     if (run.events_source !== "claude") notes.push(`This host's stream gives tool calls only; model text, results and the printed heads are not available.`);
     if (run.packets_source !== "archive") notes.push(`Packets come from run/packets, which keeps only the last copy of each packet.`);
 
+    // The row the clear belongs to: the action whose events straddle the stop line, else (a clear at a stage boundary)
+    // the first action of the stage the run stopped in.
+    let clearRow = null;
+    if (run.clear && run.clear.stopped) {
+      const line = run.clear.stopped.events_line;
+      const straddles = (a) => {
+        const evs = a.phases.flatMap((p) => p.events).filter((e) => e.line != null);
+        return evs.some((e) => e.line < line) && evs.some((e) => e.line >= line);
+      };
+      const found = run.actions.find((a) => !a.seeded && straddles(a))
+        || run.actions.find((a) => !a.seeded && a.stage === run.clear.stopped.stage);
+      clearRow = found ? found.index : null;
+    }
     let rows = "";
     const seeded = run.actions.filter((a) => a.seeded);
     if (seeded.length) rows += `<div class="seeded">${seeded.length} stages recorded by the harness without doing them: ${seeded.map((a) => esc(a.stage)).join(", ")}</div>`;
@@ -236,11 +271,14 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
       const said = phases.flatMap((p) => p.events).find((e) => e.kind === "say");
       const span = phases.reduce((n, p) => n + (p.span_seconds || 0), 0);
       const improve = phases.some((p) => p.kind === "improve");
+      const clearedHere = a.index === clearRow;
+      const clearedBefore = false;
       const expanded = open === a.index;
       rows += `<div class="row" role="button" tabindex="0" aria-expanded="${expanded}" data-a="${a.index}">
         <div class="ship">
           <div class="name"><b>${esc(a.stage)}</b>
             ${improve ? `<span class="pill quiet">+ Improve</span>` : ""}
+            ${clearedHere || clearedBefore ? `<span class="pill flag">context cleared here</span>` : ""}
             ${a.accepted ? `<span class="muted">${esc(a.outcome || "")}</span>` : `<span class="pill quiet">stopped here</span>`}
             <span class="muted num">${k(written)} written · ${k(reach)} reached</span></div>
           <div class="bar" title="${written} characters written, about ${reach} reached the model">
@@ -267,6 +305,12 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
           <span>ShipLoop <b>${esc((run.versions || {}).shiploop_version || "?")}</b></span>
           <span>Run status <b>${esc(run.run_status || "?")}</b></span></div>
         <div class="request"><div class="eyebrow">Request</div>${esc(run.prompt)}</div>
+        ${renderCase(run)}
+        ${run.clear ? `<div class="cleared"><b>Context cleared</b> ${run.clear.inside ? "inside" : "at the start of"} <b>${esc(run.clear.stage)}</b>
+          (stopped at ${esc((run.clear.stopped || {}).stage || "?")}, revision ${esc((run.clear.stopped || {}).revision ?? "?")});
+          a fresh session continued from the packet alone. Redone work after the clear:
+          <b>${(run.clear.redone || []).length}</b>${(run.clear.redone || []).length ? ": " + run.clear.redone.map((r) => esc(r.kind + " " + (r.key || [])[0])).join("; ") : ""}.
+          <span class="muted">(The redo metric is under repair after the 2026-10-10 review: read this count as provisional.)</span></div>` : ""}
         <div class="figures">
           <div class="figure"><div class="v">${s.phases.length}</div><div class="k">packets for live stages</div></div>
           <div class="figure"><div class="v">${k(s.written)}</div><div class="k">packet characters written</div></div>
@@ -301,7 +345,16 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
     return a.phases.map((p, pi) => {
       const head = p.head ? `<pre>${esc(p.head)}</pre>` : `<p class="muted">No printed head was captured for this packet${p.kind === "producer" && !a.accepted ? " (the model cut the output short, or the run stopped here)" : ""}.</p>`;
       const reads = p.reads.length ? `Opened the packet file: ${p.reads.map(esc).join("; ")}.` : "Never opened the packet file.";
-      const events = p.events.length ? `<div class="events">${p.events.map(renderEvent).join("")}</div>` : `<p class="muted">No model events in this phase.</p>`;
+      const clearLine = runs[current].clear && runs[current].clear.stopped ? runs[current].clear.stopped.events_line : null;
+      let divided = false;
+      const events = p.events.length ? `<div class="events">${p.events.map((e) => {
+        let pre = "";
+        if (!divided && clearLine != null && e.line != null && e.line >= clearLine) {
+          divided = true;
+          pre = `<div class="ev divider"><span class="t"></span><div class="b">Context cleared here — a fresh session continues from the packet alone</div></div>`;
+        }
+        return pre + renderEvent(e);
+      }).join("")}</div>` : `<p class="muted">No model events in this phase.</p>`;
       const maxSec = Math.max(1, ...p.packet.sections.map((x) => x.chars));
       const sections = `<div class="sections">${p.packet.sections.map((x) => `<div class="sec"><span class="mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.section)}</span>
           <span class="num muted">${k(x.chars)} chars</span><span class="bar"><span class="w" style="width:${(100 * x.chars) / maxSec}%"></span></span></div>`).join("")}</div>`;
