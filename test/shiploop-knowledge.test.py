@@ -958,6 +958,27 @@ class FeatureListTests(HomeCase):
                          "Earlier features: " + str(self.repo / knowledge.FEATURE_LIST) + " lists every feature folder and "
                          "the commands that find a requirement ID in them.")
 
+    def test_earlier_features_never_says_the_list_exists_when_it_is_absent_or_not_shiploops(self) -> None:
+        """Audit (batch 1012): the sentence named the list in every state with an earlier folder, although a repository that
+        predates the list has none until the first knowledge commit, and a file at that path may be someone else's."""
+        folders, listed = str(self.repo / "docs/shiploop/features"), self.repo / knowledge.FEATURE_LIST
+        self.write("docs/shiploop/features/older-cccccc/plan.md", "# p\n")                 # an earlier run, no list yet
+        absent = knowledge.earlier_features(self.state)
+        self.assertEqual(absent, "Earlier features: the folders in " + folders + "/ (ShipLoop has not written its list of "
+                         "them, " + str(listed) + ", yet).")
+        listed.write_text("My own notes about the features.\n", encoding="utf-8")            # a file that is not ShipLoop's
+        foreign = knowledge.earlier_features(self.state)
+        self.assertEqual(foreign, "Earlier features: the folders in " + folders + "/ (" + str(listed) + " is not ShipLoop's "
+                         "list of them).")
+        listed.write_text("", encoding="utf-8")                                              # an empty file is nobody's
+        self.assertEqual(knowledge.earlier_features(self.state), absent)
+        listed.unlink()
+        listed.symlink_to(self.repo / "app.py")                                              # a link is not ShipLoop's
+        self.assertEqual(knowledge.earlier_features(self.state), foreign)
+        listed.unlink()
+        self.assertTrue(knowledge.commit(dict(self.state, run_id="nav-0000000000999999"), "plan").commit)   # the list gets written
+        self.assertIn("lists every feature folder", knowledge.earlier_features(self.state))
+
     def test_the_fixture_that_writes_every_close_file_also_writes_the_list(self) -> None:
         """Stands in for the knowledge commit a real run makes after its spec stage, long before any work item's base."""
         support.write(self.state)

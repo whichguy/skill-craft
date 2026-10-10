@@ -382,6 +382,13 @@ def _list_problem(repo: Path) -> str:
     return ""
 
 
+def _list_is_shiploops(repo: Path) -> bool:
+    """Whether FEATURE_LIST is there and is ShipLoop's own generated list (a regular file that begins with its mark)."""
+    path = Path(repo) / FEATURE_LIST
+    return (path.is_file() and not path.is_symlink()
+            and path.read_text(encoding="utf-8", errors="replace").startswith(_LIST_MARK))
+
+
 def feature_list_notice(repo: Path) -> str:
     """The notice for a FEATURE_LIST that ShipLoop leaves alone while there are folders to list; "" otherwise."""
     problem = _list_problem(repo)
@@ -403,13 +410,24 @@ def write_feature_list(repo: Path) -> None:
 
 
 def earlier_features(state: Mapping[str, Any]) -> str:
-    """The packet clause that points a stage at the earlier runs' feature folders: "none yet", or the list's path."""
+    """The packet clause that points a stage at the earlier runs' feature folders.
+
+    Two answers: "none yet" while no folder but this run's own exists, and otherwise where to look.  What it says about the
+    list is true in every state: the list's path is promised only when ShipLoop's list is there; a repository that predates
+    the list has none until the first knowledge commit, and a file at that path may be someone else's, so those two name the
+    folders' directory and say which of the two it is.
+    """
     repo = Path(str(state["repo"]))
     own = feature_dir(state).rsplit("/", 1)[-1]
     if not [folder for folder in _feature_folders(repo) if folder.name != own]:
         return "Earlier features: none yet."
-    return ("Earlier features: " + str(repo / FEATURE_LIST) + " lists every feature folder and the commands that find a "
-            "requirement ID in them.")
+    listed = repo / FEATURE_LIST
+    if _list_is_shiploops(repo):
+        return ("Earlier features: " + str(listed) + " lists every feature folder and the commands that find a "
+                "requirement ID in them.")
+    return ("Earlier features: the folders in " + str(repo / HOME / "features") + "/ ("
+            + (str(listed) + " is not ShipLoop's list of them" if _list_problem(repo)
+               else "ShipLoop has not written its list of them, " + str(listed) + ", yet") + ").")
 
 
 # --- the living spec's pin ----------------------------------------------------------------------------------------
