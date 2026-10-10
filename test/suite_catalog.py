@@ -81,6 +81,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-actual-improve-cli.test.py",
     "test/shiploop-packet-bounds.test.py",
     "test/shiploop-packet-completeness.test.py",
+    "test/shiploop-step-packets.test.py",
     "test/shiploop-guidance.test.py",
     "test/shiploop-local-skills.test.py",
     "test/experiments/shiploop_ui_allocation/test_evidence.py",
@@ -141,6 +142,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-e2e.test.py",
     "test/shiploop-e2e-runrecord.test.py",
+    "test/shiploop-e2e-slice.test.py",
     "test/shiploop-e2e-fidelity.test.py",
     "test/shiploop-e2e-reorientation.test.py",
     "test/shiploop-e2e-environment.test.py",
@@ -169,6 +171,8 @@ _DURATION_SECONDS = {
     "test/shiploop-v4-consumers.test.py": 1.048,
     "test/shiploop-packet-bounds.test.py": 0.167,
     "test/shiploop-packet-completeness.test.py": 0.1,
+    "test/shiploop-step-packets.test.py": 0.4,  # measured locally 2026-10-10
+    "test/shiploop-e2e-slice.test.py": 33.0,  # measured locally 2026-10-10: three fake-host sessions
     "test/experiments/shiploop_ui_allocation/test_evidence.py": 0.602,
     "test/shiploop-auth-readiness.test.py": 29.207,
     # 19.448 was written at 59 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average 4.7 to
@@ -594,6 +598,7 @@ _SHIPLOOP_PROMPT_IDS = (
     "shiploop-delegation",
     "shiploop-packet-bounds",
     "shiploop-packet-completeness",
+    "shiploop-step-packets",
     "shiploop-navigator-dry-run",
 )
 _SHIPLOOP_PROMPT_PREFIXES = ("skills/shiploop/references/", "skills/shiploop/commands/")

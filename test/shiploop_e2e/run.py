@@ -1008,6 +1008,7 @@ from pathlib import Path
 sys.path.insert(0, sys.argv[1])
 import shiploop_navigator as nav, shiploop_store as store
 run_dir, stop = Path(sys.argv[2]), sys.argv[3]
+item = json.loads(sys.argv[4]) if len(sys.argv) > 4 else {"id": "seeded-request", "title": "The whole request"}
 state = store.read_record(run_dir / "state.md")
 skipped = []
 while nav.current_stage(state) != stop:
@@ -1015,7 +1016,7 @@ while nav.current_stage(state) != stop:
     result = {"outcome": "done", "summary": "Synthetic: recorded by the E2E seed without doing it; "
               "the request is the specification."}
     if stage == "plan":
-        result["work_items"] = [{"id": "seeded-request", "title": "The whole request"}]
+        result["work_items"] = [item]
     state = nav.apply(state, action, result)
     if state["active_improve"] is not None:
         state = nav.finish_improve(state, action, {"summary": "Synthetic Improve receipt from the E2E seed."})
@@ -1026,36 +1027,44 @@ print(json.dumps({"skipped": skipped, "stage": nav.current_stage(state),
 """
 
 
-def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str) -> dict:
-    """Start an Ask-Agent run and record its stages before `stop` as synthetic.
+def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixture: Path | None = None,
+             work_item: dict | None = None, delegation: str = "ask-agent") -> dict:
+    """Start a run and record its stages before `stop` as synthetic.
 
-    ShipLoop refuses a repository without a commit, so the seed commits a README first.
+    ShipLoop refuses a repository without a commit, so the seed commits a README first, or the whole `fixture`
+    directory when one is given (a step slice starts on an existing product). `work_item` is the plan's only item
+    (default: the whole request); `delegation` is the run's route (default Ask-Agent, which the chain cases need).
     """
-    (work / "README.md").write_text("# Seeded ShipLoop E2E case\n")
+    if fixture is not None:
+        shutil.copytree(fixture, work, dirs_exist_ok=True)
+    else:
+        (work / "README.md").write_text("# Seeded ShipLoop E2E case\n")
     # The seed must not depend on the machine's Git config: a global or system filter (for example git-lfs on a
     # CI runner) would make ShipLoop's workspace refuse the repository.
     git_env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
     identity = ["-c", "user.name=ShipLoop E2E seed", "-c", "user.email=shiploop-e2e-seed@example.invalid"]
-    for args in (["init", "-q"], ["add", "README.md"], [*identity, "commit", "-qm", "seed: baseline"]):
+    for args in (["init", "-q"], ["add", "-A"], [*identity, "commit", "-qm", "seed: baseline"]):
         subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True, text=True, env=git_env)
     head = subprocess.run(["git", "-C", str(work), "rev-parse", "HEAD"], check=True, capture_output=True,
                           text=True, env=git_env).stdout.strip()
     root = out / ".shiploop-runs" / "seed"
     started = subprocess.run([sys.executable, str(cli), "workspace", "start", f"--repo={work}",
-                              f"--workspace-root={root}", "--delegation=ask-agent", f"--prompt={prompt}"],
+                              f"--workspace-root={root}", f"--delegation={delegation}", f"--prompt={prompt}"],
                              capture_output=True, text=True, env=git_env)
     if started.returncode:
         raise SystemExit(f"seed: workspace start failed: {(started.stderr or started.stdout)[-2000:]}")
     run_dir = root / "run"
-    advanced = subprocess.run([sys.executable, "-c", SEED_SCRIPT, str(cli.parent), str(run_dir), stop],
+    advanced = subprocess.run([sys.executable, "-c", SEED_SCRIPT, str(cli.parent), str(run_dir), stop,
+                               *([json.dumps(work_item)] if work_item else [])],
                               capture_output=True, text=True, env=git_env)
     if advanced.returncode:
         raise SystemExit(f"seed: could not advance the run to {stop}: {advanced.stderr[-2000:]}")
     return {"stage": stop, "run_dir": str(run_dir), "start_head": head, **json.loads(advanced.stdout)}
 
 
-def seed_prompt(cli: Path, run_dir: str, prompt: str) -> str:
-    return (f"A ShipLoop run for the request below is already active, with Ask-Agent delegation. The test "
+def seed_prompt(cli: Path, run_dir: str, prompt: str, delegation: str = "ask-agent") -> str:
+    route = "Ask-Agent" if delegation == "ask-agent" else "inline"
+    return (f"A ShipLoop run for the request below is already active, with {route} delegation. The test "
             "harness recorded its stages before step-plan without doing them, so the request itself is the "
             f"specification. Continue the run now: run `python3 \"{cli}\" next --run-dir \"{run_dir}\"` and "
             "follow the packet it prints, to the end of the run. Never end the turn while a ShipLoop command "

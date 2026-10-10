@@ -1184,6 +1184,82 @@ kill <pid>
 Match on a path boundary (the directory itself, or a path under `$OUT/`), never on a bare prefix: sibling cases
 share a suite directory, and `.../batch-sonnet/battleship` is also a prefix of `.../batch-sonnet/battleship-scoring`.
 
+## Step slices: one work item's inner loop
+
+A full run spends most of its time planning and releasing. A step slice exercises only one work item's inner loop:
+get-next-work-item, step-plan, through implement, integrate and carry-forward, including the last item's carry-forward
+Improve. It runs on a small fixture product, so you can see what ShipLoop sent at each stage and what each stage
+cost, and repeat that after each skill edit.
+
+There are three tiers, cheapest first.
+
+```sh
+# 1. No model, seconds: the inner-loop packets of a case, rendered from synthetic results on this checkout
+python3 test/shiploop_e2e/packets.py --offline node-fix-bug
+
+# 2. One live session, minutes: seed to step-plan, run the item, stop at the end of its inner loop, grade
+python3 test/shiploop_e2e/slice.py --case node-fix-bug                  # Claude Sonnet 5.5, inline, this checkout's build
+
+# 3. Script-only report of what was sent and what it cost, and a comparison with an earlier attempt
+python3 test/shiploop_e2e/packets.py <output>
+python3 test/shiploop_e2e/packets.py <output after an edit> --compare <output before>
+```
+
+**The cases** are in `step_cases.json`: `node-add-function`, `node-fix-bug`, `node-add-route` and `node-rename`.
+Each is a generic operation a step produces, on one fixture, `fixtures/node-base/`: a dependency-free Node project
+whose tests use `node --test`, with a deliberate `paginate()` bug. A case gives:
+- the step's request;
+- the work item the seed records as the plan's only item;
+- the paths its commits must touch;
+- the checks.
+
+**The seed** (`run.seed_run` with `fixture`, `work_item` and `delegation`) copies the fixture into a new git
+repository and commits it. It starts a run with that delegation (inline by default: one session, every packet in
+the main context). It then records every stage before step-plan without doing it, on the plugin's own navigator.
+
+**The stop.** `slice.py` polls every 2 s. Each poll archives every distinct packet ShipLoop has emitted, because
+`run/packets/<action>.md` is rewritten on each `next`. The poll ends the host once the item's inner loop is over:
+the run moved past item W1, left the inner loop, or stopped being active. A completed slice is never resumed.
+Grok and Codex sessions that end before the slice is complete are resumed, up to `--max-resumes`.
+
+**The verdicts**, written to `slice-result.json`:
+
+| verdict | passes when |
+|---|---|
+| `process` | the slice stop ended the host (status `slice-complete`) |
+| `inner_loop` | W1's carry-forward was accepted done |
+| `no_overshoot` | no result was accepted for an outer stage or for another item |
+| `committed` | the commits after the seed touch every expected path, change product files (not only `docs/shiploop/`), and leave nothing else uncommitted |
+| `checks` | every case check exits 0 in a clean `git archive HEAD` export of ShipLoop's product worktree |
+
+Release, system tests and the report are not reached, by design. ShipLoop command failures, model glue and
+`queue_growth` (items a carry-forward added) are recorded, not verdicts.
+
+**The packet report** (`packets.py`) is built from the run's files only. It works on any E2E output directory. On a
+full run, only the last copy of each packet is available.
+- **Per packet:**
+  - stage, kind (producer or Improve) and outcome;
+  - characters, and an estimate of tokens (characters ÷ 4);
+  - the largest sections;
+  - skill references named and any missing;
+  - distinct emissions observed, and the host's `next` calls for that action;
+  - the share of its lines already sent in an earlier packet. This share is reported, not flagged: restating how a
+    stage operates is the main tenet, and the number shows what it costs.
+- **Per stage:** `metrics.py`'s seconds, turns, tool calls and context peak.
+
+**Isolation.** Everything a slice writes is under its output directory (default `$TMPDIR/shiploop-e2e/slice-<case>-…`):
+- the product repository;
+- the run directory and ShipLoop's product worktree;
+- the plugin built from this checkout;
+- the event stream, the packet archive and the reports.
+
+No baseline row is written. The one exception is Claude's own session transcript, which lands in
+`~/.claude/projects/`, since the Claude host keeps the user's HOME.
+
+The no-model checks are `test/shiploop-step-packets.test.py` and `test/shiploop-e2e-slice.test.py`. The second uses
+a fake host that moves `state.md`, to prove the stop, the overrun report, the stop after queue growth, the
+committed-product rule and the packet archive.
+
 ## Review one run
 
 ```sh

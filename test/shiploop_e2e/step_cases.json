@@ -1,0 +1,48 @@
+{
+  "_about": "Step-slice cases (slice.py): one work item, run from step-plan to the end of its inner loop on a fixture repository. The prompt is the step's request; work_item is what the seed records as the plan's only item; checks run in a clean export of the product worktree's HEAD; expect_paths are fnmatch patterns the item's commits must touch.",
+  "node-add-function": {
+    "fixture": "node-base",
+    "prompt": "In this Node.js project, add a function slugify(text) to src/strings.js and export it. It lower-cases the text, turns every run of characters that are not a-z or 0-9 into one hyphen, and trims hyphens from both ends: slugify('  Hello, World! ') returns 'hello-world' and slugify('') returns ''. A non-string argument throws a TypeError, like the other helpers. Cover it with node:test tests; npm test must pass.",
+    "work_item": {"id": "W1", "title": "Add slugify(text) to src/strings.js",
+                  "context": "Lower-case; each run of non [a-z0-9] characters becomes one hyphen; trim hyphens at both ends; TypeError for a non-string; node:test tests."},
+    "expect_paths": ["src/strings.js", "test/*.test.js"],
+    "checks": [
+      "node --test",
+      "node -e \"const {slugify}=require('./src/strings');const a=require('assert');a.equal(slugify('  Hello, World! '),'hello-world');a.equal(slugify('A--b__c'),'a-b-c');a.equal(slugify(''),'');a.throws(()=>slugify(1),TypeError)\""
+    ]
+  },
+  "node-fix-bug": {
+    "fixture": "node-base",
+    "prompt": "In this Node.js project, paginate() in src/paginate.js loses the last page whenever the number of items is not a multiple of the page size: paginate([1,2,3,4,5], 3, 2) returns no items and reports 2 pages, but it should return { page: 3, pages: 3, items: [5] }. Fix the bug and add a regression test; npm test must pass.",
+    "work_item": {"id": "W1", "title": "Fix paginate() dropping the last partial page",
+                  "context": "paginate([1,2,3,4,5], 3, 2) must return { page: 3, pages: 3, items: [5] }; add a regression test."},
+    "expect_paths": ["src/paginate.js", "test/*.test.js"],
+    "checks": [
+      "node --test",
+      "node -e \"const {paginate}=require('./src/paginate');const a=require('assert');a.deepEqual(paginate([1,2,3,4,5],3,2),{page:3,pages:3,items:[5]});a.deepEqual(paginate([1,2,3,4],2,2),{page:2,pages:2,items:[3,4]});a.deepEqual(paginate([],1,2).items,[])\""
+    ]
+  },
+  "node-add-route": {
+    "fixture": "node-base",
+    "prompt": "In this Node.js project, add a health route to the HTTP server in src/server.js: GET /health answers 200 with the JSON body {\"ok\":true} and a content-type of application/json. The existing routes must keep working. Cover it with a node:test test; npm test must pass.",
+    "work_item": {"id": "W1", "title": "Add GET /health to src/server.js",
+                  "context": "GET /health -> 200, application/json, body {\"ok\":true}; existing routes unchanged; node:test test."},
+    "expect_paths": ["src/server.js", "test/*.test.js"],
+    "checks": [
+      "node --test",
+      "node -e \"const {createServer}=require('./src/server');const s=createServer();s.listen(0,'127.0.0.1',async()=>{const b='http://127.0.0.1:'+s.address().port;const r=await fetch(b+'/health');const ok=r.status===200&&/application\\/json/.test(r.headers.get('content-type'))&&JSON.stringify(await r.json())==='{\\\"ok\\\":true}'&&(await fetch(b+'/users/1')).status===200;s.close();process.exit(ok?0:1)})\""
+    ]
+  },
+  "node-rename": {
+    "fixture": "node-base",
+    "prompt": "In this Node.js project, rename getUser to findUser everywhere: its definition and export in src/users.js, its use in src/server.js, and the tests. Behaviour must not change and no getUser alias may remain. npm test must pass.",
+    "work_item": {"id": "W1", "title": "Rename getUser to findUser across the project",
+                  "context": "Definition, export, server use and tests; no behaviour change; no getUser left anywhere."},
+    "expect_paths": ["src/users.js", "src/server.js", "test/*.test.js"],
+    "checks": [
+      "node --test",
+      "! grep -rn getUser src test",
+      "node -e \"const {findUser}=require('./src/users');require('assert').equal(findUser(3).name,'Alan Turing')\""
+    ]
+  }
+}

@@ -145,7 +145,7 @@ class TestGroupTests(unittest.TestCase):
             "docs/notes.md": set(),
             "skills/shiploop/SKILL.md": {"shiploop-guidance", "shiploop-reference-routing",
                                          "shiploop-delegation", "shiploop-package-integrity",
-                                         "shiploop-packet-completeness"},
+                                         "shiploop-packet-completeness", "shiploop-step-packets"},
             "test/shiploop_consumer_delivery_support.py": {"shiploop-consumer-delivery"},
             # The Run Review leaf: its own suite plus the package build that gates a new leaf.
             "skills/shiploop-run-review/scripts/export.py": {"shiploop-run-review", "marketplace-package"},
@@ -421,7 +421,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
 
     FAMILY = {"shiploop-e2e", "shiploop-e2e-runrecord", "shiploop-e2e-fidelity", "shiploop-e2e-reorientation",
               "shiploop-e2e-environment", "shiploop-e2e-baseline", "shiploop-e2e-quality",
-              "shiploop-e2e-packet-anatomy", "shiploop-e2e-commit-counters"}
+              "shiploop-e2e-packet-anatomy", "shiploop-e2e-commit-counters", "shiploop-e2e-slice"}
 
     def test_the_pinned_family_is_every_e2e_suite_in_the_catalog(self) -> None:
         catalog = {suite.id for suite in suite_catalog.SHIPLOOP_SUITES if suite.id.startswith("shiploop-e2e")}
