@@ -286,13 +286,13 @@ label.opt .t{min-width:0}
 .pkt-head{font-family:var(--mono);font-size:12px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code-bg);padding:8px 10px;border-radius:6px;margin:6px 0 0}
 .sclist{margin-top:12px}
 .sc-list{display:grid;gap:4px;margin-top:8px}
-.sc-row{font:inherit;text-align:left;display:flex;flex-direction:column;gap:2px;padding:8px 10px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer;min-width:0}
+.sc-row{position:relative;font:inherit;text-align:left;display:flex;flex-direction:column;gap:2px;padding:8px 38px 8px 10px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer;min-width:0}
 .sc-row.sel{border-color:var(--accent);background:var(--accent-bg)}
-.sc-chev{display:inline-flex;align-items:center;justify-content:center;flex:none;width:14px;height:14px;color:var(--fg)}
-.sc-chev::before{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s}
+.sc-chev{position:absolute;right:12px;top:50%;width:14px;height:14px;margin-top:-7px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.sc-chev::before{content:"";width:8px;height:8px;margin-top:-3px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .15s}  /* a chevron pointing down: it can be opened */
 .sc-row:hover .sc-chev{color:var(--accent)}
 .sc-row[aria-expanded="true"] .sc-chev{color:var(--accent)}
-.sc-row[aria-expanded="true"] .sc-chev::before{transform:rotate(45deg)}
+.sc-row[aria-expanded="true"] .sc-chev::before{transform:rotate(-135deg);margin-top:3px}  /* pointing up: it is open and can be closed */
 .sc-open{margin:2px 0 8px 10px;padding-left:8px;border-left:3px solid var(--accent);min-width:0}
 .sc-open .sqd{margin:0}
 @media (prefers-reduced-motion:reduce){.sc-chev::before{transition:none}}
@@ -2259,8 +2259,7 @@ function renderCardList(model,run){
     var b=h("button","sc-row"+(pickedCol===r.col?" sel":""));b.type="button";b.setAttribute("aria-expanded",isOpen?"true":"false");
     if(isOpen)b.setAttribute("aria-controls","seqdetail");
     var top=h("span","sc-top"),nm=h("b","sc-name",r.stage);
-    var chev=h("span","sc-chev");chev.setAttribute("aria-hidden","true");top.appendChild(chev);
-    top.appendChild(h("span","sc-no",r.visit));
+        top.appendChild(h("span","sc-no",r.visit));
     if(r.raw){b.title=r.raw;if(r.rawShown)nm.appendChild(h("span","sc-raw",r.raw));}
     top.appendChild(nm);
     top.appendChild(chipEl(OUTCOME_CHIP[r.outcome]||"muted",r.outcome));
@@ -2268,6 +2267,7 @@ function renderCardList(model,run){
     var col=model.columns[r.col],fm=col&&col.n===1&&col.rows[0]?freshMarkText(col.rows[0].freshStart):"";
     if(fm)top.appendChild(chipEl("bent","fresh start",fm));
     b.appendChild(top);
+    var chev=h("span","sc-chev");chev.setAttribute("aria-hidden","true");b.appendChild(chev);  /* the traditional accordion chevron, at the right edge */
     if(r.purpose)b.appendChild(h("span","sc-purp",r.purpose));
     var bits=[];
     if(r.min)bits.push(r.min);

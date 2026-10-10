@@ -5785,6 +5785,12 @@ class StageCardPageTests(unittest.TestCase):
         self.assertEqual(after[1], -1)
         self.assertEqual((after[3], after[4]), ("", ""))  # closed: empty, and no longer styled as an open card
 
+    def test_the_open_card_is_marked_as_belonging_to_its_row_and_the_chevron_sits_at_the_row_edge(self):
+        css = TEMPLATE.read_text(encoding="utf-8").split("</style>")[0]
+        self.assertRegex(css, r"\.sc-open\{[^}]*border-left:3px solid var\(--accent\)")
+        self.assertRegex(css, r"\.sc-chev\{position:absolute;right:\d+px")  # the traditional accordion chevron: at the right edge
+        self.assertRegex(css, r'\.sc-row\[aria-expanded="true"\] \.sc-chev::before\{transform:rotate\(-135deg\)')  # down when closed, up when open
+
     def test_a_picture_click_opens_the_same_row_and_the_card_buttons_keep_the_card_in_the_list(self):
         out = page_probe(
             'var rows=function(){return byClass("sclist","sc-row");};'
