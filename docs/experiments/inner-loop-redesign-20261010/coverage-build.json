@@ -1,0 +1,895 @@
+{
+ "group": "build",
+ "obligations": [
+  {
+   "old_stage": "implement",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[implement].goal",
+   "obligation": "make the planned change",
+   "status": "covered",
+   "where": "implement: 'Goal: make step S<k> (k of N): <the step's task>'",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[implement].done_when[0]",
+   "obligation": "each completion criterion this step covers is confirmed after the last edit",
+   "status": "moved",
+   "where": "owner decision 3: criteria are proven by test ('the code behaves as the test spec defines') and verify ('Confirm each criterion with a check made after the last edit'); implement keeps 'check commands pass after the last edit'",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[implement].done_when[1]",
+   "obligation": "the lint gate reports no unwaived new finding on changed lines",
+   "status": "covered",
+   "where": "implement DONE WHEN: 'the lint gate reports no unwaived new finding on changed lines'",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[implement].develop",
+   "obligation": "one reviewed step at a time, in the execution checkout, matching house style",
+   "status": "covered",
+   "where": "implement: 'Make the change in the house style'; Improve child after every step",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[implement].test",
+   "obligation": "after each step rerun the checks it affects; change the work, never the check",
+   "status": "MISSING",
+   "where": "draft runs the check commands but never says 'change the work, never the check' (listed under kept, absent from the prompt)",
+   "fix": "Exit condition 2 + DO line: 'When a check fails, change the work, never the check, its expected result or the recorded command.'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[implement].tools",
+   "obligation": "run `shiploop lint --action` after each step; the lint gate runs at complete",
+   "status": "covered",
+   "where": "implement RUN: 'python3 <cli> lint --run-dir=<run> --action=<id>  (ShipLoop also lints at done)'",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement]",
+   "obligation": "preserve unrelated work",
+   "status": "MISSING",
+   "where": "not in the draft implement prompt (COMMON said it; the 4-part packet no longer prints COMMON)",
+   "fix": "Exit condition 1: only the step's paths changed; DO: 'Preserve unrelated work: no reformatting or reverting outside the step's paths.'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement]",
+   "obligation": "inspect the actual code as it changes and carry discoveries into later test refinement",
+   "status": "MISSING",
+   "where": "test-refine is gone; nothing carries implement's discoveries to the test stage",
+   "fix": "Exit condition 4: the result lists each behaviour the change added that no test-spec case covers (or 'none'); the test stage reads it."
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement]",
+   "obligation": "write first: list the step's paths, write them; read history or earlier reviews only when a check fails or a concrete question needs a section",
+   "status": "MISSING",
+   "where": "absent from draft",
+   "fix": "DO: 'Write first: edit the step's paths; read history or earlier reviews only when a check fails or a concrete question needs one section.'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement]",
+   "obligation": "run the item's named focused tests once after writing",
+   "status": "intentionally-dropped",
+   "where": "owner decision 3: tests are written after implement; the test stage runs them",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement] + STAGE_REFERENCES[implement]",
+   "obligation": "reopen Target-native test selection when actual code, config, dependencies or delivery route invalidate the earlier test decision",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'If the change invalidates a recorded test command (new dependency, moved module, new runtime), say so in the result; report revise when a recorded command can no longer run.' FILES: repeatable-test-suites.md#select-target-native-tests"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement] + CODE_CRAFT",
+   "obligation": "apply the planned behaviour and the Code craft rubric; do not claim verification from an edit alone",
+   "status": "CONTRADICTED",
+   "where": "draft FILES: 'code-craft rubric (condensed)': condensing CODE_CRAFT drops operative rules (Packets point to files; never trim guidance)",
+   "fix": "FILES: 'Code craft rubric (full, all nine rules): <run>/reference.md#code-craft' and the per-step Improve focus embeds CODE_CRAFT verbatim (see notes on CODE_CRAFT)."
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement] exit criteria (1)",
+   "obligation": "before editing, record for each criterion the confirming command/inspection and what counts as a pass (Confirm by:)",
+   "status": "moved",
+   "where": "step-plan records check commands and criteria per step; test-spec records RED/GREEN per case (other groups)",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement] exit criteria (1)",
+   "obligation": "existing tests, check scripts, golden/fixture files and thresholds belong to the checks: change them only when a criterion says to",
+   "status": "MISSING",
+   "where": "absent from implement",
+   "fix": "DO: 'Existing tests, check scripts, golden or fixture files and thresholds are checks: change one only when a criterion says to.'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement] exit criteria (2)",
+   "obligation": "never download, install or fetch a tool, runtime or dependency to confirm a criterion",
+   "status": "MISSING",
+   "where": "absent; draft CONTEXT_SHAPE.authority also drops the test-loop contract's 'Do not commit, push, install or download anything'",
+   "fix": "contract context.authority: 'Edit in-scope product code (and tests at the test stage). Never install, download or fetch a tool, runtime or dependency; never commit or push; never edit a recorded command or a check's expected result; ShipLoop callbacks belong to the parent, the loop never calls them.'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement] exit criteria (3)",
+   "obligation": "stay within the item: if satisfying a check would exceed the item, leave it failing and report the discrepancy",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "Repeat condition: stop blocked when the step 'would exceed the item'; DO: 'Do not do a later step's work or anything no criterion asks.'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement] exit criteria (4)",
+   "obligation": "after the last edit rerun every check in one pass; only that pass counts",
+   "status": "covered",
+   "where": "implement DONE WHEN: 'the check commands pass after the last edit'",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement] exit criteria (5)",
+   "obligation": "stop rules: done / revise on a criterion proven unachievable (definitions a, b, c) / blocked only for user, access or outside dependency",
+   "status": "CONTRADICTED",
+   "where": "draft: 'revise (the step plan is wrong or unachievable)' without the (a)(b)(c) proof rule, and the loop's repeat condition is not stated at all",
+   "fix": "Repeat condition carries the proof rule; Outcomes line: 'revise when the loop stopped blocked because the step is unachievable as planned (name the criterion and which of: contradicts a criterion/the item/a protected file, needs an absent tool/access/authority, exceeds the item); blocked with blocked_by only for user, access or an outside dependency.'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement] exit criteria (5) + shiploop_stage_spec.py:GENUINE_FIX_ATTEMPTS",
+   "obligation": "the same check still failing after 7 genuine fix attempts -> revise",
+   "status": "MISSING",
+   "where": "absent; test/shiploop-stage-spec.test.py pins every prose copy to GENUINE_FIX_ATTEMPTS",
+   "fix": "Repeat condition: '... or the same check still fails after 7 genuine fix attempts (stop blocked; report revise).' Keep the pinning test pointed at this text."
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement]",
+   "obligation": "report each criterion's check, final-pass output and level (confirmed/inspected/failed/not_run/unconfirmable)",
+   "status": "moved",
+   "where": "verify (owner decision 3/4): verify confirms each criterion after the last edit",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement]",
+   "obligation": "lint every step: after a step's last edit run the printed lint command and fix new findings on changed lines before the next step",
+   "status": "covered",
+   "where": "implement DO/RUN: lint command; exit condition 3",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement]",
+   "obligation": "unless the run's lint option is off, ShipLoop lints every file the item changed at done",
+   "status": "covered",
+   "where": "gate_after: lint gate (mode fix|report)",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement] + shiploop_navigator.py:_lint_gate",
+   "obligation": "ShipLoop refuses done once after applying an auto-fix (rerun checks, submit again)",
+   "status": "MISSING",
+   "where": "draft gate text names only the unwaived-finding refusal",
+   "fix": "Checked by: '... it refuses done once after applying an auto-fix (review it, rerun the checks, submit again) and while a new finding on a changed line has no waiver.'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement]",
+   "obligation": "a finding that must stay goes in lint_waivers as {id, reason}",
+   "status": "MISSING",
+   "where": "draft says 'has no waiver' but never the field or shape",
+   "fix": "RUN template: 'lint_waivers: [{\"id\": \"<printed ID>\", \"reason\": \"<why>\"}] (optional)'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_navigator.py:_lint_gate",
+   "obligation": "earlier implement steps only report (no auto-fix, no refusal); the item's last step gates",
+   "status": "CONTRADICTED",
+   "where": "draft 'Checked by: ShipLoop ... refuses done while a new finding on a changed line has no waiver' for every step; the gate refuses only on the last step",
+   "fix": "Either make every step gate (simplest now that an Improve child reviews each step), or word it: 'On the item's last step ShipLoop refuses ...; on earlier steps it reports without auto-fix.' Owner decides; prompt below assumes every step gates."
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_navigator.py:packet_head / lint.render_lines",
+   "obligation": "the printed lint command must run as printed",
+   "status": "covered",
+   "where": "draft added: 'a lint command that runs as printed'",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement] + STAGE_REFERENCES[implement]",
+   "obligation": "Coding decision guide: reopen the accepted plan and only relevant practice/platform sections; check current code, versions and consumers before reuse or augmentation; justified revisions retained; new prerequisite uses the correction route",
+   "status": "MISSING",
+   "where": "draft consults architecture.md only",
+   "fix": "FILES: coding-guidance.md#select-guidance; DO: 'A new prerequisite or authority boundary is a revise, not an in-step fix.' (reuse check is CODE_CRAFT rule 9)"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:_INLINE_DUTY_PARAGRAPHS[implement] (inline)",
+   "obligation": "one step per packet; do not start a later step, bind a chain or dispatch Ask Agent/native workers; revise when the step cannot be done as planned",
+   "status": "covered",
+   "where": "implement: 'Later steps: <..SN> (do not start them)'; outcome revise",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:_INLINE_DUTY_PARAGRAPHS[implement] (ask-agent)",
+   "obligation": "delegated route: one writer when the plan says no parallel chain; otherwise bind the default parallel chain (Plan Dispatcher + Ask-Agent), capacity, adoption, merge, cleanup, claim every safe candidate",
+   "status": "MISSING",
+   "where": "draft implement has no delegated-route text; owner decision 4 only says verify assembles chained/parallel results",
+   "fix": "Keep the ask-agent paragraph, moved to reference.md#parallel-chain, and print one line in the delegated render: 'Delegation ask-agent: follow <run>/reference.md#parallel-chain for this item's chain; ShipLoop issues verify after the combined return.'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:DUTIES[implement]",
+   "obligation": "service changes: apply the accepted contract and Service discovery guidance; revalidate target state and authority before effects; preserve unrelated remote fields and owners; safe fallback for unresolved cache/async",
+   "status": "moved",
+   "where": "draft dropped list: 'the service-change paragraph (to the reference)'",
+   "fix": "reference.md#service-changes, and FILES must list service-discovery.md#development-handoff when the step's paths touch a service"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:STAGE_REFERENCES[implement]",
+   "obligation": "references: service discovery, coding guide, house style, target-native tests, parallel chain, repeatable suites, implementation constitution",
+   "status": "MISSING",
+   "where": "draft FILES lists only spec, plan, step-plan, test-spec, code-craft",
+   "fix": "FILES adds: house-style.md#match-while-building, coding-guidance.md#select-guidance, testing-and-documentation.md#implementation-constitution, service-discovery.md#development-handoff, parallel-chain.md (ask-agent only)"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_navigator.py:complete (item_scope.scope_refusal)",
+   "obligation": "for an item whose test stages are left out (test_commands_na + non-code paths), implement's done is refused if the change touches code or undeclared paths",
+   "status": "MISSING",
+   "where": "draft has no word on the no-test item; the test stage drafts assume commands always exist",
+   "fix": "Checked by (printed only for such an item): 'This item has no test stage (step plan: <test_commands_na>); ShipLoop refuses done if the change touches a code or test path or a path the step plan did not declare.'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:IMPROVE_SCOPES[implement]",
+   "obligation": "Improve scope: the scoped implementation, code contracts, diagnostics, and error behaviour",
+   "status": "covered",
+   "where": "implement gate_after: Improve child per step; focus list below (IMPLEMENT_STEP_REVIEW_FOCUS)",
+   "fix": ""
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:COMMON",
+   "obligation": "'Only planning results ... get an actual Improve-skill handoff; every other result ... advances directly'",
+   "status": "CONTRADICTED",
+   "where": "owner decision 1 adds an Improve child after every implement step",
+   "fix": "COMMON / reference.md: 'Planning results, each implement step, and the carry-forward that leaves no work item pending get an actual Improve handoff; every other result is accepted on its own checks.'"
+  },
+  {
+   "old_stage": "implement",
+   "source": "shiploop_prompts.py:_improve_prompt (coding_review)",
+   "obligation": "Improve at implement uses the Coding decision guide; implementation review needs actual evidence",
+   "status": "covered",
+   "where": "per-step Improve focus: 'rerun the recorded check commands and the lint command after your last edit'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[test-author].done_when[0]",
+   "obligation": "each case in the test spec has a test the focused command runs",
+   "status": "covered",
+   "where": "test DONE WHEN 1",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[test-author].done_when[1]",
+   "obligation": "the tests are wired into the suite and repeatable",
+   "status": "covered",
+   "where": "test: 'registered in the focused and regression commands'; candidate run repeats them",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[test-author].test + shiploop_stage_spec.py:_CASE_STATES",
+   "obligation": "every case ends validated, validated another way (method changed, why), or unachievable (revise; blocked only for access); written-but-not-run is not an end state",
+   "status": "CONTRADICTED",
+   "where": "draft exit: 'every case ... is a test the focused command runs' leaves no end state for a case validated another way (a real-boundary or manual procedure) and none for unachievable",
+   "fix": "Exit condition 1 allows 'validated another way, recorded in the result with the method and why'; repeat condition stops blocked on an unachievable case -> revise naming the case and the requirement it leaves unverified."
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[test-author].tools",
+   "obligation": "tests follow the repository's test framework and lint rules",
+   "status": "covered",
+   "where": "test: lint gate + check commands; consult architecture.md ## Conventions for test style",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_prompts.py:DUTIES[test-author]",
+   "obligation": "select/revalidate the harness and boundaries from the run-wide test strategy before authoring",
+   "status": "covered",
+   "where": "test Consult: 'test-strategy.md (## Harnesses and suites, ## ID convention)'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_prompts.py:DUTIES[test-author]",
+   "obligation": "author from the independent test specification; never weaken or delete an assertion to make the candidate pass",
+   "status": "covered",
+   "where": "test: 'from the spec's oracle and never from the code' ... 'never delete or skip one'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_prompts.py:DUTIES[test-author]",
+   "obligation": "preserve adequate coverage and keep experiments isolated",
+   "status": "MISSING",
+   "where": "'keep experiments isolated' absent",
+   "fix": "DO: 'Keep probes and experiments in the Scratch directory, never in the suite.'"
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_prompts.py:DUTIES[test-author]",
+   "obligation": "author the specified rejection cases for each public entry point as executable tests",
+   "status": "MISSING",
+   "where": "test stage writes only test-spec cases; the public entry points exist only now, after implement",
+   "fix": "DO: 'For each new or changed public entry point, the test spec's rejection cases are tests; one it lacks is a test-spec gap: add the case to test-spec.md with its oracle from the spec, then write it.'"
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_prompts.py:DUTIES[test-author]",
+   "obligation": "register each case in the full regression route and focused entry points; smoke membership decided independently without duplicating tests",
+   "status": "MISSING",
+   "where": "regression/focused covered; smoke membership absent",
+   "fix": "reference.md#test-suites: smoke membership rule; FILES cites it"
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_prompts.py:DUTIES[test-author] + STAGE_REFERENCES",
+   "obligation": "follow the Repeatable test-suite guide for setup/teardown, safe fixture sharing, rerun instructions; verify discovery selects the cases",
+   "status": "moved",
+   "where": "discovery is script-checked (listed IDs shown); setup/teardown guidance -> FILES repeatable-test-suites.md#select-or-revalidate-the-harness",
+   "fix": "FILES must list it (draft does not)"
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_prompts.py:DUTIES[test-author]",
+   "obligation": "remote-resident cases: retain/version remote definitions and registration with install/invocation prerequisites",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "reference.md#test-suites (remote-resident cases); one FILES line"
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_prompts.py:DUTIES[test-author]",
+   "obligation": "keep unavailable execution prerequisites and later-phase observations pending",
+   "status": "MISSING",
+   "where": "absent: a case due at system-test has no place",
+   "fix": "Exit condition 1: a case whose due phase is later is listed in the result as pending with its due stage and owner, not written as a failing test."
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_test_loop.py:PROBE_STAGE/probe_lines",
+   "obligation": "probe: ShipLoop runs focused commands once; a test must run (counted pass with IDs, or failing test with IDs); load errors refused",
+   "status": "moved",
+   "where": "subsumed by the candidate run (every command exits 0, runs >=1 test and every listed ID) and the RED base run",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_test_loop.py:accepted_counts",
+   "obligation": "the probe's count is the first floor for the item",
+   "status": "moved",
+   "where": "owner decision 3: 'The base regression count is the floor'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_test_loop.py:PROBE_RULE",
+   "obligation": "tests loading something the item creates need a loadable placeholder or an in-test load",
+   "status": "intentionally-dropped",
+   "where": "draft dropped: 'the code exists by now'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_prompts.py:TEST_FACILITY_HANDOFF (block test-facility)",
+   "obligation": "reuse/extend existing frameworks, helpers, skills, MCP before defining the smallest missing facility; retain definition locator, readiness, owner, revalidation",
+   "status": "MISSING",
+   "where": "draft drops the block entirely ('the duplicated facility and test-decision handoffs (one line)' is in test-spec only)",
+   "fix": "DO: 'Reuse the existing harness, helpers and fixtures before adding a facility; record a new one in test-strategy.md (## Harnesses and suites).' Full text -> reference.md#test-facilities."
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_prompts.py:TEST_DECISION_HANDOFF (block test-decision)",
+   "obligation": "reopen the current item's test-decision source; state retained/refined/superseded decisions",
+   "status": "moved",
+   "where": "test Consult: test-strategy.md and step-plan; revised decisions recorded in test-strategy.md; full text -> reference.md#test-decisions",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-author",
+   "source": "shiploop_prompts.py:STAGE_REFERENCES[test-author]",
+   "obligation": "house style and test-case planning guidance",
+   "status": "MISSING",
+   "where": "not in FILES",
+   "fix": "FILES: house-style.md#match-while-building, testing-and-documentation.md#test-cases"
+  },
+  {
+   "old_stage": "test-red",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[test-red].done_when[0]",
+   "obligation": "the focused commands fail and each new test's failure names the missing behaviour",
+   "status": "CONTRADICTED",
+   "where": "owner decision 3 moves RED to a base run, but test_counts has no per-ID pass/fail: verify(red) only knows a command failed with >=1 failing test; 'no new test ID passes' is not measurable today, and a load failure on base shows no ID (status ids-missing / not-red)",
+   "fix": "Gate rule: on the base with the item's test files applied, each focused command must not pass: a failing test, or a load failure whose missing name is a path the item added. Per-ID 'must not pass' needs a per-ID pass/fail reader in shiploop_test_counts (owner decides: build it, or accept command-level RED as today)."
+  },
+  {
+   "old_stage": "test-red",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[test-red].done_when[1]",
+   "obligation": "no failure is caused by syntax, import, fixture or environment",
+   "status": "CONTRADICTED",
+   "where": "on the base a new module's tests fail by import by design; the old refusal 'not-red' would refuse every greenfield item",
+   "fix": "Implied by the candidate run passing (same test files load and pass there); on the base accept an import failure only for a path the item added (git diff --diff-filter=A against the lint base)."
+  },
+  {
+   "old_stage": "test-red",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[test-red].develop",
+   "obligation": "do not edit product code at test-red",
+   "status": "intentionally-dropped",
+   "where": "owner decision 3: RED is a script run; no model turn edits for it",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-red",
+   "source": "shiploop_prompts.py:DUTIES[test-red]",
+   "obligation": "a missing test facility is a prerequisite gap, not meaningful RED; facility readiness must not need future behaviour",
+   "status": "covered",
+   "where": "candidate run must pass; base run is script-only",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-red",
+   "source": "shiploop_prompts.py:DUTIES[test-red] + shiploop_test_loop.py:red_lines",
+   "obligation": "red_na: characterisation tests that already pass; ShipLoop then expects them to pass and still checks they ran",
+   "status": "CONTRADICTED",
+   "where": "owner: 'red_na exempts a characterisation test'; today red_na is one string for the whole result and flips every focused command to expect-pass",
+   "fix": "Make red_na a list: red_na: [{\"id\": \"<test ID>\", \"reason\": \"...\"}]; the base run exempts only those IDs (needs the per-ID reader), or keep it per command: [{\"command\": ..., \"reason\": ...}]."
+  },
+  {
+   "old_stage": "test-red",
+   "source": "shiploop_test_loop.py:_explain(green)",
+   "obligation": "refusal names red_na as the route when a test passes before the change",
+   "status": "covered",
+   "where": "test exit 3 / gate: 'unless red_na names it'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[test-green].done_when[0]",
+   "obligation": "every focused command passes on the bound Until Loop and when ShipLoop reruns it",
+   "status": "covered",
+   "where": "test exit 2 + gate candidate run",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_prompts.py:_TEST_LOOP_DUTY",
+   "obligation": "read the bound Until Loop card once per context; start with the printed command; do not edit, retype or extend the contract",
+   "status": "MISSING",
+   "where": "draft says 'pass it unchanged' but does not tell the model to read the card",
+   "fix": "Amendment block: 'open the card <abs ADAPTER.md> and follow it'"
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_prompts.py:_TEST_LOOP_DUTY",
+   "obligation": "execute each returned iteration then call its done command; never write the receipt; after a reset resume via next_argv; continue until complete or stopped",
+   "status": "covered",
+   "where": "test: 'Never write the receipt; after a reset, if it exists, resume from it, do not restart'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_prompts.py:_TEST_LOOP_DUTY + shiploop_quality.py:RECEIPT_REF_LINE",
+   "obligation": "list the receipt in evidence_refs; ShipLoop refuses done without it",
+   "status": "CONTRADICTED",
+   "where": "draft puts it in RUN only ('receipt (prefilled in evidence_refs)'), not in DONE WHEN, though the gate refuses without it",
+   "fix": "DONE WHEN: 'the result's evidence_refs keeps the receipt path <run>/loops/<id>-terminal.json'"
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_prompts.py:_TEST_LOOP_DUTY",
+   "obligation": "done when the loop completed; revise when it stopped blocked because a failure is unachievable as planned; blocked only for user/access/outside",
+   "status": "CONTRADICTED",
+   "where": "draft repeat condition 'stop blocked only when the harness cannot run here' contradicts its own revise outcome ('a case or check is unachievable as planned')",
+   "fix": "Repeat condition: 'Stop blocked when a failure is proven unachievable: it contradicts the specification or another requirement, needs a tool, access or authority that is absent, or would exceed the item; or a recorded command cannot run here.'"
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_prompts.py:TEST_REPEAT_CONDITION",
+   "obligation": "never stop cancelled: a user's stop is the packet's pause command",
+   "status": "MISSING",
+   "where": "absent from draft repeat condition",
+   "fix": "append to repeat condition"
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_prompts.py:TEST_EXIT_CONDITION + shiploop_quality.py:check_loop_packet",
+   "obligation": "the exit iteration 'changed nothing' (trivial) and required_trivial_reviews=1; a complete packet must carry a trivial report",
+   "status": "CONTRADICTED",
+   "where": "draft contract sets required_trivial_reviews 0 and drops 'the iteration changed nothing'; with 0 the runtime completes on any satisfied exit, and check_loop_packet then refuses a non-trivial complete packet",
+   "fix": "Either keep required_trivial_reviews 1 (today), or (brief rule: 0) change check_loop_packet to accept a complete packet with exit_assessment satisfied whatever its classification when the contract's required_trivial_reviews is 0. The prompt below uses 0 and needs that engine change."
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_prompts.py:_TEST_LOOP_DUTY + shiploop_test_loop.py:verify",
+   "obligation": "after a refusal fix the code, start the loop again (terminal packet replaced) and submit again",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "Checked by: 'After a refusal, fix it, start the loop again with the same command (the receipt is replaced) and submit again.'"
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_test_loop.py:MAX_REFUSED_RUNS",
+   "obligation": "after 11 refused runs done is no longer accepted: report revise",
+   "status": "covered",
+   "where": "test Checked by: 'After 11 refused runs done is no longer accepted: report revise.'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_test_loop.py:UNAVAILABLE/_disposition/remedy_open",
+   "obligation": "timeouts, start failures and budget skips refuse but do not count toward the 11; revise is then accepted without a loop packet; per-command 600 s and per-run 1800 s budget",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "reference.md#test-runs (one line in Checked by: 'a run that times out or cannot start refuses without counting; if the recorded command itself is wrong or too slow, report revise')"
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_prompts.py:_TEST_LOOP_DUTY",
+   "obligation": "the lint gate runs before ShipLoop's test run (refuse once after auto-fix; unwaived finding)",
+   "status": "CONTRADICTED",
+   "where": "draft names 'lints this item's changes' but not the auto-fix refusal; same fix as implement",
+   "fix": "Checked by: lint gate sentence as in implement"
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_prompts.py:DUTIES[test-green]",
+   "obligation": "a passing command only supports the outcomes it actually exercises",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'A passing command proves only the cases it runs; a case no command runs is not covered.' (exit 1 makes it checkable)"
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_test_loop.py:loop_lines (Unavailable)",
+   "obligation": "no bound runtime: run the listed commands yourself until they pass; ShipLoop still runs them",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "reference.md#until-loop: fallback when the card/runtime is missing; check_terminal skips the packet check without improve_skill"
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_test_loop.py:loop_lines (no commands)",
+   "obligation": "no command: done with test_commands_na reason, or revise when the step plan recorded none",
+   "status": "MISSING",
+   "where": "draft test stage assumes commands exist",
+   "fix": "Packet line when the plan has none: 'The step plan recorded no test command: report revise so it records them' (an item with test_commands_na and only non-code paths skips this stage: item_scope.no_test_item)."
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_test_loop.py:COUNT_RULE",
+   "obligation": "a pass needs exit 0, a counted run of >=1 test and every listed ID; a filter matching nothing is not evidence; whole suite does not satisfy an ID; uncounted focused command needs ids and a name-printing reporter",
+   "status": "covered",
+   "where": "test exit 2 ('each exiting 0 after running at least one test and every ID listed for it'); reporter rule -> reference.md#test-runs",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_prompts.py:ID_WORD_RULE",
+   "obligation": "a listed ID counts only as its own word in a test's printed name",
+   "status": "covered",
+   "where": "test: 'titled with its ID as a whole word'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_prompts.py:TEST_ITERATION",
+   "obligation": "iteration: run every command in order; record exit codes and failing names; find cause; fix product; change a check only with an independent recorded reason; rerun the whole list after the last edit",
+   "status": "covered",
+   "where": "test contract work",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-green",
+   "source": "shiploop_test_loop.py:_contract scope/authority",
+   "obligation": "loop scope: the item's change and its tests; preserve every other change; authority: no commit/push/install/download; callbacks belong to the parent",
+   "status": "CONTRADICTED",
+   "where": "draft CONTEXT_SHAPE.authority: 'ShipLoop's commit rule for the item; no push' invites a commit inside the loop and drops install/download and the callback rule",
+   "fix": "context.authority as in the implement fix"
+  },
+  {
+   "old_stage": "test-refine",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[test-refine].done_when[0]",
+   "obligation": "tests are tightened against the actual implementation",
+   "status": "covered",
+   "where": "test: written after implement, asserting 'the specified behaviour exactly'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-refine",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[test-refine].test",
+   "obligation": "tighten weak assertions; change a check only for an independent reason",
+   "status": "covered",
+   "where": "test: 'Change a test only for an independent reason you record'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-refine",
+   "source": "shiploop_prompts.py:DUTIES[test-refine]",
+   "obligation": "recheck the run-wide test strategy against the observed implementation; record revised decisions",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'Where the implementation changes a test decision (harness, boundary, suite), record it in test-strategy.md under ## Harnesses and suites.'"
+  },
+  {
+   "old_stage": "test-refine",
+   "source": "shiploop_prompts.py:DUTIES[test-refine]",
+   "obligation": "Target-native selection: reassess affected native suites and prior exclusions against the actual changes",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'Add to the regression command any existing suite the changed paths now affect; report revise if that changes the recorded commands.' FILES: repeatable-test-suites.md#select-target-native-tests"
+  },
+  {
+   "old_stage": "test-refine",
+   "source": "shiploop_prompts.py:DUTIES[test-refine]",
+   "obligation": "cover changed failure behaviour, debug on/off behaviour and safe diagnostic context where relevant",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'Where the change adds an error path or debug output, test it (on and off).'"
+  },
+  {
+   "old_stage": "test-refine",
+   "source": "shiploop_prompts.py:DUTIES[test-refine]",
+   "obligation": "correct an oracle only with an independent reason; never retrofit tests to the implementation",
+   "status": "covered",
+   "where": "test: 'from the spec's oracle and never from the code'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-refine",
+   "source": "shiploop_prompts.py:DUTIES[test-refine] + shiploop_test_loop.py:REFINE_RULE/accepted_counts",
+   "obligation": "reconcile the clause/case inventory: explain every removed or narrowed case; the floor resets at test-refine",
+   "status": "CONTRADICTED",
+   "where": "draft 'reconcile removed cases -> the floor': a base-count floor cannot be lowered, so an item that legitimately retires an existing test (brownfield) has no route; the old ratchet reset at step-plan/test-refine",
+   "fix": "Add a declared route: the result's retired_tests: [{\"test\": \"<id or path>\", \"reason\": \"<requirement/AD that retires it>\"}]; ShipLoop lowers that command's floor by the retired count it can see removed (a test file deleted vs the base), refuses an unexplained drop. Owner decides."
+  },
+  {
+   "old_stage": "test-refine",
+   "source": "shiploop_prompts.py:DUTIES[test-refine]",
+   "obligation": "preserve missing consumer coverage as pending, not a local pass",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "Exit condition 1's 'pending with due stage and owner' clause"
+  },
+  {
+   "old_stage": "test-refine",
+   "source": "shiploop_prompts.py:DUTIES[test-refine]",
+   "obligation": "reassess setup/teardown and safe sharing; keep refined tests registered; refresh case/fixture/command/cost notes",
+   "status": "moved",
+   "where": "reference.md#test-suites; registration is exit condition 1",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-refine",
+   "source": "shiploop_prompts.py:PASS_OR_STOP (block pass-or-stop)",
+   "obligation": "pass-or-stop: final pass counts; change a check only with independent reason; stop rules incl. 7 genuine fix attempts",
+   "status": "moved",
+   "where": "the test loop replaces it; its uncapped Until Loop plus the 11-run cap replaces the 7-attempt rule at this stage (SPEC S-10 carve-out); implement keeps 7",
+   "fix": ""
+  },
+  {
+   "old_stage": "regression",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[regression].done_when[0]",
+   "obligation": "every recorded command passes on the loop and on ShipLoop's rerun, so no check that passed at baseline fails now",
+   "status": "CONTRADICTED",
+   "where": "draft floor compares counts only; a regression test that FAILED at base and still fails is indistinguishable from a new break, and a pre-existing red suite blocks the item forever",
+   "fix": "Base floor run records per command exit and counts; validate-existing (other group) must surface a red base suite as a failed expectation before implement. Test gate: a command that failed on the base is still required green (the item must not ship red), so state that in the packet."
+  },
+  {
+   "old_stage": "regression",
+   "source": "shiploop_prompts.py:DUTIES[regression]",
+   "obligation": "scope: every command, focused and regression (retained suites from the test strategy)",
+   "status": "covered",
+   "where": "test exit 2: 'ran every recorded command'",
+   "fix": ""
+  },
+  {
+   "old_stage": "regression",
+   "source": "shiploop_prompts.py:DUTIES[regression]",
+   "obligation": "revalidate retained facility definitions and readiness for this target; reuse the route when it fits",
+   "status": "moved",
+   "where": "reference.md#test-facilities",
+   "fix": ""
+  },
+  {
+   "old_stage": "regression",
+   "source": "shiploop_prompts.py:DUTIES[regression]",
+   "obligation": "distinguish product defect, invalid test and environment with a small discriminating observation; repeated unchanged failure is not progress",
+   "status": "covered",
+   "where": "test work",
+   "fix": ""
+  },
+  {
+   "old_stage": "regression",
+   "source": "shiploop_prompts.py:DUTIES[regression]",
+   "obligation": "a smoke pass cannot stand for the required full suite",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'A smoke or subset run never stands for a recorded regression command.'"
+  },
+  {
+   "old_stage": "regression",
+   "source": "shiploop_prompts.py:STAGE_REFERENCES[regression]",
+   "obligation": "real-boundary test guidance",
+   "status": "MISSING",
+   "where": "not in FILES",
+   "fix": "FILES: testing-and-documentation.md#layers-and-real-boundaries; test-strategy.md ## Real-boundary checks"
+  },
+  {
+   "old_stage": "regression",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[regression].reads",
+   "obligation": "reads item:baseline",
+   "status": "moved",
+   "where": "base run record <run>/tests/<id>-base.md (script) replaces baseline's result",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[static-checks].tools",
+   "obligation": "lint, type, build and format checks run",
+   "status": "covered",
+   "where": "step-plan records check commands; implement exit 2 and test exit 2 run them",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[static-checks].done_when[1] / complete_runs test-rerun",
+   "obligation": "every recorded command passes when ShipLoop reruns it",
+   "status": "covered",
+   "where": "test gate candidate run (and verify's own rerun, other group)",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "shiploop_stage_spec.py:STAGE_SPEC[static-checks].entry_runs",
+   "obligation": "change-inventory, quality-contract, advisory-lint (auto-fix on first entry)",
+   "status": "moved",
+   "where": "owner decision 4: verify",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "shiploop_prompts.py:DUTIES[static-checks]",
+   "obligation": "state any required unrun check and why it could not run",
+   "status": "MISSING",
+   "where": "absent from test",
+   "fix": "Outcomes line: 'blocked or revise names each required command that could not run and why'"
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "shiploop_prompts.py:DUTIES[static-checks]",
+   "obligation": "a lint block is supporting output: keep or revert any auto-fix it names; still run the stage's own checks",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "Checked by (implement and test): 'after an auto-fix refusal, keep or revert the fix, rerun the checks, submit again'"
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "shiploop_prompts.py:QUALITY_ITERATION",
+   "obligation": "trace entry points valid/boundary/invalid; review against Code craft",
+   "status": "moved",
+   "where": "verify (owner decision 4) and the per-step Improve focus",
+   "fix": ""
+  },
+  {
+   "old_stage": "all build stages",
+   "source": "shiploop_stage_spec.py:blocks code-craft",
+   "obligation": "test-author, test-red, implement, test-green, test-refine, regression and static-checks all carried the full CODE_CRAFT block",
+   "status": "CONTRADICTED",
+   "where": "draft prints a 'condensed' rubric at implement and none at test",
+   "fix": "CODE_CRAFT stays one constant in shiploop_prompts; rendered in full to <run>/reference.md#code-craft and quality/code-craft.md; implement and test FILES point to it; the per-step Improve focus and verify's review embed it verbatim (fresh contexts); END_REVIEW_FOCUS keeps it."
+  },
+  {
+   "old_stage": "implement (new)",
+   "source": "shiploop_prompts.py:IMPROVE_SCOPES / PLANNING_REVIEW_FOCUS style",
+   "obligation": "per-step Improve child needs a concrete focus list",
+   "status": "MISSING",
+   "where": "draft gate_after names 'code craft, architecture.md, the use of the step's skills' only",
+   "fix": "Add IMPLEMENT_STEP_REVIEW_FOCUS (text in stages[implement].notes) and IMPROVE_SCOPES['implement'] = 'one implementation step's diff: its task and criteria, scope, code contracts, diagnostics, error behaviour, architecture fit and skill use'."
+  },
+  {
+   "old_stage": "test (loop checks)",
+   "source": "shiploop_test_loop.py:verify / _test_loop_gate",
+   "obligation": "terminal-packet check precedes ShipLoop's own run; repeat never valid; blocked always accepted; revise without packet when remedy_open",
+   "status": "covered",
+   "where": "test gate_after; outcomes done|blocked|revise",
+   "fix": ""
+  },
+  {
+   "old_stage": "test (loop checks)",
+   "source": "shiploop_test_loop.py:listing_problem",
+   "obligation": "the submitted command list must fit the contract byte budget (refused at step-plan)",
+   "status": "covered",
+   "where": "unchanged at step-plan (other group); the test contract embeds the list",
+   "fix": ""
+  },
+  {
+   "old_stage": "test (loop checks)",
+   "source": "shiploop_test_loop.py:accepted_counts",
+   "obligation": "the floor is a ratchet: the most any accepted run of a command ran since the step plan; a test removed or newly skipped between attempts is refused",
+   "status": "CONTRADICTED",
+   "where": "base-count floor alone lets a test written in iteration 3 and deleted in iteration 5 vanish, as long as base count is met",
+   "fix": "Keep both: floor = max(base count, most tests any earlier ShipLoop run of this action counted); exit condition 2 says 'at least the floor ShipLoop printed'. New test IDs are also held by 'every listed ID shown'."
+  },
+  {
+   "old_stage": "test (loop checks)",
+   "source": "shiploop_test_loop.py:verify (red base run)",
+   "obligation": "where RED runs: the item's base checkout",
+   "status": "MISSING",
+   "where": "drafts name 'the item's base checkout with only this item's test files applied' with no mechanism",
+   "fix": "Gate: export the lint base tree (lint.capture_base at step-plan) to <run>/tests/<id>-base/, overlay the changed paths that item_scope.classify marks as tests, run the focused commands with GIT_CEILING_DIRECTORIES set (as release-verify's copy does); run the regression commands on the pure base for the floor. Each base attempt is recorded in tests/<id>-base<N>.md; a refused base run counts toward the 11."
+  },
+  {
+   "old_stage": "test (loop checks)",
+   "source": "drafts.py:test (exit conditions)",
+   "obligation": "each exit condition must imply what the gate refuses",
+   "status": "CONTRADICTED",
+   "where": "draft exit lacks the RED-on-base condition, the floor, the lint gate and the receipt; the loop can exit on a state the gate then refuses",
+   "fix": "Give the model a script verb that runs the same base check: 'python3 <cli> red-check --run-dir=<run> --action=<id>' (new; prints which new IDs pass on the base and the floor) and make it exit condition 3; exit 2 names the floor; exit 4 the lint command."
+  },
+  {
+   "old_stage": "test (loop checks)",
+   "source": "drafts.py:test (test-spec coverage)",
+   "obligation": "every test-spec case has a test",
+   "status": "covered",
+   "where": "test DONE WHEN 1",
+   "fix": "Make it a script check: ShipLoop parses case IDs from <feature>/test-spec.md and refuses done while a case ID is in no focused command's ids and not listed as pending/validated another way."
+  }
+ ],
+ "stages": [
+  {
+   "id": "implement",
+   "prompt": "DO\nGoal: make step S<k> (k of N): <the step's task>.\nCriteria for this step: <C-ids and their text>. Paths: <the step's paths>.\nEarlier accepted steps: <S1..>. Later steps: <..SN>: do not start them, and do no work no criterion asks for.\nSkills for this step (chosen at step-plan): <name: why \u00b7 locator>, one per line, or none. Invoke each through your\nhost, or read its SKILL.md and follow it, for the purpose given.\nConsult and cite: spec (the R-<n> behind each criterion) for the behaviour; architecture.md (## Structure,\n## Interfaces and boundaries, ## Conventions, ## Decisions) for where the code goes and how it reads: a departure is\nrecorded as a new AD-<n> under ## Decisions before you finish; environment.md (## Commands): record a newly\nworking command there.\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Make step S<k>'s change on its paths against its criteria, in the house style and the Code craft rubric; then run every recorded check command and the printed lint command, and for each failure or new finding on a changed line find its cause and change the work, never the check, its expected result or the recorded command.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. Only the step's paths changed since the step began (`git -C <worktree> diff --name-only <step base>` lists no other path), and no later step's work is in them.\n    2. After the last edit, every recorded check command exited 0, each exit code recorded in <run>/notes/<id>.md.\n    3. After the last edit, the printed lint command reports no new finding on a line this step changed, except entries in the result's lint_waivers, each with a reason.\n    4. The result lists each behaviour the change added that no test-spec case covers (or says none), and for each printed step skill whether it was used and, if not, why.\n  Repeat while: Repeat while a check command fails or the lint command reports a new finding on a changed line and the latest iteration changed code to fix it; there is no iteration limit. Stop blocked when the step is proven unachievable as planned: a criterion contradicts another criterion, the item or a protected file; it needs a tool, access or authority that is absent; or it would exceed the item; or when the same check still fails after 7 genuine fix attempts. Never stop cancelled: a user's stop is the ShipLoop packet's pause command.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/<id>-contract.json\n  Receipt: <run>/loops/<id>-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs skills>/improve/runtime/until-loop/ADAPTER.md and follow it with this argument. Either way the loop starts with:\n  python3 <abs skills>/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt <run>/loops/<id>-terminal.json < <run>/loops/<id>-contract.json\nNever write or edit the receipt. If it exists and its status is active, do not start again: run its next_argv.\nIn each iteration: write first (edit the step's paths; read history or earlier reviews only when a check fails or a\nconcrete question needs one section). Preserve unrelated work. Existing tests, check scripts, golden or fixture files\nand thresholds are checks: change one only when a criterion says to. Never install, download or fetch a tool,\nruntime or dependency. Do not write tests: the test stage writes them from the test spec after the last step.\nIf the change invalidates a recorded command (a moved module, a new runtime), or needs a new prerequisite or\nauthority, the step is not achievable as planned: stop the loop blocked and report revise.\nCommands (each from <worktree>):\n  [check] <each recorded check command, numbered: lint, type, build>\n  lint: python3 <cli> lint --run-dir=<run> --action=<id>\n\nDONE WHEN\n- Only the step's paths changed since the step began (`git -C <worktree> diff --name-only <step base>` lists no other path), and no later step's work is in them.\n- After the last edit, every recorded check command exited 0, each exit code recorded in <run>/notes/<id>.md.\n- After the last edit, the printed lint command reports no new finding on a line this step changed, except entries in the result's lint_waivers, each with a reason.\n- The result lists each behaviour the change added that no test-spec case covers (or says none), and for each printed step skill whether it was used and, if not, why.\n- the loop's receipt <run>/loops/<id>-terminal.json is complete and listed in evidence_refs\nChecked by: ShipLoop checks the receipt against the contract; lints this item's changes, refusing done once after\napplying an auto-fix (keep or revert it, rerun the checks, submit again) and while a new finding on a changed line has\nno lint_waivers entry; checks that only the step's paths changed. [Only for an item with no test stage: it refuses\ndone if the change touches a code or test path or a path the step plan did not declare.] Then an Improve child\nreviews this step (focus: the step's task and criteria, scope, Code craft, architecture.md, skill use) and commits\nwarranted edits; the next step starts from its result.\nOutcomes: done | blocked (blocked_by user, access or external only) | revise (the loop stopped blocked: name the\ncriterion and why it is unachievable as planned, or the check that failed 7 genuine fix attempts).\n\nRUN  the Until Loop start line \u00b7 the check and lint commands \u00b7 template (lint_waivers: [{\"id\": \"<printed ID>\",\n     \"reason\": \"<why>\"}] optional) \u00b7 callback \u00b7 Improve start \u00b7 recovery\nFILES  grounding \u00b7 results: spec, plan, step-plan, test-spec \u00b7 Code craft rubric (full): <run>/reference.md#code-craft \u00b7\n       house-style.md#match-while-building \u00b7 coding-guidance.md#select-guidance \u00b7\n       testing-and-documentation.md#implementation-constitution \u00b7 service-discovery.md#development-handoff (service\n       steps) \u00b7 <run>/reference.md#parallel-chain (delegation ask-agent only)",
+   "contract": {
+    "work": "Make step S<k>'s change on its paths against its criteria, in the house style and the Code craft rubric; then run every recorded check command and the printed lint command, and for each failure or new finding on a changed line find its cause and change the work, never the check, its expected result or the recorded command.",
+    "exit_condition": "(1) Only the step's paths changed since the step began (`git -C <worktree> diff --name-only <step base>` lists no other path), and no later step's work is in them. (2) After the last edit, every recorded check command exited 0, each exit code recorded in <run>/notes/<id>.md. (3) After the last edit, the printed lint command reports no new finding on a line this step changed, except entries in the result's lint_waivers, each with a reason. (4) The result lists each behaviour the change added that no test-spec case covers (or says none), and for each printed step skill whether it was used and, if not, why.",
+    "repeat_condition": "Repeat while a check command fails or the lint command reports a new finding on a changed line and the latest iteration changed code to fix it; there is no iteration limit. Stop blocked when the step is proven unachievable as planned: a criterion contradicts another criterion, the item or a protected file; it needs a tool, access or authority that is absent; or it would exceed the item; or when the same check still fails after 7 genuine fix attempts. Never stop cancelled: a user's stop is the ShipLoop packet's pause command.",
+    "required_trivial_reviews": 0
+   },
+   "gate_after": "receipt: check_loop_packet against the contract rebuilt from state (receipt in evidence_refs; status complete; with required_trivial_reviews 0 accept a satisfied exit whatever the classification: engine change); exit 1 -> script: diff of the step's changes (snapshot at step start, like lint.capture_base) against the step's paths; plus item_scope.scope_refusal for a no-test item; exit 2 -> script possible: ShipLoop reruns the step's check commands (test_loop.verify with suite check only); today it does not: owner decides (cheap; recommended); exit 3 -> script: _lint_gate (refuse once after auto-fix; refuse unwaived new finding on changed lines); exit 4 -> model evidence (result fields; ShipLoop can refuse an empty field: 'uncovered_behaviours' and 'skills_used' present); then the Improve child (IMPLEMENT_STEP_REVIEW_FOCUS + CODE_CRAFT); the improve-complete gate refuses uncommitted review edits",
+   "notes": "1. Lint gating per step: _lint_gate today gates only the item's last implement step (earlier steps report, without auto-fix, because a later step may use an import). Prompt assumes every step gates; with an Improve child per step that is the consistent choice. Owner decides.\n2. required_trivial_reviews 0 (brief rule) needs quality.check_loop_packet to stop requiring a trivial report on a complete packet when the contract's value is 0; otherwise use 1.\n3. Exit 2 is not re-checked by script today; adding a suite-check rerun at implement's done makes the exit condition script-backed.\n4. Per-step Improve focus (new constant IMPLEMENT_STEP_REVIEW_FOCUS, IMPROVE_* style):\nImplementation step review focus. This result is one step of the item's step plan, and its tests are written\nlater from the test spec, so this review is the only check of the code before them. Review the step's diff (the\nstep's paths since the step began) and fix, within those paths, any of these:\n- the change does not do the step's task, or misses a criterion as the spec's R-<n> states it, or does work no\n  criterion asks for (a later step's work, a feature the item does not request);\n- a file changed outside the step's paths, or unrelated work reverted or reformatted;\n- a new or changed public entry point that does not check its arguments before any effect, swallows an error or\n  returns a success default (Code craft 2);\n- a public function without its contract docstring, a comment that restates code, or dead code (rules 3-4);\n- code placed outside architecture.md's ## Structure or ## Conventions, or a departure with no new AD-<n> under\n  ## Decisions; a name that collides or is exported wider than needed (rule 8);\n- a near-copy of existing logic, a new unit where an existing one could be reused, composed or augmented, or a\n  dependency, option or fallback with no present need (rules 1, 9);\n- a failure that is not diagnosable, or user-facing text assembled from fragments or bypassing the catalog\n  (rules 6-7); for a UI step, a plain or static interaction where the plan calls for a rich one (rule 5);\n- a step skill listed in the packet and not used, or used against its stated purpose, with no reason in the result;\n- a behaviour the code now has that no test-spec case covers and the result does not list for the test stage;\n- a recorded check command that fails, or a new lint finding on a changed line with no waiver, after your last edit.\nDo not write tests, start a later step, or edit a recorded command. Rerun the step's check commands and the printed\nlint command after your last edit and record their exit codes. Commit your edits. A pass that finds none of these is\ntrivial.\n\n<CODE_CRAFT, verbatim>\n5. COMMON's 'Only planning results ... get an actual Improve-skill handoff' must name implement steps.\n6. CODE_CRAFT placement: keep the single constant; render it in full to <run>/reference.md#code-craft and quality/code-craft.md; point implement and test FILES at it; embed it verbatim in IMPLEMENT_STEP_REVIEW_FOCUS, verify's review loop and END_REVIEW_FOCUS (fresh contexts read no other file reliably). Never a condensed copy.\n7. The ask-agent parallel-chain paragraph must survive (reference.md#parallel-chain) while delegation ask-agent exists (owner decision 10 does not remove it)."
+  },
+  {
+   "id": "test",
+   "prompt": "DO\nGoal: the test spec's cases are tests, and every recorded command passes: the code behaves as the test spec defines.\nConsult and cite: test-spec.md (every case and its oracle); the implement results (behaviours no case covers: add\neach to test-spec.md with an oracle from the spec, then test it); test-strategy.md (## Harnesses and suites, ## ID\nconvention, ## Real-boundary checks); environment.md (## Commands); architecture.md (## Conventions) for test style\nand seams; spec for what each behaviour must be.\nCommands (ShipLoop runs each from <worktree> before accepting done; floors from the base run):\n  1. [focused] <cmd> (must run: TC-1..TC-n)\n  2. [regression] <cmd> (floor: <n> tests)\n  3. [check] <lint / type / build cmd>\n  red-check: python3 <cli> red-check --run-dir=<run> --action=<id>\n  lint: python3 <cli> lint --run-dir=<run> --action=<id>\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Write or fix tests for every test-spec case not yet covered (titled with its ID as its own word, registered in the focused and regression commands, asserting the spec's oracle, never the code's behaviour); run every recorded command, the red-check command and the lint command; for each failure find its cause with one small observation (product defect, invalid test, environment) and fix the product code, changing a test only for an independent reason you record.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. Every case in <feature>/test-spec.md is a test titled with its case ID as its own word, listed in a focused command's ids and run by it; or is recorded in the result as validated another way (the method and why) or as pending (its due stage and owner).\n    2. One complete iteration after the last edit ran every recorded command (focused, regression, check); each exited 0; each focused and regression command ran at least one test, showed every ID listed for it, and ran at least the floor ShipLoop printed for it.\n    3. The printed red-check command reports that no new test ID passes on the item's base, except IDs named in the result's red_na with a reason.\n    4. After the last edit, the printed lint command reports no new finding on a changed line, except entries in the result's lint_waivers, each with a reason.\n    5. Every test, fixture, golden file or threshold changed to make a run pass has its independent reason recorded in <run>/notes/<id>.md.\n  Repeat while: Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count below the floor, a new ID passing on the base, or a lint finding, and changed code or tests to fix it; there is no iteration limit. Stop blocked when a failure is proven unachievable: it contradicts the specification or another requirement, needs a tool, access or authority that is absent, or would exceed the item; or when a recorded command cannot run here. Never stop cancelled: a user's stop is the ShipLoop packet's pause command.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/<id>-contract.json\n  Receipt: <run>/loops/<id>-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs skills>/improve/runtime/until-loop/ADAPTER.md and follow it with this argument. Either way the loop starts with:\n  python3 <abs skills>/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt <run>/loops/<id>-terminal.json < <run>/loops/<id>-contract.json\nNever write or edit the receipt. If it exists and its status is active, do not start again: run its next_argv.\nIn each iteration: reuse the existing harness, helpers and fixtures before adding one, and record a new facility in\ntest-strategy.md (## Harnesses and suites). Each new or changed public entry point gets its rejection cases. Test a\nnew error path or debug output, on and off. Add to the regression command any existing suite the changed paths now\naffect; if that changes a recorded command, stop blocked and report revise. Never weaken, delete or skip a test; a\nsmoke or subset run never stands for a recorded command; a passing command proves only the cases it runs. A repeated\nunchanged failure is not progress: change the approach. Keep probes in the Scratch directory. Never install,\ndownload or fetch a tool or dependency; never commit or push.\nA characterisation test that passes without this item's change: name it in red_na with the reason.\n\nDONE WHEN\n- Every case in <feature>/test-spec.md is a test titled with its case ID as its own word, listed in a focused command's ids and run by it; or is recorded in the result as validated another way (the method and why) or as pending (its due stage and owner).\n- One complete iteration after the last edit ran every recorded command (focused, regression, check); each exited 0; each focused and regression command ran at least one test, showed every ID listed for it, and ran at least the floor ShipLoop printed for it.\n- The printed red-check command reports that no new test ID passes on the item's base, except IDs named in the result's red_na with a reason.\n- After the last edit, the printed lint command reports no new finding on a changed line, except entries in the result's lint_waivers, each with a reason.\n- Every test, fixture, golden file or threshold changed to make a run pass has its independent reason recorded in <run>/notes/<id>.md.\n- the loop's receipt <run>/loops/<id>-terminal.json is complete and listed in evidence_refs\nChecked by: ShipLoop lints this item's changes (refusing done once after an auto-fix: keep or revert it, rerun, submit\nagain; and while a new finding on a changed line has no waiver); checks the receipt against the contract; refuses a\ntest-spec case ID that no focused command lists and the result does not record; runs the focused commands on the item's\nbase with only this item's test files (refused if a new ID passes there and red_na does not name it); then runs every\ncommand on the candidate (refused unless each exits 0, runs every listed ID and reaches its floor). After a refusal,\nfix it, start the loop again (the receipt is replaced) and submit again. A run that times out or cannot start refuses\nwithout counting; after 11 counted refusals done is no longer accepted: report revise.\nOutcomes: done | blocked (blocked_by user, access or external only) | revise (name the unachievable case or command,\nwhy, and the requirement it leaves unverified; name every required command that could not run).\n\nRUN  the Until Loop start line \u00b7 red-check \u00b7 lint \u00b7 template (red_na optional; lint_waivers optional; case states) \u00b7\n     callback \u00b7 recovery\nFILES  grounding \u00b7 results: test-spec, step-plan, implement (each step) \u00b7 environment.md \u00b7 test-strategy.md \u00b7 Code craft\n       rubric: <run>/reference.md#code-craft \u00b7 repeatable-test-suites.md#select-or-revalidate-the-harness \u00b7\n       repeatable-test-suites.md#select-target-native-tests \u00b7 testing-and-documentation.md#test-cases \u00b7\n       testing-and-documentation.md#layers-and-real-boundaries \u00b7 <run>/reference.md#test-runs (counting, timeouts,\n       reporters, smoke, remote-resident cases, no-runtime fallback)",
+   "contract": {
+    "work": "Write or fix tests for every test-spec case not yet covered (titled with its ID as its own word, registered in the focused and regression commands, asserting the spec's oracle, never the code's behaviour); run every recorded command, the red-check command and the lint command; for each failure find its cause with one small observation (product defect, invalid test, environment) and fix the product code, changing a test only for an independent reason you record.",
+    "exit_condition": "(1) Every case in <feature>/test-spec.md is a test titled with its case ID as its own word, listed in a focused command's ids and run by it; or is recorded in the result as validated another way (the method and why) or as pending (its due stage and owner). (2) One complete iteration after the last edit ran every recorded command (focused, regression, check); each exited 0; each focused and regression command ran at least one test, showed every ID listed for it, and ran at least the floor ShipLoop printed for it. (3) The printed red-check command reports that no new test ID passes on the item's base, except IDs named in the result's red_na with a reason. (4) After the last edit, the printed lint command reports no new finding on a changed line, except entries in the result's lint_waivers, each with a reason. (5) Every test, fixture, golden file or threshold changed to make a run pass has its independent reason recorded in <run>/notes/<id>.md.",
+    "repeat_condition": "Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count below the floor, a new ID passing on the base, or a lint finding, and changed code or tests to fix it; there is no iteration limit. Stop blocked when a failure is proven unachievable: it contradicts the specification or another requirement, needs a tool, access or authority that is absent, or would exceed the item; or when a recorded command cannot run here. Never stop cancelled: a user's stop is the ShipLoop packet's pause command.",
+    "required_trivial_reviews": 0
+   },
+   "gate_after": "order: lint gate first (tests run on auto-fixed code) -> terminal packet -> case coverage -> base RED run -> candidate run; exit 1 -> script: parse case IDs from <feature>/test-spec.md; each must be in some focused command's ids or in the result's case states (validated another way / pending); 'shown in output' is checked by the candidate run; exit 2 -> script: test_loop.verify on the candidate (judge: exit 0, counted >=1 test, ids shown, floor = max(base count, most counted by an earlier ShipLoop run of this action)); exit 3 -> script: base run: lint base tree exported, the item's test-class files overlaid, focused commands run; refuse when a new ID passes (needs per-ID reader) or the command passes, unless red_na names it; an import failure counts as RED only for a path the item added; exit 4 -> script: _lint_gate; exit 5 -> model evidence (notes file exists; Improve does not run here); receipt -> check_loop_packet (accept complete regardless of classification when required_trivial_reviews is 0: engine change); caps: MAX_REFUSED_RUNS 11 counted refusals (base + candidate), UNAVAILABLE not counted, remedy_open accepts revise without a packet",
+   "notes": "Checks in shiploop_test_loop.py and what changes now that tests follow implement and RED runs on the base:\n- probe (PROBE_STAGE/probe_lines/PROBE_RULE): removed; the candidate run already refuses a run of zero tests or missing IDs, and the placeholder rule is moot.\n- RED (RED_STAGE/red_lines/judge red=True): moves to a base run. judge(red) is command-level (>=1 failing test, IDs shown); 'no new test ID passes' needs a per-ID pass/fail reader in shiploop_test_counts. On the base a new module's tests fail at import, so not-red/ids-missing must be accepted when the missing import is a path the item added. Needs a new verb red-check so the loop can see what the gate will refuse.\n- red_na: today one string that flips every focused command to expect-pass; make it per ID or per command.\n- floor (accepted_counts/RATCHET_RULE): base count alone loses the in-action ratchet; use max(base, earlier accepted). The floor restart at a revised step plan stays; the REFINE reset (REFINE_STAGE/REFINE_RULE) has no stage left, so a deliberate test retirement needs a declared route (retired_tests) or the brownfield item is stuck. Owner decides.\n- refused runs (MAX_REFUSED_RUNS=11, UNAVAILABLE, refused_runs, remedy_open, latest_attempt_could_not_run): keep unchanged; count base-run refusals too.\n- terminal-packet check (check_terminal/check_loop_packet): keep; contract required_trivial_reviews 1 today. Brief's 0 needs check_loop_packet to accept a satisfied non-trivial complete packet, or keep 1 for test.\n- STAGES/RERUN_STAGES: test-green and regression collapse into one loop stage running all suites (stage_commands' focused-only filter goes); test-refine's test-rerun goes; static-checks' test-rerun moves to verify.\n- default_suite_drift, OUTER_SOURCES, observation (release-verify): outer, unchanged.\n- no-command cases: test_commands_na + only non-code paths skips the stage (item_scope.no_test_item); otherwise no command -> revise. The packet must print that line.\nRegression red at base: a recorded regression command that already fails on the base will block the item; validate-existing (other group) should surface it before implement."
+  }
+ ]
+}

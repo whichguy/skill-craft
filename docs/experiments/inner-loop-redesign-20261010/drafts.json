@@ -1,0 +1,1082 @@
+{
+ "stages": [
+  {
+   "id": "step-plan",
+   "phase": "Plan",
+   "name": "step-plan",
+   "absorbs": [
+    "get-next-work-item",
+    "baseline (dropped: no gate read it)"
+   ],
+   "role": "Plan this item: behaviour-sized steps, the criteria each satisfies, the test, lint and build commands, and the files it changes; confirm the item is still required.",
+   "gate_before": "shape checks (commands, criteria, deps, paths) + Improve review",
+   "gate_after": "1 -> model evidence + Improve. 2 -> _normalise_steps, _check_step_sizing (+ unknown-criterion check). 3 -> _normalise_criteria. 4 -> normalise_commands + new check_na rule + listing_problem. 5 -> new _check_expectations (shape, step IDs, one-line check, open-assumption coverage from the plan's assumptions). 6 -> new locator existence check. 7 -> knowledge_home STAGE_FILES + heading search; _check_submitted_evidence. 8 -> the same CLI gates; git status outside KNOWLEDGE; knowledge_home.check (credentials, R-<n> drop).",
+   "prompt": "DO\nGoal: plan this item's concrete changes and the checks that prove them.\nShipLoop checked that this item's prerequisites are accepted (listed below) and recorded its lint base <commit>.\nConfirm the plan still requires this item: reopen its context and its section of <feature>/plan.md and recheck each condition they state. If the plan no longer requires it, report blocked (blocked_by user, awaiting an answer: drop or keep), citing the plan section.\nConsult, and cite the headings you used:\n- spec.md (## Requirements, ## Non-functional requirements): the R-<n> this item serves; each criterion traces to one.\n- architecture.md (## Structure, ## Interfaces and boundaries, ## Conventions, ## Decisions): where the change goes and the house style. A structural choice the file does not make yet is a new AD-<n> under ## Decisions, written now.\n- environment.md (## Commands, ## Targets and runtimes, ## Skills): test, lint, type and build commands; a new working command goes under ## Commands.\n- test-strategy.md (## Harnesses and suites, ## ID convention).\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Draft or revise the step-plan result file <run>/results/<action>-draft.json and this item's plan.md section from the cited knowledge-home headings, then run `python3 <shiploop> complete --check-only --run-dir <run> --result <draft>` and fix each refusal.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. the result draft opens with one sentence naming the change and the checks that prove it\n    2. steps lists every step in order; each has deps (earlier IDs only), criteria (listed IDs only) and paths inside the item's paths; every criterion is served by a step; no step changes only test files unless every item path is a test\n    3. every criterion is named by at least one command's criteria, and commands name only listed criteria\n    4. test_commands has focused and regression rows and at least one check row, or check_na; or test_commands_na; and the list fits the test loop contract\n    5. every expectation has a one-line check and names existing steps; each open plan assumption whose consumer is this item has an expectation; or expectations_na gives the reason\n    6. every skill locator given exists\n    7. <feature>/plan.md has this item's section, and evidence_refs lists it and every file written, as absolute paths\n    8. the latest `complete --check-only` run on the final draft reports no refusal, and git status shows changes only under docs/shiploop/ and SHIPLOOP.md\n  Repeat while: a check-only refusal remains or an exit condition above does not hold; stop blocked only when the plan no longer requires the item.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/step-plan-contract.json\n  Receipt: <run>/loops/step-plan-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs skills>/improve/runtime/until-loop/ADAPTER.md and follow it with this argument. Either way the loop starts with:\n  python3 <abs skills>/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt <run>/loops/step-plan-terminal.json < <run>/loops/step-plan-contract.json\n- Steps: one behaviour-level change a named check proves, in the order to do them; ShipLoop issues one implement packet per step. Split two independently confirmable behaviours, a module-boundary crossing (interface first), an \"and\" between two outcomes, or a step too big to review in one pass. Merge a step no check confirms on its own into the step it serves. Tests are not a step (the test stage writes them after implement). deps: only earlier step IDs it truly needs, or [].\n- Criteria [{id, text}]: each says what is exercised and the expected result, so two people running its command would agree. A condition no command can confirm is not a criterion: record it as an open item in the summary (who does what, what they report). A new or changed public entry point adds the criterion \"checks its arguments and carries a contract docstring (Code craft 2-3)\".\n- test_commands [{command, suite, ids?, min_tests?, criteria?}]: focused (this item's cases), regression (the retained suites) and check (each lint, type and build command environment.md records for these files, exit 0 when clean; no ids or min_tests). Each runs from the repository root; ShipLoop runs them itself and refuses a run of zero tests. Give each focused command the ids its cases will carry and a flag that prints test names (Jest --verbose, pytest -v, node --test spec reporter). An ID counts only as its own word (title TC-4a as \"TC-4 (a)\"). No lint/type/build for these files: check_na with the reason. No command at all: test_commands_na.\n- paths: every file the item changes. ShipLoop commits only these and refuses implement edits outside them; a docs-or-config-only item with no command skips the test stage.\n- Per-step skills [{name, why, locator}]: reread the host's skills and the repository's skill directory now (an earlier item may have added one); pick a skill only for a concrete use in that step; [] is fine.\n- expectations [{id, statement, steps, check, from?}]: each fact the steps build on that must already hold (an existing symbol, route, schema or file with the shape used; the defect reproduces; a tool or service is reachable). check is one read-only shell command from the repository root that exits 0 when the statement holds on the unchanged base. Each open plan assumption whose consumer is this item becomes an expectation with from: <assumption id>. Only what this plan relies on; not a health check.\n- In <feature>/plan.md under this item: outcome, invariants kept, contracts changed, failure cases and diagnostics, docs to change, integration impact and release prerequisites, revalidation conditions. When the item adds code or stored data: each new symbol's home and collision check; each stored field's owner, migration and round-trip check. When it touches UI, events, channels or state: the Design basis per run/reference.md#interaction-design. Label pinned values a check replays as fixtures and name the runtime control apart.\nChange no product file. Planning never expands this item's scope. Do not commit docs/shiploop yourself.\n\nDONE WHEN (the loop's exit conditions, same words)\n1. the result draft opens with one sentence naming the change and the checks that prove it\n2. steps lists every step in order; each has deps (earlier IDs only), criteria (listed IDs only) and paths inside the item's paths; every criterion is served by a step; no step changes only test files unless every item path is a test\n3. every criterion is named by at least one command's criteria, and commands name only listed criteria\n4. test_commands has focused and regression rows and at least one check row, or check_na; or test_commands_na; and the list fits the test loop contract\n5. every expectation has a one-line check and names existing steps; each open plan assumption whose consumer is this item has an expectation; or expectations_na gives the reason\n6. every skill locator given exists\n7. <feature>/plan.md has this item's section, and evidence_refs lists it and every file written, as absolute paths\n8. the latest `complete --check-only` run on the final draft reports no refusal, and git status shows changes only under docs/shiploop/ and SHIPLOOP.md\nChecked by: ShipLoop reruns every refusal behind conditions 2-8 on complete; then (planning review: stage) an Improve child reviews the plan.\nOutcomes: done | repeat | blocked\n\nRUN  the /until-loop block (above) \u00b7 result template \u00b7 check-only \u00b7 callback \u00b7 Recovery\nFILES  spec.md, feature spec, architecture.md, environment.md, test-strategy.md, <feature>/plan.md (absolute) \u00b7 results: spec, test-strategy, plan, prepare \u00b7 run/reference.md#step-plan (backchain audit, parallel chain, namespaces and data, service work, interaction design, test decisions)",
+   "kept": [
+    "steps with deps (dependency order)",
+    "test_commands focused/regression",
+    "criteria and paths",
+    "Improve review",
+    "interaction-design and test-facility blocks (condensed)"
+   ],
+   "moved": [
+    "get-next-work-item's 'still required / prerequisites' check -> the first DO line (prerequisites accepted is listed by ShipLoop)",
+    "baseline -> validate-existing, now gated and run by ShipLoop"
+   ],
+   "added": [
+    "expectations: the preconditions this plan relies on, each with a check, for validate-existing (owner 2026-10-10)",
+    "helper skills chosen per step, with why, carried into that step's implement packet (owner 2026-10-10)",
+    "step sizing rules and their gate",
+    "a required check suite: each lint/type/build command from environment.md, or check_na (the static-check invocations static-checks relied on, now recorded once and refused when missing)",
+    "the Consult block: spec, architecture, environment, test strategy with headings",
+    "new AD-<n> written at step-plan"
+   ],
+   "dropped": [
+    "the design-basis / interaction-design duplication (merged, review finding: ~3.3k)",
+    "three overlapping test handoffs (one paragraph)"
+   ],
+   "notes": "Owner decisions: (1) add `complete --check-only` (a dry run of the CLI gates) so exit 8 is observable before complete; without it the loop is redundant with complete's own refusals. (2) Criteria always required (recommended) vs only with commands (today's gate). (3) The 'no longer required' route: blocked/user as written, or a new INNER route. (4) Move entry_runs lint-base from get-next-work-item to step-plan. (5) _normalise_steps must accept skills; remove skill_na and its two gates. (6) architecture.md must join knowledge_home.LIVING so AD-<n> writes are screened as living knowledge. (7) Improve clause printed only when planning_review is stage.",
+   "draft_chars": 8045,
+   "old_stages": [
+    "get-next-work-item",
+    "step-plan"
+   ],
+   "old_stage_text_chars": 38747,
+   "old_duty_chars": 12792,
+   "contract": {
+    "workspace": "<the item's execution checkout, absolute>",
+    "work": "Draft or revise the step-plan result file <run>/results/<action>-draft.json and this item's plan.md section from the cited knowledge-home headings, then run `python3 <shiploop> complete --check-only --run-dir <run> --result <draft>` and fix each refusal.",
+    "exit_condition": "1. the result draft opens with one sentence naming the change and the checks that prove it 2. steps lists every step in order; each has deps (earlier IDs only), criteria (listed IDs only) and paths inside the item's paths; every criterion is served by a step; no step changes only test files unless every item path is a test 3. every criterion is named by at least one command's criteria, and commands name only listed criteria 4. test_commands has focused and regression rows and at least one check row, or check_na; or test_commands_na; and the list fits the test loop contract 5. every expectation has a one-line check and names existing steps; each open plan assumption whose consumer is this item has an expectation; or expectations_na gives the reason 6. every skill locator given exists 7. <feature>/plan.md has this item's section, and evidence_refs lists it and every file written, as absolute paths 8. the latest `complete --check-only` run on the final draft reports no refusal, and git status shows changes only under docs/shiploop/ and SHIPLOOP.md",
+    "repeat_condition": "a check-only refusal remains or an exit condition above does not hold; stop blocked only when the plan no longer requires the item.",
+    "required_trivial_reviews": 0,
+    "context": {
+     "request": "the run's original request (verbatim) and this item's title and context",
+     "scope": "this item's paths from the step plan; the execution checkout at its item lint base",
+     "authority": "ShipLoop's commit rule for the item; no push; never edit the recorded commands",
+     "environment": "the execution checkout; the recorded commands from the step plan; environment.md's Commands",
+     "resources": [
+      {
+       "purpose": "living spec",
+       "locator": "<repo>/docs/shiploop/spec.md"
+      },
+      {
+       "purpose": "architecture",
+       "locator": "<repo>/docs/shiploop/architecture.md"
+      },
+      {
+       "purpose": "environment",
+       "locator": "<repo>/docs/shiploop/environment.md"
+      },
+      {
+       "purpose": "test strategy",
+       "locator": "<repo>/docs/shiploop/test-strategy.md"
+      },
+      {
+       "purpose": "bound loop skill",
+       "locator": "<skills>/improve/runtime/until-loop/ADAPTER.md"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "test-spec",
+   "phase": "Plan",
+   "name": "test-spec",
+   "absorbs": [],
+   "role": "Specify the cases before code: at least one per criterion, each with an independent oracle and a RED and GREEN definition.",
+   "gate_before": "knowledge-home close (the test-spec file) + Improve review",
+   "gate_after": "1, 2 -> new heading/field scan of test-spec.md (cheap) or model evidence; oracle independence -> model evidence + Improve. 3 -> new id-match script check (focused ids vs '### <id>' headings). 4 -> knowledge_home.CLOSES['test-spec']; plus knowledge_home.check (credentials, R-<n>).",
+   "prompt": "DO\nGoal: specify the tests this item needs before any code changes.\nConsult and cite:\n- spec.md (## Requirements): every case cites its criterion and R-<n>; its oracle comes from the requirement's text, never from code. A golden, fixture or snapshot oracle is checked against that text first.\n- architecture.md (## Interfaces and boundaries): the surface each case tests at (unit, the module's public interface, the real boundary, rendered UI).\n- test-strategy.md (## Harnesses and suites, ## ID convention, ## Real-boundary checks): IDs, harness, where a real boundary is required; reuse its frameworks and helpers before defining the smallest missing facility; state which of its decisions this item keeps or changes, and why.\n- the step plan: criteria and the focused commands' ids.\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Write or fix one test-spec.md entry per case for this item's criteria, then run the printed id-match command and fix any mismatch.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. every criterion has at least one entry in test-spec.md, or a justified not-applicable line naming it\n    2. every entry has criterion and R-<n>, surface and due phase, setup, action, independent oracle, RED, GREEN, teardown (or stateless) and its command row\n    3. the printed id-match command exits 0: every focused id has a '### <id>' entry and every entry id is in a command\n    4. test-spec.md and plan.md exist and are non-empty\n  Repeat while: a criterion has no entry, an entry lacks a field, or the id-match command fails; stop with revise when a criterion cannot be tested as written.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/test-spec-contract.json\n  Receipt: <run>/loops/test-spec-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs skills>/improve/runtime/until-loop/ADAPTER.md and follow it with this argument. Either way the loop starts with:\n  python3 <abs skills>/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt <run>/loops/test-spec-terminal.json < <run>/loops/test-spec-contract.json\n- One \"### <ID>\" entry per case in <abs docs/shiploop/features/<slug>/test-spec.md>: criterion and R-<n>, surface and due phase, setup, action, independent oracle (the expected observation, never only that a page loads), RED (how it fails on the base, or characterisation: passes on the base, so the test stage records red_na), GREEN, teardown (or \"stateless\"), and the command row that runs it.\n- Cover positive, failure and boundary behaviour. For each new or changed public entry point, one rejection case per constraint it checks, asserting the error type, the named argument and unchanged state.\n- Isolate per test unless sharing setup is shown safe; say which suite registers each case.\n- A case due later (system test, release) is linked with its phase, not claimed here. This file is a specification, not evidence.\nIf a criterion cannot be tested as written, report revise naming it.\n\nDONE WHEN (the loop's exit conditions, same words)\n1. every criterion has at least one entry in test-spec.md, or a justified not-applicable line naming it\n2. every entry has criterion and R-<n>, surface and due phase, setup, action, independent oracle, RED, GREEN, teardown (or stateless) and its command row\n3. the printed id-match command exits 0: every focused id has a '### <id>' entry and every entry id is in a command\n4. test-spec.md and plan.md exist and are non-empty\nChecked by: on done ShipLoop refuses a missing or empty test-spec.md or plan.md, an id mismatch, knowledge lines that look like credentials, or a living spec missing an earlier R-<n>; it commits docs/shiploop/ (do not commit it yourself); then (planning review: stage) an Improve child reviews the cases.\nOutcomes: done | repeat | blocked | revise\n\nRUN  the /until-loop block (above) \u00b7 id-match command \u00b7 result template \u00b7 callback \u00b7 Recovery\nFILES  spec.md, feature spec, architecture.md, test-strategy.md (absolute) \u00b7 results: spec, test-strategy, plan, step-plan \u00b7 test-spec.md to write (absolute) \u00b7 run/reference.md#test-cases, #test-suites",
+   "kept": [
+    "one case per criterion, oracle, RED/GREEN",
+    "Improve review"
+   ],
+   "moved": [],
+   "added": [
+    "the file name test-spec.md and the ID match with the step plan (both missing today; the first live complete was refused for it)",
+    "Consult block with headings"
+   ],
+   "dropped": [
+    "the duplicated facility and test-decision handoffs (one line)"
+   ],
+   "notes": "Owner: print and gate the id-match check (recommended; a missing file/ID match caused the first live refusal). The per-entry field scan is optional; Improve already reviews quality.",
+   "draft_chars": 4305,
+   "old_stages": [
+    "test-spec"
+   ],
+   "old_stage_text_chars": 12377,
+   "old_duty_chars": 1416,
+   "contract": {
+    "workspace": "<the item's execution checkout, absolute>",
+    "work": "Write or fix one test-spec.md entry per case for this item's criteria, then run the printed id-match command and fix any mismatch.",
+    "exit_condition": "1. every criterion has at least one entry in test-spec.md, or a justified not-applicable line naming it 2. every entry has criterion and R-<n>, surface and due phase, setup, action, independent oracle, RED, GREEN, teardown (or stateless) and its command row 3. the printed id-match command exits 0: every focused id has a '### <id>' entry and every entry id is in a command 4. test-spec.md and plan.md exist and are non-empty",
+    "repeat_condition": "a criterion has no entry, an entry lacks a field, or the id-match command fails; stop with revise when a criterion cannot be tested as written.",
+    "required_trivial_reviews": 0,
+    "context": {
+     "request": "the run's original request (verbatim) and this item's title and context",
+     "scope": "this item's paths from the step plan; the execution checkout at its item lint base",
+     "authority": "ShipLoop's commit rule for the item; no push; never edit the recorded commands",
+     "environment": "the execution checkout; the recorded commands from the step plan; environment.md's Commands",
+     "resources": [
+      {
+       "purpose": "living spec",
+       "locator": "<repo>/docs/shiploop/spec.md"
+      },
+      {
+       "purpose": "architecture",
+       "locator": "<repo>/docs/shiploop/architecture.md"
+      },
+      {
+       "purpose": "environment",
+       "locator": "<repo>/docs/shiploop/environment.md"
+      },
+      {
+       "purpose": "test strategy",
+       "locator": "<repo>/docs/shiploop/test-strategy.md"
+      },
+      {
+       "purpose": "bound loop skill",
+       "locator": "<skills>/improve/runtime/until-loop/ADAPTER.md"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "validate-existing",
+   "phase": "Validate existing",
+   "name": "validate existing (what we are about to change works before we change it)",
+   "absorbs": [
+    "baseline"
+   ],
+   "role": "Before building, verify the things this item is about to change or rely on: each works today, is absent where it is new, or fails exactly as the request reports. When something we are about to change is found broken and the fix is known, fix it now, before the build, as its own commit.",
+   "gate_before": "baseline: none (a model-run before-state report that no gate read)",
+   "gate_after": "ShipLoop runs each expectation's check, and the check of each open plan assumption whose consumer is this item, on the item's base checkout, and compares each with its state (works: passes; absent: nothing there; broken: fails as described). All match: recorded and the run moves on with no model turn. Any mismatch: this packet; done is refused until ShipLoop's rerun matches every expectation. A preparatory fix must be its own commit touching only paths of the mismatched expectation. revise is accepted naming the expectation and what is true.",
+   "prompt": "DO\nGoal: verify that what this item is about to change works before we change it.\nShipLoop checked, on the unchanged base (<worktree> at the item's lint base):\n  E1 works   <statement> (S1, S2)  check: <...>  -> PASSED\n  E2 absent  <statement> (S3)      check: <...>  -> FOUND <what is there>\n  E3 broken  <statement> (S1)      check: <...>  -> did not fail as reported\n  A4 (plan assumption this item settles) <statement>  check: <...>  -> FAILED\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): take the first mismatched expectation; with a small discriminating\n    observation, find whether the fact or the check is wrong; then act:\n    - the check is wrong (the fact holds): stop and report revise naming the expectation and\n      the corrected check, so step-plan records it (a check is never changed unseen);\n    - a works expectation is broken and the fix is known and small: fix it now, before the\n      build, as its own commit touching only that expectation's paths, with a message naming\n      it; this is a preparatory fix, not the item's change;\n    - the environment lacks it (a tool, service, setting): fix the environment and record it in\n      environment.md (## Commands, ## Targets and runtimes);\n    - an absent expectation finds something there, a broken one does not reproduce, or the fix\n      is not known: stop and report revise with what is true, so step-plan reshapes the steps\n      (a needed repair becomes an earlier step of this item);\n    - the fix lies outside this run (another system, a person's access): stop and report\n      blocked (blocked_by external or access) with what is needed.\n    Then rerun every expectation's check.\n  Exit when ALL of these hold (each shown by its check, after the last edit):\n    1. every works expectation passes its check on the current checkout\n    2. every absent expectation finds nothing at its place\n    3. every broken expectation fails exactly as the request reports\n    4. each preparatory fix is its own commit touching only its expectation's paths\n  Repeat while: an expectation is mismatched and the latest iteration fixed the environment\n    or a known defect; otherwise stop and report revise or blocked as above. Never stop\n    cancelled: a user's stop is the packet's pause command.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/<id>-contract.json\n  Receipt: <run>/loops/<id>-terminal.json\nNever weaken an expectation or edit a check only to make it pass. Never start the item's own\nchange here: a broken expectation is the build's to fix.\nConsult: step-plan (the steps and paths each expectation covers); plan (## assumptions);\nenvironment.md (## Commands); architecture.md (## Structure, ## Interfaces and boundaries).\n\nDONE WHEN\n- the four exit conditions above hold, or revise names the expectation and what is true\nChecked by: ShipLoop reruns every check, refuses done unless each matches its state, and\nrefuses a preparatory fix that is not its own commit or touches another path.\nOutcomes: done | blocked | revise (an expectation is false and not fixable here).\n\nRUN  each check with its saved output \u00b7 the start command \u00b7 template \u00b7 callback \u00b7 recovery\nFILES  grounding \u00b7 results: step-plan (expectations, steps, paths), plan (assumptions) \u00b7 environment.md",
+   "kept": [
+    "a before-state check on the unchanged base (what baseline was for), now scoped to what the plan touches"
+   ],
+   "moved": [
+    "the regression count on the base -> the test stage's base run (the floor)"
+   ],
+   "added": [
+    "expectations with states works / absent / broken, recorded by step-plan for every path it touches (owner 2026-10-10: verify what we are about to change works before we change it; the only exception is what does not exist yet)",
+    "a known small fix to a broken precondition is made here, before the build, as its own commit (owner 2026-10-10)",
+    "a 'broken as reported' expectation reproduces the item's own defect before it is fixed",
+    "open plan assumptions this item settles are checked here",
+    "a gate: ShipLoop runs the checks; when all match there is no model turn"
+   ],
+   "dropped": [
+    "baseline's general rerun of every suite (not tied to the plan; no gate read it)"
+   ],
+   "draft_chars": 3362,
+   "old_stages": [
+    "baseline"
+   ],
+   "old_stage_text_chars": 9646,
+   "old_duty_chars": 903,
+   "contract": {
+    "workspace": "<the item's execution checkout, absolute>",
+    "work": "Take the first expectation whose check does not match its state (works: passes; absent: nothing there; broken: fails as the request reports); find with a small discriminating observation whether the fact or the check is wrong; fix the environment, or make a known small fix to a broken works expectation as its own commit touching only that expectation's paths; then rerun every expectation's check.",
+    "exit_condition": "Every works expectation passes its check, every absent expectation finds nothing at its place, every broken expectation fails exactly as the request reports, and each preparatory fix is its own commit touching only its expectation's paths.",
+    "repeat_condition": "Repeat while an expectation is mismatched and the latest iteration fixed the environment or a known defect; otherwise stop and report revise (a wrong check, an unknown fix, or a fact that changes the plan) or blocked (a fix outside this run). Never stop cancelled.",
+    "required_trivial_reviews": 0,
+    "context": {
+     "request": "the run's original request (verbatim) and this item's title and context",
+     "scope": "this item's paths from the step plan; the execution checkout at its item lint base",
+     "authority": "ShipLoop's commit rule for the item; no push; never edit the recorded commands",
+     "environment": "the execution checkout; the recorded commands from the step plan; environment.md's Commands",
+     "resources": [
+      {
+       "purpose": "living spec",
+       "locator": "<repo>/docs/shiploop/spec.md"
+      },
+      {
+       "purpose": "architecture",
+       "locator": "<repo>/docs/shiploop/architecture.md"
+      },
+      {
+       "purpose": "environment",
+       "locator": "<repo>/docs/shiploop/environment.md"
+      },
+      {
+       "purpose": "test strategy",
+       "locator": "<repo>/docs/shiploop/test-strategy.md"
+      },
+      {
+       "purpose": "bound loop skill",
+       "locator": "<skills>/improve/runtime/until-loop/ADAPTER.md"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "implement",
+   "phase": "Build",
+   "name": "implement (per step)",
+   "absorbs": [],
+   "role": "Make one planned step's change against its criteria, in the execution checkout.",
+   "gate_before": "lint gate",
+   "gate_after": "receipt: check_loop_packet against the contract rebuilt from state (receipt in evidence_refs; status complete; with required_trivial_reviews 0 accept a satisfied exit whatever the classification: engine change); exit 1 -> script: diff of the step's changes (snapshot at step start, like lint.capture_base) against the step's paths; plus item_scope.scope_refusal for a no-test item; exit 2 -> script possible: ShipLoop reruns the step's check commands (test_loop.verify with suite check only); today it does not: owner decides (cheap; recommended); exit 3 -> script: _lint_gate (refuse once after auto-fix; refuse unwaived new finding on changed lines); exit 4 -> model evidence (result fields; ShipLoop can refuse an empty field: 'uncovered_behaviours' and 'skills_used' present); then the Improve child (IMPLEMENT_STEP_REVIEW_FOCUS + CODE_CRAFT); the improve-complete gate refuses uncommitted review edits",
+   "prompt": "DO\nGoal: make step S<k> (k of N): <the step's task>.\nCriteria for this step: <C-ids and their text>. Paths: <the step's paths>.\nEarlier accepted steps: <S1..>. Later steps: <..SN>: do not start them, and do no work no criterion asks for.\nSkills for this step (chosen at step-plan): <name: why \u00b7 locator>, one per line, or none. Invoke each through your\nhost, or read its SKILL.md and follow it, for the purpose given.\nConsult and cite: spec (the R-<n> behind each criterion) for the behaviour; architecture.md (## Structure,\n## Interfaces and boundaries, ## Conventions, ## Decisions) for where the code goes and how it reads: a departure is\nrecorded as a new AD-<n> under ## Decisions before you finish; environment.md (## Commands): record a newly\nworking command there.\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Make step S<k>'s change on its paths against its criteria, in the house style and the Code craft rubric; then run every recorded check command and the printed lint command, and for each failure or new finding on a changed line find its cause and change the work, never the check, its expected result or the recorded command.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. Only the step's paths changed since the step began (`git -C <worktree> diff --name-only <step base>` lists no other path), and no later step's work is in them.\n    2. After the last edit, every recorded check command exited 0, each exit code recorded in <run>/notes/<id>.md.\n    3. After the last edit, the printed lint command reports no new finding on a line this step changed, except entries in the result's lint_waivers, each with a reason.\n    4. The result lists each behaviour the change added that no test-spec case covers (or says none), and for each printed step skill whether it was used and, if not, why.\n  Repeat while: Repeat while a check command fails or the lint command reports a new finding on a changed line and the latest iteration changed code to fix it; there is no iteration limit. Stop blocked when the step is proven unachievable as planned: a criterion contradicts another criterion, the item or a protected file; it needs a tool, access or authority that is absent; or it would exceed the item; or when the same check still fails after 7 genuine fix attempts. Never stop cancelled: a user's stop is the ShipLoop packet's pause command.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/<id>-contract.json\n  Receipt: <run>/loops/<id>-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs skills>/improve/runtime/until-loop/ADAPTER.md and follow it with this argument. Either way the loop starts with:\n  python3 <abs skills>/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt <run>/loops/<id>-terminal.json < <run>/loops/<id>-contract.json\nNever write or edit the receipt. If it exists and its status is active, do not start again: run its next_argv.\nIn each iteration: write first (edit the step's paths; read history or earlier reviews only when a check fails or a\nconcrete question needs one section). Preserve unrelated work. Existing tests, check scripts, golden or fixture files\nand thresholds are checks: change one only when a criterion says to. Never install, download or fetch a tool,\nruntime or dependency. Do not write tests: the test stage writes them from the test spec after the last step.\nIf the change invalidates a recorded command (a moved module, a new runtime), or needs a new prerequisite or\nauthority, the step is not achievable as planned: stop the loop blocked and report revise.\nCommands (each from <worktree>):\n  [check] <each recorded check command, numbered: lint, type, build>\n  lint: python3 <cli> lint --run-dir=<run> --action=<id>\n\nDONE WHEN\n- Only the step's paths changed since the step began (`git -C <worktree> diff --name-only <step base>` lists no other path), and no later step's work is in them.\n- After the last edit, every recorded check command exited 0, each exit code recorded in <run>/notes/<id>.md.\n- After the last edit, the printed lint command reports no new finding on a line this step changed, except entries in the result's lint_waivers, each with a reason.\n- The result lists each behaviour the change added that no test-spec case covers (or says none), and for each printed step skill whether it was used and, if not, why.\n- the loop's receipt <run>/loops/<id>-terminal.json is complete and listed in evidence_refs\nChecked by: ShipLoop checks the receipt against the contract; lints this item's changes, refusing done once after\napplying an auto-fix (keep or revert it, rerun the checks, submit again) and while a new finding on a changed line has\nno lint_waivers entry; checks that only the step's paths changed. [Only for an item with no test stage: it refuses\ndone if the change touches a code or test path or a path the step plan did not declare.] Then an Improve child\nreviews this step (focus: the step's task and criteria, scope, Code craft, architecture.md, skill use) and commits\nwarranted edits; the next step starts from its result.\nOutcomes: done | blocked (blocked_by user, access or external only) | revise (the loop stopped blocked: name the\ncriterion and why it is unachievable as planned, or the check that failed 7 genuine fix attempts).\n\nRUN  the Until Loop start line \u00b7 the check and lint commands \u00b7 template (lint_waivers: [{\"id\": \"<printed ID>\",\n     \"reason\": \"<why>\"}] optional) \u00b7 callback \u00b7 Improve start \u00b7 recovery\nFILES  grounding \u00b7 results: spec, plan, step-plan, test-spec \u00b7 Code craft rubric (full): <run>/reference.md#code-craft \u00b7\n       house-style.md#match-while-building \u00b7 coding-guidance.md#select-guidance \u00b7\n       testing-and-documentation.md#implementation-constitution \u00b7 service-discovery.md#development-handoff (service\n       steps) \u00b7 <run>/reference.md#parallel-chain (delegation ask-agent only)",
+   "kept": [
+    "one reviewed step at a time",
+    "lint gate",
+    "change the work, never the check",
+    "code craft (condensed to its obligations)"
+   ],
+   "moved": [
+    "the step's criteria, paths and focused tests are printed (they were only implied: the model grepped the file for 'S2')"
+   ],
+   "added": [
+    "an Improve review after every step (owner 2026-10-10)",
+    "the step's helper skills, with why and how to use them",
+    "Consult block; deviation recorded as AD-<n>",
+    "a lint command that runs as printed (today's head printed one that cannot run)"
+   ],
+   "dropped": [
+    "lint described five times (once)",
+    "the third delegation statement",
+    "the service-change paragraph (to the reference)"
+   ],
+   "notes": "1. Lint gating per step: _lint_gate today gates only the item's last implement step (earlier steps report, without auto-fix, because a later step may use an import). Prompt assumes every step gates; with an Improve child per step that is the consistent choice. Owner decides.\n2. required_trivial_reviews 0 (brief rule) needs quality.check_loop_packet to stop requiring a trivial report on a complete packet when the contract's value is 0; otherwise use 1.\n3. Exit 2 is not re-checked by script today; adding a suite-check rerun at implement's done makes the exit condition script-backed.\n4. Per-step Improve focus (new constant IMPLEMENT_STEP_REVIEW_FOCUS, IMPROVE_* style):\nImplementation step review focus. This result is one step of the item's step plan, and its tests are written\nlater from the test spec, so this review is the only check of the code before them. Review the step's diff (the\nstep's paths since the step began) and fix, within those paths, any of these:\n- the change does not do the step's task, or misses a criterion as the spec's R-<n> states it, or does work no\n  criterion asks for (a later step's work, a feature the item does not request);\n- a file changed outside the step's paths, or unrelated work reverted or reformatted;\n- a new or changed public entry point that does not check its arguments before any effect, swallows an error or\n  returns a success default (Code craft 2);\n- a public function without its contract docstring, a comment that restates code, or dead code (rules 3-4);\n- code placed outside architecture.md's ## Structure or ## Conventions, or a departure with no new AD-<n> under\n  ## Decisions; a name that collides or is exported wider than needed (rule 8);\n- a near-copy of existing logic, a new unit where an existing one could be reused, composed or augmented, or a\n  dependency, option or fallback with no present need (rules 1, 9);\n- a failure that is not diagnosable, or user-facing text assembled from fragments or bypassing the catalog\n  (rules 6-7); for a UI step, a plain or static interaction where the plan calls for a rich one (rule 5);\n- a step skill listed in the packet and not used, or used against its stated purpose, with no reason in the result;\n- a behaviour the code now has that no test-spec case covers and the result does not list for the test stage;\n- a recorded check command that fails, or a new lint finding on a changed line with no waiver, after your last edit.\nDo not write tests, start a later step, or edit a recorded command. Rerun the step's check commands and the printed\nlint command after your last edit and record their exit codes. Commit your edits. A pass that finds none of these is\ntrivial.\n\n<CODE_CRAFT, verbatim>\n5. COMMON's 'Only planning results ... get an actual Improve-skill handoff' must name implement steps.\n6. CODE_CRAFT placement: keep the single constant; render it in full to <run>/reference.md#code-craft and quality/code-craft.md; point implement and test FILES at it; embed it verbatim in IMPLEMENT_STEP_REVIEW_FOCUS, verify's review loop and END_REVIEW_FOCUS (fresh contexts read no other file reliably). Never a condensed copy.\n7. The ask-agent parallel-chain paragraph must survive (reference.md#parallel-chain) while delegation ask-agent exists (owner decision 10 does not remove it).",
+   "draft_chars": 6074,
+   "old_stages": [
+    "implement"
+   ],
+   "old_stage_text_chars": 17076,
+   "old_duty_chars": 4643,
+   "contract": {
+    "workspace": "<the item's execution checkout, absolute>",
+    "work": "Make step S<k>'s change on its paths against its criteria, in the house style and the Code craft rubric; then run every recorded check command and the printed lint command, and for each failure or new finding on a changed line find its cause and change the work, never the check, its expected result or the recorded command.",
+    "exit_condition": "(1) Only the step's paths changed since the step began (`git -C <worktree> diff --name-only <step base>` lists no other path), and no later step's work is in them. (2) After the last edit, every recorded check command exited 0, each exit code recorded in <run>/notes/<id>.md. (3) After the last edit, the printed lint command reports no new finding on a line this step changed, except entries in the result's lint_waivers, each with a reason. (4) The result lists each behaviour the change added that no test-spec case covers (or says none), and for each printed step skill whether it was used and, if not, why.",
+    "repeat_condition": "Repeat while a check command fails or the lint command reports a new finding on a changed line and the latest iteration changed code to fix it; there is no iteration limit. Stop blocked when the step is proven unachievable as planned: a criterion contradicts another criterion, the item or a protected file; it needs a tool, access or authority that is absent; or it would exceed the item; or when the same check still fails after 7 genuine fix attempts. Never stop cancelled: a user's stop is the ShipLoop packet's pause command.",
+    "required_trivial_reviews": 0,
+    "context": {
+     "request": "the run's original request (verbatim) and this item's title and context",
+     "scope": "this item's paths from the step plan; the execution checkout at its item lint base",
+     "authority": "ShipLoop's commit rule for the item; no push; never edit the recorded commands",
+     "environment": "the execution checkout; the recorded commands from the step plan; environment.md's Commands",
+     "resources": [
+      {
+       "purpose": "living spec",
+       "locator": "<repo>/docs/shiploop/spec.md"
+      },
+      {
+       "purpose": "architecture",
+       "locator": "<repo>/docs/shiploop/architecture.md"
+      },
+      {
+       "purpose": "environment",
+       "locator": "<repo>/docs/shiploop/environment.md"
+      },
+      {
+       "purpose": "test strategy",
+       "locator": "<repo>/docs/shiploop/test-strategy.md"
+      },
+      {
+       "purpose": "bound loop skill",
+       "locator": "<skills>/improve/runtime/until-loop/ADAPTER.md"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "test",
+   "phase": "Build",
+   "name": "test (author, run, fix until green)",
+   "absorbs": [
+    "test-author",
+    "test-red",
+    "test-green",
+    "test-refine",
+    "regression",
+    "static-checks (its tools)"
+   ],
+   "role": "One Until Loop after implement: write every specified case as a test, run every recorded command (focused tests, regression suites, lint/type/build), and fix the code or the tests until all pass. The code must behave as the test spec defines.",
+   "gate_before": "six stages: test-author (probe run), test-red (expect fail), test-green (loop + rerun focused), test-refine (rerun all), regression (loop + rerun all), static-checks' tool runs",
+   "gate_after": "order: lint gate first (tests run on auto-fixed code) -> terminal packet -> case coverage -> base RED run -> candidate run; exit 1 -> script: parse case IDs from <feature>/test-spec.md; each must be in some focused command's ids or in the result's case states (validated another way / pending); 'shown in output' is checked by the candidate run; exit 2 -> script: test_loop.verify on the candidate (judge: exit 0, counted >=1 test, ids shown, floor = max(base count, most counted by an earlier ShipLoop run of this action)); exit 3 -> script: base run: lint base tree exported, the item's test-class files overlaid, focused commands run; refuse when a new ID passes (needs per-ID reader) or the command passes, unless red_na names it; an import failure counts as RED only for a path the item added; exit 4 -> script: _lint_gate; exit 5 -> model evidence (notes file exists; Improve does not run here); receipt -> check_loop_packet (accept complete regardless of classification when required_trivial_reviews is 0: engine change); caps: MAX_REFUSED_RUNS 11 counted refusals (base + candidate), UNAVAILABLE not counted, remedy_open accepts revise without a packet",
+   "prompt": "DO\nGoal: the test spec's cases are tests, and every recorded command passes: the code behaves as the test spec defines.\nConsult and cite: test-spec.md (every case and its oracle); the implement results (behaviours no case covers: add\neach to test-spec.md with an oracle from the spec, then test it); test-strategy.md (## Harnesses and suites, ## ID\nconvention, ## Real-boundary checks); environment.md (## Commands); architecture.md (## Conventions) for test style\nand seams; spec for what each behaviour must be.\nCommands (ShipLoop runs each from <worktree> before accepting done; floors from the base run):\n  1. [focused] <cmd> (must run: TC-1..TC-n)\n  2. [regression] <cmd> (floor: <n> tests)\n  3. [check] <lint / type / build cmd>\n  red-check: python3 <cli> red-check --run-dir=<run> --action=<id>\n  lint: python3 <cli> lint --run-dir=<run> --action=<id>\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Write or fix tests for every test-spec case not yet covered (titled with its ID as its own word, registered in the focused and regression commands, asserting the spec's oracle, never the code's behaviour); run every recorded command, the red-check command and the lint command; for each failure find its cause with one small observation (product defect, invalid test, environment) and fix the product code, changing a test only for an independent reason you record.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. Every case in <feature>/test-spec.md is a test titled with its case ID as its own word, listed in a focused command's ids and run by it; or is recorded in the result as validated another way (the method and why) or as pending (its due stage and owner).\n    2. One complete iteration after the last edit ran every recorded command (focused, regression, check); each exited 0; each focused and regression command ran at least one test, showed every ID listed for it, and ran at least the floor ShipLoop printed for it.\n    3. The printed red-check command reports that no new test ID passes on the item's base, except IDs named in the result's red_na with a reason.\n    4. After the last edit, the printed lint command reports no new finding on a changed line, except entries in the result's lint_waivers, each with a reason.\n    5. Every test, fixture, golden file or threshold changed to make a run pass has its independent reason recorded in <run>/notes/<id>.md.\n  Repeat while: Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count below the floor, a new ID passing on the base, or a lint finding, and changed code or tests to fix it; there is no iteration limit. Stop blocked when a failure is proven unachievable: it contradicts the specification or another requirement, needs a tool, access or authority that is absent, or would exceed the item; or when a recorded command cannot run here. Never stop cancelled: a user's stop is the ShipLoop packet's pause command.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/<id>-contract.json\n  Receipt: <run>/loops/<id>-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs skills>/improve/runtime/until-loop/ADAPTER.md and follow it with this argument. Either way the loop starts with:\n  python3 <abs skills>/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt <run>/loops/<id>-terminal.json < <run>/loops/<id>-contract.json\nNever write or edit the receipt. If it exists and its status is active, do not start again: run its next_argv.\nIn each iteration: reuse the existing harness, helpers and fixtures before adding one, and record a new facility in\ntest-strategy.md (## Harnesses and suites). Each new or changed public entry point gets its rejection cases. Test a\nnew error path or debug output, on and off. Add to the regression command any existing suite the changed paths now\naffect; if that changes a recorded command, stop blocked and report revise. Never weaken, delete or skip a test; a\nsmoke or subset run never stands for a recorded command; a passing command proves only the cases it runs. A repeated\nunchanged failure is not progress: change the approach. Keep probes in the Scratch directory. Never install,\ndownload or fetch a tool or dependency; never commit or push.\nA characterisation test that passes without this item's change: name it in red_na with the reason.\n\nDONE WHEN\n- Every case in <feature>/test-spec.md is a test titled with its case ID as its own word, listed in a focused command's ids and run by it; or is recorded in the result as validated another way (the method and why) or as pending (its due stage and owner).\n- One complete iteration after the last edit ran every recorded command (focused, regression, check); each exited 0; each focused and regression command ran at least one test, showed every ID listed for it, and ran at least the floor ShipLoop printed for it.\n- The printed red-check command reports that no new test ID passes on the item's base, except IDs named in the result's red_na with a reason.\n- After the last edit, the printed lint command reports no new finding on a changed line, except entries in the result's lint_waivers, each with a reason.\n- Every test, fixture, golden file or threshold changed to make a run pass has its independent reason recorded in <run>/notes/<id>.md.\n- the loop's receipt <run>/loops/<id>-terminal.json is complete and listed in evidence_refs\nChecked by: ShipLoop lints this item's changes (refusing done once after an auto-fix: keep or revert it, rerun, submit\nagain; and while a new finding on a changed line has no waiver); checks the receipt against the contract; refuses a\ntest-spec case ID that no focused command lists and the result does not record; runs the focused commands on the item's\nbase with only this item's test files (refused if a new ID passes there and red_na does not name it); then runs every\ncommand on the candidate (refused unless each exits 0, runs every listed ID and reaches its floor). After a refusal,\nfix it, start the loop again (the receipt is replaced) and submit again. A run that times out or cannot start refuses\nwithout counting; after 11 counted refusals done is no longer accepted: report revise.\nOutcomes: done | blocked (blocked_by user, access or external only) | revise (name the unachievable case or command,\nwhy, and the requirement it leaves unverified; name every required command that could not run).\n\nRUN  the Until Loop start line \u00b7 red-check \u00b7 lint \u00b7 template (red_na optional; lint_waivers optional; case states) \u00b7\n     callback \u00b7 recovery\nFILES  grounding \u00b7 results: test-spec, step-plan, implement (each step) \u00b7 environment.md \u00b7 test-strategy.md \u00b7 Code craft\n       rubric: <run>/reference.md#code-craft \u00b7 repeatable-test-suites.md#select-or-revalidate-the-harness \u00b7\n       repeatable-test-suites.md#select-target-native-tests \u00b7 testing-and-documentation.md#test-cases \u00b7\n       testing-and-documentation.md#layers-and-real-boundaries \u00b7 <run>/reference.md#test-runs (counting, timeouts,\n       reporters, smoke, remote-resident cases, no-runtime fallback)",
+   "kept": [
+    "executable tests from the independent spec, never from the code",
+    "ID word rule",
+    "never weaken an assertion",
+    "RED: no new test passes without the change (now a script run on the base)",
+    "red_na for characterisation tests",
+    "the bound Until Loop with its frozen contract, uncapped",
+    "terminal-packet check then ShipLoop's own rerun",
+    "test-count floor (from the base run)",
+    "fix the code, not the checks; independent reason for a test change",
+    "11 refused runs -> revise"
+   ],
+   "moved": [
+    "test-author's writing -> the first iterations of this loop",
+    "test-red's expected failure -> a script run on the base checkout, after the fact",
+    "test-green (focused) and regression (all) -> one loop over all commands",
+    "static-checks' lint/type/build -> the check suite in this loop",
+    "test-refine's 'tighten assertions' -> the oracle rule; its 'reconcile removed cases' -> the floor"
+   ],
+   "added": [
+    "one goal: the spec's cases exist and all commands are green",
+    "Consult block",
+    "the base-checkout run: new test IDs must not pass there (replaces test-red); its regression count is the floor"
+   ],
+   "dropped": [
+    "six stages and their packets, results and callbacks",
+    "test-first ordering (the tests now follow the code; the base run keeps the proof that they detect the change)",
+    "four ShipLoop reruns of the same commands (now one, plus the base run)",
+    "the 'placeholder so a test can load' rule (the code exists by now)"
+   ],
+   "notes": "Checks in shiploop_test_loop.py and what changes now that tests follow implement and RED runs on the base:\n- probe (PROBE_STAGE/probe_lines/PROBE_RULE): removed; the candidate run already refuses a run of zero tests or missing IDs, and the placeholder rule is moot.\n- RED (RED_STAGE/red_lines/judge red=True): moves to a base run. judge(red) is command-level (>=1 failing test, IDs shown); 'no new test ID passes' needs a per-ID pass/fail reader in shiploop_test_counts. On the base a new module's tests fail at import, so not-red/ids-missing must be accepted when the missing import is a path the item added. Needs a new verb red-check so the loop can see what the gate will refuse.\n- red_na: today one string that flips every focused command to expect-pass; make it per ID or per command.\n- floor (accepted_counts/RATCHET_RULE): base count alone loses the in-action ratchet; use max(base, earlier accepted). The floor restart at a revised step plan stays; the REFINE reset (REFINE_STAGE/REFINE_RULE) has no stage left, so a deliberate test retirement needs a declared route (retired_tests) or the brownfield item is stuck. Owner decides.\n- refused runs (MAX_REFUSED_RUNS=11, UNAVAILABLE, refused_runs, remedy_open, latest_attempt_could_not_run): keep unchanged; count base-run refusals too.\n- terminal-packet check (check_terminal/check_loop_packet): keep; contract required_trivial_reviews 1 today. Brief's 0 needs check_loop_packet to accept a satisfied non-trivial complete packet, or keep 1 for test.\n- STAGES/RERUN_STAGES: test-green and regression collapse into one loop stage running all suites (stage_commands' focused-only filter goes); test-refine's test-rerun goes; static-checks' test-rerun moves to verify.\n- default_suite_drift, OUTER_SOURCES, observation (release-verify): outer, unchanged.\n- no-command cases: test_commands_na + only non-code paths skips the stage (item_scope.no_test_item); otherwise no command -> revise. The packet must print that line.\nRegression red at base: a recorded regression command that already fails on the base will block the item; validate-existing (other group) should surface it before implement.",
+   "draft_chars": 7280,
+   "old_stages": [
+    "test-author",
+    "test-red",
+    "test-green",
+    "test-refine",
+    "regression",
+    "static-checks"
+   ],
+   "old_stage_text_chars": 91293,
+   "old_duty_chars": 9833,
+   "contract": {
+    "workspace": "<the item's execution checkout, absolute>",
+    "work": "Write or fix tests for every test-spec case not yet covered (titled with its ID as its own word, registered in the focused and regression commands, asserting the spec's oracle, never the code's behaviour); run every recorded command, the red-check command and the lint command; for each failure find its cause with one small observation (product defect, invalid test, environment) and fix the product code, changing a test only for an independent reason you record.",
+    "exit_condition": "(1) Every case in <feature>/test-spec.md is a test titled with its case ID as its own word, listed in a focused command's ids and run by it; or is recorded in the result as validated another way (the method and why) or as pending (its due stage and owner). (2) One complete iteration after the last edit ran every recorded command (focused, regression, check); each exited 0; each focused and regression command ran at least one test, showed every ID listed for it, and ran at least the floor ShipLoop printed for it. (3) The printed red-check command reports that no new test ID passes on the item's base, except IDs named in the result's red_na with a reason. (4) After the last edit, the printed lint command reports no new finding on a changed line, except entries in the result's lint_waivers, each with a reason. (5) Every test, fixture, golden file or threshold changed to make a run pass has its independent reason recorded in <run>/notes/<id>.md.",
+    "repeat_condition": "Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count below the floor, a new ID passing on the base, or a lint finding, and changed code or tests to fix it; there is no iteration limit. Stop blocked when a failure is proven unachievable: it contradicts the specification or another requirement, needs a tool, access or authority that is absent, or would exceed the item; or when a recorded command cannot run here. Never stop cancelled: a user's stop is the ShipLoop packet's pause command.",
+    "required_trivial_reviews": 0,
+    "context": {
+     "request": "the run's original request (verbatim) and this item's title and context",
+     "scope": "this item's paths from the step plan; the execution checkout at its item lint base",
+     "authority": "ShipLoop's commit rule for the item; no push; never edit the recorded commands",
+     "environment": "the execution checkout; the recorded commands from the step plan; environment.md's Commands",
+     "resources": [
+      {
+       "purpose": "living spec",
+       "locator": "<repo>/docs/shiploop/spec.md"
+      },
+      {
+       "purpose": "architecture",
+       "locator": "<repo>/docs/shiploop/architecture.md"
+      },
+      {
+       "purpose": "environment",
+       "locator": "<repo>/docs/shiploop/environment.md"
+      },
+      {
+       "purpose": "test strategy",
+       "locator": "<repo>/docs/shiploop/test-strategy.md"
+      },
+      {
+       "purpose": "bound loop skill",
+       "locator": "<skills>/improve/runtime/until-loop/ADAPTER.md"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "document",
+   "phase": "Build",
+   "name": "document",
+   "absorbs": [],
+   "role": "Document each changed public behaviour where users and maintainers look (only when something public changed).",
+   "gate_before": "none",
+   "gate_after": "quality-terminal-style check of <run>/loops/<id>-terminal.json against the contract (complete, exit satisfied) -> all four exits are the loop's assessment; exit 1: model evidence (script can only confirm notes/<id>.md exists or a docs-class path changed when the inventory has a public entry point); exit 2: model evidence; exit 3: script can check README.md changed or notes/<id>.md contains 'README'; exit 4: model evidence. Plus the common mechanical gates. Issue rule: script (item_scope.behavioural over changed_paths).",
+   "prompt": "DO\nGoal: the documentation this item's change affects says what the change now does.\nConsult, and cite the headings you used:\n- spec (## Requirements): the R-<n> this item changed, for the intended behaviour.\n- architecture.md (## Structure, ## Interfaces and boundaries, ## Decisions): what is now true; a design or service decision this item made is an AD-<n> under ## Decisions (write it if implement did not).\n- environment.md (## Commands): the commands your examples use.\n\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Run each changed public behaviour (from the change inventory) and update the README, API, operator and error documentation from what you observe, including the errors a user can see and how to turn on diagnostics; state known limits and caveats; link to the authoritative home instead of copying a contract; then reread every document you changed and run its commands and examples.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. Every changed public behaviour (each public entry point, command, API, setting or screen in <run>/lint/<id>-inventory.md) is described where its users look, or <run>/notes/<id>.md names why it needs no documentation.\n    2. Every document changed in this stage was reread after its last edit, and each command or example it shows ran, or <run>/notes/<id>.md says why it cannot run here.\n    3. The README was assessed: it changed, or <run>/notes/<id>.md says why it did not.\n    4. No changed document copies a contract that has an authoritative home; it links to that home.\n  Repeat while: Repeat while a changed public behaviour is undocumented or a reread or example run found a wrong statement; there is no iteration limit. Stop blocked only when a behaviour cannot be observed here (name it).\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/<id>-contract.json\n  Receipt: <run>/loops/<id>-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs until-loop ADAPTER.md> and follow it with this argument. Either way the loop starts with:\n  python3 <abs until_loop_ephemeral.py> start --receipt <run>/loops/<id>-terminal.json < <run>/loops/<id>-contract.json\nNever write or edit the receipt. After a reset, if the receipt exists and its status is active, run its next_argv once; do not start again.\n\nDurable facts go in the repository's docs, never only in run notes. Do not document behaviour you did not observe as working.\nStep plan paths: <paths>. ShipLoop commits, when verify is accepted, the declared paths, changed documentation files and docs/shiploop/; commit nothing yourself. <item_left(mode)>\n\nDONE WHEN (the loop's exit conditions, the same words)\n1. Every changed public behaviour (each public entry point, command, API, setting or screen in <run>/lint/<id>-inventory.md) is described where its users look, or <run>/notes/<id>.md names why it needs no documentation.\n2. Every document changed in this stage was reread after its last edit, and each command or example it shows ran, or <run>/notes/<id>.md says why it cannot run here.\n3. The README was assessed: it changed, or <run>/notes/<id>.md says why it did not.\n4. No changed document copies a contract that has an authoritative home; it links to that home.\n- evidence_refs lists the receipt <run>/loops/<id>-terminal.json.\nChecked by: ShipLoop checks the terminal packet against the contract, then refuses a mechanical fault (no outcome or summary, an absolute evidence_refs path that does not exist, a credential pattern). ShipLoop issues this stage only when the item's changed paths include code (item_scope.behavioural); otherwise it records not applicable.\nOutcomes: done | blocked | revise (the plan or a criterion is wrong as observed: name it).\n\nRUN  the INVOKE block above \u00b7 result template \u00b7 callback \u00b7 recovery \u00b7 pause\nFILES  grounding: spec, architecture.md, environment.md (absolute paths) \u00b7 change inventory <run>/lint/<id>-inventory.md \u00b7 results: step-plan, implement, test \u00b7 run/reference.md#documentation, #current-system-baseline (only when this item recovered existing behaviour), #service-handoff (only when it selected a service)",
+   "kept": [
+    "document from observed behaviour",
+    "durable facts in repo docs"
+   ],
+   "moved": [
+    "the maintained-requirements reconciliation -> spec and carry-forward (it is planning knowledge)"
+   ],
+   "added": [
+    "conditional issue (script-decided)",
+    "Consult block"
+   ],
+   "dropped": [
+    "code craft rubric (3.7k; nothing in documenting uses it)"
+   ],
+   "notes": "Owner: document now has a loop contract only because the Amendment requires one in every stage; its exits are mostly model evidence. Decide whether a docs-only item (no behavioural path changed) skips document by script, as proposed. ITEM_COMMIT_STAGES must become (document, verify).",
+   "draft_chars": 4315,
+   "old_stages": [
+    "document"
+   ],
+   "old_stage_text_chars": 13596,
+   "old_duty_chars": 1163,
+   "contract": {
+    "workspace": "<the item's execution checkout, absolute>",
+    "work": "Run each changed public behaviour (from the change inventory) and update the README, API, operator and error documentation from what you observe, including the errors a user can see and how to turn on diagnostics; state known limits and caveats; link to the authoritative home instead of copying a contract; then reread every document you changed and run its commands and examples.",
+    "exit_condition": "(1) Every changed public behaviour (each public entry point, command, API, setting or screen in <run>/lint/<id>-inventory.md) is described where its users look, or <run>/notes/<id>.md names why it needs no documentation. (2) Every document changed in this stage was reread after its last edit, and each command or example it shows ran, or <run>/notes/<id>.md says why it cannot run here. (3) The README was assessed: it changed, or <run>/notes/<id>.md says why it did not. (4) No changed document copies a contract that has an authoritative home; it links to that home.",
+    "repeat_condition": "Repeat while a changed public behaviour is undocumented or a reread or example run found a wrong statement; there is no iteration limit. Stop blocked only when a behaviour cannot be observed here (name it).",
+    "required_trivial_reviews": 0,
+    "context": {
+     "request": "the run's original request (verbatim) and this item's title and context",
+     "scope": "this item's paths from the step plan; the execution checkout at its item lint base",
+     "authority": "ShipLoop's commit rule for the item; no push; never edit the recorded commands",
+     "environment": "the execution checkout; the recorded commands from the step plan; environment.md's Commands",
+     "resources": [
+      {
+       "purpose": "living spec",
+       "locator": "<repo>/docs/shiploop/spec.md"
+      },
+      {
+       "purpose": "architecture",
+       "locator": "<repo>/docs/shiploop/architecture.md"
+      },
+      {
+       "purpose": "environment",
+       "locator": "<repo>/docs/shiploop/environment.md"
+      },
+      {
+       "purpose": "test strategy",
+       "locator": "<repo>/docs/shiploop/test-strategy.md"
+      },
+      {
+       "purpose": "bound loop skill",
+       "locator": "<skills>/improve/runtime/until-loop/ADAPTER.md"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "verify",
+   "phase": "Verify",
+   "name": "verify (+ review and integration)",
+   "absorbs": [
+    "verify",
+    "static-checks (its review)",
+    "integrate",
+    "integration-verify"
+   ],
+   "role": "Accept the item: each criterion confirmed by evidence made after the last edit, the change reviewed against code craft and the architecture, and (on chained or parallel work) the candidate assembled and its shared interfaces checked.",
+   "gate_before": "verify: rerun all; static-checks: quality loop; integrate: none; integration-verify: rerun all",
+   "gate_after": "exit 1 -> test-rerun gate (test_loop.verify: exit 0, counted tests, listed IDs, floor; 11-run cap); exit 2 -> script for command-confirmed criteria (each step-plan criterion names a command that passed in that rerun record); inspection criteria: model evidence; exit 3 -> model evidence (script can confirm notes/<id>.md exists and names each changed code file of the inventory); exit 4 -> lint-gate (add to verify complete_runs); exit 5 -> new script check: git merge-base --is-ancestor of the chain binding's finish commit (only when chain_bindings has this item); exit 6 -> model evidence; exit 7 -> quality-terminal (complete packet, last report trivial and exit satisfied, required_trivial_reviews 1). Then _item_commit on accept.",
+   "prompt": "DO\nGoal: accept this item: every criterion confirmed after the last edit, the change reviewed, and chained work assembled.\nConsult, and cite the headings you used:\n- spec (## Requirements, ## Non-functional requirements): every R-<n> this item serves and its criteria.\n- architecture.md (## Decisions, ## Interfaces and boundaries, ## Conventions): the change follows them or records a new AD-<n>.\n- test-strategy.md (## Real-boundary checks): a boundary a local test cannot prove stays pending with its owner.\n- test-spec.md: every case, for the case classification.\n\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): 1. Run every recorded command (focused, regression, check) and record each exit code and test count. 2. For each completion criterion, name the passing command or the inspection that confirms it now (stale, skipped or missing evidence is not a confirmation); classify every test-spec case passed, failed, blocked or not due (with its phase and owner); a pass on another surface only supports. 3. From the change inventory, list every new or changed public entry point (exported function, CLI, request or event handler, callback); walk one valid, one boundary and one invalid input to its return, error or side effect, and write one trace line per path in <run>/notes/<id>.md; a wrong, unhandled or untested path is a finding (add a test for an untested path). 4. Review the whole item's diff against the step plan's steps and paths, the Code craft rubric and architecture.md: argument checks and contract docstrings at each entry point, missing error paths, silent failures, comments that restate or are stale, dead code, user text that is concatenated or bypasses the catalog, names outside the planned namespace or exported wider than needed, stored data off the planned schema, a near-copy of existing logic, a plain interaction where the plan called for a rich one, and a deviation from architecture.md with no new AD-<n>. 5. Chained or parallel work only: confirm the chain's finish commit is an ancestor of HEAD, inspect the combined diff, conflicts and the shared interfaces between steps. 6. Classify: material = wrong behaviour on a traced path, a missing or wrong argument check, contract, error path or test, a failing command, a misleading comment, logic that should have been composed; trivial = wording, ordering, a sharper name. Do not reopen a finding an earlier iteration fixed unless its code changed. 7. Fix every finding within scope by changing the work, never a check or its expected result; if anything changed, rerun step 1 and record the results.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. Every recorded command (focused, regression, check) exited 0 in this iteration's run after the last edit, each running at least one test and every ID listed for it.\n    2. Every completion criterion is confirmed by a passing command from that run, or, where its Confirm-by is an inspection, by an inspection recorded in <run>/notes/<id>.md after the last edit.\n    3. Every public entry point in the change inventory <run>/lint/<id>-inventory.md has a valid, a boundary and an invalid trace line in <run>/notes/<id>.md.\n    4. python3 <cli> lint --run-dir=<run> --action=<id>, run after the last edit, reports no unwaived new finding on a changed line.\n    5. Chained or parallel work only: git -C <worktree> merge-base --is-ancestor <chain finish commit> HEAD exits 0.\n    6. Every later-phase check the criteria need (system, release, real boundary) is listed in <run>/notes/<id>.md with its owner and due stage.\n    7. The latest complete iteration found no material finding.\n  Repeat while: Repeat while the latest iteration fixed a material finding, a command failed, or a criterion or entry point is still unconfirmed; there is no iteration limit. Stop blocked when a finding cannot be fixed within the item's scope or authority, a required check cannot run here, or a criterion proves unachievable as planned. Never stop cancelled: a user's stop is the packet's pause command.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/<id>-contract.json\n  Receipt: <run>/loops/<id>-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs until-loop ADAPTER.md> and follow it with this argument. Either way the loop starts with:\n  python3 <abs until_loop_ephemeral.py> start --receipt <run>/loops/<id>-terminal.json < <run>/loops/<id>-contract.json\nNever write or edit the receipt. After a reset, if the receipt exists and its status is active, run its next_argv once; do not start again.\n\nOn entry ShipLoop linted this item's changes, auto-fixing safe formatting once, and wrote the change inventory <run>/lint/<id>-inventory.md. Keep or revert each auto-fix the lint record names.\nStep plan paths: <paths>. Changed, ShipLoop will commit: <list>. Changed, ShipLoop will not commit: <list>. <item_left(mode)> When verify is accepted ShipLoop commits the item; commit nothing yourself.\n\nDONE WHEN (the loop's exit conditions, the same words)\n1. Every recorded command (focused, regression, check) exited 0 in this iteration's run after the last edit, each running at least one test and every ID listed for it.\n2. Every completion criterion is confirmed by a passing command from that run, or, where its Confirm-by is an inspection, by an inspection recorded in <run>/notes/<id>.md after the last edit.\n3. Every public entry point in the change inventory <run>/lint/<id>-inventory.md has a valid, a boundary and an invalid trace line in <run>/notes/<id>.md.\n4. python3 <cli> lint --run-dir=<run> --action=<id>, run after the last edit, reports no unwaived new finding on a changed line.\n5. Chained or parallel work only: git -C <worktree> merge-base --is-ancestor <chain finish commit> HEAD exits 0.\n6. Every later-phase check the criteria need (system, release, real boundary) is listed in <run>/notes/<id>.md with its owner and due stage.\n7. The latest complete iteration found no material finding.\n- evidence_refs lists the receipt <run>/loops/<id>-terminal.json.\nChecked by: ShipLoop checks the terminal packet against the contract (complete, trivial, exit satisfied), lints (a new unwaived finding on a changed line is refused), checks the chain ancestor on chained work, then reruns every recorded command and refuses unless each passes and reaches the test-count floor. After 11 refused runs done is no longer accepted: report revise. A criterion reported unconfirmable whose Confirm-by needed execution means revise. On acceptance ShipLoop commits the item's declared paths, changed documentation and docs/shiploop/.\nOutcomes: done | blocked | revise (a criterion or check is unachievable as planned: name it; the item goes back to step-plan). Never repeat: the loop repeats the review.\n\nRUN  the INVOKE block above \u00b7 result template (summary: entry points traced, each trace that found an issue and its fix, each command with its exit code, any required check not run and why, known limitations) \u00b7 callback \u00b7 recovery \u00b7 pause\nFILES  grounding: spec, architecture.md, environment.md, test-strategy.md (absolute paths) \u00b7 Code craft rubric <run>/quality/code-craft.md \u00b7 change inventory <run>/lint/<id>-inventory.md \u00b7 lint record <run>/lint/<id>.md \u00b7 results: step-plan, test-spec, implement, test \u00b7 run/reference.md#verify-evidence, #inner-assembly (chained), #service-verification (only when the item selected a service)",
+   "kept": [
+    "criterion-by-criterion confirmation after the last edit",
+    "unconfirmable-when-execution-required -> revise",
+    "later-phase checks pending",
+    "entry-point tracing and code craft (from static-checks)",
+    "integration on chained/parallel work"
+   ],
+   "moved": [
+    "static-checks' change inventory and first-entry lint auto-fix -> verify's entry",
+    "static-checks' review loop -> step 2 here (today verify takes 1 turn: the review gives it its job)",
+    "integrate + integration-verify -> step 3, chained route only"
+   ],
+   "added": [
+    "Consult block (architecture decisions checked here)"
+   ],
+   "dropped": [
+    "integrate and integration-verify on the inline route (a no-op and a repeat of the same rerun)",
+    "two more reruns of the same commands"
+   ],
+   "notes": "QUALITY_ITERATION / QUALITY_EXIT_CONDITION / QUALITY_REPEAT_CONDITION must be replaced by these texts, since check_loop_packet compares the packet with the contract rebuilt from the catalog. The draft's 'rerun skipped when no file changed since test' has no implementation: decide to build it (compare lint snapshot trees) or drop it. Contract/receipt paths move from quality/ to loops/ (Amendment); one path for every loop.",
+   "draft_chars": 7596,
+   "old_stages": [
+    "verify",
+    "integrate",
+    "integration-verify"
+   ],
+   "old_stage_text_chars": 43408,
+   "old_duty_chars": 3201,
+   "contract": {
+    "workspace": "<the item's execution checkout, absolute>",
+    "work": "1. Run every recorded command (focused, regression, check) and record each exit code and test count. 2. For each completion criterion, name the passing command or the inspection that confirms it now (stale, skipped or missing evidence is not a confirmation); classify every test-spec case passed, failed, blocked or not due (with its phase and owner); a pass on another surface only supports. 3. From the change inventory, list every new or changed public entry point (exported function, CLI, request or event handler, callback); walk one valid, one boundary and one invalid input to its return, error or side effect, and write one trace line per path in <run>/notes/<id>.md; a wrong, unhandled or untested path is a finding (add a test for an untested path). 4. Review the whole item's diff against the step plan's steps and paths, the Code craft rubric and architecture.md: argument checks and contract docstrings at each entry point, missing error paths, silent failures, comments that restate or are stale, dead code, user text that is concatenated or bypasses the catalog, names outside the planned namespace or exported wider than needed, stored data off the planned schema, a near-copy of existing logic, a plain interaction where the plan called for a rich one, and a deviation from architecture.md with no new AD-<n>. 5. Chained or parallel work only: confirm the chain's finish commit is an ancestor of HEAD, inspect the combined diff, conflicts and the shared interfaces between steps. 6. Classify: material = wrong behaviour on a traced path, a missing or wrong argument check, contract, error path or test, a failing command, a misleading comment, logic that should have been composed; trivial = wording, ordering, a sharper name. Do not reopen a finding an earlier iteration fixed unless its code changed. 7. Fix every finding within scope by changing the work, never a check or its expected result; if anything changed, rerun step 1 and record the results.",
+    "exit_condition": "(1) Every recorded command (focused, regression, check) exited 0 in this iteration's run after the last edit, each running at least one test and every ID listed for it. (2) Every completion criterion is confirmed by a passing command from that run, or, where its Confirm-by is an inspection, by an inspection recorded in <run>/notes/<id>.md after the last edit. (3) Every public entry point in the change inventory <run>/lint/<id>-inventory.md has a valid, a boundary and an invalid trace line in <run>/notes/<id>.md. (4) python3 <cli> lint --run-dir=<run> --action=<id>, run after the last edit, reports no unwaived new finding on a changed line. (5) Chained or parallel work only: git -C <worktree> merge-base --is-ancestor <chain finish commit> HEAD exits 0. (6) Every later-phase check the criteria need (system, release, real boundary) is listed in <run>/notes/<id>.md with its owner and due stage. (7) The latest complete iteration found no material finding.",
+    "repeat_condition": "Repeat while the latest iteration fixed a material finding, a command failed, or a criterion or entry point is still unconfirmed; there is no iteration limit. Stop blocked when a finding cannot be fixed within the item's scope or authority, a required check cannot run here, or a criterion proves unachievable as planned. Never stop cancelled: a user's stop is the packet's pause command.",
+    "required_trivial_reviews": 1,
+    "context": {
+     "request": "the run's original request (verbatim) and this item's title and context",
+     "scope": "this item's paths from the step plan; the execution checkout at its item lint base",
+     "authority": "ShipLoop's commit rule for the item; no push; never edit the recorded commands",
+     "environment": "the execution checkout; the recorded commands from the step plan; environment.md's Commands",
+     "resources": [
+      {
+       "purpose": "living spec",
+       "locator": "<repo>/docs/shiploop/spec.md"
+      },
+      {
+       "purpose": "architecture",
+       "locator": "<repo>/docs/shiploop/architecture.md"
+      },
+      {
+       "purpose": "environment",
+       "locator": "<repo>/docs/shiploop/environment.md"
+      },
+      {
+       "purpose": "test strategy",
+       "locator": "<repo>/docs/shiploop/test-strategy.md"
+      },
+      {
+       "purpose": "bound loop skill",
+       "locator": "<skills>/improve/runtime/until-loop/ADAPTER.md"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "carry-forward",
+   "phase": "Carry forward",
+   "name": "carry-forward",
+   "absorbs": [
+    "skill-assess",
+    "skill-validate"
+   ],
+   "role": "Record the item's lessons in the knowledge home, revise the remaining queue, and decide whether a repeatable procedure deserves a local skill; on the last item, start the end-of-work review.",
+   "gate_before": "Improve (last item); skill-assess and skill-validate: none (two stages, almost always N/A)",
+   "gate_after": "exit 1 -> script: _normalise_work_items + _replace_future_work_items (shape, unique, no completed/current ID); 'still required' and context content: model evidence (end-of-work Improve challenges it). exit 2 -> script: each step-plan test_commands command string found in environment.md or test-strategy.md; knowledge_home.check (R-<n> retention, credential screen) extended with AD-<n> retention against HEAD:docs/shiploop/architecture.md. exit 3 -> new script check _check_submitted_skill: decision enum; reason nonblank; inspected non-empty; for update/create: path repo-relative, inside the repo and (when environment.md ## Skills names one) under that directory, file exists, frontmatter between --- lines has name and description, name equals the directory name; index file exists and contains the name or path; trial file exists and is non-empty; evidence has two or more distinct IDs that are accepted steps or items of this run, or one pending work item ID or an R-<n> present in spec.md; update also needs older_use. exit 4 -> model evidence. After accept: knowledge.commit, plus a new commit of skill dir + index (privacy-screened, shiploop_git.commit_paths).",
+   "prompt": "DO\nGoal: record what this item taught in the knowledge home, revise the remaining queue, and decide whether a repeated procedure deserves a local skill.\nConsult, and cite the headings you used:\n- spec.md (## Requirements, Retired): the R-<n> this item served.\n- architecture.md (## Decisions, ## Superseded): the AD-<n> this item added or changed.\n- environment.md (## Commands, ## Skills) and test-strategy.md (## Harnesses and suites).\n- <feature>/plan.md (## Open) and state.md work_items.\n\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Update the knowledge home in place: environment.md ## Commands (every command that worked), architecture.md ## Decisions (each AD-<n> this item added; a superseded one moves to ## Superseded, never deleted), test-strategy.md ## Harnesses and suites (suites, focused/smoke/full commands, pending real-boundary checks with owner), spec.md (each R-<n> this item satisfied, with its test IDs; keep unaffected clauses; an open gap under its R-<n>). Put open risks, system-test obligations and release prerequisites, each with an owner, in <feature>/plan.md ## Open. Read state.md work_items (every pending title and context); map every observation that affects later work to an owner: a defect in completed work becomes a corrective item ahead of its consumers, a needed research or preparation prerequisite becomes its own item ahead of every consumer; explain each removal or merge in <feature>/plan.md. Skill decision: read the skill index (or README/AGENTS.md skill links; a missing index is not a blocker) and the skills your host offers; choose none, reuse, update or create. Create or update only when the same procedure ran in two or more steps or items of this run, or a pending item or R-<n> says it will recur, and no existing skill covers it; keep it in the repository (environment.md ## Skills names the directory), never install it globally, add a dependency or publish it; link it from the index; run it once on this run's real procedure (an update also on a retained older use) and write the output to <run>/notes/<id>-skill-trial.md, saying whether a fresh reader tried it or 'cold-context reuse untested'.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. The result's work_items, when present, lists every still-required future item in prerequisite order, repeats no completed or current ID, and each new item's context names its decision locator, rationale and revalidation condition; when absent, every pending item stays.\n    2. Every recorded test command of this item appears in environment.md ## Commands or test-strategy.md ## Harnesses and suites; every AD-<n> and R-<n> in the committed architecture.md and spec.md is still present; no line in docs/shiploop/ looks like a credential.\n    3. The result's skill field has the exact shape below; for create or update, its SKILL.md exists with name and description frontmatter, its index file names it, and <run>/notes/<id>-skill-trial.md exists and is non-empty.\n    4. Every observation that affects later work has an owner: a queue item, an entry in <feature>/plan.md ## Open, or outcome blocked for an incompatible finding.\n  Repeat while: Repeat while an exit condition fails after an iteration; there is no iteration limit. Stop blocked when a finding is incompatible with the approved work (a changed requirement, permission or invocation contract): that is not a queue edit.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/<id>-contract.json\n  Receipt: <run>/loops/<id>-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs until-loop ADAPTER.md> and follow it with this argument. Either way the loop starts with:\n  python3 <abs until_loop_ephemeral.py> start --receipt <run>/loops/<id>-terminal.json < <run>/loops/<id>-contract.json\nNever write or edit the receipt. After a reset, if the receipt exists and its status is active, run its next_argv once; do not start again.\n\nDurable knowledge goes in the knowledge home, never only in run notes. A `repeat` outcome only retries this stage; it reopens no earlier one.\n\nDONE WHEN (the loop's exit conditions, the same words)\n1. The result's work_items, when present, lists every still-required future item in prerequisite order, repeats no completed or current ID, and each new item's context names its decision locator, rationale and revalidation condition; when absent, every pending item stays.\n2. Every recorded test command of this item appears in environment.md ## Commands or test-strategy.md ## Harnesses and suites; every AD-<n> and R-<n> in the committed architecture.md and spec.md is still present; no line in docs/shiploop/ looks like a credential.\n3. The result's skill field has the exact shape below; for create or update, its SKILL.md exists with name and description frontmatter, its index file names it, and <run>/notes/<id>-skill-trial.md exists and is non-empty.\n4. Every observation that affects later work has an owner: a queue item, an entry in <feature>/plan.md ## Open, or outcome blocked for an incompatible finding.\n- evidence_refs lists the receipt <run>/loops/<id>-terminal.json.\nChecked by: ShipLoop checks the terminal packet against the contract; refuses a work_items row that is malformed or repeats a completed or current ID; refuses a dropped R-<n> or AD-<n>, a credential-like line in docs/shiploop/, a skill field that does not fit the shape, or a create/update whose SKILL.md, frontmatter, index entry or trial file is missing; then commits docs/shiploop/, SHIPLOOP.md and, for create/update, the skill directory and index file. When this done result leaves no item pending, an end-of-work Improve child reviews every executed item; it commits its own edits, and if it changed the tree ShipLoop reruns every completed item's recorded commands. If it adds items, the review moves to the new last item.\nOutcomes: done | repeat | blocked.\n\nRUN  the INVOKE block above \u00b7 result template (work_items optional, rows {id, title, context}, replacing the whole future queue; skill: {\"decision\": \"none\" | \"reuse\" | \"update\" | \"create\", \"reason\": \"<one sentence>\", \"inspected\": [\"<index file or skill name checked>\", ...], \"evidence\": [\"<step or item ID where the procedure ran>\", ... | \"<pending item ID or R-<n> that says it recurs>\"], \"path\": \"<repo-relative>/<name>/SKILL.md\", \"index\": \"<repo-relative index file>\", \"trial\": \"<run>/notes/<id>-skill-trial.md\", \"older_use\": \"<retained use exercised>\", \"revalidate\": \"<when to recheck it>\"}; none and reuse need reason and inspected (reuse also names the skill in path); update and create need every field except older_use, which update also needs.) \u00b7 callback \u00b7 Improve start (last item) \u00b7 recovery \u00b7 pause\nFILES  grounding: spec.md, architecture.md, environment.md, test-strategy.md, <feature>/plan.md (absolute paths) \u00b7 results: step-plan, verify \u00b7 run/reference.md#carry-forward, #local-skills, #backchain-audit (a material prerequisite ambiguity only), #test-facilities",
+   "kept": [
+    "queue revision rule (once, not three times)",
+    "durable knowledge outside run notes",
+    "end-of-work Improve on the last item"
+   ],
+   "moved": [],
+   "added": [
+    "explicit updates to environment / architecture / test-strategy by heading",
+    "the repeatable-skill decision with a repeat test (owner 2026-10-10), replacing skill-assess and skill-validate"
+   ],
+   "dropped": [
+    "the queue-replace rule repeated three times; the Backchain/budget text (to the reference)"
+   ],
+   "notes": "Owner decisions: (a) the skill decision gains reuse/update besides create/none, matching the removed skill-assess dispositions; (b) a skill made at carry-forward needs its own script commit (the item commit already ran at verify, and an in-place run otherwise leaves it uncommitted); (c) architecture.md must join knowledge_home.LIVING/STAGE_FILES for the AD-<n> gate the draft claims; (d) carry-forward now has a loop contract only because the Amendment requires one in every stage.",
+   "draft_chars": 7158,
+   "old_stages": [
+    "skill-assess",
+    "skill-validate",
+    "carry-forward"
+   ],
+   "old_stage_text_chars": 33836,
+   "old_duty_chars": 4067,
+   "contract": {
+    "workspace": "<the item's execution checkout, absolute>",
+    "work": "Update the knowledge home in place: environment.md ## Commands (every command that worked), architecture.md ## Decisions (each AD-<n> this item added; a superseded one moves to ## Superseded, never deleted), test-strategy.md ## Harnesses and suites (suites, focused/smoke/full commands, pending real-boundary checks with owner), spec.md (each R-<n> this item satisfied, with its test IDs; keep unaffected clauses; an open gap under its R-<n>). Put open risks, system-test obligations and release prerequisites, each with an owner, in <feature>/plan.md ## Open. Read state.md work_items (every pending title and context); map every observation that affects later work to an owner: a defect in completed work becomes a corrective item ahead of its consumers, a needed research or preparation prerequisite becomes its own item ahead of every consumer; explain each removal or merge in <feature>/plan.md. Skill decision: read the skill index (or README/AGENTS.md skill links; a missing index is not a blocker) and the skills your host offers; choose none, reuse, update or create. Create or update only when the same procedure ran in two or more steps or items of this run, or a pending item or R-<n> says it will recur, and no existing skill covers it; keep it in the repository (environment.md ## Skills names the directory), never install it globally, add a dependency or publish it; link it from the index; run it once on this run's real procedure (an update also on a retained older use) and write the output to <run>/notes/<id>-skill-trial.md, saying whether a fresh reader tried it or 'cold-context reuse untested'.",
+    "exit_condition": "(1) The result's work_items, when present, lists every still-required future item in prerequisite order, repeats no completed or current ID, and each new item's context names its decision locator, rationale and revalidation condition; when absent, every pending item stays. (2) Every recorded test command of this item appears in environment.md ## Commands or test-strategy.md ## Harnesses and suites; every AD-<n> and R-<n> in the committed architecture.md and spec.md is still present; no line in docs/shiploop/ looks like a credential. (3) The result's skill field has the exact shape below; for create or update, its SKILL.md exists with name and description frontmatter, its index file names it, and <run>/notes/<id>-skill-trial.md exists and is non-empty. (4) Every observation that affects later work has an owner: a queue item, an entry in <feature>/plan.md ## Open, or outcome blocked for an incompatible finding.",
+    "repeat_condition": "Repeat while an exit condition fails after an iteration; there is no iteration limit. Stop blocked when a finding is incompatible with the approved work (a changed requirement, permission or invocation contract): that is not a queue edit.",
+    "required_trivial_reviews": 0,
+    "context": {
+     "request": "the run's original request (verbatim) and this item's title and context",
+     "scope": "this item's paths from the step plan; the execution checkout at its item lint base",
+     "authority": "ShipLoop's commit rule for the item; no push; never edit the recorded commands",
+     "environment": "the execution checkout; the recorded commands from the step plan; environment.md's Commands",
+     "resources": [
+      {
+       "purpose": "living spec",
+       "locator": "<repo>/docs/shiploop/spec.md"
+      },
+      {
+       "purpose": "architecture",
+       "locator": "<repo>/docs/shiploop/architecture.md"
+      },
+      {
+       "purpose": "environment",
+       "locator": "<repo>/docs/shiploop/environment.md"
+      },
+      {
+       "purpose": "test strategy",
+       "locator": "<repo>/docs/shiploop/test-strategy.md"
+      },
+      {
+       "purpose": "bound loop skill",
+       "locator": "<skills>/improve/runtime/until-loop/ADAPTER.md"
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "old_to_new": {
+  "get-next-work-item": "step-plan",
+  "step-plan": "step-plan",
+  "test-spec": "test-spec",
+  "baseline": "validate-existing",
+  "test-author": "test",
+  "test-red": "test (script run on the base)",
+  "implement": "implement",
+  "test-green": "test",
+  "test-refine": "test",
+  "regression": "test",
+  "document": "document",
+  "skill-assess": "carry-forward",
+  "skill-validate": "carry-forward",
+  "static-checks": "test (tools) / verify (review)",
+  "verify": "verify",
+  "integrate": "verify (chained route)",
+  "integration-verify": "verify (chained route)",
+  "carry-forward": "carry-forward"
+ },
+ "current": {
+  "get-next-work-item": {
+   "goal": "confirm this work item is still the right next item",
+   "done_when": [
+    "the item's prerequisites are accepted done",
+    "the item is still required by the plan"
+   ],
+   "considerations": {
+    "tools": "ShipLoop records the item's lint base when the item starts."
+   },
+   "gates": [],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked"
+   ],
+   "duty": "Revalidate the current script-selected work item in queue order. Confirm its\ndependencies, scope, owner, relevant lessons, expected outcomes, and prerequisites\nare current. The script does not choose among dependency-ready items. If this\nitem lacks a prerequisite, return blocked with the concrete missing producer or\ncorrection need; do not skip it or advance to carry-forward to repair the queue. Reopen the item's compact\n`context` and relevant plan/evidence locators, then revalidate their stated\nconditions before relying on an earlier convention or environment decision.\n",
+   "duty_chars": 577,
+   "stage_text_chars": 9320,
+   "blocks": []
+  },
+  "step-plan": {
+   "goal": "plan this item's concrete changes and checks",
+   "done_when": [
+    "the result opens with one sentence naming the change and the checks that prove it",
+    "steps lists every implementation step in the order to do them (one step is fine)",
+    "each step declares deps as the IDs of its actual earlier prerequisites, or [] when independent",
+    "each step names the criteria it satisfies and the paths it changes, every criterion is satisfied by a step, and no step only changes test files (unless the whole item is tests)",
+    "test_commands are recorded (focused and regression), or test_commands_na gives the reason",
+    "the files the item will change are declared in paths"
+   ],
+   "considerations": {
+    "develop": "Name target files, interfaces and conventions; follow the house-style match contract.",
+    "test": "Record the item's test commands; test-red, test-green and regression run them exactly.",
+    "deploy": "Note integration impact and any release prerequisite.",
+    "tools": "Name the linters and type checks that cover the changed files."
+   },
+   "gates": [],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked"
+   ],
+   "duty": "Turn the selected item into a bounded implementation plan.  Open the result\nsummary with one sentence naming the concrete change and the checks that will\nprove it; the status display shows that sentence.  Name target files\nand interfaces, behavior and failure cases, tests/fixtures/commands, existing\nconventions and reusable capabilities, diagnostic/error-handling obligations,\ndocumentation changes, integration impact, and required checks.  Revalidate\nenvironment, skill/MCP/library, and project-practice choices for this exact item.\nUse the Coding decision guide to retain a compact decision record in the linked\nplan note: outcome and preserved invariants, changed responsibilities/contracts,\napplicable engineering decisions, ordered edits, independent checks, readiness,\ncompletion and revalidation conditions. Identify the actual runtime/version,\nartifact and boundary; read only matching practice/platform sections. Link the\naccepted plan and selected sections in evidence_refs; do not copy every card or\ncreate boilerplate for inapplicable concerns. Planning does not authorize edits.\nRecord every implementation step in the result's steps list, in the order to\ndo them; an item with one change has one step. ShipLoop issues one implement\npacket per step in that order, in this conversation, so each step names one\nbounded piece of work. This producer's mandatory actual Improve loop must review\nthe steps before they are used for execution.\nFor every step include deps: the IDs of its actual prerequisite steps, or []\nwhen it has none. Prerequisites must appear earlier in the list. List order alone\ndoes not establish a dependency; do not invent an edge between independent steps.\nShipLoop uses these declarations to visualize the generated plan as it changes.\nDelegation is inline: do not create a Plan Dispatcher execution graph or plan\nparallel worker branches; planning never expands this item's scope.\nList the item's completion criteria in `criteria` (`[{\"id\": \"C1\", \"text\": \"...\"}]`)\nand name, in each test command's `criteria`, the criteria that command confirms.\nEvery criterion needs a command: a passing test ShipLoop runs is the only\nconfirmation. For content that has no test runner (for example a document a\ncriterion requires), add a `check` command (suite `check`, judged by its exit code),\nfor example a search for the required terms in that file.\nRecord the item's test command list in the result's `test_commands`:\n`[{\"command\": \"<shell command>\", \"suite\": \"focused\" | \"regression\" | \"check\", \"ids\": [\"TC-9\", ...]}]`.\nFocused commands exercise this item's tests; regression commands run the retained\nsuites; a `check` command is judged by its exit code, and a check row carries no ids or min_tests. test-red, test-green and regression use these exact commands, and ShipLoop\nruns them itself before accepting each stage, so each must be runnable from the\nrepository root. ShipLoop reads the runner's summary and refuses a run that\nexecuted no test, because a filter that matches nothing exits 0 in most runners.\nGive each focused command the `ids` you will title the cases with (the TC-n ids from the test strategy), and a\nrunner flag that prints test names (for example Jest `--verbose`, pytest `-v`, `node --test` with its default\nspec or the tap reporter, never dot or junit),\nso the output shows them. A listed ID counts only as its own word in a test's printed name (for example, a test titled `TC-4a` does not show `TC-4`: title it `TC-4 (a)`). Declare the ids as the tests will be titled. Add `min_tests` when a command must run at least that\nmany. An empty list needs `test_commands_na` with the reason.\nRecord the files this item will change in `paths` (repository-relative files or\nglobs). ShipLoop classifies them with its package catalog: when the item records\nno test command and every path is documentation, configuration or navigation\nmetadata (for example a Salesforce tab or app), ShipLoop records the test stages as\nnot applicable to this item instead of issuing them; otherwise every test stage\nruns. If implement then changes anything outside `paths`, or any code, ShipLoop\nrefuses it until the step plan is revised.\nA test that loads something this item creates needs it loadable at test-author:\nplan the smallest loadable placeholder there (list its path in `paths`) or have\nthe load happen inside the test, so its absence fails a test and not the whole run.\nGive every completion criterion a confirmation: `<condition>. Confirm by:\n<command, observation, or inspection>; pass when <expected result>.` It must pass\nthe two-people test: two people running it separately would be forced to agree.\nState whether the condition must be exercised or whether inspection is\nsufficient. Give content criteria (docs, changelogs, test coverage) a\ncommand-checkable confirmation, such as a search for required terms, so they are\nre-observed rather than recalled. A `criteria` entry needs a command that\nconfirms it (above), so a condition no command can confirm is not listed there:\nrecord it as an open item in this result's summary (who does what, and what they\nreport back). Elsewhere (a plan note, a graph step's done item) mark such a\ncriterion as `Confirm by: unconfirmable here \u2014 <what would confirm it>` rather\nthan dropping it.\nWhen the item adds or moves code or stored data, reopen the plan's Namespace\nand data map and the current tree of each environment it touches. Name each\nfile, module and public symbol with its environment, home namespace,\nvisibility, and the collision check run there (an import or load test, a deploy\nvalidation, or a search for the name). Name each stored field, key, table or\npayload it adds or changes, the owning environment, the schema change mechanism\nand the round-trip check. Record a changed placement or schema and its reason\nin the plan note.\nWhen the item adds or changes a public entry point, include\nthis criterion: each such entry point checks its arguments and carries a contract\ndocstring (Code craft 2-3). Confirm by: inspecting the diff for each entry point\nand running its rejection tests; pass when every entry point has both.\nWhen a check relies on an external oracle (golden, fixture, or\nsnapshot), confirm that the oracle agrees with the task.\nUse the Repository-local skill guidance. Reopen the repo's current skill index or\nREADME/AGENTS links, even if earlier context reported no fit: a preceding item may\nhave created or evolved a skill. Prefer unchanged reuse with supported inputs and\ndefaults. Record the selection or no-fit rationale in the linked plan/evidence\nnote; retain the entrypoint, effective inputs/default sources, product contract,\nvalidation locators and revalidation condition in ordinary evidence_refs. Keep\nlater decision changes in these notes, not edits to the script-owned work queue.\nIf, after reopening that index, no repo-local skill is selected, created or changed\nfor this item, record `skill_na` (the no-fit reason, naming the index you inspected)\nand list no skill file in `paths`: ShipLoop then records skill-assess and\nskill-validate as not applicable to this item without issuing them, which also\nwaives their late helper, MCP and library reuse assessment. Omit `skill_na` when the\nitem selects, uses, creates or changes a skill.\nImprove reviews `skill_na` with the rest of this result.\nShipLoop refuses `skill_na` in two places. At this step plan, beside a skill file in\n`paths` (a SKILL.md, a skills/ or agents/ tree, AGENTS.md, CLAUDE.md, GEMINI.md,\n.mcp.json or a host agent-config directory): resubmit the step plan without\n`skill_na`. At `document`, when the item's real diff touches a skill file (AGENTS.md,\nCLAUDE.md, GEMINI.md and .mcp.json edits there are fine): report revise, then\nresubmit the step plan without `skill_na`. Both skill stages then run.\nLabel every pinned value that exists so a check can replay an exact path (fixed\ndice, seed data, a sample click) as a source-check fixture, and name the runtime\ncontrol separately (for example, two die values the player can change, with the\npinned values as the documented first path). Implementation must not turn a test\nfixture into the product's only behavior.\n\nKeep the interaction delta within the selected work item; available APIs and\nother features in the original request do not expand it. Apply UI planning\nownership where relevant. An unresolved prerequisite outside this item's\nauthorized scope needs its supplier/correction route and the packet's blocked\ndisposition, not just a future implementation bullet.\nFor affected interactions, recheck the guide's relevant subsections instead of\ncopying the prior plan unchecked. Retain a compact Design basis paragraph or\nexact section links: baseline/delta; state/event/connection agreements and planned\nrecovery checks (including a crash after acknowledgment but before processing\naccepted work where applicable); and source/check locators. For UI, include component/interaction/skin\npremises, selected design guidance locator plus identity/version or digest (or\nnamed fallback), and meaningful async cues with their purpose and reduced-motion\nalternative, or an explicit static choice. For a human-facing UI, default to an\nambitious, highly interactive design: name the rich interactions planned\n(direct manipulation, inline editing, live preview, keyboard paths, animated\ntransitions) and any scaled back, with its user, target or accessibility\nreason. For consequential UI choices, include\nthe guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and\ncompatibility check; reuse accepted choices for unaffected scope and the existing\ndesign/test facilities. The next review is the packet's automatic Improve handoff immediately after this producer result, before\nimplementation. Do not schedule a review stage or claim it ran. Link this plan in\nevidence_refs; keep these as ordinary notes, not new result fields.\nUse the packet's Initial repository baseline guide. Revalidate the initial\nbaseline evidence for this item's starting content, command, runtime/configuration,\ntarget, and fixture assumptions; reuse only when they still apply, otherwise rerun\nthe relevant existing check. Retain its locator and readiness condition in the\nitem context. A named repair or test-bootstrap item may carry expected RED or\nmissing coverage into its owned edits; a dependent feature waits for the required\npassing rerun.\nReopen only the relevant item `context`, plan/evidence locators, and packet-selected\nreference sections; verify that their scope and revalidation conditions still\napply. Record a changed decision or exception with its short locator and reason in\nthe existing plan/result evidence rather than relying on copied chat context.\nFor every INNER change, use the Repeatable test-suite guide to reassess setup,\nthe test and independent oracle, teardown, and focused/smoke/full-suite placement.\nReopen the Run-wide test strategy source and this item's test context. Retain\nany justified changed decision and its evidence in the current plan/evidence_refs.\nRevalidate platform/library testing systems and available browser tools for the\nchanged surfaces; reuse supported choices or record a justified revision. Turn\nuseful inspection findings into retained tests or explicit manual procedures.\nRetain the harness and case locators in the existing plan and work-item context.\nFor remote-resident cases, revalidate framework availability and the authorized\nsetup, test-definition/invocation, result retrieval and teardown route.\nReopen the packet's Current planning sources (accepted spec and plan), its test\nstrategy source and this item's selected prior-baseline and incoming-spec sections.\nRevalidate scope/freshness, retain preserved behavior and checks, and surface any\nmissing consequential source before dependent implementation.\nFor affected service work, reopen the indexed current contract and item-specific\nsections from Service discovery guidance. Reconcile changed remote/local state,\nauthority, cache invalidation, async recovery and owned logging before dependent\nedits; retain file roles, revalidation conditions and checks in the accepted plan.\nA superseded note or prior successful probe cannot replace current evidence.\n",
+   "duty_chars": 12215,
+   "stage_text_chars": 29427,
+   "blocks": [
+    "backchain",
+    "interaction-design",
+    "test-decision",
+    "test-facility"
+   ]
+  },
+  "test-spec": {
+   "goal": "specify the tests this item needs before code changes",
+   "done_when": [
+    "every completion criterion has at least one test case, or a justified not-applicable",
+    "each case has an independent oracle and a RED and GREEN definition"
+   ],
+   "considerations": {
+    "test": "Specify cases before code: positive, failure and boundary."
+   },
+   "gates": [],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Specify executable tests before production edits when applicable.  Map the item\nto independent positive, boundary, and failure assertions, fixtures, and command\npaths.  Define what the baseline/expected RED should prove, what focused GREEN\nwill prove after implementation, and how regression coverage prevents weakening\nthe oracle.  A test specification is not execution evidence.\nTake the item's clauses from the accepted spec and plan named in the packet's\nCurrent planning sources. Preserve every assigned clause and its required surface and due phase. Specify\nthe action and expected observable outcome for each distinct behavior, not only\nthat its page loads. Link later-phase procedures without claiming they ran here.\nFor each new or changed public entry point, specify one rejection case per\nconstraint it checks (missing, wrong type or shape, out of range), asserting the\nerror type, the named argument and unchanged state.\nTitle each case with the ids in the step plan's `test_commands`, and write one entry per case\nin test-spec.md: id, setup, action, independent oracle, RED, GREEN.\nSpecify setup, test/assertions, and teardown together, or state why a stateless\ncase needs no setup or teardown. Reuse fixture code without assuming mutable\nstate is shareable. Share expensive setup only with demonstrated noninterference;\nif in doubt, use per-test isolation. Plan failure cleanup and suite registration.\n",
+   "duty_chars": 1416,
+   "stage_text_chars": 12377,
+   "blocks": [
+    "test-decision",
+    "test-facility"
+   ]
+  },
+  "baseline": {
+   "goal": "record the relevant checks before any change",
+   "done_when": [
+    "each recorded command ran on the unchanged item base, with its exit code and output recorded",
+    "pre-existing failures are classified"
+   ],
+   "considerations": {
+    "test": "Record the before state; fix nothing here."
+   },
+   "gates": [],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Run and record the relevant pre-change baseline checks.  Separate known existing\nfailures from failures introduced by the candidate, retain commands and observed\nresults, and establish the baseline needed to interpret RED/GREEN and later\nregressions. A blocked or invalid baseline remains incomplete for dependent\nfeature readiness.\nUse the packet's Initial repository baseline guide. Check whether the initial\nevidence still applies to this item's current starting state and reuse it only\nwhen it does; otherwise execute the relevant existing check before edits. Keep\nfailure classification and evidence locators in ordinary results/context. A named\nrepair or test-bootstrap producer may retain an expected RED or missing coverage\nas its baseline classification so it can perform its assigned work. That result\ndoes not certify health or unblock a dependent feature without its required\npassing rerun.\n",
+   "duty_chars": 903,
+   "stage_text_chars": 9646,
+   "blocks": []
+  },
+  "test-author": {
+   "goal": "write the tests the item's test spec calls for",
+   "done_when": [
+    "each case in the test spec has a test the focused command runs",
+    "the tests are wired into the suite and repeatable"
+   ],
+   "considerations": {
+    "test": "Write the tests the spec calls for; never weaken an assertion to fit an expected implementation. Every case ends in one of three states: validated (executed, and the observation matches the expectation), validated another way (the first method could not observe it, so the method changed and the new one was executed and passed; the result says what changed and why), or unachievable (a named reason, and the requirement it leaves unverified; report revise so the step plan reroutes the case, or report blocked with blocked_by access only when nothing else can proceed). A case that is written but not run, or recorded as not run, is not an end state.",
+    "tools": "Tests follow the repository's test framework and lint rules."
+   },
+   "gates": [
+    "test-probe"
+   ],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Use the Run-wide test strategy source and current item context to select the\napplicable harness and test boundaries; revalidate the choice before authoring.\nAuthor or refine executable tests and fixtures from the independent test\nspecification before production implementation.  Preserve adequate coverage and\nkeep experiments isolated.  Do not weaken or delete an assertion merely to make\nthe eventual candidate pass; record a justified N/A only where test-first work\ncannot apply and name the alternative evidence.\nAuthor the specified rejection cases for each public entry point; they are\nexecutable tests, not comments.\nRetain tests and fixtures in the repository. Register each case in the full\nregression route and applicable focused entry points; decide smoke membership\nindependently without duplicating tests. Follow the Repeatable\ntest-suite guide for setup/teardown, safe fixture sharing, and rerun instructions;\nverify discovery selects the cases rather than merely recording their paths.\nFor remote-resident cases, retain/version the remote definitions and registration\nwith their authorized installation/invocation prerequisites.\nAuthoring is complete only when selected clauses have executable check bindings\nor justified reproducible manual procedures at their required surfaces. Keep\nunavailable execution prerequisites and later-phase observations pending.\nOn done, ShipLoop runs the item's focused commands once and refuses unless a test\nran (a counted pass that shows every listed ID, or a failing test that shows every listed ID). A listed ID counts only as its own word in a test's printed name (for example, a test titled `TC-4a` does not show `TC-4`: title it `TC-4 (a)`). The number\nof tests that run here is the least any later run of the command may run for this item, until test-refine reconciles any\nremoved case. Tests that\nload something this item creates need it loadable now: create the smallest\nloadable placeholder at a path the step plan's `paths` names, or load it inside\nthe test so a missing file fails that test and not the run.\n",
+   "duty_chars": 2069,
+   "stage_text_chars": 16115,
+   "blocks": [
+    "code-craft",
+    "test-decision",
+    "test-facility"
+   ]
+  },
+  "test-red": {
+   "goal": "run the new tests and confirm they fail for the right reason",
+   "done_when": [
+    "the focused commands fail, and each new test's failure names the missing behaviour",
+    "no failure is caused by syntax, import, fixture or environment"
+   ],
+   "considerations": {
+    "develop": "Do not edit product code.",
+    "test": "ShipLoop runs the focused commands and requires them to fail inside a test."
+   },
+   "gates": [
+    "test-red"
+   ],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Execute the selected pre-implementation tests and establish a meaningful expected\nRED for the intended missing behavior.  Confirm that the failure is caused by the\nspecified behavior rather than syntax, setup, fixture, or environment error.\nA missing test facility is a prerequisite gap, not meaningful RED. Facility\nreadiness must not require future product behavior to pass.\nDo not edit production code to make the test green at this stage.  A valid RED is\nsuccessful control evidence for this stage, not a product failure to hide.\nOn done, ShipLoop runs the item's focused commands itself and expects each to fail\ninside a test, showing its listed IDs. When the new tests are characterisation\ntests that should already pass, give the reason in `red_na`; ShipLoop then\nexpects them to pass and still checks that they ran.\n",
+   "duty_chars": 824,
+   "stage_text_chars": 14104,
+   "blocks": [
+    "code-craft",
+    "test-facility"
+   ]
+  },
+  "implement": {
+   "goal": "make the planned change",
+   "done_when": [
+    "each completion criterion this step's work covers is confirmed after the last edit",
+    "the lint gate reports no unwaived new finding on changed lines"
+   ],
+   "considerations": {
+    "develop": "Make the planned change in the execution checkout, one reviewed step at a time, matching the house style.",
+    "test": "After each step, rerun the checks it affects; change the work, never the check.",
+    "tools": "Run `shiploop lint --action` after each step; the lint gate runs at complete."
+   },
+   "gates": [
+    "lint-gate"
+   ],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Implement the authorized bounded change.  Preserve unrelated work, inspect the\nactual code as it changes, and carry discoveries into later test refinement.\nWrite first: list the paths this step plan creates or changes, write those files,\nthen run the item's named focused tests once. Read history or earlier reviews only\nwhen a test fails or a concrete open question needs a specific section; history\nbefore the first edit belongs to plan review, not to implementing a listed file set.\nReopen Target-native test selection when actual local/remote code, configuration,\ndependencies or delivery route changes invalidate the earlier test decision.\nApply the planned behavior and the Code craft rubric below.  Do not claim\nverification from an edit alone.\nExit criteria: the accepted step plan's completion criteria are this action's\nexit criteria. It is finished only when you have confirmed each one as far as\nthis environment allows.\n(1) Before editing, record for each criterion the command or inspection that\nconfirms it and what counts as a pass. Use its `Confirm by:` method when it has\none. Existing tests, check scripts, golden or fixture files, and thresholds belong\nto the checks: change them only when a criterion says to.\n(2) Confirm with what is already present. Never download, install, or fetch a\ntool, runtime, or dependency to confirm a criterion. Record the best available\nevidence and recommend what would confirm it.\n(3) Stay within the item. If satisfying a check would make the result do or claim\nsomething the item does not ask for, leave that check failing and report the\ndiscrepancy.\n(4) After your last edit to any file, rerun every check in one pass; only that\npass counts. When a check fails, change the work, not the check, and rerun them all.\n(5) Stop on exactly one: every criterion confirmed or inspected, or reported\n`unconfirmable` when the accepted plan already marks it `Confirm by: unconfirmable\nhere`, and none failed \u2192 outcome done; a criterion proven unachievable \u2192 outcome\nrevise, naming it, so the step plan is corrected rather than blindly retried\n(blocked, with blocked_by, only when the user, an access grant or an outside\ndependency must resolve it); the same check still failing after 7 genuine fix\nattempts \u2192 outcome revise with that criterion failed. A criterion is proven unachievable only when (a) it contradicts another\ncriterion, the item, or a protected file, shown by a check after all compatible\nwork is done and with the existing behavior kept at the conflict point; (b)\nconfirming it needs a tool, runtime, access, or authority that is absent, for a\ncriterion the plan did not already mark `Confirm by: unconfirmable here`; or (c)\nsatisfying it would exceed the item.\nReport each criterion's check, the observed output from the final pass, and its\nlevel (`confirmed`, `inspected`, `failed`, `not_run`, or `unconfirmable`), plus\ndiscrepancies and recommendations, in the result summary or a linked evidence note.\nLint every step: after a step's last edit, run the packet's printed lint command\nand fix the new findings on lines you changed before starting the next step.\nUnless the run's lint option is off, when you submit done ShipLoop lints every\nfile this work item changed with the linters the repository configures. It\nrefuses done once after applying an\nauto-fix (rerun your checks, then submit again) and while a new finding on a\nchanged line remains. A finding that must stay goes in the result's\n`lint_waivers` as `{\"id\": \"<printed ID>\", \"reason\": \"<why>\"}`.\nUse the Coding decision guide to reopen the accepted plan and only its relevant\npractice/platform sections. Check current code, versions and consumers before\nreuse or augmentation. Retain justified revisions in the linked note; a new\nprerequisite or authority boundary uses the existing correction route.\nDelegation is inline: this packet is for the one step named in its Step line.\nDo that step in the execution checkout in this conversation, then run this\npacket's callback; ShipLoop issues the next step, and after the last one the\ntest stages. Do not start a later step, bind an implementation chain, or dispatch\nAsk Agent or native workers; chains are available only when the run's delegation\nis ask-agent. If the step cannot be done as planned, report revise so the step\nplan is corrected.\nFor service changes, apply the accepted current contract and relevant Service\ndiscovery guidance. Revalidate target state and authority before effects; preserve\nunrelated remote fields and existing operational owners. Unresolved cache access\nor async completion semantics require their recorded safe fallback or correction.\n",
+   "duty_chars": 4643,
+   "stage_text_chars": 17076,
+   "blocks": [
+    "code-craft"
+   ]
+  },
+  "test-green": {
+   "goal": "run the focused tests and confirm they pass",
+   "done_when": [
+    "every focused command passes on the bound Until Loop and when ShipLoop reruns it"
+   ],
+   "considerations": {
+    "test": "Loop on the focused commands until they pass. Every case ends in one of three states: validated (executed, and the observation matches the expectation), validated another way (the first method could not observe it, so the method changed and the new one was executed and passed; the result says what changed and why), or unachievable (a named reason, and the requirement it leaves unverified; report revise so the step plan reroutes the case, or report blocked with blocked_by access only when nothing else can proceed). A case that is written but not run, or recorded as not run, is not an end state.",
+    "tools": "The lint gate runs before ShipLoop's own test run."
+   },
+   "gates": [
+    "lint-gate",
+    "test-loop"
+   ],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Purpose: run this work item's test loop on the bound Until Loop until every\ncommand in its test command list passes. ShipLoop wrote the loop contract from\nthe accepted step plan's test_commands; the Until Loop script counts iterations\nand decides when the loop ends; you execute each iteration and report it\nhonestly.\nDo:\n1. Read the bound Until Loop card in full once per context and follow it. Start\n   the run with the printed command. Do not edit, retype or extend the contract.\n2. Execute each returned iteration exactly as its work says, then call its done\n   command. The runtime writes every packet it returns to the printed receipt,\n   so after a reset its next_argv resumes the run; do not write or edit the\n   receipt. Continue until the runtime returns complete or stopped.\n3. List the printed receipt path in evidence_refs: its last packet is the\n   terminal one, written by the runtime.\nReport: done when the loop completed; revise when it stopped blocked because a\nfailure is unachievable as planned (the item goes back to its step plan, with the\nfailing command as evidence); blocked, with blocked_by, only when the user, an access grant or\nan outside dependency must unblock it. On done, ShipLoop checks the terminal\npacket against the contract and then runs every listed command itself; it\nrefuses done unless each exits 0 and prints the failures. After a refusal, fix\nthe code, start the loop again with the printed command (its terminal packet is\nreplaced) and submit again. After 11 refused runs done is no longer accepted:\nreport revise. Before the test run, ShipLoop lints this item's changes as at\nimplement: it refuses done once after an auto-fix and while a new finding on a\nchanged line has no `lint_waivers` entry.\nScope: the step plan's focused commands. A passing command only supports the\noutcomes it actually exercises.\n",
+   "duty_chars": 1852,
+   "stage_text_chars": 14285,
+   "blocks": [
+    "code-craft"
+   ]
+  },
+  "test-refine": {
+   "goal": "tighten the tests against the actual implementation",
+   "done_when": [
+    "tests are tightened against the actual implementation",
+    "every recorded command passes when ShipLoop reruns it"
+   ],
+   "considerations": {
+    "test": "Tighten weak assertions; change a check only for an independent reason."
+   },
+   "gates": [
+    "test-rerun"
+   ],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Recheck the Run-wide test strategy source against the current item context and\nobserved implementation; record revised test decisions in ordinary evidence_refs.\nUse Target-native test selection to reassess affected native suites and prior\nexclusions against the actual local/remote changes and remaining test gates.\nRefine cases and executable tests using the code that now exists while preserving\nindependent specification-based expectations.  Cover changed failure behavior,\ndebug on/off behavior and safe diagnostic context where relevant.  Correct an\noracle only with an independent reason; do not retrofit tests to the implementation\nsolely to obtain green.\nReconcile the original clause/case inventory: explain every removed or narrowed\ncase, surface change or phase reassignment with an independent requirement or\ncorrection basis. Preserve missing consumer coverage as pending, not a local pass.\nReassess setup/teardown and safe sharing from actual behavior; preserve stateless\ncases without boilerplate. Keep refined tests registered in the repeatable suites\nand refresh their case, fixture, command, and cost notes when those change.\n",
+   "duty_chars": 1144,
+   "stage_text_chars": 16366,
+   "blocks": [
+    "code-craft",
+    "pass-or-stop",
+    "test-decision",
+    "test-facility"
+   ]
+  },
+  "regression": {
+   "goal": "rerun the retained suites for regressions",
+   "done_when": [
+    "every recorded command passes on the bound Until Loop and when ShipLoop reruns it, so no recorded check that passed at baseline fails now"
+   ],
+   "considerations": {
+    "test": "Run the retained suites; fix the code, not the checks. Every case ends in one of three states: validated (executed, and the observation matches the expectation), validated another way (the first method could not observe it, so the method changed and the new one was executed and passed; the result says what changed and why), or unachievable (a named reason, and the requirement it leaves unverified; report revise so the step plan reroutes the case, or report blocked with blocked_by access only when nothing else can proceed). A case that is written but not run, or recorded as not run, is not an end state.",
+    "tools": "The lint gate runs before ShipLoop's own test run."
+   },
+   "gates": [
+    "lint-gate",
+    "test-loop"
+   ],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Purpose: run this work item's test loop on the bound Until Loop until every\ncommand in its test command list passes. ShipLoop wrote the loop contract from\nthe accepted step plan's test_commands; the Until Loop script counts iterations\nand decides when the loop ends; you execute each iteration and report it\nhonestly.\nDo:\n1. Read the bound Until Loop card in full once per context and follow it. Start\n   the run with the printed command. Do not edit, retype or extend the contract.\n2. Execute each returned iteration exactly as its work says, then call its done\n   command. The runtime writes every packet it returns to the printed receipt,\n   so after a reset its next_argv resumes the run; do not write or edit the\n   receipt. Continue until the runtime returns complete or stopped.\n3. List the printed receipt path in evidence_refs: its last packet is the\n   terminal one, written by the runtime.\nReport: done when the loop completed; revise when it stopped blocked because a\nfailure is unachievable as planned (the item goes back to its step plan, with the\nfailing command as evidence); blocked, with blocked_by, only when the user, an access grant or\nan outside dependency must unblock it. On done, ShipLoop checks the terminal\npacket against the contract and then runs every listed command itself; it\nrefuses done unless each exits 0 and prints the failures. After a refusal, fix\nthe code, start the loop again with the printed command (its terminal packet is\nreplaced) and submit again. After 11 refused runs done is no longer accepted:\nreport revise. Before the test run, ShipLoop lints this item's changes as at\nimplement: it refuses done once after an auto-fix and while a new finding on a\nchanged line has no `lint_waivers` entry.\nScope: every command the step plan lists, focused and regression (the retained\nsuites selected from the Run-wide test strategy source). Revalidate retained\nfacility definitions and readiness for this regression target; reuse the existing\nroute when it still fits and retain any required correction. Distinguish a product\ndefect, invalid test and environment issue with a small discriminating\nobservation; repeated unchanged failure is not progress. A smoke pass cannot\nstand for the required full suite.\n",
+   "duty_chars": 2247,
+   "stage_text_chars": 16293,
+   "blocks": [
+    "code-craft",
+    "test-decision",
+    "test-facility"
+   ]
+  },
+  "document": {
+   "goal": "update the documentation this change affects",
+   "done_when": [
+    "each changed public behaviour is documented where users and maintainers look",
+    "each changed document was reread after the last edit"
+   ],
+   "considerations": {
+    "develop": "Update code, API, user and operator documentation from observed behaviour."
+   },
+   "gates": [],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Update necessary code, API, user, operator, design, and decision documentation\nfrom observed implementation and test results.  Keep public/error/debug behavior\naccurate, concise, and discoverable.  Promote durable facts and lessons into the\nappropriate repository documentation rather than leaving them only in transient\nrun notes; preserve uncertainty and material caveats.\nReconcile maintained requirements with accepted changes, not merely observed code:\npreserve unaffected conditions and link tests/evidence or unresolved gaps. Update\nREADME/index links to the authoritative home without duplicating its contract.\nUse the Current-system baseline guide to retain recovered observations and\naccepted deltas in durable product docs, preserving their distinct evidence status\nand the prior as-of baseline. Update README/index links to the selected homes.\nMaintain the indexed service decision note with accepted contracts, affected\nfiles, check evidence, operational owners and revalidation triggers. Follow Service\ndiscovery guidance to keep current and superseded choices distinguishable; do not\nleave the only usable handoff inside transient results or chat.\n",
+   "duty_chars": 1163,
+   "stage_text_chars": 13596,
+   "blocks": [
+    "code-craft"
+   ]
+  },
+  "skill-assess": {
+   "goal": "decide whether a reusable skill or helper change is warranted",
+   "done_when": [
+    "a reuse or new-skill decision is recorded with its reason"
+   ],
+   "considerations": {},
+   "gates": [],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Assess whether an existing skill, helper, MCP capability, library pattern, or\nrepo-local skill change is warranted for this work.  Check actual task fit,\nmaintenance/portability implications, available examples, and expected consumer\nvalue. Record a clear reuse, update, create, or justified N/A disposition. Presence or\ninstallation does not prove execution, and this step does not authorize a new\ndependency or publication.\nRead any existing skill index, README or AGENTS skill links and the linked\nlocal-skill guidance; absence of an index is not a blocker. Prefer unchanged\nreuse with existing inputs/defaults, then a compatible local update; create a\nseparate local skill only for an evidenced gap or incompatible contract. Perform\nthe warranted skill/index edits within this item's scope, preserving supported\nolder uses. Keep generated skills in the product repository, never install them\nglobally. Link the disposition note and applicable repo index, selected entrypoint,\neffective input/default sources, product contract and validation evidence in\nordinary evidence_refs so Improve and the next context can recover them. Do not\ninvent entrypoints or validation for a no-fit disposition.\n",
+   "duty_chars": 1196,
+   "stage_text_chars": 9939,
+   "blocks": []
+  },
+  "skill-validate": {
+   "goal": "validate any skill or helper change against real inputs",
+   "done_when": [
+    "any changed skill or helper ran on a real input, or the not-applicable reason is recorded"
+   ],
+   "considerations": {},
+   "gates": [],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Validate the selected reusable skill/helper or skill-related change against its\nreal examples, inputs, failure behavior, and consumer documentation.  If the\nprior assessment found no applicable skill work, emit and verify the justified N/A\nresult instead of silently skipping this graph step.  Record the tested scope and\nlimitations; discovery or installation alone is not validation.\nFor a changed skill, exercise the triggering case and a retained older use; check\napplicable defaults/overrides and a relevant failure boundary. A cross-context\nreuse claim needs a fresh-reader trial using only the repo index, skill and new\ntask; otherwise record that cold-context reuse remains untested.\n",
+   "duty_chars": 692,
+   "stage_text_chars": 9435,
+   "blocks": []
+  },
+  "static-checks": {
+   "goal": "run formatting, lint, type and build checks",
+   "done_when": [
+    "the quality loop ends with an iteration of only trivial findings",
+    "every recorded command passes when ShipLoop reruns it"
+   ],
+   "considerations": {
+    "develop": "Trace each changed public entry point with a valid, a boundary and an invalid input; fix against Code craft.",
+    "tools": "ShipLoop records the change inventory, lints again (auto-fixing on first entry) and writes the quality-loop contract."
+   },
+   "gates": [
+    "quality-terminal",
+    "test-rerun"
+   ],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Purpose: run this work item's quality loop on the bound Until Loop. ShipLoop\nwrote the loop contract; the Until Loop script counts iterations and decides\nwhen the loop ends; you execute each iteration and report it honestly.\nInputs: the Quality loop lines below (Until Loop card, start command, contract,\npacket paths), the change inventory, and the ShipLoop lint block if present.\nDo:\n1. Read the bound Until Loop card in full once per context and follow it. Start\n   the run with the printed command. Do not edit, retype or extend the contract.\n2. Execute each returned iteration exactly as its work says, then call its done\n   command. The runtime writes every packet it returns to the printed receipt,\n   so after a reset its next_argv resumes the run; do not write or edit the\n   receipt. Continue until the runtime returns complete or stopped.\n3. List the printed receipt path in evidence_refs: its last packet is the\n   terminal one, written by the runtime.\nReport: done when the loop completed; revise when it stopped blocked because a\nfinding shows the item's goal is wrong as planned, naming it (the item goes back\nto its step plan);\nblocked, with blocked_by, only when the user, an access grant or an outside\ndependency must unblock it. Summarize the entry-point inventory, each\ntrace that found an issue, the fixes, and the final check commands with exit\ncodes. ShipLoop refuses this result unless the saved terminal packet matches the\ncontract and outcome. State any required unrun check and why it could not run.\nA ShipLoop lint block is supporting output, not this step's evidence: read it,\nkeep or revert any auto-fix it names, and still run the step's own checks inside\nthe loop.\n",
+   "duty_chars": 1697,
+   "stage_text_chars": 14130,
+   "blocks": [
+    "code-craft"
+   ]
+  },
+  "verify": {
+   "goal": "verify the item against its acceptance criteria",
+   "done_when": [
+    "every completion criterion of the item is confirmed on the current candidate, with evidence made after the last edit",
+    "later-phase checks are marked pending with their owner"
+   ],
+   "considerations": {
+    "test": "Rerun or inspect each criterion's confirmation; reconcile every selected case.",
+    "tools": "ShipLoop reruns lint report-only on entry, and on done runs every recorded command."
+   },
+   "gates": [
+    "test-rerun"
+   ],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "On done, ShipLoop runs every command the step plan recorded, each tied to the criteria it confirms and refuses done unless each passes; the\nrecord it writes is the evidence, so a criterion is confirmed by its passing\ncommand, not by this result's summary.\nVerify the complete work item against its acceptance criteria and current evidence.\nCheck evidence applies to the current candidate, command, configuration and target;\nstale, missing or skipped required evidence is incomplete. Use the authoritative\nacceptance criterion, keeping diagnostic scores separate from that decision.\nUse the Coding decision guide to compare the actual diff and affected consumers\nwith the accepted plan, justified revisions and selected practice/platform checks.\nPreserve any required real-boundary gap; a pattern name or tool pass is not proof\nof the behavior it did not exercise.\nCheck the static-checks quality loop's entry-point inventory against the actual\ndiff; an entry point missing from it has not been traced or reviewed.\nCheck the implement result's per-criterion receipt against each completion\ncriterion of the accepted step plan, and independently rerun or inspect each\ncriterion's confirmation. Do not accept the item when a confirmable criterion\nfailed or was not confirmed; name those criteria. A criterion reported `inspected`\nor `unconfirmable` whose `Confirm by:` required execution means the step contract\ncannot be met here: report revise so the step plan is corrected, not accepted.\nA proven-unachievable criterion goes back to the step plan (revise), or to a\nreplan at an OUTER stage when it is product-wide, not to a blind retry.\nReconcile tests, static checks, documentation, error behavior, diagnostics,\ndependencies, and known limitations.  Refresh checks affected by material changes\nand retain failures or blocked boundaries honestly.  This is work-item acceptance,\nnot an assertion that integration or release has happened.\nUse Service discovery guidance for the item's selected service and observability\ncontracts. Verify the due outcomes, including safe fallback and failure cases;\nseparate local simulation from required remote readback, permission enforcement,\ncompletion and event retrieval. Keep later-phase checks explicitly pending.\n",
+   "duty_chars": 2254,
+   "stage_text_chars": 15553,
+   "blocks": [
+    "code-craft",
+    "reconciliation"
+   ]
+  },
+  "integrate": {
+   "goal": "assemble the item's candidate in the execution checkout",
+   "done_when": [
+    "the item's changes are assembled in the execution checkout, or a justified no-op is recorded"
+   ],
+   "considerations": {
+    "develop": "Keep run state and logs out of product commits.",
+    "deploy": "The original branch is returned only at the final workspace return."
+   },
+   "gates": [],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Perform only authorized Git/worktree integration for the candidate.  Inspect\nactual diffs, branches, conflicts, identities, and combined interfaces.  Preserve\nuser work and keep run-time state, raw logs, credentials, and generated artifacts\nout of product commits and returns.  Do not infer a merge, commit, push, or\ndeployment from a plan or command attempt.  Confirm this item's candidate is assembled in the execution checkout under\nworkspace and repository policy, or record a justified no-op.\nThe original branch is returned only at the final workspace return.\n",
+   "duty_chars": 566,
+   "stage_text_chars": 12999,
+   "blocks": [
+    "code-craft"
+   ]
+  },
+  "integration-verify": {
+   "goal": "verify the integrated result and shared interfaces",
+   "done_when": [
+    "every recorded command passes on the integrated result when ShipLoop reruns it",
+    "shared interfaces are checked"
+   ],
+   "considerations": {
+    "test": "Verify the integrated result and the shared interfaces."
+   },
+   "gates": [
+    "test-rerun"
+   ],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked",
+    "revise"
+   ],
+   "duty": "Verify the assembled integrated candidate with the affected shared interfaces,\ntests, and consumer-facing behavior.  Recheck evidence invalidated by merge or\nconflict-resolution edits.  Separate a local integrated result from remote\ndelivery, and route a concrete integration failure to correction rather than\nclaiming that individual passing components establish the combination.\n",
+   "duty_chars": 381,
+   "stage_text_chars": 14856,
+   "blocks": [
+    "code-craft",
+    "pass-or-stop",
+    "reconciliation"
+   ]
+  },
+  "carry-forward": {
+   "goal": "record lessons and revise the remaining queue",
+   "done_when": [
+    "every still-required future item is in the queue, in prerequisite order",
+    "learnings and durable knowledge are recorded outside run notes"
+   ],
+   "considerations": {
+    "develop": "Record reusable learnings and conventions.",
+    "test": "Keep rerun procedures in the repository's test documentation."
+   },
+   "gates": [],
+   "checked": "(not rendered offline: 'stage')",
+   "outcomes": [
+    "done",
+    "repeat",
+    "blocked"
+   ],
+   "duty": "Read the full ordered queue before revising future work. Preserve every\nstill-required pending outcome, including unrelated work with no consumer.\nExplain removals, merges or supersession against approved scope in the linked\nplan note. A completed prerequisite invalidated by new evidence needs corrective\nwork and revalidation before its consumer; do not rewrite past completion evidence.\nRecord reusable learning, unresolved dependencies, newly discovered risks,\nfuture work, system-test obligations, release prerequisites, and ownership.  Keep\ncurrent completed evidence separate from future plans.  Update appropriate project\nknowledge and preserve concrete revalidation conditions; do not silently expand\nscope or convert tentative ideas into adopted policy. When creating a future\nwork item, carry only its applicable compact decision/convention locator, rationale,\nand revalidation condition in its existing `context`, with supporting source\nlocators in ordinary `evidence_refs`; do not duplicate transcripts or invent a\nsecond decision store.\nPreserve repeatable tests, fixture lifecycle decisions, harness/case locators and\nfocused/smoke/full-suite commands in repository test documentation and work-item\ncontext. Link pending full-suite or real-boundary checks with their owner; do not\nleave the only rerun procedure in transient run notes.\nRetain the originating strategy locator alongside current item-specific test\ndecisions so later items and whole-system tests can revalidate their basis.\nFor selected local skills, retain the repo index/entrypoint, applicable inputs or\noverrides, validation evidence and revalidation trigger; keep the reusable\nprocedure outside disposable run storage.\nMaintain the existing skill index/README links and their short SHIPLOOP.md locator\nso the next item or run can find newly created or evolved local skills. Keep\ntask-specific values in evidence and revalidate prior selections for each new task.\nCarry the selected prior baseline, incoming delta and updated durable knowledge\nlocators forward. Preserve historical snapshots and pending persistence work;\nnew observations do not silently replace approved intent or old evidence.\n",
+   "duty_chars": 2179,
+   "stage_text_chars": 14462,
+   "blocks": [
+    "backchain",
+    "test-facility",
+    "work-items"
+   ]
+  }
+ }
+}

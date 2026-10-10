@@ -1,0 +1,36 @@
+{
+ "summary": "No. /goal is a slash command that only a typed user prompt can start: at the terminal, or as the prompt of a headless `claude -p \"/goal ...\"` run. The model cannot issue it mid-session, and neither can a hook (hooks only add context), a tool result or a skill. The Agent SDK has no goal API. Codex and Grok have their own /goal, under the same user-typed rule. Sources: the Claude Code goal, commands, headless and hooks docs (checked 2026-10-10).",
+ "rows": [
+  {
+   "mechanism": "Packet text tells the model to type /goal",
+   "verdict": "no",
+   "verdict_class": "no",
+   "note": "Slash commands are parsed from user input only; the model's own output is never parsed as a command."
+  },
+  {
+   "mechanism": "A hook emits /goal",
+   "verdict": "no",
+   "verdict_class": "no",
+   "note": "A hook can add context or block a stop, not start a command."
+  },
+  {
+   "mechanism": "Headless `claude -p \"/goal <condition>\"`",
+   "verdict": "yes, outside the run",
+   "verdict_class": "maybe",
+   "note": "Works, but only as the first prompt of a new process; the E2E harness or a user could start a run this way, not ShipLoop mid-run."
+  },
+  {
+   "mechanism": "Model-invoked Skill /until-loop",
+   "verdict": "no",
+   "verdict_class": "no",
+   "note": "The until-loop card sets disable-model-invocation: true, so the Skill tool refuses it."
+  },
+  {
+   "mechanism": "Script-started Until Loop (until_loop_ephemeral.py start)",
+   "verdict": "yes",
+   "verdict_class": "ok",
+   "note": "The model runs one command with a ShipLoop-written contract on stdin. The runtime holds the exit condition and refuses done until a report says it is satisfied. This is what ShipLoop's bound loops already do."
+  }
+ ],
+ "recommendation": "Use the script-started Until Loop as ShipLoop's /goal. ShipLoop writes the contract in the runtime's exact schema (workspace, work, exit_condition, repeat_condition, required_trivial_reviews, and context with request, scope, authority, environment and resources), and the packet prints the exact start command. The model never assembles the contract, so it cannot be misformatted. Two stages loop this way: test (write the tests, run everything, fix until green) and verify (the quality review). A /goal-style condition is the loop's exit_condition, and the stage gate rechecks it by script after the loop ends."
+}

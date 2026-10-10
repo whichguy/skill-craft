@@ -1,6 +1,7 @@
 # ShipLoop inner loop: what each stage is for, and which stages earn their place (2026-10-10)
 
-Status: **proposal**, for an owner decision. Nothing here is implemented.
+Status: **superseded in part (2026-10-10, same day).** The 17 → 9 proposal below was revised with the owner into
+8 stages in 5 phases; see "Revision: 8 stages" at the end. The stage-by-stage findings stay firm.
 
 Owner questions, 2026-10-10:
 - Do we need baseline?
@@ -123,3 +124,71 @@ What does not change:
   parallel steps, test-refine and integration-verify may do more than here. Before the graph change ships, a
   probe on a larger case (the Checkers or Battleship examples, judged for SDLC fidelity) and an ask-agent run should
   confirm the merged stages keep what the separate ones caught.
+
+## Revision: 8 stages in 5 phases (owner, 2026-10-10)
+
+Status: **interim**. These are owner decisions; nothing is implemented in the engine yet.
+
+**Shape.**
+- Plan: step-plan, test-spec.
+- Validate existing: validate-existing.
+- Build: implement × steps, each followed by an Improve child; then test; then document, when public behaviour
+  changed.
+- Verify: verify.
+- Carry forward: carry-forward.
+
+**Changes from the 9-stage proposal, in the order the owner gave them.**
+1. **Tests follow implement.** The 9-stage version wrote failing tests before the code (test-author). Now one
+   `test` stage writes every test-spec case as a test, runs every recorded command, and fixes the code or the tests
+   until all pass. test-author and test-pass are merged into it.
+   - RED becomes a script run: the new test IDs must not pass on the item's base checkout.
+2. **Static checks.**
+   - step-plan must record lint, type and build commands (`check`), or `check_na`.
+   - implement and the test loop run those commands.
+   - verify takes over static-checks' change inventory, its first-entry auto-fix and its quality loop, plus
+     integrate's item commit.
+3. **Skills.**
+   - step-plan picks helper skills per step, and implement prints them.
+   - carry-forward decides whether a repeated procedure deserves a local skill.
+   - skill-assess and skill-validate are removed.
+4. **validate-existing** replaces baseline. It verifies, before any change, what the plan is about to change or
+   rely on. Each expectation step-plan records has a state:
+   - `works`: exists and works today;
+   - `absent`: new, and its place is free;
+   - `broken`: the request says it is broken, and it fails as reported.
+
+   ShipLoop runs the checks itself; when all match, there is no model turn. A known small fix to a broken
+   precondition is made here, as its own commit, before the build.
+5. **An Improve child after every implement step.**
+6. **Every stage prompt is an Until Loop, invoked by name.** The packet says "INVOKE /until-loop NOW", followed by
+   the work, the exit conditions (the same words as DONE WHEN and the contract) and the repeat condition. It names
+   the ShipLoop-written contract and receipt.
+   - The model cannot invoke /goal.
+   - The until-loop card currently sets `disable-model-invocation: true`; that is an open owner decision.
+
+**Coverage review.** Four reviewers mapped every obligation of today's 17 inner prompts and the run-wide rules to
+the new design: 389 obligations. Against the earlier drafts they found:
+
+| Group | MISSING | CONTRADICTED |
+|---|---|---|
+| plan-validate | 31 | 7 |
+| build | 39 | 18 |
+| verify-carry | 39 | 7 |
+| cross-cutting | 31 | 6 |
+
+Each reviewer rewrote its stages with the fixes in, and those rewrites are now the drafts (about 48k characters of
+stage text, against 260k today).
+
+The engine findings the graph change must carry:
+- `check_loop_packet` must accept a satisfied, non-trivial final report when `required_trivial_reviews` is 0.
+- The loop contract's `request` must be a locator, not the untrusted text.
+- `repeat` must be dropped from loop stages.
+- `_finish` must end the revise range at `verify`.
+- There must be one `loops/` directory for every contract and receipt.
+- RED needs a per-test-ID pass/fail reader on the base checkout.
+- `ITEM_COMMIT_STAGES` must move to verify.
+- architecture.md must be added to `knowledge_home.LIVING`, with AD-<n> retention.
+
+Evidence: `docs/experiments/inner-loop-redesign-20261010/`. It holds `coverage-*.json`, the obligation maps and
+rewritten stages; `drafts.py`/`drafts.json`, the merged drafts; `BRIEF.md`, the reviewers' brief with both
+amendments; and `goal.json`, the /goal finding.
