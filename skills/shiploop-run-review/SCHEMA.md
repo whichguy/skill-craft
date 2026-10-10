@@ -538,6 +538,14 @@ optional and omitted when unmeasured, `unmeasured` is new, and a stage's `min` m
 history; they are not read back. A run document also no longer has the `improve` array (Improve is read from each visit's
 `improve` and the run's `improvePasses` and `improveMin`) and its `status` can be `paused` or `stopped`.
 
+`run-review.html`, written beside it on every run export (`export.py RUN_DIR`; `--no-html` skips it), is the page
+template with this run's documents embedded as data (the run, every packet document, the Backchain loop documents, the
+starting `expectations` and `config`, and any `reviews` the export holds) and `template/static-db.js` as a read-only stand-in for
+`window.claude.use("db")`: reads answer from the embedded documents, a write does nothing, and the page, told by
+`window.__RR_STATIC`, calls itself a static copy of one run. The shared page and this file render the same template, so
+a change to the page reaches both. The file is deterministic (the same run gives the same bytes), fetches nothing, and
+is not a source for any other file: it is rebuilt from the documents, never read back.
+
 A **review file** (the findings, options and arc Claude writes for a run, committed beside the run's export as
 `test/shiploop_e2e/evidence/<runKey>.review.json`) has the same shape. `export.py --check FILE` validates it with
 these tables and the review rules in `SKILL.md`; `export.py --docs FILE` checks it, then writes its documents and

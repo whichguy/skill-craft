@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Export one ShipLoop E2E run as Run Review documents (see ../SCHEMA.md).
 
-  export.py RUN_DIR [--key KEY] [--name NAME] [--order N] [--out DIR]
+  export.py RUN_DIR [--key KEY] [--name NAME] [--order N] [--out DIR] [--no-html]
   export.py --defaults [--live FILE] [--page-url URL] [--out DIR]
   export.py --check FILE
   export.py --docs FILE [--out DIR]
@@ -15,6 +15,8 @@ run directory) and writes only under --out (default RUN_DIR/review-export):
   writes.json                  the documents as ArtifactData `set` operations
   facts.md                     plain numbers for the reviewer
   review-export.json           every document but the packets in one compact file, to commit
+  run-review.html              the page with this run's documents inside: one read-only file that opens from disk
+                               (--no-html skips it)
 
 A missing metrics.json, timeline.json or results/ is an error naming the file
 (exit 2), never an empty export. The same input gives byte-identical output.
@@ -3344,13 +3346,56 @@ def write_export(out: Path, docs: dict[str, dict[str, dict]], facts: list[str] |
     return out
 
 
+TEMPLATE_DIR = SKILL_ROOT / "template"
+STATIC_FILE = "run-review.html"
+STATIC_HEAD = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+FONT_LINKS = re.compile(r'<link rel="(?:preconnect|stylesheet)" href="https://fonts\.[^"]*">\n')
+
+
+def _script_data(value) -> str:
+    """JSON that can sit inside a <script>: every `<` is escaped (so no `</script>`, `<!--` or `<script` survives in the
+    data) and so are U+2028/2029, which end a line in older script parsers. Still the same JSON value."""
+    text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return text.replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+
+
+def static_html(docs: dict[str, dict[str, dict]]) -> str:
+    """The page template with `docs` (a run's documents) and the default expectations and settings embedded, and a
+    read-only stand-in for the database (template/static-db.js): one self-contained file with no network. The page checks
+    `window.__RR_STATIC` to say it is a static copy. The same input gives the same text."""
+    page = (TEMPLATE_DIR / "index.html").read_text(encoding="utf-8")
+    stand_in = (TEMPLATE_DIR / "static-db.js").read_text(encoding="utf-8")
+    defaults = defaults_docs()
+    merged = {c: dict(items) for c, items in defaults.items()}
+    for collection, items in docs.items():
+        merged.setdefault(collection, {}).update(items)  # the run's own documents win over a default of the same id
+    data = {c: [{"id": i, "data": merged[c][i]} for i in sorted(merged[c])] for c in sorted(merged)}
+    runs = list(docs.get("runs", {}).values())
+    title = f"Run Review: {runs[0].get('name') or next(iter(docs['runs']))}" if runs else "Run Review"
+    page, titles = re.subn(r"<title>[^<]*</title>", lambda _m: f"<title>{html_escape(title)}</title>", page, count=1)
+    page = FONT_LINKS.sub("", page)  # nothing is fetched: the page falls back to the system fonts
+    marker, wrap = '<script id="logic">', '<div class="wrap">'
+    if titles != 1 or page.count(marker) != 1 or page.count(wrap) != 1:
+        raise ExportError("template/index.html lost its title, wrap or logic script: the static copy cannot be built")
+    data_script = f"<script>window.__RR_STATIC=true;window.__RR_DATA={_script_data(data)};</script>\n<script>\n{stand_in}</script>\n"
+    page = page.replace(wrap, "</head>\n<body>\n" + wrap, 1).replace(marker, data_script + marker, 1)
+    return STATIC_HEAD + page.rstrip("\n") + "\n</body>\n</html>\n"
+
+
+def html_escape(text: str) -> str:
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def export_run(run_out: Path, key: str | None = None, name: str | None = None, order: int | None = None,
-               out: Path | None = None) -> Path:
-    """Export one run output directory; returns the export directory."""
+               out: Path | None = None, html: bool = True) -> Path:
+    """Export one run output directory; returns the export directory. `html` also writes run-review.html there."""
     run_out = Path(run_out).expanduser().resolve()
     docs, facts = build_run(run_out, key, name, order)
     run_key = next(iter(docs["runs"]))
-    return write_export(out or run_out / "review-export", docs, facts, compact=True, prune_prefix=run_key)
+    target = write_export(out or run_out / "review-export", docs, facts, compact=True, prune_prefix=run_key)
+    if html:
+        (target / STATIC_FILE).write_text(static_html(docs), encoding="utf-8")
+    return target
 
 
 # ---------------------------------------------------------------- the stage catalog (--stages, defaults/stages.json)
@@ -3706,10 +3751,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--key", help="the runs document id (default <host>-<model>-<release>-<case>-<yyyymmdd>)")
     parser.add_argument("--name", help="the run's display name")
     parser.add_argument("--order", type=int, help="sort key (default the run's start, epoch seconds)")
+    parser.add_argument("--no-html", action="store_true", help="with RUN_DIR: do not write run-review.html")
     parser.add_argument("--out", type=Path, help="export directory (default RUN_DIR/review-export; for --docs a new temporary directory)")
     args = parser.parse_args(argv)
     if [args.run_dir is not None, args.defaults, args.stages, args.check is not None, args.docs is not None].count(True) != 1:
         parser.error("give one of RUN_DIR, --defaults, --stages, --check FILE or --docs FILE")
+    if args.no_html and args.run_dir is None:
+        parser.error("--no-html goes with RUN_DIR")
     if args.live is not None and not args.defaults:
         parser.error("--live goes with --defaults")
     if args.page_url is not None and not args.defaults:
@@ -3724,7 +3772,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.defaults:
             path = export_defaults(args.out, args.live, args.page_url)
         else:
-            path = export_run(args.run_dir, args.key, args.name, args.order, args.out)
+            path = export_run(args.run_dir, args.key, args.name, args.order, args.out, html=not args.no_html)
     except ExportError as exc:
         print(f"export: {exc}", file=sys.stderr)
         return 2

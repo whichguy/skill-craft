@@ -50,14 +50,19 @@ python3 -B "$SKILL_ROOT/scripts/export.py" --check "/absolute/review/file.json"
 
 Do not infer `SKILL_ROOT` from the project's working directory, a source checkout, `PATH` or a same-named skill. The
 exporter needs only the Python standard library and makes no network or model calls. The template and the starting
-defaults are `$SKILL_ROOT/template/index.html` and `$SKILL_ROOT/defaults/`.
+defaults are `$SKILL_ROOT/template/index.html` and `$SKILL_ROOT/defaults/`; `template/static-db.js` is the read-only stand-in
+for the database that the static copy (below) embeds.
 
 ## export RUN_DIR
 
 Numbers only. `export.py RUN_DIR` writes `<RUN_DIR>/review-export/`: one file per document, `writes.json`, `facts.md`
 and one compact `review-export.json` to commit with the learnings entry (it leaves out the `packets` documents: each
 visit's packet text, megabytes, read from the run directory, which is their record). `test/shiploop_e2e/run.py` and `iterate.py`
-run it for you. A `metrics.json` with no `unmeasured` record is refused: regrade the finished run first, as the
+run it for you. It also writes **`run-review.html`** there: the same page template with this run's documents (the run,
+its packets, its Backchain loops, the starting expectations and settings) embedded and a read-only stand-in for the
+database, so one file opens from disk (file://) with no network and no database, to keep as the record of how the run worked.
+It says it is a static copy of one run, not the shared record; nothing typed or ticked on it is saved to any record
+(the browser keeps ticks on that device only), and it holds no findings or options. `--no-html` skips it. A `metrics.json` with no `unmeasured` record is refused: regrade the finished run first, as the
 message says. Add `--key KEY` to keep the key the page already has for a run. Each visit's row also carries its summary,
 whether its result file exists and which items its packet text carried (the stage card). After the engine's stage table
 changes, `export.py --stages` rewrites `defaults/stages.json`, the catalog the cards read; a test fails when it drifts.

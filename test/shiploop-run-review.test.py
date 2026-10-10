@@ -1511,9 +1511,10 @@ function textOf(id){return REG[id].textContent;}
 """
 
 
-def page_probe(expression: str, stored: str | None = None, setup: str = ""):
+def page_probe(expression: str, stored: str | None = None, setup: str = "", prelude: str = ""):
     """Run the page script against PAGE_STUB, run `setup` (JavaScript that sets data and calls render functions), then
-    evaluate `expression` and return its JSON value. `stored` is what localStorage holds. Skips when node is absent."""
+    evaluate `expression` and return its JSON value. `stored` is what localStorage holds; `prelude` is JavaScript run before
+    the page script (to set a global such as window.__RR_STATIC). Skips when node is absent."""
     node = shutil.which("node")
     if node is None:
         raise unittest.SkipTest("node is not installed; the structural tests of the template still ran")
@@ -1525,13 +1526,13 @@ def page_probe(expression: str, stored: str | None = None, setup: str = ""):
     blocks = script_blocks()
     program = ("const vm=require('vm'),fs=require('fs');const a=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));"
                "const ctx=vm.createContext({HTML_TAGS:a.tags,HTML_RADIOS:a.radios,STORED:a.stored,console});"
-               "vm.runInContext(a.stub,ctx);vm.runInContext(a.logic,ctx);vm.runInContext(a.page,ctx);"
+               "vm.runInContext(a.stub,ctx);vm.runInContext(a.prelude,ctx);vm.runInContext(a.logic,ctx);vm.runInContext(a.page,ctx);"
                "vm.runInContext(a.setup,ctx);const v=vm.runInContext(a.expr,ctx);"
                "console.log(v===undefined?'undefined':JSON.stringify(v));")
     with tempfile.TemporaryDirectory() as tmp:
         arg = Path(tmp) / "arg.json"
         arg.write_text(json.dumps({"tags": tags, "radios": radios, "stored": stored, "stub": PAGE_STUB,
-                                   "logic": blocks["logic"], "page": blocks["page"], "setup": setup,
+                                   "logic": blocks["logic"], "page": blocks["page"], "setup": setup, "prelude": prelude,
                                    "expr": expression}), encoding="utf-8")
         done = subprocess.run([node, "-e", program, str(arg)], capture_output=True, text=True, timeout=60)
     if done.returncode != 0:
@@ -9526,6 +9527,169 @@ class R23dPageTests(unittest.TestCase):
         self.assertRegex(css, r"\.delcard \.facts dd\{[^}]*white-space:pre-line[^}]*overflow-wrap:anywhere")
         self.assertRegex(css, r"\.delcard\{[^}]*margin-top:12px")
         self.assertRegex(css, r"@media \(max-width:640px\)\{[^}]*\.delcard \.facts[^}]*\{grid-template-columns:1fr\}")
+
+
+STATIC_BREAKER = "</script><img src=x onerror=alert(1)><!-- <script>"
+
+
+def static_page_probe(html: str, expression: str):
+    """Run every inline script of a generated run-review.html in document order against PAGE_STUB (the snapshots the
+    stand-in database schedules with a zero delay are run once the connection has resolved), then evaluate `expression`."""
+    node = shutil.which("node")
+    if node is None:
+        raise unittest.SkipTest("node is not installed; the static copy's text checks still ran")
+    head = html.split("<script")[0]
+    tags = [{"tag": m.group(1), "id": m.group(3), "hidden": bool(re.search(r"\shidden(\s|$)", m.group(2)))}
+            for m in re.finditer(r'<(\w+)((?:\s[^>]*?)?\sid="([^"]+)"[^>]*)>', head)]
+    radios = [{"name": m.group(1), "value": m.group(2)}
+              for m in re.finditer(r'<input[^>]*name="(\w+)"[^>]*value="(\w+)"', html)]
+    scripts = re.findall(r"<script[^>]*>([\s\S]*?)</script>", html)
+    program = ("const vm=require('vm'),fs=require('fs');const a=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));"
+               "const ctx=vm.createContext({HTML_TAGS:a.tags,HTML_RADIOS:a.radios,STORED:null,console});"
+               "vm.runInContext(a.stub,ctx);vm.runInContext('var QUEUE=[];setTimeout=function(f,ms){if(!ms)QUEUE.push(f);}',ctx);"
+               "a.scripts.forEach(function(s){vm.runInContext(s,ctx);});"
+               "(async function(){await new Promise(function(r){setImmediate(r);});"
+               "vm.runInContext('QUEUE.splice(0).forEach(function(f){f();})',ctx);"
+               "await new Promise(function(r){setImmediate(r);});"
+               "const v=await vm.runInContext(a.expr,ctx);console.log(v===undefined?'undefined':JSON.stringify(v));})();")
+    with tempfile.TemporaryDirectory() as tmp:
+        arg = Path(tmp) / "arg.json"
+        arg.write_text(json.dumps({"tags": tags, "radios": radios, "stub": PAGE_STUB, "scripts": scripts,
+                                   "expr": expression}), encoding="utf-8")
+        done = subprocess.run([node, "-e", program, str(arg)], capture_output=True, text=True, timeout=60)
+    if done.returncode != 0:
+        raise AssertionError(f"the static copy failed on {expression}:\n{done.stderr}")
+    return json.loads(done.stdout.strip().splitlines()[-1])
+
+
+class StaticCopyTests(unittest.TestCase):
+    """R23f: every run export also writes run-review.html, the page with that run's documents inside and a read-only
+    stand-in for the database, so one file opens from disk."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def export(self, out: Path, *args: str) -> Path:
+        target = self.tmp / f"export-{len(list(self.tmp.glob('export-*')))}"
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(export.main([str(out), "--out", str(target), *args]), 0)
+        return target
+
+    def test_the_file_is_written_by_default_and_is_a_complete_document(self):
+        html = (self.export(make_run(self.tmp, metrics={"shiploop_failures": [
+            {"verb": "complete", "exit": 2, "line": STATIC_BREAKER}]})) / "run-review.html").read_text(encoding="utf-8")
+        self.assertTrue(html.startswith("<!doctype html>"))
+        self.assertIn('<meta charset="utf-8">', html)
+        self.assertRegex(html, r'<meta name="viewport" content="width=device-width, initial-scale=1">')
+        self.assertEqual(len(re.findall(r"<title>[^<]*</title>", html.split("<style>")[0])), 1)
+        self.assertIn("<title>Run Review: ", html)
+        self.assertNotIn("<title>ShipLoop Run Review</title>", html)
+        self.assertNotIn("fonts.googleapis", html, "nothing is fetched")
+        self.assertNotRegex(html, r"(?:src|href)=\"https?:")
+        self.assertTrue(html.rstrip().endswith("</html>"))
+
+    def test_no_html_skips_the_file_and_leaves_the_rest(self):
+        target = self.export(make_run(self.tmp), "--no-html")
+        self.assertFalse((target / "run-review.html").exists())
+        self.assertTrue((target / "review-export.json").is_file())
+
+    def test_no_html_needs_a_run(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            export.main(["--defaults", "--no-html"])
+
+    def test_the_embedded_data_is_the_run_its_packets_its_loops_and_the_defaults_and_cannot_break_the_page(self):
+        target = self.export(make_run(self.tmp, metrics={"shiploop_failures": [
+            {"verb": "complete", "exit": 2, "line": STATIC_BREAKER}]}), "--name", "Run </script> one")
+        html = (target / "run-review.html").read_text(encoding="utf-8")
+        match = re.search(r"window\.__RR_DATA=(.*?);</script>", html, re.S)
+        self.assertIsNotNone(match)
+        raw = match.group(1)
+        for text in ("</", "<!--", "<img", "\u2028", "\u2029"):
+            self.assertNotIn(text, raw, f"{text!r} cannot sit in the data script")
+        self.assertEqual(html.count("</script>"), 4, "the data, the stand-in, the logic block and the page script only")
+        data = {c: {d["id"]: d["data"] for d in items} for c, items in json.loads(raw).items()}
+        written = {c: {p.stem: json.loads(p.read_text()) for p in sorted((target / "docs" / c).glob("*.json"))}
+                   for c in ("runs", "packets", "backchain")}
+        self.assertEqual(written["runs"].keys() and len(written["runs"]), 1)
+        self.assertTrue(written["packets"] and written["backchain"])
+        for collection, items in written.items():
+            self.assertEqual(data[collection], items, collection)
+        run = next(iter(data["runs"].values()))
+        self.assertEqual(run["name"], "Run </script> one")
+        self.assertEqual(run["failures"][0]["line"], STATIC_BREAKER)  # the text, unchanged, once parsed
+        self.assertIn("&lt;/script&gt;", html.split("<title>")[1].split("</title>")[0])
+        defaults = export.defaults_docs()
+        self.assertEqual(set(data["expectations"]), set(defaults["expectations"]))
+        self.assertEqual(set(data["config"]), {"page", "prompt", "stages"})
+        self.assertEqual(data["expectations"].keys(), defaults["expectations"].keys())
+
+    def test_line_separators_in_a_document_are_escaped_in_the_data(self):
+        html = export.static_html({"runs": {"k": {"name": "a\u2028b\u2029c </script>"}}})
+        raw = re.search(r"window\.__RR_DATA=(.*?);</script>", html, re.S).group(1)
+        self.assertNotIn("\u2028", raw)
+        self.assertNotIn("\u2029", raw)
+        self.assertEqual(json.loads(raw)["runs"][0]["data"]["name"], "a\u2028b\u2029c </script>")
+        self.assertIn("<title>Run Review: a\u2028b\u2029c &lt;/script&gt;</title>", html)
+
+    def test_the_page_says_it_is_a_static_copy_and_opens_on_step_one(self):
+        target = self.export(make_run(self.tmp, metrics={"shiploop_failures": [
+            {"verb": "complete", "exit": 2, "line": STATIC_BREAKER}]}))
+        html = (target / "run-review.html").read_text(encoding="utf-8")
+        out = static_page_probe(html, '[textOf("conn"),textOf("asof"),L.step,data.runs.length,data.obs.length,loaded.obs,'
+                                      'textOf("runfacts"),byId("conn").className,data.bc.length,RO,'
+                                      'data.runs[0].failures[0].line]')
+        conn, asof, step, runs, obs, loaded_obs, runfacts, klass, loops, ro, line = out
+        self.assertEqual(conn, "static copy, read only")
+        self.assertEqual(asof, "Static copy of one run, written when the run ended; not connected to the shared record.")
+        self.assertNotIn("saved", conn + asof)
+        self.assertEqual((step, runs, obs, loaded_obs, ro), (1, 1, 0, True, True))
+        self.assertGreater(loops, 0)
+        self.assertEqual(klass, "conn")
+        self.assertEqual(line, STATIC_BREAKER)
+        # the packet boxes read their text through the stand-in database, from the embedded packet documents
+        text = static_page_probe(html, 'db.doc("packets/"+data.runs[0].key+"--"+data.runs[0].stages[0].action).get().then(function(s){return [s.exists,s.data().text];})')
+        self.assertEqual(text, [True, "P" * 100])
+
+    def test_a_copy_with_no_findings_does_not_say_it_is_loading(self):
+        html = (self.export(make_run(self.tmp)) / "run-review.html").read_text(encoding="utf-8")
+        out = static_page_probe(html, '[byClass("cards","empty").map(function(e){return e.textContent;}),'
+                                      'textOf("flow").indexOf("Loading")<0]')
+        self.assertEqual(out[1], True)
+        for text in out[0]:
+            self.assertNotIn("Loading", text)
+            self.assertNotIn("Add the first one", text)
+
+    def test_a_write_in_the_copy_says_it_is_read_only(self):
+        out = page_probe('[textOf("o-msg"),textOf("a-msg")]', prelude="window.__RR_STATIC=true;",
+                         setup='live=true;db={collection:function(){throw new Error("wrote");}};'
+                               'byId("o-title").value="t";byId("o-add").onclick();'
+                               'byId("a-title").value="t";byId("a-goal").value="g";byId("a-add").onclick();')
+        self.assertEqual(out, ["This copy is read-only; nothing is saved."] * 2)
+
+    def test_the_shared_page_keeps_its_wording(self):
+        out = page_probe("RO")
+        self.assertIs(out, False)
+        self.assertIn('c.textContent="shared record, saved"', TEMPLATE.read_text(encoding="utf-8"))
+
+    def test_the_stand_in_is_read_only_and_answers_only_for_the_database(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("node is not installed")
+        program = ("const vm=require('vm');const fs=require('fs');const ctx=vm.createContext({console,setTimeout});"
+                   "vm.runInContext('var window={__RR_DATA:{runs:[{id:\"r\",data:{a:1}}]}};',ctx);"
+                   "vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),ctx);"
+                   "vm.runInContext(`(async function(){var db=await window.claude.use('db');var other=await window.claude.use('x');"
+                   "var got=await new Promise(function(ok){db.collection('runs').orderBy('a').onSnapshot(ok);});"
+                   "var one=await db.doc('runs/r').get(),none=await db.doc('runs/q').get();"
+                   "await db.collection('runs').add({});await db.collection('runs').doc('r').set({b:2});await db.collection('runs').doc('r').update({b:2});"
+                   "var again=await db.doc('runs/r').get();"
+                   "console.log(JSON.stringify([other,got.docs.map(function(d){return [d.id,d.data()];}),one.exists,one.data(),none.exists,again.data()]));})()`,ctx);")
+        done = subprocess.run([node, "-e", program, str(SKILL_ROOT / "template" / "static-db.js")], capture_output=True,
+                              text=True, timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(json.loads(done.stdout), [None, [["r", {"a": 1}]], True, {"a": 1}, False, {"a": 1}])
 
 
 if __name__ == "__main__":

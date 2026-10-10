@@ -1808,6 +1808,7 @@ var STATUS_LABEL={open:"open",fixed:"fixed",accepted:"accepted",reexpected:"expe
 var VERDICT={added:"Added value",wasted:"Wasted",insurance:"Confirming pass",unclear:"Cannot judge yet",neutral:"Other work"};
 var STEPS=["What happened","Expected versus seen","Findings and options","Your plan"];
 var data={runs:[],obs:[],acts:[],bc:[],exp:{},cfg:{},rev:{}},loaded={runs:false,obs:false,acts:false,bc:false,exp:false,cfg:false,rev:false},db=null,live=false;
+var RO=!!window.__RR_STATIC;  /* the static copy of one run (export.py): read only, no shared record */
 /* The viewer's working set lives in this browser only: the step, the chosen run, and per run the ticked options and
    findings, what happens after the plan, and the notes. Every storage access is guarded; the page works with it empty. */
 var L={step:1,run:"",phase:-1,cmp:"",filter:"open",crit:"",sel:{}};
@@ -2416,7 +2417,7 @@ function findingCard(c){
   var row=h("div","row");row.style.margin="8px 0 0";
   var seg=h("div","seg");seg.setAttribute("role","group");seg.setAttribute("aria-label","Status of finding "+obsNo(f));
   ["open","fixed","accepted","reexpected"].forEach(function(k){
-    var x=h("button","",STATUS_LABEL[k]);x.type="button";x.disabled=!live;x.setAttribute("aria-pressed",(f.status||"open")===k?"true":"false");
+    var x=h("button","",STATUS_LABEL[k]);x.type="button";x.disabled=!live||RO;x.setAttribute("aria-pressed",(f.status||"open")===k?"true":"false");
     x.onclick=function(){guarded(db.collection("observations").doc(f.id).update({status:k}),byId("o-msg"));};seg.appendChild(x);
   });
   row.appendChild(seg);card.appendChild(row);return card;
@@ -2433,7 +2434,7 @@ function renderFindings(){
   var tr=h("button","btn sm","Tick recommended");tr.type="button";tr.onclick=tickRecommended;fb.appendChild(tr);
   byId("notice").textContent=pruned;
   var box=byId("cards");clear(box);
-  if(!res.cards.length)box.appendChild(h("div","empty",loaded.obs?(data.obs.length?"No finding matches this filter.":"No findings yet. Add the first one below."):"Loading findings."));
+  if(!res.cards.length)box.appendChild(h("div","empty",loaded.obs?(data.obs.length?"No finding matches this filter.":RO?"This copy holds no findings.":"No findings yet. Add the first one below."):"Loading findings."));
   strips=[];res.cards.forEach(function(c){box.appendChild(findingCard(c));});
   applyStrips();
   if(res.elsewhere.length)box.appendChild(h("p","sub",plural(res.elsewhere.length,"option")+" belong to findings outside this filter."));
@@ -2472,7 +2473,7 @@ function loopCard(d){
     d.segments.forEach(function(s,i){
       var r=h("div","segrow");var nm=h("div","nm");nm.appendChild(h("b","",s.label));nm.appendChild(h("span","",s.note||""));
       var mn=h("div","mn",s.min+" min");
-      var sel=h("select");sel.setAttribute("aria-label","Verdict for "+d.title+", "+s.label);sel.disabled=!live;
+      var sel=h("select");sel.setAttribute("aria-label","Verdict for "+d.title+", "+s.label);sel.disabled=!live||RO;
       Object.keys(VERDICT).forEach(function(k){var op=h("option","",VERDICT[k]);op.value=k;sel.appendChild(op);});
       sel.value=s.kind;sel.onchange=function(){setVerdict(d,i,sel.value);};
       r.appendChild(nm);r.appendChild(mn);r.appendChild(sel);c.appendChild(r);
@@ -2678,12 +2679,14 @@ byId("liveopen").onclick=function(){go(4);};
 byId("o-add").onclick=function(){
   var msg=byId("o-msg"),t=byId("o-title").value.trim();
   if(!t){msg.textContent="Add a one-line title first.";return;}
+  if(RO){msg.textContent="This copy is read-only; nothing is saved.";return;}
   if(!live||!db){msg.textContent="There is no database, so this cannot save.";return;}
   db.collection("observations").add({phase:Number(byId("o-phase").value),criterion:byId("o-crit").value,kind:byId("o-kind").value,run:byId("o-run").value,title:t,expected:byId("o-exp").value.trim()||"(not stated)",observed:byId("o-obs").value.trim()||"(not stated)",evidence:byId("o-ev").value.trim(),status:"open",createdAt:new Date().toISOString()}).then(function(){byId("o-title").value="";byId("o-exp").value="";byId("o-obs").value="";byId("o-ev").value="";msg.textContent="Added.";},function(e){msg.textContent="Could not save: "+((e&&e.message)||"unavailable");});
 };
 byId("a-add").onclick=function(){
   var msg=byId("a-msg"),t=byId("a-title").value.trim(),g=byId("a-goal").value.trim();
   if(!t||!g){msg.textContent="Add a title and what to ask for.";return;}
+  if(RO){msg.textContent="This copy is read-only; nothing is saved.";return;}
   if(!live||!db){msg.textContent="There is no database, so this cannot save.";return;}
   db.collection("actions").add({title:t,why:byId("a-why").value.trim()||"(not stated)",goal:g,criterion:byId("a-crit").value,status:"open"}).then(function(){byId("a-title").value="";byId("a-why").value="";byId("a-goal").value="";msg.textContent="Added.";},function(e){msg.textContent="Could not save: "+((e&&e.message)||"unavailable");});
 };
@@ -2710,7 +2713,10 @@ function connect(){
   if(!(window.claude&&window.claude.use)){offline();return;}
   window.claude.use("db").then(function(d){
     if(!d){offline();return;}
-    db=d;live=true;var c=byId("conn");c.textContent="shared record, saved";c.className="conn on";byId("asof").textContent="Live. The record is shared and saved as you edit.";subscribe();renderAll();
+    db=d;live=true;var c=byId("conn");
+    if(RO){c.textContent="static copy, read only";c.className="conn";byId("asof").textContent="Static copy of one run, written when the run ended; not connected to the shared record.";}
+    else{c.textContent="shared record, saved";c.className="conn on";byId("asof").textContent="Live. The record is shared and saved as you edit.";}
+    subscribe();renderAll();
   },function(){offline();});
 }
 connect();
