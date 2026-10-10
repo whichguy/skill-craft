@@ -74,10 +74,17 @@ invocation keeps its frozen authority.
 
 To commit a review iteration's changes on this route, write the message to the
 packet's `commit-message.md` (beside the receipt) with a file-writing tool and
-run the packet's `improve-commit` command. ShipLoop stages and commits exactly the
-files this review changed and has not committed (work that was uncommitted before
-the review is left alone); never write the message with a shell heredoc or run
-`git commit` yourself.
+run the packet's `improve-commit` command; the same command and its message rules
+are in `parent-return.md` beside the receipt, which the frozen contract names, so
+a child that lost its packet still finds them. ShipLoop stages and commits exactly
+the files this review changed and has not committed (work that was uncommitted
+before the review is left alone); never write the message with a shell heredoc or
+run `git commit` yourself. The message needs a `Key learnings:` line (`Key
+learnings: none` when nothing was learned; a review that changed no file makes no
+commit and is not asked for one); `Learned-from: <commit id> <what it
+contributed>` lines are optional and checked; `--remote-change` with a `Remote
+change:` line records a change to a remote system as a commit with no files. A
+refusal's first line is the fix and the command to run next.
 
 `improve-start` starts the runtime once, before any review work, with
 `--receipt` set to the printed **Child latest packet receipt** and its state in
@@ -411,7 +418,8 @@ parent transition. The consumer-owned route does not call helper `prepare`,
 receipt, or perform a second patch/commit transfer; read-only package `identity`
 remains available. Route selection belongs to the parent, not Improve.
 The packet's ShipLoop callbacks and workspace-return commands are **parent-only**,
-except `improve-commit`, which the worker uses to commit a review iteration.
+except `improve-commit`, which the worker uses to commit a review iteration (the
+frozen contract says so and points at `parent-return.md` for the command).
 Do not ask the worker to read the entire parent conversation or run another
 ShipLoop instance. For a genuinely new child the parent writes the opening and
 runs the packet's `improve-start` command before dispatch, as on the default

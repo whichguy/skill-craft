@@ -1,0 +1,31 @@
+{
+ "runs_root": "~/e2e-runs",
+ "repos": 35,
+ "commits": 398,
+ "classes": {
+  "improve_style": {
+   "commits": 46,
+   "with_lessons": 41,
+   "lessons_none": 0,
+   "with_remote_change": 0,
+   "with_citation_lines": 0,
+   "one_paragraph": 5
+  },
+  "knowledge_script": {
+   "commits": 236,
+   "with_lessons": 29,
+   "lessons_none": 0,
+   "with_remote_change": 0,
+   "with_citation_lines": 0,
+   "one_paragraph": 0
+  },
+  "other": {
+   "commits": 116,
+   "with_lessons": 2,
+   "lessons_none": 0,
+   "with_remote_change": 0,
+   "with_citation_lines": 0,
+   "one_paragraph": 0
+  }
+ }
+}

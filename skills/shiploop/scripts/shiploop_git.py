@@ -10,6 +10,11 @@ review's changes, and the empty baseline of a new repository.  The helper
   reach a commit that a fast-forward return could put on the user's branch;
 * uses the configured Git identity, or the workspace identity when none is
   configured (Git would otherwise refuse to commit);
+* cleans a message with ``--cleanup=whitespace``, so a Markdown ``## `` heading in it survives a user's
+  ``commit.cleanup=strip``;
+* makes an empty commit (a recorded remote change) with ``--allow-empty --only``, which leaves whatever else is
+  staged staged;
+* resolves a commit ID a model typed (``resolve_commit``): Git decides what it names, never the text;
 * runs Git without hooks and without ambient GIT_DIR-style redirection.
 """
 
@@ -17,8 +22,9 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import re
 import subprocess
-from typing import List, Mapping, NamedTuple, Optional, Sequence
+from typing import List, Mapping, NamedTuple, Optional, Sequence, Tuple
 
 import shiploop_privacy as privacy
 
@@ -74,10 +80,15 @@ def looks_secret(path: Path) -> bool:
 
 def commit_paths(repo: Path, paths: Sequence[str], message: str, *, allow_empty: bool = False,
                  message_file: Optional[Path] = None) -> Committed:
-    """Stage exactly ``paths`` (files or directories), screen them, and commit what remains."""
+    """Stage exactly ``paths`` (files or directories), screen them, and commit what remains.
+
+    ``allow_empty`` with no paths records a commit with no files; it never takes what else is staged.
+    """
     repo = Path(repo)
+    given = ["-F", str(message_file)] if message_file is not None else ["-m", message]
     if allow_empty and not paths:
-        done = git(repo, "commit", "-q", "--allow-empty", "-m", message, env=identity_env(repo))
+        done = git(repo, "commit", "-q", "--cleanup=whitespace", "--allow-empty", "--only", *given,
+                   env=identity_env(repo))
         if done.returncode:
             raise CommitError("cannot create the commit: " + (done.stderr or done.stdout).strip())
         return Committed(git(repo, "rev-parse", "HEAD").stdout.strip(), [], [])
@@ -98,11 +109,42 @@ def commit_paths(repo: Path, paths: Sequence[str], message: str, *, allow_empty:
     chosen = [path for path in staged if path not in skipped]
     if not chosen:
         return Committed("", [], skipped)
-    args = ["-F", str(message_file)] if message_file is not None else ["-m", message]
-    done = git(repo, "commit", "-q", *args, "--", *chosen, env=identity_env(repo))
+    done = git(repo, "commit", "-q", "--cleanup=whitespace", *given, "--", *chosen, env=identity_env(repo))
     if done.returncode:
         raise CommitError("cannot commit " + ", ".join(chosen) + ": " + (done.stderr or done.stdout).strip())
     return Committed(git(repo, "rev-parse", "HEAD").stdout.strip(), chosen, skipped)
+
+
+_COMMIT_ID = re.compile(r"[0-9a-fA-F]{7,64}")
+
+
+def resolve_commit(repo: Path, token: str) -> Tuple[str, str]:
+    """(the full commit ID, "") when ``token`` names a commit reachable from HEAD; ("", why not) otherwise.
+
+    Git decides, never the typed text: ``--disambiguate`` reads object names only (a branch spelled like hex
+    cannot shadow one), a non-commit object is not a commit, and ``merge-base --is-ancestor`` checks HEAD.  The
+    reason reads after "the ID" and never repeats the token.
+    """
+    repo = Path(repo)
+    if _COMMIT_ID.fullmatch(token) is None:
+        return "", "is not a commit ID (7 to 64 hexadecimal digits)"
+    token = token.lower()
+    if git(repo, "rev-parse", "--verify", "-q", "HEAD").returncode:
+        return "", "cannot be checked: this repository has no commit yet"
+    listed = git(repo, "rev-parse", "--disambiguate=" + token).stdout.split()
+    commits = [name for name in listed if name.startswith(token)
+               and git(repo, "cat-file", "-t", name).stdout.strip() == "commit"]
+    if not commits:
+        return "", "names no commit in this repository"
+    if len(commits) > 1:
+        return "", ("matches " + str(len(commits)) + " commits (" + ", ".join(name[:12] for name in commits)
+                    + "); write more digits")
+    reachable = git(repo, "merge-base", "--is-ancestor", commits[0], "HEAD")
+    if reachable.returncode == 1:
+        return "", "is not reachable from HEAD (it is on another branch, or was never merged here)"
+    if reachable.returncode:
+        return "", "could not be checked against HEAD: " + (reachable.stderr.strip() or "git failed")
+    return commits[0], ""
 
 
 def skipped_notice(skipped: Sequence[str]) -> str:
@@ -114,4 +156,4 @@ def skipped_notice(skipped: Sequence[str]) -> str:
 
 
 __all__ = ("CommitError", "Committed", "WORKSPACE_IDENTITY", "commit_paths", "git", "identity_env",
-           "looks_secret", "skipped_notice")
+           "looks_secret", "resolve_commit", "skipped_notice")

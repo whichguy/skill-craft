@@ -5,8 +5,10 @@ Real Git repositories in temporary directories.
 """
 from __future__ import annotations
 
+import json
 import os
 import re
+import time
 import subprocess
 import sys
 import tempfile
@@ -18,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test"))
 import shiploop_git  # noqa: E402
+import shiploop_lessons as commit_lessons  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_knowledge_support as support  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
@@ -195,12 +198,186 @@ class KnowledgeAfterEveryStageTests(KnowledgeTests):
         self.assertEqual(knowledge.check(self.state, "implement"), "")  # no home at all: nothing to require
 
 
+FIXTURES = ROOT / "test" / "fixtures" / "commit-contract"
+TRAILER = "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+FULL = "3f2a9c1e0b7d4a5c8e6f1a2b3c4d5e6f708192a3"
+
+
+class LessonsGrammarTests(unittest.TestCase):
+    """shiploop_lessons: the one reader of the commit-message grammar (lessons, a remote change, citations)."""
+
+    def test_the_shapes_saved_commits_use_are_read_as_expected(self) -> None:
+        expected = json.loads((FIXTURES / "expected.json").read_text(encoding="utf-8"))
+        self.assertEqual(sorted(expected), sorted(path.name for path in FIXTURES.glob("*.md") if path.name != "README.md"))
+        for name, want in expected.items():
+            message = (FIXTURES / name).read_text(encoding="utf-8")
+            with self.subTest(shape=name):
+                self.assertEqual(commit_lessons.lessons(message), want["lessons"])
+                self.assertEqual(commit_lessons.remote_change(message), want["remote_change"])
+
+    def test_every_lesson_label_is_read_in_any_case_and_other_labels_are_not(self) -> None:
+        for label in ("Key learnings", "Key learning", "Lessons learned", "Lessons", "Learnings", "Learning", "Lesson",
+                      "Learned"):
+            for spelled in (label, label.upper(), label.lower()):
+                with self.subTest(label=spelled):
+                    self.assertEqual(commit_lessons.lessons("s\n\n" + spelled + ": reuse the oracle"), "reuse the oracle")
+        for text in ("s\n\nKey considerations: x", "s\n\nOpen for the next run: x", "s\n\nWe learned: x",
+                     "s\n\nLearned that x", "s\n\nKey learnings (this pass): x",
+                     "s\n\nLearned-from: " + FULL + " the log format"):
+            with self.subTest(text=text):
+                self.assertEqual(commit_lessons.lessons(text), "")
+
+    def test_a_bullet_a_quote_mark_or_a_bold_wrapper_around_the_label_is_tolerated(self) -> None:
+        for line in ("- Key learnings: x", "* Key learnings: x", "> Key learnings: x", "**Key learnings:** x",
+                     "**Key learnings**: x", "__Key learnings:__ x", "- **Key learnings:** x"):
+            with self.subTest(line=line):
+                self.assertEqual(commit_lessons.lessons("s\n\n" + line), "x")
+        self.assertEqual(commit_lessons.lessons("s\n\n**Key learnings**\nthe text"), "the text")
+        # indentation is not one of the tolerated forms
+        self.assertEqual(commit_lessons.lessons("s\n\n    Key learnings: x"), "")
+
+    def test_a_section_with_no_words_is_not_a_lesson_but_none_is(self) -> None:
+        for text in ("s\n\nKey learnings:", "s\n\nKey learnings: -", "s\n\nKey learnings: ...", "s\n\n## Key learnings\n\n",
+                     "s\n\n## Key learnings\n-\n", "s\n\nKey learnings\n\n"):
+            with self.subTest(text=text):
+                self.assertEqual(commit_lessons.lessons(text), "")
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings: none"), "none")
+        self.assertEqual(commit_lessons.lessons("s\n\nLessons: 0"), "0")
+
+    def test_an_empty_label_takes_the_first_non_blank_line_even_when_it_looks_like_word_colon_text(self) -> None:
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings:\nPitfall: the board is 0-based\n"),
+                         "Pitfall: the board is 0-based")
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings\n\n\nDecision: use the real port\n"),
+                         "Decision: use the real port")
+        # ... unless that line is itself one of the known labels: then the section is empty
+        for following in ("Remaining work: x", "Changes: x", "Remote change: x", "Learned-from: abcdef1 y", TRAILER):
+            with self.subTest(following=following):
+                self.assertEqual(commit_lessons.lessons("s\n\nKey learnings:\n" + following + "\n"), "")
+
+    def test_a_colon_or_bare_body_stops_at_a_blank_line_a_heading_a_known_label_or_a_trailer(self) -> None:
+        stops = ("\n\nnext paragraph", "\n## Next", "\nRemaining work: y", "\nRemote change: y", "\nLearned-from: abcdef1 y",
+                 "\n" + TRAILER, "\n\n" + TRAILER)
+        for stop in stops:
+            with self.subTest(stop=stop):
+                self.assertEqual(commit_lessons.lessons("s\n\nKey learnings: first\nsecond line" + stop), "first\nsecond line")
+        # a line that merely looks like a label is body, not a stop
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings: first\nPitfall: second"), "first\nPitfall: second")
+
+    def test_a_heading_body_spans_blank_lines_and_is_clipped_at_the_trailer_and_at_other_sections(self) -> None:
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\none\n\ntwo\n\n" + TRAILER + "\n"), "one\n\ntwo")
+        self.assertEqual(commit_lessons.lessons("s\n\n### Key learnings:\none\n\nLearned-from: abcdef1 y\n\n" + TRAILER),
+                         "one")
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\none\nRemote change: staging, purged\n"), "one")
+        self.assertEqual(commit_lessons.remote_change("s\n\n## Remote change\nstaging, purged\n\nKey learnings: x\n"),
+                         "staging, purged")
+        # a four-hash heading is not one of the forms
+        self.assertEqual(commit_lessons.lessons("s\n\n#### Key learnings\none\n"), "")
+        # a known trailer ends the body wherever it stands, and a section holding only trailers is empty
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nNo-Change-Note: internal helper\n"), "")
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\nthe text\n\nNo-Change-Note: x\nSkill-Craft-Release: y"),
+                         "the text")
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nthe text\nNo-Change-Note: x\n"), "the text")
+        self.assertEqual(commit_lessons.lessons("Key-learnings: x\n"), "")
+        # two signed lines in the last paragraph are trailers, not the lesson
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nSigned-off-by: A <a@x.invalid>\n" + TRAILER), "")
+
+    def test_a_hyphenated_line_that_is_not_a_known_trailer_is_lesson_text_not_a_trailer_block(self) -> None:
+        """Fail-first (batch 1012 review): a last paragraph of `Hyphenated-Token: value` lines used to be clipped as the
+        trailer block, so a real lesson read as empty and the refusal said the label had no text."""
+        for lesson in ("Follow-up: add a test for the empty board next time", "Re-run: rerun the suite after a rename",
+                       "Root-cause: the mock hid the seam\nFix-applied: guard the parse", "Cross-check: the log, not the exit code"):
+            for text in ("s\n\n## Key learnings\n\n" + lesson + "\n", "s\n\nKey learnings:\n\n" + lesson + "\n",
+                         "s\n\nKey learnings\n\n" + lesson + "\n\n" + TRAILER + "\n"):
+                with self.subTest(text=text):
+                    self.assertEqual(commit_lessons.lessons(text), lesson)
+                    self.assertEqual([section.body for section in commit_lessons.sections(text, commit_lessons.LESSON_LABELS)],
+                                     [lesson])
+        # the lesson stays when a trailer follows it with no blank line between, and each known trailer still ends it
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nRoot-cause: x\nFix-applied: y\n" + TRAILER),
+                         "Root-cause: x\nFix-applied: y")
+        for trailer in (TRAILER, "Co-authored-by: A <a@x.invalid>", "Signed-off-by: A <a@x.invalid>", "No-Change-Note: x",
+                        "Skill-Craft-Release: 1.2.3"):
+            with self.subTest(trailer=trailer):
+                self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\n" + trailer + "\n"), "")
+                self.assertEqual(commit_lessons.lessons("s\n\nKey learnings:\n\nthe text\n" + trailer + "\n"), "the text")
+
+    def test_a_label_word_without_a_colon_does_not_end_a_body_and_neither_does_a_bare_label_line(self) -> None:
+        """Pins (batch 1012 review: the mutants that ended a body at any known label word stayed green)."""
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings:\nReview the logs first"), "Review the logs first")
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings: first\nPlan to retry\nChanges are small"),
+                         "first\nPlan to retry\nChanges are small")
+        # a lone label word may be a lesson's own line, so only a label with a colon (or a heading) is a stop
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings:\n- Plan\n- Review"), "- Plan\n- Review")
+
+    def test_a_label_spelled_with_a_letter_that_folds_onto_ascii_is_no_label_and_never_a_crash(self) -> None:
+        """Fail-first: re.IGNORECASE matched dotless i and long s, and the label lookup then raised KeyError."""
+        for text in ("s\n\nKey learn\u0131ngs: x", "s\n\nLesson\u017f: x", "s\n\n## Key learn\u0131ngs\nx",
+                     "s\n\n\u212aey learnings: x", "s\n\nLearn\u0131ngs\nx"):
+            with self.subTest(text=text):
+                self.assertEqual(commit_lessons.lessons(text), "")
+                self.assertEqual(commit_lessons.sections(text, commit_lessons.LESSON_LABELS), [])
+                self.assertEqual(commit_lessons.remote_change(text), "")
+        self.assertEqual(commit_lessons.citations("s\n\nLearned-from: abcdef1 x\nLEARNED-FROM: abcdef2 y")[1].token, "abcdef2")
+
+    def test_the_lessons_of_every_section_are_joined_and_a_remote_change_needs_its_own_label(self) -> None:
+        message = "s\n\nKey learnings: one\n\nLessons: two\n\nRemote change: staging, purged\n"
+        self.assertEqual(commit_lessons.lessons(message), "one\ntwo")
+        self.assertEqual(commit_lessons.remote_change(message), "staging, purged")
+        self.assertEqual(commit_lessons.remote_change("s\n\nKey learnings: one"), "")
+        self.assertEqual(commit_lessons.remote_change("s\n\nRemote change:\n\n"), "")
+        sections = commit_lessons.sections(message, ("Key learnings", "Lessons"))
+        self.assertEqual([(section.label, section.body) for section in sections], [("Key learnings", "one"), ("Lessons", "two")])
+
+    def test_line_endings_and_a_very_long_line_do_not_matter(self) -> None:
+        crlf = "s\r\n\r\nKey learnings:\r\n\r\n- one\r\n\r\n" + TRAILER + "\r\n"
+        self.assertEqual(commit_lessons.lessons(crlf), "- one")
+        started = time.monotonic()
+        commit_lessons.lessons("s\n\nKey learnings" + " " * 200_000 + "x\n" + " " * 200_000 + "\n")
+        self.assertLess(time.monotonic() - started, 2.0)
+
+    def test_citations_tolerate_the_spellings_a_model_uses_and_report_their_line(self) -> None:
+        message = "\n".join([
+            "s", "",
+            "Learned-from: " + FULL + " the release-check log format",
+            "learned-from: `abcdef1`: the quoted one",
+            "- Learned-from: commit abcdef2, the prefix one",
+            "Learned-from: [abcdef3] bracketed.",
+            "Learned-from: abcdef4",
+            "Learned-from:",
+            "Learned-from: sk-notacommit what it gave",
+            "Key learnings: not a citation Learned-from: abcdef5 mid-line",
+        ])
+        found = [(c.line, c.token, c.contribution) for c in commit_lessons.citations(message)]
+        self.assertEqual(found, [
+            (3, FULL, "the release-check log format"), (4, "abcdef1", "the quoted one"),
+            (5, "abcdef2", "the prefix one"), (6, "abcdef3", "bracketed."), (7, "abcdef4", ""), (8, "", ""),
+            (9, "sk-notacommit", "what it gave")])
+        self.assertEqual(commit_lessons.citations("s\n\nLEARNED-FROM: " + FULL[:7] + " x")[0].token, FULL[:7])
+
+    def test_with_full_ids_rewrites_only_the_citation_lines_and_keeps_the_rest(self) -> None:
+        message = ("s\n\n## Key learnings\nbody\n\nLearned-from: `abcdef1`: first\nLearned-from: bad second\n\n"
+                   + TRAILER + "\n")
+        full = {"abcdef1": FULL}
+        rewritten = commit_lessons.with_full_ids(message, lambda token: full.get(token, token))
+        self.assertEqual(rewritten, message.replace("Learned-from: `abcdef1`: first", "Learned-from: " + FULL + " first"))
+        self.assertEqual(commit_lessons.with_full_ids("no citation\n", lambda token: FULL), "no citation\n")
+        # a rewritten message is read the same way again
+        self.assertEqual(commit_lessons.citations(rewritten)[0].token, FULL)
+        self.assertEqual(commit_lessons.lessons(rewritten), "body")
+
+
 class CommitHelperTests(unittest.TestCase):
     """The one commit path (shiploop_git.commit_paths) every ShipLoop commit uses."""
 
     def setUp(self) -> None:
         temp = tempfile.TemporaryDirectory(prefix="shiploop-git-")
         self.addCleanup(temp.cleanup)
+        # Real Git must not read the machine's configuration or the user's home: a user setting such as
+        # commit.cleanup=strip changes what a commit stores.
+        isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+                                                "HOME": str(Path(temp.name).resolve() / "home")})
+        isolated.start()
+        self.addCleanup(isolated.stop)
         self.repo = Path(temp.name).resolve() / "repo"
         self.repo.mkdir()
         git(self.repo, "init", "-q")
@@ -246,6 +423,146 @@ class CommitHelperTests(unittest.TestCase):
         self.assertEqual(shiploop_git.commit_paths(self.repo, ["absent.txt"], "x").commit, "")
         empty = shiploop_git.commit_paths(self.repo, [], "baseline", allow_empty=True)
         self.assertEqual(git(self.repo, "rev-parse", "HEAD").strip(), empty.commit)
+
+    def committed_message(self, rev: str = "HEAD") -> str:
+        return git(self.repo, "log", "-1", "--format=%B", rev).rstrip("\n") + "\n"
+
+    def test_an_empty_commit_leaves_the_files_staged_for_something_else_staged(self) -> None:
+        git(self.repo, "config", "user.email", "u@example.invalid")
+        git(self.repo, "config", "user.name", "U")
+        (self.repo / "staged.txt").write_text("someone else's staged work\n")
+        git(self.repo, "add", "staged.txt")
+        message = self.repo.parent / "message.md"
+        message.write_text("chore: record a remote change\n\nRemote change: staging, purged the cache\n")
+        committed = shiploop_git.commit_paths(self.repo, [], "", allow_empty=True, message_file=message)
+        self.assertEqual(committed.paths, [])
+        self.assertEqual(git(self.repo, "rev-parse", "HEAD").strip(), committed.commit)
+        self.assertEqual(git(self.repo, "show", "--name-only", "--format=", "HEAD").split(), [])
+        self.assertEqual(git(self.repo, "diff", "--cached", "--name-only").split(), ["staged.txt"])
+        self.assertIn("Remote change: staging, purged the cache", self.committed_message())  # the file, not an empty -m
+
+    def test_an_empty_commit_on_an_unborn_branch_keeps_the_staged_file_and_needs_no_identity(self) -> None:
+        fresh = self.repo.parent / "fresh"
+        fresh.mkdir()
+        git(fresh, "init", "-q")
+        (fresh / "staged.txt").write_text("x\n")
+        git(fresh, "add", "staged.txt")
+        committed = shiploop_git.commit_paths(fresh, [], "Empty baseline", allow_empty=True)
+        self.assertTrue(committed.commit)
+        self.assertEqual(git(fresh, "show", "--name-only", "--format=", "HEAD").split(), [])
+        self.assertEqual(git(fresh, "diff", "--cached", "--name-only").split(), ["staged.txt"])
+        self.assertEqual(git(fresh, "log", "-1", "--format=%ae").strip(), "shiploop-workspace@local.invalid")
+
+    def test_markdown_headings_survive_a_users_strip_cleanup_on_every_commit_path(self) -> None:
+        git(self.repo, "config", "user.email", "u@example.invalid")
+        git(self.repo, "config", "user.name", "U")
+        git(self.repo, "config", "commit.cleanup", "strip")
+        body = "subject\n\n## Key learnings\n- one\n\n## Remote change\n- staging, purged\n"
+        message = self.repo.parent / "message.md"
+        message.write_text(body + "\n\n\n")
+        (self.repo / "a.txt").write_text("a\n")
+        shiploop_git.commit_paths(self.repo, ["a.txt"], "", message_file=message)
+        self.assertEqual(self.committed_message(), body)  # the headings stay, the trailing blank lines go
+        (self.repo / "b.txt").write_text("b\n")
+        shiploop_git.commit_paths(self.repo, ["b.txt"], body)
+        self.assertEqual(self.committed_message(), body)
+        shiploop_git.commit_paths(self.repo, [], "", allow_empty=True, message_file=message)
+        self.assertEqual(self.committed_message(), body)
+        shiploop_git.commit_paths(self.repo, [], body, allow_empty=True)
+        self.assertEqual(self.committed_message(), body)
+
+    def commit_on(self, name: str) -> str:
+        git(self.repo, "-c", "user.email=u@example.invalid", "-c", "user.name=U", "commit", "-q", "--allow-empty",
+            "-m", name)
+        return git(self.repo, "rev-parse", "HEAD").strip()
+
+    def test_resolve_commit_takes_a_prefix_or_the_full_id_of_a_commit_reachable_from_head(self) -> None:
+        head = self.commit_on("second")
+        for token in (head, head[:7], head[:12].upper(), head.upper()):
+            with self.subTest(token=token):
+                self.assertEqual(shiploop_git.resolve_commit(self.repo, token), (head, ""))
+
+    def test_resolve_commit_takes_an_older_commit_and_refuses_one_that_is_ahead_of_head(self) -> None:
+        """Guard, not fail-first (batch 1012 review): every citation in the other tests was HEAD itself or on another
+        branch, so a resolver that accepted only HEAD, or that asked the ancestry question the wrong way round, stayed
+        green.  An older commit is the normal citation: one of the last three the packet quotes."""
+        base = git(self.repo, "rev-parse", "HEAD").strip()
+        second = self.commit_on("second")
+        third = self.commit_on("third")
+        for token, want in ((base, base), (base[:7], base), (second, second), (second[:9].upper(), second)):
+            with self.subTest(token=token):
+                self.assertEqual(shiploop_git.resolve_commit(self.repo, token), (want, ""))
+        git(self.repo, "reset", "-q", "--hard", second)  # `third` is now ahead of HEAD: it exists but is not an ancestor
+        found, problem = shiploop_git.resolve_commit(self.repo, third)
+        self.assertEqual(found, "")
+        self.assertIn("is not reachable from HEAD", problem)
+        self.assertEqual(shiploop_git.resolve_commit(self.repo, base[:8]), (base, ""))
+
+    def test_resolve_commit_says_when_git_could_not_check_the_ancestry(self) -> None:
+        """Guard: a Git failure that is neither 'ancestor' (0) nor 'not an ancestor' (1) is reported, not read as either."""
+        head = git(self.repo, "rev-parse", "HEAD").strip()
+        real = shiploop_git.git
+
+        def broken(repo, *args, **kwargs):
+            if args[:1] == ("merge-base",):
+                return subprocess.CompletedProcess(args, 128, stdout="", stderr="fatal: Not a valid commit name\n")
+            return real(repo, *args, **kwargs)
+
+        with mock.patch.object(shiploop_git, "git", broken):
+            found, problem = shiploop_git.resolve_commit(self.repo, head[:7])
+        self.assertEqual(found, "")
+        self.assertIn("could not be checked against HEAD: fatal: Not a valid commit name", problem)
+
+    def test_resolve_commit_names_each_reason_it_refuses_without_echoing_the_token(self) -> None:
+        base = git(self.repo, "rev-parse", "HEAD").strip()
+        git(self.repo, "checkout", "-q", "-b", "other")
+        elsewhere = self.commit_on("only on the other branch")
+        git(self.repo, "checkout", "-q", "-")
+        git(self.repo, "checkout", "-q", "-b", "mine")
+        self.commit_on("mine")
+        tree = git(self.repo, "rev-parse", "HEAD^{tree}").strip()
+        unused = next(name for name in ("deadbee", "cafe123", "feed123", "badc0de") if not any(
+            line.startswith(name) for line in git(self.repo, "rev-list", "--all", "--objects").split()))
+        git(self.repo, "branch", unused)  # a branch spelled like hex must not be taken for a commit
+        cases = {
+            "main": "is not a commit ID", "HEAD~1": "is not a commit ID", "abc12": "is not a commit ID",
+            "x" * 12: "is not a commit ID", "": "is not a commit ID",
+            unused: "names no commit in this repository",
+            tree[:10]: "names no commit in this repository",   # an object, but not a commit
+            base[:7] + base[7:] + "0000": "names no commit in this repository",   # longer than any ID: not clamped
+            elsewhere: "is not reachable from HEAD", elsewhere[:9]: "is not reachable from HEAD",
+        }
+        for token, reason in cases.items():
+            with self.subTest(token=token):
+                found, problem = shiploop_git.resolve_commit(self.repo, token)
+                self.assertEqual(found, "")
+                self.assertIn(reason, problem)
+                if token:
+                    self.assertNotIn(token, problem)
+
+    def test_resolve_commit_names_an_ambiguous_prefix_and_an_unborn_branch(self) -> None:
+        first = git(self.repo, "rev-parse", "HEAD").strip()
+        # a real seven-digit collision cannot be built, so Git's answer is faked for one made-up neighbour
+        neighbour = first[:7] + "f" * 33
+        real = shiploop_git.git
+
+        def two_matches(repo, *args, **kwargs):
+            if "--disambiguate=" + first[:7] in args:
+                return subprocess.CompletedProcess(args, 0, stdout=first + "\n" + neighbour + "\n", stderr="")
+            if args[:2] == ("cat-file", "-t") and args[2] == neighbour:
+                return subprocess.CompletedProcess(args, 0, stdout="commit\n", stderr="")
+            return real(repo, *args, **kwargs)
+
+        with mock.patch.object(shiploop_git, "git", two_matches):
+            found, problem = shiploop_git.resolve_commit(self.repo, first[:7])
+        self.assertEqual(found, "")
+        self.assertIn("matches 2 commits (" + first[:12] + ", " + neighbour[:12] + "); write more digits", problem)
+        unborn = self.repo.parent / "unborn"
+        unborn.mkdir()
+        git(unborn, "init", "-q")
+        found, problem = shiploop_git.resolve_commit(unborn, first[:7])
+        self.assertEqual(found, "")
+        self.assertIn("this repository has no commit yet", problem)
 
 
 if __name__ == "__main__":

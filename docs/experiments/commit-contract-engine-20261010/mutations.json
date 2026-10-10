@@ -1,0 +1,341 @@
+{
+ "rows": [
+  {
+   "file": "skills/shiploop/scripts/shiploop_lessons.py",
+   "replaced": "if _HEADING.match(row):",
+   "with": "known = _KNOWN.match(row)",
+   "tests": "LessonsGrammarTests",
+   "exit": 1,
+   "failing": 3
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_lessons.py",
+   "replaced": "return known is not None and known.group(\"colon\") is not None",
+   "with": "return False",
+   "tests": "LessonsGrammarTests",
+   "exit": 1,
+   "failing": 17
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_lessons.py",
+   "replaced": "while not first and end < len(lines) and not lines[end].strip():",
+   "with": "while False:",
+   "tests": "LessonsGrammarTests",
+   "exit": 1,
+   "failing": 17
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_lessons.py",
+   "replaced": "token = words[0].strip(_TOKEN_EDGE) if words else \"\"",
+   "with": "token = words[0] if words else \"\"",
+   "tests": "LessonsGrammarTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_lessons.py",
+   "replaced": "return re.search(r\"[^\\W_]\", body) is not None",
+   "with": "return bool(body.strip())",
+   "tests": "LessonsGrammarTests",
+   "exit": 1,
+   "failing": 3
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_lessons.py",
+   "replaced": "if len(words) == 2 and words[0].lower() == \"commit\":",
+   "with": "if False:",
+   "tests": "LessonsGrammarTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_git.py",
+   "replaced": "\"--allow-empty\", \"--only\", *given",
+   "with": "\"--allow-empty\", *given",
+   "tests": "CommitHelperTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_git.py",
+   "replaced": "\"--cleanup=whitespace\", *given, \"--\", *chosen",
+   "with": "*given, \"--\", *chosen",
+   "tests": "CommitHelperTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_git.py",
+   "replaced": "\"--cleanup=whitespace\", \"--allow-empty\"",
+   "with": "\"--allow-empty\"",
+   "tests": "CommitHelperTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_git.py",
+   "replaced": "and git(repo, \"cat-file\", \"-t\", name).stdout.strip() == \"commit\"]",
+   "with": "]",
+   "tests": "CommitHelperTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_git.py",
+   "replaced": "name.startswith(token)",
+   "with": "True",
+   "tests": "CommitHelperTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_git.py",
+   "replaced": "if reachable.returncode == 1:",
+   "with": "if False:",
+   "tests": "CommitHelperTests",
+   "exit": 1,
+   "failing": 3
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_git.py",
+   "replaced": "\"--disambiguate=\" + token",
+   "with": "\"--verify\", token",
+   "tests": "CommitHelperTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_git.py",
+   "replaced": "if git(repo, \"rev-parse\", \"--verify\", \"-q\", \"HEAD\").returncode:",
+   "with": "if False:",
+   "tests": "CommitHelperTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "message_path.unlink()  # a stale message must not be committed by a later run",
+   "with": "pass",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "refusal = _credential_refusal(message, message_path, command)",
+   "with": "refusal, message = _lessons_and_citations_refusal(repo, mess",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "store.atomic_write_text(message_path, message.strip() + \"\\n\")  # what was checked is what ",
+   "with": "pass",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "lesson = \"empty\" if commit_lessons.sections(message, commit_lessons.LESSON_LABELS) else \"m",
+   "with": "lesson = \"missing\"",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "problems.append(\"- line \" + str(cite.line) + \": say what the commit contributed after its ",
+   "with": "pass",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "message_path.unlink()",
+   "with": "head, pending = committed.commit, committed.paths",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "allow_empty=not pending, message_file=message_path",
+   "with": "message_file=message_path",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 4
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "elif not pending:",
+   "with": "if not pending:",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 4
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "_need(bool(commit_lessons.remote_change(message)),",
+   "with": "_need(True,",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "+ (\" --remote-change\" if remote else \"\"))",
+   "with": "+ \"\")",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "\"are in \" + str(parent_return) + \".\")",
+   "with": "\"are in \" + str(parent_return) + \". \" + \"padding to prove th",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 17
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "_callback(core, root, \"improve-commit\", action=action_id, message=str(message_path)),",
+   "with": "\"ShipLoop commits exactly",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 4
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "The child runs no ShipLoop callback except \"",
+   "with": "The child never runs a ShipLoop callback except \"",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "except a recorded remote change. No push",
+   "with": "No push",
+   "tests": "ImproveCommitContractTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_lessons.py",
+   "replaced": "return known is not None and known.group(\"colon\") is not None",
+   "with": "return known is not None",
+   "tests": "LessonsGrammarTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_lessons.py",
+   "replaced": "\"Signed-off-by\", \"No-Change-Note\", \"Skill-Craft-Release\")",
+   "with": "\"Signed-off-by\", \"Skill-Craft-Release\")",
+   "tests": "LessonsGrammarTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_lessons.py",
+   "replaced": "known = _KNOWN.match(row)",
+   "with": "known = _KNOWN.match(row) or re.match(r\"^[A-Za-z][A-Za-z0-9]",
+   "tests": "LessonsGrammarTests",
+   "exit": 1,
+   "failing": 16
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_lessons.py",
+   "replaced": "(?P<colon>[ \\t]*:)?{_WRAP}[ \\t]*(?P<rest>.*)$\",",
+   "with": "(?P<colon>[ \\t]*:)?{_WRAP}[ \\t]*(?P<rest>.*)$\",",
+   "tests": "LessonsGrammarTests",
+   "exit": 1,
+   "failing": 4
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_lessons.py",
+   "replaced": "[ \\t]*:?[ \\t]*$\",",
+   "with": "[ \\t]*:?[ \\t]*$\",",
+   "tests": "LessonsGrammarTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_git.py",
+   "replaced": "reachable = git(repo, \"merge-base\", \"--is-ancestor\", commits[0], \"HEAD\")",
+   "with": "reachable = git(repo, \"merge-base\", \"--is-ancestor\", commits",
+   "tests": "CommitHelperTests",
+   "exit": 1,
+   "failing": 5
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_git.py",
+   "replaced": "\"merge-base\", \"--is-ancestor\", commits[0], \"HEAD\")",
+   "with": "\"merge-base\", \"--is-ancestor\", \"HEAD\", commits[0])",
+   "tests": "CommitHelperTests",
+   "exit": 1,
+   "failing": 5
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_git.py",
+   "replaced": "if reachable.returncode:",
+   "with": "if False:",
+   "tests": "CommitHelperTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_improve_changes.py",
+   "replaced": "\"Then run the improve-complete command again: \" + complete_command + \"\\n\"",
+   "with": "\"Then run the same improve-complete command again.\\n\"",
+   "tests": "test/shiploop-improve-changes.test.py",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "if commit_lessons.remote_change(message):  # the section was not recorded",
+   "with": "if False and commit_lessons.remote_change(message):  # the s",
+   "tests": "ImproveCommitContractTests.test_a_remote_change_section_without_the_flag_changes_nothing",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "raise NavigatorError(\"Git could not make the commit: fix the repository problem named belo",
+   "with": "raise NavigatorError(str(exc)) from exc",
+   "tests": "ImproveCommitContractTests.test_a_git_failure_while_committing_names_the_fix_and_the_command_on_line_one",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "The bound child stops here; the parent imports the review once the \"",
+   "with": "When the \"",
+   "tests": "ImproveCommitContractTests.test_a_child_that_is_no_longer_bound_and_a_missing_bind_snapshot_each_get_a_remedy",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "starting in column 1, not inside a \"",
+   "with": "not inside a \"",
+   "tests": "ImproveCommitContractTests.test_an_empty_lessons_label_and_a_one_paragraph_message_are_refused_with_what_to_fix",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "replaced": "_callback(core, root, \"improve-complete\", action=action_id)))",
+   "with": "\"python3 shiploop improve-complete\"))",
+   "tests": "ImproveCommitContractTests.test_the_uncommitted_edits_refusal_names_the_no_commit_exit_and_improve_complete_accepts_it",
+   "exit": 1,
+   "failing": 1
+  }
+ ],
+ "all_red": true
+}
