@@ -1229,11 +1229,17 @@ Grok and Codex sessions that end before the slice is complete are resumed, up to
 | `process` | the slice stop ended the host (status `slice-complete`) |
 | `inner_loop` | W1's carry-forward was accepted done |
 | `no_overshoot` | no result was accepted for an outer stage or for another item |
-| `committed` | the commits after the seed touch every expected path, change product files (not only `docs/shiploop/`), and leave nothing else uncommitted |
-| `checks` | every case check exits 0 in a clean `git archive HEAD` export of ShipLoop's product worktree |
+| `assembled` | ShipLoop's product worktree changes every expected path against the seed, and changes product files, not only ShipLoop's own (`docs/shiploop/`, `.shiploop-improve/`) |
+| `checks` | every case check exits 0 in a clean copy of that candidate: tracked and untracked, not ignored, without run evidence |
+
+The candidate is graded **uncommitted** on purpose. The inner `integrate` stage assembles each item inside the
+execution checkout. The product is committed only at the final return (`workspace plan-return`, at release), and a
+slice does not reach release. The first live slice showed this: its fix was correct and uncommitted, and only
+knowledge files had been committed.
 
 Release, system tests and the report are not reached, by design. ShipLoop command failures, model glue and
-`queue_growth` (items a carry-forward added) are recorded, not verdicts.
+`queue_growth` (items a carry-forward added) are recorded, not verdicts. Cost is unreported on Claude, because the
+host is ended before it writes its `result` event; `--max-budget-usd` still caps the spend.
 
 **The packet report** (`packets.py`) is built from the run's files only. It works on any E2E output directory. On a
 full run, only the last copy of each packet is available.
@@ -1243,6 +1249,9 @@ full run, only the last copy of each packet is available.
   - the largest sections;
   - skill references named and any missing;
   - distinct emissions observed, and the host's `next` calls for that action;
+  - on Claude, from its tool blocks, what reached the model: the printed heads, the packet files opened with a read
+    tool, and the packet text printed through the shell. "Characters written" counts the packet files, not the
+    model's context.
   - the share of its lines already sent in an earlier packet. This share is reported, not flagged: restating how a
     stage operates is the main tenet, and the number shows what it costs.
 - **Per stage:** `metrics.py`'s seconds, turns, tool calls and context peak.

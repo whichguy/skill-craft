@@ -24,9 +24,15 @@ Verdicts (slice-result.json):
   process        the host was ended by the slice stop (``slice-complete``), not a timeout, failure or crash
   inner_loop     the item's carry-forward was accepted done
   no_overshoot   no result was accepted for an outer stage or for another item (the stop held)
-  committed      in ShipLoop's product worktree, the commits after the seed touch every expected path of the case,
-                 hold a product change beyond docs/shiploop/, and nothing outside docs/shiploop/ is left uncommitted
-  checks         every case check exits 0 in a clean `git archive HEAD` export of that worktree
+  assembled      ShipLoop's product worktree holds the item's candidate: against the seed, its tracked and untracked
+                 (not ignored) files change every expected path of the case, and change a product file, not only
+                 ShipLoop's own (docs/shiploop/ knowledge, .shiploop-improve/ run evidence)
+  checks         every case check exits 0 in a clean copy of that candidate (the files `workspace plan-return` would
+                 commit: tracked and untracked, not ignored, without ShipLoop's run evidence)
+The candidate is graded uncommitted on purpose: the inner `integrate` stage assembles each item inside the execution
+checkout, and the product is committed only at the final return (`workspace plan-return`, at release), which a slice
+does not reach (references/workspace-lifecycle.md, "Inner assembly and final return"). Observed on the first live
+slice, 2026-10-10: the fix was correct and uncommitted; only knowledge files had been committed.
 ShipLoop command failures, model glue and queue growth (items a carry-forward added) are recorded, not verdicts.
 """
 from __future__ import annotations
@@ -34,6 +40,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import shutil
 import subprocess
 import sys
 import time
@@ -53,7 +60,9 @@ import shiploop_store as store  # noqa: E402
 STEP_CASES = HERE / "step_cases.json"
 FIXTURES = HERE / "fixtures"
 SEED_AT = "step-plan"
-KNOWLEDGE = "docs/shiploop/"  # ShipLoop's own knowledge home: neither the product nor a leftover
+# ShipLoop's own files in the product checkout: its knowledge home and an Improve child's run evidence. Neither is the
+# product; plan-return keeps run evidence out of the return.
+SHIPLOOP_OWN = ("docs/shiploop/", ".shiploop-improve/")
 
 
 def load_step_case(name: str) -> dict:
@@ -99,32 +108,41 @@ def _git(worktree: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(["git", "-C", str(worktree), *args], capture_output=True, text=True)
 
 
-def committed_product(worktree: Path | None, start_head: str, expect_paths: list[str]) -> dict:
-    """Whether the item's work is committed in ShipLoop's product worktree, from git alone."""
+def candidate_files(worktree: Path) -> list[str]:
+    """The files `workspace plan-return` would consider: tracked and untracked, not ignored, without ShipLoop's own."""
+    listed = _git(worktree, "ls-files", "-z", "--cached", "--others", "--exclude-standard").stdout.split("\0")
+    return sorted({p for p in listed if p and not p.startswith(SHIPLOOP_OWN[1]) and (worktree / p).is_file()})
+
+
+def assembled_product(worktree: Path | None, start_head: str, expect_paths: list[str]) -> dict:
+    """Whether the item's candidate is assembled in ShipLoop's product worktree, committed or not (git alone)."""
     if worktree is None or not worktree.is_dir():
         return {"pass": False, "reason": "no product worktree"}
-    head = _git(worktree, "rev-parse", "HEAD").stdout.strip()
-    changed = [p for p in _git(worktree, "diff", "--name-only", start_head, "HEAD").stdout.splitlines() if p]
-    product = [p for p in changed if not p.startswith(KNOWLEDGE)]
-    missing = [pattern for pattern in expect_paths if not any(fnmatch.fnmatch(p, pattern) for p in changed)]
-    outstanding = [line[3:] for line in _git(worktree, "status", "--porcelain", "--untracked-files=all").stdout.splitlines()
-                   if line[3:] and not line[3:].startswith(KNOWLEDGE)]
-    reasons = [*(["no commit after the seed"] if head == start_head else []),
-               *(["only ShipLoop knowledge files were committed"] if changed and not product else []),
-               *([f"expected paths not committed: {', '.join(missing)}"] if missing else []),
-               *([f"uncommitted: {', '.join(outstanding[:10])}"] if outstanding else [])]
-    return {"pass": not reasons, "head": head, "changed": changed, "missing": missing, "outstanding": outstanding,
+    tracked = [p for p in _git(worktree, "diff", "--name-only", start_head).stdout.splitlines() if p]
+    untracked = [p for p in _git(worktree, "ls-files", "--others", "--exclude-standard").stdout.splitlines() if p]
+    changed = sorted({*tracked, *untracked})
+    product = [p for p in changed if not p.startswith(SHIPLOOP_OWN)]
+    missing = [pattern for pattern in expect_paths if not any(fnmatch.fnmatch(p, pattern) for p in product)]
+    committed = [p for p in _git(worktree, "diff", "--name-only", start_head, "HEAD").stdout.splitlines() if p]
+    reasons = [*(["no product change, only ShipLoop's own files"] if not product else []),
+               *([f"expected paths unchanged: {', '.join(missing)}"] if missing else [])]
+    return {"pass": not reasons, "changed": product, "missing": missing,
+            "committed_since_seed": committed, "uncommitted_product": sorted(set(product) - set(committed)),
             "reason": "; ".join(reasons) or None}
 
 
-def checks_on_head(worktree: Path | None, out: Path, checks: list[str]) -> list[dict]:
-    """Run the case checks in a clean export of the worktree's HEAD, so uncommitted files cannot make them pass."""
+def checks_on_candidate(worktree: Path | None, out: Path, checks: list[str]) -> list[dict]:
+    """Run the case checks in a clean copy of the candidate, so ignored files (node_modules) and run evidence don't count."""
     if worktree is None or not worktree.is_dir():
         return [{"command": c, "pass": False, "output": "no product worktree"} for c in checks]
     export = out / "export"
+    if export.exists():
+        shutil.rmtree(export)
+    for relative in candidate_files(worktree):
+        target = export / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(worktree / relative, target)
     export.mkdir(exist_ok=True)
-    archive = subprocess.run(["git", "-C", str(worktree), "archive", "--format=tar", "HEAD"], capture_output=True)
-    subprocess.run(["tar", "-x", "-C", str(export)], input=archive.stdout, check=True)
     return run.run_checks(export, checks)
 
 
@@ -167,20 +185,22 @@ def grade(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dic
     carried = any(row["stage"] == "carry-forward" and row["outcome"] == "done" for row in history)
     over = overshoot(state, item)
     worktree = run_dir.parent / "worktree"
-    committed = committed_product(worktree, seeded["start_head"], case.get("expect_paths") or [])
-    check_results = checks_on_head(worktree, out, case["checks"])
+    assembled = assembled_product(worktree, seeded["start_head"], case.get("expect_paths") or [])
+    check_results = checks_on_candidate(worktree, out, case["checks"])
     verdicts = {"process": sessions[-1]["status"] == "slice-complete", "inner_loop": carried, "no_overshoot": not over,
-                "committed": committed["pass"], "checks": all(c["pass"] for c in check_results)}
+                "assembled": assembled["pass"], "checks": all(c["pass"] for c in check_results)}
     return {"pass": all(verdicts.values()), "verdicts": verdicts, "item": item, "item_history": history,
             "overshoot": over, "queue_growth": max(0, len(state.get("work_items") or []) - 1),
             "run_status": state.get("status"), "stage_at_stop": metrics.current_stage(state) if state else None,
-            "committed": committed, "checks": check_results, "sessions": sessions,
+            "assembled": assembled, "checks": check_results, "sessions": sessions,
             "not_reached": "system tests, release and the report: a slice ends after the item's inner loop"}
 
 
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--case", required=True, help="a case from step_cases.json")
+    p.add_argument("--case", help="a case from step_cases.json")
+    p.add_argument("--regrade", type=Path, metavar="OUTPUT",
+                   help="grade an earlier slice again from its files (no host starts), with the case it ran")
     p.add_argument("--host", choices=sorted(hosts.HOSTS), default="claude")
     p.add_argument("--model", help="default: the host's (claude-sonnet-5-5 on claude)")
     p.add_argument("--effort")
@@ -200,8 +220,36 @@ def parser() -> argparse.ArgumentParser:
     return p
 
 
+def finish(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dict], identity: dict, quiet: bool) -> int:
+    result = {**identity, "output": str(out), "run_dir": str(run_dir), "worktree": str(run_dir.parent / "worktree"),
+              **grade(out, run_dir, seeded, case, sessions)}
+    (out / "slice-result.json").write_text(json.dumps(result, indent=2) + "\n")
+    report = packets.write_report(out)
+    (out / "metrics.json").write_text(json.dumps(metrics.collect(out, run_dir), indent=2) + "\n")
+    if not quiet:
+        print("\n" + packets.render(report), end="")
+        print(f"\nslice {'PASS' if result['pass'] else 'FAIL'}: "
+              + ", ".join(f"{k} {'ok' if v else 'FAIL'}" for k, v in result["verdicts"].items())
+              + f"\n  {out / 'packet-report.md'}", flush=True)
+    return 0 if result["pass"] else 1
+
+
+def regrade(out: Path, quiet: bool) -> int:
+    out = out.expanduser().resolve()
+    invocation = json.loads((out / "invocation.json").read_text())
+    earlier = json.loads((out / "slice-result.json").read_text())
+    seeded = invocation["seeded"]
+    identity = {k: invocation.get(k) for k in ("case", "host", "model", "delegation")}
+    return finish(out, Path(seeded["run_dir"]), seeded, load_step_case(invocation["case"]), earlier["sessions"],
+                  {**identity, "regraded": True}, quiet)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
+    if args.regrade:
+        return regrade(args.regrade, args.quiet)
+    if not args.case:
+        raise SystemExit("--case is required (or --regrade OUTPUT)")
     case = load_step_case(args.case)
     run.install_termination_handlers()
     out = run.new_output_dir(args.output, f"slice-{args.case}")
@@ -248,19 +296,8 @@ def main(argv: list[str] | None = None) -> int:
         sessions.append(process)
 
     run.write_transcript(out / "events.jsonl", out / "transcript.md")
-    result = {"case": args.case, "host": host.name, "model": model, "delegation": args.delegation, "output": str(out),
-              "run_dir": str(run_dir), "worktree": str(run_dir.parent / "worktree"),
-              **grade(out, run_dir, seeded, case, sessions)}
-    (out / "slice-result.json").write_text(json.dumps(result, indent=2) + "\n")
-    report = packets.write_report(out)
-    (out / "metrics.json").write_text(json.dumps(metrics.collect(out, run_dir), indent=2) + "\n")
-    if not args.quiet:
-        print("\n" + packets.render(report), end="")
-        print(f"\nslice {'PASS' if result['pass'] else 'FAIL'}: "
-              + ", ".join(f"{k} {'ok' if v else 'FAIL'}" for k, v in result["verdicts"].items())
-              + f"\n  {out / 'packet-report.md'}", flush=True)
-    return 0 if result["pass"] else 1
-
+    return finish(out, run_dir, seeded, case, sessions,
+                  {"case": args.case, "host": host.name, "model": model, "delegation": args.delegation}, args.quiet)
 
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -210,18 +210,29 @@ def build(out: Path) -> dict:
                      "next_calls": None if key.endswith("-improve") else calls.get(action, 0),
                      "sections": sections(last), **references(last)})
     usage = run_metrics.get("tool_use") or {}
+    used = usage.get("packets") if isinstance(usage, dict) else None
+    read = (used or {}).get("read") or {}
+    # What reached the model (Claude's tool blocks only; None on other hosts): the printed heads, whole or partial packet
+    # files opened with a read tool, and packet files printed through the shell.
+    reached = None if not used else {
+        "printed_chars": (used.get("printed") or {}).get("chars"),
+        "read_tool_chars": sum(r.get("chars") or 0 for r in read.get("read_tool") or []),
+        "read_tool_packets": len(read.get("read_tool") or []),
+        "shell_chars": (read.get("shell") or {}).get("chars")}
     report = {
         "output": str(out), "run_dir": str(run_dir), "status": state.get("status"),
         "emissions_source": "packet-archive (every distinct emission a 2-s poll saw)" if archived
                             else "retained only (run/packets keeps the last copy of each packet)",
         "token_estimate": ESTIMATE,
         "totals": {"packets": len(rows), "emissions": sum(r["emissions"] for r in rows),
-                   "chars_sent": sum(r["chars_all_emissions"] for r in rows),
-                   "est_tokens_sent": sum(r["chars_all_emissions"] for r in rows) // 4,
+                   "chars_written": sum(r["chars_all_emissions"] for r in rows),
+                   "est_tokens_written": sum(r["chars_all_emissions"] for r in rows) // 4,
+                   "reached_model": reached,
                    "next_calls": sum(calls.values()), "shiploop_failures": len(run_metrics.get("shiploop_failures") or []),
                    "model_glue": len(run_metrics.get("model_glue") or []), "turns": run_metrics.get("turns"),
                    "cost_usd": run_metrics.get("cost_usd"),
-                   "packet_reads": usage.get("packets") if isinstance(usage, dict) else None},
+                   "cost_unmeasured": None if run_metrics.get("cost_usd") is not None else
+                   "no session reported a cost (a session the slice stop ends never writes its result event)"},
         "packets": rows,
         "stages": run_metrics.get("stages") or [],
         "effectiveness": effectiveness(state, out),
@@ -302,10 +313,14 @@ def render(report: dict) -> str:
     t = report["totals"]
     lines = [f"# Packet report: {report['output']}", "",
              f"Run status **{report['status']}**. Emissions: {report['emissions_source']}. Tokens: {report['token_estimate']}.",
-             "", f"- packets {t['packets']}, emissions {t['emissions']}, characters sent {t['chars_sent']} "
-                 f"(~{t['est_tokens_sent']} tokens)",
+             "", f"- packets {t['packets']}, emissions {t['emissions']}, characters written to packet files "
+                 f"{t['chars_written']} (~{t['est_tokens_written']} tokens)",
+             *([f"- reached the model: printed heads {_cell(r['printed_chars'])} chars, {r['read_tool_packets']} packet "
+                f"file(s) read with a read tool ({r['read_tool_chars']} chars), packet text printed through the shell "
+                f"{_cell(r['shell_chars'])} chars"] if (r := t.get("reached_model")) else
+               ["- reached the model: not measured on this host"]),
              f"- `next` calls {t['next_calls']}, ShipLoop failures {t['shiploop_failures']}, model glue {t['model_glue']}, "
-             f"turns {_cell(t['turns'])}, cost {_cell(t['cost_usd'])}", ""]
+             f"turns {_cell(t['turns'])}, cost {_cell(t['cost_usd']) if t['cost_usd'] is not None else 'unreported'}", ""]
     slice_result = report["effectiveness"].get("slice")
     if slice_result:
         verdicts = ", ".join(f"{name} {'PASS' if ok else 'FAIL'}" for name, ok in slice_result.get("verdicts", {}).items())
@@ -342,7 +357,7 @@ def compare(now: dict, before: dict) -> str:
         return found
 
     lines = [f"# Packet comparison", "", f"- now: {now['output']}", f"- before: {before['output']}", ""]
-    for name in ("chars_sent", "next_calls", "shiploop_failures", "model_glue", "turns", "cost_usd"):
+    for name in ("chars_written", "next_calls", "shiploop_failures", "model_glue", "turns", "cost_usd"):
         a, b = now["totals"].get(name), before["totals"].get(name)
         delta = round(a - b, 2) if isinstance(a, (int, float)) and isinstance(b, (int, float)) else "–"
         lines.append(f"- {name}: {_cell(b)} → {_cell(a)} (Δ {delta})")

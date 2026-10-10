@@ -5,6 +5,7 @@ A fake host stands in for the model. It is a script that reprints each packet th
 seeded run through the item's inner loop with the navigator's own API (the seed's pattern), commits a product change
 at implement, and then keeps running as a model would. The slice stop must end it once the item's inner loop is over,
 must not be resumed, and must report an overrun (a host that accepted an outer stage before the poll saw the stop).
+The fake commits its change; a model leaves it assembled and uncommitted, which the slice grades the same way.
 """
 from __future__ import annotations
 
@@ -163,44 +164,58 @@ class StopTests(SliceCase):
         self.assertTrue((self.out / packets.REPORT_MD).is_file())
 
 
-class CommittedProductTests(SliceCase):
+class AssembledProductTests(SliceCase):
+    """The inner loop assembles an item uncommitted (plan-return commits at release), so a slice grades the candidate."""
+
     def repo(self) -> tuple[Path, str]:
         repo = self.out / "worktree"
         repo.mkdir()
         (repo / "README.md").write_text("x\n")
-        for args in (["init", "-q"], ["add", "README.md"], [*IDENTITY, "commit", "-qm", "seed"]):
+        (repo / ".gitignore").write_text("node_modules/\n")
+        for args in (["init", "-q"], ["add", "-A"], [*IDENTITY, "commit", "-qm", "seed"]):
             subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, env=GIT_ENV)
         head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
         return repo, head
 
-    def commit(self, repo: Path, path: str) -> None:
+    def write(self, repo: Path, path: str, commit: bool = False) -> None:
         (repo / path).parent.mkdir(parents=True, exist_ok=True)
         (repo / path).write_text("change\n")
-        for args in (["add", path], [*IDENTITY, "commit", "-qm", f"add {path}"]):
-            subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, env=GIT_ENV)
+        if commit:
+            for args in (["add", path], [*IDENTITY, "commit", "-qm", f"add {path}"]):
+                subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, env=GIT_ENV)
 
-    def test_a_knowledge_only_commit_is_not_the_product(self):
+    def test_only_shiploop_files_is_not_a_product(self):
         repo, head = self.repo()
-        self.commit(repo, "docs/shiploop/spec.md")
-        found = step_slice.committed_product(repo, head, ["src/*.js"])
+        self.write(repo, "docs/shiploop/spec.md", commit=True)
+        self.write(repo, ".shiploop-improve/nav-1/opening.md")
+        found = step_slice.assembled_product(repo, head, ["src/*.js"])
         self.assertFalse(found["pass"])
-        self.assertIn("only ShipLoop knowledge files", found["reason"])
+        self.assertIn("only ShipLoop's own files", found["reason"])
 
-    def test_an_uncommitted_product_change_fails_and_the_checks_ignore_it(self):
+    def test_an_uncommitted_candidate_is_assembled_and_checked(self):
         repo, head = self.repo()
-        self.commit(repo, "src/a.js")
-        (repo / "src" / "b.js").write_text("left behind\n")
-        found = step_slice.committed_product(repo, head, ["src/a.js"])
+        self.write(repo, "src/a.js")                  # untracked, as the first live slice left its new test
+        self.write(repo, "README.md")                 # a tracked file modified in place
+        found = step_slice.assembled_product(repo, head, ["src/a.js", "README.md"])
+        self.assertTrue(found["pass"], found)
+        self.assertEqual(found["committed_since_seed"], [])
+        self.assertEqual(found["uncommitted_product"], ["README.md", "src/a.js"])
+
+    def test_the_checks_see_the_candidate_but_not_ignored_files_or_run_evidence(self):
+        repo, head = self.repo()
+        self.write(repo, "src/a.js")
+        self.write(repo, "node_modules/dep/index.js")
+        self.write(repo, ".shiploop-improve/nav-1/opening.md")
+        checks = step_slice.checks_on_candidate(repo, self.out, [
+            "test -f src/a.js", "test ! -e node_modules", "test ! -e .shiploop-improve", "test -f README.md"])
+        self.assertEqual([c["pass"] for c in checks], [True, True, True, True])
+
+    def test_a_missing_expected_path_fails(self):
+        repo, head = self.repo()
+        self.write(repo, "src/a.js", commit=True)
+        found = step_slice.assembled_product(repo, head, ["src/a.js", "test/*.test.js"])
         self.assertFalse(found["pass"])
-        self.assertIn("src/b.js", found["reason"])
-        checks = step_slice.checks_on_head(repo, self.out, ["test -f src/a.js", "test -f src/b.js"])
-        self.assertEqual([c["pass"] for c in checks], [True, False])
-
-    def test_the_expected_paths_committed_pass(self):
-        repo, head = self.repo()
-        self.commit(repo, "src/a.js")
-        self.commit(repo, "test/a.test.js")
-        self.assertTrue(step_slice.committed_product(repo, head, ["src/a.js", "test/*.test.js"])["pass"])
+        self.assertIn("test/*.test.js", found["reason"])
 
 
 class ArchiveTests(SliceCase):
