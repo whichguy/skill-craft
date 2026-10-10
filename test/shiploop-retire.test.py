@@ -205,6 +205,21 @@ class TerminalCloseTests(kt.HomeCase):
         self.assertEqual(listed.read_text(), "My own notes about the features.\n")
         self.assertFalse(self.spec.exists())                                                  # the retire itself went ahead
 
+    def test_the_notice_for_a_list_that_is_not_shiploops_comes_once_at_the_terminal_close_not_at_every_knowledge_commit(self) -> None:
+        """Audit (batch 1012): decision 5 said one notice; it printed at every knowledge commit and again at the terminal close."""
+        listed = self.repo / knowledge.FEATURE_LIST
+        listed.write_text("My own notes about the features.\n", encoding="utf-8")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "the user takes over the list")
+        for number in range(3):
+            self.write("docs/shiploop/environment.md", "# env\n\nedit " + str(number) + "\n")     # three accepted stages that change the home
+            before = git(self.repo, "rev-list", "--count", "HEAD")
+            out, err = self.close(terminal=False)
+            self.assertNotEqual(git(self.repo, "rev-list", "--count", "HEAD"), before)      # a knowledge commit was made
+            self.assertNotIn("left " + str(listed), out + err)
+        out, _ = self.close()
+        self.assertEqual(out.count("left " + str(listed) + " as it is"), 1)
+
     def test_only_the_terminal_close_retires(self) -> None:
         """Guard (passes on the base too): a close that is not the terminal handoff never retires."""
         out, err = self.close(terminal=False)

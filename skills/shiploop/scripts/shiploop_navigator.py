@@ -1796,7 +1796,8 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     notice = shiploop_git.skipped_notice(committed.skipped)
     if notice:
         print("ShipLoop knowledge: " + notice)
-    if committed.commit or terminal:
+    if terminal:
+        # Once per run, at its last close: the file is left alone however many knowledge commits came before it.
         listing = knowledge.feature_list_notice(Path(str(after["repo"])))
         if listing:
             print("ShipLoop knowledge: " + listing)
