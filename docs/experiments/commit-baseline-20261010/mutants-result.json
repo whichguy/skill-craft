@@ -1,7 +1,7 @@
 {
  "suite": "test/shiploop-e2e-commit-counters.test.py",
- "mutants": 40,
- "killed": 40,
+ "mutants": 43,
+ "killed": 43,
  "survived": [],
  "not_applicable": [],
  "results": [
@@ -111,7 +111,7 @@
    "mutant": "improve told by the six-label shape",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=4)"
+   "suite": "FAILED (failures=14)"
   },
   {
    "mutant": "the work item's reply ignored",
@@ -159,7 +159,7 @@
    "mutant": "the classes do not sum to counted",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=8)"
+   "suite": "FAILED (failures=9)"
   },
   {
    "mutant": "the author is not read",
@@ -183,31 +183,49 @@
    "mutant": "a citation need not resolve",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=1)"
+   "suite": "FAILED (failures=8)"
   },
   {
-   "mutant": "a citation anywhere in a line",
+   "mutant": "a citation token need not be shaped like an ID",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=1)"
+   "suite": "FAILED (failures=4)"
   },
   {
-   "mutant": "a section does not end at the next label",
+   "mutant": "an ID may be shorter than the gate allows",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
    "suite": "FAILED (failures=2)"
   },
   {
-   "mutant": "a section does not end at the knowledge home's next section",
+   "mutant": "citations are read from the subject paragraph only",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=3)"
+   "suite": "FAILED (failures=12)"
   },
   {
-   "mutant": "the Learned label is not read",
+   "mutant": "lessons are read from the subject line only",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=6)"
+   "suite": "FAILED (failures=52)"
+  },
+  {
+   "mutant": "every commit has lessons",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=22)"
+  },
+  {
+   "mutant": "only Improve commits are asked for lessons",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=51)"
+  },
+  {
+   "mutant": "a reader of the harness's own in place of the shared one",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=43)"
   },
   {
    "mutant": "events.jsonl not required",
