@@ -145,6 +145,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-environment.test.py",
     "test/shiploop-e2e-baseline.test.py",
     "test/shiploop-e2e-quality.test.py",
+    "test/shiploop-e2e-commit-counters.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
 )
@@ -262,6 +263,9 @@ _DURATION_SECONDS = {
     # Local wall seconds, 2026-10-09: 91 tests 28.6 at load average 6 to 8; after the fix round (confirmation runs, the port
     # guard's real-node tests, the orphan stand-ins) 125 tests 43.2 at load average 3 to 5. Under QUICK_MAX_SECONDS.
     "test/shiploop-e2e-quality.test.py": 43.0,
+    # The packets and commits counters (batch 1012 task h): fixtures cut from saved runs and temporary git repositories. A first
+    # estimate; the measured seconds replace it when the suite is complete.
+    "test/shiploop-e2e-commit-counters.test.py": 5.0,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
@@ -517,6 +521,7 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/reorientation/": ("shiploop-e2e-reorientation",),
     "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
     "test/fixtures/quality/": ("shiploop-e2e-quality",),
+    "test/fixtures/commit-counters/": ("shiploop-e2e-commit-counters",),
     "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
 }
 
