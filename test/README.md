@@ -488,6 +488,11 @@ prove that failed preconditions, changed candidates, dirty files and remote race
 cannot publish a divergent release through the guarded push command. These are
 publication-control tests; they do not establish GitHub branch-policy compliance.
 
+`release-preflight.test.py` (core) runs `release.py` in disposable repositories
+to prove that a release shipping ShipLoop is refused, as a dry run and for real,
+unless a commit since the last release touches the E2E `LEARNINGS.md` or carries a
+`No-E2E-Round: <reason>` trailer.
+
 `release-flow.test.sh` and `release-boundary.test.sh` (core) cut releases and
 run the release guard in disposable repositories. The guard checks each release
 commit out in a temporary worktree and requires its

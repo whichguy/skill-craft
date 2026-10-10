@@ -340,6 +340,7 @@ _CORE_SUITES = (
     _suite("sync-plugin-views", "core", "test/sync-plugin-views.test.sh", "bash", "test/sync-plugin-views.test.sh"),
     _suite("release-flow", "core", "test/release-flow.test.sh", "bash", "test/release-flow.test.sh"),
     _suite("release-boundary", "core", "test/release-boundary.test.sh", "bash", "test/release-boundary.test.sh"),
+    _suite("release-preflight", "core", "test/release-preflight.test.py", "python3", "test/release-preflight.test.py"),
     _suite("native-marketplace-adapters", "core", "test/native-marketplace-adapters.test.sh", "bash", "test/native-marketplace-adapters.test.sh"),
     _suite("marketplace-package", "core", "test/marketplace-package.test.py", "python3", "test/marketplace-package.test.py"),
     _suite("marketplace-host-isolation", "core", "test/marketplace-host-isolation.test.py", "python3", "test/marketplace-host-isolation.test.py"),
