@@ -1472,12 +1472,15 @@ def run_logic(expression: str):
     program = ("const vm = require('vm'), fs = require('fs');"
                "const context = vm.createContext({});"
                "vm.runInContext(fs.readFileSync(process.argv[1], 'utf8'), context);"
-               "const value = vm.runInContext(process.argv[2], context);"
+               "const value = vm.runInContext(fs.readFileSync(process.argv[2], 'utf8'), context);"
                "console.log(value === undefined ? 'undefined' : JSON.stringify(value));")
     with tempfile.TemporaryDirectory() as tmp:
         logic = Path(tmp) / "logic.js"
         logic.write_text(script_blocks()["logic"], encoding="utf-8")
-        done = subprocess.run([node, "-e", program, str(logic), expression], capture_output=True, text=True,
+        # The expression goes through a file: one argument is capped at 128 KiB on Linux, and a state with its ticks is larger.
+        source = Path(tmp) / "expression.js"
+        source.write_text(expression, encoding="utf-8")
+        done = subprocess.run([node, "-e", program, str(logic), str(source)], capture_output=True, text=True,
                               timeout=60)
     if done.returncode != 0:
         raise AssertionError(f"the logic block failed on {expression}:\n{done.stderr}")
