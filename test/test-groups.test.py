@@ -145,7 +145,8 @@ class TestGroupTests(unittest.TestCase):
             "docs/notes.md": set(),
             "skills/shiploop/SKILL.md": {"shiploop-guidance", "shiploop-reference-routing",
                                          "shiploop-delegation", "shiploop-package-integrity",
-                                         "shiploop-packet-completeness", "shiploop-step-packets"},
+                                         "shiploop-packet-completeness", "shiploop-step-packets",
+                                         "shiploop-reference"},
             "test/shiploop_consumer_delivery_support.py": {"shiploop-consumer-delivery"},
             # The Run Review leaf: its own suite plus the package build that gates a new leaf.
             "skills/shiploop-run-review/scripts/export.py": {"shiploop-run-review", "marketplace-package"},

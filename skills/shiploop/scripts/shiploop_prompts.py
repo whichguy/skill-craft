@@ -495,6 +495,10 @@ and do not reread history to repeat it.
 """
 
 
+# The requirement and reference-handoff rules, which the run reference file (shiploop_reference, section
+# "requirements") carries for every stage.
+REQUIREMENTS_RULES = COMMON[COMMON.index("Requested runtime / entry point"):COMMON.index("Return the packet's concise")]
+
 # Stage-specific paragraphs, carried only by the stages the stage table names
 # (blocks "interaction-design" and "work-items").
 INTERACTION_DESIGN = """\

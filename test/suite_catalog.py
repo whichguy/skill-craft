@@ -82,6 +82,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-packet-bounds.test.py",
     "test/shiploop-packet-completeness.test.py",
     "test/shiploop-step-packets.test.py",
+    "test/shiploop-reference.test.py",
     "test/shiploop-guidance.test.py",
     "test/shiploop-local-skills.test.py",
     "test/experiments/shiploop_ui_allocation/test_evidence.py",
@@ -172,6 +173,7 @@ _DURATION_SECONDS = {
     "test/shiploop-packet-bounds.test.py": 0.167,
     "test/shiploop-packet-completeness.test.py": 0.1,
     "test/shiploop-step-packets.test.py": 0.4,  # measured locally 2026-10-10
+    "test/shiploop-reference.test.py": 0.5,  # measured locally 2026-10-10
     "test/shiploop-e2e-slice.test.py": 33.0,  # measured locally 2026-10-10: three fake-host sessions
     "test/experiments/shiploop_ui_allocation/test_evidence.py": 0.602,
     "test/shiploop-auth-readiness.test.py": 29.207,
@@ -599,6 +601,7 @@ _SHIPLOOP_PROMPT_IDS = (
     "shiploop-packet-bounds",
     "shiploop-packet-completeness",
     "shiploop-step-packets",
+    "shiploop-reference",
     "shiploop-navigator-dry-run",
 )
 _SHIPLOOP_PROMPT_PREFIXES = ("skills/shiploop/references/", "skills/shiploop/commands/")

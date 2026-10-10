@@ -40,6 +40,7 @@ import shiploop_loop_contract as loop_contract
 import shiploop_test_loop as test_loop
 import shiploop_planning_revision as planning_revision
 import shiploop_context_index as context_index
+import shiploop_reference as run_reference
 import shiploop_narrative as narrative
 import shiploop_privacy as privacy
 import shiploop_stage_spec as stage_spec
@@ -1330,6 +1331,10 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """
     timeline = load_timeline(root)
     scratch_dir(root).mkdir(exist_ok=True)
+    version = run_reference.package_version()
+    if run_reference.stale(root, version):
+        # A run saved before this file existed, or by another version, gets it here; the cursor does not move.
+        store.atomic_write_text(Path(root) / run_reference.REFERENCE_FILE, run_reference.render(state, root, version))
     # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
     (Path(root) / "notes").mkdir(exist_ok=True)
     # Likewise the directory of a bound Improve child's opening file, which the packet tells the parent to write.
@@ -4540,6 +4545,8 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
     writes["status.md"] = "```text\n" + status_block(state) + "\n```\n"
     # Derived index of everything the run has accepted, for every stage to read.
     writes[context_index.INDEX_FILE] = context_index.render(state, root, current_stage(state))
+    # Derived run reference: the run-wide detail packets name by section (shiploop_reference).
+    writes[run_reference.REFERENCE_FILE] = run_reference.render(state, root, run_reference.package_version())
     store.transaction(root, writes)
 
 

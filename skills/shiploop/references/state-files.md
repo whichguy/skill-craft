@@ -68,6 +68,24 @@ the steps, tests and release steps are planned from the accepted plan rather
 than from memory. `test/shiploop-planning-handoff.test.py` pins which results
 each stage's packet names.
 
+## Run reference
+
+Every save also regenerates `reference.md` in the run directory (`shiploop_reference.py`). It holds the run-wide detail
+that a packet names by section instead of reprinting:
+- the rules for every step (`#rules`);
+- blocked and awaiting shapes (`#blocked`) and result outcomes (`#outcomes`);
+- recovery (`#recovery`) and progress reporting (`#progress`);
+- requirements and references (`#requirements`);
+- policies and guides (`#policies`);
+- the workspace and source return (`#workspace`).
+
+A packet cites a section as `reference#<anchor>` and opens it only when the packet says so, or after a reset. A
+stage's own grounding never moves there (SPEC S-6): its goal, operation, Done-when, Checked-by, result contract,
+recovery command, and the rules it can hit all stay in its packet.
+
+Like the index, the file is derived. Its first line names the ShipLoop version that wrote it. `next` rewrites it
+when it is missing or comes from another version, and the cursor does not move.
+
 ## Run context index
 
 Every save regenerates `context-index.md` in the run directory from `state.md`:
