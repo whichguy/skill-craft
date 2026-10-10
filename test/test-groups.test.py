@@ -93,8 +93,8 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 67)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 39)
-        self.assertEqual(len(suite_catalog.SUITES), 108)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 41)
+        self.assertEqual(len(suite_catalog.SUITES), 110)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -122,6 +122,7 @@ class TestGroupTests(unittest.TestCase):
         names = {suite.id for suite in suite_catalog.select(("ask-agent",))}
         self.assertTrue({
             "ask-agent-workspace", "ask-agent-delivery", "ask-agent-managed-harness",
+            "ask-agent-parallel", "ask-agent-task",
             "experiments-shiploop-chain-native-pilot", "shiploop-chain-handoff",
             "shiploop-chain-async", "shiploop-consumer-delivery",
             "shiploop-consumer-delivery-cli",

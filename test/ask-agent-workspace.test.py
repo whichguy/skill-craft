@@ -539,7 +539,7 @@ raise SystemExit(module.main(sys.argv[2:]))
         (self.source / "untracked.bin").write_bytes(b"\x00untracked\xfeinput\n")
         (self.source / "untracked-link").symlink_to("linked-target.txt")
 
-    def _assert_dirty_fidelity(self, worktree: Path) -> None:
+    def _assert_git_layers_equal(self, worktree: Path) -> None:
         self.assertEqual(
             self._run_bytes(self.source, "diff", "--cached", "--binary").stdout,
             self._run_bytes(worktree, "diff", "--cached", "--binary").stdout,
@@ -552,6 +552,9 @@ raise SystemExit(module.main(sys.argv[2:]))
             self._run_bytes(self.source, "ls-files", "--stage").stdout,
             self._run_bytes(worktree, "ls-files", "--stage").stdout,
         )
+
+    def _assert_dirty_fidelity(self, worktree: Path) -> None:
+        self._assert_git_layers_equal(worktree)
         for relative in (
             "dual.txt",
             "staged-add-edited.txt",
@@ -747,6 +750,85 @@ raise SystemExit(module.main(sys.argv[2:]))
 
         self._assert_dirty_fidelity(worktree)
         self.assertEqual(self._snapshot(self.source), source_before)
+
+    def test_root_control_files_preserve_staged_and_unstaged_git_patches(self) -> None:
+        controls = (".gitignore", ".claspignore")
+        for relative in controls:
+            (self.source / relative).write_text(f"# baseline {relative}\n", encoding="utf-8")
+        self._run(self.source, "add", *controls)
+        self._run(self.source, "commit", "-q", "-m", "track root controls")
+
+        for relative in controls:
+            staged = f"# staged {relative}\n"
+            (self.source / relative).write_text(staged, encoding="utf-8")
+            self._run(self.source, "add", relative)
+            (self.source / relative).write_text(staged + f"# unstaged {relative}\n", encoding="utf-8")
+
+        prepared = self._prepare(label="root controls staged and unstaged")
+        worktree = Path(prepared["worktree"])
+        self._assert_git_layers_equal(worktree)
+        for relative in controls:
+            with self.subTest(relative=relative):
+                self.assertEqual((worktree / relative).read_bytes(), (self.source / relative).read_bytes())
+        (worktree / "app.py").write_text("base application\nworker contribution\n", encoding="utf-8")
+        inspected = self._inspect_mode(Path(prepared["receipt"]), "patch")
+        self.assertEqual(inspected["contribution_paths"], ["app.py"], inspected)
+
+    def test_ignored_root_controls_are_inherited_and_source_drift_checked(self) -> None:
+        self._exclude("/.gitignore", "/.claspignore", "node_modules/", "credentials.private")
+        gitignore = b"# ignored root git rules\n"
+        claspignore = b"# ignored root clasp rules\n"
+        (self.source / ".gitignore").write_bytes(gitignore)
+        (self.source / ".claspignore").write_bytes(claspignore)
+        (self.source / "node_modules" / "pkg").mkdir(parents=True)
+        (self.source / "node_modules" / "pkg" / "index.js").write_text("module.exports = 1\n", encoding="utf-8")
+        (self.source / "credentials.private").write_text("not copied\n", encoding="utf-8")
+
+        prepared = self._prepare(label="ignored root controls")
+        worktree = Path(prepared["worktree"])
+        omitted = prepared["ignored_dependencies_omitted"]
+        self.assertNotIn(".gitignore", omitted)
+        self.assertNotIn(".claspignore", omitted)
+        self.assertIn("node_modules/", omitted)
+        self.assertIn("credentials.private", omitted)
+        self.assertEqual((worktree / ".gitignore").read_bytes(), gitignore)
+        self.assertEqual((worktree / ".claspignore").read_bytes(), claspignore)
+        self.assertFalse((worktree / "node_modules").exists())
+        self.assertFalse((worktree / "credentials.private").exists())
+
+        (self.source / ".claspignore").write_bytes(claspignore + b"# changed after prepare\n")
+        result, drift = self._cli("prepare", "--receipt", prepared["receipt"], "--writers-quiescent")
+        self.assertNotEqual(result.returncode, 0, drift)
+        self.assertIn("source drifted since preparation", drift["error"], drift)
+        self.assertTrue(worktree.is_dir())
+
+    def test_absent_and_staged_deleted_root_controls_are_not_resurrected(self) -> None:
+        (self.source / ".gitignore").write_text("# tracked then deleted\n", encoding="utf-8")
+        self._run(self.source, "add", ".gitignore")
+        self._run(self.source, "commit", "-q", "-m", "track root ignore file")
+        self._run(self.source, "rm", "-q", ".gitignore")
+        self.assertFalse((self.source / ".gitignore").exists())
+        self.assertFalse((self.source / ".claspignore").exists())
+
+        prepared = self._prepare(label="deleted and absent root controls")
+        worktree = Path(prepared["worktree"])
+        self.assertFalse((worktree / ".gitignore").exists())
+        self.assertFalse((worktree / ".claspignore").exists())
+        self._assert_git_layers_equal(worktree)
+
+    def test_new_ignored_root_controls_remain_contributions(self) -> None:
+        self._exclude("/.gitignore", "/.claspignore")
+        prepared = self._prepare(label="new ignored root controls")
+        worktree = Path(prepared["worktree"])
+        (worktree / ".gitignore").write_text("# worker contribution\n", encoding="utf-8")
+        (worktree / ".claspignore").write_text("# worker clasp contribution\n", encoding="utf-8")
+
+        inspected = self._inspect_mode(Path(prepared["receipt"]), "patch")
+        self.assertEqual(inspected["contribution_paths"], [".claspignore", ".gitignore"], inspected)
+        self.assertNotIn("ignored_paths", inspected, inspected)
+        contribution = Path(inspected["delivery"]["contribution_patch"]).read_bytes()
+        self.assertIn(b"# worker contribution", contribution)
+        self.assertIn(b"# worker clasp contribution", contribution)
 
     def test_dirty_worktree_inheritance_replays_two_generations_without_mutating_ancestors(self) -> None:
         self._make_dirty_caller()

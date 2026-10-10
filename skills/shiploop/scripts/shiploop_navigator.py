@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Small, script-owned navigator protocol for ShipLoop.
+"""Script-owned workflow transitions, validation and packets for ShipLoop.
 
-The navigator owns only its durable cursor and a compact result ledger.  It
-does not inspect a repository, execute checks, or decide whether host-reported
-evidence is sufficient.  Hosts perform the work named in the packet and submit
-one structured result for the current action.
+The navigator owns the durable cursor, accepted results and lifecycle routing.
+It enforces stage gates through the test, quality, workspace and Git helpers;
+the host performs the issued action and submits its structured result. Host
+reports remain distinct from independently recorded verification. Storage and
+locking are provided by shiploop_store and the CLI entrypoint.
 """
 
 from __future__ import annotations

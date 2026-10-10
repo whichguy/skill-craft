@@ -53,6 +53,17 @@ never adds such a restriction on its own.
 
 ## Record the baseline and launch
 
+For standalone delegation, use [Task interface](task-interface.md): `prepare`
+captures the baseline and refuses dirty scope overlap, its emitted assignment
+includes worker start/finish checks, and `verify-return` obtains the parent's
+fresh returned-state evidence. Request `workspace: current` and `mode: edit`
+for in-place work, or `mode: report-only`. The compact interface accepts exact
+paths or slash-terminated directory prefixes, not globs. Do not also run the
+manual baseline and worker-check sequence below after successful preparation.
+
+The following lower-level commands describe the underlying helper contract
+for existing callers and diagnostics; they are not a second standalone workflow.
+
 Bind the helper from the selected card as in
 [Workspace operations](workspace-operations.md#bind-and-verify-the-selected-package),
 then from the caller's checkout:
@@ -77,10 +88,10 @@ cd "$ROOT" && python3 "$HELPER" current-state --expect-root "$ROOT"
 and it stops on a failure. Every later shell command begins with
 `cd "$ROOT" &&`, and file tools use absolute paths.
 
-Launch a fresh general-purpose native worker with no inherited history. A
-digest or question runs in the foreground by default, because its result is
-short and the parent needs it next; the user's request to run it in the
-background takes precedence. Host recipes:
+Launch a fresh general-purpose native worker with no inherited history.
+Default to background execution as the skill card specifies; an explicit
+request to wait takes precedence. Scheduling is independent of the workspace
+choice. Host recipes:
 
 | Host | Launch |
 |---|---|
@@ -113,7 +124,9 @@ The worker returns inline:
 - the paths it changed (none for `report-only`)
 - the next action and its owner
 
-The parent then runs:
+The standalone parent runs `verify-return` after native collection as described
+in [Task interface](task-interface.md#acceptance). For a lower-level caller
+that captured `$BASELINE` directly, the equivalent helper check is:
 
 ```sh
 python3 "$HELPER" current-state --baseline "$BASELINE" --write-set PATH ...

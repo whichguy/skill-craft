@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShipLoop script and state audit · 8 October 2026</title>
+<style>
+:root{color-scheme:light;--ink:#172b40;--muted:#4c6074;--line:#ccd8e2;--accent:#075a75;--wash:#edf6f8}
+*{box-sizing:border-box}body{margin:0;background:#f6f8fa;color:var(--ink);font:17px/1.6 system-ui,sans-serif}
+main{max-width:1000px;margin:auto;padding:42px 30px 70px;background:white}h1{font-size:2.2rem;line-height:1.14;max-width:750px;margin:12px 0 20px}h2{font-size:1.4rem;margin-top:38px;line-height:1.3}p{max-width:850px}a{color:var(--accent)}code{font-size:.9em;overflow-wrap:anywhere}.meta,figcaption{color:var(--muted);font-size:.88rem}.lead{font-size:1.18rem}.callout{background:var(--wash);border-left:4px solid var(--accent);padding:16px 20px;margin:24px 0}.callout p{margin:0}figure{margin:24px 0}figcaption{margin-top:10px}.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.step{padding:18px;border:1px solid var(--line);border-radius:8px;background:#f8fafc}.step strong{display:block;margin-bottom:7px;color:var(--accent)}.step p{margin:0;font-size:.95rem}table{border-collapse:collapse;width:100%;font-size:.94rem}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:13px 10px}th{background:var(--wash)}th:first-child{width:22%}.scroll{overflow-x:auto}li{margin:9px 0}.tag{display:inline-block;background:#edf1f5;border-radius:4px;padding:2px 8px;font-size:.8rem;font-weight:600}.pending{background:#fff2d7}pre{background:#f3f6f8;padding:18px;overflow:auto;font-size:.85rem;line-height:1.5}
+@media(max-width:650px){main{padding:24px 18px 45px}h1{font-size:1.8rem}.flow{grid-template-columns:1fr}table{min-width:540px}}
+</style>
+</head>
+<body><main>
+<div class="meta">SOURCE AUDIT · 8 OCTOBER 2026 · BASE <code>4dc6dae8a8967257591b9048dd4c4225fbd74ca0</code></div>
+<h1>ShipLoop owns its workflow. Persistence boundaries needed tightening.</h1>
+<p class="lead">The inspected scripts select successors, validate callbacks and issue detailed action packets. Tactical fixes harden transaction validation, truthful error recovery and coherent status reads. A complete linear JSON transaction history remains a design decision.</p>
+<p>This audit covers the navigator, stage definitions, CLI, storage, chain ledger, packet references and associated tests. It does not certify every helper, live host behavior or remote deployment.</p>
+
+<h2>How the current flow persists a transition</h2>
+<figure aria-label="Three steps show recovery and hydration, script-owned navigation, and journaled persistence.">
+<div class="flow">
+<div class="step"><strong>1 · Recover and hydrate</strong><p>Acquire the exclusive run lock. Finish any valid pending transaction. Parse and validate <code>state.md</code>.</p></div>
+<div class="step"><strong>2 · Decide in scripts</strong><p>Validate the current action and submitted result. The navigator and stage table select the next cursor or preserve a stopped state.</p></div>
+<div class="step"><strong>3 · Persist and explain</strong><p>Validate destinations, journal and apply state plus derived files, then remove the journal. Emit the current packet and exact callback.</p></div>
+</div>
+<figcaption>The LLM executes the issued action; it does not infer the successor. A failure after persistence requires reading the durable cursor.</figcaption>
+</figure>
+<p>Sources: <a href="../skills/shiploop/scripts/shiploop">CLI locking and hydration</a>, <a href="../skills/shiploop/scripts/shiploop_navigator.py">navigator transitions and save</a>, <a href="../skills/shiploop/scripts/shiploop_stage_spec.py">stage contracts</a>, <a href="../skills/shiploop/scripts/shiploop_store.py">transaction validation and recovery</a>.</p>
+
+<h2>Findings and changes</h2>
+<div class="scroll"><table>
+<thead><tr><th>Area</th><th>Finding</th><th>Disposition</th></tr></thead>
+<tbody>
+<tr><td>Transaction safety</td><td>Paths such as <code>a</code> and <code>a/b</code> could journal an impossible transaction. Directory aliases could target the journal or its descendants. Case-only names could overwrite each other on macOS.</td><td>Tactical fix: reject lexical and physical overlaps, including Unicode-normalized/case-folded aliases, before writing. Validate replay manifests through the same checks.</td></tr>
+<tr><td>Nested directory durability</td><td>Creating <code>a/b/file</code> synced the file's directory and the run root, but could omit syncing the directory entry linking <code>b</code> from <code>a</code>.</td><td>Tactical fix: sync the parent chain before completing the transaction and repeat those syncs during recovery. This addresses code ordering; no physical power-loss test was performed.</td></tr>
+<tr><td>Serialization</td><td>JSON numeric overflow and non-UTF-8 strings could cross parse/write boundaries inconsistently; a boolean could compare equal to journal version 1.</td><td>Tactical fix: explicit finite-number, UTF-8 and exact-version validation with storage-specific errors.</td></tr>
+<tr><td>Error results</td><td>Callback errors unconditionally claimed the run was still active and had not advanced, including failures after a save.</td><td>Tactical fix: report the failure, name authoritative state and print the exact recovery command without asserting an unverified status.</td></tr>
+<tr><td>Read-only status</td><td>The keepalive reader could observe state while a writer was applying a transaction.</td><td>Tactical fix: nonblocking shared lock; return JSON error/exit 2 for busy or pending recovery. Never recover or create a lock from the observer.</td></tr>
+<tr><td>Operational ownership</td><td>Navigator routes, stage gates and exact callback/result contracts are script-owned. Packets supply current state, accepted-source, result, policy and context-index locators.</td><td>Retain. No lifecycle redesign or additional routing prompt is justified by this audit.</td></tr>
+</tbody></table></div>
+
+<h2>One authority today; several kinds of history</h2>
+<div class="scroll"><table>
+<thead><tr><th>Record</th><th>What it proves</th><th>What it cannot replace</th></tr></thead>
+<tbody>
+<tr><td><code>state.md</code></td><td>Validated current cursor and accepted-action history in a JSON fence.</td><td>A timestamped record of every storage transaction.</td></tr>
+<tr><td><code>transaction.md</code></td><td>Pending writes/deletes to roll forward after interruption.</td><td>Retained history: successful application deletes this manifest.</td></tr>
+<tr><td>Chain event files</td><td>Immutable, ordered, hash-linked chain events with idempotent IDs.</td><td>The global navigator state or a complete run transaction log.</td></tr>
+<tr><td><code>timeline.json</code>, status and indexes</td><td>Derived timestamps, summaries and reading pointers.</td><td>Recovery authority; the display timeline can be regenerated.</td></tr>
+</tbody></table></div>
+<p>See <a href="../skills/shiploop/references/state-files.md">durable run files</a> and <a href="../skills/shiploop/scripts/shiploop_chain_ledger.py">chain ledger implementation</a>.</p>
+<p>For implementation dependency graphs, the bound <a href="../skills/plan-dispatcher/scripts/state.js">Plan Dispatcher state runtime</a> computes ready nodes and checks dependencies again when claiming or settling work. The <a href="../skills/shiploop/scripts/shiploop_chain.py">ShipLoop chain bridge</a> validates the frozen binding, returned evidence and integration receipts before parent completion. Recovery refreshes the child snapshot and reconciles retained events. This chain assessment is source-only.</p>
+
+<h2>Proposed JSONL history <span class="tag pending">AWAITING DESIGN DECISION</span></h2>
+<div class="callout"><p><strong>Recommendation: retain <code>state.md</code> as authority and add one append-only JSON Lines transaction history.</strong> Making the log authoritative would be a broader migration of hydration, recovery and every state consumer. No format migration is included in these tactical fixes.</p></div>
+<p>A concrete follow-on contract should use a versioned JSON object per line: sequence, transaction ID, UTC timestamp, run ID, before/after revision and cursor when applicable, affected paths, and content hashes. Distinguish durable transaction intent from successful application; an intent alone must never be reported as completed work. Generic evidence-only transactions may have no navigator revision.</p>
+<p>Keep the same transaction ID in the recovery manifest. Under the existing exclusive lock, validate the retained prefix and record intent durably before target writes; after all targets are durable, record application before removing the pending manifest. Recovery must recognize identical IDs without duplicate logical events. A torn final line needs an explicit recovery rule tied to the pending manifest; corruption inside the retained prefix must stop recovery. Neither a malformed record nor a missing timestamp should silently become an empty history.</p>
+<p>Scanning the whole history on each transition is a reasonable first implementation under the stated O(n²) allowance. It avoids an index as a second authority. Retain existing chain history until an explicit migration preserves all events; do not claim that a newly enabled log reconstructs earlier transactions or makes Git/remote side effects atomic.</p>
+<p>This is a proposal, not an implemented or tested log. JSON Lines gives each record an explicit newline boundary; repeatedly appending ordinary JSON documents is not a valid single JSON document. Journaling also requires ordering and synchronization, not just a format change. Sources: <a href="https://jsonlines.org/">JSON Lines specification</a>, <a href="https://docs.python.org/3/library/json.html">Python JSON framing limits</a>, <a href="https://www.sqlite.org/atomiccommit.html">SQLite atomic commit and filesystem assumptions</a>.</p>
+
+<h2>Portability and remaining limits</h2>
+<p>macOS and Linux are the declared platforms. The core storage uses the Python standard library, POSIX locks, same-filesystem replacement and file/directory synchronization. Git handles repository operations; implementation chains bind a Node.js helper. Native Windows and network-filesystem crash durability are not established. <a href="../skills/shiploop/references/host-matrix.md">Local runtime contract</a>; <a href="https://docs.python.org/3/library/fcntl.html">Python locking availability and portability</a>.</p>
+<p>Within one transaction, names must remain distinct after Unicode normalization and case folding on every host. This intentionally rejects some combinations that a case-sensitive filesystem could store, such as case-only variants. Existing safe in-root symlink paths remain usable when their destinations and dependencies do not conflict.</p>
+<p><code>save()</code> relies on callers hydrating under the run lock; it does not independently enforce compare-and-swap against a saved revision. The normal CLI follows the locking contract. A future event-log design should make the expected previous revision explicit. Filesystem recovery also cannot by itself roll back Git commits or external actions.</p>
+<p>Exit 0 is command-specific. For example, Backchain structural validity and workflow completion are separate receipt fields; a valid plan can still be incomplete. This audit preserves that distinction instead of treating every successful process as completed delivery.</p>
+
+<h2>Verification</h2>
+<p id="verification"><strong>Final result: all 15 selected suites passed, 594 tests.</strong> Coverage includes storage, rehydration, keepalive, navigator contracts, stage contracts, chain ledger, progress, literal transport, workspace, full-runtime fixtures, packet bounds, Backchain checks, E2E harness and package integrity. An independent review found no remaining concrete blocker in the corrected storage changes.</p>
+<p>The tests ran on an isolated copy of the base commit plus this audit's 13 files; unrelated concurrent Ask Agent edits were excluded. Pre/post source fingerprint remained <code>7d40aa2aec84175922cb5fbf22e8395c92355cad97922455ed9667965ad4487a</code>. Delivered audit files matched the snapshot before this report's verification paragraph was finalized. Results and command logs: <code>/tmp/shiploop-audit-verification-20261008/corrected-isolated-WD359U/summary.json</code>. This proves the selected local tests on macOS with Python 3.14.7 and Git 2.54.0; it does not certify live hosts, Linux execution, physical power-loss recovery or external deployments.</p>
+<p>The 153-test clean baseline passed. The first changed-snapshot batch attempted 587 tests: 13 suites passed, while four changed/new test cases failed because of fixture path/string errors. Those fixtures were corrected and the complete 15-suite batch was rerun. Prior evidence remains in <code>/tmp/shiploop-audit-baseline-S7VMzv</code> and <code>/tmp/shiploop-audit-verification-20261008/final-regression-hbz0GE</code>. One baseline wrapper initially failed to capture the storage suite's exit code; a separately retained corrected retry passed.</p>
+<p>The report's main flow, tables and decision section were visually inspected in the local browser. Local source links were checked for existing destinations.</p>
+<p>Changes are local source edits with a pending patch change note. No commit, push, release, installed-package update or live-host certification is implied.</p>
+</main></body></html>

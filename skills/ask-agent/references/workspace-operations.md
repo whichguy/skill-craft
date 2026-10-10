@@ -9,6 +9,13 @@ repository worker; explain that the requested isolation requires creating a
 worktree, branch and receipt. An ordinary code-review request permits isolated
 setup and reports while leaving the reviewed inputs unchanged.
 
+Standalone patch/report-only delegation uses [Task interface](task-interface.md)
+to perform package binding, preparation, worker checks and returned inspection.
+The recipes here define its underlying helper contract and remain the direct
+interface for orchestrated callers and commit delivery. Do not repeat successful
+compact-interface operations. Integration and eligible cleanup still follow
+their existing rules.
+
 For a selected consumer-owned workspace, read
 [Consumer-owned workspace](consumer-owned-workspace.md). It never uses this
 reference's `prepare`, `inspect`, `check-context`, or `close` operations and
@@ -176,10 +183,14 @@ nonzero check stops task writes; do not replace it with a reported path or with
 
 **Helper-managed route only.**
 
-Preparation preserves the caller's staged and unstaged layers and non-ignored
-untracked entries. Required ignored/generated inputs need an explicit task
-decision; the helper does not promise installed dependencies or copy them
-silently; `ignored_dependencies_omitted` lists them, collapsing a wholly ignored
+Preparation starts from the current caller checkout's HEAD and applies its
+staged and unstaged binary Git patches separately, preserving both layers.
+It also copies non-ignored untracked entries and always preserves existing
+repository-root `.gitignore` and `.claspignore`, even if ignored/untracked.
+Absent or deleted control files stay absent. Other required ignored/generated
+inputs need an explicit task decision; the helper does not promise installed
+dependencies or copy them silently. `ignored_dependencies_omitted` lists the
+omitted inputs, excluding these two copied control files and collapsing a wholly ignored
 directory to one `dir/` entry. Unsupported state produces a concrete failure,
 not a partial-success workspace. A refusal found while capturing the source
 (the states listed below) happens before any attempt exists. A later failure,
@@ -226,7 +237,9 @@ branch diff may include the caller's pre-existing edits. Reports/scratch are not
 code contribution. Revalidate after target movement or further worker edits.
 
 New untracked files that the worktree's ignore rules exclude (caches, build
-output, installed dependencies) are not contribution and never enter the patch.
+output, installed dependencies) are not contribution and never enter the patch,
+except repository-root `.gitignore` and `.claspignore`: those remain contribution
+paths even when ignored.
 When present, the result lists them as `ignored_paths`; they stay covered by the
 fingerprint and are discarded by `close`. Declare one as `--artifact` if it must
 be kept. A worker change to ignore rules is itself a contribution path, so review

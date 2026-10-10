@@ -1585,10 +1585,18 @@ class MetricsTest(unittest.TestCase):
         # count, moves when prices or unrelated work move.
         self.assertTrue(all("cost_share_usd" not in s for s in m["stages"]))
 
-    # What the script prints after any refused callback, as shiploop_protocol.py words it.
-    TRAILERS = ("Read the current packet with next; the rejected request did not advance the graph.",
-                "The run is still active: fix the result and resubmit in this turn; do not end the turn over a "
-                "refused callback.")
+    # Retained E2E logs keep using the older callback tail; new failures print a
+    # common durable-recovery tail that makes no claim about saved state or status.
+    LEGACY_TRAILERS = ("Read the current packet with next; the rejected request did not advance the graph.",
+                       "The run is still active: fix the result and resubmit in this turn; do not end the turn over a "
+                       "refused callback.")
+    RECOVERY_TRAILERS = (
+        "Inspect durable state before deciding what happened: the attempted change may already be saved, or a "
+        "transaction may still need recovery.",
+        "Authoritative state.md: /tmp/run/state.md",
+        "Run exactly this recovery command: python3 /pkg/scripts/shiploop next --run-dir /tmp/run",
+        "Follow the recovered packet; repair and resubmit in this turn only if that packet asks for it.",
+    )
 
     def recorded_failure_line(self, output: str) -> str:
         """The `line` the export keeps for one refused ShipLoop command whose output was ``output``."""
@@ -1607,30 +1615,35 @@ class MetricsTest(unittest.TestCase):
     def test_a_refusal_is_recorded_by_its_own_line_not_by_the_trailers_after_it(self):
         marker = "SHIPLOOP-RUN run=x rev=1 dir=/r\n"
         refusal = "ShipLoop navigator: result requires outcome and summary: the result is missing \"summary\""
-        trailers = "\n".join(self.TRAILERS)
-        # Before: the trailer says "rejected", so it was recorded and the export could not name the refusal.
-        self.assertEqual(self.recorded_failure_line(marker + refusal + "\n" + trailers + "\n"), refusal)
+        # Old retained output and the current durable-recovery tail both leave the refusal as the recorded line.
+        for trailers in (self.LEGACY_TRAILERS, self.RECOVERY_TRAILERS):
+            with self.subTest(trailers=trailers):
+                self.assertEqual(self.recorded_failure_line(
+                    marker + refusal + "\n" + "\n".join(trailers) + "\n"), refusal)
         # The script's other refusal prefix, and the lines its blocked branch adds after it.
         blocked = "ShipLoop blocked: the run directory is not readable"
         after = ("Request failure: no in-memory result, candidate, or rejected artifact is trusted.\n"
                  "Durable cursor recovery: do not infer a next action from this error; follow the recovery packet.\n")
         self.assertEqual(self.recorded_failure_line(blocked + "\n" + after), blocked)
         # A line that already matched before is still recorded first, wherever the prefix line sits.
-        self.assertEqual(self.recorded_failure_line("shiploop: error: unrecognized arguments: x\n" + trailers),
+        self.assertEqual(self.recorded_failure_line("shiploop: error: unrecognized arguments: x\n" + "\n".join(trailers)),
                          "shiploop: error: unrecognized arguments: x")
 
     def test_where_only_the_trailers_match_the_export_records_what_it_did_before(self):
-        self.assertEqual(self.recorded_failure_line("\n".join(self.TRAILERS) + "\n"), self.TRAILERS[0])
+        self.assertEqual(self.recorded_failure_line("\n".join(self.LEGACY_TRAILERS) + "\n"),
+                         self.LEGACY_TRAILERS[0])
+        self.assertEqual(self.recorded_failure_line("\n".join(self.RECOVERY_TRAILERS) + "\n"), "")
         self.assertEqual(self.recorded_failure_line("nothing here names a failure\n"), "")
 
     def test_the_trailers_the_export_skips_are_the_ones_the_script_prints(self):
         """The skip list copies the script's fixed text; a reworded trailer must fail here, not hide a refusal."""
         source = " ".join((ROOT / "skills/shiploop/scripts/shiploop_protocol.py").read_text().split())
-        for text in (*self.TRAILERS[:1], "The run is still active: fix the result and resubmit in this turn;",
-                     "Request failure: no in-memory result", "Durable cursor recovery: ", 'f"ShipLoop navigator: {exc}"',
-                     'f"ShipLoop blocked: {exc}"'):
+        for text in ("Inspect durable state before deciding what happened:", "Authoritative state.md:",
+                     "Run exactly this recovery command:", "Follow the recovered packet; repair and resubmit in this turn",
+                     "Request failure: no in-memory result", "Durable cursor recovery: ",
+                     'f"ShipLoop navigator: {exc}"', 'f"ShipLoop blocked: {exc}"'):
             self.assertIn(text, source)
-        for line in self.TRAILERS:
+        for line in (*self.LEGACY_TRAILERS, *self.RECOVERY_TRAILERS):
             self.assertRegex(line, metrics.TRAILER_LINE)
         self.assertRegex("ShipLoop navigator: x", metrics.REFUSAL_LINE)
 

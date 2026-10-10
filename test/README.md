@@ -581,12 +581,24 @@ guarded final caller delivery; it does not launch models from a shell.
 
 ## Ask Agent live handoff experiments
 
+The [parallel worktree experiment](experiments/ask_agent_parallel_worktrees/README.md)
+provides reusable offline controls and explicit live suites for a Grok parent
+delegating known work to three or five native workers. Its compact treatment
+exercises the production task interface, including worker-side scripts, dirty
+parent snapshots, isolation and contribution integration. Run its offline
+facade with `python3 -B test/ask-agent-parallel.test.py`; it is also in the
+`ask-agent` group. Live runs retain native and filesystem evidence separately.
+The [script contract](experiments/ask_agent_parallel_worktrees/CONTRACT.md)
+defines portability, diagnostics and evidence-preserving retry rules.
+
 The managed-workspace helper and delivery contract have focused hermetic suites:
 
 ```sh
 python3 -B test/ask-agent-workspace.test.py
 python3 -B test/ask-agent-delivery.test.py
 python3 -B test/ask-agent-managed-harness.test.py
+python3 -B test/ask-agent-parallel.test.py
+python3 -B test/ask-agent-task.test.py
 ```
 
 These run in `core`. They exercise real Git preservation and contribution
@@ -605,6 +617,13 @@ hosts, executes the generated inspection arguments against the real helper,
 and reports parent final-response evidence separately from Task completion.
 Raw native dispatch/freshness and actual child-tool provenance remain live
 qualification responsibilities; synthetic events do not validate those APIs.
+
+The [compact task interface](../skills/ask-agent/references/task-interface.md)
+is the normal standalone parent/worker path around the existing helper. Its
+`ask-agent-task` suite is also in the `ask-agent` group. It checks real current
+and managed workspace behavior without launching a model. The wrapper prepares
+assignments and checks filesystem evidence; native collection, integration and
+semantic acceptance remain parent responsibilities.
 
 The [W1 worktree fixture](experiments/portable_delegation/usability/worktree-handoff/README.md)
 is a record of the retired caller-prepared worktree contract. Its operator helper

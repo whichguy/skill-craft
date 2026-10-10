@@ -49,6 +49,7 @@ MANAGED_WORKTREE_CAPABILITIES = (
     "ignored-output-report",
 )
 VERSION = 1
+ROOT_CONTROL_FILES = frozenset({".gitignore", ".claspignore"})
 # Derived evidence (contribution patch, inspection and delivery records) is
 # stored per fingerprint and reused.  It lives one level below the stable
 # `inspections/` and `delivery-evidence/` roots, in a directory named for the
@@ -763,8 +764,26 @@ def _entry_at(root: Path, relative: str, *, label: str) -> dict[str, Any]:
     raise AssertionError("unreachable")
 
 
-def _untracked_manifest(repo: Path) -> list[dict[str, Any]]:
-    paths = _split_nul_paths(_git(repo, "ls-files", "--others", "--exclude-standard", "-z").stdout, label="untracked path")
+def _untracked_manifest(
+    repo: Path,
+    *,
+    index_entries: Sequence[Mapping[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    paths = set(_split_nul_paths(
+        _git(repo, "ls-files", "--others", "--exclude-standard", "-z").stdout,
+        label="untracked path",
+    ))
+    indexed = {entry["path"] for entry in (index_entries if index_entries is not None else _index_entries(repo))}
+    for relative in ROOT_CONTROL_FILES:
+        if relative in indexed:
+            continue
+        try:
+            (repo / relative).lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            _fail(f"cannot inspect root control file {relative}: {exc}")
+        paths.add(relative)
     return [_entry_at(repo, path, label="untracked input") for path in sorted(paths)]
 
 
@@ -803,7 +822,7 @@ def _ignored_paths(repo: Path) -> list[str]:
         if collapsed and collapsed[-1].endswith("/") and entry.startswith(collapsed[-1]):
             continue
         collapsed.append(entry)
-    return collapsed
+    return [path for path in collapsed if path not in ROOT_CONTROL_FILES]
 
 
 def _ignored_added_paths(worktree: Path, changes: Sequence[Mapping[str, Any]]) -> list[str]:
@@ -825,7 +844,7 @@ def _ignored_added_paths(worktree: Path, changes: Sequence[Mapping[str, Any]]) -
         detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
         _fail("could not classify ignored worker paths" + (f": {detail[-1]}" if detail else ""))
     matched = {os.fsdecode(item.removeprefix(b"./")) for item in result.stdout.split(b"\0") if item}
-    return [path for path in candidates if path in matched]
+    return [path for path in candidates if path in matched and path not in ROOT_CONTROL_FILES]
 
 
 def _copy_entry(source_root: Path, entry: Mapping[str, Any], target_root: Path, *, label: str) -> None:
@@ -943,7 +962,7 @@ def _capture_source(source: Path) -> SourceCapture:
     entries = _index_entries(source)
     _refuse_submodules(source, entries)
     tracked_files = _tracked_worktree_manifest(source)
-    untracked = _untracked_manifest(source)
+    untracked = _untracked_manifest(source, index_entries=entries)
     _refuse_filter_ambiguity(source, [entry["path"] for entry in entries] + [entry["path"] for entry in untracked])
     return SourceCapture(
         head=_head(source),
@@ -1076,7 +1095,8 @@ def _verify_child_capture(worktree: Path, capture: SourceCapture, branch: str) -
         _fail("worker worktree HEAD does not match captured source HEAD")
     if _branch(worktree) != branch:
         _fail("worker worktree branch does not match its owned branch")
-    if _index_entries(worktree) != capture.index_entries:
+    child_index_entries = _index_entries(worktree)
+    if child_index_entries != capture.index_entries:
         _fail("worker worktree index entries differ from captured source index")
     staged = _patch_diff(worktree, "--cached", "HEAD")
     if staged != capture.staged_patch:
@@ -1084,7 +1104,7 @@ def _verify_child_capture(worktree: Path, capture: SourceCapture, branch: str) -
     unstaged = _patch_diff(worktree)
     if unstaged != capture.unstaged_patch:
         _fail("worker worktree unstaged binary diff differs from captured source")
-    child_untracked = _untracked_manifest(worktree)
+    child_untracked = _untracked_manifest(worktree, index_entries=child_index_entries)
     if child_untracked != capture.untracked:
         _fail("worker worktree untracked inputs differ from captured source")
     expected_files = sorted(capture.tracked_files + capture.untracked, key=lambda item: item["path"])

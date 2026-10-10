@@ -59,8 +59,9 @@ preparation or native dispatch:
   `in-place` for a request to change files, with a write set the parent
   declares from the request, and `report-only` for a question, digest or
   review. The helper's `current-state` command records a baseline and reports
-  drift. Read [Current workspace](references/current-workspace.md) in full; the
-  helper-managed steps below do not apply.
+  drift. For standalone work use the task interface below; its checks implement
+  [Current workspace](references/current-workspace.md). The helper-managed
+  steps below do not apply.
 - **Helper-managed** requires an explicit selection: `workspace_route:
   helper-managed`, or the user asking for a separate or isolated worktree. It
   uses a helper-created snapshot, one of `patch`, `commits`, or `report-only`,
@@ -88,6 +89,32 @@ Codex native pilot with evidence from bounded native fixtures. Earlier helper-ma
 evidence does not qualify this composition on Codex, Claude, Grok, or another
 host.
 
+## Standalone task interface
+
+For standalone current-workspace and helper-managed patch/report-only work,
+use [Task interface](references/task-interface.md) as the normal entry path.
+Bind `scripts/ask_agent_task.py` from this selected skill package. Supply the
+task, expected result, source, write set and workspace choice to `prepare`;
+retain its binding and launch the native worker with its emitted assignment.
+The worker runs `worker-start` and `worker-finish`. After collecting the native
+result, the parent runs `verify-return`, then accepts and integrates as required.
+
+Request `workspace: current` (the default) or `workspace: worktree` (the
+helper-managed route); `mode: edit` means in-place or patch delivery,
+respectively. `mode: report-only` permits neither. Current editing requires
+`exclusive_writer: true`; worktree preparation requires `writers_quiescent:
+true`. These are parent attestations, not locks. Use exact relative file paths
+or slash-terminated directory prefixes for the write set.
+
+The interface does not launch agents, integrate or close worktrees, or replace
+native completion and parent acceptance. Orchestrated callers, consumer-owned
+workspaces and commit delivery retain their existing contracts. Successful
+interface checks replace the corresponding mechanical steps below; do not
+repeat preparation or assemble a second worker brief. Resolve a failed check
+before dispatch; never silently fall back to another route.
+
+## Native execution
+
 Use the live native schema, not the model name or a presumed capital-`Task` API.
 Read the matching route in [Host capabilities](references/host-capabilities.md).
 Determine separately whether the host provides fresh context, native background
@@ -114,7 +141,9 @@ including deployment and other external operations already authorized for its
 task. A fresh context does not revoke that authority or require renewed approval.
 A worker may request an authorized parent-only operation through native
 messaging when available, or use further native agents with the same workspace
-and handoff constraints. It must collect its delegates before returning.
+and handoff constraints. Exception: a current-workspace edit worker must not
+delegate further, as required by [Current workspace](references/current-workspace.md).
+Where delegation is permitted, collect the delegates before returning.
 
 ## Carry current learnings inline
 
@@ -188,7 +217,10 @@ operation, acceptance or delivery.
 
 The six steps in this section apply only to the helper-managed route. They do
 not apply to a selected consumer-owned or current workspace; use that route's
-complete reference instead.
+complete reference instead. The standalone task interface performs preparation,
+worker checks and returned inspection for patch/report-only work; do not repeat
+those operations. Native launch/collection, semantic acceptance, integration
+and eligible cleanup remain the parent's responsibility.
 
 1. **Prepare through the skill.** Read [Workspace operations](references/workspace-operations.md)
    and [Git integration](references/git-integration.md). Obtain the host-selected,
@@ -199,8 +231,11 @@ complete reference instead.
    from the task cwd, `PATH`, or a cache. Stop on identity failure; do not call
    `prepare`. Coordinate source writers, then call
    `prepare --source` with the actual caller checkout, including a linked worktree.
-   The helper creates and verifies a new workspace carrying staged, unstaged,
-   and non-ignored untracked inputs. The caller must not supply a worktree or
+   The helper creates and verifies a new workspace from that checkout's HEAD,
+   applies its staged and unstaged binary Git patches, and copies non-ignored
+   untracked inputs. Always preserve repository-root `.gitignore` and
+   `.claspignore` when present, including ignored/untracked copies; preserve
+   their absence or deletion when absent. The caller must not supply a worktree or
    reproduce the Git recipe. Do not begin independent caller edits until the
    snapshot returns. Keep the verified receipt and baseline in the pending job.
    Immediately before dispatch, record `inspect --phase prepared --receipt ...`

@@ -11,6 +11,7 @@ from __future__ import annotations
 import errno
 import fcntl
 import os
+import stat
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -86,20 +87,67 @@ def run_lock(run_dir: Path) -> Iterator[None]:
     lock = run_dir / ".lock"
     if lock.is_symlink():
         die(EXIT_BLOCKED, f"symlink lock refused: {lock}")
-    flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+    flags = os.O_CREAT | os.O_RDWR | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
     try:
         fd = os.open(str(lock), flags, 0o600)
     except OSError as exc:
         if exc.errno in (errno.ELOOP, errno.EMLINK) or lock.is_symlink():
             die(EXIT_BLOCKED, f"symlink lock refused: {lock}")
         die(EXIT_BLOCKED, f"cannot open run lock {lock}: {exc}")
+    acquired = False
     try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            raise store.StorageError(f"run lock must be a regular single-link file: {lock}")
         fcntl.flock(fd, fcntl.LOCK_EX)
+        acquired = True
         store.recover(run_dir)
         yield
     finally:
-        fcntl.flock(fd, fcntl.LOCK_UN)
-        os.close(fd)
+        try:
+            if acquired:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+
+
+@contextmanager
+def read_run_lock(run_dir: Path) -> Iterator[None]:
+    """Read a settled snapshot without creating files, waiting, or recovering.
+
+    Observers must not expose a cursor while a writer is applying its journal.
+    The shared lock excludes writers; a pending journal requires explicit
+    recovery by the normal command path before an observer can answer.
+    """
+    refuse_package_path(run_dir)
+    lock = run_dir / ".lock"
+    flags = os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
+    fd = None
+    acquired = False
+    try:
+        if lock.is_symlink():
+            raise store.StorageError(f"symlink lock refused: {lock}")
+        fd = os.open(str(lock), flags)
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            raise store.StorageError(f"run lock must be a regular single-link file: {lock}")
+        try:
+            fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        except OSError as exc:
+            if exc.errno in (errno.EACCES, errno.EAGAIN):
+                raise store.StorageError("run is busy; retry after the current command finishes") from exc
+            raise
+        acquired = True
+        if os.path.lexists(run_dir / store.JOURNAL_NAME):
+            raise store.StorageError("run has a pending transaction; use next to recover before reading status")
+        yield
+    finally:
+        if fd is not None:
+            try:
+                if acquired:
+                    fcntl.flock(fd, fcntl.LOCK_UN)
+            finally:
+                os.close(fd)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
