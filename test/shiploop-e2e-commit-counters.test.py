@@ -1193,12 +1193,14 @@ class ReaderChangeTest(unittest.TestCase):
         records = [{"kind": "improve", "host": "claude", "old": False, "new": True, "cited_old": 0, "cited_new": 0, "none": False,
                     "text_differs": False, "labels": ["Key learning"]},
                    {"kind": "improve", "host": "claude", "old": True, "new": True, "cited_old": 1, "cited_new": 0, "none": True,
-                    "text_differs": True, "labels": ["Key learnings"]},
+                    "text_differs": True, "labels": ["Key learnings", "Key learnings"]},   # two sections, one commit
                    {"kind": "other", "host": "grok", "old": True, "new": False, "cited_old": 0, "cited_new": 0, "none": False,
                     "text_differs": False, "labels": []}]
         got = self.module.tally(records)
         self.assertEqual(got["improve"], {"n": 2, "old": {"with_lessons": 1, "cited": 1}, "shared": {"with_lessons": 2, "cited": 0},
-                                          "gained": 1, "lost": 0, "text_differs": 1, "exactly_none": 1})
+                                          "gained": 1, "lost": 0, "text_differs": 1, "exactly_none": 1,
+                                          "labels": {"Key learning": 1, "Key learnings": 1}})
+        self.assertEqual(got["other"]["labels"], {}, "a commit the shared reader does not count names no label")
         self.assertEqual(got["other"]["lost"], 1)
         self.assertEqual(got["script"]["n"], 0)
 
@@ -1217,6 +1219,9 @@ class ReaderChangeTest(unittest.TestCase):
             for kind, cell in kinds.items():
                 self.assertEqual(cell["shared"]["with_lessons"] - cell["old"]["with_lessons"], cell["gained"] - cell["lost"], (host, kind))
         self.assertEqual(len(evidence["changed"]), sum(cell["gained"] + cell["lost"] for cell in evidence["all"].values()))
+        for kind, cell in evidence["all"].items():
+            self.assertGreaterEqual(sum(cell["labels"].values()), cell["shared"]["with_lessons"], "a counted commit names at least one label")
+            self.assertTrue(set(cell["labels"]) <= set(commit_lessons.LESSON_LABELS), kind)
 
     def test_the_committed_comparison_copies_no_commit_message_and_no_commit_id(self):
         text = (EVIDENCE / "reader-change.json").read_text()

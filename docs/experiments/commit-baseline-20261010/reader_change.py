@@ -12,9 +12,9 @@ a line's start); it now imports ``skills/shiploop/scripts/shiploop_lessons.py``,
 reads with (SPEC S-12). This script reads the runs ``baseline.json`` regraded, takes each run's commits from ``counters.history`` (the
 classification is unchanged), and counts every commit twice: with the old reader, loaded from Git at --old-ref (the file as it was
 before the change), and with the shared one. Per class and host it reports how many commits each reader counted, how many the shared
-reader gained and lost, how many were counted by both with a different lesson text, and how many counted lessons are exactly
-``none`` (a descriptive figure, in no metrics key: the gate counts ``Key learnings: none``). Every changed commit is listed by run,
-class and the label that made the difference, never by its text or id.
+reader gained and lost, how many were counted by both with a different lesson text, which labels the counted commits use, and how
+many counted lessons are exactly ``none`` (a descriptive figure, in no metrics key: the gate counts ``Key learnings: none``). Every
+changed commit is listed by run, class and the label that made the difference, never by its text or id.
 
 Read-only like regrade.py (which it reuses): starts no host, no model and no server, and writes nothing but --out. No commit message
 and no commit id is copied into the file.
@@ -28,7 +28,7 @@ import re
 import subprocess
 import sys
 import types
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -96,7 +96,8 @@ def tally(members: list[dict]) -> dict:
             "old": {"with_lessons": sum(r["old"] for r in of_kind), "cited": sum(r["cited_old"] for r in of_kind)},
             "shared": {"with_lessons": sum(r["new"] for r in of_kind), "cited": sum(r["cited_new"] for r in of_kind)},
             "gained": sum(r["new"] and not r["old"] for r in of_kind), "lost": sum(r["old"] and not r["new"] for r in of_kind),
-            "text_differs": sum(r["text_differs"] for r in of_kind), "exactly_none": sum(r["new"] and r["none"] for r in of_kind)}
+            "text_differs": sum(r["text_differs"] for r in of_kind), "exactly_none": sum(r["new"] and r["none"] for r in of_kind),
+            "labels": dict(sorted(Counter(label for r in of_kind for label in set(r["labels"])).items()))}
     return found
 
 

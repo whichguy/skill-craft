@@ -1,6 +1,6 @@
 {
  "schema": "shiploop-e2e-reader-change/v1",
- "harness_head": "4d4233331e6ad6ec89a737e7e4938c92bb78bfdf",
+ "harness_head": "453bbc0313395e1b789fc2e4b64d652f86825b73",
  "old_ref": "8f3d4cbe",
  "reads": "the runs baseline.json regraded (read-only); no run file is written",
  "runs": 39,
@@ -19,7 +19,11 @@
    "gained": 2,
    "lost": 0,
    "text_differs": 5,
-   "exactly_none": 0
+   "exactly_none": 0,
+   "labels": {
+    "Key learning": 2,
+    "Key learnings": 72
+   }
   },
   "script": {
    "n": 422,
@@ -34,7 +38,10 @@
    "gained": 0,
    "lost": 0,
    "text_differs": 1,
-   "exactly_none": 0
+   "exactly_none": 0,
+   "labels": {
+    "Learned": 31
+   }
   },
   "other": {
    "n": 35,
@@ -49,7 +56,11 @@
    "gained": 1,
    "lost": 0,
    "text_differs": 0,
-   "exactly_none": 0
+   "exactly_none": 0,
+   "labels": {
+    "Key learning": 1,
+    "Key learnings": 1
+   }
   }
  },
  "by_host": {
@@ -67,7 +78,11 @@
     "gained": 2,
     "lost": 0,
     "text_differs": 0,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {
+     "Key learning": 2,
+     "Key learnings": 42
+    }
    },
    "script": {
     "n": 286,
@@ -82,7 +97,10 @@
     "gained": 0,
     "lost": 0,
     "text_differs": 0,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {
+     "Learned": 29
+    }
    },
    "other": {
     "n": 22,
@@ -97,7 +115,11 @@
     "gained": 1,
     "lost": 0,
     "text_differs": 0,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {
+     "Key learning": 1,
+     "Key learnings": 1
+    }
    }
   },
   "codex": {
@@ -114,7 +136,10 @@
     "gained": 0,
     "lost": 0,
     "text_differs": 5,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {
+     "Key learnings": 13
+    }
    },
    "script": {
     "n": 38,
@@ -129,7 +154,8 @@
     "gained": 0,
     "lost": 0,
     "text_differs": 0,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {}
    },
    "other": {
     "n": 2,
@@ -144,7 +170,8 @@
     "gained": 0,
     "lost": 0,
     "text_differs": 0,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {}
    }
   },
   "grok": {
@@ -161,7 +188,10 @@
     "gained": 0,
     "lost": 0,
     "text_differs": 0,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {
+     "Key learnings": 17
+    }
    },
    "script": {
     "n": 78,
@@ -176,7 +206,10 @@
     "gained": 0,
     "lost": 0,
     "text_differs": 1,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {
+     "Learned": 1
+    }
    },
    "other": {
     "n": 1,
@@ -191,7 +224,8 @@
     "gained": 0,
     "lost": 0,
     "text_differs": 0,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {}
    }
   },
   "mixed host (grok then claude)": {
@@ -208,7 +242,8 @@
     "gained": 0,
     "lost": 0,
     "text_differs": 0,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {}
    },
    "script": {
     "n": 20,
@@ -223,7 +258,10 @@
     "gained": 0,
     "lost": 0,
     "text_differs": 0,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {
+     "Learned": 1
+    }
    },
    "other": {
     "n": 10,
@@ -238,7 +276,8 @@
     "gained": 0,
     "lost": 0,
     "text_differs": 0,
-    "exactly_none": 0
+    "exactly_none": 0,
+    "labels": {}
    }
   }
  },
