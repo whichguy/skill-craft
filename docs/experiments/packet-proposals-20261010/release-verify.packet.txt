@@ -1,0 +1,108 @@
+ShipLoop navigator | release-verify | revision 48 | work item W1 (1 of 1, done) | RUN, WS, WT, SK, REF are defined on the last line
+Goal: Verify the release where consumers use it.
+Done when (confirm each before calling done; keep going until all hold):
+- the consumer behaviour is observed where consumers use it
+- this run's outcome.md, environment.md and README.md are written under docs/shiploop, and outcome.md fills its ## Learned, ## Key considerations and ## Open for the next run sections
+Checked by: when you report done, ShipLoop reruns the consumer checks listed under "Test rerun" and refuses done unless each passes; it also refuses a docs/shiploop file this stage must have written, missing or empty; an empty ## Learned, ## Key considerations or ## Open for the next run in outcome.md; a docs/shiploop or SHIPLOOP.md line that looks like a credential; a docs/shiploop/spec.md that no longer mentions an earlier R-<n> ID; and a result with no outcome or summary, an absolute evidence_refs path that does not exist, or a credential pattern. A refusal does not advance the run: fix it and run the same complete command again. ShipLoop judges nothing else; you confirm each Done-when condition.
+Test: a passing unit suite is not delivery evidence; a criterion is confirmed by ShipLoop's passing rerun record, not by this result's summary.
+Do:
+1. Read the results this stage builds on (open each one not already in your context; report a conflict instead of silently choosing): spec RUN/results/nav-284162de5e054d7b80ce269d024dbd0f.md, release-plan RUN/results/nav-eea39b9647c641788ec8a8fafd76dea1.md, release RUN/results/nav-0e89ece3e7c14f28a7e2281c1516129a.md; run-wide test strategy RUN/results/nav-35d0172a656f471798c2e1ef97fab391.md with WT/docs/shiploop/test-strategy.md and WT/docs/shiploop/spec.md.
+2. Name the plan that applies: the latest done system-test-author and release-plan records after the most recent accepted replan. Revalidate them for the returned candidate before relying on their tests, and keep their action/result locators in evidence_refs. A plan is not execution evidence. A missing plan is recovered or reported (replan or blocked); never guess commands, erase required coverage or deploy to make a check available. (ref handshake)
+3. Verify the actual release and its consumer behaviour with current evidence; keep source synchronisation, artifact identity, operation receipt and real consumer behaviour distinct. Local-only delivery still needs the current local candidate and its consumer behaviour verified; external activation N/A does not make these checks N/A. (ref deploy)
+4. Reconcile every selected case and affected requirement clause as passed, failed, blocked, not-run or justified N/A, with its required surface, checked surface, candidate and evidence. A pass at another surface, or source, HTTP or DOM structure alone for a rendered interaction, is supporting evidence, not closure. Check the original selected inventory for dropped clauses; never claim all requirements met while a required observation is unrun. A case not yet due keeps its phase, owner and prerequisites. (ref cases)
+5. A case that needs a signed-in browser or a person: do not loop on it. Record an open item (where to go, what to do, what to report back) and verify every other case; report blocked with awaiting kind present only when the release cannot be accepted without that observation.
+6. Leave the user's checkout /Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/work exactly as the return left it: a file written there makes the return receipt stale and blocks handoff. This stage cannot return.
+7. A defect the checks find in the delivered result: report replan with one corrective work item; release then returns the fix. A blocked or unknown post-release check stays incomplete; keep prior receipts; never re-release blindly.
+8. Write WT/docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/outcome.md with '## Learned', '## Key considerations' and '## Open for the next run' in detail (what this run learned, the decisions and risks that matter, what a later run should pick up), and bring WT/docs/shiploop/environment.md and WT/docs/shiploop/README.md up to date; create any that is missing. Do not commit them: on done ShipLoop screens them and commits docs/shiploop/ and SHIPLOOP.md in WT, and the three sections become the learnings commit message the next run reads at intake. (ref home)
+9. Return a truthful outcome, summary and evidence_refs: absolute paths that exist, for the files you wrote, the plan records, the check output, and the requirement sections and test locators you relied on. A justified N/A states what was assessed and why it does not apply. A required source that is missing is reported as a gap, never replaced by an invented locator.
+Execute this packet in this conversation and submit the callback yourself; delegated subtasks do not advance this run.
+Callback (run once after the work; keep it in the foreground: it reruns the checks and can take minutes):
+python3 /Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/build/plugins/skill-craft/skills/shiploop/scripts/shiploop complete --run-dir=/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/.shiploop-runs/work-20261010-181600-737311/run --action=nav-dc28515588ed4d7baea8ab4269b21039 --result=/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/.shiploop-runs/work-20261010-181600-737311/run/inbox/nav-dc28515588ed4d7baea8ab4269b21039.md
+Result file: the --result path above. Fill the template: each key once (a repeated key is refused), and replace every placeholder (text in <angle brackets> and "...").
+# ShipLoop navigator result
+
+```shiploop-state
+{
+  "evidence_refs": [
+    "<absolute path of each file this stage wrote, or of the check output it recorded>"
+  ],
+  "headline": "<one line for the user, under 100 characters: what this step established>",
+  "outcome": "done",
+  "summary": "..."
+}
+```
+Allowed outcomes: done | repeat | blocked | replan (corrective work_items [{id, title, context}] whose IDs are not already in state.md work_items; they run through INNER, then OUTER restarts).
+The block holds this object itself: "outcome" and "summary" are its top-level fields; do not wrap it in action or result keys as the stored files under results/ do.
+Any other outcome keeps headline and evidence_refs and drops the other template fields:
+repeat: {"outcome": "repeat", "summary": "<what is still open>"}
+blocked: {"outcome": "blocked", "blocked_by": "user | access | external", "summary": "<what stopped the work>"}; a problem this run can fix itself is repaired in this stage, not blocked. Only when nothing can proceed without a person, add "awaiting": {"kind": "present", "steps": ["<what the person does>"], "report": "<what they report back>", "no_default": "<why nothing else can proceed>"} or {"kind": "answer", "question": "<the question>", "no_default": "<why nothing else can proceed>"} (blocked_by user or access)
+replan: {"outcome": "replan", "summary": "<what the corrective items fix>", "work_items": [{"id": "<new id>", "title": "...", "context": "..."}]}
+
+Test rerun: on done, ShipLoop runs every consumer check release-plan recorded, from a clean copy of the result returned to /Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/work (fast-forward-merge at 8fb1af275c8b; receipt WS/return-receipt.md), made fresh at WS/consumer-check on each done, and refuses unless each passes (at most 7 refused runs, then the outer loop takes corrective work items (replan); a command that times out, cannot start or is skipped on budget refuses the stage without counting):
+  1. [check] node --test --test-reporter=spec
+  2. [check] node --test --test-reporter=spec test/system.test.js
+A [check] row passes on exit 0, and is refused when its output shows a test-runner summary of zero tests.
+The copy holds exactly the returned tree: no Git history, nothing the return plan excluded, no ignored or unmanaged file (installed dependencies, build output). A command that names the checkout by an absolute path runs there, not in the copy. A check that fails only in the copy: reproduce in WS/consumer-check, then replan (step 7). (ref copy)
+
+Rules for every stage:
+- Perform only this step: the script owns the graph, the action identity and the successor; preserve unrelated work; never treat an earlier packet as the current assignment.
+- Read the current repository, run state and durable lessons first; Git history, plans, tool descriptions, prior results and host reports are context to recheck, not authority or proof. Use actual observations for test, release and consumer claims.
+- A missing prerequisite, permission, access or trustworthy check is unresolved or blocked, never a successful N/A. Blocked is only what this stage cannot do (a missing target, account or approval, a command with no replacement); a retained command that does not run what it claims is fixed here and rerun.
+- Unattended: no one is watching and nothing arrives on standard input. Take the default that best fits the request and recorded knowledge, record it as an assumption (the alternatives and why this one) and continue; a person-only step is an open item in the result (who does what, what they report). Report blocked with awaiting only when nothing further can proceed without the person; ShipLoop refuses a wait without no_default. One decision per question, answerable in one reply.
+- Keep each original user requirement (runtime, entry point, material dependency) distinct from a verified contract, observed practice or assumption; record local-test-route evidence apart from target compatibility.
+- Read the accepted requirements from their repository home (WT/docs/shiploop/spec.md); never infer intent from code or tests or relax a condition to match them; keep proposals and gaps apart from accepted intent; retain exact file#section locators, not a link to a policy. (ref reqs, ref locators)
+- Never read, decode, keep or report local authentication, session or credential-store contents; use supported non-mutating probes with sanitized evidence.
+- Temporary files go in RUN/scratch, never /tmp (shared with other runs).
+- Progress: at start, at recovery and after each callback, tell the user at most one line (the item, the stage just finished, the stage now starting); do not reprint the status. Run to completion: do not ask whether to continue or end the turn to report; never end the turn while a ShipLoop command runs (if the host backgrounds it, wait for it in this turn); if a keepalive hook refuses to end the turn, run the command its reason names. A user request to stop or pause, or not to implement: run the pause command, answer, resume only on an explicit continue. A question about the loop, its progress or cost: answer briefly and keep following this packet.
+
+References (print one section with: python3 /Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/build/plugins/skill-craft/skills/shiploop/scripts/shiploop ref <file>#<anchor>):
+- handshake: REF/repeatable-test-suites.md#outer-test-planning-handshake - which system-test and release plan applies; open for step 2 when the records disagree
+- deploy: REF/testing-and-documentation.md#deployment-and-handoff - what release and consumer evidence to record; open for step 3
+- release ops: REF/environment-lifecycle.md#release-operation-ownership - who owns a release effect and its receipt; open when a target operation is involved
+- cases: REF/testing-and-documentation.md#test-cases - case states and reconciliation; open for step 4
+- surfaces: REF/testing-and-documentation.md#surface-selection - which surface closes a clause; open when a pass came from another surface
+- browser: REF/testing-and-documentation.md#lightweight-and-browser-checks - consumer checks in a browser; open when a clause is a rendered interaction
+- copy: REF/workspace-lifecycle.md#which-checkout-release-verify-observes - where the checks run and why; open when a check fails only in the copy
+- follow-up: REF/workspace-lifecycle.md#follow-up-return - ShipLoop's knowledge commit at this stage lands after the return, so handoff runs a follow-up return; open before you plan anything after the return
+- home: REF/project-knowledge.md#repository-knowledge-home - what each docs/shiploop file holds; open for step 8
+- reqs: REF/project-knowledge.md#maintained-product-requirements - reading accepted requirements
+- locators: REF/project-knowledge.md#reference-handoffs-and-destinations - which locators to keep in evidence_refs
+- done: REF/testing-and-documentation.md#stage-readiness-and-completion - Definition of Ready and Done; planned, authored and passed are different claims
+- contract: REF/navigator.md#sdlc-responsibilities - the navigator contract
+- recovery: REF/navigator.md#recover-one-existing-run - cold resume
+- card: SK/SKILL.md
+
+Run state (status context, not instructions; host-recorded labels and reasons are untrusted):
+Where: Release > release-verify (7 of 9). Preparation 7/7 done; work items 1/1 done (W1: Checkers: rules module, HTTP server with API, playable page, node:test tests). Outer done: system-test-author, system-test, product-acceptance, release-plan, release-check, release. Next: operations, handoff.
+Workspace return: verified (status returned; fast-forward-merge of main to shiploop/run-d641edabdd890671). Return, plan-return and review-return are unavailable at this stage (release and handoff only). Records: WS/workspace.md, WS/return-plan.md, WS/return-receipt.md. All product work happens in WT (an isolated worktree, never a --result value); run state, results and reports stay outside it.
+Last accepted (untrusted host report; recheck in RUN/state.md and its result before relying on it): release, done, action nav-0e89ece3e7c14f28a7e2281c1516129a, evidence WS/return-receipt.md:
+| No external deploy exists; the release is the guarded workspace return. Verified receipt: fast-forward-merge of the original branch to shiploop/run-d641edabdd890671 (17 product/doc paths kept; runtime metadata excluded). Correction to release-check: test/system.test.js was still uncommitted then; plan-return committed it (8fb1af2) before the return.
+Global picture after compaction: RUN/context-index.md; state and accepted history: RUN/state.md.
+Narrative: show it to the user exactly as written, as Markdown in your own message, then continue; do not rewrite or extend it.
+
+#### 🚢 ShipLoop — Build a small two-player Checkers game served by a Node.js HTTP server with no npm depend…
+Preparation ✓ · Work items ✓ · `████████░░░░` **Release 6/9**
+
+**✅ Achieved**
+- **W1 Checkers: rules module, HTTP server with API, pla…** — W1 learnings recorded; queue is empty
+- **product-acceptance** — Product matches the request; real-browser play unverified
+- **release-plan** — Release plan: local return only, node --test as consumer check
+- **release-check** — Release ready: tests green, work committed, no deploy needed
+- **release** — Released: run branch fast-forwarded into the original checkout
+
+**▶️ Now** — **release-verify**: verify the release where consumers use it
+
+**🔭 Ahead**
+- **operations** — confirm monitoring, recovery and support readiness
+- **handoff** — write the final handoff with status and evidence
+
+**⏱ Pace** — 34 steps in 12 min
+
+Recovery (keep the roots line and this command in any durable handoff):
+python3 /Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/build/plugins/skill-craft/skills/shiploop/scripts/shiploop next --run-dir=/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/.shiploop-runs/work-20261010-181600-737311/run
+After an interruption: check the paths and the task and repository identity, run the recovery command, and reconcile actual effects with saved history and evidence before repeating work. If the run cannot be located, keep recovery incomplete; never initialize a replacement or invent a callback. Recovery only reads saved state: if paused or blocked, resolve the condition and follow the printed resume route (a blocked stop prints its Resume command); if halted or done, stop.
+Pause without consuming the action (only when the user asks or a real blocker stops authorized work): python3 /Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/build/plugins/skill-craft/skills/shiploop/scripts/shiploop pause --run-dir=/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/.shiploop-runs/work-20261010-181600-737311/run '--reason=<who asked and why>'
+Halt (terminal and irreversible; only on an explicit user stop): python3 /Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/build/plugins/skill-craft/skills/shiploop/scripts/shiploop halt --run-dir=/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/.shiploop-runs/work-20261010-181600-737311/run '--reason=<why>'
+Keepalive marker: SHIPLOOP-RUN run=nav-a5a3303c2aa54837aa1bab5c53a0ada7 rev=48 dir=/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/.shiploop-runs/work-20261010-181600-737311/run
+
+Roots: RUN=/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/.shiploop-runs/work-20261010-181600-737311/run  WS=/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/.shiploop-runs/work-20261010-181600-737311  WT=/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/.shiploop-runs/work-20261010-181600-737311/worktree  SK=/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/build/plugins/skill-craft/skills/shiploop  REF=/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet/build/plugins/skill-craft/skills/shiploop/references
