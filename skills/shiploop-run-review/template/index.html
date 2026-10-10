@@ -27,6 +27,8 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);padding:
 label{font-size:13px;color:var(--muted)}
 select,input[type=text],textarea{font:inherit;font-size:13.5px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);max-width:100%;box-sizing:border-box}
 textarea{width:100%;resize:vertical}
+a.lk{color:var(--accent);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+a.lk:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
 button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .flowbox{overflow-x:auto;padding-bottom:4px}
 .flow{display:grid;grid-template-columns:92px repeat(8,minmax(104px,1fr));gap:3px;min-width:900px;align-items:stretch}
@@ -680,6 +682,59 @@ function buildPrompt(state){
   if(String(state.notes||"").trim())out.push("Notes: "+String(state.notes).trim());
   if(cfg.closing)out.push(cfg.closing);
   return out.join("\n");
+}
+
+/* ---- references in review text: the pure scan; the page turns each part into a text node or an <a> (linkify, never innerHTML) ----
+   Review text is Claude's reading of the runs in the skill-craft repository's own terms, so a repo path, a commit, a spec clause
+   or a finding/option id in it is a reference. Run content (stage summaries, packets, failures) names files on the machine that
+   ran the case: it is never scanned. Order of precedence at one position: URL, id, path, commit, clause. ctx: {repoUrl, obs, acts}
+   (obs and acts: objects keyed by the loaded finding and option ids). Returns parts: {text}, {text, href} (an https link) or
+   {text, jump: {kind: "obs"|"act", id}}. A repo link needs a repoUrl that is an https:// URL; with none the reference stays text. */
+var LINK_RE_SRC="(https?:\\/\\/[^\\s<>\"'`]*[^\\s<>\"'`.,;:!?)\\]}])"+
+  "|(?<![\\w\\/.])([oa]\\d{2,3})(?!\\w|\\.\\w)"+
+  "|(?<![\\w\\/.~-])((?:docs|test|skills|agents|changes|catalog|scripts)\\/(?:[\\w.@+~-]+(?:\\/[\\w.@+~-]+)*\\/?)?)"+
+  "|(?<![\\w\\/.-])([0-9a-f]{7,40})(?![\\w-]|\\.\\w|\\/)"+
+  "|(?<![\\w-])(S-[1-9]\\d*)(?!\\w)";
+var SPEC_PATH="test/shiploop_e2e/SPEC.md";
+function repoBase(u){var v=typeof u==="string"?u.trim():"";return /^https:\/\/[^\s"'<>`]+$/.test(v)?v.replace(/\/+$/,""):"";}
+/* A commit is named: a digit and a letter among 7 to 40 lowercase hex characters, or any hex word that follows the word commit
+   (or commits, in a list of them). Digits alone are a number, never a commit. */
+function isCommitWord(sha,before){
+  if(/^[0-9]+$/.test(sha))return false;
+  if(/[0-9]/.test(sha)&&/[a-f]/.test(sha))return true;
+  return /\bcommits?\b[\s:#(\[]*(?:[0-9a-f]{7,40}(?:[\s,;&\/]|\band\b|\bor\b)+)*$/i.test(before.slice(-400));
+}
+function linkParts(text,ctx){
+  var s=String(text==null?"":text),c=ctx||{},base=repoBase(c.repoUrl),obs=c.obs||{},acts=c.acts||{},re=new RegExp(LINK_RE_SRC,"g"),out=[],at=0,m;
+  function put(t,extra){
+    if(!t)return;
+    var last=out[out.length-1];
+    if(!extra&&last&&!last.href&&!last.jump)last.text+=t;else out.push(Object.assign({text:t},extra||{}));
+  }
+  while((m=re.exec(s))!==null){
+    var txt=m[0],extra=null;
+    if(m[1]){
+      if(/^https:/.test(txt))extra={href:txt};  /* an http: URL is consumed whole and stays text, so no path inside it is linked */
+    }else if(m[2]){
+      if(Object.prototype.hasOwnProperty.call(obs,txt))extra={jump:{kind:"obs",id:txt}};
+      else if(Object.prototype.hasOwnProperty.call(acts,txt))extra={jump:{kind:"act",id:txt}};
+    }else if(m[3]){
+      txt=m[3].replace(/[.\-~+@]+$/,"");
+      re.lastIndex=m.index+txt.length;
+      var next=s.charAt(m.index+txt.length),segs=txt.replace(/\/$/,"").split("/"),folder=/\/$/.test(txt);
+      if(base&&"<*{$[?%".indexOf(next||" ")<0&&txt.indexOf("/")>0&&(folder||segs.length>2||segs[0]==="skills"||/\./.test(segs[segs.length-1])))
+        extra={href:base+(folder?"/tree/main/":"/blob/main/")+txt};
+    }else if(m[4]){
+      if(base&&isCommitWord(txt,s.slice(0,m.index)))extra={href:base+"/commit/"+txt};
+    }else if(m[5]){
+      if(base)extra={href:base+"/blob/main/"+SPEC_PATH};
+    }
+    put(s.slice(at,m.index));
+    put(txt,extra);
+    at=m.index+txt.length;
+  }
+  put(s.slice(at));
+  return out;
 }
 
 /* ---- pictures: markup built only from fixed class names, numbers and escaped text ---- */
@@ -1759,6 +1814,21 @@ function S(){var k=L.run||"-",s=L.sel[k];if(!s||typeof s!=="object")s=L.sel[k]={
 function ticked(m){return Object.keys(m).filter(function(k){return m[k];});}
 function h(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;}
 function byId(id){return document.getElementById(id);}
+/* ---------- references in review text (see linkParts): nodes only, never markup ---------- */
+function linkCtx(){var o={},a={};data.obs.forEach(function(f){o[f.id]=true;});data.acts.forEach(function(x){a[x.id]=true;});
+  return {repoUrl:cfgOf("page").repoUrl,obs:o,acts:a};}
+/* Text and <a> nodes for one piece of review text. An id jumps within the page; a repo reference opens in a new tab. */
+function linkify(text){
+  return linkParts(text,linkCtx()).map(function(p){
+    if(!p.href&&!p.jump)return document.createTextNode(p.text);
+    var a=h("a","lk",p.text);
+    if(p.href){a.setAttribute("href",p.href);a.setAttribute("target","_blank");a.setAttribute("rel","noopener noreferrer");}
+    else{var j=p.jump,obs=j.kind==="obs";a.setAttribute("href",(obs?"#f-":"#opt-")+j.id);
+      a.onclick=function(e){if(e&&e.preventDefault)e.preventDefault();if(obs)openFinding(j.id);else openOption(j.id);};}
+    return a;});
+}
+/* Append `text` to `parent` as linkified nodes and return the parent. */
+function addLinked(parent,text){linkify(text).forEach(function(n){parent.appendChild(n);});return parent;}
 function clear(n){while(n.firstChild)n.removeChild(n.firstChild);}
 function fmt(iso){try{return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric"});}catch(e){return iso||"";}}
 function byOrder(a,b){return(a.order||0)-(b.order||0);}
@@ -1802,15 +1872,15 @@ function renderSteps(){
 function ex(key){var d=data.exp[key]||{};return {key:key,kind:d.kind||"criterion",title:d.title||key,short:d.short,text:d.text||"",group:d.group,order:d.order,clauses:d.clauses||[],revs:d.revs||[]};}
 function expBlock(key){
   var e=ex(key),w=h("div","expb");w.id="exp-"+key;
-  var p=h("p","etext");p.appendChild(h("strong","","Expected. "));p.appendChild(document.createTextNode(e.text));
+  var p=h("p","etext");p.appendChild(h("strong","","Expected. "));addLinked(p,e.text);
   if(e.revs.length)p.appendChild(h("span","revtag","revised "+e.revs.length+"x, last "+fmt(e.revs[e.revs.length-1].at)));
   w.appendChild(p);
   if(e.revs.length){
     var det=h("details");det.appendChild(h("summary","","History ("+e.revs.length+")"));
     e.revs.slice().reverse().forEach(function(r){
       var d=h("div","hist");d.appendChild(h("div","meta",fmt(r.at)+(r.obs?" | prompted by finding "+r.obs:"")+(r.option?" | by option "+r.option:"")));
-      var a=h("p");a.style.cssText="margin:0 0 3px;font-size:13px";a.appendChild(h("strong","","Why. "));a.appendChild(document.createTextNode(r.reason));
-      var c=h("p");c.style.cssText="margin:0;font-size:13px;color:var(--muted)";c.appendChild(h("strong","","Was. "));c.appendChild(document.createTextNode(r.from));
+      var a=h("p");a.style.cssText="margin:0 0 3px;font-size:13px";a.appendChild(h("strong","","Why. "));addLinked(a,r.reason);
+      var c=h("p");c.style.cssText="margin:0;font-size:13px;color:var(--muted)";c.appendChild(h("strong","","Was. "));addLinked(c,r.from);
       d.appendChild(a);d.appendChild(c);det.appendChild(d);
     });
     w.appendChild(det);
@@ -1830,7 +1900,7 @@ function critRow(c){
   if(c.clauses.length){var cl=h("div","chips");c.clauses.forEach(function(s){cl.appendChild(h("span","chip acc",s));});d.appendChild(cl);}
   d.appendChild(expBlock(c.key));
   var basis=rv&&rv.basis&&rv.basis[c.key];
-  if(typeof basis==="string"&&basis){var bp=h("p","sub");bp.style.margin="6px 0 0";bp.appendChild(h("strong","","Basis. "));bp.appendChild(document.createTextNode(basis));d.appendChild(bp);}
+  if(typeof basis==="string"&&basis){var bp=h("p","sub");bp.style.margin="6px 0 0";bp.appendChild(h("strong","","Basis. "));addLinked(bp,basis);d.appendChild(bp);}
   var row=h("div","row");row.style.margin="8px 0 0";
   if(open.length){var b=h("button","btn sm",plural(open.length,"open finding"));b.type="button";
     b.onclick=function(){L.crit=c.key;L.filter="open";save();renderFindings();go(3);};row.appendChild(b);}
@@ -1841,7 +1911,7 @@ function renderArc(){
   var box=byId("arc");clear(box);var o=runOf(),rv=o.run?reviewOf(o.run.key):null;
   if(!rv||!Array.isArray(rv.summary)||!rv.summary.length)return;
   var c=h("div","card");c.appendChild(h("h3","","Review of this run"));var ul=h("ul");
-  rv.summary.forEach(function(l){ul.appendChild(h("li","",l));});c.appendChild(ul);
+  rv.summary.forEach(function(l){ul.appendChild(addLinked(h("li"),l));});c.appendChild(ul);
   if(rv.reviewedAt)c.appendChild(h("div","meta","Reviewed "+fmt(rv.reviewedAt)));box.appendChild(c);
 }
 
@@ -1874,7 +1944,7 @@ function renderFlow(){
   P.forEach(function(p){
     var e=ex(p.key);var c=h("button","chev exp");c.type="button";c.setAttribute("aria-pressed",L.phase===p.order?"true":"false");
     c.setAttribute("aria-label","Stage "+p.title+": read what we expect");
-    c.appendChild(h("b","",p.title));c.appendChild(h("span","",p.short||""));
+    c.appendChild(h("b","",p.title));c.appendChild(addLinked(h("span"),p.short||""));
     if(e.revs.length)c.appendChild(h("span","rv","revised "+e.revs.length+"x"));
     c.onclick=function(){pickPhase(p.order);};f.appendChild(c);
   });
@@ -1988,6 +2058,13 @@ function renderFidelity(run){
 function openFinding(id){
   L.filter="all";L.crit="";save();renderFindings();go(3);
   try{var n=byId("f-"+id);if(n)n.scrollIntoView({block:"center"});}catch(e){}
+}
+/* Show one option: every filter off, the boxes that hold it ("Options not tied to a finding", "Already done") opened, then scrolled to. */
+function openOption(id){
+  L.filter="all";L.crit="";save();renderFindings();go(3);
+  try{var n=byId("opt-"+id);if(!n)return;
+    for(var p=n.parentNode;p;p=p.parentNode)if(p.tagName&&String(p.tagName).toLowerCase()==="details")p.open=true;
+    n.scrollIntoView({block:"center"});}catch(e){}
 }
 function renderPanel(){
   var box=byId("phasepanel");clear(box);
@@ -2263,7 +2340,7 @@ function findingChips(f){
 }
 function techBox(f){
   var b=h("div","tech");
-  function line(l,v){if(!v)return;var d=h("div");d.appendChild(h("b","",l+" "));d.appendChild(document.createTextNode(v));b.appendChild(d);}
+  function line(l,v){if(!v)return;var d=h("div");d.appendChild(h("b","",l+" "));addLinked(d,v);b.appendChild(d);}
   line("Expected.",f.expected);line("Saw.",f.observed);line("Evidence.",f.evidence);
   if(f.criterion){var e=ex(f.criterion);line("Expectation.",e.title+(e.clauses.length?" ("+e.clauses.join(", ")+")":"")+(phaseName(f.phase)!==e.title?"; "+phaseName(f.phase):""));}
   return b;
@@ -2273,7 +2350,7 @@ function optionRow(a){
   var l=h("label","opt"+(S().opts[a.id]?" sel":""));
   var cb=h("input");cb.type="checkbox";cb.checked=!!S().opts[a.id];
   cb.onchange=function(){S().opts[a.id]=cb.checked;l.className="opt"+(cb.checked?" sel":"");save();renderPrompt();renderCounts();renderSteps();};
-  var t=h("div","t");t.appendChild(h("b","",a.title));
+  var t=h("div","t");t.appendChild(addLinked(h("b"),a.title));
   var m=h("div","chips");
   m.appendChild(h("span","chip acc",KIND_LABEL[a.kind]||"no kind set"));
   m.appendChild(h("span","chip"+(a.status==="built"?" holds":""),a.status||"open"));
@@ -2282,26 +2359,26 @@ function optionRow(a){
   if(a.cost)m.appendChild(h("span","chip bent","ask me first"));
   t.appendChild(m);l.appendChild(cb);l.appendChild(t);wrap.appendChild(l);
   var det=h("details");det.appendChild(h("summary","","Instruction and why"));
-  det.appendChild(h("div","instr",a.goal||"(no instruction)"));
-  function note(label,v){if(!v)return;var p=h("p","sub",label+" "+v);p.style.margin="6px 0 0";det.appendChild(p);}
+  det.appendChild(addLinked(h("div","instr"),a.goal||"(no instruction)"));
+  function note(label,v){if(!v)return;var p=h("p","sub",label+" ");addLinked(p,v);p.style.margin="6px 0 0";det.appendChild(p);}
   note("Why.",a.why);note("Costs:",a.cost);
   if(a.change)note("Changes the expectation ("+a.change.target+").","Now: "+a.change.to+" Why: "+a.change.reason);
   note("Ref.",a.ref);
   wrap.appendChild(det);return wrap;
 }
-function doneRow(a){var d=h("div","card");d.appendChild(h("b","",a.title));if(a.ref)d.appendChild(h("span","tag",a.ref));return d;}
+function doneRow(a){var d=h("div","card");d.id="opt-"+a.id;d.appendChild(addLinked(h("b"),a.title));if(a.ref)d.appendChild(addLinked(h("span","tag"),a.ref));return d;}
 /* A strip is scrolled to its finding's phase once its step is on screen: a hidden step has no layout to scroll. */
 var strips=[];
 function applyStrips(){strips.forEach(function(s){s[0].scrollLeft=s[1];});}
 function findingCard(c){
   var f=c.finding,card=h("div","card fcard");card.id="f-"+f.id;
-  var t=h("h3");t.appendChild(h("span","fid","#"+obsNo(f)));t.appendChild(document.createTextNode(f.title));card.appendChild(t);
+  var t=h("h3");t.appendChild(h("span","fid","#"+obsNo(f)));addLinked(t,f.title);card.appendChild(t);
   card.appendChild(findingChips(f));
   var two=h("div","two"),rd=runDocFor(f);
   var ws=rd?whereStrip(rd,f):"";if(ws){var sb=h("div","strip");sb.innerHTML=ws;card.appendChild(sb);strips.push([sb,+(/data-view="(\d+)"/.exec(ws)||[0,0])[1]]);}
   var fg=figureSvg(f.figure);if(fg){var fb=h("div","viz");fb.innerHTML=fg;two.appendChild(fb);}
   two.appendChild(techBox(f));card.appendChild(two);
-  if(f.advice){var ad=h("div","adv");ad.appendChild(h("b","","Advice. "));ad.appendChild(document.createTextNode(f.advice));card.appendChild(ad);}
+  if(f.advice){var ad=h("div","adv");ad.appendChild(h("b","","Advice. "));addLinked(ad,f.advice);card.appendChild(ad);}
   c.options.forEach(function(a){card.appendChild(optionRow(a));});
   if(c.refs.length){var rf=h("div","refs");c.refs.forEach(function(r){
     var b=h("button","chip acc","Also resolved by: "+r.title);b.type="button";

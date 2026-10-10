@@ -145,6 +145,16 @@ token; an open finding with no `effect` (the page shows it as "not rated").
   (`docs/shiploop-run-review-journal.md` in a source checkout).
 - The page writes only owner-added findings and options and a finding's status. Expectations, settings and runs are
   replicas written by publish; changing an expectation is an option the owner ticks, applied from the repo.
+- References in the review text are links. The page reads `config/page.repoUrl` (an `https://` URL; the defaults carry
+  `https://github.com/whichguy/skill-craft`, and the upgrade adds it to a page that has none) and links, in a finding's
+  title, expected, observed, evidence and advice, an option's title, why, goal, ref and change, an expectation's text and
+  the review's summary and basis: a finding or option id that exists in the loaded data (a jump within the page), a repo
+  path under docs/, test/, skills/, agents/, changes/, catalog/ or scripts/ (a `blob/main` link; a folder with a trailing
+  `/` a `tree/main` link), a commit (7 to 40 lowercase hex characters holding a digit and a letter, or named after the word
+  commit), a spec clause S-<n> (the SPEC file; it has no anchors) and an explicit `https://` URL. The page builds these as
+  nodes, never as markup. With no `repoUrl` the repo references stay text. Run content (stage summaries, packets, failures,
+  planning documents) is never linked: those paths are files on the machine that ran the case. The step-4 prompt keeps ids
+  and paths as plain text.
 - A number the host could not measure is absent, with its reason in `runs.unmeasured`; the page says "not measured".
   Never write or read it as 0.
 - Evidence stays in the repo (the committed export and review file; the packets stay in the run directory). The artifact
