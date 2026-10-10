@@ -2042,3 +2042,44 @@ No live run: the engine side of owner decisions D3 and D7. At the final handoff 
 - **Found on the way and not mine.** `test/shiploop-status-display.test.py` fails one dry-run packet check at this worktree's path length (8032 against 8000) and fails identically on the pristine base `b8c1680e` placed at an equal path length (checked again in the fix round: 8004 against 8000 at 94 characters, on the base and on the branch); `test_return_projection_stays_current_across_terminal_cold_and_report_packets` in `shiploop-workspace` fails in a 150-character copy path and passes at the worktree path (a packet longer than the shell-output limit moves its tail behind the file pointer). Both are path-length effects.
 - **Fix round after two independent reviews (same day, 18 findings, all minor or nit).** A sentence that is true in the common case and false in a rare one is found by running the route, not by reading the code: the no-change return printed "the run's commits do not reach your branch" right after the follow-up return had put them there; an unwritable list file printed a traceback instead of the handoff's pending refusal; the retire subject claimed a result ("its requirement IDs are in the living spec") that is vacuous for a feature spec naming none, so it now says what was done ("checked ..."); "Git keeps every version" became "each version committed at a knowledge close". A retried handoff may cite the spec the retire removed. The mutation record was re-run on the final tree (85 mutants, 84 red, 1 equivalent): a red mutant is evidence only when its first failure names a test (one definition was a syntax error), and two tests passed only because another branch or the length check masked them. Journal: the last sections of `docs/shiploop-spec-retire-journal-2026-10-10.md`.
 - **Not verified.** Linux git and GNU grep (the header's commands ran on macOS, BSD grep, git 2.54).
+
+## First step slices: one work item's inner loop on a Node fixture (2026-10-10, branch exp/step-slice-32c6ee at 36b88bc4) — status: firm for the figures (`evidence/step-slices-2026-10-10.json`); interim for conclusions (n=1 per case, one build)
+
+Four `slice.py` runs: `node-fix-bug` alone, then `node-add-function`, `node-add-route` and `node-rename` in parallel.
+Claude Sonnet 5.5, inline delegation, `--source checkout` (skill-craft 1.26.1, ShipLoop 0.58.0), seeded to step-plan
+on `fixtures/node-base`. Every slice stopped at `system-test-author` with no overshoot, no queue growth and no revise
+loop, and passed every verdict. Test-red came before test-green in all four.
+
+| case | wall | turns | packets | written (chars) | heads printed | packet files read | shell-printed | failures / glue | one-turn stages |
+|---|---|---|---|---|---|---|---|---|---|
+| node-fix-bug | 202 s | 62 | 23 | 1,061,085 | 59,919 | 1 (29,608) | 4,899 | 2 / 0 | 5 of 18 |
+| node-add-function | 229 s | 74 | 23 | 1,074,395 | 59,382 | 3 (35,726) | 2,274 | 0 / 0 | 5 of 18 |
+| node-add-route | 217 s | 69 | 23 | 1,059,956 | 40,502 | 2 (36,685) | 12,277 | 3 / 0 | 3 of 18 |
+| node-rename | 211 s | 62 | 22 | 1,012,019 | 55,892 | 1 (29,366) | 14,535 | 3 / 3 | 5 of 17 |
+
+What this shows.
+
+1. **Packet files are not the context cost.** About 1M characters of packet files are written per item. On
+   Claude, the model saw about 40–60k characters of printed heads, opened only 1–3 packet files with a read tool,
+   and printed 2–15k characters of packets through the shell. The files it opened were mostly Improve packets. The
+   full stage guidance, 9–28k characters per producer packet ("Current stage guidance"), mostly never reached the
+   model, although each head says "Read the full packet before acting". The context peak still grew from about
+   95k to about 140–150k over the loop. This affects both efficiency and effectiveness: the stage rules that should
+   shape the work are not being read. It is the first question for the next prompt change. The cheapest lever to
+   compare is what the head carries, judged with `--compare` against these four runs.
+2. **The cross-packet overlap is large but mostly unread.** 70–92% of each packet's lines were already in an
+   earlier packet (`packets.py --offline` gives the same picture with no model). Because the files are mostly not
+   read, the repetition costs disk, not context. The main tenet (restate per stage) stays. What to measure is
+   whether the head alone carries what a cleared model needs.
+3. **The inner loop is fast and shallow on a small step.** One-turn stages: 5 of 18 (fix-bug), 5 of 18
+   (add-function), 3 of 18 (add-route), 5 of 17 (rename). Among them are test-red, implement, integrate and
+   integration-verify. The checks pass, so on steps this small this is effective, not careless. A harder fixture
+   step is needed to tell the two apart.
+4. **Harness correction (36b88bc4).** The first grade failed `committed`, but the product was right. Inner
+   `integrate` assembles the item uncommitted, and `workspace plan-return` commits it at release, so a slice now
+   grades the assembled candidate. The first live run surfaced this; no hermetic test could have.
+5. **Cost is unreported.** The slice stop ends Claude before its `result` event. `--max-budget-usd 10` capped each
+   run. Turns (62–74) are the cost proxy until a cost source is found.
+
+Not yet seen: a Grok or Codex slice, where the resume path is exercised and packet reads are unmeasured; an Ask-Agent
+slice; and a revise loop back to step-plan in a live run.
