@@ -387,8 +387,9 @@ class ArchitectureTests(HomeFixture):
         self.assertNotIn("architecture", refusal)
 
     def test_a_token_that_only_contains_ad_n_is_not_a_decision_id(self) -> None:
-        """Guard (a mutant without word boundaries survived once): TAD-7, AD-3a and BAD-1 are other things, not decisions."""
-        path = self.commit_home(self.DECISIONS + "\nSee TAD-7 (a tag), the AD-3a draft and BAD-1.\n")
+        """Guard (mutants without a word boundary survived, the trailing one until AD-3a became AD-12a, an ID the committed
+        decisions do not already hold): TAD-7, AD-12a and BAD-1 are other things, not decisions."""
+        path = self.commit_home(self.DECISIONS + "\nSee TAD-7 (a tag), the AD-12a draft and BAD-1.\n")
         path.write_text(self.DECISIONS)
         self.assertEqual(knowledge.check(self.state, "step-plan"), "")
 
