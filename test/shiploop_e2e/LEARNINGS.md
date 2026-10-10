@@ -2002,3 +2002,15 @@ What it showed:
 - **Method.** Fail-first (94 tests, 48 failures and 1 error against the old reader, each for the intended reason; two first runs were red for wrong reasons in the tests and were fixed before the record), 43 mutation rows at the import seam (the five that targeted deleted code replaced by eight), regrade and comparison each run twice byte-identical.
 
 Open: the shared reader does not know the knowledge home's `Key considerations` and `Open for the next run`, so `Learned` with no text followed by a blank line and `Key considerations` reads the section name as the lesson (ShipLoop's own knowledge commit cannot write that; no saved commit differs; an engine-side choice). Supersedes the "`counters.lessons` is replaced by an import" line of the entry above. Journal: `docs/shiploop-commit-baseline-journal-2026-10-10.md` section 11.
+
+## 2026-10-10: the released 1.27.0 on Claude Sonnet, hello and Checkers (marketplace), as the last 17-stage baseline
+
+hello (`/Users/dadleet/e2e-runs/20261010/hello-1270-claude-2`): PASS in 6 min, 72 calls, 0 glue, 1 refusal ("a test command must be
+one nonblank line"). The first attempt failed in 14 s before ShipLoop started: the owner's home folder is a Git repository, so the
+case's empty work folder adopted it; the harness now sets GIT_CEILING_DIRECTORIES to the run's output folder (7eee332d). Checkers
+(`.../checkers-1270-sonnet`): PASS in 14 min, 96 calls (checkers-1 on 1.26.0: 112), 0 glue (3), 0 model commits (1), 2 refusals,
+both knowledge-close files written only after the refusal (plan.md at prepare, system-tests.md at release-plan) although the packets
+now name the close; mutation 104 of 121 caught (0.86). The README the products include is planned at step-plan and written at
+document: ordinary documentation, not scope creep (earlier note superseded). Narrative shown 0 of 4 and 0 of 5 times it was due.
+Not tested live: no Improve child changed a file, so the Key-learnings commit rule never ran. The Battleship runs were stopped by
+the owner to wait for the 7-stage inner loop. n = 1 per case.
