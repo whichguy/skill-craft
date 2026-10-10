@@ -4486,9 +4486,11 @@ def improve_start_contract(core: Any, root: Path, state: Mapping[str, Any], open
              "metadata are never product candidates, edits or commits; adapter-owned state, packet receipts "
              "and review-note writes keep their owners.")
     authority = (sections["Authority"] + "\n\nCommit policy: the selected Improve card's scoped-commit "
-                 "policy with the task's explicit overrides above; stage only intended paths, never runtime "
-                 "receipts or unrelated staging, no empty commit. No push or merge. The child never runs a "
-                 "ShipLoop callback: after the terminal packet the parent runs the return in " + str(parent_return) + ".")
+                 "policy with the task's explicit overrides above, but commit only with improve-commit, never git "
+                 "commit; stage only intended paths, never runtime receipts or unrelated staging, no empty commit "
+                 "except a recorded remote change. No push or merge. The child runs no ShipLoop callback except "
+                 "improve-commit; its command and rules, and the return the parent runs after the terminal packet, "
+                 "are in " + str(parent_return) + ".")
     resources = [
         {"purpose": "selected Improve card", "locator": child["skill"]["skill_card"]},
         {"purpose": "bound Until Loop card", "locator": child["skill"]["runtime_card"]},
@@ -4681,11 +4683,35 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
                          + " and reviews.stopped-" + stamp + ".\n")
     receipt.parent.mkdir(parents=True, exist_ok=True)
     (receipt.parent / "reviews").mkdir(exist_ok=True)
+    message_path = improve_commit_message_path(child)
     store.atomic_write_text(receipt.with_name("parent-return.md"), "\n".join([
         "# Parent return for Improve child " + action_id, "",
+        "## The one ShipLoop command the child runs: improve-commit", "",
+        "To commit a review iteration's changes, write the commit message to " + str(message_path)
+        + " with a file-writing tool (not a shell heredoc), then run:",
+        _callback(core, root, "improve-commit", action=action_id, message=str(message_path)),
+        "ShipLoop commits exactly the files this review changed and has not committed. A refusal's first line is "
+        "the fix and the command to run next: make the fix, then run that command.",
+        "- Lessons: the message needs a line \"Key learnings: <what this iteration taught that a later iteration or "
+        "run should reuse>\" (also \"Lessons:\" or \"Learned:\", or a \"## Key learnings\" heading with the text "
+        "under it), on a line of its own. If it taught nothing new, write \"Key learnings: none\"; do not invent "
+        "a lesson.",
+        "- Credit (optional): to credit a commit that helped, add a line \"Learned-from: <commit id> <what it "
+        "contributed>\", with 7 to 64 hex digits of a commit reachable from HEAD; ShipLoop writes the full ID into "
+        "the commit. Delete the line rather than guess an ID.",
+        "- Remote change: when this iteration changed a remote system and no file, add a line \"Remote change: "
+        "<system alias>, <what changed>, <where its evidence is>\" (no secrets) and run the command above with "
+        "--remote-change appended: with no file pending, ShipLoop then makes a commit with no files. Without "
+        "--remote-change that section changes nothing.",
+        "- A review that changed no file makes no commit: improve-commit says \"Nothing to commit\" and removes "
+        "the message file. Never run git commit yourself: it skips these checks. If the user or repository said "
+        "not to commit, do not run improve-commit; the parent passes that instruction to improve-complete with "
+        "--no-commit.", "",
+        "## The parent's return", "",
         "Only after the runtime wrote a complete terminal packet to " + str(receipt) + ", run:",
         _callback(core, root, "improve-complete", action=action_id),
-        "The child never runs it; a stopped or blocked child leaves the parent pending.", ""]))
+        "The child never runs the improve-complete command; a stopped or blocked child leaves the parent pending.",
+        ""]))
     start = receipt.with_name("start.json")
     store.atomic_write_text(start, loop_contract.dumps(contract))
     state_dir = root / "until-loop"

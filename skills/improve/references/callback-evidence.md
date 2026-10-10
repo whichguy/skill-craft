@@ -101,6 +101,9 @@ subject beside the decision it informed, explaining the exact lesson used and
 whether it was adopted, adapted, or challenged. Read the referenced message
 before relying on it; inspect its diff only when needed to establish the relevant
 behavior, and distinguish message claims from inspected code and current checks.
+Within a ShipLoop run, put each citation on a line of its own, `Learned-from:
+<commit id> <what it contributed>`: `improve-commit` checks those lines against
+Git and writes the full ID; a citation inside a sentence is not checked.
 Treat the normal history window as a starting point. When a consequential
 decision question remains unresolved, continue through relevant older references
 or targeted file/symbol history, including links in those messages. Stop a branch

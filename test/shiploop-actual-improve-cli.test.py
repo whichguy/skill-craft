@@ -1872,6 +1872,100 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.assertTrue(self.line_one(stderr).startswith('Add a "Key learnings:'))
         self.assertTrue(self.line_one(stderr).endswith("--remote-change"))
 
+    OPENING = ("## Current context and desired improvements\nTighten the spec examples.\n\n"
+               "## Scope\nproduct/contracts/cold-recovery.md\n\n## Authority\nLocal edits and scoped commits; no push.\n\n"
+               "## Environment\nPython 3 fixture; no network.\n")
+
+    def start_child(self):
+        """improve-start through the CLI; the frozen contract and parent-return.md it wrote."""
+        receipt = bridge.receipt_path(self.bound)
+        opening = receipt.with_name("opening.md")
+        opening.write_text(self.OPENING, encoding="utf-8")
+        self.invoke(CLI, "improve-start", "--run-dir", self.run, "--action", self.action, "--opening", opening)
+        contract = json.loads(receipt.with_name("start.json").read_text(encoding="utf-8"))
+        return contract, receipt.with_name("parent-return.md")
+
+    def test_the_frozen_authority_lets_the_child_run_improve_commit_only_and_parent_return_holds_its_rules(self):
+        self.begin("plan")  # the planning child: its packet prints no improve-commit line, so the contract is its only carrier
+        contract, parent_return = self.start_child()
+        authority = contract["context"]["authority"]
+        self.assertIn("No push or merge", authority)
+        self.assertIn("commit only with improve-commit, never git commit", authority)
+        self.assertIn("The child runs no ShipLoop callback except improve-commit", authority)
+        self.assertIn(str(parent_return), authority)
+        self.assertNotIn("never runs a ShipLoop callback", authority)
+        self.assertIn("no empty commit except a recorded remote change", authority)
+        route = parent_return.read_text(encoding="utf-8")
+        for needed in (str(self.message), "improve-commit --run-dir=" + str(self.run), "--message=" + str(self.message),
+                       "Key learnings: none", "Learned-from: <commit id> <what it contributed>",
+                       "Remote change: <system alias>, <what changed>, <where its evidence is>", "--remote-change",
+                       "Never run git commit yourself", "improve-complete --run-dir=" + str(self.run)):
+            with self.subTest(needed=needed):
+                self.assertIn(needed, route)
+        self.assertLess(route.index("improve-commit --run-dir="), route.index("improve-complete --run-dir="))
+        self.assertIn("The child never runs the improve-complete command", route)
+
+    def test_the_command_parent_return_prints_runs_and_commits_at_the_planning_stage(self):
+        """Route test: what a cleared child finds in the file the contract names is a command that works."""
+        self.begin("plan")
+        _contract, parent_return = self.start_child()
+        listed = [row for row in parent_return.read_text(encoding="utf-8").splitlines()
+                  if row.startswith("python3 ") and " improve-commit " in row]
+        self.assertEqual(len(listed), 1)
+        self.edit()
+        self.write("docs: tighten\n\nKey learnings: exact examples catch drift.\n")
+        before = self.git("rev-parse", "HEAD").strip()
+        result = subprocess.run(shlex.split(listed[0]), text=True, capture_output=True, cwd=self.base, timeout=60,
+                                env=self.environment)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotEqual(before, self.git("rev-parse", "HEAD").strip())
+        self.assertIn("Key learnings: exact examples catch drift.", self.head_message())
+
+    # The commit-policy clause of 658ff4e3, before improve-commit joined the contract (the parent-return path follows it).
+    BASE_COMMIT_CLAUSE = ("Commit policy: the selected Improve card's scoped-commit policy with the task's explicit overrides "
+                          "above; stage only intended paths, never runtime receipts or unrelated staging, no empty "
+                          "commit. No push or merge. The child never runs a ShipLoop callback: after the terminal "
+                          "packet the parent runs the return in ")
+    # Spike S (batch 1012): the thinnest of 92 saved Improve contracts is a carry-forward child with 1,081 of the 9,216
+    # bytes left (r1-battleship-grok-none, 8,135 bytes); Sonnet and Grok contracts median 5,658 at spec.
+    THINNEST_SAVED_HEADROOM = 1081
+    IMPROVE_STAGES = ("spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan",
+                      "carry-forward")
+
+    def test_the_commit_clause_costs_what_the_thinnest_saved_contract_can_spare_on_every_stage_and_route(self):
+        """Guard (passes before the clause grows): the saved thinnest case still fits, on both routes."""
+        self.begin("plan")
+        state = store.read_record(self.run / "state.md")
+        parent_return = str(bridge.receipt_path(self.bound).with_name("parent-return.md"))
+
+        def build(stage, route, environment="x"):
+            chosen = dict(state, active_improve=dict(state["active_improve"], stage=stage), delegation=route)
+            return navigator.improve_start_contract(None, self.run, chosen, "".join(
+                "## " + name + "\n" + (environment if name == "Environment" else "x") + "\n\n"
+                for name in navigator.OPENING_SECTIONS))
+
+        added_by_stage, rows = set(), set()
+        for stage in self.IMPROVE_STAGES:
+            inline = build(stage, "inline")
+            authority = inline["context"]["authority"]
+            clause = authority[authority.index("Commit policy:"):]
+            added = (loop_contract.text_bytes(clause)
+                     - loop_contract.text_bytes(self.BASE_COMMIT_CLAUSE + parent_return + "."))
+            added_by_stage.add(added)
+            # the saved case: the model-written Environment fills the inline contract until, under the old clause,
+            # only the thinnest saved headroom was left
+            pad = (loop_contract.CONTRACT_BUDGET - self.THINNEST_SAVED_HEADROOM
+                   - (loop_contract.compact_bytes(inline) - added) + 1)
+            for route in ("inline", "ask-agent"):
+                with self.subTest(stage=stage, route=route):
+                    thin = build(stage, route, "a" * pad)
+                    self.assertLessEqual(loop_contract.compact_bytes(thin), loop_contract.CONTRACT_BUDGET)
+                    self.assertIsNone(loop_contract.size_problem(thin))
+            rows.add(loop_contract.compact_bytes(build(stage, "ask-agent")) - loop_contract.compact_bytes(inline))
+        # one clause for every stage, so it costs the same everywhere; the delegated route's resource row is its own
+        self.assertEqual(len(added_by_stage), 1)
+        self.assertLessEqual(max(added_by_stage) + max(rows), self.THINNEST_SAVED_HEADROOM)
+
     def commit_gate_refusal(self):
         """Run the child to its terminal packet with an uncommitted edit; the refusal improve-complete gives."""
         self.begin("spec")
