@@ -121,6 +121,17 @@ ITEM_LEFT = (
 )
 ITEM_COMMIT_RULE = ITEM_COMMITS + " " + ITEM_LEFT
 
+
+def _inner_case_end_states(text: str) -> str:
+    """The same rule for an INNER stage, whose graph position gives it ``revise`` and never ``replan``."""
+    inner = text.replace("revise or replan when the plan is wrong", "revise when the plan is wrong")
+    if inner == text:
+        raise ValueError("CASE_END_STATES no longer names replan beside revise; update _inner_case_end_states")
+    return inner
+
+
+INNER_CASE_END_STATES = _inner_case_end_states(CASE_END_STATES)
+
 _ROWS = (
     # ------------------------------------------------------------------ prelude
     Stage(
@@ -283,7 +294,7 @@ _ROWS = (
             "each case in the test spec has a test the focused command runs",
             "the tests are wired into the suite and repeatable",
         ),
-        test="Write the tests the spec calls for; never weaken an assertion to fit an expected implementation. " + CASE_END_STATES,
+        test="Write the tests the spec calls for; never weaken an assertion to fit an expected implementation. " + INNER_CASE_END_STATES,
         tools="Tests follow the repository's test framework and lint rules.",
         edits=frozenset({"tests"}),
         complete_runs=("test-probe",),
@@ -325,7 +336,7 @@ _ROWS = (
         done_when=(
             "every focused command passes on the bound Until Loop and when ShipLoop reruns it",
         ),
-        test="Loop on the focused commands until they pass. " + CASE_END_STATES,
+        test="Loop on the focused commands until they pass. " + INNER_CASE_END_STATES,
         tools="The lint gate runs before ShipLoop's own test run.",
         edits=frozenset({"code", "tests"}),
         entry_runs=("test-loop-contract",),
@@ -351,10 +362,10 @@ _ROWS = (
         "regression", "inner",
         goal="rerun the retained suites for regressions",
         done_when=(
-            "every recorded command passes on the bound Until Loop and when ShipLoop reruns it",
-            "nothing that passed at baseline fails now",
+            "every recorded command passes on the bound Until Loop and when ShipLoop reruns it, so no recorded "
+            "check that passed at baseline fails now",
         ),
-        test="Run the retained suites; fix the code, not the checks. " + CASE_END_STATES,
+        test="Run the retained suites; fix the code, not the checks. " + INNER_CASE_END_STATES,
         tools="The lint gate runs before ShipLoop's own test run.",
         edits=frozenset({"code", "tests"}),
         entry_runs=("test-loop-contract",),
@@ -526,7 +537,11 @@ _ROWS = (
     Stage(
         "release-verify", "outer",
         goal="verify the release where consumers use it",
-        done_when=("the consumer behaviour is observed where consumers use it",),
+        done_when=(
+            "the consumer behaviour is observed where consumers use it",
+            "this run's outcome.md, environment.md and README.md are written under docs/shiploop, and outcome.md "
+            "fills its ## Learned, ## Key considerations and ## Open for the next run sections",
+        ),
         test="A passing unit suite is not delivery evidence.",
         deploy="Verify the release in the target.",
         tools="On done, ShipLoop runs every consumer check release-plan recorded.",

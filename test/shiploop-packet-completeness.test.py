@@ -169,6 +169,27 @@ class PacketCompletenessTests(unittest.TestCase):
                 for word, stages in self.GATE_WORDS.items():
                     self.assertEqual(word in line, stage in stages, f"{word!r} in the {stage} line")
 
+    def test_a_producer_with_a_script_run_check_still_names_the_other_faults_complete_refuses(self) -> None:
+        # release-verify runs the consumer checks and closes the knowledge home.  Its line named only the run, so the
+        # docs/shiploop gate was met first as a refusal in 4 runs (packet review 2026-10-10, P-rv-1).
+        closes = {"release-verify"}
+        for (stage, kind), packet in sorted(self.found.items()):
+            row = stage_spec.stage(stage)
+            if kind != "producer" or not row.complete_runs:
+                continue
+            lines = [line for line in packet.splitlines() if line.startswith("Checked by: ")]
+            with self.subTest(stage):
+                self.assertEqual(len(lines), 1)
+                self.assertEqual("docs/shiploop" in lines[0], stage in closes)
+                self.assertIn("when you report done, ShipLoop", lines[0])
+
+    def test_release_verify_done_when_names_the_files_and_sections_its_close_requires(self) -> None:
+        packet = self.found[("release-verify", "producer")]
+        done = packet[packet.index("Done when"):packet.index("Checked by: ")]
+        for word in ("outcome.md", "environment.md", "README.md", "## Learned", "## Key considerations",
+                     "## Open for the next run"):
+            self.assertIn(word, done)
+
 
 def flat(text: str) -> str:
     return " ".join(text.split())

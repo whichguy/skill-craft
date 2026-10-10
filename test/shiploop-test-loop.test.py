@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
+import shiploop_quality as quality  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
@@ -1025,6 +1026,10 @@ class TestLoopTests(unittest.TestCase):
              out=NODE_LOAD_FAILURE, status="no-tests", accepted=False),
         dict(name="exit 1, tests ran and none failed", code=1, out=UNITTEST_OK, status="not-red", accepted=False),
         dict(name="exit 1, one failing test", code=1, out=UNITTEST_FAIL, status="red", accepted=True),
+        # What the duty says: a failing run is accepted only when it shows every listed ID (the duty once said
+        # "or a failing test", and r2-checkers-sonnet was refused twice for it).
+        dict(name="exit 1, a failing test, a listed ID never shown", ids=["TC-9"], code=1, out=UNITTEST_FAIL,
+             status="ids-missing", accepted=False),
         dict(name="exit 1, a failing test named by its ID", ids=["TC-01", "TC-02"], code=1, out=NODE_ONE_FAILING,
              status="red", accepted=True),
         # The runner every Python project has: its loader reports a module it cannot import as a test that errored.
@@ -1424,6 +1429,134 @@ class TestLoopTests(unittest.TestCase):
         saved = self.run_dir / "quality" / (self.action() + "-terminal.json")
         self.assertEqual(json.loads(saved.read_text()), json.loads(raw))
 
+    # -- the loop contract travels with the callback (packet review 2026-10-10, rows 3, 8 and 13) -------------------
+    #
+    # The loop stages were refused 3 times for a terminal packet path missing from evidence_refs (stated only at "Do step 3"),
+    # and 3 more times for a loop that had not run, was still active or was not complete (the exit condition was
+    # paraphrased as "until every command passes").  test-author printed no command list or ids and was refused twice
+    # with ids-missing.  Each test renders the real head the CLI prints and submits what it printed.
+
+    def head(self) -> str:
+        state = self.state()
+        return nav.packet_head(CORE, self.run_dir, state, nav.packet_path(self.run_dir, state))
+
+    @staticmethod
+    def template_of(text: str) -> dict:
+        return store.loads(text.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+
+    def assert_loop_contract_in_head(self, head: str, exit_condition: str, repeat_condition: str, receipt: Path) -> None:
+        flat = " ".join(head.split())
+        self.assertEqual(self.template_of(head)["evidence_refs"], [str(receipt)])  # prefilled: nothing to look up
+        self.assertIn("the terminal packet path must be in evidence_refs",
+                      next(row for row in head.splitlines() if row.startswith("Checked by: ")))
+        self.assertIn(" ".join(exit_condition.split()), flat)    # the contract's words, not a paraphrase
+        self.assertIn(" ".join(repeat_condition.split()), flat)
+        self.assertIn("\nStart: ", head)
+        self.assertIn(quality.RECEIPT_LINE + str(receipt), head)
+
+    def test_a_test_loop_head_prefills_the_receipt_prints_the_exit_and_accepts_its_template(self):
+        self.start()
+        for stage in ("test-green", "regression"):
+            with self.subTest(stage=stage):
+                self.drive_to(stage)
+                head = self.head()
+                self.assert_loop_contract_in_head(head, prompts.TEST_EXIT_CONDITION, prompts.TEST_REPEAT_CONDITION,
+                                                  self.terminal())
+                self.assertIn("Test command list", head)
+                full = self.packet()
+                self.assertEqual(full.count("\nStart: "), 1)  # moved up, not repeated at the tail
+                self.assertLess(full.index("\nStart: "), full.index("Current stage guidance:"))
+                self.assertGreater(full.index("\nStart: "), full.index(nav.STATUS_END))  # the status stays in the kept head
+                self.assertLess(head.index(nav.STATUS_END), 8000)  # a status hook reads only the first 8000 bytes
+                (self.repo / "fixed.txt").write_text("fixed\n")
+                (self.repo / "retained.txt").write_text("retained\n")
+                self.run_loop([TRIVIAL])
+                before = nav.current_stage(self.state())
+                # The printed template, headline and summary written and the evidence_refs left as printed.
+                self.complete(dict(self.template_of(head), headline="The loop ran clean.", summary="Every command passed."))
+                self.assertNotEqual(nav.current_stage(self.state()), before)
+
+    def test_a_quality_loop_head_prefills_the_receipt_prints_the_exit_and_accepts_its_template(self):
+        self.start()
+        self.drive_to("static-checks")
+        head = self.head()
+        receipt = self.run_dir / "quality" / (self.action() + "-terminal.json")
+        self.assert_loop_contract_in_head(head, prompts.QUALITY_EXIT_CONDITION, prompts.QUALITY_REPEAT_CONDITION,
+                                          receipt)
+        full = self.packet()
+        self.assertEqual(full.count("\nStart: "), 1)
+        self.assertLess(full.index("\nStart: "), full.index("Current stage guidance:"))
+        self.assertLess(head.index(nav.STATUS_END), 8000)
+        self.assertGreater(full.index("Change inventory for"), full.index("\nStart: "))  # the inventory stays below
+        self.run_quality_loop()
+        self.complete(dict(self.template_of(head), headline="The loop ran clean.", summary="Only trivial findings."))
+        self.assertEqual(nav.current_stage(self.state()), "verify")
+
+    def test_a_loop_stage_without_a_bound_runtime_or_a_command_prefills_no_receipt(self):
+        self.start(improve_skill="")
+        self.drive_to("test-green")
+        evidence = self.template_of(self.head())["evidence_refs"]
+        self.assertNotIn("-terminal.json", " ".join(evidence))
+
+    def test_regression_done_when_claims_only_what_the_loop_and_the_rerun_check(self):
+        done = " ".join(stage_spec.stage("regression").done_when)
+        self.assertNotIn("nothing that passed at baseline fails now", done)
+        self.assertIn("every recorded command", done)
+
+    # -- test-author, test-red and baseline print what the gate judges ------------------------------------------
+
+    def test_the_test_author_packet_lists_the_focused_commands_ids_and_rules_the_probe_judges(self):
+        self.start()
+        self.drive_to("test-author", step_plan=self.probe_item(["TC-1", "TC-2"], min_tests=2))
+        packet = self.packet()
+        flat = " ".join(packet.split())
+        self.assertIn("1. [focused] sh run.sh (must run: TC-1, TC-2) (at least 2 tests)", packet)
+        probe = packet.split("Test probe:", 1)[1].split("\n\n", 1)[0]
+        self.assertNotIn("retained.txt", probe)  # focused only, as the probe runs them
+        self.assertEqual(" ".join(probe.split()).count(" ".join(prompts.ID_WORD_RULE.split())), 1)
+        self.assertIn(" ".join(test_loop.RATCHET_RULE.split()), flat)  # the count floor this probe sets
+        duty = " ".join(prompts.duty("test-author").split())
+        self.assertIn("a failing test that shows every listed ID", duty)
+        self.assertNotIn("or a failing test)", duty)
+
+    def test_an_inner_stage_never_offers_replan_and_an_outer_one_still_does(self):
+        for name in ("test-author", "test-green", "regression"):
+            with self.subTest(stage=name):
+                row = stage_spec.stage(name)
+                self.assertNotIn("replan", row.outcomes)
+                self.assertNotIn("replan", row.test)
+        for name in ("system-test-author", "system-test"):
+            with self.subTest(stage=name):
+                self.assertIn("replan", stage_spec.stage(name).outcomes)
+                self.assertIn("replan", stage_spec.stage(name).test)
+
+    def test_the_test_red_template_offers_red_na_and_every_template_says_each_key_once(self):
+        self.start()
+        self.drive_to("test-red")
+        head = self.head()
+        self.assertNotIn("red_na", self.template_of(head))  # a placeholder there would flip the stage's judgement
+        tail = head.split("\nAllowed outcomes:", 1)[1]
+        self.assertIn('"red_na"', tail)
+        self.assertIn("already pass", tail)
+        self.assertIn("each key once", tail)
+        self.assertIn("replace every placeholder", tail)
+        # The line is true: the result it describes is accepted through the real route.
+        (self.repo / "fixed.txt").write_text("existing\n")
+        self.complete(dict(DONE, red_na="characterisation tests of existing behaviour"))
+        self.assertEqual(nav.current_stage(self.state()), "implement")
+
+    def test_the_baseline_packet_lists_the_commands_and_the_discovery_result(self):
+        self.start()
+        self.drive_to("baseline")
+        packet = self.packet()
+        self.assertIn("Baseline commands", packet)
+        self.assertIn("1. [focused] sh check.sh fixed.txt", packet)
+        self.assertIn("2. [regression] test -f retained.txt", packet)
+        state = self.state()
+        discovery = next(row["action"] for row in state["history"] if row["stage"] == "discovery")
+        self.assertIn(str(self.run_dir / "results" / (discovery + ".md")), packet)
+        self.assertTrue((self.run_dir / "results" / (discovery + ".md")).is_file())  # the path is a real file
+
 
 class ItemScopeSkillSurfaceTests(unittest.TestCase):
     """The skill-surface lists are data in the path-classes catalog, never a path class."""
@@ -1688,6 +1821,7 @@ class WholeWordIdTests(unittest.TestCase):
             packets = {
                 "step-plan duty": test_loop.guidance.duty("step-plan"),
                 "test-author duty": test_loop.guidance.duty("test-author"),
+                "test-author probe": "\n".join(test_loop.probe_lines(state, "W1")),
                 "test-red": "\n".join(test_loop.red_lines(state, "W1")),
                 "test-green": "\n".join(test_loop.render_lines(root, state, "W1", "A1", "test-green")),
                 "regression": "\n".join(test_loop.render_lines(root, state, "W1", "A1", "regression")),

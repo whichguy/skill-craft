@@ -282,6 +282,29 @@ class StepTests(DelegationStateTests):
         state = self.done(state, "README documents divide.")
         self.assertNotEqual(nav.current_stage(state), "implement")
 
+    def test_the_snapshot_does_not_list_implement_as_done_while_steps_remain(self):
+        # On steps 2..N the Progress snapshot listed implement among the accepted-done stages and dropped it from the
+        # pending list beside "Current: implement", which a model that lost its context could read as finished (seen in
+        # 3 packets of one checkers run; packet review 2026-10-10, P-implement-1).
+        state = self.at_implement()
+        first = self.render(state)
+        self.assertIn("Current: implement", first)
+        self.assertIn("Current stage implement: in progress (0 of 2 steps accepted)", first)
+        self.assertNotRegex(first, r"stages completed \(accepted done\):.*\bimplement\b")
+        state = self.done(state, "divide() added.")
+        second = self.render(state)
+        self.assertIn("Current: implement", second)
+        self.assertIn("Current stage implement: in progress (1 of 2 steps accepted)", second)
+        self.assertNotRegex(second, r"stages completed \(accepted done\):.*\bimplement\b")
+        self.assertNotIn("Current stage implement: in progress", self.render(self.done(state, "README documents divide.")))
+        # Only the last accepted step makes implement a completed stage.
+        after = self.render(self.done(state, "README documents divide."))
+        self.assertRegex(after, r"stages completed \(accepted done\):.*\bimplement\b")
+
+    def test_a_chain_implement_has_no_step_count_in_the_snapshot(self):
+        # The chain runs every step inside its one implement action: there is no per-step acceptance to count.
+        self.assertNotIn("Current stage implement: in progress", self.render(self.at_implement("ask-agent")))
+
     def test_one_step_is_one_implement_packet(self):
         state = self.at_implement(steps=[{"id": "S1", "task": "Make the change."}])
         self.assertIn("Step S1 (1 of 1)", self.render(state))
@@ -429,6 +452,49 @@ class PacketContractTests(DelegationStateTests):
         delegated_text = "\n".join(packet for _stage, _kind, packet in delegated)
         for text in BOUND_DELEGATED_TEXT:
             self.assertIn(text, delegated_text)
+
+    def test_a_bound_improve_packet_prints_the_commit_command_right_after_improve_start(self):
+        # The command and the exact commit-message path sat at about 30 KB of a 47 KB packet, below improve-start: one
+        # review wrote the wrong file name and was refused, another searched for the command (packet review
+        # 2026-10-10, P-improve-1).  The planning child does not commit, so it prints neither.
+        with tempfile.TemporaryDirectory(prefix="shiploop-commit-walk-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            walks = {route: bound_walk(repo, route) for route in ("inline", "ask-agent")}
+        checked = 0
+        for route, packets in walks.items():
+            for stage, kind, packet in packets:
+                if kind != "improve":
+                    continue
+                lines = packet.splitlines()
+                with self.subTest(route=route, stage=stage):
+                    commits = [i for i, line in enumerate(lines) if " improve-commit " in line]
+                    if stage == "plan":
+                        self.assertEqual(commits, [])
+                        continue
+                    start = next(i for i, line in enumerate(lines)
+                                 if line.startswith("Then run: ") and " improve-start " in line)
+                    self.assertEqual(commits, [start + 1])
+                    commit = lines[start + 1]
+                    self.assertTrue(commit.startswith("To commit a review iteration's changes"), commit)
+                    written = re.search(r"\(what the review fixed\) to (\S+) with a file-writing tool", commit).group(1)
+                    self.assertIn("--message=" + written, commit)  # the sentence and the callback name one file
+                    checked += 1
+        self.assertGreaterEqual(checked, 12)
+
+    def test_only_the_release_stage_improve_may_perform_a_release_effect(self):
+        # SPEC S-3 and environment-lifecycle.md#release-operation-ownership: a stage-scoped Improve assesses and records
+        # its handoff.  The release-plan Improve packet said "Improve may perform deployments" in the packet that says
+        # it plans without executing release (packet review 2026-10-10, P-imp-1).
+        with tempfile.TemporaryDirectory(prefix="shiploop-release-guard-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            packets = bound_walk(repo, "inline")
+        improve = {stage: " ".join(packet.split()) for stage, kind, packet in packets if kind == "improve"}
+        text = improve["release-plan"]
+        self.assertNotIn("Improve may perform deployments", text)
+        self.assertIn("does not execute or replay a release effect", text)
+        self.assertIn("without executing release", text)
 
     def test_every_active_packet_leads_with_its_legal_callback_and_schedule_text(self):
         with tempfile.TemporaryDirectory(prefix="shiploop-callback-walk-") as temp:

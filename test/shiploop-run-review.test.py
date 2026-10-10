@@ -5945,7 +5945,12 @@ while nav.current_stage(state) != stop:
     nav.save(run_dir, state)
     reviewed = state["active_improve"] is not None
     if reviewed:
-        emit(state)
+        emit(state)  # the improve-bind packet: asks for the card to be bound
+        bound = subprocess.run([sys.executable, str(scripts / "shiploop"), "improve-bind", f"--run-dir={run_dir}", f"--action={action}",
+                                f"--skill-card={scripts.parent.parent / 'improve' / 'SKILL.md'}"], capture_output=True, text=True, env=env)
+        assert bound.returncode == 0, bound.stderr[-1500:] + bound.stdout[-1500:]
+        state = store.read_record(run_dir / "state.md")
+        emit(state)  # the improve-start packet: the bound child's, with every label
         state = nav.finish_improve(state, action, {"summary": "Synthetic Improve receipt."})
         nav.save(run_dir, state)
     accepted[action] = (t0 + timedelta(minutes=2 * (len(visits) + 1))).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -8802,9 +8807,10 @@ class R23bImprovePacketExportTests(unittest.TestCase):
                        "never a defect**", "`Recovery command:`", "`Reviewing the returned <stage> result. Goal:`", "a measured none", "`unmeasured.improvePackets`"):
             self.assertIn(phrase, text, phrase)
 
-    def test_the_checkouts_own_navigator_writes_improve_packets_that_carry_the_labels_it_prints_before_a_card_is_bound(self):
-        """The seed prints each Improve packet before an Improve card is bound, so the bound step's lines (the opening file's headings and
-        `Then run:`, label `output`) are not printed yet; the other four are, in this checkout's engine (skill-craft 1.26.0)."""
+    def test_the_checkouts_own_navigator_writes_improve_packets_that_carry_every_label(self):
+        """The seed binds the Improve card and prints the child's packet, so every label is printed, `output` included, in this
+        checkout's engine. (Before the improve-bind packet kept its own file, the seed's unbound packet was the only one on disk and
+        lacked `output`.)"""
         out, visits = real_engine_run(self.tmp)
         packets = next((out / ".shiploop-runs").glob("*/run/packets"))
         self.assertTrue(any(packets.glob("*-improve.md")), "the engine of this checkout writes the new layout")
@@ -8812,8 +8818,8 @@ class R23bImprovePacketExportTests(unittest.TestCase):
         scored = [r for r in run["stages"] if "improveCarried" in r]
         self.assertEqual(len(scored), len([v for v in visits if v["reviewed"]]))
         for row in scored:
-            self.assertEqual(row["improveCarried"], {key: key != "output" for key in R23B_IMPROVE_KEYS}, row["stage"])
-        self.assertEqual(run["improvePackets"]["carried"], {key: 0 if key == "output" else len(scored) for key in R23B_IMPROVE_KEYS})
+            self.assertEqual(row["improveCarried"], {key: True for key in R23B_IMPROVE_KEYS}, row["stage"])
+        self.assertEqual(run["improvePackets"]["carried"], {key: len(scored) for key in R23B_IMPROVE_KEYS})
 
 
 def r23b_block(name: str = R23B_R1, **changes) -> dict:
