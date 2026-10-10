@@ -23,6 +23,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -1145,6 +1146,84 @@ class TalliesTest(unittest.TestCase):
         document.pop("harness_head")  # the harness's own commit, a stamp of the code that made the file
         self.assertIsNone(re.search(r"\b[0-9a-f]{40}\b", json.dumps(document)), "no commit id of a run's repository")
         for needle in ("Key learnings:", "ShipLoop navigator |", "Callback for this stage", "docs(shiploop): record"):
+            self.assertNotIn(needle, text)
+
+
+def load_reader_change():
+    spec = importlib.util.spec_from_file_location("commit_baseline_reader_change", EVIDENCE / "reader_change.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+class ReaderChangeTest(unittest.TestCase):
+    """docs/experiments/commit-baseline-20261010/reader_change.py: what the change from the harness's own reader to ShipLoop's
+    changed in the saved runs' counts, and the committed file that says so."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.module = load_reader_change()
+
+    @staticmethod
+    def before():
+        """A stand-in for the harness's old reader: one label, case-sensitive, to the end of the message."""
+        return types.SimpleNamespace(lessons=lambda text: text.partition("Key learnings:")[2].strip(),
+                                     LEARNED_FROM=re.compile(r"^Learned-from:[ \t]*(?P<id>[0-9a-fA-F]{7,64})\b", re.M))
+
+    def test_exactly_none_is_the_word_in_any_case_with_punctuation_around_it_and_nothing_else(self):
+        for text, want in (("none", True), ("None.", True), ("- NONE", True), ("none new beyond commit d171177", False), ("nothing", False),
+                           ("", False), ("none\nnone", False), ("a none", False)):
+            with self.subTest(text=text):
+                self.assertEqual(self.module.exactly_none(text), want)
+
+    def test_a_message_is_compared_by_both_readers_and_the_section_that_made_the_difference_is_named(self):
+        got = self.module.compare("S\n\nKey learning: a lesson\n", self.before())
+        self.assertEqual((got["old"], got["new"], got["labels"], got["none"], got["text_differs"]), (False, True, ["Key learning"], False, False))
+        got = self.module.compare("S\n\nKey learning:\nRemaining work: x\n\nLessons: a real one\n", self.before())
+        self.assertEqual(got["labels"], ["Lessons"], "a section with no text made no difference, so it is not named")
+        got = self.module.compare("S\n\nKey learnings: none\n", self.before())
+        self.assertEqual((got["old"], got["new"], got["none"]), (True, True, True))
+        got = self.module.compare("S\n\nKey learnings: a\n\nprose after the section\n", self.before())
+        self.assertEqual((got["old"], got["new"], got["text_differs"]), (True, True, True), "both count it, the text each read differs")
+        got = self.module.compare("S\n\nKey learnings: -\n", self.before())
+        self.assertEqual((got["old"], got["new"]), (True, False), "a commit the old reader counted and the shared one does not is `lost`")
+
+    def test_the_tally_counts_gained_lost_and_the_commits_with_a_different_text_by_class(self):
+        records = [{"kind": "improve", "host": "claude", "old": False, "new": True, "cited_old": 0, "cited_new": 0, "none": False,
+                    "text_differs": False, "labels": ["Key learning"]},
+                   {"kind": "improve", "host": "claude", "old": True, "new": True, "cited_old": 1, "cited_new": 0, "none": True,
+                    "text_differs": True, "labels": ["Key learnings"]},
+                   {"kind": "other", "host": "grok", "old": True, "new": False, "cited_old": 0, "cited_new": 0, "none": False,
+                    "text_differs": False, "labels": []}]
+        got = self.module.tally(records)
+        self.assertEqual(got["improve"], {"n": 2, "old": {"with_lessons": 1, "cited": 1}, "shared": {"with_lessons": 2, "cited": 0},
+                                          "gained": 1, "lost": 0, "text_differs": 1, "exactly_none": 1})
+        self.assertEqual(got["other"]["lost"], 1)
+        self.assertEqual(got["script"]["n"], 0)
+
+    def test_the_committed_comparison_is_for_the_runs_and_commits_the_baseline_counts(self):
+        evidence = json.loads((EVIDENCE / "reader-change.json").read_text())
+        baseline = json.loads((EVIDENCE / "baseline.json").read_text())
+        regraded = [row for row in baseline["per_run"] if not row.get("not_regraded")]
+        self.assertEqual(evidence["runs"], len(regraded))
+        for kind in ("improve", "script", "other"):
+            cell = evidence["all"][kind]
+            self.assertEqual(cell["n"], sum(row["commits"][kind]["n"] for row in regraded), kind)
+            self.assertEqual(cell["shared"]["with_lessons"], sum(row["commits"][kind]["with_lessons"] for row in regraded), kind)
+            self.assertEqual(cell["shared"]["cited"], sum(row["commits"].get(kind, {}).get("cited", 0) for row in regraded), kind)
+            self.assertEqual(cell["shared"]["with_lessons"] - cell["old"]["with_lessons"], cell["gained"] - cell["lost"], kind)
+        for host, kinds in evidence["by_host"].items():
+            for kind, cell in kinds.items():
+                self.assertEqual(cell["shared"]["with_lessons"] - cell["old"]["with_lessons"], cell["gained"] - cell["lost"], (host, kind))
+        self.assertEqual(len(evidence["changed"]), sum(cell["gained"] + cell["lost"] for cell in evidence["all"].values()))
+
+    def test_the_committed_comparison_copies_no_commit_message_and_no_commit_id(self):
+        text = (EVIDENCE / "reader-change.json").read_text()
+        document = json.loads(text)
+        document.pop("harness_head")
+        self.assertIsNone(re.search(r"\b[0-9a-f]{40}\b", json.dumps(document)), "no commit id of a run's repository")
+        for needle in ("Key learnings:", "Review:", "ShipLoop navigator |", "docs(shiploop): record"):
             self.assertNotIn(needle, text)
 
 
