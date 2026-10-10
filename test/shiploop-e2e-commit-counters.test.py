@@ -234,6 +234,38 @@ class ColumnCutHeadTest(unittest.TestCase):
         self.assertIn("1 of 1 packets", unmeasured["head_bytes"])
 
 
+class WhyAHeadIsNotWholeTest(unittest.TestCase):
+    """counters.head_or_why: the head, or the one way a reply is not a whole print of it (the baseline's tallies name them)."""
+
+    @staticmethod
+    def from_head(text: str) -> str:
+        return text[text.index("ShipLoop navigator | "):]
+
+    def test_a_whole_head_comes_back_with_no_reason_and_the_size_the_packets_block_counts(self):
+        text = self.from_head(reply("claude-wholes", "YKoYJ1"))
+        head, why = counters.head_or_why(text)
+        self.assertIsNone(why)
+        self.assertEqual(len(head.encode("utf-8")), size_from(text, "ShipLoop navigator | ", NARRATIVE_END))
+        block, _ = packets_of("claude-wholes")
+        self.assertEqual(entry(block, "nav-c4ba9a9058014550990e958165d663fb")["head_bytes"], len(head.encode("utf-8")))
+
+    def test_a_reply_that_stops_before_the_closing_line_says_so(self):
+        text = self.from_head(reply("claude-wholes", "YKoYJ1"))
+        self.assertEqual(counters.head_or_why(text[:text.index(STATUS_END)]), (None, counters.NOT_WHOLE_BEFORE_CLOSING))
+
+    def test_a_reply_that_opens_the_narrative_and_never_closes_it_says_so(self):
+        text = self.from_head(reply("claude-wholes", "EuCFqm"))
+        self.assertEqual(counters.head_or_why(text), (None, counters.NOT_WHOLE_IN_NARRATIVE))
+
+    def test_a_reply_with_every_line_and_a_shortened_callback_line_says_so(self):
+        text = self.from_head(reply("claude-columns", "9nLJam"))
+        self.assertEqual(counters.head_or_why(text), (None, counters.NOT_WHOLE_SHORTENED))
+
+    def test_the_reasons_are_three_different_texts(self):
+        reasons = {counters.NOT_WHOLE_BEFORE_CLOSING, counters.NOT_WHOLE_IN_NARRATIVE, counters.NOT_WHOLE_SHORTENED}
+        self.assertEqual(len(reasons), 3)
+
+
 class GrokHeadsTest(unittest.TestCase):
     """r3-battleship-grok-none: Grok records the reply as `output_for_prompt` after an `exit: N` line, and its own `total_bytes`."""
 
@@ -502,6 +534,47 @@ class ClassifyTest(GitCase):
         self.replies.append(IMPROVE_LINE.format(sha="0123456789ab", files="x"))
         block, _ = self.counted()
         self.assertEqual((block["improve"]["n"], block["counted"]), (2, 10))
+
+    def historied(self):
+        out = self.run_folder()
+        tools = metrics.ToolLog()
+        for number, event in metrics.events(out / "events.jsonl"):
+            tools.feed(event, None, number)
+        return counters.history(out, None, tools)
+
+    def test_the_history_is_the_commits_the_block_counts_each_with_the_class_it_was_counted_in(self):
+        block, _ = self.counted()
+        found, unmeasured = self.historied()
+        self.assertEqual(unmeasured, {})
+        rows = found["commits"]
+        self.assertEqual(len(rows), block["counted"])
+        for kind in ("improve", "script", "other"):
+            self.assertEqual(sum(row["kind"] == kind for row in rows), block[kind]["n"], kind)
+            self.assertEqual(sum(row["kind"] == kind and bool(counters.lessons(row["message"])) for row in rows),
+                             block[kind]["with_lessons"], kind)
+        self.assertIsNone(found["start"], "a fresh run counts from its first commit")
+
+    def test_a_row_names_its_commit_author_subject_and_message_and_whether_the_knowledge_home_made_it(self):
+        rows = {row["id"]: row for row in self.historied()[0]["commits"]}
+        self.assertEqual(set(rows), set(self.git("rev-list", "--all").split()), "every commit, by its full id")
+        models = [row for row in rows.values() if row["kind"] == "other"]
+        self.assertEqual([row["author"] for row in models], ["Model"] * 3)
+        self.assertTrue(all(row["message"].startswith(row["subject"]) for row in rows.values()))
+        self.assertTrue(all(row["author"] and row["author"] != "Model" for row in rows.values() if row["kind"] != "other"),
+                        "ShipLoop's own commits carry its identity, not the model's")
+        knowledge = [row for row in rows.values() if row["knowledge"]]
+        self.assertEqual(len(knowledge), 2, "the intake commit and the learnings commit")
+        self.assertTrue(all(row["kind"] == "script" and counters.KNOWLEDGE_SUBJECT.match(row["subject"]) for row in knowledge))
+        self.assertEqual(sum(bool(counters.lessons(row["message"])) for row in knowledge), 1)
+
+    def test_an_unreadable_history_has_the_reason_the_commits_block_has(self):
+        import shutil
+        shutil.rmtree(self.work)
+        out = self.run_folder()
+        found, unmeasured = counters.history(out, None, metrics.ToolLog())
+        self.assertIsNone(found)
+        self.assertEqual((counters.commits(out, None, metrics.ToolLog())), (None, unmeasured))
+        self.assertIn("work directory", unmeasured["commits"])
 
     def test_the_lessons_of_the_learnings_commit_come_from_its_learned_section(self):
         body = self.git("log", "-1", "--format=%B")

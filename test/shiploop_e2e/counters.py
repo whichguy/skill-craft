@@ -18,9 +18,12 @@ or baseline row. Absent means unknown: a part this module cannot read is null wi
                newline is counted when the reply shows it; a host that trims it leaves the count one byte short. A reply
                the model cut (``| head``, ``sed -n``, a script of its own), a head printed as a pointer and a prefix (a long packet in
                a state that prints whole), a call that names a packet file (the model reading it) and a packet no reply shows
-               leave ``head_bytes`` null. Saved Claude runs are cut in most replies, so most of their heads are null.
+               leave ``head_bytes`` null. Saved Claude runs are cut in most replies, so most of their heads are null. ``head_or_why`` is the one
+               reader of a head and says, for a reply that is not whole, which of the NOT_WHOLE_* reasons it is.
 ``commits``    the commits made during the run in the product repository (the run folder's ``work/``; every ref; after the head a
-               follow-on or seeded run started from, all of a fresh run's), counted by who made them:
+               follow-on or seeded run started from, all of a fresh run's), counted by who made them. ``history`` classifies them (one
+               row per commit: id, kind, author, subject, message) and ``commits`` counts the rows, so the baseline's regrade and
+               tallies read the same classification:
 
                improve   named by ShipLoop's own ``improve-commit`` reply in the host's tool results ("Committed this review's changes
                          as <sha>"). The Improve card fixes no message shape: 63 of the 132 distinct commits those replies name, in
@@ -30,10 +33,13 @@ or baseline row. Absent means unknown: a part this module cannot read is null wi
                          state.md, and the ones whose subject is ShipLoop's own and nothing else writes (the knowledge home's
                          ``docs(shiploop): record <feature> knowledge at|after <stage>``, the empty baseline, the leftovers
                          commit, a chain's prepared merge). An Improve commit has no mark of its own (the card fixes no
-                         message shape): were the reply of ``improve-commit`` not recorded (cut by the model's pipe), the commit
-                         would be counted under ``other``, so ``improve`` is a lower bound. None is known: the 35 ``other``
-                         commits of the 38 saved runs are the model's own ``git commit`` (32 by the user's Git identity, 3 with
-                         git's own `[branch sha] subject` confirmation in the events).
+                         message shape): were the reply of ``improve-commit`` not recorded (cut by the model's pipe, or run by a
+                         child whose tool results the host's stream does not carry: no saved Claude stream holds a sub-agent, so
+                         that is not known), the commit would be counted under ``other``, so ``improve`` is a lower bound and a
+                         comparison across slice B of the plan reads ``other`` beside it. None of the 35 ``other`` commits of the
+                         38 saved runs is ShipLoop's: 32 carry the user's Git identity where every ShipLoop commit of those runs
+                         carries its own, and 3 have git's own `[branch sha] subject` confirmation in the events
+                         (docs/experiments/commit-baseline-20261010/tallies.json).
                other     the rest (the model's own ``git commit``). A commit that fits no class is counted here, not dropped, so the
                          classes sum to ``counted``.
 
@@ -80,17 +86,23 @@ HEAD_BYTES_WHY = ("a reply is a whole print only from its head's first line to t
                   "packets are shown by no reply)")
 
 
-def _whole_head(reply: str) -> str | None:
-    """The head at the start of ``reply`` (which starts at its ``ShipLoop navigator |`` line) up to its closing line, or None
-    when the reply stops before it: the status block's end, then the narrative block when one follows it."""
+# Why a reply that starts a head is not a whole print of it (the one reader of that: head_or_why; the baseline's tallies count them).
+NOT_WHOLE_BEFORE_CLOSING = "the reply ends before the head's closing line"
+NOT_WHOLE_IN_NARRATIVE = "the reply opens the narrative block and ends inside it"
+NOT_WHOLE_SHORTENED = "every line is there and a callback or keepalive line is shortened (a cut by column)"
+
+
+def head_or_why(reply: str) -> tuple[str | None, str | None]:
+    """(the head, None) at the start of ``reply`` (which starts at its ``ShipLoop navigator |`` line), up to its closing line (the
+    status block's end, then the narrative block when one follows it); or (None, why) with one of the NOT_WHOLE_* reasons."""
     end = reply.find(STATUS_END)
     if end < 0:
-        return None
+        return None, NOT_WHOLE_BEFORE_CLOSING
     cut = end + len(STATUS_END)
     if re.match(r"\n*" + re.escape(NARRATIVE_BEGIN), reply[cut:]):
         close = reply.find(NARRATIVE_END, cut)
         if close < 0:
-            return None
+            return None, NOT_WHOLE_IN_NARRATIVE
         cut = close + len(NARRATIVE_END)
     if reply[cut:cut + 1] == "\n":
         cut += 1
@@ -98,13 +110,13 @@ def _whole_head(reply: str) -> str | None:
     # A cut by column keeps every line and shortens the long ones: the callback line must still end with its result path and the
     # keepalive line with the run directory, as ShipLoop prints them.
     if any(not line.rstrip().endswith(".md") for line in CALLBACK_LINE.findall(head)):
-        return None
+        return None, NOT_WHOLE_SHORTENED
     if any(not re.search(r"\bdir=\S+$", line.rstrip()) for line in KEEPALIVE_LINE.findall(head)):
-        return None
-    return head
+        return None, NOT_WHOLE_SHORTENED
+    return head, None
 
 
-def _heads(reply: str):
+def heads(reply: str):
     """Each head in a reply as (text from its first line to the next head's first line or the end of the reply)."""
     starts = [match.start() for match in HEAD_START.finditer(reply)]
     for index, start in enumerate(starts):
@@ -134,8 +146,8 @@ def packets(out: Path, run_dir: Path | None, tools) -> tuple[list[dict] | None, 
     for reply in tools.replies:
         if reply["packet"]:
             continue
-        for text in _heads(reply["text"]):
-            head = _whole_head(text)
+        for text in heads(reply["text"]):
+            head, _why = head_or_why(text)
             found = FULL_PACKET.search(head) if head else None
             stem = Path(found.group("path")).stem if found else None
             if head is None:
@@ -227,8 +239,9 @@ def _starting_point(out: Path, work: Path) -> tuple[str | None, str | None]:
     return found, None
 
 
-def _messages(work: Path, ids: list[str]) -> dict[str, str]:
-    """The message of each commit, from the commit objects themselves (cat-file, so no log setting reaches the text)."""
+def _objects(work: Path, ids: list[str]) -> dict[str, dict]:
+    """The author's name and the message of each commit, from the commit objects themselves (cat-file, so no log setting reaches the
+    text)."""
     if not ids:
         return {}
     done = _git(work, "cat-file", "--batch", stdin=("\n".join(ids) + "\n").encode())
@@ -240,8 +253,9 @@ def _messages(work: Path, ids: list[str]) -> dict[str, str]:
             position = end + 1
             continue
         size = int(header[2])
-        body = data[end + 1:end + 1 + size]
-        found[header[0].decode()] = body.split(b"\n\n", 1)[1].decode("utf-8", "replace") if b"\n\n" in body else ""
+        head, _blank, body = data[end + 1:end + 1 + size].partition(b"\n\n")
+        author = next((line[len(b"author "):].rsplit(b" <", 1)[0] for line in head.split(b"\n") if line.startswith(b"author ")), b"")
+        found[header[0].decode()] = {"author": author.decode("utf-8", "replace"), "message": body.decode("utf-8", "replace")}
         position = end + 1 + size + 1
     return found
 
@@ -255,8 +269,11 @@ def _item_prefixes(run_dir: Path | None) -> tuple[str, ...]:
                  and item["id"]) if isinstance(items, list) else ()
 
 
-def commits(out: Path, run_dir: Path | None, tools) -> tuple[dict | None, dict]:
-    """(the ``commits`` block, the ``commits_unmeasured`` map): see the module docstring."""
+def history(out: Path, run_dir: Path | None, tools) -> tuple[dict | None, dict]:
+    """(the run's commits, ``{}``) or (None, ``{"commits": why}``): ``{"work": the repository, "start": the head the run started from
+    or None, "commits": [{id, kind, author, subject, message, knowledge}]}``. The one classification: ``commits`` counts these rows and
+    nothing else reads the repository for the block. ``kind`` is improve, script or other; ``knowledge`` is true for the knowledge
+    home's own commits (always ``script``)."""
     out = Path(out)
     work = out / "work"
     if not work.is_dir():
@@ -273,30 +290,45 @@ def commits(out: Path, run_dir: Path | None, tools) -> tuple[dict | None, dict]:
     if listed.returncode:
         return None, {"commits": "git rev-list failed in the work repository: " + (listed.stderr.decode(errors="replace").strip()[:200] or "no message")}
     ids = listed.stdout.decode().split()
-    messages = _messages(work, ids)
+    objects = _objects(work, ids)
     named = {"improve": set(), "item": set()}
     for reply in tools.replies:
         named["improve"].update(found.group("sha") for found in IMPROVE_COMMITTED.finditer(reply["text"]))
         named["item"].update(found.group("sha") for found in ITEM_COMMITTED.finditer(reply["text"]))
     items = _item_prefixes(run_dir)
-    block: dict = {"improve": {"n": 0, "with_lessons": 0, "cited": 0, "cited_earlier_run": 0},
-                   "script": {"n": 0, "with_lessons": 0}, "other": {"n": 0, "with_lessons": 0},
-                   "counted": len(ids), "start_head": start}
+    rows = []
     for commit_id in ids:
-        message = messages.get(commit_id, "")
+        found = objects.get(commit_id, {"author": "", "message": ""})
+        message = found["message"]
         subject = message.split("\n", 1)[0].strip()
+        knowledge = bool(KNOWLEDGE_SUBJECT.match(subject))
         if any(commit_id.startswith(sha) for sha in named["improve"]):
             kind = "improve"
-        elif (any(commit_id.startswith(sha) for sha in named["item"]) or KNOWLEDGE_SUBJECT.match(subject)
+        elif (any(commit_id.startswith(sha) for sha in named["item"]) or knowledge
               or subject in (BASELINE_SUBJECT, LEFTOVERS_SUBJECT) or subject.startswith((CHAIN_PREFIX, *items))):
             kind = "script"
         else:
             kind = "other"
-        row = block[kind]
+        rows.append({"id": commit_id, "kind": kind, "author": found["author"], "subject": subject, "message": message,
+                     "knowledge": knowledge and kind == "script"})
+    return {"work": work, "start": start, "commits": rows}, {}
+
+
+def commits(out: Path, run_dir: Path | None, tools) -> tuple[dict | None, dict]:
+    """(the ``commits`` block, the ``commits_unmeasured`` map): see the module docstring."""
+    ran, why = history(out, run_dir, tools)
+    if ran is None:
+        return None, why
+    work, start = ran["work"], ran["start"]
+    block: dict = {"improve": {"n": 0, "with_lessons": 0, "cited": 0, "cited_earlier_run": 0},
+                   "script": {"n": 0, "with_lessons": 0}, "other": {"n": 0, "with_lessons": 0},
+                   "counted": len(ran["commits"]), "start_head": start}
+    for commit in ran["commits"]:
+        row = block[commit["kind"]]
         row["n"] += 1
-        row["with_lessons"] += bool(lessons(message))
-        if kind == "improve":
-            cited = [found for found in (_commit_id(work, match.group("id")) for match in LEARNED_FROM.finditer(message)) if found]
+        row["with_lessons"] += bool(lessons(commit["message"]))
+        if commit["kind"] == "improve":
+            cited = [found for found in (_commit_id(work, match.group("id")) for match in LEARNED_FROM.finditer(commit["message"])) if found]
             row["cited"] += bool(cited)
             row["cited_earlier_run"] += bool(start and any(_git(work, "merge-base", "--is-ancestor", found, start).returncode == 0
                                                           for found in cited))
