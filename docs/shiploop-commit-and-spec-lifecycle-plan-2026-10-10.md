@@ -177,8 +177,8 @@ Measured per step, without thresholds: printed-head bytes, calls to re-orient af
 | 0b | Harness counters `metrics.packets` and `metrics.commits`; regrade the saved runs for a baseline; two-measurement spike (Improve contract headroom) | Me, harness only, no release |
 | A | Packet diet (deletions) and the head look-back | **The fork**, one pass with its compaction plan; the look-back waits for the baseline |
 | B | Commit contract: Key learnings required, citations validated, script-built bodies from result summaries, an empty commit for a remote change through `improve-commit` | Me, after the fork's fixes merge (different code: `_improve_commit`, `knowledge_home.commit`) |
-| D1 | Mark, not remove: the script writes one line at the top of the feature `spec.md` saying it was merged into the living spec; the plan packet prints the spec pin | Me, after B |
-| D2 | Removal of the feature `spec.md`, the progress-view fix and `features/README.md` | **Owner decision**; only after D1 has been seen in use |
+| R1 | Mark, not remove: the script writes one line at the top of the feature `spec.md` saying it was merged into the living spec; the plan packet prints the spec pin | Me, after B |
+| R2 | Removal of the feature `spec.md`, the progress-view fix and `features/README.md` | **Owner decision (this is D3, narrowed)**; only after R1 has been seen in use |
 | M | Maintainer release preflight | Me, with any release |
 
 ## 1. What you asked for
