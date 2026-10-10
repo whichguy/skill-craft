@@ -52,18 +52,24 @@ class ImproveChangesTests(unittest.TestCase):
         (self.repo / "new_test.py").write_text("def test(): pass\n")
         found = changes.review_changes(self.run, self.repo, "A1")
         self.assertEqual(found, (["app.py", "new_test.py"], ["app.py", "new_test.py"]))
-        refusal = changes.commit_refusal(found, {})
+        owed = changes.uncommitted(found, {})
+        self.assertEqual(owed, ["app.py", "new_test.py"])
+        refusal = changes.commit_refusal(owed, "/run/commit-message.md", "python3 shiploop improve-commit --x")
         self.assertIn("did not commit them:\n- app.py\n- new_test.py", refusal)
-        self.assertEqual(changes.commit_refusal(found, {"no_commit": "The user said: do not commit."}), "")
+        self.assertEqual(refusal.splitlines()[0], "Commit this review's changes first: write the message to "
+                         "/run/commit-message.md with a file tool, then run: python3 shiploop improve-commit --x")
+        self.assertIn("--no-commit", refusal)
+        self.assertNotIn("receipt", refusal)
+        self.assertEqual(changes.uncommitted(found, {"no_commit": "The user said: do not commit."}), [])
         git(self.repo, "add", "app.py", "new_test.py")
         git(self.repo, "commit", "-qm", "review fixes")
         found = changes.review_changes(self.run, self.repo, "A1")
         self.assertEqual(found, (["app.py", "new_test.py"], []))
-        self.assertEqual(changes.commit_refusal(found, {}), "")
+        self.assertEqual(changes.uncommitted(found, {}), [])
 
     def test_no_bind_snapshot_means_unknown(self) -> None:
         self.assertIsNone(changes.review_changes(self.run, self.repo, "missing"))
-        self.assertEqual(changes.commit_refusal(None, {}), "")
+        self.assertEqual(changes.uncommitted(None, {}), [])
 
     def state(self) -> dict:
         return {"repo": str(self.repo), "completed_work_items": ["W1"], "work_items": [{"id": "W1", "title": "t"}],
@@ -76,22 +82,22 @@ class ImproveChangesTests(unittest.TestCase):
         child = {"stage": "carry-forward"}
         self.assertEqual([row["command"] for row in changes.rerun_commands(self.state())], ["sh check.sh"])
         self.bind()
-        nav._improve_change_gate(self.run, self.state(), "A1", child, {})
+        nav._improve_change_gate(None, self.run, self.state(), "A1", child, {})
         self.assertFalse((self.run / "tests" / "A1-verify1.md").exists())  # unchanged: recorded passes stand
         (self.repo / "app.py").write_text("y = 1\n")  # the review broke the check and committed it
         git(self.repo, "commit", "-qam", "review edit")
         with self.assertRaisesRegex(nav.NavigatorError, r"(?s)end-of-work review is not done.*sh check.sh"):
-            nav._improve_change_gate(self.run, self.state(), "A1", child, {})
+            nav._improve_change_gate(None, self.run, self.state(), "A1", child, {})
         (self.repo / "app.py").write_text("x = 3\n")
         git(self.repo, "commit", "-qam", "review fix")
-        nav._improve_change_gate(self.run, self.state(), "A1", child, {})
+        nav._improve_change_gate(None, self.run, self.state(), "A1", child, {})
         self.assertTrue(store.read_record(self.run / "tests" / "A1-verify2.md")["passed"])
 
     def test_a_planning_review_does_not_rerun_tests(self) -> None:
         self.bind()
         (self.repo / "app.py").write_text("y = 1\n")
         git(self.repo, "commit", "-qam", "plan review edit")
-        nav._improve_change_gate(self.run, self.state(), "A1", {"stage": "step-plan"}, {})
+        nav._improve_change_gate(None, self.run, self.state(), "A1", {"stage": "step-plan"}, {})
         self.assertFalse((self.run / "tests").exists())
 
 

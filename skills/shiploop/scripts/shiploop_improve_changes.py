@@ -84,16 +84,27 @@ def review_changes(run_dir: Path, repo: Path, action: str) -> Optional[Tuple[Lis
     return changed, [p for p in changed if p in dirty]
 
 
-def commit_refusal(changes: Optional[Tuple[List[str], List[str]]], receipt: Mapping[str, Any]) -> str:
-    """Refusal text when the review left its own edits uncommitted ('' when fine)."""
-    if changes is None or not changes[1] or str(receipt.get("no_commit") or "").strip():
-        return ""
-    return ("ShipLoop Improve import: the review changed these files but did not commit them:\n"
-            + "".join("- " + path + "\n" for path in changes[1])
-            + "An Improve review makes the changes it finds warranted, in code, tests or documentation, and "
-              "commits them. Stage exactly these paths, commit them with a message saying what the review "
-              "fixed, then submit the receipt again. If the user or repository said not to commit, add "
-              "no_commit to the receipt with that instruction.")
+def uncommitted(changes: Optional[Tuple[List[str], List[str]]], receipt: Mapping[str, Any]) -> List[str]:
+    """The files the review changed and left uncommitted ([] when none, when unknown, or when the receipt says not to)."""
+    if changes is None or str(receipt.get("no_commit") or "").strip():
+        return []
+    return list(changes[1])
+
+
+def commit_refusal(paths: List[str], message_path: str, command: str) -> str:
+    """The import refusal for the review's uncommitted edits.
+
+    Line 1 is the fix and the exact command (last, so it can be copied); the exit for a user's or repository's
+    instruction not to commit is improve-complete's ``--no-commit`` flag, which fills the receipt's ``no_commit``.
+    """
+    return ("Commit this review's changes first: write the message to " + message_path + " with a file tool, "
+            "then run: " + command + "\n"
+            "ShipLoop Improve import: the review changed these files but did not commit them:\n"
+            + "".join("- " + path + "\n" for path in paths)
+            + "improve-commit commits exactly these files and needs a \"Key learnings:\" line in the message "
+              "(\"Key learnings: none\" when nothing was learned); a git commit typed by hand skips that check. "
+              "Then run the same improve-complete command again. If the user or repository said not to commit, "
+              "run that command with --no-commit \"<their instruction>\" added.")
 
 
 def rerun_commands(state: Mapping[str, Any]) -> List[Dict[str, Any]]:
@@ -107,4 +118,4 @@ def rerun_commands(state: Mapping[str, Any]) -> List[Dict[str, Any]]:
     return list(seen.values())
 
 
-__all__ = ("bind_path", "bind_writes", "commit_refusal", "rerun_commands", "review_changes")
+__all__ = ("bind_path", "bind_writes", "commit_refusal", "rerun_commands", "review_changes", "uncommitted")

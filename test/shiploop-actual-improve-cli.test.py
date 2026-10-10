@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 import os
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -999,8 +1000,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         message.parent.mkdir(parents=True, exist_ok=True)
         message.write_text("docs: tighten the contract example\n\nReview found a vague example.\n", encoding="utf-8")
         self.assertIn("Nothing to commit", self.invoke(*commit).stdout)
+        self.assertFalse(message.exists())  # a no-op consumes the message: it cannot be committed later by accident
         self.product_contract.write_text("# Product contract\n\n## child-contract-transfer\nExact.\n",
                                          encoding="utf-8")
+        message.write_text("docs: tighten the contract example\n\nReview found a vague example.\n"
+                           "\nKey learnings: an exact example catches drift.\n", encoding="utf-8")
         before = git("rev-parse", "HEAD").strip()
         done = self.invoke(*commit).stdout
         head = git("rev-parse", "HEAD").strip()
@@ -1573,6 +1577,277 @@ class LoopContractSizeTests(unittest.TestCase):
             argv = [sys.executable, "-c", re.search(r'-c "(.*)" CONTRACT_FILE', command).group(1), str(contract)]
             out = subprocess.run(argv, capture_output=True, text=True, check=True).stdout.strip()
         self.assertEqual(int(out), loop_contract.compact_bytes(self.contract(request="日本語 \u2014 " * 50)))
+
+
+class ImproveCommitContractTests(ImproveCliFixture):
+    """improve-commit through the real CLI: what it checks, in what order, and that every refusal's named exit works.
+
+    The shared helpers read LINE 1 of a refusal, take the command it ends with and run it, so a refusal that names
+    an exit the gate then refuses cannot pass.  A neutral repository: nothing here comes from a saved run.
+    """
+
+    def _start_parent(self, card):
+        """No parent yet: each test makes the repository a Git repository first, then binds at its stage."""
+
+    def setUp(self):
+        super().setUp()
+        self.environment["HOME"] = str(self.base / "home")
+
+    def git(self, *args):
+        return subprocess.run(["git", "-C", str(self.repo), *args], check=True, capture_output=True, text=True,
+                              env=self.environment).stdout
+
+    def begin(self, stage="test-strategy"):
+        self.git("init", "-q")
+        self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "add", "-A")
+        self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-qm", "base")
+        self.base_commit = self.git("rev-parse", "HEAD").strip()
+        (self.repo / "scratch.txt").write_text("the user's own uncommitted note\n", encoding="utf-8")
+        self._start_parent_at_stage(stage, [str(self.product_contract)])
+        self.message = bridge.receipt_path(self.bound).with_name("commit-message.md")
+        self.message.parent.mkdir(parents=True, exist_ok=True)
+        self.commit_args = [CLI, "improve-commit", "--run-dir", self.run, "--action", self.action,
+                            "--message", self.message]
+
+    def edit(self, text="Exact.\n"):
+        self.product_contract.write_text("# Product contract\n\n## child-contract-transfer\n" + text, encoding="utf-8")
+
+    def write(self, text):
+        self.message.write_text(text, encoding="utf-8")
+
+    def refused(self, *extra):
+        return self.invoke(*self.commit_args, *extra, status=2).stderr
+
+    def line_one(self, stderr):
+        first = stderr.splitlines()[0]
+        self.assertTrue(first.startswith("ShipLoop navigator: "), stderr)
+        return first[len("ShipLoop navigator: "):]
+
+    def named_exit(self, stderr):
+        """The command LINE 1 ends with: what a model that reads nothing else would run."""
+        line = self.line_one(stderr)
+        self.assertIn("run: ", line)
+        return shlex.split(line.rsplit("run: ", 1)[1])
+
+    def run_named(self, stderr, status=0):
+        result = subprocess.run(self.named_exit(stderr), text=True, capture_output=True, cwd=self.base, timeout=60,
+                                env=self.environment)
+        self.assertEqual(result.returncode, status, result.stdout + result.stderr)
+        return result
+
+    def head_message(self):
+        return self.git("log", "-1", "--format=%B").rstrip("\n") + "\n"
+
+    def test_lessons_are_required_for_a_commit_and_the_named_exit_commits(self):
+        """Fail-first: any message used to be committed."""
+        self.begin()
+        self.edit()
+        self.write("docs: tighten the contract example\n\nReview found a vague example.\n")
+        before = self.git("rev-parse", "HEAD").strip()
+        stderr = self.refused()
+        line = self.line_one(stderr)
+        self.assertTrue(line.startswith('Add a "Key learnings:'), line)
+        self.assertIn(str(self.message), line)
+        self.assertIn("or none", line)  # the honest exit is on line 1: a model that reads only that does not invent
+        self.assertIn("do not invent a lesson", stderr.splitlines()[1])
+        self.assertEqual(before, self.git("rev-parse", "HEAD").strip())
+        self.write("docs: tighten the contract example\n\nKey learnings: exact examples catch drift.\n")
+        done = self.run_named(stderr).stdout
+        self.assertIn("Committed this review's changes as ", done)
+        self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(), ["product/contracts/cold-recovery.md"])
+        self.assertIn("Key learnings: exact examples catch drift.", self.head_message())
+        self.assertIn("?? scratch.txt", self.git("status", "--porcelain"))
+        self.assertFalse(self.message.exists())
+
+    def test_every_form_the_grammar_reads_and_the_honest_none_are_accepted(self):
+        """Guard, not fail-first: every message was accepted before the gate; this pins what it must still accept."""
+        self.begin()
+        for number, lessons in enumerate(("Key learnings: none", "## Key learnings\n- the first\n\n- the second",
+                                          "**Key learnings:** pin it", "Lessons:\n\nthe label alone, then the text"), 1):
+            with self.subTest(lessons=lessons):
+                self.edit("Version " + str(number) + ".\n")
+                self.write("docs: edit " + str(number) + "\n\n" + lessons + "\n\nCo-Authored-By: T <t@example.invalid>\n")
+                before = self.git("rev-parse", "HEAD").strip()
+                self.invoke(*self.commit_args)
+                self.assertNotEqual(before, self.git("rev-parse", "HEAD").strip())
+
+    def test_an_empty_lessons_label_and_a_one_paragraph_message_are_refused_with_what_to_fix(self):
+        self.begin()
+        self.edit()
+        self.write("docs: x\n\nKey learnings:\n\nRemaining work: none\n")
+        line = self.line_one(self.refused())
+        self.assertTrue(line.startswith('The "Key learnings" label'), line)
+        self.assertIn("has no text", line)
+        self.write("docs: x\n\nReview: a. Plan: b. Changes: c. Validation: d. Key learnings: e. Remaining work: f.\n")
+        stderr = self.refused()
+        self.assertTrue(self.line_one(stderr).startswith('Add a "Key learnings:'))
+        self.assertIn("on a line of its own", stderr.splitlines()[1])
+        self.write("docs: x\n\n## Key learnings\n\nCo-Authored-By: T <t@example.invalid>\n")
+        self.assertTrue(self.line_one(self.refused()).startswith('The "Key learnings" label'))  # a trailer is no lesson
+
+    def test_a_review_that_changed_nothing_never_asks_for_lessons_makes_no_commit_and_consumes_the_message(self):
+        """Guard (it passes but for the last line): an unchanged pass is never asked for lessons (D4)."""
+        self.begin()
+        before = self.git("rev-parse", "HEAD").strip()
+        for text in ("docs: nothing changed\n\nReview found nothing to change.\n",
+                     "docs: nothing\n\nKey learnings: none\nRemote change: none\n"):
+            self.write(text)
+            done = self.invoke(*self.commit_args).stdout
+            self.assertIn("Nothing to commit", done)
+            self.assertEqual(before, self.git("rev-parse", "HEAD").strip())
+            self.assertFalse(self.message.exists(), "a stale message must not be committable later")
+        # the stale message is gone: changing a file now needs a message written for it
+        self.edit()
+        self.assertIn("write the commit message with a file tool first", self.refused())
+
+    def test_the_file_refusals_each_name_the_command_and_the_empty_file_does_not_ask_for_lessons(self):
+        self.begin()
+        self.edit()
+        stderr = self.invoke(CLI, "improve-commit", "--run-dir", self.run, "--action", self.action,
+                             "--message", self.base / "elsewhere.md", status=2).stderr
+        self.assertIn("must be the printed file " + str(self.message), self.line_one(stderr))
+        stderr = self.run_named(stderr, status=2).stderr
+        self.assertIn("write the commit message with a file tool first", self.line_one(stderr))
+        self.write("   \n")
+        stderr = self.run_named(stderr, status=2).stderr
+        line = self.line_one(stderr)
+        self.assertIn("the commit message file is empty", line)
+        self.assertNotIn("Key learnings", line)
+        self.write("docs: fix\n\nKey learnings: none\n")
+        self.run_named(stderr)
+        self.assertNotEqual(self.base_commit, self.git("rev-parse", "HEAD").strip())
+
+    def test_a_child_that_is_no_longer_bound_and_a_missing_bind_snapshot_each_get_a_remedy(self):
+        self.begin()
+        self.edit()
+        self.write("docs: fix\n\nKey learnings: none\n")
+        stderr = self.invoke(CLI, "improve-commit", "--run-dir", self.run, "--action", "someone-elses-action",
+                             "--message", self.message, status=2).stderr
+        line = self.line_one(stderr)
+        self.assertIn("no bound current Improve child for this action", line)
+        self.assertIn(" next ", line)
+        self.assertIn("ShipLoop navigator | ", self.run_named(stderr).stdout)  # `next` reads the packet and exits 0
+        bind = self.run / "improve" / (self.action + "-bind.md")
+        bind.unlink()
+        stderr = self.refused()
+        line = self.line_one(stderr)
+        self.assertIn("no bind snapshot", line)
+        self.assertIn("improve-complete", line)
+        self.assertEqual(self.named_exit(stderr)[2], "improve-complete")
+
+    def test_a_credential_is_refused_by_line_without_echoing_it_even_in_a_learned_from_token(self):
+        self.begin()
+        self.edit()
+        secret, token = "Bearer abcdefghijklmnop12345678", "sk-abcdefghijklmnop123456"
+        self.write("docs: fix\n\nKey learnings: the header was\nAuthorization: " + secret + "\nLearned-from: " + token
+                   + " the pattern\n")
+        stderr = self.refused()
+        line = self.line_one(stderr)
+        self.assertTrue(line.startswith("Reword lines 4, 5 of " + str(self.message)), line)
+        for fragment in (secret, "abcdefghijklmnop", token, "sk-abc"):
+            self.assertNotIn(fragment, stderr)
+        self.write("docs: fix\n\nKey learnings: the header was named in the config, not copied here.\n")
+        self.run_named(stderr)
+        self.assertEqual(self.git("log", "-1", "--format=%s").strip(), "docs: fix")
+
+    def test_a_lesson_that_mentions_a_token_in_prose_is_reworded_not_dropped(self):
+        self.begin()
+        self.edit()
+        self.write("docs: fix\n\nKey learnings: use the session token: it expires hourly\n")
+        stderr = self.refused()
+        self.assertTrue(self.line_one(stderr).startswith("Reword line 3 of "), stderr)
+        self.assertIn("the lesson stays", stderr)
+
+    def test_citations_are_resolved_by_git_and_a_prefix_is_written_as_the_full_id(self):
+        self.begin()
+        self.edit()
+        full = self.base_commit
+        self.git("checkout", "-q", "-b", "elsewhere")
+        self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-q", "--allow-empty", "-m", "elsewhere")
+        stray = self.git("rev-parse", "HEAD").strip()
+        self.git("checkout", "-q", "-")
+        self.write("\n".join([
+            "docs: fix", "", "Co-Authored-By: T <t@example.invalid>", "",
+            "Learned-from: 0000000 an id that does not exist",
+            "Learned-from: " + stray + " a commit that is on another branch",
+            "Learned-from: main a branch is not a commit id",
+            "Learned-from: " + full[:9],
+            "Learned-from: `" + full[:8] + "`: the file layout of the base commit", ""]))
+        stderr = self.refused()
+        lines = stderr.splitlines()
+        # lessons are missing too: one refusal lists everything, and line 1 says both fixes
+        self.assertTrue(self.line_one(stderr).startswith('Add a "Key learnings:'), stderr)
+        self.assertIn("Learned-from", self.line_one(stderr))
+        problems = [row for row in lines if row.startswith("- line ")]
+        self.assertEqual([row.split(":")[0] for row in problems], ["- line 5", "- line 6", "- line 7", "- line 8"])
+        self.assertIn("names no commit in this repository", problems[0])
+        self.assertIn("is not reachable from HEAD", problems[1])
+        self.assertIn("is not a commit ID", problems[2])
+        self.assertIn("say what the commit contributed", problems[3])
+        self.assertNotIn("main a branch", stderr)
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), full)
+        # the fix: one good line (delete a line if that commit did not help), plus the lesson
+        self.write("docs: fix\n\nKey learnings: the layout is one file.\nLearned-from: `" + full[:8]
+                   + "`: the file layout of the base commit\n\nCo-Authored-By: T <t@example.invalid>\n")
+        self.run_named(stderr)
+        stored = self.head_message()
+        self.assertIn("Learned-from: " + full + " the file layout of the base commit", stored)
+        self.assertNotIn("`", stored)
+        self.assertTrue(stored.endswith("Co-Authored-By: T <t@example.invalid>\n"))
+        self.assertNotIn("none cited", stored)
+
+    def test_the_checks_run_credentials_first_and_the_lessons_and_citations_come_in_one_refusal(self):
+        self.begin()
+        self.edit()
+        self.write("docs: fix\n\nAuthorization: Bearer abcdefghijklmnop12345678\nLearned-from: 0000000 no such commit\n")
+        first = self.refused()
+        self.assertTrue(self.line_one(first).startswith("Reword line 3 of "), first)
+        self.write("docs: fix\n\nLearned-from: 0000000 no such commit\n")
+        second = self.refused()
+        # one refusal, not one turn per problem: line 1 asks for both fixes and the problem lines follow
+        self.assertTrue(self.line_one(second).startswith('Add a "Key learnings:'), second)
+        self.assertIn("Learned-from", self.line_one(second))
+        self.assertIn("- line 3: the ID names no commit in this repository", second)
+        self.write("docs: fix\n\nKey learnings: none\n")
+        self.run_named(second)
+
+    def test_a_message_without_any_citation_is_accepted_and_a_citation_alone_is_not_enough(self):
+        self.begin()
+        self.edit()
+        self.write("docs: fix\n\nLearned-from: " + self.base_commit + " the layout\n")
+        self.assertTrue(self.line_one(self.refused()).startswith('Add a "Key learnings:'))  # a citation is not a lesson
+        self.write("docs: fix\n\nKey learnings: the layout is one file.\n")
+        self.invoke(*self.commit_args)
+
+    def commit_gate_refusal(self):
+        """Run the child to its terminal packet with an uncommitted edit; the refusal improve-complete gives."""
+        self.begin("spec")
+        self.edit()
+        self.finish_ephemeral(self.start_ephemeral_child()[1])
+        self.completion, _receipt = self.completion_receipt()
+        return self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
+                           *self.completion, status=2).stderr
+
+    def test_the_uncommitted_edits_refusal_names_improve_commit_and_the_exit_commits(self):
+        stderr = self.commit_gate_refusal()
+        line = self.line_one(stderr)
+        self.assertTrue(line.startswith("Commit this review's changes first"), line)
+        self.assertIn(str(self.message), line)
+        self.assertIn("- product/contracts/cold-recovery.md", stderr)
+        self.assertNotIn("Stage exactly these paths", stderr)
+        self.write("docs: tighten\n\nKey learnings: exact examples catch drift.\n")
+        self.run_named(stderr)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *self.completion)
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+
+    def test_the_uncommitted_edits_refusal_names_the_no_commit_exit_and_improve_complete_accepts_it(self):
+        stderr = self.commit_gate_refusal()
+        self.assertIn("--no-commit", stderr)
+        exit_line = next(row for row in stderr.splitlines() if "--no-commit" in row)
+        self.assertNotIn("receipt", exit_line)  # improve-complete has no receipt file to edit: it has a flag
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *self.completion,
+                    "--no-commit", "The user said not to commit.")
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
 
 
 class AskAgentEphemeralImproveCliTests(ImproveCliFixture):
