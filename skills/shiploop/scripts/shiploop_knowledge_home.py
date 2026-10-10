@@ -135,6 +135,36 @@ def _expand(names: Sequence[str], state: Mapping[str, Any]) -> List[str]:
     return [name.replace("{feature}", feature) if "{feature}" in name else HOME + "/" + name for name in names]
 
 
+def _filled(path: Path) -> bool:
+    """Whether ``path`` is a file with some text in it: absent, empty and blank all read as missing.
+
+    The one "present" rule, for the close (a required file) and for ``grounding`` (a file the packet points at).
+    """
+    try:
+        return path.is_file() and bool(path.read_text(encoding="utf-8", errors="replace").strip())
+    except OSError:
+        return False
+
+
+# What an inner stage reads before it decides, in this order: the contract, then what this run changes of it, then where
+# and how it runs, how it is built, how it is tested.  The labels are the packet's words for the files.
+_GROUNDING = (("living spec", "spec.md"), ("feature spec", "{feature}/spec.md"), ("environment", "environment.md"),
+              ("architecture", ARCHITECTURE), ("test strategy", "test-strategy.md"))
+GROUNDING_LABELS = tuple(label for label, _ in _GROUNDING)
+
+
+def grounding(state: Mapping[str, Any]) -> List[Tuple[str, Path]]:
+    """The knowledge files an inner stage grounds its decisions in, as ``(label, absolute path)`` in ``GROUNDING_LABELS`` order.
+
+    Absolute, in the execution checkout ``state["repo"]``; this run's feature spec, never an earlier run's.  A file that is
+    absent, empty or blank is left out.  It reads the file system only (no Git, nothing written), so it is safe outside a
+    checkout, before the home exists and on every packet render.
+    """
+    repo = Path(str(state["repo"]))
+    paths = _expand([name for _, name in _GROUNDING], state)
+    return [(label, repo / path) for (label, _), path in zip(_GROUNDING, paths) if _filled(repo / path)]
+
+
 def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     """Packet lines: where the knowledge home is and what this stage keeps up to date there."""
     repo = Path(str(state["repo"]))
@@ -210,8 +240,7 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
     if stage not in CLOSES and not _home_changed(repo):
         return ""
     required = _expand(CLOSES.get(stage, ()), state)
-    missing = [path for path in required if not (repo / path).is_file() or not (repo / path).read_text(
-        encoding="utf-8", errors="replace").strip()]
+    missing = [path for path in required if not _filled(repo / path)]
     if missing:
         # Line 1 is what a model that reads only the first line of a refusal needs: the action and the files.  The
         # paths are absolute because the shell's directory is the original checkout, while these files belong in
@@ -276,5 +305,6 @@ def in_home(path: str) -> bool:
     return path in KNOWLEDGE or path.startswith(HOME + "/")
 
 
-__all__ = ("ARCHITECTURE", "ARCHITECTURE_HOLDS", "CLOSES", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "check", "commit", "feature_dir", "in_home", "learnings",
-           "next_close", "recent_commits", "required_earlier", "stage_lines")
+__all__ = ("ARCHITECTURE", "ARCHITECTURE_HOLDS", "CLOSES", "GROUNDING_LABELS", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS",
+           "check", "commit", "feature_dir", "grounding", "in_home", "learnings", "next_close", "recent_commits",
+           "required_earlier", "stage_lines")

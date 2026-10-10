@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import time
 import subprocess
 import sys
@@ -433,6 +434,90 @@ class ArchitectureTests(HomeFixture):
                     continue  # its outcome.md sections are the writer's job, checked by the release-verify test above
                 self.assertEqual(knowledge.check(self.state, close), "")
         self.assertTrue((self.repo / self.ARCH).is_file())
+
+
+class GroundingTests(HomeFixture):
+    """knowledge.grounding(state): what an inner stage reads before it decides, as labelled absolute paths."""
+
+    def write_all(self) -> dict:
+        support.write(self.state)
+        feature = knowledge.feature_dir(self.state)
+        return {"living spec": self.repo / "docs/shiploop/spec.md", "feature spec": self.repo / feature / "spec.md",
+                "environment": self.repo / "docs/shiploop/environment.md",
+                "architecture": self.repo / "docs/shiploop/architecture.md",
+                "test strategy": self.repo / "docs/shiploop/test-strategy.md"}
+
+    def test_the_labels_their_order_and_the_absolute_paths_in_the_execution_checkout(self) -> None:
+        expected = self.write_all()
+        self.assertEqual(knowledge.GROUNDING_LABELS, ("living spec", "feature spec", "environment", "architecture", "test strategy"))
+        found = knowledge.grounding(self.state)
+        self.assertEqual([label for label, _ in found], list(knowledge.GROUNDING_LABELS))
+        self.assertEqual(dict(found), expected)
+        for _, path in found:
+            self.assertTrue(path.is_absolute() and path.is_file())
+            self.assertTrue(str(path).startswith(str(self.repo) + "/"))
+
+    def test_a_missing_empty_or_blank_file_is_absent_and_the_rest_keep_their_order(self) -> None:
+        expected = self.write_all()
+        expected["environment"].unlink()
+        expected["feature spec"].write_text("")
+        expected["test strategy"].write_text(" \n\t\n")
+        self.assertEqual([label for label, _ in knowledge.grounding(self.state)], ["living spec", "architecture"])
+        expected["architecture"].unlink()
+        self.assertEqual(knowledge.grounding(self.state), [("living spec", expected["living spec"])])
+
+    def test_an_absent_home_a_directory_in_a_files_place_and_an_unreadable_file_give_nothing(self) -> None:
+        self.assertEqual(knowledge.grounding(self.state), [])
+        expected = self.write_all()
+        expected["architecture"].unlink()
+        expected["architecture"].mkdir()
+        self.assertNotIn("architecture", dict(knowledge.grounding(self.state)))
+        expected["environment"].chmod(0)
+        self.addCleanup(expected["environment"].chmod, 0o644)
+        if os.access(expected["environment"], os.R_OK):  # a superuser reads it anyway: nothing unreadable to test
+            return
+        self.assertNotIn("environment", dict(knowledge.grounding(self.state)))
+
+    def test_the_feature_file_is_this_runs_not_an_earlier_runs(self) -> None:
+        expected = self.write_all()
+        earlier = dict(self.state, run_id="nav-ffffffffffffff0001", prompt="An earlier request.")
+        other = self.repo / knowledge.feature_dir(earlier) / "spec.md"
+        other.parent.mkdir(parents=True)
+        other.write_text("R-1: earlier.\n")
+        self.assertEqual(dict(knowledge.grounding(self.state))["feature spec"], expected["feature spec"])
+        self.assertEqual(dict(knowledge.grounding(earlier))["feature spec"], other)
+
+    def test_it_runs_no_git_writes_nothing_and_needs_no_checkout(self) -> None:
+        self.write_all()
+        plain = Path(tempfile.mkdtemp(prefix="shiploop-grounding-plain-"))
+        self.addCleanup(shutil.rmtree, plain, ignore_errors=True)
+        copy = plain / "repo"
+        shutil.copytree(self.repo, copy, ignore=shutil.ignore_patterns(".git"))  # not a checkout at all
+        state = dict(self.state, repo=str(copy))
+
+        def listing() -> list:
+            return sorted((str(p.relative_to(copy)), p.stat().st_mtime_ns, p.stat().st_size) for p in copy.rglob("*"))
+
+        before = listing()
+        with mock.patch.object(knowledge, "_git", side_effect=AssertionError("git")), \
+                mock.patch.object(subprocess, "run", side_effect=AssertionError("subprocess")), \
+                mock.patch.object(subprocess, "Popen", side_effect=AssertionError("subprocess")):
+            found = knowledge.grounding(state)
+        self.assertEqual([label for label, _ in found], list(knowledge.GROUNDING_LABELS))
+        self.assertEqual(before, listing())
+
+    def test_grounding_and_the_close_agree_on_what_a_present_file_is(self) -> None:
+        """One rule (knowledge._filled): the file the close counts as written is the file the packet points at."""
+        expected = self.write_all()
+        for body in (None, "", " \n", "text\n"):
+            with self.subTest(body=body):
+                if body is None:
+                    expected["architecture"].unlink(missing_ok=True)
+                else:
+                    expected["architecture"].write_text(body)
+                refusal = knowledge.check(self.state, "prepare")
+                self.assertEqual("architecture" in dict(knowledge.grounding(self.state)),
+                                 str(expected["architecture"]) not in refusal)
 
 
 FIXTURES = ROOT / "test" / "fixtures" / "commit-contract"
