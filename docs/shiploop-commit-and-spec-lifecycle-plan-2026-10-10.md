@@ -158,6 +158,29 @@ Measured per step, without thresholds: printed-head bytes, calls to re-orient af
 
 **D7, recommended: yes.** The fallback with no new file is the packet clause alone. Use is unmeasured: count reads of the list and of earlier feature folders in the first follow-on pair.
 
+## 0d. Advice from the E2E fork (2026-10-10) and plan of action v5
+
+**Supersedes the order in 0a, 0b and 0c where it differs.** The Run Review / E2E fork (which owns the exporter and the page) answered five questions from its data and code. What it added or changed:
+
+- **Packets.** Its exports agree: six reviewers on checkers-1, battleship-1 and s6-after-spec found the model read 3 of 46 packets whole (intake, one Improve) and worked 43 of 46 visits from the printed head plus one `sed` of Goal-to-template or one grep. A cold resume does read the whole 38K file and re-grounds in 6 calls, so the full file serves cold resumes, not mid-run. 24 of 46 packets open with the delegation preamble, so the first screen ends before the first Done-when bullet. Absolute paths are 23% of bytes (3,477 occurrences, 323 distinct); lines identical in at least 80% of packets are 55% of bytes. Reads are measured for Claude only (Grok has no `toolUse.packets`). The "Planning investigation notebook" path is printed and never created, like the pass log. **Keep** (it asked me not to cut): the callback once, Done-when, Checked by, the result template and outcome shapes, recovery, pause and halt, the workspace commands at release-plan to handoff, the "keeps these up to date" file line (models grepped for it 4 times), the improve-commit path, exact assumption fields, the original request in planning stages.
+- **Ownership.** The fork is writing a packet-compaction plan (`docs/shiploop-packet-compaction-plan-2026-10-10.md`) and has three fix agents editing `render()`, `packet_head()` and `DUTIES` in `shiploop_navigator.py` right now. **The packet diet is therefore its pass, not mine**, and the head look-back waits. The exact deletions were sent (the 33-link policy block, the duplicate status, the duplicate callback and result path, the Improve negatives, the pass-log sentence and the dead notebook line).
+- **Measurement.** The exporter already shows re-orientation after a clear, refusals by stage, packet bytes per stage and delivered files. It lacks printed-head bytes, commits with a lessons section and citations. Harness additions (additive, absent means unknown): `metrics.packets` = `[{action, stage, file_bytes, head_bytes}]` and `metrics.commits` = `{improve: {n, with_lessons, cited, cited_earlier_run}, script: {n, with_lessons}}`. **Build these first** and regrade the saved runs, so a baseline exists before any slice changes anything.
+- **Retire step.** The exporter never reads `features/**` or `spec.md`; a removed spec drops out of its size map. What would mislead is ShipLoop's own progress view: `shiploop_progress_data.py` lists `{feature}/spec.md` as a fixed document and warns "Document missing: feature-spec" when it is gone. The fork's cheaper variant: keep the file and have the script write one line at its top, "merged into docs/shiploop/spec.md". Removal and the features list become a separate owner decision (12 of 32 READMEs link `spec.md`).
+- **Look-back.** Defer until the new counters show how many commits carry a lessons section; about 1K more on a head whose median is 1.3K is an unmeasured cost.
+- **Checkout owners.** The fork does not know whose uncommitted work is in the main checkout (by dates: the Oct 8 script-state audit plus ask-agent work). `ListAgents` shows two other busy sessions with no working directory listed. D8 stays the owner's.
+
+### Plan of action v5
+
+| Step | What | Who |
+|---|---|---|
+| 0 | D8: whose is the uncommitted work in the main checkout (do not touch it) | Owner |
+| 0b | Harness counters `metrics.packets` and `metrics.commits`; regrade the saved runs for a baseline; two-measurement spike (Improve contract headroom) | Me, harness only, no release |
+| A | Packet diet (deletions) and the head look-back | **The fork**, one pass with its compaction plan; the look-back waits for the baseline |
+| B | Commit contract: Key learnings required, citations validated, script-built bodies from result summaries, an empty commit for a remote change through `improve-commit` | Me, after the fork's fixes merge (different code: `_improve_commit`, `knowledge_home.commit`) |
+| D1 | Mark, not remove: the script writes one line at the top of the feature `spec.md` saying it was merged into the living spec; the plan packet prints the spec pin | Me, after B |
+| D2 | Removal of the feature `spec.md`, the progress-view fix and `features/README.md` | **Owner decision**; only after D1 has been seen in use |
+| M | Maintainer release preflight | Me, with any release |
+
 ## 1. What you asked for
 
 | # | Requirement | Answer |
