@@ -4704,8 +4704,8 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
         "the fix and the command to run next: make the fix, then run that command.",
         "- Lessons: the message needs a line \"Key learnings: <what this iteration taught that a later iteration or "
         "run should reuse>\" (also \"Lessons:\" or \"Learned:\", or a \"## Key learnings\" heading with the text "
-        "under it), on a line of its own. If it taught nothing new, write \"Key learnings: none\"; do not invent "
-        "a lesson.",
+        "under it), on a line of its own starting in column 1. If it taught nothing new, write \"Key learnings: "
+        "none\"; do not invent a lesson.",
         "- Credit (optional): to credit a commit that helped, add a line \"Learned-from: <commit id> <what it "
         "contributed>\", with 7 to 64 hex digits of a commit reachable from HEAD; ShipLoop writes the full ID into "
         "the commit. Delete the line rather than guess an ID.",

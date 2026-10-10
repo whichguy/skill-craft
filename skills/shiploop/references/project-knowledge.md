@@ -537,7 +537,8 @@ instructions).
 
 An Improve review's commit goes through `improve-commit` (git commit typed by hand
 skips its checks). The message needs a line `Key learnings: <text>` (also
-`Lessons:`, `Learned:`, or a `## Key learnings` heading with the text under it);
+`Lessons:`, `Learned:`, or a `## Key learnings` heading with the text under it), each
+starting in column 1 of its own line;
 `Key learnings: none` is the honest answer when nothing was learned, and a review
 that changed no file makes no commit and is never asked for one. A line
 `Learned-from: <commit id> <what it contributed>` credits a commit that helped:
