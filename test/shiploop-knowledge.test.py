@@ -579,5 +579,165 @@ class CommitHelperTests(unittest.TestCase):
         self.assertIn("this repository has no commit yet", problem)
 
 
+STUB = "# Feature spec\nAdds: R-1 .. R-3. Modifies: R-2. Retires: R-4.\n"
+LIVING = "# Living\n\n- R-1 one\n- R-2 two\n- R-3 three\n\n## Retired\n\n- R-4 four (replaced)\n"
+SLUG = "add-a-fleet-command-tab-to-abcdef"
+
+
+class RetireRecordTests(unittest.TestCase):
+    """The pieces of the handoff retire (plan 0a, owner decision D3): the ID check, the subject, the planned record, the
+    commit message and the living spec's pin.  Real Git repositories; the retire step itself is tested further down."""
+
+    setUp = KnowledgeTests.setUp
+
+    def feature(self) -> str:
+        return knowledge.feature_dir(self.state)
+
+    def write(self, relative: str, text: str) -> None:
+        path = self.repo / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    def planned_home(self, living: str = LIVING, feature_spec: str = STUB) -> str:
+        """The home as a real run leaves it before its prepare close: committed after the spec stage."""
+        self.write("docs/shiploop/spec.md", living)
+        self.write(self.feature() + "/spec.md", feature_spec)
+        self.write(self.feature() + "/plan.md", "# Plan\n")
+        done = knowledge.commit(self.state, "spec").commit
+        self.assertTrue(done)
+        return done
+
+    # --- the ID check -----------------------------------------------------------------------------------------------------
+    def test_the_check_reads_every_id_the_feature_spec_names_against_the_living_spec_whatever_its_format(self) -> None:
+        formats = {
+            "a stub with a range": "Adds: R-1 .. R-3. Modifies: none. Retires: none.\n",
+            "delta headings": "## Added\n- R-1\n## Modified\n- R-2\n## Retired\n- R-4\n",
+            "a full copy of the living spec": LIVING,
+            "no id at all": "# Feature\nNothing changes in the requirements.\n",
+        }
+        for name, body in formats.items():
+            with self.subTest(name):
+                self.write(self.feature() + "/spec.md", body)
+                self.write("docs/shiploop/spec.md", LIVING)
+                self.assertEqual(knowledge._unmerged(self.repo, self.feature()), [])
+                self.write(self.feature() + "/spec.md", body + "\nAlso R-9 and R-12.\n")
+                self.assertEqual(knowledge._unmerged(self.repo, self.feature()), ["R-9", "R-12"])
+
+    def test_a_range_is_read_by_its_two_ends_and_an_id_under_a_retired_heading_counts(self) -> None:
+        self.write("docs/shiploop/spec.md", LIVING)
+        self.write(self.feature() + "/spec.md", "Adds: R-1 .. R-9\n")
+        self.assertEqual(knowledge._unmerged(self.repo, self.feature()), ["R-9"])   # R-2 is inside the range, not read
+        self.write(self.feature() + "/spec.md", "Retires: R-4\n")                   # present only under ## Retired
+        self.assertEqual(knowledge._unmerged(self.repo, self.feature()), [])
+
+    def test_ids_are_whole_tokens_and_are_listed_in_numeric_order(self) -> None:
+        self.write("docs/shiploop/spec.md", "- R-1 one\n- R-10 ten\n")
+        self.write(self.feature() + "/spec.md", "R-10 R-2 R-100 R-4a R-1\n")
+        self.assertEqual(knowledge._unmerged(self.repo, self.feature()), ["R-2", "R-100"])   # R-4a is not an ID
+
+    def test_nothing_can_be_judged_without_a_feature_spec_or_when_the_living_spec_names_no_id(self) -> None:
+        self.write("docs/shiploop/spec.md", LIVING)
+        self.assertIsNone(knowledge._unmerged(self.repo, self.feature()))                   # no feature spec in the tree
+        self.write(self.feature() + "/spec.md", "Adds: R-1\n")
+        self.write("docs/shiploop/spec.md", "# Spec\nThe requirements live in the team document.\n")
+        self.assertIsNone(knowledge._unmerged(self.repo, self.feature()))                   # nothing to compare against
+        (self.repo / "docs/shiploop/spec.md").unlink()
+        self.assertIsNone(knowledge._unmerged(self.repo, self.feature()))
+
+    # --- the subjects -----------------------------------------------------------------------------------------------------
+    def test_the_knowledge_subject_is_built_in_one_place(self) -> None:
+        self.assertEqual(knowledge.knowledge_subject(self.state, "prepare"),
+                         "docs(shiploop): record " + SLUG + " knowledge at prepare")
+        self.assertEqual(knowledge.knowledge_subject(self.state, "spec"),
+                         "docs(shiploop): record " + SLUG + " knowledge after spec")
+        self.planned_home()
+        self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "spec"))
+
+    def test_the_retire_subject_says_what_was_checked_and_one_matcher_reads_it(self) -> None:
+        subject = knowledge.retire_subject(self.state)
+        self.assertEqual(subject, "docs(shiploop): retire " + SLUG + " spec: its requirement IDs are in the living spec")
+        self.assertTrue(knowledge.is_retire_subject(subject))
+        self.assertTrue(knowledge.is_retire_subject(knowledge.retire_subject(dict(self.state, prompt="Another request", run_id="nav-1"))))
+        for other in (knowledge.knowledge_subject(self.state, "prepare"), "",
+                      "docs(shiploop): retire  spec: its requirement IDs are in the living spec",          # no folder
+                      "docs(shiploop): retire two words spec: its requirement IDs are in the living spec",   # not a folder
+                      subject + ".", "x " + subject, "docs(shiploop): retire " + SLUG + " spec"):
+            with self.subTest(other=other):
+                self.assertFalse(knowledge.is_retire_subject(other))
+
+    # --- the planned record -----------------------------------------------------------------------------------------------
+    def test_the_planned_record_is_this_runs_prepare_close_found_by_its_subject_never_by_a_path(self) -> None:
+        self.planned_home()
+        self.write("docs/shiploop/environment.md", "# env\n")                       # the prepare close rarely touches the feature folder
+        prepare = knowledge.commit(self.state, "prepare").commit
+        self.assertTrue(prepare)
+        self.assertNotIn(prepare, git(self.repo, "log", "--format=%H", "--", self.feature()).split())
+        self.assertEqual(knowledge._planned_record(self.repo, self.state), prepare)
+        # a later commit of another run's prepare close, and one that only quotes the subject in its body, do not move it
+        other = dict(self.state, run_id="nav-0000000000123456")
+        self.write("docs/shiploop/features/" + knowledge.feature_dir(other).rsplit("/", 1)[-1] + "/plan.md", "# other\n")
+        self.assertTrue(knowledge.commit(other, "prepare").commit)
+        git(self.repo, "commit", "-q", "--allow-empty", "-m", "note", "-m", knowledge.knowledge_subject(self.state, "prepare"))
+        self.assertEqual(knowledge._planned_record(self.repo, self.state), prepare)
+
+    def test_the_newest_prepare_close_of_this_run_is_the_record_and_none_found_is_empty(self) -> None:
+        self.assertEqual(knowledge._planned_record(self.repo, self.state), "")                  # no run commit at all
+        self.planned_home()
+        self.assertEqual(knowledge._planned_record(self.repo, self.state), "")                  # a spec commit is not the prepare close
+        self.write("docs/shiploop/environment.md", "# env\n")
+        first = knowledge.commit(self.state, "prepare").commit
+        self.write("docs/shiploop/environment.md", "# env changed\n")
+        second = knowledge.commit(self.state, "prepare").commit
+        self.assertNotEqual(first, second)
+        self.assertEqual(knowledge._planned_record(self.repo, self.state), second)
+
+    # --- the retire message -----------------------------------------------------------------------------------------------
+    def test_the_retire_message_names_the_checked_ids_the_folder_the_recover_command_and_the_planned_record_in_prose(self) -> None:
+        self.planned_home()
+        self.write("docs/shiploop/environment.md", "# env\n")
+        prepare = knowledge.commit(self.state, "prepare").commit
+        message = knowledge._retire_message(self.repo, self.state, ["R-1", "R-2"])
+        relative = self.feature() + "/spec.md"
+        self.assertEqual(message.splitlines()[0], knowledge.retire_subject(self.state))
+        self.assertEqual(message.splitlines()[1], "")
+        for part in ("R-1, R-2", "docs/shiploop/spec.md", relative, "git show <this commit>^:" + relative,
+                     "Planned at " + prepare + " (the prepare close)."):
+            self.assertIn(part, message)
+        # a script commit that taught nothing: no lessons, no citation line (owner rule: cite the commits that helped)
+        self.assertNotIn("Learned-from", message)
+        self.assertEqual(commit_lessons.lessons(message), "")
+        self.assertEqual(commit_lessons.citations(message), [])
+        self.assertTrue(message.endswith("\n"))
+
+    def test_the_retire_message_says_none_when_no_id_was_named_and_omits_a_planned_record_it_cannot_find(self) -> None:
+        message = knowledge._retire_message(self.repo, self.state, [])
+        self.assertIn("none", message)
+        self.assertNotIn("Planned at", message)
+
+    # --- the pin ----------------------------------------------------------------------------------------------------------
+    def test_the_pin_is_the_newest_commit_that_changed_the_living_spec_and_does_not_move_with_other_commits(self) -> None:
+        self.assertIsNone(knowledge.spec_pin(self.state))                                       # no living spec committed
+        self.write("docs/shiploop/spec.md", LIVING)
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "spec")
+        first = git(self.repo, "rev-parse", "HEAD").strip()
+        self.assertEqual(knowledge.spec_pin(self.state), "docs/shiploop/spec.md @ " + first[:12])
+        self.write("other.txt", "x\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "unrelated")
+        self.assertEqual(knowledge.spec_pin(self.state), "docs/shiploop/spec.md @ " + first[:12])
+        self.write("docs/shiploop/spec.md", LIVING + "- R-5 five\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "spec changed")
+        self.assertEqual(knowledge.spec_pin(self.state),
+                         "docs/shiploop/spec.md @ " + git(self.repo, "rev-parse", "HEAD").strip()[:12])
+
+    def test_the_pin_runs_no_git_outside_a_checkout(self) -> None:
+        plain = self.repo.parent / "plain"
+        plain.mkdir()
+        with mock.patch.object(subprocess, "run", side_effect=AssertionError("no process may start")):
+            self.assertIsNone(knowledge.spec_pin(dict(self.state, repo=str(plain))))
+
+
 if __name__ == "__main__":
     unittest.main()

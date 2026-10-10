@@ -74,6 +74,13 @@ def next_close(stage: str, name: str) -> Optional[str]:
 
 
 _REQUIREMENT_ID = re.compile(r"\b(R-\d+)\b")
+
+
+def _ids(text: str) -> List[str]:
+    """The requirement IDs a text names, each once, in numeric order (the one reader of the ID syntax)."""
+    return sorted(set(_REQUIREMENT_ID.findall(text)), key=lambda value: int(value.split("-")[1]))
+
+
 # outcome.md sections that become the release-verify commit body (owner to-do 2026-09-26).
 LEARNING_SECTIONS = ("Learned", "Key considerations", "Open for the next run")
 
@@ -221,10 +228,9 @@ def check(state: Mapping[str, Any], stage: str) -> str:
             return ("Write these sections in " + str(repo / feature_dir(state) / "outcome.md") + ", in detail; "
                     "they become this run's learnings commit, which the next run reads first: "
                     + ", ".join("'## " + name + "'" for name in empty))
-    before = set(_REQUIREMENT_ID.findall(_committed_spec(repo)))
-    now = set(_REQUIREMENT_ID.findall((repo / HOME / "spec.md").read_text(encoding="utf-8", errors="replace"))
+    now = set(_ids((repo / HOME / "spec.md").read_text(encoding="utf-8", errors="replace"))
               if (repo / HOME / "spec.md").is_file() else ())
-    dropped = sorted(before - now, key=lambda value: int(value.split("-")[1]))
+    dropped = [value for value in _ids(_committed_spec(repo)) if value not in now]
     if dropped:
         return ("The living spec " + str(repo / HOME / "spec.md") + " no longer mentions " + ", ".join(dropped)
                 + ". Keep every earlier requirement ID: modify it in place, or move it under a 'Retired' "
@@ -232,13 +238,18 @@ def check(state: Mapping[str, Any], stage: str) -> str:
     return ""
 
 
+def knowledge_subject(state: Mapping[str, Any], stage: str) -> str:
+    """The subject of the commit that records this run's knowledge at (a close) or after (any other) ``stage``."""
+    return ("docs(shiploop): record " + feature_dir(state).rsplit("/", 1)[-1] + " knowledge "
+            + ("at " if stage in CLOSES else "after ") + stage)
+
+
 def commit(state: Mapping[str, Any], stage: str) -> shiploop_git.Committed:
     """Commit exactly the knowledge home after an accepted stage that changed it (every stage, not only closes)."""
     repo = Path(str(state["repo"]))
     if not _home_changed(repo):
         return shiploop_git.Committed("", [], [])
-    message = ("docs(shiploop): record " + feature_dir(state).rsplit("/", 1)[-1] + " knowledge "
-               + ("at " if stage in CLOSES else "after ") + stage)
+    message = knowledge_subject(state, stage)
     if stage == "release-verify":
         body = "\n\n".join(name + "\n" + text for name, text in learnings(state).items() if text)
         if body:
@@ -249,10 +260,101 @@ def commit(state: Mapping[str, Any], stage: str) -> shiploop_git.Committed:
         raise RuntimeError(str(exc)) from exc
 
 
+# --- the living spec's pin ----------------------------------------------------------------------------------------
+
+def spec_pin(state: Mapping[str, Any]) -> Optional[str]:
+    """``docs/shiploop/spec.md @ <12 hex>``: the newest commit that changed the living spec; None while none did.
+
+    It names a version of the spec by reference, so a plan can say which one it implements without a copy.  The value
+    does not move with other commits, so a plan written at one stage and read at another agree.  None outside a
+    checkout too, without running Git (a graph dry run runs no process).
+    """
+    repo = Path(str(state["repo"]))
+    if not (repo / ".git").exists():
+        return None
+    shown = _git(repo, "log", "-1", "--format=%H", "--", HOME + "/spec.md")
+    found = shown.stdout.strip() if shown.returncode == 0 else ""
+    return HOME + "/spec.md @ " + found[:12] if found else None
+
+
+# --- the handoff retire (owner decision D3, plan 0a) ---------------------------------------------------------------
+
+# The retire commit's subject.  It says what the script checked, not that anything was merged: the script reads requirement
+# IDs and removes a file.  ``{folder}`` is the feature folder's name; the matcher below is cut from the same template.
+_RETIRE_SUBJECT = "docs(shiploop): retire {folder} spec: its requirement IDs are in the living spec"
+_RETIRE_HEAD, _, _RETIRE_TAIL = _RETIRE_SUBJECT.partition("{folder}")
+
+
+def retire_subject(state: Mapping[str, Any]) -> str:
+    """The subject of the commit that retires this run's feature spec."""
+    return _RETIRE_SUBJECT.replace("{folder}", feature_dir(state).rsplit("/", 1)[-1])
+
+
+def is_retire_subject(subject: str) -> bool:
+    """Whether ``subject`` is a retire commit's, for any run: the one matcher for a reader of the log (the harness)."""
+    if not (subject.startswith(_RETIRE_HEAD) and subject.endswith(_RETIRE_TAIL)
+            and len(subject) > len(_RETIRE_HEAD) + len(_RETIRE_TAIL)):
+        return False
+    return re.fullmatch(r"\S+", subject[len(_RETIRE_HEAD):len(subject) - len(_RETIRE_TAIL)]) is not None
+
+
+def _unmerged(repo: Path, feature: str) -> Optional[List[str]]:
+    """The requirement IDs the feature spec names that the living spec does not; None when that cannot be judged.
+
+    None: the feature spec is not in the tree, or the living spec names no requirement ID at all (the requirements may
+    live in another home, so nothing can be compared and nothing may be removed on the strength of it).  The check is
+    the same for a delta-style spec and a full copy: every ID the file mentions, in any section, must be in the living
+    spec, a Retired section included.  A range written ``R-1 .. R-9`` is read by its two ends.  Presence only: it does not
+    show that the living spec says what the feature spec says.
+    """
+    spec, living = Path(repo) / feature / "spec.md", Path(repo) / HOME / "spec.md"
+    if not spec.is_file():
+        return None
+    have = set(_ids(living.read_text(encoding="utf-8", errors="replace"))) if living.is_file() else set()
+    if not have:
+        return None
+    return [value for value in _ids(spec.read_text(encoding="utf-8", errors="replace")) if value not in have]
+
+
+def _planned_record(repo: Path, state: Mapping[str, Any]) -> str:
+    """The full ID of this run's prepare close commit, which holds the feature spec as planned; "" when none is found.
+
+    Found by its exact subject over the whole log, never by a path: the prepare close usually commits only what changed
+    since the spec stage, and rarely the feature folder (a path-limited search found it in 8 of 33 saved folders, the
+    subject in 32 of 32 runs).  The subject carries the feature folder, which ends in the run's suffix, so it names this
+    run alone.  A history rewritten to other subjects, or squashed, leaves none, and nothing is invented.
+    """
+    subject = knowledge_subject(state, "prepare")
+    shown = _git(Path(repo), "log", "--format=%H%x00%s", "--fixed-strings", "--grep=" + subject)
+    for row in shown.stdout.splitlines() if shown.returncode == 0 else ():
+        commit_id, _, found = row.partition("\0")
+        if found == subject:
+            return commit_id
+    return ""
+
+
+def _retire_message(repo: Path, state: Mapping[str, Any], named: Sequence[str]) -> str:
+    """The retire commit's message: what was checked, what was removed, how to get it back, and where it was planned.
+
+    A mechanical commit: it holds no lessons and no ``Learned-from`` line, because neither the planned commit nor the
+    living spec's last commit taught anything to this one.  The planned record is named in prose.
+    """
+    relative = feature_dir(state) + "/spec.md"
+    lines = [retire_subject(state), "",
+             "Requirement IDs checked in " + HOME + "/spec.md: " + (", ".join(named) if named else "none (the feature "
+             "spec names none)") + ".",
+             "Removed " + relative + ". Its last version is in this commit's parent: git show <this commit>^:" + relative]
+    planned = _planned_record(repo, state)
+    if planned:
+        lines.append("Planned at " + planned + " (the prepare close).")
+    return "\n".join(lines) + "\n"
+
+
 def in_home(path: str) -> bool:
     """A path ShipLoop commits as knowledge: the home directory or the repository index."""
     return path in KNOWLEDGE or path.startswith(HOME + "/")
 
 
-__all__ = ("CLOSES", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "check", "commit", "feature_dir", "in_home", "learnings",
-           "next_close", "recent_commits", "required_earlier", "stage_lines")
+__all__ = ("CLOSES", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "check", "commit", "feature_dir", "in_home",
+           "is_retire_subject", "knowledge_subject", "learnings", "next_close", "recent_commits", "required_earlier",
+           "retire_subject", "spec_pin", "stage_lines")
