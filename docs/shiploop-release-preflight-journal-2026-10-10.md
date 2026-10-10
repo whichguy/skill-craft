@@ -102,6 +102,10 @@ route cases that read the path and the trailer key out of the refusal's own text
 
 ## Open, deferred, not measured
 
+- **Scope gap (reviewer, 2026-10-10):** the rule keys on a pending `shiploop` note, but the plugin ships every skill at every release, so a ShipLoop source change that carries a `No-Change-Note` trailer ships inside, for example, an ask-agent-only release without asking for an E2E round. Accepted under KISS; close it only if such a release actually happens.
+- **The next ShipLoop release needs one of the two fixes on current history:** the batch's own `LEARNINGS.md` entry (task H) satisfies it; a checkout-source E2E round or the trailer is the other route (the harness's `version_gate` also refuses a marketplace-source round while notes are pending).
+- **The 2026-10-03 cutoff** in `history_evidence.py` is the date the 14-of-15 slice starts from; the data-derived slice (since the journal existed: 15 of 39 releases lacked a journal commit) is the one to rely on. The ask-agent example in the every-release alternative is illustrative, not a counted release.
+
 - **Touching the file is the whole check (interim).** A one-character edit to `LEARNINGS.md` satisfies it, and a trailer reason is free text. That is deliberate: a
   model-judged check of an entry's quality would be the unmeasured completion the owner's rules rule out. The plan's own measure is "releases refused and
   overridden". Overrides are countable from history: `git log --format='%h %(trailers:key=No-E2E-Round,valueonly)'`. **Refusals are not recorded anywhere** (the
