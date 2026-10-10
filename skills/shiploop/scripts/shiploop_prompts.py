@@ -756,6 +756,30 @@ the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
 compatibility check; reuse accepted choices for unaffected scope and the existing
 design/test facilities."""
 
+# The conditions the Improve child applies to a planning result (PLANNING_REVIEW_FOCUS, further down).  The spec and
+# test-strategy duties restate them, so a producer reads how its result is reviewed (SPEC S-6) in its own packet.
+REVIEW_FOCUS_CONDITIONS = """\
+- a step, example or expected result that cannot be replayed exactly: name the
+  concrete inputs, values, identifiers and sample interactions;
+- an expected result or check that a weaker stand-in would pass: a hardcoded
+  value, a missing assertion, a title-only test, or an absent required name;
+- a documented command that does not run what it claims on the target runtime:
+  run it once and record the exit code and the cases it executes;
+- a required requirement, test ID or case dropped or weakened compared with the
+  prior accepted version;
+- a claim about what the runtime, platform or a library can do that a decision
+  depends on, with no primary-documentation source or probe result: check it,
+  and correct the plan where it is wrong;
+- a missing prerequisite, wrong order or unowned verification in the steps.
+"""
+
+# The producers whose duty carries REVIEW_FOCUS_CONDITIONS; the navigator's Improve line says so for exactly these.
+REVIEW_FOCUS_DUTY_STAGES = ("spec", "test-strategy")
+_REVIEW_FOCUS_LEAD = ("Planning review focus (the Improve child applies these conditions to this result; meet them "
+                      "before you submit):\n")
+_REVIEW_FOCUS_LEAD_NONE = ("Planning review focus (no Improve child reviews this result in this run; meet these "
+                           "conditions before you submit):\n")
+
 # How ShipLoop matches a listed test ID against the runner's output (``shiploop_test_counts.named``).  One sentence,
 # restated by every duty and packet line that says a listed ID must be shown, so the rule is worded once.
 ID_WORD_RULE = ("A listed ID counts only as its own word in a test's printed name (for example, a test titled `TC-4a` "
@@ -923,6 +947,7 @@ For selected service boundaries, specify current authority, freshness versus
 revocation, incremental state preservation, async completion/recovery, and owned
 event coverage. Use Service discovery guidance to make these contracts verifiable;
 mark inapplicable concerns briefly instead of adding services to fill a template.
+""" + _REVIEW_FOCUS_LEAD + REVIEW_FOCUS_CONDITIONS + """\
 """,
     "test-strategy": """\
 Create a risk-based test and verification strategy from the specification before
@@ -988,6 +1013,12 @@ a harmless read the tool can make today. A probe that fails is an access gap to
 record now, in the strategy, with the requirement it leaves unobserved. The case
 stays out of the project's default test command: give it its own opt-in command or
 flag, so a plain run of the default test command passes without the host tool.
+""" + ID_WORD_RULE + """ Declare each id as the tests will be titled.
+When the request names a page or screen people use, the strategy holds either a case
+that drives it in a browser (the tool named and probed as above), or the outcome
+recorded as unverified with its owner and due stage (handoff, or the stage whose
+external effect it gates); an HTTP response alone is neither.
+""" + _REVIEW_FOCUS_LEAD + REVIEW_FOCUS_CONDITIONS + """\
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -1090,6 +1121,11 @@ Return the complete ordered `work_items` array using only `id`, `title` and opti
 `context`, and link the plan note in `evidence_refs`. Cover every approved outcome,
 including required independent work with no downstream consumer. A plan note
 alone does not populate the execution queue. A small change may use one item.
+Record the load-bearing assumptions in the result's `assumptions` list, starting from
+the discovery and research decision notes. Each takes exactly the fields printed in the
+template for its disposition (evidenced: `evidence`; probed: `check`, `evidence`; open:
+`check`, `consumer`, `reason`): ShipLoop refuses any extra key, and `consumer` must be
+the id of a work item in this plan's `work_items`.
 """,
     "prepare": """\
 Prepare or verify the approved development/test environment and prerequisites.
@@ -1106,6 +1142,8 @@ the initial baseline, prepare only the approved prerequisite, retain the origina
 observation, then rerun the original initial check against unchanged product and
 tests before dependent feature edits. Do not replace it with an easier route or
 describe the blocked baseline as passed.
+Record readiness, or the justified N/A, in environment.md, and cite in `evidence_refs`
+the runner output that shows each planned check starts.
 """,
     "get-next-work-item": """\
 Revalidate the current script-selected work item in queue order. Confirm its
@@ -1152,13 +1190,13 @@ confirmation. For content that has no test runner, such as a README that must
 document a flag, add a `check` command (suite `check`, judged by its exit code),
 for example `grep -q -- '--greeting' README.md`.
 Record the item's test command list in the result's `test_commands`:
-`[{"command": "<shell command>", "suite": "focused" | "regression", "ids": ["TC-9", ...]}]`.
+`[{"command": "<shell command>", "suite": "focused" | "regression" | "check", "ids": ["TC-9", ...]}]`.
 Focused commands exercise this item's tests; regression commands run the retained
-suites. test-red, test-green and regression use these exact commands, and ShipLoop
+suites; a `check` command is judged by its exit code, and a check row carries no ids or min_tests. test-red, test-green and regression use these exact commands, and ShipLoop
 runs them itself before accepting each stage, so each must be runnable from the
 repository root. ShipLoop reads the runner's summary and refuses a run that
 executed no test, because a filter that matches nothing exits 0 in most runners.
-Give each focused command the `ids` of the test-spec cases it must run, and a
+Give each focused command the `ids` you will title the cases with (the TC-n ids from the test strategy), and a
 runner flag that prints test names (for example Jest `--verbose`, pytest `-v`, `node --test` with its default
 spec or the tap reporter, never dot or junit),
 so the output shows them. """ + ID_WORD_RULE + """ Declare the ids as the tests will be titled. Add `min_tests` when a command must run at least that
@@ -1277,6 +1315,8 @@ that its page loads. Link later-phase procedures without claiming they ran here.
 For each new or changed public entry point, specify one rejection case per
 constraint it checks (missing, wrong type or shape, out of range), asserting the
 error type, the named argument and unchanged state.
+Title each case with the ids in the step plan's `test_commands`, and write one entry per case
+in test-spec.md: id, setup, action, independent oracle, RED, GREEN.
 Specify setup, test/assertions, and teardown together, or state why a stateless
 case needs no setup or teardown. Reuse fixture code without assuming mutable
 state is shareable. Share expensive setup only with demonstrated noninterference;
@@ -1609,8 +1649,8 @@ new observations do not silently replace approved intent or old evidence.
 Record the system tests in `system_commands` (same shape as a step plan's
 test_commands; suite `focused`, `regression` or `check`). A command that is not a
 test runner (a shell pipeline, a grep, a curl probe) is suite `check`, judged by its
-exit code; `focused` and `regression` are for runners whose output ShipLoop can
-count. Mark a row `"host_dependent": true` when its cases need a host tool (a
+exit code, and a check row carries no ids or min_tests; `focused` and `regression` are
+for runners whose output ShipLoop can count. Mark a row `"host_dependent": true` when its cases need a host tool (a
 browser, a device, an account, a service): ShipLoop then also runs the project's
 regression commands at system-test and refuses if any of that row's `ids` appears
 in their output, because the default suite must pass without the host tool.
@@ -1699,7 +1739,8 @@ summary has no end state; an empty list says every request outcome was observed.
 """,
     "release-plan": """\
 Record the post-release consumer checks as commands in `consumer_checks` (same
-shape; a `check` command is judged by its exit code). ShipLoop runs every one
+shape; a `check` command is judged by its exit code, and a check row carries no ids or
+min_tests). ShipLoop runs every one
 itself when release-verify reports done and refuses unless each passes. In an
 isolated run that has a completed return it runs them in a clean copy of the
 returned result (no Git history, nothing the return plan excluded, no ignored or
@@ -2366,6 +2407,8 @@ These restrictions
 belong to that Backchain child, not the separate Improve executor's authority.""", """\
 These restrictions
 belong to that Backchain child."""),
+    ("spec", _REVIEW_FOCUS_LEAD, _REVIEW_FOCUS_LEAD_NONE),
+    ("test-strategy", _REVIEW_FOCUS_LEAD, _REVIEW_FOCUS_LEAD_NONE),
     ("step-plan", """\
 This producer's mandatory
 actual Improve loop must review the created steps and graph before they are used
@@ -2508,18 +2551,7 @@ PLANNING_REVIEW_FOCUS = """\
 Planning review focus. This planning result is
 the contract that later stages build on and that no other review sees until the
 end. Look for these conditions and fix them within scope:
-- a step, example or expected result that cannot be replayed exactly: name the
-  concrete inputs, values, identifiers and sample interactions;
-- an expected result or check that a weaker stand-in would pass: a hardcoded
-  value, a missing assertion, a title-only test, or an absent required name;
-- a documented command that does not run what it claims on the target runtime:
-  run it once and record the exit code and the cases it executes;
-- a required requirement, test ID or case dropped or weakened compared with the
-  prior accepted version;
-- a claim about what the runtime, platform or a library can do that a decision
-  depends on, with no primary-documentation source or probe result: check it,
-  and correct the plan where it is wrong;
-- a missing prerequisite, wrong order or unowned verification in the steps.
+""" + REVIEW_FOCUS_CONDITIONS + """\
 Do not reread history or rerun a check already recorded green at this commit
 unless a finding depends on it. A pass that finds none of these is trivial.
 """

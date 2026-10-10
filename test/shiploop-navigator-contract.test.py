@@ -2992,7 +2992,7 @@ class PlanningReviewOptionTest(unittest.TestCase):
                 rendered.assert_called_once()
                 self.assertEqual(rendered.call_args.kwargs["planning_review"], mode)
 
-    def test_naming_stage_changes_no_packet_none_changes_two_duties_and_an_unknown_value_is_refused(self) -> None:
+    def test_naming_stage_changes_no_packet_none_changes_the_duties_that_promised_a_child_and_an_unknown_value_is_refused(self) -> None:
         """`stage` renders what omitting the option renders; `none` differs in exactly the duties that promised a child."""
         for delegation in prompts.DELEGATIONS:
             for stage in prompts.STAGES:
@@ -3001,8 +3001,8 @@ class PlanningReviewOptionTest(unittest.TestCase):
                                      prompts.prompt(stage, delegation=delegation))
                     self.assertEqual(prompts.duty(stage, delegation=delegation, planning_review="stage"),
                                      prompts.duty(stage, delegation=delegation))
-                    # the duties `none` rewrites: the plan's and the step plan's (declared here, not read from the table)
-                    differs = stage in ("plan", "step-plan")
+                    # the duties `none` rewrites: those that promised a child (declared here, not read from the table)
+                    differs = stage in ("spec", "test-strategy", "plan", "step-plan")
                     self.assertEqual(
                         prompts.duty(stage, delegation=delegation, planning_review="none")
                         != prompts.duty(stage, delegation=delegation), differs)
@@ -3102,6 +3102,8 @@ class PlanningReviewNoneTest(unittest.TestCase):
         "no Improve child reviews them in this run": "the none text of the step-plan duty: says no child reviews the steps",
         "No Improve child reviews this result in this run": "the none text of the step-plan duty: says no child reviews it",
         "No Improve child reviews `skill_na` in this run": "the none text of the step-plan duty: says no child reviews skill_na",
+        "Planning review focus (no Improve child reviews this result in this run; meet these conditions before you "
+        "submit)": "the none text of the spec and test-strategy duties: says no child reviews it, the conditions stay a checklist",
         "Improve follows its own selected context and ownership policy": "the chain-precedence rule on an ask-agent "
         "packet: whose context an Improve invocation uses, not a child at this stage",
         "Do not embed an Improve review campaign in this result": "forbids a nested review inside the producer; promises no child",

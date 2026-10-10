@@ -402,6 +402,46 @@ class RefusalRouteTests(RealCliCase):
             self.accept_after_the_knowledge_files(command, run)
             self.assertEqual(self.recorded(run, action)["outcome"], "done")
 
+    @staticmethod
+    def full_packet(head: str) -> str:
+        """The packet file the head names (the head holds the callback and template; the duty is in the file)."""
+        path = re.search(r"^Full packet: (\S+)$", head, re.M).group(1)
+        return " ".join(Path(path).read_text(encoding="utf-8").split())
+
+    def test_a_check_row_with_ids_is_refused_with_the_rule_the_packet_prints_and_the_row_without_them_is_accepted(self) -> None:
+        # Packet review 2026-10-10, row 2: the refusal came 4+ times because only the template's focused row showed ids.
+        rows = {"system-test-author": "system_commands", "release-plan": "consumer_checks"}
+        for stage, field in rows.items():
+            with self.subTest(stage):
+                run, head = self.new_run(stage)
+                command, path, action = printed_callback(head)
+                self.assertIn("a check row carries no ids or min_tests", self.full_packet(head))
+                good = self.fill_done(head)
+                write_block(path, {**good, field: [{"command": "true", "suite": "check", "ids": ["TC-1"]}]})
+                first = self.run_printed(command)  # a close asks for its knowledge files before it reads the result
+                for named in re.findall(r"^- (/\S+)$", first.stdout + first.stderr, re.M):
+                    Path(named).parent.mkdir(parents=True, exist_ok=True)
+                    Path(named).write_text("What this file records.\n", encoding="utf-8")
+                self.assertIn("a check command is judged by its exit code and takes no ids or min_tests",
+                              self.refused(command, run))
+                write_block(path, {**good, field: [{"command": "true", "suite": "check"}]})
+                self.accept_after_the_knowledge_files(command, run)
+                self.assertEqual(self.recorded(run, action)["outcome"], "done")
+
+    def test_an_assumption_with_an_extra_key_is_refused_as_the_plan_packet_says_and_the_exact_fields_are_accepted(self) -> None:
+        # Packet review 2026-10-10, row 11a: r2-checkers-sonnet was refused twice for a key the template does not print.
+        run, head = self.new_run("plan")
+        command, path, action = printed_callback(head)
+        self.assertIn("takes exactly the fields printed in the template for its disposition", self.full_packet(head))
+        good = self.fill_done(head)
+        row = good["assumptions"][0]
+        self.assertEqual(row["disposition"], "evidenced")
+        write_block(path, {**good, "assumptions": [{**row, "consumer": "W1"}]})
+        self.assertIn("needs exactly evidence", self.refused(command, run))
+        write_block(path, good)
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+
     def accept_after_the_knowledge_files(self, command: str, run: Path) -> None:
         """Run ``command``; at a stage that closes the knowledge home, first write the files its refusal names."""
         result = self.run_printed(command)
