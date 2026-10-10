@@ -363,15 +363,6 @@
    "null_means": "null with unmeasured.end_state (blocked fields read through metrics.blocked_detail)"
   },
   {
-   "path": "fidelity.improve_packets",
-   "type": "object",
-   "example": "{\"read\": 8, \"carried\": {\"goal\": 0, \"done_when\": 0, \"checked_by\": 8, \"output\": 8, \"recovery\": 8}, \"missing\": [\u2026",
-   "source": "20261008/r1-battleship-sonnet",
-   "group": "G1",
-   "new": true,
-   "null_means": "null for the old packet layout"
-  },
-  {
    "path": "fidelity.unmeasured",
    "type": "object",
    "example": "{\"validation.accepted_ran\": \"no verify row carries accepted_ran (an engine that does not write it, or no row \u2026",
