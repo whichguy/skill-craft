@@ -749,5 +749,102 @@ class CountersThroughMainTest(HARNESS.PrintedCase):
         self.assertTrue(FOUR_KEYS <= set(json.loads(metrics_file.read_text())))
 
 
+# ------------------------------------------------------------------------------------------------------------- the regrade
+
+EVIDENCE = ROOT / "docs" / "experiments" / "commit-baseline-20261010"
+
+
+def load_regrade():
+    spec = importlib.util.spec_from_file_location("commit_baseline_regrade", EVIDENCE / "regrade.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+class RegradeTest(unittest.TestCase):
+    """docs/experiments/commit-baseline-20261010: the script that regrades the saved runs and the evidence file it wrote."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.regrade = load_regrade()
+        cls.evidence = json.loads((EVIDENCE / "baseline.json").read_text())
+
+    def row(self, host="claude", model="m", mixed=False, entries=None, commits=None, **more):
+        entries = [] if entries is None else entries
+        return {"run": "x", "hosts": [host] if not mixed else ["grok", "claude"], "mixed_host": mixed, "host": host, "model": model,
+                "effort": None, "entries": entries, "commits": commits,
+                "packets": {"n": len(entries), "head_measured": sum(e["head_bytes"] is not None for e in entries)},
+                "knowledge_commits": None, **more}
+
+    def test_figures_are_n_median_min_max_and_none_for_nothing_measured(self):
+        self.assertIsNone(self.regrade.figures([]))
+        self.assertEqual(self.regrade.figures([3, 1, 10, 4]), {"n": 4, "median": 3.5, "min": 1, "max": 10})
+
+    def test_a_mixed_host_run_is_summarised_alone_and_an_improve_packet_is_a_row_of_its_own(self):
+        entries = [{"action": "nav-a", "stage": "spec", "file_bytes": 100, "head_bytes": 40},
+                   {"action": "nav-a-improve", "stage": "spec", "file_bytes": 200, "head_bytes": None}]
+        rows = [self.row(entries=entries), self.row("grok", entries=entries), self.row(mixed=True, entries=entries),
+                self.row(not_regraded="live", entries=None)]
+        summary = self.regrade.summary(rows)
+        self.assertEqual(sorted(summary["by_host"]), ["claude", "grok", "mixed host (grok then claude)"])
+        self.assertEqual(summary["by_host"]["claude"]["runs"], 1, "the mixed-host run is not Claude's, the unregraded one is no run")
+        stages = summary["by_cell"]["claude / m / no effort"]["by_stage"]
+        self.assertEqual(sorted(stages), ["spec", "spec [Improve packet]"])
+        self.assertEqual(stages["spec"]["head_bytes"]["median"], 40)
+        self.assertIsNone(stages["spec [Improve packet]"]["head_bytes"], "nothing measured is None, not 0")
+
+    def test_a_run_whose_harness_is_alive_is_left_alone_and_says_so(self):
+        import listeners
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp) / "live"
+            folder.mkdir()
+            (folder / "invocation.json").write_text(json.dumps({"case": "x", "host": "claude", "model": "m"}))
+            held = listeners.hold_case(folder)
+            self.assertIsNotNone(held)
+            try:
+                row = self.regrade.regrade(folder, Path(tmp))
+            finally:
+                held.close()
+        self.assertIn("harness is alive", row["not_regraded"])
+        self.assertEqual((row["packets"], row["commits"]), (None, None))
+
+    def test_the_committed_evidence_is_internally_consistent(self):
+        evidence = self.evidence
+        self.assertEqual(evidence["schema"], "shiploop-e2e-commit-baseline/v1")
+        self.assertEqual(evidence["runs"], len(evidence["per_run"]))
+        self.assertEqual({row["run"] for row in evidence["per_run"] if row.get("not_regraded")},
+                         {item["run"] for item in evidence["not_regraded"]})
+        regraded = [row for row in evidence["per_run"] if not row.get("not_regraded")]
+        self.assertGreaterEqual(len(regraded), 38)
+        for row in regraded:
+            commits = row["commits"]
+            self.assertEqual(commits["counted"], commits["improve"]["n"] + commits["script"]["n"] + commits["other"]["n"], row["run"])
+            for kind in ("improve", "script", "other"):
+                self.assertLessEqual(commits[kind]["with_lessons"], commits[kind]["n"], row["run"])
+            self.assertLessEqual(commits["improve"]["cited_earlier_run"], commits["improve"]["cited"])
+            self.assertLessEqual(commits["improve"]["cited"], commits["improve"]["n"])
+            self.assertLessEqual(row["packets"]["head_measured"], row["packets"]["n"], row["run"])
+            self.assertLessEqual(row["knowledge_commits"]["with_lessons"], row["knowledge_commits"]["n"], row["run"])
+        for host, cell in evidence["summary"]["by_host"].items():
+            members = [row for row in regraded if (row["host"] if not row["mixed_host"] else None) == host or
+                       (row["mixed_host"] and host.startswith("mixed"))]
+            self.assertEqual(cell["runs"], len(members), host)
+            self.assertEqual(cell["commits_counted"], sum(row["commits"]["counted"] for row in members), host)
+            self.assertEqual(cell["heads_measured"], sum(row["packets"]["head_measured"] for row in members), host)
+
+    def test_the_evidence_copies_no_commit_message_and_no_packet_text(self):
+        text = (EVIDENCE / "baseline.json").read_text()
+        for needle in ("Key learnings:", "Review:", "ShipLoop navigator |", "Callback for this stage", "docs(shiploop): record"):
+            self.assertNotIn(needle, text)
+
+    def test_the_mutation_record_is_committed_with_its_result_and_has_no_survivor(self):
+        record = json.loads((EVIDENCE / "mutants-result.json").read_text())
+        self.assertEqual(record["survived"], [])
+        self.assertEqual(record["not_applicable"], [])
+        self.assertEqual(record["killed"], record["mutants"])
+        self.assertGreaterEqual(record["mutants"], 30)
+
+
 if __name__ == "__main__":
     unittest.main()

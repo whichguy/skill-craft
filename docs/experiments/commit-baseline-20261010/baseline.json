@@ -1,0 +1,3758 @@
+{
+ "schema": "shiploop-e2e-commit-baseline/v1",
+ "harness_head": "0f2a2ca80fe1f82f905e6d63cb1e638a2fa4b713",
+ "reads": "the saved runs under --runs (read-only); no metrics.json or result.json is rewritten",
+ "notes": [],
+ "runs": 39,
+ "not_regraded": [
+  {
+   "run": "20261010/pc1i-checkers-sonnet",
+   "why": "the run's harness is alive (its case lock is held): the run is not finished and its record is still being written"
+  }
+ ],
+ "summary": {
+  "by_host": {
+   "claude": {
+    "runs": 28,
+    "runs_with_packets_block": 28,
+    "packets": 1190,
+    "heads_measured": 125,
+    "runs_with_any_head_measured": 28,
+    "file_bytes": {
+     "n": 1190,
+     "median": 37145.0,
+     "min": 14647,
+     "max": 63859
+    },
+    "head_bytes": {
+     "n": 125,
+     "median": 4841,
+     "min": 1317,
+     "max": 6985
+    },
+    "runs_with_commits_block": 28,
+    "commits_counted": 379,
+    "commits": {
+     "improve": {
+      "cited": 0,
+      "cited_earlier_run": 0,
+      "n": 81,
+      "with_lessons": 38
+     },
+     "script": {
+      "n": 276,
+      "with_lessons": 28
+     },
+     "other": {
+      "n": 22,
+      "with_lessons": 1
+     }
+    },
+    "knowledge_commits": {
+     "n": 214,
+     "with_lessons": 28
+    }
+   },
+   "codex": {
+    "runs": 4,
+    "runs_with_packets_block": 4,
+    "packets": 75,
+    "heads_measured": 73,
+    "runs_with_any_head_measured": 4,
+    "file_bytes": {
+     "n": 75,
+     "median": 45288,
+     "min": 24304,
+     "max": 67223
+    },
+    "head_bytes": {
+     "n": 73,
+     "median": 4756,
+     "min": 4035,
+     "max": 6289
+    },
+    "runs_with_commits_block": 4,
+    "commits_counted": 74,
+    "commits": {
+     "improve": {
+      "cited": 0,
+      "cited_earlier_run": 0,
+      "n": 34,
+      "with_lessons": 13
+     },
+     "script": {
+      "n": 38,
+      "with_lessons": 0
+     },
+     "other": {
+      "n": 2,
+      "with_lessons": 0
+     }
+    },
+    "knowledge_commits": {
+     "n": 33,
+     "with_lessons": 0
+    }
+   },
+   "grok": {
+    "runs": 5,
+    "runs_with_packets_block": 5,
+    "packets": 159,
+    "heads_measured": 90,
+    "runs_with_any_head_measured": 5,
+    "file_bytes": {
+     "n": 159,
+     "median": 39897,
+     "min": 18976,
+     "max": 60068
+    },
+    "head_bytes": {
+     "n": 90,
+     "median": 5895.0,
+     "min": 2943,
+     "max": 7126
+    },
+    "runs_with_commits_block": 5,
+    "commits_counted": 96,
+    "commits": {
+     "improve": {
+      "cited": 0,
+      "cited_earlier_run": 0,
+      "n": 17,
+      "with_lessons": 17
+     },
+     "script": {
+      "n": 78,
+      "with_lessons": 1
+     },
+     "other": {
+      "n": 1,
+      "with_lessons": 0
+     }
+    },
+    "knowledge_commits": {
+     "n": 67,
+     "with_lessons": 1
+    }
+   },
+   "mixed host (grok then claude)": {
+    "runs": 1,
+    "runs_with_packets_block": 1,
+    "packets": 52,
+    "heads_measured": 13,
+    "runs_with_any_head_measured": 1,
+    "file_bytes": {
+     "n": 52,
+     "median": 40042.5,
+     "min": 19150,
+     "max": 57301
+    },
+    "head_bytes": {
+     "n": 13,
+     "median": 6129,
+     "min": 3409,
+     "max": 7147
+    },
+    "runs_with_commits_block": 1,
+    "commits_counted": 30,
+    "commits": {
+     "improve": {
+      "cited": 0,
+      "cited_earlier_run": 0,
+      "n": 0,
+      "with_lessons": 0
+     },
+     "script": {
+      "n": 20,
+      "with_lessons": 1
+     },
+     "other": {
+      "n": 10,
+      "with_lessons": 0
+     }
+    },
+    "knowledge_commits": {
+     "n": 17,
+     "with_lessons": 1
+    }
+   }
+  },
+  "by_cell": {
+   "claude / claude-sonnet-5-5 / no effort": {
+    "runs": 28,
+    "runs_with_packets_block": 28,
+    "packets": 1190,
+    "heads_measured": 125,
+    "runs_with_any_head_measured": 28,
+    "file_bytes": {
+     "n": 1190,
+     "median": 37145.0,
+     "min": 14647,
+     "max": 63859
+    },
+    "head_bytes": {
+     "n": 125,
+     "median": 4841,
+     "min": 1317,
+     "max": 6985
+    },
+    "runs_with_commits_block": 28,
+    "commits_counted": 379,
+    "commits": {
+     "improve": {
+      "cited": 0,
+      "cited_earlier_run": 0,
+      "n": 81,
+      "with_lessons": 38
+     },
+     "script": {
+      "n": 276,
+      "with_lessons": 28
+     },
+     "other": {
+      "n": 22,
+      "with_lessons": 1
+     }
+    },
+    "knowledge_commits": {
+     "n": 214,
+     "with_lessons": 28
+    },
+    "by_stage": {
+     "baseline": {
+      "packets": 32,
+      "file_bytes": {
+       "n": 32,
+       "median": 30922.0,
+       "min": 27823,
+       "max": 32759
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5184,
+       "min": 5184,
+       "max": 5184
+      }
+     },
+     "carry-forward": {
+      "packets": 31,
+      "file_bytes": {
+       "n": 31,
+       "median": 39077,
+       "min": 37296,
+       "max": 56985
+      },
+      "head_bytes": {
+       "n": 5,
+       "median": 2863,
+       "min": 2650,
+       "max": 5172
+      }
+     },
+     "carry-forward [Improve packet]": {
+      "packets": 17,
+      "file_bytes": {
+       "n": 17,
+       "median": 52670,
+       "min": 51212,
+       "max": 53929
+      },
+      "head_bytes": {
+       "n": 6,
+       "median": 3121.0,
+       "min": 3079,
+       "max": 3663
+      }
+     },
+     "discovery": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 41290.5,
+       "min": 38601,
+       "max": 43908
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 5181,
+       "min": 5173,
+       "max": 6352
+      }
+     },
+     "document": {
+      "packets": 31,
+      "file_bytes": {
+       "n": 31,
+       "median": 35440,
+       "min": 31947,
+       "max": 36715
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 4003,
+       "min": 3811,
+       "max": 5335
+      }
+     },
+     "done": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 16454.5,
+       "min": 14647,
+       "max": 17889
+      },
+      "head_bytes": null
+     },
+     "get-next-work-item": {
+      "packets": 17,
+      "file_bytes": {
+       "n": 17,
+       "median": 30112,
+       "min": 29452,
+       "max": 30771
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5700,
+       "min": 5700,
+       "max": 5700
+      }
+     },
+     "handoff": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 33118.0,
+       "min": 29401,
+       "max": 35409
+      },
+      "head_bytes": null
+     },
+     "implement": {
+      "packets": 86,
+      "file_bytes": {
+       "n": 86,
+       "median": 40454.0,
+       "min": 36768,
+       "max": 43123
+      },
+      "head_bytes": {
+       "n": 6,
+       "median": 5207.0,
+       "min": 4429,
+       "max": 6021
+      }
+     },
+     "intake": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 27759.0,
+       "min": 25087,
+       "max": 28979
+      },
+      "head_bytes": {
+       "n": 28,
+       "median": 5489.0,
+       "min": 4314,
+       "max": 5643
+      }
+     },
+     "integrate": {
+      "packets": 31,
+      "file_bytes": {
+       "n": 31,
+       "median": 35266,
+       "min": 32281,
+       "max": 37504
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 5224,
+       "min": 5191,
+       "max": 6317
+      }
+     },
+     "integration-verify": {
+      "packets": 31,
+      "file_bytes": {
+       "n": 31,
+       "median": 37212,
+       "min": 33763,
+       "max": 39288
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4466.0,
+       "min": 4002,
+       "max": 4930
+      }
+     },
+     "operations": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 30441.5,
+       "min": 27657,
+       "max": 32146
+      },
+      "head_bytes": null
+     },
+     "plan": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 55880.5,
+       "min": 53621,
+       "max": 63859
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6985,
+       "min": 6985,
+       "max": 6985
+      }
+     },
+     "plan [Improve packet]": {
+      "packets": 9,
+      "file_bytes": {
+       "n": 9,
+       "median": 58120,
+       "min": 56605,
+       "max": 59136
+      },
+      "head_bytes": null
+     },
+     "prepare": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 31176.5,
+       "min": 28211,
+       "max": 32756
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6057,
+       "min": 6057,
+       "max": 6057
+      }
+     },
+     "product-acceptance": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 35918.0,
+       "min": 32497,
+       "max": 37504
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 6161.5,
+       "min": 5503,
+       "max": 6820
+      }
+     },
+     "regression": {
+      "packets": 30,
+      "file_bytes": {
+       "n": 30,
+       "median": 41373.0,
+       "min": 37262,
+       "max": 43077
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 5014,
+       "min": 4841,
+       "max": 6292
+      }
+     },
+     "release": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 30825.0,
+       "min": 27954,
+       "max": 32499
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5257,
+       "min": 5257,
+       "max": 5257
+      }
+     },
+     "release-check": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 30942.0,
+       "min": 28101,
+       "max": 34186
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 5500.5,
+       "min": 5412,
+       "max": 5589
+      }
+     },
+     "release-plan": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 40683.0,
+       "min": 36856,
+       "max": 49720
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 6330.5,
+       "min": 5697,
+       "max": 6964
+      }
+     },
+     "release-plan [Improve packet]": {
+      "packets": 16,
+      "file_bytes": {
+       "n": 16,
+       "median": 50701.5,
+       "min": 47709,
+       "max": 53080
+      },
+      "head_bytes": null
+     },
+     "release-verify": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 34884.5,
+       "min": 31262,
+       "max": 36523
+      },
+      "head_bytes": null
+     },
+     "research": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 36218.0,
+       "min": 33759,
+       "max": 37680
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4961.5,
+       "min": 4952,
+       "max": 4971
+      }
+     },
+     "select-work": {
+      "packets": 14,
+      "file_bytes": {
+       "n": 14,
+       "median": 28154.5,
+       "min": 26406,
+       "max": 29716
+      },
+      "head_bytes": null
+     },
+     "skill-assess": {
+      "packets": 27,
+      "file_bytes": {
+       "n": 27,
+       "median": 30798,
+       "min": 27846,
+       "max": 32570
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 4099,
+       "min": 3938,
+       "max": 5093
+      }
+     },
+     "skill-validate": {
+      "packets": 27,
+      "file_bytes": {
+       "n": 27,
+       "median": 29951,
+       "min": 26589,
+       "max": 31350
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5014,
+       "min": 5014,
+       "max": 5014
+      }
+     },
+     "spec": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 40123.5,
+       "min": 38326,
+       "max": 51926
+      },
+      "head_bytes": {
+       "n": 12,
+       "median": 3694.0,
+       "min": 3527,
+       "max": 5021
+      }
+     },
+     "spec [Improve packet]": {
+      "packets": 9,
+      "file_bytes": {
+       "n": 9,
+       "median": 47258,
+       "min": 45278,
+       "max": 48033
+      },
+      "head_bytes": {
+       "n": 9,
+       "median": 4019,
+       "min": 3529,
+       "max": 4644
+      }
+     },
+     "static-checks": {
+      "packets": 31,
+      "file_bytes": {
+       "n": 31,
+       "median": 43109,
+       "min": 38030,
+       "max": 44347
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4656.0,
+       "min": 4227,
+       "max": 5085
+      }
+     },
+     "step-plan": {
+      "packets": 33,
+      "file_bytes": {
+       "n": 33,
+       "median": 53227,
+       "min": 49253,
+       "max": 56881
+      },
+      "head_bytes": {
+       "n": 5,
+       "median": 2814,
+       "min": 1317,
+       "max": 6402
+      }
+     },
+     "step-plan [Improve packet]": {
+      "packets": 9,
+      "file_bytes": {
+       "n": 9,
+       "median": 53520,
+       "min": 52004,
+       "max": 54528
+      },
+      "head_bytes": null
+     },
+     "system-test": {
+      "packets": 32,
+      "file_bytes": {
+       "n": 32,
+       "median": 33979.5,
+       "min": 30341,
+       "max": 35851
+      },
+      "head_bytes": null
+     },
+     "system-test-author": {
+      "packets": 31,
+      "file_bytes": {
+       "n": 31,
+       "median": 37107,
+       "min": 34621,
+       "max": 46187
+      },
+      "head_bytes": {
+       "n": 4,
+       "median": 5336.5,
+       "min": 3962,
+       "max": 6922
+      }
+     },
+     "system-test-author [Improve packet]": {
+      "packets": 17,
+      "file_bytes": {
+       "n": 17,
+       "median": 46625,
+       "min": 45186,
+       "max": 47630
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 3938,
+       "min": 3938,
+       "max": 3938
+      }
+     },
+     "test-author": {
+      "packets": 32,
+      "file_bytes": {
+       "n": 32,
+       "median": 37831.5,
+       "min": 33890,
+       "max": 39271
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 4281,
+       "min": 2685,
+       "max": 5570
+      }
+     },
+     "test-green": {
+      "packets": 32,
+      "file_bytes": {
+       "n": 32,
+       "median": 37802.5,
+       "min": 33958,
+       "max": 39807
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 5550,
+       "min": 2741,
+       "max": 5602
+      }
+     },
+     "test-red": {
+      "packets": 32,
+      "file_bytes": {
+       "n": 32,
+       "median": 36118.0,
+       "min": 32739,
+       "max": 38297
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4658.0,
+       "min": 4258,
+       "max": 5058
+      }
+     },
+     "test-refine": {
+      "packets": 32,
+      "file_bytes": {
+       "n": 32,
+       "median": 39146.0,
+       "min": 35523,
+       "max": 40824
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 2090,
+       "min": 1966,
+       "max": 4937
+      }
+     },
+     "test-spec": {
+      "packets": 32,
+      "file_bytes": {
+       "n": 32,
+       "median": 36620.5,
+       "min": 34174,
+       "max": 49531
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4257.5,
+       "min": 2298,
+       "max": 6217
+      }
+     },
+     "test-spec [Improve packet]": {
+      "packets": 9,
+      "file_bytes": {
+       "n": 9,
+       "median": 47855,
+       "min": 46470,
+       "max": 48852
+      },
+      "head_bytes": null
+     },
+     "test-strategy": {
+      "packets": 28,
+      "file_bytes": {
+       "n": 28,
+       "median": 38615.0,
+       "min": 36360,
+       "max": 47979
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6417,
+       "min": 6417,
+       "max": 6417
+      }
+     },
+     "test-strategy [Improve packet]": {
+      "packets": 9,
+      "file_bytes": {
+       "n": 9,
+       "median": 47849,
+       "min": 45602,
+       "max": 48339
+      },
+      "head_bytes": null
+     },
+     "verify": {
+      "packets": 31,
+      "file_bytes": {
+       "n": 31,
+       "median": 43465,
+       "min": 38057,
+       "max": 46313
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4620.0,
+       "min": 4130,
+       "max": 5110
+      }
+     }
+    }
+   },
+   "codex / gpt-6-luna / max": {
+    "runs": 3,
+    "runs_with_packets_block": 3,
+    "packets": 51,
+    "heads_measured": 49,
+    "runs_with_any_head_measured": 3,
+    "file_bytes": {
+     "n": 51,
+     "median": 45288,
+     "min": 24304,
+     "max": 67223
+    },
+    "head_bytes": {
+     "n": 49,
+     "median": 4756,
+     "min": 4035,
+     "max": 6003
+    },
+    "runs_with_commits_block": 3,
+    "commits_counted": 51,
+    "commits": {
+     "improve": {
+      "cited": 0,
+      "cited_earlier_run": 0,
+      "n": 22,
+      "with_lessons": 8
+     },
+     "script": {
+      "n": 27,
+      "with_lessons": 0
+     },
+     "other": {
+      "n": 2,
+      "with_lessons": 0
+     }
+    },
+    "knowledge_commits": {
+     "n": 23,
+     "with_lessons": 0
+    },
+    "by_stage": {
+     "baseline": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 36730.0,
+       "min": 34986,
+       "max": 38474
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4108.0,
+       "min": 4092,
+       "max": 4124
+      }
+     },
+     "carry-forward": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 65016,
+       "min": 65016,
+       "max": 65016
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4163,
+       "min": 4163,
+       "max": 4163
+      }
+     },
+     "discovery": {
+      "packets": 3,
+      "file_bytes": {
+       "n": 3,
+       "median": 41693,
+       "min": 41588,
+       "max": 42038
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 5252,
+       "min": 5179,
+       "max": 5260
+      }
+     },
+     "document": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 42535,
+       "min": 42535,
+       "max": 42535
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4144,
+       "min": 4144,
+       "max": 4144
+      }
+     },
+     "implement": {
+      "packets": 8,
+      "file_bytes": {
+       "n": 8,
+       "median": 48599.5,
+       "min": 47494,
+       "max": 50562
+      },
+      "head_bytes": {
+       "n": 8,
+       "median": 4365.0,
+       "min": 4346,
+       "max": 5267
+      }
+     },
+     "intake": {
+      "packets": 3,
+      "file_bytes": {
+       "n": 3,
+       "median": 27055,
+       "min": 26753,
+       "max": 27055
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 4557,
+       "min": 4491,
+       "max": 4557
+      }
+     },
+     "integrate": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 40913,
+       "min": 40913,
+       "max": 40913
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5350,
+       "min": 5350,
+       "max": 5350
+      }
+     },
+     "integration-verify": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 46052,
+       "min": 46052,
+       "max": 46052
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4179,
+       "min": 4179,
+       "max": 4179
+      }
+     },
+     "plan": {
+      "packets": 3,
+      "file_bytes": {
+       "n": 3,
+       "median": 65126,
+       "min": 30123,
+       "max": 67223
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 5945.0,
+       "min": 5887,
+       "max": 6003
+      }
+     },
+     "prepare": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 35064,
+       "min": 35064,
+       "max": 35064
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5189,
+       "min": 5189,
+       "max": 5189
+      }
+     },
+     "regression": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 51852,
+       "min": 51852,
+       "max": 51852
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5094,
+       "min": 5094,
+       "max": 5094
+      }
+     },
+     "research": {
+      "packets": 3,
+      "file_bytes": {
+       "n": 3,
+       "median": 37462,
+       "min": 37324,
+       "max": 37673
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 5060,
+       "min": 4978,
+       "max": 5071
+      }
+     },
+     "select-work": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 32466,
+       "min": 32466,
+       "max": 32466
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4756,
+       "min": 4756,
+       "max": 4756
+      }
+     },
+     "skill-assess": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 36823,
+       "min": 36823,
+       "max": 36823
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4035,
+       "min": 4035,
+       "max": 4035
+      }
+     },
+     "skill-validate": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 36685,
+       "min": 36685,
+       "max": 36685
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4046,
+       "min": 4046,
+       "max": 4046
+      }
+     },
+     "spec": {
+      "packets": 3,
+      "file_bytes": {
+       "n": 3,
+       "median": 53205,
+       "min": 40515,
+       "max": 55492
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 5178,
+       "min": 5058,
+       "max": 5192
+      }
+     },
+     "static-checks": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 55923,
+       "min": 55923,
+       "max": 55923
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4265,
+       "min": 4265,
+       "max": 4265
+      }
+     },
+     "step-plan": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 59543.0,
+       "min": 59387,
+       "max": 59699
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 5228.5,
+       "min": 5207,
+       "max": 5250
+      }
+     },
+     "system-test": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 30825.5,
+       "min": 24304,
+       "max": 37347
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5390,
+       "min": 5390,
+       "max": 5390
+      }
+     },
+     "system-test-author": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 49760,
+       "min": 49760,
+       "max": 49760
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5268,
+       "min": 5268,
+       "max": 5268
+      }
+     },
+     "test-author": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 42726.5,
+       "min": 42376,
+       "max": 43077
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4252.0,
+       "min": 4235,
+       "max": 4269
+      }
+     },
+     "test-green": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 45288,
+       "min": 45288,
+       "max": 45288
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4068,
+       "min": 4068,
+       "max": 4068
+      }
+     },
+     "test-red": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 43654.0,
+       "min": 43644,
+       "max": 43664
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4215.5,
+       "min": 4204,
+       "max": 4227
+      }
+     },
+     "test-refine": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 49619,
+       "min": 49619,
+       "max": 49619
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4141,
+       "min": 4141,
+       "max": 4141
+      }
+     },
+     "test-spec": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 55051.0,
+       "min": 54783,
+       "max": 55319
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 5197.0,
+       "min": 5182,
+       "max": 5212
+      }
+     },
+     "test-strategy": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 52345.0,
+       "min": 51580,
+       "max": 53110
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 5217.5,
+       "min": 5165,
+       "max": 5270
+      }
+     },
+     "verify": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 58826,
+       "min": 58826,
+       "max": 58826
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4259,
+       "min": 4259,
+       "max": 4259
+      }
+     }
+    }
+   },
+   "codex / gpt-6-luna / xhigh": {
+    "runs": 1,
+    "runs_with_packets_block": 1,
+    "packets": 24,
+    "heads_measured": 24,
+    "runs_with_any_head_measured": 1,
+    "file_bytes": {
+     "n": 24,
+     "median": 47055.0,
+     "min": 27379,
+     "max": 60358
+    },
+    "head_bytes": {
+     "n": 24,
+     "median": 4749.5,
+     "min": 4215,
+     "max": 6289
+    },
+    "runs_with_commits_block": 1,
+    "commits_counted": 23,
+    "commits": {
+     "improve": {
+      "cited": 0,
+      "cited_earlier_run": 0,
+      "n": 12,
+      "with_lessons": 5
+     },
+     "script": {
+      "n": 11,
+      "with_lessons": 0
+     },
+     "other": {
+      "n": 0,
+      "with_lessons": 0
+     }
+    },
+    "knowledge_commits": {
+     "n": 10,
+     "with_lessons": 0
+    },
+    "by_stage": {
+     "baseline": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 38917.0,
+       "min": 38682,
+       "max": 39152
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4228.0,
+       "min": 4215,
+       "max": 4241
+      }
+     },
+     "discovery": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 41470,
+       "min": 41470,
+       "max": 41470
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5268,
+       "min": 5268,
+       "max": 5268
+      }
+     },
+     "implement": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 49919,
+       "min": 49114,
+       "max": 50928
+      },
+      "head_bytes": {
+       "n": 5,
+       "median": 4430,
+       "min": 4403,
+       "max": 5440
+      }
+     },
+     "intake": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 27379,
+       "min": 27379,
+       "max": 27379
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4623,
+       "min": 4623,
+       "max": 4623
+      }
+     },
+     "plan": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 60358,
+       "min": 60358,
+       "max": 60358
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6040,
+       "min": 6040,
+       "max": 6040
+      }
+     },
+     "prepare": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 35132,
+       "min": 35132,
+       "max": 35132
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5184,
+       "min": 5184,
+       "max": 5184
+      }
+     },
+     "research": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 37630,
+       "min": 37630,
+       "max": 37630
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5116,
+       "min": 5116,
+       "max": 5116
+      }
+     },
+     "select-work": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 34473,
+       "min": 34473,
+       "max": 34473
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4876,
+       "min": 4876,
+       "max": 4876
+      }
+     },
+     "spec": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 49394,
+       "min": 49394,
+       "max": 49394
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5242,
+       "min": 5242,
+       "max": 5242
+      }
+     },
+     "step-plan": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 54637.0,
+       "min": 53853,
+       "max": 55421
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 5722.5,
+       "min": 5156,
+       "max": 6289
+      }
+     },
+     "test-author": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 43333.5,
+       "min": 42891,
+       "max": 43776
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4342.0,
+       "min": 4329,
+       "max": 4355
+      }
+     },
+     "test-green": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 44996,
+       "min": 44996,
+       "max": 44996
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4217,
+       "min": 4217,
+       "max": 4217
+      }
+     },
+     "test-red": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 44046.0,
+       "min": 44001,
+       "max": 44091
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4338.5,
+       "min": 4335,
+       "max": 4342
+      }
+     },
+     "test-spec": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 56970.5,
+       "min": 55226,
+       "max": 58715
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 5379.5,
+       "min": 5367,
+       "max": 5392
+      }
+     },
+     "test-strategy": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 52661,
+       "min": 52661,
+       "max": 52661
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5217,
+       "min": 5217,
+       "max": 5217
+      }
+     }
+    }
+   },
+   "grok / grok-4.7 / medium": {
+    "runs": 5,
+    "runs_with_packets_block": 5,
+    "packets": 159,
+    "heads_measured": 90,
+    "runs_with_any_head_measured": 5,
+    "file_bytes": {
+     "n": 159,
+     "median": 39897,
+     "min": 18976,
+     "max": 60068
+    },
+    "head_bytes": {
+     "n": 90,
+     "median": 5895.0,
+     "min": 2943,
+     "max": 7126
+    },
+    "runs_with_commits_block": 5,
+    "commits_counted": 96,
+    "commits": {
+     "improve": {
+      "cited": 0,
+      "cited_earlier_run": 0,
+      "n": 17,
+      "with_lessons": 17
+     },
+     "script": {
+      "n": 78,
+      "with_lessons": 1
+     },
+     "other": {
+      "n": 1,
+      "with_lessons": 0
+     }
+    },
+    "knowledge_commits": {
+     "n": 67,
+     "with_lessons": 1
+    },
+    "by_stage": {
+     "baseline": {
+      "packets": 7,
+      "file_bytes": {
+       "n": 7,
+       "median": 33970,
+       "min": 33384,
+       "max": 36075
+      },
+      "head_bytes": {
+       "n": 4,
+       "median": 5278.0,
+       "min": 5083,
+       "max": 5348
+      }
+     },
+     "carry-forward": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 41515,
+       "min": 41050,
+       "max": 56126
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 4241.0,
+       "min": 3163,
+       "max": 5319
+      }
+     },
+     "carry-forward [Improve packet]": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 56922.5,
+       "min": 55868,
+       "max": 57977
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 2943,
+       "min": 2943,
+       "max": 2943
+      }
+     },
+     "discovery": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 42052,
+       "min": 41774,
+       "max": 43651
+      },
+      "head_bytes": {
+       "n": 5,
+       "median": 6094,
+       "min": 5314,
+       "max": 6344
+      }
+     },
+     "document": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 38735,
+       "min": 38110,
+       "max": 39897
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5461,
+       "min": 5461,
+       "max": 5461
+      }
+     },
+     "done": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 18976,
+       "min": 18976,
+       "max": 18976
+      },
+      "head_bytes": null
+     },
+     "get-next-work-item": {
+      "packets": 4,
+      "file_bytes": {
+       "n": 4,
+       "median": 31915.0,
+       "min": 31303,
+       "max": 33546
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 5725,
+       "min": 5660,
+       "max": 5874
+      }
+     },
+     "handoff": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 35027,
+       "min": 35027,
+       "max": 35027
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6301,
+       "min": 6301,
+       "max": 6301
+      }
+     },
+     "implement": {
+      "packets": 9,
+      "file_bytes": {
+       "n": 9,
+       "median": 45009,
+       "min": 43812,
+       "max": 47475
+      },
+      "head_bytes": {
+       "n": 6,
+       "median": 5706.5,
+       "min": 5242,
+       "max": 6418
+      }
+     },
+     "intake": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 28536,
+       "min": 27329,
+       "max": 29553
+      },
+      "head_bytes": {
+       "n": 5,
+       "median": 5487,
+       "min": 4622,
+       "max": 5694
+      }
+     },
+     "integrate": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 38707,
+       "min": 38158,
+       "max": 39632
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6467,
+       "min": 6467,
+       "max": 6467
+      }
+     },
+     "integration-verify": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 39948,
+       "min": 39823,
+       "max": 41452
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5061,
+       "min": 5061,
+       "max": 5061
+      }
+     },
+     "operations": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 33185,
+       "min": 33185,
+       "max": 33185
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6503,
+       "min": 6503,
+       "max": 6503
+      }
+     },
+     "plan": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 55518,
+       "min": 55126,
+       "max": 60068
+      },
+      "head_bytes": {
+       "n": 5,
+       "median": 6771,
+       "min": 5991,
+       "max": 7084
+      }
+     },
+     "prepare": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 33559,
+       "min": 33206,
+       "max": 34855
+      },
+      "head_bytes": {
+       "n": 4,
+       "median": 6015.0,
+       "min": 5082,
+       "max": 6213
+      }
+     },
+     "product-acceptance": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 37126,
+       "min": 37126,
+       "max": 37126
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6583,
+       "min": 6583,
+       "max": 6583
+      }
+     },
+     "regression": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 44317,
+       "min": 43610,
+       "max": 46011
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6593,
+       "min": 6593,
+       "max": 6593
+      }
+     },
+     "release": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 33854,
+       "min": 33854,
+       "max": 33854
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6537,
+       "min": 6537,
+       "max": 6537
+      }
+     },
+     "release-check": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 33903,
+       "min": 33903,
+       "max": 33903
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6621,
+       "min": 6621,
+       "max": 6621
+      }
+     },
+     "release-plan": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 53147,
+       "min": 53147,
+       "max": 53147
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6877,
+       "min": 6877,
+       "max": 6877
+      }
+     },
+     "release-verify": {
+      "packets": 1,
+      "file_bytes": {
+       "n": 1,
+       "median": 37272,
+       "min": 37272,
+       "max": 37272
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6604,
+       "min": 6604,
+       "max": 6604
+      }
+     },
+     "research": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 37418,
+       "min": 37190,
+       "max": 39226
+      },
+      "head_bytes": {
+       "n": 5,
+       "median": 5857,
+       "min": 5013,
+       "max": 6049
+      }
+     },
+     "select-work": {
+      "packets": 3,
+      "file_bytes": {
+       "n": 3,
+       "median": 31264,
+       "min": 31185,
+       "max": 31696
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 4844,
+       "min": 4844,
+       "max": 4844
+      }
+     },
+     "skill-assess": {
+      "packets": 4,
+      "file_bytes": {
+       "n": 4,
+       "median": 34234.0,
+       "min": 34038,
+       "max": 35506
+      },
+      "head_bytes": null
+     },
+     "skill-validate": {
+      "packets": 4,
+      "file_bytes": {
+       "n": 4,
+       "median": 32817.5,
+       "min": 32692,
+       "max": 34097
+      },
+      "head_bytes": null
+     },
+     "spec": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 40386,
+       "min": 39993,
+       "max": 48986
+      },
+      "head_bytes": {
+       "n": 5,
+       "median": 6000,
+       "min": 5213,
+       "max": 6211
+      }
+     },
+     "static-checks": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 45604,
+       "min": 45436,
+       "max": 47757
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5314,
+       "min": 5314,
+       "max": 5314
+      }
+     },
+     "step-plan": {
+      "packets": 8,
+      "file_bytes": {
+       "n": 8,
+       "median": 54393.0,
+       "min": 53588,
+       "max": 57477
+      },
+      "head_bytes": {
+       "n": 5,
+       "median": 6278,
+       "min": 5305,
+       "max": 6607
+      }
+     },
+     "system-test": {
+      "packets": 3,
+      "file_bytes": {
+       "n": 3,
+       "median": 36904,
+       "min": 20481,
+       "max": 39577
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 6568,
+       "min": 6568,
+       "max": 6568
+      }
+     },
+     "system-test-author": {
+      "packets": 4,
+      "file_bytes": {
+       "n": 4,
+       "median": 37835.5,
+       "min": 20706,
+       "max": 53149
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 5722.0,
+       "min": 4318,
+       "max": 7126
+      }
+     },
+     "system-test-author [Improve packet]": {
+      "packets": 2,
+      "file_bytes": {
+       "n": 2,
+       "median": 49331.0,
+       "min": 48685,
+       "max": 49977
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 3954,
+       "min": 3954,
+       "max": 3954
+      }
+     },
+     "test-author": {
+      "packets": 7,
+      "file_bytes": {
+       "n": 7,
+       "median": 40374,
+       "min": 39758,
+       "max": 42710
+      },
+      "head_bytes": {
+       "n": 5,
+       "median": 5364,
+       "min": 4354,
+       "max": 5752
+      }
+     },
+     "test-green": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 41084,
+       "min": 40152,
+       "max": 41759
+      },
+      "head_bytes": {
+       "n": 2,
+       "median": 5420.5,
+       "min": 5200,
+       "max": 5641
+      }
+     },
+     "test-red": {
+      "packets": 6,
+      "file_bytes": {
+       "n": 6,
+       "median": 39710.5,
+       "min": 38957,
+       "max": 42181
+      },
+      "head_bytes": {
+       "n": 3,
+       "median": 5183,
+       "min": 5162,
+       "max": 5331
+      }
+     },
+     "test-refine": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 42343,
+       "min": 41702,
+       "max": 43392
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5091,
+       "min": 5091,
+       "max": 5091
+      }
+     },
+     "test-spec": {
+      "packets": 8,
+      "file_bytes": {
+       "n": 8,
+       "median": 38003.5,
+       "min": 37011,
+       "max": 51484
+      },
+      "head_bytes": {
+       "n": 6,
+       "median": 6388.0,
+       "min": 5256,
+       "max": 6397
+      }
+     },
+     "test-strategy": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 37356,
+       "min": 37206,
+       "max": 50490
+      },
+      "head_bytes": {
+       "n": 5,
+       "median": 6114,
+       "min": 5160,
+       "max": 6451
+      }
+     },
+     "verify": {
+      "packets": 5,
+      "file_bytes": {
+       "n": 5,
+       "median": 47987,
+       "min": 47685,
+       "max": 50168
+      },
+      "head_bytes": {
+       "n": 1,
+       "median": 5234,
+       "min": 5234,
+       "max": 5234
+      }
+     }
+    }
+   }
+  }
+ },
+ "per_run": [
+  {
+   "run": "20261003/batch-sonnet/battleship",
+   "case": "battleship",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 49,
+    "head_measured": 10,
+    "file_bytes": 1856484,
+    "head_bytes": 42817
+   },
+   "commits": {
+    "improve": {
+     "n": 3,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 8,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 4,
+     "with_lessons": 0
+    },
+    "counted": 15,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 5,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261003/batch-sonnet/battleship-scoring",
+   "case": "battleship-scoring",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 37,
+    "head_measured": 9,
+    "file_bytes": 1454980,
+    "head_bytes": 39442
+   },
+   "commits": {
+    "improve": {
+     "n": 6,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 7,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 13,
+    "start_head": "f0b8629b1b742b12b548f46255e005912f1653d0"
+   },
+   "knowledge_commits": {
+    "n": 6,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261003/batch-sonnet/hello",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 36,
+    "head_measured": 5,
+    "file_bytes": 1316149,
+    "head_bytes": 24366
+   },
+   "commits": {
+    "improve": {
+     "n": 2,
+     "with_lessons": 2,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 9,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 11,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 7,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261003/batch-sonnet/seat-reservations",
+   "case": "seat-reservations",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 58,
+    "head_measured": 9,
+    "file_bytes": 2204157,
+    "head_bytes": 41570
+   },
+   "commits": {
+    "improve": {
+     "n": 4,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 12,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 1,
+     "with_lessons": 0
+    },
+    "counted": 17,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 9,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261003/battleship-luna",
+   "case": "battleship",
+   "hosts": [
+    "codex"
+   ],
+   "mixed_host": false,
+   "host": "codex",
+   "model": "gpt-6-luna",
+   "effort": "max",
+   "engine_status": "blocked",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 7,
+    "head_measured": 6,
+    "file_bytes": 307796,
+    "head_bytes": 30758
+   },
+   "commits": {
+    "improve": {
+     "n": 4,
+     "with_lessons": 2,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 5,
+     "with_lessons": 0
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 9,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 4,
+    "with_lessons": 0
+   }
+  },
+  {
+   "run": "20261003/hello",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 36,
+    "head_measured": 3,
+    "file_bytes": 1269658,
+    "head_bytes": 10454
+   },
+   "commits": {
+    "improve": {
+     "n": 2,
+     "with_lessons": 2,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 12,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 8,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261003/seat-reservations",
+   "case": "seat-reservations",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 37,
+    "head_measured": 5,
+    "file_bytes": 1396333,
+    "head_bytes": 19416
+   },
+   "commits": {
+    "improve": {
+     "n": 3,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 13,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 3,
+     "with_lessons": 0
+    },
+    "counted": 19,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 10,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261003/v1161-battleship-luna",
+   "case": "battleship",
+   "hosts": [
+    "codex"
+   ],
+   "mixed_host": false,
+   "host": "codex",
+   "model": "gpt-6-luna",
+   "effort": "max",
+   "engine_status": "blocked",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 40,
+    "head_measured": 39,
+    "file_bytes": 1855194,
+    "head_bytes": 182367
+   },
+   "commits": {
+    "improve": {
+     "n": 18,
+     "with_lessons": 6,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 19,
+     "with_lessons": 0
+    },
+    "other": {
+     "n": 2,
+     "with_lessons": 0
+    },
+    "counted": 39,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 17,
+    "with_lessons": 0
+   }
+  },
+  {
+   "run": "20261003/v1161-hello",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 36,
+    "head_measured": 2,
+    "file_bytes": 1291339,
+    "head_bytes": 7914
+   },
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 12,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 12,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 10,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261004/v1180-hello-sonnet",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 35,
+    "head_measured": 2,
+    "file_bytes": 1261571,
+    "head_bytes": 8118
+   },
+   "commits": {
+    "improve": {
+     "n": 5,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 15,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 7,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261004/v1190-hello-sonnet",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 35,
+    "head_measured": 4,
+    "file_bytes": 1265237,
+    "head_bytes": 15899
+   },
+   "commits": {
+    "improve": {
+     "n": 3,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 13,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 8,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261004/v1190-hello-sonnet-2",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 48,
+    "head_measured": 2,
+    "file_bytes": 1754869,
+    "head_bytes": 8203
+   },
+   "commits": {
+    "improve": {
+     "n": 5,
+     "with_lessons": 5,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 12,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 17,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 10,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261004/v1200-battleship-luna",
+   "case": "battleship",
+   "hosts": [
+    "codex"
+   ],
+   "mixed_host": false,
+   "host": "codex",
+   "model": "gpt-6-luna",
+   "effort": "max",
+   "engine_status": "active",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 4,
+    "head_measured": 4,
+    "file_bytes": 146936,
+    "head_bytes": 20047
+   },
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 3,
+     "with_lessons": 0
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 3,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 2,
+    "with_lessons": 0
+   }
+  },
+  {
+   "run": "20261004/v1200-hello-sonnet",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 36,
+    "head_measured": 7,
+    "file_bytes": 1287950,
+    "head_bytes": 25211
+   },
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 11,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 11,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 9,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261005/v1210-battleship-grok-medium",
+   "case": "battleship",
+   "hosts": [
+    "grok"
+   ],
+   "mixed_host": false,
+   "host": "grok",
+   "model": "grok-4.7",
+   "effort": "medium",
+   "engine_status": "active",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 12,
+    "head_measured": 11,
+    "file_bytes": 513054,
+    "head_bytes": 56154
+   },
+   "commits": {
+    "improve": {
+     "n": 15,
+     "with_lessons": 15,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 9,
+     "with_lessons": 0
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 24,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 8,
+    "with_lessons": 0
+   }
+  },
+  {
+   "run": "20261005/v1210-battleship-luna-xhigh",
+   "case": "battleship",
+   "hosts": [
+    "codex"
+   ],
+   "mixed_host": false,
+   "host": "codex",
+   "model": "gpt-6-luna",
+   "effort": "xhigh",
+   "engine_status": "active",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 24,
+    "head_measured": 24,
+    "file_bytes": 1109194,
+    "head_bytes": 116922
+   },
+   "commits": {
+    "improve": {
+     "n": 12,
+     "with_lessons": 5,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 11,
+     "with_lessons": 0
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 23,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 10,
+    "with_lessons": 0
+   }
+  },
+  {
+   "run": "20261006/v1220-battleship-grok-medium-none",
+   "case": "custom",
+   "hosts": [
+    "grok"
+   ],
+   "mixed_host": false,
+   "host": "grok",
+   "model": "grok-4.7",
+   "effort": "medium",
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 53,
+    "head_measured": 16,
+    "file_bytes": 2113754,
+    "head_bytes": 95875
+   },
+   "commits": {
+    "improve": {
+     "n": 1,
+     "with_lessons": 1,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 22,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 23,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 18,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261006/v1220-battleship-sonnet",
+   "case": "battleship",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 47,
+    "head_measured": 2,
+    "file_bytes": 1786663,
+    "head_bytes": 8948
+   },
+   "commits": {
+    "improve": {
+     "n": 6,
+     "with_lessons": 6,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 9,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 3,
+     "with_lessons": 1
+    },
+    "counted": 18,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 8,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261007/v1230-battleship-grok-none",
+   "case": "custom",
+   "hosts": [
+    "grok"
+   ],
+   "mixed_host": false,
+   "host": "grok",
+   "model": "grok-4.7",
+   "effort": "medium",
+   "engine_status": "blocked",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 50,
+    "head_measured": 20,
+    "file_bytes": 2041236,
+    "head_bytes": 117025
+   },
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 24,
+     "with_lessons": 0
+    },
+    "other": {
+     "n": 1,
+     "with_lessons": 0
+    },
+    "counted": 25,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 21,
+    "with_lessons": 0
+   }
+  },
+  {
+   "run": "20261007/v1230-battleship-sonnet",
+   "case": "battleship",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 47,
+    "head_measured": 2,
+    "file_bytes": 1831300,
+    "head_bytes": 9098
+   },
+   "commits": {
+    "improve": {
+     "n": 6,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 1,
+     "with_lessons": 0
+    },
+    "counted": 17,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 7,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261008/r1-battleship-grok-none",
+   "case": "custom",
+   "hosts": [
+    "grok"
+   ],
+   "mixed_host": false,
+   "host": "grok",
+   "model": "grok-4.7",
+   "effort": "medium",
+   "engine_status": "blocked",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 28,
+    "head_measured": 27,
+    "file_bytes": 1149687,
+    "head_bytes": 154132
+   },
+   "commits": {
+    "improve": {
+     "n": 1,
+     "with_lessons": 1,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 13,
+     "with_lessons": 0
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 14,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 11,
+    "with_lessons": 0
+   }
+  },
+  {
+   "run": "20261008/r1-battleship-sonnet",
+   "case": "battleship",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 44,
+    "head_measured": 2,
+    "file_bytes": 1707162,
+    "head_bytes": 9111
+   },
+   "commits": {
+    "improve": {
+     "n": 3,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 12,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 15,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 9,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261008/r1-checkers-sonnet",
+   "case": "checkers",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 45,
+    "head_measured": 2,
+    "file_bytes": 1737466,
+    "head_bytes": 9127
+   },
+   "commits": {
+    "improve": {
+     "n": 4,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 7,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 2,
+     "with_lessons": 0
+    },
+    "counted": 13,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 5,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261008/r2-battleship-grok-none",
+   "case": "custom",
+   "hosts": [
+    "grok",
+    "claude"
+   ],
+   "mixed_host": true,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 52,
+    "head_measured": 13,
+    "file_bytes": 2124214,
+    "head_bytes": 76732
+   },
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 20,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 10,
+     "with_lessons": 0
+    },
+    "counted": 30,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 17,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261008/r2-battleship-sonnet",
+   "case": "battleship",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 43,
+    "head_measured": 2,
+    "file_bytes": 1736062,
+    "head_bytes": 10232
+   },
+   "commits": {
+    "improve": {
+     "n": 2,
+     "with_lessons": 2,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 1,
+     "with_lessons": 0
+    },
+    "counted": 13,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 7,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261008/r2-checkers-sonnet",
+   "case": "checkers",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 46,
+    "head_measured": 2,
+    "file_bytes": 1858450,
+    "head_bytes": 9632
+   },
+   "commits": {
+    "improve": {
+     "n": 8,
+     "with_lessons": 8,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 18,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 8,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261008/r3-battleship-grok-none",
+   "case": "custom",
+   "hosts": [
+    "grok"
+   ],
+   "mixed_host": false,
+   "host": "grok",
+   "model": "grok-4.7",
+   "effort": "medium",
+   "engine_status": "active",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 16,
+    "head_measured": 16,
+    "file_bytes": 680918,
+    "head_bytes": 95542
+   },
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 0
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 10,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 9,
+    "with_lessons": 0
+   }
+  },
+  {
+   "run": "20261008/r3-battleship-sonnet",
+   "case": "battleship",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 45,
+    "head_measured": 6,
+    "file_bytes": 1802659,
+    "head_bytes": 20206
+   },
+   "commits": {
+    "improve": {
+     "n": 3,
+     "with_lessons": 3,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 2,
+     "with_lessons": 0
+    },
+    "counted": 15,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 8,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261008/r3-checkers-sonnet",
+   "case": "checkers",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 47,
+    "head_measured": 2,
+    "file_bytes": 1886952,
+    "head_bytes": 10165
+   },
+   "commits": {
+    "improve": {
+     "n": 6,
+     "with_lessons": 6,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 9,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 15,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 6,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261009/s6-after-spec",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 39,
+    "head_measured": 27,
+    "file_bytes": 1459605,
+    "head_bytes": 151092
+   },
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 8,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 3,
+     "with_lessons": 0
+    },
+    "counted": 11,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 6,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261009/s6-inside-implement",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 37,
+    "head_measured": 3,
+    "file_bytes": 1377970,
+    "head_bytes": 15029
+   },
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 9,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 9,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 7,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261009/s6-inside-implement-k2",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 39,
+    "head_measured": 2,
+    "file_bytes": 1462710,
+    "head_bytes": 9273
+   },
+   "commits": {
+    "improve": {
+     "n": 1,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 9,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 10,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 7,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261009/s6-inside-implement-mtime",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 39,
+    "head_measured": 5,
+    "file_bytes": 1465776,
+    "head_bytes": 25521
+   },
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 9,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 9,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 7,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261009/s6-inside-implement-write",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 39,
+    "head_measured": 2,
+    "file_bytes": 1468581,
+    "head_bytes": 8785
+   },
+   "commits": {
+    "improve": {
+     "n": 1,
+     "with_lessons": 1,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 8,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 9,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 6,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261009/s6-inside-test-strategy",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 59,
+    "head_measured": 2,
+    "file_bytes": 2260265,
+    "head_bytes": 11171
+   },
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 12,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 12,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 10,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261009/s6-inside-test-strategy-2",
+   "case": "hello",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 39,
+    "head_measured": 2,
+    "file_bytes": 1467113,
+    "head_bytes": 8798
+   },
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 11,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 11,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 9,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261010/battleship-1",
+   "case": "battleship",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 46,
+    "head_measured": 2,
+    "file_bytes": 1817259,
+    "head_bytes": 9557
+   },
+   "commits": {
+    "improve": {
+     "n": 5,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 11,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 16,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 8,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261010/checkers-1",
+   "case": "checkers",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 46,
+    "head_measured": 2,
+    "file_bytes": 1816421,
+    "head_bytes": 9479
+   },
+   "commits": {
+    "improve": {
+     "n": 3,
+     "with_lessons": 3,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 8,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 2,
+     "with_lessons": 0
+    },
+    "counted": 13,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 7,
+    "with_lessons": 1
+   }
+  },
+  {
+   "run": "20261010/pc1i-checkers-sonnet",
+   "case": "checkers",
+   "hosts": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "packets": null,
+   "commits": null,
+   "not_regraded": "the run's harness is alive (its case lock is held): the run is not finished and its record is still being written"
+  }
+ ]
+}

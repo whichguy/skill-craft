@@ -513,6 +513,8 @@ _PREFIX_SUITE_IDS = {
     "test/shiploop_e2e/": _E2E_FAMILY_IDS,
     # The committed output of `run.py --baseline-report` and the script that cut its fixtures: the baseline suite pins both.
     "docs/experiments/baseline-spread-20261009/": ("shiploop-e2e-baseline",),
+    # The packets and commits regrade of the saved runs, its mutation record and the script that wrote them.
+    "docs/experiments/commit-baseline-20261010/": ("shiploop-e2e-commit-counters",),
     # The frozen record shapes the Run Review tests read (figures.json) and the scripts that cut them: the Run Review suite pins both.
     "docs/experiments/run-review-r22c-20261009/": ("shiploop-run-review",),
     "docs/experiments/run-review-r23-20261009/": ("shiploop-run-review",),

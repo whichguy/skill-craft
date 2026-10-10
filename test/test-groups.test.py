@@ -440,6 +440,12 @@ class E2EFamilySelectionTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn("shiploop-e2e-baseline", suite_catalog.targeted([path]))
 
+    def test_the_counters_evidence_and_fixtures_select_the_suite_that_pins_them(self) -> None:
+        for path in ("docs/experiments/commit-baseline-20261010/baseline.json", "docs/experiments/commit-baseline-20261010/regrade.py",
+                     "test/fixtures/commit-counters/grok/events.jsonl", "test/fixtures/commit-counters/messages.json"):
+            with self.subTest(path=path):
+                self.assertIn("shiploop-e2e-commit-counters", suite_catalog.targeted([path]))
+
     def test_a_frozen_copy_of_the_cli_entry_in_a_fixture_selects_only_the_suite_that_reads_it(self) -> None:
         # The baseline-report fixtures hold frozen copies of the CLI entry, each a file named shiploop. A name match ran
         # every ShipLoop suite for an edit of one fixture (71 suites, about nineteen minutes of the quick tier).
