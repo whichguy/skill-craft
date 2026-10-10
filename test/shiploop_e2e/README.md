@@ -1003,7 +1003,15 @@ shown to have changed it by these counts, never by cost or wall time (a same-bui
     leftovers commit `chore(shiploop): commit files written after the last work item, before the return` and a chain's `ShipLoop
     chain prepared ...` merge. `other`: everything else, which is the model's own commits (a commit that borrows a ShipLoop
     subject but not its exact shape is here). A commit made by an Improve child with a raw `git commit` is `other`: the counts of
-    `improve` are the ones that went through the gate.
+    `improve` are the ones that went through the gate. `improve` is a lower bound a second way: it needs ShipLoop's reply in the
+    host's events, so a reply the model's pipe cut is missing, and so would be the reply of a command a sub-agent ran if the host's
+    stream does not carry a sub-agent's tool results (none of the 29 saved Claude runs holds a sub-agent, so that is not known). When
+    plan v5 slice B moves `improve-commit` into the Improve child's contract, read `other` beside `improve` (the plan cut the
+    `ShipLoop-Run/-Stage/-Action` trailers because no consumer read them; a classifier by trailer is the consumer that would reverse
+    that, and the decision is the owner's). None of the 35 `other` commits of the 38 saved runs is ShipLoop's: in Claude runs ShipLoop
+    commits as its workspace identity and the model's own `git commit` falls back to the machine's Git identity (32 commits), and in
+    Grok and Codex runs, which configure one identity for both, git's own `[branch sha] subject` line is in the events (3 commits)
+    (`docs/experiments/commit-baseline-20261010/tallies.json`).
   - `with_lessons` counts commits whose message has a non-empty `Key learnings` (the Improve card's label) or `Learned` (the
     knowledge home's release-verify body) section. The label is a line of its own, `Label: text` or a bare `Learned` followed by
     bullets; the section runs to the next `Label:` line, trailer or knowledge-home section name. Presence only: the text is never
@@ -1017,8 +1025,14 @@ shown to have changed it by these counts, never by cost or wall time (a same-bui
     hold, and when `events.jsonl` is missing or empty (the `improve` class is read from it). Git is read through plumbing only
     (`rev-list`, `cat-file`, `rev-parse`, `merge-base`): never `status`, never a command that writes the index.
 
+`counters.head_or_why` is the one reader of a head (the head, or which of three reasons it is not whole) and `counters.history` the one
+classification of a run's commits (a row per commit: id, kind, author, subject, message); the blocks, `regrade.py` and `tallies.py`
+(the head replies by reason, and the `other` commits by author and by git's confirmation line, for the runs `baseline.json` regraded)
+all read through them.
+
 Tests: `test/shiploop-e2e-commit-counters.test.py` (fixtures cut by `test/fixtures/commit-counters/cut_fixtures.py` from saved
-Claude, Grok and Codex runs; real git in temporary repositories, the ShipLoop-owned commits made by ShipLoop's own functions).
+Claude, Grok and Codex runs; real git in temporary repositories, the ShipLoop-owned commits made by ShipLoop's own functions, the
+work item subject through `shiploop_navigator._item_commit`).
 
 ### A second feature in the same repository
 

@@ -8,6 +8,9 @@ owner approved the plan on 2026-10-10. Evidence is in `docs/experiments/commit-b
 `test/shiploop_e2e/README.md` ("Packet and commit counters") and named in `test/shiploop_e2e/SPEC.md` (two rows of "How the harness
 checks the clauses", their own commit `44fa9671`).
 
+An independent review of the first version (`2b149561`) is answered in section 10; the figures and sentences it corrected are
+marked where they stand.
+
 Status words: **firm** (counted from the saved runs by code that is committed and tested), **interim** (a reading of those counts
 that one more run or a live probe could change), **exploratory**, **superseded**.
 
@@ -25,10 +28,11 @@ cite an earlier commit, how large the printed head and the packet file are, by s
 |---|---|
 | SPEC rows (anchor S-7 and S-6 for `packets`; S-11 and S-5 for `commits`; the adversarial evaluation is in the commit message) | `test/shiploop_e2e/SPEC.md`, commit `44fa9671` |
 | The one reader of replies | `metrics.ToolLog.replies` and `metrics.KEPT_REPLY`, filled in `ToolLog.result` for every host (each call's first result only) |
-| `packets` block | `counters.packets`, `counters._whole_head`, `counters._heads` |
-| `commits` block | `counters.commits`, `counters.lessons`, `counters._starting_point`, `counters._messages`, `counters._item_prefixes` |
+| `packets` block | `counters.packets`, `counters.head_or_why` (the head, or why a reply is not whole), `counters.heads` |
+| `commits` block | `counters.history` (one row per commit: the classification), `counters.commits` (counts the rows), `counters.lessons`, `counters._starting_point`, `counters._objects`, `counters._item_prefixes` |
 | Wiring | `counters.safe_build` called in `run._main` beside `fidelity.safe_build`; so `--resume-run <dir> --grade-only` adds the four keys to a run that has none |
 | Regrade | `docs/experiments/commit-baseline-20261010/regrade.py` writes `baseline.json`; read-only |
+| Tallies (review round, section 10) | `docs/experiments/commit-baseline-20261010/tallies.py` writes `tallies.json`: the head replies by reason (F2) and the commits by author (F6); read-only |
 | Mutation record | `docs/experiments/commit-baseline-20261010/mutants.py` and `mutants-result.json` |
 | Fixtures | `test/fixtures/commit-counters/` (`cut_fixtures.py`, five extracts, `messages.json`) |
 | Registration | `test/suite_catalog.py` (the suite, its duration, the fixture and evidence prefixes), `test/test-groups.test.py` (76 ShipLoop suites, 117 in all, the E2E family gains it) |
@@ -42,6 +46,11 @@ commits:            null | {improve: {n, with_lessons, cited, cited_earlier_run}
                           counted: int, start_head: str|null}
 commits_unmeasured: {} | {"commits": "<why the block is null>"}
 ```
+
+`counters.history` (not written to metrics.json) returns `{work, start, commits: [{id, kind, author, subject, message, knowledge}]}`,
+the rows the `commits` block counts; `regrade.py` and `tallies.py` read it. `tallies.json` is `{schema, harness_head, reads, runs,
+head_replies: {all, by_host}, other_commits: {all, by_host}, commits_by_author: {by_host: {host: {improve, script, other: {author: n}}}},
+per_run}`: counts only, with no commit id, message or packet text.
 
 `action` is the packet file's name without `.md`, so it is the unique key: a stage visited again (repeat, revise, replan) is a new
 action with its own file, and the second packet of a bound Improve child is its own file, `<action>-improve`, with the same stage
@@ -79,6 +88,7 @@ shape so that the classes sum to the commits counted and nothing is dropped.
 | Wiring | four mutants of `run._main` | line removed and unguarded `build` were killed at once; an empty tool log and no run directory survived until a test pinned what the builder is handed |
 | Mutants of `counters.py` and `metrics.py` | 32 one-line mutants, first round | 3 survived: a host-note strip that proved redundant (deleted), a whole head with no `Full packet:` line given to the first file, a citation anywhere in a line; each got a test or was removed |
 | Final | `mutants.py` (36 mutants) | 36 of 36 killed, `mutants-result.json` |
+| Review round (section 10) | 8 new tests for `head_or_why` and `history`, 9 for the regrade and the tallies, 1 for the work item subject, each run before its code; `mutants.py` again | 40 of 40 killed (36 patterns kept or updated, 4 mutants added) |
 
 Process safety: the tests start no host, model, server or browser; git runs in temporary repositories with their own HOME and
 `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL=/dev/null`; the counters read a run's repository with `rev-list`, `cat-file`,
@@ -101,9 +111,11 @@ and `cut` in most calls, so the recorded reply is the model's slice, not ShipLoo
 command: a pipe elsewhere in a compound command does not hide a whole head, and a script of the model's own that slices inside
 leaves no pipe to see. Coverage in the 38 saved runs: Claude 125 of 1,190 packets (10.5%; the intake head of every run, 28 of 28),
 Grok 90 of 159 (56.6%), Codex 73 of 75 (97.3%), the mixed-host run 13 of 52. Every run has at least one head measured; a few Codex
-and Grok runs have all of them (v1200 Luna 4 of 4, v1210 Luna xhigh 24 of 24, r3 Grok 16 of 16). Of the 1,559 recorded replies that
-start a head, 437 are whole, 1,082 end before a closing line, 38 open the narrative and cut it, and 2 keep every line with a
-shortened callback line (a cut by column). Status: firm. The consequence for the baseline: a Claude "printed heads shrank" comparison rests on the intake head and on a few
+and Grok runs have all of them (v1200 Luna 4 of 4, v1210 Luna xhigh 24 of 24, r3 Grok 16 of 16). Of the 1,559 heads the recorded
+replies start (a reply can hold more than one), 437 are whole, 1,082 end before a closing line, 38 open the narrative and end
+inside it, and 2 keep every line with a shortened callback line (a cut by column); by host, Claude 153 whole of 1,204, Codex 151 of
+151, Grok 117 of 168 and the mixed-host run 16 of 36 (`tallies.json`, committed in the review round of section 10; these count
+heads, reprints included, where the 125, 73, 90 and 13 above count packets with a measured head). Status: firm. The consequence for the baseline: a Claude "printed heads shrank" comparison rests on the intake head and on a few
 uncut replies; Grok and Codex carry the rest. A script-written record of each head ShipLoop prints (one file per action, written by
 the script that prints it) would make `head_bytes` exact on every host. That is a ShipLoop change, outside this task and the fork's
 packet pass, and it is the open item below.
@@ -126,8 +138,14 @@ of 6, r1 Checkers 0 of 4, 20261010 Battleship 0 of 5). Nothing cites: `cited` an
 is defined, the history was read, nothing writes `Learned-from:`).
 
 **F6. Reading what a classifier left over (firm).** The first classification left 40 commits in `other`; 5 were ShipLoop's own work
-item commits whose reply the model had cut, now matched by subject. The 35 that remain are all the model's own `git commit` (32 by
-the user's Git identity, 3 with git's own `[branch sha] subject` confirmation in the events), none ShipLoop's. Two Codex commits
+item commits whose reply the model had cut, now matched by subject. The 35 that remain are all the model's own `git commit`, none
+ShipLoop's. In Claude and mixed-host runs ShipLoop commits as its workspace identity (`ShipLoop Workspace` on all 357 improve and
+script commits of the 28 Claude runs, and on 4 of the 20 script commits of the mixed-host run, the other 16 being `ShipLoop E2E`)
+while the model's raw `git commit` falls back to the machine's Git identity (32 commits: 22 Claude, 10 mixed-host), so no `other`
+commit there shares an identity with a ShipLoop commit. In Grok and Codex runs, which configure one identity (`ShipLoop E2E`) for the
+model and ShipLoop alike, the 3 `other` commits (Codex 2, Grok 1) are told by git's own `[branch sha] subject` line for their
+abbreviated id in the events (3 of 3). Evidence: `tallies.json` (`other_commits`, `commits_by_author`; the author names are the Git
+identities the commits carry). Two Codex commits
 that looked like Improve commits (no labels, the `shiploop-e2e` identity) are bypasses, shown by that confirmation line.
 
 **F7. Item commits are announced only when the reply survives (firm).** `ShipLoop committed W1's declared changes as <sha>` is cut
@@ -210,6 +228,10 @@ commits in brackets; `O` = other. Cited is 0 everywhere. Heads = measured / pack
 
 ### Median and range per stage, Claude (28 runs, one model, bytes; Improve packets are their own rows)
 
+Medians are rounded to a whole byte the way the harness rounds (Python `round`, half to even); `baseline.json` holds the exact
+value, which ends in .5 where two sizes straddle it (the first version of this table truncated them: 8 cells were one byte low,
+corrected in the review round).
+
 | Stage | Packets | file_bytes median (min-max) | Heads measured | head_bytes median (min-max) |
 |---|---|---|---|---|
 | baseline | 32 | 30,922 (27,823-32,759) | 1 | 5,184 (5,184-5,184) |
@@ -224,34 +246,34 @@ commits in brackets; `O` = other. Cited is 0 everywhere. Heads = measured / pack
 | intake | 28 | 27,759 (25,087-28,979) | 28 | 5,489 (4,314-5,643) |
 | integrate | 31 | 35,266 (32,281-37,504) | 3 | 5,224 (5,191-6,317) |
 | integration-verify | 31 | 37,212 (33,763-39,288) | 2 | 4,466 (4,002-4,930) |
-| operations | 28 | 30,441 (27,657-32,146) | 0 | - |
+| operations | 28 | 30,442 (27,657-32,146) | 0 | - |
 | plan | 28 | 55,880 (53,621-63,859) | 1 | 6,985 (6,985-6,985) |
 | plan [Improve packet] | 9 | 58,120 (56,605-59,136) | 0 | - |
 | prepare | 28 | 31,176 (28,211-32,756) | 1 | 6,057 (6,057-6,057) |
-| product-acceptance | 28 | 35,918 (32,497-37,504) | 2 | 6,161 (5,503-6,820) |
+| product-acceptance | 28 | 35,918 (32,497-37,504) | 2 | 6,162 (5,503-6,820) |
 | regression | 30 | 41,373 (37,262-43,077) | 3 | 5,014 (4,841-6,292) |
 | release | 28 | 30,825 (27,954-32,499) | 1 | 5,257 (5,257-5,257) |
 | release-check | 28 | 30,942 (28,101-34,186) | 2 | 5,500 (5,412-5,589) |
 | release-plan | 28 | 40,683 (36,856-49,720) | 2 | 6,330 (5,697-6,964) |
-| release-plan [Improve packet] | 16 | 50,701 (47,709-53,080) | 0 | - |
+| release-plan [Improve packet] | 16 | 50,702 (47,709-53,080) | 0 | - |
 | release-verify | 28 | 34,884 (31,262-36,523) | 0 | - |
-| research | 28 | 36,218 (33,759-37,680) | 2 | 4,961 (4,952-4,971) |
+| research | 28 | 36,218 (33,759-37,680) | 2 | 4,962 (4,952-4,971) |
 | select-work | 14 | 28,154 (26,406-29,716) | 0 | - |
 | skill-assess | 27 | 30,798 (27,846-32,570) | 3 | 4,099 (3,938-5,093) |
 | skill-validate | 27 | 29,951 (26,589-31,350) | 1 | 5,014 (5,014-5,014) |
-| spec | 28 | 40,123 (38,326-51,926) | 12 | 3,694 (3,527-5,021) |
+| spec | 28 | 40,124 (38,326-51,926) | 12 | 3,694 (3,527-5,021) |
 | spec [Improve packet] | 9 | 47,258 (45,278-48,033) | 9 | 4,019 (3,529-4,644) |
 | static-checks | 31 | 43,109 (38,030-44,347) | 2 | 4,656 (4,227-5,085) |
 | step-plan | 33 | 53,227 (49,253-56,881) | 5 | 2,814 (1,317-6,402) |
 | step-plan [Improve packet] | 9 | 53,520 (52,004-54,528) | 0 | - |
-| system-test | 32 | 33,979 (30,341-35,851) | 0 | - |
+| system-test | 32 | 33,980 (30,341-35,851) | 0 | - |
 | system-test-author | 31 | 37,107 (34,621-46,187) | 4 | 5,336 (3,962-6,922) |
 | system-test-author [Improve packet] | 17 | 46,625 (45,186-47,630) | 1 | 3,938 (3,938-3,938) |
-| test-author | 32 | 37,831 (33,890-39,271) | 3 | 4,281 (2,685-5,570) |
+| test-author | 32 | 37,832 (33,890-39,271) | 3 | 4,281 (2,685-5,570) |
 | test-green | 32 | 37,802 (33,958-39,807) | 3 | 5,550 (2,741-5,602) |
 | test-red | 32 | 36,118 (32,739-38,297) | 2 | 4,658 (4,258-5,058) |
 | test-refine | 32 | 39,146 (35,523-40,824) | 3 | 2,090 (1,966-4,937) |
-| test-spec | 32 | 36,620 (34,174-49,531) | 2 | 4,257 (2,298-6,217) |
+| test-spec | 32 | 36,620 (34,174-49,531) | 2 | 4,258 (2,298-6,217) |
 | test-spec [Improve packet] | 9 | 47,855 (46,470-48,852) | 0 | - |
 | test-strategy | 28 | 38,615 (36,360-47,979) | 1 | 6,417 (6,417-6,417) |
 | test-strategy [Improve packet] | 9 | 47,849 (45,602-48,339) | 0 | - |
@@ -285,6 +307,13 @@ F1 (the discriminator), F2 (Claude's heads are mostly unmeasurable), F3 (Grok is
 - `counters.lessons` is a small reader of its own (section 2), because no importable one exists.
 - The README states the first-print and one-byte limits and the cut-by-column limit; the packets block is not printed in the run
   report (record-only).
+- The knowledge-commit share (9%) is a subtotal of `script` kept in `baseline.json` (`knowledge_commits`) and is not a key of a run's
+  `metrics.json` (review round, finding 5; the reviewer offered adding it or saying so). The plan names `script {n, with_lessons}`, an
+  extra or nested key changes what the Run Review fork reads, and slice B moves `script.with_lessons` whether or not the subtotal is a
+  key. So a later run is compared with the baseline through `script.with_lessons` over `script.n` (Claude 28 of 276 here), or through
+  `regrade.py` for the knowledge share itself.
+- `improve` is a lower bound (SPEC row amended in `6b9a4247`): it is the commits ShipLoop's own `improve-commit` reply names in the
+  host's events (open item 6).
 - Nothing outside `test/`, `docs/` and this branch changed: no `skills/` edit, so no change note; `review.py`, `render()`,
   `packet_head()`, `DUTIES` and the knowledge-home code were not touched.
 
@@ -300,6 +329,21 @@ F1 (the discriminator), F2 (Claude's heads are mostly unmeasurable), F3 (Grok is
    439 replies that were complete line for line, in r2 Grok and an s6 Claude run, were cut that way and are null).
 5. `baseline.json` is not refreshed by CI; it is the 2026-10-10 baseline. Re-run `regrade.py` after the next batch of runs and keep
    the old file.
+6. **The `improve` class after slice B (review round, finding 3; unverified).** Plan v5 slice B moves `improve-commit` into the frozen
+   Improve child contract. The class exists only where the parent session's tool results hold ShipLoop's `improve-commit` reply
+   (`counters.history`). If a host does not record a sub-agent's tool results in the stream the harness saves, those replies vanish,
+   `improve.n` falls toward 0 and the commits land in `other` with no null and no reason. What a child's results look like in the
+   parent's stream is not known: no saved stream shows one (the 29 Claude run folders, one of them the run that was live at the regrade: 15,570 events, no `Task` or `Agent` tool call; the 35
+   events that carry a `parent_tool_use_id` are `tool_progress` heartbeats of a Bash call), and checking needs a live host, which this
+   task may not start. The reviewer suggested classifying by the `ShipLoop-Action` / `ShipLoop-Stage` trailers once slice B writes
+   them, but the plan **cut** those trailers (its table of cut items: "No consumer reads them", reversed if Run Review reads commit
+   trailers), so this is an owner decision and nothing here assumes them. Until a classifier has something of its own to read, a
+   comparison across slice B reads `other` beside `improve`. The SPEC row, the README and the `counters` docstring say so.
+7. **The 9% knowledge share is comparable only through `regrade.py`** (section 6), or through `script.with_lessons` over `script.n`.
+8. **Slips in four commit messages, not rewritten** (history stays as committed): `8c436507` says `baseline.json` is "62 KB" (it is
+   68,136 bytes); `63d6882d` says the mutants and the regrade "are in the journal commit" (they are in `8c436507`, the journal is
+   `2b149561`); `44fa9671` says a pipe-cut reply "is documented as the cut size", which `6b9a4247` supersedes; and `6b9a4247` itself says
+   a comparison across slice B reads `other` "until the commits carry a trailer", while the plan cut those trailers (item 6).
 
 ## 8. For the E2E fork (the exporter reads `metrics.json` generically)
 
@@ -310,7 +354,7 @@ could feed: printed-head bytes by stage (measured where non-null; Grok and Codex
 stage, commits by class with `with_lessons` and `cited`. A reader must treat `head_bytes: null` as unknown and not 0, and should
 join an `-improve` action to its stage's action by stripping the suffix.
 
-## 9. Verification record
+## 9. Verification record (first round, at `2b149561`)
 
 Run on 2026-10-10 in the worktree of branch `batch1012h-1bbefb` (base `658ff4e3`), `SHIPLOOP_PROGRESS=off`, machine load average about
 5 (other sessions share it). Exit codes are the commands' own, captured without a pipe.
@@ -328,3 +372,42 @@ Run on 2026-10-10 in the worktree of branch `batch1012h-1bbefb` (base `658ff4e3`
 A timing-sensitive failure was not seen, so no rerun was needed. Not run: the full hermetic tier (it runs in CI on a release commit),
 any live E2E run, any host CLI or model. The new suite is not slow enough to leave the quick tier (13 s against 120 s).
 
+## 10. The independent review of 2026-10-10 and the fix round
+
+An independent reviewer read `2b149561` and returned six findings (one major, five minor). Each was reproduced or checked before
+anything was changed; the rows say what was found and done.
+
+| # | Severity | Finding | Reproduced | Disposition | Where |
+|---|---|---|---|---|---|
+| 1 | major | The SPEC `packets` row says a pipe-cut reply "shows the cut size", that the head runs "to the end of the reply" and that `stage` is the file's first line; the code, README, docstring and tests say the opposite on all three | `grep` of the row; `test_a_head_the_model_cut_after_its_keepalive_line_is_null_not_zero_and_not_the_cut_size` asserts null | **Fixed.** The row is amended in its own `docs(shiploop-e2e-spec)` commit and says: a cut reply is null, the head ends at its closing line, `stage` is the first navigator line anywhere in the file. No test was written first: it is a document defect and the code's behaviour was already pinned | `6b9a4247` |
+| 2 | minor | The work item subject `feat: <id> <title>` is the one ShipLoop text the classifier reads that no test pins to ShipLoop's source | In a scratch export, `"feat: "` changed to `"item(W): "` in `_item_commit`: 68 tests OK, exit 0 | **Fixed.** The new test calls `_item_commit` (the commit replaced) and requires its message to start with `counters._item_prefixes`; it fails on that mutant and passes on the real navigator | `98748ef2` |
+| 3 | minor | `improve` exists only where the parent's tool results hold the `improve-commit` reply; slice B moves the command into the Improve child, whose results may not be in the stream, and then `improve.n` falls to 0 and its commits land in `other` with no null | Not reproducible without a live host: no saved stream holds a sub-agent (29 Claude runs, 15,570 events, no `Task`/`Agent` call; the 35 events with a `parent_tool_use_id` are heartbeats) | **Documented, classification change deferred** (open item 6). SPEC row, README and the `counters` docstring now say `improve` is a lower bound and a comparison across slice B reads `other` beside it. The reviewer's trailer classifier is not assumed: the plan cut those trailers | `6b9a4247`, `58adf273`, this journal |
+| 4 | minor | The guard `found != commit_id` in the citation list is dead code | Replaced by `if found]` in a scratch copy: 68 tests OK, the one survivor | **Fixed.** A commit's id is the hash of its message, so a message cannot contain its own id: deleted (no test can reach it) and the mutant pattern updated | `aa989046` |
+| 5 | minor | `regrade.figures` repeats `run._stats`; `knowledge_commits` re-ran the classification with counters' private helpers, and its 9% exists only in `baseline.json` | Read | **Fixed** for both duplications: `figures` is `run._stats` (one decimal, so a half byte is kept), `knowledge_commits` reads `counters.history`, which `commits` also counts, so there is one classification. The old and new `regrade.py` write byte-identical files on the same 39 folders (diff in a scratch export; only `harness_head` differs), so `baseline.json` is unchanged. **Disagreed** with putting a knowledge subtotal in the block (section 6); the 9% is comparable only through `regrade.py` or through `script.with_lessons` over `script.n` (open item 7) | `58adf273`, `5d1779d2` |
+| 6 | minor | (a) medians truncated, not rounded; (b) the F2 and F6 tallies are in no committed file; (c) "62 KB" for a 68,136-byte file; (d) a commit message puts the mutants and the regrade in the wrong commit | (a) compared every cell of the stage table with `baseline.json` under `round`: 8 of 44 rows differed; (b) recomputed: 1,559 heads, 437 whole, 1,082, 38, 2; 35 other commits, 32 and 3; (c), (d) read | (a) **Fixed**: the 8 cells are corrected and the rule is stated above the table. (b) **Fixed**: `tallies.py` and `tallies.json` (section 4, F2 and F6). (c), (d) **Not rewritten**: commit messages stay as committed and the slips are listed in open item 8 | `5d1779d2`, this journal |
+
+What did not change: `baseline.json` (regrade equality above), the shape of `packets` and `commits` in a run's `metrics.json`, `review.py`,
+anything under `skills/`. What is new: `counters.head_or_why` and `counters.history` (public), the `author` of a commit in a history row,
+`tallies.py` and `tallies.json`, the `improve` limit in the SPEC row.
+
+One slip in this round's own messages: `58adf273` says "5 mutants are added" and lists four plus an updated pattern (4 were added:
+36 to 40).
+
+### Verification record (review round)
+
+Run on 2026-10-10 in the worktree of branch `batch1012h-1bbefb` (base `658ff4e3`), `SHIPLOOP_PROGRESS=off`, machine load average
+about 5. Exit codes are the commands' own, captured without a pipe.
+
+| Command | Exit | Note |
+|---|---|---|
+| `python3 test/shiploop-e2e-commit-counters.test.py` | 0 | 86 tests OK, 14 s (68 at the first round) |
+| `python3 test/test-groups.test.py` | 0 | 28 tests OK; no new top-level test file, so the pinned counts (76 ShipLoop suites, 117 in all) are unchanged |
+| `bash test/run-all.sh --group quick --changed-from 658ff4e3` | 1 | 32 of 33 suites passed, `shiploop-e2e` and `shiploop-e2e-commit-counters` and `shiploop-run-review` (which reads the SPEC row amended in `6b9a4247`) among them; **`shiploop-status-display` failed**, the same single case as the first round (`test_every_dry_run_packet_carries_the_block_inside_the_kept_head`, scenario `revise`, sequence 20) |
+| `python3 test/shiploop-status-display.test.py` here, and on an export of `658ff4e3` | 1, 1 | `8003 not less than 8000` here and `8031 not less than 8000` on the base export (the length depends on the checkout path); `git diff 658ff4e3 HEAD --stat -- skills agents` is empty, so it is not this branch's and not mine to fix (packet heads are the E2E fork's pass) |
+| `python3 docs/experiments/commit-baseline-20261010/mutants.py` | 0 | 40 of 40 killed, no survivor, none not applicable |
+| `regrade.py` of the parent commit (scratch export) and of this branch, same folders | 0, 0 | byte-identical output except `harness_head`; 38 of the 39 rows equal the committed `baseline.json`'s (the 39th was `not_regraded` there) |
+| `python3 docs/experiments/commit-baseline-20261010/tallies.py`, written to a scratch file | 0 | equal to the committed `tallies.json` except `harness_head` |
+| `python3 scripts/check-release-boundary.py --base 658ff4e3 --head HEAD` | 0 | `check-release-boundary: OK`, at `2e9df5e2`; run again after the commit that carries this table (see the report of the fix round) |
+
+A timing-sensitive failure was not seen, so no rerun was needed beyond the two `shiploop-status-display` runs above. Not run: the full
+hermetic tier (CI runs it on a release commit), any live E2E run, any host CLI or model, any browser or server.
