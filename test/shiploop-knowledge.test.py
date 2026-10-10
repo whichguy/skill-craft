@@ -336,6 +336,12 @@ class CommitHelperTests(unittest.TestCase):
     def setUp(self) -> None:
         temp = tempfile.TemporaryDirectory(prefix="shiploop-git-")
         self.addCleanup(temp.cleanup)
+        # Real Git must not read the machine's configuration or the user's home: a user setting such as
+        # commit.cleanup=strip changes what a commit stores.
+        isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+                                                "HOME": str(Path(temp.name).resolve() / "home")})
+        isolated.start()
+        self.addCleanup(isolated.stop)
         self.repo = Path(temp.name).resolve() / "repo"
         self.repo.mkdir()
         git(self.repo, "init", "-q")
@@ -381,6 +387,115 @@ class CommitHelperTests(unittest.TestCase):
         self.assertEqual(shiploop_git.commit_paths(self.repo, ["absent.txt"], "x").commit, "")
         empty = shiploop_git.commit_paths(self.repo, [], "baseline", allow_empty=True)
         self.assertEqual(git(self.repo, "rev-parse", "HEAD").strip(), empty.commit)
+
+    def committed_message(self, rev: str = "HEAD") -> str:
+        return git(self.repo, "log", "-1", "--format=%B", rev).rstrip("\n") + "\n"
+
+    def test_an_empty_commit_leaves_the_files_staged_for_something_else_staged(self) -> None:
+        git(self.repo, "config", "user.email", "u@example.invalid")
+        git(self.repo, "config", "user.name", "U")
+        (self.repo / "staged.txt").write_text("someone else's staged work\n")
+        git(self.repo, "add", "staged.txt")
+        message = self.repo.parent / "message.md"
+        message.write_text("chore: record a remote change\n\nRemote change: staging, purged the cache\n")
+        committed = shiploop_git.commit_paths(self.repo, [], "", allow_empty=True, message_file=message)
+        self.assertEqual(committed.paths, [])
+        self.assertEqual(git(self.repo, "rev-parse", "HEAD").strip(), committed.commit)
+        self.assertEqual(git(self.repo, "show", "--name-only", "--format=", "HEAD").split(), [])
+        self.assertEqual(git(self.repo, "diff", "--cached", "--name-only").split(), ["staged.txt"])
+        self.assertIn("Remote change: staging, purged the cache", self.committed_message())  # the file, not an empty -m
+
+    def test_an_empty_commit_on_an_unborn_branch_keeps_the_staged_file_and_needs_no_identity(self) -> None:
+        fresh = self.repo.parent / "fresh"
+        fresh.mkdir()
+        git(fresh, "init", "-q")
+        (fresh / "staged.txt").write_text("x\n")
+        git(fresh, "add", "staged.txt")
+        committed = shiploop_git.commit_paths(fresh, [], "Empty baseline", allow_empty=True)
+        self.assertTrue(committed.commit)
+        self.assertEqual(git(fresh, "show", "--name-only", "--format=", "HEAD").split(), [])
+        self.assertEqual(git(fresh, "diff", "--cached", "--name-only").split(), ["staged.txt"])
+        self.assertEqual(git(fresh, "log", "-1", "--format=%ae").strip(), "shiploop-workspace@local.invalid")
+
+    def test_markdown_headings_survive_a_users_strip_cleanup_on_every_commit_path(self) -> None:
+        git(self.repo, "config", "user.email", "u@example.invalid")
+        git(self.repo, "config", "user.name", "U")
+        git(self.repo, "config", "commit.cleanup", "strip")
+        body = "subject\n\n## Key learnings\n- one\n\n## Remote change\n- staging, purged\n"
+        message = self.repo.parent / "message.md"
+        message.write_text(body + "\n\n\n")
+        (self.repo / "a.txt").write_text("a\n")
+        shiploop_git.commit_paths(self.repo, ["a.txt"], "", message_file=message)
+        self.assertEqual(self.committed_message(), body)  # the headings stay, the trailing blank lines go
+        (self.repo / "b.txt").write_text("b\n")
+        shiploop_git.commit_paths(self.repo, ["b.txt"], body)
+        self.assertEqual(self.committed_message(), body)
+        shiploop_git.commit_paths(self.repo, [], "", allow_empty=True, message_file=message)
+        self.assertEqual(self.committed_message(), body)
+        shiploop_git.commit_paths(self.repo, [], body, allow_empty=True)
+        self.assertEqual(self.committed_message(), body)
+
+    def commit_on(self, name: str) -> str:
+        git(self.repo, "-c", "user.email=u@example.invalid", "-c", "user.name=U", "commit", "-q", "--allow-empty",
+            "-m", name)
+        return git(self.repo, "rev-parse", "HEAD").strip()
+
+    def test_resolve_commit_takes_a_prefix_or_the_full_id_of_a_commit_reachable_from_head(self) -> None:
+        head = self.commit_on("second")
+        for token in (head, head[:7], head[:12].upper(), head.upper()):
+            with self.subTest(token=token):
+                self.assertEqual(shiploop_git.resolve_commit(self.repo, token), (head, ""))
+
+    def test_resolve_commit_names_each_reason_it_refuses_without_echoing_the_token(self) -> None:
+        base = git(self.repo, "rev-parse", "HEAD").strip()
+        git(self.repo, "checkout", "-q", "-b", "other")
+        elsewhere = self.commit_on("only on the other branch")
+        git(self.repo, "checkout", "-q", "-")
+        git(self.repo, "checkout", "-q", "-b", "mine")
+        self.commit_on("mine")
+        tree = git(self.repo, "rev-parse", "HEAD^{tree}").strip()
+        unused = next(name for name in ("deadbee", "cafe123", "feed123", "badc0de") if not any(
+            line.startswith(name) for line in git(self.repo, "rev-list", "--all", "--objects").split()))
+        git(self.repo, "branch", unused)  # a branch spelled like hex must not be taken for a commit
+        cases = {
+            "main": "is not a commit ID", "HEAD~1": "is not a commit ID", "abc12": "is not a commit ID",
+            "x" * 12: "is not a commit ID", "": "is not a commit ID",
+            unused: "names no commit in this repository",
+            tree[:10]: "names no commit in this repository",   # an object, but not a commit
+            base[:7] + base[7:] + "0000": "names no commit in this repository",   # longer than any ID: not clamped
+            elsewhere: "is not reachable from HEAD", elsewhere[:9]: "is not reachable from HEAD",
+        }
+        for token, reason in cases.items():
+            with self.subTest(token=token):
+                found, problem = shiploop_git.resolve_commit(self.repo, token)
+                self.assertEqual(found, "")
+                self.assertIn(reason, problem)
+                if token:
+                    self.assertNotIn(token, problem)
+
+    def test_resolve_commit_names_an_ambiguous_prefix_and_an_unborn_branch(self) -> None:
+        first = git(self.repo, "rev-parse", "HEAD").strip()
+        # a real seven-digit collision cannot be built, so Git's answer is faked for one made-up neighbour
+        neighbour = first[:7] + "f" * 33
+        real = shiploop_git.git
+
+        def two_matches(repo, *args, **kwargs):
+            if "--disambiguate=" + first[:7] in args:
+                return subprocess.CompletedProcess(args, 0, stdout=first + "\n" + neighbour + "\n", stderr="")
+            if args[:2] == ("cat-file", "-t") and args[2] == neighbour:
+                return subprocess.CompletedProcess(args, 0, stdout="commit\n", stderr="")
+            return real(repo, *args, **kwargs)
+
+        with mock.patch.object(shiploop_git, "git", two_matches):
+            found, problem = shiploop_git.resolve_commit(self.repo, first[:7])
+        self.assertEqual(found, "")
+        self.assertIn("matches 2 commits (" + first[:12] + ", " + neighbour[:12] + "); write more digits", problem)
+        unborn = self.repo.parent / "unborn"
+        unborn.mkdir()
+        git(unborn, "init", "-q")
+        found, problem = shiploop_git.resolve_commit(unborn, first[:7])
+        self.assertEqual(found, "")
+        self.assertIn("this repository has no commit yet", problem)
 
 
 if __name__ == "__main__":
