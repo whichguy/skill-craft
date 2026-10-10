@@ -28,7 +28,9 @@ import shiploop_status_hook as hook  # noqa: E402
 BEGIN, END = navigator.STATUS_BEGIN, navigator.STATUS_END
 DONE, NOW, TODO = "✓", "▶", "·"
 HOOK = SCRIPTS / "shiploop-status-hook"
-ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+# The suite runner turns the progress view off (test/run_suites.py); a direct run must too, or `next` starts it and
+# writes progress files the file-set checks below do not expect.
+ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "SHIPLOOP_PROGRESS": "off"}
 
 
 def result(*, outcome: str = "done", summary: str = "Synthetic producer result.", **extra):
