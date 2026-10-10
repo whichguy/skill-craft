@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import importlib.util
 import os
 from pathlib import Path
 import re
@@ -14,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -112,8 +114,48 @@ class AskAgentTaskTests(unittest.TestCase):
         self.assertEqual(output["payload_sizes"]["stdout_json_bytes"], len(compact))
         return output
 
-    def bind_command(self, name: str, binding: dict, *, cwd: Path | None = None) -> tuple[subprocess.CompletedProcess[str], dict]:
-        return self.run_cli(name, "--binding", "-", cwd=cwd, packet=binding)
+    def prepare_packet(self, request: dict, path: Path) -> dict:
+        result, output = self.run_cli(
+            "prepare", "--skill-card", str(SKILL / "SKILL.md"), "--request", "-", "--packet", str(path),
+            packet=request,
+        )
+        self.assertEqual(result.returncode, 0, output)
+        self.assertEqual(output["status"], "READY_TO_LAUNCH")
+        self.assertNotIn("binding", output)
+        self.assertEqual(Path(output["packet"]["path"]), path.resolve())
+        raw_binding = path.read_bytes()
+        self.assertEqual(hashlib.sha256(raw_binding).hexdigest(), output["packet"]["sha256"])
+        binding = json.loads(raw_binding)
+        self.assertEqual(binding["binding_sha256"], output["packet"]["binding_sha256"])
+        compact = json.dumps(output, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+        self.assertEqual(output["payload_sizes"]["stdout_json_bytes"], len(compact))
+        self.assertEqual(output["payload_sizes"]["prompt_bytes"], len(output["launch"]["prompt"].encode()))
+        self.assertEqual(output["launch"]["transport"], "packet")
+        return output
+
+    def bind_command(
+        self, name: str, binding: dict, *, cwd: Path | None = None, expected: str | None = None,
+    ) -> tuple[subprocess.CompletedProcess[str], dict]:
+        args = [name, "--binding", "-"]
+        if expected is not None:
+            args.extend(("--expected-binding-sha256", expected))
+        return self.run_cli(*args, cwd=cwd, packet=binding)
+
+    def packet_command(
+        self, name: str, packet_path: Path, expected: str, *, cwd: Path | None = None,
+    ) -> tuple[subprocess.CompletedProcess[str], dict]:
+        return self.run_cli(name, "--binding", str(packet_path), "--expected-binding-sha256", expected, cwd=cwd)
+
+    def run_generated_command(self, command: dict) -> tuple[subprocess.CompletedProcess[str], dict]:
+        result = subprocess.run(
+            command["argv"], cwd=Path(command["cwd"]), env=self.env,
+            capture_output=True, text=True, timeout=90,
+        )
+        output_text = result.stdout if result.returncode == 0 else result.stderr
+        try:
+            return result, json.loads(output_text)
+        except json.JSONDecodeError as exc:
+            self.fail(f"generated command did not return JSON (exit {result.returncode}): {result.stdout!r} {result.stderr!r}: {exc}")
 
     def assert_error(self, result: subprocess.CompletedProcess[str], output: dict, code: str) -> None:
         self.assertEqual(result.returncode, 2, output)
@@ -121,6 +163,255 @@ class AskAgentTaskTests(unittest.TestCase):
         self.assertEqual(output["error"]["code"], code)
         for field in ("expected", "observed", "rationale", "reference", "evidence_paths", "safe_next_step"):
             self.assertIn(field, output["error"])
+
+    def test_packet_prepare_path_with_spaces_and_pinned_round_trip(self) -> None:
+        packet_path = self.base / "external packet directory" / "prepared task.json"
+        packet_path.parent.mkdir()
+        output = self.prepare_packet(self.request(), packet_path)
+        binding = json.loads(packet_path.read_text())
+        inline = self.prepare(self.request())
+        self.assertLess(len(output["launch"]["prompt"]), len(inline["launch"]["prompt"]))
+        self.assertIn("Objective: Update the fixture value safely", output["launch"]["prompt"])
+        self.assertIn("--expected-binding-sha256", output["launch"]["prompt"])
+        self.assertNotIn("Binding JSON", output["launch"]["prompt"])
+        self.assertNotIn("binding", output)
+        self.assertEqual(output["packet"]["ignored_dependencies_omitted"], [])
+        self.assertIsNone(output["packet"]["no_drift_warning"])
+        self.assertEqual(set(output["commands"]), {"worker-start", "worker-finish", "verify-return"})
+        for name, command in output["commands"].items():
+            expected_cwd = binding["workspace"]["source"] if name == "verify-return" else output["launch"]["cwd"]
+            self.assertEqual(command["cwd"], expected_cwd)
+            self.assertIn("--expected-binding-sha256", command["argv"])
+            self.assertEqual(command["argv"][-1], binding["binding_sha256"])
+            self.assertEqual(command["argv"][command["argv"].index("--binding") + 1], str(packet_path.resolve()))
+
+        started, start_result = self.run_generated_command(output["commands"]["worker-start"])
+        self.assertEqual((started.returncode, start_result["status"]), (0, "WORKER_CONTEXT_READY"), start_result)
+        action = start_result["action_packet"]
+        self.assertEqual(action["task"], binding["task"])
+        self.assertEqual(action["delivery_header"], output["launch"]["delivery_header"])
+        self.assertEqual(action["finish_command"], output["commands"]["worker-finish"])
+        self.assertIsInstance(action["instructions"], list)
+        joined = "\n".join(action["instructions"])
+        self.assertIn("one writer", joined)
+        self.assertIn("do not delegate", joined)
+        self.assertIn("Do not commit", joined)
+
+        finished, finish_result = self.run_generated_command(action["finish_command"])
+        self.assertEqual((finished.returncode, finish_result["status"]), (0, "READY_FOR_PARENT_ACCEPTANCE"), finish_result)
+        verified, verify_result = self.run_generated_command(output["commands"]["verify-return"])
+        self.assertEqual((verified.returncode, verify_result["status"]), (0, "READY_FOR_PARENT_ACCEPTANCE"), verify_result)
+        self.assertTrue(packet_path.is_file())
+
+    def test_packet_action_packet_preserves_all_mode_contracts(self) -> None:
+        packet_dir = self.base / "mode packets"
+        packet_dir.mkdir()
+        cases = [
+            ("current edit", self.request(), "No commit — edit the current workspace in place",
+             ("one writer", "do not delegate", "Do not commit")),
+            ("current report-only", self.request(mode="report-only"),
+             "Report-only — return findings without filesystem changes", ("make no filesystem changes",)),
+            ("worktree report-only", self.request(workspace="worktree", mode="report-only"),
+             "Report-only — return findings without filesystem changes", ("make no filesystem changes",)),
+            ("ephemeral", self.request(workspace="worktree", mode="ephemeral"),
+             "No commit — findings only", ("Do not commit or create a patch", "findings and changed paths only")),
+            ("patch", self.request(workspace="worktree", delivery_mode="patch"),
+             "Patch — return these changes without committing", ("Do not commit", "return the patch through")),
+            ("commits", self.request(workspace="worktree"), "Git commit — return these changes",
+             ("commit only the task contribution paths", "Never use git add . or git add -A")),
+        ]
+        for index, (label, request, header, required_instructions) in enumerate(cases):
+            with self.subTest(mode=label):
+                output = self.prepare_packet(request, packet_dir / f"{index}.json")
+                binding = json.loads(Path(output["packet"]["path"]).read_text())
+                start, result = self.run_generated_command(output["commands"]["worker-start"])
+                self.assertEqual((start.returncode, result["status"]), (0, "WORKER_CONTEXT_READY"), result)
+                action = result["action_packet"]
+                self.assertEqual(action["task"], binding["task"])
+                self.assertEqual(action["delivery_header"], header)
+                instructions = "\n".join(action["instructions"])
+                for required in required_instructions:
+                    self.assertIn(required, instructions)
+                self.assertIn("Preserve inherited changes and unrelated files", instructions)
+                self.assertIn("Do not reset, stash, close, merge, or integrate", instructions)
+                self.assertIn("If blocked, stop and return the reason with evidence", instructions)
+                self.assertEqual(action["finish_command"], output["commands"]["worker-finish"])
+                if label == "commits":
+                    self.assertIn(binding["workspace"]["commit_base"], instructions)
+
+    def test_packet_destination_allows_external_sibling_of_installed_package_but_rejects_package_git_metadata(self) -> None:
+        unrelated_repo = self.base / "unrelated ancestor repository"
+        package_root = unrelated_repo / "installed" / "selected package"
+        scripts = package_root / "scripts"
+        scripts.mkdir(parents=True)
+        shutil.copy2(SKILL / "SKILL.md", package_root / "SKILL.md")
+        shutil.copy2(SKILL / "scripts" / "ask_agent_task.py", scripts / "ask_agent_task.py")
+        shutil.copy2(SKILL / "scripts" / "ask_agent_workspace.py", scripts / "ask_agent_workspace.py")
+        git(unrelated_repo, "init", "-q", "-b", "main")
+        git(unrelated_repo, "add", ".")
+        git(unrelated_repo, "commit", "-qm", "installed package fixture")
+
+        def prepare_installed(packet_path: Path) -> tuple[subprocess.CompletedProcess[str], dict]:
+            completed = subprocess.run(
+                [sys.executable, "-B", str(scripts / "ask_agent_task.py"), "prepare", "--skill-card",
+                 str(package_root / "SKILL.md"), "--request", "-", "--packet", str(packet_path)],
+                cwd=self.repo, env=self.env, input=json.dumps(self.request()),
+                capture_output=True, text=True, timeout=90,
+            )
+            text = completed.stdout if completed.returncode == 0 else completed.stderr
+            return completed, json.loads(text)
+
+        external_packet = unrelated_repo / "external sibling packet.json"
+        result, output = prepare_installed(external_packet)
+        self.assertEqual(result.returncode, 0, output)
+        self.assertEqual(output["status"], "READY_TO_LAUNCH")
+        self.assertTrue(external_packet.is_file())
+        self.assertNotIn("binding", output)
+
+        metadata_packet = unrelated_repo / ".git" / "external packet.json"
+        result, output = prepare_installed(metadata_packet)
+        self.assert_error(result, output, "packet_path_out_of_bounds")
+        self.assertFalse(metadata_packet.exists())
+        self.assertTrue(any(str(unrelated_repo / ".git") in path for path in output["error"]["evidence_paths"]))
+
+    def test_current_packet_late_write_failure_preserves_actionable_diagnostics(self) -> None:
+        spec = importlib.util.spec_from_file_location("ask_agent_task_failure_probe", SCRIPT)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        task_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(task_module)
+        packet_path = self.base / "late write failure.json"
+        original_write_packet = task_module._write_packet
+
+        def fail_packet_open(path: Path, binding: dict, bound_workspace: dict) -> tuple[bytes, str]:
+            with mock.patch.object(task_module.os, "open", side_effect=OSError("injected packet open failure")):
+                return original_write_packet(path, binding, bound_workspace)
+
+        with mock.patch.object(task_module, "_write_packet", side_effect=fail_packet_open):
+            with self.assertRaises(task_module.TaskError) as caught:
+                task_module.prepare_task(self.request(), SKILL / "SKILL.md", packet_path)
+
+        error = caught.exception.payload
+        self.assertEqual(error["code"], "packet_write_failed")
+        self.assertIn("injected packet open failure", error["observed"])
+        self.assertTrue(error["rationale"])
+        self.assertEqual(error["reference"], "references/task-interface.md#workspace")
+        self.assertIn("exclusively write", error["expected"])
+        self.assertIn(str(packet_path), error["evidence_paths"])
+        self.assertIn(str(self.repo), error["evidence_paths"])
+        self.assertTrue(all(isinstance(path, str) for path in error["evidence_paths"]))
+        self.assertIn("receipt and worktree", error["safe_next_step"])
+        self.assertFalse(packet_path.exists())
+
+    def test_packet_destinations_are_rejected_before_worktree_creation(self) -> None:
+        outside = self.base / "packet errors"
+        outside.mkdir()
+        existing = outside / "existing.json"
+        existing.write_text("keep this file\n")
+        symlink_file = outside / "symlink.json"
+        symlink_file.symlink_to(outside / "missing-target.json")
+        symlink_parent = outside / "source alias"
+        symlink_parent.symlink_to(self.repo, target_is_directory=True)
+        linked_source = self.base / "linked source"
+        git(self.repo, "worktree", "add", "-qb", "packet-boundary-test", str(linked_source))
+
+        cases = [
+            ("existing", self.request(workspace="worktree"), existing, "packet_destination_exists"),
+            ("symlink file", self.request(workspace="worktree"), symlink_file, "packet_destination_exists"),
+            ("source root", self.request(workspace="worktree"), self.repo / "packet.json", "packet_path_out_of_bounds"),
+            ("source subdirectory ancestor", self.request(workspace="worktree", mode="report-only", source=str(self.repo / "src")),
+             self.repo / "ancestor packet.json", "packet_path_out_of_bounds"),
+            ("selected package", self.request(workspace="worktree"), SKILL / "package packet.json", "packet_path_out_of_bounds"),
+            ("resolved symlink parent", self.request(workspace="worktree"), symlink_parent / "parent packet.json", "packet_path_out_of_bounds"),
+            ("git common metadata", self.request(workspace="worktree", mode="report-only", source=str(linked_source)),
+             self.repo / ".git" / "external packet.json", "packet_path_out_of_bounds"),
+            ("relative destination", self.request(workspace="worktree"), Path("relative-packet.json"), "invalid_packet_path"),
+        ]
+        for label, request, path, code in cases:
+            with self.subTest(destination=label):
+                result, output = self.run_cli(
+                    "prepare", "--skill-card", str(SKILL / "SKILL.md"), "--request", "-", "--packet", str(path),
+                    packet=request,
+                )
+                self.assert_error(result, output, code)
+                self.assertTrue(output["error"]["rationale"])
+                self.assertTrue(output["error"]["evidence_paths"])
+                self.assertFalse(self.store.exists())
+        self.assertEqual(existing.read_text(), "keep this file\n")
+
+    def test_expected_binding_pin_rejects_valid_replacement_before_other_checks(self) -> None:
+        packet_path = self.base / "pinned packet.json"
+        output = self.prepare_packet(self.request(), packet_path)
+        old_digest = output["packet"]["binding_sha256"]
+        original = json.loads(packet_path.read_text())
+        replacement = json.loads(json.dumps(original))
+        replacement["task"]["objective"] = "A different but internally valid task"
+        replacement["binding_sha256"] = hashlib.sha256(
+            json.dumps({key: value for key, value in replacement.items() if key != "binding_sha256"},
+                       sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+        ).hexdigest()
+        replacement_bytes = json.dumps(replacement, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+        packet_path.write_bytes(replacement_bytes)
+        self.assertEqual(hashlib.sha256(replacement_bytes).hexdigest(), hashlib.sha256(packet_path.read_bytes()).hexdigest())
+
+        for command_name in ("worker-start", "worker-finish", "verify-return"):
+            with self.subTest(command=command_name):
+                result, error = self.packet_command(command_name, packet_path, old_digest, cwd=self.other)
+                self.assert_error(result, error, "expected_binding_sha256_mismatch")
+                self.assertIn("before package or workspace checks", error["error"]["rationale"])
+
+        new_digest = replacement["binding_sha256"]
+        started, start_result = self.packet_command("worker-start", packet_path, new_digest, cwd=self.repo)
+        self.assertEqual((started.returncode, start_result["status"]), (0, "WORKER_CONTEXT_READY"), start_result)
+        self.assertEqual(start_result["action_packet"]["task"], replacement["task"])
+
+        package_replacement = json.loads(json.dumps(original))
+        package_replacement["package"]["task_script_sha256"] = "0" * 64
+        package_replacement["binding_sha256"] = hashlib.sha256(
+            json.dumps({key: value for key, value in package_replacement.items() if key != "binding_sha256"},
+                       sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+        ).hexdigest()
+        packet_path.write_bytes(json.dumps(package_replacement, sort_keys=True, separators=(",", ":"),
+                                           ensure_ascii=True).encode())
+        stale_pin, stale_error = self.packet_command("worker-start", packet_path, old_digest, cwd=self.repo)
+        self.assert_error(stale_pin, stale_error, "expected_binding_sha256_mismatch")
+        current_pin, package_error = self.packet_command(
+            "worker-start", packet_path, package_replacement["binding_sha256"], cwd=self.repo)
+        self.assert_error(current_pin, package_error, "package_identity_mismatch")
+
+    def test_packet_preserves_workspace_warnings(self) -> None:
+        plain = self.base / "plain report directory"
+        plain.mkdir()
+        plain_packet = self.base / "plain report.json"
+        plain_output = self.prepare_packet(
+            self.request(mode="report-only", source=str(plain)), plain_packet)
+        self.assertTrue(plain_output["packet"]["no_drift_warning"])
+        plain_started, plain_result = self.run_generated_command(plain_output["commands"]["worker-start"])
+        self.assertEqual((plain_started.returncode, plain_result["status"]), (0, "WORKER_CONTEXT_READY"), plain_result)
+        plain_action = plain_result["action_packet"]
+        self.assertEqual(plain_action["no_drift_warning"], plain_output["packet"]["no_drift_warning"])
+        self.assertTrue(any("No-drift limitation" in item for item in plain_action["instructions"]))
+
+        (self.repo / ".gitignore").write_text("ignored-inputs/\n")
+        git(self.repo, "add", "--", ".gitignore")
+        git(self.repo, "commit", "-qm", "Add ignored fixture input rule")
+        ignored = self.repo / "ignored-inputs"
+        ignored.mkdir()
+        (ignored / "dependency.dat").write_text("not copied to worker snapshot\n")
+        ignored_packet = self.base / "ignored inputs.json"
+        ignored_output = self.prepare_packet(
+            self.request(workspace="worktree", mode="report-only"), ignored_packet)
+        binding = json.loads(ignored_packet.read_text())
+        self.assertEqual(ignored_output["packet"]["ignored_dependencies_omitted"],
+                         binding["workspace"]["ignored_dependencies_omitted"])
+        self.assertTrue(ignored_output["packet"]["ignored_dependencies_omitted"])
+        ignored_started, ignored_result = self.run_generated_command(ignored_output["commands"]["worker-start"])
+        self.assertEqual((ignored_started.returncode, ignored_result["status"]), (0, "WORKER_CONTEXT_READY"), ignored_result)
+        ignored_action = ignored_result["action_packet"]
+        self.assertEqual(ignored_action["ignored_dependencies_omitted"],
+                         ignored_output["packet"]["ignored_dependencies_omitted"])
+        self.assertTrue(any("omitted from the helper worktree snapshot" in item
+                            for item in ignored_action["instructions"]))
 
     def test_current_edit_is_read_only_at_prepare_and_parent_verifies_scope(self) -> None:
         before = {str(path.relative_to(self.repo)): path.read_bytes() for path in self.repo.rglob("*") if path.is_file()}

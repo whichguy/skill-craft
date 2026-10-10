@@ -110,7 +110,20 @@ returns findings only and has no commit, patch, or integration. Current editing
 requires `exclusive_writer: true`; worktree preparation requires
 `writers_quiescent: true`. These are parent attestations, not locks.
 
-Retain the emitted binding and launch the native worker with its assignment.
+When parent and worker share access to local files, select `prepare --packet`
+with a new absolute path outside the repositories, Git metadata and selected
+package. The script retains the binding and emits a short native assignment;
+`worker-start` validates its pinned digest and returns the complete actionable
+task. Use the emitted command arguments, including the expected digest, without
+reconstructing them. The parent retains the packet locator and hashes. This
+transport satisfies the standalone task's context and authority requirements
+below through the validated `action_packet.task.current_learnings` and
+`action_packet.task.authorization`; the worker reads them before task work.
+For hosts without shared file access, omit `--packet` and carry the existing
+complete inline binding. Do not silently switch transport after a failure.
+
+Retain the emitted binding or packet metadata and launch the native worker
+with its emitted assignment.
 The worker runs `worker-start` and `worker-finish`; after collecting the actual
 native result, the parent runs `verify-return`. These scripts do not launch
 agents, integrate contributions, or clean up worktrees. The parent owns

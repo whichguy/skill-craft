@@ -1,4 +1,5 @@
 """Compact-treatment contract tests using isolated local Git fixtures."""
+import hashlib
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
@@ -50,7 +51,8 @@ class CompactHarnessTests(unittest.TestCase):
         completed = subprocess.run(
             [sys.executable, "-B", str(Path(worker_phase.__file__).resolve()),
              "--run", str(self.run), "--worker", str(worker_id), "--phase", phase,
-             "--compact-binding", str(binding_path)],
+             "--compact-binding", str(binding_path),
+             "--expected-binding-sha256", worker["compact_binding_sha256"]],
             cwd=worker["worktree"],
             capture_output=True,
             text=True,
@@ -105,6 +107,69 @@ class CompactHarnessTests(unittest.TestCase):
             {patch["path"] for patch in result["patches"]},
             {task["path"] for task in self.manifest["task_assignments"]},
         )
+        self._write_compact_v4_treatment()
+        report = fixture.verify_fixture(self.run)
+        self.assertTrue(report["passed"], report["errors"])
+        report_summary = fixture.summarize_verification(report, self.run / "operator" / "verification.json")
+        integration_summary = operations.integration_summary(self.run, result)
+        self.assertRegex(integration_summary["result_sha256"], r"^[0-9a-f]{64}$")
+
+        verification_hash = report_summary["report_sha256"]
+        integration_hash = integration_summary["result_sha256"]
+        with self.assertRaisesRegex(fixture.FixtureError, "PARENT_RESULT_INVALID"):
+            operations.write_parent_result(self.run, ["1=child-1", "2=child-2", "3=child-3"],
+                                           "0" * 64, integration_hash)
+        with self.assertRaisesRegex(fixture.FixtureError, "PARENT_RESULT_INVALID"):
+            operations.write_parent_result(self.run, ["1=child-1", "2=child-2", "3=child-3"],
+                                           verification_hash, "0" * 64)
+
+        start_path = self.run / "operator" / "worker-phases" / "worker-1-start" / "attempt.json"
+        saved_start = start_path.read_bytes()
+        stale_start = json.loads(saved_start)
+        stale_start["run_id"] = "foreign-run"
+        start_path.write_text(json.dumps(stale_start), encoding="utf-8")
+        with self.assertRaisesRegex(fixture.FixtureError, "PARENT_RESULT_INVALID"):
+            operations.write_parent_result(self.run, ["1=child-1", "2=child-2", "3=child-3"],
+                                           verification_hash, integration_hash)
+        start_path.write_bytes(saved_start)
+
+        binding_path = self._binding_path("1")
+        saved_binding = binding_path.read_bytes()
+        external_binding = self.run.parent / "foreign-binding.json"
+        external_binding.write_bytes(saved_binding)
+        binding_path.unlink()
+        binding_path.symlink_to(external_binding)
+        try:
+            with self.assertRaisesRegex(fixture.FixtureError, "PARENT_RESULT_INVALID"):
+                operations.write_parent_result(self.run, ["1=child-1", "2=child-2", "3=child-3"],
+                                               verification_hash, integration_hash)
+        finally:
+            binding_path.unlink()
+            binding_path.write_bytes(saved_binding)
+
+        writer_command = [sys.executable, "-B", str(Path(operations.__file__).resolve()),
+                          "write-parent-result", "--run", str(self.run),
+                          "--worker-handle", "3=child-3", "--worker-handle", "1=child-1",
+                          "--worker-handle", "2=child-2", "--verification-sha256", verification_hash,
+                          "--integration-sha256", integration_hash]
+        writer_result = subprocess.run(writer_command, capture_output=True, text=True)
+        self.assertEqual(writer_result.returncode, 0, writer_result.stderr)
+        index = json.loads(writer_result.stdout)
+        self.assertEqual(index["status"], "PARENT_ASSERTED")
+        self.assertEqual(index["worker_ids"], ["1", "2", "3"])
+        parent_index_path = self.run / "operator" / "parent-result.json"
+        parent_index = json.loads(parent_index_path.read_text(encoding="utf-8"))
+        self.assertEqual(parent_index["native_lifecycle"], "parent_asserted")
+        self.assertEqual([row["worker_id"] for row in parent_index["workers"]], ["1", "2", "3"])
+        self.assertEqual(parent_index["verification"]["source_sha256"], verification_hash)
+        self.assertEqual(parent_index["verification"]["archive_sha256"], verification_hash)
+        self.assertFalse((self.run / "operator" / "parent-verification.json").exists(),
+                         "the writer records the expected post-exit locator without claiming it exists")
+        before = parent_index_path.read_bytes()
+        with self.assertRaisesRegex(fixture.FixtureError, "PARENT_RESULT_INVALID"):
+            operations.write_parent_result(self.run, ["1=child-1", "2=child-2", "3=child-3"],
+                                           verification_hash, integration_hash)
+        self.assertEqual(parent_index_path.read_bytes(), before)
         after_integration = fixture.capture_repo_state(parent)
         for field in (
             "head", "index_entries", "index_entries_sha256", "index_tree",
@@ -116,21 +181,32 @@ class CompactHarnessTests(unittest.TestCase):
         self.assertEqual((parent / "unrelated-ignored-input.txt").read_text(encoding="utf-8"),
                          "omit from worker snapshot\n")
 
+    def _write_compact_v4_treatment(self):
+        (self.run / "operator" / "treatment.json").write_text(json.dumps({
+            "treatment": "compact", "version": 4, "delivery_mode": "patch",
+            "verification_output": "summary-v1",
+        }), encoding="utf-8")
+
     def test_compact_assignment_keeps_wrappers_and_required_task_test_separate(self):
         self._prepare()
         briefs.build_compact_briefs(self.run)
         assignment = briefs.emit_compact_worker(self.run, "2")
         prompt = assignment["native_arguments"]["prompt"]
+        setup_worker = self._worker("2")
+        prepare_result = json.loads(Path(setup_worker["compact_prepare_result_path"]).read_text())
+        self.assertEqual(self.setup["compact_startup_contract"], "action-packet/v1")
+        self.assertNotIn("binding", prepare_result)
+        self.assertEqual(prepare_result["packet"]["sha256"], setup_worker["compact_packet_sha256"])
 
-        self.assertIn(
-            "Run the start wrapper, required task test, and finish wrapper in separate terminal tool invocations.",
-            prompt,
-        )
-        self.assertIn("Do not combine a wrapper with a test, file operation, echo, diagnostics, or another command",
-                      prompt)
-        self.assertIn("Run the required task test separately before finish", prompt)
-        self.assertIn("the finish wrapper runs its fixture checks itself", prompt)
-        self.assertIn("Do not add shell commands or debug output to either wrapper call.", prompt)
+        self.assertIn("Run that wrapper first and read its returned `action_packet` object.", prompt)
+        self.assertIn("Run the packet's `task_test` command in its own terminal call after the edit.", prompt)
+        self.assertIn("Then run the packet's `finish_command` exactly once in its own terminal call.", prompt)
+        self.assertIn("The finish wrapper runs the exact production worker-finish command once and retains fixture checks.", prompt)
+        self.assertIn("--expected-binding-sha256", prompt)
+        self.assertIn("action_packet", prompt)
+        self.assertIn("follow them verbatim", prompt)
+        self.assertIn("--expected-binding-sha256", prompt)
+        self.assertIn("action_packet", prompt)
 
     def test_concurrent_compact_worker_starts_do_not_contend_on_caller_index(self):
         self._prepare()
@@ -212,7 +288,8 @@ class CompactDeliveryModeTests(unittest.TestCase):
         completed = subprocess.run(
             [sys.executable, "-B", str(Path(worker_phase.__file__).resolve()),
              "--run", str(self.run), "--worker", str(worker_id), "--phase", phase,
-             "--compact-binding", worker["compact_binding_path"]],
+             "--compact-binding", worker["compact_binding_path"],
+             "--expected-binding-sha256", worker["compact_binding_sha256"]],
             cwd=worker["worktree"], capture_output=True, text=True,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
@@ -222,8 +299,8 @@ class CompactDeliveryModeTests(unittest.TestCase):
         worker_id = task["worker_id"]
         worker = self._worker(worker_id)
         root = Path(worker["worktree"])
-        assignment = briefs.emit_compact_worker(self.run, worker_id)["native_arguments"]["prompt"]
-        self._phase(worker_id, "start")
+        start = self._phase(worker_id, "start")
+        action_packet = start["action_packet"]
         module = root / task["path"]
         module.write_text(
             "def transform(x):\n"
@@ -231,9 +308,12 @@ class CompactDeliveryModeTests(unittest.TestCase):
             encoding="utf-8",
         )
         if commits:
-            self.assertIn(f"git -C {worker['worktree']} add -- {task['path']}", assignment)
-            self.assertIn(f"git -C {worker['worktree']} commit -m 'Ask Agent fixture worker {worker_id}'", assignment)
-            self.assertIn(f"git -C {worker['worktree']} rev-parse HEAD", assignment)
+            self.assertEqual(action_packet["commit_proof"], [
+                {"argv": ["git", "-C", str(root), "add", "--", task["path"]], "cwd": str(root)},
+                {"argv": ["git", "-C", str(root), "commit", "-m",
+                          f"Ask Agent fixture worker {worker_id}"], "cwd": str(root)},
+                {"argv": ["git", "-C", str(root), "rev-parse", "HEAD"], "cwd": str(root)},
+            ])
             fixture.git(root, "add", "--", task["path"])
             fixture.git(root, "commit", "-m", f"Ask Agent fixture worker {worker_id}")
             commit = fixture.git(root, "rev-parse", "HEAD")
@@ -286,11 +366,15 @@ class CompactDeliveryModeTests(unittest.TestCase):
         result = operations.finish_ephemeral(self.run, worker_ids)
         self.assertEqual(result["status"], "NO_INTEGRATION")
         self.assertEqual(set(result), {
-            "schema", "status", "delivery_mode", "worker_ids", "result_path", "caller_snapshot_sha256",
+            "schema", "status", "delivery_mode", "worker_ids", "result_path", "result_sha256",
+            "caller_snapshot_sha256",
         })
         self.assertEqual(result["delivery_mode"], "ephemeral")
         self.assertEqual(result["worker_ids"], worker_ids)
         retained = json.loads((self.run / "operator" / "integration-result.json").read_text())
+        self.assertEqual(result["result_sha256"], hashlib.sha256(
+            (self.run / "operator" / "integration-result.json").read_bytes()
+        ).hexdigest())
         self.assertEqual(retained["caller_snapshot_sha256"], operations._canonical_sha256(self.manifest["caller_snapshot"]))
         self.assertNotIn("applied_worker_ids", retained)
         self.assertEqual(fixture.verify_fixture(self.run)["passed"], True)
@@ -658,6 +742,28 @@ class CompactNativeTraceTests(unittest.TestCase):
             for command in mutations:
                 self.assertFalse(parse(command, run, "1", "start", str(cwd), str(binding),
                                        launch_cwd_verified=True), command)
+
+    def test_compact_v4_child_invocation_requires_the_expected_binding_digest(self):
+        with tempfile.TemporaryDirectory(prefix="compact-native-v4-command-") as temp:
+            root = Path(temp).resolve()
+            run = root / "run"
+            cwd = root / "child"
+            binding = run / "operator" / "compact-bindings" / "worker-1.json"
+            wrapper = run / "operator" / "worker_phase.py"
+            digest = "a" * 64
+            tokens = ["PYTHONDONTWRITEBYTECODE=1", "python3", "-B",
+                      os.path.relpath(wrapper, cwd), "--run", os.path.relpath(run, cwd),
+                      "--worker", "1", "--phase", "start", "--compact-binding",
+                      os.path.relpath(binding, cwd), "--expected-binding-sha256", digest]
+            parse = native_trace._compact_child_invocation
+            self.assertTrue(parse(shlex.join(tokens), run, "1", "start", str(cwd), str(binding),
+                                  expected_binding_sha256=digest, launch_cwd_verified=True))
+            changed_digest = list(tokens)
+            changed_digest[-1] = "b" * 64
+            self.assertFalse(parse(shlex.join(changed_digest), run, "1", "start", str(cwd), str(binding),
+                                   expected_binding_sha256=digest, launch_cwd_verified=True))
+            self.assertFalse(parse(shlex.join(tokens[:-2]), run, "1", "start", str(cwd), str(binding),
+                                   expected_binding_sha256=digest, launch_cwd_verified=True))
 
     def test_compact_finish_accepts_only_known_fixture_test_prefix(self):
         with tempfile.TemporaryDirectory(prefix="compact-native-test-command-") as temp:

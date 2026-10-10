@@ -30,6 +30,7 @@ VERSION = 1
 TOOL_OUTPUT_WARNING_BYTES = 20_000
 PROTECTED_PARTS = frozenset({".git", ".ask-agent", ".worktrees"})
 TASK_INTERFACE = "references/task-interface.md"
+SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 NEXT_STEPS = {
     "request": "Correct the request and retry before dispatch.",
     "workspace": "Preserve the source and any helper receipt, then have the parent resolve the workspace condition.",
@@ -272,6 +273,94 @@ def _make_binding(package: Mapping[str, Any], task: Mapping[str, Any], bound_wor
     return result
 
 
+def _validate_packet_destination(packet_path: Path, request: Mapping[str, Any], package: Mapping[str, Any]) -> Path:
+    raw_path = os.fspath(packet_path)
+    if not packet_path.is_absolute() or _has_control(raw_path) or not packet_path.name:
+        _reject("invalid_packet_path", "an absolute packet file path without control characters", raw_path,
+                "Packet mode needs one explicit external file path.", anchor="workspace", paths=[raw_path])
+    try:
+        parent = packet_path.parent.resolve(strict=True)
+    except (OSError, RuntimeError, ValueError) as exc:
+        _reject("invalid_packet_parent", "an existing packet parent directory", f"{raw_path}: {exc}",
+                "The packet parent must exist so its resolved location can be checked before workspace preparation.",
+                anchor="workspace", paths=[raw_path])
+    if not parent.is_dir():
+        _reject("invalid_packet_parent", "an existing packet parent directory", os.fspath(parent),
+                "The packet parent must be a directory.", anchor="workspace", paths=[raw_path, os.fspath(parent)])
+    destination = parent / packet_path.name
+    if os.path.lexists(destination):
+        _reject("packet_destination_exists", "a new packet destination that is not a symlink", os.fspath(destination),
+                "Packet creation is exclusive and never overwrites an existing file or symlink.",
+                anchor="workspace", paths=[os.fspath(destination)])
+
+    source = Path(request["source"])
+    package_root = Path(package["resolved_skill_card"]).parent
+    roots: list[Path] = [source, package_root]
+    try:
+        source_repository = workspace._repo_root(source)
+    except workspace.WorkspaceError:
+        source_repository = None
+    if source_repository is not None:
+        roots.append(source_repository)
+        try:
+            roots.extend((workspace._common_dir(source_repository),
+                          workspace._git_path(source_repository, "index").parent.resolve(strict=True)))
+            for row in workspace._registered_worktrees(source_repository):
+                raw_worktree = row.get("worktree")
+                if raw_worktree:
+                    try:
+                        roots.append(Path(raw_worktree).resolve(strict=True))
+                    except (OSError, RuntimeError):
+                        pass
+        except workspace.WorkspaceError as exc:
+            _reject("packet_boundaries_unavailable", "resolvable source repository, worktrees, and Git metadata", str(exc),
+                    "Packet containment cannot be established before worktree preparation.", anchor="workspace",
+                    paths=[raw_path, os.fspath(source), os.fspath(package_root)])
+
+    try:
+        package_repository = workspace._repo_root(package_root)
+    except workspace.WorkspaceError:
+        package_repository = None
+    if package_repository is not None and package_repository != source_repository:
+        try:
+            roots.extend((workspace._common_dir(package_repository),
+                          workspace._git_path(package_repository, "index").parent.resolve(strict=True)))
+        except workspace.WorkspaceError as exc:
+            _reject("packet_boundaries_unavailable", "resolvable selected-package Git metadata", str(exc),
+                    "Packet containment cannot be established before worktree preparation.", anchor="workspace",
+                    paths=[raw_path, os.fspath(source), os.fspath(package_root)])
+
+    unique_roots = list(dict.fromkeys(roots))
+    for root in unique_roots:
+        if destination == root or workspace._is_under(destination, root):
+            _reject("packet_path_out_of_bounds", "a packet outside the source tree, selected package, and Git metadata",
+                    os.fspath(destination),
+                    f"The resolved packet destination is inside a protected tree: {root}.",
+                    anchor="workspace", paths=[os.fspath(destination), os.fspath(root)])
+    return destination
+
+
+def _write_packet(path: Path, binding: Mapping[str, Any], bound_workspace: Mapping[str, Any]) -> tuple[bytes, str]:
+    contents = _json_bytes(binding)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags, 0o600)
+        with os.fdopen(descriptor, "wb") as handle:
+            written = handle.write(contents)
+            handle.flush()
+            if written != len(contents):
+                raise OSError(f"short packet write: {written} of {len(contents)} bytes")
+    except OSError as exc:
+        evidence = [os.fspath(path)]
+        evidence.extend(os.fspath(bound_workspace[key]) for key in ("receipt", "root", "baseline", "source")
+                        if isinstance(bound_workspace.get(key), (str, os.PathLike)) and bound_workspace[key])
+        _reject("packet_write_failed", f"exclusively write {len(contents)} binding bytes", str(exc),
+                "Packet writing failed after workspace preparation. Any cited receipt, worktree, or partial packet is retained; no inline fallback was selected.",
+                anchor="workspace", paths=evidence,
+                next_step="Preserve the cited receipt and worktree, inspect the packet destination and any partial packet, then retry only after resolving the write failure.")
+    return contents, hashlib.sha256(contents).hexdigest()
+
+
 def _helper_failure(action: str, exc: workspace.WorkspaceError, *, anchor: str, paths: Sequence[str] = ()) -> TaskError:
     message = str(exc)
     match = re.search(r"failure record: (.+)\)$", message)
@@ -289,12 +378,90 @@ def _helper_failure(action: str, exc: workspace.WorkspaceError, *, anchor: str, 
     })
 
 
-def prepare_task(raw_request: Any, skill_card: Path) -> dict[str, Any]:
+def _delivery_header(binding: Mapping[str, Any]) -> str:
+    task, bound_workspace = binding["task"], binding["workspace"]
+    if task["mode"] == "ephemeral":
+        return "No commit — findings only"
+    if task["mode"] == "report-only":
+        return "Report-only — return findings without filesystem changes"
+    if bound_workspace["route"] == "current":
+        return "No commit — edit the current workspace in place"
+    if task["delivery_mode"] == "patch":
+        return "Patch — return these changes without committing"
+    return "Git commit — return these changes"
+
+
+def _packet_prompt(binding: Mapping[str, Any], packet_path: Path) -> str:
+    task, bound_workspace = binding["task"], binding["workspace"]
+    script = binding["package"]["task_script"]
+    start_argv = ["python3", script, "worker-start", "--binding", os.fspath(packet_path),
+                  "--expected-binding-sha256", binding["binding_sha256"]]
+    start_command = shlex.join(start_argv)
+    return "\n\n".join((
+        "You are a fresh native worker. Treat this as standalone task context; do not assume parent conversation history.",
+        f"Objective: {task['objective']}\nExpected result: {task['expected_result']}\nMode: {task['mode']}\nWorking directory: {bound_workspace['launch_cwd']}",
+        "Delivery: " + _delivery_header(binding),
+        f"Prepared task packet: {packet_path}\nExpected binding SHA-256: {binding['binding_sha256']}",
+        f"Before any task operation, the actual worker context must run this pinned worker-start command exactly once from the assigned directory: `{start_command}`. It validates the actual context and returns an action_packet with the full task and exact finish command. A harness wrapper may run it in this same worker context and supply the returned action_packet; an action_packet from another context does not replace this check.",
+        "Follow action_packet.instructions and the task fields as returned. Use the assigned directory for shell commands, absolute paths for file tools, and follow project instructions. Honor the parent’s existing host, model, and tool inheritance contract; do not create a restricted or otherwise different agent.",
+        "After task work, run action_packet.finish_command exactly. Return actual checks and observed results, changed paths, evidence locations, limits, and uncertainty. The parent retains the native handle and owns semantic acceptance, verification, and integration.",
+    ))
+
+
+def _packet_result(
+    binding: Mapping[str, Any], packet_path: Path, packet_sha256: str,
+    binding_bytes: int, limitations: list[str],
+) -> dict[str, Any]:
+    bound_workspace = binding["workspace"]
+    task_script = binding["package"]["task_script"]
+    digest = binding["binding_sha256"]
+    command_names = ("worker-start", "worker-finish", "verify-return")
+    commands = {
+        name: {
+            "argv": ["python3", task_script, name, "--binding", os.fspath(packet_path),
+                     "--expected-binding-sha256", digest],
+            "cwd": bound_workspace["source"] if name == "verify-return" else bound_workspace["launch_cwd"],
+        }
+        for name in command_names
+    }
+    prompt = _packet_prompt(binding, packet_path)
+    packet = {
+        "path": os.fspath(packet_path), "binding_sha256": digest, "sha256": packet_sha256,
+        "ignored_dependencies_omitted": list(bound_workspace.get("ignored_dependencies_omitted", [])),
+        "no_drift_warning": bound_workspace.get("no_drift_warning"),
+    }
+    result: dict[str, Any] = {
+        "status": "READY_TO_LAUNCH", "packet": packet,
+        "launch": {"cwd": bound_workspace["launch_cwd"], "mode": binding["task"]["mode"],
+                   "transport": "packet", "delivery_header": _delivery_header(binding), "prompt": prompt},
+        "commands": commands,
+        "payload_sizes": {"binding_bytes": binding_bytes, "prompt_bytes": len(prompt.encode("utf-8"))},
+        "parent_next_steps": [
+            "Launch a fresh native worker with launch.prompt and launch.cwd; retain its native handle in the parent record.",
+            "Collect the native result, invoke commands.verify-return with its exact argv and cwd, then decide semantic acceptance and integration in the parent.",
+        ],
+        "limitations": limitations,
+    }
+    if len(_json_bytes(result)) > TOOL_OUTPUT_WARNING_BYTES:
+        limitations.append("Grok Bash tool output has an observed 20 KB default limit. This is a tool-output limit, not a native prompt limit; the parent must verify the full JSON and prompt transfer. The wrapper never truncates output.")
+        result["limitations"] = limitations
+    size = len(_json_bytes(result))
+    for _ in range(3):
+        result["payload_sizes"]["stdout_json_bytes"] = size
+        actual = len(_json_bytes(result))
+        if actual == size:
+            break
+        size = actual
+    return result
+
+
+def prepare_task(raw_request: Any, skill_card: Path, packet_path: Path | None = None) -> dict[str, Any]:
     request = _request(raw_request)
     try:
         package = _identity(skill_card)
     except workspace.WorkspaceError as exc:
         raise _helper_failure("verify package identity", exc, anchor="request", paths=[os.fspath(skill_card)]) from exc
+    resolved_packet = _validate_packet_destination(packet_path, request, package) if packet_path is not None else None
     task = {key: request[key] for key in (
         "objective", "expected_result", "mode", "delivery_mode", "write_set", "current_learnings", "authorization",
     )}
@@ -361,6 +528,10 @@ def prepare_task(raw_request: Any, skill_card: Path) -> dict[str, Any]:
     binding_bytes = len(_json_bytes(binding))
     if binding_bytes > TOOL_OUTPUT_WARNING_BYTES:
         limitations.append(f"Binding is {binding_bytes} bytes; the parent should verify complete tool output and native transfer.")
+
+    if resolved_packet is not None:
+        packet_contents, packet_sha256 = _write_packet(resolved_packet, binding, bound_workspace)
+        return _packet_result(binding, resolved_packet, packet_sha256, len(packet_contents), limitations)
 
     def result_packet() -> dict[str, Any]:
         prompt = _worker_prompt(binding, limitations)
@@ -451,7 +622,22 @@ def _read_json(argument: str, label: str) -> Any:
                 f"The {label} packet could not be read as JSON.", anchor="request" if label == "request" else "worker")
 
 
-def _binding(raw: Any) -> dict[str, Any]:
+def _binding(raw: Any, expected_binding_sha256: str | None = None) -> dict[str, Any]:
+    if expected_binding_sha256 is not None:
+        if not isinstance(expected_binding_sha256, str) or not SHA256_HEX_RE.fullmatch(expected_binding_sha256):
+            _reject("invalid_expected_binding_sha256", "64 lowercase hexadecimal characters",
+                    expected_binding_sha256,
+                    "A supplied packet pin must be a SHA-256 digest.", anchor="worker")
+        if not isinstance(raw, dict):
+            _reject("invalid_binding", "a JSON object", type(raw).__name__,
+                    "The pinned packet must contain one complete task binding.", anchor="worker")
+        calculated = _digest(raw)
+        if expected_binding_sha256 != calculated:
+            workspace_part = raw.get("workspace")
+            receipt = workspace_part.get("receipt") if isinstance(workspace_part, dict) else None
+            _reject("expected_binding_sha256_mismatch", expected_binding_sha256, calculated,
+                    "The binding contents do not match the digest supplied by the parent before package or workspace checks.",
+                    anchor="worker", paths=[receipt] if isinstance(receipt, str) else [])
     keys = {"schema", "version", "status", "package", "task", "workspace", "binding_note", "binding_sha256"}
     if not isinstance(raw, dict) or set(raw) != keys:
         _reject("invalid_binding", sorted(keys), sorted(raw) if isinstance(raw, dict) else type(raw).__name__,
@@ -742,8 +928,56 @@ def _summary(state: Mapping[str, Any]) -> dict[str, Any]:
     return {key: state[key] for key in keys if key in state}
 
 
-def worker_start(raw: Any) -> dict[str, Any]:
-    binding = _binding(raw)
+def _action_packet(binding: Mapping[str, Any], binding_path: str, expected_binding_sha256: str) -> dict[str, Any]:
+    task, bound_workspace = binding["task"], binding["workspace"]
+    root = bound_workspace["launch_cwd"]
+    instructions = [
+        "Use this as standalone fresh-context work. The parent selected the host and retains the native handle; honor its existing model and tool inheritance contract, and do not create a restricted or otherwise different agent.",
+        f"Work from the assigned directory {root}. Use it for shell commands, use absolute paths for file tools, and follow the project instructions. Read task.current_learnings and task.authorization before editing.",
+        "Preserve inherited changes and unrelated files. Remain in the assigned directory. Do not reset, stash, close, merge, or integrate. If blocked, stop and return the reason with evidence.",
+    ]
+    if bound_workspace["route"] == "current" and task["mode"] == "edit":
+        instructions.append("This current-workspace edit has one writer: do not delegate to further agents. Do not commit, reset, stash, close, merge, or integrate; keep edits within task.write_set.")
+    else:
+        instructions.append("Any native delegates must follow this task's workspace, scope, and handoff constraints. Collect their terminal results before finishing or returning.")
+    if task["mode"] == "report-only":
+        instructions.append("You and any delegates must remain report-only and make no filesystem changes; do not commit.")
+    elif task["mode"] == "ephemeral":
+        instructions.append("Use the assigned worktree for scoped scratch edits. Do not commit or create a patch; return findings and changed paths only.")
+    elif bound_workspace["route"] == "current":
+        instructions.append("Do not commit, reset, stash, close, merge, or integrate. Keep edits within task.write_set.")
+    elif task["delivery_mode"] == "patch":
+        instructions.append("Do not commit, reset, stash, close, merge, or integrate. Keep edits within task.write_set and return the patch through the worker-finish evidence.")
+    else:
+        commit_base = bound_workspace["commit_base"]
+        instructions.append(
+            f"Keep edits within task.write_set and commit only the task contribution paths after inherited base {commit_base}. "
+            f"Stage every changed in-scope path explicitly with git -C {shlex.quote(root)} add -- <exact-path>, "
+            f"then commit with git -C {shlex.quote(root)} commit -m '<message>'. Never use git add . or git add -A, and do not commit inherited parent work."
+        )
+    instructions.extend((
+        "Run relevant actual checks for code changes. Return exact commands and observed results, changed paths, evidence locations, limits, and uncertainty. For commits, report the complete ordered contribution commit SHAs. Script status is filesystem evidence only; it does not prove native completion or semantic correctness.",
+        "The parent owns semantic acceptance, verification, and integration; do not claim the parent accepted or integrated the result.",
+    ))
+    ignored = list(bound_workspace.get("ignored_dependencies_omitted", []))
+    if ignored:
+        instructions.append("These ignored source inputs were omitted from the helper worktree snapshot; do not assume they are available: " + ", ".join(ignored) + ".")
+    no_drift_warning = bound_workspace.get("no_drift_warning")
+    if no_drift_warning:
+        instructions.append("No-drift limitation: " + str(no_drift_warning))
+    finish_argv = ["python3", binding["package"]["task_script"], "worker-finish", "--binding", binding_path,
+                   "--expected-binding-sha256", expected_binding_sha256]
+    return {
+        "task": dict(task), "delivery_header": _delivery_header(binding), "instructions": instructions,
+        "finish_command": {"argv": finish_argv, "cwd": root},
+        "ignored_dependencies_omitted": ignored, "no_drift_warning": no_drift_warning,
+    }
+
+
+def worker_start(
+    raw: Any, expected_binding_sha256: str | None = None, binding_path: str | None = None,
+) -> dict[str, Any]:
+    binding = _binding(raw, expected_binding_sha256)
     if binding["workspace"]["route"] == "worktree":
         evidence = _worktree(binding, phase="prepared", worker=True)
     else:
@@ -757,8 +991,12 @@ def worker_start(raw: Any) -> dict[str, Any]:
                     anchor="worker", paths=[binding["workspace"]["source"]])
         else:
             evidence = _summary(state)
-    return {"status": "WORKER_CONTEXT_READY", "binding_sha256": binding["binding_sha256"],
-            "workspace_evidence": evidence, "native_lifecycle_verified": False}
+    result = {"status": "WORKER_CONTEXT_READY", "binding_sha256": binding["binding_sha256"],
+              "workspace_evidence": evidence, "native_lifecycle_verified": False}
+    if binding_path is not None:
+        result["action_packet"] = _action_packet(
+            binding, binding_path, expected_binding_sha256 or binding["binding_sha256"])
+    return result
 
 
 def _acceptance(binding: Mapping[str, Any], evidence: Mapping[str, Any], command: str) -> dict[str, Any]:
@@ -771,8 +1009,8 @@ def _acceptance(binding: Mapping[str, Any], evidence: Mapping[str, Any], command
     }
 
 
-def worker_finish(raw: Any) -> dict[str, Any]:
-    binding = _binding(raw)
+def worker_finish(raw: Any, expected_binding_sha256: str | None = None) -> dict[str, Any]:
+    binding = _binding(raw, expected_binding_sha256)
     if binding["workspace"]["route"] == "worktree":
         evidence = _worktree(binding, phase="returned", worker=True)
     else:
@@ -785,8 +1023,8 @@ def worker_finish(raw: Any) -> dict[str, Any]:
     return _acceptance(binding, evidence, "worker-finish")
 
 
-def verify_return(raw: Any) -> dict[str, Any]:
-    binding = _binding(raw)
+def verify_return(raw: Any, expected_binding_sha256: str | None = None) -> dict[str, Any]:
+    binding = _binding(raw, expected_binding_sha256)
     if binding["workspace"]["route"] == "worktree":
         evidence = _worktree(binding, phase="returned", worker=False)
         _verify_source_capture(binding["workspace"])
@@ -861,9 +1099,11 @@ def _parser() -> argparse.ArgumentParser:
     prepare = commands.add_parser("prepare", help="validate a request and emit a parent binding")
     prepare.add_argument("--skill-card", required=True, help="absolute selected package SKILL.md")
     prepare.add_argument("--request", required=True, help="JSON file path or - for stdin")
+    prepare.add_argument("--packet", help="write the raw binding to a new absolute packet path")
     for name in ("worker-start", "worker-finish", "verify-return"):
         command = commands.add_parser(name)
         command.add_argument("--binding", required=True, help="JSON file path or - for stdin")
+        command.add_argument("--expected-binding-sha256", help="optional parent-supplied binding digest pin")
     return parser
 
 
@@ -882,11 +1122,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         parsed = _parser().parse_args(argv)
         if parsed.command == "prepare":
-            result = prepare_task(_read_json(parsed.request, "request"), Path(parsed.skill_card))
+            result = prepare_task(_read_json(parsed.request, "request"), Path(parsed.skill_card),
+                                  Path(parsed.packet) if parsed.packet is not None else None)
         else:
             raw = _read_json(parsed.binding, "binding")
-            result = {"worker-start": worker_start, "worker-finish": worker_finish,
-                      "verify-return": verify_return}[parsed.command](raw)
+            binding_path = None
+            if parsed.binding != "-":
+                try:
+                    binding_path = os.fspath(Path(parsed.binding).resolve(strict=True))
+                except (OSError, RuntimeError, ValueError) as exc:
+                    _reject("invalid_binding", "a readable binding path", f"{parsed.binding}: {exc}",
+                            "The supplied binding file could not be resolved.", anchor="worker", paths=[parsed.binding])
+            if parsed.command == "worker-start":
+                result = worker_start(raw, parsed.expected_binding_sha256, binding_path)
+            elif parsed.command == "worker-finish":
+                result = worker_finish(raw, parsed.expected_binding_sha256)
+            else:
+                result = verify_return(raw, parsed.expected_binding_sha256)
         _emit(result)
         return 0
     except TaskError as exc:

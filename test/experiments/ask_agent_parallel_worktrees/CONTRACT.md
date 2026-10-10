@@ -393,3 +393,34 @@ The integration CLI emits a compact summary after persisting the complete
 `integration-result.json`; full call output, checks, failures and partial apply
 state remain in that record. A compact response requires both `INTEGRATED` and
 passing fixture verification. Native lifecycle qualification remains separate.
+
+## Compact packet transport and result index
+
+Compact treatment version 4 binds each production packet to its expected digest
+in the native wrapper command, underlying worker start/finish commands and the
+parent return check. The prepared raw binding is retained outside repositories.
+The worker start response carries the validated task and mode-specific rules.
+Consumers use structured commands; exact prose substitution is not an interface.
+File digests detect mismatches, not malicious-process access or native identity.
+A generated v4 prompt requires matching treatment metadata before launch.
+Retained v4 setup or result-index markers also require that metadata during the
+native audit; deleting it cannot downgrade the run to older, weaker gates.
+Missing or contradictory metadata prevents qualification.
+
+The parent supplies actual native handles to `operations.py write-parent-result`
+with repeated `--worker-handle ID=HANDLE` arguments, preserving duplicate IDs
+for rejection. It also supplies the successful fixture summary's
+`--verification-sha256` and integration/finalization summary's
+`--integration-sha256`. The writer accepts only the complete expected worker set
+and matching successful evidence from this run. It does not perform native
+collection, semantic acceptance, task execution or a second integration.
+
+Result creation is exclusive. Each retained record has a concrete locator and
+content hash; verification distinguishes the checked `verification.json` from
+its later controller archive `parent-verification.json`. The writer must not
+present that future archive as already created. The native audit checks the
+actual launch handles and original verification hash after controller archival,
+and detects replaced indexed records. Indexed handles remain parent assertions
+until that independent check. A failed writer or audit preserves existing
+files, caller contributions and worker scratch for diagnosis; no automatic retry,
+overwrite, cleanup or claim of success is permitted.

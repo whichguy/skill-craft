@@ -412,10 +412,31 @@ def _compact_assignment_prompt(run, task, worker, result, binding):
     phase_arg = os.path.relpath(phase_script, worktree)
     commands = {}
     for phase in ("start", "finish"):
+        argv = ["python3", "-B", phase_arg, "--run", run_arg, "--worker", worker_id,
+                "--phase", phase, "--compact-binding", str(binding_path),
+                "--expected-binding-sha256", worker["compact_binding_sha256"]]
         commands[phase] = "cd " + shlex.quote(str(worktree)) + " && PYTHONDONTWRITEBYTECODE=1 " + shlex.join(
-            ["python3", "-B", phase_arg, "--run", run_arg, "--worker", worker_id,
-             "--phase", phase, "--compact-binding", str(binding_path)]
+            argv
         )
+    if worker.get("compact_startup_contract") == "action-packet/v1":
+        launch = result.get("launch")
+        if (not isinstance(launch, dict) or launch.get("transport") != "packet"
+                or not isinstance(launch.get("prompt"), str)
+                or not isinstance(launch.get("delivery_header"), str)):
+            _fail("COMPACT_PREPARE_RESULT_INVALID", "Compact v4 launch packet is incomplete",
+                  {"transport": "packet", "launch_prompt": True, "delivery_header": True},
+                  {"launch": launch}, [Path(worker["compact_prepare_result_path"]), binding_path])
+        delivery_mode = binding.get("task", {}).get("delivery_mode") or binding.get("task", {}).get("mode")
+        task_test = f"python3 -B checks.py --worker {worker_id}"
+        commits = " Only then run the action_packet commit_proof commands, each as its own terminal call." \
+            if delivery_mode == "commits" else ""
+        return f"""Fresh native worker context. The start wrapper below invokes the exact production worker-start command once with the unchanged, digest-pinned packet. Run that wrapper first and read its returned `action_packet` object. Its production task, delivery header, and instruction strings are authoritative; follow them verbatim. Do not rerun worker-start or substitute task text.
+
+Use only the assigned worktree `{worktree}` and the absolute paths in the packet. Run the packet's `task_test` command in its own terminal call after the edit.{commits} Then run the packet's `finish_command` exactly once in its own terminal call. The finish wrapper runs the exact production worker-finish command once and retains fixture checks. Stop on any failed command and preserve the attempt evidence.
+
+Start wrapper: `{commands['start']}`
+
+The binding is `{binding_path}`; its canonical binding SHA-256 is `{worker['compact_binding_sha256']}` and exact packet SHA-256 is `{worker['compact_packet_sha256']}`. Native start and finish wrappers are pinned to the canonical binding digest. Return the observed task test and any assigned commit proof output with the native handoff."""
     prompt = result.get("launch", {}).get("prompt")
     script = binding.get("package", {}).get("task_script")
     delivery_mode = binding.get("task", {}).get("delivery_mode") or binding.get("task", {}).get("mode")
@@ -508,14 +529,32 @@ def build_compact_briefs(run):
     assignments = []
     for task in manifest["task_assignments"]:
         worker_id = task["worker_id"]
-        worker = setup_workers[worker_id]
+        worker = dict(setup_workers[worker_id])
+        worker["compact_startup_contract"] = setup.get("compact_startup_contract")
         binding_path = Path(worker["compact_binding_path"])
         result_path = Path(worker["compact_prepare_result_path"])
+        _check(not binding_path.is_symlink() and not result_path.is_symlink(),
+               "COMPACT_BINDING_INVALID", f"Worker {worker_id} packet or prepare result is symlinked",
+               {"symlink": False}, {"binding_symlink": binding_path.is_symlink(),
+                                    "result_symlink": result_path.is_symlink()}, [binding_path, result_path])
+        packet_bytes = binding_path.read_bytes()
+        packet_sha = fixture.sha256_bytes(packet_bytes)
         binding = _read_json(binding_path, "COMPACT_BINDING_INVALID", [binding_path, result_path])
         result = _read_json(result_path, "COMPACT_PREPARE_RESULT_INVALID", [binding_path, result_path])
         native_arguments = dict(regular_by_id[worker_id])
-        _check(binding.get("binding_sha256") == worker.get("compact_binding_sha256")
-               and result.get("binding") == binding
+        canonical_binding = hashlib.sha256(json.dumps(
+            {key:value for key,value in binding.items() if key!="binding_sha256"},
+            sort_keys=True,separators=(",",":"),ensure_ascii=True).encode("utf-8")).hexdigest()
+        v4 = setup.get("compact_startup_contract") == "action-packet/v1"
+        packet_result = result.get("packet")
+        packet_ok = (isinstance(packet_result, dict)
+                     and packet_result.get("path") == str(binding_path.resolve())
+                     and packet_result.get("sha256") == packet_sha
+                     and packet_result.get("binding_sha256") == canonical_binding)
+        legacy_binding_ok = result.get("binding") == binding
+        _check(binding.get("binding_sha256") == worker.get("compact_binding_sha256") == canonical_binding
+               and packet_sha == worker.get("compact_packet_sha256")
+               and (packet_ok if v4 else legacy_binding_ok)
                and result.get("status") == "READY_TO_LAUNCH"
                and result.get("launch", {}).get("cwd") == worker.get("worktree")
                and binding.get("task", {}).get("write_set") == (
@@ -538,6 +577,7 @@ def build_compact_briefs(run):
                {"worker_id": worker_id, "delivery_mode": delivery_mode,
                 "write_set": [task["path"]], "worktree": worker.get("worktree")},
                {"binding_sha256": binding.get("binding_sha256"), "setup_sha256": worker.get("compact_binding_sha256"),
+                "packet_sha256":packet_sha,"prepare_packet":result.get("packet"),
                 "write_set": binding.get("task", {}).get("write_set"),
                 "worktree": binding.get("workspace", {}).get("root")}, [binding_path, result_path])
         native_arguments["prompt"] = _compact_assignment_prompt(run, task, worker, result, binding)

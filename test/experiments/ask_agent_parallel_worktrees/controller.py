@@ -26,6 +26,53 @@ def launch(run, grok_binary=None, model='grok-4.7', effort='medium'):
         raise ValueError('Missing reviewed parent prompt')
     if (op / 'launch.json').exists():
         raise ValueError('Existing attempt; preserve it and use a new run')
+    if prompt.read_text(encoding='utf-8').startswith('Run compact v4 of the Ask Agent interface experiment'):
+        treatment_path = op / 'treatment.json'
+        manifest_path = run / 'manifest.json'
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        except (OSError, UnicodeError, ValueError) as exc:
+            raise ValueError(
+                f'Compact v4 launch requires readable manifest metadata at {manifest_path}; '
+                f'observed read error: {exc}; matching version-specific native gates require frozen '
+                'treatment metadata (see CONTRACT.md#compact-packet-transport-and-result-index)'
+            ) from exc
+        if not isinstance(manifest, dict):
+            raise ValueError(
+                f'Compact v4 launch requires an object manifest at {manifest_path}; '
+                f'observed {manifest!r}; matching version-specific native gates require frozen '
+                'treatment metadata (see CONTRACT.md#compact-packet-transport-and-result-index)'
+            )
+        expected = {
+            'treatment': 'compact', 'version': 4, 'verification_output': 'summary-v1',
+            'delivery_mode': manifest.get('delivery_mode', 'patch'),
+            'workers': manifest.get('workers'), 'mode': manifest.get('mode'),
+        }
+        if treatment_path.is_symlink() or not treatment_path.is_file():
+            observed = 'symlink' if treatment_path.is_symlink() else 'missing or not a regular file'
+            raise ValueError(
+                f'Compact v4 launch requires matching treatment metadata at {treatment_path}; '
+                f'expected {expected!r}, observed {observed}; matching version-specific native gates '
+                'require frozen treatment metadata (see CONTRACT.md#compact-packet-transport-and-result-index)'
+            )
+        try:
+            treatment = json.loads(treatment_path.read_text(encoding='utf-8'))
+        except (OSError, UnicodeError, ValueError) as exc:
+            raise ValueError(
+                f'Compact v4 launch requires readable treatment metadata at {treatment_path} '
+                f'with manifest {manifest_path}; expected {expected!r}, observed read error: {exc}; '
+                'matching version-specific native gates require frozen treatment metadata '
+                '(see CONTRACT.md#compact-packet-transport-and-result-index)'
+            ) from exc
+        matches = (isinstance(treatment, dict)
+                   and all(treatment.get(key) == value for key, value in expected.items())
+                   and type(treatment.get('version')) is int)
+        if not matches:
+            raise ValueError(
+                f'Compact v4 treatment metadata at {treatment_path} does not match the frozen manifest; '
+                f'expected {expected!r}, observed {treatment!r}; matching version-specific native gates '
+                'require frozen treatment metadata (see CONTRACT.md#compact-packet-transport-and-result-index)'
+            )
     (op/'launch-attempt').mkdir()  # Atomic reservation; failed launches are retained.
     executable = grok_binary or shutil.which('grok')
     if not executable:
@@ -92,6 +139,12 @@ def verify_after_exit(run):
         raise ValueError(f'Parent has not exited: required evidence {process_path}')
     if any((op/name).exists() for name in ('post-exit-verification.json','integrity-result.json','post-exit-verify.log')):
         raise ValueError(f'Post-exit evidence already exists in {op}; preserve it and audit without replacing it')
+    verification=op/'verification.json'
+    archive=op/'parent-verification.json'
+    if archive.exists() or archive.is_symlink():
+        raise ValueError(f'Original parent-verification archive already exists or is symlinked: {archive}; preserve it and stop')
+    if verification.is_symlink() or (verification.exists() and not verification.is_file()):
+        raise ValueError(f'Original parent verification is not a regular file: {verification}; preserve it and stop')
     (op/'post-exit-attempt').mkdir()  # Includes failed attempts and concurrent callers.
     process=json.loads(process_path.read_text())
     if not isinstance(process,dict) or type(process.get('exit_code')) is not int:
@@ -113,9 +166,21 @@ def verify_after_exit(run):
         write_json(op/'post-exit-result.json',{'status':'FAIL','passed':False,'reason':'Frozen experiment inputs changed',
                                               'evidence':str(op/'integrity-result.json')})
         return 1
-    verification=op/'verification.json'
     if verification.exists():
-        shutil.copy2(verification,op/'parent-verification.json')
+        source_stat=verification.stat()
+        original=verification.read_bytes()
+        descriptor=os.open(archive,os.O_WRONLY|os.O_CREAT|os.O_EXCL,source_stat.st_mode & 0o777)
+        try:
+            view=memoryview(original)
+            while view:
+                written=os.write(descriptor,view)
+                view=view[written:]
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        os.utime(archive,ns=(source_stat.st_atime_ns,source_stat.st_mtime_ns))
+        if archive.is_symlink() or archive.read_bytes()!=original:
+            raise ValueError(f'Original parent verification archive failed byte-for-byte retention: {archive}')
     frozen=op/'fixture.py'
     if not frozen.exists():frozen=op/'probe-fixture.py'
     if verification.exists():verification.unlink()  # Original retained as parent-verification.json.

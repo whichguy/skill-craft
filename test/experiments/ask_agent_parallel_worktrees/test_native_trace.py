@@ -180,6 +180,189 @@ class NativeTraceTests(unittest.TestCase):
     def _audit(self) -> dict:
         return native_trace.audit_run(self.run, session_root=self.session_root)
 
+    def _write_parent_result_case(self) -> tuple[dict, list[dict], list[dict], dict[str, Path]]:
+        operator = self.run / "operator"
+        binding_dir = operator / "compact-bindings"
+        binding_dir.mkdir(exist_ok=True)
+        setup_workers = []
+        indexed_rows = []
+        paths: dict[str, Path] = {}
+        archive_report = {
+            "run_id": self.manifest["run_id"], "passed": True,
+            "checks": {"fixture": True}, "errors": [],
+        }
+        archive_bytes = (json.dumps(archive_report, sort_keys=True) + "\n").encode("utf-8")
+        (operator / "verification.json").write_bytes(archive_bytes)
+        (operator / "parent-verification.json").write_bytes(archive_bytes)
+        integration_path = operator / "integration-result.json"
+        integration = {
+            "run_id": self.manifest["run_id"], "status": "INTEGRATED",
+            "delivery_mode": "patch", "fixture_verification": {"passed": True},
+            "applied_worker_ids": ["1", "2", "3"],
+        }
+        self._write_json(integration_path, integration)
+
+        for index, task in enumerate(self.manifest["task_assignments"], 1):
+            worker_id = str(task["worker_id"])
+            binding_path = binding_dir / f"worker-{worker_id}.json"
+            binding_content = {"worker_id": worker_id, "task_path": task["path"]}
+            canonical = hashlib.sha256(json.dumps(
+                binding_content, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+            ).encode("utf-8")).hexdigest()
+            binding_content["binding_sha256"] = canonical
+            binding_bytes = (json.dumps(binding_content, sort_keys=True) + "\n").encode("utf-8")
+            binding_path.write_bytes(binding_bytes)
+            packet_sha = hashlib.sha256(binding_bytes).hexdigest()
+            setup_workers.append({
+                "worker_id": worker_id, "worktree": str(self.child_roots[index - 1].resolve()),
+                "compact_binding_path": str(binding_path.resolve()),
+                "compact_binding_sha256": canonical, "compact_packet_sha256": packet_sha,
+            })
+
+            record_refs = {}
+            for phase in ("start", "finish"):
+                phase_path = operator / "worker-phases" / f"worker-{worker_id}-{phase}" / "attempt.json"
+                self._write_json(phase_path, {
+                    "run_id": self.manifest["run_id"], "worker_id": worker_id,
+                    "phase": phase, "status": "PASSED", "compact_binding_sha256": canonical,
+                })
+                record_refs[phase] = {"path": str(phase_path.resolve()),
+                                      "sha256": hashlib.sha256(phase_path.read_bytes()).hexdigest()}
+            return_path = operator / "compact-returns" / f"worker-{worker_id}.json"
+            self._write_json(return_path, {
+                "run_id": self.manifest["run_id"], "worker_id": worker_id,
+                "phase": "verify-return", "status": "PASSED", "binding_sha256": canonical,
+            })
+            record_refs["verify_return"] = {"path": str(return_path.resolve()),
+                                             "sha256": hashlib.sha256(return_path.read_bytes()).hexdigest()}
+            indexed_rows.append({
+                "worker_id": worker_id, "status": "PARENT_ASSERTED",
+                "native_handle": self.child_ids[index - 1], "native_lifecycle": "parent_asserted",
+                "binding_sha256": canonical, "packet_sha256": packet_sha,
+                "records": record_refs,
+            })
+            paths[f"worker-{worker_id}-start"] = operator / "worker-phases" / f"worker-{worker_id}-start" / "attempt.json"
+            paths[f"worker-{worker_id}-finish"] = operator / "worker-phases" / f"worker-{worker_id}-finish" / "attempt.json"
+            paths[f"worker-{worker_id}-return"] = return_path
+
+        self._write_json(operator / "setup-result.json", {
+            "status": "PREPARED", "treatment": "compact",
+            "compact_startup_contract": "action-packet/v1", "workers": setup_workers,
+        })
+        index = {
+            "schema": "ask-agent.parent-result-index/v1", "run_id": self.manifest["run_id"],
+            "status": "PARENT_ASSERTED", "native_lifecycle": "parent_asserted",
+            "verification": {
+                "source_path": str((operator / "verification.json").resolve()),
+                "source_sha256": hashlib.sha256(archive_bytes).hexdigest(),
+                "archive_path": str((operator / "parent-verification.json").resolve()),
+                "archive_sha256": hashlib.sha256(archive_bytes).hexdigest(),
+            },
+            "integration": {"path": str(integration_path.resolve()),
+                            "sha256": hashlib.sha256(integration_path.read_bytes()).hexdigest()},
+            "workers": indexed_rows,
+        }
+        self._write_json(operator / "parent-result.json", index)
+        launches = [
+            {"worker_id": str(i), "child_session_id": self.child_ids[i - 1]}
+            for i in range(1, 4)
+        ]
+        return index, self.manifest["task_assignments"], launches, paths
+
+    def test_compact_parent_result_requires_controller_archive_and_typed_handles(self) -> None:
+        index, assignments, launches, paths = self._write_parent_result_case()
+        archive = self.operator / "parent-verification.json"
+        archive_bytes = archive.read_bytes()
+        archive.unlink()
+        before_controller = native_trace._compact_parent_result_check(
+            self.run, self.manifest, assignments, launches, delivery_mode="patch",
+        )
+        self.assertEqual(before_controller["status"], "INCOMPLETE")
+        archive.write_bytes(archive_bytes)
+
+        passed = native_trace._compact_parent_result_check(
+            self.run, self.manifest, assignments, launches, delivery_mode="patch",
+        )
+        self.assertEqual(passed["status"], "PASS", passed["detail"])
+
+        altered = json.loads(json.dumps(index))
+        altered["workers"][0]["native_handle"] = "foreign-native-handle"
+        self._write_json(self.operator / "parent-result.json", altered)
+        wrong_handle = native_trace._compact_parent_result_check(
+            self.run, self.manifest, assignments, launches, delivery_mode="patch",
+        )
+        self.assertEqual(wrong_handle["status"], "FAIL")
+        self.assertIn("typed native spawn evidence", wrong_handle["detail"])
+        self._write_json(self.operator / "parent-result.json", index)
+
+        for invalid_worker_id in ({"nested": "1"}, ["1"]):
+            altered = json.loads(json.dumps(index))
+            altered["workers"][0]["worker_id"] = invalid_worker_id
+            self._write_json(self.operator / "parent-result.json", altered)
+            malformed_id = native_trace._compact_parent_result_check(
+                self.run, self.manifest, assignments, launches, delivery_mode="patch",
+            )
+            self.assertEqual(malformed_id["status"], "FAIL")
+            self.assertIn("worker ID", malformed_id["detail"])
+        self._write_json(self.operator / "parent-result.json", index)
+
+        duplicate_launches = json.loads(json.dumps(launches))
+        duplicate_launches[1]["child_session_id"] = duplicate_launches[0]["child_session_id"]
+        duplicate_native = native_trace._compact_parent_result_check(
+            self.run, self.manifest, assignments, duplicate_launches, delivery_mode="patch",
+        )
+        self.assertEqual(duplicate_native["status"], "FAIL")
+        self.assertIn("typed native spawn evidence", duplicate_native["detail"])
+
+        indexed_start = paths["worker-1-start"]
+        with indexed_start.open("a", encoding="utf-8") as stream:
+            stream.write("tampered\n")
+        replaced_record = native_trace._compact_parent_result_check(
+            self.run, self.manifest, assignments, launches, delivery_mode="patch",
+        )
+        self.assertEqual(replaced_record["status"], "FAIL")
+        self.assertIn("hash differs", replaced_record["detail"])
+
+    def test_compact_v4_setup_marker_requires_matching_treatment_metadata(self) -> None:
+        legacy = self._audit()
+        self.assertEqual(legacy["native_status"], "PASS")
+        self.assertNotIn("compact_v4_treatment_metadata", legacy["checks"])
+
+        legacy_treatment = {
+            "treatment": "compact", "version": 3, "verification_output": "summary-v1",
+            "delivery_mode": "patch", "workers": 3, "mode": "parallel",
+        }
+        self._write_json(self.operator / "parent-result.json", {
+            "run_id": self.manifest["run_id"], "status": "PARENT_ASSERTED",
+        })
+        self.assertIsNone(native_trace._compact_v4_treatment_metadata_check(
+            self.run, self.manifest, legacy_treatment,
+        ), "unversioned historical parent results must not be promoted to the v4 gate")
+        self._write_json(self.operator / "parent-result.json", {
+            "schema": "ask-agent.parent-result-index/v1",
+        })
+        new_index_without_treatment = native_trace._compact_v4_treatment_metadata_check(
+            self.run, self.manifest, None,
+        )
+        self.assertEqual(new_index_without_treatment["status"], "FAIL")
+        (self.operator / "parent-result.json").unlink()
+
+        self._write_json(self.operator / "setup-result.json", {
+            "compact_startup_contract": "action-packet/v1",
+        })
+        missing = self._audit()
+        self.assertEqual(missing["checks"]["compact_v4_treatment_metadata"]["status"], "FAIL")
+        self.assertEqual(missing["checks"]["compact_parent_result"]["status"], "FAIL")
+
+        self._write_json(self.operator / "treatment.json", {
+            "treatment": "compact", "version": 4, "verification_output": "summary-v1",
+            "delivery_mode": "wrong", "workers": 3, "mode": "parallel",
+        })
+        mismatched = self._audit()
+        self.assertEqual(mismatched["checks"]["compact_v4_treatment_metadata"]["status"], "FAIL")
+        self.assertIn("matching compact/version/output/delivery metadata",
+                      mismatched["checks"]["compact_v4_treatment_metadata"]["detail"])
+
     def _enable_verification_summary(
         self, *, treatment: dict | None = None, report: dict | None = None,
         stdout: str | None = None, truncated: bool = False, exit_code: int = 0,
@@ -878,6 +1061,9 @@ print(out.read_text())'''
             (None, {"treatment": "compact", "version": 2, "delivery_mode": "patch"}, "patch", "PASS"),
             ("commits", {"treatment": "compact", "version": 3, "delivery_mode": "commits"}, "commits", "PASS"),
             ("ephemeral", {"treatment": "compact", "version": 3, "delivery_mode": "ephemeral"}, "ephemeral", "PASS"),
+            ("patch", {"treatment": "compact", "version": 4, "delivery_mode": "patch"}, "patch", "PASS"),
+            ("commits", {"treatment": "compact", "version": 4, "delivery_mode": "commits"}, "commits", "PASS"),
+            ("ephemeral", {"treatment": "compact", "version": 4, "delivery_mode": "ephemeral"}, "ephemeral", "PASS"),
             (None, {"treatment": "compact", "version": 1}, "patch-legacy", "LEGACY"),
         )
         for manifest_mode, treatment, expected_mode, expected_status in valid:
@@ -893,6 +1079,8 @@ print(out.read_text())'''
              "manifest and treatment mode mismatch"),
             ({}, {"treatment": "compact", "version": 3, "delivery_mode": "commits"},
              "v3 requires explicit manifest delivery mode"),
+            ({"delivery_mode": "patch"}, {"treatment": "compact", "version": 3, "delivery_mode": "patch"},
+             "v3 is reserved for explicit commits or ephemeral modes"),
         )
         for manifest, treatment, _ in invalid:
             with self.subTest(manifest=manifest, treatment=treatment):

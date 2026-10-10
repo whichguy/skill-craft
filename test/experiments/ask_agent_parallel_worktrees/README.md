@@ -17,12 +17,13 @@ flowchart TB
     G[Integrate only verified patch or commit contributions]
     H[Retain ephemeral scratch; record NO_INTEGRATION]
     I[Require the complete fixture summary]
+    R[Script writes evidence index and asserted native handles]
     J[Controller audits native and post-exit evidence]
     K[Retain result and recovery evidence]
     A --> B --> C --> D --> E --> F
     F -->|patch or commits| G --> I
     F -->|ephemeral| H --> I
-    I --> J --> K
+    I --> R --> J --> K
 ```
 
 The external controller starts only the parent. Ask Agent and Grok's native
@@ -256,3 +257,34 @@ The report preserves failed, unknown and incomplete verdicts, links their raw
 records, and separates before-dispatch, worker/collection, and post-collection
 time. Generated HTML and JSON are analysis artifacts; neither substitutes for
 the frozen native and filesystem evidence.
+
+## Prepared tasks and final result records
+
+Compact treatment version 4 exercises `ask_agent_task.py prepare --packet`.
+The binding stays in an external file; native launch receives a short bootstrap,
+assigned directory, delivery header and expected binding digest. The existing
+worker start wrapper returns the production action packet plus the fixture's
+explicit test and finish instructions. The worker still makes the source edit,
+runs its task check and, for commit delivery, executes the separate scoped Git
+commands. No script implements the worker's task or starts another model.
+
+After native collection, returned-state checks, integration or findings-only
+finalization, and a passing `fixture.py verify --summary`, the parent invokes
+`operations.py write-parent-result`. It supplies one `--worker-handle ID=HANDLE`
+per actual worker and the `--verification-sha256` and `--integration-sha256`
+values from the preceding tool results (`report_sha256` and `result_sha256`).
+This single command replaces manual result-schema discovery and JSON writing.
+The parent then returns without further success-path discovery calls.
+
+The exclusive `parent-result.json` is an audit index, not a native-success
+certificate. Its handles remain `parent_asserted`. It pins the run, bindings
+and evidence contents; the independent auditor compares them with actual typed
+native events and the controller's archived parent verification. Missing or
+duplicate handles, failed or foreign records, changed hashes, symlinked evidence
+and overwrite attempts fail. Legacy compact versions retain their distinct
+contracts; do not apply a v4 qualification claim to an older captured run.
+
+Use the existing offline facade to exercise these controls. Compare payload
+bytes for identical prepared tasks separately from elapsed time. A smaller
+bootstrap does not by itself establish fewer tokens, faster native execution,
+provider queue latency or a production speedup.

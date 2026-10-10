@@ -79,19 +79,20 @@ class PromptContract(unittest.TestCase):
         self.assertIn('scripts and independent auditor validate frozen run metadata',compact)
         self.assertIn('do not read the full manifest',compact)
         self.assertNotIn("every worker's native handle, task, actual root, branch",compact)
-        self.assertIn("small audit index with overall status",compact)
-        self.assertIn("ID, status, native handle, binding digest, and exact retained evidence record references",compact)
+        self.assertIn("small audit index",compact)
+        self.assertIn("worker IDs, parent-asserted native handles, binding digests, and exact retained evidence references with hashes",compact)
         self.assertIn('Keep full raw records in their existing files',compact)
         self.assertIn('SUCCESS TERMINAL BOUNDARY',compact)
-        self.assertIn('That successful fixture verification result is the compact parent\'s final gate',compact)
+        self.assertIn('The successful fixture verification summary is the compact parent\'s final gate',compact)
+        self.assertIn('Run compact v4 of the Ask Agent interface experiment',compact)
         self.assertTrue('exit code 0' in compact or 'exit status 0' in compact, compact)
         self.assertIn('untruncated stdout', compact)
         self.assertIn('only one JSON object', compact)
         self.assertIn('passed true, errors empty, positive check_count, and empty failed_checks', compact)
         self.assertIn('nonempty run_id', compact)
-        self.assertIn('Use only outputs already received',compact)
-        self.assertIn('Then return immediately',compact)
-        self.assertIn('the only remaining actions are that one parent-result write and the native final response',compact)
+        self.assertIn('with the exact values already received',compact)
+        self.assertIn('Then return the native final response immediately',compact)
+        self.assertIn('the only remaining actions are that one parent-result writer call and the native final response',compact)
         self.assertIn('Make no other successful-path read, grep, list, verification, trace, usage, or performance calls',compact)
         self.assertIn('do not reopen retained records or search for external native audits, run records, or campaign metrics',compact)
         self.assertIn('external controller performs post-exit native-history, usage, and performance analysis after the parent exits',compact)
@@ -157,7 +158,7 @@ class PromptContract(unittest.TestCase):
 
     def test_treatment_metadata_versions_summary_and_legacy_outputs(self):
         expected = {
-            'compact': (2, 'summary-v1'),
+            'compact': (4, 'summary-v1'),
             'baseline': (5, 'summary-v1'),
             'batched': (5, 'summary-v1'),
             'packet': (4, 'legacy'),
@@ -178,8 +179,8 @@ class PromptContract(unittest.TestCase):
                 self.assertEqual(metadata['version'], version)
                 self.assertEqual(metadata['verification_output'], output_mode)
 
-    def test_new_compact_delivery_modes_freeze_v3_summary_metadata(self):
-        for delivery_mode in ('commits', 'ephemeral'):
+    def test_compact_v4_freezes_one_versioned_summary_contract_for_every_delivery_mode(self):
+        for delivery_mode in ('patch', 'commits', 'ephemeral'):
             with self.subTest(delivery_mode=delivery_mode), tempfile.TemporaryDirectory() as temporary:
                 run=Path(temporary)
                 operator=run/'operator'
@@ -193,7 +194,7 @@ class PromptContract(unittest.TestCase):
                         '--delivery-mode',delivery_mode,
                     ]),0)
                 metadata=json.loads((operator/'treatment.json').read_text())
-                self.assertEqual(metadata['version'],3)
+                self.assertEqual(metadata['version'],4)
                 self.assertEqual(metadata['verification_output'],'summary-v1')
                 self.assertEqual(metadata['delivery_mode'],delivery_mode)
 

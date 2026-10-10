@@ -102,17 +102,43 @@ rejects glob characters (`*`, `?`, `[` and `]`) before
 setup: it does not inherit the older helper's glob matching across directory
 separators. Use `src/` for a recursive directory boundary.
 
-On `READY_TO_LAUNCH`, retain `binding` in the parent's existing coordination
-record and pass `launch.prompt` inline to a native worker. `launch.cwd` is the
-verified workspace. These are host-neutral hints, **not a native tool's argument
-schema**. Select the native agent and map them to the live host API, preserving
-the complete assignment and fresh context. Retain the actual native handle.
-Never shell-launch a child model. Read a failed preparation before dispatching.
+On `READY_TO_LAUNCH`, pass `launch.prompt` inline to the native launch tool and
+use `launch.cwd` as its verified workspace. These are host-neutral hints,
+**not a native tool's argument schema**. Retain the actual native handle. Never
+shell-launch a child model. Read a failed preparation before dispatching.
+
+### Packet transport
+
+When the parent and worker can read the same local paths, add
+`--packet /absolute/external/new-task.json` to `prepare`. Its existing parent
+directory must be outside the source repository, selected package and Git
+metadata. The script rejects a destination that exists, is symlinked, or resolves
+inside a protected tree; it does not overwrite a previous attempt. The packet
+contains the exact binding. Packet output contains `packet.path`,
+`packet.binding_sha256`, `packet.sha256` (the file bytes), the short launch
+assignment, and `commands` entries for `worker-start`, `worker-finish`, and
+`verify-return`, each with `argv` and `cwd`. It omits the bulky inline `binding`.
+The script creates the packet; the user does not need to prepare a transport file.
+
+Each emitted command pins `--expected-binding-sha256`. Use these command fields
+as supplied; do not rewrite the prompt to discover a command. A worker's first
+`worker-start` call both validates its actual context and returns the task,
+mode-specific rules and exact finish command in `action_packet`. This replaces
+repeated briefing mechanics without adding a tool call or delegating a second
+coordinator. File access requires a shared filesystem; there is no assumed
+native `prompt_file` feature or automatic file upload.
+
+Without `--packet`, preparation keeps its original read-only current-workspace
+behavior and emits `binding` plus the complete inline assignment. Retain that
+binding in the parent's coordination record. With packet transport, the only
+additional preparation write is the explicitly selected external packet.
+Worktree preparation still creates its managed workspace under either transport.
+
 `payload_sizes` reports binding, prompt and JSON byte counts. Output is never
-silently truncated by the wrapper. If the host truncates a tool result, stop
-before dispatch; verify the full assignment can be transferred. The advisory
-20 KB warning concerns Grok's documented default Bash output limit, not a native
-prompt limit or a host-neutral maximum. See the
+silently truncated. If the host truncates a result, stop before dispatch and
+verify the complete assignment can be transferred. The advisory 20 KB warning
+concerns Grok's default Bash output limit, not a native prompt limit or a
+host-neutral maximum. See the
 [Grok settings reference](https://docs.x.ai/build/settings/reference).
 
 For an isolated edit, set `workspace` to `worktree`, provide
@@ -171,10 +197,14 @@ another preparation.
 
 ## Worker
 
-Each worker receives the objective, scope, expected result, bound directory,
-applicable context, binding JSON and exact start/finish instructions. It does
-not need to reconstruct the snapshot or patch procedure. Supply that binding
-as stdin to the selected task script:
+Each worker receives the objective, bound directory and delivery header in its
+native assignment. In packet mode it runs the emitted, digest-pinned start
+command before task work, then reads `action_packet`: the full task, scope,
+learnings, authority, delivery/delegation rules and exact `finish_command`.
+It still follows applicable host and repository instructions. The start script
+does not run task commands, tests or commits for the model.
+
+Legacy inline transport supplies the full binding on stdin in separate calls:
 
 ```text
 python3 /selected/ask-agent/scripts/ask_agent_task.py worker-start --binding -
@@ -207,6 +237,11 @@ edit worker. Where native delegates are permitted, they inherit the workspace,
 scope and handoff constraints and must be collected before finish/return.
 Report-only workers and their delegates make no filesystem changes.
 
+Every generated packet command compares its externally supplied expected digest
+before package or workspace checks. A different internally valid binding is
+therefore rejected when it does not match the parent pin. Legacy callers may
+omit the new argument; that older self-consistency check is not a parent pin.
+
 Bindings are trusted parent coordination data, not signed authorization,
 restart-safe job state, or a security boundary. Package checks detect a changed
 selected implementation; they do not authenticate a native agent or prove it
@@ -215,7 +250,8 @@ followed its assignment.
 ## Acceptance
 
 After collecting the actual terminal native result, the parent runs
-`verify-return --binding -` with the same binding. Unlike worker start/finish,
+the emitted `commands["verify-return"]` for packet transport, or
+`verify-return --binding -` with the same inline binding. Unlike worker start/finish,
 this command may run outside the worker directory. It obtains fresh filesystem
 evidence and rejects scope drift. It does not learn agent lifecycle state from
 a result file or a caller-supplied success flag.
@@ -258,6 +294,10 @@ from the selected skill package. Read the JSON status as well as the process
 exit. Do not replace a failed operation with an unverified route
 or silently retry preparation. Retained evidence is useful precisely because a
 failed or incomplete operation stays distinguishable from a successful one.
+Packet destination preflight happens before worktree preparation. If a later
+packet write fails, any already-prepared worktree and receipt remain retained;
+the error cites them for recovery. Do not treat that error as proof that no
+workspace was created.
 
 This is a source-level compact route. Legacy direct-helper and orchestrated
 callers retain their existing contracts; this interface does not establish a

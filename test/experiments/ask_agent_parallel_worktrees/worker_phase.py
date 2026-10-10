@@ -347,7 +347,7 @@ def _check_probe(call, context, phase):
     return value
 
 
-def _compact_binding(context, worker_id, supplied_path, record_path, phase):
+def _compact_binding(context, worker_id, supplied_path, expected_binding_sha256, record_path, phase):
     setup = context["setup"]
     worker = context["worker"]
     evidence = [record_path, context["manifest"]["paths"]["package"]]
@@ -357,12 +357,38 @@ def _compact_binding(context, worker_id, supplied_path, record_path, phase):
              {"treatment": setup.get("treatment"), "binding_path": supplied_path}, evidence, phase)
     expected_path = Path(str(worker.get("compact_binding_path", ""))).resolve(strict=True)
     supplied = Path(supplied_path).expanduser()
+    _require(not supplied.is_symlink(), "COMPACT_BINDING_INVALID",
+             "Worker phase rejects symlinked compact bindings", {"symlink": False},
+             {"symlink": supplied.is_symlink()}, [*evidence, supplied], phase)
     path = supplied.resolve(strict=True)
     _require(path == expected_path and path.is_file() and not supplied.is_symlink(),
              "COMPACT_BINDING_INVALID", "Worker phase must use its exact retained binding file",
              {"binding_path": str(expected_path)}, {"binding_path": str(path), "symlink": supplied.is_symlink()},
              [*evidence, path], phase)
-    binding = _read_json(path, "COMPACT_BINDING_INVALID", [*evidence, path], phase)
+    raw = path.read_bytes()
+    packet_sha256 = hashlib.sha256(raw).hexdigest()
+    _require(packet_sha256 == worker.get("compact_packet_sha256"),
+             "COMPACT_BINDING_INVALID", "Exact compact packet bytes differ from compact setup",
+             {"packet_sha256": worker.get("compact_packet_sha256")},
+             {"packet_sha256": packet_sha256}, [*evidence, path], phase)
+    try:
+        binding = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PhaseError("COMPACT_BINDING_INVALID", f"Compact packet is not valid UTF-8 JSON: {exc}",
+                         {"json_object": True}, {"error": f"{type(exc).__name__}: {exc}"},
+                         [*evidence, path], phase=phase) from exc
+    without_digest = {key:value for key,value in binding.items() if key != "binding_sha256"}
+    canonical_digest = hashlib.sha256(json.dumps(
+        without_digest, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+    ).encode("utf-8")).hexdigest()
+    _require(isinstance(expected_binding_sha256, str)
+             and re.fullmatch(r"[0-9a-f]{64}", expected_binding_sha256) is not None
+             and binding.get("binding_sha256") == canonical_digest == expected_binding_sha256
+             and expected_binding_sha256 == worker.get("compact_binding_sha256"),
+             "COMPACT_BINDING_INVALID", "Canonical compact binding digest differs from pinned setup",
+             {"binding_sha256": worker.get("compact_binding_sha256"),
+              "expected_binding_sha256": expected_binding_sha256},
+             {"binding_sha256": canonical_digest}, [*evidence, path], phase)
     package = binding.get("package", {})
     workspace = binding.get("workspace", {})
     task = binding.get("task", {})
@@ -375,7 +401,9 @@ def _compact_binding(context, worker_id, supplied_path, record_path, phase):
     expected_task_mode = "ephemeral" if delivery_mode == "ephemeral" else "edit"
     expected_write_set = sorted([context["task"]["path"], ".experiment-local/owner.txt"]) if delivery_mode == "ephemeral" else [context["task"]["path"]]
     checks = {
-        "stored_digest_matches": binding.get("binding_sha256") == worker.get("compact_binding_sha256"),
+        "stored_digest_matches": binding.get("binding_sha256") == canonical_digest == worker.get("compact_binding_sha256"),
+        "expected_digest_matches": binding.get("binding_sha256") == expected_binding_sha256,
+        "packet_digest_matches": packet_sha256 == worker.get("compact_packet_sha256"),
         "objective_matches": task.get("objective") == context["task"]["assignment"],
         "expected_result_matches": task.get("expected_result") == expected_result,
         "task_mode_matches": task.get("mode") == expected_task_mode,
@@ -407,11 +435,12 @@ def _compact_binding(context, worker_id, supplied_path, record_path, phase):
     return path, binding
 
 
-def _run_compact_worker_command(record, context, binding_path, binding, phase):
+def _run_compact_worker_command(record, context, binding_path, binding, phase, expected_binding_sha256):
     command = "worker-start" if phase == "start" else "worker-finish"
     task_script = binding["package"]["task_script"]
     call = _run_command(record, f"compact-{command}",
-                        [sys.executable, "-B", task_script, command, "--binding", str(binding_path)],
+                        [sys.executable, "-B", task_script, command, "--binding", str(binding_path),
+                         "--expected-binding-sha256", expected_binding_sha256],
                         context["root"])
     result = _parse_json_output(call, True, [record["record_path"], call["evidence"]], phase)
     workspace = result.get("workspace_evidence", {})
@@ -481,7 +510,51 @@ def _run_compact_worker_command(record, context, binding_path, binding, phase):
     return result
 
 
-def run_phase(run, worker_id, phase, *, cwd=None, compact_binding=None):
+def _instrument_action_packet(production_packet, context, binding_path, binding, expected_binding_sha256):
+    """Add only fixture commands around the validated production action packet."""
+    worker_id = context["task"]["worker_id"]
+    root = context["root"]
+    task_script = str(Path(binding["package"]["task_script"]).resolve(strict=True))
+    expected_finish = ["python3", task_script, "worker-finish", "--binding",
+                       str(binding_path), "--expected-binding-sha256", expected_binding_sha256]
+    if (not isinstance(production_packet, dict)
+            or production_packet.get("task") != binding.get("task")
+            or not isinstance(production_packet.get("delivery_header"), str)
+            or not production_packet.get("delivery_header")
+            or not isinstance(production_packet.get("instructions"), list)
+            or not production_packet["instructions"]
+            or any(not isinstance(item, str) or not item for item in production_packet["instructions"])
+            or production_packet.get("finish_command") != {"argv": expected_finish, "cwd": str(root)}):
+        raise PhaseError("ACTION_PACKET_INVALID", "Production worker-start action packet is not exact or digest-pinned",
+                         {"task": binding.get("task"),
+                          "finish_command": {"argv": expected_finish, "cwd": str(root)},
+                          "instructions": "nonempty strings"},
+                         {"action_packet": production_packet}, [], phase="start")
+    phase_script = Path(__file__).resolve()
+    run_path = Path(context["manifest"]["paths"]["run"]).resolve()
+    wrapper_finish = {"argv": ["python3", "-B", os.path.relpath(phase_script, root), "--run",
+                                os.path.relpath(run_path, root),
+                                "--worker", worker_id, "--phase", "finish", "--compact-binding",
+                                str(binding_path), "--expected-binding-sha256", expected_binding_sha256],
+                      "cwd": str(root)}
+    packet = dict(production_packet)
+    packet["production_finish_command"] = production_packet["finish_command"]
+    packet["finish_command"] = wrapper_finish
+    packet["task_test"] = {"argv": ["python3", "-B", "checks.py", "--worker", worker_id],
+                           "cwd": str(root)}
+    packet["commit_proof"] = []
+    if context["manifest"].get("delivery_mode", "patch") == "commits":
+        packet["commit_proof"] = [
+            {"argv": ["git", "-C", str(root), "add", "--", context["task"]["path"]], "cwd": str(root)},
+            {"argv": ["git", "-C", str(root), "commit", "-m", f"Ask Agent fixture worker {worker_id}"], "cwd": str(root)},
+            {"argv": ["git", "-C", str(root), "rev-parse", "HEAD"], "cwd": str(root)},
+        ]
+    packet["binding_sha256"] = expected_binding_sha256
+    packet["packet_sha256"] = context["worker"].get("compact_packet_sha256")
+    return packet
+
+
+def run_phase(run, worker_id, phase, *, cwd=None, compact_binding=None, expected_binding_sha256=None):
     run = Path(run).expanduser().resolve()
     if phase not in {"start", "finish"}:
         raise ValueError("phase must be start or finish")
@@ -523,10 +596,12 @@ def run_phase(run, worker_id, phase, *, cwd=None, compact_binding=None):
         compact_value = None
         if compact_binding is not None or context["setup"].get("treatment") == "compact":
             compact_path, compact_value = _compact_binding(
-                context, worker_id, compact_binding, record_path, phase
+                context, worker_id, compact_binding, expected_binding_sha256, record_path, phase
             )
             record.update({"compact_binding_path": str(compact_path),
-                           "compact_binding_sha256": compact_value["binding_sha256"]})
+                           "compact_binding_sha256": compact_value["binding_sha256"],
+                           "compact_packet_sha256": context["worker"].get("compact_packet_sha256"),
+                           "expected_binding_sha256": expected_binding_sha256})
             _replace_json(record_path, record)
         helper = context["identity"]["resolved_helper"]
         receipt = str(context["receipt_path"])
@@ -534,7 +609,7 @@ def run_phase(run, worker_id, phase, *, cwd=None, compact_binding=None):
         if phase == "start":
             if compact_value is not None:
                 compact_result = _run_compact_worker_command(
-                    record, context, compact_path, compact_value, phase
+                    record, context, compact_path, compact_value, phase, expected_binding_sha256
                 )
                 record["compact_worker_result"] = compact_result
                 record["checks"]["production_worker_start_passed"] = True
@@ -568,7 +643,7 @@ def run_phase(run, worker_id, phase, *, cwd=None, compact_binding=None):
             _replace_json(record_path, record)
             if compact_value is not None:
                 compact_result = _run_compact_worker_command(
-                    record, context, compact_path, compact_value, phase
+                    record, context, compact_path, compact_value, phase, expected_binding_sha256
                 )
                 record["compact_worker_result"] = compact_result
                 record["checks"]["production_worker_finish_passed"] = True
@@ -579,6 +654,10 @@ def run_phase(run, worker_id, phase, *, cwd=None, compact_binding=None):
         probe = _check_probe(probe_call, context, phase)
         record["checks"]["fixture_probe_passed"] = True
         record["probe"] = probe
+        if phase == "start" and compact_value is not None:
+            packet = _instrument_action_packet(compact_result.get("action_packet"), context,
+                                               compact_path, compact_value, expected_binding_sha256)
+            record["action_packet"] = packet
         _replace_json(record_path, record)
         patch_path = None
         patch_sha256 = None
@@ -689,6 +768,9 @@ def run_phase(run, worker_id, phase, *, cwd=None, compact_binding=None):
         "commit_base": record.get("commit_base"),
         "contribution_commits": record.get("contribution_commits"),
         "ephemeral_audit": record.get("ephemeral_audit"),
+        "action_packet": record.get("action_packet"),
+        "compact_binding_sha256": record.get("compact_binding_sha256"),
+        "compact_packet_sha256": record.get("compact_packet_sha256"),
         "evidence": str(record_path.resolve()),
     }
 
@@ -699,10 +781,12 @@ def main(argv=None):
     parser.add_argument("--worker", required=True)
     parser.add_argument("--phase", required=True, choices=("start", "finish"))
     parser.add_argument("--compact-binding", help="exact retained production binding for compact treatment")
+    parser.add_argument("--expected-binding-sha256", help="canonical binding digest pinned by parent preparation")
     args = parser.parse_args(argv)
     run = Path(args.run).expanduser().resolve()
     try:
-        result = run_phase(run, args.worker, args.phase, compact_binding=args.compact_binding)
+        result = run_phase(run, args.worker, args.phase, compact_binding=args.compact_binding,
+                           expected_binding_sha256=args.expected_binding_sha256)
     except Exception as exc:
         if isinstance(exc, PhaseError):
             error = exc

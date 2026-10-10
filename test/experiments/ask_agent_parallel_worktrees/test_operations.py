@@ -83,6 +83,30 @@ class SetupBatchTests(unittest.TestCase):
             [],
         )
 
+    def test_parent_result_writer_rejects_missing_duplicate_worker_handles(self):
+        invalid_handles = (
+            ['1=child-1', '2=child-2'],
+            ['1=child-1', '1=child-duplicate', '3=child-3'],
+            ['1=child-1', '2=child-1', '3=child-3'],
+            ['1=child-1', '2=', '3=child-3'],
+            ['1=child-1', '2=child-2', '4=child-4'],
+        )
+        for handles in invalid_handles:
+            with self.subTest(handles=handles), self.assertRaisesRegex(
+                    fixture.FixtureError, 'PARENT_RESULT_INVALID'):
+                operations.write_parent_result(self.run, handles, 'a' * 64, 'b' * 64)
+            self.assertFalse((self.run / 'operator' / 'parent-result.json').exists())
+
+    def test_parent_result_writer_requires_lowercase_sha256_inputs(self):
+        for verification_hash, integration_hash in (
+                ('bad', 'b' * 64), ('A' * 64, 'b' * 64), ('a' * 64, 'b' * 63)):
+            with self.subTest(verification_hash=verification_hash, integration_hash=integration_hash), self.assertRaisesRegex(
+                    fixture.FixtureError, 'PARENT_RESULT_INVALID'):
+                operations.write_parent_result(
+                    self.run, ['1=child-1', '2=child-2', '3=child-3'],
+                    verification_hash, integration_hash,
+                )
+
     def test_cli_emits_contract_diagnostic_for_invalid_collection_assertion(self):
         completed=subprocess.run(
             [sys.executable,'-B',str(Path(operations.__file__)),'integrate-batch','--run',str(self.run)],

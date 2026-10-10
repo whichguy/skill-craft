@@ -61,4 +61,55 @@ class ControllerControls(unittest.TestCase):
         with self.assertRaises(ValueError):controller.verify_after_exit(self.run)
         self.assertFalse((self.op/'post-exit-attempt').exists())
 
+    def test_preexisting_parent_archive_is_preserved_and_rejected_before_attempt(self):
+        self.write('verification.json',{'passed':True})
+        archive=self.op/'parent-verification.json'
+        archive.write_text('foreign archive\n')
+        before=archive.read_bytes()
+        with self.assertRaisesRegex(ValueError,'Original parent-verification archive'):
+            controller.verify_after_exit(self.run)
+        self.assertEqual(archive.read_bytes(),before)
+        self.assertEqual(json.loads((self.op/'verification.json').read_text()),{'passed':True})
+        self.assertFalse((self.op/'post-exit-attempt').exists())
+
+    def test_symlinked_parent_archive_is_preserved_and_rejected(self):
+        self.write('verification.json',{'passed':True})
+        target=self.run/'foreign-report.json'
+        target.write_text('foreign report\n')
+        archive=self.op/'parent-verification.json'
+        archive.symlink_to(target)
+        with self.assertRaisesRegex(ValueError,'Original parent-verification archive'):
+            controller.verify_after_exit(self.run)
+        self.assertTrue(archive.is_symlink())
+        self.assertEqual(target.read_text(),'foreign report\n')
+        self.assertEqual(json.loads((self.op/'verification.json').read_text()),{'passed':True})
+        self.assertFalse((self.op/'post-exit-attempt').exists())
+
+    def test_compact_v4_launch_requires_matching_treatment_metadata_before_reservation(self):
+        (self.op/'launch.json').unlink()
+        (self.op/'parent-prompt.txt').write_text(
+            'Run compact v4 of the Ask Agent interface experiment\n', encoding='utf-8',
+        )
+        (self.run/'manifest.json').write_text(json.dumps({
+            'mode': 'parallel', 'workers': 3, 'delivery_mode': 'patch',
+        }), encoding='utf-8')
+
+        with self.assertRaisesRegex(ValueError, 'requires matching treatment metadata') as missing:
+            controller.launch(self.run)
+        self.assertIn(str(self.op/'treatment.json'), str(missing.exception))
+        self.assertIn("'version': 4", str(missing.exception))
+        self.assertIn("'delivery_mode': 'patch'", str(missing.exception))
+        self.assertIn("'workers': 3", str(missing.exception))
+        self.assertIn("'mode': 'parallel'", str(missing.exception))
+        self.assertIn('version-specific native gates', str(missing.exception))
+        self.assertFalse((self.op/'launch-attempt').exists())
+
+        self.write('treatment.json', {
+            'treatment': 'compact', 'version': 3, 'verification_output': 'summary-v1',
+            'delivery_mode': 'patch', 'workers': 3, 'mode': 'parallel',
+        })
+        with self.assertRaisesRegex(ValueError, 'does not match the frozen manifest'):
+            controller.launch(self.run)
+        self.assertFalse((self.op/'launch-attempt').exists())
+
 if __name__=='__main__':unittest.main()

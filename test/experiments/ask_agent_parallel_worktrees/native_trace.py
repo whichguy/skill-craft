@@ -15,6 +15,7 @@ from datetime import datetime
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
 import shlex
@@ -984,7 +985,7 @@ def _fixture_verification_output_mode(treatment: dict[str, Any]) -> tuple[str, s
     version = treatment.get("version")
     output = treatment.get("verification_output")
     if output == "summary-v1":
-        declared = ((name == "compact" and type(version) is int and version in {2, 3})
+        declared = ((name == "compact" and type(version) is int and version in {2, 3, 4})
                     or (name in {"baseline", "batched"} and type(version) is int and version == 5))
         if declared:
             return "summary-v1", "treatment requires complete fixture verification summary output"
@@ -1033,6 +1034,14 @@ def _compact_delivery_mode(manifest: dict[str, Any], treatment: dict[str, Any]
                 "FAIL", "compact v3 requires matching explicit commits or ephemeral delivery_mode in manifest and treatment"
             )
         return treatment_mode, _check("PASS", f"compact v3 binds {treatment_mode} delivery in manifest and treatment")
+    if version == 4:
+        if (manifest_mode not in {"patch", "commits", "ephemeral"}
+                or treatment_mode not in {"patch", "commits", "ephemeral"}
+                or manifest_mode != treatment_mode):
+            return None, _check(
+                "FAIL", "compact v4 requires matching explicit patch, commits, or ephemeral delivery_mode in manifest and treatment"
+            )
+        return treatment_mode, _check("PASS", f"compact v4 binds {treatment_mode} delivery in manifest and treatment")
     return None, _check("FAIL", f"unsupported compact treatment version: {version!r}")
 
 
@@ -1307,8 +1316,11 @@ def _compact_dispatch_check(run: Path, assignments: list[dict[str, Any]],
         return _check("INCOMPLETE", f"compact dispatch records are unavailable: {exc}",
                       *[_locator(path) for path in evidence_paths]), {"errors": [str(exc)]}
     expected_ids = [str(item.get("worker_id")) for item in assignments if isinstance(item, dict)]
+    packet_v4 = treatment.get("version") == 4
     if treatment.get("treatment") != "compact" or setup.get("treatment") != "compact":
         errors.append("treatment and setup records must both identify compact mode")
+    if packet_v4 and setup.get("compact_startup_contract") != "action-packet/v1":
+        errors.append("compact v4 setup does not identify the action-packet startup contract")
     if index.get("schema") != "ask-agent.compact-dispatch/v1" or index.get("run_id") != manifest.get("run_id"):
         errors.append("compact dispatch index schema or run id does not bind to this manifest")
     rows = index.get("assignments")
@@ -1337,6 +1349,28 @@ def _compact_dispatch_check(run: Path, assignments: list[dict[str, Any]],
             errors.append(f"worker {worker} assignment path or SHA-256 does not match the index")
         args = entry.get("native_arguments") if isinstance(entry, dict) else None
         worker_setup = setup_workers.get(worker)
+        if packet_v4 and worker_setup is not None:
+            binding_path = Path(str(worker_setup.get("compact_binding_path", "")))
+            try:
+                binding_bytes = binding_path.read_bytes()
+                binding_value = json.loads(binding_bytes.decode("utf-8"))
+                packet_hash = hashlib.sha256(binding_bytes).hexdigest()
+                canonical = hashlib.sha256(json.dumps(
+                    {key:value for key,value in binding_value.items() if key!="binding_sha256"},
+                    sort_keys=True,separators=(",",":"),ensure_ascii=True).encode("utf-8")).hexdigest()
+                prepare_path = Path(str(worker_setup.get("compact_prepare_result_path", "")))
+                prepare_result = _read_json(prepare_path, f"worker {worker} compact prepare result")
+                packet = prepare_result.get("packet")
+                if (binding_path.is_symlink() or prepare_path.is_symlink()
+                        or packet_hash != worker_setup.get("compact_packet_sha256")
+                        or canonical != worker_setup.get("compact_binding_sha256")
+                        or binding_value.get("binding_sha256") != canonical
+                        or not isinstance(packet, dict) or packet.get("sha256") != packet_hash
+                        or packet.get("binding_sha256") != canonical
+                        or packet.get("path") != str(binding_path.resolve())):
+                    errors.append(f"worker {worker} exact binding packet or digest differs from setup")
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError, TraceError) as exc:
+                errors.append(f"worker {worker} exact binding packet is unavailable: {exc}")
         if (not isinstance(args, dict) or set(args) != {"description", "prompt", "cwd", "background"}
                 or type(args.get("description")) is not str or type(args.get("prompt")) is not str
                 or type(args.get("cwd")) is not str or args.get("background") is not True
@@ -1444,6 +1478,7 @@ def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 def _compact_child_invocation(command: str, run: Path, worker: str, phase: str,
                               cwd: str, binding_path: str, *,
+                              expected_binding_sha256: str | None = None,
                               launch_cwd_verified: bool = False) -> dict[str, bool] | None:
     try:
         tokens = shlex.split(command)
@@ -1481,7 +1516,8 @@ def _compact_child_invocation(command: str, run: Path, worker: str, phase: str,
         command_tokens = commands[0]
     else:
         return None
-    if (len(command_tokens) != 12
+    packet_v4 = expected_binding_sha256 is not None
+    if (len(command_tokens) != (14 if packet_v4 else 12)
             or command_tokens[:3] != ["PYTHONDONTWRITEBYTECODE=1", "python3", "-B"]):
         return None
     script_positions = [index for index, token in enumerate(command_tokens)
@@ -1497,9 +1533,11 @@ def _compact_child_invocation(command: str, run: Path, worker: str, phase: str,
     if script_path.resolve() != (run / "operator" / "worker_phase.py").resolve():
         return None
     argv = command_tokens[script_index + 1:]
-    if (len(argv) != 8 or argv[0] != "--run" or argv[2] != "--worker"
+    if (len(argv) != (10 if packet_v4 else 8) or argv[0] != "--run" or argv[2] != "--worker"
             or argv[3] != worker or argv[4] != "--phase" or argv[5] != phase
             or argv[6] != "--compact-binding"):
+        return None
+    if packet_v4 and (argv[8] != "--expected-binding-sha256" or argv[9] != expected_binding_sha256):
         return None
     run_value = Path(argv[1]).expanduser()
     if not run_value.is_absolute():
@@ -1705,6 +1743,7 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
     except (OSError, TraceError) as exc:
         return _check("INCOMPLETE", f"compact setup is unavailable: {exc}", _locator(setup_path))
     setup_workers = {item.get("worker_id"): item for item in setup.get("workers", []) if isinstance(item, dict)}
+    packet_v4 = setup.get("compact_startup_contract") == "action-packet/v1"
     launch_by_worker = {str(item.get("worker_id")): item for item in launches if item.get("worker_id") is not None}
     details: list[dict[str, Any]] = []
     for task in assignments:
@@ -1750,6 +1789,7 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
             for item in child_calls:
                 invocation = _compact_child_invocation(
                     item["command"], run, worker, phase, cwd, binding_path,
+                    expected_binding_sha256=binding_sha if packet_v4 else None,
                     launch_cwd_verified=(native_cwd_probe_passed and launch.get("cwd") == cwd),
                 )
                 if invocation is not None:
@@ -1798,6 +1838,10 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                         and result.get("evidence") == str((run / "operator" / "worker-phases" / f"worker-{worker}-{phase}" / "attempt.json").resolve())
                         and isinstance(result.get("checks"), dict)
                         and all(result["checks"].get(name) is True for name in wrapper_checks)
+                        and (not packet_v4 or (
+                            result.get("compact_binding_sha256") == binding_sha
+                            and result.get("compact_packet_sha256") == setup_worker.get("compact_packet_sha256")
+                        ))
                     )
                     if native_result_valid and phase == "finish" and delivery_mode == "commits":
                         setup_snapshot = setup_worker.get("snapshot") if isinstance(setup_worker, dict) else None
@@ -1844,6 +1888,8 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                     expected_argv = [sys.executable, "-B", str(task_script.resolve()),
                                      "worker-start" if phase == "start" else "worker-finish",
                                      "--binding", str(Path(binding_path).resolve())]
+                    if packet_v4:
+                        expected_argv += ["--expected-binding-sha256", binding_sha]
                     try:
                         raw_result = json.loads(call_record.get("stdout", ""))
                     except (TypeError, json.JSONDecodeError):
@@ -1862,6 +1908,10 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                         and attempt.get("phase") == phase and attempt.get("root") == cwd
                         and attempt.get("compact_binding_path") == str(Path(binding_path).resolve())
                         and attempt.get("compact_binding_sha256") == binding_sha
+                        and (not packet_v4 or (
+                            attempt.get("expected_binding_sha256") == binding_sha
+                            and attempt.get("compact_packet_sha256") == setup_worker.get("compact_packet_sha256")
+                        ))
                         and result.get("binding_sha256") == binding_sha
                         and result.get("status") == ("WORKER_CONTEXT_READY" if phase == "start" else "READY_FOR_PARENT_ACCEPTANCE")
                         and (phase == "start" or result.get("command") == "worker-finish")
@@ -1870,6 +1920,43 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                         command_valid = (common_command_valid and inspection.get("status") == "prepared"
                                          and inspection.get("worktree") == cwd
                                          and inspection.get("receipt") == setup_worker.get("receipt"))
+                        if command_valid and packet_v4:
+                            production_packet = result.get("action_packet")
+                            harness_packet = attempt.get("action_packet") if isinstance(attempt, dict) else None
+                            binding_value = _read_json(Path(binding_path), f"worker {worker} binding")
+                            expected_packet = dict(production_packet) if isinstance(production_packet, dict) else {}
+                            production_finish = expected_packet.get("finish_command")
+                            phase_script = run / "operator" / "worker_phase.py"
+                            expected_finish = {"argv": ["python3", "-B", os.path.relpath(phase_script, cwd),
+                                                        "--run", os.path.relpath(run, cwd), "--worker", worker,
+                                                        "--phase", "finish", "--compact-binding",
+                                                        str(Path(binding_path).resolve()),
+                                                        "--expected-binding-sha256", binding_sha],
+                                               "cwd": cwd}
+                            expected_packet["production_finish_command"] = production_finish
+                            expected_packet["finish_command"] = expected_finish
+                            expected_packet["task_test"] = {"argv":["python3","-B","checks.py","--worker",worker],
+                                                             "cwd":cwd}
+                            expected_packet["commit_proof"] = (
+                                [{"argv":["git","-C",cwd,"add","--",task.get("path")],"cwd":cwd},
+                                 {"argv":["git","-C",cwd,"commit","-m",f"Ask Agent fixture worker {worker}"],"cwd":cwd},
+                                 {"argv":["git","-C",cwd,"rev-parse","HEAD"],"cwd":cwd}]
+                                if delivery_mode == "commits" else [])
+                            expected_packet["binding_sha256"] = binding_sha
+                            expected_packet["packet_sha256"] = setup_worker.get("compact_packet_sha256")
+                            task_script = Path(manifest["paths"]["package"]).resolve() / "scripts" / "ask_agent_task.py"
+                            expected_production_finish = {
+                                "argv": ["python3", str(task_script.resolve()), "worker-finish",
+                                         "--binding", str(Path(binding_path).resolve()),
+                                         "--expected-binding-sha256", binding_sha],
+                                "cwd": cwd,
+                            }
+                            command_valid = (harness_packet == expected_packet
+                                             and result.get("action_packet") == harness_packet
+                                             and production_packet.get("task") == binding_value.get("task")
+                                             and production_packet.get("finish_command") == expected_production_finish
+                                             and isinstance(production_packet.get("instructions"), list)
+                                             and all(isinstance(text,str) and text for text in production_packet["instructions"]))
                     elif delivery_mode == "ephemeral":
                         ephemeral = workspace.get("ephemeral_audit") if isinstance(workspace, dict) else None
                         changed_paths = ephemeral.get("changed_paths") if isinstance(ephemeral, dict) else None
@@ -2199,8 +2286,14 @@ def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], r
     try:
         manifest = _read_json(run / "manifest.json", "manifest")
         setup = _read_json(setup_path, "compact setup")
+        treatment_path = run / "operator" / "treatment.json"
+        if delivery_mode == "patch-legacy" and not treatment_path.exists():
+            treatment = {}
+        else:
+            treatment = _read_json(treatment_path, "compact treatment")
     except (OSError, TraceError) as exc:
         return _check("INCOMPLETE", f"compact return evidence is unavailable: {exc}", *evidence, _locator(setup_path))
+    packet_v4 = treatment.get("version") == 4
     setup_workers = {item.get("worker_id"): item for item in setup.get("workers", []) if isinstance(item, dict)}
     all_return_calls = _compact_cli_calls(root_updates, script, run, "verify-return")
     if len(all_return_calls) != len(expected_ids):
@@ -2239,6 +2332,8 @@ def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], r
         expected_return_argv = ([sys.executable, "-B", str(task_script), "verify-return", "--binding",
                                  str(Path(binding_path).resolve())]
                                 if task_script is not None and isinstance(binding_path, str) else None)
+        if packet_v4 and expected_return_argv is not None:
+            expected_return_argv += ["--expected-binding-sha256", binding_sha]
         expected_cwd = (str(Path(manifest["paths"]["caller"]).resolve())
                         if isinstance(manifest.get("paths"), dict)
                         and isinstance(manifest["paths"].get("caller"), str) else None)
@@ -2249,6 +2344,7 @@ def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], r
                 or record_path.is_symlink()
                 or record.get("status") != "PASSED" or record.get("exit_code") != 0
                 or record.get("worker_id") != worker or record.get("binding_sha256") != binding_sha
+                or (packet_v4 and record.get("run_id") != manifest.get("run_id"))
                 or record.get("evidence_path") != str(record_path.resolve())
                 or (not legacy_patch and (record.get("argv") != expected_return_argv
                     or record.get("cwd") != expected_cwd
@@ -2459,13 +2555,19 @@ def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], r
                     }
                     if _contains_key(final, forbidden):
                         issues.append("ephemeral finalization record contains forbidden integration or delivery fields")
-                if (set(value) != {"schema", "status", "delivery_mode", "worker_ids",
-                                   "result_path", "caller_snapshot_sha256"}
+                expected_summary_keys = {"schema", "status", "delivery_mode", "worker_ids",
+                                         "result_path", "caller_snapshot_sha256"}
+                if packet_v4:
+                    expected_summary_keys.add("result_sha256")
+                summary_result_sha = (hashlib.sha256(result_path.read_bytes()).hexdigest()
+                                      if result_path.is_file() and not result_path.is_symlink() else None)
+                if (set(value) != expected_summary_keys
                         or value.get("schema") != "ask-agent.integration-result/v2"
                         or value.get("status") != "NO_INTEGRATION"
                         or value.get("delivery_mode") != "ephemeral"
                         or value.get("worker_ids") != expected_ids
                         or value.get("result_path") != str(result_path.resolve())
+                        or (packet_v4 and value.get("result_sha256") != summary_result_sha)
                         or value.get("caller_snapshot_sha256") != baseline_sha):
                     issues.append("ephemeral native summary does not match its retained no-integration record")
     else:
@@ -2506,6 +2608,8 @@ def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], r
                         final = None
                         missing.append(f"compact integration record is unavailable: {exc}")
                 evidence.extend([_locator(updates_path, call["row"]["line"]), _locator(result_path)])
+                summary_result_sha = (hashlib.sha256(result_path.read_bytes()).hexdigest()
+                                      if result_path.is_file() and not result_path.is_symlink() else None)
                 expected_top = (value.get("status") == "INTEGRATED"
                                 and (legacy_patch or value.get("delivery_mode") == mode)
                                 and value.get("applied_worker_ids") == expected_ids)
@@ -2522,6 +2626,8 @@ def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], r
                         issues.append("compact integration record does not bind the exact accepted worker set and mode")
                     if not legacy_patch and value.get("result_path") != str(result_path.resolve()):
                         issues.append("compact integration summary does not name its exact retained result record")
+                    if packet_v4 and value.get("result_sha256") != summary_result_sha:
+                        issues.append("compact integration summary hash differs from its retained result record")
                     if mode == "commits":
                         expected_commit_records = []
                         setup_by_id = setup_workers
@@ -2573,6 +2679,180 @@ def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], r
         "delivery_mode": mode, "verify_return_workers": sorted(calls_by_worker),
         "verify_return_terminal_lines": terminal_by_worker,
     }
+
+
+def _compact_parent_result_check(run: Path, manifest: dict[str, Any], assignments: list[dict[str, Any]],
+                                 launches: list[dict[str, Any]], *, delivery_mode: str) -> dict[str, Any]:
+    """Check parent assertions against exact retained files and typed native spawn handles."""
+    index_path = run / "operator" / "parent-result.json"
+    setup_path = run / "operator" / "setup-result.json"
+    archive_path = run / "operator" / "parent-verification.json"
+    integration_path = run / "operator" / "integration-result.json"
+    errors: list[str] = []
+    missing: list[str] = []
+    evidence = [_locator(index_path), _locator(setup_path), _locator(archive_path), _locator(integration_path)]
+    if index_path.is_symlink():
+        return _check("FAIL", "compact parent result index is a symlink", *evidence)
+    try:
+        index = _read_json(index_path, "compact parent result index")
+        setup = _read_json(setup_path, "compact setup")
+    except (OSError, TraceError) as exc:
+        return _check("INCOMPLETE", f"compact parent result evidence is unavailable: {exc}", *evidence)
+    expected_ids = [str(item.get("worker_id")) for item in assignments if isinstance(item, dict)]
+    launch_rows = [item for item in launches if isinstance(item, dict)]
+    launch_ids = [item.get("worker_id") for item in launch_rows]
+    launch_handles = [item.get("child_session_id") for item in launch_rows]
+    launch_ids_are_strings = all(isinstance(worker, str) for worker in launch_ids)
+    if (len(launch_rows) != len(expected_ids) or launch_ids != expected_ids
+            or not launch_ids_are_strings
+            or (launch_ids_are_strings and len(set(launch_ids)) != len(launch_ids))
+            or any(not isinstance(handle, str) or not handle for handle in launch_handles)
+            or len(set(launch_handles)) != len(launch_handles)):
+        errors.append("typed native spawn evidence does not provide each unique worker and handle exactly once")
+    expected_launches = {
+        item["worker_id"]: item.get("child_session_id")
+        for item in launch_rows if isinstance(item.get("worker_id"), str)
+    }
+    if (index.get("schema") != "ask-agent.parent-result-index/v1"
+            or index.get("run_id") != manifest.get("run_id")
+            or index.get("status") != "PARENT_ASSERTED"
+            or index.get("native_lifecycle") != "parent_asserted"):
+        errors.append("parent result index schema, run ID, or lifecycle label is invalid")
+
+    def check_indexed_file(path_value: Any, digest: Any, expected_path: Path, label: str,
+                           *, require_file: bool = True) -> None:
+        if path_value != str(expected_path.resolve()):
+            errors.append(f"{label} index path does not name the exact retained file")
+            return
+        path = expected_path
+        if path.is_symlink():
+            errors.append(f"{label} retained file is a symlink")
+            return
+        if not path.is_file():
+            if require_file:
+                missing.append(f"{label} retained file is missing")
+            return
+        try:
+            resolved = path.resolve(strict=True)
+            if run.resolve() not in resolved.parents:
+                errors.append(f"{label} retained file resolves outside this run")
+                return
+            actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError as exc:
+            missing.append(f"{label} retained file cannot be read: {exc}")
+            return
+        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None or actual != digest:
+            errors.append(f"{label} retained file hash differs from parent result index")
+
+    verification = index.get("verification")
+    if (not isinstance(verification, dict)
+            or set(verification) != {"source_path", "source_sha256", "archive_path", "archive_sha256"}
+            or verification.get("source_path") != str((run / "operator" / "verification.json").resolve())
+            or verification.get("source_sha256") != verification.get("archive_sha256")):
+        errors.append("parent result verification provenance fields are malformed or inconsistent")
+    else:
+        check_indexed_file(verification.get("archive_path"), verification.get("archive_sha256"),
+                           archive_path, "parent verification archive")
+        if (archive_path.is_file() and not archive_path.is_symlink()
+                and isinstance(verification.get("archive_sha256"), str)):
+            try:
+                report = _read_json(archive_path, "archived parent verification")
+                checks = report.get("checks")
+                if (report.get("run_id") != manifest.get("run_id") or report.get("passed") is not True
+                        or report.get("errors") != [] or not isinstance(checks, dict)
+                        or not checks or any(value is not True for value in checks.values())):
+                    errors.append("archived parent verification is not the successful full report")
+            except (OSError, TraceError):
+                missing.append("archived parent verification is not readable JSON")
+    integration = index.get("integration")
+    if not isinstance(integration, dict) or set(integration) != {"path", "sha256"}:
+        errors.append("parent result integration record reference is malformed")
+    else:
+        check_indexed_file(integration.get("path"), integration.get("sha256"),
+                           integration_path, "integration result")
+        if integration_path.is_file() and not integration_path.is_symlink():
+            try:
+                final = _read_json(integration_path, "indexed integration result")
+                valid = (final.get("run_id") == manifest.get("run_id")
+                         and final.get("delivery_mode") == delivery_mode
+                         and (final.get("status") == "NO_INTEGRATION" and delivery_mode == "ephemeral"
+                              or final.get("status") == "INTEGRATED"
+                              and final.get("fixture_verification", {}).get("passed") is True
+                              and final.get("applied_worker_ids") == expected_ids))
+                if not valid:
+                    errors.append("indexed integration result is not a successful matching run")
+            except (OSError, TraceError):
+                missing.append("indexed integration result is not readable JSON")
+
+    rows = index.get("workers")
+    row_ids = [item.get("worker_id") for item in rows if isinstance(item, dict)] if isinstance(rows, list) else []
+    row_ids_are_strings = all(isinstance(worker, str) for worker in row_ids)
+    if not row_ids_are_strings or row_ids != expected_ids:
+        errors.append("parent result worker rows do not cover manifest IDs exactly once in order")
+    if row_ids_are_strings and len(set(row_ids)) != len(row_ids):
+        errors.append("parent result contains duplicate worker IDs")
+    handles = [item.get("native_handle") for item in rows if isinstance(item, dict)] if isinstance(rows, list) else []
+    if (len(handles) != len(expected_ids) or any(not isinstance(handle, str) or not handle for handle in handles)
+            or len(set(handles)) != len(handles)):
+        errors.append("parent result native handles are missing or duplicated")
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict):
+            errors.append("parent result contains a non-object worker row")
+            continue
+        worker = row.get("worker_id")
+        if not isinstance(worker, str):
+            errors.append("parent result contains a worker ID that is not a string")
+            continue
+        if (row.get("status") != "PARENT_ASSERTED" or row.get("native_lifecycle") != "parent_asserted"
+                or row.get("native_handle") != expected_launches.get(worker)):
+            errors.append(f"worker {worker} parent handle/status does not match typed native spawn evidence")
+        setup_worker = next((item for item in setup.get("workers", [])
+                             if isinstance(item, dict) and item.get("worker_id") == worker), None)
+        binding_sha = setup_worker.get("compact_binding_sha256") if isinstance(setup_worker, dict) else None
+        if (not isinstance(setup_worker, dict) or row.get("binding_sha256") != binding_sha
+                or row.get("packet_sha256") != setup_worker.get("compact_packet_sha256")):
+            errors.append(f"worker {worker} parent result binding does not match compact setup")
+        refs = row.get("records")
+        if not isinstance(refs, dict) or set(refs) != {"start", "finish", "verify_return"}:
+            errors.append(f"worker {worker} evidence references are incomplete")
+            continue
+        for phase in ("start", "finish"):
+            ref = refs.get(phase)
+            expected_path = run / "operator" / "worker-phases" / f"worker-{worker}-{phase}" / "attempt.json"
+            if not isinstance(ref, dict) or set(ref) != {"path", "sha256"}:
+                errors.append(f"worker {worker} {phase} evidence reference is malformed")
+                continue
+            check_indexed_file(ref.get("path"), ref.get("sha256"), expected_path,
+                               f"worker {worker} {phase}")
+            if expected_path.is_file() and not expected_path.is_symlink():
+                try:
+                    phase_record = _read_json(expected_path, f"worker {worker} {phase} record")
+                    if (phase_record.get("run_id") != manifest.get("run_id")
+                            or phase_record.get("worker_id") != worker or phase_record.get("phase") != phase
+                            or phase_record.get("status") != "PASSED"
+                            or phase_record.get("compact_binding_sha256") != binding_sha):
+                        errors.append(f"worker {worker} {phase} indexed record has foreign identity or failed status")
+                except (OSError, TraceError):
+                    missing.append(f"worker {worker} {phase} record is not readable JSON")
+        ref = refs.get("verify_return")
+        expected_path = run / "operator" / "compact-returns" / f"worker-{worker}.json"
+        if not isinstance(ref, dict) or set(ref) != {"path", "sha256"}:
+            errors.append(f"worker {worker} verify-return evidence reference is malformed")
+        else:
+            check_indexed_file(ref.get("path"), ref.get("sha256"), expected_path,
+                               f"worker {worker} verify-return")
+            if expected_path.is_file() and not expected_path.is_symlink():
+                try:
+                    record = _read_json(expected_path, f"worker {worker} verify-return record")
+                    if (record.get("run_id") != manifest.get("run_id")
+                            or record.get("worker_id") != worker or record.get("phase") != "verify-return"
+                            or record.get("status") != "PASSED" or record.get("binding_sha256") != binding_sha):
+                        errors.append(f"worker {worker} verify-return record has foreign identity or failed status")
+                except (OSError, TraceError):
+                    missing.append(f"worker {worker} verify-return record is not readable JSON")
+    status = "FAIL" if errors else "INCOMPLETE" if missing else "PASS"
+    detail = "; ".join(errors or missing) if errors or missing else "parent assertion index matches exact retained hashes and typed native spawn handles"
+    return _check(status, detail, *evidence)
 
 
 def _safe_parent_calculation(command: str, run_root: Path, caller_root: Path) -> bool:
@@ -2757,6 +3037,65 @@ def _parent_source_writes_before_collection(tool_calls: list[dict[str, Any]],
     if not process_finished:
         return _check("INCOMPLETE", "no early source write is visible, but the live parent could still act", _locator(updates_path))
     return _check("PASS", "no typed parent source write preceded terminal collection of every child", _locator(updates_path))
+
+
+def _compact_v4_treatment_metadata_check(run: Path, manifest: dict[str, Any],
+                                         treatment: Any) -> dict[str, Any] | None:
+    """Require frozen v4 metadata whenever retained setup or result evidence declares v4."""
+    operator = run / "operator"
+    treatment_path = operator / "treatment.json"
+    setup_path = operator / "setup-result.json"
+    parent_result_path = operator / "parent-result.json"
+    prompt_path = operator / "parent-prompt.txt"
+    marker = False
+    if setup_path.is_file() and not setup_path.is_symlink():
+        try:
+            setup = _read_json(setup_path, "compact setup")
+        except (OSError, TraceError):
+            setup = None
+        marker = marker or (isinstance(setup, dict)
+                            and setup.get("compact_startup_contract") == "action-packet/v1")
+    if parent_result_path.is_file() and not parent_result_path.is_symlink():
+        try:
+            parent_result = _read_json(parent_result_path, "parent result index")
+        except (OSError, TraceError):
+            parent_result = None
+        marker = marker or (isinstance(parent_result, dict)
+                            and parent_result.get("schema") == "ask-agent.parent-result-index/v1")
+    if prompt_path.is_file() and not prompt_path.is_symlink():
+        try:
+            prompt = prompt_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            prompt = ""
+        marker = marker or prompt.startswith("Run compact v4 of the Ask Agent interface experiment")
+    marker = marker or (isinstance(treatment, dict)
+                        and treatment.get("treatment") == "compact"
+                        and treatment.get("version") == 4)
+    if not marker:
+        return None
+
+    evidence = [_locator(path) for path in
+                (treatment_path, setup_path, parent_result_path, prompt_path)]
+    if treatment_path.is_symlink():
+        return _check("FAIL", "compact v4 treatment metadata must be a regular retained file", *evidence)
+    if not treatment_path.is_file():
+        status = "FAIL" if (operator / "process-result.json").is_file() else "INCOMPLETE"
+        return _check(status, "compact v4 setup or parent-result evidence requires treatment.json", *evidence)
+    if not isinstance(treatment, dict):
+        return _check("FAIL", "compact v4 treatment metadata is not a JSON object", *evidence)
+    expected_mode = manifest.get("delivery_mode", "patch")
+    matches = (
+        treatment.get("treatment") == "compact"
+        and type(treatment.get("version")) is int and treatment.get("version") == 4
+        and treatment.get("verification_output") == "summary-v1"
+        and treatment.get("delivery_mode") == expected_mode
+        and treatment.get("workers") == manifest.get("workers")
+        and treatment.get("mode") == manifest.get("mode")
+    )
+    if not matches:
+        return _check("FAIL", "compact v4 evidence does not have matching compact/version/output/delivery metadata",
+                      *evidence)
+    return _check("PASS", "compact v4 setup/result evidence has matching frozen treatment metadata", *evidence)
 
 
 def _filesystem_result_context(run: Path) -> dict[str, Any]:
@@ -3000,8 +3339,32 @@ def audit_run(run_path: str | Path, *, session_root: str | Path | None = None) -
         checks["child_transcript_retention"] = child_transcript_check
         evidence["native_evidence_retention"]["children"] = child_transcripts
         treatment_path = operator / "treatment.json"
+        treatment_record = None
+        treatment_read_error = None
         if treatment_path.is_file():
-            treatment_record = _read_json(treatment_path, "treatment record")
+            try:
+                treatment_record = _read_json(treatment_path, "treatment record")
+            except (OSError, TraceError) as exc:
+                treatment_read_error = exc
+        compact_v4_treatment_check = _compact_v4_treatment_metadata_check(
+            run, manifest, treatment_record,
+        )
+        if compact_v4_treatment_check is not None:
+            checks["compact_v4_treatment_metadata"] = compact_v4_treatment_check
+            if compact_v4_treatment_check["status"] != "PASS":
+                checks["compact_parent_result"] = _check(
+                    compact_v4_treatment_check["status"],
+                    "compact parent-result gate cannot pass without matching v4 treatment metadata",
+                    *compact_v4_treatment_check["evidence"],
+                )
+        if treatment_read_error is not None and compact_v4_treatment_check is None:
+            raise treatment_read_error
+        if (treatment_path.is_file() and not isinstance(treatment_record, dict)
+                and compact_v4_treatment_check is None):
+            raise TraceError("treatment record must be a JSON object")
+        if (isinstance(treatment_record, dict)
+                and (compact_v4_treatment_check is None
+                     or compact_v4_treatment_check["status"] == "PASS")):
             checks["fixture_verification_summary"] = _fixture_verification_summary_check(
                 run, manifest, launch, treatment_record, root_updates, updates_path
             )
@@ -3018,6 +3381,10 @@ def audit_run(run_path: str | Path, *, session_root: str | Path | None = None) -
                     run, assignments, root_updates, collect_calls, updates_path,
                     delivery_mode=effective_delivery_mode, launches=launches,
                 )
+                if treatment_record.get("version") == 4:
+                    checks["compact_parent_result"] = _compact_parent_result_check(
+                        run, manifest, assignments, launches, delivery_mode=effective_delivery_mode,
+                    )
         for row in finished:
             update = row["update"]
             child = update.get("subagent_id")
@@ -3088,7 +3455,7 @@ def audit_run(run_path: str | Path, *, session_root: str | Path | None = None) -
             checks["compact_worker_phases"] = _compact_worker_phase_check(
                 run, assignments, launches, child_transcripts, updates_path,
                 native_cwd_probe_passed=checks["cwd_probe_binding"]["status"] == "PASS",
-                delivery_mode=effective_delivery_mode if treatment_path.is_file()
+                delivery_mode=effective_delivery_mode if isinstance(treatment_record, dict)
                 and treatment_record.get("treatment") == "compact" else "patch",
             )
 

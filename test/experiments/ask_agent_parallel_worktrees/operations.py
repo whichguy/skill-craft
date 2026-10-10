@@ -50,11 +50,17 @@ def _compact_return_binding(run, manifest, setup, worker, worker_id):
                               {'binding_path':str(expected_binding.resolve())},
                               {'binding_path':str(binding_path),'symlink':supplied.is_symlink()})
     try:
-        binding=json.loads(binding_path.read_text(encoding='utf-8'))
+        packet_bytes=binding_path.read_bytes()
+        binding=json.loads(packet_bytes.decode('utf-8'))
     except (OSError,ValueError) as exc:
         _compact_return_error('COMPACT_RETURN_BINDING_INVALID','cannot read compact binding JSON',
                               {'readable_json':str(binding_path)},
                               {'error':f'{type(exc).__name__}: {exc}'})
+    packet_digest=hashlib.sha256(packet_bytes).hexdigest()
+    if packet_digest!=worker.get('compact_packet_sha256'):
+        _compact_return_error('COMPACT_RETURN_BINDING_INVALID','retained packet bytes differ from compact setup',
+                              {'packet_sha256':worker.get('compact_packet_sha256')},
+                              {'packet_sha256':packet_digest})
     if not isinstance(binding,dict) or not all(isinstance(binding.get(key),dict) for key in ('package','workspace','task')):
         _compact_return_error('COMPACT_RETURN_BINDING_INVALID','compact binding has incomplete package, workspace, or task objects',
                               {'package':True,'workspace':True,'task':True},
@@ -137,9 +143,10 @@ def verify_compact_return(run, worker_id):
         _compact_return_error('COMPACT_RETURN_ALREADY_ATTEMPTED',
                               f'retained compact return evidence exists: {record_path}',
                               {'one_attempt_per_worker':True},{'evidence_path':str(record_path)})
-    argv=[sys.executable,'-B',str(task_script),'verify-return','--binding',str(binding_path)]
+    argv=[sys.executable,'-B',str(task_script),'verify-return','--binding',str(binding_path),
+          '--expected-binding-sha256',binding['binding_sha256']]
     started=time.time()
-    record={'schema':'ask-agent.compact-command/v1','phase':'verify-return','worker_id':worker_id,
+    record={'schema':'ask-agent.compact-command/v1','phase':'verify-return','run_id':manifest['run_id'],'worker_id':worker_id,
             'delivery_mode':delivery_mode,
             'binding_path':str(binding_path.resolve()),'binding_sha256':binding['binding_sha256'],
             'argv':argv,'cwd':str(Path(manifest['paths']['caller']).resolve()),'started_epoch':started,
@@ -264,6 +271,8 @@ def _require_compact_returns(run, setup, expected_ids):
             issues.append({'worker_id':worker_id,'error':'compact setup worker is missing','path':str(path)})
             continue
         try:
+            if path.is_symlink() or not path.is_file():
+                raise fixture.FixtureError(f'compact return evidence is not a regular in-run file: {path}')
             _,binding,task_script=_compact_return_binding(run,manifest,setup,worker,worker_id)
             record=json.loads(path.read_text(encoding='utf-8'))
         except (OSError,ValueError,TypeError,fixture.FixtureError) as exc:
@@ -283,8 +292,10 @@ def _require_compact_returns(run, setup, expected_ids):
                and record.get('evidence_path')==str(path.resolve())
                and record.get('command_status') in (None,'COMPLETED')
                and record.get('binding_path')==str(binding_path.resolve())
-               and record.get('argv')==[sys.executable,'-B',str(task_script),'verify-return','--binding',str(binding_path.resolve())]
+               and record.get('argv')==[sys.executable,'-B',str(task_script),'verify-return','--binding',str(binding_path.resolve()),
+                                        '--expected-binding-sha256',binding['binding_sha256']]
                and record.get('cwd')==caller and stdout_result==result
+               and record.get('run_id')==manifest.get('run_id')
                and record.get('binding_sha256')==binding.get('binding_sha256')==worker.get('compact_binding_sha256')
                and _compact_return_result_valid(result,manifest,setup,worker,binding))
         records.append({'worker_id':worker_id,'valid':valid,'evidence_path':str(path.resolve()),
@@ -418,9 +429,12 @@ def finish_ephemeral(run, collected_worker_ids):
         result['finished_epoch']=time.time()
         fixture.write_exclusive_json(output,result)
         raise
-    return {'schema':result['schema'],'status':result['status'],'delivery_mode':'ephemeral',
-            'worker_ids':result['worker_ids'],'result_path':str(output.resolve()),
-            'caller_snapshot_sha256':baseline_sha}
+    summary={'schema':result['schema'],'status':result['status'],'delivery_mode':'ephemeral',
+             'worker_ids':result['worker_ids'],'result_path':str(output.resolve()),
+             'caller_snapshot_sha256':baseline_sha}
+    if setup.get('compact_startup_contract')=='action-packet/v1':
+        summary['result_sha256']=fixture.sha256_file(output)
+    return summary
 
 def prepare_batch(run, *, compact=False, delivery_mode=None):
     run = Path(run).resolve()
@@ -451,6 +465,7 @@ def prepare_batch(run, *, compact=False, delivery_mode=None):
     result={'status':'PREPARING','phase':'preflight','source':str(source),'source_head':manifest['caller_snapshot']['head'],
             'treatment':'compact' if compact else 'scripted',
             'delivery_mode':delivery_mode if compact else None,
+            'compact_startup_contract':'action-packet/v1' if compact else None,
             'started_epoch':start,'workers':[],'calls':calls,
             'operations_script_sha256':fixture.sha256_file(Path(__file__).resolve()),
             'frozen_package_tree_sha256_before_preparation':None,
@@ -521,18 +536,55 @@ def prepare_batch(run, *, compact=False, delivery_mode=None):
                     request['delivery_mode']='patch'
                 request_path=compact_prepare_dir/f'worker-{identifier}.request.json'
                 fixture.write_exclusive_json(request_path,request)
+                binding_path=compact_binding_dir/f'worker-{identifier}.json'
                 compact_result=command_call(
                     f'compact-prepare-{identifier}',
                     [sys.executable,'-B',str(task_script),'prepare','--skill-card',str(card),
-                     '--request',str(request_path)],
+                     '--request',str(request_path),'--packet',str(binding_path.resolve())],
                 )
-                if compact_result.get('status')!='READY_TO_LAUNCH' or not isinstance(compact_result.get('binding'),dict):
-                    raise fixture.FixtureError(f'Compact prepare did not return a ready binding for worker {identifier}')
-                binding=compact_result['binding']
-                binding_path=compact_binding_dir/f'worker-{identifier}.json'
-                fixture.write_exclusive_json(binding_path,binding)
-                fixture.write_exclusive_json(compact_prepare_dir/f'worker-{identifier}.result.json',compact_result)
+                packet=compact_result.get('packet')
+                if (compact_result.get('status')!='READY_TO_LAUNCH' or not isinstance(packet,dict)
+                        or packet.get('path')!=str(binding_path.resolve()) or binding_path.is_symlink()
+                        or not binding_path.is_file()):
+                    raise fixture.FixtureError(f'Compact prepare did not retain the exact packet for worker {identifier}')
+                packet_bytes=binding_path.read_bytes()
+                packet_digest=hashlib.sha256(packet_bytes).hexdigest()
+                if packet_digest!=packet.get('sha256'):
+                    raise fixture.FixtureError(f'Compact prepare packet SHA-256 differs for worker {identifier}')
+                binding=json.loads(packet_bytes.decode('utf-8'))
+                if not isinstance(binding,dict):
+                    raise fixture.FixtureError(f'Compact prepare packet is not a JSON object for worker {identifier}')
+                binding_without_digest={key:value for key,value in binding.items() if key!='binding_sha256'}
+                canonical_digest=hashlib.sha256(json.dumps(binding_without_digest,sort_keys=True,
+                    separators=(',',':'),ensure_ascii=True).encode('utf-8')).hexdigest()
+                if canonical_digest!=binding.get('binding_sha256') or packet.get('binding_sha256')!=canonical_digest:
+                    raise fixture.FixtureError(f'Compact prepare binding digest differs for worker {identifier}')
+                launch=compact_result.get('launch')
+                commands=compact_result.get('commands')
+                if (not isinstance(launch,dict) or launch.get('transport')!='packet'
+                        or launch.get('cwd')!=binding.get('workspace',{}).get('root')
+                        or not isinstance(launch.get('prompt'),str)
+                        or not isinstance(launch.get('delivery_header'),str)
+                        or not isinstance(commands,dict)):
+                    raise fixture.FixtureError(f'Compact prepare launch packet is incomplete for worker {identifier}')
                 bound=binding.get('workspace',{})
+                for name,action,expected_cwd in (
+                    ('worker-start','worker-start',str(Path(bound['root']).resolve())),
+                    ('worker-finish','worker-finish',str(Path(bound['root']).resolve())),
+                    ('verify-return','verify-return',str(source.resolve())),
+                ):
+                    command=commands.get(name)
+                    argv=command.get('argv') if isinstance(command,dict) else None
+                    if (not isinstance(argv,list) or any(not isinstance(value,str) for value in argv)
+                            or command.get('cwd')!=expected_cwd
+                            or action not in argv or '--binding' not in argv
+                            or argv[argv.index('--binding')+1:argv.index('--binding')+2]!=[str(binding_path.resolve())]
+                            or '--expected-binding-sha256' not in argv
+                            or argv[argv.index('--expected-binding-sha256')+1:argv.index('--expected-binding-sha256')+2]
+                                !=[canonical_digest]
+                            or argv.count('--binding')!=1 or argv.count('--expected-binding-sha256')!=1):
+                        raise fixture.FixtureError(f'Compact prepare {name} command is not digest-pinned for worker {identifier}')
+                fixture.write_exclusive_json(compact_prepare_dir/f'worker-{identifier}.result.json',compact_result)
                 if manifest.get('seed_compact_ignore_controls'):
                     omitted=bound.get('ignored_dependencies_omitted')
                     if (not isinstance(omitted,list) or 'unrelated-ignored-input.txt' not in omitted
@@ -577,6 +629,7 @@ def prepare_batch(run, *, compact=False, delivery_mode=None):
                     'prepared_inspection':prepared_inspection,
                     'compact_binding_path':str(binding_path.resolve()),
                     'compact_binding_sha256':binding['binding_sha256'],
+                    'compact_packet_sha256':packet_digest,
                     'compact_prepare_result_path':str((compact_prepare_dir/f'worker-{identifier}.result.json').resolve()),
                 })
                 if delivery_mode=='commits':
@@ -1290,6 +1343,8 @@ def _cli_failure_diagnostic(run, command, exc, worker_id=None):
         result_path=operator_dir/'setup-result.json'
     elif command=='verify-return' and worker_id:
         result_path=operator_dir/'compact-returns'/f'worker-{worker_id}.json'
+    elif command=='write-parent-result':
+        result_path=operator_dir/'parent-result.json'
     else:
         result_path=operator_dir/'integration-result.json'
     result=None
@@ -1304,7 +1359,10 @@ def _cli_failure_diagnostic(run, command, exc, worker_id=None):
     code=failure.get('code') or getattr(exc,'diagnostic_code',None)
     if not isinstance(code,str) or re.fullmatch(r'[A-Z][A-Z0-9_]{1,63}',code) is None:
         match=re.match(r'^\[([A-Z][A-Z0-9_]{1,63})\]',str(exc))
-        code=match.group(1) if match else ('SETUP_OPERATION_FAILED' if command=='prepare-batch' else 'INTEGRATION_FAILED')
+        default_code = ('SETUP_OPERATION_FAILED' if command=='prepare-batch' else
+                        'PARENT_RESULT_INVALID' if command=='write-parent-result' else
+                        'INTEGRATION_FAILED')
+        code=match.group(1) if match else default_code
     phase=failure.get('phase') or getattr(exc,'diagnostic_phase',None)
     if not isinstance(phase,str) or not phase:
         phase=result.get('phase') if isinstance(result,dict) and isinstance(result.get('phase'),str) else 'argument_validation'
@@ -1364,6 +1422,9 @@ def integration_summary(run, result):
             'verification_path':str(Path(run).resolve()/'operator/verification.json'),
             'patches':[{k:p[k] for k in ('worker_id','path','patch_path','patch_sha256')} for p in result['patches']],
             'native_lifecycle_note':result['native_lifecycle_note']}
+    integration_path=Path(run).resolve()/'operator/integration-result.json'
+    if integration_path.is_file() and not integration_path.is_symlink():
+        summary['result_sha256']=fixture.sha256_file(integration_path)
     if result.get('delivery_mode')=='commits':
         expected=result.get('integration_worker_ids')
         records=result.get('commit_records')
@@ -1392,14 +1453,207 @@ def integration_summary(run, result):
     return summary
 
 
+def _parent_result_error(message, expected=None, observed=None):
+    error=fixture.FixtureError(f'[PARENT_RESULT_INVALID] {message}')
+    error.diagnostic_code='PARENT_RESULT_INVALID'
+    error.diagnostic_phase='parent-result'
+    error.diagnostic_expected=expected or {'parent_result_gate':True}
+    error.diagnostic_observed=observed or {'message':message}
+    raise error
+
+
+def _in_run_regular_file(run, relative_path):
+    path=run/relative_path
+    if path.is_symlink() or not path.is_file():
+        _parent_result_error(f'required evidence is missing or symlinked: {path}',
+                             {'regular_file':str(path)},
+                             {'exists':path.exists(),'symlink':path.is_symlink()})
+    resolved=path.resolve(strict=True)
+    if resolved!=path.absolute() or run not in resolved.parents:
+        _parent_result_error(f'evidence resolves outside this run: {path}',
+                             {'in_run_path':str(path.absolute())},{'resolved_path':str(resolved)})
+    return path
+
+
+def write_parent_result(run, worker_handles, verification_sha256, integration_sha256):
+    """Write a small parent assertion index after every fixture gate has passed."""
+    run=Path(run).expanduser().resolve(strict=True)
+    manifest=fixture.load_manifest(run)
+    operator=run/'operator'
+    manifest_ids=[task.get('worker_id') for task in manifest.get('task_assignments',[])
+                  if isinstance(task,dict)]
+    expected_ids=[str(i) for i in range(1,manifest.get('workers',0)+1)]
+    if (manifest_ids!=expected_ids or manifest.get('worker_ids')!=expected_ids
+            or type(manifest.get('workers')) is not int or manifest.get('workers') not in (3,5)):
+        _parent_result_error('manifest does not define the exact ordered worker IDs',
+                             {'worker_ids':expected_ids},{'worker_ids':manifest_ids})
+    if (not isinstance(worker_handles,list)
+            or any(not isinstance(item,str) or '=' not in item for item in worker_handles)):
+        _parent_result_error('repeatable worker handles must use ID=HANDLE values',
+                             {'worker_handle_pairs':expected_ids},{'worker_handles':worker_handles})
+    pairs=[]
+    for item in worker_handles:
+        worker_id,handle=item.split('=',1)
+        if (not worker_id or not handle or worker_id.strip()!=worker_id or handle.strip()!=handle
+                or any(char.isspace() for char in handle)):
+            _parent_result_error('worker handle pair has an empty or malformed ID/handle',
+                                 {'id_and_handle':'nonempty, no surrounding whitespace'}, {'value':item})
+        pairs.append((worker_id,handle))
+    supplied_ids=[worker_id for worker_id,_ in pairs]
+    handles=[handle for _,handle in pairs]
+    if (len(supplied_ids)!=len(expected_ids) or set(supplied_ids)!=set(expected_ids)
+            or len(set(supplied_ids))!=len(supplied_ids) or len(set(handles))!=len(handles)):
+        _parent_result_error('worker IDs and native handles must each occur exactly once',
+                             {'worker_ids':expected_ids,'unique_handles':True},
+                             {'worker_ids':supplied_ids,'handles':handles})
+    handles_by_id={worker_id:handle for worker_id,handle in pairs}
+    pairs=[(worker_id,handles_by_id[worker_id]) for worker_id in expected_ids]
+    if any(not isinstance(value,str) or re.fullmatch(r'[0-9a-f]{64}',value) is None
+           for value in (verification_sha256,integration_sha256)):
+        _parent_result_error('verification and integration hashes must be lowercase SHA-256 values',
+                             {'sha256_fields':2},
+                             {'verification_sha256':verification_sha256,'integration_sha256':integration_sha256})
+
+    setup_path=_in_run_regular_file(run,Path('operator/setup-result.json'))
+    treatment_path=_in_run_regular_file(run,Path('operator/treatment.json'))
+    setup=json.loads(setup_path.read_text(encoding='utf-8'))
+    treatment=json.loads(treatment_path.read_text(encoding='utf-8'))
+    if (setup.get('status')!='PREPARED' or setup.get('phase')!='prepared'
+            or setup.get('treatment')!='compact' or setup.get('compact_startup_contract')!='action-packet/v1'
+            or treatment.get('treatment')!='compact' or treatment.get('version')!=4
+            or treatment.get('verification_output')!='summary-v1'):
+        _parent_result_error('setup and treatment do not declare a prepared compact v4 action-packet run',
+                             {'setup':'PREPARED compact action-packet/v1','treatment':'compact v4 summary-v1'},
+                             {'setup_status':setup.get('status'),'treatment':treatment})
+    setup_workers=setup.get('workers')
+    setup_ids=[item.get('worker_id') for item in setup_workers] if isinstance(setup_workers,list) else []
+    if setup_ids!=expected_ids:
+        _parent_result_error('setup worker records do not match manifest order',
+                             {'worker_ids':expected_ids},{'worker_ids':setup_ids})
+
+    verification_path=_in_run_regular_file(run,Path('operator/verification.json'))
+    verification_bytes=verification_path.read_bytes()
+    observed_verification_sha=hashlib.sha256(verification_bytes).hexdigest()
+    if observed_verification_sha!=verification_sha256:
+        _parent_result_error('parent verification summary hash differs from saved full verification report',
+                             {'report_sha256':verification_sha256},
+                             {'report_sha256':observed_verification_sha})
+    try:
+        verification=json.loads(verification_bytes.decode('utf-8'))
+    except (UnicodeDecodeError,ValueError) as exc:
+        _parent_result_error(f'full parent verification is not valid JSON: {exc}')
+    verification_checks=verification.get('checks')
+    if (verification.get('run_id')!=manifest.get('run_id') or verification.get('passed') is not True
+            or verification.get('errors')!=[] or not isinstance(verification_checks,dict)
+            or not verification_checks or any(value is not True for value in verification_checks.values())):
+        _parent_result_error('full parent verification report is not a successful exact run',
+                             {'run_id':manifest.get('run_id'),'passed':True,'errors':[],'all_checks_true':True},
+                             {'run_id':verification.get('run_id'),'passed':verification.get('passed'),
+                              'errors':verification.get('errors'),'checks':verification_checks})
+    archive_path=operator/'parent-verification.json'
+    if archive_path.exists() or archive_path.is_symlink():
+        _parent_result_error('post-exit archive already exists before controller verification',
+                             {'archive_absent_before_parent_exit':True},
+                             {'path':str(archive_path),'exists':archive_path.exists(),'symlink':archive_path.is_symlink()})
+
+    integration_path=_in_run_regular_file(run,Path('operator/integration-result.json'))
+    integration_bytes=integration_path.read_bytes()
+    observed_integration_sha=hashlib.sha256(integration_bytes).hexdigest()
+    if observed_integration_sha!=integration_sha256:
+        _parent_result_error('integration summary hash differs from saved integration result',
+                             {'result_sha256':integration_sha256},
+                             {'result_sha256':observed_integration_sha})
+    integration=json.loads(integration_bytes.decode('utf-8'))
+    delivery_mode=manifest.get('delivery_mode','patch')
+    integration_ok=(integration.get('run_id')==manifest.get('run_id')
+                    and integration.get('delivery_mode')==delivery_mode
+                    and (integration.get('status')=='NO_INTEGRATION' and delivery_mode=='ephemeral'
+                         or integration.get('status')=='INTEGRATED'
+                         and integration.get('fixture_verification',{}).get('passed') is True
+                         and integration.get('applied_worker_ids')==expected_ids))
+    if not integration_ok:
+        _parent_result_error('integration record is not a successful matching run/mode',
+                             {'delivery_mode':delivery_mode,'successful_finalization':True},
+                             {'status':integration.get('status'),'delivery_mode':integration.get('delivery_mode'),
+                              'run_id':integration.get('run_id')})
+
+    worker_rows=[]
+    for worker_id,handle in pairs:
+        worker=next(item for item in setup_workers if item.get('worker_id')==worker_id)
+        binding_path=_in_run_regular_file(run,Path('operator/compact-bindings')/f'worker-{worker_id}.json')
+        binding_bytes=binding_path.read_bytes()
+        binding_sha=hashlib.sha256(binding_bytes).hexdigest()
+        binding=json.loads(binding_bytes.decode('utf-8'))
+        canonical=hashlib.sha256(json.dumps({key:value for key,value in binding.items() if key!='binding_sha256'},
+            sort_keys=True,separators=(',',':'),ensure_ascii=True).encode('utf-8')).hexdigest()
+        if (binding_sha!=worker.get('compact_packet_sha256')
+                or binding.get('binding_sha256')!=canonical
+                or worker.get('compact_binding_sha256')!=canonical):
+            _parent_result_error(f'worker {worker_id} compact packet/binding digest does not match setup',
+                                 {'packet_sha256':worker.get('compact_packet_sha256'),
+                                  'binding_sha256':worker.get('compact_binding_sha256')},
+                                 {'packet_sha256':binding_sha,'binding_sha256':canonical})
+        phases={}
+        for phase in ('start','finish'):
+            phase_path=_in_run_regular_file(run,Path('operator/worker-phases')/f'worker-{worker_id}-{phase}'/'attempt.json')
+            phase_record=json.loads(phase_path.read_text(encoding='utf-8'))
+            checks=phase_record.get('checks')
+            if (phase_record.get('status')!='PASSED' or phase_record.get('run_id')!=manifest.get('run_id')
+                    or phase_record.get('worker_id')!=worker_id or phase_record.get('phase')!=phase
+                    or phase_record.get('root')!=worker.get('worktree')
+                    or phase_record.get('compact_binding_sha256')!=canonical
+                    or not isinstance(checks,dict) or checks.get('phase_passed') is not True
+                    or any(value is not True for key,value in checks.items() if key!='phase_passed')):
+                _parent_result_error(f'worker {worker_id} {phase} phase is not a successful bound run record',
+                                     {'run_id':manifest.get('run_id'),'worker_id':worker_id,'phase_passed':True},
+                                     {'run_id':phase_record.get('run_id'),'worker_id':phase_record.get('worker_id'),
+                                      'status':phase_record.get('status'),'binding_sha256':phase_record.get('compact_binding_sha256'),
+                                      'checks':checks})
+            phases[phase]={'path':str(phase_path.resolve()),'sha256':fixture.sha256_file(phase_path)}
+        worker_rows.append({'worker_id':worker_id,'status':'PARENT_ASSERTED','native_handle':handle,
+                            'native_lifecycle':'parent_asserted','binding_sha256':canonical,
+                            'packet_sha256':binding_sha,
+                            'records':{'start':phases['start'],'finish':phases['finish'],
+                                       'verify_return':None}})
+    return_records=_require_compact_returns(run,setup,expected_ids)
+    record_by_id={row['worker_id']:row for row in return_records}
+    for row in worker_rows:
+        worker_id=row['worker_id']
+        return_row=record_by_id.get(worker_id)
+        if not isinstance(return_row,dict) or return_row.get('valid') is not True:
+            _parent_result_error(f'worker {worker_id} has no successful bound compact return record')
+        return_path=_in_run_regular_file(run,Path('operator/compact-returns')/f'worker-{worker_id}.json')
+        row['records']['verify_return']={'path':str(return_path.resolve()),
+                                         'sha256':fixture.sha256_file(return_path)}
+    index_path=operator/'parent-result.json'
+    if index_path.exists() or index_path.is_symlink():
+        _parent_result_error('parent result index already exists; refusing overwrite',
+                             {'exclusive_create':True}, {'path':str(index_path)})
+    index={'schema':'ask-agent.parent-result-index/v1','run_id':manifest['run_id'],
+           'status':'PARENT_ASSERTED','native_lifecycle':'parent_asserted',
+           'verification':{'source_path':str(verification_path.resolve()),
+                            'source_sha256':verification_sha256,
+                            'archive_path':str(archive_path.absolute()),
+                            'archive_sha256':verification_sha256},
+           'integration':{'path':str(integration_path.resolve()),'sha256':integration_sha256},
+           'workers':worker_rows}
+    fixture.write_exclusive_json(index_path,index)
+    return {'status':index['status'],'run_id':index['run_id'],'result_path':str(index_path.resolve()),
+            'result_sha256':fixture.sha256_file(index_path),'worker_ids':expected_ids}
+
+
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('command',choices=['prepare-batch','verify-return','integrate-batch','finish-ephemeral']);p.add_argument('--run',required=True)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('command',choices=['prepare-batch','verify-return','integrate-batch','finish-ephemeral','write-parent-result']);p.add_argument('--run',required=True)
     p.add_argument('--compact',action='store_true',help='prepare worker worktrees through ask_agent_task.py')
     p.add_argument('--worker',help='worker ID for compact verify-return')
     p.add_argument('--delivery-mode',choices=['patch','commits'],
                    help='delivery mode for integrate-batch; must match the fixture')
     p.add_argument('--collected-worker',action='append',required=False,
                    help='explicit parent assertion of a collected worker id (repeat for every worker)')
+    p.add_argument('--worker-handle',action='append',required=False,
+                   help='parent assertion ID=HANDLE (repeat once for every worker)')
+    p.add_argument('--verification-sha256',help='report_sha256 from fixture verify --summary output')
+    p.add_argument('--integration-sha256',help='result_sha256 from integration/finalizer summary output')
     a=p.parse_args()
     try:
         if a.command=='prepare-batch':
@@ -1417,6 +1671,14 @@ if __name__=='__main__':
                 p.error('--compact applies only to prepare-batch')
             result=integrate_batch(a.run,a.collected_worker or [],delivery_mode=a.delivery_mode)
             print(json.dumps(integration_summary(a.run,result),indent=2))
+        elif a.command=='write-parent-result':
+            if (a.compact or a.delivery_mode is not None or a.worker is not None
+                    or a.collected_worker is not None):
+                p.error('write-parent-result accepts only worker handles and the two expected hashes')
+            if not a.worker_handle or not a.verification_sha256 or not a.integration_sha256:
+                p.error('write-parent-result requires repeated --worker-handle, --verification-sha256, and --integration-sha256')
+            result=write_parent_result(a.run,a.worker_handle,a.verification_sha256,a.integration_sha256)
+            print(json.dumps(result,indent=2))
         else:
             if a.compact or a.delivery_mode is not None:
                 p.error('finish-ephemeral does not accept --compact or --delivery-mode')
