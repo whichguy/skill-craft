@@ -584,9 +584,8 @@ LIVING = "# Living\n\n- R-1 one\n- R-2 two\n- R-3 three\n\n## Retired\n\n- R-4 f
 SLUG = "add-a-fleet-command-tab-to-abcdef"
 
 
-class RetireRecordTests(unittest.TestCase):
-    """The pieces of the handoff retire (plan 0a, owner decision D3): the ID check, the subject, the planned record, the
-    commit message and the living spec's pin.  Real Git repositories; the retire step itself is tested further down."""
+class HomeCase(unittest.TestCase):
+    """A repository and a run state, with helpers that write a knowledge home the way a planning host does."""
 
     setUp = KnowledgeTests.setUp
 
@@ -606,6 +605,11 @@ class RetireRecordTests(unittest.TestCase):
         done = knowledge.commit(self.state, "spec").commit
         self.assertTrue(done)
         return done
+
+
+class RetireRecordTests(HomeCase):
+    """The pieces of the handoff retire (plan 0a, owner decision D3): the ID check, the subject, the planned record, the
+    commit message and the living spec's pin.  Real Git repositories; the retire step itself is tested further down."""
 
     # --- the ID check -----------------------------------------------------------------------------------------------------
     def test_the_check_reads_every_id_the_feature_spec_names_against_the_living_spec_whatever_its_format(self) -> None:
@@ -737,6 +741,195 @@ class RetireRecordTests(unittest.TestCase):
         plain.mkdir()
         with mock.patch.object(subprocess, "run", side_effect=AssertionError("no process may start")):
             self.assertIsNone(knowledge.spec_pin(dict(self.state, repo=str(plain))))
+
+
+class FeatureListTests(HomeCase):
+    """docs/shiploop/features/README.md (owner decision D7, plan 0c): ShipLoop's list of the feature folders, written from the
+    tree alone, only inside a knowledge commit that is already happening, and never over a file that is not its own."""
+
+    def header(self) -> str:
+        """The generated text above the folder rows, from a tree with one folder."""
+        self.write("docs/shiploop/features/a-run-aaaaaa/plan.md", "# p\n")
+        text = knowledge.feature_list(self.repo)
+        return text[:text.index("## Folders\n") + len("## Folders\n")]
+
+    def test_the_list_names_every_folder_sorted_links_each_markdown_file_and_holds_no_requirement_id(self) -> None:
+        self.assertEqual(knowledge.feature_list(self.repo), "")                          # no folder: nothing is written
+        for name in ("b-run-bbbbbb", "a-run-aaaaaa"):
+            self.write("docs/shiploop/features/" + name + "/plan.md", "# p\n")
+            self.write("docs/shiploop/features/" + name + "/spec.md", "R-1\n")
+        self.write("docs/shiploop/features/b-run-bbbbbb/notes.txt", "not markdown\n")
+        (self.repo / "docs/shiploop/features/a-run-aaaaaa/linked.md").symlink_to(self.repo / "app.py")
+        (self.repo / "docs/shiploop/features/c-run-cccccc").symlink_to(self.repo / "docs")     # a link is not a folder
+        self.write("docs/shiploop/features/stray-file.md", "a file, not a folder\n")
+        self.write("docs/shiploop/features/empty-dddddd/.keep", "")
+        text = knowledge.feature_list(self.repo)
+        rows = text.split("## Folders\n", 1)[1]
+        self.assertEqual(rows, "\n- [a-run-aaaaaa](a-run-aaaaaa/)\n  - [plan.md](a-run-aaaaaa/plan.md)\n"
+                                "  - [spec.md](a-run-aaaaaa/spec.md)\n- [b-run-bbbbbb](b-run-bbbbbb/)\n"
+                                "  - [plan.md](b-run-bbbbbb/plan.md)\n  - [spec.md](b-run-bbbbbb/spec.md)\n"
+                                "- [empty-dddddd](empty-dddddd/)\n")
+        self.assertIsNone(re.search(r"R-\d", text))             # grep -w on an ID must never list the list itself
+        self.assertFalse(any(knowledge.privacy.sensitive_text(line) for line in text.splitlines()))
+        self.assertTrue(text.endswith("\n") and not text.endswith("\n\n"))
+
+    def test_a_folder_name_with_a_space_is_linked_by_its_encoded_name(self) -> None:
+        self.write("docs/shiploop/features/my notes/plan.md", "# p\n")
+        self.assertIn("- [my notes](my%20notes/)\n  - [plan.md](my%20notes/plan.md)\n", knowledge.feature_list(self.repo))
+
+    def test_a_folder_name_that_looks_like_a_credential_is_withheld_and_the_next_close_still_passes(self) -> None:
+        self.planned_home()
+        self.write("docs/shiploop/features/use-sk-abcdefghijklmnop-123456/plan.md", "# p\n")
+        text = knowledge.feature_list(self.repo)
+        self.assertNotIn("abcdefghijklmnop", text)
+        self.assertIn("1 folder is not listed", text)
+        self.assertIn(SLUG, text)                                                          # the others are still listed
+        self.assertTrue(knowledge.commit(self.state, "plan").commit)
+        self.assertEqual(knowledge.check(self.state, "plan"), "")                          # the credential screen finds nothing
+
+    def test_the_generated_header_is_markdown_lint_friendly(self) -> None:
+        """The lint gate lints a file a work item changed (the list first appears inside item 1), and the model cannot fix a
+        file the script rewrites: one H1 first, no repeated heading, lines of at most 80 characters, a blank line on each
+        side of a heading and of a fence, a language on each fence, no bare angle brackets outside code."""
+        header = self.header()
+        lines = header.splitlines() + [""]                     # the file goes on with a blank line after its last heading
+        self.assertEqual(lines[0], "# Features")
+        headings = [number for number, line in enumerate(lines) if line.startswith("#")]
+        self.assertEqual([lines[number] for number in headings if lines[number].startswith("# ")], ["# Features"])
+        self.assertEqual(len(headings), len({lines[number] for number in headings}))
+        self.assertTrue(all(len(line) <= 80 for line in lines), [line for line in lines if len(line) > 80])
+        fences = [number for number, line in enumerate(lines) if line.startswith("```")]
+        self.assertEqual(len(fences) % 2, 0)
+        self.assertTrue(all(lines[number] == "```sh" for number in fences[0::2]))
+        self.assertTrue(all(lines[number] == "```" for number in fences[1::2]))
+        for number in headings + fences[0::2]:
+            self.assertEqual(lines[number - 1] if number else "", "", lines[number])
+        for number in headings + fences[1::2]:
+            self.assertEqual(lines[number + 1], "", lines[number])
+        prose = re.sub(r"```.*?```", "", header, flags=re.S)
+        self.assertNotIn("<", re.sub(r"`[^`\n]*`", "", prose))
+        self.assertNotIn("\n\n\n", header)
+        self.assertTrue(header.endswith("## Folders\n"))
+
+    def test_the_header_states_the_retire_only_as_conditional_and_names_the_squash_limit(self) -> None:
+        header = " ".join(self.header().split())
+        self.assertIn("removes that `spec.md` when the run's commits reach the branch", header)
+        self.assertIn("Git history on this branch keeps every version; a squash merge drops it.", header)
+        self.assertNotIn("then removes that `spec.md`; the run's other files stay.", header)   # never unconditionally
+
+    def test_the_headers_commands_run_literally_on_a_retired_fixture(self) -> None:
+        """Plan 0c: each command in the header is run as printed (the placeholders filled), on a probe repository holding a
+        retired feature spec, and answers what the header says it answers."""
+        self.planned_home(feature_spec="Adds: R-9, R-12.\n")
+        self.write(self.feature() + "/plan.md", "# Plan\n\nCovers R-9.\n")
+        self.write("docs/shiploop/environment.md", "# env\n")
+        prepare = knowledge.commit(self.state, "prepare").commit
+        self.write("docs/shiploop/features/other-aaaaaa/plan.md", "R-10 only\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "other run plan")
+        (self.repo / self.feature() / "spec.md").unlink()                                   # the removal, as the retire makes it
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", knowledge.retire_subject(self.state))
+        text = knowledge.feature_list(self.repo)
+        blocks = re.findall(r"^```sh\n(.*?)^```$", text, re.S | re.M)
+        self.assertEqual(len(blocks), 4)
+        mentions, added, removed, planned = blocks
+
+        def run(block: str, requirement: str = "R-9", *, ok: tuple = (0,)) -> str:
+            command = block.replace("<ID>", requirement).replace("<folder>", SLUG)
+            done = subprocess.run(["sh", "-e", "-c", command], cwd=self.repo, capture_output=True, text=True)
+            self.assertIn(done.returncode, ok, command + "\n" + done.stderr)
+            return done.stdout
+
+        found = run(mentions)                                                                # which features mention R-9
+        self.assertEqual(found.split(), [self.feature() + "/plan.md"])
+        self.assertEqual(run(mentions, "R-10").split(), ["docs/shiploop/features/other-aaaaaa/plan.md"])
+        self.assertEqual(run(mentions, "R-1", ok=(1,)), "")                                  # -w: R-10 is not R-1
+        changes = run(added)                                                                 # when R-9 was added or removed
+        for subject in ("record " + SLUG + " knowledge after spec", "record " + SLUG + " knowledge at prepare",
+                        knowledge.retire_subject(self.state)):
+            self.assertIn(subject, changes)
+        self.assertNotIn("other run plan", changes)
+        self.assertIn("other run plan", run(added, "R-10"))
+        self.assertNotIn("other run plan", run(added, "R-1"))                                # R-10 is not R-1 here either
+        self.assertEqual(run(removed), "Adds: R-9, R-12.\n")                                 # the removed file, as last written
+        self.assertEqual(run(planned), "# Plan\n\nCovers R-9.\n")                           # the plan at the prepare close
+        self.assertEqual(run(planned), git(self.repo, "show", prepare + ":" + self.feature() + "/plan.md"))
+
+    def test_the_list_is_written_inside_a_knowledge_commit_and_never_by_itself(self) -> None:
+        self.planned_home()                                                                  # this commit wrote it
+        self.assertIn(knowledge.FEATURE_LIST, git(self.repo, "show", "--name-only", "--format=", "HEAD"))
+        count = git(self.repo, "rev-list", "--count", "HEAD")
+        self.write("docs/shiploop/features/second-bbbbbb/plan.md", "# p\n")                 # a folder appears, nobody commits
+        self.assertEqual(git(self.repo, "rev-list", "--count", "HEAD"), count)
+        self.assertNotIn("second-bbbbbb", (self.repo / knowledge.FEATURE_LIST).read_text())
+        self.write(knowledge.FEATURE_LIST, (self.repo / knowledge.FEATURE_LIST).read_text() + "- HANDWRITTEN-ROW\n")
+        self.assertTrue(knowledge.commit(self.state, "plan").commit)                         # the next knowledge commit replaces it
+        text = (self.repo / knowledge.FEATURE_LIST).read_text()
+        self.assertIn("second-bbbbbb", text)
+        self.assertNotIn("HANDWRITTEN-ROW", text)
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+
+    def test_the_list_is_not_rewritten_or_committed_when_the_home_is_unchanged(self) -> None:
+        self.planned_home()
+        self.write("docs/shiploop/features/second-bbbbbb/plan.md", "# p\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "a model commit that adds a folder")                 # a clean tree with a stale list
+        count = git(self.repo, "rev-list", "--count", "HEAD")
+        self.assertEqual(knowledge.commit(self.state, "plan"), shiploop_git.Committed("", [], []))
+        self.assertEqual(git(self.repo, "rev-list", "--count", "HEAD"), count)
+        self.assertNotIn("second-bbbbbb", (self.repo / knowledge.FEATURE_LIST).read_text())
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+
+    def test_the_list_is_no_close_or_stage_file(self) -> None:
+        listed = {name for names in list(knowledge.CLOSES.values()) + list(knowledge.STAGE_FILES.values()) for name in names}
+        self.assertFalse({"features/README.md", knowledge.FEATURE_LIST} & listed)
+        self.assertTrue(knowledge.in_home(knowledge.FEATURE_LIST))                           # a knowledge commit and a return keep it
+
+    def test_a_file_at_the_list_path_that_is_not_shiploops_is_left_alone_with_a_notice(self) -> None:
+        self.planned_home()
+        path = self.repo / knowledge.FEATURE_LIST
+        self.assertEqual(knowledge.feature_list_notice(self.repo), "")
+        path.write_text("My own notes about the features.\n", encoding="utf-8")
+        self.write("docs/shiploop/features/second-bbbbbb/plan.md", "# p\n")
+        notice = knowledge.feature_list_notice(self.repo)
+        self.assertIn(str(path), notice)
+        self.assertIn("does not begin with ShipLoop's generated header", notice)
+        self.assertTrue(knowledge.commit(self.state, "plan").commit)                         # the commit itself still happens
+        self.assertEqual(path.read_text(), "My own notes about the features.\n")
+        path.write_text("", encoding="utf-8")                                                 # an empty file is nobody's
+        self.assertEqual(knowledge.feature_list_notice(self.repo), "")
+        knowledge.write_feature_list(self.repo)
+        self.assertIn("second-bbbbbb", path.read_text())
+
+    def test_the_list_is_never_written_through_a_symbolic_link(self) -> None:
+        self.planned_home()
+        outside = self.repo.parent / "outside.md"
+        outside.write_text("not ShipLoop's\n")
+        path = self.repo / knowledge.FEATURE_LIST
+        path.unlink()
+        path.symlink_to(outside)
+        self.write("docs/shiploop/features/second-bbbbbb/plan.md", "# p\n")
+        self.assertIn("symbolic link", knowledge.feature_list_notice(self.repo))
+        knowledge.write_feature_list(self.repo)
+        knowledge.commit(self.state, "plan")
+        self.assertEqual(outside.read_text(), "not ShipLoop's\n")
+        self.assertTrue(path.is_symlink())
+
+    def test_earlier_features_says_none_yet_or_names_the_list(self) -> None:
+        self.assertEqual(knowledge.earlier_features(self.state), "Earlier features: none yet.")
+        self.planned_home()                                                                  # only this run's own folder
+        self.assertEqual(knowledge.earlier_features(self.state), "Earlier features: none yet.")
+        self.write("docs/shiploop/features/older-cccccc/plan.md", "# p\n")
+        self.assertEqual(knowledge.earlier_features(self.state),
+                         "Earlier features: " + str(self.repo / knowledge.FEATURE_LIST) + " lists every feature folder and "
+                         "the commands that find a requirement ID in them.")
+
+    def test_the_fixture_that_writes_every_close_file_also_writes_the_list(self) -> None:
+        """Stands in for the knowledge commit a real run makes after its spec stage, long before any work item's base."""
+        support.write(self.state)
+        self.assertTrue((self.repo / knowledge.FEATURE_LIST).is_file())
+        self.assertIn(SLUG, (self.repo / knowledge.FEATURE_LIST).read_text())
 
 
 if __name__ == "__main__":
