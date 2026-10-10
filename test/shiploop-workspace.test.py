@@ -928,6 +928,26 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(self._call(workspace.return_kind, root), "working-tree-return")
         self.assertIsNone(self._call(workspace.return_kind, self.base / "no such workspace"))
 
+    def test_return_kind_answers_only_for_a_receipt_that_is_returned_and_names_a_known_route(self) -> None:
+        """Audit (batch 1012): a receipt is written with status "applying" and a kind while a return is mid-flight, and the
+        retire must not take an unfinished fast-forward for one that reached the branch; nothing pinned the status guard."""
+        record = self._prepare(name="kind guard")
+        root = self.base / "kind guard"
+        (self._worktree(record) / "app.txt").write_text("product\n", encoding="utf-8")
+        self._commit_all(self._worktree(record), "product")
+        self._plan(root)
+        self._resolve_plan(root)
+        receipt = self._execute(root)
+        self.assertEqual(receipt["kind"], "fast-forward-merge")
+        self.assertEqual(self._call(workspace.return_kind, root), "fast-forward-merge")
+        for what, changes in (("mid-flight", {"status": "applying"}), ("an unknown route", {"kind": "teleport"}),
+                              ("no route", {"kind": None})):
+            with self.subTest(what):
+                store.write_record(root / "return-receipt.md", dict(receipt, **changes), "ShipLoop return receipt")
+                self.assertIsNone(self._call(workspace.return_kind, root))
+        store.write_record(root / "return-receipt.md", receipt, "ShipLoop return receipt")
+        self.assertEqual(self._call(workspace.return_kind, root), "fast-forward-merge")
+
     def test_a_follow_up_after_a_no_change_return_recomputes_the_route_so_the_kind_is_read_before_it(self) -> None:
         """Only a fast-forward and a working-tree return are kept across a follow-up (``_return_kind``); a no-change return
         is recomputed, so the retire, which reads the kind before the follow-up, keeps the file in that case on purpose."""
