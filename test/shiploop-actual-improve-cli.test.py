@@ -1819,6 +1819,59 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.write("docs: fix\n\nKey learnings: the layout is one file.\n")
         self.invoke(*self.commit_args)
 
+    def test_a_remote_change_with_the_flag_and_nothing_pending_makes_a_commit_with_no_files(self):
+        self.begin()
+        self.git("add", "scratch.txt")  # someone else's staged work must stay staged
+        self.write("chore: record the staging cache purge\n\nRemote change: staging-site, purged the CDN cache, "
+                   "evidence in the release log\nKey learnings: purge after every deploy.\n")
+        before = self.git("rev-parse", "HEAD").strip()
+        done = self.invoke(*self.commit_args, "--remote-change").stdout
+        head = self.git("rev-parse", "HEAD").strip()
+        self.assertNotEqual(before, head)
+        self.assertIn("Committed this review's remote change as " + head[:12] + ": it changed no file.", done)
+        self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(), [])
+        self.assertEqual(self.git("diff", "--cached", "--name-only").split(), ["scratch.txt"])
+        self.assertIn("Remote change: staging-site", self.head_message())
+        self.assertFalse(self.message.exists())
+        # one message, one commit: the same file again is refused as missing
+        self.assertIn("write the commit message with a file tool first", self.invoke(*self.commit_args, "--remote-change",
+                                                                                    status=2).stderr)
+        self.assertEqual(head, self.git("rev-parse", "HEAD").strip())
+
+    def test_a_remote_change_section_without_the_flag_changes_nothing(self):
+        """Guard (passes before the flag exists): a `Remote change: none` label must not make an empty commit."""
+        self.begin()
+        before = self.git("rev-parse", "HEAD").strip()
+        self.write("docs: x\n\nKey learnings: none\nRemote change: staging-site, purged the cache\n")
+        self.assertIn("Nothing to commit", self.invoke(*self.commit_args).stdout)
+        self.assertEqual(before, self.git("rev-parse", "HEAD").strip())
+
+    def test_the_flag_with_files_pending_commits_the_files_and_the_section_rides_in_the_message(self):
+        self.begin()
+        self.edit()
+        self.write("docs: x\n\nRemote change: staging-site, purged the cache\nKey learnings: none\n")
+        self.invoke(*self.commit_args, "--remote-change")
+        self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(), ["product/contracts/cold-recovery.md"])
+        self.assertIn("Remote change: staging-site", self.head_message())
+
+    def test_the_flag_without_a_remote_change_section_is_refused_and_the_named_exit_works(self):
+        self.begin()
+        self.write("docs: x\n\nKey learnings: none\n")
+        stderr = self.refused("--remote-change")
+        line = self.line_one(stderr)
+        self.assertTrue(line.startswith('Add a "Remote change:'), line)
+        self.assertTrue(line.endswith("--remote-change"), line)  # the rerun keeps the flag
+        self.write("docs: x\n\nRemote change: staging-site, purged the cache\nKey learnings: none\n")
+        self.run_named(stderr)
+        self.assertNotEqual(self.base_commit, self.git("rev-parse", "HEAD").strip())
+
+    def test_an_empty_remote_commit_still_needs_lessons(self):
+        self.begin()
+        self.write("docs: x\n\nRemote change: staging-site, purged the cache\n")
+        stderr = self.refused("--remote-change")
+        self.assertTrue(self.line_one(stderr).startswith('Add a "Key learnings:'))
+        self.assertTrue(self.line_one(stderr).endswith("--remote-change"))
+
     def commit_gate_refusal(self):
         """Run the child to its terminal packet with an uncommitted edit; the refusal improve-complete gives."""
         self.begin("spec")

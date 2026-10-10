@@ -4577,6 +4577,9 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     The checks run in this order: the message file; the bound child and its bind snapshot; nothing to commit (a
     review that changed no file makes no commit and is never asked for lessons); credentials; lessons and
     citations together; the commit.  Every refusal puts the fix and the exact next command on its first line.
+    ``--remote-change`` is the one way to a commit with no files: the message names a change to a remote system
+    in a ``Remote change`` section, and with no file pending that is the whole commit.  A ``Remote change``
+    section without the flag changes nothing.
     """
     child = state.get("active_improve")
     action_id = getattr(args, "action", None)
@@ -4585,7 +4588,9 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
           "no bound current Improve child for this action (it may already be imported); to read the current "
           "packet run: " + _callback(core, root, "next"))
     message_path = improve_commit_message_path(child)
-    command = _callback(core, root, "improve-commit", action=action_id, message=str(message_path))
+    remote = bool(getattr(args, "remote_change", False))
+    command = (_callback(core, root, "improve-commit", action=action_id, message=str(message_path))
+               + (" --remote-change" if remote else ""))
     _need(getattr(args, "message", None) == str(message_path),
           "the commit message must be the printed file " + str(message_path) + "; run: " + command)
     _need(message_path.is_file() and not message_path.is_symlink(),
@@ -4600,7 +4605,13 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
           "you: leave the files as they are and, when the loop's terminal packet exists, run: "
           + _callback(core, root, "improve-complete", action=action_id))
     pending = changes[1]
-    if not pending:
+    if remote:
+        _need(bool(commit_lessons.remote_change(message)),
+              'Add a "Remote change: <system alias>, <what changed>, <where its evidence is>" line to '
+              + str(message_path) + " (no secrets), then run: " + command + "\n"
+              "--remote-change records a change to a remote system that left no file change; if no remote system "
+              "changed, run improve-commit without it.")
+    elif not pending:
         print("Nothing to commit: every file this review changed is already committed"
               + (" (" + ", ".join(changes[0]) + ")." if changes[0] else "; the review changed no file."))
         message_path.unlink()  # a stale message must not be committed by a later run
@@ -4611,7 +4622,7 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     _need(not refusal, refusal)
     store.atomic_write_text(message_path, message.strip() + "\n")  # what was checked is what is committed
     try:
-        committed = shiploop_git.commit_paths(repo, pending, "", message_file=message_path)
+        committed = shiploop_git.commit_paths(repo, pending, "", allow_empty=not pending, message_file=message_path)
     except shiploop_git.CommitError as exc:
         raise NavigatorError(str(exc)) from exc
     notice = shiploop_git.skipped_notice(committed.skipped)
@@ -4622,7 +4633,8 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     head, pending = committed.commit, committed.paths
     if notice:
         print(notice)
-    print("Committed this review's changes as " + head[:12] + ": " + ", ".join(pending) + ".")
+    print("Committed this review's changes as " + head[:12] + ": " + ", ".join(pending) + "." if pending else
+          "Committed this review's remote change as " + head[:12] + ": it changed no file.")
     return 0
 
 
