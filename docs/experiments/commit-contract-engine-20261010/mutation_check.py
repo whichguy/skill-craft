@@ -5,7 +5,7 @@ Repeat with:  PYTHONDONTWRITEBYTECODE=1 SHIPLOOP_PROGRESS=off python3 docs/exper
 
 Each row names a file, the exact text replaced, its replacement and the test selector run.  The file is restored
 after every row (and on any error); the run refuses to start when the three files are not clean in Git.  Writes
-mutations.json beside this file.  About six minutes: the navigator rows run the real-CLI class, ~19 s each.
+mutations.json beside this file.  About ten minutes: the navigator rows run the real-CLI class or one of its tests, ~20 s each.
 """
 import json
 import os
@@ -16,11 +16,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 LESSONS = "skills/shiploop/scripts/shiploop_lessons.py"
 GIT = "skills/shiploop/scripts/shiploop_git.py"
+CHG = "skills/shiploop/scripts/shiploop_improve_changes.py"
 NAV = "skills/shiploop/scripts/shiploop_navigator.py"
 KNOW = ["test/shiploop-knowledge.test.py"]
 CLI = ["test/shiploop-actual-improve-cli.test.py", "ImproveCommitContractTests"]
+ONE = "test/shiploop-actual-improve-cli.test.py", "ImproveCommitContractTests."
 ROWS = [
-    (LESSONS, "if index >= trailer or _HEADING.match(row):", "if _HEADING.match(row):", KNOW + ["LessonsGrammarTests"]),
+    (LESSONS, "    if _HEADING.match(row):\n        return True\n    known = _KNOWN.match(row)", "    known = _KNOWN.match(row)",
+     KNOW + ["LessonsGrammarTests"]),
     (LESSONS, 'return known is not None and known.group("colon") is not None', "return False", KNOW + ["LessonsGrammarTests"]),
     (LESSONS, "while not first and end < len(lines) and not lines[end].strip():", "while False:", KNOW + ["LessonsGrammarTests"]),
     (LESSONS, 'token = words[0].strip(_TOKEN_EDGE) if words else ""', 'token = words[0] if words else ""', KNOW + ["LessonsGrammarTests"]),
@@ -52,6 +55,38 @@ ROWS = [
      '        "ShipLoop commits exactly', CLI),
     (NAV, 'The child runs no ShipLoop callback except "\n                 "improve-commit; its command', 'The child never runs a ShipLoop callback except "\n                 "improve-commit; its command', CLI),
     (NAV, "except a recorded remote change. No push", "No push", CLI),
+    # Review round 1 of 2026-10-10 (batch 1012 B1 fix round): the rows below pin what the two reviewers found.
+    (LESSONS, 'return known is not None and known.group("colon") is not None', "return known is not None", KNOW + ["LessonsGrammarTests"]),
+    (LESSONS, '"Signed-off-by", "No-Change-Note", "Skill-Craft-Release")', '"Signed-off-by", "Skill-Craft-Release")', KNOW + ["LessonsGrammarTests"]),
+    (LESSONS, 'known = _KNOWN.match(row)\n    return known is not None and known.group("colon") is not None',
+     'known = _KNOWN.match(row) or re.match(r"^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+:[ \\t]", row)\n    return known is not None',
+     KNOW + ["LessonsGrammarTests"]),
+    (LESSONS, '(?P<colon>[ \\t]*:)?{_WRAP}[ \\t]*(?P<rest>.*)$",\n                      re.IGNORECASE | re.ASCII)',
+     '(?P<colon>[ \\t]*:)?{_WRAP}[ \\t]*(?P<rest>.*)$",\n                      re.IGNORECASE)', KNOW + ["LessonsGrammarTests"]),
+    (LESSONS, '[ \\t]*:?[ \\t]*$",\n                      re.IGNORECASE | re.ASCII)', '[ \\t]*:?[ \\t]*$",\n                      re.IGNORECASE)',
+     KNOW + ["LessonsGrammarTests"]),
+    (GIT, '    reachable = git(repo, "merge-base", "--is-ancestor", commits[0], "HEAD")\n',
+     '    reachable = git(repo, "merge-base", "--is-ancestor", commits[0], "HEAD")\n'
+     '    if reachable.returncode == 0 and commits[0] != git(repo, "rev-parse", "HEAD").stdout.strip():\n'
+     '        return "", "is not reachable from HEAD (mutant)"\n', KNOW + ["CommitHelperTests"]),
+    (GIT, '"merge-base", "--is-ancestor", commits[0], "HEAD")', '"merge-base", "--is-ancestor", "HEAD", commits[0])', KNOW + ["CommitHelperTests"]),
+    (GIT, '    if reachable.returncode:\n        return "", "could not be checked', '    if False:\n        return "", "could not be checked',
+     KNOW + ["CommitHelperTests"]),
+    (CHG, '"Then run the improve-complete command again: " + complete_command + "\\n"', '"Then run the same improve-complete command again.\\n"',
+     ["test/shiploop-improve-changes.test.py"]),
+    (NAV, '        if commit_lessons.remote_change(message):  # the section was not recorded', '        if False and commit_lessons.remote_change(message):  # the section was not recorded',
+     [ONE[0], ONE[1] + "test_a_remote_change_section_without_the_flag_changes_nothing"]),
+    (NAV, '        raise NavigatorError("Git could not make the commit: fix the repository problem named below, then run: "\n'
+          '                             + command + "\\n" + str(exc)) from exc', '        raise NavigatorError(str(exc)) from exc',
+     [ONE[0], ONE[1] + "test_a_git_failure_while_committing_names_the_fix_and_the_command_on_line_one"]),
+    (NAV, 'The bound child stops here; the parent imports the review once the "\n          "loop\'s terminal packet exists. Parent, run: "',
+     'When the "\n          "loop\'s terminal packet exists, run: "',
+     [ONE[0], ONE[1] + "test_a_child_that_is_no_longer_bound_and_a_missing_bind_snapshot_each_get_a_remedy"]),
+    (NAV, 'starting in column 1, not inside a "\n                     "one-paragraph message. "', 'not inside a "\n                     "one-paragraph message. "',
+     [ONE[0], ONE[1] + "test_an_empty_lessons_label_and_a_one_paragraph_message_are_refused_with_what_to_fix"]),
+    (NAV, '            _callback(core, root, "improve-complete", action=action_id)))\n    if changes is not None and changes[0]',
+     '            "python3 shiploop improve-complete"))\n    if changes is not None and changes[0]',
+     [ONE[0], ONE[1] + "test_the_uncommitted_edits_refusal_names_the_no_commit_exit_and_improve_complete_accepts_it"]),
 ]
 
 
