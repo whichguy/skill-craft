@@ -95,6 +95,50 @@ Rough size, from the plan's own lists: the spec lifecycle went from about 13 nam
 
 Four: **D8** (snapshot the unpublished work), **D3** (remove the feature spec only when the run's commits reach the branch), **D4** (an Improve pass that changes nothing makes no commit), **D5** (integrate's product commit gets a script-built body). D1, D2 and D6 are moot or deferred; D7 resolves to the README block.
 
+## 0b. Context windows and references, per requirement (2026-10-10) and the plan of action v4
+
+**Supersedes section 0a only where it differs.** Method: for each moment a requirement touches, what is in the model's window, what a clear or compaction loses, which reference it needs, and which durable carrier *already exists and is used*. The carriers were checked in four saved runs (r3 Battleship and r3 Checkers on 1.26.0, the hello run, checkers-1).
+
+### What is durable, and what is actually used
+
+| Carrier | Written by | Used by the model? |
+|---|---|---|
+| Packet file (`run/packets/<action>.md`), printed head (median 1,265 characters) | Script | Head every step; the file rarely (3 whole reads in 40 packets) |
+| `state.md` history: summary and evidence refs of each accepted action | Script, from the model's result | Not read; script-held |
+| `docs/shiploop/**`: `spec.md`, `environment.md`, `test-strategy.md`, `features/<dir>/*.md`, `README.md` | Model; the script commits it | **Yes**: `spec.md` 19 reads in one run, `test-strategy.md` 7, `environment.md` 5, the feature `plan.md` 4 |
+| `context-index.md` (script-derived) | Script | Rarely (3 reads in 41 packets) |
+| Git history | Script and model | Intake and discovery print the last 3 messages; otherwise only on request |
+| `scratch/` | Model | Private, 8 to 27 files per run |
+| **`run/notes/<action>.md`, the "pass log"** | Model, if it chooses | **No: 0 files in all four runs**, although every packet says "append after each pass; open it first after a reset" |
+
+### Per requirement
+
+| Requirement and moment | In the window | Needed after a clear | Carrier that exists | Action |
+|---|---|---|---|---|
+| **R6 look-back**, any producer step | Printed head only | The last commits' lessons and SHAs | Git history | Print them in the printed head, only when a commit records lessons (about 1K characters at most); say how to read more (`git show -s <id>`). For `repeat` and `revise`, the previous attempt's result path is the better reference: print it |
+| **R1 citation**, end of an Improve iteration | The iteration's own work; the SHAs it used were read near the start and may be far back | Which commits helped | Git history (one `git log` call recovers candidates) | Do not capture during the work. Tell the child to list candidates with one command and cite in the message; the script validates. A clear between the work and the commit is rare and the loss is recorded, not mended |
+| **R4 lessons**, Improve commit | The iteration's insight, at commit time | Little: the commit follows the work | The message the child writes | Require the Key learnings section (the one refusal) |
+| **R4 lessons**, script-built commits (knowledge, item, leftovers) | Nothing needed | The lessons | `summary` of the accepted result in `state.md`, and `release-verify`'s required Learned sections | The script harvests `Learned:` lines from the summary and the stage's own files. No new carrier |
+| **R5 remote change**, stage that changed a remote system | The change and its evidence | System, change, lesson | The commit message itself; the evidence path is in the run folder and may dangle | Self-contained message (alias, change, lesson, evidence locator). Only through `improve-commit`; no schema yet |
+| **R2 spec pin**, plan stage | Printed head, the living spec read from disk | Which version of the spec the plan implements | The commit the spec stage closed on (exists before `plan`) | The plan packet prints `Spec: docs/shiploop/spec.md @ <sha12>` and asks `plan.md` to begin with that line. The plan is then pinned to a version by reference, with no freeze and no copy |
+| **R3 retire**, handoff | Packet only | Feature folder, living spec, planned pin | Derivable: folder from prompt and run id; pin from `plan.md` | The script does it; the packet says in one line what will happen. The model needs no reference |
+| **Later run discovers an old feature** | README path (printed) | Request to folder, IDs, planned and retire commits | `README.md`, which the model does read | Script-owned marker block in the README features list |
+
+### Corrections this review forces
+
+1. **The pass-log sentence in every packet is wrong and should go.** It points at a file no model writes, and "open it first after a reset" costs a wasted call after a clear. Delete it in the packet diet (or point at `context-index.md`, which the script keeps).
+2. **No pass-log harvesting.** I had considered capturing lessons and used commits there as they occur. Zero adoption in four runs, plus a short window between work and commit, make it speculative.
+3. **Look-back goes in the printed head, not the file.** The file is rarely read; only the head costs context.
+
+### Plan of action v4 (order unchanged from v3; scope changes marked)
+
+0. D8 snapshot; two-measurement spike (every Improve contract's byte headroom; look-back bytes on one real repository).
+A. **Packet diet**, deletions only, now also deleting the pass-log sentence.
+B. **Commits**: Key learnings required; citations validated; script harvests `Learned:` lines from result summaries and stage files into knowledge, item and leftovers commits; empty commit for a remote change via `improve-commit`; look-back in the printed head when lessons exist; the previous result path on `repeat` and `revise`.
+D. **Plan pin and retire**: the plan packet prints the spec pin; the handoff retire step; the README features block.
+M. Maintainer preflight.
+Measured per step, without thresholds: printed-head bytes, calls to re-orient after a clear (the cleared-context probe), refusals by first line, commits with a lessons section, citations, and citations that name an earlier run's commit.
+
 ## 1. What you asked for
 
 | # | Requirement | Answer |
