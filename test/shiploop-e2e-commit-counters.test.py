@@ -380,8 +380,18 @@ class ShipLoopOwnedTextTest(unittest.TestCase):
 
     def test_the_kept_reply_filter_covers_every_pattern_counters_reads(self):
         for sample in ("ShipLoop navigator | discovery | revision 1", "Committed this review's changes as 7e11860aaaaa: a.py.",
-                       "ShipLoop committed W1's declared changes as 65cd022aaaaa."):
+                       "ShipLoop committed W1's declared changes as 65cd022aaaaa.",
+                       "ShipLoop committed W1's changes (its declared paths and documentation) as 65cd022aaaaa."):
             self.assertTrue(metrics.KEPT_REPLY.search(sample), sample)
+
+    def test_the_work_item_announcement_is_read_in_both_wordings_saved_runs_hold(self):
+        # Release 1.27 reworded the line (the item's documentation rides in its commit); saved runs hold the older wording. The
+        # regrade reads both, so a reworded announcement is not silently classified by subject alone.
+        for line in ("ShipLoop committed W1's declared changes as 65cd022aaaaa.",
+                     "ShipLoop committed W1's changes (its declared paths and documentation) as 65cd022aaaaa."):
+            found = counters.ITEM_COMMITTED.search(line)
+            self.assertIsNotNone(found, line)
+            self.assertEqual(found.group("sha"), "65cd022aaaaa")
 
 
 # ----------------------------------------------------------------------------------------------------------------- commits
@@ -592,7 +602,7 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
         self.assertIn("work item, before the return", workspace)
         navigator = (scripts / "shiploop_navigator.py").read_text()
         self.assertIn("\"Committed this review's changes as \" + head[:12]", navigator)
-        self.assertIn("\"'s declared changes as \" + commit[:12]", navigator)
+        self.assertIn("\"'s changes (its declared paths and documentation) as \"", navigator)
         self.assertIn("\"ShipLoop committed \"", navigator)
         self.assertTrue(counters.LEFTOVERS_SUBJECT.startswith("chore(shiploop): commit files written after the last work item"))
 

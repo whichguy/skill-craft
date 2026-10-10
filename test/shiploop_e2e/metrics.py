@@ -136,7 +136,9 @@ TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is s
 # The replies counters.py reads (the `packets` and `commits` blocks): a ShipLoop packet head, or a line ShipLoop printed to announce
 # a commit it made (`improve-commit`, a work item's commit). ToolLog keeps the text of those replies and no other; counters.py
 # holds the patterns that read them, and its test pins that each is covered here.
-KEPT_REPLY = re.compile(r"ShipLoop navigator \||Committed this review's changes as |ShipLoop committed \S+'s declared changes as ")
+# A coarse filter: which replies counters.py reads. The precise patterns (counters.IMPROVE_COMMITTED, counters.ITEM_COMMITTED) stay in
+# counters.py, so a reworded announcement (release 1.27 reworded the work item's) changes one pattern there, not a second copy here.
+KEPT_REPLY = re.compile(r"ShipLoop navigator \||Committed this review's changes as |ShipLoop committed \S+'s ")
 
 
 def failure_line(shown: str, limit: int | None = 200) -> str:

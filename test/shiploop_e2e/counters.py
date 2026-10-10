@@ -29,7 +29,7 @@ or baseline row. Absent means unknown: a part this module cannot read is null wi
                          as <sha>"). The Improve card fixes no message shape: 63 of the 132 distinct commits those replies name, in
                          the 38 saved runs, carry none of its six ``Label:`` lines, and a model commit can carry all six.
                script    ShipLoop's other commits: the work item's commit, named by ShipLoop's reply ("ShipLoop committed W1's
-                         declared changes as <sha>") or by its subject ``feat: <work item id> <title>`` with an id of the run's
+                         changes (its declared paths and documentation) as <sha>") or by its subject ``feat: <work item id> <title>`` with an id of the run's
                          state.md, and the ones whose subject is ShipLoop's own and nothing else writes (the knowledge home's
                          ``docs(shiploop): record <feature> knowledge at|after <stage>``, the empty baseline, the leftovers
                          commit, a chain's prepared merge). An Improve commit has no mark of its own (the card fixes no
@@ -178,7 +178,10 @@ LESSON_LABEL = re.compile(rf"^(?:{KEY_LEARNINGS}|{LEARNED})(?:[ \t]*:[ \t]*(?P<i
 SECTION_END = re.compile(r"^[A-Z][A-Za-z -]{0,40}:(?:\s|$)")
 LEARNED_FROM = re.compile(r"^Learned-from:[ \t]*(?P<id>[0-9a-fA-F]{7,64})\b", re.M)
 IMPROVE_COMMITTED = re.compile(r"Committed this review's changes as (?P<sha>[0-9a-f]{7,40})")
-ITEM_COMMITTED = re.compile(r"ShipLoop committed \S+'s declared changes as (?P<sha>[0-9a-f]{7,40})")
+# ShipLoop's announcement of a work item's commit, in the two wordings saved runs hold: "declared changes" (through 1.26) and
+# "changes (its declared paths and documentation)" (from release 1.27, when an item's documentation rode in its commit).
+ITEM_COMMITTED = re.compile(
+    r"ShipLoop committed \S+'s (?:declared changes|changes \(its declared paths and documentation\)) as (?P<sha>[0-9a-f]{7,40})")
 KNOWLEDGE_SUBJECT = re.compile(r"^docs\(shiploop\): record \S+ knowledge (?:at|after) \S+$")
 BASELINE_SUBJECT = "Empty baseline for the first ShipLoop run"
 LEFTOVERS_SUBJECT = "chore(shiploop): commit files written after the last work item, before the return"

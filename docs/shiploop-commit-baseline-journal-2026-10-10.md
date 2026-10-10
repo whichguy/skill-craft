@@ -411,3 +411,15 @@ about 5. Exit codes are the commands' own, captured without a pipe.
 
 A timing-sensitive failure was not seen, so no rerun was needed beyond the two `shiploop-status-display` runs above. Not run: the full
 hermetic tier (CI runs it on a release commit), any live E2E run, any host CLI or model, any browser or server.
+
+## 11. Drift found by the first release-commit CI (2026-10-10): ShipLoop reworded the work item's announcement
+
+**Status: firm.** Release 1.27.0 (`6f86c8cf`) reworded the line ShipLoop prints when it commits a work item, from "ShipLoop committed W1's declared changes as <sha>" to "ShipLoop committed W1's changes (its declared paths and documentation) as <sha>" (`shiploop_navigator._item_commit`, because an item's documentation now rides in its commit). The full tier on that commit failed `shiploop-e2e-commit-counters`: `ShipLoopOwnedSubjectsTest` reads ShipLoop's source and pins the wording `counters.py` matches, so the test did its job.
+
+What it showed beyond the one failing assertion:
+- `counters.ITEM_COMMITTED` no longer matched a new run's announcement, so a work item's commit would have been classified by its subject alone (still `script`, but only while the model's pipe leaves the subject legible).
+- `metrics.KEPT_REPLY`, the filter that decides which replies the counters see at all, held a second copy of the old wording, so a new-wording reply would have been dropped before `counters.py` ever read it. That is a second copy of one concern (S-12).
+
+Fix (this commit): `ITEM_COMMITTED` reads both wordings, because saved runs hold the old one and new runs the new; `KEPT_REPLY` keeps only the coarse prefix `ShipLoop committed \S+'s ` and leaves the precise match to `counters.py`; the source pin names the new text; a test reads both wordings; the kept-reply test lists both.
+
+Why the quick tier on the push did not catch it: the quick tier ran before the fork's rewording was on main (the rewording and the counters landed from two branches, merged by the fork). The release commit's full tier is the first run that sees both. **Learning:** a harness pattern that matches ShipLoop's printed wording needs a test that reads the wording from ShipLoop's source (this one did), and the pattern must live in one place.
