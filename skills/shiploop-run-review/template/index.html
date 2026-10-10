@@ -288,6 +288,14 @@ label.opt .t{min-width:0}
 .sc-list{display:grid;gap:4px;margin-top:8px}
 .sc-row{font:inherit;text-align:left;display:flex;flex-direction:column;gap:2px;padding:8px 10px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer;min-width:0}
 .sc-row.sel{border-color:var(--accent);background:var(--accent-bg)}
+.sc-chev{display:inline-flex;align-items:center;justify-content:center;flex:none;width:14px;height:14px;color:var(--fg)}
+.sc-chev::before{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s}
+.sc-row:hover .sc-chev{color:var(--accent)}
+.sc-row[aria-expanded="true"] .sc-chev{color:var(--accent)}
+.sc-row[aria-expanded="true"] .sc-chev::before{transform:rotate(45deg)}
+.sc-open{margin:2px 0 8px 10px;padding-left:8px;border-left:3px solid var(--accent);min-width:0}
+.sc-open .sqd{margin:0}
+@media (prefers-reduced-motion:reduce){.sc-chev::before{transition:none}}
 .sc-top{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .sc-raw{display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:400;color:var(--muted);margin-left:8px;white-space:nowrap}
 .sc-name .sc-raw{white-space:normal}
@@ -2086,11 +2094,12 @@ var pickedCol=-1,pickedRun="",pickedItem="",planMsg="",lastModel=null;
 var packetState={},packetBody={},packetHeads={};
 function loopsFor(run){return loaded.bc?data.bc.filter(function(d){return d.run===run.key;}):null;}
 function setCol(k,reveal){pickedCol=k;renderPicture(reveal);}
+function setColFollow(k,reveal){cardFollow=k>=0;setCol(k,reveal);}
 function pickItem(id){pickedItem=pickedItem===id?"":id;planMsg="";renderPicture(false);}
 /* Tapping a step cell: the picture selects the implement visit that executed it, or the panel says none did. */
 function pickStep(item,cell){
   pickedItem=item.id;
-  if(cell.visit){planMsg="";pickedCol=columnOfVisit(lastModel,cell.visit-1);renderPicture(true);return;}
+  if(cell.visit){planMsg="";cardFollow=true;pickedCol=columnOfVisit(lastModel,cell.visit-1);renderPicture(true);return;}
   planMsg=cell.state==="never"?"Step "+cell.id+" of "+item.id+" was never executed: no implement visit is recorded for it."
     :cell.state==="executed"?"Step "+cell.id+" of "+item.id+" was executed by a visit that this run's list of visits does not hold."
     :"Which visit ran step "+cell.id+" of "+item.id+" is not recorded for this run.";
@@ -2236,14 +2245,22 @@ function renderCard(dc,c){
   dc.appendChild(w);
 }
 function renderCardList(model,run){
-  var box=byId("sclist");clear(box);box.hidden=!(model&&model.columns.length);if(box.hidden)return;
+  var box=byId("sclist");
+  var held=byId("seqdetail");if(!SEQ_HOME&&held&&held.parentNode&&held.parentNode!==box&&held.className!=="sc-open")SEQ_HOME=held.parentNode;
+  if(held){held.className="";if(SEQ_HOME)SEQ_HOME.appendChild(held);}  /* back home, unstyled, before the list is cleared */
+  clear(box);box.hidden=!(model&&model.columns.length);if(box.hidden)return;
   var catalog=stageCatalog();
   box.appendChild(h("h3","","Stage cards"));
-  box.appendChild(h("p","sub","One row per visit, in order: what the stage is for, how it ended and how it is checked, the packet sent and the result written, how many stages declare reading it, and the minutes. Tap a row for its card."));
-  var list=h("div","sc-list");
-  cardRows(model,run,catalog).forEach(function(r){
-    var b=h("button","sc-row"+(pickedCol===r.col?" sel":""));b.type="button";b.setAttribute("aria-pressed",pickedCol===r.col?"true":"false");
-    var top=h("span","sc-top"),nm=h("b","sc-name",r.stage);top.appendChild(h("span","sc-no",r.visit));
+  box.appendChild(h("p","sub","One row per visit, in order: what the stage is for, how it ended and how it is checked, the packet sent and the result written, how many stages declare reading it, and the minutes. Tap a row to open its card in place; tap it again to close it."));
+  var list=h("div","sc-list"),rows=cardRows(model,run,catalog),openAt=-1;
+  rows.forEach(function(r,i){if(openAt<0&&pickedCol>=0&&r.col===pickedCol)openAt=i;});  /* a column of several skipped visits opens under its first row */
+  rows.forEach(function(r,i){
+    var isOpen=i===openAt;
+    var b=h("button","sc-row"+(pickedCol===r.col?" sel":""));b.type="button";b.setAttribute("aria-expanded",isOpen?"true":"false");
+    if(isOpen)b.setAttribute("aria-controls","seqdetail");
+    var top=h("span","sc-top"),nm=h("b","sc-name",r.stage);
+    var chev=h("span","sc-chev");chev.setAttribute("aria-hidden","true");top.appendChild(chev);
+    top.appendChild(h("span","sc-no",r.visit));
     if(r.raw){b.title=r.raw;if(r.rawShown)nm.appendChild(h("span","sc-raw",r.raw));}
     top.appendChild(nm);
     top.appendChild(chipEl(OUTCOME_CHIP[r.outcome]||"muted",r.outcome));
@@ -2258,11 +2275,18 @@ function renderCardList(model,run){
     if(r.written)bits.push("written "+r.written);
     if(r.readBy!==null)bits.push(r.readBy===0?"no declared reader":"declared readers "+r.readBy);  /* the stage table's, never an observed count */
     if(bits.length){var nums=h("span","sc-nums");bits.forEach(function(x){nums.appendChild(h("span","sc-bit",x));});b.appendChild(nums);}
-    b.onclick=function(){setCol(r.col,true);try{byId("seqdetail").scrollIntoView({block:"start"});}catch(e){}};
+    b.onclick=function(){var close=pickedCol===r.col;setCol(close?-1:r.col,!close);focusCardRow(close?i:openRowIndex());};
     list.appendChild(b);
+    if(isOpen){var det=byId("seqdetail");det.className="sc-open";list.appendChild(det);}  /* the card the row opened, in place */
   });
   box.appendChild(list);
+  if(cardFollow){cardFollow=false;var at=openRowIndex();if(at>=0)focusCardRow(at,"start",true);}
 }
+var cardFollow=false;  /* set by a click in the picture or the card's own buttons: bring the opened row into view after the redraw */
+var SEQ_HOME=null;     /* where the detail node lives while no row is open (the static page's own place for it) */
+function openRowIndex(){try{var rs=byId("sclist").querySelectorAll(".sc-row");for(var i=0;i<rs.length;i++)if(rs[i].getAttribute("aria-expanded")==="true")return i;}catch(e){}return -1;}
+/* Put keyboard focus back on a row after a redraw replaced it, and keep it on screen. */
+function focusCardRow(i,block,noFocus){try{var rs=byId("sclist").querySelectorAll(".sc-row");if(i>=0&&rs[i]){if(!noFocus)rs[i].focus();rs[i].scrollIntoView({block:block||"nearest"});}}catch(e){}}
 /* The "scroll sideways" hint shows only while the picture is wider than its box (so it follows a resize). */
 function updateHint(){var sc=byId("seqscroll");byId("seqhint").hidden=!(sc.scrollWidth>sc.clientWidth+1);}
 try{window.addEventListener("resize",updateHint);}catch(e){}
@@ -2308,7 +2332,7 @@ function renderPicture(reveal){
       fd.appendChild(fr);dc.appendChild(fd);
     }
     var nav=h("div","row");
-    function step(label,to){var b=h("button","btn",label);b.type="button";b.disabled=to===null;b.onclick=function(){setCol(to,true);};nav.appendChild(b);}
+    function step(label,to){var b=h("button","btn",label);b.type="button";b.disabled=to===null;b.onclick=function(){setColFollow(to,true);};nav.appendChild(b);}
     step("Previous visit",d.prev);step("Next visit",d.next);
     var cl=h("button","btn","Close");cl.type="button";cl.onclick=function(){setCol(-1,false);};nav.appendChild(cl);
     dc.appendChild(nav);det.appendChild(dc);
@@ -2639,7 +2663,7 @@ byId("runsel").onchange=function(){L.run=this.value;L.phase=-1;L.crit="";if(L.cm
 byId("cmpsel").onchange=function(){L.cmp=this.value;save();renderRunDetail();};
 byId("seqscroll").onclick=function(e){
   var t=e.target&&e.target.closest?e.target.closest("[data-col]"):null;if(!t)return;
-  var k=+t.getAttribute("data-col");setCol(k===pickedCol?-1:k,false);
+  var k=+t.getAttribute("data-col");setColFollow(k===pickedCol?-1:k,false);
 };
 byId("notes").oninput=function(){S().notes=this.value;save();renderPrompt();};
 Array.prototype.forEach.call(document.getElementsByName("after"),function(r){r.onchange=function(){S().after=r.value;save();renderPrompt();};});

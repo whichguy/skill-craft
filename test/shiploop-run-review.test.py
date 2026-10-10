@@ -5746,7 +5746,7 @@ class StageCardPageTests(unittest.TestCase):
     def test_the_list_has_a_row_per_column_marks_the_picked_one_and_a_tap_selects_the_same_visit(self):
         out = page_probe('var rows=function(){return byClass("sclist","sc-row");};var n=rows().length,hidden=REG.sclist.hidden,first=rows()[4].textContent,'
                          'bits=byClass(rows()[4],"sc-bit").map(function(b){return b.textContent;});'
-                         'rows()[4].onclick();var a=[pickedCol,rows()[4].className,rows()[4].attrs["aria-pressed"],rows()[0].attrs["aria-pressed"]];'
+                         'rows()[4].onclick();var a=[pickedCol,rows()[4].className,rows()[4].attrs["aria-expanded"],rows()[0].attrs["aria-expanded"]];'
                          'rows()[3].onclick();[n,hidden,first,a,pickedCol,textOf("seqdetail").indexOf("Visits 4 to 5")>=0,rows()[3].textContent,bits]', setup=card_setup())
         self.assertEqual((out[0], out[1]), (7, False))
         for part in ("6", "Implement", "revise", "script-run", "Make the planned change"):
@@ -5757,6 +5757,46 @@ class StageCardPageTests(unittest.TestCase):
         self.assertTrue(out[5])
         self.assertIn("x2 skipped", out[6])
         self.assertIn("skipped", out[6])
+
+    def test_a_row_opens_its_card_in_place_with_a_chevron_and_a_second_tap_closes_it(self):
+        """The card a row opens sits directly under that row, inside the list, and the row says it can open and is open
+        (a chevron, aria-expanded, aria-controls); tapping the open row again closes it and the card goes home."""
+        out = page_probe(
+            'var list=function(){return REG.sclist.children[REG.sclist.children.length-1];};'
+            'var rows=function(){return byClass("sclist","sc-row");};'
+            'var chev=rows().map(function(r){return byClass(r,"sc-chev").length;});'
+            'var closed=[rows().map(function(r){return r.attrs["aria-expanded"];}),REG.seqdetail.className];'
+            'rows()[4].onclick();'
+            'var kids=list().children,at=kids.indexOf(rows()[4]),openState=[rows().map(function(r){return r.attrs["aria-expanded"];}),'
+            'kids[at+1]===REG.seqdetail,REG.seqdetail.className,rows()[4].attrs["aria-controls"],textOf("seqdetail").length>0,'
+            'byClass(rows()[4],"sc-chev")[0].attrs["aria-hidden"]];'
+            'rows()[4].onclick();'
+            'var after=[rows().map(function(r){return r.attrs["aria-expanded"];}),pickedCol,REG.seqdetail.parent===REG.seqcard||REG.seqdetail.parent===null,'
+            'textOf("seqdetail"),REG.seqdetail.className];'
+            '[chev,closed,openState,after]', setup=card_setup())
+        chev, closed, opened, after = out
+        self.assertEqual(set(chev), {1})  # every row carries the indicator
+        self.assertEqual(set(closed[0]), {"false"})
+        self.assertEqual(opened[0].count("true"), 1)
+        self.assertEqual(opened[0][4], "true")
+        self.assertTrue(opened[1], "the card follows its row in the list")
+        self.assertEqual((opened[2], opened[3], opened[4], opened[5]), ("sc-open", "seqdetail", True, "true"))
+        self.assertEqual(set(after[0]), {"false"})
+        self.assertEqual(after[1], -1)
+        self.assertEqual((after[3], after[4]), ("", ""))  # closed: empty, and no longer styled as an open card
+
+    def test_a_picture_click_opens_the_same_row_and_the_card_buttons_keep_the_card_in_the_list(self):
+        out = page_probe(
+            'var rows=function(){return byClass("sclist","sc-row");};'
+            'setColFollow(2,false);var a=[rows().map(function(r){return r.attrs["aria-expanded"];}).indexOf("true"),cardFollow];'
+            'var next=byClass("seqdetail","btn").filter(function(b){return b.textContent==="Next visit";})[0];next.onclick();'
+            'var b=[pickedCol,rows().map(function(r){return r.attrs["aria-expanded"];}).indexOf("true")];'
+            'byClass("seqdetail","btn").filter(function(x){return x.textContent==="Close";})[0].onclick();'
+            '[a,b,pickedCol,rows().map(function(r){return r.attrs["aria-expanded"];}).indexOf("true")]', setup=card_setup())
+        self.assertEqual(out[0][0], 2)
+        self.assertGreater(out[1][0], 2)  # Next visit moved the open row down the list
+        self.assertEqual(out[1][0], out[1][1] if out[1][1] >= 0 else out[1][0])
+        self.assertEqual((out[2], out[3]), (-1, -1))
 
     def test_the_list_sits_between_the_card_and_the_table_and_a_run_with_no_visits_hides_it(self):
         html = TEMPLATE.read_text(encoding="utf-8")
