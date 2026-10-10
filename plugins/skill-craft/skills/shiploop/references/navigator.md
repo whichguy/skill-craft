@@ -367,7 +367,9 @@ Instead, an inline run executes every INNER stage in the same conversation, and
 the host's own compaction manages the context (Claude Code and Grok compact
 automatically). The durable run state and self-contained packets make that
 safe: after any compaction, reset or lost context, the Recovery command rewrites
-the current packet file (`<run>/packets/<action>.md`) and reprints its head.
+the current packet file (`<run>/packets/<action>.md`; while an Improve child is
+open, `<action>-improve-bind.md` before a card is bound and `<action>-improve.md`
+after) and reprints its head.
 
 Under `delegation: ask-agent`, each INNER producer assignment takes a fresh
 worker where one is usable. Claude documents both

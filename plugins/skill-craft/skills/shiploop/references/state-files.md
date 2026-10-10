@@ -26,7 +26,11 @@ inside its Markdown file, and there is no writable JSON mirror.
 
 The live Improve child keeps its own receipt at
 `<workspace>/.shiploop-improve/<run-id>/<action>/packet.json` in the execution
-worktree; see [Improve context ownership](improve-context.md). Implementation
+worktree; see [Improve context ownership](improve-context.md). Beside that receipt
+`improve-start` writes `parent-return.md`: the `improve-commit` command with its
+message rules (the one command the child runs), then the `improve-complete`
+command the parent runs; the child's commit message goes to `commit-message.md`
+there. Implementation
 chains keep their own append-only ledger; see
 [parallel implementation chains](parallel-chain.md).
 

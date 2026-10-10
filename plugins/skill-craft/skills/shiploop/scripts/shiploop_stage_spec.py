@@ -77,6 +77,7 @@ class Stage:
     reads: tuple[str, ...] = ()            # accepted results to read first ("item:" = this item)
     blocks: frozenset[str] = field(default_factory=frozenset)
     outcomes: tuple[str, ...] = ("done", "repeat", "blocked")
+    cases: bool = False                    # the test text ends with case_end_states (added once outcomes are final)
 
     def __post_init__(self) -> None:
         if self.phase not in PHASES:
@@ -98,14 +99,70 @@ class Stage:
 _PLANNING = "Keep this stage's decisions, constraints and source locators in its result and evidence_refs."
 
 # Owner rule (2026-10-08): a test is authored and executed.  Every planned case ends in one of three states, with its
-# evidence, and "written" or "not run" is not one of them.
-CASE_END_STATES = (
+# evidence, and "written" or "not run" is not one of them.  ``case_end_states`` words the unachievable state from the
+# stage's own outcomes, so no stage is offered a route its gate refuses (SPEC S-3, S-12).
+_CASE_STATES = (
     "Every case ends in one of three states: validated (executed, and the observation matches the expectation), "
     "validated another way (the first method could not observe it, so the method changed and the new one was executed "
     "and passed; the result says what changed and why), or unachievable (a named reason, and the requirement it leaves "
-    "unverified; report blocked with blocked_by access, or revise or replan when the plan is wrong). A case that is "
-    "written but not run, or recorded as not run, is not an end state."
+    "unverified; {routes}). A case that is written but not run, or recorded as not run, is not an end state."
 )
+
+
+def case_end_states(row: "Stage") -> str:
+    """The case end-state sentence for ``row``, built from the outcomes the row accepts.
+
+    An OUTER test stage records an unachievable case as an open item and continues, but only for a case whose command
+    ShipLoop does not rerun (the navigator's test-rerun gate refuses done while a recorded command fails); an INNER
+    stage sends it back to the step plan with revise.  Blocked and replan are named only where the row accepts them.
+    """
+    if row.phase == "outer":
+        routes = ["record it as an open item in the summary with its due stage and continue, provided its command is "
+                  "not one ShipLoop reruns, since every rerun command must pass"]
+    elif "revise" in row.outcomes:
+        routes = ["report revise so the step plan reroutes the case"]
+    else:
+        raise ValueError(f"{row.name}: an unachievable case needs an open-item or a revise route")
+    if "blocked" in row.outcomes:
+        routes.append("report blocked with blocked_by access only when nothing else can proceed")
+    if "replan" in row.outcomes:
+        routes.append("report replan when the plan is wrong")
+    return _CASE_STATES.format(routes=routes[0] if len(routes) == 1 else ", ".join(routes[:-1]) + ", or " + routes[-1])
+
+
+# plan-return's own rule (``workspace.commit_leftovers``), worded once: the workspace Return route line and a worktree
+# run's item-commit sentence both print it (SPEC S-12).
+RETURN_LEFTOVERS = ("plan-return commits files left uncommitted, so commit nothing for the return except a file it "
+                    "reports as not committed.")
+
+# Who commits an item's files (SPEC S-4, S-5): one rule, printed by every stage that adds files to the item.  The first
+# sentence mirrors ``item_scope.commit_scope`` (declared paths, the docs path class and docs/shiploop/); the second
+# depends on the run: a worktree run's plan-return commits what is left, an in-place run has no return.
+ITEM_COMMIT_STAGES = ("document", "integrate")
+ITEM_COMMITS = (
+    "When integrate is accepted, ShipLoop commits the item's changed files that the step plan's paths declare, its "
+    "changed documentation files (for example README.md or files under docs/) and docs/shiploop/."
+)
+_LEFT_FOR_RETURN = ("Any other changed file is left for the return: " + RETURN_LEFTOVERS
+                    + " Delete generated output the product does not need.")
+_LEFT_IN_PLACE = ("ShipLoop commits no other changed file, and you commit nothing yourself: if the product needs one, "
+                  "report revise so the step plan declares it; otherwise delete it.")
+
+
+def item_left(execution_mode: str) -> str:
+    """What happens to a changed file the item commit leaves, for a run in ``execution_mode``."""
+    return _LEFT_FOR_RETURN if execution_mode == "navigator-worktree" else _LEFT_IN_PLACE
+
+
+def develop(name: str, execution_mode: str) -> str | None:
+    """A stage's Develop consideration as its packet prints it: the row's text plus, where the stage adds files to the
+    item, the commit rule for this run."""
+    text = stage(name).develop
+    if name not in ITEM_COMMIT_STAGES:
+        return text
+    rule = ITEM_COMMITS + " " + item_left(execution_mode)
+    return text + " " + rule if text else rule
+
 
 _ROWS = (
     # ------------------------------------------------------------------ prelude
@@ -269,10 +326,11 @@ _ROWS = (
             "each case in the test spec has a test the focused command runs",
             "the tests are wired into the suite and repeatable",
         ),
-        test="Write the tests the spec calls for; never weaken an assertion to fit an expected implementation. " + CASE_END_STATES,
+        test="Write the tests the spec calls for; never weaken an assertion to fit an expected implementation.",
         tools="Tests follow the repository's test framework and lint rules.",
         edits=frozenset({"tests"}),
         complete_runs=("test-probe",),
+        cases=True,
         reads=("test-strategy", "item:step-plan", "item:test-spec"),
         blocks=frozenset({"test-facility", "test-decision", "code-craft"}),
     ),
@@ -311,7 +369,8 @@ _ROWS = (
         done_when=(
             "every focused command passes on the bound Until Loop and when ShipLoop reruns it",
         ),
-        test="Loop on the focused commands until they pass. " + CASE_END_STATES,
+        test="Loop on the focused commands until they pass.",
+        cases=True,
         tools="The lint gate runs before ShipLoop's own test run.",
         edits=frozenset({"code", "tests"}),
         entry_runs=("test-loop-contract",),
@@ -337,10 +396,11 @@ _ROWS = (
         "regression", "inner",
         goal="rerun the retained suites for regressions",
         done_when=(
-            "every recorded command passes on the bound Until Loop and when ShipLoop reruns it",
-            "nothing that passed at baseline fails now",
+            "every recorded command passes on the bound Until Loop and when ShipLoop reruns it, so no recorded "
+            "check that passed at baseline fails now",
         ),
-        test="Run the retained suites; fix the code, not the checks. " + CASE_END_STATES,
+        test="Run the retained suites; fix the code, not the checks.",
+        cases=True,
         tools="The lint gate runs before ShipLoop's own test run.",
         edits=frozenset({"code", "tests"}),
         entry_runs=("test-loop-contract",),
@@ -406,12 +466,9 @@ _ROWS = (
     ),
     Stage(
         "integrate", "inner",
-        goal="integrate the candidate into the working branch",
+        goal="assemble the item's candidate in the execution checkout",
         done_when=("the item's changes are assembled in the execution checkout, or a justified no-op is recorded",),
-        develop=("When this stage is accepted done, ShipLoop commits the item's changed files that the step plan's "
-                 "paths declare (and docs/shiploop/); do not write that commit yourself. It names any other "
-                 "changed file: commit the ones the product needs, delete generated output. Keep run state and "
-                 "logs out of product commits."),
+        develop="Keep run state and logs out of product commits.",
         deploy="The original branch is returned only at the final workspace return.",
         edits=frozenset({"code"}),
         reads=("plan", "item:step-plan", "item:verify"),
@@ -449,7 +506,8 @@ _ROWS = (
         "system-test-author", "outer",
         goal="prepare end-to-end and system tests",
         done_when=("every system-level criterion has a system test, or a planned check with its due stage",),
-        test="Author end-to-end and system tests against real boundaries, and run each once while authoring. " + CASE_END_STATES,
+        test="Author end-to-end and system tests against real boundaries, and run each once while authoring.",
+        cases=True,
         deploy="Plan which tests run against the deployed target.",
         edits=frozenset({"tests"}),
         improve="always",
@@ -460,7 +518,8 @@ _ROWS = (
         "system-test", "outer",
         goal="run end-to-end and system tests on the real candidate",
         done_when=("every due system test ran on the real candidate, with its output recorded",),
-        test="Run system tests on the assembled candidate; a local pass does not replace a required deployed check. " + CASE_END_STATES,
+        test="Run system tests on the assembled candidate; a local pass does not replace a required deployed check.",
+        cases=True,
         tools="On done, ShipLoop runs every system command system-test-author recorded.",
         complete_runs=("test-rerun",),
         reads=("spec", "system-test-author"),
@@ -475,7 +534,7 @@ _ROWS = (
             "missing product work is routed as replan",
         ),
         test="Assess the product against the original outcome, not only the spec.",
-        reads=("intake", "spec", "system-test"),
+        reads=("intake", "spec", "system-test-author", "system-test"),
         blocks=frozenset({"backchain", "reconciliation"}),
     ),
     Stage(
@@ -515,7 +574,11 @@ _ROWS = (
     Stage(
         "release-verify", "outer",
         goal="verify the release where consumers use it",
-        done_when=("the consumer behaviour is observed where consumers use it",),
+        done_when=(
+            "the consumer behaviour is observed where consumers use it",
+            "this run's outcome.md, environment.md and README.md are written under docs/shiploop, and outcome.md "
+            "fills its ## Learned, ## Key considerations and ## Open for the next run sections",
+        ),
         test="A passing unit suite is not delivery evidence.",
         deploy="Verify the release in the target.",
         tools="On done, ShipLoop runs every consumer check release-plan recorded.",
@@ -550,6 +613,7 @@ def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
     INNER stages from test-spec through integration-verify build the item
     against its step plan, so a goal that proves wrong there goes back to the
     step plan (revise).  OUTER stages route missing product work as replan.
+    A row that prints the case end states gets them here, from its final outcomes.
     """
     names = [row.name for row in rows]
     first, last = names.index("test-spec"), names.index("integration-verify")
@@ -559,6 +623,8 @@ def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
             row = replace(row, outcomes=row.outcomes + ("revise",))
         elif row.phase == "outer":
             row = replace(row, outcomes=row.outcomes + ("replan",))
+        if row.cases:
+            row = replace(row, test=(row.test + " " if row.test else "") + case_end_states(row))
         finished.append(row)
     return tuple(finished)
 

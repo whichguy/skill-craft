@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.58.0
+version: 0.59.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -577,7 +577,9 @@ Improve reviews `skill_na` with the rest of the step plan.
   `improve-complete`. The skill files are the catalog's `skill_surface` (`SKILL.md`,
   `skills/` and `agents/` trees, the host agent-config directories, `AGENTS.md`,
   `CLAUDE.md`, `GEMINI.md`, `.mcp.json`). The way out is the step plan without
-  `skill_na`, because removing the file from `paths` would leave it uncommitted.
+  `skill_na`. Removing the file from `paths` instead does not help: `document`
+  still refuses a changed skill file (below), and integrate commits an undeclared file
+  only when it is documentation, so a skill script would stay uncommitted.
 - `document`'s `done` is refused when the item's real diff touches a skill file.
   This check leaves out `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `.mcp.json`, because
   `document` is told to maintain the agent-instruction files. The way out is `revise`,
@@ -768,7 +770,8 @@ rather than asking you to reread it at every stage.
 
 Every packet is complete, and it lives in a file: ShipLoop writes the full
 packet to `<run>/packets/<action>.md` (an Improve child's packets for the same action go to
-`<action>-improve.md`, so the producer packet that was sent stays on disk) and prints only a short head, with the
+`<action>-improve.md`, and the packet asking for `improve-bind` to `<action>-improve-bind.md`, so the producer packet that
+was sent stays on disk) and prints only a short head, with the
 callback, the goal and done-when, the result path, template and allowed
 outcomes, the packet file's path, the recovery and pause commands and the status
 block. Read the packet file with a file-reading tool before acting; do not print

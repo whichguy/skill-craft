@@ -599,6 +599,9 @@ def main(core, argv=None):
         if name == "improve-commit":
             sub.add_argument("--message", required=True,
                              help="the printed commit-message file, written with a file tool")
+            sub.add_argument("--remote-change", dest="remote_change", action="store_true",
+                             help="record a change to a remote system that left no file change: the message needs a "
+                                  "'Remote change:' section, and with no file pending the commit holds no files")
         if name in ("complete", "improve-bind", "improve-start", "improve-commit", "improve-complete",
                     "improve-reconcile"):
             sub.add_argument("--action", required=True)

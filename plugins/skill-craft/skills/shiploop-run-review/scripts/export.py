@@ -2196,6 +2196,10 @@ FIDELITY_MISSING = ("metrics.json has no fidelity block: it was written before t
 FIDELITY_REASON_PARTS = ("evidence", "validation", "edits", "refusals", "declared")
 FIDELITY_REASON_DROPPED = ("validation.accepted_ran",)
 NO_IMPROVE_PACKET_FILE = "Improve children ran (improve/ holds them) but left no packets/<action>-improve.md file"
+# ShipLoop writes the packet that asks for improve-bind to its own file; a child that stopped before its card was bound
+# leaves only that one, which is no Improve packet to score.
+NO_IMPROVE_PACKET_BOUND = ("Improve children ran (improve/ holds them) but left only packets/<action>-improve-bind.md "
+                           "files: each stopped before its card was bound, so no Improve packet was written")
 OLD_IMPROVE_LAYOUT = ("no packets/<action>-improve.md file, and a packet file holds an Improve child's packet: ShipLoop 1.22.0 or earlier "
                       "wrote one packet file per action, so the Improve child's packets were not kept apart")
 
@@ -2335,11 +2339,11 @@ def _fidelity(metrics: dict, failures: list, count_unmeasured: bool) -> tuple[di
     return {name: part for name, part in parts.items() if part is not None} or None, reasons, classes
 
 
-def _improve_packets(stages: list[dict], children: dict) -> tuple[dict | None, str | None]:
+def _improve_packets(stages: list[dict], children: dict, bind_only: bool = False) -> tuple[dict | None, str | None]:
     """(improvePackets, why it is absent). The labels each Improve child's packet carried, counted over the packets read (`improveCarried`
     on the visit rows). A current-layout run with no Improve child has read 0, a measured none. A run of the old layout (the child's
-    packet replaced the producer's, `packetImprove`), one whose children left no `-improve.md` file and one whose files could not be read
-    have nothing to score and give the reason."""
+    packet replaced the producer's, `packetImprove`), one whose children left no `-improve.md` file (`bind_only`: only an
+    `-improve-bind.md` one) and one whose files could not be read have nothing to score and give the reason."""
     scored = [row["improveCarried"] for row in stages if "improveCarried" in row]
     if scored:
         return {"read": len(scored), "carried": {key: sum(1 for c in scored if c[key]) for key in IMPROVE_KEYS}}, None
@@ -2348,7 +2352,7 @@ def _improve_packets(stages: list[dict], children: dict) -> tuple[dict | None, s
     if any(row.get("packetImprove") for row in stages):
         return None, OLD_IMPROVE_LAYOUT
     if children:
-        return None, NO_IMPROVE_PACKET_FILE
+        return None, NO_IMPROVE_PACKET_BOUND if bind_only else NO_IMPROVE_PACKET_FILE
     return {"read": 0, "carried": {key: 0 for key in IMPROVE_KEYS}}, None
 
 
@@ -2856,7 +2860,8 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             row["evidenceClass"] = evidence_classes[row["action"]]
 
     packet_set, unreadable = packet_docs(key, packets, stages)
-    improve_packets, improve_packets_why = _improve_packets(stages, children)
+    improve_packets, improve_packets_why = _improve_packets(stages, children,
+                                                            any(packets.glob(f"*{IMPROVE_SUFFIX}-bind.md")))
     if improve_packets is not None:
         run["improvePackets"] = improve_packets
     else:
