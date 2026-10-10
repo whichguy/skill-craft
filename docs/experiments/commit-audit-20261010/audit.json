@@ -1,0 +1,692 @@
+{
+ "engine_and_prompts": {
+  "summary": "Short answer for the owner: NO, ShipLoop does not guarantee a detailed, verbose commit at every iteration of every step, and nothing checks message length, shape or content.\n\nI read HEAD 93331d7f of /Users/dadleet/src/skill-craft/.claude/worktrees/b1011z-aaa47e. skills/shiploop and skills/improve have no uncommitted edits. I ran no tests and started no hosts. My scratch scripts are in .../scratchpad/audit-commit/engine/.\n\nWhat the engine does about commits:\n- ShipLoop commits at only five triggers, and every one goes through shiploop_git.commit_paths (SPEC S-12).\n  1. The knowledge home (docs/shiploop and SHIPLOOP.md) after any accepted stage that changed it. The message is script-built.\n  2. One commit per work item, when `integrate` is accepted done. The subject is `feat: <id> <title>` and the body is the model's integrate `summary`.\n  3. `improve-commit`: the model writes the message file and the script commits the files the Improve review changed.\n  4. `commit_leftovers` at plan-return, with the fixed message `chore(shiploop): commit files written after the last work item, before the return`.\n  5. The empty baseline commit.\n- Nothing commits per accepted action, per `implement` step, or per test-loop or quality-loop iteration. Those two loop contracts tell the model not to commit.\n- The only per-iteration commit instruction is for Improve passes. It is text in the Improve card, the frozen `work` string and the packet. The only script check is at the end of the child: `improve-complete` refuses if files the review changed still differ from HEAD. It is not per pass, it fails open if the snapshot is unknown, and `--no-commit=<any nonblank text>` bypasses it.\n- The Until Loop runtime has no commit field in its `done` report and its card admits it does not verify that a commit was made.\n\nOn the \"outer loop\":\n- The engine's formal outer loop is the OUTER stage phase: the nine stages system-test-author through handoff.\n- The per-work-item loop is the INNER loop, 18 stages.\n- The outer loop has no per-stage or per-item commit.\n- Other uses of \"outer\" are \"outer Improve\" (a README term), `shiploop-drive` (\"Outer driver\", a host-session driver), and the SPEC's maintainer iteration loop. That last loop has its own prompt-only \"detailed commit\" rule, which is not engine behaviour.\n- The owner should confirm which one is meant.\n\nThe saved runs agree with this. In 34 saved run worktrees:\n- Knowledge commits are almost all subject-only.\n- Item commits are short.\n- Improve commits often follow the six-section shape, but the shape is voluntary.\n- Some product commits come from model-run `git commit`, which the harness counts as glue.",
+  "findings": [
+   {
+    "id": "F1",
+    "claim": "The engine itself makes commits at exactly five triggers, all through shiploop_git.commit_paths: (a) knowledge home after any accepted stage that changed docs/shiploop or SHIPLOOP.md; (b) one commit per work item when `integrate` is accepted done; (c) `improve-commit` for an Improve review's changes; (d) plan-return leftovers; (e) the empty baseline for a new empty repository. Nothing else commits.",
+    "status": "enforced-by-script",
+    "evidence": [
+     "skills/shiploop/scripts/shiploop_git.py: commit_paths (module docstring: 'ShipLoop's one way to commit (SPEC S-12)')",
+     "(a) shiploop_navigator.py _knowledge_close -> shiploop_knowledge_home.commit; called after save in dispatch for `complete` and `improve-complete`",
+     "(b) shiploop_navigator.py _item_commit -> shiploop_item_scope.commit_item; called after save() in dispatch for `complete`",
+     "(c) shiploop_navigator.py _improve_commit (verb improve-commit)",
+     "(d) shiploop_workspace.py commit_leftovers, called by shiploop_protocol.py main for `workspace plan-return`",
+     "(e) shiploop_workspace.py bootstrap_empty ('Empty baseline for the first ShipLoop run'); _private_commit uses commit-tree for the private baseline",
+     "grep of skills/shiploop/scripts for commit_paths finds only item_scope, knowledge_home, workspace x2, navigator"
+    ]
+   },
+   {
+    "id": "F2",
+    "claim": "A commit per ACCEPTED ACTION (a state.md history row) is absent. Only an accepted `integrate` done triggers an item commit, and a knowledge commit happens only when docs/shiploop or SHIPLOOP.md changed. An accepted action's history row is exactly {stage, outcome, summary, workitem, action}, with no commit field, so no accepted action is linked to a SHA.",
+    "status": "absent",
+    "evidence": [
+     "shiploop_navigator.py _item_commit: skips every row unless row['stage']=='integrate' and outcome=='done' and a workitem",
+     "shiploop_navigator.py validate: history entry keys must equal {'stage','outcome','summary','workitem','action'}; _record_acceptance writes the same five",
+     "shiploop_knowledge_home.py commit: returns an empty Committed when _home_changed is false"
+    ]
+   },
+   {
+    "id": "F3",
+    "claim": "A commit per work item (inner loop) is performed by the script at `integrate` done, from the step plan's declared `paths` plus docs/shiploop. It is best-effort and fail-soft. If the commit raises, `_item_commit` prints a warning to stderr and the stage stays accepted. If nothing changed since the item base, nothing is committed. Changed files not in `paths` are only listed ('Not committed ... Commit the ones the product needs') and never block.",
+    "status": "enforced-by-script",
+    "evidence": [
+     "shiploop_item_scope.py commit_item: 'The model never writes this commit: committing is mechanical (SPEC S-5)'; returns ('',[],[]) when changed_paths is empty; undeclared files are left alone",
+     "shiploop_navigator.py _item_commit: except item_scope.ItemScopeError -> print('ShipLoop integrate: ...; commit the item's files before release.', file=sys.stderr); continue",
+     "Packet text (shiploop_stage_spec.py, stage integrate, field develop, printed under 'Considerations for this stage' by shiploop_navigator.py): 'When this stage is accepted done, ShipLoop commits the item's changed files ... do not write that commit yourself ... It names any other changed file: commit the ones the product needs'"
+    ]
+   },
+   {
+    "id": "F4",
+    "claim": "A commit per step-plan step is absent. `implement` is issued and accepted once per step in the plan's `steps`, each as its own history row, but no step commits and the item commit comes only at `integrate`. Nothing commits per `repeat` or `revise` either.",
+    "status": "absent",
+    "evidence": [
+     "shiploop_navigator.py implement_progress counts accepted `implement` rows per item since the step plan (one packet per step)",
+     "stage_spec 'implement' says 'one reviewed step at a time' and has no commit duty",
+     "_item_commit fires only at integrate"
+    ]
+   },
+   {
+    "id": "F5",
+    "claim": "The two script-counted Until Loop loops inside a stage, the test loop (test-green, regression) and the quality loop (static-checks), do NOT commit per iteration. Their frozen contracts forbid it.",
+    "status": "absent",
+    "evidence": [
+     "shiploop_test_loop.py _contract authority: 'Edit in-scope product code and tests. Never change a check's expected result to get green. Do not commit, push, install or download anything.'",
+     "shiploop_quality.py build_contract authority: 'Do not commit, push, install or download anything, change a check's expected result, or widen scope.'",
+     "The pass-or-stop loop at implement, test-refine and integration-verify is prompt-only text and carries no commit duty"
+    ]
+   },
+   {
+    "id": "F6",
+    "claim": "What an Until Loop ITERATION is: one `done` callback, a report of {classification, exit_assessment, continuation_assessment, evidence, handoff}. The report schema has no commit field. The runtime's exit check is the trivial streak plus, for the one-pass exit, a content-tree comparison of the workspace. A commit is not part of any iteration's exit check, and the runtime card says so.",
+    "status": "absent",
+    "evidence": [
+     "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py _report_schema (required: classification, exit_assessment, continuation_assessment, evidence, handoff); done(): unchanged_first_pass uses _workspace_tree equality",
+     "skills/improve/SKILL.md final paragraph: 'The runtime ... does not independently verify that a commit was made, a test ran, or a semantic judgment is correct.'",
+     "ShipLoop sees only the runtime's receipt packet (latest or terminal) and the last 1-2 review files: shiploop_standalone_improve.py _receipt allows only {summary, review_refs, check_refs, lessons, final_result, no_commit}"
+    ]
+   },
+   {
+    "id": "F7",
+    "claim": "For an Improve pass, a commit is REQUIRED BY PROMPT only. (1) The frozen child contract's `work` text, printed in each runtime packet, says 'Each iteration is one full review ... and commit scoped changes when the iteration changed files.' (2) The ShipLoop packet says 'To commit a review iteration's changes, write the commit message (what the review fixed) to <commit-message.md> ... then run improve-commit', and also 'Changes: change what is warranted ... and commit it'. (3) The Improve card's Commit policy bullet says the body must include Review, Plan, Changes, Validation, Key learnings and Remaining work, with the classification and resulting streak. No script ties a commit to a pass number.",
+    "status": "required-by-prompt-only",
+    "evidence": [
+     "shiploop_navigator.py improve_start_contract: work string and authority 'Commit policy: the selected Improve card's scoped-commit policy ... stage only intended paths ... no empty commit. No push or merge.'",
+     "shiploop_navigator.py Improve packet lines (the 'To commit a review iteration's changes ...' line and the 'Changes: ...' line)",
+     "skills/improve/SKILL.md 'Standalone owner binding' > Commit policy; skills/improve/README.md FAQ 'When are commits made?'; skills/improve/references/callback-evidence.md 'Commit and learning' and 'Decision rationale and learning'",
+     "The packet says to open other Improve sections only when a step needs them; the six-section rule sits in 'Standalone owner binding', not in the 'ShipLoop whole-skill subcall' section the packet tells the model to read",
+     "Packet wording for the message is only '(what the review fixed)'"
+    ]
+   },
+   {
+    "id": "F8",
+    "claim": "What the engine does if an Improve review's edits are not committed: it REFUSES `improve-complete` once, at the end of the child. It compares the tree at improve-bind with now, and refuses if files the review changed still differ from HEAD. Limits: it checks files, not commits or passes (one commit at the end satisfies it); it fails open when the bind snapshot or Git is unavailable; and any nonblank `--no-commit` text bypasses it with no verification.",
+    "status": "enforced-by-script",
+    "evidence": [
+     "shiploop_improve_changes.py review_changes (returns None 'when unknown') and commit_refusal ('' when changes is None, nothing pending, or receipt no_commit is nonblank)",
+     "shiploop_navigator.py _improve_change_gate, called in dispatch at improve-complete before standalone.complete",
+     "shiploop_navigator.py _derived_improve_receipt: no_commit = str(args.no_commit)",
+     "skills/shiploop/SKILL.md: 'refuses the import while files the review changed still differ from HEAD ... A receipt no_commit reason, citing the user's or repository's instruction'"
+    ]
+   },
+   {
+    "id": "F9",
+    "claim": "improve-commit's message gate checks only: the file is exactly the printed path, it exists, it is not a symlink, it is nonempty after strip, and it passes the credential screen. There is NO length, section, subject-shape or content check. A one-line message passes, and the unit test uses a two-line message. A no-change pass cannot be committed: `commit_paths` is called without allow_empty and `_improve_commit` prints 'Nothing to commit'.",
+    "status": "enforced-by-script",
+    "evidence": [
+     "shiploop_navigator.py _improve_commit: _need(bool(message), 'the commit message file is empty'); _reject_credentials(message, ...); no other check on message",
+     "shiploop_git.py commit_paths takes -F message_file; no validation",
+     "test/shiploop-actual-improve-cli.test.py test_improve_commit_commits_only_the_reviews_uncommitted_changes: message 'docs: tighten the contract example\\n\\nReview found a vague example.' is accepted; asserts 'Nothing to commit' with no change",
+     "grep of skills/shiploop and test for 'Key learnings' finds no script or test asserting the six sections"
+    ]
+   },
+   {
+    "id": "F10",
+    "claim": "The Improve card's opt-in 'audit-commit-every-iteration' mode (one authorized audit commit per completed review, an identified empty commit for a no-change review) is NOT wired into ShipLoop. ShipLoop's frozen Improve contract says 'no empty commit', and `_improve_commit` cannot create one.",
+    "status": "absent",
+    "evidence": [
+     "skills/improve/SKILL.md Commit policy: 'An explicit audit-commit-every-iteration request requires one authorized audit record commit for every completed review; a no-change review uses an identified empty audit commit'",
+     "shiploop_navigator.py improve_start_contract authority: '... no empty commit.'",
+     "shiploop_navigator.py _improve_commit: 'Nothing to commit' branch returns 0; commit_paths(allow_empty) is used only by bootstrap_empty",
+     "grep -i 'audit.commit' over skills/shiploop finds nothing"
+    ]
+   },
+   {
+    "id": "F11",
+    "claim": "Message requirements by origin. Knowledge commits: the script composes `docs(shiploop): record <feature> knowledge at|after <stage>`. Only `release-verify` gets a body, taken from outcome.md sections Learned / Key considerations / Open for the next run. The script refuses `release-verify` done while any of the three is EMPTY (nonempty is the whole check), and the packet text says 'written in detail'. Item commits: the body is the model's `integrate` summary, validated only as nonblank text. Leftovers, baseline: fixed one-line messages.",
+    "status": "enforced-by-script",
+    "evidence": [
+     "shiploop_knowledge_home.py commit (message and release-verify body from learnings()); check(): 'Write these sections in .../outcome.md, in detail; they become this run's learnings commit' raised only when a section body is empty",
+     "shiploop_knowledge_home.py stage_lines for release-verify: 'outcome.md must have ... sections written in detail ... ShipLoop commits them as the run's learnings commit message'",
+     "shiploop_navigator.py _item_commit message = 'feat: <id> <title>\\n\\n<row summary>'; _canonical_result summary = _text(...) (nonempty only)",
+     "shiploop_workspace.py commit_leftovers message literal; bootstrap_empty literal"
+    ]
+   },
+   {
+    "id": "F12",
+    "claim": "Is there ANY check of commit-message length, shape or content? Only these: nonempty plus no credential (improve-commit); the three release-verify outcome.md sections nonempty; the integrate summary nonblank; the privacy screen skips credential-looking FILES from a commit. Nothing checks length, a subject format, required sections, or that a body exists. The repo's only message-level script, scripts/check-release-boundary.py, inspects trailers (Skill-Craft-Release, No-Change-Note) for skill-craft maintainers' commits, not message detail and not ShipLoop runs.",
+    "status": "absent",
+    "evidence": [
+     "shiploop_git.py commit_paths and shiploop_navigator.py _improve_commit (above)",
+     "scripts/check-release-boundary.py: TRAILER_LINE / trailers() only",
+     "Script commits run `git -c core.hooksPath=/dev/null` (shiploop_git.git; shiploop_knowledge_home._git), so a repository commit-msg hook never runs on ShipLoop-made commits"
+    ]
+   },
+   {
+    "id": "F13",
+    "claim": "Engine behaviour when the model does not commit, by stage: improve-commit gap -> improve-complete REFUSED once (F8). `integrate` -> the script commits declared paths itself, and undeclared files only get a printed note (no refusal). Any other stage -> nothing is checked or warned. Leftover product files -> plan-return silently commits them under the generic chore message, or falls back to a working-tree return if the review excludes them. Handoff -> requires a verified workspace return, not a commit.",
+    "status": "enforced-by-script",
+    "evidence": [
+     "shiploop_navigator.py _improve_change_gate; _item_commit prints only",
+     "shiploop_workspace.py commit_leftovers and RETURN_POLICY; execute_return uses `git merge --ff-only` only for a clean committed candidate",
+     "shiploop_protocol.py workspace_completion_guard ('handoff requires a verified workspace return')",
+     "skills/shiploop/README.md: 'the original branch receives nothing after an individual item'; commits stay in the execution checkout until the final return"
+    ]
+   },
+   {
+    "id": "F14",
+    "claim": "ShipLoop records no commit SHA anywhere in its durable state for these commits: not in a state.md history row, not in the Improve receipt, and not in progress or report data. Verification of 'a commit exists per iteration' therefore cannot be done from ShipLoop's own record. It would need `git log` against the worktree.",
+    "status": "absent",
+    "evidence": [
+     "shiploop_navigator.py history entry keys (F2); shiploop_standalone_improve.py _receipt allowed fields (F6)",
+     "grep -i commit over shiploop_progress_data.py, shiploop_narrative.py, shiploop_context_index.py finds nothing",
+     "shiploop_navigator.py _item_commit and _improve_commit only print the SHA to stdout"
+    ]
+   },
+   {
+    "id": "F15",
+    "claim": "Terminology. INNER loop = the per-work-item loop (stage_spec phase 'inner': get-next-work-item ... carry-forward, 18 stages; state key inner_loops; stage cursor 'inner-loop'). OUTER loop = stage_spec phase 'outer': system-test-author, system-test, product-acceptance, release-plan, release-check, release, release-verify, operations, handoff (9 stages), run once unless `replan` reopens it. Every use of 'outer' found: navigator.md 'Outer loop: root owns the cursor' plus the Inner/Outer comparison table; context-index.md heading '## Outer loop' (shiploop_context_index.py); outcomes 'replan, outer only' and 'the outer loop takes corrective work items'; README / workspace-lifecycle 'outer Improve' (reviews at system-test-author and release-plan, plus the last carry-forward end-of-work review that precedes the OUTER phase); keepalive.md and shiploop_keepalive.py call scripts/shiploop-drive an 'Outer driver for unattended runs' (a host-session driver, unrelated to delivery); research-loop.md 'outer-loop delivery'. A different candidate exists outside the engine: test/shiploop_e2e/SPEC.md's maintainer iteration (run a case, measure, fix, release, rerun, 'record what was learned (one commit per run ...)').",
+    "status": "observed-in-runs",
+    "evidence": [
+     "shiploop_stage_spec.py PHASES, OUTER, INNER, _check_table (34 stages)",
+     "skills/shiploop/references/navigator.md 'Whole-run map' and the Inner/Outer table",
+     "skills/shiploop/references/keepalive.md Parts table; scripts/shiploop_keepalive.py module docstring",
+     "skills/shiploop/README.md ('System checks and outer Improve evaluate the assembled candidate before final return')",
+     "test/shiploop_e2e/SPEC.md 'Each iteration: run a case ...' paragraph"
+    ]
+   },
+   {
+    "id": "F16",
+    "claim": "Commits in the OUTER loop: there is no item commit (integrate is inner only) and no commit at system-test-author, system-test, product-acceptance, release-check, release, operations or handoff as such. Outer-loop commits come only from (i) knowledge commits at release-plan / release-verify (and any stage changing docs/shiploop), (ii) Improve children at system-test-author and release-plan via improve-commit, and (iii) commit_leftovers at plan-return with the generic chore message (the release-plan packet tells the model to run plan-return as a dry run, which may commit leftovers). The final return is a fast-forward of the run branch (no new commit) or a working-tree return (no commit). So system tests and release notes written in outer stages have no script commit with a meaningful message.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "shiploop_navigator.py _item_commit gate; shiploop_prompts.py release-plan text ('plan-return may commit leftover product files to the run branch')",
+     "shiploop_knowledge_home.py CLOSES (prepare, test-spec, release-plan, release-verify); comment: 'a commit at handoff would miss the return and stale its receipt'",
+     "/Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet/.shiploop-runs/work-20261009-062005-7d0dcc/worktree: commit 9e28b73 'Add system tests that play a game against the real server process' has no body and was made by the model (metrics.json model_glue lists 'git commit/add by the model' twice)",
+     "Across 34 saved worktrees there are 7 `chore(shiploop)` leftovers commits, all with no body"
+    ]
+   },
+   {
+    "id": "F17",
+    "claim": "Observed commit shapes in the 34 saved run worktrees under /Users/dadleet/e2e-runs (20261003 to 20261009, 513 unique commits). Knowledge commits: 301, only 26 with a body (the release-verify learnings). Item commits: 30, all with a body of 129-620 chars (median 285), which is the integrate summary, not a changelog. Leftovers: 7, no body. Baseline: 33. 'Other' commits (Improve reviews via improve-commit plus model-run `git commit`; not separable by author alone): 142, of which 103 have a body and 39 are subject-only. 61 of the 142 carry all six Improve sections (median body 799 chars; 45 mention trivial or classification and 49 mention the streak).",
+    "status": "observed-in-runs",
+    "evidence": [
+     "scratch scripts .../scratchpad/audit-commit/engine/tally4.py and tally5.py (git log only; recomputed and reconciled)",
+     "r3-battleship-sonnet example: Improve commits 613e7bb and d562858 and 7e11860 have Review/Plan/Changes/Validation/Key learnings/Remaining work but no classification or streak; 65cd022 'feat: W1 ...' body says 'README.md (not in step-plan paths) committed separately'; a7c16af release-verify body holds Learned / Key considerations / Open for the next run",
+     "Same run: 8 Improve children, 5 ended on an unchanged first pass (no commit by design) and 3 ended on two trivial passes; 3 Improve review commits exist (derived from improve/<action>/terminal.json progress.unchanged_first_pass and evidence/ review files)"
+    ]
+   },
+   {
+    "id": "F18",
+    "claim": "Script commits and model commits differ in identity, and model-run `git commit` still happens despite the packet saying not to for knowledge files and the item. The harness counts it as glue (SPEC S-4/S-5). The reason for the author difference (script commits 'ShipLoop Workspace', model commits 'Jim Wiese') was not verified.",
+    "status": "unclear",
+    "evidence": [
+     "shiploop_git.py identity_env: workspace identity used only when the repo has no user.email",
+     "/Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet/metrics.json model_glue entries; commits de38128 and 9e28b73 authored 'Jim Wiese', subject-only",
+     "test/shiploop_e2e/SPEC.md S-4: 'git commit' by the model counts as shell glue the script should own"
+    ]
+   },
+   {
+    "id": "F19",
+    "claim": "Commit messages are used as a durable learning channel. Intake and discovery packets quote the last three commit messages ('Inherited learnings'), and the Improve card requires reading the last seven full messages at each active callback. The quoting is script-enforced; the Improve history read is prompt-only.",
+    "status": "enforced-by-script",
+    "evidence": [
+     "shiploop_knowledge_home.py recent_commits(count=3) and stage_lines (stages intake, discovery)",
+     "skills/improve/SKILL.md 'History window' bullet (prompt)"
+    ]
+   },
+   {
+    "id": "F20",
+    "claim": "The maintainer-loop rules about detailed commits (SPEC: 'record what was learned (one commit per run; read the last three commit messages ...)' and 'After each run, record learnings in LEARNINGS.md with a detailed commit that names the suite, the case, and the clauses') are prompt/spec text for the people and agents improving ShipLoop. The SPEC header says the harness loads the file into reviewer and improver prompts. Whether any harness code checks those commits was not verified, since it is outside the engine angle.",
+    "status": "required-by-prompt-only",
+    "evidence": [
+     "test/shiploop_e2e/SPEC.md intro and the harness rules at the end",
+     "scripts/check-release-boundary.py checks only trailers (F12)",
+     "~/.claude/CLAUDE.md in this session also demands verbose prompt-change commits (prompt-only)"
+    ]
+   }
+  ],
+  "gaps": [
+   "A commit per accepted action (state.md history row) does not exist: no code path commits at most stages, and the history row carries no commit field. Doing it would need a script-owned commit step per accepted action plus a recorded SHA.",
+   "A commit per step-plan step (each `implement` packet) does not exist. The item commit is one commit per whole work item, at `integrate`.",
+   "A commit per test-loop or quality-loop iteration is forbidden by those contracts' authority text ('Do not commit ...'). Allowing it needs a changed authority plus a script commit route like improve-commit, and a decision on how a red iteration would be committed.",
+   "A commit per Improve pass is not enforced. ShipLoop cannot see passes: the runtime keeps only its latest packet, and ShipLoop imports the last 1-2 review files. The gate is once per child, on files rather than commits, and fails open when the snapshot is unknown. `--no-commit` accepts any nonblank text. A real per-pass check needs pass-numbered commit receipts (a SHA recorded per pass in the review file or an improve-commit ledger) and an improve-complete check that every changing pass has one.",
+   "No-change Improve passes get no commit by design. The Improve card's audit-commit-every-iteration mode is not wired in: the ShipLoop contract says 'no empty commit' and `_improve_commit` has no allow_empty route.",
+   "No commit-message gate exists anywhere: no minimum length, no required sections (Review/Plan/Changes/Validation/Key learnings/Remaining work), no classification or streak line, no subject format. Only nonempty plus credential screen, and the three nonempty release-verify sections. The item commit body is the model's integrate summary, so it is only as detailed as that summary. A gate would need to be added in `_improve_commit`, in `_item_commit` (for example by building the body from structured result fields), and in knowledge `commit`.",
+   "The Improve six-section message rule lives only in the Improve card sections that the ShipLoop packet tells the model to open 'only when a step needs them'. The packet itself says only '(what the review fixed)'. Runs show the rule is usually followed (61 of 142), but nothing in the packet guarantees it is read.",
+   "The OUTER loop has no per-stage or per-item commit. Files written at system-test-author and release-plan are committed only by an Improve review, the generic leftovers chore commit, or model glue. A detailed 'outer loop' commit does not exist. A run-level summary commit at handoff is hard to add because it would stale the return receipt (see the knowledge_home comment).",
+   "ShipLoop-made commits skip repository git hooks (core.hooksPath=/dev/null), so a repository-level commit-msg hook cannot enforce verbosity on them.",
+   "No SHA is recorded in state.md history, the Improve receipt, or the progress report, so 'one commit per iteration' cannot be audited from ShipLoop's own record. Any audit needs `git log` on the run worktree.",
+   "Not verified: (1) which published plugin version each saved run (20261003 to 20261009) used. The engine I read is the batch1011 integration HEAD, and older runs may predate improve-commit or the release-verify body. (2) Whether the E2E harness (test/shiploop_e2e) or the shiploop-e2e-audit skill checks commit messages. The harness has a 'committed' verdict, and other angles should cover it. (3) The cause of the 'Jim Wiese' versus 'ShipLoop Workspace' author split. (4) Whether the Improve children actually read the six-section rule in every run; I only counted the message shapes. (5) Whether the owner means the INNER/OUTER stage phases, 'outer Improve', `shiploop-drive`, or the maintainer iteration loop by 'outer loop'. This needs the owner's confirmation."
+  ],
+  "numbers": [
+   "Stages: 34 = prelude 7 + inner 18 + outer 9 (shiploop_stage_spec._check_table).",
+   "Script commit triggers in the engine: 5 (knowledge home, item at integrate, improve-commit, plan-return leftovers, empty baseline).",
+   "Saved run worktrees scanned: 34 under /Users/dadleet/e2e-runs/2026100{3..9}/*/.shiploop-runs/*/worktree; unique commits: 513.",
+   "Knowledge commits: 301 (26 with a body). Item commits: 30 (30 with a body; 129-620 chars, median 285). Leftovers: 7 (0 with a body). Baseline: 33 unique. Other: 142 (103 with a body, 39 subject-only, 61 with all six Improve sections).",
+   "Of the 61 six-section commits: 45 mention trivial or classification, 49 mention streak, median body 799 chars, max 2,429.",
+   "r3-battleship-sonnet: 8 Improve children, 5 ended on an unchanged first pass, 3 on two trivial passes; 3 Improve review commits; 2 model-run 'git commit' (harness model_glue); 1 item commit; 3 knowledge commits with a body only at release-verify.",
+   "Improve exit rule: required_trivial_reviews=2, or one pass if the first is trivial and the runtime sees an unchanged tree; improve-complete imports the last 1 or 2 review-<n>.md files only."
+  ]
+ },
+ "outer_loop_and_own_practice": {
+  "summary": "Short answer for the outer loop: no, under either reading, an iteration does not always produce a commit, and the commit messages are detailed only where the owner's rules are carried by a model-written message or a script-built template. No commit-message check runs anywhere in this repo or in CI.\n\nWHAT THE OUTER LOOP IS. I could not verify the owner's intent, so the following is inference. ShipLoop defines the term itself. skills/shiploop/references/navigator.md (\"Whole-run map\", with an Inner/Outer table) makes the Inner loop the per-work-item stages (get-next-work-item through carry-forward). It makes the Outer loop the stages system-test-author, system-test, product-acceptance, release-plan, release-check, release, release-verify, operations and handoff, which run once unless `replan` reopens them. There is a second candidate. The owner's memory notes (commit-learnings-and-read-last-three, e2e-run-commit-learnings, loop-state-2026-10-09) and test/shiploop_e2e/SPEC.md (\"Each iteration: run, measure, review, fix ShipLoop generically, release, rerun, record what was learned (one commit per run...)\") describe the improvement loop. That is run E2E, analyse, batch fixes, merge, release, rerun, bounded to 3 rounds, and test/shiploop_e2e/iterate.py scripts it. Given the wording \"orchestrator ... as well with the outer loop\" and the memory notes, the improvement loop is the more likely meaning. ShipLoop's Outer-loop stages are the second guess.\n\n(A) SHIPLOOP'S OUTER LOOP. Commits are script-owned or model-written only at a few points, and none is made per outer stage. Checked on /Users/dadleet/e2e-runs/20261008/r3-battleship-sonnet and r3-checkers-sonnet (ShipLoop 0.58.0, plugin 1.26.0):\n- r3-battleship: 36 accepted actions and 15 commits (1 baseline).\n- r3-checkers: 38 accepted actions and 15 commits (1 baseline).\n- Outer-stage commits are knowledge-home commits, a generic leftover commit, hand-commits by the model, and the learnings commit at release-verify.\n\n(B) THE IMPROVEMENT LOOP, git history of origin/main (5e22fd10) since 2026-10-06 00:00 local:\n- 239 commits: 222 non-merge and 17 merges.\n- Of the non-merge commits, 5 are script-generated release commits and 217 are ordinary.\n- 214 of the 217 (99%) have a body, with median body length 2,457 characters.\n- Prompt-changing commits meet the CLAUDE.md rule in substance, with one clear miss (cc705b9d) and one borderline (bf958708).\n\nTHIS SESSION'S BATCH 1011. 104 commits (99 non-merge, 5 merges), none touching prompts.\n- They are verbose and rich in evidence.\n- They do not use the owner's \"Key learning / Related commits\" form.\n- 59% of the non-merge commits cite no earlier commit by sha.\n- Details are in the findings below.\n\nENFORCEMENT. Nothing enforces the message rules. The skill-craft repo has no active git hooks, CI does not check message shape, and the global ~/.claude pre-commit hook guards only the ~/.claude repo.",
+  "findings": [
+   {
+    "id": "F1",
+    "claim": "ShipLoop's own definition of 'outer loop' is the post-work-item release stages. The owner most likely means the improvement loop (E2E run, analyse, fix, release, rerun) or iterate.py. This is inference.",
+    "status": "unclear",
+    "evidence": [
+     "skills/shiploop/references/navigator.md: 'Whole-run map' subgraph OUTER (system-test-author ... handoff) and the Inner/Outer table ('once, unless replan reopens it').",
+     "skills/shiploop/README.md section 'Navigator: producer, Improve child, then transition' repeats the prelude / per-item inner loop / outer loop split.",
+     "test/shiploop_e2e/SPEC.md paragraph beginning 'Each iteration: run a case on exactly what the marketplace publishes...' and test/shiploop_e2e/iterate.py module docstring (build, run, review, record, improve, verify) describe the owner's loop.",
+     "Memory notes commit-learnings-and-read-last-three and e2e-run-commit-learnings ask for a detailed learnings commit after each iteration or run, which matches the improvement loop."
+    ]
+   },
+   {
+    "id": "F2",
+    "claim": "(A) ShipLoop's Outer-loop stages do not each commit. The only commit sources there are: an Improve child's pass that changed files (system-test-author, release-plan), script-owned knowledge-home commits, a generic leftover commit at plan-return, the run-end learnings commit at release-verify, and hand-commits by the model.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "r3-battleship-sonnet: 36 accepted actions, 15 commits = 1 baseline + 3 Improve + 8 knowledge + 1 'feat: W1' + 2 model hand-commits (de38128, 9e28b73 'Add system tests that play a game against the real server process', one-line subject).",
+     "r3-checkers-sonnet: 38 accepted actions, 15 commits = 1 baseline + 6 Improve + 6 knowledge + 1 feat + 1 leftover (af3a19e 'chore(shiploop): commit files written after the last work item, before the return', 81 chars, holds system/http-smoke.js and system/ui-click.js).",
+     "system-test, product-acceptance, release-check, release, operations and handoff produce no commit of their own in either run. Release is the guarded fast-forward return, which adds no commit.",
+     "Code: skills/shiploop/scripts/shiploop_navigator.py _item_commit acts only on stage integrate with a workitem; _knowledge_close commits only when docs/shiploop or SHIPLOOP.md changed; skills/shiploop/scripts/shiploop_workspace.py commit_leftovers has a fixed generic message."
+    ]
+   },
+   {
+    "id": "F3",
+    "claim": "(A) Work-item loop: one script-owned commit per integrated item at integrate. It exists reliably but its message is thin: 'feat: <WI> <title>' plus the model's integrate summary, with no length or learning check. A failed commit does not block acceptance.",
+    "status": "enforced-by-script",
+    "evidence": [
+     "shiploop_navigator.py _item_commit builds message 'feat: <workitem> <title>' + row summary and calls skills/shiploop/scripts/shiploop_item_scope.py commit_item, which calls shiploop_git.commit_paths. On ItemScopeError it prints to stderr and continues.",
+     "Only files in the step plan's declared paths are committed; the others are named as 'Not committed'.",
+     "Observed bodies: 65cd022 (349 chars) and d0079fd (294 chars), a single paragraph saying files are assembled and which are committed, with no learnings.",
+     "Saved runs: v1220 Grok-none and r2 Grok-none have 2 items and 2 feat commits. v1190-hello-sonnet-2 and s6-inside-test-strategy integrated W2 with no 'feat: W2' commit; I did not check why."
+    ]
+   },
+   {
+    "id": "F4",
+    "claim": "(A) Improve loop iterations (outer children system-test-author and release-plan, and the planning stages): a pass commits only if it changed files. The six-section body (Review, Plan, Changes, Validation, Key learnings, Remaining work) is required by prompt text only. No script checks its shape.",
+    "status": "required-by-prompt-only",
+    "evidence": [
+     "skills/improve/SKILL.md 'Commit policy': body 'must include Review, Plan, Changes, Validation, Key learnings, and Remaining work'. Same sentence in skills/improve/runtime/until-loop/references/runtime-ephemeral.md (authority example). A no-change review 'gets an honest host record, not a manufactured edit or empty commit' unless the user asks for an audit commit every iteration.",
+     "Script side: shiploop_navigator.py _improve_commit requires a non-empty commit-message.md and runs _reject_credentials; shiploop_improve_changes.py commit_refusal and _improve_change_gate refuse the import at improve-complete only if the review left its own edits uncommitted and no receipt no_commit reason exists. That is once per child, not per pass.",
+     "grep for 'Key learnings' and 'Remaining work' in skills/**/scripts, the Until Loop runtime and test/*.test.py finds no shape check.",
+     "r3-battleship: 14 Improve passes (terminal.json progress.action_number: 3,1,1,1,3,3,1,1) gave 3 commits (613e7bb, d562858, 7e11860). r3-checkers: 19 passes gave 6 commits. Each changing pass has a six-section commit (9 of 9); the 11 and 13 no-change passes made none. That matches the policy but is not 'every iteration commits'.",
+     "The nine commit bodies are 339-628 chars. None cites a prior commit sha; the policy asks for citation only 'when they materially informed a decision'.",
+     "Compliance varies by run and version: v1230-battleship-sonnet (1.22.0) 7 Improve-type commits with 0/6 sections; r1 (1.24.0) battleship 3 and checkers 4 commits with no body; v1220-battleship-sonnet 6 with 6/6; r2-checkers (1.25.0) 8 with 6/6."
+    ]
+   },
+   {
+    "id": "F5",
+    "claim": "(A) Inner test-loop and quality-loop iterations never commit by design. Their fixes ride into the single item commit, and the item commit's message does not mention them.",
+    "status": "absent",
+    "evidence": [
+     "skills/shiploop/scripts/shiploop_test_loop.py and skills/shiploop/scripts/shiploop_quality.py authority text: 'Do not commit, push, install or ...'. Stage text in shiploop_stage_spec.py: the item commit is ShipLoop's.",
+     "r3-battleship static-checks: iteration 1 found and fixed a server crash on a malformed request target. It sits in 65cd022 ('feat: W1 ...'), whose body does not mention it. The finding appears only in a7c16af (release-verify Learned section)."
+    ]
+   },
+   {
+    "id": "F6",
+    "claim": "(A) The terminal learnings commit is script-built and enforced non-empty. At release-verify, ShipLoop commits the knowledge home with body = the Learned, Key considerations and Open for the next run sections of outcome.md. Other knowledge commits are one-line subjects. Intake and discovery packets show the last three commit messages.",
+    "status": "enforced-by-script",
+    "evidence": [
+     "skills/shiploop/scripts/shiploop_knowledge_home.py: commit() builds 'docs(shiploop): record <feature> knowledge at|after <stage>' and, for release-verify, appends learnings(); check() refuses release-verify while any of the three sections is empty. Nothing checks 'in detail' beyond non-empty.",
+     "stage_lines() prints 'Inherited learnings: the last 3 commit messages' at intake and discovery via recent_commits(). Nothing verifies that the model uses them.",
+     "Observed: a7c16af (1,634 chars) and 70f11aa (1,266 chars). The other knowledge commits (e.g. 5f42b3f, d1311a5) are one-line subjects."
+    ]
+   },
+   {
+    "id": "F7",
+    "claim": "(B) The owner's manual 3-round improvement loop produced detailed learnings commits in the owner's form, except round 2, whose evidence was not committed until after round 3. Release commits are script-generated with no body, and 9 of 17 merge commits have no body.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "Round 1: 847fa64e (2026-10-08 11:54): 'Key learnings (n=1 per cell)', 'Evidence: docs/experiments/round1-20261008/evidence.json ...', 'Related commits: 587cd90d (1.24.0), abc47622, 5e209285'. Adds a LEARNINGS.md entry plus evidence.",
+     "Rounds 2 and 3: one commit, 1854938b (2026-10-09 00:25), after release 1.26.0 (200c32ce at 2026-10-08 23:18). Round 2 follows 1.25.0 (ea6ce8ce, 17:19), so its evidence waited about 7 hours. LEARNINGS.md has one combined entry 'Rounds 2 and 3 ...'. The memory rule says commit after each run.",
+     "Corrections were committed separately: 923a3bd6, 5e22fd10.",
+     "scripts/release.py cut(): git commit -m 'release: <summary>' -m 'Skill-Craft-Release: ...'. All 5 release commits (45f163d0, 8a198cdd, 587cd90d, ea6ce8ce, 200c32ce) have only subject and trailer.",
+     "Merge bodies: 17 merges, 9 with no body, 5 with 400 chars or more (the five batch-1011 group merges)."
+    ]
+   },
+   {
+    "id": "F8",
+    "claim": "(B) Aggregate message quality on origin/main since 2026-10-06 00:00 local is high. Structured sections and cited shas are less uniform.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "239 commits = 222 non-merge + 17 merges. Non-merge: 5 release + 217 ordinary, all by 'Jim Wiese'; 202 carry a Claude Sonnet 5.5 Co-Authored-By trailer and 15 an Opus 5.5 one.",
+     "Of the 217 ordinary commits: body 214 (99%); body >= 400 chars 209 (96%); >= 800 chars 196 (90%); >= 1500 chars 165 (76%); median 2,457, max 8,440.",
+     "Numbers AND a file/run name in the body 172 (79%); real short sha of an existing commit cited 149 (69%); a learning/lesson/root-cause word 111 (51%); explicit 'Key learning' label 86 (40%); 'Related commits' label 76 (35%). These are regex heuristics, validated by reading.",
+     "Last 150 non-merge commits (back to ea9d4b10, 2026-10-08 13:31): body 99%, >= 800 chars 88%, sha cited 58%, learning word 42%.",
+     "Per day, sha cited: 10-06 100%, 10-07 74%, 10-08 95%, 10-09 42%. The drop on 10-09 is the harness batch 1011 commits."
+    ]
+   },
+   {
+    "id": "F9",
+    "claim": "(B) Prompt-changing commits meet the CLAUDE.md rule in substance, except one clear miss and one borderline. The rule asks for a verbose message with the key learning, evidence (numbers and file) and related commits.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "Candidate set, non-release commits since 2026-10-06: 28 touching skills/**/prompts, shiploop_prompts.py, skills/*/SKILL.md or agents/*.md (strict); 8 more touching skills/*/references/*.md or shiploop_stage_spec.py (broad); 7 packet-text changes in other scripts (6049ae17, 62b6ac89, cc705b9d, 1f5006e7, 3a7bc9f4, 4fc3b3b8, 44427a98). Total 43.",
+     "Explicit-marker check (key-learning / evidence / related-commits wording): 40 of 43 have all three. Three flagged were read by hand.",
+     "Does NOT meet: cc705b9d 'fix(shiploop): the backchain-check refusal carries the wording both batch-3 groups pinned'. Body is 330 chars, no key learning, no numbers or evidence file, no commit sha (only batch labels).",
+     "Borderline: bf958708 'refactor(shiploop): stage select-work is now get-next-work-item ...'. It has no key-learning label. It does give the audit figure (56 files, 156 hits), a failing-test reference and 4 related shas. It is a rename, so the learning is thin.",
+     "Met in substance despite flags: 44427a98 ('failed on 42 packets before the change'), c27081e5, 2cb2a9e4 (matched by the strict path pattern only because they edit a SKILL.md or prompt text), c38f6887, ba908889, bc1d6452, 44137a15.",
+     "5 release commits regenerate plugins/ prompt copies and SKILL.md version fields with subject and trailer only. They are script-generated, and the originating commits carry the message."
+    ]
+   },
+   {
+    "id": "F10",
+    "claim": "This session's batch 1011 work (5 group branches batch1011m/n/o/p/q plus integration): the CLAUDE.md prompt-commit rule did not apply, since no commit touched prompts. The commits are verbose and evidence-rich but do not follow the owner's key-learning / related-commits form.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "Range 30a3b40a..batch1011-integration-aaa47e = 104 commits (99 non-merge + 5 merges). Files touched: test/fixtures (726), test/shiploop_e2e (18), docs/experiments (10), tests. No skills/, agents/ or prompt file.",
+     "Branch mapping from merge parents: m=G1 d46bdc9e (17 commits), n=G2 ceebbe17 (19), q=G3 64d9d1fa (14), o=G4 35aef538 (17), p=G5 595982fe (14). All five are fully merged into origin/main (0 commits ahead). The integration branch is 1 commit ahead (93331d7f, 2026-10-10 08:05).",
+     "Read 25 of them in whole or in part: 10191f97, 0e60619e, fa66adba, 5e4e810a, 41519e06, 35aef538, 9a64f5aa, 18bd076e, d7489986, 056a16be, 3519a1d1, 318d507f, 7604de03, 4337522a, e8a1787c, 073fd4dd, a4fb11b4, 8a0d19ce, 558eea54, 37c6ae0b, 5e22fd10, 93331d7f, d46bdc9e, 35f00458, a027227f.",
+     "Classifier on all 99 non-merge: body 99 (100%); >= 800 chars 89 (90%); median 2,483; numbers + file/run 79 (80%); real sha cited 41 (41%). Of those, 4 cite only pre-batch commits, 28 only in-batch ones, 9 both. 58 (59%) cite no commit.",
+     "Explicit 'Key learning' label 0/99; 'Related commits' label 2/99. For comparison the same window before batch 1011 has 72% and 62%.",
+     "The sampled messages state cause, evidence, mutants, test counts and 'Not verified'. Example: 93331d7f gives CI run 37997227578 and a reproduced cause. 41519e06 (197 chars), 35aef538 (290) and 9a64f5aa (361) are the three short bookkeeping commits.",
+     "Journal rule 'update it in the same commit as the result': of 60 harness-code commits, 8 also touch a journal or LEARNINGS file and 52 do not. 18 commits are journal-only follow-ups. A journal entry that cites its own commit cannot sit in that commit, so this is an observation, not a clear breach.",
+     "Co-Authored-By: 84 commits Sonnet 5.5, 15 commits Opus 5.5 (e.g. 5e4e810a). I did not verify who authored the Opus ones."
+    ]
+   },
+   {
+    "id": "F11",
+    "claim": "None of the commit-message rules is enforced by any hook, CI job or test in this repo. The rules live in CLAUDE.md, the memory notes, SPEC/README prose and prompts.",
+    "status": "absent",
+    "evidence": [
+     "/Users/dadleet/src/skill-craft/.git/hooks contains only *.sample. core.hooksPath is unset for the repo, the worktree and the global git config (git config --show-origin --get-regexp 'hooks' returned nothing). There is no commit-msg, pre-commit or pre-push hook.",
+     "/Users/dadleet/.claude/.githooks/pre-commit refuses more than 50 staged files, wired only by core.hooksPath in the ~/.claude repo. It does not look at messages.",
+     "ShipLoop's own commits run with hooks disabled: skills/shiploop/scripts/shiploop_git.py git() passes '-c core.hooksPath=/dev/null'.",
+     "CI (.github/workflows/ci.yml): plan, checks (hermetic groups), release-boundary, hermetic. scripts/check-release-boundary.py checks only the Skill-Craft-Release trailer, the No-Change-Note trailer, a changes/<leaf>/*.md note per skill change, trailer placement, and a release commit's output against source. test/ci_policy.py uses the release trailer only to choose the tier.",
+     "~/.claude/settings.json hooks (plan-oversight soft_exit, residual_exit_nudge, iteration, post_impl_residual) and the skill-craft host hooks (status-display, keepalive-observe, keepalive-stop) contain no commit-message logic (grep 'commit' in the four plan-oversight scripts found nothing).",
+     "AGENTS.md says 'Land PRs by merge or rebase, never squash'. CI cannot enforce it."
+    ]
+   },
+   {
+    "id": "F12",
+    "claim": "The only scripted per-iteration learnings commit is test/shiploop_e2e/iterate.py. It has produced no commit in main's history.",
+    "status": "not-observed-in-runs",
+    "evidence": [
+     "iterate.py learnings_message() builds a long structured message (outcome, reviewer findings, harness questions, 'Built on the learnings of <shas>'). record_learnings() commits it with git commit -F. review.last_commit_messages() feeds the last three messages to the reviewer and the improver prompt.",
+     "improver_prompt() requires an adversarial record in the improver's commit message and a Co-Authored-By trailer. The harness checks only scope (ALLOWED_PREFIXES), uncommitted files and the quick suite, not message shape.",
+     "git log origin/main --grep='record E2E iteration' returns nothing. The three rounds and batches of 2026-10-08/09 were driven by hand and committed as 847fa64e / 1854938b / batch commits.",
+     "SPEC.md, README 'Learnings history' and the LEARNINGS.md header state 'one commit per run; read the last three commit messages' as prose. 20 LEARNINGS entries since 10-06 each arrived in its own commit, but round 1 (three runs) and rounds 2+3 are one entry each."
+    ]
+   }
+  ],
+  "gaps": [
+   "Owner intent for 'outer loop' is inference. I did not ask and nothing in the files settles it.",
+   "Learning, evidence and sha detection are regex heuristics (analyze.py in the scratch dir). I validated them by reading 25 batch-1011 commits and about 14 prompt-changing commits. The other roughly 190 commit bodies were classified by regex only.",
+   "Window: git --since=2026-10-06 (date only) resolves to the current time of day (08:10) and gives 224 / 209 / 15. I used '2026-10-06 00:00:00' (239 / 222 / 17), and also gave the last-150-non-merge slice (down to ea9d4b10).",
+   "origin/main is the local ref at 5e22fd10. I did not run git fetch, because it writes refs, so a newer remote head is not reflected.",
+   "I read files in the live worktree, which has an uncommitted test/shiploop_e2e/baselines.jsonl change from the running test. I read nothing from it that affects these findings.",
+   "Runs that never reached the return (v1230-grok-none, v1210-luna) keep commits on shiploop/run-* branches. My first per-run survey used HEAD and missed them. I recounted with --all for four runs only. The gas-battleship-audit work/ folder does not exist.",
+   "Why v1190-hello-sonnet-2 and s6-inside-test-strategy have no 'feat: W2' commit despite integrate done for W2 was not investigated.",
+   "I did not read the Until Loop runtime beyond grep. until_loop_ephemeral.py has no commit logic except a temp-index 'git add -A' snapshot.",
+   "Grok-hosted runs' Improve commit messages (r1/r3 grok-none) were not inspected. Their work/ repos show only the baseline commit.",
+   "Who authored the 15 Opus-5.5-trailer commits in batch 1011 (sub-agents or another session) is unverified.",
+   "I did not check CI results for the batch 1011 pushes or the 93331d7f fix. No test, host or server was run."
+  ]
+ },
+ "saved_run_histories": {
+  "summary": "Across the 15 saved runs (565 accepted actions, 200 commits after each run's baseline), ShipLoop does NOT commit each step iteration with a detailed message. It commits three things. (1) Knowledge-home docs (docs/shiploop, SHIPLOOP.md) are committed by the script at nearly every accepted stage that changed them (134 commits). Their subject is a fixed template and 121 of the 134 have no body; the 13 with a body are release-verify commits whose body is copied from outcome.md (Learned / Key considerations / Open for the next run). (2) Product code is committed once per work item, by the script, at integrate. That feat: Wn commit has a one-line body copied from the integrate summary. It covers test-author, every implement visit (2 to 5 per item), test-refine and the quality-loop fixes. In the completed Sonnet Battleship/Checkers runs the first product write reached git 174 to 371 s later and 13 to 15 accepted actions later. (3) Improve review passes that edit files get a commit through improve-commit (26 commits from 135 passes in 73 children). The script runs it but the model writes the message file. Bodies are one line in 1.22.0/1.24.0 and a six-label Review/Plan/Changes/Validation/Key learnings/Remaining work block in 1.25.0/1.26.0 (12 of 13 such commits). Passes with no edit leave no commit. Product-writing accepted actions: 66, of which 4 (6%) had all their written files committed inside their own window. Of 42 implement visits, 1 had a commit in its window (a docs-only item). The model also typed 21 git commit commands in 8 runs; 20 created commits (author 'Jim Wiese'), one was a no-op and none was refused. Ledger-visible retries were rare: every test-loop and verify record is attempt 1, one iteration each; there was one revise and one replan, with no commit in either window. Whole-run message quality: 62 of 200 commits (31%) have a body, the median body is 0 lines, and only 9 cite an earlier commit. Two runs never delivered product commits: r3-battleship-grok-none and v1230-battleship-grok-none.",
+  "findings": [
+   {
+    "id": "F1",
+    "claim": "Product-code changes made in step iterations (test-author, each implement visit, test-refine, quality-loop fix, document) are not committed in the iteration's own window. In every completed run they reach git in one script-made 'feat: Wn <title>' commit at integrate, 1 commit per work item.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "Of 66 product-writing accepted actions in 15 runs, 4 had all written files committed in their own window: r3-battleship-sonnet system-test-author (model-typed commit 9e28b73), v1230-battleship-sonnet carry-forward and system-test-author (improve-commits 719895c, f59271c), and r2-battleship-grok-none system-test-author (model-typed 0272a6d; its event coverage is partial). Of 42 implement visits, 28 have resolved product writes (29 with script-heuristic), and 1 has an in-window commit (s6-inside-test-strategy W2, docs-only, a knowledge commit).",
+     "r1-battleship-sonnet: test-author wrote game.js, server.js, test/game.test.js, test/server.test.js; 4 implement visits wrote game.js, public/index.html, server.js, README.md; test-refine edited test/game.test.js; the quality loop patched server.js. All went into 83bcef5 'feat: W1 ...' (6 files, 667 insertions) made at the integrate accept, 245 s and 14 accepted actions after test-author. git -C <work> log shows no other commit touching those paths between.",
+     "Same single-commit pattern: r2-battleship-sonnet 1036edc (7 files, 597 insertions, 196 s/13 actions); r3-battleship-sonnet 65cd022 (610, 216 s/13); r1-checkers-sonnet 034b38b (621, 174 s/13); r3-checkers-sonnet d0079fd (720, 260 s/15); v1230-battleship-sonnet 35a7808 (750, 371 s/15); hello runs s6-after-spec fde526a, s6-inside-implement 1d85859, s6-inside-implement-k2 4a5896c, s6-inside-test-strategy 5ce8f25, s6-inside-test-strategy-2 1f4d6bb, s6-inside-implement-write f63802c (27 to 42 insertions, 71 to 129 s, 12 actions, for 2 implement visits each).",
+     "Script origin: skills/shiploop/scripts/shiploop_navigator.py _item_commit builds 'feat: <item> <title>' plus the integrate row summary; item_scope.commit_item docstring says the model never writes this commit. The run builds are under <run>/build/plugins/skill-craft/skills/shiploop/scripts/."
+    ]
+   },
+   {
+    "id": "F2",
+    "claim": "Knowledge-home changes are committed by the script after each accepted stage that changed them, at the accept instant, with a fixed-template subject and no body (except release-verify).",
+    "status": "observed-in-runs",
+    "evidence": [
+     "134 of 200 commits are 'docs(shiploop): record <slug> knowledge after|at <stage>'. Offset from the accept stamp: 123 at +0 s and 11 at +1 s. Of 136 actions with resolved docs writes, 135 had all files committed in their own window (one file in r1-checkers-sonnet release-verify was not).",
+     "121 of 134 have no body. The 13 with a body are release-verify commits whose body is the Learned / Key considerations / Open for the next run sections of outcome.md (r2-battleship-grok-none d1f429c has 18 non-blank lines).",
+     "Docs-only work item: s6-inside-test-strategy W2 (implement then test-green changed docs/shiploop/test-strategy.md) got knowledge commits 4890eae and a9da85d, and no feat: commit because integrate had nothing else to commit."
+    ]
+   },
+   {
+    "id": "F3",
+    "claim": "Improve (Until Loop) review passes that edit files are committed in the pass's window through improve-commit. The script performs the commit but the model writes the message file. Passes that change nothing leave no commit, and the message form changed with the release.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "73 Improve children, 135 review-note passes (counted from .shiploop-improve/*/<action>/reviews/review-*.md), 26 improve-commit commits. Each has 'Committed this review's changes as <sha>' in the tool output, and the model wrote $D/commit-message.md first.",
+     "Verified pass to commit match: r1-battleship-sonnet spec child, 4 passes, review-1 and review-2 report fixes and were committed 3bd1b87 (+113 s) and cdd5ce9 (+131 s), review-3 and review-4 are no-change; r3-checkers-sonnet, 6 passes that report material findings and 6 improve-commits (3cd1f86, db70b41, 3a7b69e, 7bb1301, c361577, ef3a540). Other runs checked by counts only.",
+     "Message form by release (non-blank body lines): 1.22.0 six commits of 1 line; 1.24.0 seven of 1 line; 1.25.0 two of 6; 1.26.0 eleven (10 of 6, 1 of 3). The 6-line form is labelled Review/Plan/Changes/Validation/Key learnings/Remaining work and ends with a Co-Authored-By trailer. 12 of the 13 commits from 1.25.0 on use it. The exception is s6-inside-implement-k2 2f8358a.",
+     "14 of the 20 model-typed commits fall in action windows that have an Improve child (e.g. r2-battleship-grok-none carry-forward, 12 passes, 0 improve-commits, 5 model-typed commits; s6-after-spec 3 passes x3 children, 0 improve-commits, 3 model-typed). I did not classify each as an Improve fix; some messages say so ('Improve review 1', 'Evidence: Improve review-1')."
+    ]
+   },
+   {
+    "id": "F4",
+    "claim": "The model also types its own git commit commands, in 8 of 15 runs. They succeed (no refusal), carry the user's git identity (Claude runs) and were used for README, system tests and Improve-era doc fixes.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "21 commit commands: r1-battleship-sonnet 1 (no-op, 'nothing added to commit': chore commit 8140857 had already committed test/system.test.js 4 s earlier), r2-battleship-sonnet 1, r3-battleship-sonnet 2, r1-checkers-sonnet 2, r2-battleship-grok-none 10 (all in the Claude resume session after 18:06:46), v1230-battleship-sonnet 1, v1230-battleship-grok-none 1, s6-after-spec 3. Zero in r3-checkers, r3-battleship-grok, s6-inside-implement, -k2, -test-strategy, -test-strategy-2, -implement-write. These counts equal <run>/metrics.json model_glue 'git commit/add by the model'.",
+     "Authors: script and improve-commit commits are 'ShipLoop Workspace <shiploop-workspace@local.invalid>'; model-typed commits in Claude runs are 'Jim Wiese <dadleet@BigDog.local>' (19 of 20 carry 'Co-Authored-By: Claude Sonnet 5.5'). In Grok phases the repo identity is 'ShipLoop E2E <shiploop-e2e@example.invalid>' for both script and model commits, so author cannot tell them apart there (found by matching the command text).",
+     "s6-inside-after-spec's three model commits copy the script's subject prefix ('docs(shiploop): correct test status ...', 0bdce84, b091645, 8fb9e29) and were typed with plain git while improve-commit was never run in that run. The item_scope.commit_item docstring says headless hosts refuse model-written git commit shell, but none of the 21 was refused."
+    ]
+   },
+   {
+    "id": "F5",
+    "claim": "The ledger shows almost no retry iterations: every test-loop and verification attempt is attempt 1 and one iteration. The multi-iteration loops are the quality loop (static-checks), Improve passes and the steps loop (implement visits). A loop iteration that edits product code does not get its own commit.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "All <run>/run/tests/*-verify*.md records in the 15 runs are verify1 (10 to 19 per run). All tests/*-terminal.json show progress.action_number=1, trivial_streak=1 (test-green and regression, 24 loops).",
+     "Quality loop (run/quality/*-terminal.json, static-checks): 2 iterations in r1/r2/r3 Battleship and r1/r3 Checkers, 3 in v1230-battleship-sonnet, 2 and 3 in r2-battleship-grok-none, 1 in the s6 runs. r1-battleship-sonnet iteration 1 was non-trivial: event 368 patched server.js via a python heredoc to survive 'GET //[' and the 'Learned' text confirms it. No commit followed until feat: W1 (83bcef5). r1-checkers-sonnet shows the same by its 'Learned' text.",
+     "Retry/revise outcomes: v1230-battleship-grok-none action test-spec W2 'revise' (no commit in window; the next step-plan W2 got knowledge commit 4c65174); s6-inside-test-strategy system-test 'replan' (no commit in window). Implement visits per item: 4,3,3,3,5 (Sonnet), 2 to 3 (hello), 5 (v1230 Sonnet); 0 had an in-window product commit except the docs-only case."
+    ]
+   },
+   {
+    "id": "F6",
+    "claim": "Commit-message quality is thin overall and strongest only where the model writes the message with a structure (1.25.0+ improve-commit) or where outcome.md is quoted.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "All 200 commits: with a body 62 (31%); median body 0 non-blank lines (median 1 among those with a body, mean 4.3); shortest 0 (138 commits); longest 18 (r2-battleship-grok-none d1f429c). Subject length: median 89 chars, max 135 (s6-inside-implement feat:). Co-Authored-By trailer on 32 commits.",
+     "By mechanism (n, with body, median body lines, max): knowledge 134, 13, 0, 18; feat 16, 16, 1, 1; chore 4, 0, 0, 0; improve-commit 26, 26, 2, 6; model-typed 20, 7, 0, 3. Subject median chars: knowledge 91, feat 67.5, chore 81, improve 48.5, model 56.5.",
+     "Heuristic content flags over all 200 (body only for the 'learned' and 'evidence' counts): states what was learned 26 ('Learned', 'Key learnings', 'Key learning'); explicit Validation/Evidence label 12; names test counts or results by regex about 24; names files about 38; cites a real earlier commit 9 (improve-commit 1: 285cac9; knowledge 5; feat 2 in v1230-battleship-grok-none; model-typed 1). Regex flags are approximate; the quoted examples were read by hand.",
+     "Per run share with body: r1-bs 5/14, r2-bs 5/12, r3-bs 5/14, r1-ck 6/12, r3-ck 8/14, r3-bs-grok 0/9, r2-bs-grok 6/29, v1230-bs 8/16, v1230-bs-grok 2/24, s6-after-spec 5/10, s6-impl 2/8, s6-impl-k2 3/9, s6-ts 2/11, s6-ts2 2/10, s6-impl-write 3/8."
+    ]
+   },
+   {
+    "id": "F7",
+    "claim": "Verbatim examples. BEST 1: s6-inside-implement-write 285cac9 (improve-commit, 1.26.0). BEST 2: r2-battleship-grok-none d1f429c (release-verify knowledge commit). WORST 1: r1-battleship-sonnet 83bcef5 (feat: W1). WORST 2: r1-battleship-sonnet 8140857 (chore).",
+    "status": "observed-in-runs",
+    "evidence": [
+     "BEST 1 /Users/dadleet/e2e-runs/20261009/s6-inside-implement-write 285cac9. Subject: 'docs(shiploop): clarify rollback in the release plan'. Body 1: 'Review: self-review (inline) of the release-plan result; read the last 6 commit messages.' Body 2: 'Plan: fix the one misleading statement; leave the checks and consumer entry as they are.' Body 3: 'Changes: release-plan.md Rollback bullet now says delete hello.py/test_hello.py or revert the fast-forward; a reset to baseline aa0a4f1 is the user's call.' (It goes on with Validation with test counts, Key learnings, 'Related commits: a4ce4f1..fd78ab4 ..., f63802c (W1)' and Remaining work.)",
+     "BEST 2 /Users/dadleet/e2e-runs/20261008/r2-battleship-grok-none d1f429c. Subject: 'docs(shiploop): record build-a-small-single-player-battleship-ef3173 knowledge at release-verify'. Body 1: 'Learned'. Body 2: '- `new URL(req.url, base)` throws on a request target such as `//`. Inside the request handler that kills the whole process, so one stray request ends the game. The quality loop found it by tracing an invalid input through the handler; `server.js` now takes the path from `req.url.split(\"?\")[0]` and `TC-raw` sends the raw request over a socket to keep it fixed.' Body 3: '- A system check that starts Chrome must wait for Chrome to exit before deleting its profile directory. Without the wait the script failed with ENOTEMPTY after all three cases had passed, and only intermittently. Six repeated runs are the evidence it is fixed.' (18 non-blank body lines, then Key considerations and Open for the next run.)",
+     "WORST 1 /Users/dadleet/e2e-runs/20261008/r1-battleship-sonnet 83bcef5 (6 files, 667 insertions, the whole game for 4 implement visits). Subject: 'feat: W1 Build Battleship game: rules module, HTTP server, page, tests, README'. Body 1 (the only one): 'All W1 files (game.js, server.js, public/index.html, README.md, test/*) are in the execution checkout; .shiploop-improve/ is run scaffolding, not product.' No tests, counts, requirement IDs or learning.",
+     "WORST 2 /Users/dadleet/e2e-runs/20261008/r1-battleship-sonnet 8140857 (test/system.test.js, 65 insertions). Subject: 'chore(shiploop): commit files written after the last work item, before the return'. No body and the file is not named. The typical form is also thin: 'docs(shiploop): record build-a-small-single-player-battleship-40e530 knowledge after spec' has no body (121 of 134 knowledge commits)."
+    ]
+   },
+   {
+    "id": "F8",
+    "claim": "Runs delivering product in very few commits for many iterations: every completed run has 1 product commit per work item plus 0 to 3 extras; two non-completed runs have none.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "Completed runs have 1 (hello runs, 8 to 11 commits mostly docs), 2 (r1/r2 Battleship: feat + chore/model-typed), 3 (r1/r3 Checkers, r3 Battleship, v1230: feat + 1 to 2 README/system-test/improve commits) or 8 (r2-battleship-grok-none: 2 feat + 6 model-typed) product-touching commits. Their ledgers carry 35 to 55 accepted actions, 2 to 5 implement visits and 3 to 19 Improve passes. Example: s6-inside-implement-write has 8 commits, 1 of them product (hello.py + test_hello.py, 42 insertions, 2 implement visits).",
+     "r3-battleship-grok-none (stopped by the harness stop file, returncode -9, ledger active/inner-loop at revision 15, last accept 23:57:03, events run to 00:24:07): 9 knowledge commits, 0 product commits. The worktree .shiploop-runs/work-20261009-062034-d142b0/worktree holds untracked rules.js (146), server.js (269), test/rules.test.js (100), test/server.test.js (285), README.md (19), check/browser-fire.mjs (173) = 992 lines; work/ is still at baseline c2ad514.",
+     "v1230-battleship-grok-none (blocked at system-test, host cannot render Chrome): worktree has W1 (78e7e48) and W2 (a581b86) feat commits but work/ stayed at baseline a663120 (never returned); restart-check.mjs is untracked."
+    ]
+   },
+   {
+    "id": "F9",
+    "claim": "A script safety-net commit 'chore(shiploop): commit files written after the last work item, before the return' exists and fired in 4 runs; it covers files authored after integrate (system tests) and its message names no file.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "r1-battleship-sonnet 8140857 (test/system.test.js), r2-battleship-sonnet 7a4eabe, r3-checkers-sonnet af3a19e (system/http-smoke.js, system/ui-click.js), v1230-battleship-sonnet 9b3cc84. It has no body. It arrives 2 to 5 accepted actions after the files were written, e.g. system-test-author to release-check in r1-battleship-sonnet (70 s).",
+     "In r3-battleship-sonnet and r1-checkers-sonnet the model committed test/system.test.js itself instead (9e28b73, c7f7f41); r2-battleship-sonnet 6bba9a6 commits it with the only 'Key learning:' body among model-typed commits (it explains the file fell outside the step plan's committed paths)."
+    ]
+   },
+   {
+    "id": "F10",
+    "claim": "Which loop the owner means by 'outer loop' is not decided here. The runs show a work-item loop in three runs, with one feat: commit per product item and no per-iteration commits inside it.",
+    "status": "observed-in-runs",
+    "evidence": [
+     "r2-battleship-grok-none W1 (18 accepted actions: 5 knowledge + 1 feat commits) and W2 (18 actions: 3 knowledge + 1 feat + 5 model-typed); v1230-battleship-grok-none W1 (18 actions: 5 knowledge, 1 model-typed, 1 feat) and W2 (20 actions: 8 knowledge, 1 feat); s6-inside-test-strategy W1 (19 actions: 2 knowledge + 1 feat) and W2 (18 actions: 3 knowledge, 0 feat). The other 12 runs have a single item W1.",
+     "The ledgers also show the steps loop (implement visits), test loops, the static-checks quality loop and Improve review loops. Commit evidence per loop is in F1, F3 and F5."
+    ]
+   },
+   {
+    "id": "F11",
+    "claim": "Per-iteration commits with detailed messages are not observed for implement, test or quality iterations. Related-commit citation and learned statements appear only occasionally.",
+    "status": "not-observed-in-runs",
+    "evidence": [
+     "No commit between any implement visit's start and accept touches product paths (28 visits with resolved writes; the only in-window commit is the docs-only case). No test-loop or quality-loop iteration has an in-window commit.",
+     "Only 9 of 200 commits cite a real earlier sha (checked against each repo's history); 26 state a learning, 12 carry a Validation or Evidence label."
+    ]
+   }
+  ],
+  "gaps": [
+   "r2-battleship-grok-none events.jsonl has a 32-minute hole (Grok events end 17:34:30, Claude resume begins 18:06:46). W1 and most of W2 (ledger accepts through 18:07) have no recorded tool calls, so write evidence for those actions is missing and its 'product-writing 1 / changes 10' figures are lower bounds. Commit-to-action mapping there rests on git times only (eight script commits fall inside the hole).",
+   "File-change evidence comes from tool-call text. Write/Edit tools are caught, and Bash writes only through heredoc/redirect/tee/sed -i/cp/mv parsing, so python/node heredoc edits are resolved only by a path heuristic. All counts of 'actions that changed files' are lower bounds. Actions with only unresolved script writes (e.g. static-checks, regression, verify) are not counted. Unresolved-only actions per run range 0 to 12 (s6-inside-test-strategy 12).",
+   "Accepted-action stamps in run/timeline.json are whole seconds and I used (previous accept, this accept +1 s] as the window; packet mtimes were not used. Knowledge/feat commits land at the accept instant (offset 0 or +1 s) and are counted as inside the window. If 'between start and accept' excludes the accept call, those knowledge commits do not count.",
+   "Harness resume sessions of 2026-10-09 (r1-battleship-sonnet, r1-checkers-sonnet, v1230-battleship-sonnet, r3-battleship-grok-none) are not in events.jsonl (its mtime is the original run end) and add no commits to the saved repos. s6-inside-after-spec was resumed at revision 4; I did not separate the earlier session.",
+   "Verification of 'non-trivial pass produces a commit' is by hand for r1-battleship-sonnet spec and r3-checkers-sonnet only; other runs rely on pass and commit counts (a text-classification attempt was too noisy and was dropped). Message-quality flags (test evidence, files, learned) are regex heuristics.",
+   "Aggregates mix four releases (plugin 1.22.0, 1.24.0, 1.25.0, 1.26.0 / ShipLoop 0.54 to 0.58) and three planning-review settings (stage vs none), so Improve-commit shape and Improve counts differ by release; Grok runs (planning-review none) have few or no Improve children.",
+   "The author field cannot separate script from model commits in Grok phases ('ShipLoop E2E' for both); attribution there relies on the model command text and subject templates. I did not read any code to decide what the 'outer loop' is or whether committing per iteration is required; only the run behaviour is reported.",
+   "s6-inside-implement-mtime exists in /Users/dadleet/e2e-runs/20261009 (6 commits, work/ at baseline) and was not read. I ran `git status` in the r3-battleship-grok-none and v1230-battleship-grok-none worktrees, which can refresh a saved run's .git/index. I did not touch the b1011z-aaa47e checkout beyond reading test/shiploop_e2e/metrics.py; scratch files are only under /private/tmp/claude-501/-Users-dadleet-src-skill-craft/f24838dd-d5f5-44a8-854e-3d9ddea18aed/scratchpad/audit-commit/runs (commits.json, calls.json, final.json, allc2.json and the .py analyzers)."
+  ],
+  "numbers": [
+   "Totals over 15 runs: 565 accepted actions; 200 commits after baseline = 134 script knowledge + 16 script feat: Wn + 4 script chore + 26 improve-commit (script runs it, model writes the message) + 20 model-typed git commit; 62 with a body (31%), 138 without.",
+   "Resolved file-changing actions: 191 (136 docs/knowledge, 66 product, overlap 11); 138 of the 191 have some commit in their own window (72%); 128 have all their written files covered in-window. Docs/knowledge actions: 135 of 136 fully committed in-window. Product-writing actions: 4 of 66 (6%) fully committed in-window.",
+   "Implement visits 42; 28 with resolved product writes (29 with heuristic); 1 with an in-window commit (docs-only item). Improve: 73 children, 135 review-note passes, 26 improve-commits. Test loops: 24 loops, all 1 iteration; every verify record is attempt 1.",
+   "Message stats overall: median body 0 non-blank lines (median 1 among 62 with body; mean 4.3), min 0, max 18; subject median 89 chars, max 135; 26 state a learning, 12 carry Validation/Evidence, 9 cite a real earlier commit, 32 carry Co-Authored-By.",
+   "20261008/r1-battleship-sonnet [claude sonnet-5-5, plugin 1.24.0/ShipLoop 0.56.0, done]: 37 actions; 14 commits = 9 knowledge + 3 improve-commit + 1 feat + 1 chore, all author ShipLoop Workspace; model git-commit cmds 1 (no-op); product-writing actions 7 (test-author, implement x4, test-refine, system-test-author) 0 committed in own window; Improve 8 children/13 passes/3 commits; test loops 1+1, quality loop 2; bodies 5/14, median 0, max 8; feat 83bcef5 245 s/14 actions after first product write.",
+   "20261008/r2-battleship-sonnet [1.25.0/0.57.0, done]: 36 actions; 12 commits = 7 knowledge + 2 improve-commit + 1 feat + 1 chore + 1 model-typed (Jim Wiese, 6bba9a6); model cmds 1 (created 1); product-writing actions 5, 0 in-window; implement x3; Improve 8/12 passes/2 commits; quality loop 2; bodies 5/12, max 13; feat 1036edc 196 s/13 actions.",
+   "20261008/r3-battleship-sonnet [1.26.0/0.58.0, done]: 36 actions; 14 commits = 8 knowledge + 3 improve-commit + 1 feat + 2 model-typed (README de38128, system tests 9e28b73); model cmds 2 (created 2); product-writing actions 6, 1 in-window (system-test-author); implement x3; Improve 8/14 passes/3 commits; quality loop 2; bodies 5/14, max 13; feat 65cd022 216 s/13 actions.",
+   "20261008/r1-checkers-sonnet [1.24.0/0.56.0, done]: 36 actions; 12 commits = 5 knowledge + 4 improve-commit + 1 feat + 2 model-typed (README e8d69fc, ST-1 c7f7f41); model cmds 2 (created 2); product-writing actions 6, 0 in-window; implement x3; Improve 8/15 passes/4 commits; quality loop 2; bodies 6/12, median 0.5, max 11; feat 034b38b 174 s/13 actions.",
+   "20261008/r3-checkers-sonnet [1.26.0/0.58.0, done]: 38 actions; 14 commits = 6 knowledge + 6 improve-commit + 1 feat + 1 chore; all author ShipLoop Workspace; model cmds 0; product-writing actions 6, 0 in-window; implement x5; Improve 8/19 passes/6 commits; quality loop 2; bodies 8/14, median 3.5, max 13; feat d0079fd 260 s/15 actions.",
+   "20261008/r3-battleship-grok-none [grok-4.7, 1.26.0/0.58.0, ledger active/inner-loop, pass False, stopped]: 15 actions; 9 commits, all knowledge (author ShipLoop E2E); model cmds 0; product-writing actions 3 (test-author, implement x2), 0 committed, plus README/check files written after the last accept; 0 of 9 bodies; 992 lines untracked in worktree.",
+   "20261008/r2-battleship-grok-none [mixed: Grok to 17:34, gap, Claude resume from 18:06:46; 1.25.0/0.57.0, done, regraded]: 52 actions; 29 commits = 17 knowledge + 2 feat (W1 32ecdf8, W2 57ff874) + 10 model-typed (Claude phase, 'Jim Wiese'); authors ShipLoop E2E 15, ShipLoop Workspace 4, Jim Wiese 10; model cmds 10 (created 10); Improve 3 children/12 passes/0 improve-commits; quality loops 2+3; bodies 6/29, max 18 (d1f429c); events gap 17:34:30 to 18:06:46.",
+   "20261007/v1230-battleship-sonnet [1.22.0/0.54.0, done]: 38 actions; 16 commits = 7 knowledge + 6 improve-commit + 1 feat + 1 chore + 1 model-typed (README 31317be); model cmds 1 (created 1); product-writing actions 9, 2 in-window (carry-forward, system-test-author via improve-commit); implement x5; Improve 8/18 passes/6 commits; quality loop 3; bodies 8/16, median 0.5, max 15; feat 35a7808 371 s/15 actions.",
+   "20261007/v1230-battleship-grok-none [grok-4.7, 1.22.0/0.54.0, ledger blocked/system-test, pass False]: 47 actions; 24 commits = 21 knowledge + 2 feat (W1 78e7e48 932 s/11 actions after first product write; W2 a581b86 1687 s/11 actions) + 1 model-typed (README b4b5b4e); all author ShipLoop E2E; model cmds 1 (created 1); Improve 2 children/2 passes/0 commits; quality loops 2+2; bodies 2/24, max 1; work/ never advanced past baseline.",
+   "20261009/s6-after-spec [1.26.0/0.58.0, done, resumed at revision 4]: 35 actions; 10 commits = 6 knowledge + 1 feat (fde526a, 129 s/12 actions) + 3 model-typed with the script's subject prefix; model cmds 3 (created 3); Improve 3 children/9 passes/0 improve-commits; bodies 5/10, max 16.",
+   "20261009/s6-inside-implement [1.26.0/0.58.0, done]: 35 actions; 8 commits = 7 knowledge + 1 feat (1d85859, 71 s/12 actions); model cmds 0; implement x2; Improve 3 children/3 passes/0 commits; bodies 2/8, max 6.",
+   "20261009/s6-inside-implement-k2: 35 actions; 9 commits = 7 knowledge + 1 feat (4a5896c, 94 s/12 actions) + 1 improve-commit (2f8358a, 3-line free-form body); model cmds 0; Improve 3/5 passes/1 commit; bodies 3/9, max 10.",
+   "20261009/s6-inside-test-strategy: 55 actions (2 work items); 11 commits = 10 knowledge + 1 feat (W1 5ce8f25, 114 s/12 actions); W2 docs-only had 3 knowledge commits and no feat; model cmds 0; Improve 5 children/5 passes/0 commits; 1 replan with no commit; bodies 2/11, max 8.",
+   "20261009/s6-inside-test-strategy-2: 35 actions; 10 commits = 9 knowledge + 1 feat (1f4d6bb, 111 s/12 actions); model cmds 0; Improve 3/3 passes/0 commits; bodies 2/10, max 9.",
+   "20261009/s6-inside-implement-write: 35 actions; 8 commits = 6 knowledge + 1 feat (f63802c, 103 s/12 actions) + 1 improve-commit (285cac9, the BEST 1 example); model cmds 0; Improve 3/5 passes/1 commit; bodies 3/8, max 12."
+  ]
+ },
+ "verifier_answer_and_proposals": {
+  "refuted_or_corrected": [
+   {
+    "claim": "A1-F1: the engine commits at exactly five triggers (knowledge home, item at integrate, improve-commit, plan-return leftovers, empty baseline), and nothing else commits.",
+    "outcome": "corrected",
+    "evidence": "The five triggers are right for the default single-run route: commit_paths is called from shiploop_item_scope.commit_item, shiploop_knowledge_home.commit, shiploop_navigator._improve_commit, shiploop_workspace bootstrap_empty and shiploop_workspace commit_leftovers. Two more commit sources exist. shiploop_chain_git.prepare_integration runs `git merge --no-ff` with the script-built message _prepared_message ('ShipLoop chain prepared source=<sha> target=<sha>'). shiploop_chain_handoff._handoff makes a SUCCEEDED chain step carry a 40- or 64-hex `commit`. Both apply only on the opt-in `--delegation ask-agent` chain route (skills/shiploop/SKILL.md: 'implementation uses chains'). The private baseline is also made with commit-tree in shiploop_workspace.",
+    "correction": "Five script triggers on the default inline route. On the opt-in ask-agent route, each successful dispatched chain step must also deliver a worker commit, and the script makes a fixed-message integration merge."
+   },
+   {
+    "claim": "A1-F4 / A1-F14: there is no commit per step-plan step, and ShipLoop records no commit SHA anywhere in its durable state.",
+    "outcome": "corrected",
+    "evidence": "This holds on the default inline route: _item_commit acts only on integrate done, and the history row keys and the Improve _receipt fields have no commit. On the chain route, shiploop_chain._per_step_validate_import_receipt requires `commit` for a SUCCEEDED worker, and the handoff/import receipt schema 'shiploop-chain-handoff/v1' lists `commit` as required. The message of that commit is never inspected; the only %B read in shiploop_chain_git is the prepared-merge lineage check.",
+    "correction": "There is a per-dispatched-step commit with a recorded SHA, but only in chain mode, and its message is unchecked. The saved runs used the inline default."
+   },
+   {
+    "claim": "A1-F8 / A3-F4: improve-complete refuses once per child if files the review changed are uncommitted. It fails open when the snapshot is unknown, and any nonblank --no-commit text bypasses it.",
+    "outcome": "confirmed",
+    "evidence": "shiploop_improve_changes.commit_refusal returns '' when changes is None, when nothing is pending, or when receipt no_commit is nonblank. review_changes returns None when the snapshot or Git is unavailable. shiploop_navigator._improve_change_gate calls it once at improve-complete. That gate also refuses one-unchanged-pass endings when files changed since bind. _derived_improve_receipt sets no_commit = str(args.no_commit) without verifying it.",
+    "correction": ""
+   },
+   {
+    "claim": "A1-F9: the improve-commit message gate checks only the exact path, that the file exists and is not a symlink, that it is nonempty, and that it holds no credential. It checks no shape.",
+    "outcome": "confirmed",
+    "evidence": "shiploop_navigator._improve_commit: _need(message path equality), _need(is_file and not is_symlink), _need(bool(message)), then _reject_credentials and nothing else. A grep of test/*.py, skills/*/scripts and the Until Loop scripts for 'Key learnings' or 'Remaining work' finds nothing.",
+    "correction": ""
+   },
+   {
+    "claim": "A1-F5 / A3-F5: test-loop and quality-loop iterations never commit, by contract.",
+    "outcome": "confirmed",
+    "evidence": "The authority text in shiploop_test_loop._contract says 'Do not commit, push, install or download anything'. The authority text in shiploop_quality.build_contract says 'Do not commit, push, install or ...'.",
+    "correction": ""
+   },
+   {
+    "claim": "A1-F3 / A3-F3: the item commit at integrate is script-made and fail-soft. A2-F4 says no model-typed git commit was refused.",
+    "outcome": "confirmed",
+    "evidence": "shiploop_navigator._item_commit catches item_scope.ItemScopeError, prints a warning to stderr, and continues. The message is 'feat: <id> <title>' plus the row summary. The shiploop_item_scope.commit_item docstring claims 'headless hosts refuse model-written git commit shell'. My recount of the 15 runs finds 19 model commits authored 'Jim Wiese' plus 1 Grok-identity README commit, all of which landed.",
+    "correction": "The commit_item docstring's claim that model-written commits are refused is contradicted by the saved runs."
+   },
+   {
+    "claim": "A1-F11 / A3-F6: release-verify refuses while Learned, Key considerations or Open for the next run is empty. Those sections become the only knowledge-commit body, and 'in detail' is not checked.",
+    "outcome": "confirmed",
+    "evidence": "shiploop_knowledge_home.check refuses when learnings(state) has an empty section; its text says 'in detail', but the test is emptiness only. shiploop_knowledge_home.commit appends a body only when stage == 'release-verify'. CLOSES = prepare, test-spec, release-plan, release-verify, with the comment 'a commit at handoff would miss the return and stale its receipt'.",
+    "correction": ""
+   },
+   {
+    "claim": "A1-F15 / A3-F1: in ShipLoop's own terms the outer loop is the 9 OUTER stages and the inner loop is 18 stages. The owner may instead mean the maintainer improvement loop.",
+    "outcome": "confirmed",
+    "evidence": "Importing shiploop_stage_spec gives PRELUDE 7 (intake..prepare), INNER 18 (get-next-work-item..carry-forward) and OUTER 9 (system-test-author, system-test, product-acceptance, release-plan, release-check, release, release-verify, operations, handoff). Which loop the owner means is still unverified.",
+    "correction": ""
+   },
+   {
+    "claim": "A1-F7 and its gap: the six-section rule lives only in 'Standalone owner binding', which the packet says to open 'only when a step needs them', so nothing guarantees it is read.",
+    "outcome": "corrected",
+    "evidence": "The packet line in shiploop_navigator tells the child to read the Improve skill's 'ShipLoop whole-skill subcall' section. That section says 'Read and run this card's standalone owner binding' and 'The ShipLoop child follows the standalone binding's ordinary commit policy ... retain the commit SHA in its handoff'. So the rule is reached by one explicit pointer, though it is still prompt-only. The plan-stage child (planning_reconcile) is a separate case: its packet omits the improve-commit line and keeps only the 'Commit policy' line.",
+    "correction": "The rule is explicitly referenced, one hop from the packet, so it is not merely optional reading. It is still unenforced."
+   },
+   {
+    "claim": "A2 headline: 200 run commits after baseline = 134 knowledge (121 without a body) + 16 feat + 4 chore + 26 improve-commit + 20 model-typed, of which 62 have a body. Product-writing actions were committed in their own window 4 of 66 times (6%).",
+    "outcome": "confirmed",
+    "evidence": "My recount over the same 15 runs with git log --all (scratchpad/audit-commit/verify/tally15.py) gives TOTAL 200: knowledge 134 (13 with a body), feat 16, chore 4, 'other' 27 (26 improve-commit plus 1 Grok-identity model commit), 19 'Jim Wiese', and 62 with a body. In r1-battleship-sonnet only 83bcef5 (feat W1) and 8140857 (chore) touch product files. The 66-action denominator comes from A2's tool-call heuristic and was not re-derived.",
+    "correction": "The commit counts are exact. The 6% figure is a heuristic lower bound by A2's own account."
+   },
+   {
+    "claim": "A1-F17: 34 saved worktrees, 513 unique commits, 301 knowledge (26 with a body), 30 item commits.",
+    "outcome": "corrected",
+    "evidence": "Globbing /Users/dadleet/e2e-runs/2026100[3-9]/*/.shiploop-runs/*/worktree (verify/tally.py) gives 33 worktrees, 516 unique commits, knowledge 300 (24 with a body, after stripping Co-Authored-By), item 31 (all with a body), leftovers 7 (none with a body) and baseline 32.",
+    "correction": "The figures are within a few commits of A1's, and the conclusion is unchanged."
+   },
+   {
+    "claim": "A3-F4: the 1.24.0 Improve commits (r1 battleship 3, r1 checkers 4) have no body.",
+    "outcome": "refuted",
+    "evidence": "Each of the seven has a one-line body. In r1-battleship: 3bd1b87 (145 chars) 'Make R-2/R-3/R-7 verifiable ...', da9757c (91), cdd5ce9 (88). In r1-checkers: cde4276 and 8f15ce9 (64 each), 7e40247 (190), 371b0b5 (145).",
+    "correction": "A2 was right: the 1.24.0 Improve commits have one-line bodies."
+   },
+   {
+    "claim": "A1-F17 / A3-F4: the 1.25.0+ Improve commits follow the six-section policy.",
+    "outcome": "corrected",
+    "evidence": "In r3-checkers (6) and r3-battleship (3), all nine have the six labels, but none mentions the classification or the streak, which skills/improve/SKILL.md Commit policy requires ('including the classification and resulting streak'). In r2-battleship, both commits mention it. Example: 613e7bb has Validation 'grep R-1..R-10 present.'",
+    "correction": "In 1.26.0 the labels are followed but the classification and streak requirement is not."
+   },
+   {
+    "claim": "A3-F8: on origin/main since 2026-10-06 00:00 there are 239 commits = 222 non-merge + 17 merges, and 214 of 217 ordinary commits have a body (median 2,457 chars).",
+    "outcome": "confirmed",
+    "evidence": "verify/main_bodies.py at 5e22fd10 gives 239/17/222/5 releases/217/214, median 2457. origin/main has since moved to 93331d7f, which gives 240/218/215, median 2455.5. The three commits without a body are 735851dc, 129e4433 and 61bfab2a.",
+    "correction": ""
+   },
+   {
+    "claim": "A3-F12 / A3-F7: iterate.py's scripted learnings commit was never used, and rounds 2 and 3 were committed together after 1.26.0. Release commits carry only a subject and a trailer.",
+    "outcome": "confirmed",
+    "evidence": "`git log --all --grep='record E2E iteration'` returns 0 commits. iterate.py record_learnings runs `git commit -F` on its learnings_message. 1854938b (2026-10-09 00:25) follows 200c32ce (1.26.0, 23:18), and round 2 followed ea6ce8ce (1.25.0, 17:19). 200c32ce's body is just the Skill-Craft-Release trailer.",
+    "correction": ""
+   },
+   {
+    "claim": "A3-F11 / A1-F12: no hook, CI job or test checks commit messages, and ShipLoop's commits bypass hooks.",
+    "outcome": "confirmed",
+    "evidence": "/Users/dadleet/src/skill-craft/.git/hooks has only *.sample files, and the repo and global core.hooksPath are unset. ~/.claude/.githooks/pre-commit (31 lines) has no message logic and is wired only in ~/.claude. scripts/check-release-boundary.py checks only the Skill-Craft-Release and No-Change-Note trailers, and test/ci_policy.is_release reads only the trailer. shiploop_git.git, shiploop_knowledge_home._git and the chain _git wrappers all pass core.hooksPath=/dev/null. The test/shiploop_e2e harness reads messages only as reviewer context (review.last_commit_messages).",
+    "correction": ""
+   },
+   {
+    "claim": "A3-F9 / A3-F10: cc705b9d is a prompt-text commit that misses the learning, evidence and related-commits form. Batch 1011 has 104 commits (99 non-merge), 0 'Key learning' labels and 2 'Related commits' labels, and touches no skills or agents.",
+    "outcome": "confirmed",
+    "evidence": "cc705b9d has a 391-char body naming batch labels only, with no sha, no evidence file and no learning. In 30a3b40a..batch1011-integration-aaa47e: rev-list counts 104 and 99, grep counts 0 and 2, and `git diff --stat -- skills agents` is empty.",
+    "correction": ""
+   }
+  ],
+  "answer": "1. Each step: partly. The script commits the knowledge home after every accepted stage that changed docs/shiploop or SHIPLOOP.md. It commits product code once per work item when integrate is accepted ('feat: <id> <title>'). Implement visits, test-author, test-refine, static-checks, system tests and the release stages make no commit of their own. So in the 15 saved runs, 134 of 200 commits are knowledge commits, and each item's whole product lands in one commit (r1-battleship: 4 implement visits, 667 lines, all in 83bcef5).\n2. Each loop iteration: no. The test-loop and quality-loop contracts say 'Do not commit'. Improve passes commit only when they changed files (26 commits from 135 passes). The prompt asks for that, but the script checks only once per Improve child, at improve-complete, refusing while files the review changed still differ from HEAD. The check is skipped when the bind snapshot is missing or any --no-commit text is given.\n3. There is one exception, the opt-in `--delegation ask-agent` route. There, each successful chain step must return a commit SHA, and the script validates the SHA but not the message. The saved runs used the default inline route.\n4. Outer loop: no under either reading. ShipLoop's nine OUTER stages commit only knowledge files (at release-plan and release-verify), Improve fixes, and a leftovers commit that names no file. The maintainer improvement loop has a scripted per-iteration learnings commit (test/shiploop_e2e/iterate.py record_learnings), but it has never produced a commit on any ref. The hand-run rounds 2 and 3 were committed together about seven hours after round 2's release.\n5. Message detail: thin in the runs, rich only in your own repo. 62 of the 200 run commits have a body, 121 of the 134 knowledge commits are subject-only, and item bodies are the one-line integrate summary. The 1.26.0 Improve commits carry the six labels, but none of the nine I checked states the classification or streak the Improve card requires. By contrast, 214 of 217 ordinary main-branch commits since 2026-10-06 have a body, with a median of about 2,450 characters.\n6. Enforced by script:\n   - the item commit at integrate, which is fail-soft (an error only prints a warning);\n   - knowledge commits after a stage that changed them;\n   - the improve-complete refusal;\n   - non-empty Learned / Key considerations / Open sections at release-verify, which become that commit's body;\n   - a non-empty, credential-free improve-commit message.\n   Everything about shape and detail is prompt-only. No hook, CI job or test checks any message, and ShipLoop runs git with hooks turned off.\n7. Smallest change (a): in `_item_commit`, build the item body from what the script already records: each accepted action's stage and summary, the verify records' commands and results, and the quality loop's Learned lines. This adds detail and can never refuse.\n8. Change (b): in `_improve_commit`, refuse a message that lacks a body, any of the six labels with text after it, or the classification. The script can append the action id itself. A refusal costs one file rewrite, and like any label check it invites filler text.\n9. Change (c): give the leftovers commit a body that lists its files, and give the release-plan knowledge commit a body from release-plan.md. Both are script-built and cannot refuse.\n10. Change (d), for the improvement loop: run rounds through iterate.py, or add a release.py preflight that refuses when no commit since the previous release touches test/shiploop_e2e/LEARNINGS.md. It needs an override trailer, because releases that follow no E2E round would otherwise be falsely refused.\n11. A commit per implement visit or per test iteration is possible: commit the declared paths at each accepted implement, as integrate does. But it reverses the one-commit-per-item design and puts red test states into history, so it is your decision. Any shape check can confirm that a body exists, that labels are present and non-empty, that the action or work-item id appears, and that cited SHAs exist. It cannot judge whether the content is true, specific or detailed enough, so I propose no length rule.\n12. Separately: the user request relayed to this workflow asks to add a todo for a test that builds one of these apps in your Salesforce developer org and then tests it. This read-only check did not act on it.",
+  "proposed_changes": [
+   {
+    "change": "Build the item commit body from script-held records instead of only the integrate summary.",
+    "where": "skills/shiploop/scripts/shiploop_navigator.py _item_commit (message assembly before item_scope.commit_item)",
+    "checks": "Nothing is refused. The body gains: each accepted action for the work item (stage, outcome, summary), the test-loop and verify records for the item (commands and pass/fail counts from run/tests/*-verify*.md), and the static-checks Learned lines. The stage and action ids are written by the script.",
+    "risk": "Longer messages, and the content is only as good as the per-stage summaries. No false refusals. The item-commit test fixtures that assert the message need updating.",
+    "cannot_check": "Whether the summaries themselves are accurate or say what was learned."
+   },
+   {
+    "change": "Add a shape gate to improve-commit.",
+    "where": "skills/shiploop/scripts/shiploop_navigator.py _improve_commit (after the nonempty and credential checks); test in test/shiploop-actual-improve-cli.test.py",
+    "checks": "There is a subject line and a non-empty body. Each label Review:, Plan:, Changes:, Validation:, Key learnings:, Remaining work: appears with non-blank text after it. A classification word (trivial / non-trivial / unresolved) appears. Any 7-40 hex token cited as a commit resolves with `git cat-file -e`. The script appends the action id and child stage itself rather than requiring the model to type them.",
+    "risk": "A refusal costs the model one rewrite of commit-message.md. It invites boilerplate in each label, and the existing test that commits a two-line message would fail until updated. It does not reach model-typed `git commit`, which bypasses improve-commit.",
+    "cannot_check": "Whether the Validation text reflects checks that ran, whether the learning is real or generic, or whether the detail is adequate. No length rule is proposed."
+   },
+   {
+    "change": "Name the files in the leftovers commit, and give the release-plan knowledge commit a body.",
+    "where": "skills/shiploop/scripts/shiploop_workspace.py commit_leftovers (message literal); skills/shiploop/scripts/shiploop_knowledge_home.py commit (body for stage 'release-plan' from {feature}/release-plan.md headings or a fixed section)",
+    "checks": "Nothing is refused. The leftovers body lists the committed paths and the stage that wrote them, if known. The release-plan commit carries the plan's check and rollback summary.",
+    "risk": "Message churn only. No false refusals.",
+    "cannot_check": "Why the leftover files were outside the step plan's paths."
+   },
+   {
+    "change": "Make the maintainer improvement loop leave one learnings commit per round.",
+    "where": "Either drive rounds with test/shiploop_e2e/iterate.py (record_learnings already commits per iteration), or add a preflight in scripts/release.py",
+    "checks": "The release preflight refuses a release when no commit since the previous Skill-Craft-Release commit touches test/shiploop_e2e/LEARNINGS.md, unless the release commit range carries an explicit override trailer (for example 'No-E2E-Round: <reason>').",
+    "risk": "False refusals for releases that follow no E2E round (prompt-only or docs-only releases); the override trailer handles them at the cost of one line. It does not ensure the entry is detailed.",
+    "cannot_check": "Whether the LEARNINGS entry matches the round's evidence, or whether it was committed right after the run rather than later."
+   },
+   {
+    "change": "Optional (owner decision): a checkpoint commit per accepted implement visit.",
+    "where": "skills/shiploop/scripts/shiploop_navigator.py, a sibling of _item_commit firing on accepted 'implement' rows and reusing item_scope.commit_item with the declared paths",
+    "checks": "Nothing is refused (fail-soft like integrate). The message is 'wip: <id> step <n>' plus the implement summary.",
+    "risk": "It reverses the current one-commit-per-item design (SPEC S-5). It puts red or partial states into history, multiplies commits roughly 2-5x per item, and may complicate the guarded fast-forward return and later squash decisions.",
+    "cannot_check": "Whether each intermediate state builds or passes tests."
+   }
+  ]
+ }
+}
