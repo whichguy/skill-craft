@@ -51,12 +51,13 @@ def terminal_path(action: str) -> str:
 RECEIPT_LINE = ("Receipt (the runtime writes every packet here, the terminal one last; ShipLoop "
                 "checks this file, so do not write or edit it): ")
 
+# The receipt is the one evidence_refs entry a loop stage's done cannot do without; a blocked result before the loop
+# ran may keep it too (the evidence check passes this action's own unwritten receipt for an outcome other than done).
+RECEIPT_REF_LINE = ("The result template's evidence_refs already lists the receipt: keep it when you report done. "
+                    "ShipLoop refuses done without it.")
+
 # Shown once the receipt exists, so a host that lost its context continues the
 # loop instead of starting a second one.
-# The receipt is the one evidence_refs entry a loop stage cannot do without.
-RECEIPT_REF_LINE = ("The result template's evidence_refs already lists the receipt: keep it. ShipLoop refuses done "
-                    "without it.")
-
 RESUME_LINE = ("The loop already started: do not run Start again. While the receipt's status is active, run "
                "its next_argv once and follow the returned packet; once it is complete or stopped, submit this "
                "stage's result.")

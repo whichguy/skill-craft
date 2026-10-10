@@ -5,7 +5,7 @@ Phase 0 of the packet-compaction plan (docs/shiploop-packet-compaction-plan-2026
 before changing it, so every later cut shows its saving.  Stdlib only.  No model calls, nothing written outside --out.
 
     python3 test/shiploop_e2e/packet_anatomy.py <run>/run/packets [<more dirs>] [--out DIR] [--label NAME]
-    python3 test/shiploop_e2e/packet_anatomy.py --walk DIR      # no-model walk of the current engine, then measure it
+    python3 test/shiploop_e2e/packet_anatomy.py --walk DIR [--case ID]  # no-model walk of the current engine (a cases.json prompt), then measure it
 
 A directory holds `nav-<id>.md` (a producer packet), `nav-<id>-improve.md` (the Improve child's packet) and
 `nav-<id>-improve-bind.md` (the packet that asks for improve-bind).  The stage comes from the head line
@@ -562,12 +562,13 @@ print(json.dumps({"visits": visits, "status": state["status"]}))
 '''
 
 
-def walk(out: Path, plugin_scripts: Path | None = None) -> Path:
+def walk(out: Path, plugin_scripts: Path | None = None, case: str = "hello") -> Path:
     """Run a request through the CURRENT engine with synthetic results (no model), writing every packet.
 
     Mirrors test/shiploop_e2e/run.py seed_run: `workspace start` in a throwaway git repository, then a loop that applies a
     synthetic done result per stage; at a reviewed stage it also prints the improve-bind and improve-start packets.
-    Returns the run's packets directory."""
+    The request is the prompt of ``case`` in cases.json (any case: the walk's results are synthetic, so no product is
+    favoured). Returns the run's packets directory."""
     import os
     import subprocess
 
@@ -584,8 +585,10 @@ def walk(out: Path, plugin_scripts: Path | None = None) -> Path:
         subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True, text=True, env=env)
     cli = scripts / "shiploop"
     workspace = out / ".shiploop-runs" / "walk"
-    prompt = ("Build a small two-player Checkers game served by a Node.js HTTP server with no npm dependencies. "
-              "The walk uses synthetic results; the prompt only has to be a realistic request.")
+    cases = json.loads((Path(__file__).resolve().parent / "cases.json").read_text(encoding="utf-8"))
+    if case not in cases:
+        raise SystemExit(f"walk: no case {case!r} in cases.json (cases: {', '.join(sorted(cases))})")
+    prompt = cases[case]["prompt"]
     started = subprocess.run([sys.executable, str(cli), "workspace", "start", f"--repo={work}", f"--workspace-root={workspace}",
                               "--delegation=inline", f"--prompt={prompt}"], capture_output=True, text=True, env=env)
     if started.returncode:
@@ -605,11 +608,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, help="write <label>.json and <label>.md here instead of printing")
     ap.add_argument("--walk", type=Path, metavar="DIR",
                     help="first run a no-model walk of the current engine under DIR, then measure its packets")
+    ap.add_argument("--case", default="hello", help="the cases.json case whose prompt the walk submits (default: hello)")
     args = ap.parse_args(argv)
     directories = list(args.packets)
     label = args.label
     if args.walk:
-        directories.append(walk(args.walk))
+        directories.append(walk(args.walk, case=args.case))
         label = label or "no-model-walk-current-engine"
     if not directories:
         ap.error("give a packet directory or --walk DIR")

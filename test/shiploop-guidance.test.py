@@ -1894,18 +1894,15 @@ class GuidanceTests(unittest.TestCase):
                 improve = normalized(prompts.improve_prompt(stage))
                 self.assertIn("Do not repeat unchanged release effects merely to advance the review streak", improve)
                 self.assertNotIn("Improve does not initiate or replay release effects", improve)
-                if stage == "release":
-                    # The only stage that performs a release effect.
-                    self.assertIn("operations already authorized for the current task and stage", improve)
-                    self.assertIn("Reconcile uncertain or partial outcomes before retrying", improve)
-                    self.assertIn("operation remains authorized under the release guidance", improve)
-                else:
-                    # Every other stage's Improve assesses (SPEC S-3; environment-lifecycle.md#release-operation-
-                    # ownership): the release-plan Improve packet said it "may perform deployments" while it plans
-                    # without executing release (packet review 2026-10-10, P-imp-1).
-                    self.assertIn("does not execute or replay a release effect", improve)
-                    self.assertNotIn("may perform deployments", improve)
-                    self.assertNotIn("already authorized for the current task and stage", improve)
+                # One rule for every stage that reads Release operation guidance (SPEC S-3; environment-lifecycle.md
+                # #release-operation-ownership): a stage-scoped Improve assesses and records, never executes or replays
+                # a release effect.  No Improve child runs at release itself, so no text lets one perform it (the
+                # release-plan Improve packet said it "may perform deployments": packet review 2026-10-10, P-imp-1).
+                self.assertIn("does not execute or replay a release effect", improve)
+                self.assertNotIn("may perform deployments", improve)
+                self.assertNotIn("already authorized for the current task and stage", improve)
+        import shiploop_stage_spec as spec
+        self.assertIsNone(spec.stage("release").improve)  # the premise: release starts no Improve child
         planning = normalized(prompts.improve_prompt("plan"))
         self.assertIn("These restrictions belong to that Backchain child", planning)
         discovery = normalized(prompts.improve_prompt("discovery"))
