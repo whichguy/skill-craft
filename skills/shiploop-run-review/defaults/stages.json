@@ -27,7 +27,7 @@
 {"stage": "carry-forward", "purpose": "record lessons and revise the remaining queue", "exitCheck": "review loop", "improve": "last-item", "reads": ["spec", "plan", "item:integration-verify"]},
 {"stage": "system-test-author", "purpose": "prepare end-to-end and system tests", "exitCheck": "review loop", "improve": "always", "reads": ["spec", "test-strategy", "plan"]},
 {"stage": "system-test", "purpose": "run end-to-end and system tests on the real candidate", "exitCheck": "script-run", "completeRuns": ["test-rerun"], "reads": ["spec", "system-test-author"]},
-{"stage": "product-acceptance", "purpose": "assess the product against the original outcome", "exitCheck": "model judgement", "reads": ["intake", "spec", "system-test"]},
+{"stage": "product-acceptance", "purpose": "assess the product against the original outcome", "exitCheck": "model judgement", "reads": ["intake", "spec", "system-test-author", "system-test"]},
 {"stage": "release-plan", "purpose": "plan the release, rollback and checks", "exitCheck": "review loop", "improve": "always", "reads": ["spec", "plan", "system-test"]},
 {"stage": "release-check", "purpose": "confirm release readiness without releasing", "exitCheck": "model judgement", "reads": ["release-plan"]},
 {"stage": "release", "purpose": "perform the planned release", "exitCheck": "model judgement", "reads": ["release-plan", "release-check"]},

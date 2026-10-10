@@ -45,6 +45,7 @@ import tempfile
 import shiploop_git
 import shiploop_grants
 import shiploop_knowledge_home as knowledge_home
+import shiploop_stage_spec as stage_spec
 import threading
 from contextlib import contextmanager
 from functools import wraps
@@ -229,6 +230,16 @@ def _normal_paths(values: Iterable[str], *, label: str) -> List[str]:
 
 def _matches_exclusion(path: str, excluded: Sequence[str]) -> bool:
     return any(path == item or path.startswith(item + "/") for item in excluded)
+
+
+def never_committed(path: str, excluded: Sequence[str]) -> bool:
+    """A path ShipLoop never commits in a workspace: run evidence or a protected part, or one the caller excluded."""
+    return _forbidden(path) or _matches_exclusion(path, excluded)
+
+
+def excluded_paths(workspace_root: Path) -> List[str]:
+    """The caller's ``--exclude`` paths from workspace.md (read-only; raises WorkspaceError when unreadable)."""
+    return list(_manifest(_resolved_directory(Path(workspace_root), label="workspace root"))["excluded"])
 
 
 def _no_symlink_components(path: Path, *, label: str) -> None:
@@ -1265,7 +1276,7 @@ def commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:
     tracked = [name for name in _git_bytes(worktree, "diff", "--name-only", "-z", "HEAD").decode(
         "utf-8", "surrogateescape").split("\0") if name]
     paths = sorted({*tracked, *(row["path"] for row in _untracked(worktree))})
-    chosen = [path for path in paths if not _forbidden(path) and not _matches_exclusion(path, manifest["excluded"])]
+    chosen = [path for path in paths if not never_committed(path, manifest["excluded"])]
     if not chosen:
         return shiploop_git.Committed("", [], [])
     try:
@@ -1484,9 +1495,9 @@ def expected_return(workspace_root: Path) -> Optional[str]:
 
 # Said right after the route's first sentence, because a model reads this line cut short and a file written after the
 # last work item was committed by hand ahead of the return.  It describes plan-return (commit_leftovers) in both routes:
-# the files it skips are the credential-like ones, which its own notice tells the model to fix and then commit.
-_LEFTOVERS_CLAUSE = ("plan-return commits files left uncommitted, so commit nothing for the return except a file it "
-                    "reports as not committed.")
+# the files it skips are the credential-like ones, which its own notice tells the model to fix and then commit.  A
+# worktree run's integrate and document packets print the same constant (SPEC S-12).
+_LEFTOVERS_CLAUSE = stage_spec.RETURN_LEFTOVERS
 
 
 def route_sentence(workspace_root: Path) -> str:

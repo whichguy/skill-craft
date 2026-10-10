@@ -1731,7 +1731,7 @@ def _knowledge_gate(state: Mapping[str, Any], stage: str, result: Any) -> None:
 
 
 def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
-    """Commit an item's declared changes once its integrate stage is accepted done."""
+    """Commit an item's changes (``item_scope.commit_scope``) once its integrate stage is accepted done."""
     rows = after["history"][len(before["history"]):]
     for row in rows:
         if row["stage"] != "integrate" or row["outcome"] != "done" or not row.get("workitem"):
@@ -1744,10 +1744,13 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
             print("ShipLoop integrate: " + str(exc) + "; commit the item's files before release.", file=sys.stderr)
             continue
         if commit:
-            print("ShipLoop committed " + str(row["workitem"]) + "'s declared changes as " + commit[:12] + ".")
+            print("ShipLoop committed " + str(row["workitem"]) + "'s changes (its declared paths and documentation) as "
+                  + commit[:12] + ".")
         if undeclared:
-            print("Not committed (changed, but neither in the step plan's paths nor documentation): "
-                  + ", ".join(undeclared) + ". " + stage_spec.ITEM_LEFT)
+            mode = str(after.get("execution_mode"))
+            print("Not committed (changed, but not in the step plan's paths and not documentation"
+                  + (", or excluded from the return" if mode == "navigator-worktree" else "") + "): "
+                  + ", ".join(undeclared) + ". " + stage_spec.item_left(mode))
         if skipped:
             print(shiploop_git.skipped_notice(skipped))
 
@@ -3708,7 +3711,9 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
         gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
                      "or a due_stage that is not a later stage")
     if stage in knowledge.CLOSES:
-        gates.append("a docs/shiploop file this stage must have written, missing or empty")
+        # A close that also requires files earlier stages wrote (prepare, test-spec, release-plan) did not write them all.
+        gates.append("a docs/shiploop file this stage's close requires, missing or empty" if knowledge.required_earlier(stage)
+                     else "a docs/shiploop file this stage must have written, missing or empty")
     return gates
 
 
@@ -3747,7 +3752,8 @@ def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
                if _sent_back_results(state, stage, _current_work_item(state)) else []),
              _checked_line(row, state)]
     considerations = [(label, text) for label, text in (
-        ("Develop", row.develop), ("Test", row.test), ("Deploy", row.deploy), ("Tools", row.tools)) if text]
+        ("Develop", stage_spec.develop(stage, str(state.get("execution_mode")))), ("Test", row.test),
+        ("Deploy", row.deploy), ("Tools", row.tools)) if text]
     if considerations:
         lines.append("Considerations for this stage:")
         lines.extend(f"- {label}: {text}" for label, text in considerations)
@@ -3821,7 +3827,10 @@ def _commit_scope_lines(root: Path, state: Mapping[str, Any], stage: str, work_i
         return lines
     if not changed:
         return lines + ["Changed since this item's base: nothing."]
-    committed, left = item_scope.commit_scope(changed, allowed)
+    try:
+        committed, left = item_scope.commit_scope(changed, allowed, item_scope.withheld(root, state))
+    except item_scope.ItemScopeError:
+        return lines  # the workspace manifest is unreadable: name nothing rather than guess
     if committed:
         lines.append("Changed, ShipLoop will commit: " + ", ".join(committed))
     if left:

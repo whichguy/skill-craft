@@ -757,21 +757,31 @@ compatibility check; reuse accepted choices for unaffected scope and the existin
 design/test facilities."""
 
 # The conditions the Improve child applies to a planning result (PLANNING_REVIEW_FOCUS, further down).  The spec and
-# test-strategy duties restate them, so a producer reads how its result is reviewed (SPEC S-6) in its own packet.
-REVIEW_FOCUS_CONDITIONS = """\
-- a step, example or expected result that cannot be replayed exactly: name the
-  concrete inputs, values, identifiers and sample interactions;
-- an expected result or check that a weaker stand-in would pass: a hardcoded
-  value, a missing assertion, a title-only test, or an absent required name;
-- a documented command that does not run what it claims on the target runtime:
-  run it once and record the exit code and the cases it executes;
-- a required requirement, test ID or case dropped or weakened compared with the
-  prior accepted version;
-- a claim about what the runtime, platform or a library can do that a decision
-  depends on, with no primary-documentation source or probe result: check it,
-  and correct the plan where it is wrong;
-- a missing prerequisite, wrong order or unowned verification in the steps.
-"""
+# test-strategy duties restate the ones that apply to them, so a producer reads how its result is reviewed (SPEC S-6)
+# in its own packet.  One source: the child's list is the producers' list plus the condition on steps, which a spec or
+# test strategy does not hold.
+_REVIEW_FOCUS_ITEMS = (
+    "a step, example or expected result that cannot be replayed exactly: name the\n"
+    "  concrete inputs, values, identifiers and sample interactions",
+    "an expected result or check that a weaker stand-in would pass: a hardcoded\n"
+    "  value, a missing assertion, a title-only test, or an absent required name",
+    "a documented command that does not run what it claims on the target runtime:\n"
+    "  run it once and record the exit code and the cases it executes",
+    "a required requirement, test ID or case dropped or weakened compared with the\n"
+    "  prior accepted version",
+    "a claim about what the runtime, platform or a library can do that a decision\n"
+    "  depends on, with no primary-documentation source or probe result: check it,\n"
+    "  and correct the plan where it is wrong",
+)
+_REVIEW_FOCUS_STEPS = "a missing prerequisite, wrong order or unowned verification in the steps"
+
+
+def _focus_list(items: tuple) -> str:
+    return "".join("- " + item + (";" if index < len(items) - 1 else ".") + "\n" for index, item in enumerate(items))
+
+
+REVIEW_FOCUS_CONDITIONS = _focus_list(_REVIEW_FOCUS_ITEMS + (_REVIEW_FOCUS_STEPS,))
+_PRODUCER_FOCUS_CONDITIONS = _focus_list(_REVIEW_FOCUS_ITEMS)
 
 # The producers whose duty carries REVIEW_FOCUS_CONDITIONS; the navigator's Improve line says so for exactly these.
 REVIEW_FOCUS_DUTY_STAGES = ("spec", "test-strategy")
@@ -946,7 +956,7 @@ For selected service boundaries, specify current authority, freshness versus
 revocation, incremental state preservation, async completion/recovery, and owned
 event coverage. Use Service discovery guidance to make these contracts verifiable;
 mark inapplicable concerns briefly instead of adding services to fill a template.
-""" + _REVIEW_FOCUS_LEAD + REVIEW_FOCUS_CONDITIONS + """\
+""" + _REVIEW_FOCUS_LEAD + _PRODUCER_FOCUS_CONDITIONS + """\
 """,
     "test-strategy": """\
 Create a risk-based test and verification strategy from the specification before
@@ -1014,10 +1024,11 @@ stays out of the project's default test command: give it its own opt-in command 
 flag, so a plain run of the default test command passes without the host tool.
 """ + ID_WORD_RULE + """ Declare each id as the tests will be titled.
 When the request names a page or screen people use, the strategy holds either a case
-that drives it in a browser (the tool named and probed as above), or the outcome
-recorded as unverified with its owner and due stage (handoff, or the stage whose
-external effect it gates); an HTTP response alone is neither.
-""" + _REVIEW_FOCUS_LEAD + REVIEW_FOCUS_CONDITIONS + """\
+that drives it through its user interface (for example in a browser or on a device),
+with the tool named and probed as above, or the outcome recorded as unverified with
+its owner and due stage (handoff, or the stage whose external effect it gates); an
+HTTP response alone is neither.
+""" + _REVIEW_FOCUS_LEAD + _PRODUCER_FOCUS_CONDITIONS + """\
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -1656,8 +1667,8 @@ in their output, because the default suite must pass without the host tool.
 ShipLoop runs every one itself when system-test reports done and refuses
 unless each passes. Run each system command once while authoring: a command that
 cannot pass here is changed to observe the same requirement another way. A case
-that cannot run here (a browser or an account this host cannot reach, or a route
-that fails when run) is unachievable: leave its command out of `system_commands`,
+that cannot run here (for example a browser or an account this host cannot reach)
+is unachievable: leave its command out of `system_commands`,
 because ShipLoop runs every recorded one and refuses unless each passes, and
 record it as an open item in this result's summary: case ID, the requirement it
 leaves unverified, who does what, what they report, and the stage it is due at
@@ -1709,12 +1720,17 @@ check relevant repeatability; never blindly replay an uncertain external effect.
 Verify execution location, remote framework availability and deployed/test revision
 identity. A local pass cannot replace a blocked/unrun required remote check or
 establish a combined full-suite pass; preserve its assigned owner and boundary.
-Carry in the open items system-test-author recorded: run any this stage can now,
-and leave the rest listed with the due stage they name.
+Carry in the open items system-test-author recorded: run any this stage can now and
+report each such case in the summary, where it is not recorded evidence (ShipLoop's
+rerun covers only the recorded system commands). Leave the rest listed with the due
+stage they name.
+A recorded system command that fails here is not an open item: ShipLoop refuses done
+while it fails, so fix the candidate, or report replan for missing product work or
+blocked when nothing else can proceed.
 A required case that only a person can run (for example, in a signed-in browser),
-for which the discovery and test-strategy records show this host has no route, or
-the route fails when the case is run (for example a browser opens but the page never
-loads), does not make this result blocked. Record it as an open item in the result: case ID, who
+for which the discovery and test-strategy records show this host has no route, and
+whose command system-test-author left out of `system_commands`, does not make this
+result blocked. Record it as an open item in the result: case ID, who
 does what, what they report, owner (a person), due stage (handoff, or the stage
 whose external effect it gates). Submit done once every other due check and
 ShipLoop's rerun pass; the handoff reports it unverified, never as a pass. Report
