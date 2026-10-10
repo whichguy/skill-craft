@@ -10,6 +10,8 @@ checks the clauses", their own commit `44fa9671`).
 
 An independent review of the first version (`2b149561`) is answered in section 10; the figures and sentences it corrected are
 marked where they stand.
+Task I (2026-10-10) replaced the harness's own lessons reader with ShipLoop's `shiploop_lessons` and regraded the baseline (section 11);
+the claims it supersedes are marked where they stand.
 
 Status words: **firm** (counted from the saved runs by code that is committed and tested), **interim** (a reading of those counts
 that one more run or a live probe could change), **exploratory**, **superseded**.
@@ -77,6 +79,7 @@ shape so that the classes sum to the commits counted and nothing is dropped.
   justification and this is it). It takes the knowledge home's label from `knowledge_home.LEARNING_SECTIONS` (a test pins that
   `Learned` is one of them) and the Improve card's from `skills/improve/SKILL.md`. When slice B gives ShipLoop a reader of commit
   sections, `counters.py` imports it and this one goes.
+  **Superseded 2026-10-10 (section 11):** `shiploop_lessons` is that reader and `counters.py` imports it; `counters.lessons` is gone.
 
 ## 3. How it was built (fail-first, mutants)
 
@@ -134,7 +137,8 @@ of a bound Improve child is a second packet for one action and the largest in it
 section: the release-verify commit of each of the 28 finished Claude runs, and one Grok and the mixed-host run. The plan's 91%
 subject-only holds. Of 132 Improve commits, 68 carry one (Claude 38 of 81, Codex 13 of 34, Grok 17 of 17); the plan's "12 of 13 carry
 every label" holds for Grok and for some Claude runs (r2 and r3 Checkers 8 of 8 and 6 of 6) and not for others (v1230 Battleship 0
-of 6, r1 Checkers 0 of 4, 20261010 Battleship 0 of 5). Nothing cites: `cited` and `cited_earlier_run` are 0 of 132, measured (the field
+of 6, r1 Checkers 0 of 4, 20261010 Battleship 0 of 5). **Counted with the narrow reader on 38 runs; the shared reader on 39 runs counts 74 of
+136 Improve commits (Claude 44 of 85), section 11.3.** Nothing cites: `cited` and `cited_earlier_run` are 0 of 132, measured (the field
 is defined, the history was read, nothing writes `Learned-from:`).
 
 **F6. Reading what a classifier left over (firm).** The first classification left 40 commits in `other`; 5 were ShipLoop's own work
@@ -304,7 +308,8 @@ F1 (the discriminator), F2 (Claude's heads are mostly unmeasurable), F3 (Grok is
 - Regrade is a script beside the evidence (`regrade.py`), not a second CLI flag: `--grade-only` rewrites `metrics.json` and
   `result.json` in place (forbidden here) and `--baseline-report` reads saved `metrics.json` files, which lack the new keys. The script
   calls the same functions (`run.run_folders`, `run.grade_shiploop`, `metrics.collect`, `counters.build`), so it is not a second parser.
-- `counters.lessons` is a small reader of its own (section 2), because no importable one exists.
+- `counters.lessons` is a small reader of its own (section 2), because no importable one exists. **Superseded 2026-10-10 (section 11):**
+  `shiploop_lessons` exists and the harness imports it.
 - The README states the first-print and one-byte limits and the cut-by-column limit; the packets block is not printed in the run
   report (record-only).
 - The knowledge-commit share (9%) is a subtotal of `script` kept in `baseline.json` (`knowledge_commits`) and is not a key of a run's
@@ -322,7 +327,8 @@ F1 (the discriminator), F2 (Claude's heads are mostly unmeasurable), F3 (Grok is
 1. **A script-written head record.** If ShipLoop wrote each head it prints to `run/packets/<action>.head` (or recorded its size in
    `state.md`), `head_bytes` would be exact on Claude too. It changes ShipLoop and the fork owns the packet pass: a recommendation,
    not built.
-2. **Slice B imports the commit-section reader** when ShipLoop has one; `counters.lessons` is removed then.
+2. **Slice B imports the commit-section reader** when ShipLoop has one; `counters.lessons` is removed then. **Done 2026-10-10 (section 11,
+   `4d423333`).**
 3. **`Learned-from:` is measured at zero**; the first run after slice B is the first that can move `cited`. `cited` counts Improve
    commits only, as the brief defined it.
 4. The cut-by-column test catches a shortened callback or keepalive line only; other columns of a `cut -c` are not told (2 of the
@@ -412,7 +418,171 @@ about 5. Exit codes are the commands' own, captured without a pipe.
 A timing-sensitive failure was not seen, so no rerun was needed beyond the two `shiploop-status-display` runs above. Not run: the full
 hermetic tier (CI runs it on a release commit), any live E2E run, any host CLI or model, any browser or server.
 
-## 11. Drift found by the first release-commit CI (2026-10-10): ShipLoop reworded the work item's announcement
+## 11. Task I (2026-10-10): the harness reads lessons and citations through ShipLoop's one reader, and the baseline is regraded with it
+
+Journal of batch 1012 task I. Question: does "a commit carries lessons" mean one thing, in the gate and in the harness (SPEC S-12), and
+what does that change in the saved runs' counts? Base `8f3d4cbe`; commits `4d423333` (the replacement, with its tests and docs),
+`11d1aba5` (the regraded baseline and `reader_change.py`), `453bbc03` (the suite's measured seconds), `3382477f` (the label tally),
+`1d237e59` (the mutation record), `21384c6e` (the LEARNINGS entry), then this journal. Evidence: `docs/experiments/commit-baseline-20261010/` (`baseline.json`, `tallies.json`,
+`reader-change.json`, `reader_change.py`, `mutants.py`, `mutants-result.json`). The older sections are kept as written; where a claim in
+them is superseded a note says so in place.
+
+### 11.1 What was built
+
+| Part | Where |
+|---|---|
+| The harness's own reader is gone: `lessons`, `LESSON_LABEL`, `SECTION_END`, `LEARNED_FROM`, `LEARNED`, `KEY_LEARNINGS` and the `knowledge_home` import only they used | `test/shiploop_e2e/counters.py` |
+| `with_lessons` = `shiploop_lessons.lessons` finds a non-empty section; `cited` = `shiploop_lessons.citations` has a token that is a commit ID and resolves to a commit in the repository | `counters.commits`, `counters._cited_commit`, `counters.COMMIT_ID` |
+| The shape of an ID is the gate's (7 to 64 hexadecimal digits), checked before Git is asked; the harness still resolves with Git and does not use the gate's reachable-from-HEAD rule | `counters.COMMIT_ID`, pinned to `shiploop_git._COMMIT_ID` by `CitationTest.test_the_shape_of_an_id_is_the_gates` |
+| `regrade.py` counts the knowledge home's lessons through the shared reader | `regrade.knowledge_commits` |
+| Old reader vs shared reader, per commit, on the same runs | `reader_change.py` (`old_reader` loads `counters.py` from Git at `--old-ref`, `compare`, `records`, `tally`), `reader-change.json` |
+| Mutation rows at the import seam | `mutants.py` (43 rows; the five rows that targeted deleted code are replaced by eight at the seam) |
+| README and SPEC describe the counters by the shared reader | `test/shiploop_e2e/README.md` ("Packet and commit counters"), `SPEC.md` (the `commits` row of "How the harness checks the clauses") |
+
+No metrics key was added or changed; `result.json`, the baseline row, `review.py` and everything under `skills/` and `agents/` are
+untouched, so there is no change note.
+
+### 11.2 Fail-first record
+
+| Step | Result |
+|---|---|
+| The new reader tests against the old reader (`counters.py` unchanged) | 94 tests: 48 failures, 1 error, each for the intended reason. Red: the heading form, a bold or bulleted label, `Lessons:`, the singular `Key learning:`, lower-case labels, a label alone then a blank line then the body, `Root-cause:` and `Follow-up:` lesson lines, and 6 of the 15 shapes the gate's own fixtures pin (`test/fixtures/commit-contract`); a backtick, bracket, quote, bullet, bold or lower-case `Learned-from` line; the seam tests; and the two reverse cases (punctuation-only `Key learnings: -`, and a heading right after an empty `Key learnings:`, which the old reader counted and the gate does not). My first two runs were red for a wrong reason (an empty event stream makes the block null; the knowledge subject classifies a commit as `script`; an empty message cannot be committed) and were fixed in the tests before this record. |
+| Guards (pass before and after, by design) | `Key learnings: none`; the trailer-only heading (the old reader never read headings, so it was empty before too); the one-paragraph message; `Learned-from: <id>: text` and an upper-case id (the old regex already read both: **the brief's "a trailing colon" is not a difference**); the not-an-ID cases |
+| The import without the ID-shape check | 4 failing subtests of `test_a_token_that_is_not_a_commit_id_cites_nothing_even_when_git_would_resolve_it`: a branch named `notes`, `HEAD`, `HEAD~1` and a six-digit prefix are counted as citations. The shared reader returns any token and Git resolves names, where the old regex only ever offered hexadecimal text |
+| With the change | 94 tests OK, then 99 with `ReaderChangeTest` (written before `reader_change.py`: red on `setUpClass`; 5 one-line breaks of the script, 3 red at once, 1 survivor got a test, 1 was a redundant guard and was removed; the label tally later: 2 breaks red, 1 redundant filter removed) |
+| Tests deleted | `LessonsSectionTest` (three tests of the old reader, including `learned: lower case` being no label, which the shared reader reads) and the `counters.LEARNED` pin. Replaced by `LessonsReaderTest` (8 tests, each commits a message in a real repository and reads the count the block reports, including one over every fixture the gate is pinned with) and 4 `CitationTest` tests |
+
+### 11.3 Before and after, per class and host
+
+Three readings of the same counts. **Old, committed**: `baseline.json` as task H wrote it, 38 runs (the 39th was live). **Old, 39 runs**:
+the old reader on the runs folder as it is now (`pc1i-checkers-sonnet`, finished since, is the 39th; `regrade.py` before the change,
+kept in the scratchpad). **Shared**: the shared reader on the same 39 runs (the committed `baseline.json` and `reader-change.json`).
+`with_lessons` is "commits with lessons / commits"; `cited` is 0 in every cell of the three readings.
+
+| Class / host | Old, committed (38 runs) | Old, 39 runs | Shared, 39 runs | Why the cell is what it is |
+|---|---|---|---|---|
+| improve / claude | 38 / 81 | 42 / 85 | **44 / 85** | +4 / +4 from the 39th run (all four Improve commits of `pc1i-checkers-sonnet` carry `Key learnings:`); **+2 from the reader**: the two release-plan Improve commits of `20261003/seat-reservations` write `Key learning:` (singular) |
+| improve / codex | 13 / 34 | 13 / 34 | 13 / 34 | none; 5 of these commits are counted by both readers with a different text (below) |
+| improve / grok | 17 / 17 | 17 / 17 | 17 / 17 | none |
+| improve / mixed host | 0 / 0 | 0 / 0 | 0 / 0 | no Improve commit |
+| script / claude | 28 / 276 | 29 / 286 | 29 / 286 | +1 / +10 from the 39th run (its release-verify knowledge commit, `Learned`); reader: none |
+| script / codex | 0 / 38 | 0 / 38 | 0 / 38 | none |
+| script / grok | 1 / 78 | 1 / 78 | 1 / 78 | none; the one counted commit's text differs (below) |
+| script / mixed host | 1 / 20 | 1 / 20 | 1 / 20 | none |
+| other / claude | 1 / 22 | 1 / 22 | **2 / 22** | **+1 from the reader**: the model's own commit "Add system tests ST-1 and ST-2 ..." of `20261008/r2-battleship-sonnet` writes `Key learning:` (singular) before its `Co-Authored-By` trailer |
+| other / codex | 0 / 2 | 0 / 2 | 0 / 2 | none |
+| other / grok | 0 / 1 | 0 / 1 | 0 / 1 | none |
+| other / mixed host | 0 / 10 | 0 / 10 | 0 / 10 | none |
+| all, improve | 68 / 132 | 72 / 136 | 74 / 136 | |
+| all, script | 30 / 412 | 31 / 422 | 31 / 422 | |
+| all, other | 1 / 35 | 1 / 35 | 2 / 35 | |
+
+**Does any previously counted commit stop counting? No.** `lost` is 0 in every class and host of the 593 commits; `gained` is 3, and
+`reader-change.json` lists them (`changed`): the three above, each with the label `Key learning` and no other. So the whole effect of the
+reader is one label, the singular of the Improve card's `Key learnings`, which the old reader did not know and ShipLoop's grammar does.
+The messages I opened use these forms: the two `seat-reservations` commits are a subject, then a paragraph that starts `Key learning:`
+and runs six lines, then a paragraph `Evidence: ... Related commits: <ids>.` (the ids are prose, not a `Learned-from` line); the
+`r2-battleship-sonnet` commit is a subject, one `Key learning:` paragraph of three lines, a blank line and the trailer.
+
+Which labels the 107 counted commits use (`reader-change.json`, `all.<class>.labels`): `Key learnings` 73 (72 Improve, 1 model),
+`Learned` 31 (all knowledge-home release-verify commits, `script`), `Key learning` 3. Nothing else: no heading, no bold, no bullet, no
+`Lessons:`, no lower-case label in any saved run (status: firm for these 593 commits). Those forms are guarded by the tests, not by
+data, and the first live pair after the commit contract is the first data on them.
+
+Six commits are counted by both readers with a different text (`text_differs`; the count is the same): 5 Codex Improve commits whose
+old text ran on through a bare `Remaining work` label and its lines (the old reader ended a section only at a `Label:` line; the shared
+reader ends a colon or bare body at a blank line), and 1 Grok knowledge commit whose old text ran past a blank line. The harness never
+judges the text.
+
+### 11.4 Citations and `none`
+
+- `cited` and `cited_earlier_run` stay measured zeros: 0 of 593 commits hold a line that matches `learned.?from` in any case
+  (`reader-change.json`, `learned_from_any_form`). The reader's tolerance (a backtick, quote, bracket, `commit <id>`, a trailing
+  colon or comma, a bullet or bold label, any case) cannot move a number yet; the tests cover it. The first run after the commit
+  contract is the first that can move `cited`.
+- **Counted lessons that are exactly `none`** (case-insensitive, punctuation stripped; descriptive, in this journal only, no metrics
+  key): **0 of 107** (`exactly_none` is 0 in every class). One counted lesson starts with the word, "none new beyond commit ..." (the
+  `20261010/checkers-1` Improve commit that `test/fixtures/commit-contract/none-counts.md` is modelled on), which is more than `none`.
+  The gate counts `Key learnings: none` (a measured presence, not a judged lesson), so after the commit contract this figure is the
+  first to show how often a model answers with it.
+
+### 11.5 Decisions, deviations, corrections to the brief
+
+- **An ID-shape check was added** (`counters.COMMIT_ID`), which the brief did not mention: with the tolerant tokens of the shared reader
+  a branch, `HEAD` or `HEAD~1` resolves in Git and would be counted as a citation the gate refuses (red record above). The harness still
+  resolves with Git and does not apply the gate's reachable-from-HEAD rule, as the brief said.
+- **The brief's "a trailing colon" is not a difference** between the readers (11.2, guards); a backtick, a quote, a bracket, a leading
+  `commit`, a bullet or bold label and a lower-case label are.
+- **The run set changed under the reader.** The committed baseline listed `20261010/pc1i-checkers-sonnet` as live; it has finished, so
+  `baseline.json` now holds 39 regraded runs and `tallies.json`, which is built from the baseline's run list, was regenerated with it
+  (1,597 heads: 438 whole, 1,116 end before the closing line, 41 inside the narrative, 2 cut by column; 35 `other` commits: 32 by the
+  user's Git identity, 3 confirmed by Git's own line). Section 4 F2 and F6, the section 5 tables and the per-stage table keep their 38-run
+  figures as written; the 39-run totals are in `baseline.json` and `tallies.json` (Claude: 29 runs, 1,242 packets, 126 measured heads,
+  file bytes median 37,225.5, head bytes median 4,885.5). To keep the reader's effect separate from that, `reader_change.py` counts every
+  commit with both readers on the same 39 runs, and the middle column of 11.3 is the old reader on them.
+- `regrade.py` ran twice, byte-identical (68,330 bytes), as did `reader_change.py`; `baseline.json`'s `harness_head` is `4d423333`, the
+  commit of the counters code.
+- `counters.history` (the classification) and the shape of the metrics keys are unchanged; `tallies.py` is unchanged.
+- The suite is 24.1 s, not 15 (the recorded value in `test/suite_catalog.py` is updated, `453bbc03`): the new tests commit one message at a
+  time to a real repository.
+
+### 11.6 Superseded in the sections above
+
+- Section 2, "Lessons reader" (no ShipLoop code reads a commit message's sections, `counters.lessons` is the one reader): superseded
+  2026-10-10. `shiploop_lessons` is that reader and the harness imports it.
+- Section 6, "`counters.lessons` is a small reader of its own": superseded 2026-10-10, same reason.
+- Section 7, open item 2 ("Slice B imports the commit-section reader"): done, `4d423333`.
+- Section 4, F5, and the section 5 per-host tables: the lessons shares are counted with the narrow reader on 38 runs; the 39-run figures
+  with the shared reader are in 11.3 (Improve commits with lessons: 74 of 136, Claude 44 of 85).
+- Section 6, "the knowledge-commit share (9%) is a subtotal of `script`": unchanged by the reader (29 of 221 knowledge commits in Claude
+  runs, 1 of 67 in Grok, 0 of 33 in Codex, 1 of 17 in the mixed-host run).
+
+### 11.7 Open and deferred
+
+1. **`Learned` with no text, then the knowledge home's next section.** `shiploop_lessons` knows the lesson labels, the Improve card's six,
+   `Learned-from`, `Remote change` and four trailers, but not the knowledge home's `Key considerations` and `Open for the next run`, so
+   `Learned` + a blank line + `Key considerations` reads the section name as the lesson (the old reader ended there). ShipLoop's own
+   knowledge commit cannot write it (it writes a section only when it has text), and no saved commit differs, so nothing here is wrong;
+   it is an engine-side choice (add the two names to the known labels, or leave it). Not changed: nothing under `skills/` is mine.
+2. The reader is case-insensitive, so a line that starts `learned: ...` in prose counts as a lessons section. No saved commit does.
+3. The `none` figure above is the baseline for "a model says `none`"; a later run that reports many is a finding about the contract, not a
+   fault of the count.
+4. `baseline.json` and `tallies.json` are the 2026-10-10 baseline of 39 runs; re-run `regrade.py`, `tallies.py` and `reader_change.py`
+   after the next batch of runs.
+5. `CitationTest.test_the_shape_of_an_id_is_the_gates` reads `shiploop_git._COMMIT_ID`, a private name, so a rename in the gate turns the
+   test red and says where to look; the alternative (a public name) is a `skills/` change.
+
+### 11.8 Status of the findings
+
+| Finding | Status |
+|---|---|
+| The reader change moves 3 of 593 commits, all gained, none lost; the one difference is the singular `Key learning:` | Firm (reader-change.json, regenerated twice byte-identical; commit messages opened) |
+| No saved commit uses a heading, bold, bulleted, `Lessons:` or lower-case lesson form; `Learned-from` appears in none | Firm for the 593 commits |
+| A tolerant citation token must be checked for the shape of an ID before Git is asked | Firm (4 failing subtests without it) |
+| 0 of 107 counted lessons are exactly `none` | Firm as a count; interim as a baseline (the contract has not run live) |
+| `Learned` then `Key considerations` is read as a lesson by the shared reader | Firm for the reader (shown); no saved data affected; the choice is the engine's |
+
+### 11.9 Verification record
+
+Run on 2026-10-10 in the worktree of branch `batch1012i-1bbefb` (base `8f3d4cbe`), `SHIPLOOP_PROGRESS=off`, machine load average about
+6 (sibling worktrees share it). Exit codes are the commands' own, captured without a pipe.
+
+| Command | Exit | Note |
+|---|---|---|
+| `python3 test/shiploop-e2e-commit-counters.test.py` | 0 | 99 tests OK (task H's 86, minus 4 that pinned the old reader, plus 8 `LessonsReaderTest`, 4 `CitationTest` and 5 `ReaderChangeTest`); 24.1 s the faster of two serial runs at load average about 6, 30.8 s in the last run at about 11 |
+| `python3 test/test-groups.test.py` | 0 | 28 tests OK; no new top-level test file, so the pinned counts (76 ShipLoop suites, 117 in all) are unchanged |
+| `bash test/run-all.sh --group quick --changed-from 8f3d4cbe` (at `21384c6e`) | 1 | 26 suites: 25 OK, **`shiploop-status-display` failed, the only red suite**: `test_every_dry_run_packet_carries_the_block_inside_the_kept_head` (delegation `ask-agent`, scenario `revise`, sequence 20), `8003 not less than 8000`, the same single case task H recorded (its length depends on the checkout path, 8031 on another). `git diff 8f3d4cbe HEAD --stat -- skills agents` is empty, so `skills/` is the base's and the failure is not this branch's. `shiploop-e2e`, `shiploop-e2e-commit-counters`, `shiploop-run-review` (which reads the SPEC row edited here) and `release-preflight` (which reads `LEARNINGS.md`) are among the 25 |
+| the same tier at `453bbc03`, before the label tally, the mutation record, the LEARNINGS entry and this journal | 1 | 25 suites: 24 OK and the same single failure (`release-preflight` was not in that selection: `LEARNINGS.md` had not changed yet). A run of the tier at `21384c6e` started as a detached subshell was gone when its shell ended and left no result; it was run again as a task of its own (the row above) |
+| `python3 docs/experiments/commit-baseline-20261010/mutants.py` | 0 | 43 of 43 killed, no survivor, none not applicable; `counters.py`, `metrics.py` and `run.py` clean in Git after |
+| `python3 docs/experiments/commit-baseline-20261010/regrade.py --runs /Users/dadleet/e2e-runs`, twice | 0, 0 | byte-identical (68,330 bytes); 39 runs, 0 not regraded; now the committed `baseline.json` |
+| `python3 docs/experiments/commit-baseline-20261010/reader_change.py`, twice (after each change of the script) | 0, 0 | byte-identical; 39 runs, 593 commits, 3 counted differently |
+| `python3 docs/experiments/commit-baseline-20261010/tallies.py` | 0 | 39 runs |
+| `python3 scripts/check-release-boundary.py --base 8f3d4cbe --head HEAD` | 0 | `check-release-boundary: OK` (at `21384c6e`, and again after this journal's commit) |
+
+A timing-sensitive failure was not seen, so no rerun was needed beyond the quick tier above. Not run: the full hermetic tier (CI runs it on
+a release commit), any live E2E run, any host CLI or model, any browser or server. Ollama and OrbStack were left stopped.
+
+## 12. Drift found by the first release-commit CI (2026-10-10): ShipLoop reworded the work item's announcement
 
 **Status: firm.** Release 1.27.0 (`6f86c8cf`) reworded the line ShipLoop prints when it commits a work item, from "ShipLoop committed W1's declared changes as <sha>" to "ShipLoop committed W1's changes (its declared paths and documentation) as <sha>" (`shiploop_navigator._item_commit`, because an item's documentation now rides in its commit). The full tier on that commit failed `shiploop-e2e-commit-counters`: `ShipLoopOwnedSubjectsTest` reads ShipLoop's source and pins the wording `counters.py` matches, so the test did its job.
 

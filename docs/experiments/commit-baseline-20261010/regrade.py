@@ -33,6 +33,7 @@ import listeners  # noqa: E402
 import metrics  # noqa: E402
 import run  # noqa: E402
 import runrecord  # noqa: E402
+import shiploop_lessons as commit_lessons  # noqa: E402
 
 SCHEMA = "shiploop-e2e-commit-baseline/v1"
 
@@ -52,7 +53,7 @@ def knowledge_commits(found: dict | None) -> dict | None:
     if found is None:
         return None
     rows = [commit for commit in found["commits"] if commit["knowledge"]]
-    return {"n": len(rows), "with_lessons": sum(bool(counters.lessons(commit["message"])) for commit in rows)}
+    return {"n": len(rows), "with_lessons": sum(bool(commit_lessons.lessons(commit["message"])) for commit in rows)}
 
 
 def host_label(row: dict) -> str:

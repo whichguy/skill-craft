@@ -1,25 +1,25 @@
 {
  "schema": "shiploop-e2e-commit-baseline-tallies/v1",
- "harness_head": "58adf2731862e3e6965cc57bcf718517dd83807f",
+ "harness_head": "4d4233331e6ad6ec89a737e7e4938c92bb78bfdf",
  "reads": "the runs baseline.json regraded (read-only); no run file is written",
- "runs": 38,
+ "runs": 39,
  "head_replies": {
   "all": {
-   "heads": 1559,
-   "whole": 437,
+   "heads": 1597,
+   "whole": 438,
    "not_whole": {
-    "the reply ends before the head's closing line": 1082,
-    "the reply opens the narrative block and ends inside it": 38,
+    "the reply ends before the head's closing line": 1116,
+    "the reply opens the narrative block and ends inside it": 41,
     "every line is there and a callback or keepalive line is shortened (a cut by column)": 2
    }
   },
   "by_host": {
    "claude": {
-    "heads": 1204,
-    "whole": 153,
+    "heads": 1242,
+    "whole": 154,
     "not_whole": {
-     "the reply ends before the head's closing line": 1015,
-     "the reply opens the narrative block and ends inside it": 35,
+     "the reply ends before the head's closing line": 1049,
+     "the reply opens the narrative block and ends inside it": 38,
      "every line is there and a callback or keepalive line is shortened (a cut by column)": 1
     }
    },
@@ -90,10 +90,10 @@
   "by_host": {
    "claude": {
     "improve": {
-     "ShipLoop Workspace": 81
+     "ShipLoop Workspace": 85
     },
     "script": {
-     "ShipLoop Workspace": 276
+     "ShipLoop Workspace": 286
     },
     "other": {
      "Jim Wiese": 22
@@ -776,6 +776,23 @@
     "by_author": {
      "Jim Wiese": 2
     },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261010/pc1i-checkers-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 38,
+    "whole": 1,
+    "not_whole": {
+     "the reply ends before the head's closing line": 34,
+     "the reply opens the narrative block and ends inside it": 3
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
     "git_confirmed": 0
    }
   }

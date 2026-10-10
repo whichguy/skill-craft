@@ -1,0 +1,314 @@
+{
+ "schema": "shiploop-e2e-reader-change/v1",
+ "harness_head": "453bbc0313395e1b789fc2e4b64d652f86825b73",
+ "old_ref": "8f3d4cbe",
+ "reads": "the runs baseline.json regraded (read-only); no run file is written",
+ "runs": 39,
+ "history_unreadable": [],
+ "all": {
+  "improve": {
+   "n": 136,
+   "old": {
+    "with_lessons": 72,
+    "cited": 0
+   },
+   "shared": {
+    "with_lessons": 74,
+    "cited": 0
+   },
+   "gained": 2,
+   "lost": 0,
+   "text_differs": 5,
+   "exactly_none": 0,
+   "labels": {
+    "Key learning": 2,
+    "Key learnings": 72
+   }
+  },
+  "script": {
+   "n": 422,
+   "old": {
+    "with_lessons": 31,
+    "cited": 0
+   },
+   "shared": {
+    "with_lessons": 31,
+    "cited": 0
+   },
+   "gained": 0,
+   "lost": 0,
+   "text_differs": 1,
+   "exactly_none": 0,
+   "labels": {
+    "Learned": 31
+   }
+  },
+  "other": {
+   "n": 35,
+   "old": {
+    "with_lessons": 1,
+    "cited": 0
+   },
+   "shared": {
+    "with_lessons": 2,
+    "cited": 0
+   },
+   "gained": 1,
+   "lost": 0,
+   "text_differs": 0,
+   "exactly_none": 0,
+   "labels": {
+    "Key learning": 1,
+    "Key learnings": 1
+   }
+  }
+ },
+ "by_host": {
+  "claude": {
+   "improve": {
+    "n": 85,
+    "old": {
+     "with_lessons": 42,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 44,
+     "cited": 0
+    },
+    "gained": 2,
+    "lost": 0,
+    "text_differs": 0,
+    "exactly_none": 0,
+    "labels": {
+     "Key learning": 2,
+     "Key learnings": 42
+    }
+   },
+   "script": {
+    "n": 286,
+    "old": {
+     "with_lessons": 29,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 29,
+     "cited": 0
+    },
+    "gained": 0,
+    "lost": 0,
+    "text_differs": 0,
+    "exactly_none": 0,
+    "labels": {
+     "Learned": 29
+    }
+   },
+   "other": {
+    "n": 22,
+    "old": {
+     "with_lessons": 1,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 2,
+     "cited": 0
+    },
+    "gained": 1,
+    "lost": 0,
+    "text_differs": 0,
+    "exactly_none": 0,
+    "labels": {
+     "Key learning": 1,
+     "Key learnings": 1
+    }
+   }
+  },
+  "codex": {
+   "improve": {
+    "n": 34,
+    "old": {
+     "with_lessons": 13,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 13,
+     "cited": 0
+    },
+    "gained": 0,
+    "lost": 0,
+    "text_differs": 5,
+    "exactly_none": 0,
+    "labels": {
+     "Key learnings": 13
+    }
+   },
+   "script": {
+    "n": 38,
+    "old": {
+     "with_lessons": 0,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 0,
+     "cited": 0
+    },
+    "gained": 0,
+    "lost": 0,
+    "text_differs": 0,
+    "exactly_none": 0,
+    "labels": {}
+   },
+   "other": {
+    "n": 2,
+    "old": {
+     "with_lessons": 0,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 0,
+     "cited": 0
+    },
+    "gained": 0,
+    "lost": 0,
+    "text_differs": 0,
+    "exactly_none": 0,
+    "labels": {}
+   }
+  },
+  "grok": {
+   "improve": {
+    "n": 17,
+    "old": {
+     "with_lessons": 17,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 17,
+     "cited": 0
+    },
+    "gained": 0,
+    "lost": 0,
+    "text_differs": 0,
+    "exactly_none": 0,
+    "labels": {
+     "Key learnings": 17
+    }
+   },
+   "script": {
+    "n": 78,
+    "old": {
+     "with_lessons": 1,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 1,
+     "cited": 0
+    },
+    "gained": 0,
+    "lost": 0,
+    "text_differs": 1,
+    "exactly_none": 0,
+    "labels": {
+     "Learned": 1
+    }
+   },
+   "other": {
+    "n": 1,
+    "old": {
+     "with_lessons": 0,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 0,
+     "cited": 0
+    },
+    "gained": 0,
+    "lost": 0,
+    "text_differs": 0,
+    "exactly_none": 0,
+    "labels": {}
+   }
+  },
+  "mixed host (grok then claude)": {
+   "improve": {
+    "n": 0,
+    "old": {
+     "with_lessons": 0,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 0,
+     "cited": 0
+    },
+    "gained": 0,
+    "lost": 0,
+    "text_differs": 0,
+    "exactly_none": 0,
+    "labels": {}
+   },
+   "script": {
+    "n": 20,
+    "old": {
+     "with_lessons": 1,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 1,
+     "cited": 0
+    },
+    "gained": 0,
+    "lost": 0,
+    "text_differs": 0,
+    "exactly_none": 0,
+    "labels": {
+     "Learned": 1
+    }
+   },
+   "other": {
+    "n": 10,
+    "old": {
+     "with_lessons": 0,
+     "cited": 0
+    },
+    "shared": {
+     "with_lessons": 0,
+     "cited": 0
+    },
+    "gained": 0,
+    "lost": 0,
+    "text_differs": 0,
+    "exactly_none": 0,
+    "labels": {}
+   }
+  }
+ },
+ "changed": [
+  {
+   "run": "20261003/seat-reservations",
+   "host": "claude",
+   "kind": "improve",
+   "direction": "gained",
+   "labels": [
+    "Key learning"
+   ]
+  },
+  {
+   "run": "20261003/seat-reservations",
+   "host": "claude",
+   "kind": "improve",
+   "direction": "gained",
+   "labels": [
+    "Key learning"
+   ]
+  },
+  {
+   "run": "20261008/r2-battleship-sonnet",
+   "host": "claude",
+   "kind": "other",
+   "direction": "gained",
+   "labels": [
+    "Key learning"
+   ]
+  }
+ ],
+ "learned_from_any_form": 0
+}

@@ -1,56 +1,51 @@
 {
  "schema": "shiploop-e2e-commit-baseline/v1",
- "harness_head": "0f2a2ca80fe1f82f905e6d63cb1e638a2fa4b713",
+ "harness_head": "4d4233331e6ad6ec89a737e7e4938c92bb78bfdf",
  "reads": "the saved runs under --runs (read-only); no metrics.json or result.json is rewritten",
  "notes": [],
  "runs": 39,
- "not_regraded": [
-  {
-   "run": "20261010/pc1i-checkers-sonnet",
-   "why": "the run's harness is alive (its case lock is held): the run is not finished and its record is still being written"
-  }
- ],
+ "not_regraded": [],
  "summary": {
   "by_host": {
    "claude": {
-    "runs": 28,
-    "runs_with_packets_block": 28,
-    "packets": 1190,
-    "heads_measured": 125,
-    "runs_with_any_head_measured": 28,
+    "runs": 29,
+    "runs_with_packets_block": 29,
+    "packets": 1242,
+    "heads_measured": 126,
+    "runs_with_any_head_measured": 29,
     "file_bytes": {
-     "n": 1190,
-     "median": 37145.0,
+     "n": 1242,
+     "median": 37225.5,
      "min": 14647,
      "max": 63859
     },
     "head_bytes": {
-     "n": 125,
-     "median": 4841,
+     "n": 126,
+     "median": 4885.5,
      "min": 1317,
      "max": 6985
     },
-    "runs_with_commits_block": 28,
-    "commits_counted": 379,
+    "runs_with_commits_block": 29,
+    "commits_counted": 393,
     "commits": {
      "improve": {
       "cited": 0,
       "cited_earlier_run": 0,
-      "n": 81,
-      "with_lessons": 38
+      "n": 85,
+      "with_lessons": 44
      },
      "script": {
-      "n": 276,
-      "with_lessons": 28
+      "n": 286,
+      "with_lessons": 29
      },
      "other": {
       "n": 22,
-      "with_lessons": 1
+      "with_lessons": 2
      }
     },
     "knowledge_commits": {
-     "n": 214,
-     "with_lessons": 28
+     "n": 221,
+     "with_lessons": 29
     }
    },
    "codex": {
@@ -179,53 +174,53 @@
   },
   "by_cell": {
    "claude / claude-sonnet-5-5 / no effort": {
-    "runs": 28,
-    "runs_with_packets_block": 28,
-    "packets": 1190,
-    "heads_measured": 125,
-    "runs_with_any_head_measured": 28,
+    "runs": 29,
+    "runs_with_packets_block": 29,
+    "packets": 1242,
+    "heads_measured": 126,
+    "runs_with_any_head_measured": 29,
     "file_bytes": {
-     "n": 1190,
-     "median": 37145.0,
+     "n": 1242,
+     "median": 37225.5,
      "min": 14647,
      "max": 63859
     },
     "head_bytes": {
-     "n": 125,
-     "median": 4841,
+     "n": 126,
+     "median": 4885.5,
      "min": 1317,
      "max": 6985
     },
-    "runs_with_commits_block": 28,
-    "commits_counted": 379,
+    "runs_with_commits_block": 29,
+    "commits_counted": 393,
     "commits": {
      "improve": {
       "cited": 0,
       "cited_earlier_run": 0,
-      "n": 81,
-      "with_lessons": 38
+      "n": 85,
+      "with_lessons": 44
      },
      "script": {
-      "n": 276,
-      "with_lessons": 28
+      "n": 286,
+      "with_lessons": 29
      },
      "other": {
       "n": 22,
-      "with_lessons": 1
+      "with_lessons": 2
      }
     },
     "knowledge_commits": {
-     "n": 214,
-     "with_lessons": 28
+     "n": 221,
+     "with_lessons": 29
     },
     "by_stage": {
      "baseline": {
-      "packets": 32,
+      "packets": 33,
       "file_bytes": {
-       "n": 32,
-       "median": 30922.0,
+       "n": 33,
+       "median": 30945,
        "min": 27823,
-       "max": 32759
+       "max": 34012
       },
       "head_bytes": {
        "n": 1,
@@ -235,11 +230,11 @@
       }
      },
      "carry-forward": {
-      "packets": 31,
+      "packets": 33,
       "file_bytes": {
-       "n": 31,
+       "n": 33,
        "median": 39077,
-       "min": 37296,
+       "min": 25820,
        "max": 56985
       },
       "head_bytes": {
@@ -250,10 +245,10 @@
       }
      },
      "carry-forward [Improve packet]": {
-      "packets": 17,
+      "packets": 18,
       "file_bytes": {
-       "n": 17,
-       "median": 52670,
+       "n": 18,
+       "median": 52672.0,
        "min": 51212,
        "max": 53929
       },
@@ -265,10 +260,10 @@
       }
      },
      "discovery": {
-      "packets": 28,
+      "packets": 29,
       "file_bytes": {
-       "n": 28,
-       "median": 41290.5,
+       "n": 29,
+       "median": 41315,
        "min": 38601,
        "max": 43908
       },
@@ -280,12 +275,12 @@
       }
      },
      "document": {
-      "packets": 31,
+      "packets": 32,
       "file_bytes": {
-       "n": 31,
-       "median": 35440,
+       "n": 32,
+       "median": 35469.5,
        "min": 31947,
-       "max": 36715
+       "max": 37618
       },
       "head_bytes": {
        "n": 3,
@@ -295,22 +290,22 @@
       }
      },
      "done": {
-      "packets": 28,
+      "packets": 29,
       "file_bytes": {
-       "n": 28,
-       "median": 16454.5,
+       "n": 29,
+       "median": 16477,
        "min": 14647,
        "max": 17889
       },
       "head_bytes": null
      },
      "get-next-work-item": {
-      "packets": 17,
+      "packets": 18,
       "file_bytes": {
-       "n": 17,
-       "median": 30112,
+       "n": 18,
+       "median": 30124.5,
        "min": 29452,
-       "max": 30771
+       "max": 31214
       },
       "head_bytes": {
        "n": 1,
@@ -320,22 +315,22 @@
       }
      },
      "handoff": {
-      "packets": 28,
+      "packets": 29,
       "file_bytes": {
-       "n": 28,
-       "median": 33118.0,
+       "n": 29,
+       "median": 33298,
        "min": 29401,
-       "max": 35409
+       "max": 35643
       },
       "head_bytes": null
      },
      "implement": {
-      "packets": 86,
+      "packets": 90,
       "file_bytes": {
-       "n": 86,
-       "median": 40454.0,
+       "n": 90,
+       "median": 40631.0,
        "min": 36768,
-       "max": 43123
+       "max": 43157
       },
       "head_bytes": {
        "n": 6,
@@ -345,25 +340,25 @@
       }
      },
      "intake": {
-      "packets": 28,
+      "packets": 29,
       "file_bytes": {
-       "n": 28,
-       "median": 27759.0,
+       "n": 29,
+       "median": 27891,
        "min": 25087,
-       "max": 28979
+       "max": 29269
       },
       "head_bytes": {
-       "n": 28,
-       "median": 5489.0,
+       "n": 29,
+       "median": 5500,
        "min": 4314,
        "max": 5643
       }
      },
      "integrate": {
-      "packets": 31,
+      "packets": 32,
       "file_bytes": {
-       "n": 31,
-       "median": 35266,
+       "n": 32,
+       "median": 35303.0,
        "min": 32281,
        "max": 37504
       },
@@ -375,10 +370,10 @@
       }
      },
      "integration-verify": {
-      "packets": 31,
+      "packets": 32,
       "file_bytes": {
-       "n": 31,
-       "median": 37212,
+       "n": 32,
+       "median": 37215.5,
        "min": 33763,
        "max": 39288
       },
@@ -390,21 +385,21 @@
       }
      },
      "operations": {
-      "packets": 28,
+      "packets": 29,
       "file_bytes": {
-       "n": 28,
-       "median": 30441.5,
+       "n": 29,
+       "median": 30502,
        "min": 27657,
        "max": 32146
       },
       "head_bytes": null
      },
      "plan": {
-      "packets": 28,
+      "packets": 30,
       "file_bytes": {
-       "n": 28,
+       "n": 30,
        "median": 55880.5,
-       "min": 53621,
+       "min": 30143,
        "max": 63859
       },
       "head_bytes": {
@@ -415,22 +410,22 @@
       }
      },
      "plan [Improve packet]": {
-      "packets": 9,
+      "packets": 10,
       "file_bytes": {
-       "n": 9,
-       "median": 58120,
+       "n": 10,
+       "median": 58218.5,
        "min": 56605,
        "max": 59136
       },
       "head_bytes": null
      },
      "prepare": {
-      "packets": 28,
+      "packets": 29,
       "file_bytes": {
-       "n": 28,
-       "median": 31176.5,
+       "n": 29,
+       "median": 31221,
        "min": 28211,
-       "max": 32756
+       "max": 32931
       },
       "head_bytes": {
        "n": 1,
@@ -440,12 +435,12 @@
       }
      },
      "product-acceptance": {
-      "packets": 28,
+      "packets": 29,
       "file_bytes": {
-       "n": 28,
-       "median": 35918.0,
+       "n": 29,
+       "median": 35930,
        "min": 32497,
-       "max": 37504
+       "max": 37895
       },
       "head_bytes": {
        "n": 2,
@@ -455,12 +450,12 @@
       }
      },
      "regression": {
-      "packets": 30,
+      "packets": 31,
       "file_bytes": {
-       "n": 30,
-       "median": 41373.0,
+       "n": 31,
+       "median": 41418,
        "min": 37262,
-       "max": 43077
+       "max": 44249
       },
       "head_bytes": {
        "n": 3,
@@ -470,10 +465,10 @@
       }
      },
      "release": {
-      "packets": 28,
+      "packets": 29,
       "file_bytes": {
-       "n": 28,
-       "median": 30825.0,
+       "n": 29,
+       "median": 30985,
        "min": 27954,
        "max": 32499
       },
@@ -485,10 +480,10 @@
       }
      },
      "release-check": {
-      "packets": 28,
+      "packets": 29,
       "file_bytes": {
-       "n": 28,
-       "median": 30942.0,
+       "n": 29,
+       "median": 30972,
        "min": 28101,
        "max": 34186
       },
@@ -500,11 +495,11 @@
       }
      },
      "release-plan": {
-      "packets": 28,
+      "packets": 30,
       "file_bytes": {
-       "n": 28,
+       "n": 30,
        "median": 40683.0,
-       "min": 36856,
+       "min": 25574,
        "max": 49720
       },
       "head_bytes": {
@@ -515,32 +510,32 @@
       }
      },
      "release-plan [Improve packet]": {
-      "packets": 16,
+      "packets": 17,
       "file_bytes": {
-       "n": 16,
-       "median": 50701.5,
+       "n": 17,
+       "median": 50702,
        "min": 47709,
        "max": 53080
       },
       "head_bytes": null
      },
      "release-verify": {
-      "packets": 28,
+      "packets": 29,
       "file_bytes": {
-       "n": 28,
-       "median": 34884.5,
+       "n": 29,
+       "median": 35057,
        "min": 31262,
-       "max": 36523
+       "max": 36881
       },
       "head_bytes": null
      },
      "research": {
-      "packets": 28,
+      "packets": 29,
       "file_bytes": {
-       "n": 28,
-       "median": 36218.0,
+       "n": 29,
+       "median": 36229,
        "min": 33759,
-       "max": 37680
+       "max": 38155
       },
       "head_bytes": {
        "n": 2,
@@ -590,11 +585,11 @@
       }
      },
      "spec": {
-      "packets": 28,
+      "packets": 30,
       "file_bytes": {
-       "n": 28,
+       "n": 30,
        "median": 40123.5,
-       "min": 38326,
+       "min": 23982,
        "max": 51926
       },
       "head_bytes": {
@@ -605,12 +600,12 @@
       }
      },
      "spec [Improve packet]": {
-      "packets": 9,
+      "packets": 10,
       "file_bytes": {
-       "n": 9,
-       "median": 47258,
+       "n": 10,
+       "median": 47281.0,
        "min": 45278,
-       "max": 48033
+       "max": 48101
       },
       "head_bytes": {
        "n": 9,
@@ -620,12 +615,12 @@
       }
      },
      "static-checks": {
-      "packets": 31,
+      "packets": 32,
       "file_bytes": {
-       "n": 31,
-       "median": 43109,
+       "n": 32,
+       "median": 43139.0,
        "min": 38030,
-       "max": 44347
+       "max": 45192
       },
       "head_bytes": {
        "n": 2,
@@ -635,11 +630,11 @@
       }
      },
      "step-plan": {
-      "packets": 33,
+      "packets": 35,
       "file_bytes": {
-       "n": 33,
+       "n": 35,
        "median": 53227,
-       "min": 49253,
+       "min": 27999,
        "max": 56881
       },
       "head_bytes": {
@@ -650,31 +645,31 @@
       }
      },
      "step-plan [Improve packet]": {
-      "packets": 9,
+      "packets": 10,
       "file_bytes": {
-       "n": 9,
-       "median": 53520,
+       "n": 10,
+       "median": 53622.5,
        "min": 52004,
        "max": 54528
       },
       "head_bytes": null
      },
      "system-test": {
-      "packets": 32,
+      "packets": 33,
       "file_bytes": {
-       "n": 32,
-       "median": 33979.5,
+       "n": 33,
+       "median": 34103,
        "min": 30341,
-       "max": 35851
+       "max": 36884
       },
       "head_bytes": null
      },
      "system-test-author": {
-      "packets": 31,
+      "packets": 33,
       "file_bytes": {
-       "n": 31,
+       "n": 33,
        "median": 37107,
-       "min": 34621,
+       "min": 22765,
        "max": 46187
       },
       "head_bytes": {
@@ -685,10 +680,10 @@
       }
      },
      "system-test-author [Improve packet]": {
-      "packets": 17,
+      "packets": 18,
       "file_bytes": {
-       "n": 17,
-       "median": 46625,
+       "n": 18,
+       "median": 46625.0,
        "min": 45186,
        "max": 47630
       },
@@ -700,12 +695,12 @@
       }
      },
      "test-author": {
-      "packets": 32,
+      "packets": 33,
       "file_bytes": {
-       "n": 32,
-       "median": 37831.5,
+       "n": 33,
+       "median": 37850,
        "min": 33890,
-       "max": 39271
+       "max": 41111
       },
       "head_bytes": {
        "n": 3,
@@ -715,12 +710,12 @@
       }
      },
      "test-green": {
-      "packets": 32,
+      "packets": 33,
       "file_bytes": {
-       "n": 32,
-       "median": 37802.5,
+       "n": 33,
+       "median": 37981,
        "min": 33958,
-       "max": 39807
+       "max": 41318
       },
       "head_bytes": {
        "n": 3,
@@ -730,12 +725,12 @@
       }
      },
      "test-red": {
-      "packets": 32,
+      "packets": 33,
       "file_bytes": {
-       "n": 32,
-       "median": 36118.0,
+       "n": 33,
+       "median": 36249,
        "min": 32739,
-       "max": 38297
+       "max": 39076
       },
       "head_bytes": {
        "n": 2,
@@ -745,12 +740,12 @@
       }
      },
      "test-refine": {
-      "packets": 32,
+      "packets": 33,
       "file_bytes": {
-       "n": 32,
-       "median": 39146.0,
+       "n": 33,
+       "median": 39147,
        "min": 35523,
-       "max": 40824
+       "max": 41231
       },
       "head_bytes": {
        "n": 3,
@@ -760,11 +755,11 @@
       }
      },
      "test-spec": {
-      "packets": 32,
+      "packets": 34,
       "file_bytes": {
-       "n": 32,
+       "n": 34,
        "median": 36620.5,
-       "min": 34174,
+       "min": 25279,
        "max": 49531
       },
       "head_bytes": {
@@ -775,21 +770,21 @@
       }
      },
      "test-spec [Improve packet]": {
-      "packets": 9,
+      "packets": 10,
       "file_bytes": {
-       "n": 9,
-       "median": 47855,
+       "n": 10,
+       "median": 47930.0,
        "min": 46470,
        "max": 48852
       },
       "head_bytes": null
      },
      "test-strategy": {
-      "packets": 28,
+      "packets": 30,
       "file_bytes": {
-       "n": 28,
+       "n": 30,
        "median": 38615.0,
-       "min": 36360,
+       "min": 24720,
        "max": 47979
       },
       "head_bytes": {
@@ -800,20 +795,20 @@
       }
      },
      "test-strategy [Improve packet]": {
-      "packets": 9,
+      "packets": 10,
       "file_bytes": {
-       "n": 9,
-       "median": 47849,
+       "n": 10,
+       "median": 47879.5,
        "min": 45602,
-       "max": 48339
+       "max": 48702
       },
       "head_bytes": null
      },
      "verify": {
-      "packets": 31,
+      "packets": 32,
       "file_bytes": {
-       "n": 31,
-       "median": 43465,
+       "n": 32,
+       "median": 43466.5,
        "min": 38057,
        "max": 46313
       },
@@ -2417,7 +2412,7 @@
    "commits": {
     "improve": {
      "n": 3,
-     "with_lessons": 0,
+     "with_lessons": 2,
      "cited": 0,
      "cited_earlier_run": 0
     },
@@ -3184,7 +3179,7 @@
     },
     "other": {
      "n": 1,
-     "with_lessons": 0
+     "with_lessons": 1
     },
     "counted": 13,
     "start_head": null
@@ -3750,9 +3745,37 @@
    "host": "claude",
    "model": "claude-sonnet-5-5",
    "effort": null,
-   "packets": null,
-   "commits": null,
-   "not_regraded": "the run's harness is alive (its case lock is held): the run is not finished and its record is still being written"
+   "engine_status": "done",
+   "commits_unmeasured": {},
+   "packets_unmeasured": {},
+   "packets": {
+    "n": 52,
+    "head_measured": 1,
+    "file_bytes": 2023124,
+    "head_bytes": 5589
+   },
+   "commits": {
+    "improve": {
+     "n": 4,
+     "with_lessons": 4,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 14,
+    "start_head": null
+   },
+   "knowledge_commits": {
+    "n": 7,
+    "with_lessons": 1
+   }
   }
  ]
 }
