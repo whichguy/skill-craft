@@ -22,7 +22,7 @@
 {"stage": "skill-validate", "purpose": "validate any skill or helper change against real inputs", "exitCheck": "model judgement", "reads": ["item:skill-assess"]},
 {"stage": "static-checks", "purpose": "run formatting, lint, type and build checks", "exitCheck": "script-run", "completeRuns": ["quality-terminal", "test-rerun"], "reads": ["item:step-plan", "item:implement"]},
 {"stage": "verify", "purpose": "verify the item against its acceptance criteria", "exitCheck": "script-run", "completeRuns": ["test-rerun"], "reads": ["spec", "test-strategy", "item:step-plan", "item:test-spec", "item:implement", "item:test-green", "item:regression", "item:static-checks"]},
-{"stage": "integrate", "purpose": "integrate the candidate into the working branch", "exitCheck": "model judgement", "reads": ["plan", "item:step-plan", "item:verify"]},
+{"stage": "integrate", "purpose": "assemble the item's candidate in the execution checkout", "exitCheck": "model judgement", "reads": ["plan", "item:step-plan", "item:verify"]},
 {"stage": "integration-verify", "purpose": "verify the integrated result and shared interfaces", "exitCheck": "script-run", "completeRuns": ["test-rerun"], "reads": ["spec", "item:integrate"]},
 {"stage": "carry-forward", "purpose": "record lessons and revise the remaining queue", "exitCheck": "review loop", "improve": "last-item", "reads": ["spec", "plan", "item:integration-verify"]},
 {"stage": "system-test-author", "purpose": "prepare end-to-end and system tests", "exitCheck": "review loop", "improve": "always", "reads": ["spec", "test-strategy", "plan"]},

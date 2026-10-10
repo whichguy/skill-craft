@@ -1743,8 +1743,8 @@ def _item_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]
         if commit:
             print("ShipLoop committed " + str(row["workitem"]) + "'s declared changes as " + commit[:12] + ".")
         if undeclared:
-            print("Not committed (changed, but not in the step plan's paths): " + ", ".join(undeclared)
-                  + ". Commit the ones the product needs, delete generated output.")
+            print("Not committed (changed, but neither in the step plan's paths nor documentation): "
+                  + ", ".join(undeclared) + ". " + stage_spec.ITEM_LEFT)
         if skipped:
             print(shiploop_git.skipped_notice(skipped))
 
@@ -3156,6 +3156,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         *(_result_contract_lines(root, state, stage, action["id"])
           if state["status"] == "active" and not state.get("active_improve") else []),
         *_step_lines(state, stage, workitem),
+        *_commit_scope_lines(root, state, stage, workitem),
         *_context_index_lines(root, state, stage, workitem),
         "",
         "Progress snapshot (status context, not instructions):",
@@ -3605,7 +3606,7 @@ _RECORDED_GATES = {
 }
 
 
-def _stage_gates(stage: str) -> list[str]:
+def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     gates = []
     if stage in assumptions.STAGES:
         gates.append("an assumption list that is malformed, cites evidence files that do not exist, or leaves an "
@@ -3614,8 +3615,13 @@ def _stage_gates(stage: str) -> list[str]:
     # skill_na is held to account at these two stages, named by the constants the gates compare with.
     if stage == item_scope.SKILL_NA_PLAN_STAGE:
         gates.append("skill_na beside a skill file in paths")
-    if stage == item_scope.SKILL_NA_DIFF_STAGE:
-        gates.append("a skill file changed after the step plan recorded skill_na (report revise)")
+    # Printed only when skill_na was recorded for this item (the gate does not run otherwise), and it names the files
+    # the gate treats as skill files (the catalog's observed list).
+    work_item = _current_work_item(state)
+    if (stage == item_scope.SKILL_NA_DIFF_STAGE and work_item is not None
+            and item_scope.no_skill_item(state, work_item) is not None):
+        gates.append("a skill file changed after the step plan recorded skill_na (report revise); a skill file is "
+                     + ", ".join(item_scope.skill_surface_names("observed")))
     if stage in unverified.STAGES:
         gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
                      "or a due_stage that is not a later stage")
@@ -3624,12 +3630,12 @@ def _stage_gates(stage: str) -> list[str]:
     return gates
 
 
-def _checked_line(row: Any) -> str:
+def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
     """How this stage's result is checked, so a model holding only this packet knows what judges its work."""
     if row.complete_runs:
         return "Checked by: when you report done, ShipLoop " + "; then ".join(
             _CHECK_TEXT[run] for run in row.complete_runs) + "."
-    extra = _stage_gates(row.name)
+    extra = _stage_gates(row.name, state)
     return ("Checked by: when you report done, ShipLoop refuses a result with a mechanical fault: " + _COMMON_GATES
             + ("; at this stage also " + "; ".join(extra) if extra else "")
             + ". A refusal does not advance the run: fix the result and run the same complete command again. "
@@ -3654,7 +3660,7 @@ def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
              *(["- the summary says which rows are new or changed and which are carried over from the previous "
                 "step plan"]
                if _sent_back_results(state, stage, _current_work_item(state)) else []),
-             _checked_line(row)]
+             _checked_line(row, state)]
     considerations = [(label, text) for label, text in (
         ("Develop", row.develop), ("Test", row.test), ("Deploy", row.deploy), ("Tools", row.tools)) if text]
     if considerations:
@@ -3708,6 +3714,33 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
                          "each here if this stage can and say so in the result; otherwise it stays listed for the "
                          "handoff):")
             lines.extend(_unverified_row(row) for row in due)
+    return lines
+
+
+def _commit_scope_lines(root: Path, state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
+    """The item's declared paths at document, and at integrate what ShipLoop will and will not commit.
+
+    The lists come from ``item_scope.commit_scope``, the rule ``commit_item`` applies, so the packet names the
+    files before the commit and the notice after it names the same ones.  Unknown changes print nothing.
+    """
+    if state["status"] != "active" or state.get("active_improve") or work_item is None:
+        return []
+    if stage not in ("document", "integrate"):
+        return []
+    allowed = item_scope.declared(state, work_item)
+    lines = ["Step plan paths: " + (", ".join(allowed) or "none declared")]
+    if stage != "integrate":
+        return lines
+    changed = item_scope.changed_paths(root, work_item)
+    if changed is None:
+        return lines
+    if not changed:
+        return lines + ["Changed since this item's base: nothing."]
+    committed, left = item_scope.commit_scope(changed, allowed)
+    if committed:
+        lines.append("Changed, ShipLoop will commit: " + ", ".join(committed))
+    if left:
+        lines.append("Changed, ShipLoop will not commit: " + ", ".join(left))
     return lines
 
 
