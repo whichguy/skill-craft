@@ -176,12 +176,16 @@ _DURATION_SECONDS = {
     # 1008 B3) grew it from 85 s (59 tests) to this.  Above QUICK_MAX_SECONDS, so the quick tier no longer selects it: an
     # edit to the workspace module runs it at the release commit or by name, not on a push.  The ceiling is the owner's
     # to move or the suite is to be split; neither is done here.
-    "test/shiploop-workspace.test.py": 140.3,
+    # 2026-10-10 (batch 1012 task R): 80 tests (return_kind and the follow-up after a no-change return); 191.2 s, one serial run at
+    # load average 9.5 to 10 (the machine was shared with other batch tasks, so the figure is high against the 140.3 s taken at
+    # load average 4.7 to 6.8 for 77 tests). Still above QUICK_MAX_SECONDS, so the quick tier does not select it.
+    "test/shiploop-workspace.test.py": 191.2,
     "test/shiploop-return-review.test.py": 85.9,  # measured alone 2026-10-08 at load average 4.6 to 5.1: 23 tests, 85.9 s (81.5 s at 20, 65.5 s at 17, 36.8 s at 11)
     # The handoff retire (owner decision D3, batch 1012 task R): the terminal close on a real repository, and the real CLI through the
     # fast-forward, working-tree, before-the-return, guard-refused and drifted-source routes.  A suite of its own so that
-    # shiploop-return-review stays at its catalogued seconds under QUICK_MAX_SECONDS.  Estimate until measured.
-    "test/shiploop-retire.test.py": 40.0,
+    # shiploop-return-review stays at its catalogued seconds under QUICK_MAX_SECONDS.  Local wall seconds, 2026-10-10: 17 tests, 44.3 s,
+    # the faster of two serial runs at load average 8 to 10 (the five CLI tests are about 6 s each, the other twelve under 4 s together).
+    "test/shiploop-retire.test.py": 44.3,
     "test/shiploop-chain.test.py": 191.262,
     "test/shiploop-chain-async.test.py": 35.083,
     "test/experiments/shiploop_chain/test_trace.py": 0.701,
@@ -237,8 +241,10 @@ _DURATION_SECONDS = {
     "test/shiploop-improve-changes.test.py": 1.5,
     # 1.0 was written for a smaller suite.  Local wall seconds, 2026-10-08, the faster of two serial runs at load
     # average 5.7 to 6.5: 23 tests, 3.64 s.  2026-10-10 (batch 1012 B1): 42 tests (the commit-message grammar and the
-    # commit helper's real-Git tests), 4.5 s at load average 5.4.
-    "test/shiploop-knowledge.test.py": 4.5,
+    # commit helper's real-Git tests), 4.5 s at load average 5.4.  2026-10-10 (batch 1012 task R): 89 tests (the retire's
+    # pieces, the feature list with its header commands run through sh, the retire step), 15.0 s, the faster of two serial
+    # runs at load average 8.6 to 9.5 (the other run 21.0 s).
+    "test/shiploop-knowledge.test.py": 15.0,
     "test/shiploop-assumptions.test.py": 0.2,
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py": 2.53,
     "test/shiploop-capability-runtime.test.py": 0.996,
@@ -279,7 +285,9 @@ _DURATION_SECONDS = {
     # The packets and commits counters (batch 1012 task h): 86 tests on fixtures cut from saved runs, real git in temporary
     # repositories, the regrade's and tallies' evidence and the fake hosts of the harness's through-main tests. Local wall seconds,
     # 2026-10-10: 14.8 s (the faster of two serial runs at load average about 5; 68 tests took 12.3 s). Far under QUICK_MAX_SECONDS.
-    "test/shiploop-e2e-commit-counters.test.py": 15.0,
+    # 2026-10-10 (batch 1012 task R): 90 tests (the retire commit is a script commit and not a knowledge record); 20.4 s, the faster of
+    # two serial runs at load average 9.4 to 10.7 (the other run 22.6 s).
+    "test/shiploop-e2e-commit-counters.test.py": 20.4,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.

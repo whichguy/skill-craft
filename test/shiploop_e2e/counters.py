@@ -31,8 +31,10 @@ or baseline row. Absent means unknown: a part this module cannot read is null wi
                script    ShipLoop's other commits: the work item's commit, named by ShipLoop's reply ("ShipLoop committed W1's
                          changes (its declared paths and documentation) as <sha>") or by its subject ``feat: <work item id> <title>`` with an id of the run's
                          state.md, and the ones whose subject is ShipLoop's own and nothing else writes (the knowledge home's
-                         ``docs(shiploop): record <feature> knowledge at|after <stage>``, the empty baseline, the leftovers
-                         commit, a chain's prepared merge). An Improve commit has no mark of its own (the card fixes no
+                         ``docs(shiploop): record <feature> knowledge at|after <stage>``, the handoff's retire commit
+                         ``docs(shiploop): retire <feature> spec: ...`` matched by ``knowledge_home.is_retire_subject``, the empty
+                         baseline, the leftovers commit, a chain's prepared merge). The retire commit is a script commit but not a
+                         knowledge record: it holds no lessons and is not a ``knowledge`` row of ``history``. An Improve commit has no mark of its own (the card fixes no
                          message shape): were the reply of ``improve-commit`` not recorded (cut by the model's pipe, or run by a
                          child whose tool results the host's stream does not carry: no saved Claude stream holds a sub-agent, so
                          that is not known), the commit would be counted under ``other``, so ``improve`` is a lower bound and a
@@ -307,7 +309,7 @@ def history(out: Path, run_dir: Path | None, tools) -> tuple[dict | None, dict]:
         knowledge = bool(KNOWLEDGE_SUBJECT.match(subject))
         if any(commit_id.startswith(sha) for sha in named["improve"]):
             kind = "improve"
-        elif (any(commit_id.startswith(sha) for sha in named["item"]) or knowledge
+        elif (any(commit_id.startswith(sha) for sha in named["item"]) or knowledge or knowledge_home.is_retire_subject(subject)
               or subject in (BASELINE_SUBJECT, LEFTOVERS_SUBJECT) or subject.startswith((CHAIN_PREFIX, *items))):
             kind = "script"
         else:
