@@ -21,7 +21,7 @@ import fnmatch
 import json
 import uuid
 from pathlib import Path
-from typing import Tuple, Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import shiploop_lint as lint
 import shiploop_test_loop as test_loop
@@ -186,15 +186,35 @@ def outside(paths: Sequence[str], allowed: Sequence[str]) -> List[str]:
                                               or fnmatch.fnmatchcase(path, rule) for rule in allowed)]
 
 
-def commit_scope(changed: Sequence[str], allowed: Sequence[str]) -> Tuple[List[str], List[str]]:
-    """Split an item's changed paths into (those ShipLoop commits, those it leaves for the return).
+def withheld(run_dir: Path, state: Mapping[str, Any]) -> Optional[Callable[[str], bool]]:
+    """The paths a worktree run never commits (``workspace.never_committed`` over workspace.md's exclusions).
+
+    ``None`` for an in-place run, which has no workspace manifest.  Raises ItemScopeError when the manifest of a
+    worktree run cannot be read.
+    """
+    if state.get("execution_mode") != "navigator-worktree":
+        return None
+    import shiploop_workspace as workspace
+    try:
+        excluded = workspace.excluded_paths(Path(run_dir).parent)
+    except workspace.WorkspaceError as exc:
+        raise ItemScopeError("cannot read the workspace manifest: " + str(exc)) from exc
+    return lambda path: workspace.never_committed(path, excluded)
+
+
+def commit_scope(changed: Sequence[str], allowed: Sequence[str],
+                 never: Optional[Callable[[str], bool]] = None) -> Tuple[List[str], List[str]]:
+    """Split an item's changed paths into (those ShipLoop commits, those it leaves).
 
     ShipLoop commits the paths the step plan declared (``allowed``), ShipLoop's own knowledge home and any other
     changed file in the ``docs`` path class: the document stage edits documentation, and a README or AGENTS.md it adds
-    outside the declared paths was otherwise committed by the model by hand (3 of 16 recorded runs).  Every other
-    undeclared file stays uncommitted for plan-return, which commits files left at the return.
+    outside the declared paths was otherwise committed by the model by hand (3 of 16 recorded runs).  A path ``never``
+    holds (``withheld``: a worktree run's protected and caller-excluded paths, which ``workspace.commit_leftovers``
+    skips too) is never committed.  Every other undeclared file is left: plan-return commits it in a worktree run.
     """
-    left = [path for path in outside(changed, allowed) if classify(path) != "docs"]
+    undeclared = set(outside(changed, allowed))
+    left = [path for path in changed
+            if (never is not None and never(path)) or (path in undeclared and classify(path) != "docs")]
     return [path for path in changed if path not in left], left
 
 
@@ -213,8 +233,8 @@ def commit_item(run_dir: Path, state: Mapping[str, Any], work_item: str,
                 message: str) -> Tuple[str, List[str], List[str]]:
     """Commit the item's changed files per ``commit_scope``: declared paths, documentation and the knowledge home.
 
-    Returns (new commit ID or '', changed paths left alone for the return (undeclared and not
-    documentation), paths the privacy screen left uncommitted).  The model never
+    Returns (new commit ID or '', changed paths left alone (undeclared and not documentation, or withheld by the
+    workspace), paths the privacy screen left uncommitted).  The model never
     writes this commit: committing is mechanical (SPEC S-5), and headless hosts
     refuse model-written ``git commit`` shell.
     """
@@ -222,7 +242,7 @@ def commit_item(run_dir: Path, state: Mapping[str, Any], work_item: str,
     changed = changed_paths(run_dir, work_item)
     if not changed:
         return "", [], []
-    chosen, undeclared = commit_scope(changed, declared(state, work_item))
+    chosen, undeclared = commit_scope(changed, declared(state, work_item), withheld(run_dir, state))
     try:
         committed = shiploop_git.commit_paths(Path(str(state["repo"])), chosen, message)
     except shiploop_git.CommitError as exc:
@@ -276,4 +296,4 @@ __all__ = ("AFTER_IMPLEMENT", "LEFT_OUT_STAGES", "NOT_APPLICABLE", "SKILL_NA_DIF
            "SKILL_STAGES", "TEST_STAGES", "ItemScopeError",
            "behavioural", "changed_paths", "classify", "declared", "left_out", "no_skill_item", "no_test_item",
            "normalise_paths", "outside", "scope_refusal", "skill_scope_refusal", "skill_surface", "skill_surface_names",
-           "commit_scope")
+           "commit_scope", "withheld")

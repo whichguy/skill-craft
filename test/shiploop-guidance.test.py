@@ -2412,20 +2412,63 @@ class CaseEndStateTests(unittest.TestCase):
                 self.assertIn("unachievable", text)
                 self.assertIn("not an end state", text)
 
-    def test_an_unachievable_case_is_an_open_item_and_blocked_only_when_nothing_else_can_proceed(self) -> None:
-        """P-sta-2, SPEC S-14: both Grok BLOCKED runs stopped on a case the host could not run (TC-16 needed a browser;
-        a browser opened but the page never loaded), while the same packet said to record an open item and continue."""
+    # The outcomes a case is routed through; done and repeat are how any result ends, not where a case goes.
+    ROUTES = ("blocked", "revise", "replan")
+
+    @staticmethod
+    def sentence(stage: str) -> str:
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_stage_spec as spec
+        text = " ".join((spec.stage(stage).test or "").split())
+        return text[text.index("Every case ends"):]
+
+    def test_the_case_end_states_are_printed_by_exactly_these_stages_from_one_function(self) -> None:
+        """S-12: one function builds the sentence from a stage's own row, so no stage gets another stage's text."""
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_stage_spec as spec
+        carrying = tuple(name for name in spec.STAGES if "Every case ends" in (spec.stage(name).test or ""))
+        self.assertEqual(carrying, self.STAGES)
+        for stage in self.STAGES:
+            with self.subTest(stage):
+                self.assertEqual(self.sentence(stage), " ".join(spec.case_end_states(spec.stage(stage)).split()))
+
+    def test_each_sentence_names_exactly_the_routes_its_stage_accepts(self) -> None:
+        """B2 and correctness #4/#7 of the 2026-10-10 packet review: the sentence was one text, edited by a string
+        replace for inner stages, so test-green and regression were told to record an open item and continue (no gate
+        of theirs accepts that) and the replace broke silently when the text moved.  Every outcome the sentence names
+        is one the stage accepts, and every routing outcome the stage accepts is named."""
         sys.path.insert(0, str(SCRIPTS))
         import shiploop_stage_spec as spec
         for stage in self.STAGES:
+            row = spec.stage(stage)
+            sentence = self.sentence(stage)
+            named = {word for word in spec.OUTCOMES if re.search(r"\b" + word + r"\b", sentence)}
             with self.subTest(stage):
-                text = " ".join((spec.stage(stage).test or "").split())
-                self.assertIn("record it as an open item in the summary with the stage it is due at and continue", text)
-                self.assertIn("only when nothing else can proceed", text)
-                self.assertNotIn("unverified; report blocked with blocked_by access", text)
+                self.assertLessEqual(named, set(row.outcomes), sentence)
+                self.assertEqual(named & set(self.ROUTES), set(row.outcomes) & set(self.ROUTES), sentence)
+                self.assertIn("only when nothing else can proceed", sentence)
+
+    def test_an_unachievable_case_is_an_open_item_outside_the_item_and_revise_inside_it(self) -> None:
+        """P-sta-2, SPEC S-14: both Grok BLOCKED runs stopped on a case the host could not run (TC-16 needed a browser),
+        while the packet said to record an open item and continue.  That route belongs to the outer test stages; an
+        inner stage's case goes back to the step plan (revise), which its gate accepts."""
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_stage_spec as spec
+        for stage in self.STAGES:
+            sentence = self.sentence(stage)
+            with self.subTest(stage):
+                if spec.stage(stage).phase == "outer":
+                    self.assertIn("record it as an open item in the summary with its due stage and continue", sentence)
+                    self.assertIn("provided its command is not one ShipLoop reruns, since every rerun command must pass",
+                                  sentence)
+                    self.assertNotIn("revise", sentence)
+                else:
+                    self.assertIn("report revise so the step plan reroutes the case", sentence)
+                    self.assertNotIn("open item", sentence)
+                    self.assertNotIn("replan", sentence)
         duty = normalized(prompts.DUTIES["system-test-author"])
         for clause in (
-            "A case that cannot run here",
+            "A case that cannot run here (for example a browser or an account this host cannot reach)",
             "leave its command out of `system_commands`",
             "record it as an open item in this result's summary: case ID, the requirement it leaves unverified, "
             "who does what, what they report, and the stage it is due at (handoff, or the stage whose external "
@@ -2434,12 +2477,19 @@ class CaseEndStateTests(unittest.TestCase):
         ):
             self.assertIn(clause, duty)
         self.assertNotIn("blocked, blocked_by access", duty)
+        self.assertNotIn("a route that fails when run", duty)
 
-    def test_system_test_treats_a_route_that_fails_when_run_like_a_missing_route(self) -> None:
+    def test_system_test_promises_no_done_past_a_failing_recorded_command(self) -> None:
+        """B1 of the 2026-10-10 packet review (probe_system_test.py): the system-test duty said a route that fails when
+        the case is run is an open item and the result is done, but that case's command is in system_commands and
+        ShipLoop's rerun refuses done while it fails.  The widening is gone; a case run here is reported, not recorded."""
         paragraph = normalized(prompts.DUTIES["system-test"])
-        self.assertIn("this host has no route, or the route fails when the case is run (for example a browser "
-                      "opens but the page never loads)", paragraph)
+        self.assertNotIn("the route fails when the case is run", paragraph)
+        self.assertNotIn("page never loads", paragraph)
         self.assertIn("Carry in the open items system-test-author recorded", paragraph)
+        self.assertIn("run any this stage can now and report each such case in the summary, where it is not recorded "
+                      "evidence (ShipLoop's rerun covers only the recorded system commands)", paragraph)
+        self.assertIn("A recorded system command that fails here is not an open item", paragraph)
 
     def test_the_system_test_author_runs_each_command_once_while_authoring(self) -> None:
         sys.path.insert(0, str(SCRIPTS))
@@ -2447,6 +2497,28 @@ class CaseEndStateTests(unittest.TestCase):
         text = " ".join(prompts.DUTIES["system-test-author"].split())
         self.assertIn("run each system command once", text.lower())
         self.assertIn("unachievable", text)
+
+
+class CarriedOpenItemTests(unittest.TestCase):
+    """SPEC S-6: a stage told to carry in what an earlier stage recorded reads that stage's result."""
+
+    def test_product_acceptance_reads_every_stage_whose_open_items_it_carries_in(self) -> None:
+        """N3 of the 2026-10-10 packet review: the duty named system-test-author, the row's reads did not."""
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_stage_spec as spec
+        duty = normalized(prompts.DUTIES["product-acceptance"])
+        carried = re.search(r"Carry in the open items an earlier stage recorded \(([^)]*)\)", duty)
+        self.assertIsNotNone(carried)
+        for name in carried.group(1).split(", "):
+            with self.subTest(name):
+                self.assertIn(name, spec.stage("product-acceptance").reads)
+
+    def test_the_skill_card_says_what_dropping_a_skill_file_from_paths_does(self) -> None:
+        """F4: integrate now commits an undeclared documentation file, SKILL.md and AGENTS.md included, so "removing
+        the file from paths would leave it uncommitted" is no longer true; the card says what the code does."""
+        skill = " ".join((SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8").split())
+        self.assertNotIn("removing the file from `paths` would leave it uncommitted", skill)
+        self.assertIn("integrate commits an undeclared file only when it is documentation", skill)
 
 
 class UnattendedWordingTests(unittest.TestCase):

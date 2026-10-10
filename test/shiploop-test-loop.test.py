@@ -119,6 +119,9 @@ test at test/widgets.test.js:4:1
 """
 
 
+# What an in-place run (no workspace, so no plan-return) says about a changed file ShipLoop does not commit.
+IN_PLACE_LEFT = ("ShipLoop commits no other changed file, and you commit nothing yourself: if the product needs one, "
+                 "report revise so the step plan declares it; otherwise delete it.")
 # What a step plan records when no repo-local skill is selected, created or changed for the item.
 SKILL_NA = "No repo-local skill applies: README.md is the index and names none."
 NOT_APPLICABLE = "Not applicable to this item"
@@ -450,7 +453,7 @@ class TestLoopTests(unittest.TestCase):
         output = self.complete(DONE)
         head = git(self.repo, "rev-parse", "HEAD").strip()
         self.assertNotEqual(head, before)
-        self.assertIn("ShipLoop committed W1's declared changes as " + head[:12], output)
+        self.assertIn("ShipLoop committed W1's changes (its declared paths and documentation) as " + head[:12], output)
         self.assertIn("a.py", git(self.repo, "show", "--name-only", "--format=", "HEAD").split())
         undeclared = next(line for line in output.splitlines() if line.startswith("Not committed"))
         self.assertIn("server.log", undeclared)
@@ -496,10 +499,11 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn("server.log", left.split(": ", 1)[1].split(", "))  # the driver's own scratch files are listed too
         self.assertNotIn("README.md", left)
         self.assertIn("Step plan paths: a.py", packet)
-        # One consistent sentence: the contradicting "commit the ones the product needs" is gone, and the
-        # stage text agrees with the workspace Return route line (plan-return commits left-over files).
+        # One consistent sentence: the contradicting "commit the ones the product needs" is gone.  This run is in
+        # place (no workspace, no plan-return), so the sentence is the in-place one (F1 of the 2026-10-10 review).
         self.assertNotIn("commit the ones the product needs", packet)
-        self.assertIn("plan-return commits files left uncommitted at the return, so commit nothing yourself", packet)
+        self.assertIn(IN_PLACE_LEFT, " ".join(packet.split()))
+        self.assertNotIn("plan-return", packet)
         goal = next(line for line in lines if line.startswith("Goal: "))
         self.assertNotIn("working branch", goal)
         self.assertIn("execution checkout", goal)
@@ -539,7 +543,64 @@ class TestLoopTests(unittest.TestCase):
         packet = self.packet()
         self.assertIn("Step plan paths: docs/fleet.md, docs/ops.md", packet)
         self.assertIn("changed documentation files (for example README.md or files under docs/)", packet)
-        self.assertIn("plan-return commits files left uncommitted at the return, so commit nothing yourself", packet)
+        self.assertIn(IN_PLACE_LEFT, " ".join(packet.split()))
+        self.assertNotIn("plan-return", packet)
+
+    def test_an_in_place_run_names_no_plan_return_and_leaves_an_undeclared_file_uncommitted(self):
+        """F1/#3 of the 2026-10-10 review (repro_inplace.py): an in-place run has no workspace and no plan-return, yet
+        the integrate packet and notice said plan-return commits the leftovers, and helper.py stayed untracked."""
+        self.start()
+        self.drive_to("integrate")
+        self.assertEqual(self.state()["execution_mode"], "navigator")
+        (self.repo / "helper.py").write_text("y = 2\n")
+        packet = self.packet()
+        self.assertIn(IN_PLACE_LEFT, " ".join(packet.split()))
+        self.assertNotIn("plan-return", packet)
+        output = self.complete(DONE)
+        notice = next(line for line in output.splitlines() if line.startswith("Not committed"))
+        self.assertIn("helper.py", notice)
+        self.assertIn(IN_PLACE_LEFT, notice)
+        self.assertNotIn("plan-return", output)
+        self.assertIn("?? helper.py", git(self.repo, "status", "--porcelain"))
+
+    def test_in_place_revise_declares_the_file_and_the_next_integrate_commits_it(self):
+        """GUARD (green before and after): the in-place route the sentence names goes through the real gates: revise at
+        integrate is accepted, the redone step plan declares the file, and the next integrate commits it."""
+        self.start()
+        self.drive_to("integrate")
+        (self.repo / "helper.py").write_text("y = 2\n")
+        self.complete(dict(DONE, outcome="revise", summary="helper.py is product code the step plan did not declare."))
+        self.assertEqual(nav.current_stage(self.state()), "step-plan")
+        (self.repo / "fixed.txt").unlink()  # the redone item runs test-red again, which needs its focused check red
+        self.drive_to("integrate", step_plan={"test_commands": COMMANDS, "paths": ["a.py", "helper.py"]})
+        self.complete(DONE)
+        self.assertIn("helper.py", git(self.repo, "show", "--name-only", "--format=", "HEAD").split())
+        self.assertNotIn("helper.py", git(self.repo, "status", "--porcelain"))
+
+    def test_a_case_an_inner_stage_cannot_run_goes_back_to_the_step_plan_through_the_gate(self):
+        """B2/#4: an inner stage's packet routes an unachievable case by revise, the outcome its gate accepts."""
+        self.start()
+        self.drive_to("test-author")
+        self.assertIn("report revise so the step plan reroutes the case", " ".join(self.packet().split()))
+        self.complete(dict(DONE, outcome="revise", summary=(
+            "TC-4 needs a device this host does not have; the step plan should observe R-2 another way.")))
+        self.assertEqual(nav.current_stage(self.state()), "step-plan")
+
+    def test_a_recorded_system_command_that_fails_at_system_test_is_refused_and_no_line_promises_done(self):
+        """B1 of the 2026-10-10 review (probe_system_test.py): the packet said a route that fails when the case is run
+        is an open item and the result is done, but the case's command is recorded, and the rerun refuses done."""
+        self.start()
+        (self.repo / "page.txt").write_text("ok\n")
+        self.drive_to("system-test-author")
+        self.complete(dict(DONE, system_commands=[{"command": "test -f page.txt", "suite": "check"}]))
+        self.drive_to("system-test")
+        (self.repo / "page.txt").unlink()  # the route fails at run time
+        packet = " ".join(self.packet().split())
+        self.assertNotIn("the route fails when the case is run", packet)
+        self.assertIn("A recorded system command that fails here is not an open item", packet)
+        self.assert_refused(dict(DONE, summary=("Open item ST-1: the page never loads in this host; R-1 unverified; "
+                                                "a person opens it and reports it renders; due handoff.")),
+                            r"test -f page\.txt")
 
     def test_the_skill_na_clause_is_printed_only_when_recorded_and_names_the_surface(self):
         self.start()
@@ -1702,6 +1763,82 @@ class ReleaseVerifyReturnedResultTests(unittest.TestCase):
         text = " ".join(self.packet().split())
         self.assertIn("recorded from the work area " + str(self.repo), text)
         self.assertEqual(text.count("cannot return"), 1, text)
+
+
+class WorktreeItemCommitTests(unittest.TestCase):
+    """What a worktree run says and does about the files integrate leaves (F1, F2 and #5 of the 2026-10-10 review).
+
+    The run is a real workspace prepared with ``--exclude notes.md`` (a transient file the caller declared), driven by
+    real ``dispatch`` calls; the driver is borrowed from ``TestLoopTests``.
+    """
+
+    state = TestLoopTests.state
+    action = TestLoopTests.action
+    packet = TestLoopTests.packet
+    complete = TestLoopTests.complete
+    finish_improve = TestLoopTests.finish_improve
+    drive_to = TestLoopTests.drive_to
+    terminal = TestLoopTests.terminal
+    run_loop = TestLoopTests.run_loop
+    pass_loop = TestLoopTests.pass_loop
+    assert_refused = TestLoopTests.assert_refused
+    run_quality_loop = TestLoopTests.run_quality_loop
+
+    def setUp(self) -> None:
+        isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+        isolated.start()
+        self.addCleanup(isolated.stop)
+        temp = tempfile.TemporaryDirectory(prefix="shiploop-item-commit-")
+        self.addCleanup(temp.cleanup)
+        base = Path(temp.name).resolve()
+        self.source = base / "source"
+        self.source.mkdir()
+        git(self.source, "init", "-q")
+        git(self.source, "branch", "-M", "main")
+        git(self.source, "config", "user.email", "loop@example.invalid")
+        git(self.source, "config", "user.name", "Loop Test")
+        git(self.source, "config", "commit.gpgsign", "false")
+        git(self.source, "config", "core.hooksPath", os.devnull)
+        (self.source / "a.py").write_text("x = 1\n")
+        (self.source / "check.sh").write_text(CHECK)
+        git(self.source, "add", "-A")
+        git(self.source, "commit", "-qm", "base")
+        self.root = base / "workspace"
+        record = workspace.prepare(self.source, self.root, exclude=["notes.md"])
+        self.repo = Path(record["worktree"])
+        self.run_dir = Path(record["run_dir"])
+        nav.save(self.run_dir, nav.new_state(str(self.repo), "Item-commit fixture.", worktree=True,
+                                             improve_skill=str(IMPROVE_CARD), lint_option="off"))
+
+    def test_the_integrate_packet_and_notice_print_plan_returns_rule_from_the_return_routes_one_constant(self):
+        """F2 (S-12): the item sentence and the Return route line describe the same commit_leftovers with one text."""
+        self.drive_to("integrate")
+        self.assertEqual(self.state()["execution_mode"], "navigator-worktree")
+        (self.repo / "server.log").write_text("listening 3000\n")
+        packet = self.packet()
+        develop = next(line for line in packet.splitlines() if line.startswith("- Develop: "))
+        self.assertIn(stage_spec.RETURN_LEFTOVERS, develop)
+        self.assertIn(stage_spec.RETURN_LEFTOVERS, workspace.route_sentence(self.root))
+        output = self.complete(DONE)
+        notice = next(line for line in output.splitlines() if line.startswith("Not committed"))
+        self.assertIn("server.log", notice)
+        self.assertIn(stage_spec.RETURN_LEFTOVERS, notice)
+
+    def test_integrate_never_commits_a_path_the_workspace_excludes(self):
+        """#5: commit_leftovers honours the caller's --exclude and the protected paths; the item commit did not, so a
+        transient notes.md (documentation class) was committed at integrate and reached the return."""
+        self.drive_to("integrate")
+        (self.repo / "a.py").write_text("x = 2\n")
+        (self.repo / "README.md").write_text("# Notes\n")
+        (self.repo / "notes.md").write_text("scratch\n")
+        left = next(line for line in self.packet().splitlines() if line.startswith("Changed, ShipLoop will not commit: "))
+        self.assertIn("notes.md", left.split(": ", 1)[1].split(", "))
+        self.complete(DONE)
+        committed = git(self.repo, "show", "--name-only", "--format=", "HEAD").split()
+        self.assertIn("README.md", committed)
+        self.assertIn("a.py", committed)
+        self.assertNotIn("notes.md", committed)
+        self.assertIn("?? notes.md", git(self.repo, "status", "--porcelain"))
 
 
 class VerifyLimitTests(unittest.TestCase):

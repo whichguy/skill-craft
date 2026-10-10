@@ -254,6 +254,9 @@ class ObservedHarmPacketTests(unittest.TestCase):
     def test_a_producer_restates_the_review_focus_its_improve_child_applies(self) -> None:
         bullets = [flat(line) for line in prompts.PLANNING_REVIEW_FOCUS.splitlines() if line.startswith("- ")]
         self.assertGreaterEqual(len(bullets), 5)
+        # N9 (2026-10-10 review): spec and test-strategy hold no steps, so the steps condition is not theirs to meet.
+        steps = [bullet for bullet in bullets if bullet.endswith("in the steps.")]
+        self.assertEqual(len(steps), 1)
         for stage in FOCUS_STAGES:
             producer = flat(self.found[(stage, "producer")])
             with self.subTest(stage):
@@ -261,7 +264,10 @@ class ObservedHarmPacketTests(unittest.TestCase):
                 # which the cold packet of an unbound child does not yet show).
                 self.assertIn(stage, prompts.PLANNING_REVIEW_STAGES)
                 for bullet in bullets:
-                    self.assertIn(bullet, producer)
+                    if bullet in steps:
+                        self.assertNotIn(bullet[2:].rstrip(".;"), producer)
+                    else:
+                        self.assertIn(bullet[2:].rstrip(".;"), producer)
                 self.assertIn("That review applies the Planning review focus in this stage's guidance and checks "
                               "the result against the Done-when conditions above.", producer)
 
@@ -284,8 +290,23 @@ class ObservedHarmPacketTests(unittest.TestCase):
     def test_test_strategy_makes_a_ui_the_request_names_either_a_browser_case_or_a_recorded_unverified_outcome(self) -> None:
         text = flat(self.found[("test-strategy", "producer")])
         self.assertIn("When the request names a page or screen people use", text)
-        self.assertIn("either a case that drives it in a browser", text)
+        # S-8: generic, with the browser as an example (F6 of the 2026-10-10 review).
+        self.assertIn("either a case that drives it through its user interface (for example in a browser or on a "
+                      "device), with the tool named and probed", text)
+        self.assertNotIn("drives it in a browser", text)
         self.assertIn("or the outcome recorded as unverified with its owner and due stage", text)
+
+    # #10 of the 2026-10-10 review: prepare's and test-spec's closes require files earlier stages wrote, so their
+    # Checked-by line says what the close requires, not what this stage must have written.
+    def test_a_close_states_the_files_its_close_requires_and_only_a_writer_says_it_must_have_written_them(self) -> None:
+        for stage in knowledge.CLOSES:
+            checked = next(line for line in self.found[(stage, "producer")].splitlines() if line.startswith("Checked by: "))
+            with self.subTest(stage):
+                if knowledge.required_earlier(stage):
+                    self.assertIn("a docs/shiploop file this stage's close requires, missing or empty", checked)
+                    self.assertNotIn("must have written", checked)
+                else:
+                    self.assertIn("a docs/shiploop file this stage must have written, missing or empty", checked)
 
     # row 11a: an assumption takes exactly the printed fields.
     def test_the_plan_says_each_assumption_takes_exactly_the_printed_fields_and_a_plan_consumer(self) -> None:

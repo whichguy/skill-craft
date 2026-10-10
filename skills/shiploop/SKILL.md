@@ -577,7 +577,9 @@ Improve reviews `skill_na` with the rest of the step plan.
   `improve-complete`. The skill files are the catalog's `skill_surface` (`SKILL.md`,
   `skills/` and `agents/` trees, the host agent-config directories, `AGENTS.md`,
   `CLAUDE.md`, `GEMINI.md`, `.mcp.json`). The way out is the step plan without
-  `skill_na`, because removing the file from `paths` would leave it uncommitted.
+  `skill_na`. Removing the file from `paths` instead does not help: `document`
+  still refuses a changed skill file (below), and integrate commits an undeclared file
+  only when it is documentation, so a skill script would stay uncommitted.
 - `document`'s `done` is refused when the item's real diff touches a skill file.
   This check leaves out `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `.mcp.json`, because
   `document` is told to maintain the agent-instruction files. The way out is `revise`,
