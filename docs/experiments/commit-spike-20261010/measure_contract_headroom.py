@@ -66,12 +66,18 @@ VARIANTS = {
         "The child never runs a ShipLoop callback except improve-commit, whose message has " + LESSON_CLAUSE
         + ". After the terminal packet the parent runs the return in {pr}."),
     # Command lives in parent-return.md (a file the contract already lists as a resource); the contract
-    # carries the rule and the pointer, and names that path once.
+    # carries the rule and the pointer, and names that path once. It keeps the plan's "changes only with".
     "pointer_to_parent_return": (
         "The child never runs a ShipLoop callback except improve-commit; its command and the parent return are in "
-        "{pr}: commit each iteration with " + LESSON_CLAUSE + " in the message. The parent runs the return after "
-        "the terminal packet."),
+        "{pr}: commit each iteration's changes only with that command; the message has " + LESSON_CLAUSE
+        + ". The parent runs the return after the terminal packet."),
 }
+
+# The wordings that restate the plan's authority sentence must keep "commit each iteration's changes only with": without
+# "'s changes only", the sentence read next to the contract's "no empty commit" tells a child to commit no-change
+# iterations (the Improve card says a no-change review gets no empty commit). A paraphrase that drops it fails here.
+for _name in ("full_plan_text", "full_path_once", "pointer_to_parent_return"):
+    assert "commit each iteration's changes only with" in VARIANTS[_name], _name + " dropped 'changes only with'"
 
 
 def stats(values):
@@ -178,6 +184,8 @@ def measure_child(root: Path, state, action, record, case_dir: Path):
     for name in VARIANTS:
         changed = apply_variant(contract, name, command, message_path, parent_return)
         row["variants"][name] = lc.compact_bytes(changed) - total
+        # A wording that leaves the contract unchanged would report "fits" for nothing (apply_variant not replacing).
+        assert row["variants"][name] > 0, name + " added no bytes to " + action
     # The same plan sentence placed in the work string instead of the authority (appended; the old clause stays).
     worked = copy.deepcopy(contract)
     worked["work"] += " " + PLAN_SENTENCE.format(command=command, path=message_path)
@@ -291,6 +299,9 @@ def main():
                         "planning_review": state.get("planning_review"), "delegation": state.get("delegation"),
                         "children_in_state": len(state.get("improve_results", {})), "children_measured": used})
 
+    if not rows:  # name the first reason, so a builder change that breaks every rebuild is not read as "no data"
+        raise SystemExit("no Improve child could be rebuilt; first reason: "
+                         + (json.dumps(unusable[0]) if unusable else "no saved run with Improve children under " + str(runs_root)))
     stages = {}
     for stage in sorted({row["stage"] for row in rows}):
         group = [row for row in rows if row["stage"] == stage]
