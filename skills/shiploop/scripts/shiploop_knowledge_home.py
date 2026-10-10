@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import shiploop_git as shiploop_git
 import shiploop_privacy as privacy
+import shiploop_stage_spec as stage_spec
 
 HOME = "docs/shiploop"
 # The repository's knowledge index; the references ask the model to keep it, so ShipLoop commits it with the home.
@@ -40,24 +41,36 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
     # Before the workspace return: a commit at handoff would miss the return and stale its receipt.
     "release-verify": ("{feature}/outcome.md", "environment.md", "README.md"),
 }
-# What each stage writes or updates; a close's required files (above) are added to its packet list by ``stage_files``.
+# What each stage writes or updates.  A close's other required files (above) were written by earlier stages
+# (``required_earlier``); its packet lists them apart, with the refusal they carry.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "intake": ("README.md",),
     "discovery": ("environment.md",),
     "spec": ("spec.md", "{feature}/spec.md"),
     "test-strategy": ("test-strategy.md",),
     "plan": ("{feature}/plan.md", "README.md"),
+    "prepare": ("environment.md",),
     "step-plan": ("{feature}/plan.md",),
     "test-spec": ("{feature}/test-spec.md",),
     "system-test-author": ("{feature}/system-tests.md",),
     "release-plan": ("{feature}/release-plan.md", "environment.md"),
+    "release-verify": ("{feature}/outcome.md", "environment.md", "README.md"),
 }
 
 
-def stage_files(stage: str) -> Tuple[str, ...]:
-    """Every file the stage's packet names: what it writes, then any further file its close will require."""
+def required_earlier(stage: str) -> Tuple[str, ...]:
+    """The files a close requires that an earlier stage writes (the close does not write them)."""
     written = STAGE_FILES.get(stage, ())
-    return written + tuple(name for name in CLOSES.get(stage, ()) if name not in written)
+    return tuple(name for name in CLOSES.get(stage, ()) if name not in written)
+
+
+def next_close(stage: str, name: str) -> Optional[str]:
+    """The first close after ``stage`` that refuses without file ``name``, or None when no later close does."""
+    order = stage_spec.STAGES
+    for close, required in CLOSES.items():
+        if order.index(close) > order.index(stage) and name in required:
+            return close
+    return None
 
 
 _REQUIREMENT_ID = re.compile(r"\b(R-\d+)\b")
@@ -115,10 +128,19 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     lines = ["", "Repository knowledge home (committed, inherited by later runs): " + str(repo / HOME)
              + "/README.md. Earlier runs' spec, environment and features are there; open a file when this "
              "stage needs it."]
-    files = stage_files(stage)
-    if files:
+    written, earlier = STAGE_FILES.get(stage, ()), required_earlier(stage)
+    if written:
         lines.append("This stage keeps these up to date (create them if missing): "
-                     + ", ".join(str(repo / path) for path in _expand(files, state)) + ".")
+                     + ", ".join(str(repo / path) for path in _expand(written, state)) + ".")
+    if earlier:
+        lines.append("Written by earlier stages; ShipLoop refuses " + stage + " if any is missing or empty: "
+                     + ", ".join(str(repo / path) for path in _expand(earlier, state)) + ".")
+    if stage not in CLOSES:
+        for close in CLOSES:
+            later = [name for name in written if next_close(stage, name) == close]
+            if later:
+                lines.append("ShipLoop refuses " + close + " if any of these is missing or empty: "
+                             + ", ".join(str(repo / path) for path in _expand(later, state)) + ".")
     if stage in ("intake", "discovery"):
         commits = recent_commits(repo)
         if commits:
@@ -233,4 +255,4 @@ def in_home(path: str) -> bool:
 
 
 __all__ = ("CLOSES", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "check", "commit", "feature_dir", "in_home", "learnings",
-           "recent_commits", "stage_files", "stage_lines")
+           "next_close", "recent_commits", "required_earlier", "stage_lines")

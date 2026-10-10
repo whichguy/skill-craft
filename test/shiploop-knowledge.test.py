@@ -59,6 +59,20 @@ class KnowledgeTests(unittest.TestCase):
         self.assertNotIn("On done ShipLoop checks", lines)
         self.assertIn("On done ShipLoop checks these files", "\n".join(knowledge.stage_lines(self.state, "prepare")))
 
+    def test_a_file_written_before_a_close_names_the_next_close_that_requires_it(self) -> None:
+        self.assertEqual(knowledge.next_close("plan", "{feature}/plan.md"), "prepare")
+        self.assertEqual(knowledge.next_close("discovery", "environment.md"), "prepare")
+        self.assertEqual(knowledge.next_close("step-plan", "{feature}/plan.md"), "test-spec")  # prepare is behind it
+        self.assertEqual(knowledge.next_close("system-test-author", "{feature}/system-tests.md"), "release-plan")
+        self.assertIsNone(knowledge.next_close("plan", "{feature}/outcome.md.nope"))
+        self.assertEqual(knowledge.required_earlier("prepare"),
+                         ("README.md", "spec.md", "test-strategy.md", "{feature}/spec.md", "{feature}/plan.md"))
+        lines = "\n".join(knowledge.stage_lines(self.state, "prepare"))
+        self.assertIn("Written by earlier stages; ShipLoop refuses prepare if any is missing or empty: "
+                      + str(self.repo / "docs/shiploop/README.md"), lines)
+        self.assertIn("This stage keeps these up to date (create them if missing): "
+                      + str(self.repo / "docs/shiploop/environment.md") + ".", lines)
+
     def test_a_close_packet_lists_every_file_its_refusal_names(self) -> None:
         # The refusal is the gate's own text: whatever it asks for must already be in the stage's packet.
         for stage in knowledge.CLOSES:

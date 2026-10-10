@@ -2599,12 +2599,13 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
         result["paths"] = ["<repository-relative file or glob>"]
         result["steps"] = [{"id": "S1", "task": "...", "deps": []},
                            {"id": "S2", "task": "...", "deps": ["S1"]}]
-        result["criteria"] = [{"id": "C1", "text": "..."}, {"id": "C2", "text": "README documents ..."}]
+        result["criteria"] = [{"id": "C1", "text": "<criterion>"}, {"id": "C2", "text": "<criterion>"}]
         result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
-                                   {"command": "grep -q '...' README.md", "suite": "check", "criteria": ["C2"]},
+                                   {"command": "<exit-code check command>", "suite": "check", "criteria": ["C2"]},
                                    {"command": "...", "suite": "regression"}]
     if stage == "system-test-author":
-        result["system_commands"] = [{"command": "...", "suite": "focused", "ids": ["ST-1"]}]
+        result["system_commands"] = [{"command": "...", "suite": "focused", "ids": ["ST-1"]},
+                                     {"command": "<exit-code check command>", "suite": "check"}]
     if stage == "release-plan":
         result["consumer_checks"] = [{"command": "...", "suite": "check"}]
         result["consumer_entry"] = {"how": "<how a person reaches the result>",
@@ -3798,8 +3799,10 @@ def _improve_line(state: Mapping[str, Any], stage: str) -> str:
     """Tell a producer whether its result starts an Improve child."""
     mode = recorded_planning_review(state)
     if stage in stage_spec.reviewed_stages(mode):
+        applies = ("applies the Planning review focus in this stage's guidance and "
+                   if stage in guidance.REVIEW_FOCUS_DUTY_STAGES else "")
         when = ("Every " + stage + " result, including blocked and repeat, starts this action's "
-                "Improve child. That review checks the result against the Done-when conditions above.")
+                "Improve child. That review " + applies + "checks the result against the Done-when conditions above.")
     elif stage in stage_spec.PLANNING_CHOICE_STAGES:
         when = ("no Improve child starts after this result in this run (planning_review: " + mode
                 + "); ShipLoop's own checks at complete are the only gate before the graph advances.")
