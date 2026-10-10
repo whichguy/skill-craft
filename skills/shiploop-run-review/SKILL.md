@@ -69,6 +69,9 @@ It also records, each only when the harness wrote it: how the harness classed th
 build under test (`identity`), the tools, browser and other runs that shared the machine (`environment`: minutes measured beside another
 run are not clean) and, for a run that did not pass, the case checks run in the worktree it never returned (`productAtStop`, information
 only). See "The run's record" in [SCHEMA.md](SCHEMA.md).
+What the run delivered is `delivered`, read from the workspace records beside the run directory and the stage rows: whether the product
+was merged back into the branch the run started from (and between which commits), the kept files by kind, how the tests last ran, and
+what the skill and release stages decided in the run's own words. See "What was delivered" in [SCHEMA.md](SCHEMA.md).
 Each visit also carries the checks ShipLoop recorded for it (`verify`, read from `tests/<action>-verifyN.md`) and the outcomes its
 result left unverified; the run carries the planning window and, for a Claude run, its wrapper scripts and packet use (read from
 `metrics.json`, never recomputed); a stage that only ran `backchain-check` is a graph-check Backchain document, not no loop.

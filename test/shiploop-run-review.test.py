@@ -242,7 +242,7 @@ class RunReviewTest(unittest.TestCase):
         self.assertEqual((run["status"], run["time"], run["release"]),
                          ("active", "running, 2.3 h at snapshot", "skill-craft 1.16.1, ShipLoop 0.48.1"))
         facts = (target / "facts.md").read_text().splitlines()
-        self.assertTrue(10 <= len(facts) <= 30, facts)  # a digest, not a dump: R23 adds one line each for fresh starts, fidelity and Improve packets
+        self.assertTrue(10 <= len(facts) <= 40, facts)  # a digest, not a dump: R23 adds one line each for fresh starts, fidelity and Improve packets, R23d five for what was delivered
         self.assertIn("plan 60.0", "\n".join(facts))
 
     def test_phases_follow_the_stage_table_and_the_current_stage(self):
@@ -420,6 +420,12 @@ class RunReviewTest(unittest.TestCase):
 
     KEY = "codex-gpt-6-luna-1.16.1-battleship-20261003"
 
+    def unmeasured_without_delivered(self, run: dict) -> dict:
+        """The run's `unmeasured` without the R23d keys: the fixture has no workspace records, no counted script check and no skill or release visit."""
+        keys = {k for k in run["unmeasured"] if k.startswith("delivered.")}
+        self.assertEqual(keys, {"delivered.returned", "delivered.files", "delivered.tests", "delivered.skill", "delivered.release"})
+        return {k: v for k, v in run["unmeasured"].items() if k not in keys}
+
     def test_a_counter_the_harness_names_unmeasured_is_omitted_with_its_reason_never_exported_as_zero(self):
         reasons = {"shiploop_failures": "Claude's tool calls arrive as tool_use blocks, so 0 is a lower bound",
                    "model_glue": "the same blind spot", "tmp_writes": "the same blind spot"}
@@ -430,7 +436,7 @@ class RunReviewTest(unittest.TestCase):
         run = self.docs(target)["runs"][self.KEY]
         for field in ("refusals", "glue", "failures"):
             self.assertNotIn(field, run)
-        self.assertEqual(run["unmeasured"], {**reasons, "visitContext": export.NO_VISIT_CONTEXT,  # no stage row has one
+        self.assertEqual(self.unmeasured_without_delivered(run), {**reasons, "visitContext": export.NO_VISIT_CONTEXT,  # no stage row has one
                                              "toolUse": f"{export.NO_TOOL_USE} (host: codex)",
                                              "fidelity": export.FIDELITY_MISSING,  # the fixture's metrics.json has no fidelity block
                                              "improvePackets": export.NO_IMPROVE_PACKET_FILE})  # and its Improve child left no packet file
@@ -449,7 +455,7 @@ class RunReviewTest(unittest.TestCase):
         self.assertEqual(code, 0)
         run = self.docs(target)["runs"][self.KEY]
         self.assertEqual((run["refusals"], run["glue"], len(run["failures"])), (13, 2, 13))
-        self.assertEqual(run["unmeasured"], {"stage_turns": "no per-call usage events",
+        self.assertEqual(self.unmeasured_without_delivered(run), {"stage_turns": "no per-call usage events",
                                              "visitContext": export.NO_VISIT_CONTEXT,
                                              "toolUse": f"{export.NO_TOOL_USE} (host: codex)",
                                              "fidelity": export.FIDELITY_MISSING, "improvePackets": export.NO_IMPROVE_PACKET_FILE})
@@ -8817,6 +8823,335 @@ class R23bFidelityPageTests(unittest.TestCase):
         self.assertNotIn("background:var(--surface)", rules["file"].replace(" ", ""))
         self.assertNotEqual(rules["file"], rules["note"])
         self.assertIn("var(--muted)", rules["file"])  # outline and fill both come from the muted ink, not the faint line colour
+
+
+# ---------------------------------------------------------------- R23d: what the run delivered (merged back or not, files by kind, tests, skill, release)
+
+# The three workspace records of four real saved runs (a returned one with tests and a README, a returned one with two files, two
+# never returned), frozen in delivered.json by collect_delivered.py. No test here reads /Users/dadleet/e2e-runs.
+R23D_FIXTURE = ROOT / "docs" / "experiments" / "run-review-r23-20261009" / "delivered.json"
+R23D_CHECKERS, R23D_HELLO = "20261008/r3-checkers-sonnet", "20261009/s6-after-spec"
+R23D_BLOCKED, R23D_STOPPED = "20261008/r1-battleship-grok-none", "20261008/r3-battleship-grok-none"
+R23D_STAGES = ("skill-assess", "skill-validate", "release-plan", "release", "release-verify")
+for _index, _name in enumerate(R23D_STAGES):  # the fixture run has no visit at these stages; give each an action id like the others
+    IDS.setdefault(_name, f"nav-9{_index}{hashlib.sha256(_name.encode()).hexdigest()[:30]}")
+R23D_ACCEPTS = ACCEPTS + [(name, name, 150 + 5 * index, "done") for index, name in enumerate(R23D_STAGES)]
+
+
+def r23d_saved(name: str) -> dict:
+    return copy.deepcopy(json.loads(R23D_FIXTURE.read_text(encoding="utf-8"))[name])
+
+
+def r23d_run(root: Path, saved: str | None = None, summaries: dict | None = None, verify: dict | None = None,
+             accepts=R23D_ACCEPTS, plan_paths: list | None = None) -> Path:
+    """A synthetic run whose workspace folder (beside run/) holds the saved run's three records as real files; `summaries` sets
+    the accepted summary of the visits at those stages, `verify` maps a stage to the script-check record written for it."""
+    out = make_run(root, accepts=accepts, loops=False)
+    run_dir = run_dir_of(out)
+    saved_records = r23d_saved(saved) if saved else {}
+    if plan_paths is not None:
+        saved_records["plan"] = {"status": "ready", "paths": plan_paths}
+    for key, name in (("workspace", "workspace.md"), ("plan", "return-plan.md"), ("receipt", "return-receipt.md")):
+        if saved_records.get(key) is not None:
+            record(run_dir.parent / name, saved_records[key])
+    if summaries:
+        state = export._record(run_dir / "state.md")
+        for row in state["history"]:
+            if row["stage"] in summaries:
+                row["summary"] = summaries[row["stage"]]
+        record(run_dir / "state.md", state)
+    for stage, block in (verify or {}).items():
+        add_record(out, IDS[stage], 1, block)
+    return out
+
+
+def r23d_run_doc(saved: str | None = None, **kwargs) -> dict:
+    with tempfile.TemporaryDirectory() as tmp:
+        docs, _ = export.build_run(r23d_run(Path(tmp), saved, **kwargs))
+        return json.loads(json.dumps(docs["runs"][RunReviewTest.KEY]))
+
+
+class R23dDeliveredExportTests(unittest.TestCase):
+    KEY = RunReviewTest.KEY
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def build(self, saved: str | None = None, **kwargs) -> tuple[dict, list[str]]:
+        docs, facts = export.build_run(r23d_run(Path(tempfile.mkdtemp(dir=self.tmp)), saved, **kwargs))
+        run = docs["runs"][self.KEY]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        self.assertNotIn("/Users/", json.dumps(run))
+        return run, facts
+
+    def test_a_returned_run_says_into_which_branch_from_which_branch_how_and_between_which_commits(self):
+        run, facts = self.build(R23D_HELLO)
+        self.assertEqual(run["delivered"]["returned"], {
+            "status": "returned", "into": "main", "from": "shiploop/run-31659eab214f8f98", "mode": "fast-forward-merge",
+            "before": "541415235f2d", "after": "8c3552a43c73"})  # before: main when the workspace was prepared; after: main after the last return
+        run, _ = self.build(R23D_CHECKERS)
+        self.assertEqual(run["delivered"]["returned"]["before"], "491b2af8bd05")
+        self.assertEqual(run["delivered"]["returned"]["after"], "70f11aa0e4cf")
+        self.assertNotIn("delivered.returned", run["unmeasured"])
+        self.assertIn("- Delivered: merged back into main (fast-forward-merge, 541415235f2d to 8c3552a43c73) from shiploop/run-31659eab214f8f98",
+                      "\n".join(export.build_run(r23d_run(Path(tempfile.mkdtemp(dir=self.tmp)), R23D_HELLO))[1]))
+
+    def test_a_run_never_returned_says_so_with_its_branch_and_has_no_mode_and_no_commits(self):
+        for name, branch in ((R23D_BLOCKED, "shiploop/run-cfac2cb47fd93aed"), (R23D_STOPPED, "shiploop/run-c0f462f8874ba861")):
+            with self.subTest(name):
+                run, facts = self.build(name)
+                self.assertEqual(run["delivered"]["returned"], {"status": "prepared", "into": "main", "from": branch})
+                self.assertIn(f"- Delivered: not merged back (workspace prepared): the product is on {branch}; main was not changed", "\n".join(facts))
+                # no return plan was written: the files are unknown, not none
+                self.assertNotIn("files", run["delivered"])
+                self.assertIn("return-plan.md", run["unmeasured"]["delivered.files"])
+
+    def test_a_run_with_no_workspace_records_exports_no_merge_or_file_part_and_names_why_for_each(self):
+        run, facts = self.build()
+        for part in ("returned", "files"):
+            self.assertNotIn(part, run.get("delivered", {}))
+            self.assertIn(f"delivered.{part}", run["unmeasured"])
+        self.assertIn("workspace.md", run["unmeasured"]["delivered.returned"])
+        self.assertIn("- Delivered: not measured (", "\n".join(facts))
+
+    def test_the_kept_paths_are_counted_by_kind_each_path_once_and_the_evidence_noise_is_not_counted(self):
+        for name, counts in ((R23D_CHECKERS, {"source": 5, "tests": 2, "docs": 1, "knowledge": 10, "skills": 0}),
+                             (R23D_HELLO, {"source": 1, "tests": 1, "docs": 0, "knowledge": 10, "skills": 0})):
+            with self.subTest(name):
+                run, _ = self.build(name)
+                files = run["delivered"]["files"]
+                self.assertEqual({kind: files[kind]["count"] for kind in export.DELIVERED_KINDS}, counts)
+                listed = [item["path"] for kind in export.DELIVERED_KINDS for item in files[kind]["items"]]
+                self.assertEqual(len(listed), len(set(listed)))
+                self.assertEqual(len(listed), sum(counts.values()))
+        files = self.build(R23D_CHECKERS)[0]["delivered"]["files"]
+        self.assertEqual([i["path"] for i in files["tests"]["items"]], ["test/rules.test.js", "test/server.test.js"])
+        self.assertEqual(files["tests"]["items"][0], {"path": "test/rules.test.js", "change": "added"})
+        self.assertNotIn("more", files["tests"])
+        self.assertEqual(files["skills"], {"count": 0, "items": []})  # a measured none: the plan was readable
+
+    def test_only_kept_paths_count_the_improve_evidence_is_dropped_and_a_long_list_is_cut_with_the_rest_counted(self):
+        rows = [{"path": f"src/m{i:02d}.py", "change": "added", "disposition": "keep", "in_history": True} for i in range(15)]
+        rows += [{"path": "notes.txt", "change": "added", "disposition": "exclude", "in_history": False},
+                 {"path": ".shiploop-improve/x.md", "change": "added", "disposition": "keep", "in_history": False},
+                 {"path": "late.py", "change": "added", "disposition": "pending", "in_history": False},
+                 {"path": "src/changed.py", "change": "modified", "disposition": "keep", "in_history": True}]
+        run, _ = self.build(R23D_HELLO, plan_paths=rows)
+        source = run["delivered"]["files"]["source"]
+        self.assertEqual(source["count"], 16)
+        self.assertEqual(len(source["items"]), export.MAX_DELIVERED_ITEMS)
+        self.assertEqual(source["more"], 4)
+        self.assertEqual(run["delivered"]["files"]["docs"]["count"], 0)
+
+    def test_each_path_goes_to_one_kind_by_its_name_and_place(self):
+        kinds = {"docs/shiploop/spec.md": "knowledge", "docs/shiploop/features/f/plan.md": "knowledge", "docs/guide.md": "docs",
+                 "README.md": "docs", "NOTES.txt": "docs", "docs/diagram.png": "docs", "skills/x/SKILL.md": "skills",
+                 "skills/x/scripts/run.py": "skills", ".claude/skills/y/SKILL.md": "skills", "pkg/SKILL.md": "skills",
+                 "test/rules.test.js": "tests", "tests/a.py": "tests", "src/__tests__/b.js": "tests", "a.spec.ts": "tests",
+                 "test_hello.py": "tests", "pkg/util_test.go": "tests", "hello.py": "source", "src/contest.py": "source",
+                 "system/http-smoke.js": "source", "index.html": "source", "latest.js": "source"}
+        for path, kind in kinds.items():
+            self.assertEqual(export._delivered_kind(path), kind, path)
+
+    def test_the_tests_last_run_is_the_widest_command_of_the_release_verify_visit_not_a_sum_and_says_where_it_ran(self):
+        two = dict(VERIFY_RELEASE, runs=[{"command": "a", "counts": {"failed": 0, "ran": 5}, "exit": 0, "status": "passed"},
+                                         {"command": "b", "counts": {"failed": 1, "ran": 20}, "exit": 1, "status": "red"},
+                                         {"command": "c", "counts": None, "exit": 0, "status": "passed"}])
+        run, _ = self.build(R23D_HELLO, verify={"release-verify": two, "implement": VERIFY_PASSED})
+        self.assertEqual(run["delivered"]["tests"], {"ran": 20, "failed": 1, "stage": "release-verify", "where": "returned-result"})
+        self.assertNotIn("delivered.tests", run["unmeasured"])
+
+    def test_without_a_release_verify_count_the_last_visit_with_counted_runs_is_used_and_with_none_it_is_unmeasured_never_zero(self):
+        run, _ = self.build(R23D_HELLO, verify={"implement": VERIFY_PASSED})
+        self.assertEqual(run["delivered"]["tests"], {"ran": 5, "failed": 0, "stage": "implement"})
+        none, _ = self.build(R23D_HELLO)
+        self.assertNotIn("tests", none["delivered"])
+        self.assertIn("test count", none["unmeasured"]["delivered.tests"])
+        uncounted = dict(VERIFY_PASSED, runs=[{"command": "x", "counts": None, "exit": 0, "status": "passed"}])
+        again, _ = self.build(R23D_HELLO, verify={"implement": uncounted})
+        self.assertNotIn("tests", again["delivered"])
+
+    def test_the_skill_decision_and_the_release_are_the_runs_own_words_cut_and_free_of_local_paths(self):
+        said = {"skill-assess": "Decision: no new skill. " + "word " * 80, "skill-validate": "N/A: nothing to run.",
+                "release-plan": "Release = guarded fast-forward return of the run branch to main (no push). See /Users/someone/e2e/run/notes/plan.md",
+                "release": "Ran the planned local release. " + "y" * 400}
+        out = r23d_run(Path(tempfile.mkdtemp(dir=self.tmp)), R23D_HELLO, summaries=said)
+        run = export.build_run(out)[0]["runs"][self.KEY]  # (a visit's own stage summary is outside this card and keeps its words)
+        self.assertEqual(export.validate_doc("runs", run), [])
+        self.assertNotIn("/Users/", json.dumps(run["delivered"]))
+        skill, release = run["delivered"]["skill"], run["delivered"]["release"]
+        self.assertEqual(skill["validated"], "N/A: nothing to run.")
+        self.assertTrue(skill["assessed"].startswith("Decision: no new skill. word word"))
+        self.assertLessEqual(len(skill["assessed"]), export.MAX_DELIVERED_SKILL)
+        self.assertTrue(skill["assessed"].endswith("…"))
+        self.assertIn("(no push). See plan.md", release["plan"])
+        self.assertLessEqual(len(release["done"]), export.MAX_DELIVERED_RELEASE)
+        self.assertNotIn("delivered.skill", run["unmeasured"])
+
+    def test_a_skipped_visit_is_not_a_decision_and_a_stage_never_reached_is_unmeasured(self):
+        rows = [{"stage": "skill-assess", "outcome": "done", "summary": "first answer"},
+                {"stage": "skill-assess", "outcome": "done", "summary": "skipped answer", "skipped": True},
+                {"stage": "release-plan", "outcome": "done", "summary": "p"}, {"stage": "release-plan", "outcome": "done"}]
+        workspace = Path(tempfile.mkdtemp(dir=self.tmp))
+        got, why = export._delivered(workspace, rows)
+        self.assertEqual(got["skill"], {"assessed": "first answer"})
+        self.assertEqual(got["release"], {"plan": "p"})  # the last visit with words; a visit with no summary says nothing
+        self.assertNotIn("delivered.skill", why)
+        got, why = export._delivered(workspace, [{"stage": "intake", "outcome": "done"}])
+        self.assertNotIn("skill", got)
+        self.assertIn("skill-assess", why["delivered.skill"])
+        self.assertIn("release-plan", why["delivered.release"])
+
+    def test_a_receipt_that_cannot_be_read_leaves_the_status_and_branches_and_names_the_missing_mode(self):
+        out = r23d_run(self.tmp, R23D_HELLO)
+        (run_dir_of(out).parent / "return-receipt.md").write_text("no fence here")
+        run = export.build_run(out)[0]["runs"][self.KEY]
+        self.assertEqual(run["delivered"]["returned"], {"status": "returned", "into": "main", "from": "shiploop/run-31659eab214f8f98"})
+        self.assertIn("return-receipt.md", run["unmeasured"]["delivered.mode"])
+
+    def test_a_receipt_of_another_mode_is_shown_in_its_own_words_without_commits_it_does_not_name(self):
+        out = r23d_run(self.tmp, R23D_HELLO)
+        receipt = run_dir_of(out).parent / "return-receipt.md"
+        value = export._record(receipt)
+        value.update(kind="working-tree-return", source_before={"branch": "main"}, expected_source={"branch": "main", "fingerprint": "x"})
+        record(receipt, value)
+        returned = export.build_run(out)[0]["runs"][self.KEY]["delivered"]["returned"]
+        self.assertEqual(returned["mode"], "working-tree-return")
+        self.assertEqual(returned["before"], "541415235f2d")  # the workspace says where main was; the receipt names no head, so no `after`
+        self.assertNotIn("after", returned)
+
+    def test_the_facts_carry_the_files_the_test_run_and_the_words_of_the_skill_and_release_stages(self):
+        _, facts = self.build(R23D_CHECKERS, verify={"release-verify": VERIFY_RELEASE},
+                              summaries={"skill-assess": "Decision: no new skill.", "release": "Ran the local release."})
+        text = "\n".join(facts)
+        self.assertIn("- Delivered files (kept in the return plan): source 5, tests 2, docs 1, knowledge 10, skills 0", text)
+        self.assertIn("- Delivered tests: 15 ran, 0 failed (release-verify, returned-result)", text)
+        self.assertIn("- Delivered skill: assessed: Decision: no new skill.", text)
+        self.assertIn("; done: Ran the local release.", text)
+
+    def test_the_new_object_validates_and_wrong_shapes_are_named(self):
+        run = self.build(R23D_CHECKERS, verify={"release-verify": VERIFY_RELEASE}, summaries={"release": "Ran."})[0]
+        self.assertEqual(export.validate_doc("runs", run), [])
+        bad = dict(run, delivered={"returned": {"into": "main"}, "files": {"tests": {"count": "2", "items": [{"change": "added"}]}},
+                                   "tests": {"ran": "3", "stage": 4}, "skill": {"assessed": 5}, "release": {"done": 1}})
+        problems = "\n".join(export.validate_doc("runs", bad))
+        for needle in ("delivered.returned: missing required field 'status'", "delivered.files.tests.count: expected a number",
+                       "delivered.files.tests.items[0]: missing required field 'path'", "delivered.tests.ran: expected a number",
+                       "delivered.tests.stage: expected a string", "delivered.skill.assessed: expected a string", "delivered.release.done: expected a string"):
+            self.assertIn(needle, problems)
+
+    def test_schema_md_documents_the_object_and_what_is_never_a_zero(self):
+        text = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        for phrase in ("**What was delivered**", "`delivered.returned`", "`delivered.files`", "`delivered.tests`", "`delivered.skill`",
+                       "`delivered.release`", "`unmeasured` keys `delivered.", "the widest command", "never a zero", "`workspace.md`",
+                       "`return-plan.md`", "`return-receipt.md`", "not links"):
+            self.assertIn(phrase, text, phrase)
+        for name in ("MAX_DELIVERED_ITEMS", "MAX_DELIVERED_SKILL", "MAX_DELIVERED_RELEASE", "DELIVERED_KINDS"):
+            self.assertTrue(hasattr(export, name), name)
+        skill = " ".join(SKILL_MD.read_text(encoding="utf-8").split())
+        self.assertIn("`delivered`", skill)
+
+    def test_the_committed_review_bundles_still_pass_the_check_without_the_new_object(self):
+        evidence = ROOT / "test" / "shiploop_e2e" / "evidence"
+        bundles = sorted(evidence.glob("*.review.json"))
+        self.assertTrue(bundles)
+        for bundle in bundles:
+            done = subprocess.run([sys.executable, str(SKILL_ROOT / "scripts" / "export.py"), "--check", str(bundle)],
+                                  capture_output=True, text=True, timeout=120)
+            self.assertEqual(done.returncode, 0, f"{bundle.name}: {done.stdout}{done.stderr}")
+
+
+def r23d_page_doc(saved: str | None = R23D_CHECKERS, **kwargs) -> dict:
+    return r23d_run_doc(saved, **kwargs)
+
+
+class R23dPageLogicTests(unittest.TestCase):
+    """mergeLine and deliveredModel are pure: the run document in, words out."""
+
+    def test_the_merge_line_says_where_the_product_went_or_that_it_did_not(self):
+        hello = run_logic("mergeLine(%s)" % json.dumps(r23d_page_doc(R23D_HELLO)))
+        self.assertEqual(hello, "Merged back into main (fast-forward, 541415235f2d to 8c3552a43c73)")
+        blocked = run_logic("mergeLine(%s)" % json.dumps(r23d_page_doc(R23D_BLOCKED)))
+        self.assertEqual(blocked, "Not merged back: the product is on branch shiploop/run-cfac2cb47fd93aed; main was not changed")
+        got = run_logic("[mergeLine({delivered:{returned:{status:'returned',into:'dev',mode:'working-tree-return'}}}),"
+                        "mergeLine({delivered:{returned:{status:'returned',into:'dev',mode:'no-change-return'}}}),"
+                        "mergeLine({delivered:{returned:{status:'returned',into:'dev'}}}),"
+                        "mergeLine({delivered:{returned:{status:'returned',into:'dev',mode:'fast-forward-merge'}}}),"
+                        "mergeLine({delivered:{returned:{status:'return-planned',from:'b'}}}),"
+                        "mergeLine({}),mergeLine(null),mergeLine({delivered:{returned:'x'}})]")
+        self.assertEqual(got, ["Returned to dev as a working-tree change (no merge, no commit)", "Returned to dev with nothing to return",
+                               "Returned to dev (how is not recorded)", "Merged back into dev (fast-forward)",
+                               "Not merged back (workspace return-planned): the product is on branch b", "", "", ""])
+
+    def test_the_card_rows_are_implemented_tests_documentation_skills_and_release_in_the_runs_words(self):
+        doc = r23d_page_doc(R23D_CHECKERS, verify={"release-verify": VERIFY_RELEASE},
+                            summaries={"skill-assess": "no new skill.", "skill-validate": "N/A.", "release-plan": "Local only.", "release": "Ran it."})
+        model = run_logic("deliveredModel(%s)" % json.dumps(doc))
+        rows = dict(model["rows"])
+        self.assertEqual(model["title"], "What was delivered")
+        self.assertTrue(model["lead"].startswith("Merged back into main (fast-forward, 491b2af8bd05 to 70f11aa0e4cf)"))
+        self.assertEqual(list(rows), ["Implemented", "Tests", "Documentation", "Skills", "Release"])
+        self.assertEqual(rows["Implemented"].split("\n")[0], "5 files")
+        self.assertIn("system/http-smoke.js", rows["Implemented"])
+        self.assertEqual(rows["Tests"], "2 files\ntest/rules.test.js\ntest/server.test.js\nLast run: 15 tests ran, 0 failed, at release-verify (returned-result)")
+        self.assertEqual(rows["Documentation"], "1 file\nREADME.md\nShipLoop records: 10 files under docs/shiploop (the run's own planning, outcome and release records)")
+        self.assertEqual(rows["Skills"], "Decision: no new skill.\nValidation: N/A.\nProduced: none")
+        self.assertEqual(rows["Release"], "Planned: Local only.\nDone: Ran it.")
+
+    def test_a_part_the_export_could_not_measure_is_said_with_its_reason_and_a_marked_change_is_shown(self):
+        doc = r23d_page_doc(R23D_BLOCKED)
+        rows = dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])
+        self.assertIn("not measured (", rows["Implemented"])
+        self.assertIn("return-plan.md", rows["Implemented"])
+        self.assertIn("Last run: not measured (", rows["Tests"])
+        files = run_logic("deliveredModel({delivered:{files:{source:{count:2,items:[{path:'a.py',change:'added'},{path:'b.py',change:'modified'}]},"
+                          "tests:{count:0,items:[]},docs:{count:0,items:[]},knowledge:{count:0,items:[]},skills:{count:1,items:[{path:'skills/x/SKILL.md'}],more:0}}},unmeasured:{}})")
+        got = dict(files["rows"])
+        self.assertEqual(got["Implemented"], "2 files\na.py\nb.py (modified)")
+        self.assertEqual(got["Tests"].split("\n")[0], "none kept")
+        self.assertIn("Produced: 1 file\nskills/x/SKILL.md", got["Skills"])
+
+    def test_an_export_from_before_the_card_gets_no_card(self):
+        self.assertEqual(run_logic("[deliveredModel({}),deliveredModel(null),deliveredModel({unmeasured:{}}),deliveredModel({delivered:'x'})]"), [None] * 4)
+
+
+class R23dPageTests(unittest.TestCase):
+    def page(self, run: dict, expression: str):
+        return page_probe(expression, setup=ended_page(run))
+
+    def test_the_card_shows_the_merge_line_first_then_the_rows_as_text_and_no_link(self):
+        doc = r23d_page_doc(R23D_HELLO, verify={"release-verify": VERIFY_RELEASE})
+        out = self.page(doc, '[REG.delcard.hidden,textOf("delcard"),walk(REG.delcard,function(e){return e.tagName==="a"||e.attrs.href!==undefined;}).length,'
+                             'byClass("delcard","pl-line").map(function(e){return e.textContent;})]')
+        self.assertFalse(out[0])
+        self.assertTrue(out[1].startswith("What was delivered"))
+        self.assertEqual(out[3], ["Merged back into main (fast-forward, 541415235f2d to 8c3552a43c73)"])
+        self.assertLess(out[1].index("Merged back"), out[1].index("Implemented"))
+        for text in ("hello.py", "test_hello.py", "Last run: 15 tests ran", "ShipLoop records: 10 files", "Produced: none"):
+            self.assertIn(text, out[1])
+        self.assertEqual(out[2], 0)  # paths are files on the machine that ran the case: text, not links
+
+    def test_a_run_from_before_the_card_has_it_hidden_and_a_not_returned_run_says_so_with_the_reason_for_the_files(self):
+        self.assertTrue(self.page(DONE_RUN, 'REG.delcard.hidden'))
+        text = self.page(r23d_page_doc(R23D_STOPPED), 'textOf("delcard")')
+        self.assertIn("Not merged back: the product is on branch shiploop/run-c0f462f8874ba861; main was not changed", text)
+        self.assertIn("Implemented", text)
+        self.assertIn("return-plan.md", text)
+
+    def test_the_card_sits_after_the_stage_cards_and_before_the_fidelity_card(self):
+        html = TEMPLATE.read_text(encoding="utf-8")
+        self.assertIn('<div class="card delcard" id="delcard" hidden></div>', html)
+        self.assertLess(html.index('id="seqtabbox"'), html.index('id="delcard"'))
+        self.assertLess(html.index('id="delcard"'), html.index('id="fidcard"'))
+        self.assertEqual(html.count('id="delcard"'), 1)
+
+    def test_the_card_keeps_a_line_per_entry_wraps_a_long_path_and_is_one_column_on_a_phone(self):
+        css = TEMPLATE.read_text(encoding="utf-8").split("</style>")[0]
+        self.assertRegex(css, r"\.delcard \.facts dd\{[^}]*white-space:pre-line[^}]*overflow-wrap:anywhere")
+        self.assertRegex(css, r"\.delcard\{[^}]*margin-top:12px")
+        self.assertRegex(css, r"@media \(max-width:640px\)\{[^}]*\.delcard \.facts[^}]*\{grid-template-columns:1fr\}")
 
 
 if __name__ == "__main__":

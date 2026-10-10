@@ -195,6 +195,9 @@ label.opt .t{min-width:0}
 .endcard.blocked{border-left-color:var(--broken)}
 .endcard .facts{grid-template-columns:minmax(120px,210px) minmax(0,1fr)}
 .endcard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
+.delcard{margin-top:12px}
+.delcard .facts{grid-template-columns:minmax(120px,210px) minmax(0,1fr)}
+.delcard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
 .fidcard{margin-top:12px}
 .fidcard .facts{grid-template-columns:minmax(120px,210px) minmax(0,1fr)}
 .fidcard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
@@ -310,6 +313,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 .stickybar{display:flex;position:sticky;bottom:0;z-index:5;justify-content:space-between;align-items:center;gap:10px;margin:14px -16px -56px;padding:10px 16px;background:var(--surface);border-top:1px solid var(--line)}
 .stickybar[hidden]{display:none}}
 @media (max-width:640px){.fidcard .facts{grid-template-columns:1fr}}
+@media (max-width:640px){.delcard .facts{grid-template-columns:1fr}}
 </style>
 
 <div class="wrap">
@@ -338,6 +342,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <div id="seqdetail" aria-live="polite"></div>
 <div class="card sclist" id="sclist" hidden></div>
 <details id="seqtabbox" hidden><summary id="seqtabsum"></summary><div class="rtabbox" id="seqtable"></div></details>
+<div class="card delcard" id="delcard" hidden></div>
 <div class="card fidcard" id="fidcard" hidden></div>
 <div class="card freshcard" id="freshcard" hidden></div>
 <div class="card qualitycard" id="qualitycard" hidden></div>
@@ -912,6 +917,56 @@ function atStopRow(run){
   return [label,lines.join("\n")];
 }
 
+/* ---- what the run delivered (R23d) ---- */
+/* The merge line: where the product went, or that it did not go anywhere, in the workspace's own terms. "" when the run has no
+   `delivered.returned` (the card then says why, from unmeasured). A run that never returned names the branch the product is on and
+   that the source branch was not changed. */
+function mergeLine(run){
+  var d=run&&run.delivered&&typeof run.delivered==="object"?run.delivered:null,r=d&&d.returned&&typeof d.returned==="object"?d.returned:null;
+  if(!r||typeof r.status!=="string")return "";
+  var into=typeof r.into==="string"?r.into:"the source branch",from=typeof r.from==="string"?r.from:"the run's branch";
+  if(r.status==="returned"){
+    if(r.mode==="fast-forward-merge")return "Merged back into "+into+" (fast-forward"+(r.before&&r.after?", "+r.before+" to "+r.after:"")+")";
+    if(r.mode==="working-tree-return")return "Returned to "+into+" as a working-tree change (no merge, no commit)";
+    if(r.mode==="no-change-return")return "Returned to "+into+" with nothing to return";
+    return "Returned to "+into+(typeof r.mode==="string"?" ("+r.mode+")":" (how is not recorded)");
+  }
+  return "Not merged back"+(r.status==="prepared"?"":" (workspace "+r.status+")")+": the product is on branch "+from+(r.status==="prepared"?"; "+into+" was not changed":"");
+}
+/* One kind of kept file as lines: how many, then the listed paths (a change other than "added" in brackets), then what was not listed. */
+function keptLines(k){
+  if(!k||typeof k!=="object"||!isCount(k.count))return null;
+  if(k.count===0)return ["none kept"];
+  var items=Array.isArray(k.items)?k.items:[],lines=[plural(k.count,"file")];
+  items.forEach(function(i){if(i&&typeof i.path==="string")lines.push(i.path+(typeof i.change==="string"&&i.change!=="added"?" ("+i.change+")":""));});
+  if(k.count>items.length)lines.push("("+(k.count-items.length)+" more not listed)");
+  return lines;
+}
+/* The "What was delivered" card as data: {title, note, lead (the merge line, or why there is none), rows [[label, text]]}, or null when
+   the run has no `delivered` and no reason for one (an export from before it). A part the export could not measure keeps its reason. */
+function deliveredModel(run){
+  var d=run&&run.delivered&&typeof run.delivered==="object"?run.delivered:null,u=run&&run.unmeasured&&typeof run.unmeasured==="object"?run.unmeasured:{};
+  if(!d&&!Object.keys(u).some(function(k){return k.indexOf("delivered.")===0;}))return null;
+  d=d||{};
+  var why=function(part){return "not measured ("+(typeof u["delivered."+part]==="string"?u["delivered."+part]:"no reason recorded")+")";};
+  var f=d.files&&typeof d.files==="object"?d.files:null,kept=function(kind){return f?keptLines(f[kind]):null;};
+  var lead=mergeLine(run)||"Merged back: "+why("returned"),rows=[];
+  var src=kept("source");rows.push(["Implemented",src?src.join("\n"):why("files")]);
+  var tf=kept("tests"),t=d.tests&&typeof d.tests==="object"&&isCount(d.tests.ran)?d.tests:null;
+  var ran=t?"Last run: "+plural(t.ran,"test")+" ran"+(isCount(t.failed)?", "+t.failed+" failed":"")+", at "+t.stage+(t.where?" ("+t.where+")":""):"Last run: "+why("tests");
+  rows.push(["Tests",(tf?tf:["Test files: "+why("files")]).concat([ran]).join("\n")]);
+  var df=kept("docs"),kf=kept("knowledge"),docLines=df?df.slice():[why("files")];
+  if(kf&&f&&isCount(f.knowledge.count))docLines.push("ShipLoop records: "+(f.knowledge.count===0?"none kept":plural(f.knowledge.count,"file")+" under docs/shiploop (the run's own planning, outcome and release records)"));
+  rows.push(["Documentation",docLines.join("\n")]);
+  var sk=d.skill&&typeof d.skill==="object"?d.skill:null,pf=kept("skills"),skl=[];
+  skl.push("Decision: "+(sk&&sk.assessed?sk.assessed:why("skill")));
+  if(sk&&sk.validated)skl.push("Validation: "+sk.validated);
+  skl.push("Produced: "+(pf?(pf[0]==="none kept"?"none":pf.join("\n")):why("files")));
+  rows.push(["Skills",skl.join("\n")]);
+  var rl=d.release&&typeof d.release==="object"?d.release:null;
+  rows.push(["Release",rl&&(rl.plan||rl.done)?[rl.plan?"Planned: "+rl.plan:"",rl.done?"Done: "+rl.done:""].filter(Boolean).join("\n"):why("release")]);
+  return {title:"What was delivered",note:"What the run left behind, from its workspace records and the summaries of its stages. Paths are files in the product on the machine that ran the case: text, not links. A file is new unless marked.",lead:lead,rows:rows};
+}
 /* ---- script checks, unverified outcomes, tool use and the planning window (R22b) ---- */
 /* A visit's script checks as one sentence: how many records ShipLoop kept for it and how many passed, the commands of the
    last record with what ran, failed and was accepted, and where the checks ran (a release-verify record names it). "" without a block. */
@@ -1806,7 +1861,7 @@ function renderFlow(){
   o.rs.forEach(function(r){var op=h("option","",r.name);op.value=r.key;sel.appendChild(op);});
   var f=byId("flow");clear(f);
   var P=phases();
-  renderEnding(o.run);renderFidelity(o.run);
+  renderEnding(o.run);renderDelivered(o.run);renderFidelity(o.run);
   renderRunRecord(o.run);
   var hc=byId("runhosts"),hostc=o.run?hostChip(o.run):null;hc.hidden=!hostc;hc.textContent=hostc?hostc.text:"";hc.title=hostc?hostc.title:"";
   if(!o.run){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.runs?"No runs recorded yet.":"Loading the shared record."));byId("runfacts").textContent="";byId("runmode").hidden=true;return;}
@@ -1896,6 +1951,16 @@ function renderQuality(run){
   if(m.rows.length)box.appendChild(factsEl(m.rows));
 }
 
+/* "What was delivered": the card after the stage cards, built from deliveredModel; hidden for an export from before it. */
+function renderDelivered(run){
+  var box=byId("delcard");clear(box);
+  var m=run?deliveredModel(run):null;box.hidden=!m;
+  if(!m)return;
+  box.appendChild(h("h3","",m.title));
+  box.appendChild(h("p","sub",m.note));
+  box.appendChild(h("p","pl-line",m.lead));
+  box.appendChild(factsEl(m.rows));
+}
 /* "Fidelity": the card in the run view, built from fidelityModel: the evidence mix as a bar with a legend, then the rows and the harness's own
    words on what its lists miss. Hidden for an export from before the reading. */
 function renderFidelity(run){

@@ -155,6 +155,22 @@ PRODUCT_AT_STOP_FIELDS = {
     "ran": (B, True), "reason": (S, False), "engineStatus": (S, False), "engineStage": (S, False),
     "passed": (N, False), "failed": (N, False), "timedOut": (N, False), "total": (N, False),
     "checks": (("items", AT_STOP_CHECK), False)}
+# R23d. What the run delivered, read from the three records of the run's workspace folder (workspace.md, return-plan.md,
+# return-receipt.md) and the stage rows. Every part is optional; a part the records cannot give is absent with its reason in
+# `unmeasured["delivered.<part>"]` (SCHEMA.md "What was delivered").
+DELIVERED_KINDS = ("source", "tests", "docs", "knowledge", "skills")  # the kinds a kept path is sorted into, each path once
+MAX_DELIVERED_ITEMS = 12  # paths listed per kind; `more` counts the rest
+MAX_DELIVERED_PATH = 160  # characters of a listed path
+MAX_DELIVERED_SKILL = 240  # characters of a skill stage's summary kept
+MAX_DELIVERED_RELEASE = 280  # characters of a release stage's summary kept
+DELIVERED_KIND_FIELDS = {"count": (N, True), "items": (("items", {"path": (S, True), "change": (S, False)}), True), "more": (N, False)}
+DELIVERED_FIELDS = {
+    "returned": (("object", {"status": (S, True), "into": (S, False), "from": (S, False), "mode": (S, False),
+                             "before": (S, False), "after": (S, False)}), False),
+    "files": (("object", {kind: (("object", DELIVERED_KIND_FIELDS), False) for kind in DELIVERED_KINDS}), False),
+    "tests": (("object", {"ran": (N, True), "failed": (N, False), "stage": (S, True), "where": (S, False)}), False),
+    "skill": (("object", {"assessed": (S, False), "validated": (S, False)}), False),
+    "release": (("object", {"plan": (S, False), "done": (S, False)}), False)}
 LEFT_BEHIND_ITEM = {"command": (S, True), "ports": (("list", N), False),
                     "where": (("enum", ("worktree", "work", "other")), True), "endedBy": (S, False)}
 # R23c. A fresh start (the model lost its context: a compaction, or a new host session) and what it cost to re-ground; the mark on
@@ -311,6 +327,9 @@ SCHEMA = {
         "identity": (("object", IDENTITY_FIELDS), False),
         "environment": (("object", ENVIRONMENT_FIELDS), False),
         "productAtStop": (("object", PRODUCT_AT_STOP_FIELDS), False),
+        # R23d. What the run delivered: whether the product was merged back into the branch the run started from, the kept files by
+        # kind, how the tests last ran, what the skill and release stages decided (SCHEMA.md "What was delivered").
+        "delivered": (("object", DELIVERED_FIELDS), False),
         # R23c. Every time the model lost its context and what re-grounding cost (record only), and the delivered-quality block
         # (SCHEMA.md "Fresh starts" and "Quality"). Absent for a run recorded before the harness wrote them; `unmeasured.freshStarts`
         # says why a list is absent or partial. An absent `quality` means the case measures none or the phase has not run.
@@ -1611,6 +1630,167 @@ def _run_record(result: dict) -> tuple[dict, dict[str, str]]:
     return fields, why
 
 
+# ---------------------------------------------------------------- what the run delivered (R23d)
+# A ShipLoop run works in its own worktree on its own branch and returns the product to the branch it started from. Three records in
+# the workspace folder (the folder that holds run/ and worktree/) say what happened: workspace.md (the status, the source branch and
+# its tip when the run began, the run's branch), return-plan.md (every changed path and whether it is kept) and return-receipt.md
+# (how the return was made). The stage rows say what the skill and release stages decided and how the tests last ran. Every part is
+# read, never inferred; one that cannot be read is absent and its reason is under `unmeasured["delivered.<part>"]`.
+
+DELIVERED_TEST_DIRS = ("test", "tests", "__tests__")
+DELIVERED_TEST_NAME = re.compile(r"(?:\.(?:test|spec)\.[^.]+|_test\.[^.]+|test_.+\.py)$")
+DELIVERED_DOC_NAME = re.compile(r"(?i)(?:^readme|\.(?:md|txt|rst)$)")
+DELIVERED_NOISE = ".shiploop-improve/"  # Improve's working evidence: never part of the product
+HEX_SHA = re.compile(r"[0-9a-f]{12,64}")
+
+
+def _delivered_kind(path: str) -> str:
+    """Which of DELIVERED_KINDS a path belongs to, first match wins: ShipLoop's own records (docs/shiploop/), skills, tests, other
+    documents, and everything else is source."""
+    parts = path.split("/")
+    name = parts[-1]
+    if path.startswith("docs/shiploop/"):
+        return "knowledge"
+    if parts[0] == "skills" or path.startswith(".claude/skills/") or name == "SKILL.md":
+        return "skills"
+    if any(part in DELIVERED_TEST_DIRS for part in parts[:-1]) or DELIVERED_TEST_NAME.search(name):
+        return "tests"
+    if parts[0] == "docs" or DELIVERED_DOC_NAME.search(name):
+        return "docs"
+    return "source"
+
+
+def _sha12(value) -> str | None:
+    return value[:12] if isinstance(value, str) and HEX_SHA.fullmatch(value) else None
+
+
+def _cut(text: str, limit: int) -> str:
+    """The text on one line with local paths cut to their last name, at most `limit` characters, ending in an ellipsis when cut."""
+    line = _without_paths(text)
+    return line if len(line) <= limit else line[:limit - 1].rstrip() + "…"
+
+
+def _delivered_returned(workspace: dict | None, receipt: dict | None) -> tuple[dict | None, dict[str, str]]:
+    """({status, into?, from?, mode?, before?, after?}, reasons). `status` is the workspace's own word ("returned" when the product
+    was merged back, "prepared" when it never was); `mode`, `before` and `after` only for a returned run whose receipt says so. `before`
+    is the source branch's tip when the workspace was prepared and `after` its tip after the last return, so a follow-up return is
+    one span."""
+    receipt = receipt if receipt and receipt.get("status") == "returned" else None
+    status = _text((workspace or {}).get("status")) or (_text(receipt.get("status")) if receipt else None)
+    if status is None:
+        return None, {"delivered.returned": "no readable workspace.md or return-receipt.md beside the run directory (the run was not "
+                                            "made in a ShipLoop workspace, or it was recorded before the workspace record)"}
+    found: dict = {"status": status}
+    expected = receipt.get("expected_source") if receipt and isinstance(receipt.get("expected_source"), dict) else {}
+    before = receipt.get("source_before") if receipt and isinstance(receipt.get("source_before"), dict) else {}
+    into = _line((workspace or {}).get("source_branch"), MAX_IDENTITY) or _line(expected.get("branch"), MAX_IDENTITY)
+    for field, value in (("into", into), ("from", _line((workspace or {}).get("branch"), MAX_IDENTITY))):
+        if value:
+            found[field] = value
+    why: dict[str, str] = {}
+    if status == "returned":
+        if receipt is None:
+            why["delivered.mode"] = "return-receipt.md is missing, unreadable or not a returned receipt, so how the return was made is not recorded"
+        else:
+            if _text(receipt.get("kind")):
+                found["mode"] = _line(receipt["kind"], MAX_IDENTITY)
+            for field, value in (("before", _sha12((workspace or {}).get("source_head")) or _sha12(before.get("head"))),
+                                 ("after", _sha12(expected.get("head")))):
+                if value:
+                    found[field] = value
+    return found, why
+
+
+def _delivered_files(plan: dict | None) -> tuple[dict | None, str | None]:
+    """({kind: {count, items, more?}}, reason): the paths the return plan keeps, sorted by kind. `items` are the first
+    MAX_DELIVERED_ITEMS in the plan's order as {path, change?}; Improve's evidence paths are not counted. A kind with nothing kept is a
+    measured none ({count 0, items []}) because the plan was read."""
+    rows = plan.get("paths") if plan else None
+    if not isinstance(rows, list):
+        return None, ("no readable return-plan.md beside the run directory: the run never planned a return, so which files it kept "
+                      "is not recorded")
+    kept: dict[str, list[dict]] = {kind: [] for kind in DELIVERED_KINDS}
+    seen: set[str] = set()
+    for row in rows:
+        path = _text(row.get("path")) if isinstance(row, dict) else None
+        if path is None or row.get("disposition") != "keep" or path.startswith(DELIVERED_NOISE) or path in seen:
+            continue
+        seen.add(path)
+        item = {"path": _line(path, MAX_DELIVERED_PATH)}
+        if _text(row.get("change")):
+            item["change"] = _line(row["change"], MAX_IDENTITY)
+        kept[_delivered_kind(path)].append(item)
+    files = {}
+    for kind, items in kept.items():
+        files[kind] = {"count": len(items), "items": items[:MAX_DELIVERED_ITEMS]}
+        if len(items) > MAX_DELIVERED_ITEMS:
+            files[kind]["more"] = len(items) - MAX_DELIVERED_ITEMS
+    return files, None
+
+
+def _delivered_tests(stages: list[dict]) -> tuple[dict | None, str | None]:
+    """How the tests last ran, from the stage rows' script-check records: the release-verify visit when one has counted runs, else the
+    last visit that has. Of that visit the **widest** command run (the most tests ran), because a full-suite command includes the
+    focused ones and a sum would count a test twice. {ran, failed?, stage, where?}; None, with a reason, when no run carries a count."""
+    def counted(row):
+        runs = (row.get("verify") or {}).get("runs") or []
+        return [r for r in runs if _num(r.get("ran")) is not None]
+    rows = [r for r in stages if counted(r)]
+    chosen = next((r for r in reversed(rows) if r["stage"] == "release-verify"), rows[-1] if rows else None)
+    if chosen is None:
+        return None, "no stage's script-check record carries a test count (a record with no count shows that a command ran, not how many tests)"
+    widest = max(counted(chosen), key=lambda r: r["ran"])
+    found = {"ran": widest["ran"], "stage": chosen["stage"]}
+    if _num(widest.get("failed")) is not None:
+        found["failed"] = widest["failed"]
+    where = _text(((chosen.get("verify") or {}).get("observed") or {}).get("where"))
+    if where:
+        found["where"] = _line(where, MAX_IDENTITY)
+    return found, None
+
+
+def _delivered_words(stages: list[dict], stage: str, limit: int) -> str | None:
+    """The accepted summary of the last visit at `stage` that was not skipped and has one, as the run wrote it, cut to `limit`."""
+    for row in reversed(stages):
+        if row.get("stage") == stage and not row.get("skipped") and _text(row.get("summary")):
+            return _cut(row["summary"], limit)
+    return None
+
+
+def _delivered(root: Path, stages: list[dict]) -> tuple[dict, dict[str, str]]:
+    """({returned?, files?, tests?, skill?, release?}, `unmeasured` entries) for the run whose workspace folder is `root`."""
+    workspace, plan, receipt = (_record(root / name) for name in ("workspace.md", "return-plan.md", "return-receipt.md"))
+    found: dict = {}
+    why: dict[str, str] = {}
+    returned, reasons = _delivered_returned(workspace, receipt)
+    why.update(reasons)
+    if returned:
+        found["returned"] = returned
+    files, files_why = _delivered_files(plan)
+    if files:
+        found["files"] = files
+    else:
+        why["delivered.files"] = files_why
+    tests, tests_why = _delivered_tests(stages)
+    if tests:
+        found["tests"] = tests
+    else:
+        why["delivered.tests"] = tests_why
+    skill = {field: text for field, stage in (("assessed", "skill-assess"), ("validated", "skill-validate"))
+             if (text := _delivered_words(stages, stage, MAX_DELIVERED_SKILL))}
+    if skill:
+        found["skill"] = skill
+    else:
+        why["delivered.skill"] = "no accepted skill-assess or skill-validate visit with a summary"
+    release = {field: text for field, stage in (("plan", "release-plan"), ("done", "release"))
+               if (text := _delivered_words(stages, stage, MAX_DELIVERED_RELEASE))}
+    if release:
+        found["release"] = release
+    else:
+        why["delivered.release"] = "no accepted release-plan or release visit with a summary"
+    return found, why
+
+
 # ---------------------------------------------------------------- script checks, unverified outcomes, tool use, planning (R22b)
 
 VERIFY_FILE = re.compile(r"(?P<action>[A-Za-z0-9._-]+)-verify(?P<n>\d+)\.md")
@@ -2591,6 +2771,8 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     unmeasured.update(planning_why)
     record_fields, record_why = _run_record(result)  # R23a: outcome, identity, environment, productAtStop
     unmeasured.update(record_why)
+    delivered, delivered_why = _delivered(run_dir.parent, stages)  # R23d: merged back or not, files by kind, tests, skill, release
+    unmeasured.update(delivered_why)
     fresh_starts, fresh_why = fresh_starts_of(metrics)  # R23c
     if fresh_why:
         unmeasured["freshStarts"] = fresh_why
@@ -2657,6 +2839,8 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     if (left_behind := _left_behind(result.get("left_behind"))) is not None:
         run["leftBehind"] = left_behind
     run.update(record_fields)
+    if delivered:
+        run["delivered"] = delivered
     fidelity, fidelity_why, evidence_classes = _fidelity(metrics, failures, "shiploop_failures" in unmeasured)
     unmeasured.update(fidelity_why)
     if fidelity:
@@ -2872,6 +3056,37 @@ def _record_lines(run) -> list[str]:
     return lines
 
 
+def _delivered_lines(run) -> list[str]:
+    """The R23d parts as facts lines (a part the document lacks says it is not measured, with the reason)."""
+    delivered, unmeasured = run.get("delivered") or {}, run["unmeasured"]
+
+    def missing(part: str) -> str:
+        return f"not measured ({unmeasured.get('delivered.' + part, NO_REASON_RECORDED)})"
+    got = delivered.get("returned")
+    if got is None:
+        lines = [f"- Delivered: {missing('returned')}"]
+    elif got["status"] == "returned":
+        span = f", {got['before']} to {got['after']}" if "before" in got and "after" in got else ""
+        where = f" from {got['from']}" if "from" in got else ""
+        lines = [f"- Delivered: merged back into {got.get('into', 'the source branch')} (fast-forward-merge{span}){where}"
+                 if got.get("mode") == "fast-forward-merge" else
+                 f"- Delivered: returned into {got.get('into', 'the source branch')} ({got.get('mode', 'how is not recorded')}{span}){where}"]
+    else:
+        lines = [f"- Delivered: not merged back (workspace {got['status']}): the product is on {got.get('from', 'the run branch')}"
+                 + (f"; {got.get('into', 'the source branch')} was not changed" if got["status"] == "prepared" else "")]
+    files = delivered.get("files")
+    lines.append("- Delivered files (kept in the return plan): " + ", ".join(f"{kind} {files[kind]['count']}" for kind in DELIVERED_KINDS)
+                 if files else f"- Delivered files: {missing('files')}")
+    tests = delivered.get("tests")
+    lines.append(f"- Delivered tests: {tests['ran']} ran" + (f", {tests['failed']} failed" if "failed" in tests else "")
+                 + f" ({tests['stage']}" + (f", {tests['where']}" if "where" in tests else "") + ")" if tests else f"- Delivered tests: {missing('tests')}")
+    for part, label, fields in (("skill", "skill", (("assessed", "assessed"), ("validated", "validated"))),
+                                ("release", "release", (("plan", "plan"), ("done", "done")))):
+        words = delivered.get(part)
+        lines.append(f"- Delivered {label}: " + ("; ".join(f"{name}: {words[key]}" for key, name in fields if key in words) if words else missing(part)))
+    return lines
+
+
 GROUNDED_BY = {"packet": "from the packet", "next": "with shiploop next", "improve-next": "with the Improve runtime's next",
                "other": "with another ShipLoop command"}
 
@@ -3064,6 +3279,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
     lines += _ending_lines(run)
     lines += _measure_lines(run, verify_loose)
     lines += _record_lines(run)
+    lines += _delivered_lines(run)
     lines += _fresh_lines(run)
     lines += _quality_lines(run)
     lines += _fidelity_lines(run)

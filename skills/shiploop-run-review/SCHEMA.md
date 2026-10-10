@@ -203,6 +203,27 @@ The page shows `productAtStop` and not `verdicts.worktreeChecks` when a run has 
 count in `worktreeChecks` stays in the export for a run that has no `productAtStop`). `unmeasured` keys with a dot (`identity.hostBuild`,
 `environment.start`) are named by the part they explain, as the keys of the other measures are named by the run field.
 
+**What was delivered** (R23d; the page's "What was delivered" card). `delivered` is optional and answers what the run left behind: was the
+product **merged back** into the branch the run started from, which files it kept, how its tests last ran, and what the skill and
+release stages decided. Every part is optional; a part the records cannot give is absent and its reason is under the `unmeasured` key
+`delivered.<part>` (never a zero, never a guess). The run's workspace folder is the one that holds `run/` and `worktree/`, and three
+records in it are read: `workspace.md` (the status, the source branch and its tip when the run began, the run's own branch),
+`return-plan.md` (every changed path with its disposition) and `return-receipt.md` (how the return was made). Nothing is inferred from
+a stage's words: the skill and release parts are the run's own sentences.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `delivered.returned` | object `{status, into?, from?, mode?, before?, after?}` | `status` is the workspace's own word: `returned` when the product was merged back, `prepared` when it never was (also `return-planned` and `blocked`). `into` is the branch the run started from and `from` the run's own branch. For a returned run `mode` is the receipt's `kind` (`fast-forward-merge`, `working-tree-return` or `no-change-return`), `before` is the first 12 characters of the source branch's tip when the workspace was prepared and `after` of its tip after the last return, so a follow-up return is one span; each is absent when its record does not say. A run never returned has no `mode`, `before` or `after`: the product is only on `from`. Absent, with `unmeasured.delivered.returned`, when neither `workspace.md` nor `return-receipt.md` can be read (an older layout); `unmeasured.delivered.mode` says when the receipt of a returned run cannot |
+| `delivered.files` | object of `source`, `tests`, `docs`, `knowledge`, `skills`, each `{count, items, more?}` | the paths the return plan **keeps** (disposition `keep`; Improve's `.shiploop-improve/` evidence is not counted), each in exactly one kind, first match: `knowledge` (below `docs/shiploop/`: ShipLoop's own planning, outcome and release records), `skills` (below `skills/` or `.claude/skills/`, or any `SKILL.md`), `tests` (a `test`, `tests` or `__tests__` folder, `*.test.*`, `*.spec.*`, `test_*.py`, `*_test.*`), `docs` (below `docs/`, `README*`, other `.md`, `.txt`, `.rst`), else `source`. `items` are the first 12 as `{path, change?}` in the plan's order, a path cut at 160 characters; `more` counts the rest; `count` is the whole. A kind with nothing kept is `{count: 0, items: []}`, a measured none, because the plan was read. The paths are in the product, so a reader sees them as text, not links. Absent, with `unmeasured.delivered.files`, when there is no readable `return-plan.md` (a run that never planned a return) |
+| `delivered.tests` | object `{ran, failed?, stage, where?}` | how the tests last ran, from the stage rows' script-check records (`stages[].verify`): the `release-verify` visit when one has a counted run, else the last visit that has. Of that visit the widest command (the most tests ran) is reported, not a sum, because a full-suite command includes the focused ones. `where` is where that visit's checks ran (`returned-result`, `work-area`, `in-place`). Absent, with `unmeasured.delivered.tests`, when no record carries a test count: a command that ran with no count shows it ran, not how many tests, and a count is never filled with zero |
+| `delivered.skill` | object `{assessed?, validated?}` | the accepted summary of the last `skill-assess` visit and of the last `skill-validate` visit that was not skipped, each cut at 240 characters (ending in an ellipsis when cut) with local paths cut to their last name. Whether a skill was produced is `delivered.files.skills`. Absent, with `unmeasured.delivered.skill`, when neither stage has an accepted summary |
+| `delivered.release` | object `{plan?, done?}` | the same for `release-plan` and `release`, cut at 280 characters: the run's words for what release it planned and did (for example a local workspace return with no remote delivery). The exporter does not classify the release |
+
+The page's card puts the merge line first, then Implemented (source), Tests (the test files and the last run), Documentation (docs, and a
+count of ShipLoop's own records), Skills (decision and produced) and Release. The `unmeasured` keys `delivered.returned`,
+`delivered.mode`, `delivered.files`, `delivered.tests`, `delivered.skill` and `delivered.release` name the part they explain, as the
+dotted keys of "The run's record" do. A run exported before this object has none of them and gets no card.
+
 **Fidelity** (R23b: `fidelity`, `stages[].evidenceClass`; the page's "Fidelity" card). The harness's fidelity block (`metrics.json`
 `fidelity`, schema `shiploop-e2e-fidelity/v1`) read as a compact reading of how ShipLoop was carried: **a record, never a verdict**. Every
 member is optional and read from the block, not recomputed. A part the harness could not measure is absent, with the harness's reason
