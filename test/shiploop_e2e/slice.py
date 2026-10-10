@@ -16,7 +16,8 @@ a completed slice.
 
 Everything is written under the output directory (default $TMPDIR/shiploop-e2e/slice-<case>-...): the product
 repository (work/), ShipLoop's run directory and its product worktree (.shiploop-runs/seed/), the plugin built from this
-checkout (build/), the event stream, the packet archive, slice-result.json, metrics.json and packet-report.md. No baseline
+checkout (build/), the event stream, the packet archive, slice-result.json, metrics.json, packet-report.md, and
+flow.json with flow.html (flow.py: the ShipLoop-to-model sequence, browsable with other runs). No baseline
 row is written; nothing is installed into a host's own plugin set (Claude loads the build with --plugin-dir; Grok and
 Codex run in a throwaway HOME, but Claude's session transcript lands in the user's ~/.claude/projects).
 
@@ -226,11 +227,12 @@ def finish(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[di
     (out / "slice-result.json").write_text(json.dumps(result, indent=2) + "\n")
     report = packets.write_report(out)
     (out / "metrics.json").write_text(json.dumps(metrics.collect(out, run_dir), indent=2) + "\n")
+    flow_line = run.flow_record(out)
     if not quiet:
         print("\n" + packets.render(report), end="")
         print(f"\nslice {'PASS' if result['pass'] else 'FAIL'}: "
               + ", ".join(f"{k} {'ok' if v else 'FAIL'}" for k, v in result["verdicts"].items())
-              + f"\n  {out / 'packet-report.md'}", flush=True)
+              + f"\n  {out / 'packet-report.md'}\n  flow {flow_line}", flush=True)
     return 0 if result["pass"] else 1
 
 

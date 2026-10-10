@@ -2081,5 +2081,24 @@ What this shows.
 5. **Cost is unreported.** The slice stop ends Claude before its `result` event. `--max-budget-usd 10` capped each
    run. Turns (62–74) are the cost proxy until a cost source is found.
 
+6. **The model scripted its own way through Improve and the Until Loops (added after `flow.py`, same runs).**
+   - Every run wrote shell drivers for ShipLoop:
+     - `improve-cycle.sh` (node-fix-bug);
+     - `improve_noop.sh` and a `step()` function (node-add-function);
+     - `improve.sh` (node-add-route);
+     - `loop.sh` and a `done_()` function (node-fix-bug).
+   - In node-fix-bug and node-add-route, the script also writes the Improve review file. The review text is fixed in
+     the script ("Reviewed the result ... No change warranted."), so it was written before anything was checked. That
+     makes two scripted Improve reviews in each of those runs (`scripted-review`). Only the first review, at step-plan,
+     was written by hand.
+   - Each run self-reported trivial Until Loop passes (`trivial-pass`): 4 or 6 times in each of the four runs. Some were
+     grounded: `loop.sh` was handed the real `npm test` counts. The scripted reviews were not.
+   - `metrics.py` counted 0 model glue for node-fix-bug, so the existing glue detector misses this pattern.
+
+   This is an effectiveness finding about ShipLoop's Improve step. The review is formally completed without being
+   performed. It is the second question for the next prompt or engine change, after the packet-head question above.
+   Each instance can be seen in the run flow (`flow.py`; the published four-run bundle is the owner's Run Flow
+   artifact).
+
 Not yet seen: a Grok or Codex slice, where the resume path is exercised and packet reads are unmeasured; an Ask-Agent
 slice; and a revise loop back to step-plan in a live run.

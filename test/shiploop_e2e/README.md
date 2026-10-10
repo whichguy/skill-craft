@@ -1265,6 +1265,37 @@ full run, only the last copy of each packet is available.
 No baseline row is written. The one exception is Claude's own session transcript, which lands in
 `~/.claude/projects/`, since the Claude host keeps the user's HOME.
 
+### The run flow: what ShipLoop sent and what the model did
+
+Every slice and every full run writes `flow.json` and `flow.html` into its output directory (`flow.py`, called by
+`slice.py` and by `run.py` after `result.json`; a failure is one printed line, never a verdict). Open `flow.html` to
+see the run as a sequence: one row per action, with the packet ShipLoop wrote on the left and what the model did on
+the right. Expand a row to see three views:
+- **what the model saw:** the printed head, exactly as the tool result showed it;
+- **what the model did:** its text, every call, and every result;
+- **the full packet:** split into its largest sections.
+
+```sh
+python3 test/shiploop_e2e/flow.py <output>                                    # rebuild one run's flow.json and flow.html
+python3 test/shiploop_e2e/flow.py --bundle runs.html <output> <output> ...    # one page that browses several runs
+```
+
+The page (`flow_viewer.html`, the template) also opens more `flow.json` files by drag and drop. `--artifact` leaves
+out the doctype, for publishing the bundle as an Artifact.
+
+**How events are attributed.** On Claude, each event belongs to the action named by the last packet head the model
+received. This is exact, because every `complete` prints the next head. On Grok and Codex, the stream gives tool
+calls only, attributed by acceptance time.
+
+**Flags, all found by script in the model's calls:**
+- a script it wrote to drive ShipLoop (`defines-script`), and each run of that script (`runs-script`);
+- a review file written by such a script (`scripted-review`): the review text was fixed before anything was
+  checked;
+- a self-reported trivial Until Loop pass (`trivial-pass`).
+
+**What "reached the model" counts:** the printed head, plus the whole packet file when the model opened it whole.
+A partial read (grep, sed) is shown but not counted.
+
 The no-model checks are `test/shiploop-step-packets.test.py` and `test/shiploop-e2e-slice.test.py`. The second uses
 a fake host that moves `state.md`, to prove the stop, the overrun report, the stop after queue growth, the
 committed-product rule and the packet archive.

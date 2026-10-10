@@ -122,6 +122,7 @@ sys.path.insert(0, str(HERE))
 import counters  # noqa: E402
 import environment  # noqa: E402
 import fidelity  # noqa: E402
+import flow  # noqa: E402
 import hosts  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
@@ -1312,6 +1313,16 @@ def review_export(out: Path) -> str:
         return f"review export: {folder}" + (f"; page {page}" if page.is_file() else "")
     except Exception as exc:  # noqa: BLE001 - any export failure is reported, never raised
         return f"review export skipped: {' '.join(str(exc).split())[:300] or type(exc).__name__}"
+
+
+def flow_record(out: Path) -> str:
+    """flow.json and flow.html (flow.py): the run as a ShipLoop-to-model sequence. A record, never a verdict: a failure
+    is one line."""
+    try:
+        flow.write(out)
+        return str(out / "flow.html")
+    except BaseException as exc:  # noqa: BLE001 - fail-open recording (SystemExit too: a run with no state has no flow)
+        return f"not written: {' '.join(str(exc).split())[:200] or type(exc).__name__}"
 
 
 def untracked(work: Path) -> set[str]:
@@ -3073,6 +3084,7 @@ def _main(argv: list[str] | None, held: list) -> int:
               "output": str(out)}
     (out / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     exported = review_export(out)
+    print(f"  flow      {flow_record(out)}")
     style = json.loads(CASES.read_text()).get(name, {}).get("style") if name != "custom" else None
     row = baseline_row(result, style, args.suite_name, metrics.planning_review(engine))
     # A baseline measures one host running a case from the start to its end; a resumed run is not one, and neither is

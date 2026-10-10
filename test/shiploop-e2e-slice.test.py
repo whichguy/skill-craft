@@ -21,6 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+import flow  # noqa: E402
 import packets  # noqa: E402
 import run  # noqa: E402
 import slice as step_slice  # noqa: E402
@@ -231,6 +232,65 @@ class ArchiveTests(SliceCase):
     def test_overlap_counts_lines_sent_before(self):
         line = "a line long enough to be counted as repeated text"
         self.assertEqual(packets.overlap_shares([line, line + "\n" + line.upper()]), [0.0, 0.5])
+
+
+class FlowTests(SliceCase):
+    """flow.py: the sequence the viewer shows, from files only."""
+
+    def claude_stream(self, seeded: dict, rows: list[dict]) -> None:
+        """A Claude-shaped event stream: each row is a tool call and its result."""
+        lines, stamps = [], []
+        for n, row in enumerate(rows):
+            lines.append({"type": "assistant", "message": {"content": [
+                *([{"type": "text", "text": row["say"]}] if row.get("say") else []),
+                {"type": "tool_use", "id": f"t{n}", "name": "Bash", "input": {"command": row["call"]}}]}})
+            lines.append({"type": "user", "message": {"content": [
+                {"type": "tool_result", "tool_use_id": f"t{n}", "content": row.get("result", "")}]}})
+        (self.out / "events.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines))
+        (self.out / "timeline.jsonl").write_text("".join(json.dumps({"line": i, "t": 1000.0 + i}) + "\n"
+                                                         for i in range(len(lines))))
+
+    def test_events_follow_the_last_head_and_scripts_are_flagged(self):
+        seeded = self.seed()
+        run_dir = Path(seeded["run_dir"])
+        step_plan = seeded["action"]
+        head = subprocess.run([sys.executable, str(CLI), "next", f"--run-dir={run_dir}"], capture_output=True,
+                              text=True).stdout
+        self.claude_stream(seeded, [
+            {"call": f"python3 shiploop next --run-dir={run_dir}", "result": head, "say": "Starting the plan."},
+            {"call": "cat > /x/cycle.sh <<'XEOF'\ncat > $D/reviews/review-1.md <<EOF\nNo change warranted.\nEOF\n"
+                     "printf '%s' '{\"classification\":\"trivial\"}'\nXEOF\n/x/cycle.sh A"},
+            {"call": "/x/cycle.sh B", "result": "ShipLoop navigator | test-spec | revision 99\n"
+                                                 "Callback: shiploop complete --action=nav-" + "f" * 32},
+            {"call": "echo after the head"},
+        ])
+        found = flow.build(self.out)
+        by_action = {a["action"]: a for a in found["actions"]}
+        mine = by_action[step_plan]["phases"][0]
+        self.assertEqual(found["events_source"], "claude")
+        self.assertIn("Starting the plan.", [e["body"]["text"] for e in mine["events"] if e["kind"] == "say"])
+        self.assertTrue(mine["head"].startswith("ShipLoop navigator | step-plan"))
+        flags = mine["flags"]
+        self.assertIn("defines-script:cycle.sh", flags)
+        self.assertIn("runs-script:cycle.sh", flags)
+        self.assertIn("scripted-review", flags)
+        self.assertIn("trivial-pass", flags)
+        later = by_action["nav-" + "f" * 32]["phases"][0]  # a head names the next action; the run stopped there
+        self.assertFalse(by_action["nav-" + "f" * 32]["accepted"])
+        self.assertEqual([e["body"]["text"] for e in later["events"] if e["kind"] == "call"], ["echo after the head"])
+        self.assertTrue(all(a["seeded"] for a in found["actions"] if a["stage"] in ("intake", "plan")))
+
+    def test_a_fake_host_run_gives_a_flow_and_a_page_that_cannot_be_closed_by_its_data(self):
+        seeded = self.seed()
+        self.fake(seeded, "normal")
+        found = flow.write(self.out)
+        self.assertEqual(found["flow_version"], flow.FLOW_VERSION)
+        self.assertEqual(found["actions"][-1]["stage"], "system-test-author")  # the ledger names the stop action
+        found["prompt"] = "</script><b>not markup</b>"
+        page = flow.bundle(self.out / "two.html", [found, found]).read_text()
+        self.assertTrue(page.startswith("<!doctype html>"))
+        self.assertEqual(page.count("</script>"), 2)  # the data block and the viewer's own script, nothing from the data
+        self.assertFalse(flow.bundle(self.out / "a.html", [found], standalone=False).read_text().startswith("<!doctype"))
 
 
 if __name__ == "__main__":
