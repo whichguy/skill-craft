@@ -1,7 +1,7 @@
 {
  "suite": "test/shiploop-e2e-commit-counters.test.py",
- "mutants": 36,
- "killed": 36,
+ "mutants": 40,
+ "killed": 40,
  "survived": [],
  "not_applicable": [],
  "results": [
@@ -9,13 +9,13 @@
    "mutant": "narrative block not followed to its end",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=8)"
+   "suite": "FAILED (failures=11)"
   },
   {
    "mutant": "callback line not checked",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=1)"
+   "suite": "FAILED (failures=3)"
   },
   {
    "mutant": "keepalive line not checked",
@@ -27,7 +27,19 @@
    "mutant": "closing line not required",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=3)"
+   "suite": "FAILED (failures=5)"
+  },
+  {
+   "mutant": "a head cut inside the narrative gives the wrong reason",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=2)"
+  },
+  {
+   "mutant": "a cut by column gives the wrong reason",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=2)"
   },
   {
    "mutant": "a head with no Full packet line is given to the first file",
@@ -51,7 +63,7 @@
    "mutant": "characters instead of bytes",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=9)"
+   "suite": "FAILED (failures=10)"
   },
   {
    "mutant": "entries not in run order",
@@ -99,13 +111,13 @@
    "mutant": "improve told by the six-label shape",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=3)"
+   "suite": "FAILED (failures=4)"
   },
   {
    "mutant": "the work item's reply ignored",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=4)"
+   "suite": "FAILED (failures=5)"
   },
   {
    "mutant": "the work item's subject ignored",
@@ -117,7 +129,7 @@
    "mutant": "any feat: subject is a work item",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=1)"
+   "suite": "FAILED (failures=2)"
   },
   {
    "mutant": "the knowledge subject loosened",
@@ -129,7 +141,7 @@
    "mutant": "the empty baseline is not the script's",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=4)"
+   "suite": "FAILED (failures=5)"
   },
   {
    "mutant": "the starting head ignored",
@@ -147,7 +159,19 @@
    "mutant": "the classes do not sum to counted",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=7)"
+   "suite": "FAILED (failures=8)"
+  },
+  {
+   "mutant": "the author is not read",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "every script commit is marked knowledge",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
   },
   {
    "mutant": "no commit is ever from an earlier run",
@@ -183,7 +207,7 @@
    "mutant": "the Learned label is not read",
    "file": "test/shiploop_e2e/counters.py",
    "killed": true,
-   "suite": "FAILED (failures=4)"
+   "suite": "FAILED (failures=6)"
   },
   {
    "mutant": "events.jsonl not required",
