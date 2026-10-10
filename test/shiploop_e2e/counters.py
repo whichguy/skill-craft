@@ -43,17 +43,16 @@ or baseline row. Absent means unknown: a part this module cannot read is null wi
                other     the rest (the model's own ``git commit``). A commit that fits no class is counted here, not dropped, so the
                          classes sum to ``counted``.
 
-               ``with_lessons`` counts commits whose message has a non-empty ``Key learnings`` (the Improve card's label) or ``Learned``
-               (the knowledge home's release-verify body) section: presence only, the text is never judged. ``improve`` also counts
-               ``cited`` (a ``Learned-from: <id>`` line whose id resolves to a commit in the repository) and ``cited_earlier_run`` (a
-               cited commit reachable from the head the run started from: a lesson carried from an earlier run). A fresh run has
-               nothing before it, so that zero is measured. The block is null, with the reason, when the repository, the starting head
-               or the event stream cannot be read. Git is read through plumbing only (rev-list, cat-file, rev-parse, merge-base).
-
-There is no importable parser of a commit message's sections: skills/shiploop/scripts/shiploop_knowledge_home.py ``_sections`` reads
-``#``-headed markdown files (outcome.md), which a commit message is not. ``lessons`` is the one reader here; it takes the knowledge
-home's label from ``LEARNING_SECTIONS`` (pinned by a test) and the Improve card's from skills/improve/SKILL.md. When ShipLoop gains
-a reader of commit-message sections (plan of 2026-10-10, slice B), this module imports it instead.
+               ``with_lessons`` counts commits whose message has a lessons section as ``shiploop_lessons.lessons`` reads it: the one
+               reader of the commit-message grammar, the one ShipLoop's ``improve-commit`` gate reads with (SPEC S-12), so the harness
+               and the gate cannot disagree about what counts. Presence only, the text is never judged: ``Key learnings: none`` is a
+               section, as it is for the gate. ``improve`` also counts ``cited`` (a ``Learned-from`` line, as
+               ``shiploop_lessons.citations`` reads it, whose token is a commit ID, 7 to 64 hexadecimal digits as the gate requires,
+               that resolves to a commit in the repository: the harness asks Git and does not need the gate's reachable-from-HEAD
+               rule) and ``cited_earlier_run`` (a cited commit reachable from the head the run started from: a lesson carried from an
+               earlier run). A fresh run has nothing before it, so that zero is measured. The block is null, with the reason, when the
+               repository, the starting head or the event stream cannot be read. Git is read through plumbing only (rev-list,
+               cat-file, rev-parse, merge-base).
 """
 
 from __future__ import annotations
@@ -66,7 +65,7 @@ from pathlib import Path
 
 import metrics
 import runrecord
-import shiploop_knowledge_home as knowledge_home
+import shiploop_lessons as commit_lessons
 
 # ShipLoop's own words, pinned to its source by test/shiploop-e2e-commit-counters.test.py (a reworded line fails there, and does not
 # silently turn every head into null).
@@ -170,13 +169,9 @@ def packets(out: Path, run_dir: Path | None, tools) -> tuple[list[dict] | None, 
 
 # --- commits -------------------------------------------------------------------------------------------------------------
 
-LEARNED = "Learned"  # the knowledge home's lessons section (knowledge_home.LEARNING_SECTIONS); a test pins that it is one of them
-KEY_LEARNINGS = "Key learnings"  # the Improve card's (skills/improve/SKILL.md)
-LESSON_LABEL = re.compile(rf"^(?:{KEY_LEARNINGS}|{LEARNED})(?:[ \t]*:[ \t]*(?P<inline>.*)|[ \t]*)$")
-# The next section of the message: another `Label:` line (the Improve card's labels, a trailer such as Co-Authored-By or
-# Learned-from), or one of the knowledge home's bare section names. Text under a line like `Note: ...` ends a section early.
-SECTION_END = re.compile(r"^[A-Z][A-Za-z -]{0,40}:(?:\s|$)")
-LEARNED_FROM = re.compile(r"^Learned-from:[ \t]*(?P<id>[0-9a-fA-F]{7,64})\b", re.M)
+# The shape of an ID a Learned-from line may name. The gate refuses anything else (shiploop_git.resolve_commit); Git alone would also
+# resolve a branch, HEAD or a revision expression, so the shape is checked before Git is asked. A test pins it to the gate's.
+COMMIT_ID = re.compile(r"[0-9a-fA-F]{7,64}")
 IMPROVE_COMMITTED = re.compile(r"Committed this review's changes as (?P<sha>[0-9a-f]{7,40})")
 ITEM_COMMITTED = re.compile(r"ShipLoop committed \S+'s declared changes as (?P<sha>[0-9a-f]{7,40})")
 KNOWLEDGE_SUBJECT = re.compile(r"^docs\(shiploop\): record \S+ knowledge (?:at|after) \S+$")
@@ -186,24 +181,6 @@ CHAIN_PREFIX = "ShipLoop chain prepared"
 # The environment variables that point Git at another repository; a read of the run's repository drops them.
 GIT_REDIRECTION = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
                    "GIT_ALTERNATE_OBJECT_DIRECTORIES")
-
-
-def lessons(message: str) -> str:
-    """The text of the first non-empty lessons section of a commit message ('' when there is none)."""
-    lines = message.splitlines()
-    for index, line in enumerate(lines):
-        label = LESSON_LABEL.match(line)
-        if label is None:
-            continue
-        body = [label.group("inline") or ""]
-        for following in lines[index + 1:]:
-            if SECTION_END.match(following) or following.strip() in knowledge_home.LEARNING_SECTIONS:
-                break
-            body.append(following)
-        text = "\n".join(body).strip()
-        if text:
-            return text
-    return ""
 
 
 def _git(work: Path, *args: str, stdin: bytes | None = None) -> subprocess.CompletedProcess:
@@ -216,6 +193,11 @@ def _commit_id(work: Path, name: str) -> str | None:
     """The full id of the commit ``name`` resolves to in the repository, or None."""
     done = _git(work, "rev-parse", "--verify", "--quiet", name + "^{commit}")
     return done.stdout.decode().strip() or None if done.returncode == 0 else None
+
+
+def _cited_commit(work: Path, token: str) -> str | None:
+    """The full id of the commit a ``Learned-from`` token names, or None: the token must be shaped like an ID and name a commit."""
+    return _commit_id(work, token) if COMMIT_ID.fullmatch(token) else None
 
 
 def _starting_point(out: Path, work: Path) -> tuple[str | None, str | None]:
@@ -326,9 +308,9 @@ def commits(out: Path, run_dir: Path | None, tools) -> tuple[dict | None, dict]:
     for commit in ran["commits"]:
         row = block[commit["kind"]]
         row["n"] += 1
-        row["with_lessons"] += bool(lessons(commit["message"]))
+        row["with_lessons"] += bool(commit_lessons.lessons(commit["message"]))
         if commit["kind"] == "improve":
-            cited = [found for found in (_commit_id(work, match.group("id")) for match in LEARNED_FROM.finditer(commit["message"])) if found]
+            cited = [found for found in (_cited_commit(work, cite.token) for cite in commit_lessons.citations(commit["message"])) if found]
             row["cited"] += bool(cited)
             row["cited_earlier_run"] += bool(start and any(_git(work, "merge-base", "--is-ancestor", found, start).returncode == 0
                                                           for found in cited))

@@ -1012,14 +1012,23 @@ shown to have changed it by these counts, never by cost or wall time (a same-bui
     commits as its workspace identity and the model's own `git commit` falls back to the machine's Git identity (32 commits), and in
     Grok and Codex runs, which configure one identity for both, git's own `[branch sha] subject` line is in the events (3 commits)
     (`docs/experiments/commit-baseline-20261010/tallies.json`).
-  - `with_lessons` counts commits whose message has a non-empty `Key learnings` (the Improve card's label) or `Learned` (the
-    knowledge home's release-verify body) section. The label is a line of its own, `Label: text` or a bare `Learned` followed by
-    bullets; the section runs to the next `Label:` line, trailer or knowledge-home section name. Presence only: the text is never
-    judged, so `Key learnings: none` counts, and a `Note: ...` line inside a section ends it early.
-  - `cited` counts `improve` commits with a `Learned-from: <id>` line (at a line's start; 7 to 64 hex digits) whose id resolves to a
-    commit in the repository (a full or an abbreviated id); `cited_earlier_run` those whose cited commit is reachable from
-    `start_head`, a lesson carried from an earlier run. Nothing writes `Learned-from:` lines yet (plan of 2026-10-10, slice B), so
-    both are measured zeros on every saved run. A fresh run has no earlier commit, so its `cited_earlier_run` is a measured 0.
+  - `with_lessons` counts commits whose message has a lessons section as `shiploop_lessons.lessons` reads it, the one reader of the
+    commit-message grammar, which ShipLoop's own `improve-commit` gate reads with, so the harness and the gate cannot disagree about
+    what counts (S-12; `counters.py` imports it and has no reader of its own). The label is one of `Key learnings`, `Key learning`,
+    `Lessons learned`, `Lessons`, `Learnings`, `Learning`, `Lesson` and `Learned` (the knowledge home's release-verify body), in any
+    case; the section is a `## ` heading, `Label: text` or the label alone on its line, with an optional bullet or bold wrapper; and
+    it runs to a blank line, a heading or a known label (the Improve card's, `Learned-from`, `Remote change`) or trailer. Presence
+    only, the text is never judged: `Key learnings: none` is a section, as it is for the gate, and a section with no letter or digit
+    is not. The reader's rules are in the docstring of `skills/shiploop/scripts/shiploop_lessons.py`. The counts before 2026-10-10 used
+    a narrower reader of the harness's own (`Key learnings` and `Learned` only, case-sensitive, no heading form, any `Label:` line
+    ended a section); `docs/shiploop-commit-baseline-journal-2026-10-10.md` section 11 has both numbers.
+  - `cited` counts `improve` commits with a `Learned-from` line, as `shiploop_lessons.citations` reads it (a bullet or bold wrapper, a
+    backtick, quote or bracket around the id, a trailing colon or comma, and `commit <id>` are tolerated), whose token is a commit ID
+    as the gate defines one (7 to 64 hex digits: a branch, `HEAD` or `HEAD~1` is not) and resolves to a commit in the repository
+    (a full or an abbreviated id; the harness asks Git and does not need the gate's reachable-from-HEAD rule). `cited_earlier_run`
+    counts those whose cited commit is reachable from `start_head`, a lesson carried from an earlier run. No saved run holds a
+    `Learned-from` line, so both are measured zeros on every one; a fresh run has no earlier commit, so its `cited_earlier_run` is a
+    measured 0.
   - `commits` is **null**, with `{"commits": reason}`, when the run folder has no `work/` directory or it is not a Git repository,
     when `invocation.json` cannot be read, when a follow-on or seeded record names no starting head or one the repository does not
     hold, and when `events.jsonl` is missing or empty (the `improve` class is read from it). Git is read through plumbing only

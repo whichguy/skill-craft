@@ -35,10 +35,12 @@ import metrics  # noqa: E402
 import shiploop_git  # noqa: E402
 import shiploop_item_scope  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
+import shiploop_lessons as commit_lessons  # noqa: E402
 import shiploop_navigator  # noqa: E402
 import shiploop_workspace  # noqa: E402
 
 FIXTURES = ROOT / "test" / "fixtures" / "commit-counters"
+CONTRACT = ROOT / "test" / "fixtures" / "commit-contract"  # the message shapes ShipLoop's own grammar is pinned with
 
 
 def tool_log(name: str) -> metrics.ToolLog:
@@ -550,7 +552,7 @@ class ClassifyTest(GitCase):
         self.assertEqual(len(rows), block["counted"])
         for kind in ("improve", "script", "other"):
             self.assertEqual(sum(row["kind"] == kind for row in rows), block[kind]["n"], kind)
-            self.assertEqual(sum(row["kind"] == kind and bool(counters.lessons(row["message"])) for row in rows),
+            self.assertEqual(sum(row["kind"] == kind and bool(commit_lessons.lessons(row["message"])) for row in rows),
                              block[kind]["with_lessons"], kind)
         self.assertIsNone(found["start"], "a fresh run counts from its first commit")
 
@@ -565,7 +567,7 @@ class ClassifyTest(GitCase):
         knowledge = [row for row in rows.values() if row["knowledge"]]
         self.assertEqual(len(knowledge), 2, "the intake commit and the learnings commit")
         self.assertTrue(all(row["kind"] == "script" and counters.KNOWLEDGE_SUBJECT.match(row["subject"]) for row in knowledge))
-        self.assertEqual(sum(bool(counters.lessons(row["message"])) for row in knowledge), 1)
+        self.assertEqual(sum(bool(commit_lessons.lessons(row["message"])) for row in knowledge), 1)
 
     def test_an_unreadable_history_has_the_reason_the_commits_block_has(self):
         import shutil
@@ -579,7 +581,7 @@ class ClassifyTest(GitCase):
     def test_the_lessons_of_the_learnings_commit_come_from_its_learned_section(self):
         body = self.git("log", "-1", "--format=%B")
         self.assertIn("Learned\n- the first lesson", body)
-        self.assertEqual(counters.lessons(body), "- the first lesson")
+        self.assertEqual(commit_lessons.lessons(body), "- the first lesson")
 
 
 class ShipLoopOwnedSubjectsTest(unittest.TestCase):
@@ -619,11 +621,55 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
         self.assertIn(f'_PREPARED_MERGE_PREFIX = "{counters.CHAIN_PREFIX}"',
                       (ROOT / "skills" / "shiploop" / "scripts" / "shiploop_chain_git.py").read_text())
 
-    def test_the_lessons_label_of_a_knowledge_commit_is_one_of_the_knowledge_homes_sections(self):
-        self.assertIn(counters.LEARNED, knowledge_home.LEARNING_SECTIONS)
+
+class ReaderCase(GitCase):
+    """One message at a time in a real repository: was it counted, by the number the `commits` block reports. The model's own commit
+    is `other` unless its subject is one only ShipLoop writes, so the three classes are summed."""
+
+    def setUp(self):
+        super().setUp()
+        shiploop_workspace.bootstrap_empty(self.work)
+        self.replies.append("ShipLoop printed nothing about a commit")   # an empty event stream cannot tell the Improve commits
+        self.made = 0
+        self.known = self.with_lessons()   # the commits already counted: the empty baseline has no lesson
+
+    def with_lessons(self) -> int:
+        block = self.counted()[0]
+        return sum(block[kind]["with_lessons"] for kind in ("improve", "script", "other"))
+
+    def counts(self, message: str) -> bool:
+        self.made += 1
+        self.by_the_model(f"m{self.made}.md", message)
+        now, before = self.with_lessons(), self.known
+        self.known = now
+        return now - before == 1
 
 
-class LessonsSectionTest(unittest.TestCase):
+class LessonsReaderTest(ReaderCase):
+    """`with_lessons` is the number of commits in which ShipLoop's own reader (skills/shiploop/scripts/shiploop_lessons.py, the reader the
+    improve-commit gate uses) finds a lessons section: the harness has no reader of its own, so "has lessons" means one thing
+    (SPEC S-12). Each test commits the message and reads the count the block reports."""
+
+    def test_the_harness_counts_exactly_the_shapes_the_gate_reads(self):
+        expected = json.loads((CONTRACT / "expected.json").read_text())
+        self.assertEqual(sorted(expected), sorted(path.name for path in CONTRACT.glob("*.md") if path.name != "README.md"))
+        for name, want in expected.items():
+            with self.subTest(shape=name):
+                self.assertEqual(self.counts((CONTRACT / name).read_text()), bool(want["lessons"]))
+
+    def test_every_label_the_gate_knows_counts_with_a_colon_and_as_a_heading(self):
+        for label in commit_lessons.LESSON_LABELS:
+            for text in (f"S\n\n{label}: a lesson\n", f"S\n\n{label.lower()}: a lesson\n", f"S\n\n## {label}\n- a lesson\n"):
+                with self.subTest(text=text):
+                    self.assertTrue(self.counts(text))
+
+    def test_a_label_that_is_bold_bulleted_or_alone_on_its_line_counts(self):
+        for text in ("S\n\n**Key learnings:** a lesson\n", "S\n\n- Key learnings: a lesson\n", "S\n\n* __Lessons__: a lesson\n",
+                     "S\n\n> Key learnings: a lesson\n", "S\n\nLessons:\n\nthe label alone, a blank line, the text\n",
+                     "S\n\n**Key learnings**\nthe text under a bold label\n"):
+            with self.subTest(text=text):
+                self.assertTrue(self.counts(text))
+
     def test_real_messages(self):
         expected = {"improve-six-labels": True, "improve-free-prose": False, "knowledge-with-learned": True,
                     "knowledge-subject-only": False, "item": False, "raw-readme": False, "raw-with-key-learnings": True,
@@ -631,19 +677,33 @@ class LessonsSectionTest(unittest.TestCase):
         self.assertEqual(set(expected), set(MESSAGES))
         for name, has in expected.items():
             with self.subTest(name=name):
-                self.assertEqual(bool(counters.lessons(MESSAGES[name])), has)
+                self.assertEqual(self.counts(MESSAGES[name]), has)
 
-    def test_a_label_with_text_on_its_own_line_and_a_label_followed_by_bullets_both_count(self):
-        self.assertEqual(counters.lessons("S\n\nKey learnings: the page needed it too\nRemaining work: none\n"),
-                         "the page needed it too")
-        self.assertEqual(counters.lessons("S\n\nLearned\n- a\n- b\n\nKey considerations\n- c\n"), "- a\n- b")
-        self.assertEqual(counters.lessons("S\n\nKey learnings:\n- one\n\nLearned-from: abcdef1 reused\n"), "- one")
-
-    def test_an_empty_section_a_citation_alone_and_a_label_in_the_middle_of_a_line_do_not_count(self):
-        for text in ("S\n\nKey learnings:\nRemaining work: x\n", "S\n\nKey learnings:   \n", "S\n\nLearned-from: abcdef1 reused\n",
-                     "S\n\nWe Learned: it\n", "S\n\nLearned\n\nKey considerations\n- c\n", "S\n\nlearned: lower case\n", ""):
+    def test_a_lesson_that_says_none_counts_because_the_gate_counts_it(self):
+        # The script cannot judge a lesson's truth, so `Key learnings: none` is a section (shiploop_lessons: measured, not refused).
+        for text in ("S\n\nKey learnings: none\n", "S\n\nKey learnings: None.\n", "S\n\n## Key learnings\n\nnone\n"):
             with self.subTest(text=text):
-                self.assertEqual(counters.lessons(text), "")
+                self.assertTrue(self.counts(text))
+
+    def test_a_section_with_no_letter_or_digit_in_it_or_no_section_at_all_does_not_count(self):
+        for text in ("S\n\nKey learnings:\nRemaining work: x\n", "S\n\nKey learnings:   \n", "S\n\nLearned-from: abcdef1 reused\n",
+                     "S\n\nWe Learned: it\n", "S\n", "S. Review: a. Key learnings: all in one paragraph.\n",
+                     "S\n\n## Key learnings\n\nCo-Authored-By: T <t@example.invalid>\n",   # a heading that holds only the trailer
+                     "S\n\nKey learnings: -\n", "S\n\nKey learnings: ...\n",              # punctuation is not a lesson
+                     "S\n\nKey learnings:\n## Next\ntext under another heading\n"):       # the heading ends the empty section
+            with self.subTest(text=text):
+                self.assertFalse(self.counts(text))
+
+    def test_the_count_follows_the_shared_reader_and_not_a_copy_of_it(self):
+        self.assertTrue(self.counts("S\n\nKey learnings: a lesson\n"))
+        with mock.patch.object(commit_lessons, "lessons", return_value=""):
+            self.assertEqual(self.with_lessons(), 0, "the block asks the shared reader, whatever the message says")
+        with mock.patch.object(commit_lessons, "lessons", return_value="x"):
+            self.assertEqual(self.with_lessons(), self.counted()[0]["counted"], "every commit has a lesson when the reader says so")
+
+    def test_the_harness_has_no_reader_of_its_own(self):
+        for name in ("lessons", "LESSON_LABEL", "LEARNED_FROM", "SECTION_END", "LEARNED", "KEY_LEARNINGS"):
+            self.assertFalse(hasattr(counters, name), name)
 
 
 class CitationTest(GitCase):
@@ -652,8 +712,10 @@ class CitationTest(GitCase):
     def setUp(self):
         super().setUp()
         shiploop_workspace.bootstrap_empty(self.work)
+        self.replies.append("ShipLoop printed nothing about a commit")   # an empty event stream cannot tell the Improve commits
         self.earlier = self.by_the_model("old.md", "An earlier run's commit\n\nKey learnings: the old lesson\n")
         self.start = self.by_the_model("old2.md", "An earlier run's other commit\n")
+        self.cited = 0   # what `cites` has counted so far
 
     def improve(self, name: str, cite: str | None, text: str = "A change\n\nKey learnings: something\n") -> str:
         message = text + (f"{cite}\n" if cite is not None else "")
@@ -672,6 +734,42 @@ class CitationTest(GitCase):
         self.assertEqual(block["start_head"], self.start)
         self.assertEqual(block["improve"], {"n": 7, "with_lessons": 7, "cited": 3, "cited_earlier_run": 2})
         self.assertEqual(block["counted"], 7, "the two commits before start_head are not this run's")
+
+    def cites(self, cite: str) -> bool:
+        """Whether an Improve commit whose message ends with the line ``cite`` raised `cited` by one."""
+        self.improve(f"d{len(self.replies)}.md", cite)
+        now, before = self.counted()[0]["improve"]["cited"], self.cited
+        self.cited = now
+        return now - before == 1
+
+    def test_a_citation_is_read_the_way_the_gate_reads_it(self):
+        sha = self.earlier
+        for cite in (f"Learned-from: `{sha[:8]}` its test pattern", f"Learned-from: {sha[:8]}: its test pattern",
+                     f"Learned-from: commit {sha[:8]}, the prefix", f"Learned-from: [{sha[:8]}] bracketed.", f"Learned-from: {sha[:8].upper()}",
+                     f"- Learned-from: {sha[:8]} bulleted", f"**Learned-from:** {sha[:8]} bold label", f"learned-from: {sha[:8]} lower case",
+                     f"Learned-from: \"{sha}\" quoted, a full id"):
+            with self.subTest(cite=cite):
+                self.assertTrue(self.cites(cite))
+
+    def test_a_token_that_is_not_a_commit_id_cites_nothing_even_when_git_would_resolve_it(self):
+        # The gate refuses everything but 7 to 64 hexadecimal digits; git alone would also resolve a branch, HEAD and a revision
+        # expression, so the harness checks the shape first or it would count a name the gate refuses.
+        self.git("branch", "notes", self.earlier)
+        for cite in ("Learned-from: notes the branch that points at it", "Learned-from: HEAD the last commit", "Learned-from: HEAD~1 its parent",
+                     "Learned-from: none cited", f"Learned-from: {self.earlier[:6]} six digits are too few", "Learned-from:",
+                     "Learned-from: 0000000 hex digits no commit has", "Learned from: " + self.earlier[:8] + " a space for the hyphen",
+                     f"    Learned-from: {self.earlier[:8]} indented, a quotation"):
+            with self.subTest(cite=cite):
+                self.assertFalse(self.cites(cite))
+
+    def test_the_shape_of_an_id_is_the_gates(self):
+        self.assertEqual(counters.COMMIT_ID.pattern, shiploop_git._COMMIT_ID.pattern)
+
+    def test_cited_follows_the_shared_readers_citations_and_not_a_copy_of_them(self):
+        self.improve("e1.md", f"Learned-from: {self.earlier} its pattern")
+        self.assertEqual(self.counted()[0]["improve"]["cited"], 1)
+        with mock.patch.object(commit_lessons, "citations", return_value=[]):
+            self.assertEqual(self.counted()[0]["improve"]["cited"], 0)
 
     def test_a_fresh_run_has_no_earlier_commit_so_none_is_cited_from_before_it(self):
         first = self.improve("b1.md", None)
