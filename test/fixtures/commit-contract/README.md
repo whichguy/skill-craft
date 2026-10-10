@@ -6,3 +6,7 @@ blank line, a one-paragraph message) or on a shape the grammar must refuse (a he
 `Co-Authored-By:` trailer). `expected.json` maps each file to the lessons text and the `Remote change` text the
 parser must return (`""` when it must find none). `one-paragraph.md` expects no lessons on purpose: the
 one-paragraph form is not read, and the refusal names the forms that are.
+
+`hyphenated-lesson-lines.md` and `hyphenated-first-body-line.md` hold lesson lines shaped like trailers
+(`Root-cause: x`, `Follow-up: y`): a trailer is known by its name (`Co-Authored-By`, `Signed-off-by`,
+`No-Change-Note`, `Skill-Craft-Release`), so these stay lesson text.

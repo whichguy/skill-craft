@@ -12,13 +12,15 @@ a ``**`` or ``__`` wrapper around the label are tolerated):
 There is no form for a label inside a sentence, so a one-paragraph message ("... Validation: x. Key learnings: y.")
 has no section; a refusal names the forms that are read.  Labels match without regard to case.
 
-A colon or bare body ends at a blank line, a heading, a known label (the Improve card's six, the lesson labels,
-``Learned-from``, ``Remote change``, ``Co-Authored-By``, ``Signed-off-by``) or the trailer block at the end of the
-message (its last paragraph, when every line is ``Hyphenated-Token: value``).  A heading body runs across blank
-lines and ends at the same things, so a section that holds only the ``Co-Authored-By:`` trailer is empty.  When the
-label has no text of its own, blank lines are skipped and the first line after them is the body, whatever it looks
-like, unless it is a known label, a heading or the trailer: ``Key learnings:`` then ``Pitfall: x`` is a lesson,
-``Key learnings:`` then ``Remaining work: x`` is an empty section.
+A colon or bare body ends at a blank line, a heading or a known label with its colon: the Improve card's six, the
+lesson labels, ``Learned-from``, ``Remote change`` and the four trailers ShipLoop's commits end with
+(``Co-Authored-By``, ``Signed-off-by``, ``No-Change-Note``, ``Skill-Craft-Release``).  A heading body runs across
+blank lines and ends at the same things, so a section that holds only the ``Co-Authored-By:`` trailer is empty.  A
+trailer is known by its name, not its shape: ``Root-cause: x`` and ``Follow-up: y`` are lesson text wherever they
+stand.  A label word without a colon (``Review the logs``) or a lone label line (``Plan``) does not end a body, since
+either can be a lesson's own words.  When the label has no text of its own, blank lines are skipped and the first
+line after them is the body, whatever it looks like, unless it is a known label or a heading: ``Key learnings:``
+then ``Pitfall: x`` is a lesson, ``Key learnings:`` then ``Remaining work: x`` is an empty section.
 
 A section counts as a lesson when its body holds a letter or a digit; ``Key learnings: none`` counts, because the
 script cannot judge a lesson's truth and measures instead of refusing on content.  ``Learned-from`` is the key of
@@ -38,15 +40,19 @@ LESSON_LABELS = ("Key learnings", "Key learning", "Lessons learned", "Lessons", 
 _REMOTE_LABEL = "Remote change"
 _CITATION_LABEL = "Learned-from"
 _IMPROVE_LABELS = ("Review", "Plan", "Changes", "Validation", "Key learnings", "Remaining work")
-# What ends a body: the labels ShipLoop's own messages use, and the two trailers a commit usually ends with.
-_KNOWN_LABELS = _IMPROVE_LABELS + LESSON_LABELS + (_CITATION_LABEL, _REMOTE_LABEL, "Co-Authored-By", "Signed-off-by")
+# The trailers ShipLoop's own commits end with (this repository's history on 2026-10-10: Co-Authored-By 787, No-Change-Note
+# 162, Skill-Craft-Release 57; Signed-off-by is Git's own).  Known by name: a lesson line such as ``Root-cause: x`` has
+# the same shape and must stay lesson text.
+_TRAILERS = ("Co-Authored-By", "Signed-off-by", "No-Change-Note", "Skill-Craft-Release")
+# What ends a body: the labels ShipLoop's own messages use and those trailers.  re.ASCII keeps "case-insensitive" to
+# ASCII, so a dotless i or a long s is no label (it used to match and then miss the lookup in ``sections``).
+_KNOWN_LABELS = _IMPROVE_LABELS + LESSON_LABELS + (_CITATION_LABEL, _REMOTE_LABEL) + _TRAILERS
 
 _BULLET = r"(?:[-*>][ \t]+)?"
 _WRAP = r"(?:\*\*|__)?"
 _HEADING = re.compile(r"^#{1,3}[ \t]+\S")
-_TRAILER = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+:[ \t]")
 _CITATION = re.compile(rf"^{_BULLET}{_WRAP}{re.escape(_CITATION_LABEL)}{_WRAP}[ \t]*:{_WRAP}[ \t]*(?P<rest>.*)$",
-                       re.IGNORECASE)
+                       re.IGNORECASE | re.ASCII)
 # Around a commit ID a model writes backticks, quotes, brackets and a trailing colon, comma or period.
 _TOKEN_EDGE = "`'\"[](){}<>:,.;"
 
@@ -57,11 +63,12 @@ def _names(labels: Sequence[str]) -> str:
 
 def _line_pattern(labels: Sequence[str]) -> "re.Pattern[str]":
     return re.compile(rf"^{_BULLET}{_WRAP}(?P<label>{_names(labels)}){_WRAP}(?P<colon>[ \t]*:)?{_WRAP}[ \t]*(?P<rest>.*)$",
-                      re.IGNORECASE)
+                      re.IGNORECASE | re.ASCII)
 
 
 def _heading_pattern(labels: Sequence[str]) -> "re.Pattern[str]":
-    return re.compile(rf"^#{{1,3}}[ \t]+{_WRAP}(?P<label>{_names(labels)}){_WRAP}[ \t]*:?[ \t]*$", re.IGNORECASE)
+    return re.compile(rf"^#{{1,3}}[ \t]+{_WRAP}(?P<label>{_names(labels)}){_WRAP}[ \t]*:?[ \t]*$",
+                      re.IGNORECASE | re.ASCII)
 
 
 _KNOWN = _line_pattern(_KNOWN_LABELS)
@@ -86,24 +93,8 @@ def _has_content(body: str) -> bool:
     return re.search(r"[^\W_]", body) is not None
 
 
-def _trailer_start(lines: Sequence[str]) -> int:
-    """Index of the first line of the trailer block at the end of the message; ``len(lines)`` when there is none."""
-    end = len(lines)
-    while end and not lines[end - 1].strip():
-        end -= 1
-    start = end
-    while start and lines[start - 1].strip():
-        start -= 1
-    block = lines[start:end]
-    if start > 0 and block and _TRAILER.match(block[0]) and all(
-            _TRAILER.match(row) or row[:1] in (" ", "\t") for row in block):
-        return start
-    return len(lines)
-
-
-def _ends_body(lines: Sequence[str], index: int, trailer: int) -> bool:
-    row = lines[index]
-    if index >= trailer or _HEADING.match(row):
+def _ends_body(row: str) -> bool:
+    if _HEADING.match(row):
         return True
     known = _KNOWN.match(row)
     return known is not None and known.group("colon") is not None
@@ -114,7 +105,6 @@ def sections(text: str, labels: Sequence[str]) -> List[Section]:
     lines = _lines(text)
     wanted = {label.lower(): label for label in labels}
     heading, plain = _heading_pattern(labels), _line_pattern(labels)
-    trailer = _trailer_start(lines)
     found: List[Section] = []
     index = 0
     while index < len(lines):
@@ -122,7 +112,7 @@ def sections(text: str, labels: Sequence[str]) -> List[Section]:
         match = heading.match(row)
         if match:
             end = index + 1
-            while end < len(lines) and not _ends_body(lines, end, trailer):
+            while end < len(lines) and not _ends_body(lines[end]):
                 end += 1
             found.append(Section(wanted[match.group("label").lower()], "\n".join(lines[index + 1:end]).strip()))
             index = end
@@ -134,7 +124,7 @@ def sections(text: str, labels: Sequence[str]) -> List[Section]:
             end = index + 1
             while not first and end < len(lines) and not lines[end].strip():
                 end += 1
-            while end < len(lines) and lines[end].strip() and not _ends_body(lines, end, trailer):
+            while end < len(lines) and lines[end].strip() and not _ends_body(lines[end]):
                 body.append(lines[end])
                 end += 1
             found.append(Section(wanted[match.group("label").lower()], "\n".join(body).strip()))

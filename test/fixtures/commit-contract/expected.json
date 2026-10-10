@@ -50,5 +50,13 @@
  "remote-change-heading.md": {
   "lessons": "- purge after every deploy",
   "remote_change": "- staging-site: purged cache, evidence in the release log"
+ },
+ "hyphenated-lesson-lines.md": {
+  "lessons": "Root-cause: the mock hid the seam\nFix-applied: guard the parse",
+  "remote_change": ""
+ },
+ "hyphenated-first-body-line.md": {
+  "lessons": "Follow-up: add a test for the empty board next time",
+  "remote_change": ""
  }
 }

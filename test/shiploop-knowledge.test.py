@@ -272,16 +272,52 @@ class LessonsGrammarTests(unittest.TestCase):
                          "staging, purged")
         # a four-hash heading is not one of the forms
         self.assertEqual(commit_lessons.lessons("s\n\n#### Key learnings\none\n"), "")
-        # any hyphenated Token: value paragraph at the end is the trailer block, whoever wrote it
+        # a known trailer ends the body wherever it stands, and a section holding only trailers is empty
         self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nNo-Change-Note: internal helper\n"), "")
         self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\nthe text\n\nNo-Change-Note: x\nSkill-Craft-Release: y"),
                          "the text")
-        # ... but a final paragraph that is not all trailers is the lesson, and so is a lone subject
-        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nthe text\nNo-Change-Note: x\n"),
-                         "the text\nNo-Change-Note: x")
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nthe text\nNo-Change-Note: x\n"), "the text")
         self.assertEqual(commit_lessons.lessons("Key-learnings: x\n"), "")
-        # two signed lines in the last paragraph are a trailer block, not the lesson
+        # two signed lines in the last paragraph are trailers, not the lesson
         self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nSigned-off-by: A <a@x.invalid>\n" + TRAILER), "")
+
+    def test_a_hyphenated_line_that_is_not_a_known_trailer_is_lesson_text_not_a_trailer_block(self) -> None:
+        """Fail-first (batch 1012 review): a last paragraph of `Hyphenated-Token: value` lines used to be clipped as the
+        trailer block, so a real lesson read as empty and the refusal said the label had no text."""
+        for lesson in ("Follow-up: add a test for the empty board next time", "Re-run: rerun the suite after a rename",
+                       "Root-cause: the mock hid the seam\nFix-applied: guard the parse", "Cross-check: the log, not the exit code"):
+            for text in ("s\n\n## Key learnings\n\n" + lesson + "\n", "s\n\nKey learnings:\n\n" + lesson + "\n",
+                         "s\n\nKey learnings\n\n" + lesson + "\n\n" + TRAILER + "\n"):
+                with self.subTest(text=text):
+                    self.assertEqual(commit_lessons.lessons(text), lesson)
+                    self.assertEqual([section.body for section in commit_lessons.sections(text, commit_lessons.LESSON_LABELS)],
+                                     [lesson])
+        # the lesson stays when a trailer follows it with no blank line between, and each known trailer still ends it
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nRoot-cause: x\nFix-applied: y\n" + TRAILER),
+                         "Root-cause: x\nFix-applied: y")
+        for trailer in (TRAILER, "Co-authored-by: A <a@x.invalid>", "Signed-off-by: A <a@x.invalid>", "No-Change-Note: x",
+                        "Skill-Craft-Release: 1.2.3"):
+            with self.subTest(trailer=trailer):
+                self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\n" + trailer + "\n"), "")
+                self.assertEqual(commit_lessons.lessons("s\n\nKey learnings:\n\nthe text\n" + trailer + "\n"), "the text")
+
+    def test_a_label_word_without_a_colon_does_not_end_a_body_and_neither_does_a_bare_label_line(self) -> None:
+        """Pins (batch 1012 review: the mutants that ended a body at any known label word stayed green)."""
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings:\nReview the logs first"), "Review the logs first")
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings: first\nPlan to retry\nChanges are small"),
+                         "first\nPlan to retry\nChanges are small")
+        # a lone label word may be a lesson's own line, so only a label with a colon (or a heading) is a stop
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings:\n- Plan\n- Review"), "- Plan\n- Review")
+
+    def test_a_label_spelled_with_a_letter_that_folds_onto_ascii_is_no_label_and_never_a_crash(self) -> None:
+        """Fail-first: re.IGNORECASE matched dotless i and long s, and the label lookup then raised KeyError."""
+        for text in ("s\n\nKey learn\u0131ngs: x", "s\n\nLesson\u017f: x", "s\n\n## Key learn\u0131ngs\nx",
+                     "s\n\n\u212aey learnings: x", "s\n\nLearn\u0131ngs\nx"):
+            with self.subTest(text=text):
+                self.assertEqual(commit_lessons.lessons(text), "")
+                self.assertEqual(commit_lessons.sections(text, commit_lessons.LESSON_LABELS), [])
+                self.assertEqual(commit_lessons.remote_change(text), "")
+        self.assertEqual(commit_lessons.citations("s\n\nLearned-from: abcdef1 x\nLEARNED-FROM: abcdef2 y")[1].token, "abcdef2")
 
     def test_the_lessons_of_every_section_are_joined_and_a_remote_change_needs_its_own_label(self) -> None:
         message = "s\n\nKey learnings: one\n\nLessons: two\n\nRemote change: staging, purged\n"
