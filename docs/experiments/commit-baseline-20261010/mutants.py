@@ -6,8 +6,8 @@ test/shiploop-e2e-commit-counters.test.py, expect it to fail, restore the file.
 
 A mutant is a literal replacement of one piece of counters.py, metrics.py or run.py; "killed" means the suite failed with it in
 place. The files are restored after every mutant (also on an error) and the working tree is unchanged when the script ends. The
-list is the committed record of what the tests were shown to catch; a survivor is a test still to write. Takes about three
-minutes (the suite runs in about twelve seconds, 36 times).
+list is the committed record of what the tests were shown to catch; a survivor is a test still to write. Takes about ten
+minutes (the suite runs in about fifteen seconds, once per mutant).
 """
 
 from __future__ import annotations
