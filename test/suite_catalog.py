@@ -184,7 +184,10 @@ _DURATION_SECONDS = {
     "test/shiploop-capability-fixture.test.py": 67.625,
     "test/shiploop-probe-decisions.test.py": 1.175,
     "test/shiploop-stopped-improve.test.py": 1.27,
-    "test/shiploop-actual-improve-cli.test.py": 45.762,
+    # 45.762 was measured at 35 tests.  Local wall seconds, 2026-10-10 (batch 1012 B1), one serial run at load average 5.4:
+    # 54 tests, 61.8 s (the improve-commit contract tests start a Git repository and walk a child to its stage).  Under
+    # QUICK_MAX_SECONDS.
+    "test/shiploop-actual-improve-cli.test.py": 62.0,
     "test/shiploop-local-skills.test.py": 1.983,
     # 3.603 was written when the dry run walked fewer scenarios.  Local wall seconds, 2026-10-08, the faster of two serial
     # runs at load average 3.8 to 6.0: 32 tests, 12.7 s (the other run 12.99 s).  Batch 1009 B1a added a test that
@@ -226,8 +229,9 @@ _DURATION_SECONDS = {
     "test/shiploop-backchain-check.test.py": 1.0,
     "test/shiploop-improve-changes.test.py": 1.5,
     # 1.0 was written for a smaller suite.  Local wall seconds, 2026-10-08, the faster of two serial runs at load
-    # average 5.7 to 6.5: 23 tests, 3.64 s.
-    "test/shiploop-knowledge.test.py": 3.64,
+    # average 5.7 to 6.5: 23 tests, 3.64 s.  2026-10-10 (batch 1012 B1): 42 tests (the commit-message grammar and the
+    # commit helper's real-Git tests), 4.5 s at load average 5.4.
+    "test/shiploop-knowledge.test.py": 4.5,
     "test/shiploop-assumptions.test.py": 0.2,
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py": 2.53,
     "test/shiploop-capability-runtime.test.py": 0.996,
