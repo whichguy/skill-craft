@@ -33,7 +33,9 @@ sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import counters  # noqa: E402
 import metrics  # noqa: E402
 import shiploop_git  # noqa: E402
+import shiploop_item_scope  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
+import shiploop_navigator  # noqa: E402
 import shiploop_workspace  # noqa: E402
 
 FIXTURES = ROOT / "test" / "fixtures" / "commit-counters"
@@ -520,6 +522,25 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
         self.assertIn("\"'s declared changes as \" + commit[:12]", navigator)
         self.assertIn("\"ShipLoop committed \"", navigator)
         self.assertTrue(counters.LEFTOVERS_SUBJECT.startswith("chore(shiploop): commit files written after the last work item"))
+
+    def test_the_work_item_subject_counters_matches_is_the_one_the_integrate_stage_writes(self):
+        # The integrate stage's reply names the commit, but the model's pipe can cut that reply, and then only the subject tells the
+        # script's commit from the model's. The message is built in shiploop_navigator._item_commit: call it with the commit itself
+        # replaced and read the message it hands over, so a reworded subject turns the matched work item commits into `other` here
+        # and not silently in a run.
+        before = {"history": []}
+        after = {"history": [{"stage": "integrate", "outcome": "done", "workitem": "W1", "summary": "What it did."}],
+                 "work_items": [{"id": "W1", "title": "Add the grid"}]}
+        with mock.patch.object(shiploop_item_scope, "commit_item", return_value=("", [], [])) as made:
+            shiploop_navigator._item_commit(Path("."), before, after)
+        self.assertEqual(made.call_count, 1, "the integrate row of the history makes one item commit")
+        message = made.call_args.args[3]
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "state.md").write_text('# ShipLoop navigator state\n\n```shiploop-state\n{"work_items": [{"id": "W1", '
+                                                '"title": "Add the grid"}]}\n```\n')
+            prefixes = counters._item_prefixes(Path(tmp))
+        self.assertEqual(prefixes, ("feat: W1 ",))
+        self.assertTrue(message.startswith(prefixes), f"counters matches {prefixes} and ShipLoop wrote {message.splitlines()[0]!r}")
 
     def test_the_chain_merge_prefix_is_the_one_the_chain_writes(self):
         self.assertIn(f'_PREPARED_MERGE_PREFIX = "{counters.CHAIN_PREFIX}"',
