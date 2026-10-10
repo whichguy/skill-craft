@@ -133,6 +133,12 @@ TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is s
                           r"Request failure: no in-memory result|Durable cursor recovery: )")
 
 
+# The replies counters.py reads (the `packets` and `commits` blocks): a ShipLoop packet head, or a line ShipLoop printed to announce
+# a commit it made (`improve-commit`, a work item's commit). ToolLog keeps the text of those replies and no other; counters.py
+# holds the patterns that read them, and its test pins that each is covered here.
+KEPT_REPLY = re.compile(r"ShipLoop navigator \||Committed this review's changes as |ShipLoop committed \S+'s declared changes as ")
+
+
 def failure_line(shown: str, limit: int | None = 200) -> str:
     """The line that names why a ShipLoop command was refused: its own, not the script's fixed trailer.
 
@@ -331,6 +337,9 @@ class ToolLog:
         self.by_tool: dict[str, int] = {}  # Claude only below: what the model called, what came back, how it used packets
         self.result_chars = 0
         self.packets = {"printed": [0, 0], "shell": [0, 0], "read_tool": []}
+        # Read by counters.py, on every host: the replies (KEPT_REPLY) of calls, each call's first result only, with whether the
+        # call named a packet file (a model reading the file is not ShipLoop printing a head) and the line it is at in events.jsonl.
+        self.replies: list[dict] = []
 
     def call(self, t, call_id, tool: str, arg: dict, event: int | None = None):
         """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written.
@@ -428,9 +437,12 @@ class ToolLog:
 
     def result(self, call_id, shown: str, code: int | None, event: int | None = None) -> None:
         """One tool result, with the exit code the host showed (None when it showed none) and its line in events.jsonl."""
+        first = call_id not in self.answered  # Grok repeats an update for one call; Codex's reused ids were discarded in ``call``
         self.answered.add(call_id)
         refusal = REFUSAL_LINE.search(shown)
         call = self.calls.get(call_id) or {}
+        if first and KEPT_REPLY.search(shown):
+            self.replies.append({"event": event, "packet": bool(call.get("packet")), "text": shown})
         exited = code not in (None, 0) and SHIPLOOP_COMMAND.search(call.get("invoked", ""))
         if call_id in self.failed or not (refusal or exited):
             return

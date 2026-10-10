@@ -145,6 +145,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-environment.test.py",
     "test/shiploop-e2e-baseline.test.py",
     "test/shiploop-e2e-quality.test.py",
+    "test/shiploop-e2e-commit-counters.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
 )
@@ -262,6 +263,10 @@ _DURATION_SECONDS = {
     # Local wall seconds, 2026-10-09: 91 tests 28.6 at load average 6 to 8; after the fix round (confirmation runs, the port
     # guard's real-node tests, the orphan stand-ins) 125 tests 43.2 at load average 3 to 5. Under QUICK_MAX_SECONDS.
     "test/shiploop-e2e-quality.test.py": 43.0,
+    # The packets and commits counters (batch 1012 task h): 86 tests on fixtures cut from saved runs, real git in temporary
+    # repositories, the regrade's and tallies' evidence and the fake hosts of the harness's through-main tests. Local wall seconds,
+    # 2026-10-10: 14.8 s (the faster of two serial runs at load average about 5; 68 tests took 12.3 s). Far under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-commit-counters.test.py": 15.0,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
@@ -509,6 +514,8 @@ _PREFIX_SUITE_IDS = {
     "test/shiploop_e2e/": _E2E_FAMILY_IDS,
     # The committed output of `run.py --baseline-report` and the script that cut its fixtures: the baseline suite pins both.
     "docs/experiments/baseline-spread-20261009/": ("shiploop-e2e-baseline",),
+    # The packets and commits regrade of the saved runs, its mutation record and the script that wrote them.
+    "docs/experiments/commit-baseline-20261010/": ("shiploop-e2e-commit-counters",),
     # The frozen record shapes the Run Review tests read (figures.json) and the scripts that cut them: the Run Review suite pins both.
     "docs/experiments/run-review-r22c-20261009/": ("shiploop-run-review",),
     "docs/experiments/run-review-r23-20261009/": ("shiploop-run-review",),
@@ -518,6 +525,7 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/reorientation/": ("shiploop-e2e-reorientation",),
     "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
     "test/fixtures/quality/": ("shiploop-e2e-quality",),
+    "test/fixtures/commit-counters/": ("shiploop-e2e-commit-counters",),
     "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
 }
 

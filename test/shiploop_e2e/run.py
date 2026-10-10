@@ -119,6 +119,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
+import counters  # noqa: E402
 import environment  # noqa: E402
 import fidelity  # noqa: E402
 import hosts  # noqa: E402
@@ -2936,6 +2937,9 @@ def _main(argv: list[str] | None, held: list) -> int:
     # The fidelity block is a record in metrics.json only (SPEC 2026-10-09): built once here, so a regrade adds it too, and never
     # a reason for a different verdict, exit code or baseline row. A builder failure is its error block and one printed line.
     run_metrics["fidelity"] = fidelity.safe_build(out, ledger, tool_log, engine_scripts=the_cli.parent, exporter=REVIEW_EXPORTER)
+    # The packets and commits counters (SPEC 2026-10-10): four more keys of metrics.json only, built from the same tool log, absent
+    # meaning unknown; never a verdict, a baseline key or a line of the report.
+    run_metrics.update(counters.safe_build(out, ledger, tool_log))
     if "truncated_outputs" in (run_metrics.get("unmeasured") or {}):
         cli_seen["truncated_outputs"] = None  # [] would read as a measured none
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")

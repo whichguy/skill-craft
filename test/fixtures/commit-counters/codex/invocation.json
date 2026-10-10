@@ -1,0 +1,8 @@
+{
+  "case": "battleship",
+  "host": "codex",
+  "model": "gpt-6-luna",
+  "effort": "xhigh",
+  "follow_on": null,
+  "seeded": null
+}

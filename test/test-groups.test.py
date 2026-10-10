@@ -92,9 +92,9 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 75)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 76)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 40)
-        self.assertEqual(len(suite_catalog.SUITES), 117)
+        self.assertEqual(len(suite_catalog.SUITES), 118)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -420,7 +420,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
     """
 
     FAMILY = {"shiploop-e2e", "shiploop-e2e-runrecord", "shiploop-e2e-fidelity", "shiploop-e2e-reorientation",
-              "shiploop-e2e-environment", "shiploop-e2e-baseline", "shiploop-e2e-quality"}
+              "shiploop-e2e-environment", "shiploop-e2e-baseline", "shiploop-e2e-quality", "shiploop-e2e-commit-counters"}
 
     def test_the_pinned_family_is_every_e2e_suite_in_the_catalog(self) -> None:
         catalog = {suite.id for suite in suite_catalog.SHIPLOOP_SUITES if suite.id.startswith("shiploop-e2e")}
@@ -439,6 +439,12 @@ class E2EFamilySelectionTest(unittest.TestCase):
                      "docs/experiments/baseline-spread-20261009/reduce_fixtures.py"):
             with self.subTest(path=path):
                 self.assertIn("shiploop-e2e-baseline", suite_catalog.targeted([path]))
+
+    def test_the_counters_evidence_and_fixtures_select_the_suite_that_pins_them(self) -> None:
+        for path in ("docs/experiments/commit-baseline-20261010/baseline.json", "docs/experiments/commit-baseline-20261010/regrade.py",
+                     "test/fixtures/commit-counters/grok/events.jsonl", "test/fixtures/commit-counters/messages.json"):
+            with self.subTest(path=path):
+                self.assertIn("shiploop-e2e-commit-counters", suite_catalog.targeted([path]))
 
     def test_a_frozen_copy_of_the_cli_entry_in_a_fixture_selects_only_the_suite_that_reads_it(self) -> None:
         # The baseline-report fixtures hold frozen copies of the CLI entry, each a file named shiploop. A name match ran
