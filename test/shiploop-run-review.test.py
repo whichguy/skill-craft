@@ -9577,6 +9577,19 @@ class StaticCopyTests(unittest.TestCase):
             self.assertEqual(export.main([str(out), "--out", str(target), *args]), 0)
         return target
 
+    def test_the_copys_heading_and_tab_title_name_the_run_not_the_shared_page(self):
+        """The page script sets the heading and the tab title from config/page.title; the static copy fills it with the run's own name."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = make_run(Path(tmp), loops=False)
+            target = Path(tmp) / "out"
+            export.export_run(out, out_dir=target) if "out_dir" in export.export_run.__code__.co_varnames else export.export_run(out)
+            html = next(Path(tmp).rglob("run-review.html")).read_text(encoding="utf-8")
+        data = json.loads(re.search(r"window\.__RR_DATA=(\{.*?\});</script>", html, re.S).group(1).replace("\\u003c", "<"))
+        title = [d["data"]["title"] for d in data["config"] if d["id"] == "page"][0]
+        run_name = data["runs"][0]["data"]["name"]
+        self.assertEqual(title, "Run Review: " + run_name)
+        self.assertIn("<title>Run Review: " + run_name.replace("&", "&amp;") + "</title>", html)
+
     def test_the_file_is_written_by_default_and_is_a_complete_document(self):
         html = (self.export(make_run(self.tmp, metrics={"shiploop_failures": [
             {"verb": "complete", "exit": 2, "line": STATIC_BREAKER}]})) / "run-review.html").read_text(encoding="utf-8")

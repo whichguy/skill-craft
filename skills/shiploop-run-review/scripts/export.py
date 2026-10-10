@@ -3369,9 +3369,11 @@ def static_html(docs: dict[str, dict[str, dict]]) -> str:
     merged = {c: dict(items) for c, items in defaults.items()}
     for collection, items in docs.items():
         merged.setdefault(collection, {}).update(items)  # the run's own documents win over a default of the same id
-    data = {c: [{"id": i, "data": merged[c][i]} for i in sorted(merged[c])] for c in sorted(merged)}
     runs = list(docs.get("runs", {}).values())
     title = f"Run Review: {runs[0].get('name') or next(iter(docs['runs']))}" if runs else "Run Review"
+    if isinstance(merged.get("config", {}).get("page"), dict):  # the page sets its heading and tab title from config/page.title
+        merged["config"]["page"] = {**merged["config"]["page"], "title": title}
+    data = {c: [{"id": i, "data": merged[c][i]} for i in sorted(merged[c])] for c in sorted(merged)}
     page, titles = re.subn(r"<title>[^<]*</title>", lambda _m: f"<title>{html_escape(title)}</title>", page, count=1)
     page = FONT_LINKS.sub("", page)  # nothing is fetched: the page falls back to the system fonts
     marker, wrap = '<script id="logic">', '<div class="wrap">'
