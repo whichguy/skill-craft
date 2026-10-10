@@ -482,6 +482,37 @@ class CommitHelperTests(unittest.TestCase):
             with self.subTest(token=token):
                 self.assertEqual(shiploop_git.resolve_commit(self.repo, token), (head, ""))
 
+    def test_resolve_commit_takes_an_older_commit_and_refuses_one_that_is_ahead_of_head(self) -> None:
+        """Guard, not fail-first (batch 1012 review): every citation in the other tests was HEAD itself or on another
+        branch, so a resolver that accepted only HEAD, or that asked the ancestry question the wrong way round, stayed
+        green.  An older commit is the normal citation: one of the last three the packet quotes."""
+        base = git(self.repo, "rev-parse", "HEAD").strip()
+        second = self.commit_on("second")
+        third = self.commit_on("third")
+        for token, want in ((base, base), (base[:7], base), (second, second), (second[:9].upper(), second)):
+            with self.subTest(token=token):
+                self.assertEqual(shiploop_git.resolve_commit(self.repo, token), (want, ""))
+        git(self.repo, "reset", "-q", "--hard", second)  # `third` is now ahead of HEAD: it exists but is not an ancestor
+        found, problem = shiploop_git.resolve_commit(self.repo, third)
+        self.assertEqual(found, "")
+        self.assertIn("is not reachable from HEAD", problem)
+        self.assertEqual(shiploop_git.resolve_commit(self.repo, base[:8]), (base, ""))
+
+    def test_resolve_commit_says_when_git_could_not_check_the_ancestry(self) -> None:
+        """Guard: a Git failure that is neither 'ancestor' (0) nor 'not an ancestor' (1) is reported, not read as either."""
+        head = git(self.repo, "rev-parse", "HEAD").strip()
+        real = shiploop_git.git
+
+        def broken(repo, *args, **kwargs):
+            if args[:1] == ("merge-base",):
+                return subprocess.CompletedProcess(args, 128, stdout="", stderr="fatal: Not a valid commit name\n")
+            return real(repo, *args, **kwargs)
+
+        with mock.patch.object(shiploop_git, "git", broken):
+            found, problem = shiploop_git.resolve_commit(self.repo, head[:7])
+        self.assertEqual(found, "")
+        self.assertIn("could not be checked against HEAD: fatal: Not a valid commit name", problem)
+
     def test_resolve_commit_names_each_reason_it_refuses_without_echoing_the_token(self) -> None:
         base = git(self.repo, "rev-parse", "HEAD").strip()
         git(self.repo, "checkout", "-q", "-b", "other")
