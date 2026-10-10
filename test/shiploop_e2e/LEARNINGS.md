@@ -1966,3 +1966,11 @@ Not yet seen live: a run where the quality phase is killed mid-way, a Grok run u
 ## Superseded 2026-10-10: the harness no longer scores Improve packets (`fidelity.improve_packets`, `IMPROVE_QUESTIONS`, `OLD_LAYOUT_MARKER`)
 
 The Run Review exporter now scores the five questions of an Improve packet itself (goal, done when, checked by, output, recovery over `packets/<action>-improve.md`, each marker pinned to the navigator by a test, shown per run with the engine version), as the harness's temporary table asked it to (S-12: one implementation). The table, its function, its printed text and its replay tests are deleted from the harness; the figures the entries above quote (63 Improve packets in the saved Claude and Grok runs, 35 with all five questions, 28 without goal and done when) stay as history and were recomputed from the saved packets, not from this code. `metrics.json` `fidelity` therefore has no `improve_packets` key from this commit on; a reader of older blocks may still find it.
+
+## 2026-10-10: release A packet fixes, one Checkers/Sonnet run on the unreleased branch (`--source checkout`)
+
+Output `/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet`, PASS in 13 min, 0 resumes. Against checkers-1 (1.26.0): the three
+refusal classes (receipt not in evidence_refs, terminal packet active, check-row ids at release-plan) did not recur; 2 refusals at
+step-plan instead (a check row carrying a TC id, then a resubmission after the model's own `sed -i` failed); calls 112 to 103,
+glue scripts 3 to 0, no model-made git commit. A README nobody asked for was still built: the source was the step-plan duty's
+own `check` example, fixed after the run. Journal: `docs/shiploop-packet-release-a-journal-2026-10-10.md`. n = 1.
