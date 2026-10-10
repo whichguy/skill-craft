@@ -1,0 +1,8 @@
+{
+  "case": "custom",
+  "host": "grok",
+  "model": "grok-4.7",
+  "effort": "medium",
+  "follow_on": null,
+  "seeded": null
+}

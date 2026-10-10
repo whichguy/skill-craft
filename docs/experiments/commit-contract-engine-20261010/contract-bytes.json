@@ -1,0 +1,185 @@
+{
+ "contract_budget": 9216,
+ "thinnest_saved_headroom": 1081,
+ "clause_before_bytes_without_path": 312,
+ "clause_after_bytes_without_path": 448,
+ "path_bytes_in_this_fixture": 198,
+ "rows": [
+  {
+   "stage": "spec",
+   "route": "inline",
+   "minimal_bytes_before": 4388,
+   "minimal_bytes_after": 4524,
+   "added": 136,
+   "thin_bytes_after": 8271,
+   "thin_headroom_after": 945,
+   "allowance_printed_before": 4828,
+   "allowance_printed_after": 4692
+  },
+  {
+   "stage": "spec",
+   "route": "ask-agent",
+   "minimal_bytes_before": 4657,
+   "minimal_bytes_after": 4793,
+   "added": 136,
+   "thin_bytes_after": 8540,
+   "thin_headroom_after": 676,
+   "allowance_printed_before": 4559,
+   "allowance_printed_after": 4423
+  },
+  {
+   "stage": "test-strategy",
+   "route": "inline",
+   "minimal_bytes_before": 4659,
+   "minimal_bytes_after": 4795,
+   "added": 136,
+   "thin_bytes_after": 8271,
+   "thin_headroom_after": 945,
+   "allowance_printed_before": 4557,
+   "allowance_printed_after": 4421
+  },
+  {
+   "stage": "test-strategy",
+   "route": "ask-agent",
+   "minimal_bytes_before": 4928,
+   "minimal_bytes_after": 5064,
+   "added": 136,
+   "thin_bytes_after": 8540,
+   "thin_headroom_after": 676,
+   "allowance_printed_before": 4288,
+   "allowance_printed_after": 4152
+  },
+  {
+   "stage": "plan",
+   "route": "inline",
+   "minimal_bytes_before": 4781,
+   "minimal_bytes_after": 4917,
+   "added": 136,
+   "thin_bytes_after": 8271,
+   "thin_headroom_after": 945,
+   "allowance_printed_before": 4435,
+   "allowance_printed_after": 4299
+  },
+  {
+   "stage": "plan",
+   "route": "ask-agent",
+   "minimal_bytes_before": 5050,
+   "minimal_bytes_after": 5186,
+   "added": 136,
+   "thin_bytes_after": 8540,
+   "thin_headroom_after": 676,
+   "allowance_printed_before": 4166,
+   "allowance_printed_after": 4030
+  },
+  {
+   "stage": "step-plan",
+   "route": "inline",
+   "minimal_bytes_before": 4549,
+   "minimal_bytes_after": 4685,
+   "added": 136,
+   "thin_bytes_after": 8271,
+   "thin_headroom_after": 945,
+   "allowance_printed_before": 4667,
+   "allowance_printed_after": 4531
+  },
+  {
+   "stage": "step-plan",
+   "route": "ask-agent",
+   "minimal_bytes_before": 4818,
+   "minimal_bytes_after": 4954,
+   "added": 136,
+   "thin_bytes_after": 8540,
+   "thin_headroom_after": 676,
+   "allowance_printed_before": 4398,
+   "allowance_printed_after": 4262
+  },
+  {
+   "stage": "test-spec",
+   "route": "inline",
+   "minimal_bytes_before": 4297,
+   "minimal_bytes_after": 4433,
+   "added": 136,
+   "thin_bytes_after": 8271,
+   "thin_headroom_after": 945,
+   "allowance_printed_before": 4919,
+   "allowance_printed_after": 4783
+  },
+  {
+   "stage": "test-spec",
+   "route": "ask-agent",
+   "minimal_bytes_before": 4566,
+   "minimal_bytes_after": 4702,
+   "added": 136,
+   "thin_bytes_after": 8540,
+   "thin_headroom_after": 676,
+   "allowance_printed_before": 4650,
+   "allowance_printed_after": 4514
+  },
+  {
+   "stage": "system-test-author",
+   "route": "inline",
+   "minimal_bytes_before": 4257,
+   "minimal_bytes_after": 4393,
+   "added": 136,
+   "thin_bytes_after": 8271,
+   "thin_headroom_after": 945,
+   "allowance_printed_before": 4959,
+   "allowance_printed_after": 4823
+  },
+  {
+   "stage": "system-test-author",
+   "route": "ask-agent",
+   "minimal_bytes_before": 4526,
+   "minimal_bytes_after": 4662,
+   "added": 136,
+   "thin_bytes_after": 8540,
+   "thin_headroom_after": 676,
+   "allowance_printed_before": 4690,
+   "allowance_printed_after": 4554
+  },
+  {
+   "stage": "release-plan",
+   "route": "inline",
+   "minimal_bytes_before": 4337,
+   "minimal_bytes_after": 4473,
+   "added": 136,
+   "thin_bytes_after": 8271,
+   "thin_headroom_after": 945,
+   "allowance_printed_before": 4879,
+   "allowance_printed_after": 4743
+  },
+  {
+   "stage": "release-plan",
+   "route": "ask-agent",
+   "minimal_bytes_before": 4606,
+   "minimal_bytes_after": 4742,
+   "added": 136,
+   "thin_bytes_after": 8540,
+   "thin_headroom_after": 676,
+   "allowance_printed_before": 4610,
+   "allowance_printed_after": 4474
+  },
+  {
+   "stage": "carry-forward",
+   "route": "inline",
+   "minimal_bytes_before": 4292,
+   "minimal_bytes_after": 4428,
+   "added": 136,
+   "thin_bytes_after": 8271,
+   "thin_headroom_after": 945,
+   "allowance_printed_before": 4924,
+   "allowance_printed_after": 4788
+  },
+  {
+   "stage": "carry-forward",
+   "route": "ask-agent",
+   "minimal_bytes_before": 4561,
+   "minimal_bytes_after": 4697,
+   "added": 136,
+   "thin_bytes_after": 8540,
+   "thin_headroom_after": 676,
+   "allowance_printed_before": 4655,
+   "allowance_printed_after": 4519
+  }
+ ]
+}

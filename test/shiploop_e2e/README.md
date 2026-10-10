@@ -955,6 +955,85 @@ The review of these limits and what was fixed is in
 [docs/shiploop-graph-engineering-comparison-2026-10-04.md](../../docs/shiploop-graph-engineering-comparison-2026-10-04.md),
 section 10.
 
+### Packet and commit counters (`packets`, `commits`)
+
+`metrics.json` carries four more keys (added 2026-10-10; `test/shiploop_e2e/counters.py`, built once in `run._main` beside the
+fidelity block, so `--resume-run <dir> --grade-only` adds them to a run that has none): `packets`, `packets_unmeasured`,
+`commits` and `commits_unmeasured`. They are **records, never verdicts**: no threshold, no baseline key, nothing in
+`result.json`, nothing printed, and a builder that raises leaves both blocks null with `failed: <ExceptionName>: <one line>`.
+Absent means unknown: a block that cannot be read is null with its reason once in the sibling map, never 0 and never a pass; an
+empty list or a zero is a measured none. Their purpose is a baseline: a later change to what ShipLoop prints or commits is
+shown to have changed it by these counts, never by cost or wall time (a same-build cell already ranges 1.75 times in cost).
+`docs/experiments/commit-baseline-20261010/baseline.json` is the regrade of the saved runs; its journal is
+`docs/shiploop-commit-baseline-journal-2026-10-10.md`.
+
+- `packets`: a list, one entry per `*.md` file in the run's `packets/` folder, in run order (the revision of the file's
+  `ShipLoop navigator |` line, then the name): `{action, stage, file_bytes, head_bytes}`.
+  - `action` is the file name without `.md`, so it is the unique key. A stage that is visited again (a repeat, a revise, a
+    replan) is a new action with its own file; the second packet a bound Improve child gets for one action is its own file,
+    `<action>-improve`, with the same stage (strip the suffix to join to `state.md`'s history). `stage` is read from the first
+    `ShipLoop navigator | <stage> | revision N` line anywhere in the file (it is line 1, 12 or 16, below the delegation preamble).
+  - `file_bytes` is the size on disk. A recovery `next` rewrites the file, so it is the last write.
+  - `head_bytes` is the bytes ShipLoop first printed for the packet, as the host recorded the reply. One reader for all three hosts
+    (`metrics.ToolLog.replies`): Claude's `tool_result` block, Grok's final `output_for_prompt` (after its own `exit: N` line) and
+    Codex's after the harness translator. A reply holds the whole head only when it runs from the head's `ShipLoop navigator |` line
+    to its own closing line (the status block's, or the narrative block's when one follows), carries the packet's `Full packet:`
+    line and has its callback and keepalive lines unshortened; what comes before it (a command's own output, Grok's exit line) and
+    after it (the host's `Shell cwd was reset` note, output the model chained) is not the head. A call that names a packet file (the
+    model reading it) is never a print. When a packet was printed more than once the first whole print counts.
+  - `head_bytes` is **null** where no reply of the run shows the head whole: the model cut the reply (`| head`, `sed -n`, a script of
+    its own) or the host did, the packet was printed as a pointer and a prefix (a long packet in a state that prints whole), or no
+    call of the run printed it. Sonnet pipes `complete` through `head` and `sed` in most calls, so most Claude heads are null:
+    in the 38 saved runs of 2026-10-03 to 10-10, 125 of 1,190 Claude packets have a measured head (the intake head of every Claude
+    run does: 28 of 28), 90 of 159 Grok packets and 73 of 75 Codex packets
+    (`docs/experiments/commit-baseline-20261010/baseline.json`). `packets_unmeasured` is `{"head_bytes": "<hosts>: N of M packets have no
+    whole print ..."}` when any entry is null, `{}` when none is, and `{"packets": reason}` (the block null) when the run has no run
+    directory or its run directory has no `packets/` folder. A host that trims a reply's last newline leaves a count one byte short;
+    a reply cut by column (`cut -c`) is told only by its shortened callback or keepalive line.
+- `commits`: `{improve: {n, with_lessons, cited, cited_earlier_run}, script: {n, with_lessons}, other: {n, with_lessons}, counted,
+  start_head}`, the commits made during the run in the product repository (`<run folder>/work`; every ref, so commits on ShipLoop's
+  unreturned `shiploop/run-*` branch count too). `start_head` is the head a `--continue-from` or `--seed-at` run started from (only
+  commits after it count), or null for a fresh run, whose whole history is the run's. `counted` is the sum of the three classes.
+  - **Who made a commit.** `improve`: the commit ShipLoop's own `improve-commit` reply names (`Committed this review's changes
+    as <sha>`) in the host's tool results. The Improve card fixes no message shape, so a shape is not a discriminator: 63 of the 132
+    distinct commits those replies name, in the 38 saved runs, carry none of the six `Review:`, `Plan:`, `Changes:`, `Validation:`,
+    `Key learnings:`, `Remaining work:` lines, and a model's own `git commit` can carry all six. `script`: the work item's commit
+    (ShipLoop's `ShipLoop committed W1's declared changes as <sha>` reply) and the commits whose subject only ShipLoop writes: the
+    knowledge home's `docs(shiploop): record <feature> knowledge at|after <stage>`, `Empty baseline for the first ShipLoop run`, the
+    leftovers commit `chore(shiploop): commit files written after the last work item, before the return` and a chain's `ShipLoop
+    chain prepared ...` merge. `other`: everything else, which is the model's own commits (a commit that borrows a ShipLoop
+    subject but not its exact shape is here). A commit made by an Improve child with a raw `git commit` is `other`: the counts of
+    `improve` are the ones that went through the gate. `improve` is a lower bound a second way: it needs ShipLoop's reply in the
+    host's events, so a reply the model's pipe cut is missing, and so would be the reply of a command a sub-agent ran if the host's
+    stream does not carry a sub-agent's tool results (none of the 29 saved Claude runs holds a sub-agent, so that is not known). When
+    plan v5 slice B moves `improve-commit` into the Improve child's contract, read `other` beside `improve` (the plan cut the
+    `ShipLoop-Run/-Stage/-Action` trailers because no consumer read them; a classifier by trailer is the consumer that would reverse
+    that, and the decision is the owner's). None of the 35 `other` commits of the 38 saved runs is ShipLoop's: in Claude runs ShipLoop
+    commits as its workspace identity and the model's own `git commit` falls back to the machine's Git identity (32 commits), and in
+    Grok and Codex runs, which configure one identity for both, git's own `[branch sha] subject` line is in the events (3 commits)
+    (`docs/experiments/commit-baseline-20261010/tallies.json`).
+  - `with_lessons` counts commits whose message has a non-empty `Key learnings` (the Improve card's label) or `Learned` (the
+    knowledge home's release-verify body) section. The label is a line of its own, `Label: text` or a bare `Learned` followed by
+    bullets; the section runs to the next `Label:` line, trailer or knowledge-home section name. Presence only: the text is never
+    judged, so `Key learnings: none` counts, and a `Note: ...` line inside a section ends it early.
+  - `cited` counts `improve` commits with a `Learned-from: <id>` line (at a line's start; 7 to 64 hex digits) whose id resolves to a
+    commit in the repository (a full or an abbreviated id); `cited_earlier_run` those whose cited commit is reachable from
+    `start_head`, a lesson carried from an earlier run. Nothing writes `Learned-from:` lines yet (plan of 2026-10-10, slice B), so
+    both are measured zeros on every saved run. A fresh run has no earlier commit, so its `cited_earlier_run` is a measured 0.
+  - `commits` is **null**, with `{"commits": reason}`, when the run folder has no `work/` directory or it is not a Git repository,
+    when `invocation.json` cannot be read, when a follow-on or seeded record names no starting head or one the repository does not
+    hold, and when `events.jsonl` is missing or empty (the `improve` class is read from it). Git is read through plumbing only
+    (`rev-list`, `cat-file`, `rev-parse`, `merge-base`): never `status`, never a command that writes the index.
+
+`counters.head_or_why` is the one reader of a head (the head, or which of three reasons it is not whole) and `counters.history` the one
+classification of a run's commits (a row per commit: id, kind, author, subject, message); the blocks, `regrade.py` and `tallies.py`
+(the head replies by reason, and the `other` commits by author and by git's confirmation line, for the runs `baseline.json` regraded)
+all read through them.
+
+Tests: `test/shiploop-e2e-commit-counters.test.py` (fixtures cut by `test/fixtures/commit-counters/cut_fixtures.py` from saved
+Claude, Grok and Codex runs; real git in temporary repositories, the ShipLoop-owned commits made by ShipLoop's own functions, the
+work item subject through `shiploop_navigator._item_commit`).
+
 ### A second feature in the same repository
 
 ```sh

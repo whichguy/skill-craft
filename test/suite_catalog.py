@@ -146,6 +146,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-baseline.test.py",
     "test/shiploop-e2e-quality.test.py",
     "test/shiploop-e2e-packet-anatomy.test.py",
+    "test/shiploop-e2e-commit-counters.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
 )
@@ -185,7 +186,10 @@ _DURATION_SECONDS = {
     "test/shiploop-capability-fixture.test.py": 67.625,
     "test/shiploop-probe-decisions.test.py": 1.175,
     "test/shiploop-stopped-improve.test.py": 1.27,
-    "test/shiploop-actual-improve-cli.test.py": 45.762,
+    # 45.762 was measured at 35 tests.  Local wall seconds, 2026-10-10 (batch 1012 B1), one serial run at load average 5.4:
+    # 54 tests, 61.8 s (the improve-commit contract tests start a Git repository and walk a child to its stage).  Under
+    # QUICK_MAX_SECONDS.
+    "test/shiploop-actual-improve-cli.test.py": 62.0,
     "test/shiploop-local-skills.test.py": 1.983,
     # 3.603 was written when the dry run walked fewer scenarios.  Local wall seconds, 2026-10-08, the faster of two serial
     # runs at load average 3.8 to 6.0: 32 tests, 12.7 s (the other run 12.99 s).  Batch 1009 B1a added a test that
@@ -227,8 +231,9 @@ _DURATION_SECONDS = {
     "test/shiploop-backchain-check.test.py": 1.0,
     "test/shiploop-improve-changes.test.py": 1.5,
     # 1.0 was written for a smaller suite.  Local wall seconds, 2026-10-08, the faster of two serial runs at load
-    # average 5.7 to 6.5: 23 tests, 3.64 s.
-    "test/shiploop-knowledge.test.py": 3.64,
+    # average 5.7 to 6.5: 23 tests, 3.64 s.  2026-10-10 (batch 1012 B1): 42 tests (the commit-message grammar and the
+    # commit helper's real-Git tests), 4.5 s at load average 5.4.
+    "test/shiploop-knowledge.test.py": 4.5,
     "test/shiploop-assumptions.test.py": 0.2,
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py": 2.53,
     "test/shiploop-capability-runtime.test.py": 0.996,
@@ -266,6 +271,10 @@ _DURATION_SECONDS = {
     # The packet-anatomy measurement tool (packet-compaction Phase 0): 13 tests, 0.2 s locally on 2026-10-10, most of it the
     # class that renders every stage of the current engine.
     "test/shiploop-e2e-packet-anatomy.test.py": 1.0,
+    # The packets and commits counters (batch 1012 task h): 86 tests on fixtures cut from saved runs, real git in temporary
+    # repositories, the regrade's and tallies' evidence and the fake hosts of the harness's through-main tests. Local wall seconds,
+    # 2026-10-10: 14.8 s (the faster of two serial runs at load average about 5; 68 tests took 12.3 s). Far under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-commit-counters.test.py": 15.0,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
@@ -344,6 +353,7 @@ _CORE_SUITES = (
     _suite("sync-plugin-views", "core", "test/sync-plugin-views.test.sh", "bash", "test/sync-plugin-views.test.sh"),
     _suite("release-flow", "core", "test/release-flow.test.sh", "bash", "test/release-flow.test.sh"),
     _suite("release-boundary", "core", "test/release-boundary.test.sh", "bash", "test/release-boundary.test.sh"),
+    _suite("release-preflight", "core", "test/release-preflight.test.py", "python3", "test/release-preflight.test.py"),
     _suite("native-marketplace-adapters", "core", "test/native-marketplace-adapters.test.sh", "bash", "test/native-marketplace-adapters.test.sh"),
     _suite("marketplace-package", "core", "test/marketplace-package.test.py", "python3", "test/marketplace-package.test.py"),
     _suite("marketplace-host-isolation", "core", "test/marketplace-host-isolation.test.py", "python3", "test/marketplace-host-isolation.test.py"),
@@ -512,6 +522,8 @@ _PREFIX_SUITE_IDS = {
     "test/shiploop_e2e/": _E2E_FAMILY_IDS,
     # The committed output of `run.py --baseline-report` and the script that cut its fixtures: the baseline suite pins both.
     "docs/experiments/baseline-spread-20261009/": ("shiploop-e2e-baseline",),
+    # The packets and commits regrade of the saved runs, its mutation record and the script that wrote them.
+    "docs/experiments/commit-baseline-20261010/": ("shiploop-e2e-commit-counters",),
     # The frozen record shapes the Run Review tests read (figures.json) and the scripts that cut them: the Run Review suite pins both.
     "docs/experiments/run-review-r22c-20261009/": ("shiploop-run-review",),
     "docs/experiments/run-review-r23-20261009/": ("shiploop-run-review",),
@@ -521,6 +533,7 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/reorientation/": ("shiploop-e2e-reorientation",),
     "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
     "test/fixtures/quality/": ("shiploop-e2e-quality",),
+    "test/fixtures/commit-counters/": ("shiploop-e2e-commit-counters",),
     "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
 }
 

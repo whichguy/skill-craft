@@ -1,0 +1,17 @@
+releases: 57
+ship shiploop, journal commit in range: 24; none: 25
+do not ship shiploop, journal commit in range: 3; none: 5
+shiploop releases since 2026-10-03: 15; without a journal commit: 1
+  92910a26 2026-10-04 4 commits in range: skill-craft@1.19.2, shiploop@0.51.2
+shiploop releases before 2026-10-03: 34; without a journal commit: 24
+journal first added: 565c53e1 2026-09-26
+shiploop releases since the journal existed (2026-09-26): 39; without a journal commit: 15
+releases that do not ship shiploop:
+  897733cb 2026-10-10 journal commits in range: 23: skill-craft@1.26.1, shiploop-run-review@0.1.3
+  520bfb85 2026-10-05 journal commits in range: 0: skill-craft@1.21.1, adversarial-review@0.1.0, rubric-eval@0.1.0
+  2cda22a0 2026-09-27 journal commits in range: 1: skill-craft@1.14.0, ask-agent@0.9.0, improve-agent@0.1.3, plan-dispatcher@0.5.1
+  1553c10e 2026-09-27 journal commits in range: 1: skill-craft@1.5.1, shiploop-e2e-audit@0.5.1
+  76303a10 2026-09-26 journal commits in range: 0: skill-craft@1.0.1, backchain@0.6.1, review-coverage@0.3.3
+  481ee716 2026-09-25 journal commits in range: 0: backchain@0.6.0, plan-dispatcher@0.3.0
+  1340368b 2026-09-24 journal commits in range: 0: improve@0.3.0-rc.5
+  626d8cb9 2026-09-24 journal commits in range: 0: catalogs (introduce Claude and Codex root indexes)

@@ -1,0 +1,57 @@
+{
+ "repositories": 36,
+ "commits": 1706,
+ "final_paragraphs_that_are_all_trailer_shaped": 895,
+ "of_which_hold_a_known_trailer": 895,
+ "other_hyphenated_line_starts_top12": [
+  [
+   "review-converge",
+   33
+  ],
+  [
+   "Non-regression",
+   17
+  ],
+  [
+   "S-12",
+   2
+  ],
+  [
+   "Self-test",
+   2
+  ],
+  [
+   "Fail-first",
+   1
+  ],
+  [
+   "mutation-checked",
+   1
+  ],
+  [
+   "Mutation-checked",
+   1
+  ],
+  [
+   "checks-off",
+   1
+  ],
+  [
+   "return-review",
+   1
+  ],
+  [
+   "release-plan",
+   1
+  ],
+  [
+   "re-exported",
+   1
+  ],
+  [
+   "system-test",
+   1
+  ]
+ ],
+ "distinct_other_hyphenated_line_starts": 17
+}
