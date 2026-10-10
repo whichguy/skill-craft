@@ -143,7 +143,7 @@ r1-battleship-grok-none: blocked at system-test-author, `access`, `awaiting {kin
 nothing claimed. `unverified`: r2-battleship-sonnet and r3-battleship-sonnet carry entries owned by `user`, r2-checkers-sonnet, r3-checkers-sonnet and r2-battleship-grok-none
 carry an empty list (every outcome observed), the other six runs have no such key and the block says so (`unmeasured["end_state.unverified"]`), never 0.
 
-### Improve-packet five questions (`improve_packets`) — firm
+### Improve-packet five questions (`improve_packets`) — SUPERSEDED 2026-10-10: the Run Review exporter scores them itself; the table, function, printed text, replay tests and fixtures were deleted from the harness (see LEARNINGS 'Superseded 2026-10-10'). The figures below stay as the record of what the temporary table found.
 
 The exporter does not record Improve-packet labels: `export.py` scores `carried` for producer packets only (`CARRIED`, `carried_markers`) and writes the `-improve.md`
 packet as a text document. So a small table (`fidelity.IMPROVE_QUESTIONS`: goal, done when, checked by, output, recovery) is the harness's own, anchored to the

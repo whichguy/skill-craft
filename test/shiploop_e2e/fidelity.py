@@ -11,7 +11,6 @@ the part null with its reason in the block's ``unmeasured`` map, never 0 and nev
   edits          the model's edits of script-owned files, name-pattern kills and git commit/add commands, as listed facts
   refusals       each ShipLoop refusal, and whether the same first line came back in the same stage
   end_state      the engine's status and, for a blocked run, what it awaits
-  improve_packets  whether each Improve packet carries its five questions (TEMPORARY: deleted when the exporter scores Improve packets)
 
 The heuristic parts (edits, refusals) are lists to confirm: no hit is not proof and a hit can be quoted text. Known misses are in the README
 and pinned by tests.
@@ -41,20 +40,6 @@ SCRIPT_KINDS = ("verify", "lint", "quality", "backchain")
 # quality/<action>-terminal.json. A run this table does not know is not judged (`unmapped_runs`).
 RUN_KIND = {"lint-gate": "lint", "test-loop": "verify", "test-probe": "verify", "test-red": "verify", "test-rerun": "verify",
             "quality-terminal": "quality"}
-# The five questions an Improve packet (packets/<action>-improve.md) answers for a model that holds only that packet. Anchored to
-# the engine's wording (shiploop_navigator _goal_lines, _checked_line, _render_improve, _first_callback_lines); a test pins each
-# prefix against the engine's source. The exporter records `carried` labels for producer packets only; if it ever scores Improve
-# packets, this table goes.
-# The first line of an Improve child's packet. In ShipLoop 1.22.0 and earlier one packet file per action was rewritten at every printing, so
-# a producer file that has this line IS the child's packet and the producer's own is gone (the exporter's IMPROVE_PACKET; a test pins the two).
-OLD_LAYOUT_MARKER = re.compile(r"^Current action: Improve the completed ", re.M)
-IMPROVE_QUESTIONS = (
-    ("goal", re.compile(r"^Reviewing the returned .* result\. Goal: ", re.M)),
-    ("done_when", re.compile(r"^Done when \(", re.M)),
-    ("checked_by", re.compile(r"^Checked by:", re.M)),
-    ("output", re.compile(r"^(?:The opening file holds exactly these headings|Then run: )", re.M)),
-    ("recovery", re.compile(r"^Recovery command:", re.M)),
-)
 REFUSAL_LIMITS = ("a repeat needs a known stage (the stage join is whole seconds and needs timeline.jsonl) and the same whole first line as the "
                   "refusal just before it; the same line twice is a pointer, neutral about cause (a remedy that misled or an honest second "
                   "failed try); a result the host saved to a file is not read")
@@ -567,7 +552,7 @@ def refusals(tools, out: Path, run_dir: Path | None, state: dict) -> dict:
             "unstaged": len(items) - staged, "limits": REFUSAL_LIMITS, "items": items}
 
 
-# --- end state, Improve packets -------------------------------------------------------------------------------------------
+# --- end state ----------------------------------------------------------------------------------------------------------
 
 def end_state(state: dict) -> dict:
     """The engine's own record of where the run stood: status, stage, the stage it never accepted, its stated reason; for a run that ended on
@@ -594,34 +579,6 @@ def end_state(state: dict) -> dict:
             "unverified": None if unverified is None else {
                 "entries": len(unverified),
                 "owners": sorted({str(u["owner"]) for u in unverified if isinstance(u, dict) and u.get("owner")})}}
-
-
-def improve_packets(run_dir: Path | None, state: dict) -> dict:
-    """Whether each Improve child's packet carries its five questions (IMPROVE_QUESTIONS): label counts and, for a packet that lacks any,
-    its action, stage and the labels it lacks. Never the packet text. Only the files of the current layout (packets/<action>-improve.md)
-    are read. A run with no Improve child has read 0 (a measured none); a run of the old layout, whose child's packet replaced the
-    producer's, and a run whose children left no packet file are unmeasured."""
-    if run_dir is None:
-        raise Unmeasured("no ShipLoop run directory, so its packets cannot be read")
-    files = sorted(Path(run_dir).glob("packets/*-improve.md"))
-    if not files:
-        if any(OLD_LAYOUT_MARKER.search(path.read_text(errors="replace")) for path in sorted(Path(run_dir).glob("packets/*.md"))):
-            raise Unmeasured("no packets/<action>-improve.md file and a packet file holds an Improve child's packet (ShipLoop 1.22.0 or "
-                             "earlier, whose one packet file per action is not read)")
-        if isinstance(state.get("improve_results"), dict) and state["improve_results"]:
-            raise Unmeasured("Improve children ran but left no packets/<action>-improve.md file")
-    stages = {h.get("action"): h.get("stage") for h in (state.get("history") or []) if isinstance(h, dict)}
-    carried = {name: 0 for name, _ in IMPROVE_QUESTIONS}
-    missing = []
-    for path in files:
-        text = path.read_text(errors="replace")
-        lacking = [name for name, pattern in IMPROVE_QUESTIONS if not pattern.search(text)]
-        for name, _ in IMPROVE_QUESTIONS:
-            carried[name] += name not in lacking
-        action = path.name[:-len("-improve.md")]
-        if lacking:
-            missing.append({"action": action, "stage": stages.get(action), "labels": lacking})
-    return {"read": len(files), "carried": carried, "missing": missing}
 
 
 # --- the block ------------------------------------------------------------------------------------------------------------
@@ -655,7 +612,6 @@ def build(out: Path, run_dir: Path | None, tools, *, engine_scripts=None, export
     part("edits", edits, tools)
     part("refusals", refusals, tools, out, run_dir, state)
     part("end_state", end_state, state)
-    part("improve_packets", improve_packets, run_dir, state)
     if block["validation"]:
         if block["validation"]["tests_ran_unmeasured"]:
             gone["validation.counts"] = COUNTS_REASON
@@ -758,12 +714,9 @@ def lines(block: dict) -> list[str]:
                       + (f": \"{(repeat['line'] or '')[:100]}\"" if repeat else ""))
     else:
         result.append(f"refusals unmeasured: {gone.get('refusals')}")
-    s, p = block.get("end_state"), block.get("improve_packets")
-    state_text = (f"end state {s['status']}" + (f" at {s['unaccepted_stage']}" if s["unaccepted_stage"] else "")
+    s = block.get("end_state")
+    result.append(f"end state {s['status']}" + (f" at {s['unaccepted_stage']}" if s["unaccepted_stage"] else "")
                   + (f", blocked by {s['blocked_by']}" if s["blocked_by"] else "")
                   + (f", unverified {s['unverified']['entries']}" if s["unverified"] else "") if s
                   else f"end state unmeasured: {gone.get('end_state')}")
-    packet_text = (f"Improve packets {p['read']}: all five {p['read'] - len(p['missing'])}, lacking {len(p['missing'])}" if p
-                   else f"Improve packets unmeasured: {gone.get('improve_packets')}")
-    result.append(f"{state_text}; {packet_text}")
     return result

@@ -216,7 +216,6 @@ METRICS = [
     ("fidelity.edits", "heuristic list; null when the stream holds no tool call", "G1", True),
     ("fidelity.refusals", "heuristic list", "G1", True),
     ("fidelity.end_state", "null with unmeasured.end_state (blocked fields read through metrics.blocked_detail)", "G1", True),
-    ("fidelity.improve_packets", "null for the old packet layout", "G1", True),
     ("fidelity.unmeasured", "{} when every part was measured", "G1", True),
     ("fresh_starts", "[] measured none only when fresh_starts_unmeasured is null", "G2", True),
     ("fresh_starts[].reorientation", "measured: false with reason, and no counts, when the window cannot be placed", "G2", True),

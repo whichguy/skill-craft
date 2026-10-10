@@ -394,13 +394,6 @@ is the one reader of that.
   `engine_awaiting_*` use too: only while the engine is blocked on its last history action, so a block that was answered (the
   engine active again) reads null; `unverified` is the product-acceptance list (`entries`, `owners`), null when no result carries the key
   (a result without the key says nothing, it is not an empty list, which says every outcome was observed);
-- `improve_packets` (**temporary**): whether each `packets/<action>-improve.md` carries the five questions an Improve packet
-  answers for a model that holds only that packet (`goal`, `done_when`, `checked_by`, `output`, `recovery`), as counts and a
-  `missing` list of action, stage and the labels lacking; never the packet text. Of the 63 such files in the saved Claude and
-  Grok runs, 35 carry all five and 28 lack goal and done when. The exporter scores producer packets only (`carried`), so this
-  table is the harness's own until the exporter owns it; it is then deleted (S-12), and the Run Review owner is asked to adopt
-  it. A run with no Improve child has `read: 0`; a run of the old packet layout (ShipLoop 1.22.0 and earlier, whose one
-  packet file per action holds the child's packet) is unmeasured.
 
 **What no script checks.** Whether one call carries one step (S-2), whether the cards agree with the scripts (S-3), packet
 size (S-7), technology-agnostic wording (S-8), one implementation of each mechanism (S-12) and generality (S-13); and the

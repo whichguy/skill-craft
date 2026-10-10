@@ -1305,132 +1305,6 @@ class EndStateTest(unittest.TestCase):
         self.assertIn("state", block["unmeasured"]["end_state"])
 
 
-class ImprovePacketsTest(unittest.TestCase):
-    QUESTIONS = ("goal", "done_when", "checked_by", "output", "recovery")
-
-    def setUp(self):
-        self.fidelity = fidelity_module()
-
-    def test_the_exporter_scores_producer_packets_only_so_the_five_questions_of_an_improve_packet_are_read_here(self):
-        source = EXPORTER.read_text()
-        self.assertIn("def carried_markers", source)
-        for prefix in ("Reviewing the returned", "Recovery command:", "Checked by: the Improve skill"):
-            self.assertNotIn(prefix, source, "the exporter scores Improve packets now: delete the harness's IMPROVE_QUESTIONS")
-
-    def test_the_improve_packets_of_the_round_1_shape_lack_goal_and_done_when_and_the_round_3_shape_has_all_five(self):
-        round1 = replay("r1-battleship-sonnet")["block"]["improve_packets"]
-        self.assertEqual(round1["read"], 8)
-        self.assertEqual(round1["carried"], {"goal": 0, "done_when": 0, "checked_by": 8, "output": 8, "recovery": 8})
-        self.assertEqual({tuple(m["labels"]) for m in round1["missing"]}, {("goal", "done_when")})
-        round3 = replay("r3-battleship-sonnet")["block"]["improve_packets"]
-        self.assertEqual((round3["read"], round3["missing"]), (8, []))
-        self.assertEqual(set(round3["carried"].values()), {8})
-
-    def test_the_63_improve_packet_files_of_the_saved_runs_split_35_with_all_five_and_28_without_goal_and_done_when(self):
-        both = without = 0
-        per_run = {}
-        for alias in ELEVEN:
-            packets = replay(alias)["block"]["improve_packets"]
-            if packets is None:
-                per_run[alias] = None
-                continue
-            per_run[alias] = packets["read"]
-            without += len(packets["missing"])
-            both += packets["read"] - len(packets["missing"])
-            for entry in packets["missing"]:
-                self.assertEqual(entry["labels"], ["goal", "done_when"])
-        self.assertEqual((both + without, both, without), (63, 35, 28))
-        self.assertEqual(per_run["r3-battleship-grok-none"], 0, "no Improve child ran in that run: a measured none")
-        self.assertEqual(per_run["r2-battleship-grok-none"], 3)
-
-    def test_a_missing_entry_names_the_action_and_its_stage(self):
-        missing = replay("r1-battleship-sonnet")["block"]["improve_packets"]["missing"]
-        self.assertEqual(len(missing), 8)
-        self.assertTrue(all(re.fullmatch(r"nav-[0-9a-f]+", m["action"]) for m in missing))
-        self.assertIn("carry-forward", {m["stage"] for m in missing})
-
-    def test_a_run_of_the_old_layout_with_improve_children_but_no_improve_files_is_unmeasured_not_missing(self):
-        block = replay(CODEX, engine_scripts=OLD_TABLE)["block"]
-        self.assertIsNone(block["improve_packets"])
-        self.assertIn("1.22.0 or earlier", block["unmeasured"]["improve_packets"])
-
-    def test_a_run_with_no_improve_child_has_read_zero_not_unmeasured(self):
-        # r3-battleship-grok-none ran planning_review none and stopped before any carry-forward: a measured none (review B16).
-        block = replay("r3-battleship-grok-none")["block"]
-        self.assertEqual(block["improve_packets"], {"read": 0, "carried": dict.fromkeys(self.QUESTIONS, 0), "missing": []})
-        self.assertNotIn("improve_packets", block["unmeasured"])
-
-    def test_improve_children_that_left_no_packet_file_in_a_current_layout_run_are_unmeasured(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            run_dir = Path(tmp) / "run"
-            (run_dir / "packets").mkdir(parents=True)
-            (run_dir / "packets" / "nav-1.md").write_text("ShipLoop navigator | spec | revision 1\nGoal: x\n")
-            state = {"history": [], "improve_results": {"nav-1": {}}}
-            with self.assertRaises(self.fidelity.Unmeasured) as raised:
-                self.fidelity.improve_packets(run_dir, state)
-            self.assertIn("left no packets/<action>-improve.md", str(raised.exception))
-            self.assertNotIn("1.22.0", str(raised.exception))
-            self.assertEqual(self.fidelity.improve_packets(run_dir, {"history": []})["read"], 0)
-
-    def test_the_old_layout_marker_is_the_exporters_own(self):
-        namespace: dict = {}
-        source = EXPORTER.read_text()
-        found = re.search(r'(?m)^IMPROVE_PACKET = re\.compile\((r"[^"]+"), re\.M\)', source)
-        self.assertIsNotNone(found, "the exporter's old-layout marker moved")
-        self.assertEqual(self.fidelity.OLD_LAYOUT_MARKER.pattern, eval(found.group(1), namespace))
-
-    def packet_without(self, label: str, how: str) -> tuple[dict, str]:
-        """improve_packets of a copy of a real Improve packet (r3-battleship-sonnet) from which `label`'s line was dropped (how "drop") or
-        turned into a mid-line mention (how "mention")."""
-        source = next((run_dir_of("r3-battleship-sonnet") / "packets").glob("*-improve.md")).read_text()
-        pattern = dict(self.fidelity.IMPROVE_QUESTIONS)[label]
-        lines = []
-        for line in source.splitlines():
-            if pattern.search(line):
-                if how == "mention":
-                    lines.append("The packet text also says " + line)
-                continue
-            lines.append(line)
-        with tempfile.TemporaryDirectory() as tmp:
-            run_dir = Path(tmp) / "run"
-            (run_dir / "packets").mkdir(parents=True)
-            (run_dir / "packets" / "nav-1-improve.md").write_text("Some other rule of the packet.\n" + "\n".join(lines) + "\nAnd a closing line.\n")
-            return self.fidelity.improve_packets(run_dir, {"history": [{"action": "nav-1", "stage": "spec"}]}), source
-
-    def test_a_packet_missing_one_question_names_exactly_that_one(self):
-        # Review A5: the extract keeps only the lines the patterns are built to match, so the replay alone cannot show a pattern
-        # that matches everything; a real packet with one label's line dropped, or only mentioned mid-line, can.
-        for label in self.QUESTIONS:
-            for how in ("drop", "mention"):
-                with self.subTest(label=label, how=how):
-                    found, _ = self.packet_without(label, how)
-                    self.assertEqual(found["missing"], [{"action": "nav-1", "stage": "spec", "labels": [label]}])
-                    self.assertEqual({k: v for k, v in found["carried"].items() if v == 0}, {label: 0})
-
-    def test_the_intact_packet_the_negative_cases_start_from_carries_all_five(self):
-        source = next((run_dir_of("r3-battleship-sonnet") / "packets").glob("*-improve.md")).read_text()
-        for label, pattern in self.fidelity.IMPROVE_QUESTIONS:
-            self.assertTrue(pattern.search(source), label)
-
-    def test_the_block_holds_the_label_booleans_only_never_the_packet_text(self):
-        self.assertNotIn("Reviewing the returned", json.dumps(replay("r3-battleship-sonnet")["block"]))
-
-    def test_the_five_patterns_are_the_engines_own_strings(self):
-        navigator = (ENGINE / "shiploop_navigator.py").read_text()
-        for prefix in ("Reviewing the returned ", "Goal: ", "Done when (", "Checked by: ", "The opening file holds exactly these headings",
-                       "Then run: ", "Recovery command:"):
-            with self.subTest(prefix=prefix):
-                self.assertIn(prefix, navigator, "the engine's wording moved: update fidelity.IMPROVE_QUESTIONS")
-        self.assertEqual([name for name, _ in self.fidelity.IMPROVE_QUESTIONS], list(self.QUESTIONS))
-
-    def test_the_patterns_match_a_line_start_so_prose_that_mentions_a_label_is_not_one(self):
-        patterns = dict(self.fidelity.IMPROVE_QUESTIONS)
-        self.assertTrue(patterns["done_when"].search("Done when (a done result must meet each):"))
-        self.assertFalse(patterns["done_when"].search("The text says Done when (x) later"))
-        self.assertTrue(patterns["goal"].search("Reviewing the returned spec result. Goal: Write it."))
-        self.assertFalse(patterns["goal"].search("Goal: Write it."), "the producer packet's own Goal line is not the Improve packet's")
-
-
 class WorkspaceFilesTest(unittest.TestCase):
     def test_the_three_workspace_files_are_the_names_the_engine_writes(self):
         source = (ENGINE / "shiploop_workspace.py").read_text()
@@ -1449,7 +1323,7 @@ class BuildTest(unittest.TestCase):
         # runrecord.hosts_used is the one reader of which hosts worked on a run (group G4's environment block records it).
         self.assertNotIn("hosts", block)
         self.assertNotIn("mixed_host", block)
-        for part in ("evidence", "validation", "edits", "refusals", "end_state", "improve_packets"):
+        for part in ("evidence", "validation", "edits", "refusals", "end_state"):
             self.assertIn(part, block)
         self.assertGreater(block["tool_calls_seen"], 0)
 
@@ -1465,7 +1339,7 @@ class BuildTest(unittest.TestCase):
 
     def test_every_known_gap_is_a_reason_string_and_no_part_is_zero_where_it_was_not_measured(self):
         block = self.fidelity.build(Path("."), None, None)
-        reasons = {"evidence": "no history", "validation": "run directory", "end_state": "no status", "improve_packets": "run directory",
+        reasons = {"evidence": "no history", "validation": "run directory", "end_state": "no status",
                    "edits": "no tool call", "refusals": "no tool call"}
         for part, word in reasons.items():
             self.assertIsNone(block[part], part)
