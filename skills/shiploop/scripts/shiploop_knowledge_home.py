@@ -469,8 +469,8 @@ def _planned_record(repo: Path, state: Mapping[str, Any]) -> str:
     """The full ID of this run's prepare close commit, which holds the feature spec as planned; "" when none is found.
 
     Found by its exact subject over the whole log, never by a path: the prepare close usually commits only what changed
-    since the spec stage, and rarely the feature folder (a path-limited search found it in 8 of 33 saved folders, the
-    subject in 32 of 32 runs).  The subject carries the feature folder, which ends in the run's suffix, so it names this
+    since the spec stage, and rarely the feature folder (on the 33 saved feature specs a path-limited search found it in 8,
+    the subject in all 33).  The subject carries the feature folder, which ends in the run's suffix, so it names this
     run alone.  A history rewritten to other subjects, or squashed, leaves none, and nothing is invented.
     """
     subject = knowledge_subject(state, "prepare")

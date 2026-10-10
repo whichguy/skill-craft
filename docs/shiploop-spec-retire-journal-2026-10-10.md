@@ -126,6 +126,23 @@ Saved runs (`survey.py`, read-only on `/Users/dadleet/e2e-runs`, retire run on c
 The design's figures (32 specs, 31 repositories, 2 delta-heading specs, 13 ranges) were taken before more saved runs existed; these are today's.
 The audits read 31 saved receipts and all were `fast-forward-merge` (not re-read here), so in practice the retire runs; the live pair is what shows a working-tree route.
 
+## Verification of the final tree
+
+Final tree `19c25538` (the docstring fix and this section follow it). Every command ran with `SHIPLOOP_PROGRESS=off`; the exit codes are the process's own,
+captured before anything was piped. The machine was shared with other batch tasks (load average 8 to 17), so the seconds are not the catalog's.
+
+| Command | Exit | Result |
+|---|---|---|
+| `python3 -B test/run_suites.py --group quick --changed-from b8c1680e --output <scratch>/quick-receipt` | 1 | 45 suites selected and run: 44 passed, 1 failed (`shiploop-status-display`, below). Includes shiploop-retire, -knowledge, -e2e family, -e2e-commit-counters, -progress, -progress-data, -progress-render, -test-loop, -lint, -quality, -navigator-contract/-v4/-dry-run, -packet-bounds/-completeness, -guidance, -keepalive, -cross-run, -run-review, test-groups, release-preflight, mock-replay |
+| `python3 test/shiploop-status-display.test.py` | 1 | One dry-run packet check: the status block ends at 8032 against a 8000 window at this worktree's path length. The same failure, with the same number, on the pristine base `b8c1680e` placed at an equal path length (`cmpbase` against `cmphead` copies: 8032 and 8032). Packet text is not touched by this series |
+| `python3 test/shiploop-return-review.test.py` (copy of the final tree) | 0 | 24 tests |
+| `python3 test/shiploop-full-runtime.test.py` (copy) | 0 | 2 tests, with the new assertions |
+| `python3 test/shiploop-callback-contract.test.py` (copy) | 0 | 42 tests |
+| `python3 test/shiploop-workspace.test.py` (copy) | 1 | 79 of 80; the one failure, `test_return_projection_stays_current_across_terminal_cold_and_report_packets`, fails in a 150-character copy path (a packet longer than the shell-output limit moves its tail behind the file pointer) and passes in the worktree with the three new tests (`-k`, 5 tests, exit 0) |
+| `python3 scripts/check-release-boundary.py --base b8c1680e --head HEAD` | 0 | OK |
+
+Rerun policy: the two failures are deterministic path-length effects and were checked against the base or alone at the worktree path, not rerun for luck.
+
 ## Findings
 
 - **Firm.** The prepare close rarely touches the feature folder: the planned record is found by subject, never by path (33 of 33 against 8 of 33).
@@ -175,4 +192,4 @@ path points at the wrong tree in a worktree run. Nothing below is printed by thi
 ## Commits
 
 See `git log b8c1680e..HEAD` on the branch: the S-11 amendment (`0668a9bc`), the pure functions (`c99b48b1`), the feature list (`950c8f2b`), the retire and
-terminal close (`a79dc1e5`), the progress row (`16311454`), the counters and catalog (`8d4dbfba`), then this commit.
+terminal close (`a79dc1e5`), the progress row (`16311454`), the counters and catalog (`8d4dbfba`), the change note, references, journal, survey and LEARNINGS entry (`19c25538`), then the docstring fix and the verification table.
