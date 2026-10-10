@@ -123,6 +123,7 @@ COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "reviews", "o
 # ("enum", values), ("list", item), ("items", {field: spec}) for a list of objects,
 # ("map", value type) for an object of values. A `?` field of an item is not required.
 S, N, B, ISO = "string", "number", "boolean", "iso"
+HTTPS_URL = "https-url"  # an https:// URL with no whitespace: the page puts it in an href, so nothing else (javascript:, data:, http:) may
 BOOL_OR_UNKNOWN = "bool-or-unknown"  # true, false or the string "unknown": a fact that may not be knowable from the records
 PHASE_STATES = ("done", "running", "blocked", "stopped", "none")
 VERIFY_FIELDS = {"records": (N, True), "passed": (N, True), "red": (N, False), "couldNotRun": (N, False),
@@ -360,9 +361,9 @@ SCHEMA = {
                    False),
         "ref": (S, False),
     },
-    # config/page and config/prompt share the collection; every field is a string.
+    # config/page and config/prompt share the collection; every field is a string (repoUrl: an https:// URL, see HTTPS_URL).
     # config/stages is the stage catalog (defaults/stages.json, SCHEMA.md "Stage catalog"), a derived replica of the engine's table.
-    "config": {"title": (S, False), "artifactUrl": (S, False), "constraints": (S, False), "closing": (S, False),
+    "config": {"title": (S, False), "artifactUrl": (S, False), "repoUrl": (HTTPS_URL, False), "constraints": (S, False), "closing": (S, False),
                "stages": (("items", {"stage": (S, True), "purpose": (S, True),
                                      "exitCheck": (("enum", EXIT_CHECKS), True),
                                      "completeRuns": (("list", S), False),
@@ -397,6 +398,9 @@ def _type_problem(spec, value, where: str) -> list[str]:
             except ValueError:
                 pass
         return [f"{where}: expected an ISO date-time string"]
+    if spec == HTTPS_URL:
+        ok = isinstance(value, str) and re.fullmatch(r"https://[^\s\"'<>`]+", value) is not None
+        return [] if ok else [f"{where}: expected an https:// URL (the page links repo references to it)"]
     if spec == BOOL_OR_UNKNOWN:
         return [] if isinstance(value, bool) or value == "unknown" else [f'{where}: expected true, false or "unknown"']
     if spec == "any-scalar":
@@ -3271,6 +3275,12 @@ def upgrade_docs(live: dict[str, dict[str, dict]], page_url: str | None = None) 
         if have and have.get("artifactUrl"):
             notes.append(f"config/page: artifactUrl {have['artifactUrl']} is replaced by {page_url}")
         docs["config"]["page"] = {**(have if have is not None else defaults["config"]["page"]), "artifactUrl": page_url}
+    # A page that has no repoUrl gets the defaults' (repo references in the review text become links); one that names its own keeps it.
+    page, repo = docs["config"].get("page", have), defaults["config"]["page"].get("repoUrl")
+    if page is not None and repo and "repoUrl" not in page:
+        docs["config"]["page"] = {**page, "repoUrl": repo}
+        if page is have:
+            notes.append(f"config/page: repoUrl {repo} is added (repo references in the review text become links)")
     return docs, notes
 
 

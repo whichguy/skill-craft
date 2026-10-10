@@ -1485,6 +1485,7 @@ function El(tag){this.tagName=tag;this.children=[];this.attrs={};this.style={};t
   this.hidden=false;this.value="";this.checked=false;this.disabled=false;this.parent=null;this.onclick=null;this.onchange=null;this.oninput=null;this.ontoggle=null;}
 El.prototype.appendChild=function(c){c.parent=this;this.children.push(c);return c;};
 Object.defineProperty(El.prototype,"firstChild",{get:function(){return this.children[0]||null;}});
+Object.defineProperty(El.prototype,"parentNode",{get:function(){return this.parent;}});
 El.prototype.removeChild=function(c){this.children.splice(this.children.indexOf(c),1);c.parent=null;return c;};
 El.prototype.setAttribute=function(k,v){this.attrs[k]=String(v);};
 El.prototype.getAttribute=function(k){return this.attrs[k]===undefined?null:this.attrs[k];};
@@ -2527,8 +2528,10 @@ class DefaultsUpgradeTests(unittest.TestCase):
         cfg = json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))
         self.assertIn("concatPreamble", self.live["config"]["prompt"])
         stages = json.loads((DEFAULTS_DIR / "stages.json").read_text(encoding="utf-8"))["stages"]
-        # config/page holds the page's URL: left alone; config/stages is the derived catalog, always the defaults'
-        self.assertEqual(docs["config"], {"prompt": cfg["prompt"], "stages": {"stages": stages}})
+        # config/page holds the page's URL, kept, and gains the defaults' repoUrl when it has none (R23 E: repo references become links);
+        # config/stages is the derived catalog, always the defaults'
+        self.assertEqual(docs["config"], {"prompt": cfg["prompt"], "stages": {"stages": stages},
+                                          "page": {**self.live["config"]["page"], "repoUrl": cfg["page"]["repoUrl"]}})
         self.assertEqual(set(docs["expectations"]), set(self.defaults))
         self.assertFalse([k for k in docs["expectations"] if k.startswith("iter-")])
         self.assertEqual(set(docs), {"expectations", "config"})
@@ -2536,7 +2539,8 @@ class DefaultsUpgradeTests(unittest.TestCase):
             "expectations/phase-1: the page's text, which has no revision of its own, is replaced by the defaults' text",
             "expectations/group-principles: the page's text, which has no revision of its own, is replaced by the "
             "defaults' text",
-            "config/prompt: replaced by the defaults (fields the defaults do not have are dropped)"])
+            "config/prompt: replaced by the defaults (fields the defaults do not have are dropped)",
+            f"config/page: repoUrl {cfg['page']['repoUrl']} is added (repo references in the review text become links)"])
         bare = {"expectations": {}, "config": {}}
         self.assertEqual(export.upgrade_docs(bare)[0]["config"], {**cfg, "stages": {"stages": stages}})  # a page with no settings gets all three
 
@@ -2560,7 +2564,7 @@ class DefaultsUpgradeTests(unittest.TestCase):
         self.assertIn("note: expectations/group-principles", out.getvalue())
         writes = json.loads((self.tmp / "up" / "writes.json").read_text())
         self.assertEqual(sorted((w["collection"], w["doc_id"]) for w in writes),
-                         sorted([("config", "prompt"), ("config", "stages")] + [("expectations", k) for k in self.defaults]))
+                         sorted([("config", "page"), ("config", "prompt"), ("config", "stages")] + [("expectations", k) for k in self.defaults]))
         bad = self.tmp / "bad.json"
         bad.write_text(json.dumps({"docs": {"expectations": {"P1": {"text": "a bare document, not a row"}}}}))
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
@@ -2569,6 +2573,9 @@ class DefaultsUpgradeTests(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()) as usage, self.assertRaises(SystemExit):
             export.main(["--check", str(SAMPLE_REVIEW), "--live", str(SNAPSHOT)])
         self.assertIn("--live goes with --defaults", usage.getvalue())
+
+
+REPO_URL = "https://github.com/whichguy/skill-craft"
 
 
 class PageUrlTests(unittest.TestCase):
@@ -2601,18 +2608,21 @@ class PageUrlTests(unittest.TestCase):
     def test_a_draft_page_whose_config_page_has_an_empty_url_is_given_the_url_and_keeps_its_own_fields(self):
         live = {**self.live, "config": {**self.live["config"], "page": {"title": "Draft review", "artifactUrl": "", "extra": "kept"}}}
         docs, notes = export.upgrade_docs(live, self.URL)
-        self.assertEqual(docs["config"]["page"], {"title": "Draft review", "artifactUrl": self.URL, "extra": "kept"})
-        self.assertEqual([n for n in notes if "config/page" in n], [])  # an empty URL is nothing to replace
-        none, _ = export.upgrade_docs(live)  # no URL given: the page's document is left alone, as before
-        self.assertNotIn("page", none["config"])
+        self.assertEqual(docs["config"]["page"], {"title": "Draft review", "artifactUrl": self.URL, "extra": "kept", "repoUrl": REPO_URL})
+        self.assertEqual([n for n in notes if "artifactUrl" in n], [])  # an empty URL is nothing to replace
+        none, _ = export.upgrade_docs(live)  # no URL given: only the missing repoUrl is added to the page's document
+        self.assertEqual(none["config"]["page"], {"title": "Draft review", "artifactUrl": "", "extra": "kept", "repoUrl": REPO_URL})
+        own = {**live, "config": {**live["config"], "page": {"title": "Draft", "repoUrl": "https://example.test/own"}}}
+        self.assertNotIn("page", export.upgrade_docs(own)[0]["config"])  # a page that names its own repoUrl keeps it, nothing written
 
     def test_a_different_url_is_replaced_with_a_note_and_the_same_url_writes_nothing(self):
         saved = self.live["config"]["page"]["artifactUrl"]
         self.assertTrue(saved.startswith("https://"))
         docs, notes = export.upgrade_docs(self.live, self.URL)
-        self.assertEqual(docs["config"]["page"], {**self.live["config"]["page"], "artifactUrl": self.URL})
+        self.assertEqual(docs["config"]["page"], {**self.live["config"]["page"], "artifactUrl": self.URL, "repoUrl": REPO_URL})
         self.assertIn(f"config/page: artifactUrl {saved} is replaced by {self.URL}", notes)
-        again, quiet = export.upgrade_docs(self.live, saved)
+        settled = {**self.live, "config": {**self.live["config"], "page": {**self.live["config"]["page"], "repoUrl": REPO_URL}}}
+        again, quiet = export.upgrade_docs(settled, saved)
         self.assertNotIn("page", again["config"])
         self.assertEqual([n for n in quiet if "config/page" in n], [])
 
@@ -2643,6 +2653,296 @@ class PageUrlTests(unittest.TestCase):
             self.assertIn(phrase, text)
         skill = " ".join(SKILL_MD.read_text(encoding="utf-8").split())
         self.assertIn("this page's artifact URL, which the page cannot read itself; the prompt's head prints it", skill)
+
+
+def scan_all(texts: list[str], ctx: dict) -> list[dict]:
+    """Every part linkParts returns over many texts (the texts go through a file: a bundle's review text is too long for an argument)."""
+    node = shutil.which("node")
+    if node is None:
+        raise unittest.SkipTest("node is not installed")
+    program = ("const vm=require('vm'),fs=require('fs');const a=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));"
+               "const c=vm.createContext({});vm.runInContext(a.logic,c);c.texts=a.texts;c.ctx=a.ctx;"
+               "console.log(JSON.stringify(vm.runInContext('texts.map(function(t){return linkParts(t,ctx);})',c)));")
+    with tempfile.TemporaryDirectory() as tmp:
+        arg = Path(tmp) / "arg.json"
+        arg.write_text(json.dumps({"logic": script_blocks()["logic"], "texts": texts, "ctx": ctx}), encoding="utf-8")
+        done = subprocess.run([node, "-e", program, str(arg)], capture_output=True, text=True, timeout=60)
+    if done.returncode != 0:
+        raise AssertionError(f"linkParts failed:\n{done.stderr}")
+    return [part for parts in json.loads(done.stdout) for part in parts]
+
+
+class LinkifyTests(unittest.TestCase):
+    """R23 E: the review text's references (a finding or option id, a repo path, a commit, a spec clause, an https URL) are real
+    links. linkParts is the pure scan (run_logic); linkify turns its parts into text nodes and <a> nodes, never markup."""
+
+    REPO = "https://github.com/whichguy/skill-craft"
+
+    def parts(self, text: str, repo: str | None = REPO, obs=("o12", "o44"), acts=("a17", "a26")):
+        ctx = {"obs": {i: True for i in obs}, "acts": {i: True for i in acts}}
+        if repo is not None:
+            ctx["repoUrl"] = repo
+        return run_logic("linkParts(%s,%s)" % (json.dumps(text), json.dumps(ctx)))
+
+    def links(self, text: str, **kw) -> list[list[str]]:
+        """[[linked text, target]] of one text: a repo or URL link's href, or `jump:obs:o12` / `jump:act:a17`."""
+        return [[p["text"], p["href"] if "href" in p else f"jump:{p['jump']['kind']}:{p['jump']['id']}"]
+                for p in self.parts(text, **kw) if "href" in p or "jump" in p]
+
+    def test_each_kind_of_reference_links_to_its_target(self) -> None:
+        blob, tree = self.REPO + "/blob/main/", self.REPO + "/tree/main/"
+        self.assertEqual(self.links("See o12, a17 and docs/shiploop-fast-planning-plan-2026-10-04.md, "
+                                    "skills/shiploop/scripts/shiploop_prompts.py, test/shiploop_e2e/SPEC.md (S-10), skills/shiploop-run-review/, "
+                                    "commit 4dc6dae8 and https://example.test/a/b?x=1."),
+                         [["o12", "jump:obs:o12"], ["a17", "jump:act:a17"],
+                          ["docs/shiploop-fast-planning-plan-2026-10-04.md", blob + "docs/shiploop-fast-planning-plan-2026-10-04.md"],
+                          ["skills/shiploop/scripts/shiploop_prompts.py", blob + "skills/shiploop/scripts/shiploop_prompts.py"],
+                          ["test/shiploop_e2e/SPEC.md", blob + "test/shiploop_e2e/SPEC.md"],
+                          ["S-10", blob + "test/shiploop_e2e/SPEC.md"],
+                          ["skills/shiploop-run-review/", tree + "skills/shiploop-run-review/"],
+                          ["4dc6dae8", self.REPO + "/commit/4dc6dae8"],
+                          ["https://example.test/a/b?x=1", "https://example.test/a/b?x=1"]])
+        for top in ("docs", "test", "skills", "agents", "changes", "catalog", "scripts"):
+            self.assertEqual(self.links(f"{top}/x/y.md"), [[f"{top}/x/y.md", f"{blob}{top}/x/y.md"]], top)
+
+    def test_the_parts_rebuild_the_text_exactly_and_a_link_never_swallows_the_punctuation_after_it(self) -> None:
+        text = "At 45f163d0, in docs/a/b.md. Also (skills/shiploop/x.py); then test/ and S-3, S-4."
+        self.assertEqual("".join(p["text"] for p in self.parts(text)), text)
+        self.assertEqual([t for t, _ in self.links(text)], ["45f163d0", "docs/a/b.md", "skills/shiploop/x.py", "test/", "S-3", "S-4"])
+        self.assertEqual(self.links("a docs/x/y.md.")[0][0], "docs/x/y.md")
+
+    def test_a_line_or_a_symbol_after_a_path_is_not_part_of_it_and_a_glob_or_placeholder_is_text(self) -> None:
+        self.assertEqual(self.links("docs/shiploop/spec.md:188 and test/shiploop-run-review.test.py#LinkifyTests"),
+                         [["docs/shiploop/spec.md", self.REPO + "/blob/main/docs/shiploop/spec.md"],
+                          ["test/shiploop-run-review.test.py", self.REPO + "/blob/main/test/shiploop-run-review.test.py"]])
+        self.assertEqual(self.links("test/shiploop_e2e/evidence/*.review.json, skills/<leaf>/SKILL.md, scripts/{a,b}.py, docs/$X.md"), [])
+
+    def test_a_path_that_is_part_of_a_longer_path_or_url_is_not_linked(self) -> None:
+        self.assertEqual(self.links("src/docs/a.md and ../docs/a.md and /tmp/test/a.md and ~/skills/a.md and mydocs/a.md"), [])
+        self.assertEqual(self.links("https://example.test/docs/a.md"), [["https://example.test/docs/a.md", "https://example.test/docs/a.md"]])
+        self.assertEqual(self.links("http://example.test/docs/a.md"), [])  # only https becomes an href; the path inside it is not linked either
+        self.assertEqual(self.links("prose like test/fix or pass/test/fix has no dot, no folder slash and two segments"), [])
+
+    def test_an_id_links_only_when_it_exists_in_the_loaded_data_and_a_path_wins_over_an_id_inside_it(self) -> None:
+        self.assertEqual(self.links("o12 o13 a17 a18 o1 o1234 xo12 o12x"), [["o12", "jump:obs:o12"], ["a17", "jump:act:a17"]])
+        self.assertEqual(self.links("see docs/o12.md and o12"), [["docs/o12.md", self.REPO + "/blob/main/docs/o12.md"], ["o12", "jump:obs:o12"]])
+        self.assertEqual(self.links("o12, o44-o45 and a26."), [["o12", "jump:obs:o12"], ["o44", "jump:obs:o44"], ["a26", "jump:act:a26"]])
+        self.assertEqual(self.links("o12", obs=(), acts=()), [])
+        self.assertEqual(self.links("constructor o12", obs=("o12",)), [["o12", "jump:obs:o12"]])
+        # an id needs no repo address: the jump is in the page
+        self.assertEqual(self.links("o12", repo=None), [["o12", "jump:obs:o12"]])
+
+    def test_a_commit_is_seven_to_forty_hex_characters_with_a_digit_and_a_letter_or_named_by_the_word_commit(self) -> None:
+        sha = lambda s: [t for t, _ in self.links(s)]
+        self.assertEqual(sha("at 45f163d0 and abc1234 and " + "a1" * 20), ["45f163d0", "abc1234", "a1" * 20])
+        # ordinary words, plain numbers, a too short or too long run, upper case and a part of a name are not commits
+        self.assertEqual(sha("defaced decade effaced 1234567 20261004 1791508003 abc123 " + "a1" * 21 + " ABC1234F nav-0a505245 x_45f163d0 a.1b2c3d4e"), [])
+        self.assertEqual(sha("the commit defaced it"), ["defaced"])  # known limit: the word commit makes the next a-to-f word a commit
+        self.assertEqual(sha("commit message defaced"), [])
+        self.assertEqual(sha("commit deadbeef"), ["deadbeef"])
+        self.assertEqual(sha("commits 4dc6dae8, a038e633 and deadbeef; then cafebabe"), ["4dc6dae8", "a038e633", "deadbeef"])
+        self.assertEqual(sha("commit 12345678"), [])  # digits alone are a number, even after the word
+        self.assertEqual(sha("file 45f163d0.py"), [])
+
+    def test_a_spec_clause_links_to_the_spec_file_without_an_anchor(self) -> None:
+        spec = self.REPO + "/blob/main/test/shiploop_e2e/SPEC.md"
+        self.assertEqual(self.links("S-1..S-13, S-5/S-6, (S-10)"), [["S-1", spec], ["S-13", spec], ["S-5", spec], ["S-6", spec], ["S-10", spec]])
+        self.assertEqual(self.links("MS-1 S-0 S-01x S-"), [])
+
+    def test_no_repo_address_or_one_that_is_not_https_gives_no_repo_link_and_a_url_in_the_text_is_https_only(self) -> None:
+        text = "docs/a.md 45f163d0 S-3 https://example.test/x http://example.test/y javascript:alert(1) data:text/html,x"
+        for repo in (None, "", "http://github.com/whichguy/skill-craft", "javascript:alert(1)", "data:text/html,x", "github.com/x", "https://a b"):
+            self.assertEqual(self.links(text, repo=repo), [["https://example.test/x", "https://example.test/x"]], repr(repo))
+        self.assertEqual(self.links("docs/a.md", repo=self.REPO + "/")[0][1], self.REPO + "/blob/main/docs/a.md")  # a trailing slash is trimmed
+        for text in (None, 7, ""):
+            self.assertEqual(run_logic("linkParts(%s,{})" % json.dumps(text)), [{"text": str(text)}] if text not in (None, "") else [])
+
+    def test_the_logic_scan_reads_no_page_state_and_the_prompt_builder_never_calls_it(self) -> None:
+        html = TEMPLATE.read_text(encoding="utf-8")
+        builder = html[html.index("function buildPrompt("):html.index("/* ---- references in review text")]
+        for name in ("linkParts", "linkify", "addLinked", "repoUrl", "href"):
+            self.assertNotIn(name, builder, name)
+
+    # ---- the page
+
+    def bundle_setup(self, name: str, *, repo: str | None = REPO, extra: str = "") -> str:
+        docs = json.loads((EVIDENCE_DIR / name).read_text(encoding="utf-8"))["docs"]
+        exp = {d["key"]: {k: v for k, v in d.items() if k != "key"}
+               for d in json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))}
+        obs = [{"id": i, **d} for i, d in docs.get("observations", {}).items()]
+        acts = [{"id": i, **d} for i, d in docs.get("actions", {}).items()]
+        reviews = [{"id": i, **d} for i, d in docs.get("reviews", {}).items()]
+        page = {"title": "t"} if repo is None else {"title": "t", "repoUrl": repo}
+        return ('data.runs=[{key:"r3-battleship-sonnet",name:"Run",order:1,release:"x",phases:[],time:"",imp:"",stages:[]}];'
+                f"data.exp={json.dumps(exp)};data.obs={json.dumps(obs)};data.acts={json.dumps(acts)};data.cfg.page={json.dumps(page)};"
+                'Object.keys(loaded).forEach(function(k){loaded[k]=true;});L.filter="all";' + extra + "renderAll();")
+
+    ANCHORS = ('function anchors(root){return walk(root,function(e){return e.tagName==="a";}).map(function(e){'
+               'return [e.textContent,e.attrs.href,e.attrs.target||"",e.attrs.rel||""];});}')
+
+    def test_a_real_finding_of_the_committed_bundle_renders_its_references_as_links(self) -> None:
+        out = page_probe(self.ANCHORS + 'anchors(walk(REG.cards,function(e){return e.id==="f-o44";})[0])',
+                         setup=self.bundle_setup("general.review.json"))
+        blob = self.REPO + "/blob/main/"
+        ext = {t: (h, tg, rel) for t, h, tg, rel in out if h.startswith("https://")}
+        self.assertEqual(ext["skills/shiploop/references/state-files.md"][0], blob + "skills/shiploop/references/state-files.md")
+        self.assertEqual(ext["45f163d0"][0], self.REPO + "/commit/45f163d0")
+        self.assertEqual(ext["docs/shiploop-planning-review-plan-2026-10-05.md"][0], blob + "docs/shiploop-planning-review-plan-2026-10-05.md")
+        self.assertEqual(ext["test/shiploop_e2e/SPEC.md"][0], blob + "test/shiploop_e2e/SPEC.md")
+        self.assertEqual(ext["S-10"][0], blob + "test/shiploop_e2e/SPEC.md")
+        self.assertEqual(ext["skills/shiploop-run-review/defaults/expectations.json"][0],
+                         blob + "skills/shiploop-run-review/defaults/expectations.json")
+        for target, rel in ((t, r) for _, t, r in ext.values()):
+            self.assertEqual((target, rel), ("_blank", "noopener noreferrer"))
+        self.assertTrue(all(h.startswith("https://github.com/whichguy/skill-craft/") for t, h, _, _ in out if h.startswith("https")))
+
+    def test_an_open_option_of_the_committed_bundle_links_its_paths_and_ids_to_the_right_targets(self) -> None:
+        docs = json.loads((EVIDENCE_DIR / "general.review.json").read_text(encoding="utf-8"))["docs"]
+        option = next(i for i, a in docs["actions"].items() if a["status"] != "done" and re.search(r"skills/\S+\.\w+", a["goal"]) and a.get("findings"))
+        out = page_probe(self.ANCHORS + 'var w=walk(REG.cards,function(e){return e.id==="opt-%s";})[0];anchors(w)' % option,
+                         setup=self.bundle_setup("general.review.json"))
+        paths = [(t, h) for t, h, _, _ in out if re.match(r"(docs|test|skills|agents|changes|catalog|scripts)/", t)]
+        self.assertGreaterEqual(len(paths), 2, out)
+        for text, href in paths:
+            self.assertEqual(href, self.REPO + ("/tree/main/" if text.endswith("/") else "/blob/main/") + text)
+        for text, href in ((t, h) for t, h, _, _ in out if re.fullmatch(r"[oa]\d{2,3}", t)):
+            self.assertIn(href, ("#f-" + text, "#opt-" + text))
+
+    JUMPS = (
+        'data.runs=[{key:"r",name:"R",order:1,release:"x",phases:[],time:"",imp:""}];data.exp={P1:{kind:"criterion",title:"T",text:"x"}};'
+        'data.obs=[{id:"o11",title:"First",criterion:"P1",run:"any",status:"open",expected:"e",observed:"see o12 and a21 and a22, docs/a.md, 45f163d0, S-3",evidence:"x"},'
+        '{id:"o12",title:"Second",criterion:"P1",run:"any",status:"open",expected:"e",observed:"o",evidence:"x"}];'
+        'data.acts=[{id:"a21",title:"Open one",goal:"Done when: x",findings:["o11"],status:"open"},'
+        '{id:"a22",title:"Done one",goal:"g",findings:["o11"],status:"done"},{id:"a23",title:"Loose one",goal:"g",status:"open"}];'
+        'data.cfg.page={};Object.keys(loaded).forEach(function(k){loaded[k]=true;});L.filter="all";renderAll();')
+
+    def jump(self, href: str) -> list:
+        return page_probe(self.ANCHORS + 'var j=walk(REG.cards,function(e){return e.tagName==="a"&&e.attrs.href===%s;})[0];' % json.dumps(href)
+                          + 'var seen=[j.className,j.tagName,j.attrs.target||""],n=0;REG.done.parent=REG.donebox;REG.loose.parent=REG.loosebox;'
+                          'var real=document.getElementById;document.getElementById=function(id){return real(id)||[REG.cards,REG.done,REG.loose].reduce('
+                          'function(f,r){return f||walk(r,function(e){return e.id===id;})[0];},null);};'
+                          'REG.donebox.open=false;REG.loosebox.open=false;L.filter="open";L.crit="P1";L.step=1;'
+                          'j.onclick({preventDefault:function(){n++;}});[n,L.filter,L.crit,L.step,REG.donebox.open,REG.loosebox.open,seen]',
+                          setup=self.JUMPS)
+
+    def test_an_id_link_is_a_real_anchor_that_opens_the_finding_or_the_option_even_inside_a_closed_box(self) -> None:
+        self.assertEqual(self.jump("#f-o12"), [1, "all", "", 3, False, False, ["lk", "a", ""]])
+        self.assertEqual(self.jump("#opt-a21"), [1, "all", "", 3, False, False, ["lk", "a", ""]])
+        self.assertEqual(self.jump("#opt-a22")[:6], [1, "all", "", 3, True, False])  # a done option sits in the closed "Already done" box
+        out = page_probe(self.ANCHORS + 'anchors(REG.cards).map(function(a){return a[0]+"="+a[1];})', setup=self.JUMPS)
+        self.assertEqual(out, ["o12=#f-o12", "a21=#opt-a21", "a22=#opt-a22"])  # no repo address here: nothing else is a link
+
+    def test_the_review_summary_basis_and_expectation_text_are_linkified_and_run_content_is_not(self) -> None:
+        extra = ('data.rev={"r3-battleship-sonnet":{summary:["Fixed in 45f163d0, see o44 and docs/a.md."],basis:{P1:"Held at test/b.md (S-2)."}}};'
+                 'data.exp.P1.text="Spec S-1 and docs/c.md.";data.runs[0].stages=[{stage:"intake",outcome:"done",min:1,summary:"Wrote docs/run-local.md at 45f163d0"}];')
+        setup = self.bundle_setup("general.review.json", extra=extra) + 'setCol(0);'
+        out = page_probe(self.ANCHORS + '[anchors(REG.arc).map(function(a){return a[0];}),anchors(REG.groups).map(function(a){return a[0];}),'
+                         'anchors(REG.seqdetail).concat(anchors(REG.rundetail)).map(function(a){return a[0];}),textOf("seqdetail")]', setup=setup)
+        self.assertIn("docs/run-local.md", out[3])  # the run's own text is on the page, as text
+        self.assertEqual(out[0], ["45f163d0", "o44", "docs/a.md"])
+        self.assertIn("test/b.md", out[1])
+        self.assertIn("S-2", out[1])
+        self.assertIn("docs/c.md", out[1])
+        self.assertEqual([t for t in out[2] if "run-local" in t or t == "45f163d0"], [], "stage summaries are run content: files on the machine that ran the case")
+
+    def test_a_page_with_no_repo_address_keeps_every_repo_reference_as_text_and_still_links_ids(self) -> None:
+        shown = self.ANCHORS + 'anchors(REG.cards).map(function(a){return a[0]+"="+a[1];})'
+        for repo in ("{}", '{repoUrl:"javascript:alert(1)"}', '{repoUrl:"http://github.com/x/y"}'):
+            self.assertEqual(page_probe(shown, setup=self.JUMPS.replace("data.cfg.page={}", "data.cfg.page=" + repo)),
+                             ["o12=#f-o12", "a21=#opt-a21", "a22=#opt-a22"], repo)
+        out = page_probe(shown, setup=self.JUMPS.replace("data.cfg.page={}", 'data.cfg.page={repoUrl:"%s"}' % self.REPO))
+        self.assertEqual(out[3:], ["docs/a.md=%s/blob/main/docs/a.md" % self.REPO, "45f163d0=%s/commit/45f163d0" % self.REPO,
+                                   "S-3=%s/blob/main/test/shiploop_e2e/SPEC.md" % self.REPO])
+
+    def test_markup_in_a_finding_stays_text_and_makes_no_element(self) -> None:
+        evil = {"id": "o99", "title": "<script>alert(1)</script> o99", "expected": "<img src=x onerror=alert(1)> docs/a.md",
+                "observed": "<a href=\"javascript:alert(1)\">x</a> &amp; <b>bold</b>", "evidence": "javascript:alert(1) https://ok.test/x",
+                "advice": "<iframe src=//evil.test></iframe>", "criterion": "P1", "run": "any", "status": "open", "phase": 1}
+        setup = ('data.runs=[{key:"r",name:"R",order:1,release:"x",phases:[],time:"",imp:""}];data.exp={P1:{kind:"criterion",title:"T",text:"x"}};'
+                 f"data.obs=[{json.dumps(evil)}];data.acts=[{{id:'a99',title:'<img onerror=1> a99',goal:'<script>1</script> Done when: x',why:'<b>y</b> o99'}}];"
+                 'data.cfg.page={repoUrl:"https://github.com/whichguy/skill-craft"};Object.keys(loaded).forEach(function(k){loaded[k]=true;});L.filter="all";renderAll();')
+        out = page_probe(self.ANCHORS + '[walk(REG.cards,function(e){return["script","img","iframe"].indexOf(e.tagName)>=0;}).length,'
+                         'walk(REG.cards,function(e){return e.innerHTML!=="";}).length,anchors(REG.cards),REG.cards.textContent]', setup=setup)
+        self.assertEqual(out[:2], [0, 0], "no element is created from text, and no innerHTML is set on a card")
+        self.assertEqual(sorted(t for t, *_ in out[2]), ["docs/a.md", "https://ok.test/x", "o99"])
+        loose = page_probe(self.ANCHORS + 'anchors(REG.loose).map(function(a){return a[0]+"="+a[1];})', setup=setup)
+        self.assertEqual(loose, ["a99=#opt-a99", "o99=#f-o99"])
+        for needed in ("<script>alert(1)</script>", "<img src=x onerror=alert(1)>", '<a href="javascript:alert(1)">x</a>', "<iframe src=//evil.test></iframe>"):
+            self.assertIn(needed, out[3])
+        self.assertTrue(all(h.startswith(("https://", "#")) for _, h, _, _ in out[2]))
+
+    def test_the_page_script_builds_review_links_from_nodes_and_the_prompt_stays_plain_text(self) -> None:
+        page = script_text()
+        body = page[page.index("function linkify("):page.index("function addLinked(")]
+        self.assertNotIn("innerHTML", body)
+        state = prompt_state(findings=[{"id": "o12", "title": "T", "status": "open", "run": "r1", "expected": "see docs/a.md",
+                                        "observed": "at 45f163d0 (S-3), o13", "evidence": "skills/shiploop/x.py:3"}],
+                             options=[{"id": "a17", "title": "Fix o12", "kind": "fix-shiploop", "findings": ["o12"],
+                                       "goal": "Do: edit docs/a.md. Done when: green."}],
+                             selected={"options": {"a17": True}, "find": {}})
+        state["config"]["repoUrl"] = self.REPO
+        text = run_logic("buildPrompt(%s)" % json.dumps(state))
+        for plain in ("docs/a.md", "45f163d0", "S-3", "o13", "skills/shiploop/x.py:3", "a17", "o12"):
+            self.assertIn(plain, text)
+        for markup in ("<a ", "</a>", "href", "github.com", "blob/main", "[docs/a.md]("):
+            self.assertNotIn(markup, text)
+
+    def test_the_committed_bundles_link_the_references_they_hold_and_leave_run_local_ones_as_text(self) -> None:
+        counts = {"jump": 0, "repo": 0, "commit": 0, "clause": 0}
+        for name in ("general.review.json", "luna1.review.json", "r3-battleship-grok-none.review.json", "r3-battleship-sonnet.review.json"):
+            docs = json.loads((EVIDENCE_DIR / name).read_text(encoding="utf-8"))["docs"]
+            ctx = {"repoUrl": self.REPO, "obs": {i: True for i in docs.get("observations", {})}, "acts": {i: True for i in docs.get("actions", {})}}
+            texts = []
+            for d in docs.get("observations", {}).values():
+                texts += [d.get(k) for k in ("title", "expected", "observed", "evidence", "advice")]
+            for d in docs.get("actions", {}).values():
+                texts += [d.get(k) for k in ("title", "why", "goal", "ref")] + [(d.get("change") or {}).get(k) for k in ("to", "reason")]
+            for r in docs.get("reviews", {}).values():
+                texts += list(r.get("summary") or []) + list((r.get("basis") or {}).values())
+            for part in scan_all([t for t in texts if t], ctx):
+                if "jump" in part:
+                    counts["jump"] += 1
+                elif part.get("href", "").startswith(self.REPO + "/commit/"):
+                    counts["commit"] += 1
+                elif re.fullmatch(r"S-\d+", part["text"]) and "href" in part:
+                    counts["clause"] += 1
+                elif "href" in part:
+                    counts["repo"] += 1
+                    self.assertRegex(part["text"], r"^(docs|test|skills|agents|changes|catalog|scripts)/")
+                else:
+                    self.assertNotRegex(part["text"], r"^nav-[0-9a-f]+$")
+        self.assertGreater(counts["jump"], 100)
+        self.assertGreater(counts["repo"], 200)
+        self.assertGreater(counts["commit"], 100)
+        self.assertGreater(counts["clause"], 100)
+
+
+    # ---- the contract
+
+    def test_the_defaults_name_the_repo_and_check_refuses_a_repo_address_that_is_not_https(self) -> None:
+        self.assertEqual(json.loads((DEFAULTS_DIR / "config.json").read_text(encoding="utf-8"))["page"]["repoUrl"], self.REPO)
+        self.assertEqual(export.validate_doc("config", {"title": "t", "repoUrl": self.REPO}), [])
+        self.assertEqual(export.validate_doc("config", {"title": "t"}), [])  # optional: old pages stay valid
+        for bad in ("http://github.com/x/y", "javascript:alert(1)", "data:text/html,x", "github.com/x/y", "https://a b", "https://", "", 7):
+            self.assertTrue(export.validate_doc("config", {"repoUrl": bad}), repr(bad))
+        bundle = json.loads(SAMPLE_REVIEW.read_text(encoding="utf-8"))
+        bundle["docs"].setdefault("config", {})["page"] = {"title": "t", "repoUrl": "http://github.com/x/y"}
+        failures, _ = export.check_bundle(bundle)
+        self.assertTrue(any("config.repoUrl" in f and "https://" in f for f in failures), failures)
+        bundle["docs"]["config"]["page"]["repoUrl"] = self.REPO
+        self.assertEqual(export.check_bundle(bundle)[0], [])
+        for name in ("general", "luna1", "r3-battleship-grok-none", "r3-battleship-sonnet"):
+            self.assertEqual(export.check_bundle(json.loads((EVIDENCE_DIR / f"{name}.review.json").read_text(encoding="utf-8")))[0], [], name)
+
+    def test_schema_md_and_skill_md_document_the_repo_address_and_what_is_linked(self) -> None:
+        schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
+        skill = " ".join(SKILL_MD.read_text(encoding="utf-8").split())
+        for phrase in ("`repoUrl` (optional string: an `https://` URL of the repository", "No `repoUrl` means no repo link",
+                       "Run-local paths are not links", "files on the machine that ran the case"):
+            self.assertIn(phrase, schema, phrase)
+        for phrase in ("`config/page.repoUrl`", "a finding or option id that exists", "a repo path under docs/", "a commit",
+                       "a spec clause S-<n>", "files on the machine that ran the case"):
+            self.assertIn(phrase, skill, phrase)
 
 
 EVIDENCE_DIR = ROOT / "test" / "shiploop_e2e" / "evidence"
