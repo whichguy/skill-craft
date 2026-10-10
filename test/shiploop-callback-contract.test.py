@@ -54,7 +54,8 @@ EXPECTED_STAGES = (
 # until implement has created built.txt, which is the red-then-green the test stages expect.
 FOCUSED = "test -f built.txt && echo TC-1 || { echo TC-1; exit 1; }"
 RESULTS = {
-    "step-plan": {"paths": ["built.txt"], "steps": [{"id": "S1", "task": "Create built.txt", "deps": []}],
+    "step-plan": {"paths": ["built.txt"], "steps": [{"id": "S1", "task": "Create built.txt", "deps": [],
+                                                       "criteria": ["C1"], "paths": ["built.txt"]}],
                   "criteria": [{"id": "C1", "text": "built.txt exists"}],
                   "test_commands": [{"command": FOCUSED, "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                     {"command": "test -f built.txt", "suite": "regression"}]},
@@ -326,11 +327,14 @@ class RefusalRouteTests(RealCliCase):
                                                       "check": "run y", "reason": "later", "consumer": "W9"}]},
              "is not a work item in this plan"),
             ("a criterion no test command names", "step-plan",
-             lambda block: {**block, "criteria": [*block["criteria"], {"id": "C2", "text": "an unnamed criterion"}]},
+             lambda block: {**block, "criteria": [*block["criteria"], {"id": "C2", "text": "an unnamed criterion"}],
+                            "steps": [dict(block["steps"][0], criteria=["C1", "C2"])]},
              "every criterion needs a test command that confirms it"),
             ("a step whose dependency is a later step", "step-plan",
-             lambda block: {**block, "steps": [{"id": "S1", "task": "first", "deps": ["S2"]},
-                                               {"id": "S2", "task": "second", "deps": []}]},
+             lambda block: {**block, "steps": [{"id": "S1", "task": "first", "deps": ["S2"], "criteria": ["C1"],
+                                                "paths": ["built.txt"]},
+                                               {"id": "S2", "task": "second", "deps": [], "criteria": ["C1"],
+                                                "paths": ["built.txt"]}]},
              "step deps must name earlier steps"),
             ("no system_commands list", "system-test-author",
              lambda block: {k: v for k, v in block.items() if k != "system_commands"},
@@ -722,7 +726,9 @@ class RefusalRouteTests(RealCliCase):
         self.assertIn("open item", exit_sentence.group(0))
         good = self.fill_done(head)
         person_only = {"id": "C2", "text": "A person signs off the layout. Confirm by: unconfirmable here - needs a person."}
-        write_block(path, {**good, "criteria": [*good["criteria"], person_only]})
+        # The step names C2 too, so the plan is sized and the refusal is the one for a criterion no command confirms.
+        write_block(path, {**good, "criteria": [*good["criteria"], person_only],
+                           "steps": [dict(good["steps"][0], criteria=["C1", "C2"])]})
         reply = self.refused(command, run)
         self.assertIn("uncovered: C2", reply)
         self.assertIn("open item", reply)
@@ -776,7 +782,8 @@ class RefusalRouteTests(RealCliCase):
         command, path, _ = printed_callback(head)
         good = self.fill_done(head)
         write_block(path, {**{key: value for key, value in good.items() if key not in ("criteria", "test_commands")},
-                           "paths": ["README.md"], "test_commands": [], "test_commands_na": "documentation only"})
+                           "paths": ["README.md"], "test_commands": [], "test_commands_na": "documentation only",
+                           "steps": [{"id": "S1", "task": "Document the change.", "paths": ["README.md"]}]})
         implement = self.accepted(command)
         self.assertIn("| implement |", implement.splitlines()[0])
         done_when = implement.split("Done when", 1)[1].split("Checked by:", 1)[0]
@@ -806,6 +813,81 @@ def first_object(text: str) -> dict:
 def allowed_outcomes(head: str) -> list[str]:
     line = next(row for row in head.splitlines() if row.startswith("Allowed outcomes: "))
     return [part.strip().split(" ", 1)[0].rstrip(".") for part in line.removeprefix("Allowed outcomes: ").split(" | ")]
+
+
+class StepSizingRouteTests(RealCliCase):
+    """The step-sizing gate (owner, 2026-10-10): each refusal names its fault, and the sized plan is accepted.
+
+    Every step lists the paths it changes (from the item's paths) and, when the result lists criteria, the criteria it
+    satisfies; every criterion is satisfied by some step; and a step that only changes test files is refused unless
+    the whole item is tests.
+    """
+
+    def test_each_unsized_step_plan_is_refused_by_name_and_the_sized_plan_is_accepted(self) -> None:
+        run, head = self.new_run("step-plan")
+        command, path, action = printed_callback(head)
+        good = self.fill_done(head)
+        step = good["steps"][0]
+        self.assertEqual((step["paths"], step["criteria"]), (["built.txt"], ["C1"]))
+        bare = {key: value for key, value in step.items() if key not in ("paths", "criteria")}
+        test_file = "tests/test_built.py"
+        cases = [
+            ("a step without paths", {**good, "steps": [dict(bare, criteria=["C1"])]},
+             "step S1 must list paths: the files it changes, from the item's paths"),
+            ("a step without criteria while the result lists criteria", {**good, "steps": [dict(bare, paths=["built.txt"])]},
+             "step S1 must list criteria: the IDs of the criteria it satisfies (C1)"),
+            ("a step naming a criterion the result does not list", {**good, "steps": [dict(step, criteria=["C1", "C9"])]},
+             "step S1 names criteria the result does not list: C9"),
+            ("a step path the item does not declare", {**good, "steps": [dict(step, paths=["built.txt", "other.txt"])]},
+             "step S1 changes paths the item does not declare: other.txt"),
+            ("a criterion no step satisfies",
+             {**good, "criteria": [*good["criteria"], {"id": "C2", "text": "built.txt is committed"}],
+              "test_commands": [*good["test_commands"], {"command": "true", "suite": "check", "criteria": ["C2"]}]},
+             "no step satisfies C2"),
+            ("a step that only changes test files",
+             {**good, "paths": ["built.txt", test_file],
+              "steps": [dict(step, id="S1", paths=[test_file]), dict(step, id="S2", deps=["S1"])]},
+             "step S1 only changes test files. Tests are not a step"),
+        ]
+        for label, block, fragment in cases:
+            with self.subTest(label):
+                write_block(path, block)
+                self.assertIn(fragment, self.refused(command, run))
+        write_block(path, good)
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["steps"][0]["paths"], ["built.txt"])
+
+    def test_an_item_that_is_only_tests_may_have_a_test_only_step(self) -> None:
+        run, head = self.new_run("step-plan")
+        command, path, action = printed_callback(head)
+        good = self.fill_done(head)
+        tests = ["tests/test_built.py"]
+        write_block(path, {**good, "paths": tests, "steps": [dict(good["steps"][0], paths=tests)]})
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["steps"][0]["paths"], tests)
+
+    def test_the_printed_template_steps_are_accepted_as_written_once_placeholders_are_filled(self) -> None:
+        run, head = self.new_run("step-plan")
+        command, path, action = printed_callback(head)
+        template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+
+        def fill(value, key=""):
+            """Replace each placeholder; every structural field (ids, deps, criteria, suites) stays as printed."""
+            if isinstance(value, dict):
+                return {k: fill(v, k) for k, v in value.items()}
+            if isinstance(value, list):
+                return [fill(v, key) for v in value]
+            if not isinstance(value, str) or not (value == "..." or value.startswith("<")):
+                return value
+            return {"paths": "built.txt", "command": "true", "evidence_refs": str(self.evidence)}.get(
+                key, "What this field records.")
+
+        block = fill(template)
+        self.assertEqual([(row["id"], row["deps"], row["criteria"]) for row in block["steps"]],
+                         [("S1", [], ["C1"]), ("S2", ["S1"], ["C2"])])
+        write_block(path, block)
+        self.accepted(command)
+        self.assertEqual([row["paths"] for row in self.recorded(run, action)["steps"]], [["built.txt"], ["built.txt"]])
 
 
 class UnverifiedRouteTests(RealCliCase):

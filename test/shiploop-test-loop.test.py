@@ -45,6 +45,15 @@ MATERIAL = dict(TRIVIAL, classification="non-trivial", exit_assessment="unsatisf
 # A one-test runner: prints a unittest summary, fails while its file is missing.
 CHECK = ('echo "Ran 1 test in 0.001s"\n'
          'if test -f "$1"; then echo OK; else echo "FAILED (failures=1)"; exit 1; fi\n')
+def one_step(result: dict) -> dict:
+    """The one implement step of a synthetic step plan, sized as the submit gate requires: it changes all of the
+    item's paths and satisfies all of its criteria."""
+    step = {"id": "S1", "task": "Make the planned change.", "paths": list(result.get("paths") or ["a.py"])}
+    if result.get("criteria"):
+        step["criteria"] = [row["id"] for row in result["criteria"]]
+    return step
+
+
 COMMANDS = [{"command": "sh check.sh fixed.txt", "suite": "focused"},
             {"command": "test -f retained.txt", "suite": "regression"}]
 # A test file that loads something this item creates dies before any test runs while that file is missing.  LOADER is
@@ -206,7 +215,7 @@ class TestLoopTests(unittest.TestCase):
             recorded = dict(recorded, test_commands=[dict(recorded["test_commands"][0], criteria=["C1"]),
                                                      *recorded["test_commands"][1:]],
                             criteria=[{"id": "C1", "text": "The item's focused check passes."}])
-        recorded = {"steps": [{"id": "S1", "task": "Make the planned change."}], **recorded}
+        recorded = {"steps": [one_step(recorded)], **recorded}
         for _ in range(200):
             state = self.state()
             if state.get("active_improve") is not None:
@@ -339,7 +348,8 @@ class TestLoopTests(unittest.TestCase):
                      "ids": [f"test_{n}_{i}_" + "a" * 70 for i in range(ids)]} for n in range(count)]
 
         def plan(commands):
-            return dict(DONE, test_commands=commands, paths=["src/a.py"], criteria=[{"id": "C1", "text": "x"}], steps=[])
+            return dict(DONE, test_commands=commands, paths=["src/a.py"], criteria=[{"id": "C1", "text": "x"}],
+                        steps=[{"id": "S1", "task": "x", "criteria": ["C1"], "paths": ["src/a.py"]}])
 
         self.assertIsNone(test_loop.listing_problem(rows(2, 3)))
         nav._check_submitted_test_commands("step-plan", plan(rows(2, 3)))
@@ -728,7 +738,7 @@ class TestLoopTests(unittest.TestCase):
     def test_skill_na_beside_a_skill_file_in_paths_is_refused_and_the_plan_without_it_is_accepted(self):
         self.start()
         self.drive_to("step-plan")
-        plan = dict(DONE, steps=[{"id": "S1", "task": "Make the planned change."}], **self.NO_TESTS)
+        plan = dict(DONE, steps=[one_step(self.NO_TESTS)], **self.NO_TESTS)
         skill_file = ".claude/skills/review/SKILL.md"
         self.assert_refused(dict(plan, skill_na=SKILL_NA, paths=[*plan["paths"], skill_file]),
                             r"(?s)skill_na.*\.claude/skills/review/SKILL\.md.*resubmit the step plan without skill_na.*"

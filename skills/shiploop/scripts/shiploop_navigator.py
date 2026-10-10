@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
+import fnmatch
 import json
 import os
 import sys
@@ -1388,7 +1389,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         "",
         status_block(state),
         "",
-        # The narrative before the loop lines: a status hook reads only the first 8000 bytes, and a loop stage's
+        # The narrative before the loop lines: a status hook reads only the first 16,000 bytes, and a loop stage's
         # command list (which varies in length) after it pushed a milestone narrative past that window.
         *narrative_lines(state, timeline),
         *_after_status_lines(root, state, stage, action["id"]),
@@ -1605,15 +1606,17 @@ def _check_submitted_recorded_commands(stage: str, result: Any) -> None:
 def _normalise_steps(value: Any) -> list[dict[str, Any]]:
     """A step plan's implementation steps, in the order ShipLoop issues them.
 
-    ``[{"id": "S1", "task": "...", "deps": []}]``. On the inline route each step is its own
-    ``implement`` action; a step that does not depend on the one before it is
-    simply the next entry.
+    ``[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "paths": ["src/a.js"]}]``. On the inline
+    route each step is its own ``implement`` action; a step that does not depend on the one before it is
+    simply the next entry. ``criteria`` and ``paths`` are required for a new step plan by the submit gate
+    (``_check_step_sizing``); here they are shape-checked when present, so saved plans still load.
     """
     _need(isinstance(value, list) and value, "steps must be a nonempty list; one step is fine")
     rows = []
     for entry in value:
-        _need(isinstance(entry, Mapping) and {"id", "task"} <= set(entry) <= {"id", "task", "deps"},
-              "each step is {\"id\": \"S1\", \"task\": \"...\", \"deps\": []}; deps may be omitted in older plans")
+        _need(isinstance(entry, Mapping) and {"id", "task"} <= set(entry) <= {"id", "task", "deps", "criteria", "paths"},
+              "each step is {\"id\": \"S1\", \"task\": \"...\", \"deps\": [], \"criteria\": [\"C1\"], "
+              "\"paths\": [\"<repository-relative file>\"]}")
         step_id = _text(entry["id"], "step id")
         _need(not any(ch.isspace() for ch in step_id), "a step id has no spaces")
         row = {"id": step_id, "task": _text(entry["task"], "step task")}
@@ -1623,6 +1626,16 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
                   "step deps must be a list of step IDs")
             _need(len(set(deps)) == len(deps), "step deps must be unique")
             row["deps"] = list(deps)
+        if "criteria" in entry:
+            criteria = entry["criteria"]
+            _need(isinstance(criteria, list) and all(isinstance(c, str) and c for c in criteria)
+                  and len(set(criteria)) == len(criteria), "step criteria must be a list of unique criterion IDs")
+            row["criteria"] = list(criteria)
+        if "paths" in entry:
+            try:
+                row["paths"] = item_scope.normalise_paths(entry["paths"])
+            except item_scope.ItemScopeError as exc:
+                raise NavigatorError("step " + step_id + ": " + str(exc)) from exc
         # Preserve omission: saved results must retain their exact canonical
         # payload, and missing dependencies do not mean independent steps.
         rows.append(row)
@@ -1684,6 +1697,47 @@ def _check_submitted_test_commands(stage: str, result: Any) -> None:
     # The test loop's contract carries this list and is written at a transition, where nothing can be refused.
     problem = test_loop.listing_problem(result.get("test_commands") or [])
     _need(problem is None, problem or "")
+    _check_step_sizing(result)
+
+
+def _check_step_sizing(result: Mapping[str, Any]) -> None:
+    """Refuse a done step plan whose steps are not sized as behaviour-level changes (owner, 2026-10-10).
+
+    Every step names the criteria it satisfies and the paths it changes (a subset of the item's paths); every
+    criterion is satisfied by some step; and no step only changes test files, unless the whole item is tests
+    (test-author writes the tests before implement, so a test-only step was a no-op in every live run).
+    """
+    steps = result.get("steps") or []
+    known = [str(row.get("id")) for row in result.get("criteria") or () if isinstance(row, Mapping)]
+    item_paths = list(result.get("paths") or ())
+    shape = ('[{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"], "paths": ["<file this step changes>"]}]')
+    for step in steps:
+        if not isinstance(step, Mapping):
+            continue
+        name = str(step.get("id"))
+        _need(step.get("paths"), "step " + name + " must list paths: the files it changes, from the item's paths. "
+              "Steps are " + shape)
+        if known:
+            _need(step.get("criteria"), "step " + name + " must list criteria: the IDs of the criteria it satisfies ("
+                  + ", ".join(known) + "). A step no check can confirm on its own belongs in the step it serves.")
+            unknown = [c for c in step["criteria"] if c not in known]
+            _need(not unknown, "step " + name + " names criteria the result does not list: " + ", ".join(unknown))
+        outside = [path for path in step["paths"]
+                   if not any(path == item or fnmatch.fnmatchcase(path, item) for item in item_paths)]
+        _need(not outside, "step " + name + " changes paths the item does not declare: " + ", ".join(outside)
+              + ". Add them to the result's paths, or move that work to the step that owns them.")
+    if known:
+        served = {c for step in steps if isinstance(step, Mapping) for c in step.get("criteria") or ()}
+        unserved = [c for c in known if c not in served]
+        _need(not unserved, "no step satisfies " + ", ".join(unserved) + ": name it in the step that does, or add "
+              "the step")
+    item_is_tests = bool(item_paths) and all(item_scope.classify(path) == "test" for path in item_paths)
+    if not item_is_tests:
+        test_only = [str(step.get("id")) for step in steps if isinstance(step, Mapping) and step.get("paths")
+                     and all(item_scope.classify(path) == "test" for path in step["paths"])]
+        _need(not test_only, "step " + ", ".join(test_only) + " only changes test files. Tests are not a step: "
+              "test-author writes them before implement. Merge that work into the step whose behaviour the test "
+              "proves, or drop it if test-author already covers it.")
 
 
 def _check_submitted_skill_na(stage: str, result: Any) -> None:
@@ -2681,8 +2735,10 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
     if stage == "step-plan":
         result["paths"] = ["<repository-relative file or glob>"]
-        result["steps"] = [{"id": "S1", "task": "...", "deps": []},
-                           {"id": "S2", "task": "...", "deps": ["S1"]}]
+        result["steps"] = [{"id": "S1", "task": "...", "deps": [], "criteria": ["C1"],
+                            "paths": ["<repository-relative file this step changes>"]},
+                           {"id": "S2", "task": "...", "deps": ["S1"], "criteria": ["C2"],
+                            "paths": ["<repository-relative file this step changes>"]}]
         result["criteria"] = [{"id": "C1", "text": "<criterion>"}, {"id": "C2", "text": "<criterion>"}]
         result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                    {"command": "<exit-code check command>", "suite": "check", "criteria": ["C2"]},
@@ -3655,9 +3711,9 @@ def _loop_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str
 def _after_status_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str) -> list[str]:
     """What to do with the template, then a loop stage's lines: directly after the status block, inside the head.
 
-    The status block must end inside the first 8000 bytes a status hook reads, and the largest packet (step-plan) ends
-    it within 31 bytes of that, so neither the template note nor a loop's command list (which varies in length) can
-    precede it; this block follows it, as ``_unverified_lines`` does. It also follows a milestone narrative, which the
+    The status block must end inside the first 16,000 bytes a status hook reads (8000 before 2026-10-10, when the
+    largest packet, step-plan, ended it within 31 bytes of that), so neither the template note nor a loop's command
+    list (which varies in length) can precede it; this block follows it, as ``_unverified_lines`` does. It also follows a milestone narrative, which the
     hook reads from the same window.
     """
     if state["status"] != "active" or state.get("active_improve"):
@@ -3751,7 +3807,9 @@ _COMMON_GATES = "no outcome or summary, an absolute evidence_refs path that does
 # test/shiploop-callback-contract.test.py pair each named fault with its real refusal.
 _RECORDED_GATES = {
     "test_commands": "test_commands, paths, criteria or steps that do not fit (a criterion no command names, a "
-                     "command naming an unlisted one, deps that are not earlier steps)",
+                     "command naming an unlisted one, deps that are not earlier steps, a step without its criteria "
+                     "or paths, a step path the item does not declare, a criterion no step satisfies, a step that "
+                     "only changes test files)",
     "system_commands": "a missing system_commands list, or an empty one without system_commands_na",
     "consumer_checks": "a missing consumer_checks list, or an empty one without consumer_checks_na, or a "
                        "consumer_entry whose sources are not files in the repository",

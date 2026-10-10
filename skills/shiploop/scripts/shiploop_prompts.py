@@ -499,6 +499,24 @@ and do not reread history to repeat it.
 # "requirements") carries for every stage.
 REQUIREMENTS_RULES = COMMON[COMMON.index("Requested runtime / entry point"):COMMON.index("Return the packet's concise")]
 
+# How big a step is (owner, 2026-10-10: "do we ever want to scope down the size of a step so that we don't cram too much
+# or too little in one step?"). The six live step plans of 2026-10-10 split an item by file type (product change, then
+# "add the test"), and the test step was a no-op at implement every time because test-author had already written it.
+STEP_SIZING = """\
+Size each step as one behaviour-level change that a named check proves. Give
+every step the criteria IDs it satisfies (criteria) and the files it changes
+(paths, a subset of the item's paths); each criterion is satisfied by some step.
+Split a step when it holds two behaviours that can each be confirmed on their
+own, when it crosses a module or layer boundary (the interface first, then each
+side), when its task needs "and" between two outcomes, or when it is too large
+to review and recheck in one pass. Merge a step that no check can confirm on its
+own (half a rename, scaffolding nothing uses yet) into the step it serves. Tests
+are not a step: test-author writes them before implement, so a step that only
+changes test files is refused unless the whole item is tests. One change, such
+as a single bug fix or a mechanical rename, is one step.
+"""
+
+
 # Stage-specific paragraphs, carried only by the stages the stage table names
 # (blocks "interaction-design" and "work-items").
 INTERACTION_DESIGN = """\
@@ -2557,6 +2575,8 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
         parts.append(SELECTED_CASE_RECONCILIATION)
     if stage in PASS_OR_STOP_STAGES:
         parts.append(PASS_OR_STOP)
+    if stage == "step-plan":
+        parts.append(STEP_SIZING)
     if stage in IMPLEMENTATION_STAGES:
         parts.append(CODE_CRAFT)
     parts.append(PROGRESS_REPORTING)

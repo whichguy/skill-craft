@@ -364,7 +364,7 @@ class StatusHookTests(unittest.TestCase):
                         "shiploop complete — close the increment and print the next stdout\n" + self.packet),
             # Claude Code keeps the head of oversized output and persists the
             # rest. Since emit() now prints only the short head for an active
-            # packet, self.packet alone (~3 KB) is well under the hook's 8000-
+            # packet, self.packet alone (~3 KB) is well under the hook's 16,000-
             # char safety window, so repeating it (the old way of manufacturing
             # oversized stdout) would place a second real status block inside
             # that window too and the hook would correctly refuse the ambiguous

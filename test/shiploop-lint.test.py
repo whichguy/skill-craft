@@ -921,7 +921,7 @@ def complete(run: Path, state: dict, result: dict = DONE) -> str:
     if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
         result = dict(result, assumptions=[])
     if stage == "step-plan" and result.get("outcome") == "done" and "test_commands" not in result:
-        result = dict(result, steps=[{"id": "S1", "task": "Make the planned change."}],
+        result = dict(result, steps=[{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"]}],
                           test_commands=[], test_commands_na="Synthetic fixture; no test commands.",
                       paths=["src/**"])
     if stage in knowledge_support.knowledge.CLOSES:
@@ -1308,7 +1308,8 @@ class GateTests(Fixture):
         self.commit({"a.py": "x = 1\n"})
         nav.save(self.run_dir, nav.new_state(str(self.repo), "Lint gate fixture.", improve_skill="",
                                              lint_option="fix"))
-        steps = [{"id": "S1", "task": "Add the import."}, {"id": "S2", "task": "Use it."}]
+        steps = [{"id": "S1", "task": "Add the import.", "paths": ["a.py"]},
+                 {"id": "S2", "task": "Use it.", "paths": ["a.py"]}]
         with self.patched_env():
             state = drive(self.run_dir, "step-plan")
             complete(self.run_dir, state, dict(DONE, steps=steps, test_commands=[],

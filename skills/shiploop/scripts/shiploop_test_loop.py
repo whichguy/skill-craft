@@ -335,7 +335,7 @@ def rule_lines(state: Mapping[str, Any], work_item: str, stage: str) -> List[str
 def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str) -> List[str]:
     """The loop's conditions, Start command, receipt and command list: what the callback's head carries.
 
-    The status block must end inside the first 8000 bytes a hook reads, so the counting rules (``rule_lines``) stay
+    The status block must end inside the first 16,000 bytes a hook reads, so the counting rules (``rule_lines``) stay
     lower in the packet; the loop stages were refused for the receipt and the exit condition, not for the counts.
     """
     root = Path(root)

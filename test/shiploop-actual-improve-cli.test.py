@@ -207,7 +207,7 @@ class ImproveCliFixture(unittest.TestCase):
             self.producer["test_commands"] = []
             self.producer["test_commands_na"] = "Synthetic fixture; no test commands."
             self.producer["paths"] = ["src/**"]
-            self.producer["steps"] = [{"id": "S1", "task": "Make the planned change."}]
+            self.producer["steps"] = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"]}]
         self.producer.update(producer_extra or {})
         self.input = self.run / "inbox" / (self.action + ".md")
         store.write_record(self.input, self.producer)

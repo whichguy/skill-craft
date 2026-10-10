@@ -77,7 +77,10 @@ class QualityLoopTests(unittest.TestCase):
             result = dict(result, test_commands=[], test_commands_na="Synthetic fixture; no test commands.",
                           paths=["src/**"])
         if nav.current_stage(state) == "step-plan" and result.get("outcome") == "done" and "steps" not in result:
-            result = dict(result, steps=[{"id": "S1", "task": "Make the planned change."}])
+            step = {"id": "S1", "task": "Make the planned change.", "paths": list(result["paths"])}
+            if result.get("criteria"):
+                step["criteria"] = [row["id"] for row in result["criteria"]]
+            result = dict(result, steps=[step])
         if nav.current_stage(state) in knowledge_support.knowledge.CLOSES:
             knowledge_support.write(state)
         path = self.run_dir / "inbox" / (action + ".md")

@@ -248,7 +248,8 @@ class DelegationStateTests(unittest.TestCase):
 class StepTests(DelegationStateTests):
     """The script, not the host, walks a work item's step plan: one implement packet per step."""
 
-    STEPS = [{"id": "S1", "task": "Add divide() to calc.py."}, {"id": "S2", "task": "Document divide in README."}]
+    STEPS = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"]},
+             {"id": "S2", "task": "Document divide in README.", "paths": ["README.md"]}]
 
     def at_implement(self, delegation="inline", steps=None):
         state = advance(self.state(delegation), "step-plan")
@@ -345,7 +346,7 @@ class StepTests(DelegationStateTests):
             nav._normalise_steps([{"id": "S1", "task": "First", "deps": ["S2"]}, declared[1]])
 
     def test_steps_are_required_and_well_formed(self):
-        plan = {"outcome": "done", "summary": "s", "paths": ["calc.py"], "test_commands": [],
+        plan = {"outcome": "done", "summary": "s", "paths": ["calc.py", "README.md"], "test_commands": [],
                 "test_commands_na": "synthetic"}
         with self.assertRaisesRegex(nav.NavigatorError, "must list steps"):
             nav._check_submitted_test_commands("step-plan", plan)

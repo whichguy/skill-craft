@@ -410,7 +410,10 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         if stage == "step-plan" and producer.get("outcome") == "done" and "paths" not in producer:
             producer["paths"] = ["src/**"]
         if stage == "step-plan" and producer.get("outcome") == "done" and "steps" not in producer:
-            producer["steps"] = [{"id": "S1", "task": "Make the planned change."}]
+            step = {"id": "S1", "task": "Make the planned change.", "paths": list(producer["paths"])}
+            if producer.get("criteria"):
+                step["criteria"] = [row["id"] for row in producer["criteria"]]
+            producer["steps"] = [step]
         if stage == "system-test-author" and producer.get("outcome") == "done" and "system_commands" not in producer:
             producer.update(system_commands=[], system_commands_na="Synthetic fixture: no system command.")
         if stage == "release-plan" and producer.get("outcome") == "done" and "consumer_checks" not in producer:

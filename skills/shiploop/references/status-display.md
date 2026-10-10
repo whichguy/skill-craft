@@ -258,7 +258,7 @@ The hook stays silent, and always exits 0, unless every check passes:
 - The command has no pipe, redirect, chain or background operator.
 - Stdout begins with the packet header (after a known context prefix or
   wrapper line), or with the block itself for `status`.
-- Stdout holds exactly one block, ending within its first 8,000 characters.
+- Stdout holds exactly one block, ending within its first 16,000 characters (the most ShipLoop prints).
   Claude Code keeps the head of oversized Bash output, and the block ends by
   about character 4,000.
 
