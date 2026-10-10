@@ -165,7 +165,7 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
         packets.archive_packets(run_dir, out)
         state = read_state(run_dir)
         if clear_at and not (out / CLEAR_RECORD).exists():
-            found = clear.trigger(out / "events.jsonl", state, clear_at, metrics.current_stage)
+            found = clear.trigger(out / "events.jsonl", state, clear_at, metrics.current_stage, navigator.current_action)
             if found:
                 hit.append(found)
                 return True
@@ -191,7 +191,8 @@ def drive(argv: list[str], *, work: Path, out: Path, env: dict, run_dir: Path, t
     process.pop("left_behind", None)
     if hit and process["status"] == "interrupted":
         # Recorded after the kill, so the point is where the stop actually landed (an overrun is work done before it).
-        actual = clear.point(out / "events.jsonl", read_state(run_dir) or {}, metrics.current_stage)
+        actual = clear.point(out / "events.jsonl", read_state(run_dir) or {}, metrics.current_stage,
+                             navigator.current_action)
         (out / CLEAR_RECORD).write_text(json.dumps({**clear_at, "triggered": hit[0], "stopped": actual}, indent=2) + "\n")
         process["status"] = "cleared"
     elif process["status"] == "interrupted" or (process["status"] == "exited" and slice_complete(read_state(run_dir))):

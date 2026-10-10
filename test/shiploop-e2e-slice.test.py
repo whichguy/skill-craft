@@ -287,12 +287,20 @@ class ClearMetricTests(unittest.TestCase):
     def test_a_heredoc_write_is_a_write(self):
         heredoc = {"call": "cat > src/a.js <<'EOF'\nx = 1\nEOF\nnpm test", "result": "ok"}
         found = self.redone([heredoc], [heredoc])
-        self.assertEqual(sorted(f["kind"] for f in found), ["test", "write"])
+        self.assertEqual([f["kind"] for f in found], ["write"])  # the repeated write fails the gate; its test follows a write
 
     def test_a_test_rerun_after_a_change_is_legitimate_and_without_one_is_redone(self):
         test = {"call": "npm test 2>&1 | tail -3", "result": "pass 9"}
         self.assertEqual(self.redone([test], [self.WRITE, test]), [])
         self.assertEqual([f["kind"] for f in self.redone([test], [test])], ["test"])
+
+    def test_a_script_write_or_a_same_call_write_makes_the_rerun_legitimate(self):
+        test = {"call": "npm test 2>&1 | tail -3", "result": "pass 9"}
+        python_edit = {"call": "python3 - <<'EOF'\np='t.js';s=open(p).read();open(p,'w').write(s+'x')\nEOF\nnpm test",
+                       "result": "pass 10"}
+        append_and_test = {"call": "cat >> test/a.test.js <<'EOF'\ntest('x', () => {});\nEOF\nnpm test 2>&1", "result": "ok"}
+        self.assertEqual(self.redone([test], [python_edit]), [])
+        self.assertEqual(self.redone([test], [append_and_test]), [])
 
     def test_read_only_orientation_never_counts(self):
         rows = [{"call": "python3 /p/scripts/shiploop next --run-dir /r", "result": "ShipLoop navigator | implement | revision 3"},
