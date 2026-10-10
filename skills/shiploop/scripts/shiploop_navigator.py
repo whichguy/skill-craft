@@ -1867,7 +1867,7 @@ def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]
 _EVIDENCE_SUFFIX = re.compile(r"(#.*|::.*|:\d+(?::\d+)?)$")
 
 
-def _check_submitted_evidence(result: Any, own_receipt: Path | None = None) -> None:
+def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, repo: str | Path | None = None) -> None:
     """Refuse a submitted result that cites a local file that does not exist.
 
     Runs at the CLI gates only (history is revalidated on every load, and a
@@ -1879,6 +1879,9 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None) -> N
     ``own_receipt`` is this action's loop receipt, which the result template prefills: a result other than done may
     keep it before the loop wrote it (the loop checks accept blocked without a terminal packet), and done still needs
     it, through the loop's own terminal check.
+
+    ``repo`` is the execution checkout: a feature spec that ShipLoop's own retire removed from it still counts as present,
+    because a retried handoff cites the file the first attempt cited, and "write the file" would invite re-creating it.
     """
     if not isinstance(result, Mapping):
         return
@@ -1890,7 +1893,7 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None) -> N
         if (own_receipt is not None and result.get("outcome") != "done"
                 and str(path) == str(own_receipt)):
             continue
-        if not path.exists():
+        if not path.exists() and not (repo is not None and knowledge.is_retired_spec(Path(repo), path)):
             missing.append(ref)
     _need(not missing, "evidence_refs cite files that do not exist: " + ", ".join(missing[:5])
           + ("" if len(missing) <= 5 else f" (and {len(missing) - 5} more)")
@@ -5026,7 +5029,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     receipt = _derived_improve_receipt(child, args)
                     final_result = receipt.get("final_result")
                     if final_result is not None:
-                        _check_submitted_evidence(final_result)
+                        _check_submitted_evidence(final_result, None, state["repo"])
                     _check_submitted_assumptions(
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -5101,7 +5104,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             except quality.QualityError as exc:
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
-            _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item))
+            _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item),
+                                      state["repo"])
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)

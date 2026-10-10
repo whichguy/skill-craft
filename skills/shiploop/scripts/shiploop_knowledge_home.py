@@ -622,6 +622,22 @@ def retired_by(repo: Path, feature: str) -> str:
     return short.strip() if subject.strip() == _retire_subject_for(feature.rsplit("/", 1)[-1]) else ""
 
 
+def is_retired_spec(repo: Path, path: Path) -> bool:
+    """Whether ``path`` is the feature spec of a run that ShipLoop's own retire commit removed from ``repo``.
+
+    Only the shape ``<repo>/docs/shiploop/features/<folder>/spec.md`` and only a removal by the retire subject count
+    (``retired_by``): a model's own deletion, another file of the folder and a path outside ``repo`` do not.
+    """
+    try:
+        parts = Path(path).relative_to(Path(repo)).parts
+    except ValueError:
+        return False
+    prefix = tuple(HOME.split("/")) + ("features",)
+    if len(parts) != len(prefix) + 2 or parts[:len(prefix)] != prefix or parts[-1] != "spec.md":
+        return False
+    return bool(retired_by(Path(repo), "/".join(parts[:-1])))
+
+
 def in_home(path: str) -> bool:
     """A path ShipLoop commits as knowledge: the home directory or the repository index."""
     return path in KNOWLEDGE or path.startswith(HOME + "/")
@@ -629,5 +645,5 @@ def in_home(path: str) -> bool:
 
 __all__ = ("CLOSES", "FEATURE_LIST", "HOME", "INDEX", "KEPT_AFTER_ROUTE", "KNOWLEDGE", "LEARNING_SECTIONS", "Retired",
            "check", "commit", "earlier_features", "feature_dir", "feature_list", "feature_list_notice", "in_home",
-           "is_retire_subject", "knowledge_subject", "learnings", "next_close", "recent_commits", "required_earlier",
-           "retire", "retire_subject", "retired_by", "spec_pin", "stage_lines", "write_feature_list")
+           "is_retire_subject", "is_retired_spec", "knowledge_subject", "learnings", "next_close", "recent_commits",
+           "required_earlier", "retire", "retire_subject", "retired_by", "spec_pin", "stage_lines", "write_feature_list")

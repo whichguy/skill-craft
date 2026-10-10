@@ -239,6 +239,49 @@ class TerminalCloseTests(kt.HomeCase):
                     read.assert_called_once_with(Path("/ws"))
 
 
+class EvidenceAfterRetireTests(kt.HomeCase):
+    """A retried handoff may cite the feature spec that ShipLoop's own retire removed (audit, batch 1012)."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.planned_home(living=LIVING, feature_spec=FEATURE_SPEC)
+        self.spec = self.repo / self.feature() / "spec.md"
+
+    def cite(self, *refs: str) -> None:
+        navigator._check_submitted_evidence({"outcome": "done", "evidence_refs": list(refs)}, None, str(self.repo))
+
+    def test_a_reference_to_the_spec_that_the_retire_removed_counts_as_present_with_or_without_a_locator_suffix(self) -> None:
+        self.assertTrue(knowledge.retire(self.state, True).commit)
+        self.assertFalse(self.spec.exists())
+        self.cite(str(self.spec))
+        self.cite(str(self.spec) + "#adds", str(self.spec) + ":3", str(self.spec) + ":3:1")
+
+    def test_a_spec_the_model_deleted_or_that_never_existed_is_still_a_missing_file(self) -> None:
+        other = self.repo / "docs/shiploop/features/never-existed-aaaaaa/spec.md"
+        with self.assertRaisesRegex(navigator.NavigatorError, "cite files that do not exist: .*never-existed-aaaaaa/spec.md"):
+            self.cite(str(other))
+        self.spec.unlink()                                                                  # a deletion that is not the retire's
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "the model removed the feature spec")
+        with self.assertRaisesRegex(navigator.NavigatorError, "cite files that do not exist: .*spec.md"):
+            self.cite(str(self.spec))
+
+    def test_only_a_feature_spec_is_tolerated_not_another_removed_file(self) -> None:
+        self.assertTrue(knowledge.retire(self.state, True).commit)
+        plan = self.repo / self.feature() / "plan.md"
+        plan.unlink()
+        for ref in (str(plan), str(self.repo / self.feature() / "notes" / "spec.md"), str(self.repo / "docs/shiploop/spec.md.old"),
+                    str(self.spec.parent.parent / "spec.md")):
+            with self.subTest(ref=ref):
+                with self.assertRaisesRegex(navigator.NavigatorError, "cite files that do not exist"):
+                    self.cite(ref)
+
+    def test_without_a_repository_nothing_is_tolerated(self) -> None:
+        self.assertTrue(knowledge.retire(self.state, True).commit)
+        with self.assertRaisesRegex(navigator.NavigatorError, "cite files that do not exist"):
+            navigator._check_submitted_evidence({"evidence_refs": [str(self.spec)]})
+
+
 class RetireThroughTheCli(rr.ReturnReviewCase):
     """The real CLI: an isolated workspace, a real return, and ``complete`` on the handoff."""
 
@@ -347,6 +390,27 @@ class RetireThroughTheCli(rr.ReturnReviewCase):
         self.assertEqual(len(self.retire_commits(worktree)), 1)
         self.assertEqual(store.read_record(run / "state.md")["status"], "done")
         self.assertFalse((self.repo / self.feature / "spec.md").exists())
+
+    def test_a_retried_handoff_whose_result_cites_the_retired_feature_spec_is_accepted(self) -> None:
+        """Audit (batch 1012): the retry was refused with "Write the file or remove the reference", inviting the model to
+        re-create the file that ShipLoop had just removed."""
+        root, worktree, run = self.candidate("cited spec")
+        self.return_all(root)
+        self.write(worktree, "late.js", "written after the return\n")                      # the guard refuses the first attempt
+        state = store.read_record(run / "state.md")
+        action = navigator.current_action(state)["id"]
+        result = run / "inbox" / f"{action}.md"
+        store.write_record(result, {"outcome": "done", "summary": "Handed off.",
+                                    "evidence_refs": [str(worktree / self.feature / "spec.md")]}, "ShipLoop navigator result")
+        refused = self.cli("complete", "--run-dir", str(run), "--action", action, "--result", str(result), code=2)
+        self.assertIn("handoff requires", refused.stderr)
+        self.assertEqual(len(self.retire_commits(worktree)), 1)
+        self.assertFalse((worktree / self.feature / "spec.md").exists())
+        self.return_all(root)
+        retried = self.cli("complete", "--run-dir", str(run), "--action", action, "--result", str(result))   # the same file
+        self.assertNotIn("cite files that do not exist", retried.stderr)
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done")
+        self.assertEqual(len(self.retire_commits(worktree)), 1)
 
     def test_a_follow_up_the_source_refuses_leaves_the_guards_commands_and_the_retry_after_the_fix_succeeds(self) -> None:
         root, worktree, run = self.candidate("source drift")
