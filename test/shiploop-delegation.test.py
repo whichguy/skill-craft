@@ -456,31 +456,44 @@ class PacketContractTests(DelegationStateTests):
     def test_a_bound_improve_packet_prints_the_commit_command_right_after_improve_start(self):
         # The command and the exact commit-message path sat at about 30 KB of a 47 KB packet, below improve-start: one
         # review wrote the wrong file name and was refused, another searched for the command (packet review
-        # 2026-10-10, P-improve-1).  The planning child does not commit, so it prints neither.
+        # 2026-10-10, P-improve-1).  The planning packet prints no command: it names parent-return.md, which improve-start
+        # writes with the command and its message rules, right after its Commit policy line.  Since 8f3d4cbe improve-commit
+        # refuses a message with no Key learnings line, so the line shows that format and ends with the command.
         with tempfile.TemporaryDirectory(prefix="shiploop-commit-walk-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
             walks = {route: bound_walk(repo, route) for route in ("inline", "ask-agent")}
-        checked = 0
+        checked = planned = 0
         for route, packets in walks.items():
             for stage, kind, packet in packets:
                 if kind != "improve":
                     continue
                 lines = packet.splitlines()
                 with self.subTest(route=route, stage=stage):
-                    commits = [i for i, line in enumerate(lines) if " improve-commit " in line]
+                    commits = [i for i, line in enumerate(lines) if " improve-commit --run-dir=" in line]
                     if stage == "plan":
                         self.assertEqual(commits, [])
+                        policy = next(i for i, line in enumerate(lines) if line.startswith("Commit policy:"))
+                        pointer = lines[policy + 1]
+                        self.assertRegex(pointer, r"^To commit a review iteration's changes, run the improve-commit "
+                                                  r"command in \S+/parent-return\.md; its message rules are there\.")
+                        self.assertIn("Do not run git commit yourself.", pointer)
+                        planned += 1
                         continue
                     start = next(i for i, line in enumerate(lines)
                                  if line.startswith("Then run: ") and " improve-start " in line)
                     self.assertEqual(commits, [start + 1])
                     commit = lines[start + 1]
                     self.assertTrue(commit.startswith("To commit a review iteration's changes"), commit)
-                    written = re.search(r"\(what the review fixed\) to (\S+) with a file-writing tool", commit).group(1)
-                    self.assertIn("--message=" + written, commit)  # the sentence and the callback name one file
+                    written = re.search(r"write the commit message to (\S+) with a file-writing tool", commit).group(1)
+                    self.assertIn("`Key learnings: none`", commit)
+                    self.assertIn("column 1", commit)
+                    command = commit.rsplit("Then run: ", 1)[1]
+                    self.assertEqual(command.split()[2], "improve-commit")
+                    self.assertTrue(command.endswith("--message=" + written), command)  # one file; nothing after it
                     checked += 1
         self.assertGreaterEqual(checked, 12)
+        self.assertEqual(planned, 2)
 
     def test_no_improve_packet_may_perform_a_release_effect(self):
         # SPEC S-3 and environment-lifecycle.md#release-operation-ownership: a stage-scoped Improve assesses and records

@@ -2049,6 +2049,70 @@ class ImproveCommitContractTests(ImproveCliFixture):
         return self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
                            *self.completion, status=2).stderr
 
+    def packet_lines(self):
+        """The bound Improve packet as `next` writes it (head and full packet file)."""
+        return self.invoke(CLI, "next", "--run-dir", self.run).stdout.splitlines()
+
+    def test_a_message_written_as_the_packet_line_says_commits_and_one_without_lessons_is_refused(self):
+        """Route test for the packet line (fail-first: the line said only "what the review fixed", so a message written
+        as it said was refused for its missing Key learnings line, which no packet named)."""
+        self.begin()
+        lines = self.packet_lines()
+        line = next(row for row in lines if row.startswith("To commit a review iteration's changes"))
+        self.assertEqual(re.search(r"write the commit message to (\S+) with a file-writing tool", line).group(1),
+                         str(self.message))
+        for needed in ("`Key learnings: <what this iteration taught that a later iteration or run should reuse>`",
+                       "`Key learnings: none`", "`Learned-from: <commit id> <what it contributed>`",
+                       "`Remote change: <system alias>, <what changed>, <where its evidence is>`",
+                       "append `--remote-change` to the command", "starting in column 1", "shell heredoc",
+                       "run git commit yourself"):
+            with self.subTest(needed=needed):
+                self.assertIn(needed, line)
+        argv = shlex.split(line.rsplit("Then run: ", 1)[1])  # the line ends with the command, nothing after it
+        self.assertEqual(argv[2:], ["improve-commit", "--run-dir=" + str(self.run), "--action=" + self.action,
+                                    "--message=" + str(self.message)])
+        # The message the line describes: a subject, then the lesson and a credit, each on its own line in column 1.
+        self.edit()
+        self.write("docs: tighten the contract example\n\nReview found a vague example.\n\n"
+                   "Key learnings: exact examples catch drift.\n"
+                   "Learned-from: " + self.base_commit[:9] + " the base fixture the example was checked against\n")
+        self.assertIn("Committed this review's changes as ", self.run_argv(argv).stdout)
+        committed = self.head_message()
+        self.assertIn("Key learnings: exact examples catch drift.", committed)
+        self.assertIn("Learned-from: " + self.base_commit + " the base fixture", committed)
+        # Each refusal the parent packet's Checked-by line names, through the same command.
+        checked = next(row for row in lines if row.startswith("Checked by: "))
+        self.assertIn("improve-commit refuses to commit a message with no `Key learnings:` line", checked)
+        self.assertIn("improve-complete refuses a review that left its own edits uncommitted", checked)
+        self.edit("Again.\n")
+        before = self.git("rev-parse", "HEAD").strip()
+        self.write("docs: again\n\nReview found drift.\n")
+        self.assertTrue(self.line_one(self.run_argv(argv, status=2).stderr).startswith('Add a "Key learnings:'))
+        self.write("docs: again\n\nKey learnings: none\nLearned-from: " + "e" * 12 + " nothing\n")
+        self.assertIn("names no commit in this repository", self.run_argv(argv, status=2).stderr)
+        self.assertEqual(before, self.git("rev-parse", "HEAD").strip())
+
+    def test_the_planning_packet_names_parent_return_md_whose_command_commits(self):
+        """Fail-first: the planning packet printed a Commit policy line and no way to commit (0 of 8 saved plan-stage
+        packets named improve-commit); the frozen contract and parent-return.md were the only carriers."""
+        self.begin("plan")
+        lines = self.packet_lines()
+        parent_return = bridge.receipt_path(self.bound).with_name("parent-return.md")
+        policy = next(index for index, row in enumerate(lines) if row.startswith("Commit policy:"))
+        self.assertEqual(lines[policy + 1],
+                         "To commit a review iteration's changes, run the improve-commit command in " + str(parent_return)
+                         + "; its message rules are there. ShipLoop commits exactly the files this review changed. "
+                         "Do not run git commit yourself.")
+        self.assertFalse([row for row in lines if " improve-commit --run-dir=" in row])
+        _contract, written = self.start_child()
+        self.assertEqual(written, parent_return)  # the file the packet names is the one improve-start writes
+        listed = [row for row in written.read_text(encoding="utf-8").splitlines()
+                  if row.startswith("python3 ") and " improve-commit " in row]
+        self.edit()
+        self.write("docs: tighten\n\nKey learnings: none\n")
+        self.run_argv(shlex.split(listed[0]))
+        self.assertIn("Key learnings: none", self.head_message())
+
     def test_the_uncommitted_edits_refusal_names_improve_commit_and_the_exit_commits(self):
         stderr = self.commit_gate_refusal()
         line = self.line_one(stderr)
