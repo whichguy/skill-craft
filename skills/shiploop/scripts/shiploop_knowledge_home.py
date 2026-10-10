@@ -26,7 +26,7 @@ from __future__ import annotations
 import re
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, NamedTuple, Optional, Sequence, Tuple
 from urllib.parse import quote
 
 import shiploop_git as shiploop_git
@@ -495,12 +495,68 @@ def _retire_message(repo: Path, state: Mapping[str, Any], named: Sequence[str]) 
     return "\n".join(lines) + "\n"
 
 
+class Retired(NamedTuple):
+    commit: str  # the retire commit, "" when none was made
+    kept: str    # why a feature spec that is in the tree stays, "" when it was removed or there was nothing to decide
+
+
+def retire(state: Mapping[str, Any], reaches_branch: Optional[bool]) -> Retired:
+    """At the terminal close: remove this run's feature spec once the living spec holds the IDs it names (owner decision D3).
+
+    ``reaches_branch`` is whether the run's commits reach the user's branch: True in a checkout the user works in and after
+    a fast-forward return, False after a working-tree or no-change return (no commit of the run reaches the branch, so the
+    file would be the only copy), None while an isolated run has not returned (the route is unknown; the handoff guard asks
+    for the return and the retry decides).  The removal is one commit of its own: the deletion, and FEATURE_LIST rewritten
+    without the removed file (only when ShipLoop owns that file and Git would take it).  A file that is already gone is a
+    retry or an early deletion by the model and is left alone, which is what makes the terminal close safe to repeat.
+    Handoff is never refused here: IDs the living spec lacks keep the file, and the reason says which.
+    """
+    repo = Path(str(state["repo"]))
+    relative = feature_dir(state) + "/spec.md"
+    spec = repo / relative
+    if reaches_branch is None or not spec.is_file() or _git(repo, "rev-parse", "--is-inside-work-tree").returncode:
+        return Retired("", "")
+    if not reaches_branch:
+        return Retired("", "the run's commits do not reach your branch (a working-tree or no-change return)")
+    missing = _unmerged(repo, feature_dir(state))
+    if missing is None:
+        return Retired("", "the living spec names no requirement ID, so the IDs cannot be checked")
+    if missing:
+        return Retired("", ", ".join(missing) + (" is" if len(missing) == 1 else " are") + " not in the living spec "
+                       + str(repo / HOME / "spec.md"))
+    if _git(repo, "cat-file", "-e", "HEAD:" + relative).returncode or _git(repo, "diff", "--quiet", "HEAD", "--",
+                                                                           relative).returncode:
+        return Retired("", "it has changes that are not committed")
+    message = _retire_message(repo, state, _ids(spec.read_text(encoding="utf-8", errors="replace")))
+    original, listed = spec.read_bytes(), repo / FEATURE_LIST
+    owned = not _list_problem(repo)
+    list_before = listed.read_bytes() if owned and listed.is_file() else None
+    paths = [relative]
+    try:
+        spec.unlink()
+        write_feature_list(repo)
+        # An explicit path that Git ignores is an error, and a retry would fail the same way: leave an untracked, ignored list out.
+        if owned and listed.is_file() and _git(repo, "check-ignore", "-q", "--", FEATURE_LIST).returncode == 1:
+            paths.append(FEATURE_LIST)
+        done = shiploop_git.commit_paths(repo, paths, message)
+    except (shiploop_git.CommitError, OSError) as exc:
+        spec.write_bytes(original)
+        if owned and list_before is not None:
+            listed.write_bytes(list_before)
+        elif owned:
+            listed.unlink(missing_ok=True)   # the list did not exist before this attempt wrote it
+        _git(repo, "reset", "-q", "--", *paths)
+        raise RuntimeError(str(exc) if isinstance(exc, shiploop_git.CommitError)
+                           else "cannot remove " + relative + ": " + str(exc)) from exc
+    return Retired(done.commit, "")
+
+
 def in_home(path: str) -> bool:
     """A path ShipLoop commits as knowledge: the home directory or the repository index."""
     return path in KNOWLEDGE or path.startswith(HOME + "/")
 
 
-__all__ = ("CLOSES", "FEATURE_LIST", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "check", "commit", "earlier_features",
-           "feature_dir", "feature_list", "feature_list_notice", "in_home", "is_retire_subject", "knowledge_subject",
-           "learnings", "next_close", "recent_commits", "required_earlier", "retire_subject", "spec_pin", "stage_lines",
-           "write_feature_list")
+__all__ = ("CLOSES", "FEATURE_LIST", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "Retired", "check", "commit",
+           "earlier_features", "feature_dir", "feature_list", "feature_list_notice", "in_home", "is_retire_subject",
+           "knowledge_subject", "learnings", "next_close", "recent_commits", "required_earlier", "retire", "retire_subject",
+           "spec_pin", "stage_lines", "write_feature_list")

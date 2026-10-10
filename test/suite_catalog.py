@@ -99,6 +99,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-cross-run.test.py",
     "test/shiploop-workspace.test.py",
     "test/shiploop-return-review.test.py",
+    "test/shiploop-retire.test.py",
     "test/shiploop-chain-ledger.test.py",
     "test/shiploop-chain-git.test.py",
     "test/shiploop-chain.test.py",
@@ -177,6 +178,10 @@ _DURATION_SECONDS = {
     # to move or the suite is to be split; neither is done here.
     "test/shiploop-workspace.test.py": 140.3,
     "test/shiploop-return-review.test.py": 85.9,  # measured alone 2026-10-08 at load average 4.6 to 5.1: 23 tests, 85.9 s (81.5 s at 20, 65.5 s at 17, 36.8 s at 11)
+    # The handoff retire (owner decision D3, batch 1012 task R): the terminal close on a real repository, and the real CLI through the
+    # fast-forward, working-tree, before-the-return, guard-refused and drifted-source routes.  A suite of its own so that
+    # shiploop-return-review stays at its catalogued seconds under QUICK_MAX_SECONDS.  Estimate until measured.
+    "test/shiploop-retire.test.py": 40.0,
     "test/shiploop-chain.test.py": 191.262,
     "test/shiploop-chain-async.test.py": 35.083,
     "test/experiments/shiploop_chain/test_trace.py": 0.701,

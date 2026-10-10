@@ -932,5 +932,181 @@ class FeatureListTests(HomeCase):
         self.assertIn(SLUG, (self.repo / knowledge.FEATURE_LIST).read_text())
 
 
+class RetireTests(HomeCase):
+    """knowledge.retire: remove this run's feature spec in a commit of its own once the living spec holds its IDs and the
+    run's commits reach the user's branch (owner decision D3).  Real Git repositories; the route and the terminal close are
+    tested through the CLI in test/shiploop-retire.test.py."""
+
+    def prepared(self) -> str:
+        """The home at the handoff: the spec stage committed it, and the prepare close committed what changed since."""
+        self.planned_home()
+        self.write("docs/shiploop/environment.md", "# env\n")
+        prepare = knowledge.commit(self.state, "prepare").commit
+        self.assertTrue(prepare)
+        return prepare
+
+    def commits(self) -> int:
+        return int(git(self.repo, "rev-list", "--count", "HEAD"))
+
+    def test_retire_removes_the_feature_spec_and_its_list_row_in_a_commit_of_its_own_and_a_retry_changes_nothing(self) -> None:
+        prepare = self.prepared()
+        before = self.commits()
+        done = knowledge.retire(self.state, True)
+        self.assertTrue(done.commit)
+        self.assertEqual(done.kept, "")
+        self.assertEqual(git(self.repo, "rev-parse", "HEAD").strip(), done.commit)
+        self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.retire_subject(self.state))
+        changed = sorted(line for line in git(self.repo, "show", "--name-status", "--format=", "HEAD").splitlines() if line)
+        self.assertEqual(changed, sorted(["D\t" + self.feature() + "/spec.md", "M\t" + knowledge.FEATURE_LIST]))
+        message = git(self.repo, "log", "-1", "--format=%B")
+        self.assertIn("Requirement IDs checked in docs/shiploop/spec.md: R-1, R-2, R-3, R-4.", message)
+        self.assertIn("Planned at " + prepare + " (the prepare close).", message)
+        self.assertEqual(commit_lessons.lessons(message), "")
+        self.assertIn("Adds: R-1", git(self.repo, "show", "HEAD^:" + self.feature() + "/spec.md"))
+        listed = (self.repo / knowledge.FEATURE_LIST).read_text()
+        self.assertNotIn("(" + SLUG + "/spec.md)", listed)                                  # the row follows the file
+        self.assertIn("(" + SLUG + "/plan.md)", listed)
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+        self.assertEqual(knowledge.retire(self.state, True), knowledge.Retired("", ""))     # a retry: the file is gone
+        self.assertEqual(self.commits(), before + 1)
+
+    def test_the_route_decides_whether_the_file_is_removed_and_none_says_nothing(self) -> None:
+        self.prepared()
+        before = self.commits()
+        self.assertEqual(knowledge.retire(self.state, None), knowledge.Retired("", ""))     # not returned yet: the route is unknown
+        kept = knowledge.retire(self.state, False)
+        self.assertEqual(kept.commit, "")
+        self.assertIn("do not reach your branch", kept.kept)
+        self.assertTrue((self.repo / self.feature() / "spec.md").is_file())
+        self.assertEqual(self.commits(), before)
+
+    def test_ids_the_living_spec_lacks_keep_the_file_and_the_reason_names_them_and_the_living_spec(self) -> None:
+        """Owner decision (batch 1012): handoff is never refused for IDs; the file is kept and the reason says why."""
+        self.planned_home(feature_spec="Adds: R-1, R-9, R-12.\n")
+        before = self.commits()
+        kept = knowledge.retire(self.state, True)
+        self.assertEqual(kept.commit, "")
+        self.assertEqual(kept.kept, "R-9, R-12 are not in the living spec " + str(self.repo / "docs/shiploop/spec.md"))
+        self.assertTrue((self.repo / self.feature() / "spec.md").is_file())
+        self.assertEqual(self.commits(), before)
+        self.write("docs/shiploop/spec.md", LIVING + "- R-9 nine\n- R-12 twelve\n")        # the fix the next handoff would carry
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "model adds the IDs")
+        self.assertTrue(knowledge.retire(self.state, True).commit)
+        kept_one = knowledge.retire(dict(self.state, prompt="Another request", run_id="nav-0000000000654321"), True)
+        self.assertEqual(kept_one, knowledge.Retired("", ""))                                # no file of its own: nothing to say
+
+    def test_a_single_missing_id_reads_as_one(self) -> None:
+        self.planned_home(feature_spec="Adds: R-1, R-9.\n")
+        self.assertEqual(knowledge.retire(self.state, True).kept,
+                         "R-9 is not in the living spec " + str(self.repo / "docs/shiploop/spec.md"))
+
+    def test_a_living_spec_that_names_no_id_keeps_the_file(self) -> None:
+        self.planned_home(living="# Spec\nThe requirements live in the team document.\n", feature_spec="Adds: R-1\n")
+        kept = knowledge.retire(self.state, True)
+        self.assertEqual(kept.commit, "")
+        self.assertEqual(kept.kept, "the living spec names no requirement ID, so the IDs cannot be checked")
+        self.assertTrue((self.repo / self.feature() / "spec.md").is_file())
+
+    def test_a_feature_spec_with_uncommitted_changes_or_never_committed_is_kept(self) -> None:
+        self.prepared()
+        self.write(self.feature() + "/spec.md", STUB + "edited after the plan\n")
+        kept = knowledge.retire(self.state, True)
+        self.assertEqual(kept.kept, "it has changes that are not committed")
+        self.assertTrue((self.repo / self.feature() / "spec.md").is_file())
+        other = dict(self.state, prompt="Another request", run_id="nav-0000000000654321")
+        self.write(knowledge.feature_dir(other) + "/spec.md", STUB)                           # never committed
+        self.assertEqual(knowledge.retire(other, True).kept, "it has changes that are not committed")
+        self.assertTrue((self.repo / knowledge.feature_dir(other) / "spec.md").is_file())
+
+    def test_a_failed_commit_puts_the_file_and_the_list_back_and_a_retry_works(self) -> None:
+        self.prepared()
+        spec, listed = self.repo / self.feature() / "spec.md", self.repo / knowledge.FEATURE_LIST
+        before = (spec.read_bytes(), listed.read_bytes())
+
+        def stage_then_fail(repo, paths, message, **kwargs):               # `git commit` failing after `git add` staged the paths
+            git(repo, "add", "-A", "--", *paths)
+            self.assertIn("D  " + self.feature() + "/spec.md", git(repo, "status", "--porcelain"))
+            raise shiploop_git.CommitError("cannot commit it")
+
+        with mock.patch.object(shiploop_git, "commit_paths", side_effect=stage_then_fail):
+            with self.assertRaisesRegex(RuntimeError, "cannot commit it"):
+                knowledge.retire(self.state, True)
+        self.assertEqual((spec.read_bytes(), listed.read_bytes()), before)
+        self.assertEqual(git(self.repo, "diff", "--cached", "--name-only"), "")
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+        self.assertTrue(knowledge.retire(self.state, True).commit)
+
+    def test_a_file_that_cannot_be_removed_is_a_runtime_error_with_the_file_in_place(self) -> None:
+        self.prepared()
+        spec = self.repo / self.feature() / "spec.md"
+        with mock.patch.object(Path, "unlink", side_effect=PermissionError("denied")):
+            with self.assertRaisesRegex(RuntimeError, "cannot remove " + re.escape(self.feature() + "/spec.md") + ".*denied"):
+                knowledge.retire(self.state, True)
+        self.assertTrue(spec.is_file())
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+
+    def test_a_removal_that_stopped_before_its_commit_is_committed_later_as_plain_knowledge(self) -> None:
+        """Known limit (journal): a process killed between the removal and the commit leaves the deletion uncommitted; the
+        retry finds no file, so the next knowledge commit records it under the generic subject and no body."""
+        self.prepared()
+        (self.repo / self.feature() / "spec.md").unlink()
+        knowledge.write_feature_list(self.repo)
+        self.assertEqual(knowledge.retire(self.state, True), knowledge.Retired("", ""))
+        self.assertTrue(knowledge.commit(self.state, "handoff").commit)
+        self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "handoff"))
+        self.assertFalse(knowledge.is_retire_subject(git(self.repo, "log", "-1", "--format=%s").strip()))
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+
+    def test_a_feature_spec_the_model_deleted_is_not_retired(self) -> None:
+        self.prepared()
+        (self.repo / self.feature() / "spec.md").unlink()
+        self.assertTrue(knowledge.commit(self.state, "handoff").commit)
+        before = self.commits()
+        self.assertEqual(knowledge.retire(self.state, True), knowledge.Retired("", ""))
+        self.assertEqual(self.commits(), before)
+
+    def test_an_untracked_ignored_list_stays_out_of_the_retire_commit_and_the_retire_still_works(self) -> None:
+        """A .gitignore that ignores README.md must not make the retire fail on every retry (audit): the deletion alone."""
+        self.write(".gitignore", "README.md\n")
+        git(self.repo, "add", ".gitignore")
+        git(self.repo, "commit", "-qm", "ignore every README.md")
+        self.prepared()
+        self.assertEqual(git(self.repo, "ls-files", "--", knowledge.FEATURE_LIST), "")      # never tracked
+        done = knowledge.retire(self.state, True)
+        self.assertTrue(done.commit)
+        self.assertEqual(git(self.repo, "show", "--name-status", "--format=", "HEAD").split(),
+                         ["D", self.feature() + "/spec.md"])
+        self.assertNotIn("(" + SLUG + "/spec.md)", (self.repo / knowledge.FEATURE_LIST).read_text())   # still written on disk
+
+    def test_a_tracked_list_is_staged_even_when_a_rule_ignores_it(self) -> None:
+        self.prepared()
+        self.write(".gitignore", "README.md\n")
+        git(self.repo, "add", ".gitignore")
+        git(self.repo, "commit", "-qm", "ignore every README.md after the list was tracked")
+        self.assertTrue(knowledge.retire(self.state, True).commit)
+        changed = sorted(git(self.repo, "show", "--name-status", "--format=", "HEAD").splitlines())
+        self.assertEqual(changed, sorted(["D\t" + self.feature() + "/spec.md", "M\t" + knowledge.FEATURE_LIST]))
+
+    def test_a_list_that_is_not_shiploops_is_never_staged_by_the_retire(self) -> None:
+        self.prepared()
+        path = self.repo / knowledge.FEATURE_LIST
+        path.write_text("My own notes about the features.\n", encoding="utf-8")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "the user takes over the list")
+        path.write_text("My own notes, edited and not committed.\n", encoding="utf-8")
+        self.assertTrue(knowledge.retire(self.state, True).commit)
+        self.assertEqual(git(self.repo, "show", "--name-status", "--format=", "HEAD").split(), ["D", self.feature() + "/spec.md"])
+        self.assertEqual(path.read_text(), "My own notes, edited and not committed.\n")
+        self.assertEqual(git(self.repo, "status", "--porcelain").strip(), "M " + knowledge.FEATURE_LIST)
+
+    def test_a_checkout_that_is_not_a_work_tree_is_exempt(self) -> None:
+        plain = self.repo.parent / "plain"
+        (plain / knowledge.feature_dir(self.state)).mkdir(parents=True)
+        (plain / knowledge.feature_dir(self.state) / "spec.md").write_text(STUB)
+        self.assertEqual(knowledge.retire(dict(self.state, repo=str(plain)), True), knowledge.Retired("", ""))
+        self.assertTrue((plain / knowledge.feature_dir(self.state) / "spec.md").is_file())
+
+
 if __name__ == "__main__":
     unittest.main()

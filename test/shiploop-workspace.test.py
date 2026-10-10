@@ -896,6 +896,54 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             self._call(workspace.follow_up_knowledge_return, root)
         self.assertEqual(self.git("rev-parse", "HEAD").stdout, before)
 
+    def test_return_kind_is_the_route_of_the_recorded_return_and_a_follow_up_keeps_a_fast_forward(self) -> None:
+        """The handoff retire reads the route from the receipt (owner decision D3): the kind of the newest recorded return."""
+        record = self._prepare(name="kind fast forward")
+        root = self.base / "kind fast forward"
+        worktree = self._worktree(record)
+        self.assertIsNone(self._call(workspace.return_kind, root))                       # nothing returned yet
+        (worktree / "app.txt").write_text("product\n", encoding="utf-8")
+        self._commit_all(worktree, "product")
+        self._plan(root)
+        self._resolve_plan(root)
+        self.assertEqual(self._execute(root)["kind"], "fast-forward-merge")
+        self.assertEqual(self._call(workspace.return_kind, root), "fast-forward-merge")
+        (worktree / "docs" / "shiploop").mkdir(parents=True)
+        (worktree / "docs" / "shiploop" / "outcome.md").write_text("learned\n", encoding="utf-8")
+        self._commit_all(worktree, "docs(shiploop): knowledge at release-verify")
+        # stale after the new commit, and still the route the work was returned by
+        self.assertEqual(self._call(workspace.return_kind, root), "fast-forward-merge")
+        self.assertEqual(self._call(workspace.follow_up_knowledge_return, root)["kind"], "fast-forward-merge")
+        self.assertEqual(self._call(workspace.return_kind, root), "fast-forward-merge")
+
+    def test_return_kind_for_the_working_tree_route_and_for_a_workspace_that_cannot_be_read(self) -> None:
+        self._seed_dirty_source()
+        record = self._prepare(name="kind working tree")
+        root = self.base / "kind working tree"
+        (self._worktree(record) / "app.txt").write_text("product\n", encoding="utf-8")
+        self._commit_all(self._worktree(record), "product")
+        self._plan(root)
+        self._resolve_plan(root)
+        self.assertEqual(self._execute(root)["kind"], "working-tree-return")
+        self.assertEqual(self._call(workspace.return_kind, root), "working-tree-return")
+        self.assertIsNone(self._call(workspace.return_kind, self.base / "no such workspace"))
+
+    def test_a_follow_up_after_a_no_change_return_recomputes_the_route_so_the_kind_is_read_before_it(self) -> None:
+        """Only a fast-forward and a working-tree return are kept across a follow-up (``_return_kind``); a no-change return
+        is recomputed, so the retire, which reads the kind before the follow-up, keeps the file in that case on purpose."""
+        record = self._prepare(name="kind no change")
+        root = self.base / "kind no change"
+        self._plan(root)
+        self._resolve_plan(root)
+        self.assertEqual(self._execute(root)["kind"], "no-change-return")
+        self.assertEqual(self._call(workspace.return_kind, root), "no-change-return")
+        worktree = self._worktree(record)
+        (worktree / "SHIPLOOP.md").write_text("index\n", encoding="utf-8")
+        self._commit_all(worktree, "index")
+        self.assertEqual(self._call(workspace.return_kind, root), "no-change-return")    # read before the follow-up
+        self.assertEqual(self._call(workspace.follow_up_knowledge_return, root)["kind"], "fast-forward-merge")
+        self.assertEqual(self._call(workspace.return_kind, root), "fast-forward-merge")
+
     def test_clean_candidate_fast_forwards_when_every_path_is_kept(self) -> None:
         record = self._prepare(name="clean fast forward")
         root = self.base / "clean fast forward"

@@ -1771,6 +1771,11 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     fail-closed handling before its guard and save. In a worktree run whose work
     was already returned, that commit is returned too (plan P11); terminal retries
     also run the follow-up return after an empty commit.
+
+    The terminal close runs in this order: commit the pending knowledge, retire the run's
+    feature spec (``knowledge.retire``: owner decision D3), return what those commits added,
+    then print what happened, so every line is true when it prints.  The guard, which runs
+    after this, is what refuses a handoff whose return is not current.
     """
     rows = after["history"][len(before["history"]):]
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
@@ -1787,22 +1792,60 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     notice = shiploop_git.skipped_notice(committed.skipped)
     if notice:
         print("ShipLoop knowledge: " + notice)
+    if committed.commit or terminal:
+        listing = knowledge.feature_list_notice(Path(str(after["repo"])))
+        if listing:
+            print("ShipLoop knowledge: " + listing)
+    retired = knowledge.Retired("", "")
+    if terminal:
+        try:
+            retired = knowledge.retire(after, _run_commits_reach_branch(after, root))
+        except RuntimeError as exc:
+            raise NavigatorError("ShipLoop knowledge: " + str(exc) + "; handoff remains pending.") from exc
+    returned = False
     if (root is not None and after.get("execution_mode") == "navigator-worktree"
-            and (committed.commit or terminal)):
+            and (committed.commit or retired.commit or terminal)):
         import shiploop_workspace as workspace
         try:
             receipt = workspace.follow_up_knowledge_return(Path(root).parent)
         except workspace.WorkspaceError as exc:
-            if terminal:
+            # A knowledge commit made at this handoff keeps today's fail-closed behaviour.  A retire commit alone (made
+            # now or by an earlier attempt) does not: the guard below refuses a handoff whose return is stale and prints
+            # the commands, which this error would replace with a dead end.
+            if terminal and committed.commit:
                 raise NavigatorError("ShipLoop knowledge: the follow-up return was not made (" + str(exc)
                                      + "); handoff remains pending.") from exc
-            # The handoff check still requires a current return and prints the commands.
             print("ShipLoop knowledge: the follow-up return was not made (" + str(exc) + "); "
                   "handoff will ask for it.", file=sys.stderr)
-            return
-        if receipt is not None:
-            print("ShipLoop knowledge: returned the knowledge commit with the earlier work ("
-                  + str(receipt.get("kind")) + ").")
+        else:
+            if receipt is not None:
+                returned = True
+                print("ShipLoop knowledge: returned the knowledge commit with the earlier work ("
+                      + str(receipt.get("kind")) + ").")
+    path = str(Path(str(after["repo"])) / knowledge.feature_dir(after) / "spec.md")
+    if retired.commit:
+        where = ""
+        if after.get("execution_mode") == "navigator-worktree":
+            where = " and returned it" if returned else " on the run branch, not yet on your branch"
+        print("ShipLoop knowledge: committed the removal of the feature spec " + path + " in " + retired.commit[:12]
+              + where + "; its last version is in that commit's parent.")
+    elif retired.kept:
+        print("ShipLoop knowledge: kept the feature spec " + path + ": " + retired.kept + ".")
+
+
+def _run_commits_reach_branch(after: Mapping[str, Any], root: Path | None) -> bool | None:
+    """Whether this run's commits reach the user's branch: True in the user's own checkout and after a fast-forward return,
+    False after a working-tree or no-change return, None while an isolated run has not returned (the route is unknown).
+
+    The route is the newest recorded return's kind, read from the receipt even while the receipt is stale.
+    """
+    if after.get("execution_mode") != "navigator-worktree":
+        return True
+    if root is None:
+        return None
+    import shiploop_workspace as workspace
+    kind = workspace.return_kind(Path(root).parent)
+    return None if kind is None else kind == "fast-forward-merge"
 
 
 def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
