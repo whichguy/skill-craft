@@ -4520,7 +4520,9 @@ def _credential_refusal(message: str, message_path: Path, command: str) -> str:
     """'' when the message holds no credential-looking text; else the refusal (line numbers only, never the text)."""
     if not privacy.sensitive_text(message):
         return ""
-    rows = [number for number, row in enumerate(message.splitlines(), 1) if privacy.sensitive_text(row)]
+    # lines as an editor and the lessons grammar count them (\n, \r\n or \r), not at a form feed or U+2028
+    lines = message.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    rows = [number for number, row in enumerate(lines, 1) if privacy.sensitive_text(row)]
     where = ("line " + str(rows[0]) + " of" if len(rows) == 1 else
              "lines " + ", ".join(map(str, rows)) + " of" if rows else "the text of")
     return ("Reword " + where + " " + str(message_path) + " so it names where the credential is kept instead of "

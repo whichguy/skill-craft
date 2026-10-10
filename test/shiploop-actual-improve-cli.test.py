@@ -1746,6 +1746,9 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.assertTrue(line.startswith("Reword lines 4, 5 of " + str(self.message)), line)
         for fragment in (secret, "abcdefghijklmnop", token, "sk-abc"):
             self.assertNotIn(fragment, stderr)
+        # a line number is the editor's: a form feed or U+2028 inside a line does not start a new one
+        self.write("docs: fix\n\nKey learnings: a page\x0cbreak and a line\u2028separator\nAuthorization: " + secret + "\n")
+        self.assertTrue(self.line_one(self.refused()).startswith("Reword line 4 of " + str(self.message)))
         self.write("docs: fix\n\nKey learnings: the header was named in the config, not copied here.\n")
         self.run_named(stderr)
         self.assertEqual(self.git("log", "-1", "--format=%s").strip(), "docs: fix")
