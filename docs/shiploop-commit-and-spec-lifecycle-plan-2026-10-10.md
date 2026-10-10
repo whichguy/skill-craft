@@ -72,7 +72,7 @@ D6 becomes "decided by the spike (0b)", not "yes". D5 stays yes. D7 stays open u
 | Look-back in every producer packet | **Keep, small** | Reuse the existing last-commits function: last 2 messages, their lessons sections only, scan the last 10 commits (not 500: chosen, never measured) | n/a |
 | Spec working copy, freeze, base/planned blobs, replace, three-way merge, plan ID check, `STATE_VERSION` 5 | **Defer all** | No observed failure; the existing guard covers the loss case | A run loses or garbles a requirement, or two runs edit one repository's spec |
 | **Retire step at handoff** (new, small) | **Keep** | The script checks that every ID the feature spec says it adds or modifies is in the living spec, removes the feature spec (only when the run's commits reach the branch) and commits, citing the prepare commit as the planned record | n/a |
-| A new feature index file | **Cut** | A new artifact every run rewrites; conflicts and noise | n/a: use a script-owned marker block inside `README.md` listing each feature: folder, request title, IDs, planned commit |
+| A new feature index file | **Cut** | A new artifact every run rewrites; conflicts and noise | n/a: see section 0c (a tree-derived `features/README.md`; the README marker block was dropped) |
 | Packet diet: Improve negatives, duplicate status, duplicate callback and result path, the policy-link block replaced by one pointer line | **Keep** | About 11K of 42K characters removed, no guidance rewritten, no new file | n/a |
 | Locators table, the invariants rewrite, path variables, a per-stage filter of generic paragraphs | **Cut** | Rewrites that change behaviour for a gain the deletions already deliver | A probe shows a model confused by the shorter packet |
 | Spike | **Shrink** | Two measurements: every Improve contract's byte headroom; look-back bytes on one real repository. The state-bump and three-way-merge questions disappear | n/a |
@@ -138,6 +138,25 @@ B. **Commits**: Key learnings required; citations validated; script harvests `Le
 D. **Plan pin and retire**: the plan packet prints the spec pin; the handoff retire step; the README features block.
 M. Maintainer preflight.
 Measured per step, without thresholds: printed-head bytes, calls to re-orient after a clear (the cleared-context probe), refusals by first line, commits with a lessons section, citations, and citations that name an earlier run's commit.
+
+## 0c. The feature index (D7) after its independent review (2026-10-10)
+
+**Supersedes the README marker block in sections 0a and 0b.** Evidence: `docs/experiments/commit-spec-design-20261010/feature-index-review.json` (two reviewers and a planner, checked against 32 real knowledge homes and a probe repository).
+
+**Answer to "how does a prior reference find `features/<feature>`?"** Today a later run is pointed at the knowledge-home `README.md`, which the model writes as free text; in the one real home with two features, it named 1 of the 2 folders. The folder name (six prompt words plus a run suffix) cannot be derived from a request or a requirement ID. After handoff removes a feature's `spec.md`, the folder no longer shows which requirements that run touched, and 12 of 32 real READMEs link to that file.
+
+**What the review corrected in my own idea.** A marker block inside the README is a script writing into a free-text file the model rewrites. The proposed columns (request line, status, added and modified IDs, planned and merge commit IDs) state facts the script does not have when it writes them: status "in progress" would stay true forever if handoff never came; a commit cannot name itself; the IDs would read "not recorded" in all 32 existing homes; and the request line can trip the credential screen.
+
+**Final design.**
+- File: `docs/shiploop/features/README.md`, constant `FEATURE_LIST` (not "index": `INDEX` is already `SHIPLOOP.md`). ShipLoop writes the whole file, only from the folders in the tree, sorted by name; no run state, no old file read back, no timestamps, no commit IDs. A hand edit is replaced at the next knowledge commit.
+- Content: a fixed header, and one row per folder (including a folder the model named itself) linking the folder and each `*.md` inside it. The header gives commands run from the repository root, each tested on a probe repository: `grep -rlw '<ID>' docs/shiploop/features/` (which features mention an ID); `git log --format='%h %s' -G'(^|[^0-9A-Za-z])<ID>([^0-9]|$)' -- docs/shiploop/` (when an ID was added, changed or retired; works without trailers and after a rebase); and `git show "$R^:<folder>/spec.md"` with `R` the commit that deleted it (the last version of a removed spec); and the prepare-commit lookup for what the run planned.
+- Written: inside a knowledge commit that is already happening, and in the handoff retire commit. It never makes a commit of its own. Nothing is written until `features/` has a folder; before that packets say "Earlier features: none yet."
+- Every producer packet's existing knowledge-home line gains one clause naming it (about 250 bytes). Every generated line is screened with `privacy.sensitive_text`; a flagged folder name becomes a neutral row.
+- A link to a removed `spec.md` still dangles; the release-verify packet text discourages it and the header's recover command gets the file back. A squash merge loses the removed `spec.md` history on that branch (accepted limit).
+- Tests (all in `test/shiploop-knowledge.test.py`): the list names every folder with no requirement ID in the file; it is written only inside a knowledge commit; a hand edit is replaced; a flagged name is withheld without looping the run; every producer packet names it; it is not a close file; the header's commands are run literally on a retired fixture; the retire commit updates it in the same commit. Footprint: `shiploop-workspace`, `shiploop-full-runtime`, `shiploop-return-review`, `shiploop-packet-completeness`, `shiploop-packet-bounds`. Change note `changes/shiploop/feature-list.md`, minor. Lands before the retire step, in the same release, with no state change.
+- Left out: status, run ID, request line, a Requirements table and commit-ID columns (until a follow-on run fails to attribute an ID), trailers, a gate on model edits, a backfill branch.
+
+**D7, recommended: yes.** The fallback with no new file is the packet clause alone. Use is unmeasured: count reads of the list and of earlier feature folders in the first follow-on pair.
 
 ## 1. What you asked for
 
