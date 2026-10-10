@@ -251,7 +251,7 @@ class GrokHeadsTest(unittest.TestCase):
 
     def test_the_hosts_exit_line_and_a_commands_own_first_lines_are_not_the_head(self):
         row = entry(self.block, "nav-5195c9a34320448ca9037824af1e7c38")
-        text = reply("grok", "5439b8-1") if False else reply("grok", "10b2365439b8-1")
+        text = reply("grok", "10b2365439b8-1")
         self.assertTrue(text.startswith("exit: 0\nWorkspace root:"))
         # total_bytes counts the command's whole output: its own lines first, then the head. The host's `exit: 0` line is its own.
         own = text[len("exit: 0\n"):text.index("ShipLoop navigator | ")].encode("utf-8")
@@ -429,12 +429,12 @@ class GitCase(unittest.TestCase):
             (self.out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in claude_events(self.replies)))
         return self.out
 
-    def counted(self, **kwargs):
+    def counted(self, run_dir: Path | None = None, **kwargs):
         out = self.run_folder(**kwargs)
         tools = metrics.ToolLog()
         for number, event in metrics.events(out / "events.jsonl"):
             tools.feed(event, None, number)
-        return counters.commits(out, tools)
+        return counters.commits(out, run_dir, tools)
 
 
 class ClassifyTest(GitCase):
@@ -481,6 +481,20 @@ class ClassifyTest(GitCase):
         self.by_the_model("late2.md", "docs(shiploop): record release plan and fix contradictory rollback wording\n")
         block, _ = self.counted()
         self.assertEqual((block["script"]["n"], block["other"]["n"]), (5, 4))
+
+    def test_a_work_item_commit_whose_reply_was_not_recorded_is_still_the_scripts_by_its_subject(self):
+        # The integrate stage's reply can be cut by the model's pipe. state.md names the run's work item ids, and the commit's
+        # subject is `feat: <id> <title>`; a model commit that starts the same way but names no work item is not the script's.
+        self.by_shiploop("w2.js", "feat: W2 Another item\n\nWhat it did.\n")
+        self.by_the_model("m.js", "feat: add a thing\n")
+        run_dir = self.out / "run"
+        run_dir.mkdir()
+        (run_dir / "state.md").write_text('# ShipLoop navigator state\n\n```shiploop-state\n{"work_items": [{"id": "W1", '
+                                          '"title": "t"}, {"id": "W2", "title": "u"}]}\n```\n')
+        block, _ = self.counted(run_dir=run_dir)
+        self.assertEqual((block["script"]["n"], block["other"]["n"]), (6, 4))
+        without, _ = self.counted()
+        self.assertEqual((without["script"]["n"], without["other"]["n"]), (5, 5), "with no run directory only replies name an item")
 
     def test_an_announced_sha_that_is_not_a_commit_of_this_run_names_nothing(self):
         self.replies.append(IMPROVE_LINE.format(sha="0123456789ab", files="x"))

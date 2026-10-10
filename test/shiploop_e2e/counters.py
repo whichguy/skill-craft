@@ -26,9 +26,14 @@ or baseline row. Absent means unknown: a part this module cannot read is null wi
                          as <sha>"). The Improve card fixes no message shape: 63 of the 132 distinct commits those replies name, in
                          the 38 saved runs, carry none of its six ``Label:`` lines, and a model commit can carry all six.
                script    ShipLoop's other commits: the work item's commit, named by ShipLoop's reply ("ShipLoop committed W1's
-                         declared changes as <sha>"), and the ones whose subject is ShipLoop's own and nothing else writes (the
-                         knowledge home's ``docs(shiploop): record <feature> knowledge at|after <stage>``, the empty baseline, the
-                         leftovers commit, a chain's prepared merge).
+                         declared changes as <sha>") or by its subject ``feat: <work item id> <title>`` with an id of the run's
+                         state.md, and the ones whose subject is ShipLoop's own and nothing else writes (the knowledge home's
+                         ``docs(shiploop): record <feature> knowledge at|after <stage>``, the empty baseline, the leftovers
+                         commit, a chain's prepared merge). An Improve commit has no mark of its own (the card fixes no
+                         message shape): were the reply of ``improve-commit`` not recorded (cut by the model's pipe), the commit
+                         would be counted under ``other``, so ``improve`` is a lower bound. None is known: the 35 ``other``
+                         commits of the 38 saved runs are the model's own ``git commit`` (32 by the user's Git identity, 3 with
+                         git's own `[branch sha] subject` confirmation in the events).
                other     the rest (the model's own ``git commit``). A commit that fits no class is counted here, not dropped, so the
                          classes sum to ``counted``.
 
@@ -53,6 +58,7 @@ import re
 import subprocess
 from pathlib import Path
 
+import metrics
 import runrecord
 import shiploop_knowledge_home as knowledge_home
 
@@ -240,7 +246,16 @@ def _messages(work: Path, ids: list[str]) -> dict[str, str]:
     return found
 
 
-def commits(out: Path, tools) -> tuple[dict | None, dict]:
+def _item_prefixes(run_dir: Path | None) -> tuple[str, ...]:
+    """The subject starts of the commits ShipLoop makes for the run's work items (``feat: <id> <title>``), from state.md's
+    ``work_items``; empty when the run has no ledger. The integrate stage's reply names the commit too, but the model's pipe can
+    cut that reply; the id is the run's own, so a model commit that starts ``feat:`` and names no work item is not matched."""
+    items = metrics.engine_state(Path(run_dir) if run_dir else None).get("work_items")
+    return tuple(f"feat: {item['id']} " for item in items if isinstance(item, dict) and isinstance(item.get("id"), str)
+                 and item["id"]) if isinstance(items, list) else ()
+
+
+def commits(out: Path, run_dir: Path | None, tools) -> tuple[dict | None, dict]:
     """(the ``commits`` block, the ``commits_unmeasured`` map): see the module docstring."""
     out = Path(out)
     work = out / "work"
@@ -263,6 +278,7 @@ def commits(out: Path, tools) -> tuple[dict | None, dict]:
     for reply in tools.replies:
         named["improve"].update(found.group("sha") for found in IMPROVE_COMMITTED.finditer(reply["text"]))
         named["item"].update(found.group("sha") for found in ITEM_COMMITTED.finditer(reply["text"]))
+    items = _item_prefixes(run_dir)
     block: dict = {"improve": {"n": 0, "with_lessons": 0, "cited": 0, "cited_earlier_run": 0},
                    "script": {"n": 0, "with_lessons": 0}, "other": {"n": 0, "with_lessons": 0},
                    "counted": len(ids), "start_head": start}
@@ -272,7 +288,7 @@ def commits(out: Path, tools) -> tuple[dict | None, dict]:
         if any(commit_id.startswith(sha) for sha in named["improve"]):
             kind = "improve"
         elif (any(commit_id.startswith(sha) for sha in named["item"]) or KNOWLEDGE_SUBJECT.match(subject)
-              or subject in (BASELINE_SUBJECT, LEFTOVERS_SUBJECT) or subject.startswith(CHAIN_PREFIX)):
+              or subject in (BASELINE_SUBJECT, LEFTOVERS_SUBJECT) or subject.startswith((CHAIN_PREFIX, *items))):
             kind = "script"
         else:
             kind = "other"
@@ -291,7 +307,7 @@ def commits(out: Path, tools) -> tuple[dict | None, dict]:
 def build(out: Path, run_dir: Path | None, tools) -> dict:
     """The four keys run.py adds to metrics.json: ``packets``, ``packets_unmeasured``, ``commits`` and ``commits_unmeasured``."""
     block, why = packets(out, run_dir, tools)
-    cblock, cwhy = commits(out, tools)
+    cblock, cwhy = commits(out, run_dir, tools)
     return {"packets": block, "packets_unmeasured": why, "commits": cblock, "commits_unmeasured": cwhy}
 
 
