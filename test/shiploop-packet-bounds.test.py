@@ -11,6 +11,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -148,9 +149,42 @@ class PacketBoundsTests(unittest.TestCase):
         improve = navigator.packet_path(self.run, waiting)
         self.assertNotEqual(improve, producer)
         self.assertEqual(producer.name, action + ".md")
-        self.assertEqual(improve.name, action + "-improve.md")
+        self.assertEqual(improve.name, action + "-improve-bind.md")  # no card is bound yet: the bind packet
         self.assertEqual(producer.read_text(), sent)
         self.assertIn("Current action: Improve the completed spec result.", improve.read_text())
+
+    def test_the_improve_bind_packet_keeps_its_own_file_when_improve_start_prints(self):
+        """An Improve child prints two packets before the runtime starts: improve-bind (no card bound yet) and, once bound,
+        improve-start. Both went to <action>-improve.md, so the bind packet was lost on disk and could not be reviewed
+        (packet compaction plan 2026-10-10, Phase 0; the producer-packet fix before it is 897733cb)."""
+        import contextlib, io
+        state = self.state()
+        while navigator.current_stage(state) != "spec":
+            state = self.complete(state)
+        action = navigator.current_action(state)["id"]
+        waiting = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic packet fixture"})
+        child = waiting["active_improve"]
+        self.assertIsNone(child["skill"])
+        store.write_record(self.run / "state.md", waiting)
+        with contextlib.redirect_stdout(io.StringIO()):
+            navigator.emit(None, self.run, waiting)
+        bind = navigator.packet_path(self.run, waiting)
+        sent = bind.read_text()
+        self.assertIn("improve-bind", sent)
+        bound = dict(waiting)
+        bound["active_improve"] = bridge.binding(waiting, action, navigator.current_stage(waiting),
+                                                 child["seed_result"],
+                                                 bridge.resolve_skill(str(ROOT / "skills/improve/SKILL.md")))
+        navigator.validate(bound)
+        store.write_record(self.run / "state.md", bound)
+        with contextlib.redirect_stdout(io.StringIO()):
+            navigator.emit(None, self.run, bound)
+        start = navigator.packet_path(self.run, bound)
+        self.assertNotEqual(start, bind)
+        self.assertEqual(start.name, action + "-improve.md")
+        self.assertEqual(bind.name, action + "-improve-bind.md")
+        self.assertEqual(bind.read_text(), sent)
+        self.assertIn("improve-start", start.read_text())
 
     def test_oversized_delivery_template_is_not_truncated_into_invalid_json(self):
         state = navigator.new_state(str(self.repo), "Observe local behavior.", delivery_contract=True)

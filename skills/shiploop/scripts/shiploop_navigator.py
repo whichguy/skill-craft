@@ -1298,11 +1298,13 @@ def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
     """Where the full packet for the current action is kept for the host to read.
 
     An Improve child's packets are a different packet for the same action, so they keep their own file: the producer
-    packet that was sent stays on disk for audit.
+    packet that was sent stays on disk for audit. The packet that asks for improve-bind (no card bound yet) is a third
+    packet and keeps a third file, so improve-start's packet does not overwrite it.
     """
     improve = state.get("active_improve")
     action_id = (improve or {}).get("id") or current_action(state).get("id") or f"rev-{state['revision']}"
-    return Path(root) / PACKET_DIR / (f"{action_id}-improve.md" if improve else f"{action_id}.md")
+    suffix = "" if not improve else "-improve-bind" if improve["skill"] is None else "-improve"
+    return Path(root) / PACKET_DIR / f"{action_id}{suffix}.md"
 
 
 # Printed characters at most: below the ~20,000-character cut some hosts (Grok)
