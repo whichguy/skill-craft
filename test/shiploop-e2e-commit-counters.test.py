@@ -875,6 +875,26 @@ class RegradeTest(unittest.TestCase):
         self.assertIsNone(self.regrade.figures([]))
         self.assertEqual(self.regrade.figures([3, 1, 10, 4]), {"n": 4, "median": 3.5, "min": 1, "max": 10})
 
+    def test_figures_are_the_harnesss_own_stats_with_none_for_nothing_measured(self):
+        for values in ([3, 1, 10, 4], [5, 7, 9], [8], [2, 3]):
+            stats = self.regrade.run._stats(values, 1)
+            self.assertEqual(self.regrade.figures(values), {"n": stats["n"], "median": stats["median"], "min": stats["min"],
+                                                            "max": stats["max"]}, values)
+        self.assertEqual(self.regrade.figures([2, 3])["median"], 2.5, "a median between two sizes keeps its half byte")
+
+    def test_knowledge_commits_are_read_from_the_history_the_commits_block_is_counted_from(self):
+        found = {"commits": [
+            {"kind": "script", "knowledge": True, "message": "docs(shiploop): record f knowledge at intake\n"},
+            {"kind": "script", "knowledge": True, "message": "docs(shiploop): record f knowledge after release-verify\n\nLearned\n- a lesson\n"},
+            {"kind": "script", "knowledge": False, "message": "Empty baseline for the first ShipLoop run\n"},
+            {"kind": "other", "knowledge": False, "message": "docs(shiploop): record release plan and fix wording\n"}]}
+        self.assertEqual(self.regrade.knowledge_commits(found), {"n": 2, "with_lessons": 1})
+        self.assertIsNone(self.regrade.knowledge_commits(None), "a history that could not be read is unknown, not zero")
+
+    def test_a_host_is_labelled_the_one_way_for_the_summary_and_the_tallies(self):
+        self.assertEqual(self.regrade.host_label(self.row("grok")), "grok")
+        self.assertEqual(self.regrade.host_label(self.row(mixed=True)), "mixed host (grok then claude)")
+
     def test_a_mixed_host_run_is_summarised_alone_and_an_improve_packet_is_a_row_of_its_own(self):
         entries = [{"action": "nav-a", "stage": "spec", "file_bytes": 100, "head_bytes": 40},
                    {"action": "nav-a-improve", "stage": "spec", "file_bytes": 200, "head_bytes": None}]
@@ -920,6 +940,8 @@ class RegradeTest(unittest.TestCase):
             self.assertLessEqual(commits["improve"]["cited"], commits["improve"]["n"])
             self.assertLessEqual(row["packets"]["head_measured"], row["packets"]["n"], row["run"])
             self.assertLessEqual(row["knowledge_commits"]["with_lessons"], row["knowledge_commits"]["n"], row["run"])
+            self.assertLessEqual(row["knowledge_commits"]["n"], commits["script"]["n"], "the knowledge home's commits are script commits")
+            self.assertLessEqual(row["knowledge_commits"]["with_lessons"], commits["script"]["with_lessons"], row["run"])
         for host, cell in evidence["summary"]["by_host"].items():
             members = [row for row in regraded if (row["host"] if not row["mixed_host"] else None) == host or
                        (row["mixed_host"] and host.startswith("mixed"))]
@@ -938,6 +960,94 @@ class RegradeTest(unittest.TestCase):
         self.assertEqual(record["not_applicable"], [])
         self.assertEqual(record["killed"], record["mutants"])
         self.assertGreaterEqual(record["mutants"], 30)
+
+
+def load_tallies():
+    spec = importlib.util.spec_from_file_location("commit_baseline_tallies", EVIDENCE / "tallies.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+class TalliesTest(unittest.TestCase):
+    """docs/experiments/commit-baseline-20261010/tallies.py: the head replies and the `other` commits behind findings F2 and F6."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tallies = load_tallies()
+        cls.evidence = json.loads((EVIDENCE / "tallies.json").read_text())
+        cls.baseline = json.loads((EVIDENCE / "baseline.json").read_text())
+
+    @staticmethod
+    def head(name: str, call_tail: str) -> str:
+        text = reply(name, call_tail)
+        return text[text.index("ShipLoop navigator | "):]
+
+    def test_head_replies_count_every_head_once_by_the_reason_it_is_not_whole_and_skip_a_model_reading_a_packet(self):
+        whole = self.head("claude-wholes", "YKoYJ1")
+        replies = [{"event": 1, "packet": False, "text": whole},
+                   {"event": 2, "packet": False, "text": whole[:whole.index(STATUS_END)]},
+                   {"event": 3, "packet": False, "text": self.head("claude-wholes", "EuCFqm")},
+                   {"event": 4, "packet": False, "text": self.head("claude-columns", "9nLJam")},
+                   {"event": 5, "packet": True, "text": whole},                      # the model reading the packet file
+                   {"event": 6, "packet": False, "text": whole + "\n" + whole}]       # two heads in one reply
+        tools = metrics.ToolLog()
+        tools.replies = replies
+        self.assertEqual(self.tallies.head_replies(tools), {
+            "heads": 6, "whole": 3,
+            "not_whole": {counters.NOT_WHOLE_BEFORE_CLOSING: 1, counters.NOT_WHOLE_IN_NARRATIVE: 1, counters.NOT_WHOLE_SHORTENED: 1}})
+
+    def test_a_commit_is_confirmed_by_gits_own_line_for_its_abbreviated_id_only(self):
+        sha = "0123456789abcdef0123456789abcdef01234567"
+        for shown in ("[main 0123456] fix the thing", "[feature/x (root-commit) 0123456] first", "[main 0123456789ab] subject"):
+            self.assertTrue(self.tallies.confirmed(shown + "\n", sha), shown)
+        for shown in ("[main 7654321] another commit", "0123456 is mentioned, not confirmed", "[ok] 0123456"):
+            self.assertFalse(self.tallies.confirmed(shown + "\n", sha), shown)
+
+    def test_the_other_commits_are_tallied_by_author_and_by_gits_confirmation_and_no_other_class_is(self):
+        rows = [{"kind": "other", "id": "a" * 40, "author": "Jim"}, {"kind": "other", "id": "b" * 40, "author": "Bot"},
+                {"kind": "other", "id": "c" * 40, "author": "Jim"}, {"kind": "script", "id": "d" * 40, "author": "Bot"}]
+        got = self.tallies.other_commits({"commits": rows}, "[main bbbbbbb] x\n")
+        self.assertEqual(got, {"n": 3, "by_author": {"Bot": 1, "Jim": 2}, "git_confirmed": 1})
+        self.assertEqual(self.tallies.other_commits(None, ""), None, "a history that could not be read is unknown")
+
+    def test_the_committed_tallies_are_for_the_runs_the_baseline_regraded_and_add_up(self):
+        evidence = self.evidence
+        regraded = [row for row in self.baseline["per_run"] if not row.get("not_regraded")]
+        self.assertEqual([row["run"] for row in evidence["per_run"]], [row["run"] for row in regraded])
+        self.assertEqual(evidence["runs"], len(regraded))
+        total = evidence["head_replies"]["all"]
+        self.assertEqual(total["whole"] + sum(total["not_whole"].values()), total["heads"])
+        self.assertEqual(sum(row["head_replies"]["heads"] for row in evidence["per_run"]), total["heads"])
+        self.assertEqual(sum(cell["heads"] for cell in evidence["head_replies"]["by_host"].values()), total["heads"])
+        other = evidence["other_commits"]["all"]
+        self.assertEqual(other["n"], sum(other["by_author"].values()))
+        self.assertEqual(other["n"], sum(row["commits"]["other"]["n"] for row in regraded), "the classification is the baseline's")
+        self.assertLessEqual(other["git_confirmed"], other["n"])
+        self.assertEqual(sum(row["other_commits"]["n"] for row in evidence["per_run"]), other["n"])
+        for host, kinds in evidence["commits_by_author"]["by_host"].items():
+            members = [row for row in regraded if self.tallies.regrade.host_label(row) == host]
+            for kind in ("improve", "script", "other"):
+                self.assertEqual(sum(kinds[kind].values()), sum(row["commits"][kind]["n"] for row in members), (host, kind))
+
+    def test_in_claude_runs_no_commit_of_the_other_class_carries_an_identity_a_shiploop_commit_carries(self):
+        # The claim that the 32 `other` commits of Claude runs are the model's: ShipLoop commits as its workspace identity there, and
+        # the model's own `git commit` falls back to the Git identity of the machine. Grok and Codex runs configure one identity for both.
+        by_host = self.evidence["commits_by_author"]["by_host"]
+        for host in ("claude", "mixed host (grok then claude)"):
+            kinds = by_host[host]
+            shiploop = set(kinds["improve"]) | set(kinds["script"])
+            self.assertTrue(kinds["other"], host)
+            self.assertEqual(set(kinds["other"]) & shiploop, set(), host)
+
+    def test_the_tallies_copy_no_commit_message_no_commit_id_and_no_packet_text(self):
+        text = (EVIDENCE / "tallies.json").read_text()
+        document = json.loads(text)
+        document.pop("harness_head")  # the harness's own commit, a stamp of the code that made the file
+        self.assertIsNone(re.search(r"\b[0-9a-f]{40}\b", json.dumps(document)), "no commit id of a run's repository")
+        for needle in ("Key learnings:", "ShipLoop navigator |", "Callback for this stage", "docs(shiploop): record"):
+            self.assertNotIn(needle, text)
 
 
 if __name__ == "__main__":

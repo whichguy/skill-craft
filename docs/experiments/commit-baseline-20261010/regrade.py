@@ -11,7 +11,7 @@ result.json (they are run products and not committed), starts no host, no model 
 evidence keeps counts, short ids' absence included: no commit message and no packet text is copied into it.
 
 The file holds, per run, the two blocks' counters, the run's hosts, model and effort read through runrecord (a mixed-host run is
-named, and left out of the per-host summary), the runs that could not be regraded with the reason, and a summary per host and per
+named, and summarised alone, counted for neither host), the runs that could not be regraded with the reason, and a summary per host and per
 host+model+effort cell with the per-stage figures of the packets (n, median, min and max of file_bytes and of head_bytes).
 """
 
@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import statistics
 import subprocess
 import sys
 from collections import defaultdict
@@ -39,22 +38,35 @@ SCHEMA = "shiploop-e2e-commit-baseline/v1"
 
 
 def figures(values: list[int]) -> dict | None:
-    """n, median, min and max of a list of sizes; None for an empty list (nothing measured, not a zero)."""
-    return None if not values else {"n": len(values), "median": statistics.median(values), "min": min(values), "max": max(values)}
+    """n, median, min and max of a list of sizes (the harness's own ``run._stats``, one decimal so a half byte is kept); None for an
+    empty list (nothing measured, not a zero)."""
+    stats = run._stats(values, 1)
+    return None if not stats["n"] else {"n": stats["n"], "median": stats["median"], "min": stats["min"], "max": stats["max"]}
 
 
-def knowledge_commits(folder: Path) -> dict | None:
-    """The knowledge home's own commits (the subject only ShipLoop writes) among the run's commits, and how many carry a lessons
-    section: the one part of ``script`` the plan quotes a share of (91% subject-only). The same constants, the same repository reads
-    and the same ``lessons`` as counters.commits; None where counters.commits could not read the repository."""
-    work = folder / "work"
-    start, why = counters._starting_point(folder, work) if (work / ".git").exists() else (None, "no repository")
-    if why:
+def knowledge_commits(found: dict | None) -> dict | None:
+    """The knowledge home's own commits (``counters.history``'s ``knowledge`` rows) among the run's commits, and how many carry a
+    lessons section: the one part of ``script`` the plan quotes a share of (91% subject-only). None where the history could not be read.
+    It is a subtotal of ``script`` and is not a key of a run's metrics.json: a later run is compared through ``script``, or through
+    this script."""
+    if found is None:
         return None
-    ids = counters._git(work, "rev-list", "--all", *(["--not", start] if start else [])).stdout.decode().split()
-    found = [message for message in counters._messages(work, ids).values()
-             if counters.KNOWLEDGE_SUBJECT.match(message.split("\n", 1)[0].strip())]
-    return {"n": len(found), "with_lessons": sum(bool(counters.lessons(message)) for message in found)}
+    rows = [commit for commit in found["commits"] if commit["knowledge"]]
+    return {"n": len(rows), "with_lessons": sum(bool(counters.lessons(commit["message"])) for commit in rows)}
+
+
+def host_label(row: dict) -> str:
+    """The host a run is summarised under: its host, or for a run two hosts worked on, the hosts that worked on it in order."""
+    return "mixed host (" + " then ".join(row["hosts"]) + ")" if row["mixed_host"] else row["host"]
+
+
+def read_run(folder: Path):
+    """(the engine's grade, its run directory or None, the tool log) of a run folder, read the way run.py's main reads them."""
+    shiploop = run.grade_shiploop(folder)
+    ledger = Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None
+    tools = metrics.ToolLog()
+    metrics.collect(folder, ledger, tools=tools)
+    return shiploop, ledger, tools
 
 
 def regrade(folder: Path, root: Path) -> dict:
@@ -72,11 +84,8 @@ def regrade(folder: Path, root: Path) -> dict:
     if unreadable:
         row.update(packets=None, commits=None, not_regraded=f"launch records cannot be read: {', '.join(unreadable)}")
         return row
-    shiploop = run.grade_shiploop(folder)
-    ledger = Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None
+    shiploop, ledger, tools = read_run(folder)
     row["engine_status"] = shiploop.get("status")
-    tools = metrics.ToolLog()
-    metrics.collect(folder, ledger, tools=tools)
     built = counters.build(folder, ledger, tools)
     row["commits_unmeasured"] = built["commits_unmeasured"]
     # The reason a head is null is one text with counts in it (the README): it is kept here only when the whole block is null.
@@ -88,7 +97,7 @@ def regrade(folder: Path, root: Path) -> dict:
         "file_bytes": sum(entry["file_bytes"] for entry in block),
         "head_bytes": sum(entry["head_bytes"] for entry in block if entry["head_bytes"] is not None)}
     row["commits"] = built["commits"]
-    row["knowledge_commits"] = knowledge_commits(folder) if built["commits"] is not None else None
+    row["knowledge_commits"] = knowledge_commits(counters.history(folder, ledger, tools)[0])
     return row
 
 
@@ -139,11 +148,9 @@ def summary(rows: list[dict]) -> dict:
     for row in rows:
         if row.get("not_regraded"):
             continue
-        if row["mixed_host"]:
-            hosts["mixed host (" + " then ".join(row["hosts"]) + ")"].append(row)
-            continue
-        hosts[row["host"]].append(row)
-        cells[f"{row['host']} / {row['model']} / {row['effort'] or 'no effort'}"].append(row)
+        hosts[host_label(row)].append(row)
+        if not row["mixed_host"]:
+            cells[f"{row['host']} / {row['model']} / {row['effort'] or 'no effort'}"].append(row)
     return {"by_host": {name: totals(members) for name, members in sorted(hosts.items())},
             "by_cell": {name: {**totals(members), "by_stage": by_stage(members)} for name, members in sorted(cells.items())}}
 
