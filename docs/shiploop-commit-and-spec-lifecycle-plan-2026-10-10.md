@@ -48,6 +48,53 @@ Every step: fail-first hermetic tests, one adversarial review of the diff, one l
 
 D6 becomes "decided by the spike (0b)", not "yes". D5 stays yes. D7 stays open until the index review finishes. New: **D8**, whose work is the uncommitted change set in the canonical checkout, and whether it ships.
 
+## 0a. YAGNI and KISS review (2026-10-10) and the plan of action v3
+
+**This section supersedes section 0's table and sections 5 and 6 where they differ.** The question for each part: what observed failure does it fix, and what is the smallest change that fixes it? Where the repository had a fact, it was checked.
+
+### What the evidence does and does not support
+
+- **Supported:** Improve commits often lack lessons; 91% of the engine's own knowledge commits are subject-only; packets are large and the model never opens the 33 reference files they list (0 reads in two Sonnet runs); a later run cannot find an old feature folder (the name is not derivable and the README is model-written free text).
+- **Not supported by any observed failure:** that the model corrupts the living spec. `knowledge_home.check` already refuses a run that drops a requirement ID the committed spec had, the spec prompt already says "change it in place, move a dropped requirement under Retired", and 24 of 26 saved feature specs show models doing exactly that. The working copy, the freeze, the base and planned blobs, replace-at-handoff, the plan-names-every-ID check, the trailer set and the state bump are all fixes for a failure nobody has seen.
+- **Not supported yet:** that a remote system was ever changed by a local case (the planned measure expects 0); that a look-back block is used (unmeasured).
+
+### Keep, cut, defer
+
+| Part | Verdict | Why | Build it when |
+|---|---|---|---|
+| Improve commit needs a Key learnings section | **Keep** | Your explicit rule; one refusal | n/a |
+| `Learned-from:` citations | **Keep, minimal** | Validate that each cited ID is a real commit; leave the message as written | n/a |
+| Moving citations into trailers; `ShipLoop-Run/-Stage/-Action` trailers; joining `Co-Authored-By` blocks | **Cut** | No consumer reads them (Run Review and the harness do not) | Run Review reads commit trailers |
+| Script-built bodies for knowledge, item and leftovers commits (from sections the script already holds) | **Keep** | Fixes the 91% with no refusal | n/a |
+| Lesson refusals at delivery stages; the `learning` result key | **Cut** | A new schema and a new refusal for a gap the script-built body already fills | A delivery stage keeps omitting lessons in counted runs |
+| Remote change as a commit with no files | **Keep one path**: `improve-commit` accepts an empty commit that has a Remote change section | Meets your ask in one place | n/a |
+| `learning.remote_changes` schema, duplicate guard, changed follow-up return | **Defer** | No local case makes one | The first real remote case (the Salesforce test on the todo list) |
+| Look-back in every producer packet | **Keep, small** | Reuse the existing last-commits function: last 2 messages, their lessons sections only, scan the last 10 commits (not 500: chosen, never measured) | n/a |
+| Spec working copy, freeze, base/planned blobs, replace, three-way merge, plan ID check, `STATE_VERSION` 5 | **Defer all** | No observed failure; the existing guard covers the loss case | A run loses or garbles a requirement, or two runs edit one repository's spec |
+| **Retire step at handoff** (new, small) | **Keep** | The script checks that every ID the feature spec says it adds or modifies is in the living spec, removes the feature spec (only when the run's commits reach the branch) and commits, citing the prepare commit as the planned record | n/a |
+| A new feature index file | **Cut** | A new artifact every run rewrites; conflicts and noise | n/a: use a script-owned marker block inside `README.md` listing each feature: folder, request title, IDs, planned commit |
+| Packet diet: Improve negatives, duplicate status, duplicate callback and result path, the policy-link block replaced by one pointer line | **Keep** | About 11K of 42K characters removed, no guidance rewritten, no new file | n/a |
+| Locators table, the invariants rewrite, path variables, a per-stage filter of generic paragraphs | **Cut** | Rewrites that change behaviour for a gain the deletions already deliver | A probe shows a model confused by the shorter packet |
+| Spike | **Shrink** | Two measurements: every Improve contract's byte headroom; look-back bytes on one real repository. The state-bump and three-way-merge questions disappear | n/a |
+| Maintainer release preflight | **Keep, last, optional** | About 20 lines; the override trailer handles docs-only releases | n/a |
+| Verification | **Proportionate** | Byte counts plus the cleared-context probe for the diet; a live pair only where a model must do something new (the Improve commit rule, the retire step) | n/a |
+
+Rough size, from the plan's own lists: the spec lifecycle went from about 13 named tests and ten new functions with a state bump to about 4 tests and 3 functions with no state change. These are estimates, not measurements.
+
+### Plan of action v3
+
+1. **D8 snapshot** of the uncommitted work in the main checkout (non-destructive: `git stash create` into a branch, plus a copy of the untracked files). Owner OK.
+2. **Spike** (two measurements). Decide the carrier of the Improve commit rule (frozen contract, card or work string).
+3. **A. Packet diet (deletions only)**, own release.
+4. **B. Commits**: Key learnings, citation validation, script-built bodies, empty commit for a remote change via `improve-commit`, the small look-back; own release.
+5. **D. Retire the feature spec and the README features block**; own release; no state change.
+6. **M. Maintainer preflight**, with any release.
+7. **Deferred, each with its trigger** (table above).
+
+### Owner decisions left
+
+Four: **D8** (snapshot the unpublished work), **D3** (remove the feature spec only when the run's commits reach the branch), **D4** (an Improve pass that changes nothing makes no commit), **D5** (integrate's product commit gets a script-built body). D1, D2 and D6 are moot or deferred; D7 resolves to the README block.
+
 ## 1. What you asked for
 
 | # | Requirement | Answer |
