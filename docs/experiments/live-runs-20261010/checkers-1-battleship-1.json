@@ -1,0 +1,2068 @@
+{
+ "checkers-1": {
+  "case": "checkers",
+  "pass": true,
+  "outcome_class": "PASS",
+  "span": {
+   "started": 1791646376.817,
+   "ended": 1791647167.989
+  },
+  "host_build": "2.1.296",
+  "prompt_sha256": "e4da54c7f03d",
+  "plugin_sha256": "a03059c9db03",
+  "identity_unmeasured": {},
+  "quality": {
+   "observed": true,
+   "declared": [
+    "mutation",
+    "acceptance"
+   ],
+   "hosts_used": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "delivered_files": 18,
+   "acceptance": {
+    "observed": true,
+    "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged); calibrated against test/fixtures/quality/reference_checkers.py",
+    "ids": [
+     "red-moves-first",
+     "illegal-keeps-turn",
+     "off-board-keeps-turn",
+     "legal-moves-alternate",
+     "red-jump-mandatory",
+     "black-jump-mandatory-and-removal"
+    ],
+    "passed": [
+     "red-moves-first",
+     "illegal-keeps-turn",
+     "off-board-keeps-turn",
+     "legal-moves-alternate",
+     "red-jump-mandatory",
+     "black-jump-mandatory-and-removal"
+    ],
+    "checks": [
+     {
+      "id": "red-moves-first",
+      "source": "the request: 'Red starts on rows 0 to 2 and moves first' and 'An illegal move returns \"ok\": false and leaves the turn unchanged'",
+      "pass": true,
+      "note": "black first: {\"game\": \"ac3b994c-1af7-47f6-9eda-ce0b8807c36a\", \"id\": \"ac3b994c-1af7-47f6-9eda-ce0b8807c36a\", \"turn\": \"red\", \"winner\": "
+     },
+     {
+      "id": "illegal-keeps-turn",
+      "source": "the request: 'An illegal move returns \"ok\": false and leaves the turn unchanged' and POST /api/move 'returns JSON with \"ok\" true or false, \"turn\" set to \"red\" or \"black\", and \"winner\" null or the winning colour'",
+      "pass": true,
+      "note": "every board-legal illegal move refused with the turn kept"
+     },
+     {
+      "id": "off-board-keeps-turn",
+      "source": "the same two sentences, read for a target off the board or with a negative index; a reader could take that for a malformed request, which is why it is its own check",
+      "pass": true,
+      "note": "off-board moves refused with the turn kept"
+     },
+     {
+      "id": "legal-moves-alternate",
+      "source": "the request: 'a legal move switches the turn'",
+      "pass": true,
+      "note": "(ok, turn) after red, black, red: [(True, 'black'), (True, 'red'), (True, 'black')]"
+     },
+     {
+      "id": "red-jump-mandatory",
+      "source": "the request: 'a jump removes the jumped piece and is mandatory when available'",
+      "pass": true,
+      "note": "ordinary move with a jump available: {\"game\": \"5d95bbef-66be-4287-9a47-8d5a6bddf343\", \"id\": \"5d95bbef-66be-4287-9a47-; the jump: {\"game\": \"5d95bbef-66be-4287-9a47-8d5a6bddf343\", \"id\": \"5d95bbef-66be-4287-9a47-"
+     },
+     {
+      "id": "black-jump-mandatory-and-removal",
+      "source": "the request: 'a jump removes the jumped piece and is mandatory when available', read for black and for the square of the removed piece",
+      "pass": true,
+      "note": "black ordinary move: {\"game\": \"246f685d-ba79-454a-bd59-a0aabfae5f32\", \"id\": \"246f685d-ba79-454a-bd59-; black recapture onto the removed piece's square: {\"game\": \"246f685d-ba79-454a-bd59-a0aabfae5f32\", \"id\": \"246f685d-ba79-454a-bd59-"
+     }
+    ]
+   },
+   "mutation": {
+    "observed": true,
+    "operator_id": "js-1",
+    "command": "node --test",
+    "source": "the request: the game rules live in a module the server uses and are covered by node:test tests that run with `node --test`; system/ holds the model's own browser and system checks, which `node --test` does not run",
+    "baseline": {
+     "returncode": 0,
+     "seconds": 0.402,
+     "tests": 16,
+     "port_refusals": 0
+    },
+    "refuse_ports": [
+     3000
+    ],
+    "sites": 100,
+    "killed": 82,
+    "timeout": 4,
+    "port_refused": 2,
+    "port_refusals": 4,
+    "survived": 18,
+    "invalid": 0,
+    "unconfirmed": 0,
+    "not_run": 0,
+    "not_run_reasons": {},
+    "ratio": 0.82,
+    "ceiling_hit": false,
+    "ceilings": {
+     "run_seconds": 10,
+     "phase_seconds": 600
+    },
+    "per_file": {
+     "rules.js": {
+      "sites": 72,
+      "lines": 111,
+      "loaded_by_tests": true,
+      "killed": 68,
+      "timeout": 1,
+      "port_refusals": 0,
+      "survived": 4,
+      "invalid": 0,
+      "unconfirmed": 0,
+      "not_run": 0
+     },
+     "server.js": {
+      "sites": 28,
+      "lines": 95,
+      "loaded_by_tests": true,
+      "killed": 14,
+      "timeout": 3,
+      "port_refusals": 4,
+      "survived": 14,
+      "invalid": 0,
+      "unconfirmed": 0,
+      "not_run": 0
+     }
+    },
+    "uncovered": [
+     {
+      "file": "index.html",
+      "inline_script_lines": 60
+     }
+    ],
+    "kills": [
+     {
+      "file": "rules.js",
+      "line": 8,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "server.js",
+      "line": 16,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": true,
+      "port_refusals": 0,
+      "evidence": "timed out after 10 s"
+     },
+     {
+      "file": "rules.js",
+      "line": 8,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "server.js",
+      "line": 29,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 API: /api/new and /api/move contracts and error responses"
+     },
+     {
+      "file": "rules.js",
+      "line": 9,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 men cannot move backward, kings can"
+     },
+     {
+      "file": "rules.js",
+      "line": 9,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 men cannot move backward, kings can"
+     },
+     {
+      "file": "rules.js",
+      "line": 9,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 men cannot move backward, kings can"
+     },
+     {
+      "file": "rules.js",
+      "line": 10,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 a legal simple move switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 11,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "server.js",
+      "line": 40,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 API: /api/new and /api/move contracts and error responses"
+     },
+     {
+      "file": "rules.js",
+      "line": 11,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 11,
+      "op": "rel-bound",
+      "from": ">=",
+      "to": ">",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 men cannot move backward, kings can"
+     },
+     {
+      "file": "rules.js",
+      "line": 11,
+      "op": "bound-literal",
+      "from": "0",
+      "to": "1",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 men cannot move backward, kings can"
+     },
+     {
+      "file": "rules.js",
+      "line": 11,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "server.js",
+      "line": 56,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 API: /api/new and /api/move contracts and error responses"
+     },
+     {
+      "file": "rules.js",
+      "line": 11,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<=",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 reaching the far row promotes to king and ends the chain"
+     },
+     {
+      "file": "server.js",
+      "line": 56,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 API: /api/new and /api/move contracts and error responses"
+     },
+     {
+      "file": "rules.js",
+      "line": 11,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "server.js",
+      "line": 60,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 API: /api/new and /api/move contracts and error responses"
+     },
+     {
+      "file": "rules.js",
+      "line": 11,
+      "op": "rel-bound",
+      "from": ">=",
+      "to": ">",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a jump removes the jumped piece; men jump forward only, kings both ways"
+     },
+     {
+      "file": "rules.js",
+      "line": 11,
+      "op": "bound-literal",
+      "from": "0",
+      "to": "1",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a jump removes the jumped piece; men jump forward only, kings both ways"
+     },
+     {
+      "file": "server.js",
+      "line": 60,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 API: /api/new and /api/move contracts and error responses"
+     },
+     {
+      "file": "rules.js",
+      "line": 11,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 11,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<=",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "server.js",
+      "line": 61,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 API: /api/new and /api/move contracts and error responses"
+     },
+     {
+      "file": "rules.js",
+      "line": 12,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 reaching the far row promotes to king and ends the chain"
+     },
+     {
+      "file": "rules.js",
+      "line": 12,
+      "op": "arith-flip",
+      "from": "-",
+      "to": "+",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 reaching the far row promotes to king and ends the chain"
+     },
+     {
+      "file": "server.js",
+      "line": 66,
+      "op": "bool-flip",
+      "from": "true",
+      "to": "false",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 API: /api/new and /api/move contracts and error responses"
+     },
+     {
+      "file": "rules.js",
+      "line": 15,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 25,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<=",
+      "timeout": true,
+      "port_refusals": 0,
+      "evidence": "timed out after 10 s"
+     },
+     {
+      "file": "rules.js",
+      "line": 26,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<=",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "server.js",
+      "line": 75,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 API: /api/new and /api/move contracts and error responses"
+     },
+     {
+      "file": "rules.js",
+      "line": 27,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 27,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "server.js",
+      "line": 76,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 API: /api/new and /api/move contracts and error responses"
+     },
+     {
+      "file": "rules.js",
+      "line": 27,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "server.js",
+      "line": 77,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 API: /api/new and /api/move contracts and error responses"
+     },
+     {
+      "file": "rules.js",
+      "line": 27,
+      "op": "rel-bound",
+      "from": "<=",
+      "to": "<",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 27,
+      "op": "bound-literal",
+      "from": "2",
+      "to": "3",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "server.js",
+      "line": 92,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": true,
+      "port_refusals": 1,
+      "evidence": "timed out after 10 s"
+     },
+     {
+      "file": "rules.js",
+      "line": 28,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "server.js",
+      "line": 93,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": true,
+      "port_refusals": 3,
+      "evidence": "timed out after 10 s"
+     },
+     {
+      "file": "rules.js",
+      "line": 28,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 28,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 28,
+      "op": "rel-bound",
+      "from": ">=",
+      "to": ">",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 28,
+      "op": "bound-literal",
+      "from": "5",
+      "to": "6",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 36,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 a legal simple move switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 36,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 a legal simple move switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 36,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 men cannot move backward, kings can"
+     },
+     {
+      "file": "rules.js",
+      "line": 52,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 53,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a jump removes the jumped piece; men jump forward only, kings both ways"
+     },
+     {
+      "file": "rules.js",
+      "line": 55,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 57,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 58,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a jump removes the jumped piece; men jump forward only, kings both ways"
+     },
+     {
+      "file": "rules.js",
+      "line": 59,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a jump removes the jumped piece; men jump forward only, kings both ways"
+     },
+     {
+      "file": "rules.js",
+      "line": 60,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-9 the winner is the player whose opponent has no pieces or no legal moves"
+     },
+     {
+      "file": "rules.js",
+      "line": 60,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a jump removes the jumped piece; men jump forward only, kings both ways"
+     },
+     {
+      "file": "rules.js",
+      "line": 72,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<=",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 73,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<=",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 74,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 80,
+      "op": "rel-bound",
+      "from": ">",
+      "to": ">=",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 80,
+      "op": "bound-literal",
+      "from": "0",
+      "to": "1",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a jump removes the jumped piece; men jump forward only, kings both ways"
+     },
+     {
+      "file": "rules.js",
+      "line": 83,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 87,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-9 the winner is the player whose opponent has no pieces or no legal moves"
+     },
+     {
+      "file": "rules.js",
+      "line": 88,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 illegal moves are rejected and leave the game unchanged"
+     },
+     {
+      "file": "rules.js",
+      "line": 89,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 89,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 men cannot move backward, kings can"
+     },
+     {
+      "file": "rules.js",
+      "line": 89,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 a legal simple move switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 89,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 men cannot move backward, kings can"
+     },
+     {
+      "file": "rules.js",
+      "line": 89,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     },
+     {
+      "file": "rules.js",
+      "line": 89,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 men cannot move backward, kings can"
+     },
+     {
+      "file": "rules.js",
+      "line": 89,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 illegal moves are rejected and leave the game unchanged"
+     },
+     {
+      "file": "rules.js",
+      "line": 90,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 men cannot move backward, kings can"
+     },
+     {
+      "file": "rules.js",
+      "line": 97,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 a legal simple move switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 97,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 a legal simple move switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 102,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 a legal simple move switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 102,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 a legal simple move switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 102,
+      "op": "rel-bound",
+      "from": ">",
+      "to": ">=",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a jump removes the jumped piece; men jump forward only, kings both ways"
+     },
+     {
+      "file": "rules.js",
+      "line": 102,
+      "op": "bound-literal",
+      "from": "0",
+      "to": "1",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 multi-jump: the same piece must continue before the turn changes"
+     },
+     {
+      "file": "rules.js",
+      "line": 104,
+      "op": "bool-flip",
+      "from": "true",
+      "to": "false",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 multi-jump: the same piece must continue before the turn changes"
+     },
+     {
+      "file": "rules.js",
+      "line": 107,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 a legal simple move switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 108,
+      "op": "bool-flip",
+      "from": "true",
+      "to": "false",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 initial layout: 12 red on rows 0-2, 12 black on rows 5-7, odd squares, red to move"
+     }
+    ],
+    "survivors": [
+     {
+      "file": "server.js",
+      "line": 32,
+      "op": "rel-bound",
+      "from": ">",
+      "to": ">="
+     },
+     {
+      "file": "server.js",
+      "line": 32,
+      "op": "bool-flip",
+      "from": "true",
+      "to": "false"
+     },
+     {
+      "file": "server.js",
+      "line": 36,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true"
+     },
+     {
+      "file": "server.js",
+      "line": 40,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||"
+     },
+     {
+      "file": "server.js",
+      "line": 40,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||"
+     },
+     {
+      "file": "server.js",
+      "line": 46,
+      "op": "rel-bound",
+      "from": ">=",
+      "to": ">"
+     },
+     {
+      "file": "server.js",
+      "line": 50,
+      "op": "bool-flip",
+      "from": "true",
+      "to": "false"
+     },
+     {
+      "file": "server.js",
+      "line": 60,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&"
+     },
+     {
+      "file": "server.js",
+      "line": 60,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&"
+     },
+     {
+      "file": "server.js",
+      "line": 63,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&"
+     },
+     {
+      "file": "server.js",
+      "line": 71,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true"
+     },
+     {
+      "file": "server.js",
+      "line": 74,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true"
+     },
+     {
+      "file": "server.js",
+      "line": 75,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true"
+     },
+     {
+      "file": "server.js",
+      "line": 80,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true"
+     },
+     {
+      "file": "rules.js",
+      "line": 40,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&"
+     },
+     {
+      "file": "rules.js",
+      "line": 83,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||"
+     },
+     {
+      "file": "rules.js",
+      "line": 83,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||"
+     },
+     {
+      "file": "rules.js",
+      "line": 88,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&"
+     }
+    ],
+    "unconfirmed_mutants": [],
+    "seconds": 115.1
+   },
+   "left_behind": {
+    "observed": true,
+    "reaped": [],
+    "survived": []
+   },
+   "memory_writes": [],
+   "held_out_seen": 0,
+   "notes": [
+    "held_out_seen counts event lines that name a held-out script, the checks folder or E2E_CHECKS; 0 is not proof the model never read the script: the harness prints the path of checks/ in its own command line and resume prompt"
+   ],
+   "seconds": 115.3
+  },
+  "environment": {
+   "start": {
+    "observed": true,
+    "at": "2026-10-10T15:32:49Z",
+    "tools": {
+     "node": "v25.9.0",
+     "python3": "Python 3.14.7",
+     "git": "git version 2.54.0 (Apple Git-157)"
+    },
+    "cpus": 18,
+    "loadavg": [
+     6.15,
+     6.3,
+     5.76
+    ],
+    "display_hold": true,
+    "unread": {},
+    "browser": {
+     "declared": true,
+     "probed": true,
+     "binary": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+     "version": "Google Chrome 154.0.8037.99",
+     "flags": [
+      "--headless=new",
+      "--disable-gpu",
+      "--no-first-run",
+      "--disable-background-networking",
+      "--disable-default-apps",
+      "--disable-component-update",
+      "--disable-sync"
+     ],
+     "ceiling_seconds": 20.0,
+     "grace_seconds": 1.0,
+     "empty_seconds": 2.0,
+     "file": {
+      "title_seen": true,
+      "output_s": 0.77,
+      "exited": false,
+      "lingered": true,
+      "returncode": null,
+      "killed": true,
+      "group_empty": true,
+      "interrupted": false,
+      "error": null
+     },
+     "http": {
+      "title_seen": true,
+      "output_s": 0.34,
+      "exited": false,
+      "lingered": true,
+      "returncode": null,
+      "killed": true,
+      "group_empty": true,
+      "interrupted": false,
+      "error": null
+     }
+    }
+   },
+   "end": {
+    "observed": true,
+    "at": "2026-10-10T15:46:10Z",
+    "cpus": 18,
+    "loadavg": [
+     4.38,
+     4.84,
+     5.12
+    ],
+    "unread": {}
+   },
+   "overlap": {
+    "observed": true,
+    "basis": "the first and last host event of this run and of each sibling folder in the same parent folder (timeline.jsonl holds host events only): it counts a pause between sessions, and misses the setup before the first event and the checks and reap after the last, so the seconds are neither an upper nor a lower bound",
+    "span": {
+     "first": 1791646376.817,
+     "last": 1791647167.989
+    },
+    "siblings_read": 0,
+    "siblings_unreadable": [],
+    "runs": []
+   },
+   "hosts_used": [
+    "claude"
+   ]
+  },
+  "fidelity_header": {
+   "schema": "shiploop-e2e-fidelity/v1",
+   "tool_calls_seen": 114,
+   "unmeasured": {}
+  },
+  "planning": {
+   "window": {
+    "closed": true,
+    "through": "test-spec",
+    "seconds": 286.0,
+    "host_seconds": 292.2,
+    "before_engine_seconds": 6.2
+   },
+   "stages": [
+    {
+     "stage": "intake",
+     "outcome": "done",
+     "action": "nav-0b351c0cbbcd4b3e9f2a13df1d918fe4",
+     "seconds": 13.0,
+     "improve_seconds": 0.0
+    },
+    {
+     "stage": "discovery",
+     "outcome": "done",
+     "action": "nav-118db196938a4d5ab06222f73c9fd22d",
+     "seconds": 9.0,
+     "improve_seconds": 0.0
+    },
+    {
+     "stage": "research",
+     "outcome": "done",
+     "action": "nav-acb11881c629468e8568b69aba980c8a",
+     "seconds": 6.0,
+     "improve_seconds": 0.0
+    },
+    {
+     "stage": "spec",
+     "outcome": "done",
+     "action": "nav-334bc74bf21c4e7492c8f59f19f8671c",
+     "seconds": 103.0,
+     "improve_seconds": 76.4
+    },
+    {
+     "stage": "test-strategy",
+     "outcome": "done",
+     "action": "nav-49f397989edd41fb85abb2aa8d98bae0",
+     "seconds": 41.0,
+     "improve_seconds": 16.8
+    },
+    {
+     "stage": "plan",
+     "outcome": "done",
+     "action": "nav-0fa7d11ad4a4472889612ae3b6307f38",
+     "seconds": 28.0,
+     "improve_seconds": 0.3
+    },
+    {
+     "stage": "prepare",
+     "outcome": "done",
+     "action": "nav-0bcf47ca5d0240cfbdd5cf53bfab3eb4",
+     "seconds": 11.0,
+     "improve_seconds": 0.0
+    },
+    {
+     "stage": "get-next-work-item",
+     "outcome": "done",
+     "action": "nav-c55f72a3059042d3ac273297a10dc79c",
+     "seconds": 8.0,
+     "improve_seconds": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "action": "nav-751c82fab9b3466aabbd4d083011bfe9",
+     "seconds": 29.0,
+     "improve_seconds": 0.5
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "action": "nav-24dd51a14cfb42998035a3e4f7bb985d",
+     "seconds": 38.0,
+     "improve_seconds": 0.1
+    }
+   ],
+   "improve": {
+    "children": 5,
+    "seconds": 94.1
+   },
+   "producer_seconds": 191.9,
+   "unmeasured": {},
+   "tokens": {
+    "unmeasured": "this host's per-message output counts are streaming snapshots (about 1/17 of the session's own total on a recorded run); only the whole-run usage is exact"
+   }
+  },
+  "turns": 201,
+  "cost_usd": 3.7224
+ },
+ "battleship-1": {
+  "case": "battleship",
+  "pass": true,
+  "outcome_class": "PASS",
+  "span": {
+   "started": 1791647304.869,
+   "ended": 1791647980.0
+  },
+  "host_build": "2.1.296",
+  "prompt_sha256": "d0c0cbe71344",
+  "plugin_sha256": "a03059c9db03",
+  "identity_unmeasured": {},
+  "quality": {
+   "observed": true,
+   "declared": [
+    "mutation"
+   ],
+   "hosts_used": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "delivered_files": 17,
+   "mutation": {
+    "observed": true,
+    "operator_id": "js-1",
+    "command": "node --test",
+    "source": "the request: the game rules live in a module the server uses and are covered by node:test tests that run with `node --test`; system/ holds the model's own browser and system checks, which `node --test` does not run",
+    "baseline": {
+     "returncode": 0,
+     "seconds": 0.372,
+     "tests": 17,
+     "port_refusals": 0
+    },
+    "refuse_ports": [
+     3000
+    ],
+    "sites": 53,
+    "killed": 40,
+    "timeout": 1,
+    "port_refused": 1,
+    "port_refusals": 2,
+    "survived": 13,
+    "invalid": 0,
+    "unconfirmed": 0,
+    "not_run": 0,
+    "not_run_reasons": {},
+    "ratio": 0.7547,
+    "ceiling_hit": false,
+    "ceilings": {
+     "run_seconds": 10,
+     "phase_seconds": 600
+    },
+    "per_file": {
+     "game.js": {
+      "sites": 25,
+      "lines": 61,
+      "loaded_by_tests": true,
+      "killed": 21,
+      "timeout": 0,
+      "port_refusals": 0,
+      "survived": 4,
+      "invalid": 0,
+      "unconfirmed": 0,
+      "not_run": 0
+     },
+     "server.js": {
+      "sites": 28,
+      "lines": 102,
+      "loaded_by_tests": true,
+      "killed": 19,
+      "timeout": 1,
+      "port_refusals": 2,
+      "survived": 9,
+      "invalid": 0,
+      "unconfirmed": 0,
+      "not_run": 0
+     }
+    },
+    "uncovered": [
+     {
+      "file": "index.html",
+      "inline_script_lines": 60
+     }
+    ],
+    "kills": [
+     {
+      "file": "game.js",
+      "line": 26,
+      "op": "arith-flip",
+      "from": "-",
+      "to": "+",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 placeFleet makes the classic 5/4/3/3/2 fleet, in bounds, straight, non-overlapping"
+     },
+     {
+      "file": "game.js",
+      "line": 27,
+      "op": "arith-flip",
+      "from": "-",
+      "to": "+",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 placeFleet makes the classic 5/4/3/3/2 fleet, in bounds, straight, non-overlapping"
+     },
+     {
+      "file": "game.js",
+      "line": 28,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 placeFleet makes the classic 5/4/3/3/2 fleet, in bounds, straight, non-overlapping"
+     },
+     {
+      "file": "game.js",
+      "line": 28,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 placeFleet makes the classic 5/4/3/3/2 fleet, in bounds, straight, non-overlapping"
+     },
+     {
+      "file": "server.js",
+      "line": 49,
+      "op": "rel-bound",
+      "from": ">=",
+      "to": ">",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-14 the oldest game is evicted once 1000 games are stored"
+     },
+     {
+      "file": "game.js",
+      "line": 29,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 placeFleet makes the classic 5/4/3/3/2 fleet, in bounds, straight, non-overlapping"
+     },
+     {
+      "file": "server.js",
+      "line": 60,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": true,
+      "port_refusals": 0,
+      "evidence": "timed out after 10 s"
+     },
+     {
+      "file": "game.js",
+      "line": 30,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 placeFleet makes the classic 5/4/3/3/2 fleet, in bounds, straight, non-overlapping"
+     },
+     {
+      "file": "server.js",
+      "line": 63,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a whole game over HTTP ends with gameOver after 17 hits and 5 sunk"
+     },
+     {
+      "file": "game.js",
+      "line": 39,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 firing at empty water is a miss and the game continues"
+     },
+     {
+      "file": "game.js",
+      "line": 46,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 invalid shots are rejected with status 400"
+     },
+     {
+      "file": "server.js",
+      "line": 63,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a whole game over HTTP ends with gameOver after 17 hits and 5 sunk"
+     },
+     {
+      "file": "game.js",
+      "line": 46,
+      "op": "rel-bound",
+      "from": ">=",
+      "to": ">",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 a ship is hit until its last cell, then sunk and named"
+     },
+     {
+      "file": "server.js",
+      "line": 67,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a whole game over HTTP ends with gameOver after 17 hits and 5 sunk"
+     },
+     {
+      "file": "game.js",
+      "line": 46,
+      "op": "bound-literal",
+      "from": "0",
+      "to": "1",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 a ship is hit until its last cell, then sunk and named"
+     },
+     {
+      "file": "server.js",
+      "line": 69,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 bad input yields JSON errors with the right status"
+     },
+     {
+      "file": "game.js",
+      "line": 46,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 invalid shots are rejected with status 400"
+     },
+     {
+      "file": "game.js",
+      "line": 46,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<=",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 invalid shots are rejected with status 400"
+     },
+     {
+      "file": "server.js",
+      "line": 75,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 bad input yields JSON errors with the right status"
+     },
+     {
+      "file": "game.js",
+      "line": 47,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 invalid shots are rejected with status 400"
+     },
+     {
+      "file": "server.js",
+      "line": 81,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 GET / serves the Battleship page with a 10x10 client"
+     },
+     {
+      "file": "game.js",
+      "line": 48,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 a ship is hit until its last cell, then sunk and named"
+     },
+     {
+      "file": "server.js",
+      "line": 81,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 GET / serves the Battleship page with a 10x10 client"
+     },
+     {
+      "file": "game.js",
+      "line": 52,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 firing at empty water is a miss and the game continues"
+     },
+     {
+      "file": "server.js",
+      "line": 81,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-16 HEAD / answers like GET / without a body"
+     },
+     {
+      "file": "game.js",
+      "line": 52,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 firing at empty water is a miss and the game continues"
+     },
+     {
+      "file": "server.js",
+      "line": 81,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 /api/new returns a fresh id and never leaks the fleet"
+     },
+     {
+      "file": "game.js",
+      "line": 52,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a whole game over HTTP ends with gameOver after 17 hits and 5 sunk"
+     },
+     {
+      "file": "server.js",
+      "line": 81,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 /api/new returns a fresh id and never leaks the fleet"
+     },
+     {
+      "file": "game.js",
+      "line": 53,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-2 firing at empty water is a miss and the game continues"
+     },
+     {
+      "file": "server.js",
+      "line": 87,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 /api/new returns a fresh id and never leaks the fleet"
+     },
+     {
+      "file": "game.js",
+      "line": 55,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 a ship is hit until its last cell, then sunk and named"
+     },
+     {
+      "file": "server.js",
+      "line": 87,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 bad input yields JSON errors with the right status"
+     },
+     {
+      "file": "game.js",
+      "line": 56,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 gameOver turns true exactly on the final cell and later shots are rejected"
+     },
+     {
+      "file": "server.js",
+      "line": 87,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 /api/new returns a fresh id and never leaks the fleet"
+     },
+     {
+      "file": "game.js",
+      "line": 58,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 a ship is hit until its last cell, then sunk and named"
+     },
+     {
+      "file": "server.js",
+      "line": 89,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a whole game over HTTP ends with gameOver after 17 hits and 5 sunk"
+     },
+     {
+      "file": "server.js",
+      "line": 89,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-15 wrong method on an API route is a JSON 404"
+     },
+     {
+      "file": "server.js",
+      "line": 89,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a whole game over HTTP ends with gameOver after 17 hits and 5 sunk"
+     },
+     {
+      "file": "server.js",
+      "line": 97,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 2,
+      "evidence": "\u2716 test/server.test.js"
+     }
+    ],
+    "survivors": [
+     {
+      "file": "game.js",
+      "line": 24,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<="
+     },
+     {
+      "file": "server.js",
+      "line": 16,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||"
+     },
+     {
+      "file": "game.js",
+      "line": 25,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<="
+     },
+     {
+      "file": "server.js",
+      "line": 16,
+      "op": "rel-bound",
+      "from": ">=",
+      "to": ">"
+     },
+     {
+      "file": "server.js",
+      "line": 16,
+      "op": "bound-literal",
+      "from": "0",
+      "to": "1"
+     },
+     {
+      "file": "game.js",
+      "line": 26,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-"
+     },
+     {
+      "file": "server.js",
+      "line": 16,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||"
+     },
+     {
+      "file": "server.js",
+      "line": 16,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<="
+     },
+     {
+      "file": "game.js",
+      "line": 27,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-"
+     },
+     {
+      "file": "server.js",
+      "line": 16,
+      "op": "bound-literal",
+      "from": "65536",
+      "to": "65537"
+     },
+     {
+      "file": "server.js",
+      "line": 33,
+      "op": "rel-bound",
+      "from": ">",
+      "to": ">="
+     },
+     {
+      "file": "server.js",
+      "line": 63,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&"
+     },
+     {
+      "file": "server.js",
+      "line": 69,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!=="
+     }
+    ],
+    "unconfirmed_mutants": [],
+    "seconds": 41.6
+   },
+   "left_behind": {
+    "observed": true,
+    "reaped": [],
+    "survived": []
+   },
+   "memory_writes": [],
+   "held_out_seen": null,
+   "unmeasured": {
+    "held_out_seen": "the case declares no held-out acceptance, so nothing is held out"
+   },
+   "seconds": 41.8
+  },
+  "environment": {
+   "start": {
+    "observed": true,
+    "at": "2026-10-10T15:48:22Z",
+    "tools": {
+     "node": "v25.9.0",
+     "python3": "Python 3.14.7",
+     "git": "git version 2.54.0 (Apple Git-157)"
+    },
+    "cpus": 18,
+    "loadavg": [
+     4.97,
+     4.92,
+     5.11
+    ],
+    "display_hold": true,
+    "unread": {},
+    "browser": {
+     "declared": true,
+     "probed": true,
+     "binary": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+     "version": "Google Chrome 154.0.8037.99",
+     "flags": [
+      "--headless=new",
+      "--disable-gpu",
+      "--no-first-run",
+      "--disable-background-networking",
+      "--disable-default-apps",
+      "--disable-component-update",
+      "--disable-sync"
+     ],
+     "ceiling_seconds": 20.0,
+     "grace_seconds": 1.0,
+     "empty_seconds": 2.0,
+     "file": {
+      "title_seen": true,
+      "output_s": 0.73,
+      "exited": true,
+      "lingered": false,
+      "returncode": 0,
+      "killed": false,
+      "group_empty": true,
+      "interrupted": false,
+      "error": null
+     },
+     "http": {
+      "title_seen": true,
+      "output_s": 0.33,
+      "exited": false,
+      "lingered": true,
+      "returncode": null,
+      "killed": true,
+      "group_empty": true,
+      "interrupted": false,
+      "error": null
+     }
+    }
+   },
+   "end": {
+    "observed": true,
+    "at": "2026-10-10T15:59:42Z",
+    "cpus": 18,
+    "loadavg": [
+     3.66,
+     3.61,
+     4.22
+    ],
+    "unread": {}
+   },
+   "overlap": {
+    "observed": true,
+    "basis": "the first and last host event of this run and of each sibling folder in the same parent folder (timeline.jsonl holds host events only): it counts a pause between sessions, and misses the setup before the first event and the checks and reap after the last, so the seconds are neither an upper nor a lower bound",
+    "span": {
+     "first": 1791647304.869,
+     "last": 1791647980.0
+    },
+    "siblings_read": 1,
+    "siblings_unreadable": [],
+    "runs": []
+   },
+   "hosts_used": [
+    "claude"
+   ]
+  },
+  "fidelity_header": {
+   "schema": "shiploop-e2e-fidelity/v1",
+   "tool_calls_seen": 114,
+   "unmeasured": {}
+  },
+  "planning": {
+   "window": {
+    "closed": true,
+    "through": "test-spec",
+    "seconds": 282.0,
+    "host_seconds": 289.1,
+    "before_engine_seconds": 7.1
+   },
+   "stages": [
+    {
+     "stage": "intake",
+     "outcome": "done",
+     "action": "nav-b58a077068104516b98466fb967e3369",
+     "seconds": 13.0,
+     "improve_seconds": 0.0
+    },
+    {
+     "stage": "discovery",
+     "outcome": "done",
+     "action": "nav-1c65dc8a4ce2483caae1063422b0d6f5",
+     "seconds": 10.0,
+     "improve_seconds": 0.0
+    },
+    {
+     "stage": "research",
+     "outcome": "done",
+     "action": "nav-948a01379b7141eda64c16d8b3b0dba3",
+     "seconds": 6.0,
+     "improve_seconds": 0.0
+    },
+    {
+     "stage": "spec",
+     "outcome": "done",
+     "action": "nav-fdaca236bc174f74a2fe96f315c9ac4b",
+     "seconds": 85.0,
+     "improve_seconds": 63.8
+    },
+    {
+     "stage": "test-strategy",
+     "outcome": "done",
+     "action": "nav-aa60a702f6d74e9eb827346eb0355c65",
+     "seconds": 53.0,
+     "improve_seconds": 10.0
+    },
+    {
+     "stage": "plan",
+     "outcome": "done",
+     "action": "nav-053cb111b63e48bfa2787750d89c02f2",
+     "seconds": 30.0,
+     "improve_seconds": 4.2
+    },
+    {
+     "stage": "prepare",
+     "outcome": "done",
+     "action": "nav-18d6a1d74bd4427ab560f3b16c47c42a",
+     "seconds": 18.0,
+     "improve_seconds": 0.0
+    },
+    {
+     "stage": "get-next-work-item",
+     "outcome": "done",
+     "action": "nav-b2cbce2633b04167b9cdea73cf9b0ac3",
+     "seconds": 4.0,
+     "improve_seconds": 0.0
+    },
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "action": "nav-08a148dcb24c48ecbaf05f6dce67ff98",
+     "seconds": 34.0,
+     "improve_seconds": 3.9
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "action": "nav-5aaa584673c94170bb2be857b7bb6b8c",
+     "seconds": 29.0,
+     "improve_seconds": 3.9
+    }
+   ],
+   "improve": {
+    "children": 5,
+    "seconds": 85.8
+   },
+   "producer_seconds": 196.2,
+   "unmeasured": {},
+   "tokens": {
+    "unmeasured": "this host's per-message output counts are streaming snapshots (about 1/17 of the session's own total on a recorded run); only the whole-run usage is exact"
+   }
+  },
+  "turns": 195,
+  "cost_usd": 3.4083
+ }
+}
