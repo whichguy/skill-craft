@@ -1587,8 +1587,8 @@ class LogicBlockTests(unittest.TestCase):
         unmeasured, measured = run_logic(
             '[headerFacts({release: "r", time: "t", imp: "i"}),'
             ' headerFacts({release: "r", time: "t", imp: "i", refusals: 13, glue: 0})]')
-        self.assertEqual(unmeasured, "r | t | refusals not measured | glue not measured | i")
-        self.assertEqual(measured, "r | t | 13 refusals | 0 glue | i")
+        self.assertEqual(unmeasured, "r | t")
+        self.assertEqual(measured, "r | t")
         self.assertNotIn("undefined", unmeasured + measured)
 
     def test_a_stage_with_no_minutes_reads_n_a_never_zero(self) -> None:
@@ -1733,15 +1733,16 @@ class PageShellTests(unittest.TestCase):
 
     def test_the_run_detail_reads_the_new_run_fields_defensively(self) -> None:
         bare = page_probe('textOf("rundetail")', setup=SAMPLE_SETUP)
-        for line in ("Model calls (main thread)not measured", "Context peak (main thread)not measured",
-                     "Compactionsnot measured"):
-            self.assertIn(line, bare)
+        self.assertIn("Model calls (main thread)not measured", bare)
+        for repeated in ("Context peak (main thread)", "Compactions", "Elapsed (accept to accept)"):  # the KPI cards say these
+            self.assertNotIn(repeated, bare)
         self.assertNotRegex(bare, r"undefined|NaN|null")
         rich = page_probe(
             'Object.assign(data.runs[0],{calls:149,contextPeak:271220,contextWindow:1000000,compactions:0,improvePasses:19,improveMin:3.7,'
             'unmeasured:{}});renderAll();textOf("rundetail")', setup=SAMPLE_SETUP)
-        for line in ("Model calls (main thread)149", "Context peak (main thread)271,220 tokens of 1,000,000 (27.1%)", "Compactions0"):
-            self.assertIn(line, rich)
+        self.assertIn("Model calls (main thread)149", rich)
+        for repeated in ("Context peak (main thread)", "Compactions"):  # the Context card says these
+            self.assertNotIn(repeated, rich)
         self.assertNotIn("Stages: minutes between accepts", rich)  # the old stage table is replaced by the picture and its table
 
     def test_the_improve_card_reads_the_stage_rows_and_totals_and_says_when_it_was_not_measured(self) -> None:
@@ -1771,10 +1772,8 @@ class PageShellLogicTests(unittest.TestCase):
 
     def test_fact_rows_list_text_facts_when_present_and_the_counters_always(self) -> None:
         rows = run_logic('[factRows({host:"codex",wallMin:12.5,calls:3}), factRows({}).map(function(r){return r[0];})]')
-        self.assertEqual(rows[0], [["Host", "codex"], ["Elapsed (accept to accept)", "12.5 min"],
-                                   ["Model calls (main thread)", "3"], ["Context peak (main thread)", "not measured"],
-                                   ["Compactions", "not measured"]])
-        self.assertEqual(rows[1], ["Model calls (main thread)", "Context peak (main thread)", "Compactions"])
+        self.assertEqual(rows[0], [["Host", "codex"], ["Model calls (main thread)", "3"]])  # elapsed, context and compactions are the cards'
+        self.assertEqual(rows[1], ["Model calls (main thread)"])
 
     def test_improve_facts_read_the_stage_rows_and_totals_and_never_invent_a_zero(self) -> None:
         none, some = run_logic(
@@ -4162,7 +4161,8 @@ class PlanningReviewPageTests(unittest.TestCase):
     def test_the_header_line_names_a_recorded_mode_and_prints_nothing_for_an_absent_or_not_recorded_one(self):
         none, stage, absent, unknown = (self.runs[k] for k in ("none", "stage", "absent", "unknown"))
         lines = run_logic("(function(a){return a.map(headerFacts);})(%s)" % json.dumps([none, stage, absent, unknown]))
-        self.assertTrue(lines[0].endswith(" | 2 children, 3 review passes | planning review: none"), lines[0])
+        self.assertTrue(lines[0].endswith(" | planning review: none"), lines[0])
+        self.assertNotIn("review passes", lines[0])  # the Improve card says it
         self.assertTrue(lines[1].endswith(" | planning review: stage"), lines[1])
         self.assertTrue(lines[3].endswith(" | planning review: once"), lines[3])  # an unknown value is shown as written
         self.assertEqual(absent["planningReview"], "not recorded")
@@ -4171,8 +4171,7 @@ class PlanningReviewPageTests(unittest.TestCase):
         self.assertEqual(run_logic(f'[headerFacts({{{plain}}}), headerFacts({{{plain},planningReview:""}}),'
                                    f' headerFacts({{{plain},planningReview:"not recorded"}}), headerFacts({{{plain},planningReview:2}}),'
                                    f' headerFacts({{{plain},planningReview:"none"}})]'),
-                         ["r | t | refusals not measured | glue not measured | i"] * 4
-                         + ["r | t | refusals not measured | glue not measured | i | planning review: none"])
+                         ["r | t"] * 4 + ["r | t | planning review: none"])
 
     def test_a_none_run_gets_a_chip_and_no_other_run_does(self):
         chips = run_logic('[modeChip({planningReview:"none"}), modeChip({planningReview:"stage"}), modeChip({planningReview:"once"}),'
@@ -6933,7 +6932,7 @@ class ChecksPlanningPageLogicTests(unittest.TestCase):
         rows = run_logic('[factRows({glue:1,planning:{windowMin:5}}),factRows({}),factRows({unmeasured:{planning:"none"}})]')
         names = lambda r: [x[0] for x in r]
         self.assertEqual(names(rows[0])[-2:], ["Model glue", "Planning window"])
-        self.assertEqual(names(rows[1]), ["Model calls (main thread)", "Context peak (main thread)", "Compactions"])  # as before
+        self.assertEqual(names(rows[1]), ["Model calls (main thread)"])  # the other counters are the KPI cards', not repeated here
         self.assertEqual(rows[2][-1], ["Planning window", "not measured (none)"])
 
 
@@ -6973,14 +6972,18 @@ class ChecksPlanningPageTests(unittest.TestCase):
         cards = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(
             self.run_of(planning=planning, toolUse=tool_use, contextPeak=5000, contextWindow=10000)))}
         self.assertEqual(cards["elapsed"]["note"], "start to the last accept; planning 23.2 min, closed at test-spec")
-        self.assertEqual(cards["context"]["lines"], ["Packets: 45 packet files on disk; 47 printed replies; 1 read whole, 0 in part"])
+        self.assertEqual(cards["context"]["lines"], [])  # the packet reads are a Fidelity row now, not a second line on the card
+        self.assertEqual(run_logic("carriedRows(%s)" % json.dumps(self.run_of(toolUse=tool_use))),
+                         [["How the model met the packets", "45 packet files on disk; 47 printed replies; 1 read whole, 0 in part"]])
         unmeasured = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(self.run_of(toolUse=tool_use)))}
         self.assertEqual(unmeasured["context"]["value"], "not measured")
-        self.assertEqual(len(unmeasured["context"]["lines"]), 1)  # the packet line is independent of the context figure
+        self.assertEqual(unmeasured["context"]["lines"], [])  # and the packet reads (a Fidelity row) do not depend on the context figure
         plain = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(self.run_of()))}
         self.assertEqual((plain["context"]["lines"], plain["elapsed"]["note"]), ([], "start to the last accept"))
         out = page_probe('textOf("kpis")', setup=ended_page(self.run_of(planning=planning, toolUse=tool_use, contextPeak=5000, contextWindow=10000)))
-        self.assertIn("Packets: 45 packet files on disk; 47 printed replies; 1 read whole, 0 in part", out)
+        self.assertNotIn("45 packet files", out)  # the packet reads are on the Fidelity card
+        self.assertIn("How the model met the packets45 packet files on disk; 47 printed replies; 1 read whole, 0 in part",
+                      page_probe('textOf("fidcard")', setup=ended_page(self.run_of(planning=planning, toolUse=tool_use, contextPeak=5000, contextWindow=10000))))
         self.assertIn("planning 23.2 min, closed at test-spec", out)
 
     def test_the_run_detail_gives_the_glue_lower_bound_and_the_planning_window(self):
@@ -7004,11 +7007,12 @@ class CountsInTheRightNumberTests(unittest.TestCase):
                           "1 printed reply", "3 printed replies"])
 
     def test_the_header_line_counts_refusals_in_the_right_number_and_glue_stays_a_mass_noun(self):
+        # the header line no longer repeats the counters (the KPI cards and the Fidelity card carry them): release and time only
         heads = run_logic('[1,0,13].map(function(n){return headerFacts({release:"r",time:"t",imp:"i",refusals:n,glue:n});})')
-        self.assertEqual(heads, ["r | t | 1 refusal | 1 glue | i", "r | t | 0 refusals | 0 glue | i", "r | t | 13 refusals | 13 glue | i"])
-        self.assertEqual(run_logic('headerFacts({release:"r",time:"t",imp:"i"})'), "r | t | refusals not measured | glue not measured | i")
+        self.assertEqual(heads, ["r | t", "r | t", "r | t"])
+        self.assertEqual(run_logic('headerFacts({release:"r",time:"t",imp:"i"})'), "r | t")
         self.assertNotIn("1 refusals", page_probe('textOf("runfacts")', setup=ended_page(dict(DONE_RUN, refusals=1, glue=1))))
-        self.assertIn("| 1 refusal |", page_probe('textOf("runfacts")', setup=ended_page(dict(DONE_RUN, refusals=1, glue=1))))
+        self.assertEqual(page_probe('textOf("runfacts")', setup=ended_page(dict(DONE_RUN, refusals=1, glue=1))), "skill-craft 1.26.0 | done in 80 min")
 
     def test_the_prompts_run_facts_count_visits_improve_passes_and_refusals_in_the_right_number(self):
         one = run_logic('runFactsLine({stages:[{stage:"intake"}],wallMin:5,improvePasses:1,refusals:1,glue:1})')
@@ -7168,6 +7172,30 @@ def r23a_run(root: Path, saved: str | None = None, **result) -> Path:
     overlay = {**(r23a_saved(saved) if saved else {}), **result}
     edit_json(out / "result.json", lambda r: r.update(overlay))
     return out
+
+
+class RefusalLinePathTests(unittest.TestCase):
+    """A refusal line the harness records can carry the run's absolute folder (the engine prints the file it wants written). The export
+    keeps the file's place in the run and drops where the run lives: no absolute local path leaves the exporter."""
+
+    def test_the_run_folder_is_cut_to_a_placeholder_and_any_other_absolute_path_to_its_name(self):
+        line = ("ShipLoop navigator: the test loop has not run: no terminal packet exists at "
+                "/Users/someone/e2e-runs/20261009/s6-after-spec/.shiploop-runs/work-20261009-220625-b4d2a7/run/tests/nav-7a4e.md; "
+                "also /Users/someone/notes/readme.md and /opt/homebrew/bin/node")
+        got = export.failure_line(line)
+        self.assertIn("<run>/.shiploop-runs/work-20261009-220625-b4d2a7/run/tests/nav-7a4e.md", got)
+        self.assertIn("readme.md", got)
+        self.assertNotIn("/Users/", got)
+        self.assertNotIn("/opt/homebrew", got)
+        self.assertEqual(export.failure_line("no path here: exit 2"), "no path here: exit 2")
+
+    def test_a_refusal_in_the_run_document_carries_no_absolute_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = make_run(Path(tmp), loops=False)
+            edit_json(out / "metrics.json", lambda m: m.update(shiploop_failures=[
+                {"verb": "complete", "line": "write /Users/someone/e2e-runs/x/.shiploop-runs/work-1/run/notes/intake.md first"}]))
+            run = next(iter(export.build_run(out)[0]["runs"].values()))
+        self.assertEqual(run["failures"][0]["line"], "write <run>/.shiploop-runs/work-1/run/notes/intake.md first")
 
 
 class R23aExportBase(unittest.TestCase):
@@ -8021,8 +8049,9 @@ class FreshStartsPageTests(unittest.TestCase):
     def test_the_card_is_in_the_page_hidden_until_a_run_has_something_to_say(self):
         html = TEMPLATE.read_text(encoding="utf-8")
         self.assertRegex(html, r'<div class="card freshcard" id="freshcard" hidden></div>')
-        self.assertLess(html.index('id="plancard"'), html.index('id="freshcard"'))
-        self.assertLess(html.index('id="freshcard"'), html.index('id="seqcard"'))
+        # one group after the picture and its stage cards: how the work was carried (Fidelity), what losing context cost, what it delivered
+        self.assertLess(html.index('id="seqtabbox"'), html.index('id="fidcard"'))
+        self.assertLess(html.index('id="fidcard"'), html.index('id="freshcard"'))
 
 
 class QualityExportTests(unittest.TestCase):
@@ -8257,7 +8286,7 @@ class QualityPageTests(unittest.TestCase):
         html = TEMPLATE.read_text(encoding="utf-8")
         self.assertRegex(html, r'<div class="card qualitycard" id="qualitycard" hidden></div>')
         self.assertLess(html.index('id="freshcard"'), html.index('id="qualitycard"'))
-        self.assertLess(html.index('id="qualitycard"'), html.index('id="seqcard"'))
+        self.assertLess(html.index('id="qualitycard"'), html.index('id="rundetail"'))  # and before the run's facts
 
 
 # ================================================================ R23b: Improve packets scored by the exporter, and the harness's fidelity block
@@ -8638,7 +8667,7 @@ class R23bFidelityPageLogicTests(unittest.TestCase):
         self.assertEqual(rows["Edits of ShipLoop's own files (a list to confirm)"],
                          "1 script-owned edit: sed -i .shiploop-runs/work-20261008-173654-a943e7/return-plan.md (Bash)\n"
                          "0 kills by process name; 1 command that ran git add or commit")
-        self.assertEqual(rows["Refusals (a list to confirm)"], "5 refusals, 1 repeated\nby stage: release 2, release-plan 2, intake 1")
+        self.assertEqual(rows["Refusals (a list to confirm)"], "of 5: 1 repeated\nby stage: release 2, release-plan 2, intake 1")
         self.assertEqual([(b["key"], b["n"]) for b in model["bar"]], [("script", 15), ("loop", 7), ("file", 1), ("note", 12), ("skipped", 2)])
         self.assertTrue(all(b["meaning"] for b in model["bar"]))  # a zero-count class has no segment
         self.assertEqual(model["limits"], [["Edits", run["fidelity"]["edits"]["limits"]], ["Refusals", run["fidelity"]["refusals"]["limits"]]])
@@ -8648,12 +8677,12 @@ class R23bFidelityPageLogicTests(unittest.TestCase):
         run = r23b_run_doc()
         one = json.loads(json.dumps(run))
         one["refusals"], one["fidelity"]["refusals"]["byStage"] = 1, [{"stage": "intake", "count": 1}]
-        self.assertEqual(dict(self.model(one)["rows"])["Refusals (a list to confirm)"], "1 refusal, 1 repeated\nby stage: intake 1")
+        self.assertEqual(dict(self.model(one)["rows"])["Refusals (a list to confirm)"], "of 1: 1 repeated\nby stage: intake 1")
         unknown = json.loads(json.dumps(run))
         del unknown["fidelity"]["refusals"]["repeated"]
         unknown["fidelity"]["refusals"]["unstaged"] = 2
         self.assertEqual(dict(self.model(unknown)["rows"])["Refusals (a list to confirm)"],
-                         "5 refusals, repeated not measured, 2 with no stage\nby stage: release 2, release-plan 2, intake 1")
+                         "of 5: repeated not measured, 2 with no stage\nby stage: release 2, release-plan 2, intake 1")
 
     def test_a_missing_declared_list_and_script_run_stages_without_a_record_are_said_apart(self):
         run = r23b_run_doc()
@@ -8716,7 +8745,9 @@ class R23bFidelityPageLogicTests(unittest.TestCase):
     def test_the_improve_card_carries_the_packet_line_and_the_page_keeps_the_exporters_tables(self):
         run = r23b_run_doc(R23B_OLD_PACKET)
         cards = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(run))}
-        self.assertEqual(cards["improve"]["lines"], [run_logic("improvePacketsText(%s)" % json.dumps(run))])
+        self.assertEqual(cards["improve"]["lines"], [])  # the Improve packet counts are a Fidelity row, beside the other packet reads
+        self.assertEqual(dict(run_logic("carriedRows(%s)" % json.dumps(run)))["Improve packets"],
+                         run_logic("improvePacketsText(%s)" % json.dumps(run)).replace("Improve packets, ", "", 1))
         plain = {c["key"]: c for c in run_logic("sequenceModel(%s,{}).cards" % json.dumps(dict(DONE_RUN)))}
         self.assertEqual(plain["improve"]["lines"], [])
         self.assertEqual([k for k, _ in run_logic("IMPROVE_CARRIED_LABELS")], [k for k, _, _ in export.IMPROVE_CARRIED])
@@ -8732,7 +8763,7 @@ class R23bFidelityPageTests(unittest.TestCase):
         text = page_probe('textOf("fidcard")', setup=ended_page(run))
         for needle in ("Fidelity: how ShipLoop was carried", "Exit evidence", "script 15, loop 7", "Declared script checks with no script record",
                        "Validation", "Edits of ShipLoop's own files (a list to confirm)", "return-plan.md", "Refusals (a list to confirm)",
-                       "5 refusals, 1 repeated", "by stage: release 2", "A record, never a verdict",
+                       "of 5: 1 repeated", "by stage: release 2", "A record, never a verdict",
                        run["fidelity"]["edits"]["limits"], run["fidelity"]["refusals"]["limits"]):
             self.assertIn(needle, text, needle)
         segments = page_probe('byClass("fidcard","fe-seg").map(function(s){return s.className.split(" ").pop()+":"+s.style.flexGrow;})', setup=ended_page(run))
@@ -8752,8 +8783,9 @@ class R23bFidelityPageTests(unittest.TestCase):
 
     def test_the_improve_card_and_the_stage_card_print_the_packet_counts_and_the_evidence_class(self):
         run = r23b_run_doc(R23B_OLD_PACKET)
-        kpis = page_probe('textOf("kpis")', setup=ended_page(run))
-        self.assertIn("Improve packets, skill-craft 1.24.0, ShipLoop 0.56.0: Checked by 8/8, Output 8/8, Recovery 8/8, Goal 0/8, Done when 0/8", kpis)
+        self.assertNotIn("Improve packets", page_probe('textOf("kpis")', setup=ended_page(run)))
+        card = page_probe('textOf("fidcard")', setup=ended_page(run))
+        self.assertIn("Improve packetsskill-craft 1.24.0, ShipLoop 0.56.0: Checked by 8/8, Output 8/8, Recovery 8/8, Goal 0/8, Done when 0/8", card)
         detail = page_probe('setCol(3);textOf("seqdetail")', setup=ended_page(run))
         self.assertIn("Improve child's packet carriedChecked by, Output, Recovery; not in the packet text: Goal, Done when", detail)
         self.assertIn("Exit evidenced byloop: an Improve review", detail)

@@ -1186,6 +1186,16 @@ def _seeded(seeded, history: list[dict]) -> tuple[set[str], str | None]:
 # ---------------------------------------------------------------- hosts, how the run ended, blocked, left behind (R22a)
 
 MAX_REASON = 600  # characters of a blocked run's reason, question and why-no-default kept in the run document
+RUN_FOLDER_PATH = re.compile(r"/(?:Users|home|private|tmp|var)/\S*?/(?=\.shiploop-runs/)")  # the run folder a refusal names its file under
+
+
+def failure_line(text) -> str:
+    """A refusal line as the run document keeps it: a file the engine asked for stays named by its place in the run (`<run>/.shiploop-runs/
+    work-x/run/notes/intake.md`), any other absolute path is cut to its last name. Where the run lives on the machine is not exported."""
+    marked = RUN_FOLDER_PATH.sub("\x00", str(text or ""))  # the marker has no slash, so the path scrubber leaves what follows it alone
+    return _without_paths(marked).replace("\x00", "<run>/")
+
+
 STOP_FILE_PATH = re.compile(r"\S*/stop\b")  # the one path the harness's stop_cause writes: the run's stop file
 
 
@@ -2607,7 +2617,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
                 run[field] = sum(item[field] for item in items)
     if "shiploop_failures" not in unmeasured:  # a host that cannot see the failures reports no count, not 0
         run["refusals"] = len(failures)
-        run["failures"] = [{"verb": str(f.get("verb")), "line": str(f.get("line") or "")[:MAX_FAILURE_LINE]}
+        run["failures"] = [{"verb": str(f.get("verb")), "line": failure_line(f.get("line"))[:MAX_FAILURE_LINE]}
                            for f in failures]
     if "model_glue" not in unmeasured:
         run["glue"] = len(glue)

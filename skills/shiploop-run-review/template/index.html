@@ -327,8 +327,6 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <div id="arc" class="arc"></div>
 <div class="kpis" id="kpis" role="group" aria-label="Six numbers for this run"></div>
 <div class="card plancard" id="plancard" hidden></div>
-<div class="card freshcard" id="freshcard" hidden></div>
-<div class="card qualitycard" id="qualitycard" hidden></div>
 <div class="card seqcard" id="seqcard" hidden>
 <h3>Every visit, in order</h3>
 <p class="sub" id="seqcap" style="margin:2px 0 0"></p>
@@ -341,6 +339,8 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <div class="card sclist" id="sclist" hidden></div>
 <details id="seqtabbox" hidden><summary id="seqtabsum"></summary><div class="rtabbox" id="seqtable"></div></details>
 <div class="card fidcard" id="fidcard" hidden></div>
+<div class="card freshcard" id="freshcard" hidden></div>
+<div class="card qualitycard" id="qualitycard" hidden></div>
 <h3 style="margin-top:22px">The path every run takes</h3>
 <p class="sub">Expected, observed, Backchain time and numbered findings for each stage. Select a stage to read what we expect of it.</p>
 <div class="flowbox"><div class="flow" id="flow"></div></div>
@@ -441,7 +441,7 @@ function improveByDesign(run,stage){return planningReview(run)==="none"&&PLANNIN
    recorded its planning_review option says which; a run that did not reads as it always did. */
 function headerFacts(run){
   function phrase(name,one){var t=countText(run,name);return t==="not measured"?name+" not measured":(one?plural(+t,one,name):t+" "+name);}
-  var mode=planningReview(run),parts=[run.release,run.time,phrase("refusals","refusal"),phrase("glue"),run.imp];
+  var mode=planningReview(run),parts=[run.release,run.time];
   if(mode)parts.push("planning review: "+mode);
   return parts.join(" | ");
 }
@@ -480,11 +480,8 @@ function factRows(run){
   var rows=[];
   [["Host","host"],["Model","model"],["Effort","effort"],["Case","case"],["Status","status"]].forEach(function(p){
     var v=run&&run[p[1]];if(v!==undefined&&v!==null&&v!=="")rows.push([p[0],String(v)]);});
-  if(run&&isCount(run.wallMin))rows.push(["Elapsed (accept to accept)",run.wallMin+" min"]);
   [["Started","startedAt"],["Ended","endedAt"]].forEach(function(p){var v=run&&run[p[1]];if(v)rows.push([p[0],String(v)]);});
   rows.push(["Model calls (main thread)",measuredText(run,"calls")]);
-  rows.push(["Context peak (main thread)",contextText(run)]);
-  rows.push(["Compactions",measuredText(run,"compactions")]);
   if(run&&(isCount(run.glue)||run.toolUse))rows.push(["Model glue",glueText(run)]);
   if(run&&(run.planning||reasonFor(run,"planning")))rows.push(["Planning window",planningText(run)]);
   return rows;
@@ -1029,9 +1026,9 @@ function evidenceLine(key){
 function fidelityModel(run){
   var f=run&&run.fidelity&&typeof run.fidelity==="object"?run.fidelity:null,u=run&&run.unmeasured&&typeof run.unmeasured==="object"?run.unmeasured:{};
   var keys=Object.keys(u).filter(function(k){return k==="fidelity"||k.indexOf("fidelity.")===0;});
-  if(!f&&!keys.length)return null;
+  if(!f&&!keys.length){var only=carriedRows(run);return only.length?{bar:[],rows:only,limits:[],notes:[]}:null;}
   var notes=keys.filter(function(k){return k!=="fidelity";}).map(function(k){return k.slice("fidelity.".length)+": "+u[k];});
-  if(!f)return {bar:[],rows:[["Fidelity","not measured ("+(typeof u.fidelity==="string"?u.fidelity:"no reason recorded")+")"]],limits:[],notes:notes};
+  if(!f)return {bar:[],rows:[["Fidelity","not measured ("+(typeof u.fidelity==="string"?u.fidelity:"no reason recorded")+")"]].concat(carriedRows(run)),limits:[],notes:notes};
   var rows=[],bar=[],limits=[],e=f.evidence,v=f.validation,ed=f.edits,r=f.refusals;
   if(e&&typeof e==="object"){
     var total=0,parts=[];
@@ -1064,11 +1061,18 @@ function fidelityModel(run){
   }
   if(r&&typeof r==="object"){
     var by=Array.isArray(r.byStage)?r.byStage.filter(function(b){return b&&typeof b.stage==="string"&&isCount(b.count);}):[];
-    var t=(isCount(run.refusals)?plural(run.refusals,"refusal"):"refusal count not measured")+", "+(isCount(r.repeated)?r.repeated+" repeated":"repeated not measured")+(isCount(r.unstaged)&&r.unstaged>0?", "+r.unstaged+" with no stage":"");
+    var t=(isCount(run.refusals)?"of "+run.refusals+": ":"refusal count not measured: ")+(isCount(r.repeated)?r.repeated+" repeated":"repeated not measured")+(isCount(r.unstaged)&&r.unstaged>0?", "+r.unstaged+" with no stage":"");
     rows.push(["Refusals (a list to confirm)",t+(by.length?"\nby stage: "+by.map(function(b){return b.stage+" "+b.count;}).join(", "):"")]);
     if(typeof r.limits==="string"&&r.limits)limits.push(["Refusals",r.limits]);
   }
-  return {bar:bar,rows:rows,limits:limits,notes:notes};
+  return {bar:bar,rows:rows.concat(carriedRows(run)),limits:limits,notes:notes};
+}
+/* The two lines that say how the packets were met (the Improve child's labels by release; the producer's files and reads), as Fidelity rows. */
+function carriedRows(run){
+  var rows=[],ip=improvePacketsText(run),pk=packetUseText(run);
+  if(ip)rows.push(["Improve packets",ip.replace(/^Improve packets,? ?/,"")]);
+  if(pk)rows.push(["How the model met the packets",pk.replace(/^Packets: /,"")]);
+  return rows;
 }
 
 /* ---- the sequence picture (step 1): a column per visit, a context band under it, six cards ---- */
@@ -1127,9 +1131,9 @@ function kpiCards(run,loops){
      share of elapsed is not printed: a bare 0% beside a stage run's share would read as Improve costing nothing, when no
      Improve child starts at the planning stages in that mode. A stage run, an unknown value and a run with no record read as before. */
   var im=improveFacts(run),none=planningReview(run)==="none",scope=none?"no Improve at planning stages (planning_review none)":"";
-  if(im.passes===null)out.push(kpi("improve","Improve","not measured",(whyNot(run,"improvePasses")||"no Improve record")+(scope?"; "+scope:""),false,[improvePacketsText(run)]));
+  if(im.passes===null)out.push(kpi("improve","Improve","not measured",(whyNot(run,"improvePasses")||"no Improve record")+(scope?"; "+scope:""),false));
   else out.push(kpi("improve","Improve",plural(im.passes,"pass"),(im.min!==null?(Math.round(im.min*10)/10)+" min"+(!none&&im.share!==null?", "+im.share+"% of elapsed":""):
-    "minutes not measured"+(whyNot(run,"improveMin")?": "+whyNot(run,"improveMin"):""))+(scope?"; "+scope:""),true,[improvePacketsText(run)]));
+    "minutes not measured"+(whyNot(run,"improveMin")?": "+whyNot(run,"improveMin"):""))+(scope?"; "+scope:""),true));
   if(!Array.isArray(loops))out.push(kpi("loops","Backchain loops","not loaded","the loop record has not loaded yet",false));
   else if(!loops.length)out.push(kpi("loops","Backchain loops","none","no Backchain loop recorded for this run",true));
   else{
@@ -1142,8 +1146,8 @@ function kpiCards(run,loops){
     var w=isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:0;
     out.push(kpi("context","Context (main thread)",w?pctText(100*run.contextPeak/w):grouped(run.contextPeak)+" tokens",
       (w?grouped(run.contextPeak)+" of "+grouped(w)+" tokens":"window not measured")+"; "+
-      (isCount(run.compactions)?plural(run.compactions,"compaction"):"compactions not measured"),true,[packetUseText(run)]));
-  }else out.push(kpi("context","Context (main thread)","not measured",whyNot(run,"contextPeak")||"no reason recorded",false,[packetUseText(run)]));
+      (isCount(run.compactions)?plural(run.compactions,"compaction"):"compactions not measured"),true));
+  }else out.push(kpi("context","Context (main thread)","not measured",whyNot(run,"contextPeak")||"no reason recorded",false));
   out.push(isCount(run&&run.refusals)?kpi("refusals","Refusals",String(run.refusals),refusalNote(run.refusals),true)
     :kpi("refusals","Refusals","not measured",whyNot(run,"refusals")||"no reason recorded",false));
   return out;
