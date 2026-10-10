@@ -1006,17 +1006,18 @@ function deliveredModel(run){
   var why=function(part){return "not measured ("+(typeof u["delivered."+part]==="string"?u["delivered."+part]:"no reason recorded")+")";};
   var f=d.files&&typeof d.files==="object"?d.files:null,kept=function(kind){return f?keptLines(f[kind]):null;};
   var lead=mergeLine(run)||"Merged back: "+why("returned"),rows=[];
-  var src=kept("source");rows.push(["Implemented",src?src.join("\n"):why("files")]);
+  /* No return plan means no file list for any kind: say so once, in one row, not once per row. */
+  var src=kept("source");if(f)rows.push(["Implemented",src.join("\n")]);else rows.push(["Files kept",why("files")]);
   var tf=kept("tests"),t=d.tests&&typeof d.tests==="object"&&isCount(d.tests.ran)?d.tests:null;
-  var ran=t?"Last run: "+plural(t.ran,"test")+" ran"+(isCount(t.failed)?", "+t.failed+" failed":"")+", at "+t.stage+(t.where?" ("+t.where+")":""):"Last run: "+why("tests");
-  rows.push(["Tests",(tf?tf:["Test files: "+why("files")]).concat([ran]).join("\n")]);
-  var df=kept("docs"),kf=kept("knowledge"),docLines=df?df.slice():[why("files")];
+  var ran=t?"Last run: "+plural(t.ran,"test")+" ran"+(isCount(t.failed)?", "+t.failed+" failed":"")+", at "+t.stage+(t.where?" ("+t.where+")":"")+(t.stage==="test-red"?": the new tests are meant to fail here":""):"Last run: "+why("tests");
+  rows.push(["Tests",(tf?tf:[]).concat([ran]).join("\n")]);
+  var df=kept("docs"),kf=kept("knowledge"),docLines=df?df.slice():[];
   if(kf&&f&&isCount(f.knowledge.count))docLines.push("ShipLoop records: "+(f.knowledge.count===0?"none kept":plural(f.knowledge.count,"file")+" under docs/shiploop (the run's own planning, outcome and release records)"));
-  rows.push(["Documentation",docLines.join("\n")]);
+  if(f)rows.push(["Documentation",docLines.join("\n")]);
   var sk=d.skill&&typeof d.skill==="object"?d.skill:null,pf=kept("skills"),skl=[];
   skl.push("Decision: "+(sk&&sk.assessed?sk.assessed:why("skill")));
   if(sk&&sk.validated)skl.push("Validation: "+sk.validated);
-  skl.push("Produced: "+(pf?(pf[0]==="none kept"?"none":pf.join("\n")):why("files")));
+  if(pf)skl.push("Produced: "+(pf[0]==="none kept"?"none":pf.join("\n")));
   rows.push(["Skills",skl.join("\n")]);
   var rl=d.release&&typeof d.release==="object"?d.release:null;
   rows.push(["Release",rl&&(rl.plan||rl.done)?[rl.plan?"Planned: "+rl.plan:"",rl.done?"Done: "+rl.done:""].filter(Boolean).join("\n"):why("release")]);

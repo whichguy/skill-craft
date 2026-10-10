@@ -1641,7 +1641,7 @@ def _run_record(result: dict) -> tuple[dict, dict[str, str]]:
 # (how the return was made). The stage rows say what the skill and release stages decided and how the tests last ran. Every part is
 # read, never inferred; one that cannot be read is absent and its reason is under `unmeasured["delivered.<part>"]`.
 
-DELIVERED_TEST_DIRS = ("test", "tests", "__tests__")
+DELIVERED_TEST_DIRS = ("test", "tests", "__tests__", "system")  # system/ holds the run's own system tests (the system-test stage writes them there)
 DELIVERED_TEST_NAME = re.compile(r"(?:\.(?:test|spec)\.[^.]+|_test\.[^.]+|test_.+\.py)$")
 DELIVERED_DOC_NAME = re.compile(r"(?i)(?:^readme|\.(?:md|txt|rst)$)")
 DELIVERED_NOISE = ".shiploop-improve/"  # Improve's working evidence: never part of the product
@@ -2699,7 +2699,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         said = entry.get("summary") if isinstance(entry.get("summary"), str) else (
             body.get("summary") if record is not None and isinstance(body.get("summary"), str) else "")
         if said.strip():
-            row["summary"] = said.strip()[:MAX_SUMMARY]
+            row["summary"] = ABSOLUTE_PATH.sub(lambda match: match.group(0).rsplit("/", 1)[1], said.strip())[:MAX_SUMMARY]  # a file by name, never where the run lives
             if len(said.strip()) > MAX_SUMMARY:
                 row["summaryTruncated"] = True
         if action in seeded_ids:

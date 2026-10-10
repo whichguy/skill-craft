@@ -7480,6 +7480,20 @@ def r23a_run(root: Path, saved: str | None = None, **result) -> Path:
     return out
 
 
+class StageSummaryPathTests(unittest.TestCase):
+    def test_a_stage_summary_names_files_by_name_not_by_where_the_run_lives(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = make_run(Path(tmp), loops=False)
+            state = run_dir_of(out) / "state.md"
+            text = state.read_text()
+            self.assertIn('"summary": "x"', text)
+            state.write_text(text.replace('"summary": "x"', '"summary": "wrote /Users/someone/e2e-runs/x/work/hello.py and kept docs/shiploop/spec.md"', 1))
+            run = next(iter(export.build_run(out)[0]["runs"].values()))
+        summaries = [row.get("summary", "") for row in run["stages"]]
+        self.assertTrue(any("hello.py" in s_ and "docs/shiploop/spec.md" in s_ for s_ in summaries), summaries)  # the name and the relative path stay
+        self.assertNotIn("/Users/", json.dumps(run["stages"]))
+
+
 class RefusalLinePathTests(unittest.TestCase):
     """A refusal line the harness records can carry the run's absolute folder (the engine prints the file it wants written). The export
     keeps the file's place in the run and drops where the run lives: no absolute local path leaves the exporter."""
@@ -9217,7 +9231,7 @@ class R23dDeliveredExportTests(unittest.TestCase):
         self.assertIn("- Delivered: not measured (", "\n".join(facts))
 
     def test_the_kept_paths_are_counted_by_kind_each_path_once_and_the_evidence_noise_is_not_counted(self):
-        for name, counts in ((R23D_CHECKERS, {"source": 5, "tests": 2, "docs": 1, "knowledge": 10, "skills": 0}),
+        for name, counts in ((R23D_CHECKERS, {"source": 3, "tests": 4, "docs": 1, "knowledge": 10, "skills": 0}),
                              (R23D_HELLO, {"source": 1, "tests": 1, "docs": 0, "knowledge": 10, "skills": 0})):
             with self.subTest(name):
                 run, _ = self.build(name)
@@ -9227,8 +9241,8 @@ class R23dDeliveredExportTests(unittest.TestCase):
                 self.assertEqual(len(listed), len(set(listed)))
                 self.assertEqual(len(listed), sum(counts.values()))
         files = self.build(R23D_CHECKERS)[0]["delivered"]["files"]
-        self.assertEqual([i["path"] for i in files["tests"]["items"]], ["test/rules.test.js", "test/server.test.js"])
-        self.assertEqual(files["tests"]["items"][0], {"path": "test/rules.test.js", "change": "added"})
+        self.assertEqual([i["path"] for i in files["tests"]["items"]], ["system/http-smoke.js", "system/ui-click.js", "test/rules.test.js", "test/server.test.js"])
+        self.assertEqual(files["tests"]["items"][0], {"path": "system/http-smoke.js", "change": "added"})  # the run's system tests count as tests
         self.assertNotIn("more", files["tests"])
         self.assertEqual(files["skills"], {"count": 0, "items": []})  # a measured none: the plan was readable
 
@@ -9251,7 +9265,7 @@ class R23dDeliveredExportTests(unittest.TestCase):
                  "skills/x/scripts/run.py": "skills", ".claude/skills/y/SKILL.md": "skills", "pkg/SKILL.md": "skills",
                  "test/rules.test.js": "tests", "tests/a.py": "tests", "src/__tests__/b.js": "tests", "a.spec.ts": "tests",
                  "test_hello.py": "tests", "pkg/util_test.go": "tests", "hello.py": "source", "src/contest.py": "source",
-                 "system/http-smoke.js": "source", "index.html": "source", "latest.js": "source"}
+                 "system/http-smoke.js": "tests", "system/ui-click.js": "tests", "index.html": "source", "latest.js": "source"}  # system/ holds the run's system tests
         for path, kind in kinds.items():
             self.assertEqual(export._delivered_kind(path), kind, path)
 
@@ -9326,7 +9340,7 @@ class R23dDeliveredExportTests(unittest.TestCase):
         _, facts = self.build(R23D_CHECKERS, verify={"release-verify": VERIFY_RELEASE},
                               summaries={"skill-assess": "Decision: no new skill.", "release": "Ran the local release."})
         text = "\n".join(facts)
-        self.assertIn("- Delivered files (kept in the return plan): source 5, tests 2, docs 1, knowledge 10, skills 0", text)
+        self.assertIn("- Delivered files (kept in the return plan): source 3, tests 4, docs 1, knowledge 10, skills 0", text)
         self.assertIn("- Delivered tests: 15 ran, 0 failed (release-verify, returned-result)", text)
         self.assertIn("- Delivered skill: assessed: Decision: no new skill.", text)
         self.assertIn("; done: Ran the local release.", text)
@@ -9393,9 +9407,9 @@ class R23dPageLogicTests(unittest.TestCase):
         self.assertEqual(model["title"], "What was delivered")
         self.assertTrue(model["lead"].startswith("Merged back into main (fast-forward, 491b2af8bd05 to 70f11aa0e4cf)"))
         self.assertEqual(list(rows), ["Implemented", "Tests", "Documentation", "Skills", "Release"])
-        self.assertEqual(rows["Implemented"].split("\n")[0], "5 files")
-        self.assertIn("system/http-smoke.js", rows["Implemented"])
-        self.assertEqual(rows["Tests"], "2 files\ntest/rules.test.js\ntest/server.test.js\nLast run: 15 tests ran, 0 failed, at release-verify (returned-result)")
+        self.assertEqual(rows["Implemented"].split("\n")[0], "3 files")
+        self.assertNotIn("system/http-smoke.js", rows["Implemented"])  # a system test is a test, listed under Tests
+        self.assertEqual(rows["Tests"], "4 files\nsystem/http-smoke.js\nsystem/ui-click.js\ntest/rules.test.js\ntest/server.test.js\nLast run: 15 tests ran, 0 failed, at release-verify (returned-result)")
         self.assertEqual(rows["Documentation"], "1 file\nREADME.md\nShipLoop records: 10 files under docs/shiploop (the run's own planning, outcome and release records)")
         self.assertEqual(rows["Skills"], "Decision: no new skill.\nValidation: N/A.\nProduced: none")
         self.assertEqual(rows["Release"], "Planned: Local only.\nDone: Ran it.")
@@ -9403,9 +9417,14 @@ class R23dPageLogicTests(unittest.TestCase):
     def test_a_part_the_export_could_not_measure_is_said_with_its_reason_and_a_marked_change_is_shown(self):
         doc = r23d_page_doc(R23D_BLOCKED)
         rows = dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])
-        self.assertIn("not measured (", rows["Implemented"])
-        self.assertIn("return-plan.md", rows["Implemented"])
+        # no return plan: one row says so once, instead of the same reason on every kind of file
+        self.assertNotIn("Implemented", rows)
+        self.assertNotIn("Documentation", rows)
+        self.assertIn("not measured (", rows["Files kept"])
+        self.assertIn("return-plan.md", rows["Files kept"])
+        self.assertEqual(sum("return-plan.md" in v for v in rows.values()), 1)
         self.assertIn("Last run: not measured (", rows["Tests"])
+        self.assertNotIn("Produced:", rows["Skills"])
         files = run_logic("deliveredModel({delivered:{files:{source:{count:2,items:[{path:'a.py',change:'added'},{path:'b.py',change:'modified'}]},"
                           "tests:{count:0,items:[]},docs:{count:0,items:[]},knowledge:{count:0,items:[]},skills:{count:1,items:[{path:'skills/x/SKILL.md'}],more:0}}},unmeasured:{}})")
         got = dict(files["rows"])
@@ -9433,12 +9452,21 @@ class R23dPageTests(unittest.TestCase):
             self.assertIn(text, out[1])
         self.assertEqual(out[2], 0)  # paths are files on the machine that ran the case: text, not links
 
+    def test_a_red_run_is_not_read_as_a_failing_product(self):
+        doc = r23d_page_doc(R23D_STOPPED)
+        doc["delivered"]["tests"] = {"ran": 17, "failed": 15, "stage": "test-red"}
+        rows = dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])
+        self.assertIn("Last run: 17 tests ran, 15 failed, at test-red: the new tests are meant to fail here", rows["Tests"])
+        doc["delivered"]["tests"] = {"ran": 17, "failed": 2, "stage": "regression"}
+        self.assertNotIn("meant to fail", dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])["Tests"])
+
     def test_a_run_from_before_the_card_has_it_hidden_and_a_not_returned_run_says_so_with_the_reason_for_the_files(self):
         self.assertTrue(self.page(DONE_RUN, 'REG.delcard.hidden'))
         text = self.page(r23d_page_doc(R23D_STOPPED), 'textOf("delcard")')
         self.assertIn("Not merged back: the product is on branch shiploop/run-c0f462f8874ba861; main was not changed", text)
-        self.assertIn("Implemented", text)
-        self.assertIn("return-plan.md", text)
+        self.assertIn("Files kept", text)
+        self.assertEqual(text.count("return-plan.md"), 1)  # the reason is said once
+        self.assertNotIn("Implemented", text)
 
     def test_the_card_sits_after_the_stage_cards_and_before_the_fidelity_card(self):
         html = TEMPLATE.read_text(encoding="utf-8")
