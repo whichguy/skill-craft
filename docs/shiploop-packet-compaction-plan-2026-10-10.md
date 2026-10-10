@@ -154,3 +154,16 @@ after those land, or agree an order with those sessions; do the renderer split b
 Unknowns the work resolves: whether the unread 90% changes any result (no run varied it); Grok packet-read behaviour
 (no `toolUse.packets`); brownfield discovery text (all runs are greenfield); the `improve-bind` packet (overwritten by
 `improve-start`, never reviewed): save it under a distinct name in Phase 0 so it can be reviewed.
+
+## 10. Deletions agreed with the commit-and-spec-lifecycle plan (E2E, 2026-10-10)
+
+The packet diet of `docs/shiploop-commit-and-spec-lifecycle-plan-2026-10-10.md` (plan of action step A) is folded into
+Phases 2-4 here; E2E does not edit packet text or the printed head. Pure deletions, nothing rewritten:
+
+1. The policy/locator link block (about 33 lines, 9.5K on a discovery packet; 0 reads of the 33 files in 4 Claude runs): replace with the roots line plus the stage's own references (section 3, constant locator table).
+2. The "Progress snapshot" paragraph, which repeats the status block and narrative (three copies, about 2K).
+3. The callback command and `--result` path printed twice (header and "Call this when done"): one copy of each.
+4. Improve wording in stages that run no Improve child ("Do not embed an Improve review campaign...", "This result advances directly; no Improve child runs...", "so the next Improve packet can recover them", "Describe Improve activity only from its own observed records...", "including a bound Improve child..."), with a generic test: no packet of a stage without an Improve child contains the word Improve outside the request text.
+5. The pass-log sentence and the "Planning investigation notebook" line (both name files no model creates; 0 pass-log files in 4 runs).
+
+Kept (both plans): the callback once, Done-when, Checked by, result template, recovery, pause and halt, workspace commands at release-plan to handoff, the "keeps these up to date" line, the improve-commit path, assumption fields, the original request in planning stages. Land order: release A (Phase 1) first, then this pass; E2E rebases its commit-contract slice on main after release A.
