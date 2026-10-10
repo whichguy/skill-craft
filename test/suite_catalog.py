@@ -263,9 +263,10 @@ _DURATION_SECONDS = {
     # Local wall seconds, 2026-10-09: 91 tests 28.6 at load average 6 to 8; after the fix round (confirmation runs, the port
     # guard's real-node tests, the orphan stand-ins) 125 tests 43.2 at load average 3 to 5. Under QUICK_MAX_SECONDS.
     "test/shiploop-e2e-quality.test.py": 43.0,
-    # The packets and commits counters (batch 1012 task h): fixtures cut from saved runs and temporary git repositories. A first
-    # estimate; the measured seconds replace it when the suite is complete.
-    "test/shiploop-e2e-commit-counters.test.py": 5.0,
+    # The packets and commits counters (batch 1012 task h): 61 tests on fixtures cut from saved runs, real git in temporary
+    # repositories and the fake hosts of the harness's through-main tests. Local wall seconds, 2026-10-10: 11.6 s (a serial run at
+    # load average about 5), 5.7 s without the through-main class. Far under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-commit-counters.test.py": 12.0,
     "test/shiploop-run-review.test.py": 0.2,
     # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
     # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.

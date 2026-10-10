@@ -14,32 +14,56 @@ or baseline row. Absent means unknown: a part this module cannot read is null wi
                translator. The head is whole when it runs from its ``ShipLoop navigator |`` line to its own closing line (the
                status block's, or the narrative block's when one follows), its ``Full packet:`` line names the file, and its
                callback and keepalive lines are not shortened; whatever the reply holds before it (a command's own output, Grok's
-               exit line) or after it (the host's ``Shell cwd was reset`` note, output the model chained) is not the head. A reply
+               exit line) or after it (the host's ``Shell cwd was reset`` note, output the model chained) is not the head. The head's own last
+               newline is counted when the reply shows it; a host that trims it leaves the count one byte short. A reply
                the model cut (``| head``, ``sed -n``, a script of its own), a head printed as a pointer and a prefix (a long packet in
                a state that prints whole), a call that names a packet file (the model reading it) and a packet no reply shows
                leave ``head_bytes`` null. Saved Claude runs are cut in most replies, so most of their heads are null.
-``commits``    not built in this file yet.
+``commits``    the commits made during the run in the product repository (the run folder's ``work/``; every ref; after the head a
+               follow-on or seeded run started from, all of a fresh run's), counted by who made them:
+
+               improve   named by ShipLoop's own ``improve-commit`` reply in the host's tool results ("Committed this review's changes
+                         as <sha>"). The Improve card fixes no message shape: 63 of the 132 distinct commits those replies name, in
+                         the 38 saved runs, carry none of its six ``Label:`` lines, and a model commit can carry all six.
+               script    ShipLoop's other commits: the work item's commit, named by ShipLoop's reply ("ShipLoop committed W1's
+                         declared changes as <sha>"), and the ones whose subject is ShipLoop's own and nothing else writes (the
+                         knowledge home's ``docs(shiploop): record <feature> knowledge at|after <stage>``, the empty baseline, the
+                         leftovers commit, a chain's prepared merge).
+               other     the rest (the model's own ``git commit``). A commit that fits no class is counted here, not dropped, so the
+                         classes sum to ``counted``.
+
+               ``with_lessons`` counts commits whose message has a non-empty ``Key learnings`` (the Improve card's label) or ``Learned``
+               (the knowledge home's release-verify body) section: presence only, the text is never judged. ``improve`` also counts
+               ``cited`` (a ``Learned-from: <id>`` line whose id resolves to a commit in the repository) and ``cited_earlier_run`` (a
+               cited commit reachable from the head the run started from: a lesson carried from an earlier run). A fresh run has
+               nothing before it, so that zero is measured. The block is null, with the reason, when the repository, the starting head
+               or the event stream cannot be read. Git is read through plumbing only (rev-list, cat-file, rev-parse, merge-base).
+
+There is no importable parser of a commit message's sections: skills/shiploop/scripts/shiploop_knowledge_home.py ``_sections`` reads
+``#``-headed markdown files (outcome.md), which a commit message is not. ``lessons`` is the one reader here; it takes the knowledge
+home's label from ``LEARNING_SECTIONS`` (pinned by a test) and the Improve card's from skills/improve/SKILL.md. When ShipLoop gains
+a reader of commit-message sections (plan of 2026-10-10, slice B), this module imports it instead.
 """
 
 from __future__ import annotations
 
+import json
+import os
 import re
+import subprocess
 from pathlib import Path
 
 import runrecord
+import shiploop_knowledge_home as knowledge_home
 
 # ShipLoop's own words, pinned to its source by test/shiploop-e2e-commit-counters.test.py (a reworded line fails there, and does not
 # silently turn every head into null).
 HEAD_START = re.compile(r"^ShipLoop navigator \| (?P<stage>[\w-]+) \|", re.M)
 HEADER = re.compile(r"^ShipLoop navigator \| (?P<stage>[\w-]+) \| revision (?P<revision>\d+)", re.M)
 FULL_PACKET = re.compile(r"^Full packet: (?P<path>\S[^\n]*\.md)$", re.M)
-STATUS_BEGIN = "=== ShipLoop status ==="
 STATUS_END = "=== end ShipLoop status ==="
 NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
 NARRATIVE_END = "=== end ShipLoop narrative ==="
-# The host's own note on the end of a Claude Bash reply; the replies of the other hosts have none. The newline before it is kept:
-# ShipLoop's head ends with one, and a host that trims a reply's last newline leaves the count one byte short.
-HOST_NOTE = re.compile(r"Shell cwd was reset to [^\n]*\Z")
 # A line the head prints whole, which a cut by column shortens: its end is how the cut is told.
 CALLBACK_LINE = re.compile(r"^Callback for this stage[^\n]*$", re.M)
 KEEPALIVE_LINE = re.compile(r"^Keepalive marker:[^\n]*$", re.M)
@@ -76,7 +100,6 @@ def _whole_head(reply: str) -> str | None:
 
 def _heads(reply: str):
     """Each head in a reply as (text from its first line to the next head's first line or the end of the reply)."""
-    reply = HOST_NOTE.sub("", reply)
     starts = [match.start() for match in HEAD_START.finditer(reply)]
     for index, start in enumerate(starts):
         yield reply[start:starts[index + 1] if index + 1 < len(starts) else len(reply)]
@@ -94,9 +117,9 @@ def _packet_file(path: Path) -> tuple[str | None, int]:
 def packets(out: Path, run_dir: Path | None, tools) -> tuple[list[dict] | None, dict]:
     """(the ``packets`` block, the ``packets_unmeasured`` map): see the module docstring. ``tools`` is the ToolLog the run's events
     filled."""
-    folder = Path(run_dir) / "packets" if run_dir else None
     if run_dir is None:
         return None, {"packets": "the output folder holds no ShipLoop run directory, so there is no packets folder to read"}
+    folder = Path(run_dir) / "packets"
     if not folder.is_dir():
         return None, {"packets": "the run directory has no packets folder"}
     files = {path.stem: path for path in folder.glob("*.md") if path.is_file()}
@@ -127,11 +150,155 @@ def packets(out: Path, run_dir: Path | None, tools) -> tuple[list[dict] | None, 
                                  + HEAD_BYTES_WHY.format(cut=cut)}
 
 
-def commits(out, tools):
-    return None, {"commits": "the commits block is not built yet"}
+# --- commits -------------------------------------------------------------------------------------------------------------
+
+LEARNED = "Learned"  # the knowledge home's lessons section (knowledge_home.LEARNING_SECTIONS); a test pins that it is one of them
+KEY_LEARNINGS = "Key learnings"  # the Improve card's (skills/improve/SKILL.md)
+LESSON_LABEL = re.compile(rf"^(?:{KEY_LEARNINGS}|{LEARNED})(?:[ \t]*:[ \t]*(?P<inline>.*)|[ \t]*)$")
+# The next section of the message: another `Label:` line (the Improve card's labels, a trailer such as Co-Authored-By or
+# Learned-from), or one of the knowledge home's bare section names. Text under a line like `Note: ...` ends a section early.
+SECTION_END = re.compile(r"^[A-Z][A-Za-z -]{0,40}:(?:\s|$)")
+LEARNED_FROM = re.compile(r"^Learned-from:[ \t]*(?P<id>[0-9a-fA-F]{7,64})\b", re.M)
+IMPROVE_COMMITTED = re.compile(r"Committed this review's changes as (?P<sha>[0-9a-f]{7,40})")
+ITEM_COMMITTED = re.compile(r"ShipLoop committed \S+'s declared changes as (?P<sha>[0-9a-f]{7,40})")
+KNOWLEDGE_SUBJECT = re.compile(r"^docs\(shiploop\): record \S+ knowledge (?:at|after) \S+$")
+BASELINE_SUBJECT = "Empty baseline for the first ShipLoop run"
+LEFTOVERS_SUBJECT = "chore(shiploop): commit files written after the last work item, before the return"
+CHAIN_PREFIX = "ShipLoop chain prepared"
+# The environment variables that point Git at another repository; a read of the run's repository drops them.
+GIT_REDIRECTION = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
+                   "GIT_ALTERNATE_OBJECT_DIRECTORIES")
 
 
-def build(out, run_dir, tools):
+def lessons(message: str) -> str:
+    """The text of the first non-empty lessons section of a commit message ('' when there is none)."""
+    lines = message.splitlines()
+    for index, line in enumerate(lines):
+        label = LESSON_LABEL.match(line)
+        if label is None:
+            continue
+        body = [label.group("inline") or ""]
+        for following in lines[index + 1:]:
+            if SECTION_END.match(following) or following.strip() in knowledge_home.LEARNING_SECTIONS:
+                break
+            body.append(following)
+        text = "\n".join(body).strip()
+        if text:
+            return text
+    return ""
+
+
+def _git(work: Path, *args: str, stdin: bytes | None = None) -> subprocess.CompletedProcess:
+    env = {key: value for key, value in os.environ.items() if key not in GIT_REDIRECTION}
+    env.update({"GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0"})
+    return subprocess.run(["git", "-C", str(work), *args], input=stdin, capture_output=True, env=env, timeout=60, check=False)
+
+
+def _commit_id(work: Path, name: str) -> str | None:
+    """The full id of the commit ``name`` resolves to in the repository, or None."""
+    done = _git(work, "rev-parse", "--verify", "--quiet", name + "^{commit}")
+    return done.stdout.decode().strip() or None if done.returncode == 0 else None
+
+
+def _starting_point(out: Path, work: Path) -> tuple[str | None, str | None]:
+    """(the head the run started from or None for a fresh run, why it cannot be known or None). A fresh run has no follow-on or seeded
+    record, and its whole history is the run's; a follow-on or seeded run is counted after the head it recorded."""
+    try:
+        record = json.loads((Path(out) / "invocation.json").read_text())
+    except (OSError, ValueError):
+        record = None
+    if not isinstance(record, dict):
+        return None, "invocation.json cannot be read, so whether the run started from an earlier head is unknown"
+    follow, seeded = record.get("follow_on"), record.get("seeded")
+    if not follow and not seeded:
+        return None, None
+    head = (follow or {}).get("start_head") or (seeded or {}).get("start_head")
+    if not isinstance(head, str) or not head:
+        return None, "the follow-on or seeded record names no starting head, so which commits are the run's is unknown"
+    found = _commit_id(work, head)
+    if found is None:
+        return None, f"the starting head {head[:12]} is not a commit in the work repository"
+    return found, None
+
+
+def _messages(work: Path, ids: list[str]) -> dict[str, str]:
+    """The message of each commit, from the commit objects themselves (cat-file, so no log setting reaches the text)."""
+    if not ids:
+        return {}
+    done = _git(work, "cat-file", "--batch", stdin=("\n".join(ids) + "\n").encode())
+    data, found, position = done.stdout, {}, 0
+    while position < len(data):
+        end = data.index(b"\n", position)
+        header = data[position:end].split()
+        if len(header) != 3 or header[1] != b"commit":
+            position = end + 1
+            continue
+        size = int(header[2])
+        body = data[end + 1:end + 1 + size]
+        found[header[0].decode()] = body.split(b"\n\n", 1)[1].decode("utf-8", "replace") if b"\n\n" in body else ""
+        position = end + 1 + size + 1
+    return found
+
+
+def commits(out: Path, tools) -> tuple[dict | None, dict]:
+    """(the ``commits`` block, the ``commits_unmeasured`` map): see the module docstring."""
+    out = Path(out)
+    work = out / "work"
+    if not work.is_dir():
+        return None, {"commits": "the run folder has no work directory"}
+    if not (work / ".git").exists():
+        return None, {"commits": "the work directory is not a Git repository"}
+    start, why = _starting_point(out, work)
+    if why:
+        return None, {"commits": why}
+    events = out / "events.jsonl"
+    if not events.is_file() or not events.stat().st_size:
+        return None, {"commits": "events.jsonl is missing or empty, and ShipLoop's own reply in it is what names an Improve commit"}
+    listed = _git(work, "rev-list", "--all", *(["--not", start] if start else []))
+    if listed.returncode:
+        return None, {"commits": "git rev-list failed in the work repository: " + (listed.stderr.decode(errors="replace").strip()[:200] or "no message")}
+    ids = listed.stdout.decode().split()
+    messages = _messages(work, ids)
+    named = {"improve": set(), "item": set()}
+    for reply in tools.replies:
+        named["improve"].update(found.group("sha") for found in IMPROVE_COMMITTED.finditer(reply["text"]))
+        named["item"].update(found.group("sha") for found in ITEM_COMMITTED.finditer(reply["text"]))
+    block: dict = {"improve": {"n": 0, "with_lessons": 0, "cited": 0, "cited_earlier_run": 0},
+                   "script": {"n": 0, "with_lessons": 0}, "other": {"n": 0, "with_lessons": 0},
+                   "counted": len(ids), "start_head": start}
+    for commit_id in ids:
+        message = messages.get(commit_id, "")
+        subject = message.split("\n", 1)[0].strip()
+        if any(commit_id.startswith(sha) for sha in named["improve"]):
+            kind = "improve"
+        elif (any(commit_id.startswith(sha) for sha in named["item"]) or KNOWLEDGE_SUBJECT.match(subject)
+              or subject in (BASELINE_SUBJECT, LEFTOVERS_SUBJECT) or subject.startswith(CHAIN_PREFIX)):
+            kind = "script"
+        else:
+            kind = "other"
+        row = block[kind]
+        row["n"] += 1
+        row["with_lessons"] += bool(lessons(message))
+        if kind == "improve":
+            cited = [found for found in (_commit_id(work, match.group("id")) for match in LEARNED_FROM.finditer(message))
+                     if found and found != commit_id]
+            row["cited"] += bool(cited)
+            row["cited_earlier_run"] += bool(start and any(_git(work, "merge-base", "--is-ancestor", found, start).returncode == 0
+                                                          for found in cited))
+    return block, {}
+
+
+def build(out: Path, run_dir: Path | None, tools) -> dict:
+    """The four keys run.py adds to metrics.json: ``packets``, ``packets_unmeasured``, ``commits`` and ``commits_unmeasured``."""
     block, why = packets(out, run_dir, tools)
     cblock, cwhy = commits(out, tools)
     return {"packets": block, "packets_unmeasured": why, "commits": cblock, "commits_unmeasured": cwhy}
+
+
+def safe_build(out: Path, run_dir: Path | None, tools) -> dict:
+    """``build``, failing open like fidelity.safe_build: a part that raises is null with the error as its reason, never a verdict."""
+    try:
+        return build(out, run_dir, tools)
+    except Exception as exc:  # noqa: BLE001 - a record never takes the run's metrics down
+        reason = "failed: " + type(exc).__name__ + ": " + " ".join(str(exc).split())[:200]
+        return {"packets": None, "packets_unmeasured": {"packets": reason}, "commits": None, "commits_unmeasured": {"commits": reason}}
