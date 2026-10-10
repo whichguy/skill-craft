@@ -6214,5 +6214,29 @@ class SonnetCostDecompositionTest(unittest.TestCase):
         self.assertEqual((q["against_the_old_run"], q["share_of_the_increase_in_the_extra_calls"]), (0.0, 1.0))
 
 
+
+class GitDiscoveryTests(unittest.TestCase):
+    """A case's work folder never adopts a repository above the run (2026-10-10: a home folder that is itself a Git
+    repository made the hello case's empty work folder resolve to it, and ShipLoop refused to start there)."""
+
+    def test_git_in_the_work_folder_stops_at_the_run_output_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent = Path(tmp) / "home"
+            work = parent / "runs" / "out" / "work"
+            work.mkdir(parents=True)
+            git_env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+            subprocess.run(["git", "init", "-q", str(parent)], check=True, env=git_env)
+            probe = ["git", "-C", str(work), "rev-parse", "--show-toplevel"]
+            found = subprocess.run(probe, capture_output=True, text=True, env=git_env)
+            self.assertEqual(found.returncode, 0, "the control: without the ceiling git finds the outer repository")
+            env = run.isolate_git_discovery(git_env, work.parent)
+            isolated = subprocess.run(probe, capture_output=True, text=True, env=env)
+            self.assertNotEqual(isolated.returncode, 0, isolated.stdout)
+            self.assertIn(str(work.parent.resolve()), env["GIT_CEILING_DIRECTORIES"].split(os.pathsep))
+
+    def test_an_existing_ceiling_is_kept(self):
+        env = run.isolate_git_discovery({"GIT_CEILING_DIRECTORIES": "/a"}, Path("/tmp/out"))
+        self.assertIn("/a", env["GIT_CEILING_DIRECTORIES"].split(os.pathsep))
+
 if __name__ == "__main__":
     unittest.main()

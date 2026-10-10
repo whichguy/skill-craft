@@ -356,6 +356,19 @@ def released_versions() -> dict:
             "unreleased": pending, "ci": main_ci(origin_main)}
 
 
+def isolate_git_discovery(environ, out: Path) -> dict:
+    """``environ`` with the run's output folder added to GIT_CEILING_DIRECTORIES, so Git started in a case's work folder
+    never finds a repository above the run.
+
+    A case starts in a fresh folder that is not a repository; without the ceiling Git walks up and adopts the first
+    repository it meets (2026-10-10: a home folder that is itself a repository made the hello case's ShipLoop start there,
+    and the sandbox refused). Existing ceilings are kept.
+    """
+    given = [part for part in str(environ.get("GIT_CEILING_DIRECTORIES", "")).split(os.pathsep) if part]
+    ceilings = list(dict.fromkeys([str(Path(out).resolve()), str(Path(out).absolute()), *given]))
+    return {**environ, "GIT_CEILING_DIRECTORIES": os.pathsep.join(ceilings)}
+
+
 def main_ci(commit: str) -> str:
     """origin/main's CI result: success, failure, pending, or unknown (no gh, or no run found).
 
@@ -2679,6 +2692,8 @@ def _main(argv: list[str] | None, held: list) -> int:
         left_behind.append(done.pop("left_behind", None))  # a run's one record is built below, not repeated per session
         return done
 
+    # Everything this run starts (the host, ShipLoop, the grading of the work folder) finds no repository above the run.
+    os.environ.update(isolate_git_discovery(os.environ, out))
     host = the_host(args)
     args.model = args.model or host.model
     args.effort = args.effort or host.effort
