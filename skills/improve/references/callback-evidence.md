@@ -98,7 +98,10 @@ of tools, a chronological transcript, or repeated summaries in every section.
 
 When prior commits contributed, integrate each resolved full commit ID and
 subject beside the decision it informed, explaining the exact lesson used and
-whether it was adopted, adapted, or challenged. Read the referenced message
+whether it was adopted, adapted, or challenged. Inside a ShipLoop run, also give each
+commit that contributed as its own line starting in column 1, `Learned-from: <commit
+ID> <what it contributed>`; ShipLoop checks that the ID names a commit reachable from
+HEAD and writes the full ID. Read the referenced message
 before relying on it; inspect its diff only when needed to establish the relevant
 behavior, and distinguish message claims from inspected code and current checks.
 Treat the normal history window as a starting point. When a consequential

@@ -125,7 +125,7 @@ different route from a remembered parent state.
 The ShipLoop child follows the standalone binding's ordinary commit policy: after
 required checks pass, commit authorized scoped changes in the bound candidate
 worktree and retain the commit SHA in its handoff. When the ShipLoop packet
-prints an `improve-commit` command, write the commit message to the file it names
+prints, or `parent-return.md` lists, an `improve-commit` command, write the commit message to the file it names
 with a file-writing tool and run that command: ShipLoop commits exactly the files
 the review changed; do not use a shell heredoc or `git commit` for it. Stage only intended paths;
 never include runtime receipts or unrelated inherited staging. An explicit
@@ -224,7 +224,8 @@ original learnings with selective references to prior commits in one account.
   uses an identified empty audit commit with no unrelated staged content. An
   explicit no-commit request preserves the host record without committing.
   Use a scoped commit such as `git commit --only -- <authorized paths>` so
-  unrelated inherited staging is excluded; narrowly add selected new paths
+  unrelated inherited staging is excluded (inside a ShipLoop run, use the
+  `improve-commit` command in `parent-return.md` instead of `git commit`); narrowly add selected new paths
   first when required. Never reset the user's index or absorb unrelated work.
   In a dirty snapshot, a selected file may include inherited caller hunks: its
   private checkpoint SHA is not a pure contribution range. Deliver only the
