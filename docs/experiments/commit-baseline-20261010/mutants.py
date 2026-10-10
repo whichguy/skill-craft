@@ -67,7 +67,7 @@ MUTANTS = [
     # commits: citations and lessons
     ("no commit is ever from an earlier run", COUNTERS, 'row["cited_earlier_run"] += bool(start and any(', 'row["cited_earlier_run"] += bool(False and any('),
     ("a citation need not resolve", COUNTERS,
-     'cited = [found for found in (_commit_id(work, match.group("id")) for match in LEARNED_FROM.finditer(message))\n                     if found and found != commit_id]',
+     'cited = [found for found in (_commit_id(work, match.group("id")) for match in LEARNED_FROM.finditer(message)) if found]',
      'cited = [match.group("id") for match in LEARNED_FROM.finditer(message)]'),
     ("a citation anywhere in a line", COUNTERS, 'LEARNED_FROM = re.compile(r"^Learned-from:', 'LEARNED_FROM = re.compile(r"Learned-from:'),
     ("a section does not end at the next label", COUNTERS, "if SECTION_END.match(following) or following.strip() in knowledge_home.LEARNING_SECTIONS:",

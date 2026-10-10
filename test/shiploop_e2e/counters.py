@@ -296,8 +296,7 @@ def commits(out: Path, run_dir: Path | None, tools) -> tuple[dict | None, dict]:
         row["n"] += 1
         row["with_lessons"] += bool(lessons(message))
         if kind == "improve":
-            cited = [found for found in (_commit_id(work, match.group("id")) for match in LEARNED_FROM.finditer(message))
-                     if found and found != commit_id]
+            cited = [found for found in (_commit_id(work, match.group("id")) for match in LEARNED_FROM.finditer(message)) if found]
             row["cited"] += bool(cited)
             row["cited_earlier_run"] += bool(start and any(_git(work, "merge-base", "--is-ancestor", found, start).returncode == 0
                                                           for found in cited))
