@@ -542,10 +542,12 @@ removes the file in a commit of its own, `docs(shiploop): retire <slug> spec: it
 requirement IDs are in the living spec`, and that commit goes back with the
 knowledge follow-up return; its body gives the recover command
 (`git show <commit>^:<path>`) and the commit the plan was recorded in. The file
-stays after a working-tree or no-change return (no commit of the run reaches your
-branch, so it would be the only copy), when the living spec lacks an ID it names
-or names none at all, and when the file has uncommitted changes; ShipLoop says
-which, and never refuses the handoff for it. The run's plan, test and outcome
+stays when the return made before the close was a working-tree return (the run's
+commits are not on your branch, so it would be the only copy) or recorded no change
+(the follow-up return that carries the knowledge commits comes after the decision,
+which stays conservative), when the living spec lacks an ID it names or names none
+at all, and when the file has uncommitted changes; ShipLoop says
+which, and never refuses the handoff for the IDs or the route. The run's plan, test and outcome
 records stay. A replan that starts after a retire finds the planned feature spec
 only in Git history (`git log` on the folder, or the list's recover command); a
 squash merge of the run's branch drops that history, and with it the retired file.

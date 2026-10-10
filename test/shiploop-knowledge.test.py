@@ -976,7 +976,11 @@ class RetireTests(HomeCase):
         self.assertEqual(knowledge.retire(self.state, None), knowledge.Retired("", ""))     # not returned yet: the route is unknown
         kept = knowledge.retire(self.state, False)
         self.assertEqual(kept.commit, "")
-        self.assertIn("do not reach your branch", kept.kept)
+        self.assertEqual(kept.kept, knowledge.KEPT_AFTER_ROUTE)
+        # True whenever it prints: it speaks of the return made before the close, not of what the branch holds now (the
+        # follow-up return, which comes after the retire, may put the knowledge commits on it).
+        self.assertIn("return made before this close", kept.kept)
+        self.assertNotIn("do not reach", kept.kept)
         self.assertTrue((self.repo / self.feature() / "spec.md").is_file())
         self.assertEqual(self.commits(), before)
 

@@ -146,8 +146,8 @@ class TerminalCloseTests(kt.HomeCase):
                 events, (kind, follow) = self.worktree_run(kind_name, None)
                 with kind, follow:
                     out, _ = self.close("navigator-worktree")
-                self.assertEqual(out, "ShipLoop knowledge: kept the feature spec " + str(self.spec) + ": the run's commits do not "
-                                      "reach your branch (a working-tree or no-change return).\n")
+                self.assertEqual(out, "ShipLoop knowledge: kept the feature spec " + str(self.spec) + ": "
+                                 + knowledge.KEPT_AFTER_ROUTE + ".\n")
                 self.assertTrue(self.spec.is_file())
                 self.assertEqual(self.subjects()[0], knowledge.knowledge_subject(dict(self.state), "prepare"))
 
@@ -257,10 +257,31 @@ class RetireThroughTheCli(rr.ReturnReviewCase):
         self.return_all(root)
         self.assertEqual(workspace.return_kind(root), "working-tree-return")
         done = self.complete(run)
-        self.assertIn("kept the feature spec " + str(worktree / self.feature / "spec.md")
-                      + ": the run's commits do not reach your branch", done.stdout)
+        self.assertIn("kept the feature spec " + str(worktree / self.feature / "spec.md") + ": " + knowledge.KEPT_AFTER_ROUTE,
+                      done.stdout)
         self.assertTrue((worktree / self.feature / "spec.md").is_file())
         self.assertTrue((self.repo / self.feature / "spec.md").is_file())
+        self.assertEqual(self.retire_commits(worktree), [])
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done")
+
+    def test_a_no_change_return_keeps_the_feature_spec_and_the_notice_stays_true_after_the_follow_up_returned_it(self) -> None:
+        """Audit (batch 1012): the retire reads the route before the follow-up return, which recomputes a no-change return as
+        a fast-forward and puts the knowledge commit on the branch; the notice used to say the commits do not reach it."""
+        root, worktree = self.start("no change keep")
+        self.feature = knowledge.feature_dir(store.read_record(root / "run" / "state.md"))
+        run = self.at(root, "handoff")
+        self.plan_return(root)
+        self.do_return(root)                                                               # nothing to return
+        self.assertEqual(workspace.return_kind(root), "no-change-return")
+        self.write(worktree, "docs/shiploop/spec.md", LIVING)                              # written at the handoff
+        self.write(worktree, self.feature + "/spec.md", FEATURE_SPEC)
+        done = self.complete(run)
+        self.assertEqual(workspace.return_kind(root), "fast-forward-merge")                 # the follow-up recomputed the route
+        self.assertIn("(fast-forward-merge).", done.stdout.split("kept the feature spec")[0])    # and returned the commit first
+        self.assertEqual(self.git("show", "HEAD:" + self.feature + "/spec.md").stdout, FEATURE_SPEC)   # it IS on the branch now
+        self.assertIn("kept the feature spec " + str(worktree / self.feature / "spec.md") + ": " + knowledge.KEPT_AFTER_ROUTE,
+                      done.stdout)
+        self.assertNotIn("do not reach your branch", done.stdout)                           # nothing printed says the opposite
         self.assertEqual(self.retire_commits(worktree), [])
         self.assertEqual(store.read_record(run / "state.md")["status"], "done")
 

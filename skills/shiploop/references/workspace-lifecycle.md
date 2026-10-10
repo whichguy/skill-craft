@@ -258,7 +258,9 @@ retires the run's feature spec when the run's commits reach your branch: an in-p
 run, or a worktree run whose recorded return is a fast-forward. The removal is a
 commit of its own and travels with the follow-up return. After a working-tree or
 no-change return, or before any return, the file is kept (before any return nothing
-is said; the retry after the return decides). If that follow-up return fails after
+is said; the retry after the return decides). The decision reads the route before the
+follow-up, which works a no-change return out again and may then return the file with
+the knowledge commits, so the notice speaks of the earlier return, not of the branch. If that follow-up return fails after
 the retire commit alone, the handoff guard still refuses a stale return and prints
 the commands; a retry makes no second retire commit.
 

@@ -499,6 +499,13 @@ def _retire_message(repo: Path, state: Mapping[str, Any], named: Sequence[str]) 
     return "\n".join(lines) + "\n"
 
 
+# Why the route keeps the file, as the notice prints it.  It speaks of the return made before the close and never of what the
+# branch holds when it prints: the follow-up return, which comes after the retire, may put the knowledge commits on the
+# branch (it works a no-change return out again as a fast-forward), so "the commits do not reach your branch" would be false.
+KEPT_AFTER_ROUTE = ("the return made before this close did not put the run's commits on your branch (it was a "
+                    "working-tree return, or recorded no change)")
+
+
 class Retired(NamedTuple):
     commit: str  # the retire commit, "" when none was made
     kept: str    # why a feature spec that is in the tree stays, "" when it was removed or there was nothing to decide
@@ -508,9 +515,10 @@ def retire(state: Mapping[str, Any], reaches_branch: Optional[bool]) -> Retired:
     """At the terminal close: remove this run's feature spec once the living spec holds the IDs it names (owner decision D3).
 
     ``reaches_branch`` is whether the run's commits reach the user's branch: True in a checkout the user works in and after
-    a fast-forward return, False after a working-tree or no-change return (no commit of the run reaches the branch, so the
-    file would be the only copy), None while an isolated run has not returned (the route is unknown; the handoff guard asks
-    for the return and the retry decides).  The removal is one commit of its own: the deletion, and FEATURE_LIST rewritten
+    a fast-forward return, False after a working-tree or no-change return (the run's commits are not on the branch, so the
+    file would be the only copy; the knowledge follow-up return that comes after this call may still put them there, which is
+    why the reason speaks of the earlier return, ``KEPT_AFTER_ROUTE``), None while an isolated run has not returned (the
+    route is unknown; the handoff guard asks for the return and the retry decides).  The removal is one commit of its own: the deletion, and FEATURE_LIST rewritten
     without the removed file (only when ShipLoop owns that file and Git would take it).  A file that is already gone is a
     retry or an early deletion by the model and is left alone, which is what makes the terminal close safe to repeat.
     Handoff is never refused here: IDs the living spec lacks keep the file, and the reason says which.
@@ -521,7 +529,7 @@ def retire(state: Mapping[str, Any], reaches_branch: Optional[bool]) -> Retired:
     if reaches_branch is None or not spec.is_file() or _git(repo, "rev-parse", "--is-inside-work-tree").returncode:
         return Retired("", "")
     if not reaches_branch:
-        return Retired("", "the run's commits do not reach your branch (a working-tree or no-change return)")
+        return Retired("", KEPT_AFTER_ROUTE)
     missing = _unmerged(repo, feature_dir(state))
     if missing is None:
         return Retired("", "the living spec names no requirement ID, so the IDs cannot be checked")
@@ -572,7 +580,7 @@ def in_home(path: str) -> bool:
     return path in KNOWLEDGE or path.startswith(HOME + "/")
 
 
-__all__ = ("CLOSES", "FEATURE_LIST", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "Retired", "check", "commit",
-           "earlier_features", "feature_dir", "feature_list", "feature_list_notice", "in_home", "is_retire_subject",
-           "knowledge_subject", "learnings", "next_close", "recent_commits", "required_earlier", "retire", "retire_subject",
-           "retired_by", "spec_pin", "stage_lines", "write_feature_list")
+__all__ = ("CLOSES", "FEATURE_LIST", "HOME", "INDEX", "KEPT_AFTER_ROUTE", "KNOWLEDGE", "LEARNING_SECTIONS", "Retired",
+           "check", "commit", "earlier_features", "feature_dir", "feature_list", "feature_list_notice", "in_home",
+           "is_retire_subject", "knowledge_subject", "learnings", "next_close", "recent_commits", "required_earlier",
+           "retire", "retire_subject", "retired_by", "spec_pin", "stage_lines", "write_feature_list")

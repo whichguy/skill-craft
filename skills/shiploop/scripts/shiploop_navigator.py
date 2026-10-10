@@ -1837,7 +1837,8 @@ def _run_commits_reach_branch(after: Mapping[str, Any], root: Path | None) -> bo
     """Whether this run's commits reach the user's branch: True in the user's own checkout and after a fast-forward return,
     False after a working-tree or no-change return, None while an isolated run has not returned (the route is unknown).
 
-    The route is the newest recorded return's kind, read from the receipt even while the receipt is stale.
+    The route is the newest recorded return's kind, read from the receipt even while the receipt is stale.  It is read before
+    the follow-up return, so a no-change return still answers False although the follow-up then returns the knowledge commits.
     """
     if after.get("execution_mode") != "navigator-worktree":
         return True
