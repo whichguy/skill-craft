@@ -1284,7 +1284,9 @@ def review_export(out: Path) -> str:
     try:
         if not REVIEW_EXPORTER.is_file():
             return f"review export skipped: no exporter at {REVIEW_EXPORTER}"
-        return f"review export: {fidelity.load_exporter(REVIEW_EXPORTER).export_run(out)}"
+        folder = fidelity.load_exporter(REVIEW_EXPORTER).export_run(out)
+        page = Path(str(folder)) / "run-review.html"  # the standalone page the exporter writes beside the bundle (0.1.3 and later)
+        return f"review export: {folder}" + (f"; page {page}" if page.is_file() else "")
     except Exception as exc:  # noqa: BLE001 - any export failure is reported, never raised
         return f"review export skipped: {' '.join(str(exc).split())[:300] or type(exc).__name__}"
 

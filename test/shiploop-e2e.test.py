@@ -1098,7 +1098,11 @@ class ReviewExportTest(HarnessCase):
             "nav-0123456789abcdef": "2026-10-04T10:03:00Z"}}))
         (out / "metrics.json").write_text(json.dumps({"shiploop_failures": [], "model_glue": [], "unmeasured": {}}))
         line = run.review_export(out)
-        self.assertEqual(line, f"review export: {(out / 'review-export').resolve()}")
+        folder = (out / 'review-export').resolve()
+        # The exporter also writes the static page (run-review.html, shiploop-run-review 0.1.3): its path is printed after the
+        # folder, so a reader of the report finds the page without listing the folder.
+        self.assertTrue((folder / "run-review.html").is_file(), "the exporter writes the standalone page beside the bundle")
+        self.assertEqual(line, f"review export: {folder}; page {folder / 'run-review.html'}")
         bundle = json.loads((out / "review-export" / "review-export.json").read_text())
         self.assertEqual([s["min"] for s in next(iter(bundle["docs"]["runs"].values()))["stages"]], [3.0])
 
