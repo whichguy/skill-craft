@@ -396,7 +396,9 @@ _APPARATUS_SUITE = _suite(
     "all",
     "--skill-root",
     "skills/shiploop",
-    timeout_seconds=1_200,
+    # Release runs took 14:49 to 18:19 on the CI runner and one hit 1,200 s on 2026-10-10 (a slow runner, same code: its rerun passed in
+    # 20 min including setup). A ceiling, not a tuning value: the job's own limit is 60 minutes.
+    timeout_seconds=1_800,
 )
 
 # The apparatus's no-model replay slice: captured agent results drive the real
