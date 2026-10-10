@@ -545,7 +545,7 @@ number as `accepted_ran` in the record). The `test-author` probe sets the first 
 not held to a floor, because its duty is to explain every removed or narrowed case; the counts it accepts become the floor for the
 stages after it. A test removed on purpose is a plan change: report `revise` with the reason, and the redone step plan starts the
 count again. `revise` is accepted at once at `test-red`, `verify` and `integration-verify`; at `test-green`, `regression` and
-`static-checks` it needs a stopped loop or the 7th refused run, as for any refusal there, and the refusal says so. Known limits: the
+`static-checks` it needs a stopped loop or the 11th refused run, as for any refusal there, and the refusal says so. Known limits: the
 outer `system-test` and `release-verify` and the end-of-work review rerun commands another stage recorded and have no `revise` to
 lower a floor, so they are not held to one; the first number is the first accepted run, so tests removed before it (against the
 baseline) are not seen; a run whose count ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not

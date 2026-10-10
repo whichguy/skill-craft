@@ -121,6 +121,44 @@ class StageTableTest(unittest.TestCase):
             self.assertNotIn("Stop cancelled when", condition)
         self.assertEqual(test_loop.MAX_REFUSED_RUNS, 11)
 
+    def test_every_prose_copy_of_a_cap_names_its_constant_value(self) -> None:
+        """SPEC S-10 carve-out (owner decision 2026-10-10): the refused-run cap, the genuine-fix-attempt rule and the
+        keepalive release are constants, and every copy of them in ShipLoop's text and the SPEC says the same number.
+        The caps went 7 -> 11, 3 -> 7 and 14 -> 22 on 2026-10-10, and a copy that kept an old number would tell a model
+        a different rule than the gate applies."""
+        import re
+        import shiploop_keepalive as keepalive
+        words = {"seven": 7, "eleven": 11, "three": 3, "fourteen": 14, "twenty-two": 22}
+        refused, attempts, stuck = test_loop.MAX_REFUSED_RUNS, spec.GENUINE_FIX_ATTEMPTS, keepalive.STUCK_CONTINUATIONS
+        self.assertEqual((refused, attempts, stuck), (11, 7, 2 * test_loop.MAX_REFUSED_RUNS))
+        rules = (
+            (re.compile(r"\b(\d+)\s+refused\s+runs\b"), refused),
+            (re.compile(r"\b(\d+)(?:st|nd|rd|th)\s+refused\s+run\b"), refused),
+            (re.compile(r"\b(?:spend one of|reach) the (\d+)\b"), refused),
+            (re.compile(r"\bup\s+to\s+(\w+(?:-\w+)?)\s+times\b"), refused),
+            (re.compile(r"\b(\d+)\s+genuine\s+fix\s+attempts\b"), attempts),
+            # ShipLoop's release only; "Grok ends a turn after 8 continuations" is the host's own limit.
+            (re.compile(r"count\s+only\s+so\s+far:\s+after\s+(\d+)|\b(\d+)\s+continuations\s+without\s+an\s+accepted\s+result"), stuck),
+            (re.compile(r"MAX_REFUSED_RUNS` \((\d+)\)"), refused),
+            (re.compile(r"GENUINE_FIX_ATTEMPTS` \((\d+)\)"), attempts),
+            (re.compile(r"STUCK_CONTINUATIONS` \((\d+)"), stuck),
+        )
+        sources = [*sorted((ROOT / "skills/shiploop").rglob("*.md")), *sorted((ROOT / "skills/shiploop/scripts").glob("*.py")),
+                   ROOT / "test/shiploop_e2e/SPEC.md"]
+        found = 0
+        for path in sources:
+            text = path.read_text(encoding="utf-8")
+            for pattern, value in rules:
+                for match in pattern.finditer(text):
+                    number = next(group for group in match.groups() if group)
+                    number = words.get(number.lower(), number)
+                    if not str(number).isdigit():
+                        continue  # "up to N times" also reads other quantities; only a number word is a cap copy
+                    found += 1
+                    with self.subTest(file=str(path.relative_to(ROOT)), text=match.group(0)):
+                        self.assertEqual(int(number), value)
+        self.assertGreater(found, 10)  # the scan reaches the copies (SKILL.md, references, prompts, SPEC)
+
     def test_stages_that_edit_code_run_a_script_check_before_done(self) -> None:
         # A stage that may change code or tests must end with a script-run lint
         # gate, test run or loop check.  Exempt, each checked by a later stage:

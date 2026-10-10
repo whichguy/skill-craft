@@ -133,8 +133,14 @@ Verify each step:
 
 ## Open
 
-- **Two caps that may conflict.** The test loop's "3 genuine fix attempts" and "7 refused runs" caps, which lead
-  to revise, may conflict with the rule that ShipLoop's quality and test loops are unbounded. This needs an owner
-  decision.
+- **Two caps that may conflict. SETTLED 2026-10-10.** The test loop's genuine-fix-attempt and refused-run caps
+  (then 3 and 7), which lead to revise, seemed to conflict with the rule that ShipLoop's quality and test loops are
+  unbounded.
+  - The owner raised them ("more like 7 and 11") and kept them as bounds on a stage's acceptance gate. The Until
+    Loop itself stays uncapped.
+  - SPEC S-10 records this as the carve-out of 2026-10-10 (test/shiploop_e2e/SPEC.md).
+  - The values are constants: `shiploop_test_loop.MAX_REFUSED_RUNS` = 11,
+    `shiploop_stage_spec.GENUINE_FIX_ATTEMPTS` = 7, and `shiploop_keepalive.STUCK_CONTINUATIONS` = 22.
+    `test/shiploop-stage-spec.test.py` pins every prose copy to them.
 - **Risk in the merged UI/state text.** The merged step-plan UI/state text (design basis plus interaction design)
   keeps every obligation, but it should be rerun against the interaction-state experiment cases before shipping.

@@ -50,10 +50,8 @@ FAKE_HOST = textwrap.dedent('''
         state = store.read_record(run_dir / "state.md")
         stage = nav.current_stage(state)
         past = state["status"] != "active" or state["work_index"] > 0 or stage in spec.OUTER
-        if past and extra_outer == 0:
-            break
         if past:
-            extra_outer -= 1
+            break
         action = nav.current_action(state)["id"]
         if stage == pause_at and action not in paused:
             paused.add(action)
@@ -72,6 +70,14 @@ FAKE_HOST = textwrap.dedent('''
         state = nav.apply(state, action, {"outcome": "done", "summary": "Fake host", **extra})
         if state.get("active_improve") is not None:
             state = nav.finish_improve(state, action, {"summary": "Fake review", "lessons": "x"})
+        # An overrun accepts the outer stages before anything is saved, so no poll can see the boundary state first
+        # (saving each one let a 2 s poll under load stop the host between them, a flaky overrun test).
+        while extra_outer and nav.current_stage(state) in spec.OUTER:
+            outer = nav.current_action(state)["id"]
+            state = nav.apply(state, outer, {"outcome": "done", "summary": "Fake host overrun"})
+            if state.get("active_improve") is not None:
+                state = nav.finish_improve(state, outer, {"summary": "Fake review", "lessons": "x"})
+            extra_outer -= 1
         nav.save(run_dir, state)
         time.sleep(0.02)
     time.sleep(120)  # a model would go on to the next packet; only the slice stop ends this

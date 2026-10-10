@@ -56,6 +56,10 @@ OUTCOMES = frozenset({"done", "repeat", "blocked", "replan", "revise"})
 # decides (blocked, blocked_by user).
 REVISE_TO = "step-plan"
 MAX_REVISES = 2
+# The step exit criteria's stopping rule (SPEC S-10 carve-out, owner decision 2026-10-10): the same check still failing
+# after this many genuine fix attempts ends the stage as revise. No script counts the attempts; the model applies it, and
+# test/shiploop-stage-spec.test.py pins every prose copy to this value.
+GENUINE_FIX_ATTEMPTS = 7
 
 
 @dataclass(frozen=True)

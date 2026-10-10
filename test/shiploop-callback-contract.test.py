@@ -1110,7 +1110,7 @@ class UncountedCommandRouteTests(RealCliCase):
         # The two lines that sent the model the wrong way: edit the command, or fix the code.
         self.assertNotIn("Give the command ids", reply)
         self.assertNotIn("Fix the code so every command passes", reply)
-        self.assertIn("Refused runs for this action: 1 of 7; replan does not wait for them.", reply)
+        self.assertIn(f"Refused runs for this action: 1 of {test_loop.MAX_REFUSED_RUNS}; replan does not wait for them.", reply)
 
     def test_the_replan_the_refusal_names_is_accepted_with_one_corrective_item(self) -> None:
         run, head, callback, path = self.at_system_test(PIPELINE)
@@ -1130,7 +1130,7 @@ class UncountedCommandRouteTests(RealCliCase):
         self.named_exit(self.refused(callback, run))  # the refusal names its exit before the gate is tried again
         again = self.refused(callback, run)
         self.assertIn("could not read how many tests it ran", again)
-        self.assertIn("Refused runs for this action: 2 of 7", again)
+        self.assertIn(f"Refused runs for this action: 2 of {test_loop.MAX_REFUSED_RUNS}", again)
         # Recording it as a check here is not an exit: system-test reruns what was recorded, so the gate holds.
         write_block(path, {**self.done_fields(), "system_commands": [{"command": PIPELINE, "suite": "check"}]})
         self.assertIn("could not read how many tests it ran", self.refused(callback, run))
