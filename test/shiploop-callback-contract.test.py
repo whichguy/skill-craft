@@ -479,6 +479,36 @@ class RefusalRouteTests(RealCliCase):
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
 
+    def git(self, repo: Path, *argv: str) -> str:
+        return subprocess.run(["git", "-C", str(repo), "-c", "user.email=t@example.invalid", "-c", "user.name=t", *argv],
+                              env=self.env, check=True, capture_output=True, text=True).stdout
+
+    def test_a_repository_whose_home_has_no_architecture_is_refused_at_prepare_and_the_file_it_names_is_accepted(self) -> None:
+        # A home an earlier version committed has every file but architecture.md.  The next run meets one refusal, at
+        # prepare, that names that file alone and says what it holds; writing exactly it is accepted by the same command.
+        run, head = self.new_run("prepare")
+        command, path, action = printed_callback(head)
+        repo = self.repo_of(run)
+        write_block(path, self.fill_done(head))
+        listed = re.findall(r"^- (/\S+)$", self.refused(command, run), re.M)
+        architecture = [named for named in listed if named.endswith("/docs/shiploop/architecture.md")]
+        self.assertEqual(len(architecture), 1, listed)  # a first prepare asks for it with the rest
+        for named in listed:
+            if named not in architecture:
+                Path(named).parent.mkdir(parents=True, exist_ok=True)
+                Path(named).write_text("What this file records.\n", encoding="utf-8")
+        self.git(repo, "add", "docs/shiploop")
+        self.git(repo, "commit", "-qm", "an earlier run's home")
+        reply = self.refused(command, run)
+        self.assertEqual(reply.splitlines()[0], "ShipLoop navigator: Before prepare is done, write: " + architecture[0])
+        self.assertEqual(re.findall(r"^- (/\S+)$", reply, re.M), architecture)
+        self.assertIn("\narchitecture.md holds the stack (language, frameworks, dependencies and why)", reply)
+        Path(architecture[0]).write_text("What this file records.\n", encoding="utf-8")  # exactly the file the refusal names
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        self.assertTrue(self.git(repo, "log", "-1", "--format=%s").strip().endswith("knowledge at prepare"))
+        self.assertEqual(self.git(repo, "show", "--name-only", "--format=", "HEAD").split(), ["docs/shiploop/architecture.md"])
+
     def test_a_blocked_result_with_done_fields_is_refused_once_with_every_field_named(self) -> None:
         run, head = self.new_run("plan")
         command, path, _ = printed_callback(head)

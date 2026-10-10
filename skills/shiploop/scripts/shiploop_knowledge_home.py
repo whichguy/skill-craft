@@ -12,6 +12,7 @@ A later run starts from these files.
     docs/shiploop/spec.md            living product spec; stable requirement IDs, a Retired section
     docs/shiploop/environment.md     targets, aliases, working commands, platform facts
     docs/shiploop/test-strategy.md   harnesses, suites, commands, the ID convention
+    docs/shiploop/architecture.md    stack, structure, conventions, interfaces; stable decision IDs, a Superseded section
     docs/shiploop/features/<slug>/   this run: spec.md (delta), plan.md, test-spec.md,
                                      system-tests.md, release-plan.md, outcome.md
 """
@@ -31,10 +32,16 @@ HOME = "docs/shiploop"
 # The repository's knowledge index; the references ask the model to keep it, so ShipLoop commits it with the home.
 INDEX = "SHIPLOOP.md"
 KNOWLEDGE = (HOME, INDEX)
-LIVING = ("README.md", "spec.md", "environment.md", "test-strategy.md")
+# The architecture file: how the product is built (the stack and structure survive a change of spec, as the spec survives a
+# change of stack).  ARCHITECTURE_HOLDS is the one wording of what it holds; the missing-file refusal prints it.
+ARCHITECTURE = "architecture.md"
+ARCHITECTURE_HOLDS = ("the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), "
+                      "conventions, interfaces and boundaries, and a '## Decisions' section of stable IDs AD-<n> (choice, "
+                      "why, alternatives, status) with a '## Superseded' section for decisions that no longer hold")
+LIVING = ("README.md", "spec.md", "environment.md", "test-strategy.md", ARCHITECTURE)
 # The close that commits, and the files it requires (``{feature}`` is this run's feature directory).
 CLOSES: Dict[str, Tuple[str, ...]] = {
-    "prepare": ("README.md", "spec.md", "environment.md", "test-strategy.md",
+    "prepare": ("README.md", "spec.md", "environment.md", "test-strategy.md", ARCHITECTURE,
                 "{feature}/spec.md", "{feature}/plan.md"),
     "test-spec": ("{feature}/plan.md", "{feature}/test-spec.md"),
     "release-plan": ("{feature}/system-tests.md", "{feature}/release-plan.md", "environment.md"),
@@ -48,9 +55,9 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "discovery": ("environment.md",),
     "spec": ("spec.md", "{feature}/spec.md"),
     "test-strategy": ("test-strategy.md",),
-    "plan": ("{feature}/plan.md", "README.md"),
+    "plan": ("{feature}/plan.md", "README.md", ARCHITECTURE),
     "prepare": ("environment.md",),
-    "step-plan": ("{feature}/plan.md",),
+    "step-plan": ("{feature}/plan.md", ARCHITECTURE),
     "test-spec": ("{feature}/test-spec.md",),
     "system-test-author": ("{feature}/system-tests.md",),
     "release-plan": ("{feature}/release-plan.md", "environment.md"),
@@ -205,6 +212,8 @@ def check(state: Mapping[str, Any], stage: str) -> str:
         return ("Before " + stage + " is done, write: " + ", ".join(paths) + "\n"
                 "ShipLoop keeps this run's planning knowledge in the repository so later runs inherit it. "
                 "The files, one per line:\n" + "".join("- " + p + "\n" for p in paths)
+                # architecture.md is the one file with no other description at prepare: a cleared model reads this.
+                + (ARCHITECTURE + " holds " + ARCHITECTURE_HOLDS + ".\n" if str(repo / HOME / ARCHITECTURE) in paths else "")
                 + "See the packet's knowledge-home lines for what each file holds.")
     leaks = []
     screened = sorted((repo / HOME).rglob("*.md")) + ([repo / INDEX] if (repo / INDEX).is_file() else [])
@@ -254,5 +263,5 @@ def in_home(path: str) -> bool:
     return path in KNOWLEDGE or path.startswith(HOME + "/")
 
 
-__all__ = ("CLOSES", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "check", "commit", "feature_dir", "in_home", "learnings",
+__all__ = ("ARCHITECTURE", "ARCHITECTURE_HOLDS", "CLOSES", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "check", "commit", "feature_dir", "in_home", "learnings",
            "next_close", "recent_commits", "required_earlier", "stage_lines")

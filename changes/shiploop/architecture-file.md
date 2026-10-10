@@ -1,0 +1,4 @@
+---
+bump: minor
+---
+The repository knowledge home gains `docs/shiploop/architecture.md`: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the decisions as stable IDs (`AD-<n>`) with a `Superseded` section. The living spec stays the contract and the architecture stays the build, so each survives a change of the other. Plan and step-plan keep the file up to date and the prepare close refuses done while it is missing or empty, so a repository whose home an earlier version wrote is asked for the file at its next run's prepare; a refused prepare names it and says what it holds. A later architecture.md that no longer mentions an earlier committed decision ID is refused at every stage that changes it, as a living spec that drops a requirement ID already was.

@@ -30,7 +30,9 @@ def git(repo: Path, *args: str) -> str:
     return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout
 
 
-class KnowledgeTests(unittest.TestCase):
+class HomeFixture(unittest.TestCase):
+    """A real Git repository holding one commit, and the state of a run in it; no tests of its own."""
+
     def setUp(self) -> None:
         # Real-git tests must not read the machine's Git configuration: a CI runner's global config carries git-lfs
         # filters, which the workspace refuses (as in shiploop-workspace and shiploop-test-loop).
@@ -52,6 +54,8 @@ class KnowledgeTests(unittest.TestCase):
         self.state = {"repo": str(self.repo), "prompt": "Add a Fleet command tab to the Battleship game.",
                       "run_id": "nav-0123456789abcdef"}
 
+
+class KnowledgeTests(HomeFixture):
     def test_feature_directory_and_stage_lines(self) -> None:
         self.assertEqual(knowledge.feature_dir(self.state),
                          "docs/shiploop/features/add-a-fleet-command-tab-to-abcdef")
@@ -69,7 +73,8 @@ class KnowledgeTests(unittest.TestCase):
         self.assertEqual(knowledge.next_close("system-test-author", "{feature}/system-tests.md"), "release-plan")
         self.assertIsNone(knowledge.next_close("plan", "{feature}/outcome.md.nope"))
         self.assertEqual(knowledge.required_earlier("prepare"),
-                         ("README.md", "spec.md", "test-strategy.md", "{feature}/spec.md", "{feature}/plan.md"))
+                         ("README.md", "spec.md", "test-strategy.md", "architecture.md", "{feature}/spec.md",
+                          "{feature}/plan.md"))
         lines = "\n".join(knowledge.stage_lines(self.state, "prepare"))
         self.assertIn("Written by earlier stages; ShipLoop refuses prepare if any is missing or empty: "
                       + str(self.repo / "docs/shiploop/README.md"), lines)
@@ -111,7 +116,8 @@ class KnowledgeTests(unittest.TestCase):
         lines = refusal.splitlines()
         feature = knowledge.feature_dir(self.state)
         names = [knowledge.HOME + "/README.md", knowledge.HOME + "/spec.md", knowledge.HOME + "/environment.md",
-                 knowledge.HOME + "/test-strategy.md", feature + "/spec.md", feature + "/plan.md"]
+                 knowledge.HOME + "/test-strategy.md", knowledge.HOME + "/architecture.md", feature + "/spec.md",
+                 feature + "/plan.md"]
         absolute = [str(self.repo / name) for name in names]
         self.assertEqual(lines[0], "Before prepare is done, write: " + ", ".join(absolute))
         self.assertIn(absolute[0], lines[0][:250])
@@ -210,6 +216,79 @@ class KnowledgeAfterEveryStageTests(KnowledgeTests):
 
     def test_an_unchanged_home_is_not_checked_outside_a_close(self) -> None:
         self.assertEqual(knowledge.check(self.state, "implement"), "")  # no home at all: nothing to require
+
+
+class ArchitectureTests(HomeFixture):
+    """docs/shiploop/architecture.md: a living file that plan and step-plan keep and prepare requires."""
+
+    ARCH = "docs/shiploop/architecture.md"
+
+    def test_the_architecture_is_a_living_file_plan_and_step_plan_keep_and_prepare_requires(self) -> None:
+        self.assertEqual(knowledge.ARCHITECTURE, "architecture.md")
+        self.assertIn("architecture.md", knowledge.LIVING)
+        self.assertIn("architecture.md", knowledge.CLOSES["prepare"])
+        self.assertEqual(knowledge.next_close("plan", "architecture.md"), "prepare")
+        self.assertIsNone(knowledge.next_close("step-plan", "architecture.md"))  # prepare is behind step-plan
+        absolute = str(self.repo / self.ARCH)
+        plan = "\n".join(knowledge.stage_lines(self.state, "plan"))
+        self.assertRegex(plan, r"keeps these up to date \(create them if missing\): .*" + re.escape(absolute))
+        self.assertRegex(plan, r"ShipLoop refuses prepare if any of these is missing or empty: .*" + re.escape(absolute))
+        step_plan = [row for row in knowledge.stage_lines(self.state, "step-plan") if "keeps these up to date" in row]
+        self.assertIn(absolute, step_plan[0])
+        prepare = [row for row in knowledge.stage_lines(self.state, "prepare") if row.startswith("Written by earlier stages")]
+        self.assertIn(absolute, prepare[0])
+        for stage in ("intake", "discovery", "spec", "test-strategy", "implement"):
+            with self.subTest(stage):
+                self.assertNotIn(absolute, "\n".join(knowledge.stage_lines(self.state, stage)))
+
+    def test_the_architecture_is_ordered_after_the_other_living_files_and_before_the_feature_files(self) -> None:
+        self.assertEqual(knowledge.CLOSES["prepare"][:5],
+                         ("README.md", "spec.md", "environment.md", "test-strategy.md", "architecture.md"))
+        self.assertEqual(knowledge.STAGE_FILES["plan"][-1], "architecture.md")  # the printed order of the others is kept
+        self.assertEqual(knowledge.STAGE_FILES["step-plan"], ("{feature}/plan.md", "architecture.md"))
+        self.assertEqual(knowledge.STAGE_FILES["prepare"], ("environment.md",))  # prepare requires it; plan writes it
+
+    def test_a_home_without_an_architecture_is_refused_at_prepare_naming_only_that_file_and_what_it_holds(self) -> None:
+        support.write(self.state)
+        (self.repo / self.ARCH).unlink()
+        refusal = knowledge.check(self.state, "prepare")
+        self.assertEqual(refusal.splitlines()[0], "Before prepare is done, write: " + str(self.repo / self.ARCH))
+        self.assertEqual(re.findall(r"^- (/\S+)$", refusal, re.M), [str(self.repo / self.ARCH)])
+        # architecture.md is new: a cleared-context model has no other description of it, so the refusal carries one line
+        self.assertIn("\narchitecture.md holds " + knowledge.ARCHITECTURE_HOLDS + ".\n", refusal)
+        self.assertEqual(re.findall(r"^(\S+) holds ", refusal, re.M), ["architecture.md"])  # no per-file line for the others
+        self.assertTrue(refusal.endswith("See the packet's knowledge-home lines for what each file holds."))
+        # a refusal that asks for nothing about the architecture says nothing about it
+        (self.repo / self.ARCH).write_text("# Architecture\n\nA script.\n")
+        (self.repo / "docs/shiploop/environment.md").unlink()
+        self.assertNotIn("architecture.md holds", knowledge.check(self.state, "prepare"))
+
+    def test_the_wording_of_what_the_file_holds_keeps_runtime_in_the_environment_and_names_the_decision_ids(self) -> None:
+        holds = knowledge.ARCHITECTURE_HOLDS
+        self.assertTrue(holds.startswith("the stack (language, frameworks, dependencies and why)"), holds)
+        self.assertIn("AD-<n>", holds)
+        self.assertIn("'## Decisions'", holds)
+        self.assertIn("'## Superseded'", holds)
+        self.assertNotIn("runtime", holds)  # runtime versions and working commands are environment.md's: one home
+
+    def test_an_empty_or_blank_architecture_is_missing(self) -> None:
+        support.write(self.state)
+        for body in ("", "  \n\n\t\n"):
+            with self.subTest(body=body):
+                (self.repo / self.ARCH).write_text(body)
+                self.assertIn(str(self.repo / self.ARCH), knowledge.check(self.state, "prepare").splitlines()[0])
+        (self.repo / self.ARCH).write_text("# Architecture\n\nA script, no decisions yet.\n")
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")  # no decision ID is required: only the file
+
+    def test_the_fixture_writer_satisfies_every_close_it_derives_from_the_closes(self) -> None:
+        """Drift guard for test/shiploop_knowledge_support.write: a file added to a close is written without editing it."""
+        support.write(self.state)
+        for close in knowledge.CLOSES:
+            with self.subTest(close):
+                if close == "release-verify":
+                    continue  # its outcome.md sections are the writer's job, checked by the release-verify test above
+                self.assertEqual(knowledge.check(self.state, close), "")
+        self.assertTrue((self.repo / self.ARCH).is_file())
 
 
 FIXTURES = ROOT / "test" / "fixtures" / "commit-contract"
