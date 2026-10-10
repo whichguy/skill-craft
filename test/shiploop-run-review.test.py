@@ -8790,6 +8790,12 @@ class R23bImprovePacketExportTests(unittest.TestCase):
         run, _ = self.build(lost)
         self.assertNotIn("improvePackets", run)
         self.assertIn("left no packets/<action>-improve.md file", run["unmeasured"]["improvePackets"])
+        # A child that stopped before its card was bound left only the improve-bind packet's own file: the reason says so.
+        (run_dir_of(lost) / "packets" / f"{IDS['spec']}-improve-bind.md").write_text("ShipLoop navigator | spec | revision 4\n")
+        run, _ = self.build(lost)
+        self.assertNotIn("improvePackets", run)
+        self.assertIn("left only packets/<action>-improve-bind.md files", run["unmeasured"]["improvePackets"])
+        self.assertEqual(run["unmeasured"]["improvePackets"], export.NO_IMPROVE_PACKET_BOUND)
 
     def test_the_contract_types_the_new_fields_and_schema_md_documents_the_table_and_the_release_it_changed_at(self):
         base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}

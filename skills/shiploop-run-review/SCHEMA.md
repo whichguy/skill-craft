@@ -489,8 +489,8 @@ for both by design. The saved runs: r1 Sonnet (skill-craft 1.24.0) read 8, goal 
 
 A run of the current layout with no Improve child has `read` 0 and every count 0: a measured none, not unmeasured. A run whose packets cannot be
 scored has no `improvePackets` and says why under `unmeasured.improvePackets`: the old layout (ShipLoop 1.22.0 and earlier wrote one packet
-file per action, and a visit with `packetImprove` keeps only the child's), children that left no `-improve.md` file, or files that could not be
-read as UTF-8.
+file per action, and a visit with `packetImprove` keeps only the child's), children that left no `-improve.md` file (the reason says when they
+left only an `-improve-bind.md` file: each stopped before its card was bound), or files that could not be read as UTF-8.
 
 ## The stage card
 
