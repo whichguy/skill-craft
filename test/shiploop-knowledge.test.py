@@ -1100,6 +1100,22 @@ class RetireTests(HomeCase):
         self.assertEqual(path.read_text(), "My own notes, edited and not committed.\n")
         self.assertEqual(git(self.repo, "status", "--porcelain").strip(), "M " + knowledge.FEATURE_LIST)
 
+    def test_retired_by_names_the_retire_commit_and_no_other_removal(self) -> None:
+        """The progress view and the harness tell ShipLoop's removal from a model's by the subject, never by the path alone."""
+        self.prepared()
+        done = knowledge.retire(self.state, True)
+        found = knowledge.retired_by(self.repo, self.feature())
+        self.assertGreaterEqual(len(found), 7)
+        self.assertTrue(done.commit.startswith(found))
+        self.write("docs/shiploop/features/other-aaaaaa/spec.md", "x\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "add other")
+        git(self.repo, "rm", "-q", "docs/shiploop/features/other-aaaaaa/spec.md")
+        git(self.repo, "commit", "-qm", "model removed it")
+        self.assertEqual(knowledge.retired_by(self.repo, "docs/shiploop/features/other-aaaaaa"), "")
+        self.assertEqual(knowledge.retired_by(self.repo, "docs/shiploop/features/never-committed-bbbbbb"), "")
+        self.assertEqual(knowledge.retired_by(self.repo.parent, self.feature()), "")           # not a checkout
+
     def test_a_checkout_that_is_not_a_work_tree_is_exempt(self) -> None:
         plain = self.repo.parent / "plain"
         (plain / knowledge.feature_dir(self.state)).mkdir(parents=True)

@@ -430,9 +430,13 @@ _RETIRE_SUBJECT = "docs(shiploop): retire {folder} spec: its requirement IDs are
 _RETIRE_HEAD, _, _RETIRE_TAIL = _RETIRE_SUBJECT.partition("{folder}")
 
 
+def _retire_subject_for(folder: str) -> str:
+    return _RETIRE_SUBJECT.replace("{folder}", folder)
+
+
 def retire_subject(state: Mapping[str, Any]) -> str:
     """The subject of the commit that retires this run's feature spec."""
-    return _RETIRE_SUBJECT.replace("{folder}", feature_dir(state).rsplit("/", 1)[-1])
+    return _retire_subject_for(feature_dir(state).rsplit("/", 1)[-1])
 
 
 def is_retire_subject(subject: str) -> bool:
@@ -551,6 +555,18 @@ def retire(state: Mapping[str, Any], reaches_branch: Optional[bool]) -> Retired:
     return Retired(done.commit, "")
 
 
+def retired_by(repo: Path, feature: str) -> str:
+    """The short ID of the commit that removed ``<feature>/spec.md`` when it is ShipLoop's retire commit; "" for any other
+    removal (a model's own deletion), for a spec that was never committed, and outside a checkout.
+
+    ``feature`` is the feature directory as ``feature_dir`` gives it.  One read-only log of the path: call it only when
+    the answer is wanted (the progress view asks at the handoff and after it, not on every snapshot).
+    """
+    shown = _git(Path(repo), "log", "-1", "--diff-filter=D", "--format=%h%x00%s", "--", feature + "/spec.md")
+    short, _, subject = (shown.stdout if shown.returncode == 0 else "").partition("\0")
+    return short.strip() if subject.strip() == _retire_subject_for(feature.rsplit("/", 1)[-1]) else ""
+
+
 def in_home(path: str) -> bool:
     """A path ShipLoop commits as knowledge: the home directory or the repository index."""
     return path in KNOWLEDGE or path.startswith(HOME + "/")
@@ -559,4 +575,4 @@ def in_home(path: str) -> bool:
 __all__ = ("CLOSES", "FEATURE_LIST", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS", "Retired", "check", "commit",
            "earlier_features", "feature_dir", "feature_list", "feature_list_notice", "in_home", "is_retire_subject",
            "knowledge_subject", "learnings", "next_close", "recent_commits", "required_earlier", "retire", "retire_subject",
-           "spec_pin", "stage_lines", "write_feature_list")
+           "retired_by", "spec_pin", "stage_lines", "write_feature_list")
