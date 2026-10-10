@@ -6,7 +6,7 @@
 For every saved work repository that holds `docs/shiploop/features/<folder>/spec.md` (the root defaults to
 /Users/dadleet/e2e-runs; it is only read), this script asks the engine's own functions, never a copy of their rules:
 
-  unmerged     `knowledge_home._unmerged`: the requirement IDs the feature spec names that the living spec lacks, or None when it
+  unmerged     `knowledge_home._missing_ids`: the requirement IDs the feature spec names that the living spec lacks, or None when it
                cannot be judged (a living spec that names no ID).
   planned      `knowledge_home._planned_record`: the run's prepare close, found by its exact subject over the whole log, and whether
                the feature spec at that commit equals the final one. A path-limited log of the folder is counted beside it.
@@ -65,7 +65,7 @@ def main() -> int:
         flagged += sum(bool(privacy.sensitive_text(line)) for line in text.splitlines())
         for folder in sorted(path.name for path in features.iterdir() if (path / "spec.md").is_file()):
             relative = "docs/shiploop/features/" + folder
-            row = {"repo": str(work.relative_to(saved)), "folder": folder, "unmerged": knowledge._unmerged(work, relative)}
+            row = {"repo": str(work.relative_to(saved)), "folder": folder, "unmerged": knowledge._missing_ids(work, relative)}
             state = state_for(work, folder)
             if state is None:
                 row["model_named"] = True

@@ -538,20 +538,21 @@ accepted, ShipLoop reads the requirement IDs that file names and checks that eac
 is in `docs/shiploop/spec.md` (a Retired section counts; a range `R-1 .. R-9` is
 read by its two ends; presence only, nothing is merged). If they are and the run's
 commits reach your branch (an in-place run, or a fast-forward return), ShipLoop
-removes the file in a commit of its own, `docs(shiploop): retire <slug> spec: its
-requirement IDs are in the living spec`, and that commit goes back with the
-knowledge follow-up return; its body gives the recover command
+removes the file in a commit of its own, `docs(shiploop): retire <slug> spec: checked
+its requirement IDs against the living spec`, and that commit goes back with the
+knowledge follow-up return; its body counts the IDs checked (a feature spec that
+names none is still retired) and gives the recover command
 (`git show <commit>^:<path>`) and the commit the plan was recorded in. The file
 stays when the return made before the close was a working-tree return (the run's
 commits are not on your branch, so it would be the only copy) or recorded no change
 (the follow-up return that carries the knowledge commits comes after the decision,
 which stays conservative), when the living spec lacks an ID it names or names none
-at all, and when the file has uncommitted changes; ShipLoop says
-which, and never refuses the handoff for the IDs or the route. A removal or a list
-write that cannot be made (a read-only file, a Git index lock, a hook) leaves the
-handoff pending with the file's absolute path first; fix that and submit the same
-result again. The run's plan, test and outcome
-records stay. A replan that starts after a retire finds the planned feature spec
+at all, when the file has uncommitted changes or was never committed, and when it is
+a symbolic link; ShipLoop says which, and never refuses the handoff for the IDs or
+the route. A removal or a list write that cannot be made (a read-only file, a Git
+index lock, a hook) leaves the handoff pending with the file's absolute path first;
+fix that and submit the same result again. The run's plan, test and outcome records
+stay. A replan that starts after a retire finds the planned feature spec
 only in Git history (`git log` on the folder, or the list's recover command); a
 squash merge of the run's branch drops that history, and with it the retired file.
 Link the list (`features/README.md`), never a feature's `spec.md`, from the home

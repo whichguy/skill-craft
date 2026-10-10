@@ -17,8 +17,8 @@ A later run starts from these files.
     docs/shiploop/features/README.md ShipLoop's list of the folders above (FEATURE_LIST)
 
 At handoff the run's feature spec.md is checked against the living spec (every requirement ID it names must be there)
-and, when the run's commits reach the user's branch, removed in a commit of its own (``retire``); Git keeps the last
-version.
+and, when the run's commits reach the user's branch, removed in a commit of its own (``retire``); the last committed
+version stays in Git, in that commit's parent (a squash merge of the branch drops it).
 """
 
 from __future__ import annotations
@@ -291,8 +291,8 @@ knowledge; a hand edit is replaced. One folder is one run.
 At handoff ShipLoop checks that the requirement IDs a run's `spec.md` names
 are in the living spec ([../spec.md](../spec.md)), then removes that
 `spec.md` when the run's commits reach the branch; the run's other files
-stay. Git history on this branch keeps every version; a squash merge drops
-it.
+stay. Git keeps each version committed at a knowledge close; a squash merge
+drops them.
 
 ## Find a run
 
@@ -449,9 +449,10 @@ def spec_pin(state: Mapping[str, Any]) -> Optional[str]:
 
 # --- the handoff retire (owner decision D3, plan 0a) ---------------------------------------------------------------
 
-# The retire commit's subject.  It says what the script checked, not that anything was merged: the script reads requirement
-# IDs and removes a file.  ``{folder}`` is the feature folder's name; the matcher below is cut from the same template.
-_RETIRE_SUBJECT = "docs(shiploop): retire {folder} spec: its requirement IDs are in the living spec"
+# The retire commit's subject.  It says what the script did, not what it found and not that anything was merged: the script
+# reads requirement IDs and removes a file, and a feature spec that names none still gets the subject (the body counts the IDs,
+# which may be none).  ``{folder}`` is the feature folder's name; the matcher below is cut from the same template.
+_RETIRE_SUBJECT = "docs(shiploop): retire {folder} spec: checked its requirement IDs against the living spec"
 _RETIRE_HEAD, _, _RETIRE_TAIL = _RETIRE_SUBJECT.partition("{folder}")
 
 
@@ -472,7 +473,7 @@ def is_retire_subject(subject: str) -> bool:
     return re.fullmatch(r"\S+", subject[len(_RETIRE_HEAD):len(subject) - len(_RETIRE_TAIL)]) is not None
 
 
-def _unmerged(repo: Path, feature: str) -> Optional[List[str]]:
+def _missing_ids(repo: Path, feature: str) -> Optional[List[str]]:
     """The requirement IDs the feature spec names that the living spec does not; None when that cannot be judged.
 
     None: the feature spec is not in the tree, or the living spec names no requirement ID at all (the requirements may
@@ -555,7 +556,7 @@ def retire(state: Mapping[str, Any], reaches_branch: Optional[bool]) -> Retired:
         return Retired("", "")
     if not reaches_branch:
         return Retired("", KEPT_AFTER_ROUTE)
-    missing = _unmerged(repo, feature_dir(state))
+    missing = _missing_ids(repo, feature_dir(state))
     if missing is None:
         return Retired("", "the living spec names no requirement ID, so the IDs cannot be checked")
     if missing:
@@ -565,8 +566,9 @@ def retire(state: Mapping[str, Any], reaches_branch: Optional[bool]) -> Retired:
         # A link's history holds the target path, not the text the message promises in the parent commit, and a failed
         # attempt could not put the link back as a link.
         return Retired("", "it is a symbolic link")
-    if _git(repo, "cat-file", "-e", "HEAD:" + relative).returncode or _git(repo, "diff", "--quiet", "HEAD", "--",
-                                                                           relative).returncode:
+    if _git(repo, "cat-file", "-e", "HEAD:" + relative).returncode:
+        return Retired("", "it was never committed")
+    if _git(repo, "diff", "--quiet", "HEAD", "--", relative).returncode:
         return Retired("", "it has changes that are not committed")
     message = _retire_message(repo, state, _ids(spec.read_text(encoding="utf-8", errors="replace")))
     original, listed = spec.read_bytes(), repo / FEATURE_LIST

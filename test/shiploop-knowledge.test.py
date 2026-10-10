@@ -640,30 +640,30 @@ class RetireRecordTests(HomeCase):
             with self.subTest(name):
                 self.write(self.feature() + "/spec.md", body)
                 self.write("docs/shiploop/spec.md", LIVING)
-                self.assertEqual(knowledge._unmerged(self.repo, self.feature()), [])
+                self.assertEqual(knowledge._missing_ids(self.repo, self.feature()), [])
                 self.write(self.feature() + "/spec.md", body + "\nAlso R-9 and R-12.\n")
-                self.assertEqual(knowledge._unmerged(self.repo, self.feature()), ["R-9", "R-12"])
+                self.assertEqual(knowledge._missing_ids(self.repo, self.feature()), ["R-9", "R-12"])
 
     def test_a_range_is_read_by_its_two_ends_and_an_id_under_a_retired_heading_counts(self) -> None:
         self.write("docs/shiploop/spec.md", LIVING)
         self.write(self.feature() + "/spec.md", "Adds: R-1 .. R-9\n")
-        self.assertEqual(knowledge._unmerged(self.repo, self.feature()), ["R-9"])   # R-2 is inside the range, not read
+        self.assertEqual(knowledge._missing_ids(self.repo, self.feature()), ["R-9"])   # R-2 is inside the range, not read
         self.write(self.feature() + "/spec.md", "Retires: R-4\n")                   # present only under ## Retired
-        self.assertEqual(knowledge._unmerged(self.repo, self.feature()), [])
+        self.assertEqual(knowledge._missing_ids(self.repo, self.feature()), [])
 
     def test_ids_are_whole_tokens_and_are_listed_in_numeric_order(self) -> None:
         self.write("docs/shiploop/spec.md", "- R-1 one\n- R-10 ten\n")
         self.write(self.feature() + "/spec.md", "R-10 R-2 R-100 R-4a R-1\n")
-        self.assertEqual(knowledge._unmerged(self.repo, self.feature()), ["R-2", "R-100"])   # R-4a is not an ID
+        self.assertEqual(knowledge._missing_ids(self.repo, self.feature()), ["R-2", "R-100"])   # R-4a is not an ID
 
     def test_nothing_can_be_judged_without_a_feature_spec_or_when_the_living_spec_names_no_id(self) -> None:
         self.write("docs/shiploop/spec.md", LIVING)
-        self.assertIsNone(knowledge._unmerged(self.repo, self.feature()))                   # no feature spec in the tree
+        self.assertIsNone(knowledge._missing_ids(self.repo, self.feature()))                   # no feature spec in the tree
         self.write(self.feature() + "/spec.md", "Adds: R-1\n")
         self.write("docs/shiploop/spec.md", "# Spec\nThe requirements live in the team document.\n")
-        self.assertIsNone(knowledge._unmerged(self.repo, self.feature()))                   # nothing to compare against
+        self.assertIsNone(knowledge._missing_ids(self.repo, self.feature()))                   # nothing to compare against
         (self.repo / "docs/shiploop/spec.md").unlink()
-        self.assertIsNone(knowledge._unmerged(self.repo, self.feature()))
+        self.assertIsNone(knowledge._missing_ids(self.repo, self.feature()))
 
     # --- the subjects -----------------------------------------------------------------------------------------------------
     def test_the_knowledge_subject_is_built_in_one_place(self) -> None:
@@ -674,14 +674,30 @@ class RetireRecordTests(HomeCase):
         self.planned_home()
         self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "spec"))
 
+    def test_the_retire_subject_claims_the_check_not_a_result_the_check_may_not_have_had_anything_to_show(self) -> None:
+        """Audit (batch 1012): "its requirement IDs are in the living spec" was vacuous, and so misleading, for a feature spec
+        that names none; the subject says what was done, and the body says how many IDs that was."""
+        subject = knowledge.retire_subject(self.state)
+        self.assertNotIn("are in the living spec", subject)
+        self.assertIn("checked its requirement IDs against the living spec", subject)
+        self.write("docs/shiploop/spec.md", LIVING)
+        self.write(self.feature() + "/spec.md", "# Feature\nNothing changes in the requirements.\n")
+        self.write(self.feature() + "/plan.md", "# Plan\n")
+        self.assertTrue(knowledge.commit(self.state, "spec").commit)
+        done = knowledge.retire(self.state, True)
+        self.assertTrue(done.commit)                                                         # none named: still retired
+        message = git(self.repo, "log", "-1", "--format=%B")
+        self.assertEqual(message.splitlines()[0], subject)
+        self.assertIn("Requirement IDs checked in docs/shiploop/spec.md: none (the feature spec names none).", message)
+
     def test_the_retire_subject_says_what_was_checked_and_one_matcher_reads_it(self) -> None:
         subject = knowledge.retire_subject(self.state)
-        self.assertEqual(subject, "docs(shiploop): retire " + SLUG + " spec: its requirement IDs are in the living spec")
+        self.assertEqual(subject, "docs(shiploop): retire " + SLUG + " spec: checked its requirement IDs against the living spec")
         self.assertTrue(knowledge.is_retire_subject(subject))
         self.assertTrue(knowledge.is_retire_subject(knowledge.retire_subject(dict(self.state, prompt="Another request", run_id="nav-1"))))
         for other in (knowledge.knowledge_subject(self.state, "prepare"), "",
-                      "docs(shiploop): retire  spec: its requirement IDs are in the living spec",          # no folder
-                      "docs(shiploop): retire two words spec: its requirement IDs are in the living spec",   # not a folder
+                      "docs(shiploop): retire  spec: checked its requirement IDs against the living spec",          # no folder
+                      "docs(shiploop): retire two words spec: checked its requirement IDs against the living spec",   # not a folder
                       subject + ".", "x " + subject, "docs(shiploop): retire " + SLUG + " spec"):
             with self.subTest(other=other):
                 self.assertFalse(knowledge.is_retire_subject(other))
@@ -831,7 +847,8 @@ class FeatureListTests(HomeCase):
     def test_the_header_states_the_retire_only_as_conditional_and_names_the_squash_limit(self) -> None:
         header = " ".join(self.header().split())
         self.assertIn("removes that `spec.md` when the run's commits reach the branch", header)
-        self.assertIn("Git history on this branch keeps every version; a squash merge drops it.", header)
+        self.assertIn("Git keeps each version committed at a knowledge close; a squash merge drops them.", header)
+        self.assertNotIn("keeps every version", header)                                     # only committed versions reach Git
         self.assertNotIn("then removes that `spec.md`; the run's other files stay.", header)   # never unconditionally
 
     def test_the_headers_commands_run_literally_on_a_retired_fixture(self) -> None:
@@ -1074,7 +1091,7 @@ class RetireTests(HomeCase):
         self.assertTrue((self.repo / self.feature() / "spec.md").is_file())
         other = dict(self.state, prompt="Another request", run_id="nav-0000000000654321")
         self.write(knowledge.feature_dir(other) + "/spec.md", STUB)                           # never committed
-        self.assertEqual(knowledge.retire(other, True).kept, "it has changes that are not committed")
+        self.assertEqual(knowledge.retire(other, True).kept, "it was never committed")
         self.assertTrue((self.repo / knowledge.feature_dir(other) / "spec.md").is_file())
 
     def test_a_failed_commit_puts_the_file_and_the_list_back_and_a_retry_works(self) -> None:

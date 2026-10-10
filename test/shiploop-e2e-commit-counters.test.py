@@ -546,9 +546,9 @@ class ClassifyTest(GitCase):
 
     def test_a_model_commit_with_a_lookalike_retire_subject_is_not_a_script_commit(self):
         before, _ = self.counted()
-        for number, subject in enumerate(("docs(shiploop): retire two words spec: its requirement IDs are in the living spec",
+        for number, subject in enumerate(("docs(shiploop): retire two words spec: checked its requirement IDs against the living spec",
                                           "docs(shiploop): retire x spec: it is gone",
-                                          "docs: retire x spec: its requirement IDs are in the living spec")):
+                                          "docs: retire x spec: checked its requirement IDs against the living spec")):
             self.by_the_model(f"look{number}.md", subject + "\n")
         after, _ = self.counted()
         self.assertEqual((after["script"]["n"], after["other"]["n"]), (before["script"]["n"], before["other"]["n"] + 3))
@@ -654,7 +654,7 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
 
     def test_the_retire_subject_is_matched_by_knowledge_homes_own_matcher_not_by_a_copy_of_its_wording(self):
         counters_source = (ROOT / "test" / "shiploop_e2e" / "counters.py").read_text()
-        self.assertNotIn("its requirement IDs are in the living spec", counters_source)
+        self.assertNotIn("checked its requirement IDs against the living spec", counters_source)
         self.assertNotIn("retire", counters.KNOWLEDGE_SUBJECT.pattern)
         state = {"repo": ".", "prompt": "Add a thing", "run_id": "nav-abcdef123456"}
         self.assertTrue(knowledge_home.is_retire_subject(knowledge_home.retire_subject(state)))

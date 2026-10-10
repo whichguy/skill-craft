@@ -268,7 +268,7 @@ class RetireThroughTheCli(rr.ReturnReviewCase):
         return self.cli("complete", "--run-dir", str(run), "--action", action["id"], "--result", str(result), code=code)
 
     def retire_commits(self, worktree: Path) -> list[str]:
-        return self.git("log", "--format=%H", "--grep=its requirement IDs are in the living spec", cwd=worktree).stdout.split()
+        return self.git("log", "--format=%H", "--grep=checked its requirement IDs against the living spec", cwd=worktree).stdout.split()
 
     def test_a_fast_forward_return_retires_the_feature_spec_and_returns_the_removal(self) -> None:
         root, worktree, run = self.candidate("fast forward retire")
