@@ -55,6 +55,21 @@ def script(path: Path, body: str) -> Path:
     return path
 
 
+_STRAY = ROOT / ".shiploop"
+
+
+def setUpModule():
+    # .shiploop/ is gitignored, so git status never shows a leak into the checkout; CI's guard (test/ci_policy.py guard) lists
+    # ignored files too and refused a push on exactly this (a relative path in the blocked-host wrapper, 2026-10-09).
+    global _STRAY_BEFORE
+    _STRAY_BEFORE = _STRAY.exists()
+
+
+def tearDownModule():
+    if not _STRAY_BEFORE and _STRAY.exists():
+        raise AssertionError(f"this suite left {_STRAY} in the checkout it runs from: {sorted(p.name for p in _STRAY.iterdir())}")
+
+
 class CliVersionTest(unittest.TestCase):
     """Host.cli_version: (the first stdout line of `<cli> --version`, None) or (None, why), and never a Claude probe."""
 
@@ -749,6 +764,12 @@ class ComparisonThroughMainTest(main_tests().PrintedCase):
         script(wrapper, f"""#!/bin/sh
 "{self.fakes['grok']}" "$@"
 rc=$?
+# Only the session itself carries --cwd. The harness also calls this binary before it (plugin install, plugin list, --version) from the
+# checkout the suite runs from, and a relative write there left .shiploop/state.md in the repository root, which CI's guard refused.
+work=""; prev=""
+for arg in "$@"; do if [ "$prev" = "--cwd" ]; then work="$arg"; fi; prev="$arg"; done
+[ -n "$work" ] || exit $rc
+cd "$work" || exit 1
 {sys.executable} - <<'PY'
 import sys
 from pathlib import Path
