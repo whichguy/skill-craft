@@ -27,6 +27,8 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);padding:
 label{font-size:13px;color:var(--muted)}
 select,input[type=text],textarea{font:inherit;font-size:13.5px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);max-width:100%;box-sizing:border-box}
 textarea{width:100%;resize:vertical}
+a.lk{color:var(--accent);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+a.lk:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
 button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .flowbox{overflow-x:auto;padding-bottom:4px}
 .flow{display:grid;grid-template-columns:92px repeat(8,minmax(104px,1fr));gap:3px;min-width:900px;align-items:stretch}
@@ -44,6 +46,7 @@ button.chev{cursor:pointer}
 .st-blocked{background:var(--broken-bg);color:var(--broken)}
 .st-running{background:var(--bent-bg);color:var(--bent)}
 .st-none{background:var(--none-bg);color:var(--muted)}
+.st-stopped{background:repeating-linear-gradient(135deg,var(--bent-bg) 0 7px,var(--none-bg) 7px 14px);color:var(--bent)}
 .cell{min-height:40px;padding:4px 2px;font-size:11.5px;color:var(--muted)}
 .divs{display:flex;flex-wrap:wrap;gap:4px;align-items:flex-start;align-content:flex-start}
 .dot{font:inherit;font-family:var(--mono);font-size:11.5px;min-width:26px;height:26px;border-radius:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
@@ -187,6 +190,30 @@ label.opt .t{min-width:0}
 .kpi.wide{grid-column:1/-1}
 .kpi .kn{font-size:12px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
 .seqcard{margin-top:12px}
+.runrecord{font-family:var(--mono);font-size:12px;color:var(--muted);margin:-4px 0 10px;overflow-wrap:anywhere}
+.envcard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
+.endcard{margin-top:12px;border-left:4px solid var(--muted)}
+.endcard.stopped{border-left-color:var(--bent)}
+.endcard.blocked{border-left-color:var(--broken)}
+.endcard .facts{grid-template-columns:minmax(120px,210px) minmax(0,1fr)}
+.endcard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
+.delcard{margin-top:12px}
+.delcard .facts{grid-template-columns:minmax(120px,210px) minmax(0,1fr)}
+.delcard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
+.fidcard{margin-top:12px}
+.fidcard .facts{grid-template-columns:minmax(120px,210px) minmax(0,1fr)}
+.fidcard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
+.fe-bar{height:18px;margin:8px 0 4px}
+.fe-bar div{line-height:18px;padding:0}
+.fe-script{background:var(--accent)}
+.fe-loop{background:var(--accent-bg);box-shadow:inset 0 0 0 1px var(--accent)}
+.fe-file{background:color-mix(in srgb,var(--muted) 38%,var(--surface));box-shadow:inset 0 0 0 1px var(--muted)}
+.fe-note{background:var(--none-bg);box-shadow:inset 0 0 0 1px var(--muted)}
+.fe-sentence{background:repeating-linear-gradient(135deg,var(--none-bg) 0 4px,var(--line) 4px 8px)}
+.fe-skipped{background:repeating-linear-gradient(45deg,transparent 0 2px,var(--muted) 2px 3px);border:1px dashed var(--muted)}
+.fe-unclassified{background:transparent;border:1.5px dotted var(--muted)}
+.felegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-bottom:6px}
+.felegend span{display:inline-flex;gap:5px;align-items:center}
 .seqscroll{overflow-x:auto;padding-bottom:6px;margin-top:6px}
 .sq{display:block;height:auto;max-width:none}
 .sq text{font-family:var(--sans);font-size:11px;fill:var(--muted)}
@@ -203,6 +230,8 @@ label.opt .t{min-width:0}
 .sq-col.skip{fill:url(#sq-hatch);stroke:var(--muted);stroke-dasharray:2 2}
 .sq-col.seed{fill:url(#sq-cross);stroke:var(--accent)}
 .sq-col.na{fill:none;stroke:var(--muted);stroke-width:1.5}
+.sq-col.tail{fill:url(#sq-tail);stroke:var(--bent);stroke-width:1.5}
+.sq-plt{stroke:var(--bent);stroke-width:1.5;fill:none}
 .sq-pl{stroke:var(--muted);stroke-width:1;fill:none}
 .sq-bandbg{fill:var(--none-bg)}
 .sq-100{stroke:var(--muted);stroke-dasharray:3 3;opacity:.7}
@@ -216,7 +245,7 @@ label.opt .t{min-width:0}
 .sqleg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:8px}
 .sqleg span{display:inline-flex;gap:5px;align-items:center}
 .sqleg #sqlegband{display:contents}
-.sqleg #sqlegband[hidden]{display:none}
+.sqleg #sqlegband[hidden],.sqleg span[hidden]{display:none}
 .sw{display:inline-block;width:12px;height:12px;border-radius:2px;flex:none}
 .sw.s-done{background:var(--holds)}
 .sw.s-rev{background:var(--bent)}
@@ -224,10 +253,13 @@ label.opt .t{min-width:0}
 .sw.s-skip{background:repeating-linear-gradient(45deg,transparent 0 2px,var(--muted) 2px 3px);border:1px dashed var(--muted)}
 .sw.s-seed{background:repeating-linear-gradient(45deg,var(--accent) 0 1px,transparent 1px 3px),repeating-linear-gradient(-45deg,var(--accent) 0 1px,transparent 1px 3px);border:1px solid var(--accent)}
 .sw.s-na{border:1.5px solid var(--muted)}
+.sw.s-tail{background:repeating-linear-gradient(-45deg,var(--bent) 0 2px,transparent 2px 4px);border:1.5px solid var(--bent)}
 .sw.s-ctx{background:var(--accent);opacity:.65}
 .sw.s-warn{background:var(--bent)}
 .sqnum{font-weight:600;color:var(--accent)}
 .plancard{margin-top:12px}
+.freshcard,.qualitycard{margin-top:12px}
+.freshcard .facts dd,.qualitycard .facts dd{white-space:pre-line;overflow-wrap:anywhere}
 .pl-line{margin:3px 0 0;font-size:13px}
 .pl-item{border-top:1px solid var(--line);margin-top:8px;padding:6px 6px 4px;border-radius:6px}
 .pl-item.sel{background:var(--accent-bg)}
@@ -254,8 +286,16 @@ label.opt .t{min-width:0}
 .pkt-head{font-family:var(--mono);font-size:12px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code-bg);padding:8px 10px;border-radius:6px;margin:6px 0 0}
 .sclist{margin-top:12px}
 .sc-list{display:grid;gap:4px;margin-top:8px}
-.sc-row{font:inherit;text-align:left;display:flex;flex-direction:column;gap:2px;padding:8px 10px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer;min-width:0}
+.sc-row{position:relative;font:inherit;text-align:left;display:flex;flex-direction:column;gap:2px;padding:8px 38px 8px 10px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer;min-width:0}
 .sc-row.sel{border-color:var(--accent);background:var(--accent-bg)}
+.sc-chev{position:absolute;right:12px;top:50%;width:14px;height:14px;margin-top:-7px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.sc-chev::before{content:"";width:8px;height:8px;margin-top:-3px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .15s}  /* a chevron pointing down: it can be opened */
+.sc-row:hover .sc-chev{color:var(--accent)}
+.sc-row[aria-expanded="true"] .sc-chev{color:var(--accent)}
+.sc-row[aria-expanded="true"] .sc-chev::before{transform:rotate(-135deg);margin-top:3px}  /* pointing up: it is open and can be closed */
+.sc-open{margin:2px 0 8px 10px;padding-left:8px;border-left:3px solid var(--accent);min-width:0}
+.sc-open .sqd{margin:0}
+@media (prefers-reduced-motion:reduce){.sc-chev::before{transition:none}}
 .sc-top{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .sc-raw{display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:400;color:var(--muted);margin-left:8px;white-space:nowrap}
 .sc-name .sc-raw{white-space:normal}
@@ -266,6 +306,7 @@ label.opt .t{min-width:0}
 .sqd .row{margin:10px 0 0}
 .sqd .btn{min-height:44px}
 .sqd .facts{grid-template-columns:minmax(0,34%) minmax(0,1fr);gap:4px 10px}
+.sqd .facts dd{white-space:pre-line}
 .sqd .chips button.chip{text-align:left;border-radius:12px}
 .chev span.fc{font-size:11px;font-family:var(--mono);margin-top:2px}
 table.vt,table.cmp{border-collapse:collapse;font-size:12.5px;width:100%}
@@ -277,10 +318,12 @@ table.cmp tbody th{color:var(--muted);white-space:nowrap}
 table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
 .stepnav{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
 .stickybar{display:none}
-@media (max-width:640px){.form{grid-template-columns:1fr}.segrow{grid-template-columns:minmax(0,1fr) 44px}.segrow select{grid-column:1/-1}.facts{grid-template-columns:1fr}
+@media (max-width:640px){.form{grid-template-columns:1fr}.segrow{grid-template-columns:minmax(0,1fr) 44px}.segrow select{grid-column:1/-1}.facts,.endcard .facts{grid-template-columns:1fr}
 .steps{gap:4px}.steps button{font-size:12px;padding:6px 6px}.steps button small{font-size:10.5px}
 .stickybar{display:flex;position:sticky;bottom:0;z-index:5;justify-content:space-between;align-items:center;gap:10px;margin:14px -16px -56px;padding:10px 16px;background:var(--surface);border-top:1px solid var(--line)}
 .stickybar[hidden]{display:none}}
+@media (max-width:640px){.fidcard .facts{grid-template-columns:1fr}}
+@media (max-width:640px){.delcard .facts{grid-template-columns:1fr}}
 </style>
 
 <div class="wrap">
@@ -292,7 +335,9 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <section class="step" id="step-1" data-step="1" aria-labelledby="h-step-1">
 <h2 id="h-step-1">1. What happened</h2>
 <p class="sub">Pick a run. Six numbers say how big it was. The picture shows every stage visit in order, how long each took, where Improve worked and, where the host measured it, how full the model's context was. Tap a column, or a row of the stage cards, for that visit's card: what the stage was for, what it was sent and what it wrote back. Below, the path every run should take and the Backchain time spent on it.</p>
-<div class="row"><label for="runsel">Run</label><select id="runsel"></select><span class="snap" id="runfacts"></span><span class="chip bent" id="runmode" hidden></span></div>
+<div class="row"><label for="runsel">Run</label><select id="runsel"></select><span class="snap" id="runfacts"></span><span class="chip bent" id="runmode" hidden></span><span class="chip acc" id="runhosts" hidden></span><span class="chip muted" id="runoverlap" hidden></span></div>
+<div class="runrecord" id="runrecord" hidden></div>
+<div class="card endcard" id="endcard" hidden></div>
 <div id="arc" class="arc"></div>
 <div class="kpis" id="kpis" role="group" aria-label="Six numbers for this run"></div>
 <div class="card plancard" id="plancard" hidden></div>
@@ -301,16 +346,20 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <p class="sub" id="seqcap" style="margin:2px 0 0"></p>
 <div class="seqscroll" id="seqscroll"></div>
 <p class="msg" id="seqhint" hidden>The picture is wider than the screen: scroll it sideways inside this box.</p>
-<div class="sqleg" id="sqleg"><span><i class="sw s-done"></i>done</span><span><i class="sw s-rev"></i>R revise, P replan</span><span><i class="sw s-blk"></i>B blocked</span><span><i class="sw s-skip"></i>skipped, no packet issued (xN: N in a row)</span><span><i class="sw s-seed"></i>S seeded by the harness, not run</span><span><i class="sw s-na"></i>n/a, no time recorded</span><span><b class="sqnum">3</b>Improve passes</span><span id="sqlegband" hidden><span><i class="sw s-ctx"></i>context peak, share of the window</span><span><i class="sw s-warn"></i>! 90% or more</span><span><b>&#9650;</b>a compaction, a number when more than three</span></span></div>
+<div class="sqleg" id="sqleg"><span id="sql-done"><i class="sw s-done"></i>done</span><span id="sql-rev"><i class="sw s-rev"></i>R revise, P replan</span><span id="sql-blk"><i class="sw s-blk"></i>B blocked</span><span id="sql-skip"><i class="sw s-skip"></i>skipped, no packet issued (xN: N in a row)</span><span id="sql-seed"><i class="sw s-seed"></i>S seeded by the harness, not run</span><span id="sql-na"><i class="sw s-na"></i>n/a, no time recorded</span><span id="sql-tail"><i class="sw s-tail"></i>U unaccepted: the stage the run ended in</span><span id="sql-imp"><b class="sqnum">3</b>Improve passes</span><span id="sqlegband" hidden><span id="sql-ctx"><i class="sw s-ctx"></i>context peak, share of the window</span><span id="sql-warn"><i class="sw s-warn"></i>! 90% or more</span><span id="sql-tri"><b>&#9650;</b>a compaction, a number when more than three</span></span></div>
 <p class="legend" id="seqnote"></p>
 </div>
 <div id="seqdetail" aria-live="polite"></div>
 <div class="card sclist" id="sclist" hidden></div>
 <details id="seqtabbox" hidden><summary id="seqtabsum"></summary><div class="rtabbox" id="seqtable"></div></details>
+<div class="card delcard" id="delcard" hidden></div>
+<div class="card fidcard" id="fidcard" hidden></div>
+<div class="card freshcard" id="freshcard" hidden></div>
+<div class="card qualitycard" id="qualitycard" hidden></div>
 <h3 style="margin-top:22px">The path every run takes</h3>
 <p class="sub">Expected, observed, Backchain time and numbered findings for each stage. Select a stage to read what we expect of it.</p>
 <div class="flowbox"><div class="flow" id="flow"></div></div>
-<div class="legend">Markers: red open, green fixed, grey accepted as designed, amber we changed the expectation. Chevrons: green accepted, red stopped, amber in progress, grey not reached.</div>
+<div class="legend">Markers: red open, green fixed, grey accepted as designed, amber we changed the expectation. Chevrons: green accepted, red blocked here, hatched amber stopped by the harness, amber in progress, grey not reached.</div>
 <div id="phasepanel" class="stack" style="margin-top:12px" aria-live="polite"></div>
 <h3 style="margin-top:22px">Run detail</h3>
 <p class="sub">Facts, planning documents and failures for the chosen run. Compare two runs to see the same six numbers side by side.</p>
@@ -403,11 +452,11 @@ function planningReview(run){var v=run&&run.planningReview;return typeof v==="st
 var PLANNING_REVIEW_STAGES=["spec","test-strategy","plan","step-plan","test-spec"];
 /* True only for a run that recorded none and a stage in that list; stage, an unknown value and "not recorded" claim nothing. */
 function improveByDesign(run,stage){return planningReview(run)==="none"&&PLANNING_REVIEW_STAGES.indexOf(stage)>=0;}
-/* The run header line; a counter reads "13 refusals" or "refusals not measured", never "undefined refusals". A run that
+/* The run header line; a counter reads "13 refusals", "1 refusal" or "refusals not measured", never "undefined refusals" (glue is a mass noun: "1 glue"). A run that
    recorded its planning_review option says which; a run that did not reads as it always did. */
 function headerFacts(run){
-  function phrase(name){var t=countText(run,name);return t==="not measured"?name+" not measured":t+" "+name;}
-  var mode=planningReview(run),parts=[run.release,run.time,phrase("refusals"),phrase("glue"),run.imp];
+  function phrase(name,one){var t=countText(run,name);return t==="not measured"?name+" not measured":(one?plural(+t,one,name):t+" "+name);}
+  var mode=planningReview(run),parts=[run.release,run.time];
   if(mode)parts.push("planning review: "+mode);
   return parts.join(" | ");
 }
@@ -427,7 +476,12 @@ function streakNote(d){var n=streakTarget(d);return n===0?"no trivial-streak req
 /* A percentage to one decimal ("97.5%", "27%"): the same text on a card, in a facts row and in a column's detail. */
 function pctText(p){return (Math.round(p*10)/10)+"%";}
 /* A byte size the way the page prints one. */
-function kbText(n){return n>=1024?(Math.round(n/102.4)/10)+" KB":n+" B";}
+/* Bytes as B, KB or MB (one decimal): a size that reads 1000 KB or more is printed in MB, "1.7 MB", never "1760.4 KB". */
+function kbText(n){
+  if(n<1024)return n+" B";
+  var kb=Math.round(n/102.4)/10;
+  return kb>=1000?(Math.round(n/104857.6)/10)+" MB":kb+" KB";
+}
 /* The main thread's context peak, as a share of the window when both were measured. */
 function contextText(run){
   if(!run||!isCount(run.contextPeak))return measuredText(run,"contextPeak");
@@ -441,11 +495,10 @@ function factRows(run){
   var rows=[];
   [["Host","host"],["Model","model"],["Effort","effort"],["Case","case"],["Status","status"]].forEach(function(p){
     var v=run&&run[p[1]];if(v!==undefined&&v!==null&&v!=="")rows.push([p[0],String(v)]);});
-  if(run&&isCount(run.wallMin))rows.push(["Elapsed (accept to accept)",run.wallMin+" min"]);
   [["Started","startedAt"],["Ended","endedAt"]].forEach(function(p){var v=run&&run[p[1]];if(v)rows.push([p[0],String(v)]);});
   rows.push(["Model calls (main thread)",measuredText(run,"calls")]);
-  rows.push(["Context peak (main thread)",contextText(run)]);
-  rows.push(["Compactions",measuredText(run,"compactions")]);
+  if(run&&(isCount(run.glue)||run.toolUse))rows.push(["Model glue",glueText(run)]);
+  if(run&&(run.planning||reasonFor(run,"planning")))rows.push(["Planning window",planningText(run)]);
   return rows;
 }
 /* Improve's work on a run, as far as it was measured: the run's totals, and the visits that carry an `improve`
@@ -551,14 +604,17 @@ function groupOptions(options){
     return {kind:k,options:list.map(function(o,i){return {o:o,i:i};}).sort(function(a,b){return rankOf(EFFORT_ORDER,a.o.effort)-rankOf(EFFORT_ORDER,b.o.effort)||a.i-b.i;}).map(function(x){return x.o;})};
   }).filter(function(g){return g.options.length;});
 }
-function plural(n,w){return n+" "+w+(n===1?"":(/s$/.test(w)?"es":"s"));}
+/* A count with its noun in the right number: "1 refusal", "13 refusals", "1 pass", "2 passes". The one helper every counted noun the
+   page prints goes through; an irregular plural is the third argument ("1 child", "2 children"). A mass noun such as glue is not counted
+   through it. */
+function plural(n,w,pl){return n+" "+(n===1?w:(pl||w+(/s$/.test(w)?"es":"s")));}
 /* Run facts for the prompt: measured values only; a counter the run does not carry is named "not measured", never 0. */
 function runFactsLine(run){
   var have=[],miss=[];
-  if(run&&run.stages&&run.stages.length)have.push(run.stages.length+" visits");
+  if(run&&run.stages&&run.stages.length)have.push(plural(run.stages.length,"visit"));
   if(run&&isCount(run.wallMin))have.push(run.wallMin+" min elapsed");
-  [["improvePasses","Improve passes"],["refusals","refusals"],["glue","glue"]].forEach(function(p){
-    if(run&&isCount(run[p[0]]))have.push(run[p[0]]+" "+p[1]);else miss.push(p[1]+" not measured");});
+  [["improvePasses","Improve pass","Improve passes"],["refusals","refusal","refusals"],["glue","glue","glue"]].forEach(function(p){
+    if(run&&isCount(run[p[0]]))have.push(plural(run[p[0]],p[1],p[2]));else miss.push(p[2]+" not measured");});
   return "Run facts: "+have.join(", ")+(have.length&&miss.length?"; ":"")+miss.join(", ")+".";
 }
 /* One prompt for Claude Code from what the viewer ticked. state: {run, runs, findings, options, expectations (key to
@@ -636,6 +692,59 @@ function buildPrompt(state){
   return out.join("\n");
 }
 
+/* ---- references in review text: the pure scan; the page turns each part into a text node or an <a> (linkify, never innerHTML) ----
+   Review text is Claude's reading of the runs in the skill-craft repository's own terms, so a repo path, a commit, a spec clause
+   or a finding/option id in it is a reference. Run content (stage summaries, packets, failures) names files on the machine that
+   ran the case: it is never scanned. Order of precedence at one position: URL, id, path, commit, clause. ctx: {repoUrl, obs, acts}
+   (obs and acts: objects keyed by the loaded finding and option ids). Returns parts: {text}, {text, href} (an https link) or
+   {text, jump: {kind: "obs"|"act", id}}. A repo link needs a repoUrl that is an https:// URL; with none the reference stays text. */
+var LINK_RE_SRC="(https?:\\/\\/[^\\s<>\"'`]*[^\\s<>\"'`.,;:!?)\\]}])"+
+  "|(?<![\\w\\/.])([oa]\\d{2,3})(?!\\w|\\.\\w)"+
+  "|(?<![\\w\\/.~-])((?:docs|test|skills|agents|changes|catalog|scripts)\\/(?:[\\w.@+~-]+(?:\\/[\\w.@+~-]+)*\\/?)?)"+
+  "|(?<![\\w\\/.-])([0-9a-f]{7,40})(?![\\w-]|\\.\\w|\\/)"+
+  "|(?<![\\w-])(S-[1-9]\\d*)(?!\\w)";
+var SPEC_PATH="test/shiploop_e2e/SPEC.md";
+function repoBase(u){var v=typeof u==="string"?u.trim():"";return /^https:\/\/[^\s"'<>`]+$/.test(v)?v.replace(/\/+$/,""):"";}
+/* A commit is named: a digit and a letter among 7 to 40 lowercase hex characters, or any hex word that follows the word commit
+   (or commits, in a list of them). Digits alone are a number, never a commit. */
+function isCommitWord(sha,before){
+  if(/^[0-9]+$/.test(sha))return false;
+  if(/[0-9]/.test(sha)&&/[a-f]/.test(sha))return true;
+  return /\bcommits?\b[\s:#(\[]*(?:[0-9a-f]{7,40}(?:[\s,;&\/]|\band\b|\bor\b)+)*$/i.test(before.slice(-400));
+}
+function linkParts(text,ctx){
+  var s=String(text==null?"":text),c=ctx||{},base=repoBase(c.repoUrl),obs=c.obs||{},acts=c.acts||{},re=new RegExp(LINK_RE_SRC,"g"),out=[],at=0,m;
+  function put(t,extra){
+    if(!t)return;
+    var last=out[out.length-1];
+    if(!extra&&last&&!last.href&&!last.jump)last.text+=t;else out.push(Object.assign({text:t},extra||{}));
+  }
+  while((m=re.exec(s))!==null){
+    var txt=m[0],extra=null;
+    if(m[1]){
+      if(/^https:/.test(txt))extra={href:txt};  /* an http: URL is consumed whole and stays text, so no path inside it is linked */
+    }else if(m[2]){
+      if(Object.prototype.hasOwnProperty.call(obs,txt))extra={jump:{kind:"obs",id:txt}};
+      else if(Object.prototype.hasOwnProperty.call(acts,txt))extra={jump:{kind:"act",id:txt}};
+    }else if(m[3]){
+      txt=m[3].replace(/[.\-~+@]+$/,"");
+      re.lastIndex=m.index+txt.length;
+      var next=s.charAt(m.index+txt.length),segs=txt.replace(/\/$/,"").split("/"),folder=/\/$/.test(txt);
+      if(base&&"<*{$[?%".indexOf(next||" ")<0&&txt.indexOf("/")>0&&(folder||segs.length>2||segs[0]==="skills"||/\./.test(segs[segs.length-1])))
+        extra={href:base+(folder?"/tree/main/":"/blob/main/")+txt};
+    }else if(m[4]){
+      if(base&&isCommitWord(txt,s.slice(0,m.index)))extra={href:base+"/commit/"+txt};
+    }else if(m[5]){
+      if(base)extra={href:base+"/blob/main/"+SPEC_PATH};
+    }
+    put(s.slice(at,m.index));
+    put(txt,extra);
+    at=m.index+txt.length;
+  }
+  put(s.slice(at));
+  return out;
+}
+
 /* ---- pictures: markup built only from fixed class names, numbers and escaped text ---- */
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
 /* The engine's phases and the stages each one serves, in flow order (the exporter's phase table; a test keeps them equal).
@@ -676,7 +785,7 @@ function whereStrip(run,finding){
     if(skip)cells.push('<path class="ws-hatch" d="M'+x+' '+(top+ch)+'L'+(x+cw)+' '+top+'M'+x+' '+(top+ch/2)+'L'+(x+cw/2)+' '+top+'M'+(x+cw/2)+' '+(top+ch)+'L'+(x+cw)+' '+(top+ch/2)+'"/>');
     if(out!=="done")marks.push('<text class="ws-mark" x="'+(x+cw/2)+'" y="'+(top+ch+13)+'" text-anchor="middle">'+esc(out.charAt(0).toUpperCase())+'</text>');
   });
-  var label=hits.length?title+": "+hits.length+" of "+n+" visits":title+": no visit in this run";
+  var label=hits.length?title+": "+hits.length+" of "+plural(n,"visit"):title+": no visit in this run";
   var shape=hits.length?'<path class="ws-br" d="M'+(pad+hits[0]*pitch)+' '+(top-3)+'L'+(pad+hits[0]*pitch)+' '+(top-7)+'L'+(pad+hits[hits.length-1]*pitch+cw)+' '+(top-7)+'L'+(pad+hits[hits.length-1]*pitch+cw)+' '+(top-3)+'"/>':"";
   var x0=pad+(hits.length?hits[0]:0)*pitch,x1=pad+(hits.length?hits[hits.length-1]:0)*pitch+cw;
   var lw=label.length*6.4,atEnd=x0+lw>W-pad;  /* a label that would run past the strip hangs from the right end of the bracket */
@@ -708,6 +817,383 @@ function figureSvg(fig){
   return '<svg class="fg" viewBox="0 0 '+W+' '+(16+items.length*rowH)+'" role="img" aria-label="'+esc("Expected versus seen. "+alt.join("; "))+'">'+parts.join("")+'</svg>';
 }
 
+/* ---- how the run ended, which hosts wrote it, and the stage it never accepted (R22a) ---- */
+var WHERE_TEXT={worktree:"in the worktree",work:"in the work folder",other:"elsewhere"};
+/* One listener as text: its command, its ports, where it ran and, for one the harness ended, the signal. */
+function listenerText(it){
+  var ports=Array.isArray(it&&it.ports)&&it.ports.length?" :"+it.ports.join(", :"):"";
+  return String(it&&it.command||"a process")+ports+" ("+(WHERE_TEXT[it&&it.where]||"elsewhere")+(it&&it.endedBy?", ended by "+it.endedBy:"")+")";
+}
+/* The run's current ending as a card: {kind: stopped|blocked|note, title, rows: [[label, text]]}, or null when the run has
+   nothing to say (a run that finished in one session, with no listener left behind). Every row names only what the export
+   holds; a figure the export lacks is not printed, and a minute it could not time says "minutes not measured". */
+function endingModel(run){
+  if(!run)return null;
+  var e=run.ending&&typeof run.ending==="object"?run.ending:null,b=run.blocked&&typeof run.blocked==="object"?run.blocked:null;
+  var lb=run.leftBehind&&typeof run.leftBehind==="object"?run.leftBehind:null,v=run.verdicts&&typeof run.verdicts==="object"?run.verdicts:{};
+  var rows=[],kind=run.status==="stopped"?"stopped":(run.status==="blocked"||b)?"blocked":"note";
+  if(run.status==="stopped")rows.push(["Stopped by",e&&e.by?e.by:"the harness's record names no cause"]);
+  if(e&&typeof e.stage==="string"&&e.stage){
+    var spent=isCount(e.unacceptedMin)?e.unacceptedMin+" min":"",amount=[spent,isCount(e.unacceptedTurns)?plural(e.unacceptedTurns,"turn"):""].filter(Boolean).join(" and ");
+    rows.push(["Never accepted",stageLabel(e.stage)+": "+(amount?amount+" of work":"work")+" after the last accept"+(spent?"":" (minutes not measured)")+", none of it in a visit above (the hatched column at the end of the picture)"]);
+  }
+  if(b){
+    if(b.by||b.headline)rows.push(["Blocked by",[b.by,b.headline].filter(Boolean).join(": ")]);
+    if(b.reason)rows.push(["Reason",b.reason]);
+    if(b.question)rows.push(["Question put to a person",b.question]);
+    if(Array.isArray(b.options)&&b.options.length)rows.push(["Options",b.options.map(function(o,i){return (i+1)+". "+o;}).join("\n")]);
+    if(b.noDefault)rows.push(["Why no default was taken",b.noDefault]);
+  }
+  var earlier=e&&Array.isArray(e.earlier)?e.earlier:[];
+  if(e&&isCount(e.resumes)&&e.resumes>=1)rows.push(["Sessions",plural(isCount(e.sessions)?e.sessions:e.resumes+1,"session")+", "+plural(e.resumes,"resume")+" in the last invocation"]);
+  earlier.forEach(function(x){rows.push(["Earlier invocation",(x.by||"ended")+(x.stage?", "+stageLabel(x.stage)+" left unaccepted":"")]);});
+  if(lb){
+    if(lb.observed===false)rows.push(["Listeners","not observed"+(lb.reason?": "+lb.reason:"")]);
+    else{
+      if(Array.isArray(lb.reaped)&&lb.reaped.length)rows.push(["Listeners the harness ended",lb.reaped.map(listenerText).join("; ")]);
+      if(Array.isArray(lb.survived)&&lb.survived.length)rows.push(["Listeners still running",lb.survived.map(listenerText).join("; ")]);
+    }
+  }
+  var atStop=atStopRow(run),wt=atStop?null:worktreeOf(v.worktreeChecks);  /* the same checks in the same worktree: shown once, as productAtStop when the run has it */
+  if(atStop)rows.push(atStop);
+  if(wt){
+    var of=wt.passed+"/"+wt.total;
+    rows.push(["Product that was never returned",v.checks===false&&wt.all?
+      "passes "+of+" checks in the worktree; the copy in the work folder fails them because nothing was returned there":
+      v.checks===false?"passes "+of+" checks in the worktree, and the copy in the work folder fails its checks too":
+      "passes "+of+" checks in the worktree"]);
+  }
+  if(!rows.length)return null;
+  return {kind:kind,title:kind==="stopped"?"How it ended: stopped by the harness":kind==="blocked"?"How it ended: blocked":"How it ended: "+(run.status||"unknown"),rows:rows};
+}
+/* The checks of a product that was never returned, run in the worktree: {passed, total, all}, or null when the run has none or the
+   record is not {passed, total} of numbers with at least one check. `all` is passed equal to total. */
+function worktreeOf(w){
+  if(!w||typeof w!=="object"||!isCount(w.passed)||!isCount(w.total)||w.total<1||w.passed<0||w.passed>w.total)return null;
+  return {passed:w.passed,total:w.total,all:w.passed===w.total};
+}
+/* The chip beside the header for a run two hosts wrote: {text, title}, or null. The later hosts resumed it. */
+function hostChip(run){
+  var hs=Array.isArray(run&&run.hosts)?run.hosts:[];
+  if(hs.length<2)return null;
+  function nm(h){return (h&&(h.model||h.host))||"a host";}
+  return {text:"resumed on "+hs.slice(1).map(nm).join(" and "),
+    title:"This run was written by "+hs.length+" hosts ("+hs.map(function(h){return [h.host,h.model,h.effort].filter(Boolean).join(" ");}).join("; ")+"). The harness mixes their events in one figure, so calls, context peak, window, compactions and each visit's context are not measured."};
+}
+/* The stage the run never accepted, as the picture's last column: {stage, min, turns, packetBytes, action, packetId}, or null. */
+function tailOf(run){
+  var e=run&&run.ending&&typeof run.ending==="object"?run.ending:null;
+  if(!e||typeof e.stage!=="string"||!e.stage)return null;
+  return {stage:e.stage,min:isCount(e.unacceptedMin)?e.unacceptedMin:null,turns:isCount(e.unacceptedTurns)?e.unacceptedTurns:null,
+    packetBytes:isCount(e.packetBytes)?e.packetBytes:null,action:typeof e.action==="string"?e.action:"",
+    packetId:e.packetDoc===true&&typeof e.action==="string"&&typeof run.key==="string"?run.key+"--"+e.action:""};
+}
+
+/* ---- the run's record: outcome, build, environment and the product at the stop (R23a) ---- */
+/* The harness's ending as one plain line, "Outcome: BLOCKED, engine blocked at ... by access ...". A record, never a verdict: the page gives
+   it no colour and does not set it beside the verdicts. A run whose class the harness could not name reads "unknown"; "" without a record. */
+function outcomeText(run){
+  var o=run&&run.outcome&&typeof run.outcome==="object"?run.outcome:null;
+  if(!o)return "";
+  var cls=typeof o.class==="string"&&o.class?o.class:"",basis=typeof o.basis==="string"&&o.basis?o.basis:"";
+  return cls||basis?"Outcome: "+(cls||"unknown")+(basis?", "+basis:""):"";
+}
+var IDENTITY_LABELS=[["pluginSha","plugin"],["promptSha","prompt"],["hostBuild","host build"]];
+/* A long hash as its first 12 characters (the harness's hashes are 12 already); a version is printed as it is. */
+function shortSha(v){return /^[0-9a-f]{13,}$/.test(v)?v.slice(0,12):v;}
+/* The build under test as {text, title}: "Build: plugin 3a7515d2efd3, prompt d0c0cbe71344, host build 2.1.294". A field the export could not
+   measure says "not measured" (the harness's reason is the hint); null when the run has no build record and no reason for one. */
+function identityModel(run){
+  var id=run&&run.identity&&typeof run.identity==="object"?run.identity:null,parts=[],why=[];
+  IDENTITY_LABELS.forEach(function(p){
+    var v=id&&typeof id[p[0]]==="string"&&id[p[0]]?id[p[0]]:"",r=reasonFor(run,"identity."+p[0]);
+    if(v)parts.push(p[1]+" "+shortSha(v));
+    else if(r){parts.push(p[1]+" not measured");why.push(p[1]+": "+r);}
+  });
+  return parts.length?{text:"Build: "+parts.join(", "),title:"The build under test."+(why.length?" Not measured: "+why.join("; ")+".":"")}:null;
+}
+/* The overlap record of the run's environment ({basis, runs, ...}), or null when the run has none (not observed, or an older export). */
+function overlapOf(run){
+  var o=run&&run.environment&&typeof run.environment==="object"?run.environment.overlap:null;
+  return o&&typeof o==="object"&&Array.isArray(o.runs)?o:null;
+}
+/* The neutral chip for a run that shared the machine with others: {text, title}, or null when none was seen alongside. Minutes measured
+   while other runs shared the machine are not clean, so the header says so; it is a note on the measure, not a warning about the run. */
+function overlapChip(run){
+  var o=overlapOf(run);if(!o)return null;
+  var n=o.runs.length+(isCount(o.runsOmitted)&&o.runsOmitted>0?o.runsOmitted:0);
+  if(!n)return null;
+  var list=o.runs.map(function(r){return r.folder+" "+r.overlappedMin+" min";}).join(", ");
+  return {text:"ran alongside "+plural(n,"other run"),
+    title:"Shared the machine with: "+(list||"other runs")+". Minutes measured while other runs shared the machine are not a clean measure. "+(typeof o.basis==="string"?o.basis:"")};
+}
+/* One overlapping run as a line: its folder, what it was (case, hosts), the minutes shared and when it began against this run. */
+function siblingText(r){
+  var hosts=Array.isArray(r.hosts)&&r.hosts.length?(r.case?"on ":"")+r.hosts.join(", "):"",who=[r.case,hosts].filter(Boolean).join(" ");
+  var off=isCount(r.startedOffsetMin)?r.startedOffsetMin:null;
+  var began=off===null?"":off===0?", started with this run":off>0?", started "+off+" min after this run":", started "+(-off)+" min before this run";
+  return r.folder+(who?" ("+who+")":"")+": "+(isCount(r.overlappedMin)?r.overlappedMin+" min":"? min")+" together"+began;
+}
+/* The start's browser record in words: declared or not, probed or not and why, and what each probed target did. */
+function browserText(b){
+  if(b.probed===true){
+    var t=b.targets&&typeof b.targets==="object"?Object.keys(b.targets).map(function(k){return k+": "+b.targets[k];}):[];
+    return ["probed"+(b.version?" "+b.version:"")].concat(t).join("\n");
+  }
+  return b.declared===true?"declared, not probed"+(b.reason?": "+b.reason:""):"not declared"+(b.reason?" ("+b.reason+")":"");
+}
+var ENV_UNOBSERVED=[["environment.start","Start of the run"],["environment.end","End of the run"],["environment.overlap","Other runs on the machine"],
+  ["environment.browser","Browser"],["environment.browser.version","Browser version"],["environment.tools","Tools"],["environment","Environment"]];
+/* The Environment card: {note, rows [[label, text]]}, or null when the run has no environment record and no note on one. A part nobody
+   observed keeps the harness's reason ("not observed: ..."): a run that was only regraded observed neither its start nor its end. */
+function environmentModel(run){
+  var env=run&&run.environment&&typeof run.environment==="object"?run.environment:null,u=run&&run.unmeasured&&typeof run.unmeasured==="object"?run.unmeasured:{};
+  var rows=[],o=overlapOf(run),b=env&&env.browser&&typeof env.browser==="object"?env.browser:null;
+  if(env&&env.tools&&typeof env.tools==="object"&&Object.keys(env.tools).length)rows.push(["Tools",Object.keys(env.tools).map(function(k){return k+": "+env.tools[k];}).join("\n")]);
+  var unread=Object.keys(u).filter(function(k){return k.indexOf("environment.tools.")===0;}).map(function(k){return k.slice("environment.tools.".length)+": "+u[k];});
+  if(unread.length)rows.push(["Tools not read",unread.join("\n")]);
+  if(b)rows.push(["Browser",browserText(b)]);
+  if(o){
+    var more=isCount(o.runsOmitted)&&o.runsOmitted>0?"\n"+plural(o.runsOmitted,"more run")+" not listed":"";
+    rows.push(["Other runs on the machine",o.runs.length?o.runs.map(siblingText).join("\n")+more:"none seen: no sibling folder's host events overlapped this run's (this does not say nothing else ran)"]);
+    if(Array.isArray(o.unreadable)&&o.unreadable.length)rows.push(["Sibling folders not read",o.unreadable.join(", ")]);
+    if(typeof o.basis==="string"&&o.basis)rows.push(["How that is counted",o.basis]);
+  }
+  ENV_UNOBSERVED.forEach(function(p){if(typeof u[p[0]]==="string")rows.push([p[1],"not observed: "+u[p[0]]]);});
+  return rows.length?{note:"A record of the machine and of the other runs on it while this run ran. It is not a verdict on the run.",rows:rows}:null;
+}
+/* The product at the stop as a row of the "How it ended" card, [label, text], or null: how many of the case's checks pass in the worktree the run
+   never returned, with the engine's position (a partial product is not a finished one), and each check that did not pass with what it printed.
+   Information only; a record that is not the exported shape draws nothing, so no verdict is invented from it. */
+function atStopRow(run){
+  var p=run&&run.productAtStop&&typeof run.productAtStop==="object"?run.productAtStop:null,label="At the stop (information only)";
+  if(!p||typeof p.ran!=="boolean")return null;
+  if(!p.ran)return [label,"the checks did not run in the unreturned worktree"+(p.reason?": "+p.reason:"")];
+  if(!isCount(p.total)||p.total<1||!isCount(p.passed)||p.passed<0||p.passed>p.total)return null;
+  var at=[p.engineStatus,p.engineStage?"at "+p.engineStage:""].filter(Boolean).join(" "),checks=Array.isArray(p.checks)?p.checks:[];
+  var lines=[p.passed+" of "+p.total+" checks pass in the unreturned worktree"+(isCount(p.timedOut)&&p.timedOut>0?", "+p.timedOut+" timed out":"")+(at?" (engine "+at+")":"")];
+  checks.forEach(function(c){
+    if(!c||c.pass===true)return;
+    lines.push((c.timedOut===true?"timed out":"failed")+": "+c.command+(isCount(c.returncode)?" (exit "+c.returncode+")":"")+(c.output?"\n    "+c.output:""));
+  });
+  if(checks.length<p.total)lines.push("("+checks.length+" of "+p.total+" checks listed)");
+  return [label,lines.join("\n")];
+}
+
+/* ---- what the run delivered (R23d) ---- */
+/* The merge line: where the product went, or that it did not go anywhere, in the workspace's own terms. "" when the run has no
+   `delivered.returned` (the card then says why, from unmeasured). A run that never returned names the branch the product is on and
+   that the source branch was not changed. */
+function mergeLine(run){
+  var d=run&&run.delivered&&typeof run.delivered==="object"?run.delivered:null,r=d&&d.returned&&typeof d.returned==="object"?d.returned:null;
+  if(!r||typeof r.status!=="string")return "";
+  var into=typeof r.into==="string"?r.into:"the source branch",from=typeof r.from==="string"?r.from:"the run's branch";
+  if(r.status==="returned"){
+    if(r.mode==="fast-forward-merge")return "Merged back into "+into+" (fast-forward"+(r.before&&r.after?", "+r.before+" to "+r.after:"")+")";
+    if(r.mode==="working-tree-return")return "Returned to "+into+" as a working-tree change (no merge, no commit)";
+    if(r.mode==="no-change-return")return "Returned to "+into+" with nothing to return";
+    return "Returned to "+into+(typeof r.mode==="string"?" ("+r.mode+")":" (how is not recorded)");
+  }
+  return "Not merged back"+(r.status==="prepared"?"":" (workspace "+r.status+")")+": the product is on branch "+from+(r.status==="prepared"?"; "+into+" was not changed":"");
+}
+/* One kind of kept file as lines: how many, then the listed paths (a change other than "added" in brackets), then what was not listed. */
+function keptLines(k){
+  if(!k||typeof k!=="object"||!isCount(k.count))return null;
+  if(k.count===0)return ["none kept"];
+  var items=Array.isArray(k.items)?k.items:[],lines=[plural(k.count,"file")];
+  items.forEach(function(i){if(i&&typeof i.path==="string")lines.push(i.path+(typeof i.change==="string"&&i.change!=="added"?" ("+i.change+")":""));});
+  if(k.count>items.length)lines.push("("+(k.count-items.length)+" more not listed)");
+  return lines;
+}
+/* The "What was delivered" card as data: {title, note, lead (the merge line, or why there is none), rows [[label, text]]}, or null when
+   the run has no `delivered` and no reason for one (an export from before it). A part the export could not measure keeps its reason. */
+function deliveredModel(run){
+  var d=run&&run.delivered&&typeof run.delivered==="object"?run.delivered:null,u=run&&run.unmeasured&&typeof run.unmeasured==="object"?run.unmeasured:{};
+  if(!d&&!Object.keys(u).some(function(k){return k.indexOf("delivered.")===0;}))return null;
+  d=d||{};
+  var why=function(part){return "not measured ("+(typeof u["delivered."+part]==="string"?u["delivered."+part]:"no reason recorded")+")";};
+  var f=d.files&&typeof d.files==="object"?d.files:null,kept=function(kind){return f?keptLines(f[kind]):null;};
+  var lead=mergeLine(run)||"Merged back: "+why("returned"),rows=[];
+  /* No return plan means no file list for any kind: say so once, in one row, not once per row. */
+  var src=kept("source");if(f)rows.push(["Implemented",src.join("\n")]);else rows.push(["Files kept",why("files")]);
+  var tf=kept("tests"),t=d.tests&&typeof d.tests==="object"&&isCount(d.tests.ran)?d.tests:null;
+  var ran=t?"Last run: "+plural(t.ran,"test")+" ran"+(isCount(t.failed)?", "+t.failed+" failed":"")+", at "+t.stage+(t.where?" ("+t.where+")":"")+(t.stage==="test-red"?": the new tests are meant to fail here":""):"Last run: "+why("tests");
+  rows.push(["Tests",(tf?tf:[]).concat([ran]).join("\n")]);
+  var df=kept("docs"),kf=kept("knowledge"),docLines=df?df.slice():[];
+  if(kf&&f&&isCount(f.knowledge.count))docLines.push("ShipLoop records: "+(f.knowledge.count===0?"none kept":plural(f.knowledge.count,"file")+" under docs/shiploop (the run's own planning, outcome and release records)"));
+  if(f)rows.push(["Documentation",docLines.join("\n")]);
+  var sk=d.skill&&typeof d.skill==="object"?d.skill:null,pf=kept("skills"),skl=[];
+  skl.push("Decision: "+(sk&&sk.assessed?sk.assessed:why("skill")));
+  if(sk&&sk.validated)skl.push("Validation: "+sk.validated);
+  if(pf)skl.push("Produced: "+(pf[0]==="none kept"?"none":pf.join("\n")));
+  rows.push(["Skills",skl.join("\n")]);
+  var rl=d.release&&typeof d.release==="object"?d.release:null;
+  rows.push(["Release",rl&&(rl.plan||rl.done)?[rl.plan?"Planned: "+rl.plan:"",rl.done?"Done: "+rl.done:""].filter(Boolean).join("\n"):why("release")]);
+  return {title:"What was delivered",note:"What the run left behind, from its workspace records and the summaries of its stages. Paths are files in the product on the machine that ran the case: text, not links. A file is new unless marked.",lead:lead,rows:rows};
+}
+/* ---- script checks, unverified outcomes, tool use and the planning window (R22b) ---- */
+/* A visit's script checks as one sentence: how many records ShipLoop kept for it and how many passed, the commands of the
+   last record with what ran, failed and was accepted, and where the checks ran (a release-verify record names it). "" without a block. */
+function verifyText(v){
+  if(!v||typeof v!=="object"||!isCount(v.records))return "";
+  var head=[plural(v.records,"record")+", "+(isCount(v.passed)?v.passed:"?")+" passed"];
+  if(isCount(v.red)&&v.red>0)head.push(v.red+" ran red");
+  if(isCount(v.couldNotRun)&&v.couldNotRun>0)head.push(v.couldNotRun+" could not run");
+  var t=head.join(", ");
+  if(Array.isArray(v.runs)&&v.runs.length)t+="; last record: "+v.runs.map(function(r){
+    var d=[];if(isCount(r.ran))d.push("ran "+r.ran);if(isCount(r.failed))d.push("failed "+r.failed);if(isCount(r.acceptedRan))d.push("accepted "+r.acceptedRan);
+    return String(r.status)+(d.length?" ("+d.join(", ")+")":"");}).join(", ");
+  var o=v.observed&&typeof v.observed==="object"?v.observed:null;
+  if(o&&(o.where||o.tree12))t+="; ran in "+(o.where||"a place the record does not name")+(o.tree12?", tree "+o.tree12:"");
+  return t;
+}
+/* The outcomes a result left unverified, one per line with its owner and due stage; "none listed" for an empty list, "" when the
+   visit's result has no such list (nothing is claimed then). */
+function unverifiedText(list){
+  if(!Array.isArray(list))return "";
+  if(!list.length)return "none listed";
+  function dot(t){return /[.!?\u2026]$/.test(t)?t:t+".";}
+  return list.map(function(u){return (u.outcome||"an outcome")+" ("+(u.owner||"no owner")+", due "+(u.dueStage||"no stage")+")."+(u.reason?" Reason: "+dot(u.reason):"")+(u.check?" Check: "+dot(u.check):"");}).join("\n");
+}
+/* The planning window as a short note for the Elapsed card: "planning 23.2 min, closed at test-spec". "" when not measured. */
+function planningNote(run){
+  var p=run&&run.planning&&typeof run.planning==="object"?run.planning:null;
+  if(!p||!isCount(p.windowMin))return "";
+  return "planning "+p.windowMin+" min"+(p.closed===true?", closed at "+(p.through||"its last stage"):p.closed===false?", still open"+(p.through?" through "+p.through:""):"");
+}
+/* The planning window in full for the run detail: the engine's clock and the host's, where it closed, the Improve share and the
+   output tokens; "not measured" with the exporter's reason when the run has none. */
+function planningText(run){
+  var p=run&&run.planning&&typeof run.planning==="object"?run.planning:null,why=reasonFor(run,"planning");
+  if(!p||!isCount(p.windowMin))return "not measured"+(why?" ("+why+")":"");
+  var bits=[p.windowMin+" min on the engine's clock"];
+  if(isCount(p.hostWindowMin))bits.push(p.hostWindowMin+" min on the host's");
+  if(p.through)bits.push((p.closed===true?"closed at ":"still open through ")+p.through);
+  if(isCount(p.improveMin))bits.push("Improve "+p.improveMin+" min"+(isCount(p.children)?" over "+plural(p.children,"child","children"):""));
+  if(isCount(p.outputTokens))bits.push(grouped(p.outputTokens)+" output tokens"+(isCount(p.reasoningPct)?", "+pctText(p.reasoningPct)+" reasoning":""));
+  return bits.join("; ");
+}
+/* How the model met the packet files, for the Context card: files on disk, replies that printed one, packets read whole or in part,
+   and shell commands that named one. "" when the run has no tool_use record. */
+function packetUseText(run){
+  var p=run&&run.toolUse&&run.toolUse.packets&&typeof run.toolUse.packets==="object"?run.toolUse.packets:null;
+  if(!p)return "";
+  var bits=[];
+  if(isCount(p.files))bits.push(plural(p.files,"packet file")+(isCount(p.bytes)?" ("+kbText(p.bytes)+")":"")+" on disk");
+  if(isCount(p.printed))bits.push(plural(p.printed,"printed reply","printed replies")+(isCount(p.printedChars)?" ("+grouped(p.printedChars)+" characters)":""));
+  if(isCount(p.readWhole)||isCount(p.readPartial))bits.push((isCount(p.readWhole)?p.readWhole:0)+" read whole, "+(isCount(p.readPartial)?p.readPartial:0)+" in part");
+  if(isCount(p.shellReads))bits.push(plural(p.shellReads,"shell read")+(isCount(p.shellChars)?" ("+grouped(p.shellChars)+" characters)":""));
+  return bits.length?"Packets: "+bits.join("; "):"";
+}
+/* The model's glue as a run-detail row: the commands the harness counted, and, when the run's tool use was read, the runs of the
+   wrapper scripts it wrote around ShipLoop. A wrapper hides what it runs, so with one the figure is a lower bound. */
+function glueText(run){
+  var base=isCount(run&&run.glue)?plural(run.glue,"command"):"not measured"+(reasonFor(run,"model_glue")?" ("+reasonFor(run,"model_glue")+")":"");
+  var w=run&&run.toolUse&&Array.isArray(run.toolUse.wrappers)?run.toolUse.wrappers:null;
+  if(!w)return base;
+  if(!w.length)return base+"; no wrapper script was run";
+  var runs=w.reduce(function(a,x){return a+(isCount(x&&x.runs)?x.runs:0);},0);
+  return base+" + "+plural(runs,"run")+" of "+plural(w.length,"wrapper script")+" ("+w.map(function(x){return x.name;}).join(", ")+"): a lower bound, since a wrapper hides what it runs";
+}
+/* A Backchain document of a stage that only ran backchain-check: no loop, no passes. */
+function isGraphCheck(d){return !!d&&d.graphCheckOnly===true;}
+
+/* ---- fidelity: how ShipLoop was carried, and the Improve packets (R23b) ---- */
+/* The harness's classes of how an accepted stage's exit was evidenced, in its order: [key, label, what it means]. A test keeps the keys
+   equal to the exporter's EVIDENCE_CLASSES. A reading aid, never a score: citing any file makes a stage `file`. */
+var EVIDENCE_CLASSES=[
+  ["script","script","a check ShipLoop's script ran and recorded"],
+  ["loop","loop","an Improve review"],
+  ["file","file","a file the result cited (not the stage's own, not a note)"],
+  ["note","note","notes the model wrote"],
+  ["sentence","sentence","the model's own sentence alone (nothing beyond the stage's own files)"],
+  ["skipped","skipped","the engine's not-applicable entry"],
+  ["unclassified","unclassified","no accepted entry for the visit"]];
+/* The five labels of an Improve child's packet, [key, label]; a test keeps the keys and their order equal to the exporter's IMPROVE_CARRIED. */
+var IMPROVE_CARRIED_LABELS=[["goal","Goal"],["doneWhen","Done when"],["checkedBy","Checked by"],["output","Output"],["recovery","Recovery"]];
+/* The release that started printing Goal and Done when in the Improve packet (ShipLoop 0.57.0): a run of an earlier release has none by design. */
+var IMPROVE_GOAL_SINCE="skill-craft 1.25.0";
+/* A visit's Improve packet labels as text: the ones its packet carried, then the ones not found in its text. "" without the object. */
+function improveCarriedText(c){
+  if(!c||typeof c!=="object")return "";
+  var yes=[],no=[];
+  IMPROVE_CARRIED_LABELS.forEach(function(l){if(c[l[0]]===true)yes.push(l[1]);else if(c[l[0]]===false)no.push(l[1]);});
+  if(!yes.length&&!no.length)return "";
+  return yes.join(", ")+(yes.length&&no.length?"; ":"")+(no.length?"not in the packet text: "+no.join(", "):"");
+}
+/* The run's Improve packet counts beside its release: "Improve packets, skill-craft 1.24.0, ShipLoop 0.56.0: Checked by 8/8, Output 8/8, ..." with
+   the labels carried by most first. A run of a release before the one that added Goal and Done when reads 0 for them by design, and the
+   text says so; it is never drawn as a defect. "" for an export with no such record and no reason. */
+function improvePacketsText(run){
+  var p=run&&run.improvePackets&&typeof run.improvePackets==="object"?run.improvePackets:null,why=reasonFor(run,"improvePackets");
+  if(!p||!isCount(p.read)||!p.carried||typeof p.carried!=="object")return why?"Improve packets: not measured ("+why+")":"";
+  if(p.read===0)return "Improve packets: none read (the run has no Improve child)";
+  var counts=IMPROVE_CARRIED_LABELS.map(function(l,i){return {label:l[1],n:isCount(p.carried[l[0]])?p.carried[l[0]]:0,i:i};})
+    .sort(function(a,b){return b.n-a.n||a.i-b.i;}).map(function(x){return x.label+" "+x.n+"/"+p.read;});
+  var late=isCount(p.carried.goal)&&isCount(p.carried.doneWhen)&&(p.carried.goal<p.read||p.carried.doneWhen<p.read);
+  var rel=run&&typeof run.release==="string"&&run.release?", "+run.release:"";
+  return "Improve packets"+rel+": "+counts.join(", ")+(late?". Goal and Done when are printed from "+IMPROVE_GOAL_SINCE+" on, so an earlier release has none by design.":"");
+}
+/* A visit's exit evidence as text, "script: a check ShipLoop's script ran and recorded"; "" for a class this page does not know. */
+function evidenceLine(key){
+  for(var i=0;i<EVIDENCE_CLASSES.length;i++)if(EVIDENCE_CLASSES[i][0]===key)return EVIDENCE_CLASSES[i][1]+": "+EVIDENCE_CLASSES[i][2];
+  return "";
+}
+/* The Fidelity card as data: {bar: [{key, label, n, meaning}] (the classes with a count), rows: [[label, text]], limits: [[part, text]] (the
+   harness's own words on what its lists miss), notes: ["part: reason"] for each part that was not measured}, or null when the run has no
+   reading and no reason (an export from before it). Only what the export holds is printed; a heuristic list is labelled a list to confirm. */
+function fidelityModel(run){
+  var f=run&&run.fidelity&&typeof run.fidelity==="object"?run.fidelity:null,u=run&&run.unmeasured&&typeof run.unmeasured==="object"?run.unmeasured:{};
+  var keys=Object.keys(u).filter(function(k){return k==="fidelity"||k.indexOf("fidelity.")===0;});
+  if(!f&&!keys.length){var only=carriedRows(run);return only.length?{bar:[],rows:only,limits:[],notes:[]}:null;}
+  var notes=keys.filter(function(k){return k!=="fidelity";}).map(function(k){return k.slice("fidelity.".length)+": "+u[k];});
+  if(!f)return {bar:[],rows:[["Fidelity","not measured ("+(typeof u.fidelity==="string"?u.fidelity:"no reason recorded")+")"]].concat(carriedRows(run)),limits:[],notes:notes};
+  var rows=[],bar=[],limits=[],e=f.evidence,v=f.validation,ed=f.edits,r=f.refusals;
+  if(e&&typeof e==="object"){
+    var total=0,parts=[];
+    EVIDENCE_CLASSES.forEach(function(c){if(!isCount(e[c[0]]))return;total+=e[c[0]];parts.push(c[1]+" "+e[c[0]]);
+      if(e[c[0]]>0)bar.push({key:c[0],label:c[1],n:e[c[0]],meaning:c[2]});});
+    rows.push(["Exit evidence",parts.join(", ")+" ("+plural(total,"accepted stage")+")"]);
+    if(Array.isArray(e.scriptRunWithoutRecord))rows.push(["Declared script checks with no script record",e.scriptRunWithoutRecord.length?e.scriptRunWithoutRecord.join(", "):"none"]);
+    else if(reasonFor(run,"fidelity.declared"))rows.push(["Declared script checks with no script record","not measured ("+reasonFor(run,"fidelity.declared")+")"]);
+  }
+  if(v&&typeof v==="object"){
+    var head=[["records","record"],["runs","command run"],["distinctCommands","distinct command"]].filter(function(p){return isCount(v[p[0]]);}).map(function(p){return plural(v[p[0]],p[1]);});
+    var outc=[["passed","passed"],["red","ran red"],["couldNotRun","could not run"],["unread","unreadable"]].filter(function(p){return isCount(v[p[0]]);}).map(function(p){return v[p[0]]+" "+p[1];});
+    var bits=[head.join(", "),outc.join(", ")].filter(Boolean);
+    if(isCount(v.counted))bits.push(isCount(v.zeroRan)?v.zeroRan+" of "+plural(v.counted,"row")+" with a test count ran no test":plural(v.counted,"row")+" with a test count");
+    if(isCount(v.testsRanUnmeasured))bits.push(plural(v.testsRanUnmeasured,"focused or regression row")+" with no test count");
+    rows.push(["Validation",bits.join("; ")]);
+  }
+  if(ed&&typeof ed==="object"){
+    var lines=[],so=ed.scriptOwned&&typeof ed.scriptOwned==="object"?ed.scriptOwned:null;
+    if(so&&isCount(so.count)){
+      var items=Array.isArray(so.items)?so.items:[];
+      lines.push(plural(so.count,"script-owned edit")+(items.length?": "+items.map(function(i){return i.form+" "+i.target+(i.tool?" ("+i.tool+")":"");}).join("; ")+(so.count>items.length?"; and "+(so.count-items.length)+" more":""):""));
+    }
+    var other=[];
+    if(isCount(ed.nameKills))other.push(plural(ed.nameKills,"kill")+" by process name");
+    if(isCount(ed.modelCommits))other.push(plural(ed.modelCommits,"command")+" that ran git add or commit");
+    if(other.length)lines.push(other.join("; "));
+    rows.push(["Edits of ShipLoop's own files (a list to confirm)",lines.join("\n")]);
+    if(typeof ed.limits==="string"&&ed.limits)limits.push(["Edits",ed.limits]);
+  }
+  if(r&&typeof r==="object"){
+    var by=Array.isArray(r.byStage)?r.byStage.filter(function(b){return b&&typeof b.stage==="string"&&isCount(b.count);}):[];
+    var t=(isCount(run.refusals)?"of "+run.refusals+": ":"refusal count not measured: ")+(isCount(r.repeated)?r.repeated+" repeated":"repeated not measured")+(isCount(r.unstaged)&&r.unstaged>0?", "+r.unstaged+" with no stage":"");
+    rows.push(["Refusals (a list to confirm)",t+(by.length?"\nby stage: "+by.map(function(b){return b.stage+" "+b.count;}).join(", "):"")]);
+    if(typeof r.limits==="string"&&r.limits)limits.push(["Refusals",r.limits]);
+  }
+  return {bar:bar,rows:rows.concat(carriedRows(run)),limits:limits,notes:notes};
+}
+/* The two lines that say how the packets were met (the Improve child's labels by release; the producer's files and reads), as Fidelity rows. */
+function carriedRows(run){
+  var rows=[],ip=improvePacketsText(run),pk=packetUseText(run);
+  if(ip)rows.push(["Improve packets",ip.replace(/^Improve packets,? ?/,"")]);
+  if(pk)rows.push(["How the model met the packets",pk.replace(/^Packets: /,"")]);
+  return rows;
+}
+
 /* ---- the sequence picture (step 1): a column per visit, a context band under it, six cards ---- */
 /* Its geometry in user units (a pixel at natural size). A column is one visit; the tallest work visit is `plot` high. */
 var SQ={pitch:16,gap:3,padL:8,padLBand:34,padR:8,head:6,num:14,plot:96,markH:13,bandGap:4,band:34,tickH:13,
@@ -731,7 +1217,9 @@ function visitMinutes(r){
 function contextOf(rows,win){
   var any=false,calls=null,peak=null,pct=null,comp=null;
   rows.forEach(function(r){
-    var c=r&&r.context;if(!c||typeof c!=="object")return;any=true;
+    var c=r&&r.context;if(!c||typeof c!=="object")return;
+    if(isCount(c.calls)&&c.calls<1)return;  /* a visit with no model call has no context: "0 calls" beside a peak would read as a measurement */
+    any=true;
     if(isCount(c.calls))calls=(calls||0)+c.calls;
     if(isCount(c.peak))peak=Math.max(peak||0,c.peak);
     var p=isCount(c.peakPct)?c.peakPct:(isCount(c.peak)&&win?Math.round(1000*c.peak/win)/10:null);
@@ -741,18 +1229,22 @@ function contextOf(rows,win){
   return any?{calls:calls,peak:peak,peakPct:pct,compactions:comp}:null;
 }
 /* A KPI card: `value` and `note` as printed. A card that is not measured says "not measured" and gives the reason. */
-function kpi(key,label,value,note,measured){
-  return {key:key,label:label,value:value,note:note,measured:measured,text:measured?value+(note?" ("+note+")":""):value+(note?": "+note:"")};
+function kpi(key,label,value,note,measured,lines){
+  return {key:key,label:label,value:value,note:note,measured:measured,lines:(lines||[]).filter(Boolean),text:measured?value+(note?" ("+note+")":""):value+(note?": "+note:"")};
 }
 /* The six cards of step 1: visits, elapsed, Improve, Backchain loops, context (main thread), refusals. `loops` is the
    run's Backchain documents (null while they load). */
+/* What the Refusals counter counts, in the number the count asks for: "refusal lines or failed ShipLoop commands", or for one, "refusal line or failed ShipLoop command". */
+function refusalNote(n){return n===1?"refusal line or failed ShipLoop command":"refusal lines or failed ShipLoop commands";}
 function kpiCards(run,loops){
   var rows=(run&&Array.isArray(run.stages))?run.stages:[],wall=run&&isCount(run.wallMin)&&run.wallMin>0?run.wallMin:0,out=[];
   var skipped=rows.filter(function(r){return kindOf(r)==="skipped";}).length,seeded=rows.filter(function(r){return kindOf(r)==="seeded";}).length;
   var parts=[(rows.length-skipped-seeded)+" work"];if(skipped)parts.push(skipped+" skipped");if(seeded)parts.push(seeded+" seeded");
+  var tl=tailOf(run);if(tl)parts.push("1 unaccepted: "+stageLabel(tl.stage));
   out.push(rows.length?kpi("visits","Visits",String(rows.length),parts.join(", "),true):kpi("visits","Visits","0","none accepted yet",true));
   out.push(isCount(run&&run.wallMin)?kpi("elapsed","Elapsed (accept to accept)",spanText(run.wallMin),
-    "start to the last accept"+(run.wallMin>=120?", "+String(Math.round(run.wallMin*10)/10).replace(/\B(?=(\d{3})+(?!\d))/g,",")+" min":""),true)
+    "start to the last accept"+(run.wallMin>=120?", "+String(Math.round(run.wallMin*10)/10).replace(/\B(?=(\d{3})+(?!\d))/g,",")+" min":"")+
+    (tl&&tl.min!==null?"; then "+tl.min+" min never accepted":"")+(planningNote(run)?"; "+planningNote(run):""),true)
     :kpi("elapsed","Elapsed (accept to accept)","not measured",reasonFor(run,"wallMin")||"no accept times recorded",false));
   /* A run that recorded planning_review none keeps its measured passes and minutes and says where Improve did not run. Its
      share of elapsed is not printed: a bare 0% beside a stage run's share would read as Improve costing nothing, when no
@@ -764,8 +1256,10 @@ function kpiCards(run,loops){
   if(!Array.isArray(loops))out.push(kpi("loops","Backchain loops","not loaded","the loop record has not loaded yet",false));
   else if(!loops.length)out.push(kpi("loops","Backchain loops","none","no Backchain loop recorded for this run",true));
   else{
-    var stage=loops.reduce(function(n,d){return n+(isCount(d.stageMin)?d.stageMin:0);},0);
-    out.push(kpi("loops","Backchain loops",plural(loops.length,"loop"),(Math.round(stage*10)/10)+" min as stages"+(wall?", "+Math.round(100*stage/wall)+"% of elapsed":""),true));
+    var real=loops.filter(function(d){return !isGraphCheck(d);}),checks=loops.length-real.length;
+    var stage=real.reduce(function(n,d){return n+(isCount(d.stageMin)?d.stageMin:0);},0),gc=checks?plural(checks,"graph check")+" only":"";
+    if(!real.length)out.push(kpi("loops","Backchain loops","none","no Backchain loop recorded; "+gc,true));
+    else out.push(kpi("loops","Backchain loops",plural(real.length,"loop"),(Math.round(stage*10)/10)+" min as stages"+(wall?", "+Math.round(100*stage/wall)+"% of elapsed":"")+(gc?"; "+gc:""),true));
   }
   if(isCount(run&&run.contextPeak)){
     var w=isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:0;
@@ -773,7 +1267,7 @@ function kpiCards(run,loops){
       (w?grouped(run.contextPeak)+" of "+grouped(w)+" tokens":"window not measured")+"; "+
       (isCount(run.compactions)?plural(run.compactions,"compaction"):"compactions not measured"),true));
   }else out.push(kpi("context","Context (main thread)","not measured",whyNot(run,"contextPeak")||"no reason recorded",false));
-  out.push(isCount(run&&run.refusals)?kpi("refusals","Refusals",String(run.refusals),"ShipLoop commands that exited non-zero",true)
+  out.push(isCount(run&&run.refusals)?kpi("refusals","Refusals",String(run.refusals),refusalNote(run.refusals),true)
     :kpi("refusals","Refusals","not measured",whyNot(run,"refusals")||"no reason recorded",false));
   return out;
 }
@@ -791,6 +1285,8 @@ function sequenceModel(run,opts){
     if(kind==="skipped"&&last&&last.kind==="skipped"){last.last=i;last.rows.push(r);if(last.phases.indexOf(prev)<0)last.phases.push(prev);return;}
     last={kind:kind,first:i,last:i,rows:[r],phases:[prev]};cols.push(last);
   });
+  var tail=tailOf(run);  /* the stage the run never accepted: one more column, outside the visits and outside the scale */
+  if(tail)cols.push({kind:"tail",first:rows.length,last:rows.length,rows:[],phases:[phaseOfStage(tail.stage,prev)],tail:tail});
   var maxMin=0,tallest=null;
   cols.forEach(function(c,k){
     var r=c.rows[0]||{},mins=c.rows.map(function(x){return x&&x.min;}).filter(isCount);
@@ -806,9 +1302,12 @@ function sequenceModel(run,opts){
     c.packetBytes=c.n===1&&isCount(r.packetBytes)?r.packetBytes:null;c.resultBytes=c.n===1&&isCount(r.resultBytes)?r.resultBytes:null;
     c.context=contextOf(c.rows,win);
     c.inItem=!!opts.item&&c.rows.some(function(x){return x&&x.workitem===opts.item;});
+    if(c.kind==="tail"){c.stage=c.tail.stage;c.stages=[c.tail.stage];c.action=c.tail.action;c.outcome="unaccepted";c.min=c.tail.min;c.na=false;
+      c.share=null;c.mark="U";c.label="";c.improve=null;c.packetBytes=c.tail.packetBytes;c.resultBytes=null;c.context=null;c.inItem=false;}
     if(c.kind==="work"&&c.min>maxMin){maxMin=c.min;tallest=c;}
   });
   cols.forEach(function(c){
+    if(c.kind==="tail"){c.h=maxMin>0&&isCount(c.min)?Math.min(SQ.plot,Math.max(SQ.minH,Math.round(Math.sqrt(c.min/maxMin)*SQ.plot*10)/10)):SQ.naH;return;}
     c.h=c.kind==="skipped"?SQ.skipH:(c.kind==="seeded"?SQ.seedH:(c.na?SQ.naH:
       (maxMin>0?Math.max(SQ.minH,Math.round(Math.sqrt(c.min/maxMin)*SQ.plot*10)/10):SQ.minH)));
   });
@@ -827,7 +1326,23 @@ function sequenceModel(run,opts){
   lay.axisY=lay.bottom+12;lay.height=lay.axisY+5;
   var why=reasonFor(run,"visitContext");
   return {columns:cols,visits:rows.length,maxMin:tallest?{min:maxMin,stage:tallest.stage,visit:tallest.first+1}:null,lay:lay,band:band,
-    bandNote:rows.length&&!anyCtx?"Per-visit context not measured on this host"+(why?": "+why:""):"",cards:kpiCards(run,opts.loops)};
+    bandNote:rows.length&&!anyCtx?"Per-visit context not measured for this run"+(why?": "+why:""):"",cards:kpiCards(run,opts.loops),legend:legendKinds(cols,band)};
+}
+/* The keys of the legend entries the picture needs: only a kind that is drawn is listed (done, rev, blk, skip, seed, na, tail,
+   imp), and the context band's own entries only when there is a band (ctx), a column at 90% or more (warn) or a measured
+   compaction (tri). The page shows these and hides the rest. */
+function legendKinds(cols,band){
+  var have={};
+  cols.forEach(function(c){
+    if(c.kind==="skipped")have.skip=true;else if(c.kind==="seeded")have.seed=true;else if(c.kind==="tail")have.tail=true;
+    else if(c.na)have.na=true;
+    else if(c.outcome==="done")have.done=true;
+    else if(c.outcome==="revise"||c.outcome==="replan")have.rev=true;
+    else if(c.outcome==="blocked")have.blk=true;
+    if(c.improve&&c.improve.passes!==null)have.imp=true;
+  });
+  if(band){have.ctx=true;if(band.bars.some(function(b){return b.warn;}))have.warn=true;if(band.ticksTotal>0)have.tri=true;}
+  return ["done","rev","blk","skip","seed","na","tail","imp","ctx","warn","tri"].filter(function(k){return have[k];});
 }
 /* A visit's Improve line for its detail: passes and minutes as far as measured, "not run by design" for a planning visit of a
    none run, "" when the visit has nothing to say. Never 0 for a figure the export does not carry. */
@@ -837,6 +1352,8 @@ function improveText(run,r){
   if(p!==null||m!==null)return (p!==null?plural(p,"pass"):"passes not measured")+(m!==null?", "+m+" min":", minutes not measured");
   return work&&improveByDesign(run,r.stage)?"not run by design (planning_review none)":"";
 }
+/* What a visit without a context says when other visits of the run have one (the export's unmeasured.visitContext counts them). */
+var NO_VISIT_CONTEXT_TEXT="not measured for this visit: no model call was measured in its stage window";
 /* The context line of a visit or column (contextOf's figures): calls, peak, compactions as far as measured. */
 function contextLine(cx){
   var bits=[];
@@ -851,6 +1368,15 @@ function contextLine(cx){
 function columnDetail(model,k,run,findings,catalog){
   var c=model&&model.columns[k];if(!c)return null;
   var key=run&&run.key,lines=[];
+  if(c.kind==="tail"){  /* the stage the run never accepted: no stage card, since no result was accepted */
+    lines.push(["Outcome","never accepted: the run ended while this stage was running"]);
+    lines.push(["Minutes",isCount(c.min)?c.min+" min after the last accept (not in the elapsed time above)":"minutes not measured"]);
+    if(c.tail.turns!==null)lines.push(["Turns",plural(c.tail.turns,"turn")+" (main thread)"]);
+    if(c.packetBytes!==null)lines.push(["Packet file",kbText(c.packetBytes)+", the packet issued for this stage"]);
+    var tm=(findings||[]).filter(function(f){return appliesTo(f,key)&&c.phases.indexOf(f.phase)>=0;});
+    return {title:"Unaccepted: "+stageLabel(c.stage)+" (the run ended here)",lines:lines,findings:tm,prev:k>0?k-1:null,next:null,
+      packet:c.tail.packetId?{id:c.tail.packetId}:null,card:null};
+  }
   var title=c.kind==="skipped"?(c.n===1?"Visit "+(c.first+1)+": "+c.stage+" (skipped)":"Visits "+(c.first+1)+" to "+(c.last+1)+": "+c.n+" skipped")
     :"Visit "+(c.first+1)+": "+c.stage;
   if(c.n>1)lines.push(["Stages",c.stages.join(", ")]);
@@ -866,7 +1392,7 @@ function columnDetail(model,k,run,findings,catalog){
   var imp=one?improveText(run,one):"";
   if(imp)lines.push(["Improve",imp]);
   if(c.context)lines.push(["Context (main thread)",contextLine(c.context)]);
-  else if(model.band)lines.push(["Context (main thread)","not measured for this visit"]);
+  else if(model.band)lines.push(["Context (main thread)",NO_VISIT_CONTEXT_TEXT]);
   var marked=(findings||[]).filter(function(f){return appliesTo(f,key)&&c.phases.indexOf(f.phase)>=0;});
   return {title:title,lines:lines,findings:marked,prev:k>0?k-1:null,next:k<model.columns.length-1?k+1:null,
     packet:one&&packetId(run,one)?{id:packetId(run,one)}:null,card:one?stageCard(run,c.first,catalog):null};
@@ -992,6 +1518,7 @@ function stageCard(run,i,catalog){
   /* sent: the packet */
   var sent={bytes:isCount(r.packetBytes)?r.packetBytes:null,bytesLabel:r.packetImprove===true?"Packet file kept (the Improve child's)":"Packet size",
     improveBytes:isCount(r.improvePacketBytes)?r.improvePacketBytes:null,improvePacket:improvePacketId(run,r)?{id:improvePacketId(run,r)}:null,
+    improveCarried:improveCarriedText(r.improveCarried),
     note:"",carried:null,carriedNote:"",packet:packetId(run,r)?{id:packetId(run,r)}:null};
   if(kind==="skipped")sent.note="No packet was issued: the engine found this stage not applicable to the item.";
   else if(kind==="seeded")sent.note="The harness recorded this visit itself, so no packet was sent for it.";
@@ -1012,15 +1539,19 @@ function stageCard(run,i,catalog){
   var item=typeof r.workitem==="string"&&run&&Array.isArray(run.workItems)?run.workItems.filter(function(w){return w&&w.id===r.workitem;})[0]:null;
   if(item&&isCount(item.revises))done.push(["Revises of this item",String(item.revises)+(item.revises===0?" (never sent back to step-plan)":" (each sent it back to step-plan)")]);
   var imp=improveText(run,r);if(imp)done.push(["Improve",imp]);
+  var vt=verifyText(r.verify);if(vt)done.push(["Checked by the script",vt]);
+  var ev=evidenceLine(r.evidenceClass);if(ev)done.push(["Exit evidenced by",ev]);
   done.push(["Refusals","not recorded per visit"+(isCount(run&&run.refusals)?"; run-level: "+run.refusals+" (not attributed to a visit)":
     "; run-level not measured"+(whyNot(run,"refusals")?" (the reason is on the Refusals card)":""))]);
   var cx=contextOf([r],run&&isCount(run.contextWindow)&&run.contextWindow>0?run.contextWindow:null);
   if(cx)done.push(["Context (main thread)",contextLine(cx)]);
-  else if(rows.some(function(x){return x&&x.context&&typeof x.context==="object";}))done.push(["Context (main thread)","not measured for this visit"]);
+  else if(rows.some(function(x){return x&&x.context&&typeof x.context==="object";}))done.push(["Context (main thread)",NO_VISIT_CONTEXT_TEXT]);
+  var fm=freshMarkText(r.freshStart);if(fm)done.push(["Fresh start",fm]);
   /* written: the result */
   var written=[],summary=typeof r.summary==="string"&&r.summary?r.summary:"";
   if(r.resultFile===false)written.push(["Result file","none: the accepted result is read from state.md"]);
   else if(r.resultFile===true||isCount(r.resultBytes))written.push(["Result file","written"+(isCount(r.resultBytes)?", "+kbText(r.resultBytes):"")]);
+  if(Array.isArray(r.unverified))written.push(["Left unverified (owner, due stage)",unverifiedText(r.unverified)]);
   var readers=readersOf(catalog,r.stage);
   if(kind!=="skipped"&&kind!=="seeded"&&readers!==null)written.push(["Read by (declared by the stage spec)",readersText(readers)]);
   return {visit:i+1,title:"Visit "+(i+1)+": "+stageLabel(r.stage),stage:String(r.stage||""),label:stageLabel(r.stage),rawShown:rawShown(r.stage),kind:kind,purpose:purpose,
@@ -1035,13 +1566,13 @@ function cardRows(model,run,catalog){
   return ((model&&model.columns)||[]).map(function(c,k){
     var r=c.rows[0]||{},many=c.n>1,info=many?null:stageInfo(catalog,c.stage),check=many?"":exitCheckOf(info,run);
     var rd=many||c.kind!=="work"?null:readersOf(catalog,c.stage);
-    return {col:k,visit:many?(c.first+1)+" to "+(c.last+1):String(c.first+1),
+    return {col:k,visit:c.kind==="tail"?"end":many?(c.first+1)+" to "+(c.last+1):String(c.first+1),
       stage:many?"x"+c.n+" skipped":stageLabel(c.stage),raw:many?"":c.stage,rawShown:many?false:rawShown(c.stage),
       purpose:info&&typeof info.purpose==="string"?info.purpose.charAt(0).toUpperCase()+info.purpose.slice(1):"",
       outcome:c.kind==="skipped"?"skipped":c.kind==="seeded"?"seeded":c.outcome,kind:c.kind,check:check,
       sent:c.packetBytes!==null?kbText(c.packetBytes)+(r.packetImprove===true?" (the Improve child's)":""):"",written:c.resultBytes!==null?kbText(c.resultBytes):"",
       readBy:rd===null?null:rd.length,
-      min:many?(c.min===null?"":c.min+" min"):(c.kind==="seeded"?"":(c.na?"n/a":visitMinutes(r)))};
+      min:c.kind==="tail"?(isCount(c.min)?c.min+" min":"minutes not measured"):many?(c.min===null?"":c.min+" min"):(c.kind==="seeded"?"":(c.na?"n/a":visitMinutes(r)))};
   });
 }
 /* ---- plan and execution (step 1) ---- */
@@ -1112,11 +1643,12 @@ function visitTable(run,model){
     var imp=im&&isCount(im.passes)?plural(im.passes,"pass")+(isCount(im.min)?", "+im.min+" min":""):(im&&isCount(im.min)?im.min+" min":"");
     return [String(i+1),r.stage||"",String(r.outcome||"done")+(r.skipped===true?", skipped":"")+(r.seeded===true?", seeded":""),visitMinutes(r),imp,
       isCount(r.packetBytes)?kbText(r.packetBytes):(r.skipped===true?"none issued":""),isCount(r.resultBytes)?kbText(r.resultBytes):""]
-      .concat(ctx?[c&&isCount(c.peakPct)?pctText(c.peakPct):"not measured",c&&isCount(c.compactions)?String(c.compactions):"not measured"]:[]);
+      .concat(ctx?[c&&isCount(c.peakPct)?pctText(c.peakPct):(c&&isCount(c.peak)?grouped(c.peak)+" tokens":"not measured"),c&&isCount(c.compactions)?String(c.compactions):"not measured"]:[]);
   })};
 }
 /* A column's tooltip and spoken name. */
 function columnName(c){
+  if(c.kind==="tail")return "unaccepted "+c.stage+", "+(isCount(c.min)?c.min+" min":"minutes not measured")+", the run ended here";
   if(c.kind==="skipped")return c.n===1?"visit "+(c.first+1)+" "+c.stage+", skipped":"visits "+(c.first+1)+" to "+(c.last+1)+", "+c.n+" skipped";
   return "visit "+(c.first+1)+" "+c.stage+", "+(c.kind==="seeded"?"seeded":c.outcome)+", "+(c.kind==="seeded"?"not timed":(c.na?"n/a":c.min+" min"));
 }
@@ -1129,7 +1661,8 @@ function sequenceSvg(model,picked){
   var cols=model&&model.columns;if(!cols||!cols.length)return "";
   var L=model.lay,pitch=L.pitch,x0=L.padL,y0=L.y0,n=cols.length,p=[],hits=[],selH=L.bottom-L.head;
   p.push('<defs><pattern id="sq-hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="sq-pl" x1="0" y1="0" x2="0" y2="4"/></pattern>'+
-    '<pattern id="sq-cross" width="4" height="4" patternUnits="userSpaceOnUse"><path class="sq-pl" d="M0 0L4 4M4 0L0 4"/></pattern></defs>');
+    '<pattern id="sq-cross" width="4" height="4" patternUnits="userSpaceOnUse"><path class="sq-pl" d="M0 0L4 4M4 0L0 4"/></pattern>'+
+    '<pattern id="sq-tail" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line class="sq-plt" x1="0" y1="0" x2="0" y2="5"/></pattern></defs>');
   p.push('<line class="sq-ax" x1="'+x0+'" y1="'+y0+'" x2="'+(x0+n*pitch)+'" y2="'+y0+'"/>');
   if(model.band){
     var by=L.bandTop,bh=L.bandH;
@@ -1139,14 +1672,14 @@ function sequenceSvg(model,picked){
   cols.forEach(function(c,k){if(c.inItem)p.push('<rect class="sq-item" x="'+(x0+k*pitch)+'" y="'+L.head+'" width="'+pitch+'" height="'+selH+'"/>');});
   cols.forEach(function(c,k){
     var x=x0+k*pitch,bx=x+SQ.gap/2,bw=pitch-SQ.gap,cx=x+pitch/2,top=y0-c.h;
-    var cls=c.kind==="skipped"?"skip":(c.kind==="seeded"?"seed":(c.na?"na":"o-"+outcomeClass(c.outcome)));
+    var cls=c.kind==="skipped"?"skip":(c.kind==="seeded"?"seed":(c.kind==="tail"?"tail":(c.na?"na":"o-"+outcomeClass(c.outcome))));
     p.push('<rect class="sq-col '+cls+'" x="'+bx+'" y="'+top+'" width="'+bw+'" height="'+c.h+'" rx="2"/>');
     if(c.na)p.push('<text class="sq-nat" x="'+cx+'" y="'+(y0-c.h/2)+'" transform="rotate(-90 '+cx+' '+(y0-c.h/2)+')" text-anchor="middle" dominant-baseline="central">n/a</text>');
     if(c.label)p.push('<text class="sq-n" x="'+cx+'" y="'+(top-3)+'" text-anchor="middle">'+esc(c.label)+'</text>');
     if(c.improve&&c.improve.passes!==null)p.push('<text class="sq-imp" x="'+cx+'" y="'+(top-3)+'" text-anchor="middle">'+c.improve.passes+'</text>');
     if(c.mark)p.push('<text class="sq-mark" x="'+cx+'" y="'+(y0+11)+'" text-anchor="middle">'+esc(c.mark)+'</text>');
     if(k%5===0)p.push('<text x="'+cx+'" y="'+L.axisY+'" text-anchor="middle">'+(c.first+1)+'</text>');
-    if(model.band){
+    if(model.band&&c.kind!=="tail"){
       var b=model.band.bars[k],by2=L.bandTop,bh2=L.bandH;
       if(b.pct===null)p.push('<line class="sq-nm" x1="'+bx+'" y1="'+(by2+bh2-1)+'" x2="'+(bx+bw)+'" y2="'+(by2+bh2-1)+'"/>');
       else{
@@ -1163,8 +1696,109 @@ function sequenceSvg(model,picked){
     hits.push('<rect class="sq-hit" data-col="'+k+'" x="'+x+'" y="'+L.head+'" width="'+pitch+'" height="'+selH+'"><title>'+esc(columnName(c))+'</title></rect>');
   });
   if(picked>=0&&picked<n)p.push('<rect class="sq-sel" x="'+(x0+picked*pitch+0.5)+'" y="'+L.head+'" width="'+(pitch-1)+'" height="'+selH+'" rx="3"/>');
-  var label="Sequence of "+model.visits+" visits, one column each, taller for more minutes (square-root scale)"+(model.band?", with the context peak of each visit as a strip under the columns":"")+". The table below lists every visit.";
+  var label="Sequence of "+model.visits+" visits, one column each, taller for more minutes (square-root scale)"+(model.band?", with the context peak of each visit as a strip under the columns":"")+(cols[n-1].kind==="tail"?", and a hatched last column for the stage the run never accepted":"")+". The table below lists every visit.";
   return '<svg class="sq" viewBox="0 0 '+L.width+' '+L.height+'" width="'+L.width+'" height="'+L.height+'" style="min-width:min(100%,'+Math.round(L.width*1.4)+'px)" role="img" aria-label="'+esc(label)+'">'+p.join("")+hits.join("")+'</svg>';
+}
+/* ---- fresh starts (R23c): the cost of losing context, a record and never a score ---- */
+var FIRST_GROUNDING={"packet":"from the packet","next":"with shiploop next","improve-next":"with the Improve runtime's next","other":"with another ShipLoop command"};
+/* A measured start's re-grounding as text: "re-grounded in 29 calls, 327 s, from the packet"; a figure the start lacks is left out. */
+function regroundText(re){
+  var bits=[isCount(re&&re.toolCalls)?"re-grounded in "+plural(re.toolCalls,"call"):"re-grounded"];
+  if(isCount(re&&re.seconds))bits.push(Math.round(re.seconds)+" s");
+  if(typeof(re&&re.firstGrounding)==="string"&&re.firstGrounding)bits.push(FIRST_GROUNDING[re.firstGrounding]||"first grounding "+re.firstGrounding);
+  return bits.join(", ");
+}
+/* A lower-bound count with the harness's own bound and scope beside it: "Failed ShipLoop commands: 0 (lower bound: <scope>)". A count the
+   start lacks reads "not counted", never 0. "" when the block is absent. */
+function boundedText(label,x){
+  if(!x||typeof x!=="object")return "";
+  return label+": "+(isCount(x.count)?x.count:"not counted")+" ("+(typeof x.bound==="string"?x.bound:"unknown")+" bound: "+(typeof x.scope==="string"?x.scope:"no scope recorded")+")";
+}
+/* The "Fresh starts" card as data: {title, lead, rows: [[label, text]], note}, or null when the export says nothing about fresh starts
+   (an older export). A list with `unmeasured.freshStarts` is partial (`note`); no list with it is "not measured"; an empty list with
+   no reason is a measured none. Every figure is the export's; a start that was not measured shows only its reason. */
+function freshStartsModel(run){
+  if(!run)return null;
+  var list=Array.isArray(run.freshStarts)?run.freshStarts:null,why=reasonFor(run,"freshStarts");
+  if(list===null&&!why)return null;
+  if(list===null)return {title:"Fresh starts",lead:"Not measured: "+why,rows:[],note:""};
+  var rows=list.map(function(s){
+    var re=s&&s.reoriented&&typeof s.reoriented==="object"?s.reoriented:{};
+    var fresh=s&&s.kind==="fresh";
+    var label=(fresh?"New host session":"Compaction")+(s&&typeof s.stage==="string"&&s.stage?" in "+stageLabel(s.stage):"")+
+      (s&&typeof s.host==="string"&&s.host?" ("+s.host+")":"")+(fresh&&s&&typeof s.startedBy==="string"&&s.startedBy?", "+s.startedBy:"");
+    if(re.measured!==true)return [label,"not measured: "+(typeof re.reason==="string"&&re.reason?re.reason:"no reason recorded")];
+    var parts=[regroundText(re)];
+    var failed=boundedText("Failed ShipLoop commands",re.failures),wrote=boundedText("Files rewritten",re.rewrote);
+    if(failed)parts.push(failed);
+    if(wrote)parts.push(wrote);
+    if(isCount(re.askedUser))parts.push("Asked a person: "+re.askedUser);
+    return [label,parts.join(". ")];
+  });
+  return {title:"Fresh starts",lead:list.length?plural(list.length,"fresh start")+" recorded.":"None recorded.",rows:rows,note:why?"Not complete: "+why:""};
+}
+/* A visit's mark for the fresh start that its acceptance ended: "compaction during this visit: re-grounded in 29 calls, 327 s before it
+   was accepted", or "" when the visit has none. */
+function freshMarkText(m){
+  if(!m||typeof m!=="object"||typeof m.kind!=="string")return "";
+  var bits=[isCount(m.toolCalls)?"re-grounded in "+plural(m.toolCalls,"call"):"re-grounded"];
+  if(isCount(m.seconds))bits.push(Math.round(m.seconds)+" s");
+  return (m.kind==="fresh"?"new host session":m.kind)+" during this visit: "+bits.join(", ")+" before it was accepted";
+}
+/* ---- quality of the delivered work (R23c): measured after the run on a copy, recorded and never judged ---- */
+/* One surviving mutant as a line: "server.js:33 rel-bound: > became >=". */
+function survivorText(m){
+  var where=(m&&typeof m.file==="string"?m.file:"a file")+(isCount(m&&m.line)?":"+m.line:"");
+  return where+(m&&typeof m.op==="string"?" "+m.op:"")+(m&&typeof m.from==="string"&&typeof m.to==="string"?": "+m.from+" became "+m.to:"");
+}
+/* The mutation row: the ratio with its operator catalog (a ratio is comparable only within one), the counts it is made of and, when
+   there are any, the catches a hang or a refused port could have caused. A count the export lacks is left out, never 0. */
+function mutationText(m){
+  if(m.observed!==true)return "not observed: "+(typeof m.reason==="string"&&m.reason?m.reason:"no reason recorded");
+  var base=(isCount(m.ratio)?"ratio "+m.ratio:"no ratio")+" (operator "+(typeof m.operatorId==="string"&&m.operatorId?m.operatorId:"not recorded")+")";
+  if(isCount(m.killed)&&isCount(m.survived))base+=": "+m.killed+" caught, "+m.survived+" survived"+(isCount(m.sites)?" of "+m.sites+" sites":"");
+  var sentences=[base],odd=[];
+  if(isCount(m.timeout)&&m.timeout>0)odd.push(m.timeout+" timed out");
+  if(isCount(m.portRefused)&&m.portRefused>0)odd.push(m.portRefused+" had a fixed port refused");
+  if(odd.length)sentences.push("Of the caught, "+odd.join(" and ")+": a hang or a refused port can read as a catch");
+  var out=[];
+  if(isCount(m.unconfirmed)&&m.unconfirmed>0)out.push(m.unconfirmed+" unconfirmed");
+  if(isCount(m.invalid)&&m.invalid>0)out.push(m.invalid+" invalid");
+  if(out.length)sentences.push(out.join(" and ")+", out of the ratio");
+  if(isCount(m.notRun)&&m.notRun>0)sentences.push(m.notRun+" not run"+(m.ceilingHit===true?" (the time ceiling was reached)":""));
+  return sentences.join(". ");
+}
+/* The "Quality of the delivered work" card as data: {title, sub, lead, rows: [[label, text]]}, or null when the run has no `quality`
+   (the case measures none, the phase has not run, or an older export). A part the harness could not take shows its reason; a
+   measure that could not be read shows "not measured" with the harness's reason, never a zero. */
+function qualityModel(run){
+  var q=run&&run.quality&&typeof run.quality==="object"?run.quality:null;
+  if(!q)return null;
+  var rows=[],um=q.unmeasured&&typeof q.unmeasured==="object"?q.unmeasured:{};
+  var m=q.mutation&&typeof q.mutation==="object"?q.mutation:null,a=q.acceptance&&typeof q.acceptance==="object"?q.acceptance:null;
+  if(m){
+    rows.push(["Mutation",mutationText(m)]);
+    var sv=m.observed===true&&Array.isArray(m.survivors)?m.survivors:[];
+    if(sv.length)rows.push(["Survivors"+(isCount(m.survived)&&m.survived>sv.length?" ("+sv.length+" of "+m.survived+" shown)":""),sv.map(survivorText).join("\n")]);
+    var un=m.observed===true&&Array.isArray(m.uncovered)?m.uncovered:[];
+    if(un.length)rows.push(["No operator reaches",un.map(function(u){return (u&&u.file||"a file")+": "+(isCount(u&&u.inlineScriptLines)?plural(u.inlineScriptLines,"line")+" of inline script":"inline script of unknown length");}).join("\n")]);
+  }
+  if(a){
+    rows.push(["Held-out checks",a.observed!==true?"not observed: "+(typeof a.reason==="string"&&a.reason?a.reason:"no reason recorded"):
+      (isCount(a.passed)&&isCount(a.total)?a.passed+" of "+a.total+" pass"+(Array.isArray(a.failed)&&a.failed.length?"; failed: "+a.failed.join(", "):""):"observed, counts not recorded")]);
+  }
+  var w=q.memoryWrites&&typeof q.memoryWrites==="object"?q.memoryWrites:null;
+  if(w&&isCount(w.count)){
+    var items=Array.isArray(w.items)?w.items:[];
+    rows.push(["Writes to the model's own memory",w.count===0?"none seen (the model's file-write tool calls only)":
+      [plural(w.count,"write")+(items.length<w.count?"; the first "+items.length+" shown":"")].concat(items.map(function(i){return (i&&i.path||"a file")+(i&&i.tool?" ("+i.tool+")":"");})).join("\n")]);
+  }else if(typeof um.memoryWrites==="string")rows.push(["Writes to the model's own memory","not measured: "+um.memoryWrites]);
+  if(isCount(q.heldOutSeen))rows.push(["Held-out names in the model's events",String(q.heldOutSeen)]);
+  else if(typeof um.heldOutSeen==="string")rows.push(["Held-out names in the model's events","not measured: "+um.heldOutSeen]);
+  if(Array.isArray(q.notes)&&q.notes.length)rows.push(["Notes",q.notes.join("\n")]);
+  return {title:"Quality of the delivered work",
+    sub:"Measured after the run, on a copy of the delivered work. A record, not a verdict. A mutation ratio belongs to one operator: compare it only with a ratio of the same operator.",
+    lead:q.observed===true?"Observed.":"Not observed: "+(typeof q.reason==="string"&&q.reason?q.reason:"no reason recorded"),rows:rows};
 }
 </script>
 <script>
@@ -1174,6 +1808,7 @@ var STATUS_LABEL={open:"open",fixed:"fixed",accepted:"accepted",reexpected:"expe
 var VERDICT={added:"Added value",wasted:"Wasted",insurance:"Confirming pass",unclear:"Cannot judge yet",neutral:"Other work"};
 var STEPS=["What happened","Expected versus seen","Findings and options","Your plan"];
 var data={runs:[],obs:[],acts:[],bc:[],exp:{},cfg:{},rev:{}},loaded={runs:false,obs:false,acts:false,bc:false,exp:false,cfg:false,rev:false},db=null,live=false;
+var RO=!!window.__RR_STATIC;  /* the static copy of one run (export.py): read only, no shared record */
 /* The viewer's working set lives in this browser only: the step, the chosen run, and per run the ticked options and
    findings, what happens after the plan, and the notes. Every storage access is guarded; the page works with it empty. */
 var L={step:1,run:"",phase:-1,cmp:"",filter:"open",crit:"",sel:{}};
@@ -1189,6 +1824,21 @@ function S(){var k=L.run||"-",s=L.sel[k];if(!s||typeof s!=="object")s=L.sel[k]={
 function ticked(m){return Object.keys(m).filter(function(k){return m[k];});}
 function h(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;}
 function byId(id){return document.getElementById(id);}
+/* ---------- references in review text (see linkParts): nodes only, never markup ---------- */
+function linkCtx(){var o={},a={};data.obs.forEach(function(f){o[f.id]=true;});data.acts.forEach(function(x){a[x.id]=true;});
+  return {repoUrl:cfgOf("page").repoUrl,obs:o,acts:a};}
+/* Text and <a> nodes for one piece of review text. An id jumps within the page; a repo reference opens in a new tab. */
+function linkify(text){
+  return linkParts(text,linkCtx()).map(function(p){
+    if(!p.href&&!p.jump)return document.createTextNode(p.text);
+    var a=h("a","lk",p.text);
+    if(p.href){a.setAttribute("href",p.href);a.setAttribute("target","_blank");a.setAttribute("rel","noopener noreferrer");}
+    else{var j=p.jump,obs=j.kind==="obs";a.setAttribute("href",(obs?"#f-":"#opt-")+j.id);
+      a.onclick=function(e){if(e&&e.preventDefault)e.preventDefault();if(obs)openFinding(j.id);else openOption(j.id);};}
+    return a;});
+}
+/* Append `text` to `parent` as linkified nodes and return the parent. */
+function addLinked(parent,text){linkify(text).forEach(function(n){parent.appendChild(n);});return parent;}
 function clear(n){while(n.firstChild)n.removeChild(n.firstChild);}
 function fmt(iso){try{return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric"});}catch(e){return iso||"";}}
 function byOrder(a,b){return(a.order||0)-(b.order||0);}
@@ -1232,15 +1882,15 @@ function renderSteps(){
 function ex(key){var d=data.exp[key]||{};return {key:key,kind:d.kind||"criterion",title:d.title||key,short:d.short,text:d.text||"",group:d.group,order:d.order,clauses:d.clauses||[],revs:d.revs||[]};}
 function expBlock(key){
   var e=ex(key),w=h("div","expb");w.id="exp-"+key;
-  var p=h("p","etext");p.appendChild(h("strong","","Expected. "));p.appendChild(document.createTextNode(e.text));
+  var p=h("p","etext");p.appendChild(h("strong","","Expected. "));addLinked(p,e.text);
   if(e.revs.length)p.appendChild(h("span","revtag","revised "+e.revs.length+"x, last "+fmt(e.revs[e.revs.length-1].at)));
   w.appendChild(p);
   if(e.revs.length){
     var det=h("details");det.appendChild(h("summary","","History ("+e.revs.length+")"));
     e.revs.slice().reverse().forEach(function(r){
       var d=h("div","hist");d.appendChild(h("div","meta",fmt(r.at)+(r.obs?" | prompted by finding "+r.obs:"")+(r.option?" | by option "+r.option:"")));
-      var a=h("p");a.style.cssText="margin:0 0 3px;font-size:13px";a.appendChild(h("strong","","Why. "));a.appendChild(document.createTextNode(r.reason));
-      var c=h("p");c.style.cssText="margin:0;font-size:13px;color:var(--muted)";c.appendChild(h("strong","","Was. "));c.appendChild(document.createTextNode(r.from));
+      var a=h("p");a.style.cssText="margin:0 0 3px;font-size:13px";a.appendChild(h("strong","","Why. "));addLinked(a,r.reason);
+      var c=h("p");c.style.cssText="margin:0;font-size:13px;color:var(--muted)";c.appendChild(h("strong","","Was. "));addLinked(c,r.from);
       d.appendChild(a);d.appendChild(c);det.appendChild(d);
     });
     w.appendChild(det);
@@ -1260,7 +1910,7 @@ function critRow(c){
   if(c.clauses.length){var cl=h("div","chips");c.clauses.forEach(function(s){cl.appendChild(h("span","chip acc",s));});d.appendChild(cl);}
   d.appendChild(expBlock(c.key));
   var basis=rv&&rv.basis&&rv.basis[c.key];
-  if(typeof basis==="string"&&basis){var bp=h("p","sub");bp.style.margin="6px 0 0";bp.appendChild(h("strong","","Basis. "));bp.appendChild(document.createTextNode(basis));d.appendChild(bp);}
+  if(typeof basis==="string"&&basis){var bp=h("p","sub");bp.style.margin="6px 0 0";bp.appendChild(h("strong","","Basis. "));addLinked(bp,basis);d.appendChild(bp);}
   var row=h("div","row");row.style.margin="8px 0 0";
   if(open.length){var b=h("button","btn sm",plural(open.length,"open finding"));b.type="button";
     b.onclick=function(){L.crit=c.key;L.filter="open";save();renderFindings();go(3);};row.appendChild(b);}
@@ -1271,7 +1921,7 @@ function renderArc(){
   var box=byId("arc");clear(box);var o=runOf(),rv=o.run?reviewOf(o.run.key):null;
   if(!rv||!Array.isArray(rv.summary)||!rv.summary.length)return;
   var c=h("div","card");c.appendChild(h("h3","","Review of this run"));var ul=h("ul");
-  rv.summary.forEach(function(l){ul.appendChild(h("li","",l));});c.appendChild(ul);
+  rv.summary.forEach(function(l){ul.appendChild(addLinked(h("li"),l));});c.appendChild(ul);
   if(rv.reviewedAt)c.appendChild(h("div","meta","Reviewed "+fmt(rv.reviewedAt)));box.appendChild(c);
 }
 
@@ -1291,6 +1941,9 @@ function renderFlow(){
   o.rs.forEach(function(r){var op=h("option","",r.name);op.value=r.key;sel.appendChild(op);});
   var f=byId("flow");clear(f);
   var P=phases();
+  renderEnding(o.run);renderDelivered(o.run);renderFidelity(o.run);
+  renderRunRecord(o.run);
+  var hc=byId("runhosts"),hostc=o.run?hostChip(o.run):null;hc.hidden=!hostc;hc.textContent=hostc?hostc.text:"";hc.title=hostc?hostc.title:"";
   if(!o.run){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.runs?"No runs recorded yet.":"Loading the shared record."));byId("runfacts").textContent="";byId("runmode").hidden=true;return;}
   if(!P.length){f.style.minWidth="0";f.style.gridTemplateColumns="1fr";f.appendChild(h("div","empty",loaded.exp?"No stages are defined yet. Seed the starting expectations (the shiploop-run-review skill, SKILL.md).":"Loading the shared record."));return;}
   f.style.gridTemplateColumns="92px repeat("+P.length+",minmax(104px,1fr))";f.style.minWidth=(92+P.length*108)+"px";
@@ -1301,12 +1954,12 @@ function renderFlow(){
   P.forEach(function(p){
     var e=ex(p.key);var c=h("button","chev exp");c.type="button";c.setAttribute("aria-pressed",L.phase===p.order?"true":"false");
     c.setAttribute("aria-label","Stage "+p.title+": read what we expect");
-    c.appendChild(h("b","",p.title));c.appendChild(h("span","",p.short||""));
+    c.appendChild(h("b","",p.title));c.appendChild(addLinked(h("span"),p.short||""));
     if(e.revs.length)c.appendChild(h("span","rv","revised "+e.revs.length+"x"));
     c.onclick=function(){pickPhase(p.order);};f.appendChild(c);
   });
   f.appendChild(h("div","lane","Observed"));
-  var label={done:"accepted",blocked:"stopped here",running:"in progress",none:"not reached"};
+  var label={done:"accepted",blocked:"blocked here",stopped:"stopped by the harness",running:"in progress",none:"not reached"};
   P.forEach(function(p,i){
     var st=(run.phases||[])[i]||"none",c=h("div","chev st-"+st);c.appendChild(h("b","",p.title));c.appendChild(h("span","",label[st]));
     var fs=data.obs.filter(function(ob){return ob.phase===p.order&&appliesTo(ob,run.key);});
@@ -1318,7 +1971,7 @@ function renderFlow(){
     var cell=h("div","cell");
     data.bc.filter(function(d){return d.run===run.key&&d.phase===p.order;}).sort(byOrder).forEach(function(d){
       if(d.segments&&d.segments.length){cell.appendChild(document.createTextNode(d.loop+" "+d.stageMin+" min"));cell.appendChild(miniBar(d));}
-      else cell.appendChild(h("div","",d.loop==="none"?"no loop":d.loop+": no result"));
+      else cell.appendChild(h("div","",d.loop==="none"?"no loop":d.loop+(isGraphCheck(d)?": graph check only":": no result")));
     });
     f.appendChild(cell);
   });
@@ -1333,9 +1986,95 @@ function renderFlow(){
     f.appendChild(cell);
   });
 }
+/* The outcome and build lines under the run header and the chip for a run that shared the machine (R23a); hidden when the run has none. */
+function renderRunRecord(run){
+  var box=byId("runrecord"),chip=byId("runoverlap");clear(box);
+  var line=run?outcomeText(run):"",id=run?identityModel(run):null,oc=run?overlapChip(run):null;
+  if(line)box.appendChild(h("div","",line));
+  if(id){var d=h("div","",id.text);d.title=id.title;box.appendChild(d);}
+  box.hidden=!(line||id);
+  chip.hidden=!oc;chip.textContent=oc?oc.text:"";chip.title=oc?oc.title:"";
+}
+/* The Environment card of the run detail (R23a), from environmentModel; null when the run has no record of its environment. */
+function envCard(run){
+  var m=environmentModel(run);if(!m)return null;
+  var card=h("div","card envcard");card.appendChild(h("h3","","Environment"));card.appendChild(h("p","sub",m.note));card.appendChild(factsEl(m.rows));
+  return card;
+}
+/* "How it ended": the card under the header, built from endingModel; hidden when the run has nothing to say. */
+function renderEnding(run){
+  var box=byId("endcard");clear(box);
+  var m=run?endingModel(run):null;box.hidden=!m;
+  if(!m)return;
+  box.className="card endcard "+m.kind;
+  box.appendChild(h("h3","",m.title));box.appendChild(factsEl(m.rows));
+}
+/* "Fresh starts": the card under the plan, built from freshStartsModel; hidden when the run says nothing about them. */
+function renderFreshStarts(run){
+  var box=byId("freshcard");clear(box);
+  var m=run?freshStartsModel(run):null;box.hidden=!m;
+  if(!m)return;
+  box.appendChild(h("h3","",m.title));
+  box.appendChild(h("p","sub","Each time the model lost its context (a compaction, or a new host session): what re-grounding took until the next action was accepted. A record, not a score. Failure and rewrite counts are lower bounds."));
+  box.appendChild(h("p","pl-line",m.lead));
+  if(m.rows.length)box.appendChild(factsEl(m.rows));
+  if(m.note)box.appendChild(h("p","msg",m.note));
+}
+/* "Quality of the delivered work": the card under the fresh starts, built from qualityModel; hidden when the run has no `quality`. */
+function renderQuality(run){
+  var box=byId("qualitycard");clear(box);
+  var m=run?qualityModel(run):null;box.hidden=!m;
+  if(!m)return;
+  box.appendChild(h("h3","",m.title));
+  box.appendChild(h("p","sub",m.sub));
+  box.appendChild(h("p","pl-line",m.lead));
+  if(m.rows.length)box.appendChild(factsEl(m.rows));
+}
+
+/* "What was delivered": the card after the stage cards, built from deliveredModel; hidden for an export from before it. */
+function renderDelivered(run){
+  var box=byId("delcard");clear(box);
+  var m=run?deliveredModel(run):null;box.hidden=!m;
+  if(!m)return;
+  box.appendChild(h("h3","",m.title));
+  box.appendChild(h("p","sub",m.note));
+  box.appendChild(h("p","pl-line",m.lead));
+  box.appendChild(factsEl(m.rows));
+}
+/* "Fidelity": the card in the run view, built from fidelityModel: the evidence mix as a bar with a legend, then the rows and the harness's own
+   words on what its lists miss. Hidden for an export from before the reading. */
+function renderFidelity(run){
+  var box=byId("fidcard");clear(box);
+  var m=run?fidelityModel(run):null;box.hidden=!m;
+  if(!m)return;
+  box.appendChild(h("h3","","Fidelity: how ShipLoop was carried"));
+  box.appendChild(h("p","sub","What the harness's records show of the run's ShipLoop work. A record, never a verdict: the exit-evidence classes are a reading aid, and the two lists marked to confirm are heuristic."));
+  if(m.bar.length){
+    var bar=h("div","bar fe-bar");bar.setAttribute("aria-hidden","true");
+    m.bar.forEach(function(p){var x=h("div","fe-seg fe-"+p.key);x.style.flexGrow=String(p.n);x.title=p.label+" "+p.n+": "+p.meaning;bar.appendChild(x);});
+    box.appendChild(bar);
+    var lg=h("div","felegend");
+    EVIDENCE_CLASSES.forEach(function(c){var n=run.fidelity&&run.fidelity.evidence?run.fidelity.evidence[c[0]]:undefined;
+      if(!isCount(n))return;var sp=h("span");sp.title=c[2];sp.appendChild(h("i","sw fe-"+c[0]));sp.appendChild(document.createTextNode(c[1]+" "+n));lg.appendChild(sp);});
+    box.appendChild(lg);
+  }
+  box.appendChild(factsEl(m.rows));
+  if(m.notes.length)box.appendChild(factsEl([["Not measured",m.notes.join("\n")]]));
+  if(m.limits.length){
+    box.appendChild(h("p","legend","How to read the lists to confirm, in the harness's own words:"));
+    m.limits.forEach(function(l){box.appendChild(h("p","legend",l[0]+": "+l[1]));});
+  }
+}
 function openFinding(id){
   L.filter="all";L.crit="";save();renderFindings();go(3);
   try{var n=byId("f-"+id);if(n)n.scrollIntoView({block:"center"});}catch(e){}
+}
+/* Show one option: every filter off, the boxes that hold it ("Options not tied to a finding", "Already done") opened, then scrolled to. */
+function openOption(id){
+  L.filter="all";L.crit="";save();renderFindings();go(3);
+  try{var n=byId("opt-"+id);if(!n)return;
+    for(var p=n.parentNode;p;p=p.parentNode)if(p.tagName&&String(p.tagName).toLowerCase()==="details")p.open=true;
+    n.scrollIntoView({block:"center"});}catch(e){}
 }
 function renderPanel(){
   var box=byId("phasepanel");clear(box);
@@ -1356,11 +2095,12 @@ var pickedCol=-1,pickedRun="",pickedItem="",planMsg="",lastModel=null;
 var packetState={},packetBody={},packetHeads={};
 function loopsFor(run){return loaded.bc?data.bc.filter(function(d){return d.run===run.key;}):null;}
 function setCol(k,reveal){pickedCol=k;renderPicture(reveal);}
+function setColFollow(k,reveal){cardFollow=k>=0;setCol(k,reveal);}
 function pickItem(id){pickedItem=pickedItem===id?"":id;planMsg="";renderPicture(false);}
 /* Tapping a step cell: the picture selects the implement visit that executed it, or the panel says none did. */
 function pickStep(item,cell){
   pickedItem=item.id;
-  if(cell.visit){planMsg="";pickedCol=columnOfVisit(lastModel,cell.visit-1);renderPicture(true);return;}
+  if(cell.visit){planMsg="";cardFollow=true;pickedCol=columnOfVisit(lastModel,cell.visit-1);renderPicture(true);return;}
   planMsg=cell.state==="never"?"Step "+cell.id+" of "+item.id+" was never executed: no implement visit is recorded for it."
     :cell.state==="executed"?"Step "+cell.id+" of "+item.id+" was executed by a visit that this run's list of visits does not hold."
     :"Which visit ran step "+cell.id+" of "+item.id+" is not recorded for this run.";
@@ -1459,7 +2199,7 @@ function fillPacket(id){
 }
 /* ---------- the stage card and the list of stage cards (all text goes in through textContent) ---------- */
 function stageCatalog(){var s=cfgOf("stages").stages;return Array.isArray(s)?s:null;}
-var OUTCOME_CHIP={done:"holds",revise:"bent",replan:"bent",repeat:"bent",blocked:"broken"};
+var OUTCOME_CHIP={done:"holds",revise:"bent",replan:"bent",repeat:"bent",blocked:"broken",unaccepted:"bent"};
 var CHECK_CHIP={"script-run":"holds","review loop":"acc","model judgement":"muted"};
 function chipEl(cls,text,title){var c=h("span","chip "+cls,text);if(title)c.title=title;return c;}
 function factsEl(lines){var dl=h("dl","facts");lines.forEach(function(l){dl.appendChild(h("dt","",l[0]));dl.appendChild(h("dd","",l[1]));});return dl;}
@@ -1476,6 +2216,7 @@ function renderCard(dc,c){
   var sizes=[];
   if(c.sent.bytes!==null)sizes.push([c.sent.bytesLabel,kbText(c.sent.bytes)]);
   if(c.sent.improveBytes!==null)sizes.push(["Improve child's packet file",kbText(c.sent.improveBytes)]);
+  if(c.sent.improveCarried)sizes.push(["Improve child's packet carried",c.sent.improveCarried]);
   if(sizes.length)s.appendChild(factsEl(sizes));
   if(c.sent.carried){
     s.appendChild(h("div","meta","What the packet text carried"));
@@ -1505,19 +2246,29 @@ function renderCard(dc,c){
   dc.appendChild(w);
 }
 function renderCardList(model,run){
-  var box=byId("sclist");clear(box);box.hidden=!(model&&model.columns.length);if(box.hidden)return;
+  var box=byId("sclist");
+  var held=byId("seqdetail");if(!SEQ_HOME&&held&&held.parentNode&&held.parentNode!==box&&held.className!=="sc-open")SEQ_HOME=held.parentNode;
+  if(held){held.className="";if(SEQ_HOME)SEQ_HOME.appendChild(held);}  /* back home, unstyled, before the list is cleared */
+  clear(box);box.hidden=!(model&&model.columns.length);if(box.hidden)return;
   var catalog=stageCatalog();
   box.appendChild(h("h3","","Stage cards"));
-  box.appendChild(h("p","sub","One row per visit, in order: what the stage is for, how it ended and how it is checked, the packet sent and the result written, how many stages declare reading it, and the minutes. Tap a row for its card."));
-  var list=h("div","sc-list");
-  cardRows(model,run,catalog).forEach(function(r){
-    var b=h("button","sc-row"+(pickedCol===r.col?" sel":""));b.type="button";b.setAttribute("aria-pressed",pickedCol===r.col?"true":"false");
-    var top=h("span","sc-top"),nm=h("b","sc-name",r.stage);top.appendChild(h("span","sc-no",r.visit));
+  box.appendChild(h("p","sub","One row per visit, in order: what the stage is for, how it ended and how it is checked, the packet sent and the result written, how many stages declare reading it, and the minutes. Tap a row to open its card in place; tap it again to close it."));
+  var list=h("div","sc-list"),rows=cardRows(model,run,catalog),openAt=-1;
+  rows.forEach(function(r,i){if(openAt<0&&pickedCol>=0&&r.col===pickedCol)openAt=i;});  /* a column of several skipped visits opens under its first row */
+  rows.forEach(function(r,i){
+    var isOpen=i===openAt;
+    var b=h("button","sc-row"+(pickedCol===r.col?" sel":""));b.type="button";b.setAttribute("aria-expanded",isOpen?"true":"false");
+    if(isOpen)b.setAttribute("aria-controls","seqdetail");
+    var top=h("span","sc-top"),nm=h("b","sc-name",r.stage);
+        top.appendChild(h("span","sc-no",r.visit));
     if(r.raw){b.title=r.raw;if(r.rawShown)nm.appendChild(h("span","sc-raw",r.raw));}
     top.appendChild(nm);
     top.appendChild(chipEl(OUTCOME_CHIP[r.outcome]||"muted",r.outcome));
     if(r.check)top.appendChild(chipEl(CHECK_CHIP[r.check]||"muted",r.check));
+    var col=model.columns[r.col],fm=col&&col.n===1&&col.rows[0]?freshMarkText(col.rows[0].freshStart):"";
+    if(fm)top.appendChild(chipEl("bent","fresh start",fm));
     b.appendChild(top);
+    var chev=h("span","sc-chev");chev.setAttribute("aria-hidden","true");b.appendChild(chev);  /* the traditional accordion chevron, at the right edge */
     if(r.purpose)b.appendChild(h("span","sc-purp",r.purpose));
     var bits=[];
     if(r.min)bits.push(r.min);
@@ -1525,27 +2276,35 @@ function renderCardList(model,run){
     if(r.written)bits.push("written "+r.written);
     if(r.readBy!==null)bits.push(r.readBy===0?"no declared reader":"declared readers "+r.readBy);  /* the stage table's, never an observed count */
     if(bits.length){var nums=h("span","sc-nums");bits.forEach(function(x){nums.appendChild(h("span","sc-bit",x));});b.appendChild(nums);}
-    b.onclick=function(){setCol(r.col,true);try{byId("seqdetail").scrollIntoView({block:"start"});}catch(e){}};
+    b.onclick=function(){var close=pickedCol===r.col;setCol(close?-1:r.col,!close);focusCardRow(close?i:openRowIndex());};
     list.appendChild(b);
+    if(isOpen){var det=byId("seqdetail");det.className="sc-open";list.appendChild(det);}  /* the card the row opened, in place */
   });
   box.appendChild(list);
+  if(cardFollow){cardFollow=false;var at=openRowIndex();if(at>=0)focusCardRow(at,"start",true);}
 }
+var cardFollow=false;  /* set by a click in the picture or the card's own buttons: bring the opened row into view after the redraw */
+var SEQ_HOME=null;     /* where the detail node lives while no row is open (the static page's own place for it) */
+function openRowIndex(){try{var rs=byId("sclist").querySelectorAll(".sc-row");for(var i=0;i<rs.length;i++)if(rs[i].getAttribute("aria-expanded")==="true")return i;}catch(e){}return -1;}
+/* Put keyboard focus back on a row after a redraw replaced it, and keep it on screen. */
+function focusCardRow(i,block,noFocus){try{var rs=byId("sclist").querySelectorAll(".sc-row");if(i>=0&&rs[i]){if(!noFocus)rs[i].focus();rs[i].scrollIntoView({block:block||"nearest"});}}catch(e){}}
 /* The "scroll sideways" hint shows only while the picture is wider than its box (so it follows a resize). */
 function updateHint(){var sc=byId("seqscroll");byId("seqhint").hidden=!(sc.scrollWidth>sc.clientWidth+1);}
 try{window.addEventListener("resize",updateHint);}catch(e){}
 function renderPicture(reveal){
   var o=runOf(),kp=byId("kpis"),sc=byId("seqscroll"),det=byId("seqdetail"),tb=byId("seqtable"),card=byId("seqcard"),box=byId("seqtabbox");
   clear(kp);clear(det);clear(tb);
-  if(!o.run){card.hidden=true;box.hidden=true;byId("plancard").hidden=true;byId("sclist").hidden=true;return;}
+  if(!o.run){card.hidden=true;box.hidden=true;byId("plancard").hidden=true;byId("freshcard").hidden=true;byId("qualitycard").hidden=true;byId("sclist").hidden=true;return;}
   var run=o.run;
   if(pickedRun!==run.key){pickedRun=run.key;pickedCol=-1;pickedItem="";planMsg="";}
   var model=sequenceModel(run,{loops:loopsFor(run),item:pickedItem});lastModel=model;
   if(pickedCol>=model.columns.length)pickedCol=-1;
   model.cards.forEach(function(c){
     var d=h("div","kpi"+(c.measured?"":" nm")+(!c.measured&&c.note.length>60?" wide":""));d.setAttribute("role","group");d.setAttribute("aria-label",c.label+": "+c.text);
-    d.appendChild(h("span","kl",c.label));d.appendChild(h("b","kv",c.value));if(c.note)d.appendChild(h("span","kn",c.note));kp.appendChild(d);
+    d.appendChild(h("span","kl",c.label));d.appendChild(h("b","kv",c.value));if(c.note)d.appendChild(h("span","kn",c.note));
+    (c.lines||[]).forEach(function(l){d.appendChild(h("span","kn",l));});kp.appendChild(d);
   });
-  renderPlan(run);
+  renderPlan(run);renderFreshStarts(run);renderQuality(run);
   card.hidden=!model.columns.length;box.hidden=!model.columns.length;
   if(!model.columns.length){byId("sclist").hidden=true;return;}
   byId("seqcap").textContent="Column height is the square root of minutes on this run's own scale"+
@@ -1558,6 +2317,7 @@ function renderPicture(reveal){
   }
   updateHint();
   byId("sqlegband").hidden=!model.band;
+  ["done","rev","blk","skip","seed","na","tail","imp","ctx","warn","tri"].forEach(function(k){byId("sql-"+k).hidden=model.legend.indexOf(k)<0;});
   var note=byId("seqnote");note.textContent=model.bandNote;note.hidden=!model.bandNote;
   var d=pickedCol>=0?columnDetail(model,pickedCol,run,data.obs,stageCatalog()):null;
   if(d){
@@ -1565,6 +2325,7 @@ function renderPicture(reveal){
     if(d.card){hd.title=d.card.stage;if(d.card.rawShown)hd.appendChild(h("span","sc-raw",d.card.stage));}
     dc.appendChild(hd);
     if(d.card)renderCard(dc,d.card);else dc.appendChild(factsEl(d.lines));
+    if(!d.card&&d.packet&&live&&db){dc.appendChild(packetHead(d.packet));dc.appendChild(packetBox(d.packet));}
     if(d.findings.length){
       var fo=d.findings.filter(isOpen).length,fd=h("details");fd.open=d.findings.length<=4;
       fd.appendChild(h("summary","","Findings marked at this stage ("+d.findings.length+(fo?", "+fo+" open":"")+")"));
@@ -1572,7 +2333,7 @@ function renderPicture(reveal){
       fd.appendChild(fr);dc.appendChild(fd);
     }
     var nav=h("div","row");
-    function step(label,to){var b=h("button","btn",label);b.type="button";b.disabled=to===null;b.onclick=function(){setCol(to,true);};nav.appendChild(b);}
+    function step(label,to){var b=h("button","btn",label);b.type="button";b.disabled=to===null;b.onclick=function(){setColFollow(to,true);};nav.appendChild(b);}
     step("Previous visit",d.prev);step("Next visit",d.next);
     var cl=h("button","btn","Close");cl.type="button";cl.onclick=function(){setCol(-1,false);};nav.appendChild(cl);
     dc.appendChild(nav);det.appendChild(dc);
@@ -1605,7 +2366,7 @@ function findingChips(f){
 }
 function techBox(f){
   var b=h("div","tech");
-  function line(l,v){if(!v)return;var d=h("div");d.appendChild(h("b","",l+" "));d.appendChild(document.createTextNode(v));b.appendChild(d);}
+  function line(l,v){if(!v)return;var d=h("div");d.appendChild(h("b","",l+" "));addLinked(d,v);b.appendChild(d);}
   line("Expected.",f.expected);line("Saw.",f.observed);line("Evidence.",f.evidence);
   if(f.criterion){var e=ex(f.criterion);line("Expectation.",e.title+(e.clauses.length?" ("+e.clauses.join(", ")+")":"")+(phaseName(f.phase)!==e.title?"; "+phaseName(f.phase):""));}
   return b;
@@ -1615,7 +2376,7 @@ function optionRow(a){
   var l=h("label","opt"+(S().opts[a.id]?" sel":""));
   var cb=h("input");cb.type="checkbox";cb.checked=!!S().opts[a.id];
   cb.onchange=function(){S().opts[a.id]=cb.checked;l.className="opt"+(cb.checked?" sel":"");save();renderPrompt();renderCounts();renderSteps();};
-  var t=h("div","t");t.appendChild(h("b","",a.title));
+  var t=h("div","t");t.appendChild(addLinked(h("b"),a.title));
   var m=h("div","chips");
   m.appendChild(h("span","chip acc",KIND_LABEL[a.kind]||"no kind set"));
   m.appendChild(h("span","chip"+(a.status==="built"?" holds":""),a.status||"open"));
@@ -1624,26 +2385,26 @@ function optionRow(a){
   if(a.cost)m.appendChild(h("span","chip bent","ask me first"));
   t.appendChild(m);l.appendChild(cb);l.appendChild(t);wrap.appendChild(l);
   var det=h("details");det.appendChild(h("summary","","Instruction and why"));
-  det.appendChild(h("div","instr",a.goal||"(no instruction)"));
-  function note(label,v){if(!v)return;var p=h("p","sub",label+" "+v);p.style.margin="6px 0 0";det.appendChild(p);}
+  det.appendChild(addLinked(h("div","instr"),a.goal||"(no instruction)"));
+  function note(label,v){if(!v)return;var p=h("p","sub",label+" ");addLinked(p,v);p.style.margin="6px 0 0";det.appendChild(p);}
   note("Why.",a.why);note("Costs:",a.cost);
   if(a.change)note("Changes the expectation ("+a.change.target+").","Now: "+a.change.to+" Why: "+a.change.reason);
   note("Ref.",a.ref);
   wrap.appendChild(det);return wrap;
 }
-function doneRow(a){var d=h("div","card");d.appendChild(h("b","",a.title));if(a.ref)d.appendChild(h("span","tag",a.ref));return d;}
+function doneRow(a){var d=h("div","card");d.id="opt-"+a.id;d.appendChild(addLinked(h("b"),a.title));if(a.ref)d.appendChild(addLinked(h("span","tag"),a.ref));return d;}
 /* A strip is scrolled to its finding's phase once its step is on screen: a hidden step has no layout to scroll. */
 var strips=[];
 function applyStrips(){strips.forEach(function(s){s[0].scrollLeft=s[1];});}
 function findingCard(c){
   var f=c.finding,card=h("div","card fcard");card.id="f-"+f.id;
-  var t=h("h3");t.appendChild(h("span","fid","#"+obsNo(f)));t.appendChild(document.createTextNode(f.title));card.appendChild(t);
+  var t=h("h3");t.appendChild(h("span","fid","#"+obsNo(f)));addLinked(t,f.title);card.appendChild(t);
   card.appendChild(findingChips(f));
   var two=h("div","two"),rd=runDocFor(f);
   var ws=rd?whereStrip(rd,f):"";if(ws){var sb=h("div","strip");sb.innerHTML=ws;card.appendChild(sb);strips.push([sb,+(/data-view="(\d+)"/.exec(ws)||[0,0])[1]]);}
   var fg=figureSvg(f.figure);if(fg){var fb=h("div","viz");fb.innerHTML=fg;two.appendChild(fb);}
   two.appendChild(techBox(f));card.appendChild(two);
-  if(f.advice){var ad=h("div","adv");ad.appendChild(h("b","","Advice. "));ad.appendChild(document.createTextNode(f.advice));card.appendChild(ad);}
+  if(f.advice){var ad=h("div","adv");ad.appendChild(h("b","","Advice. "));addLinked(ad,f.advice);card.appendChild(ad);}
   c.options.forEach(function(a){card.appendChild(optionRow(a));});
   if(c.refs.length){var rf=h("div","refs");c.refs.forEach(function(r){
     var b=h("button","chip acc","Also resolved by: "+r.title);b.type="button";
@@ -1656,7 +2417,7 @@ function findingCard(c){
   var row=h("div","row");row.style.margin="8px 0 0";
   var seg=h("div","seg");seg.setAttribute("role","group");seg.setAttribute("aria-label","Status of finding "+obsNo(f));
   ["open","fixed","accepted","reexpected"].forEach(function(k){
-    var x=h("button","",STATUS_LABEL[k]);x.type="button";x.disabled=!live;x.setAttribute("aria-pressed",(f.status||"open")===k?"true":"false");
+    var x=h("button","",STATUS_LABEL[k]);x.type="button";x.disabled=!live||RO;x.setAttribute("aria-pressed",(f.status||"open")===k?"true":"false");
     x.onclick=function(){guarded(db.collection("observations").doc(f.id).update({status:k}),byId("o-msg"));};seg.appendChild(x);
   });
   row.appendChild(seg);card.appendChild(row);return card;
@@ -1673,7 +2434,7 @@ function renderFindings(){
   var tr=h("button","btn sm","Tick recommended");tr.type="button";tr.onclick=tickRecommended;fb.appendChild(tr);
   byId("notice").textContent=pruned;
   var box=byId("cards");clear(box);
-  if(!res.cards.length)box.appendChild(h("div","empty",loaded.obs?(data.obs.length?"No finding matches this filter.":"No findings yet. Add the first one below."):"Loading findings."));
+  if(!res.cards.length)box.appendChild(h("div","empty",loaded.obs?(data.obs.length?"No finding matches this filter.":RO?"This copy holds no findings.":"No findings yet. Add the first one below."):"Loading findings."));
   strips=[];res.cards.forEach(function(c){box.appendChild(findingCard(c));});
   applyStrips();
   if(res.elsewhere.length)box.appendChild(h("p","sub",plural(res.elsewhere.length,"option")+" belong to findings outside this filter."));
@@ -1702,6 +2463,7 @@ function setVerdict(d,i,kind){
 function loopCard(d){
   var c=h("div","card");
   c.appendChild(h("h3","",d.title+(d.stageMin?" | "+d.stageMin+" min as a stage":"")));
+  if(isGraphCheck(d))c.appendChild(h("p","sub","Graph check only: this stage checked its graph with backchain-check and ran no Until Loop, so there are no passes or minutes to draw."));
   if(d.segments&&d.segments.length){
     var bar=h("div","bar");bar.setAttribute("aria-hidden","true");
     var tot=d.segments.reduce(function(n,s){return n+(+s.min||0);},0);
@@ -1711,7 +2473,7 @@ function loopCard(d){
     d.segments.forEach(function(s,i){
       var r=h("div","segrow");var nm=h("div","nm");nm.appendChild(h("b","",s.label));nm.appendChild(h("span","",s.note||""));
       var mn=h("div","mn",s.min+" min");
-      var sel=h("select");sel.setAttribute("aria-label","Verdict for "+d.title+", "+s.label);sel.disabled=!live;
+      var sel=h("select");sel.setAttribute("aria-label","Verdict for "+d.title+", "+s.label);sel.disabled=!live||RO;
       Object.keys(VERDICT).forEach(function(k){var op=h("option","",VERDICT[k]);op.value=k;sel.appendChild(op);});
       sel.value=s.kind;sel.onchange=function(){setVerdict(d,i,sel.value);};
       r.appendChild(nm);r.appendChild(mn);r.appendChild(sel);c.appendChild(r);
@@ -1854,8 +2616,12 @@ function renderRunDetail(){
   var card=h("div","card");card.appendChild(h("h3","",A.name+(B?" compared with "+B.name:"")));
   var facts=factRows(A);
   var dl=h("dl","facts");facts.forEach(function(f){dl.appendChild(h("dt","",f[0]));dl.appendChild(h("dd","",f[1]));});card.appendChild(dl);
-  if(A.verdicts){var vc=h("div","vchips");Object.keys(A.verdicts).forEach(function(k){vc.appendChild(h("span","chip "+(A.verdicts[k]?"holds":"broken"),k+(A.verdicts[k]?" pass":" fail")));});card.appendChild(vc);}
+  if(A.verdicts){var vc=h("div","vchips");Object.keys(A.verdicts).forEach(function(k){
+    var v=A.verdicts[k],wt=k==="worktreeChecks"?worktreeOf(v):null;
+    if(k==="worktreeChecks"&&!wt)return;  /* not {passed, total}: no verdict is invented */
+    vc.appendChild(h("span","chip "+((wt?wt.all:v)?"holds":"broken"),wt?"worktree checks "+wt.passed+"/"+wt.total:k+(v?" pass":" fail")));});card.appendChild(vc);}
   box.appendChild(card);
+  var envc=envCard(A);if(envc)box.appendChild(envc);
   // the same six numbers for the second run, side by side (the picture and its table are in the step above)
   if(B){
     var cm=h("div","card"),ca=sequenceModel(A,{loops:loopsFor(A)}).cards,cb=sequenceModel(B,{loops:loopsFor(B)}).cards;
@@ -1887,7 +2653,7 @@ function renderRunDetail(){
     c3.appendChild(tb2);box.appendChild(c3);
   }
   if(A.failures&&A.failures.length){
-    var c5=h("div","card");c5.appendChild(h("h3","",plural(A.failures.length,"ShipLoop command")+" exited non-zero"));
+    var c5=h("div","card");c5.appendChild(h("h3","",plural(A.failures.length,"refusal")+": "+refusalNote(A.failures.length)));
     A.failures.slice(0,10).forEach(function(f){var p=h("p","sub",f.verb+": "+f.line);p.style.margin="2px 0";c5.appendChild(p);});
     box.appendChild(c5);
   }
@@ -1898,7 +2664,7 @@ byId("runsel").onchange=function(){L.run=this.value;L.phase=-1;L.crit="";if(L.cm
 byId("cmpsel").onchange=function(){L.cmp=this.value;save();renderRunDetail();};
 byId("seqscroll").onclick=function(e){
   var t=e.target&&e.target.closest?e.target.closest("[data-col]"):null;if(!t)return;
-  var k=+t.getAttribute("data-col");setCol(k===pickedCol?-1:k,false);
+  var k=+t.getAttribute("data-col");setColFollow(k===pickedCol?-1:k,false);
 };
 byId("notes").oninput=function(){S().notes=this.value;save();renderPrompt();};
 Array.prototype.forEach.call(document.getElementsByName("after"),function(r){r.onchange=function(){S().after=r.value;save();renderPrompt();};});
@@ -1913,12 +2679,14 @@ byId("liveopen").onclick=function(){go(4);};
 byId("o-add").onclick=function(){
   var msg=byId("o-msg"),t=byId("o-title").value.trim();
   if(!t){msg.textContent="Add a one-line title first.";return;}
+  if(RO){msg.textContent="This copy is read-only; nothing is saved.";return;}
   if(!live||!db){msg.textContent="There is no database, so this cannot save.";return;}
   db.collection("observations").add({phase:Number(byId("o-phase").value),criterion:byId("o-crit").value,kind:byId("o-kind").value,run:byId("o-run").value,title:t,expected:byId("o-exp").value.trim()||"(not stated)",observed:byId("o-obs").value.trim()||"(not stated)",evidence:byId("o-ev").value.trim(),status:"open",createdAt:new Date().toISOString()}).then(function(){byId("o-title").value="";byId("o-exp").value="";byId("o-obs").value="";byId("o-ev").value="";msg.textContent="Added.";},function(e){msg.textContent="Could not save: "+((e&&e.message)||"unavailable");});
 };
 byId("a-add").onclick=function(){
   var msg=byId("a-msg"),t=byId("a-title").value.trim(),g=byId("a-goal").value.trim();
   if(!t||!g){msg.textContent="Add a title and what to ask for.";return;}
+  if(RO){msg.textContent="This copy is read-only; nothing is saved.";return;}
   if(!live||!db){msg.textContent="There is no database, so this cannot save.";return;}
   db.collection("actions").add({title:t,why:byId("a-why").value.trim()||"(not stated)",goal:g,criterion:byId("a-crit").value,status:"open"}).then(function(){byId("a-title").value="";byId("a-why").value="";byId("a-goal").value="";msg.textContent="Added.";},function(e){msg.textContent="Could not save: "+((e&&e.message)||"unavailable");});
 };
@@ -1945,7 +2713,10 @@ function connect(){
   if(!(window.claude&&window.claude.use)){offline();return;}
   window.claude.use("db").then(function(d){
     if(!d){offline();return;}
-    db=d;live=true;var c=byId("conn");c.textContent="shared record, saved";c.className="conn on";byId("asof").textContent="Live. The record is shared and saved as you edit.";subscribe();renderAll();
+    db=d;live=true;var c=byId("conn");
+    if(RO){c.textContent="static copy, read only";c.className="conn";byId("asof").textContent="Static copy of one run, written when the run ended; not connected to the shared record.";}
+    else{c.textContent="shared record, saved";c.className="conn on";byId("asof").textContent="Live. The record is shared and saved as you edit.";}
+    subscribe();renderAll();
   },function(){offline();});
 }
 connect();

@@ -2,6 +2,67 @@
 
 Written by scripts/release.py.
 
+## 2026-10-10
+
+### skill-craft 1.26.1
+
+- Skills: shiploop-run-review 0.1.3
+
+### shiploop-run-review 0.1.3
+
+- The Run Review page and export read better and say more: a counter is no longer "1 refusals" (the header line, the Refusals card and
+  the run facts count in the right number, as does the exporter's "1 child, 1 review pass"), a size over 1000 KB prints in MB, and the
+  unreturned product's checks are exported and shown as how many pass in the worktree ("passes 4/4 checks in the worktree") instead of a
+  yes or no. A run exported with the earlier boolean `worktreeChecks` is refused; export it again.
+- The Run Review page says each figure once. The header line holds the release, the time and the planning-review mode; refusals, Improve and
+  context stay on their cards; the run detail drops the elapsed time, context peak and compactions the cards already show; the Improve packet
+  counts and the packet reads moved from the cards to the Fidelity card, which now sits with the Fresh starts and Quality cards after the stage
+  cards. A refusal line no longer carries the run's absolute folder (it reads `<run>/.shiploop-runs/...`).
+- A stage card opens and closes in place: tap a row in the stage list and its card opens directly under it (every row has a chevron at its right edge, pointing down while it can be opened and up while it is open,
+  and the open row is highlighted); tap the row again, or Close, to collapse it. A click on a column of the picture opens the matching row, and Previous visit
+  and Next visit move the open card down the list. Keyboard focus stays on the row.
+- The Run Review export and page now show four more records the E2E harness writes. How the harness classed the ending (PASS, FAILED,
+  BLOCKED or STOPPED, with its grounds) is a line under the run header, as a record and never coloured as a verdict. The build under test
+  (plugin hash, prompt hash, host build) is another line, with the harness's reason for any it could not measure. An Environment card
+  shows the tools, the browser and the other runs that shared the machine while this one ran, and a chip in the header says so, since
+  minutes measured beside another run are not clean. A run that did not pass shows, as information only, how many of its checks pass in
+  the worktree it never returned and what each failing check printed. All four are absent for a run exported before the harness wrote them.
+- The Run Review export and page now show how ShipLoop was carried in a run. A new Fidelity card reads the harness's fidelity block: how each accepted
+  stage's exit was evidenced (a script record, an Improve review, a cited file, notes, the model's sentence alone), what ShipLoop's script checks
+  recorded, the model's edits of ShipLoop's own files and its refusals by stage, each heuristic list printed with the harness's own limits text.
+  The exporter now scores the Improve child's packets for Goal, Done when, Checked by, Output and Recovery, shown on the Improve card next to the
+  run's release (Goal and Done when are printed from skill-craft 1.25.0, so an earlier release reads 0 for them by design). A run without these
+  records exports and renders as before, and says why they are not measured.
+- The Run Review export and page now show three more things a run recorded. Fresh starts: each time the model lost its context (a
+  compaction or a new host session), the calls and seconds it took to re-ground, with the failure and rewrite counts shown as lower
+  bounds, and a marker on the visit that followed; a run that could not record them says so instead of reading "none". Quality: the
+  mutation ratio with its operator, the survivors, the held-out checks and the model's writes to its own memory. A visit's context
+  now follows the harness's stage rows, not the host, so a Grok run shows its calls and peak tokens.
+- The Run Review export and page now say what the run delivered. A `delivered` object records whether the product was merged back into
+  the branch the run started from (and between which commits), or that it was not and which branch holds it; the kept files sorted into
+  source, tests, documentation, ShipLoop's own records and skills; how the tests last ran (the widest command of the release-verify
+  visit, never a sum); and the skill and release stages' own words. A new "What was delivered" card shows it, merge line first. A part the
+  workspace records cannot give is absent with its reason, never a zero; an export from before it gets no card.
+  A run that never returned says so once ("Files kept: not measured ...") instead of on every row, a red run at test-red says its new tests are meant to fail there, files in system/ count as tests, and a stage summary names a file by name, never by where the run lives.
+- The Run Review page now turns references in Claude's review text into links: an existing finding or option id jumps to its card,
+  a repo path, a commit and a spec clause S-n open on GitHub, and an https URL opens itself. The address is
+  `config/page.repoUrl` (in the defaults; `--check` refuses a non-https one; with none the repo references stay text). Run content
+  such as stage summaries and packets is never linked: those paths are files on the machine that ran the case.
+- Every Run Review export now also writes `run-review.html`: one self-contained, read-only file with that run's documents (the
+  run, its packets and Backchain loops, the starting expectations and settings) embedded in the page and a small stand-in for the
+  database, so the review of one run opens from disk with no network and can be kept as a reference. It says it is a static copy of
+  one run, not the shared record, and writes nothing. `export.py RUN_DIR --no-html` skips it.
+- The Run Review export and page now say how a run ended. A run the harness ended while ShipLoop still read active is `stopped`,
+  with the stage it never accepted and the minutes and turns that cost, shown as a "How it ended" card and a hatched last column in
+  the picture; a blocked run shows its question and options; the listeners the harness ended and whether the unreturned product
+  passes its checks in the worktree are recorded. A run resumed on another host lists both hosts and exports no mixed calls, context
+  or compaction figure, and a visit with no model call no longer prints "0 calls". The default run name carries the case, and the
+  text about refusals, per-visit context and `Checked by:` lines now matches the runs.
+- The Run Review export and page now show more of what a run recorded: each visit's script checks (the records ShipLoop kept, how
+  many passed or ran red, and where release-verify ran), the outcomes a result left unverified with their owner and due stage, a
+  Claude run's wrapper scripts and packet use (so glue reads as a lower bound), and the planning window with its two clocks, where
+  it closed and its Improve share. A stage that only ran `backchain-check` now reads as a graph check instead of "no loop".
+
 ## 2026-10-08
 
 ### skill-craft 1.26.0

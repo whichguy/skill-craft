@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Export one ShipLoop E2E run as Run Review documents (see ../SCHEMA.md).
 
-  export.py RUN_DIR [--key KEY] [--name NAME] [--order N] [--out DIR]
+  export.py RUN_DIR [--key KEY] [--name NAME] [--order N] [--out DIR] [--no-html]
   export.py --defaults [--live FILE] [--page-url URL] [--out DIR]
   export.py --check FILE
   export.py --docs FILE [--out DIR]
@@ -15,6 +15,8 @@ run directory) and writes only under --out (default RUN_DIR/review-export):
   writes.json                  the documents as ArtifactData `set` operations
   facts.md                     plain numbers for the reviewer
   review-export.json           every document but the packets in one compact file, to commit
+  run-review.html              the page with this run's documents inside: one read-only file that opens from disk
+                               (--no-html skips it)
 
 A missing metrics.json, timeline.json or results/ is an error naming the file
 (exit 2), never an empty export. The same input gives byte-identical output.
@@ -107,8 +109,12 @@ STAGE_PHASE = _with_aliases({stage: order for order, (_, stages) in enumerate(PH
 # that has any of them accepted has left implement.
 AFTER_IMPLEMENT = ("test-green", "test-refine", "regression", "document", "skill-assess", "skill-validate",
                    "static-checks", "verify", "integrate", "integration-verify", "carry-forward")
-# ShipLoop run status -> the page's run status.
+# ShipLoop run status -> the page's run status. A run whose engine says `active` but whose harness record says the host is
+# over is `stopped` (see build_run): the engine cannot say that, it is not running when its host goes away.
 RUN_STATUS = {"active": "active", "paused": "paused", "blocked": "blocked", "halted": "failed", "done": "done"}
+# What result.json says about a host that is over, for a run whose engine still reads active: it was stopped on purpose, hit its
+# deadline, crashed, or ended its turn with the resume budget spent. Not "not observed": a regrade started no host.
+HARNESS_ENDED = ("stopped", "timeout", "failed", "exited")
 # Upload order: what the page shows first (runs and their loops), the replicas published from defaults/, then the
 # review (the arc), the findings it raises and the options that resolve them, then the packets (megabytes: their own
 # upload batches, last, so the page shows the run before they arrive). Every SCHEMA collection is listed.
@@ -119,8 +125,98 @@ COLLECTION_ORDER = ("runs", "backchain", "expectations", "config", "reviews", "o
 # ("enum", values), ("list", item), ("items", {field: spec}) for a list of objects,
 # ("map", value type) for an object of values. A `?` field of an item is not required.
 S, N, B, ISO = "string", "number", "boolean", "iso"
+HTTPS_URL = "https-url"  # an https:// URL with no whitespace: the page puts it in an href, so nothing else (javascript:, data:, http:) may
 BOOL_OR_UNKNOWN = "bool-or-unknown"  # true, false or the string "unknown": a fact that may not be knowable from the records
-PHASE_STATES = ("done", "running", "blocked", "none")
+PHASE_STATES = ("done", "running", "blocked", "stopped", "none")
+VERIFY_FIELDS = {"records": (N, True), "passed": (N, True), "red": (N, False), "couldNotRun": (N, False),
+                 "runs": (("items", {"status": (S, True), "ran": (N, False), "failed": (N, False), "acceptedRan": (N, False)}), False),
+                 "observed": (("object", {"where": (S, False), "tree12": (S, False)}), False)}
+UNVERIFIED_FIELDS = {"outcome": (S, False), "reason": (S, False), "check": (S, False), "owner": (S, False), "dueStage": (S, False)}
+WORKTREE_CHECKS = {"passed": (N, True), "total": (N, True)}
+# R23a. The harness's closed list of endings (test/shiploop_e2e/run.py OUTCOME_CLASSES): a record of how the run ended, never a verdict.
+OUTCOME_CLASSES = ("PASS", "FAILED", "BLOCKED", "STOPPED")
+MAX_OUTCOME_BASIS = 400  # characters of the harness's basis kept
+MAX_IDENTITY = 80  # characters of a build string kept (a hash is 12 characters; a host build is a version)
+MAX_TOOLS = 12  # tool versions kept from an observed start
+MAX_OVERLAP_RUNS = 30  # sibling runs listed in the overlap; the rest are counted in `runsOmitted`
+MAX_AT_STOP_CHECKS = 20  # checks listed for the product at the stop; the counts always cover every check
+MAX_AT_STOP_COMMAND = 160  # characters of a check's command kept (the head)
+MAX_AT_STOP_OUTPUT = 240  # characters of a failing check's output kept (the tail: the harness keeps a tail too, the error is last)
+NO_REASON_RECORDED = "no reason recorded"
+OUTCOME_FIELDS = {"class": (("enum", OUTCOME_CLASSES), False), "basis": (S, False)}
+IDENTITY_FIELDS = {"pluginSha": (S, False), "promptSha": (S, False), "hostBuild": (S, False)}
+OVERLAP_RUN = {"folder": (S, True), "case": (S, False), "hosts": (("list", S), False),
+               "overlappedMin": (N, True), "startedOffsetMin": (N, True)}
+ENVIRONMENT_FIELDS = {
+    "tools": (("map", S), False),
+    "browser": (("object", {"declared": (B, True), "probed": (B, True), "reason": (S, False), "version": (S, False),
+                            "targets": (("map", S), False)}), False),
+    "overlap": (("object", {"basis": (S, True), "runs": (("items", OVERLAP_RUN), True), "runsOmitted": (N, False),
+                            "unreadable": (("list", S), False)}), False)}
+AT_STOP_CHECK = {"command": (S, True), "pass": (B, True), "returncode": (N, False), "timedOut": (B, False), "output": (S, False)}
+PRODUCT_AT_STOP_FIELDS = {
+    "ran": (B, True), "reason": (S, False), "engineStatus": (S, False), "engineStage": (S, False),
+    "passed": (N, False), "failed": (N, False), "timedOut": (N, False), "total": (N, False),
+    "checks": (("items", AT_STOP_CHECK), False)}
+# R23d. What the run delivered, read from the three records of the run's workspace folder (workspace.md, return-plan.md,
+# return-receipt.md) and the stage rows. Every part is optional; a part the records cannot give is absent with its reason in
+# `unmeasured["delivered.<part>"]` (SCHEMA.md "What was delivered").
+DELIVERED_KINDS = ("source", "tests", "docs", "knowledge", "skills")  # the kinds a kept path is sorted into, each path once
+MAX_DELIVERED_ITEMS = 12  # paths listed per kind; `more` counts the rest
+MAX_DELIVERED_PATH = 160  # characters of a listed path
+MAX_DELIVERED_SKILL = 240  # characters of a skill stage's summary kept
+MAX_DELIVERED_RELEASE = 280  # characters of a release stage's summary kept
+DELIVERED_KIND_FIELDS = {"count": (N, True), "items": (("items", {"path": (S, True), "change": (S, False)}), True), "more": (N, False)}
+DELIVERED_FIELDS = {
+    "returned": (("object", {"status": (S, True), "into": (S, False), "from": (S, False), "mode": (S, False),
+                             "before": (S, False), "after": (S, False)}), False),
+    "files": (("object", {kind: (("object", DELIVERED_KIND_FIELDS), False) for kind in DELIVERED_KINDS}), False),
+    "tests": (("object", {"ran": (N, True), "failed": (N, False), "stage": (S, True), "where": (S, False)}), False),
+    "skill": (("object", {"assessed": (S, False), "validated": (S, False)}), False),
+    "release": (("object", {"plan": (S, False), "done": (S, False)}), False)}
+LEFT_BEHIND_ITEM = {"command": (S, True), "ports": (("list", N), False),
+                    "where": (("enum", ("worktree", "work", "other")), True), "endedBy": (S, False)}
+# R23c. A fresh start (the model lost its context: a compaction, or a new host session) and what it cost to re-ground; the mark on
+# the visit that followed; the delivered-quality block. Every member is optional unless marked; none is a verdict (SCHEMA.md).
+FRESH_REORIENTED = {
+    "measured": (B, True), "reason": (S, False), "toolCalls": (N, False), "seconds": (N, False), "firstGrounding": (S, False),
+    "callsBeforeGrounding": (N, False), "nextCalls": (N, False), "askedUser": (N, False),
+    "failures": (("object", {"count": (N, True), "bound": (S, True), "scope": (S, True)}), False),
+    "rewrote": (("object", {"count": (N, False), "bound": (S, True), "scope": (S, True)}), False),
+    "accepted": (("object", {"stage": (S, False), "action": (S, False)}), False)}
+FRESH_START_FIELDS = {"kind": (S, True), "host": (S, False), "stage": (S, False), "startedBy": (S, False),
+                      "reoriented": (("object", FRESH_REORIENTED), True)}
+FRESH_MARK_FIELDS = {"kind": (S, True), "toolCalls": (N, False), "seconds": (N, False)}
+QUALITY_MUTATION = {
+    "observed": (B, True), "reason": (S, False), "operatorId": (S, False), "ratio": (N, False), "sites": (N, False),
+    "killed": (N, False), "survived": (N, False), "timeout": (N, False), "invalid": (N, False), "unconfirmed": (N, False),
+    "portRefused": (N, False), "notRun": (N, False), "ceilingHit": (B, False), "seconds": (N, False),
+    "uncovered": (("items", {"file": (S, True), "inlineScriptLines": (N, False)}), False),
+    "survivors": (("items", {"file": (S, True), "line": (N, False), "op": (S, False), "from": (S, False), "to": (S, False)}), False)}
+QUALITY_FIELDS = {
+    "observed": (B, True), "reason": (S, False), "declared": (("list", S), False), "mutation": (("object", QUALITY_MUTATION), False),
+    "acceptance": (("object", {"observed": (B, True), "reason": (S, False), "passed": (N, False), "total": (N, False),
+                               "failed": (("list", S), False)}), False),
+    "memoryWrites": (("object", {"count": (N, True), "items": (("items", {"path": (S, True), "tool": (S, False)}), False)}), False),
+    "heldOutSeen": (N, False), "notes": (("list", S), False), "seconds": (N, False), "unmeasured": (("map", S), False)}
+
+# R23b. The Improve child's packet labels (IMPROVE_CARRIED below) scored per visit and counted per run, and the compact reading of the
+# harness's fidelity block (metrics.json `fidelity`, schema shiploop-e2e-fidelity/v1): how each accepted stage's exit was evidenced,
+# what ShipLoop's own script checks recorded, the model's edits of ShipLoop's files (a list to confirm) and its refusals by stage.
+IMPROVE_KEYS = ("goal", "doneWhen", "checkedBy", "output", "recovery")
+IMPROVE_CARRIED_FIELDS = {key: (B, True) for key in IMPROVE_KEYS}
+IMPROVE_PACKETS_FIELDS = {"read": (N, True), "carried": (("object", {key: (N, True) for key in IMPROVE_KEYS}), True)}
+FIDELITY_SCHEMA = "shiploop-e2e-fidelity/v1"
+EVIDENCE_CLASSES = ("script", "loop", "file", "note", "sentence", "skipped", "unclassified")  # the harness's, in its order
+FIDELITY_FIELDS = {
+    "evidence": (("object", {**{name: (N, False) for name in EVIDENCE_CLASSES}, "scriptRunWithoutRecord": (("list", S), False)}), False),
+    "validation": (("object", {name: (N, False) for name in (
+        "records", "runs", "distinctCommands", "passed", "couldNotRun", "red", "unread", "testsRanUnmeasured", "counted", "zeroRan")}), False),
+    "edits": (("object", {
+        "scriptOwned": (("object", {"count": (N, True), "items": (("items", {"form": (S, True), "target": (S, True), "tool": (S, False)}), False)}), False),
+        "nameKills": (N, False), "modelCommits": (N, False), "limits": (S, False)}), False),
+    "refusals": (("object", {"repeated": (N, False), "unstaged": (N, False), "limits": (S, False),
+                             "byStage": (("items", {"stage": (S, True), "count": (N, True)}), False)}), False)}
 SCHEMA = {
     # No expectation carries a status: how an expectation stands for a run is derived by the page from the run's
     # findings and review. `clauses` ties a criterion to the S-n clauses of test/shiploop_e2e/SPEC.md.
@@ -148,9 +244,10 @@ SCHEMA = {
         # The run's `planning_review` option as state.md recorded it, text as written ("not recorded" when the key is
         # absent: never a default), and, only for the recorded value `none`, what that means for the Improve numbers.
         "planningReview": (S, False), "improveScope": (S, False),
-        "status": (("enum", ("done", "active", "paused", "blocked", "failed")), False),
+        "status": (("enum", ("done", "active", "paused", "blocked", "failed", "stopped")), False),
         "startedAt": (ISO, False), "endedAt": (ISO, False),
-        "verdicts": (("map", B), False),
+        # invoked, plugin, process, shiploop, committed and checks are booleans; worktreeChecks is {passed, total} (see _worktree_checks).
+        "verdicts": (("verdicts", None), False),
         # min is null when the visit has no accept stamp, the one before it has none, the stamps run backwards, or the
         # harness seeded the visit: unknown, not 0. seeded and skipped are present only when true; improve and context
         # hold only the numbers that were measured (SCHEMA.md).
@@ -170,7 +267,16 @@ SCHEMA = {
                               "carried": (("map", B), False), "packetImprove": (B, False),
                               # an Improve child's own packet file packets/<action>-improve.md (the layout after ShipLoop 1.22.0): its
                               # size, and true when a packets document `<runKey>--<action>-improve` was written for it.
-                              "improvePacketBytes": (N, False), "improvePacketDoc": (B, False)}), False),
+                              "improvePacketBytes": (N, False), "improvePacketDoc": (B, False),
+                              # R22b: what ShipLoop's own script checks recorded for the visit (tests/<action>-verifyN.md) and
+                              # the outcomes a result left unverified, each with its owner and due stage (SCHEMA.md).
+                              "verify": (("object", VERIFY_FIELDS), False),
+                              "unverified": (("items", UNVERIFIED_FIELDS), False),
+                              # R23c: the fresh start this visit's acceptance ended (SCHEMA.md "Fresh starts").
+                              "freshStart": (("object", FRESH_MARK_FIELDS), False),
+                              # R23b: how this visit's exit was evidenced (the harness's class: script, loop, file, note, sentence,
+                              # skipped, unclassified) and which of the five IMPROVE_CARRIED labels its Improve child's packet carried.
+                              "evidenceClass": (S, False), "improveCarried": (("object", IMPROVE_CARRIED_FIELDS), False)}), False),
         # The plan's work items and how each went through the steps loop, from state.md and results/ only. Absent, with
         # a reason in `unmeasured.workItems`, when the records cannot tell; stepsPlanned and stepsExecuted are absent,
         # with a reason under their own name, when any item's steps or pairing is unknown. Never a zero for those.
@@ -185,6 +291,57 @@ SCHEMA = {
         "knowledge": (("map", N), False),
         "failures": (("items", {"verb": (S, True), "line": (S, True)}), False),
         "evidence": (S, False),
+        # Every host that ran the run (invocation.json and each invocation-resume-*.json, first seen first): a run resumed on
+        # another host has two, and its calls, context peak, window and compactions are then not a measure (see unmeasured).
+        "hosts": (("items", {"host": (S, True), "model": (S, False), "effort": (S, False)}), False),
+        # How the run ended, from the harness's termination record and metrics.json's unaccepted tail (SCHEMA.md "How the run
+        # ended"): why a stopped run stopped (`by`), the stage the engine never accepted and what it cost, the sessions this
+        # invocation ran, and the earlier invocations' terminations. Present only when there is something to say.
+        "ending": (("object", {
+            "by": (S, False), "stage": (S, False), "action": (S, False), "unacceptedMin": (N, False),
+            "unacceptedTurns": (N, False), "packetBytes": (N, False), "packetDoc": (B, False),
+            "sessions": (N, False), "resumes": (N, False),
+            "earlier": (("items", {"by": (S, False), "stage": (S, False)}), False)}), False),
+        # A blocked run's own words: the engine's class (`blocked_by`), its status reason, the one-line headline and, when it
+        # asked, the question with its options and why no default was taken. Every member is optional.
+        "blocked": (("object", {
+            "by": (S, False), "reason": (S, False), "headline": (S, False), "question": (S, False),
+            "options": (("list", S), False), "noDefault": (S, False)}), False),
+        # The listeners the harness found under the run's folder and ended (or could not): the harness's left_behind record
+        # without pids, argument lists or absolute paths. `where` is worktree, work or other.
+        "leftBehind": (("object", {
+            "observed": (B, True), "reason": (S, False),
+            "reaped": (("items", LEFT_BEHIND_ITEM), False), "survived": (("items", LEFT_BEHIND_ITEM), False)}), False),
+        # R22b. How the model used its tools and the packets (a Claude run's main thread, record only): the wrapper scripts it wrote
+        # around ShipLoop and how it met the packets. Absent, with `unmeasured.toolUse`, on a host the harness does not read it from.
+        "toolUse": (("object", {
+            "wrappers": (("items", {"name": (S, True), "runs": (N, True)}), False),
+            "packets": (("object", {"files": (N, False), "bytes": (N, False), "printed": (N, False), "printedChars": (N, False),
+                                    "readWhole": (N, False), "readPartial": (N, False), "shellReads": (N, False),
+                                    "shellChars": (N, False)}), False)}), False),
+        # R22b. The planning window of the owner's 30-minute rule, read from metrics.json's `planning` block, not recomputed:
+        # its length on the engine's clock and the host's, the stage it closed at, the Improve share and the output tokens.
+        "planning": (("object", {
+            "closed": (B, False), "through": (S, False), "windowMin": (N, False), "hostWindowMin": (N, False),
+            "improveMin": (N, False), "children": (N, False), "outputTokens": (N, False), "reasoningPct": (N, False)}), False),
+        # R23a. How the harness classed the ending (a record, never a verdict), the build under test, the machine and the other runs
+        # that shared it, and the case checks run in the worktree the run never returned (information only). SCHEMA.md "The run's record".
+        "outcome": (("object", OUTCOME_FIELDS), False),
+        "identity": (("object", IDENTITY_FIELDS), False),
+        "environment": (("object", ENVIRONMENT_FIELDS), False),
+        "productAtStop": (("object", PRODUCT_AT_STOP_FIELDS), False),
+        # R23d. What the run delivered: whether the product was merged back into the branch the run started from, the kept files by
+        # kind, how the tests last ran, what the skill and release stages decided (SCHEMA.md "What was delivered").
+        "delivered": (("object", DELIVERED_FIELDS), False),
+        # R23c. Every time the model lost its context and what re-grounding cost (record only), and the delivered-quality block
+        # (SCHEMA.md "Fresh starts" and "Quality"). Absent for a run recorded before the harness wrote them; `unmeasured.freshStarts`
+        # says why a list is absent or partial. An absent `quality` means the case measures none or the phase has not run.
+        "freshStarts": (("items", FRESH_START_FIELDS), False),
+        "quality": (("object", QUALITY_FIELDS), False),
+        # R23b. The harness's fidelity block read compactly (SCHEMA.md "Fidelity"), and the run's count of the labels its Improve
+        # child's packets carried (a measured none is read 0; the old layout is absent, with `unmeasured.improvePackets`).
+        "fidelity": (("object", FIDELITY_FIELDS), False),
+        "improvePackets": (("object", IMPROVE_PACKETS_FIELDS), False),
     },
     "backchain": {
         "run": (S, False), "loop": (S, False), "phase": (N, False), "order": (N, False), "title": (S, False),
@@ -193,6 +350,8 @@ SCHEMA = {
         # the last backchain-check receipt is for the loop's final candidate (true, false or "unknown"), and the
         # trivial reviews the loop's receipt required (0 on a one-pass loop).
         "backchainPasses": (S, False), "candidateMatch": (BOOL_OR_UNKNOWN, False), "trivialRequired": (N, False),
+        # R22b: true on a document for a stage that ran only `shiploop backchain-check` (no Until Loop): graph checks, no passes.
+        "graphCheckOnly": (B, False),
         "segments": (("items", {"label": (S, True), "min": (N, True),
                                 "kind": (("enum", ("added", "wasted", "insurance", "unclear", "neutral")), True),
                                 "note": (S, True), "pass": (N, False), "change": (S, False),
@@ -223,9 +382,9 @@ SCHEMA = {
                    False),
         "ref": (S, False),
     },
-    # config/page and config/prompt share the collection; every field is a string.
+    # config/page and config/prompt share the collection; every field is a string (repoUrl: an https:// URL, see HTTPS_URL).
     # config/stages is the stage catalog (defaults/stages.json, SCHEMA.md "Stage catalog"), a derived replica of the engine's table.
-    "config": {"title": (S, False), "artifactUrl": (S, False), "constraints": (S, False), "closing": (S, False),
+    "config": {"title": (S, False), "artifactUrl": (S, False), "repoUrl": (HTTPS_URL, False), "constraints": (S, False), "closing": (S, False),
                "stages": (("items", {"stage": (S, True), "purpose": (S, True),
                                      "exitCheck": (("enum", EXIT_CHECKS), True),
                                      "completeRuns": (("list", S), False),
@@ -260,6 +419,9 @@ def _type_problem(spec, value, where: str) -> list[str]:
             except ValueError:
                 pass
         return [f"{where}: expected an ISO date-time string"]
+    if spec == HTTPS_URL:
+        ok = isinstance(value, str) and re.fullmatch(r"https://[^\s\"'<>`]+", value) is not None
+        return [] if ok else [f"{where}: expected an https:// URL (the page links repo references to it)"]
     if spec == BOOL_OR_UNKNOWN:
         return [] if isinstance(value, bool) or value == "unknown" else [f'{where}: expected true, false or "unknown"']
     if spec == "any-scalar":
@@ -268,6 +430,13 @@ def _type_problem(spec, value, where: str) -> list[str]:
     kind, arg = spec
     if kind == "figure":
         return _figure_problems(value, where)
+    if kind == "verdicts":
+        if not isinstance(value, dict):
+            return [f"{where}: expected an object"]
+        return [p for k, v in value.items() for p in (
+            _fields_problems(WORKTREE_CHECKS, v, f"{where}.{k}") if k == "worktreeChecks" and isinstance(v, dict)
+            else [f"{where}.{k}: expected an object {{passed, total}}"] if k == "worktreeChecks"
+            else _type_problem(B, v, f"{where}.{k}"))]
     if kind == "object":
         if not isinstance(value, dict):
             return [f"{where}: expected an object"]
@@ -445,15 +614,17 @@ def current_stage(state: dict) -> str | None:
 
 
 def derive_phases(stage_phases: list[int], current: int | None, status: str | None) -> list[str]:
-    """One state per phase: running/blocked for the current phase, done for any other phase the run
-    reached (its reached stages are all accepted once the run has moved on), none otherwise."""
+    """One state per phase: running, blocked or stopped for the current phase, done for any other phase the run
+    reached (its reached stages are all accepted once the run has moved on), none otherwise. `status` is the ShipLoop
+    status, or "stopped" for a run the harness ended while its engine still read active (build_run): its current phase is
+    `stopped`, not `running` (the run is not going on) and not `blocked` (the engine did not block it)."""
     reached = set(stage_phases)
     states = []
     for order in range(len(PHASES)):
         if status == "done":
             states.append("done" if order in reached else "none")
         elif order == current:
-            states.append("blocked" if status in ("blocked", "halted") else "running")
+            states.append("blocked" if status in ("blocked", "halted") else "stopped" if status == "stopped" else "running")
         else:
             states.append("done" if order in reached else "none")
     return states
@@ -465,12 +636,16 @@ def _fmt_minutes(minutes: float | None) -> str:
     return f"{round(minutes)} min" if minutes < 120 else f"{minutes / 60:.1f} h"
 
 
-def _time_text(status: str | None, wall: float | None, accepted: int) -> str:
+def _time_text(status: str | None, wall: float | None, accepted: int, ending: dict | None = None) -> str:
+    """The run header's time: how long it ran to its last accept, by status. A stopped run also says how much unaccepted
+    work came after that accept when the harness measured it (`ending.unacceptedMin`), since it is not running now."""
     if not accepted:
         return "no stage accepted yet"
     spent = _fmt_minutes(wall)
+    tail = (ending or {}).get("unacceptedMin")
+    stopped = f"stopped after {spent}" + (f", then {_fmt_minutes(tail)} of unaccepted work" if isinstance(tail, (int, float)) else "")
     return {"done": f"done in {spent}", "active": f"running, {spent} at snapshot", "paused": f"paused after {spent}",
-            "blocked": f"blocked after {spent}", "failed": f"halted after {spent}"}.get(status, spent)
+            "blocked": f"blocked after {spent}", "failed": f"halted after {spent}", "stopped": stopped}.get(status, spent)
 
 
 def _knowledge(checkouts: list[Path]) -> tuple[dict, Path | None]:
@@ -846,6 +1021,42 @@ def find_backchain_loops(run_dir: Path) -> list[Path]:
     return [p.parent for p in sorted((run_dir / "backchain").glob("*/until-loop-receipt.json")) if p.is_file()]
 
 
+def find_graph_check_dirs(run_dir: Path) -> list[Path]:
+    """The run/backchain/<action>/ directories that hold `shiploop backchain-check` receipts (check-*.json) and no
+    until-loop-receipt.json: a stage that checked its graph and ran no Until Loop (a one-pass option). They were read as no
+    loop at all, so a run whose plan was checked read "none"."""
+    return [p for p in sorted((run_dir / "backchain").glob("*")) if p.is_dir() and not (p / "until-loop-receipt.json").is_file()
+            and any(p.glob("check-*.json"))]
+
+
+def graph_check_doc(run_key: str, run_dir: Path, folder: Path, order: int, option: str = NOT_RECORDED,
+                    stage_of: dict[str, str] | None = None) -> dict:
+    """The backchain/<runKey>-<stage> document for a stage that only ran `backchain-check`: no segments, `graphCheckOnly`
+    true, and a fact "graph check only: N checks, last ok (complete)" read from the newest receipt (file time, then name).
+    `candidateMatch` is as for a loop: whether that receipt is for the final candidate the folder's records name, which a
+    folder with no loop record never does ("unknown", with the reason)."""
+    name = (stage_of or {}).get(folder.name) or _loop_name(folder.name)
+    receipts = []
+    for path in sorted(folder.glob("check-*.json")):
+        data = _optional_json(path)
+        if isinstance(data, dict):
+            receipts.append(((path.stat().st_mtime, path.name), data))
+    receipts.sort(key=lambda t: t[0])
+    last = receipts[-1][1] if receipts else {}
+    ok = {True: "ok", False: "not ok"}.get(last.get("ok"), "ok not recorded")
+    completion = _text(last.get("completion"))
+    final = _record_digests(run_dir, folder)[1]
+    match, said = _candidate_match(final, _last_check(folder))
+    checks = _count(len(receipts), "check")
+    return {"run": run_key, "loop": name, "phase": STAGE_PHASE.get(name, 2), "order": order,
+            "title": f"{name[:1].upper()}{name[1:]} graph check", "stageMin": None, "segments": [], "graphCheckOnly": True,
+            "backchainPasses": option, "candidateMatch": match,
+            "facts": [{"k": "Graph check", "v": f"graph check only: {checks}, last {ok}" + (f" ({completion})" if completion else "")},
+                      {"k": "Backchain passes option", "v": option}, {"k": "Candidate match", "v": said},
+                      {"k": "Receipt", "v": folder.relative_to(run_dir).as_posix() + "/" + (
+                          max(folder.glob("check-*.json"), key=lambda p: (p.stat().st_mtime, p.name)).name)}]}
+
+
 # ---------------------------------------------------------------- the run document
 
 def _clean_key(text: str) -> str:
@@ -934,19 +1145,29 @@ def _model_measures(metrics: dict, harness: dict[str, str]) -> tuple[dict, dict[
     return found, why
 
 
-NO_VISIT_CONTEXT = ("the harness's stage rows carry no per-stage context (it reads that only from a Codex run's "
-                    "rollouts)")
+NO_VISIT_CONTEXT = "the harness's stage rows carry no per-stage context, as this run was recorded"
+
+
+def visits_without_context_reason(lacking: int, total: int) -> str:
+    """Why some visits carry no context while others do (R23c): read from the stage rows, never from the host. A row has a
+    `context` when the harness measured at least one model call in its stage window (Claude's messages, Grok's usage events,
+    a Codex rollout's calls); a window with no host event has none, which is not a count of zero calls."""
+    return (f"{lacking} of {total} visits carry no context: the harness measured no model call in their stage windows (no host "
+            "event there, or the window could not be placed); that is not zero calls")
 
 
 def _visit_context(metrics: dict, history: list[dict]) -> tuple[list[dict | None], str | None]:
-    """(context per history entry, why none is shown).
+    """(context per history entry, why some visits have none).
 
     The harness's stage rows (metrics.json `stages`) carry no action id: each is built from one history entry of
     state.md, in order, plus a trailing `incomplete` row for the stage the run stopped in. So a row belongs to the
     history entry at its position, and that entry names the action. The join is used only when the rows line up
     exactly (the same count, and the same stage and outcome at every position); otherwise no visit gets a context,
-    never a guess. A context holds only the figures the harness measured: calls, peak, peakPct, compactions.
-    """
+    never a guess. A context holds only the figures the harness measured: calls, peak, peakPct, compactions (a Grok row's
+    peakPct is null: the host reports no window, so none is computed). Whether a visit has one follows its row, not the host.
+    A row that counts no model call (`calls` 0) has none: its peak is unmeasured, and "0 calls" beside it would read as a
+    measurement, as it did for the visits a run recorded before the harness left such a row out. The reason is None when
+    every visit has a context; with none, the rows carry no per-stage context; with some, the visits lacking one are counted."""
     rows = metrics.get("stages")
     rows = [r for r in rows if isinstance(r, dict) and not r.get("incomplete")] if isinstance(rows, list) else []
     if not any(isinstance(r.get("context"), dict) for r in rows):
@@ -959,9 +1180,14 @@ def _visit_context(metrics: dict, history: list[dict]) -> tuple[list[dict | None
     found = []
     for row in rows:
         figures = row.get("context") if isinstance(row.get("context"), dict) else {}
+        calls = _num(figures.get("calls"))
+        if calls is not None and calls < 1:
+            found.append(None)
+            continue
         found.append({k: figures[k] for k in ("calls", "peak", "peakPct", "compactions")
                       if _num(figures.get(k)) is not None} or None)
-    return found, None if any(found) else NO_VISIT_CONTEXT
+    lacking = sum(1 for context in found if context is None)
+    return found, visits_without_context_reason(lacking, len(found)) if lacking else None
 
 
 def _seeded(seeded, history: list[dict]) -> tuple[set[str], str | None]:
@@ -980,6 +1206,1150 @@ def _seeded(seeded, history: list[dict]) -> tuple[set[str], str | None]:
         return set(), (f"result.json says the harness seeded {', '.join(names)}, but the first {len(names)} visits "
                        f"of state.md are {', '.join(str(s) for s in first) or 'none'}")
     return {h["action"] for h in history[:len(names)] if isinstance(h.get("action"), str)}, None
+
+
+# ---------------------------------------------------------------- hosts, how the run ended, blocked, left behind (R22a)
+
+MAX_REASON = 600  # characters of a blocked run's reason, question and why-no-default kept in the run document
+RUN_FOLDER_PATH = re.compile(r"/(?:Users|home|private|tmp|var)/\S*?/(?=\.shiploop-runs/)")  # the run folder a refusal names its file under
+
+
+def failure_line(text) -> str:
+    """A refusal line as the run document keeps it: a file the engine asked for stays named by its place in the run (`<run>/.shiploop-runs/
+    work-x/run/notes/intake.md`), any other absolute path is cut to its last name. Where the run lives on the machine is not exported."""
+    marked = RUN_FOLDER_PATH.sub("\x00", str(text or ""))  # the marker has no slash, so the path scrubber leaves what follows it alone
+    return _without_paths(marked).replace("\x00", "<run>/")
+
+
+STOP_FILE_PATH = re.compile(r"\S*/stop\b")  # the one path the harness's stop_cause writes: the run's stop file
+
+
+def _hosts(out: Path) -> list[dict]:
+    """Every host that ran this run, first seen first: invocation.json, then each invocation-resume-<host>-<time>.json by
+    that time. One entry per distinct (host, model, effort): a run resumed on the same host and model has one, a run resumed
+    on another has two (the harness's calls, context peak, window and compactions then mix them: build_run drops them)."""
+    def resumed_at(path: Path) -> tuple[int, str]:
+        tail = re.search(r"-(\d+)\.json$", path.name)
+        return (int(tail.group(1)) if tail else 0, path.name)
+    files = [out / "invocation.json", *sorted(out.glob("invocation-resume-*.json"), key=resumed_at)]
+    found: list[dict] = []
+    for path in files:
+        record = _optional_json(path)
+        host = _text(record.get("host")) if isinstance(record, dict) else None
+        if host is None:
+            continue
+        entry = {"host": host, **{k: v for k in ("model", "effort") if (v := _text(record.get(k)))}}
+        if entry not in found:
+            found.append(entry)
+    return found
+
+
+def _hosts_why(hosts: list[dict]) -> str:
+    """The reason a figure the harness mixes across hosts is not exported: the hosts, and that a mixed figure is no measure."""
+    names = ", ".join(" ".join(h[k] for k in ("host", "model") if k in h) for h in hosts)
+    return (f"{len(hosts)} hosts ran this ({names}): the harness mixes their events in one figure, so it is not a measure")
+
+
+def _process_status(result: dict) -> str | None:
+    """The harness's word on the host process at the end of the run: termination.process_status, else process.status
+    (exited, failed, stopped, timeout, or "not observed" when the run was only regraded)."""
+    termination = result.get("termination") if isinstance(result.get("termination"), dict) else {}
+    process = result.get("process") if isinstance(result.get("process"), dict) else {}
+    status = termination.get("process_status") or process.get("status")
+    return status if isinstance(status, str) else None
+
+
+def _worktree_checks(result: dict) -> dict | None:
+    """How many of the checks pass in the worktree, {passed, total}: the harness runs them there when the product was not
+    returned (shiploop.worktree_checks), as information next to `checks`. None when it did not. Every check passing is
+    `passed` equal to `total`."""
+    checks = (result.get("shiploop") or {}).get("worktree_checks") if isinstance(result.get("shiploop"), dict) else None
+    if not (isinstance(checks, list) and checks and all(isinstance(c, dict) for c in checks)):
+        return None
+    return {"passed": sum(1 for c in checks if c.get("pass") is True), "total": len(checks)}
+
+
+def _where(cwd) -> str:
+    """Where a listener ran: in the worktree (the product not yet returned), in the work folder (the returned result), or
+    elsewhere. Read from the path's own components, so a copied run directory classifies the same; the component nearest
+    the process's own directory decides when a path holds both."""
+    parts = Path(cwd).parts if isinstance(cwd, str) else ()
+    return next((name for name in reversed(parts) if name in ("worktree", "work")), "other")
+
+
+def _left_behind(record) -> dict | None:
+    """The harness's left_behind record as the run document keeps it, or None when result.json has none (a regrade, or a
+    run before the harness reaped). pid, argv and cwd are dropped: a port, a command, where and how it ended say what the
+    listener was; the exporter only reads this record, it never looks at a process. A table the harness could not read
+    stays `observed` false with its reason, never an empty list."""
+    if not isinstance(record, dict) or not isinstance(record.get("observed"), bool):
+        return None
+
+    def entries(name: str) -> list[dict]:
+        found = []
+        for item in record.get(name) or []:
+            if not isinstance(item, dict) or not isinstance(item.get("command"), str):
+                continue
+            row = {"command": Path(item["command"]).name or item["command"],
+                   "where": _where(item.get("cwd"))}
+            ports = [p for p in item.get("ports") or [] if isinstance(p, int) and not isinstance(p, bool)]
+            if ports:
+                row["ports"] = ports
+            if isinstance(item.get("ended_by"), str) and item["ended_by"]:
+                row["endedBy"] = item["ended_by"]
+            found.append(row)
+        return found
+    if not record["observed"]:
+        reason = _text(record.get("reason"))
+        return {"observed": False, **({"reason": reason[:200]} if reason else {})}
+    return {"observed": True, "reaped": entries("reaped"), "survived": entries("survived")}
+
+
+def _ended_by(text, process_status) -> str | None:
+    """Why the harness's last session ended, in its own words: result.json termination.resume_stop ('stopped by the stop
+    file', 'terminated by SIGTERM', 'run deadline spent', 'resume budget spent (3)', ...). The stop file's absolute path is
+    replaced by its name, and a host that timed out or failed says so first."""
+    said = STOP_FILE_PATH.sub("the stop file", " ".join(text.split())) if isinstance(text, str) and text.strip() else ""
+    host = f"host {process_status}" if process_status in ("timeout", "failed") else ""
+    return "; ".join(part for part in (host, said) if part) or None
+
+
+def _pending_action(state: dict) -> str | None:
+    """The action id of the visit the engine had issued and not accepted (state.md `action`, or the inner loop's action of
+    the current work item), or None."""
+    action = state.get("action")
+    if state.get("stage") == "inner-loop":
+        try:
+            action = state["inner_loops"][state["work_items"][state["work_index"]]["id"]]["action"]
+        except (KeyError, IndexError, TypeError):
+            action = None
+    ident = action.get("id") if isinstance(action, dict) else None
+    return ident if isinstance(ident, str) and re.fullmatch(r"[A-Za-z0-9._-]+", ident) else None
+
+
+def _ending(result: dict, state: dict, metrics: dict, packets: Path, ended: bool) -> dict:
+    """How the run ended, from result.json's termination record and metrics.json's unaccepted tail ({} when there is
+    nothing to say: a run that finished in one session, or was only regraded).
+
+    `by` is only for a run the harness ended (`ended`: the engine read active, the host was over). `stage` is the stage the
+    engine never accepted (termination.engine_unaccepted_stage) and, from the harness's `incomplete` stage row, the
+    `unacceptedMin` and `unacceptedTurns` of the work after the last accept: unknown, and so absent, when the row has no
+    timing or no per-call usage. `action` and `packetBytes` name the packet that was issued for it, when the file is there.
+    `sessions` and `resumes` are this invocation's; `earlier` holds the terminations of the invocations before it."""
+    termination = result.get("termination") if isinstance(result.get("termination"), dict) else {}
+    ending: dict = {}
+    if ended:
+        by = _ended_by(termination.get("resume_stop"), termination.get("process_status"))
+        if by:
+            ending["by"] = by
+    stage = _text(termination.get("engine_unaccepted_stage"))
+    tail = next((r for r in metrics.get("stages") or [] if isinstance(r, dict) and r.get("incomplete")), None)
+    if stage is None and ended and tail is not None:
+        stage = _text(tail.get("stage"))
+    if stage:
+        ending["stage"] = stage
+        seconds, turns = _num((tail or {}).get("seconds")), _num((tail or {}).get("turns"))
+        if seconds is not None and seconds >= 0:
+            ending["unacceptedMin"] = round(seconds / 60, 1)
+        if turns is not None and turns >= 0:
+            ending["unacceptedTurns"] = turns
+        action = _pending_action(state)
+        if action and (packets / f"{action}.md").is_file():
+            ending["action"], ending["packetBytes"] = action, (packets / f"{action}.md").stat().st_size
+    for field in ("sessions", "resumes"):
+        if _num(termination.get(field)) is not None and termination[field] >= 0:
+            ending[field] = termination[field]
+    earlier = []
+    for item in result.get("earlier_terminations") if isinstance(result.get("earlier_terminations"), list) else []:
+        if isinstance(item, dict):
+            row = {k: v for k, v in (("by", _ended_by(item.get("resume_stop"), item.get("process_status"))),
+                                     ("stage", _text(item.get("engine_unaccepted_stage")))) if v}
+            if row:
+                earlier.append(row)
+    if earlier:
+        ending["earlier"] = earlier
+    noteworthy = ended or earlier or stage or (_num(ending.get("resumes")) or 0) >= 1
+    return ending if noteworthy else {}
+
+
+def _blocked(state: dict, history: list[dict], results: Path) -> dict:
+    """A blocked run's own words ({} when the records say nothing): the status reason of state.md (cut at MAX_REASON), and,
+    when the last visit's result is the blocked one, its `blocked_by` class, `headline` and `awaiting` (the question put to a
+    person, its options and why no default was taken)."""
+    found: dict = {}
+    reason = _text(state.get("status_reason"))
+    last = history[-1] if history else {}
+    body = _result_body(results, state, last.get("action")) if last.get("outcome") == "blocked" else {}
+    awaiting = body.get("awaiting") if isinstance(body.get("awaiting"), dict) else {}
+    if reason is None and isinstance(body.get("summary"), str):
+        reason = _text(body["summary"])
+    for field, value in (("by", body.get("blocked_by")), ("headline", body.get("headline")),
+                         ("question", awaiting.get("question")), ("noDefault", awaiting.get("no_default"))):
+        if _text(value):
+            found[field] = " ".join(value.split())[:MAX_REASON if field != "headline" else 200]
+    if reason:
+        found["reason"] = " ".join(reason.split())[:MAX_REASON]
+    options = [" ".join(o.split())[:300] for o in awaiting.get("options") or [] if _text(o)] \
+        if isinstance(awaiting.get("options"), list) else []
+    if options:
+        found["options"] = options
+    return found
+
+
+# ---------------------------------------------------------------- outcome, build, environment, product at the stop (R23a)
+# All four are read from result.json only, as the merged harness records them (test/shiploop_e2e/run.py, environment.py), and none
+# is a verdict. A part the harness could not observe is absent here and its reason is under its own name in `unmeasured`; a result
+# from before these keys has none of them and gets no note (it is not an unobserved part, it is an older record).
+
+ABSOLUTE_PATH = re.compile(r"(?<![\w.:/~-])(?!/dev/)(?:/[^\s/'\"`;,()<>|]+){2,}")  # two or more names after a leading slash
+
+
+def _line(value, limit: int = MAX_REASON, default: str | None = None) -> str | None:
+    """The text on one line cut at `limit` characters, or `default` when the value is not text."""
+    return " ".join(value.split())[:limit] if _text(value) else default
+
+
+def _without_paths(text: str) -> str:
+    """The text on one line with each absolute path (/a/b/c) replaced by its last name: no local path leaves the exporter."""
+    return ABSOLUTE_PATH.sub(lambda match: match.group(0).rsplit("/", 1)[1], " ".join(text.split()))
+
+
+def _tenths(seconds) -> float | None:
+    """Minutes to a tenth from a number of seconds, or None for no number. Never -0.0 (a sibling that began 0.4 s earlier began 0.0)."""
+    number = _num(seconds)
+    return None if number is None or not math.isfinite(number) else (round(number / 60, 1) or 0.0)
+
+
+def _outcome(result: dict) -> dict | None:
+    """The harness's one-word ending (result.json outcome_class) with its basis: {class?, basis?} or None when the result has neither.
+    A record, never a verdict. The class is one of OUTCOME_CLASSES; null (unknown) leaves it out and the basis says why, and a class
+    off the list is not trusted: it is left out and named in the basis. The stop file's path is replaced by its name."""
+    cls, basis = result.get("outcome_class"), _text(result.get("outcome_basis"))
+    said = _without_paths(STOP_FILE_PATH.sub("the stop file", basis))[:MAX_OUTCOME_BASIS] if basis else ""
+    found: dict = {}
+    if isinstance(cls, str) and cls in OUTCOME_CLASSES:
+        found["class"] = cls
+    elif cls is not None:
+        said = f"outcome class {cls!r} is not one this export knows" + (f"; {said}" if said else "")
+    if said:
+        found["basis"] = said
+    return found or None
+
+
+IDENTITY_SOURCES = (("pluginSha", "plugin_sha256"), ("promptSha", "prompt_sha256"), ("hostBuild", "host_build"))
+
+
+def _identity(result: dict) -> tuple[dict, dict[str, str]]:
+    """({pluginSha, promptSha, hostBuild}, {identity.<field>: why}) from result.json versions.plugin_sha256, prompt_sha256 and host_build.
+    A field is present only when it is text. One the result records as null (or not as text) is unknown, with the harness's reason
+    from identity_unmeasured (the plugin hash also from versions.plugin_sha256_unmeasured); one the result has no key for is from before
+    the field and says nothing. A reason kept for a field that is known (a regrade's stale note) is not copied."""
+    versions = result.get("versions") if isinstance(result.get("versions"), dict) else {}
+    reasons = result.get("identity_unmeasured") if isinstance(result.get("identity_unmeasured"), dict) else {}
+    found, why = {}, {}
+    for field, key in IDENTITY_SOURCES:
+        source = versions if key == "plugin_sha256" else result
+        if key not in source:
+            continue
+        value = source[key]
+        if _text(value):
+            found[field] = _line(value, MAX_IDENTITY)
+            continue
+        reason = _line(reasons.get(key)) or (_line(versions.get("plugin_sha256_unmeasured")) if key == "plugin_sha256" else None)
+        why[f"identity.{field}"] = reason or (NO_REASON_RECORDED if value is None else "recorded as something other than text")
+    return found, why
+
+
+def _part_reason(part) -> str:
+    """Why a part of the environment record is not an observation: the harness's reason, else that it is not a record."""
+    return _line(part.get("reason") if isinstance(part, dict) else None) or (
+        NO_REASON_RECORDED if isinstance(part, dict) else "the result holds no record of it")
+
+
+def _browser_target(record: dict) -> str:
+    """What one probed target (a file: or a loopback http: page) did, in words: the page title seen, or why not."""
+    if record.get("probed") is False:
+        return "not probed: " + _line(record.get("reason"), default=NO_REASON_RECORDED)
+    if _text(record.get("error")):
+        return "not started: " + _line(record["error"])
+    if record.get("title_seen") is True:
+        seconds = _num(record.get("output_s"))
+        return "page title seen" + (f" in {seconds} s" if seconds is not None else "")
+    ended = ("interrupted before a title appeared" if record.get("interrupted") is True else
+             f"the browser exited with {record.get('returncode')}" if record.get("exited") is True else "stopped at the ceiling")
+    return f"no page title ({ended})"
+
+
+def _start(start: dict) -> tuple[dict, dict[str, str]]:
+    """The tools and the browser record of an observed start: ({tools?, browser?}, {environment.<part>: why}). The browser binary's
+    path, the probe's flags and its timings are not kept; the version and what each target did are."""
+    found, why = {}, {}
+    tools = start.get("tools")
+    unread = start.get("unread") if isinstance(start.get("unread"), dict) else {}
+    if isinstance(tools, dict):
+        read = {}
+        for name, version in list(tools.items())[:MAX_TOOLS]:
+            if _text(version):
+                read[str(name)] = _line(version, MAX_IDENTITY)
+            else:
+                why[f"environment.tools.{name}"] = _line(unread.get(name), default=NO_REASON_RECORDED)
+        if read:
+            found["tools"] = read
+    else:
+        why["environment.tools"] = "the start record holds no tool versions"
+    browser = start.get("browser")
+    if isinstance(browser, dict) and isinstance(browser.get("declared"), bool) and isinstance(browser.get("probed"), bool):
+        entry = {"declared": browser["declared"], "probed": browser["probed"]}
+        if _text(browser.get("reason")):
+            entry["reason"] = _line(browser["reason"])
+        if browser["probed"]:
+            if _text(browser.get("version")):
+                entry["version"] = _line(browser["version"], MAX_IDENTITY)
+            else:
+                why["environment.browser.version"] = _line(browser.get("version_unread"), default=NO_REASON_RECORDED)
+            targets = {kind: _browser_target(browser[kind]) for kind in ("file", "http") if isinstance(browser.get(kind), dict)}
+            if targets:
+                entry["targets"] = targets
+        found["browser"] = entry
+    else:
+        why["environment.browser"] = "the start record holds no browser record"
+    return found, why
+
+
+def _overlap(overlap: dict) -> dict | None:
+    """The sibling runs whose host events overlapped this run's, from an observed overlap record: {basis, runs, runsOmitted?, unreadable?}
+    with seconds as minutes to a tenth, or None when the record cannot be read. The harness's basis text is kept verbatim: it says the
+    seconds are neither an upper nor a lower bound. `runs` [] is a measured none (it is not that nothing else ran). A sibling whose
+    entry cannot be read, or that is past MAX_OVERLAP_RUNS, is counted in `runsOmitted`, never dropped without a count."""
+    basis, items = _text(overlap.get("basis")), overlap.get("runs")
+    if not basis or not isinstance(items, list):
+        return None
+    runs = []
+    for item in items:
+        if not isinstance(item, dict) or not _text(item.get("folder")):
+            continue
+        together, offset = _tenths(item.get("overlapped_seconds")), _tenths(item.get("started_offset_seconds"))
+        if together is None or offset is None:
+            continue
+        row = {"folder": item["folder"]}
+        if _text(item.get("case")):
+            row["case"] = item["case"]
+        hosts = [h for h in item.get("hosts") or [] if _text(h)] if isinstance(item.get("hosts"), list) else []
+        if hosts:
+            row["hosts"] = hosts
+        runs.append({**row, "overlappedMin": together, "startedOffsetMin": offset})
+    found: dict = {"basis": _line(basis, len(basis)), "runs": runs[:MAX_OVERLAP_RUNS]}
+    if len(items) > len(found["runs"]):
+        found["runsOmitted"] = len(items) - len(found["runs"])
+    unreadable = [n for n in overlap.get("siblings_unreadable") or [] if _text(n)] if isinstance(overlap.get("siblings_unreadable"), list) else []
+    if unreadable:
+        found["unreadable"] = unreadable[:MAX_OVERLAP_RUNS]
+    return found
+
+
+def _environment(result: dict) -> tuple[dict, dict[str, str]]:
+    """(the environment object, {} when nothing was observed; {environment.<part>: why}) from result.json environment: the start's tools and browser (only an observed start),
+    and the overlap with the sibling runs (only an observed one). A part the harness did not observe (a run that was only regraded has
+    no start or end) is absent with the harness's reason. `hosts_used`, `environments` and `mixed_host` are not repeated: `hosts` is
+    read from the launch records already. The load average and CPU count are not kept: they are the machine at one instant, not the
+    run's, and the overlap is what a reader can act on."""
+    record = result.get("environment")
+    if "environment" not in result:
+        return {}, {}  # a result from before the record: nothing to say
+    if not isinstance(record, dict):
+        return {}, {"environment": "result.json environment is not a record"}
+    found, why = {}, {}
+    for name in ("start", "end"):
+        part = record.get(name)
+        if not (isinstance(part, dict) and part.get("observed") is True):
+            why[f"environment.{name}"] = _part_reason(part)
+        elif name == "start":
+            started, started_why = _start(part)
+            found.update(started)
+            why.update(started_why)
+    overlap = record.get("overlap")
+    read = _overlap(overlap) if isinstance(overlap, dict) and overlap.get("observed") is True else None
+    if read is not None:
+        found["overlap"] = read
+    else:
+        why["environment.overlap"] = _part_reason(overlap) if not (isinstance(overlap, dict) and overlap.get("observed") is True) else (
+            "the overlap record has no basis or no list of runs")
+    return found, why
+
+
+def _product_at_stop(result: dict) -> tuple[dict | None, dict[str, str]]:
+    """The case checks run in the worktree a run never returned (result.json product_at_stop): information only, never a verdict, and
+    present in result.json only for a run that did not pass. {ran, reason?, engineStatus?, engineStage?} and, when they ran, the counts
+    (passed, failed, timedOut, total, always over every check) and the first MAX_AT_STOP_CHECKS checks. A check passes only when its
+    `pass` is true; one that timed out is neither passed nor failed. The worktree's path is not kept, local paths are cut from the
+    command and output, and a record that cannot be read is absent with a reason (a run without the key says nothing)."""
+    if result.get("product_at_stop") is None:
+        return None, {}
+    record = result["product_at_stop"]
+
+    def unreadable(why: str):
+        return None, {"productAtStop": f"result.json product_at_stop is not readable: {why}"}
+    if not isinstance(record, dict) or not isinstance(record.get("ran"), bool):
+        return unreadable("it is not a record with a boolean ran")
+    found: dict = {"ran": record["ran"]}
+    engine = record.get("engine") if isinstance(record.get("engine"), dict) else {}
+    for field, key in (("engineStatus", "status"), ("engineStage", "stage")):
+        if _text(engine.get(key)) and engine[key] != "unknown":
+            found[field] = _line(engine[key], MAX_IDENTITY)
+    if not record["ran"]:
+        if _text(record.get("reason")):
+            found["reason"] = _without_paths(record["reason"])[:MAX_REASON]
+        return found, {}
+    items = record.get("checks")
+    if not (isinstance(items, list) and items and all(isinstance(i, dict) and _text(i.get("command")) for i in items)):
+        return unreadable("it says the checks ran and holds no list of checks")
+    checks, passed, timed_out = [], 0, 0
+    for item in items:
+        stopped = item.get("timed_out") is True
+        ok = item.get("pass") is True and not stopped
+        passed += ok
+        timed_out += stopped
+        row = {"command": _without_paths(item["command"])[:MAX_AT_STOP_COMMAND], "pass": ok}
+        if _num(item.get("returncode")) is not None:
+            row["returncode"] = item["returncode"]
+        if stopped:
+            row["timedOut"] = True
+        if _text(item.get("output")):
+            row["output"] = _without_paths(item["output"])[-MAX_AT_STOP_OUTPUT:]
+        checks.append(row)
+    found.update(passed=passed, failed=len(items) - passed - timed_out, timedOut=timed_out, total=len(items),
+                 checks=checks[:MAX_AT_STOP_CHECKS])
+    return found, {}
+
+
+def _run_record(result: dict) -> tuple[dict, dict[str, str]]:
+    """({outcome?, identity?, environment?, productAtStop?}, the `unmeasured` entries of the parts that are absent) from result.json."""
+    fields, why = {}, {}
+    outcome = _outcome(result)
+    if outcome:
+        fields["outcome"] = outcome
+    for name, (value, reasons) in (("identity", _identity(result)), ("environment", _environment(result)),
+                                   ("productAtStop", _product_at_stop(result))):
+        why.update(reasons)
+        if value:
+            fields[name] = value
+    return fields, why
+
+
+# ---------------------------------------------------------------- what the run delivered (R23d)
+# A ShipLoop run works in its own worktree on its own branch and returns the product to the branch it started from. Three records in
+# the workspace folder (the folder that holds run/ and worktree/) say what happened: workspace.md (the status, the source branch and
+# its tip when the run began, the run's branch), return-plan.md (every changed path and whether it is kept) and return-receipt.md
+# (how the return was made). The stage rows say what the skill and release stages decided and how the tests last ran. Every part is
+# read, never inferred; one that cannot be read is absent and its reason is under `unmeasured["delivered.<part>"]`.
+
+DELIVERED_TEST_DIRS = ("test", "tests", "__tests__", "system")  # system/ holds the run's own system tests (the system-test stage writes them there)
+DELIVERED_TEST_NAME = re.compile(r"(?:\.(?:test|spec)\.[^.]+|_test\.[^.]+|test_.+\.py)$")
+DELIVERED_DOC_NAME = re.compile(r"(?i)(?:^readme|\.(?:md|txt|rst)$)")
+DELIVERED_NOISE = ".shiploop-improve/"  # Improve's working evidence: never part of the product
+HEX_SHA = re.compile(r"[0-9a-f]{12,64}")
+
+
+def _delivered_kind(path: str) -> str:
+    """Which of DELIVERED_KINDS a path belongs to, first match wins: ShipLoop's own records (docs/shiploop/), skills, tests, other
+    documents, and everything else is source."""
+    parts = path.split("/")
+    name = parts[-1]
+    if path.startswith("docs/shiploop/"):
+        return "knowledge"
+    if parts[0] == "skills" or path.startswith(".claude/skills/") or name == "SKILL.md":
+        return "skills"
+    if any(part in DELIVERED_TEST_DIRS for part in parts[:-1]) or DELIVERED_TEST_NAME.search(name):
+        return "tests"
+    if parts[0] == "docs" or DELIVERED_DOC_NAME.search(name):
+        return "docs"
+    return "source"
+
+
+def _sha12(value) -> str | None:
+    return value[:12] if isinstance(value, str) and HEX_SHA.fullmatch(value) else None
+
+
+def _cut(text: str, limit: int) -> str:
+    """The text on one line with local paths cut to their last name, at most `limit` characters, ending in an ellipsis when cut."""
+    line = _without_paths(text)
+    return line if len(line) <= limit else line[:limit - 1].rstrip() + "…"
+
+
+def _delivered_returned(workspace: dict | None, receipt: dict | None) -> tuple[dict | None, dict[str, str]]:
+    """({status, into?, from?, mode?, before?, after?}, reasons). `status` is the workspace's own word ("returned" when the product
+    was merged back, "prepared" when it never was); `mode`, `before` and `after` only for a returned run whose receipt says so. `before`
+    is the source branch's tip when the workspace was prepared and `after` its tip after the last return, so a follow-up return is
+    one span."""
+    receipt = receipt if receipt and receipt.get("status") == "returned" else None
+    status = _text((workspace or {}).get("status")) or (_text(receipt.get("status")) if receipt else None)
+    if status is None:
+        return None, {"delivered.returned": "no readable workspace.md or return-receipt.md beside the run directory (the run was not "
+                                            "made in a ShipLoop workspace, or it was recorded before the workspace record)"}
+    found: dict = {"status": status}
+    expected = receipt.get("expected_source") if receipt and isinstance(receipt.get("expected_source"), dict) else {}
+    before = receipt.get("source_before") if receipt and isinstance(receipt.get("source_before"), dict) else {}
+    into = _line((workspace or {}).get("source_branch"), MAX_IDENTITY) or _line(expected.get("branch"), MAX_IDENTITY)
+    for field, value in (("into", into), ("from", _line((workspace or {}).get("branch"), MAX_IDENTITY))):
+        if value:
+            found[field] = value
+    why: dict[str, str] = {}
+    if status == "returned":
+        if receipt is None:
+            why["delivered.mode"] = "return-receipt.md is missing, unreadable or not a returned receipt, so how the return was made is not recorded"
+        else:
+            if _text(receipt.get("kind")):
+                found["mode"] = _line(receipt["kind"], MAX_IDENTITY)
+            for field, value in (("before", _sha12((workspace or {}).get("source_head")) or _sha12(before.get("head"))),
+                                 ("after", _sha12(expected.get("head")))):
+                if value:
+                    found[field] = value
+    return found, why
+
+
+def _delivered_files(plan: dict | None) -> tuple[dict | None, str | None]:
+    """({kind: {count, items, more?}}, reason): the paths the return plan keeps, sorted by kind. `items` are the first
+    MAX_DELIVERED_ITEMS in the plan's order as {path, change?}; Improve's evidence paths are not counted. A kind with nothing kept is a
+    measured none ({count 0, items []}) because the plan was read."""
+    rows = plan.get("paths") if plan else None
+    if not isinstance(rows, list):
+        return None, ("no readable return-plan.md beside the run directory: the run never planned a return, so which files it kept "
+                      "is not recorded")
+    kept: dict[str, list[dict]] = {kind: [] for kind in DELIVERED_KINDS}
+    seen: set[str] = set()
+    for row in rows:
+        path = _text(row.get("path")) if isinstance(row, dict) else None
+        if path is None or row.get("disposition") != "keep" or path.startswith(DELIVERED_NOISE) or path in seen:
+            continue
+        seen.add(path)
+        item = {"path": _line(path, MAX_DELIVERED_PATH)}
+        if _text(row.get("change")):
+            item["change"] = _line(row["change"], MAX_IDENTITY)
+        kept[_delivered_kind(path)].append(item)
+    files = {}
+    for kind, items in kept.items():
+        files[kind] = {"count": len(items), "items": items[:MAX_DELIVERED_ITEMS]}
+        if len(items) > MAX_DELIVERED_ITEMS:
+            files[kind]["more"] = len(items) - MAX_DELIVERED_ITEMS
+    return files, None
+
+
+def _delivered_tests(stages: list[dict]) -> tuple[dict | None, str | None]:
+    """How the tests last ran, from the stage rows' script-check records: the release-verify visit when one has counted runs, else the
+    last visit that has. Of that visit the **widest** command run (the most tests ran), because a full-suite command includes the
+    focused ones and a sum would count a test twice. {ran, failed?, stage, where?}; None, with a reason, when no run carries a count."""
+    def counted(row):
+        runs = (row.get("verify") or {}).get("runs") or []
+        return [r for r in runs if _num(r.get("ran")) is not None]
+    rows = [r for r in stages if counted(r)]
+    chosen = next((r for r in reversed(rows) if r["stage"] == "release-verify"), rows[-1] if rows else None)
+    if chosen is None:
+        return None, "no stage's script-check record carries a test count (a record with no count shows that a command ran, not how many tests)"
+    widest = max(counted(chosen), key=lambda r: r["ran"])
+    found = {"ran": widest["ran"], "stage": chosen["stage"]}
+    if _num(widest.get("failed")) is not None:
+        found["failed"] = widest["failed"]
+    where = _text(((chosen.get("verify") or {}).get("observed") or {}).get("where"))
+    if where:
+        found["where"] = _line(where, MAX_IDENTITY)
+    return found, None
+
+
+def _delivered_words(stages: list[dict], stage: str, limit: int) -> str | None:
+    """The accepted summary of the last visit at `stage` that was not skipped and has one, as the run wrote it, cut to `limit`."""
+    for row in reversed(stages):
+        if row.get("stage") == stage and not row.get("skipped") and _text(row.get("summary")):
+            return _cut(row["summary"], limit)
+    return None
+
+
+def _delivered(root: Path, stages: list[dict]) -> tuple[dict, dict[str, str]]:
+    """({returned?, files?, tests?, skill?, release?}, `unmeasured` entries) for the run whose workspace folder is `root`."""
+    workspace, plan, receipt = (_record(root / name) for name in ("workspace.md", "return-plan.md", "return-receipt.md"))
+    found: dict = {}
+    why: dict[str, str] = {}
+    returned, reasons = _delivered_returned(workspace, receipt)
+    why.update(reasons)
+    if returned:
+        found["returned"] = returned
+    files, files_why = _delivered_files(plan)
+    if files:
+        found["files"] = files
+    else:
+        why["delivered.files"] = files_why
+    tests, tests_why = _delivered_tests(stages)
+    if tests:
+        found["tests"] = tests
+    else:
+        why["delivered.tests"] = tests_why
+    skill = {field: text for field, stage in (("assessed", "skill-assess"), ("validated", "skill-validate"))
+             if (text := _delivered_words(stages, stage, MAX_DELIVERED_SKILL))}
+    if skill:
+        found["skill"] = skill
+    else:
+        why["delivered.skill"] = "no accepted skill-assess or skill-validate visit with a summary"
+    release = {field: text for field, stage in (("plan", "release-plan"), ("done", "release"))
+               if (text := _delivered_words(stages, stage, MAX_DELIVERED_RELEASE))}
+    if release:
+        found["release"] = release
+    else:
+        why["delivered.release"] = "no accepted release-plan or release visit with a summary"
+    return found, why
+
+
+# ---------------------------------------------------------------- script checks, unverified outcomes, tool use, planning (R22b)
+
+VERIFY_FILE = re.compile(r"(?P<action>[A-Za-z0-9._-]+)-verify(?P<n>\d+)\.md")
+MAX_VERIFY_RUNS = 12  # runs of one record kept on a stage row (a record lists one per command, a handful in practice)
+TREE_DIGEST = re.compile(r"[0-9a-f]{12,64}")
+
+
+def _verify_by_action(tests: Path) -> tuple[dict[str, dict], int]:
+    """({action id: verify block}, readable-record count missed) from `tests/<action>-verifyN.md`, the checks ShipLoop itself
+    ran and recorded. A visit's block counts every record of its action (`records`, `passed`, `red`: records in which a command
+    ran red, which a test-red record accepts; `couldNotRun`, only when some record never reached a verdict) and keeps the
+    `runs` of the last record, the one that decided it: status, tests ran, failed and accepted. `observed` is where the last
+    record that names one ran its checks (release-verify: returned-result, work-area or in-place) and the first 12 digits of the
+    tree. No command, no stdout, no path is copied. A record with no readable shiploop-state fence is counted unreadable."""
+    groups: dict[str, list[tuple[int, dict]]] = {}
+    unreadable = 0
+    for path in sorted(tests.glob("*-verify*.md")) if tests.is_dir() else []:
+        named = VERIFY_FILE.fullmatch(path.name)
+        if not named:
+            continue
+        found = _record(path)
+        if found is None:
+            unreadable += 1
+        else:
+            groups.setdefault(named["action"], []).append((int(named["n"]), found))
+    blocks = {}
+    for action, numbered in groups.items():
+        records = [r for _, r in sorted(numbered, key=lambda t: t[0])]
+        block: dict = {"records": len(records), "passed": sum(1 for r in records if r.get("passed") is True),
+                       "red": sum(1 for r in records if any(isinstance(x, dict) and x.get("status") == "red"
+                                                            for x in r.get("runs") or []))}
+        if (never := sum(1 for r in records if r.get("disposition") == "could-not-run")):
+            block["couldNotRun"] = never
+        runs = []
+        for entry in (records[-1].get("runs") if isinstance(records[-1].get("runs"), list) else [])[:MAX_VERIFY_RUNS]:
+            if isinstance(entry, dict) and isinstance(entry.get("status"), str):
+                counts = entry.get("counts") if isinstance(entry.get("counts"), dict) else {}
+                runs.append({"status": entry["status"], **{name: value for name, value in (
+                    ("ran", counts.get("ran")), ("failed", counts.get("failed")), ("acceptedRan", entry.get("accepted_ran")))
+                    if _num(value) is not None}})
+        if runs:
+            block["runs"] = runs
+        watched = next((r["observed"] for r in reversed(records) if isinstance(r.get("observed"), dict)), None)
+        if watched is not None:
+            seen = {k: v for k, v in (("where", _text(watched.get("where"))),
+                                      ("tree12", watched["tree"][:12] if isinstance(watched.get("tree"), str)
+                                       and TREE_DIGEST.fullmatch(watched["tree"]) else None)) if v}
+            if seen:
+                block["observed"] = seen
+        blocks[action] = block
+    return blocks, unreadable
+
+
+def _unverified(body: dict) -> list[dict] | None:
+    """The outcomes a result left unverified, [{outcome, reason, check, owner, dueStage}] with each text cut at MAX_SUMMARY
+    characters: `[]` when the result lists none (a measured "none listed"), None when it has no `unverified` key at all."""
+    raw = body.get("unverified")
+    if not isinstance(raw, list):
+        return None
+    found = []
+    for item in raw:
+        if isinstance(item, dict):
+            row = {field: (text.strip()[:MAX_SUMMARY] + ("\u2026" if len(text.strip()) > MAX_SUMMARY else ""))
+                   for field, key in (("outcome", "outcome"), ("reason", "reason"), ("check", "check"), ("owner", "owner"),
+                                      ("dueStage", "due_stage")) if (text := _text(item.get(key)))}
+            if row:
+                found.append(row)
+    return found
+
+
+NO_TOOL_USE = ("metrics.json has no tool_use record: the harness reads tool use from a Claude run's tool_use blocks only, and "
+               "only for a run whose events are all Claude's")
+
+
+def _tool_use(metrics: dict, hosts: list[dict]) -> tuple[dict | None, str | None]:
+    """(toolUse, why it is absent) from metrics.json's `tool_use`, a record the harness writes for a Claude run's main thread.
+    `wrappers` are the model-written scripts that wrap a ShipLoop command and were run (basename and number of tool calls that
+    ran each; `[]` is a measured none), so glue is a lower bound where one exists. `packets` is how the model met the packet
+    files: the files on disk, the ShipLoop replies that printed one, the packets it Read whole or in part, and the shell
+    commands that named one. Absent members stay absent."""
+    use = metrics.get("tool_use")
+    if not isinstance(use, dict):
+        names = ", ".join(dict.fromkeys(h["host"] for h in hosts)) or "unknown"
+        return None, f"{NO_TOOL_USE} (host: {names})"
+    out: dict = {}
+    scripts = use.get("scratch_scripts")
+    if isinstance(scripts, list):
+        out["wrappers"] = sorted(({"name": Path(x["path"]).name, "runs": x["runs"]} for x in scripts
+                                  if isinstance(x, dict) and x.get("wraps_shiploop") is True and isinstance(x.get("path"), str)
+                                  and _num(x.get("runs")) is not None), key=lambda w: (w["name"], w["runs"]))
+    packets = use.get("packets") if isinstance(use.get("packets"), dict) else {}
+    disk, printed = packets.get("on_disk") if isinstance(packets.get("on_disk"), dict) else {}, \
+        packets.get("printed") if isinstance(packets.get("printed"), dict) else {}
+    read = packets.get("read") if isinstance(packets.get("read"), dict) else {}
+    tool = [r for r in read.get("read_tool") or [] if isinstance(r, dict)] if isinstance(read.get("read_tool"), list) else None
+    shell = read.get("shell") if isinstance(read.get("shell"), dict) else {}
+    seen = {"files": disk.get("files"), "bytes": disk.get("bytes"), "printed": printed.get("replies"),
+            "printedChars": printed.get("chars"), "shellReads": shell.get("calls"), "shellChars": shell.get("chars"),
+            **({"readWhole": sum(1 for r in tool if r.get("whole") is True),
+                "readPartial": sum(1 for r in tool if r.get("whole") is False)} if tool is not None else {})}
+    seen = {k: v for k, v in seen.items() if _num(v) is not None}
+    if seen:
+        out["packets"] = seen
+    return out, None
+
+
+def _planning(metrics: dict) -> tuple[dict, dict[str, str]]:
+    """(planning, {reason name: why}) from metrics.json's `planning` block, read as the harness wrote it (the window on the
+    engine's clock and the host's, the stage it closed at, the Improve share, the output tokens), never recomputed. A member
+    the block holds as None stays absent with its reason: `planning` (the window), `planningHostWindow`, `planningImprove`,
+    `planningTokens`. The block's per-stage seconds equal the run's accept-to-accept minutes within 3 s (the export keeps a
+    tenth of a minute), and its Improve seconds run bind to accept where `improveMin` runs bind to receipt (at most 1.2 s a
+    child on the 10 runs that have the block)."""
+    block = metrics.get("planning")
+    if not isinstance(block, dict):
+        return {}, {"planning": "metrics.json has no planning block: it was written before the harness measured the planning "
+                                "window (regrade the run)"}
+    window = block.get("window") if isinstance(block.get("window"), dict) else {}
+    why = block.get("unmeasured") if isinstance(block.get("unmeasured"), dict) else {}
+    found: dict = {}
+    reasons: dict[str, str] = {}
+    if isinstance(window.get("closed"), bool):
+        found["closed"] = window["closed"]
+    if _text(window.get("through")):
+        found["through"] = window["through"]
+    for field, key, reason in (("windowMin", "seconds", "planning"), ("hostWindowMin", "host_seconds", "planningHostWindow")):
+        if _num(window.get(key)) is not None and window[key] >= 0:
+            found[field] = round(window[key] / 60, 1)
+        else:
+            reasons[reason] = str(why.get("window" if reason == "planning" else "host_seconds")
+                                  or "the planning block gives no figure and names no reason")
+    improve = block.get("improve") if isinstance(block.get("improve"), dict) else None
+    if improve is not None and _num(improve.get("seconds")) is not None and improve["seconds"] >= 0:
+        found["improveMin"] = round(improve["seconds"] / 60, 1)
+        if _num(improve.get("children")) is not None:
+            found["children"] = improve["children"]
+    else:
+        reasons["planningImprove"] = str(why.get("improve") or reasons.get("planning")
+                                         or "the planning block gives no Improve figure and names no reason")
+    tokens = block.get("tokens") if isinstance(block.get("tokens"), dict) else {}
+    if _num(tokens.get("output")) is not None and tokens["output"] > 0:
+        found["outputTokens"] = tokens["output"]
+        if _num(tokens.get("reasoning")) is not None and tokens["reasoning"] >= 0:
+            found["reasoningPct"] = round(100 * tokens["reasoning"] / tokens["output"], 1)
+    else:
+        reasons["planningTokens"] = str(tokens.get("unmeasured") or "the planning block gives no token figure and names no reason")
+    return found, reasons
+
+
+# ---------------------------------------------------------------- fresh starts and delivered quality (R23c)
+
+MAX_FRESH_STARTS = 30  # fresh starts kept in the run document; a longer list is cut and unmeasured.freshStarts says so
+MAX_FRESH_TEXT = 300  # characters of one start's reason, scope or startedBy
+MAX_FRESH_NOTE = 600  # characters of the run's unmeasured.freshStarts
+NO_FRESH_RECORD = ("metrics.json has no fresh_starts record: it was written before the harness recorded fresh contexts "
+                   "(regrade the run)")
+NO_REORIENTATION = "metrics.json holds no reorientation record for this start"
+NO_REASON = "the harness gives no reason"
+
+
+def _short(value, limit: int) -> str | None:
+    """The value's text on one line, cut at `limit` characters, or None when it is not a non-blank string."""
+    text = " ".join(value.split())[:limit] if isinstance(value, str) else ""
+    return text or None
+
+
+def _nonneg(value):
+    """The value when it is a number of zero or more, else None (unknown, never 0)."""
+    number = _num(value)
+    return number if number is not None and number >= 0 else None
+
+
+def _lower_bound(block, listed: str, counted: bool) -> dict | None:
+    """A lower-bound block of a reorientation (`failures`, `rewrote`) as {count, bound, scope}: the count is how many items
+    `listed` holds, kept only when that is a list (a `rewrote` whose paths are unknown keeps its bound and scope, which say
+    why). The harness's own words for the bound and its scope are kept whole; a block without both is not exported."""
+    if not isinstance(block, dict):
+        return None
+    bound, scope = _short(block.get("bound"), MAX_FRESH_TEXT), _short(block.get("scope"), MAX_FRESH_TEXT)
+    if bound is None or scope is None:
+        return None
+    if isinstance(block.get(listed), list):
+        return {"count": len(block[listed]), "bound": bound, "scope": scope}
+    return None if counted else {"bound": bound, "scope": scope}
+
+
+def _reoriented(block) -> dict:
+    """What a fresh context did from its start to the next accepted action, from the harness's `reorientation` block. A window
+    that was not measured has no figure, only its reason: the harness's counts for it (first grounding, calls before it) are not
+    counts of a window it could not place. `failures` and `rewrote` are lower bounds by the harness's own words."""
+    if not isinstance(block, dict):
+        return {"measured": False, "reason": NO_REORIENTATION}
+    if block.get("measured") is not True:
+        return {"measured": False, "reason": _short(block.get("reason"), MAX_FRESH_TEXT) or NO_REASON}
+    recovery = block.get("recovery") if isinstance(block.get("recovery"), dict) else {}
+    out: dict = {"measured": True}
+    for field, value in (("toolCalls", _nonneg(block.get("tool_calls"))), ("seconds", _nonneg(block.get("seconds"))),
+                         ("firstGrounding", _short(block.get("first_grounding"), 40)),
+                         ("callsBeforeGrounding", _nonneg(block.get("calls_before_grounding"))),
+                         ("nextCalls", _nonneg(recovery.get("next_calls"))), ("askedUser", _nonneg(block.get("asked_user"))),
+                         ("failures", _lower_bound(block.get("failures"), "items", True)),
+                         ("rewrote", _lower_bound(block.get("rewrote"), "paths", False))):
+        if value is not None:
+            out[field] = value
+    accepted = block.get("accepted") if isinstance(block.get("accepted"), dict) else {}
+    named = {k: v for k in ("stage", "action") if (v := _short(accepted.get(k), 80))}
+    if named:
+        out["accepted"] = named
+    return out
+
+
+def fresh_starts_of(metrics: dict) -> tuple[list[dict] | None, str | None]:
+    """(freshStarts, why it is absent or partial) from metrics.json `fresh_starts` and `fresh_starts_unmeasured`.
+
+    Each start keeps its kind (compaction or fresh, as the harness names it), host, the stage in flight when the harness names one,
+    why a fresh session began (`startedBy`) and the `reoriented` block; its time stamp and events line are dropped. An empty list
+    is a measured none only when the harness gave no note: with one it is unknown, and the result is None with the note, so
+    "no fresh starts" is never said of a run that could not record them. A list with a note is kept and the note is its reason
+    (the list is partial). A record from before the harness wrote the key says so."""
+    blocks = metrics.get("fresh_starts")
+    if not isinstance(blocks, list):
+        return None, NO_FRESH_RECORD
+    found, unread = [], 0
+    for item in blocks:
+        kind = _short(item.get("kind"), 40) if isinstance(item, dict) else None
+        if kind is None:
+            unread += 1
+            continue
+        entry = {"kind": kind}
+        for field, value in (("host", _short(item.get("host"), 40)), ("stage", _short(item.get("stage_in_flight"), 80)),
+                             ("startedBy", _short(item.get("reason"), MAX_FRESH_TEXT))):
+            if value:
+                entry[field] = value
+        entry["reoriented"] = _reoriented(item.get("reorientation"))
+        found.append(entry)
+    notes = [_short(metrics.get("fresh_starts_unmeasured"), MAX_FRESH_NOTE)]
+    if unread:
+        notes.append(f"{unread} of {len(blocks)} entries of metrics.json fresh_starts could not be read (no kind)")
+    if len(found) > MAX_FRESH_STARTS:
+        notes.append(f"the list shows the first {MAX_FRESH_STARTS} of {len(found)} fresh starts")
+        found = found[:MAX_FRESH_STARTS]
+    why = "; ".join(note for note in notes if note) or None
+    if not found:
+        return ([], None) if why is None else (None, why)
+    return found, why
+
+
+def _mark_fresh_starts(stages: list[dict], starts: list[dict] | None) -> None:
+    """Mark on a visit's row the fresh start its acceptance ended: the measured start whose accepted action is the visit's action.
+    A start names the first action accepted after it, so two starts inside one stage name the same visit, which keeps the first
+    mark; the run's `freshStarts` list holds both."""
+    rows = {row["action"]: row for row in stages if "action" in row}
+    for start in starts or []:
+        figures = start["reoriented"]
+        row = rows.get((figures.get("accepted") or {}).get("action"))
+        if figures["measured"] is True and row is not None and "freshStart" not in row:
+            row["freshStart"] = {"kind": start["kind"], **{k: figures[k] for k in ("toolCalls", "seconds") if k in figures}}
+
+
+MAX_QUALITY_ITEMS = 5  # survivors, uncovered files and memory writes kept in the quality object (the counts stay whole)
+MAX_QUALITY_NOTES = 4  # notes kept
+MAX_QUALITY_TEXT = 400  # characters of a quality reason, a note or a failed check id
+MAX_MUTANT_TEXT = 40  # characters of what a surviving mutant replaced and what it became
+NO_QUALITY_FLAG = "result.json's quality block has no observed flag, so it is not read"
+NO_QUALITY_FIGURE = "the quality block does not record it"
+HOME_MARK = ".claude/projects/"  # every memory path the harness reports has this under the home directory (its detector's own pattern)
+
+
+def memory_path(path: str) -> str:
+    """A memory-write path relative to the home directory (`~/.claude/projects/<project>/memory/<file>`), the form the harness's
+    detector matches; a path already written that way is kept, and any other path is reduced to its file name. The home directory
+    itself (a user name) is never exported."""
+    if path.startswith("~/"):
+        return path[:MAX_QUALITY_TEXT]
+    cut = path.find(HOME_MARK)
+    return ("~/" + path[cut:] if cut >= 0 else Path(path).name)[:MAX_QUALITY_TEXT]
+
+
+def _survivor(item) -> dict | None:
+    """One surviving mutant as {file, line, op, from, to}: the file by name (a delivered file's path is the harness's, not the
+    reader's), and what the operator replaced cut at MAX_MUTANT_TEXT. None when it names no file."""
+    name = _short(item.get("file"), 200) if isinstance(item, dict) else None
+    if name is None:
+        return None
+    row = {"file": Path(name).name if name.startswith("/") else name}
+    for field, value in (("line", _nonneg(item.get("line"))), ("op", _short(item.get("op"), MAX_MUTANT_TEXT)),
+                         ("from", _short(item.get("from"), MAX_MUTANT_TEXT)), ("to", _short(item.get("to"), MAX_MUTANT_TEXT))):
+        if value is not None:
+            row[field] = value
+    return row
+
+
+def _quality_mutation(block) -> dict | None:
+    """The mutation part of a quality block: its ratio with the operator catalog it belongs to, the counts that make the ratio
+    (a hang and a refused port can read as a caught mutant, so they are counted apart), the first survivors and the page script no
+    operator reaches. `kills`, `per_file`, the baseline and the commands are not exported. A part that was not observed keeps only
+    its reason; a ratio the harness could not form is absent, never 0."""
+    if not isinstance(block, dict) or not isinstance(block.get("observed"), bool):
+        return None
+    if not block["observed"]:
+        return {"observed": False, "reason": _short(block.get("reason"), MAX_QUALITY_TEXT) or NO_REASON}
+    out: dict = {"observed": True}
+    for field, value in (("operatorId", _short(block.get("operator_id"), 40)), ("ratio", _nonneg(block.get("ratio"))),
+                         ("sites", _nonneg(block.get("sites"))), ("killed", _nonneg(block.get("killed"))),
+                         ("survived", _nonneg(block.get("survived"))), ("timeout", _nonneg(block.get("timeout"))),
+                         ("invalid", _nonneg(block.get("invalid"))), ("unconfirmed", _nonneg(block.get("unconfirmed"))),
+                         ("portRefused", _nonneg(block.get("port_refused"))), ("notRun", _nonneg(block.get("not_run"))),
+                         ("seconds", _nonneg(block.get("seconds")))):
+        if value is not None:
+            out[field] = value
+    if isinstance(block.get("ceiling_hit"), bool):
+        out["ceilingHit"] = block["ceiling_hit"]
+    uncovered = [{"file": name, **({"inlineScriptLines": lines} if (lines := _nonneg(item.get("inline_script_lines"))) is not None else {})}
+                 for item in block.get("uncovered") or [] if isinstance(item, dict) and (name := _short(item.get("file"), 200))]
+    if uncovered:
+        out["uncovered"] = uncovered[:MAX_QUALITY_ITEMS]
+    survivors = [row for item in block.get("survivors") or [] if (row := _survivor(item))]
+    if survivors:
+        out["survivors"] = survivors[:MAX_QUALITY_ITEMS]
+    return out
+
+
+def _quality_acceptance(block) -> dict | None:
+    """The held-out checks of a quality block: how many of the declared ones passed and which did not. The check text, its source
+    and its note are the harness's and are not exported."""
+    if not isinstance(block, dict) or not isinstance(block.get("observed"), bool):
+        return None
+    if not block["observed"]:
+        return {"observed": False, "reason": _short(block.get("reason"), MAX_QUALITY_TEXT) or NO_REASON}
+    ids, passed = block.get("ids"), block.get("passed")
+    out: dict = {"observed": True}
+    if isinstance(passed, list):
+        out["passed"] = len(passed)
+    if isinstance(ids, list):
+        out["total"] = len(ids)
+        if isinstance(passed, list):
+            failed = [text for ident in ids if ident not in passed and (text := _short(ident, MAX_QUALITY_TEXT))]
+            if failed:
+                out["failed"] = failed[:MAX_QUALITY_ITEMS]
+    return out
+
+
+def quality_of(record) -> dict | None:
+    """The run's `quality` object from result.json's `quality` block, or None when the key is absent or null (the case measures
+    none, or the phase has not run: result.json is written twice and the second write holds it; no reason and no zero is made up
+    for that). A block with no `observed` flag is not read as a measurement. The harness's `memory_writes` and `held_out_seen`
+    are null when they could not be read: they are then absent and `unmeasured` holds the harness's reason."""
+    if record is None:
+        return None
+    if not isinstance(record, dict) or not isinstance(record.get("observed"), bool):
+        return {"observed": False, "reason": NO_QUALITY_FLAG}
+    out: dict = {"observed": record["observed"]}
+    if (reason := _short(record.get("reason"), MAX_QUALITY_TEXT)):
+        out["reason"] = reason
+    elif not record["observed"]:
+        out["reason"] = NO_REASON
+    declared = [text for item in record.get("declared") or [] if (text := _short(item, 40))] if isinstance(record.get("declared"), list) else []
+    if declared:
+        out["declared"] = declared
+    for field, part in (("mutation", _quality_mutation(record.get("mutation"))), ("acceptance", _quality_acceptance(record.get("acceptance")))):
+        if part is not None:
+            out[field] = part
+    unmeasured: dict[str, str] = {}
+    said = record.get("unmeasured") if isinstance(record.get("unmeasured"), dict) else {}
+    writes = record.get("memory_writes")
+    if isinstance(writes, list):
+        items = [{"path": memory_path(item["path"]), **({"tool": tool} if (tool := _short(item.get("tool"), 40)) else {})}
+                 for item in writes if isinstance(item, dict) and isinstance(item.get("path"), str)]
+        out["memoryWrites"] = {"count": len(items), **({"items": items[:MAX_QUALITY_ITEMS]} if items else {})}
+    else:
+        unmeasured["memoryWrites"] = _short(said.get("memory_writes"), MAX_QUALITY_TEXT) or NO_QUALITY_FIGURE
+    if _nonneg(record.get("held_out_seen")) is not None:
+        out["heldOutSeen"] = record["held_out_seen"]
+    else:
+        unmeasured["heldOutSeen"] = _short(said.get("held_out_seen"), MAX_QUALITY_TEXT) or NO_QUALITY_FIGURE
+    notes = [text for item in record.get("notes") or [] if (text := _short(item, MAX_QUALITY_TEXT))] if isinstance(record.get("notes"), list) else []
+    if notes:
+        out["notes"] = notes[:MAX_QUALITY_NOTES]
+    if (seconds := _nonneg(record.get("seconds"))) is not None:
+        out["seconds"] = seconds
+    if unmeasured:
+        out["unmeasured"] = unmeasured
+    return out
+
+
+# ---------------------------------------------------------------- the harness's fidelity block, and the Improve packets (R23b)
+
+MAX_FIDELITY_EDITS = 5  # script-owned edits listed by name; `scriptOwned.count` says how many there were
+MAX_FIDELITY_NAMES = 40  # stage names in one fidelity list (a run has well under 40 distinct stages, so nothing is cut in practice)
+MAX_LIMITS_TEXT = 1000  # characters of a heuristic part's `limits` text kept (the harness's are about 400, kept whole)
+MAX_TOOL_NAME = 40  # characters of a tool name or an edit form kept
+FIDELITY_MISSING = ("metrics.json has no fidelity block: it was written before the harness recorded how ShipLoop was carried "
+                    "(regrade the run)")
+# The reasons in the harness's `unmeasured` map that belong to a part the run document keeps. `end_state` and `improve_packets` are not
+# kept (the run document has its own status, ending, blocked and unverified lists, and the exporter scores the Improve packets itself),
+# and `validation.accepted_ran` concerns a field each visit's `verify.runs[].acceptedRan` already carries.
+FIDELITY_REASON_PARTS = ("evidence", "validation", "edits", "refusals", "declared")
+FIDELITY_REASON_DROPPED = ("validation.accepted_ran",)
+NO_IMPROVE_PACKET_FILE = "Improve children ran (improve/ holds them) but left no packets/<action>-improve.md file"
+OLD_IMPROVE_LAYOUT = ("no packets/<action>-improve.md file, and a packet file holds an Improve child's packet: ShipLoop 1.22.0 or earlier "
+                      "wrote one packet file per action, so the Improve child's packets were not kept apart")
+
+
+def fidelity_edit_target(target) -> str:
+    """A script-owned edit's target as a path inside the run folder. The harness writes the run folder `<run>` and the home folder `~`;
+    the leading `<run>/` goes, and a path that is still absolute (a file outside the run folder) is cut to what follows the first
+    `.shiploop*` component, else to its file name. Cut at MAX_CLIP characters."""
+    text = str(target).strip()
+    if text == "<run>":
+        return "."
+    if text.startswith("<run>/"):
+        text = text[len("<run>/"):]
+    if text.startswith(("/", "~")):
+        found = re.search(r"(?:^|/)(\.shiploop[^/]*(?:/.*)?)$", text)
+        text = found.group(1) if found else Path(text).name
+    return text[:MAX_CLIP]
+
+
+def _fidelity_evidence(block: dict) -> tuple[dict | None, dict[str, str]]:
+    """(the evidence reading, {action id: class}): the harness's count per class of how each accepted stage's exit was evidenced, and the
+    stages that declare a script-run check and have no script record (a list, `[]` a measured none; absent when the stage table could not
+    be read, with the reason `fidelity.declared`)."""
+    evidence = block.get("evidence")
+    if not isinstance(evidence, dict):
+        return None, {}
+    counts = evidence.get("counts") if isinstance(evidence.get("counts"), dict) else {}
+    out = {name: counts[name] for name in EVIDENCE_CLASSES if _num(counts.get(name)) is not None}
+    if not out:
+        return None, {}
+    missing = evidence.get("declared_script_run_without_record")
+    if isinstance(missing, list):
+        out["scriptRunWithoutRecord"] = list(dict.fromkeys(str(x) for x in missing if _text(x)))[:MAX_FIDELITY_NAMES]
+    classes = {row["action"]: row["class"] for row in evidence.get("stages") or []
+               if isinstance(row, dict) and isinstance(row.get("action"), str) and row.get("class") in EVIDENCE_CLASSES}
+    return out, classes
+
+
+def _fidelity_validation(block: dict) -> tuple[dict | None, dict[str, str]]:
+    """(the validation reading, reasons): ShipLoop's verify records as counts. `counted` is the rows that carried a test count and
+    `zeroRan` those of them that ran no test (absent, with `fidelity.validation.zeroRan`, when no row carried a count)."""
+    found = block.get("validation")
+    if not isinstance(found, dict):
+        return None, {}
+    out = {name: found[key] for name, key in (
+        ("records", "records"), ("runs", "runs"), ("distinctCommands", "distinct_commands"), ("passed", "passed"),
+        ("couldNotRun", "could_not_run"), ("red", "red"), ("unread", "unread"), ("testsRanUnmeasured", "tests_ran_unmeasured"))
+        if _num(found.get(key)) is not None}
+    reasons = {}
+    suites = [x for x in (found.get("by_suite") or {}).values() if isinstance(x, dict)] if isinstance(found.get("by_suite"), dict) else None
+    if suites is not None:
+        out["counted"] = sum(x["counted"] for x in suites if _num(x.get("counted")) is not None)
+        if out["counted"]:
+            out["zeroRan"] = sum(x["zero_ran"] for x in suites if _num(x.get("zero_ran")) is not None)
+        else:
+            reasons["fidelity.validation.zeroRan"] = "no row carried a test count, so how many ran no test is not known"
+    return out or None, reasons
+
+
+def _fidelity_edits(block: dict) -> dict | None:
+    """The model's edits of ShipLoop's side of the work, a list to confirm: the script-owned edits (count, and the first MAX_FIDELITY_EDITS
+    by form, run-relative target and tool), the kills by process name and the commands that ran git add or commit, with the harness's own
+    `limits` text. The event numbers and the commit forms are not kept."""
+    edits = block.get("edits")
+    if not isinstance(edits, dict):
+        return None
+    out: dict = {}
+    if isinstance(edits.get("script_owned"), list):
+        owned = [x for x in edits["script_owned"] if isinstance(x, dict) and _text(x.get("form")) and _text(x.get("target"))]
+        out["scriptOwned"] = {"count": len(owned), "items": [
+            {"form": x["form"][:MAX_TOOL_NAME], "target": fidelity_edit_target(x["target"]),
+             **({"tool": x["tool"][:MAX_TOOL_NAME]} if _text(x.get("tool")) else {})} for x in owned[:MAX_FIDELITY_EDITS]]}
+    for name, key in (("nameKills", "name_kills"), ("modelCommits", "model_commits")):
+        if isinstance(edits.get(key), list):
+            out[name] = len(edits[key])
+    if _text(edits.get("limits")):
+        out["limits"] = edits["limits"][:MAX_LIMITS_TEXT]
+    return out or None
+
+
+def _fidelity_refusals(block: dict, failures: list, count_unmeasured: bool) -> tuple[dict | None, dict[str, str]]:
+    """(the refusals reading, reasons). The run's `refusals` (the length of metrics.json `shiploop_failures`) is the one count: the
+    block's own count is compared with it and, when they differ or the run has no count, the block's detail is not exported. The reading
+    holds how many repeated (absent when no refusal could be given a stage), how many had no stage, the refusals per stage (most first)
+    and the harness's `limits` text."""
+    found = block.get("refusals")
+    if not isinstance(found, dict):
+        return None, {}
+    if count_unmeasured:
+        return None, {"fidelity.refusals": "the run's refusal count is not measured (metrics.json names shiploop_failures unmeasured), "
+                                           "so the block's detail has no count to agree with and is not exported"}
+    if found.get("count") != len(failures):
+        return None, {"fidelity.refusals": f"the harness's fidelity block counts {found.get('count')} refusals and metrics.json lists "
+                                           f"{len(failures)}, so the block's detail is not exported"}
+    out: dict = {}
+    for name, key in (("repeated", "repeated"), ("unstaged", "unstaged")):
+        if _num(found.get(key)) is not None:
+            out[name] = found[key]
+    tally: dict[str, int] = {}
+    for item in found.get("items") or []:
+        if isinstance(item, dict) and _text(item.get("stage")):
+            tally[item["stage"]] = tally.get(item["stage"], 0) + 1
+    if tally:
+        out["byStage"] = [{"stage": stage, "count": n}
+                          for stage, n in sorted(tally.items(), key=lambda kv: (-kv[1], kv[0]))[:MAX_FIDELITY_NAMES]]
+    if _text(found.get("limits")):
+        out["limits"] = found["limits"][:MAX_LIMITS_TEXT]
+    return out, {}
+
+
+def _fidelity(metrics: dict, failures: list, count_unmeasured: bool) -> tuple[dict | None, dict[str, str], dict[str, str]]:
+    """(fidelity, reasons for `unmeasured`, {action id: evidence class}) from metrics.json `fidelity`, the harness's reading of how
+    ShipLoop was carried (schema shiploop-e2e-fidelity/v1). A block that is missing, of another schema or `{schema, error}` exports
+    nothing and gives its reason under `fidelity`. Otherwise each part the harness measured is kept in a compact form, each it could not is
+    left out with the harness's reason under `fidelity.<part>`, and a heuristic part keeps the harness's own `limits` text."""
+    block = metrics.get("fidelity")
+    if not isinstance(block, dict):
+        return None, {"fidelity": FIDELITY_MISSING}, {}
+    if block.get("schema") != FIDELITY_SCHEMA:
+        return None, {"fidelity": f"metrics.json holds a fidelity block of schema {block.get('schema')!r}, which this exporter does not "
+                                  f"read (it reads {FIDELITY_SCHEMA})"}, {}
+    if "error" in block:
+        error = " ".join(str(block["error"]).split())[:MAX_REASON]
+        return None, {"fidelity": f"the harness could not build its fidelity block: {error}"}, {}
+    reasons = {f"fidelity.{name}": " ".join(why.split())[:MAX_REASON]
+               for name, why in (block.get("unmeasured") if isinstance(block.get("unmeasured"), dict) else {}).items()
+               if name.split(".")[0] in FIDELITY_REASON_PARTS and name not in FIDELITY_REASON_DROPPED and _text(why)}
+    evidence, classes = _fidelity_evidence(block)
+    validation, why_validation = _fidelity_validation(block)
+    refusals, why_refusals = _fidelity_refusals(block, failures, count_unmeasured)
+    reasons.update(why_validation)
+    reasons.update(why_refusals)
+    parts = {"evidence": evidence, "validation": validation, "edits": _fidelity_edits(block), "refusals": refusals}
+    for name, part in parts.items():
+        if part is None and f"fidelity.{name}" not in reasons:
+            reasons[f"fidelity.{name}"] = f"the fidelity block has no {name} reading and names no reason"
+    return {name: part for name, part in parts.items() if part is not None} or None, reasons, classes
+
+
+def _improve_packets(stages: list[dict], children: dict) -> tuple[dict | None, str | None]:
+    """(improvePackets, why it is absent). The labels each Improve child's packet carried, counted over the packets read (`improveCarried`
+    on the visit rows). A current-layout run with no Improve child has read 0, a measured none. A run of the old layout (the child's
+    packet replaced the producer's, `packetImprove`), one whose children left no `-improve.md` file and one whose files could not be read
+    have nothing to score and give the reason."""
+    scored = [row["improveCarried"] for row in stages if "improveCarried" in row]
+    if scored:
+        return {"read": len(scored), "carried": {key: sum(1 for c in scored if c[key]) for key in IMPROVE_KEYS}}, None
+    if any("improvePacketBytes" in row for row in stages):
+        return None, "the packets/<action>-improve.md files could not be read as UTF-8, so no Improve packet was scored"
+    if any(row.get("packetImprove") for row in stages):
+        return None, OLD_IMPROVE_LAYOUT
+    if children:
+        return None, NO_IMPROVE_PACKET_FILE
+    return {"read": 0, "carried": {key: 0 for key in IMPROVE_KEYS}}, None
 
 
 def _clip(text: str) -> tuple[str, bool]:
@@ -1127,10 +2497,11 @@ def work_items(state: dict, history: list[dict], results: Path,
 # its stage operates and how it is checked). One row per label of the stage card's checklist: (label, what is looked for,
 # rules). A label is found when ANY rule holds; a rule holds when every one of its groups has a pattern matching a line of
 # the packet text. So a rule is a tuple of groups, a group a tuple of alternative patterns: `checked` is found by the old
-# pair (the Done when list AND the Improve line) or, alone, by a 'Checked by:' line (a later engine prints it; no packet on
-# disk has one yet, and nothing depends on it). The patterns are the lines the navigator prints (_goal_lines,
-# _first_callback_lines, _result_contract_lines, _improve_line, the run rules) and were checked against the packets of every
-# run on disk, ShipLoop 1.16.1 to 1.22.0: one place to change when the engine's wording does. "not found in the packet
+# pair (the Done when list AND the Improve line) or, alone, by a 'Checked by:' line (the engine prints it under the Done
+# when list from ShipLoop 0.54.0 on: every producer packet of the 11 runs on disk, ShipLoop 0.54.0 to 0.58.0, has one; the old
+# pair keeps the earlier runs of the committed history readable). The patterns are the lines the navigator prints
+# (_goal_lines, _first_callback_lines, _result_contract_lines, _improve_line, the run rules) and were checked against the
+# packets of every run on disk, ShipLoop 1.16.1 to 1.22.0 and 0.54.0 to 0.58.0: one place to change when the engine's wording does. "not found in the packet
 # text" is a statement about the text, not about what the model needed.
 CARRIED = (
     ("where", "the progress line 'ShipLoop navigator | <stage> | revision N'",
@@ -1160,12 +2531,30 @@ CARRIED_RX = tuple((label, tuple(tuple(tuple(re.compile(rx, re.M) for rx in grou
 # intact and is what `carried` reads. A visit is told by its files: a `-improve.md` beside the producer file is the new layout.
 IMPROVE_PACKET = re.compile(r"^Current action: Improve the completed ", re.M)
 IMPROVE_SUFFIX = "-improve"
+# What an Improve child's packet (packets/<action>-improve.md) carries for a model that holds only that packet: one row per label,
+# (key, what is looked for, pattern), the patterns anchored to the lines the navigator prints (_goal_lines in its active-Improve branch,
+# _checked_line's Improve variant in _render_improve, _first_callback_lines, the run footer). A packet is scored line by line like
+# CARRIED. Goal and Done when are printed from skill-craft 1.25.0 (ShipLoop 0.57.0) on: an earlier release has none by design, so the
+# count is read beside the run's release and is never a defect. A test pins each phrase against the navigator's source.
+IMPROVE_CARRIED = (
+    ("goal", "the review's 'Reviewing the returned <stage> result. Goal:' line (skill-craft 1.25.0 on)", r"^Reviewing the returned .* result\. Goal: "),
+    ("doneWhen", "the 'Done when (' list the review holds the result to (skill-craft 1.25.0 on)", r"^Done when \("),
+    ("checkedBy", "the 'Checked by:' line that names the improve-complete callback", r"^Checked by:"),
+    ("output", "the opening file's heading line, or the 'Then run:' improve-start line", r"^(?:The opening file holds exactly these headings|Then run: )"),
+    ("recovery", "the 'Recovery command:' line", r"^Recovery command:"),
+)
+IMPROVE_CARRIED_RX = tuple((key, re.compile(rx, re.M)) for key, _, rx in IMPROVE_CARRIED)
 
 
 def carried_markers(text: str) -> dict[str, bool]:
     """{label: whether the packet text carries it} for every CARRIED label (the page prints each as a tick or a cross)."""
     return {label: any(all(any(rx.search(text) for rx in group) for group in rule) for rule in rules)
             for label, rules in CARRIED_RX}
+
+
+def improve_carried_markers(text: str) -> dict[str, bool]:
+    """{label: whether the Improve child's packet text carries it} for every IMPROVE_CARRIED label."""
+    return {key: bool(rx.search(text)) for key, rx in IMPROVE_CARRIED_RX}
 
 
 def _packet_doc(run_key: str, action: str, stage: str, path: Path, kind: str | None = None) -> tuple[dict, str] | None:
@@ -1230,6 +2619,7 @@ def packet_docs(run_key: str, packets: Path, stages: list[dict]) -> tuple[dict[s
             else:
                 found[f"{run_key}--{action}{IMPROVE_SUFFIX}"] = read[0]
                 row["improvePacketDoc"] = True
+                row["improveCarried"] = improve_carried_markers(read[1])
     return found, unreadable
 
 
@@ -1273,7 +2663,11 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     packets = run_dir / "packets"
     issued = packets.is_dir() and any(p.is_file() for p in packets.iterdir())  # some packet exists: absence means something
     children = _improve_children(run_dir)
+    verify_blocks, verify_unreadable = _verify_by_action(run_dir / "tests")
+    hosts = _hosts(out)
     visit_context, visit_context_why = _visit_context(metrics, history)
+    if len(hosts) > 1:  # one figure over two hosts' events: not a measure, for any visit either
+        visit_context, visit_context_why = [None] * len(history), _hosts_why(hosts)
     actions, stages, phases_seen = [], [], []
     from_state, unknown, stamped = [], [], []
     previous, last_phase = started, 0
@@ -1307,7 +2701,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         said = entry.get("summary") if isinstance(entry.get("summary"), str) else (
             body.get("summary") if record is not None and isinstance(body.get("summary"), str) else "")
         if said.strip():
-            row["summary"] = said.strip()[:MAX_SUMMARY]
+            row["summary"] = ABSOLUTE_PATH.sub(lambda match: match.group(0).rsplit("/", 1)[1], said.strip())[:MAX_SUMMARY]  # a file by name, never where the run lives
             if len(said.strip()) > MAX_SUMMARY:
                 row["summaryTruncated"] = True
         if action in seeded_ids:
@@ -1317,6 +2711,10 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         figures = {k: v for k, v in (children.get(action) or {}).items() if v is not None}
         if figures:
             row["improve"] = figures
+        if isinstance(action, str) and action in verify_blocks:
+            row["verify"] = verify_blocks[action]
+        if isinstance(action, str) and (outcomes := _unverified(_result_body(results, state, action))) is not None:
+            row["unverified"] = outcomes
         if visit_context[index]:
             row["context"] = visit_context[index]
         stages.append(row)
@@ -1329,11 +2727,18 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
 
     raw_status = state.get("status")
     status = RUN_STATUS.get(raw_status)
+    # The engine says active while it is not running when its host goes away: result.json's termination record is the
+    # harness's word that the host is over (stopped on purpose, a deadline, a crash, a spent resume budget). A regrade
+    # observed no process, so it never makes a run stopped (its status reads "not observed").
+    ended = status == "active" and (_process_status(result) in HARNESS_ENDED)
+    if ended:
+        status = "stopped"
     now = current_stage(state)
     current = None if raw_status == "done" else STAGE_PHASE.get(now, phases_seen[-1] if phases_seen else 0)
     if now and now not in STAGE_PHASE and raw_status != "done":
         unknown.append(now)
     wall = _minutes(started, stamped[-1][0]) if started and stamped else None
+    ending = _ending(result, state, metrics, packets, ended)
 
     versions = invocation.get("versions") or result.get("versions") or {}
     host = _text(invocation.get("host")) or _text(result.get("host"))
@@ -1347,27 +2752,44 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
     key = _clean_key(key or "-".join([host or "unknown", model or "unknown", plugin or "unknown", case or "unknown",
                                       first.strftime("%Y%m%d") if first else "undated"]))
     name = name or (" ".join(part for part in (host, model, effort) if part) or "unknown host") + \
-        (f", release {plugin}" if plugin else "")
+        (f", {case}" if case else "") + (f", release {plugin}" if plugin else "")
     order = order if order is not None else (int(first.timestamp()) if first else 0)
 
     failures = [f for f in metrics.get("shiploop_failures") or [] if isinstance(f, dict)]
     glue = metrics.get("model_glue") or []
     improve, improve_why = _improve_totals(children)
     measures, unmeasured = _model_measures(metrics, unmeasured)
+    if len(hosts) > 1:  # calls, peak, window and compactions of one host's events mixed with another's are no measure
+        for field in ("calls", "contextPeak", "contextWindow", "compactions"):
+            measures.pop(field, None)
+            unmeasured[field] = _hosts_why(hosts)
     unmeasured.update(improve_why)
     items, plan_why, marks = work_items(state, history, results, seeded_ids)
     unmeasured.update(plan_why)
     for index, mark in marks.items():  # one stage row per history entry, in order
         stages[index].update(mark)
-    if visit_context_why:  # set only when no visit has a context
+    if visit_context_why:  # some or all visits have no context (R23c: the reason counts them)
         unmeasured["visitContext"] = visit_context_why
+    tool_use, why_no_tool_use = _tool_use(metrics, hosts)
+    if tool_use is None:
+        unmeasured["toolUse"] = why_no_tool_use
+    planning, planning_why = _planning(metrics)
+    unmeasured.update(planning_why)
+    record_fields, record_why = _run_record(result)  # R23a: outcome, identity, environment, productAtStop
+    unmeasured.update(record_why)
+    delivered, delivered_why = _delivered(run_dir.parent, stages)  # R23d: merged back or not, files by kind, tests, skill, release
+    unmeasured.update(delivered_why)
+    fresh_starts, fresh_why = fresh_starts_of(metrics)  # R23c
+    if fresh_why:
+        unmeasured["freshStarts"] = fresh_why
+    _mark_fresh_starts(stages, fresh_starts)
     checkouts = [out / "work", run_dir.parent / "worktree"]
     knowledge, knowledge_root = _knowledge(checkouts if raw_status == "done" else checkouts[::-1])
 
     run = {"key": key, "name": name, "order": order, "release": release,
-           "phases": derive_phases(phases_seen, current, raw_status),
-           "time": _time_text(status, wall, len(stages)),
-           "imp": f"{len(children)} children" + (f", {improve['improvePasses']} review passes"
+           "phases": derive_phases(phases_seen, current, "stopped" if ended else raw_status),
+           "time": _time_text(status, wall, len(stages), ending),
+           "imp": _count(len(children), "child", "children") + (f", {_count(improve['improvePasses'], 'review pass')}"
                                                  if improve.get("improvePasses") else ""),
            "stages": stages, "unmeasured": unmeasured, **improve, **measures,
            "knowledge": knowledge, "evidence": str(out),
@@ -1383,7 +2805,7 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
                 run[field] = sum(item[field] for item in items)
     if "shiploop_failures" not in unmeasured:  # a host that cannot see the failures reports no count, not 0
         run["refusals"] = len(failures)
-        run["failures"] = [{"verb": str(f.get("verb")), "line": str(f.get("line") or "")[:MAX_FAILURE_LINE]}
+        run["failures"] = [{"verb": str(f.get("verb")), "line": failure_line(f.get("line"))[:MAX_FAILURE_LINE]}
                            for f in failures]
     if "model_glue" not in unmeasured:
         run["glue"] = len(glue)
@@ -1401,10 +2823,51 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             verdicts[verdict] = result[verdict]["pass"]
     if isinstance(result.get("checks"), list) and result["checks"]:
         verdicts["checks"] = all(bool(c.get("pass")) for c in result["checks"] if isinstance(c, dict))
+    unreturned = _worktree_checks(result)
+    if unreturned is not None:  # the product the run never returned, checked where it is: information beside `checks`
+        verdicts["worktreeChecks"] = unreturned
     if verdicts:
         run["verdicts"] = verdicts
+    if hosts:
+        run["hosts"] = hosts
+    if tool_use is not None:
+        run["toolUse"] = tool_use
+    if planning:
+        run["planning"] = planning
+    if fresh_starts is not None:
+        run["freshStarts"] = fresh_starts
+    if (quality := quality_of(result.get("quality"))) is not None:
+        run["quality"] = quality
+    if ending:
+        run["ending"] = ending
+    if raw_status == "blocked" and (blocked := _blocked(state, history, results)):
+        run["blocked"] = blocked
+    if (left_behind := _left_behind(result.get("left_behind"))) is not None:
+        run["leftBehind"] = left_behind
+    run.update(record_fields)
+    if delivered:
+        run["delivered"] = delivered
+    fidelity, fidelity_why, evidence_classes = _fidelity(metrics, failures, "shiploop_failures" in unmeasured)
+    unmeasured.update(fidelity_why)
+    if fidelity:
+        run["fidelity"] = fidelity
+    for row in stages:  # how each visit's exit was evidenced, joined to the harness's rows by action id
+        if row.get("action") in evidence_classes:
+            row["evidenceClass"] = evidence_classes[row["action"]]
 
     packet_set, unreadable = packet_docs(key, packets, stages)
+    improve_packets, improve_packets_why = _improve_packets(stages, children)
+    if improve_packets is not None:
+        run["improvePackets"] = improve_packets
+    else:
+        unmeasured["improvePackets"] = improve_packets_why
+    if ending.get("action"):  # the packet issued for the stage the run never accepted: a document like any visit's
+        read = _packet_doc(key, ending["action"], ending["stage"], packets / f"{ending['action']}.md")
+        if read is None:
+            unreadable += 1
+        else:
+            packet_set[f"{key}--{ending['action']}"] = read[0]
+            ending["packetDoc"] = True
     docs: dict[str, dict[str, dict]] = {"runs": {key: run}, "backchain": {}, "packets": packet_set}
     loops = []
     scratch = run_dir / "scratch"
@@ -1420,6 +2883,9 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
                    "facts": [{"k": "Ledger", "v": f"not built: {type(exc).__name__}: {exc}"}]}
         start = _start_record(run_dir, loop) or loop / "until-loop-receipt.json"
         loops.append(((start.stat().st_mtime if start.is_file() else 0.0), loop.name, doc))
+    for folder in find_graph_check_dirs(run_dir):  # R22b: a stage that only checked its graph is not "no loop"
+        first = min(p.stat().st_mtime for p in folder.glob("check-*.json"))
+        loops.append((first, folder.name, graph_check_doc(key, run_dir, folder, 0, option, stage_of)))
     loops.sort(key=lambda t: (t[0], t[1]))
     for index, (_, _, doc) in enumerate(loops, 1):
         doc["order"] = index
@@ -1428,8 +2894,10 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
             doc_id, suffix = f"{key}-{doc['loop']}-{suffix}", suffix + 1
         docs["backchain"][doc_id] = doc
 
+    visited = {row["action"] for row in stages if "action" in row}
     facts = _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, docs["backchain"],
-                   unknown, from_state, seeded_note, option, packet_set, unreadable)
+                   unknown, from_state, seeded_note, option, packet_set, unreadable,
+                   (sum(b["records"] for a, b in verify_blocks.items() if a not in visited), verify_unreadable))
     return docs, facts
 
 
@@ -1464,8 +2932,293 @@ def _carried_line(run) -> str:
                              if read else "no label counted"))
 
 
+def _ending_lines(run) -> list[str]:
+    """How the run ended, as facts lines (a line only for a part the run document has): hosts, the ending, why it is blocked,
+    the listeners the harness ended and the unreturned product's checks."""
+    lines = []
+    hosts = run.get("hosts") or []
+    if len(hosts) > 1:
+        lines.append("- Hosts: " + "; ".join(" ".join(h[k] for k in ("host", "model", "effort") if k in h) for h in hosts)
+                     + " (more than one: calls, context peak, window, compactions and visit context are not exported)")
+    ending = run.get("ending")
+    if ending:
+        tail = (f"; {ending['stage']} never accepted" if "stage" in ending else "") + (
+            f", {ending['unacceptedMin']} min after the last accept" if "unacceptedMin" in ending else "") + (
+            f", {ending['unacceptedTurns']} turns" if "unacceptedTurns" in ending else "")
+        sessions = (f"; {_count(ending['sessions'], 'session')}, {_count(ending['resumes'], 'resume')}"
+                    if "sessions" in ending and "resumes" in ending else "")
+        earlier = "".join(f"; earlier: {e.get('by', 'ended')}" + (f" at {e['stage']}" if "stage" in e else "")
+                          for e in ending.get("earlier") or [])
+        lines.append(f"- Ended: {run.get('status', 'unknown')}" + (f": {ending['by']}" if "by" in ending else "")
+                     + tail + sessions + earlier)
+    blocked = run.get("blocked")
+    if blocked:
+        lines.append("- Blocked: " + "; ".join(f"{label} {blocked[key]}" for key, label in
+                                              (("by", "class"), ("headline", "headline"), ("question", "question"))
+                                              if key in blocked) + (f"; {len(blocked['options'])} options"
+                                                                    if blocked.get("options") else ""))
+    left = run.get("leftBehind")
+    if left:
+        def named(item):
+            return (item["command"] + "".join(f" :{p}" for p in item.get("ports") or []) + f" ({item['where']})"
+                    + (f" {item['endedBy']}" if "endedBy" in item else ""))
+        lines.append("- Left behind: " + (
+            "; ".join([*(f"ended {named(i)}" for i in left.get("reaped") or []),
+                       *(f"still running {named(i)}" for i in left.get("survived") or [])] or ["none"])
+            if left["observed"] else f"not observed ({left.get('reason', 'no reason recorded')})"))
+    verdicts = run.get("verdicts") or {}
+    if "worktreeChecks" in verdicts:
+        lines.append(f"- Checks in the worktree (product not returned): {verdicts['worktreeChecks']['passed']}/{verdicts['worktreeChecks']['total']} pass"
+                     + (f"; in the work folder: {'all pass' if verdicts['checks'] else 'not all pass'}" if "checks" in verdicts else ""))
+    return lines
+
+
+def _measure_lines(run, verify_loose: tuple[int, int]) -> list[str]:
+    """The R22b measures as facts lines: the script checks ShipLoop recorded, the unverified outcomes, the tool use and the
+    planning window (a measure the run lacks reads "not measured" and why)."""
+    unmeasured, rows, lines = run["unmeasured"], run["stages"], []
+    checked = [r["verify"] for r in rows if "verify" in r]
+    loose, unreadable = verify_loose
+    lines.append((f"- Script checks (tests/<action>-verifyN.md): {_count(sum(v['records'] for v in checked), 'record')} on {_count(len(checked), 'visit')}, "
+                  f"{sum(v['passed'] for v in checked)} passed, {sum(v['red'] for v in checked)} ran red"
+                  + (f"; {sum(v.get('couldNotRun', 0) for v in checked)} could not run" if any("couldNotRun" in v for v in checked) else "")
+                  + (f"; {_count(loose, 'record')} {'names' if loose == 1 else 'name'} an action that is no visit" if loose else "")
+                  + (f"; {unreadable} unreadable" if unreadable else ""))
+                 if checked or loose or unreadable else "- Script checks (tests/<action>-verifyN.md): none recorded")
+    listed = [r for r in rows if "unverified" in r]
+    if listed:
+        lines.append("- Unverified outcomes: " + "; ".join(f"{r['stage']} {len(r['unverified'])}" for r in listed))
+    use = run.get("toolUse")
+    if use is None:
+        lines.append(f"- Tool use: not measured ({unmeasured.get('toolUse', 'no reason recorded')})")
+    else:
+        wrappers = use.get("wrappers")
+        packets = use.get("packets") or {}
+        lines.append("- Tool use: " + ("no wrapper script" if wrappers == [] else "wrapper scripts " + ", ".join(
+            f"{w['name']} {w['runs']}" for w in wrappers) if wrappers else "wrappers not recorded")
+                     + "; packets " + (", ".join(f"{name} {packets[key]:,}" for key, name in (
+                         ("files", "files"), ("bytes", "bytes"), ("printed", "printed"), ("printedChars", "printed chars"),
+                         ("readWhole", "read whole"), ("readPartial", "read in part"), ("shellReads", "shell reads"),
+                         ("shellChars", "shell chars")) if key in packets) or "not recorded"))
+    plan = run.get("planning")
+    if plan:
+        lines.append("- Planning window: " + ", ".join(
+            [f"{plan['windowMin']} min on the engine clock" if "windowMin" in plan else
+             f"not measured ({unmeasured.get('planning', 'no reason recorded')})"]
+            + ([f"{plan['hostWindowMin']} min on the host's"] if "hostWindowMin" in plan else [])
+            + ([f"{'closed at' if plan.get('closed') else 'still open through'} {plan['through']}"] if "through" in plan else [])
+            + ([f"Improve {plan['improveMin']} min over " + (_count(plan["children"], "child", "children") if "children" in plan else "? children")]
+               if "improveMin" in plan else [])
+            + ([f"{plan['outputTokens']:,} output tokens" + (f", {plan['reasoningPct']}% reasoning" if "reasoningPct" in plan else "")]
+               if "outputTokens" in plan else [])))
+    else:
+        lines.append(f"- Planning window: not measured ({unmeasured.get('planning', 'no reason recorded')})")
+    return lines
+
+
+def _record_lines(run) -> list[str]:
+    """The R23a parts as facts lines (a line only for a part the run document has; a missing build field says it is not measured and why)."""
+    lines, unmeasured = [], run["unmeasured"]
+    outcome = run.get("outcome")
+    if outcome:
+        lines.append(f"- Outcome: {outcome.get('class', 'unknown')}" + (f", {outcome['basis']}" if "basis" in outcome else ""))
+    identity = run.get("identity") or {}
+    if identity or any(key.startswith("identity.") for key in unmeasured):
+        lines.append("- Build: " + ", ".join(
+            f"{label} {identity[field]}" if field in identity else f"{label} not measured ({unmeasured.get('identity.' + field, NO_REASON_RECORDED)})"
+            for field, label in (("pluginSha", "plugin"), ("promptSha", "prompt"), ("hostBuild", "host build"))
+            if field in identity or f"identity.{field}" in unmeasured))
+    env = run.get("environment") or {}
+    parts = []
+    if "tools" in env:
+        parts.append("tools " + ", ".join(f"{name} {version}" for name, version in env["tools"].items()))
+    browser = env.get("browser")
+    if browser:
+        parts.append("browser " + (
+            f"{browser.get('version', 'probed')} (" + "; ".join(f"{kind} {what}" for kind, what in browser.get("targets", {}).items()) + ")"
+            if browser["probed"] else ("declared, not probed" if browser["declared"] else "not declared")
+            + (f": {browser['reason']}" if "reason" in browser else "")))
+    overlap = env.get("overlap")
+    if overlap:
+        listed = ", ".join(f"{r['folder']} {r['overlappedMin']} min" for r in overlap["runs"])
+        parts.append((f"ran alongside {_count(len(overlap['runs']) + overlap.get('runsOmitted', 0), 'other run')} ({listed})"
+                      if overlap["runs"] else "no sibling run overlapped (host events of the sibling folders only)")
+                     + "; the shared seconds are neither an upper nor a lower bound")
+    gone = [f"{key[len('environment.'):]} ({reason})" for key, reason in unmeasured.items() if key.startswith("environment.") and key.count(".") == 1]
+    if gone:
+        parts.append("not observed: " + "; ".join(gone))
+    if parts:
+        lines.append("- Environment: " + "; ".join(parts))
+    at_stop = run.get("productAtStop")
+    if at_stop:
+        position = " ".join(filter(None, (at_stop.get("engineStatus"), "at " + at_stop["engineStage"] if "engineStage" in at_stop else None)))
+        if not at_stop["ran"]:
+            lines.append("- At the stop (information only): the checks did not run (" + at_stop.get("reason", NO_REASON_RECORDED) + ")")
+        else:
+            lines.append(f"- At the stop (information only): {at_stop['passed']} of {at_stop['total']} checks pass in the unreturned worktree"
+                         + (f", {at_stop['timedOut']} timed out" if at_stop["timedOut"] else "") + (f" (engine {position})" if position else ""))
+            lines += [f"  - {'timed out' if c.get('timedOut') else 'failed'}: {c['command']}" + (f": {c['output']}" if "output" in c else "")
+                      for c in at_stop["checks"] if not c["pass"]]
+    return lines
+
+
+def _delivered_lines(run) -> list[str]:
+    """The R23d parts as facts lines (a part the document lacks says it is not measured, with the reason)."""
+    delivered, unmeasured = run.get("delivered") or {}, run["unmeasured"]
+
+    def missing(part: str) -> str:
+        return f"not measured ({unmeasured.get('delivered.' + part, NO_REASON_RECORDED)})"
+    got = delivered.get("returned")
+    if got is None:
+        lines = [f"- Delivered: {missing('returned')}"]
+    elif got["status"] == "returned":
+        span = f", {got['before']} to {got['after']}" if "before" in got and "after" in got else ""
+        where = f" from {got['from']}" if "from" in got else ""
+        lines = [f"- Delivered: merged back into {got.get('into', 'the source branch')} (fast-forward-merge{span}){where}"
+                 if got.get("mode") == "fast-forward-merge" else
+                 f"- Delivered: returned into {got.get('into', 'the source branch')} ({got.get('mode', 'how is not recorded')}{span}){where}"]
+    else:
+        lines = [f"- Delivered: not merged back (workspace {got['status']}): the product is on {got.get('from', 'the run branch')}"
+                 + (f"; {got.get('into', 'the source branch')} was not changed" if got["status"] == "prepared" else "")]
+    files = delivered.get("files")
+    lines.append("- Delivered files (kept in the return plan): " + ", ".join(f"{kind} {files[kind]['count']}" for kind in DELIVERED_KINDS)
+                 if files else f"- Delivered files: {missing('files')}")
+    tests = delivered.get("tests")
+    lines.append(f"- Delivered tests: {tests['ran']} ran" + (f", {tests['failed']} failed" if "failed" in tests else "")
+                 + f" ({tests['stage']}" + (f", {tests['where']}" if "where" in tests else "") + ")" if tests else f"- Delivered tests: {missing('tests')}")
+    for part, label, fields in (("skill", "skill", (("assessed", "assessed"), ("validated", "validated"))),
+                                ("release", "release", (("plan", "plan"), ("done", "done")))):
+        words = delivered.get(part)
+        lines.append(f"- Delivered {label}: " + ("; ".join(f"{name}: {words[key]}" for key, name in fields if key in words) if words else missing(part)))
+    return lines
+
+
+GROUNDED_BY = {"packet": "from the packet", "next": "with shiploop next", "improve-next": "with the Improve runtime's next",
+               "other": "with another ShipLoop command"}
+
+
+def _regrounded(figures: dict) -> str:
+    """"re-grounded in 29 calls, 327 s, from the packet": what re-grounding a measured fresh start took."""
+    parts = [f"re-grounded in {_count(figures['toolCalls'], 'call')}" if "toolCalls" in figures else "re-grounded"]
+    if "seconds" in figures:
+        parts.append(f"{round(figures['seconds'])} s")
+    if "firstGrounding" in figures:
+        parts.append(GROUNDED_BY.get(figures["firstGrounding"], f"first grounding {figures['firstGrounding']}"))
+    return ", ".join(parts)
+
+
+def _fresh_lines(run) -> list[str]:
+    """The run's fresh starts as one facts line: none recorded, not measured and why, or each start with what re-grounding took
+    (a start that was not measured says why), and why the list is not complete when it is not."""
+    starts, why = run.get("freshStarts"), run["unmeasured"].get("freshStarts")
+    if starts is None:
+        return [f"- Fresh starts: not measured ({why or 'no reason recorded'})"]
+    if not starts:
+        return ["- Fresh starts: none recorded"]
+    each = []
+    for start in starts:
+        figures, where = start["reoriented"], f" at {start['stage']}" if "stage" in start else ""
+        each.append(f"{start['kind']}{where}: " + (_regrounded(figures) if figures["measured"]
+                                                   else f"not measured ({figures.get('reason', NO_REASON)})"))
+    return [f"- Fresh starts: {len(starts)} ({'; '.join(each)})" + (f"; not complete: {why}" if why else "")]
+
+
+def _quality_lines(run) -> list[str]:
+    """The delivered quality as one facts line (none when the run has no `quality`): the ratio with its operator and the counts, the
+    held-out checks and the memory writes; a part that was not observed says why."""
+    quality = run.get("quality")
+    if quality is None:
+        return []
+    head = "- Quality (recorded after the run, never a verdict): "
+    if not quality["observed"]:
+        return [f"{head}not observed ({quality.get('reason', NO_REASON)})"]
+    parts = []
+    mutation, acceptance, writes = quality.get("mutation"), quality.get("acceptance"), quality.get("memoryWrites")
+    if mutation is not None and not mutation["observed"]:
+        parts.append(f"mutation not observed ({mutation.get('reason', NO_REASON)})")
+    elif mutation is not None:
+        inside = [f"operator {mutation.get('operatorId', 'unknown')}"]
+        if all(key in mutation for key in ("killed", "survived", "sites")):
+            inside.append(f"{mutation['killed']} caught, {mutation['survived']} survived of {mutation['sites']} sites")
+        apart = [_count(mutation["timeout"], "timeout") if mutation.get("timeout") else "",
+                 f"{mutation['portRefused']} with a fixed port refused" if mutation.get("portRefused") else "",
+                 "time ceiling hit" if mutation.get("ceilingHit") else ""]
+        parts.append(f"mutation {'ratio ' + str(mutation['ratio']) if 'ratio' in mutation else 'no ratio'} ({'; '.join(inside)}"
+                     + ("; " + ", ".join(a for a in apart if a) if any(apart) else "") + ")")
+    if acceptance is not None and not acceptance["observed"]:
+        parts.append(f"held-out checks not observed ({acceptance.get('reason', NO_REASON)})")
+    elif acceptance is not None and "passed" in acceptance and "total" in acceptance:
+        parts.append(f"held-out checks {acceptance['passed']} of {acceptance['total']} pass"
+                     + (f" (failed: {', '.join(acceptance['failed'])})" if acceptance.get("failed") else ""))
+    elif acceptance is not None:
+        parts.append("held-out checks observed, counts not recorded")
+    if writes is not None:
+        parts.append(_count(writes["count"], "memory write"))
+    return [head + ("; ".join(parts) if parts else "observed, nothing measured")]
+
+
+def _fidelity_lines(run) -> list[str]:
+    """The R23b measures as facts lines: the harness's fidelity reading part by part (a part the run lacks reads "not measured" and
+    why) and the Improve packet labels with the release they were printed by."""
+    unmeasured, fid = run["unmeasured"], run.get("fidelity")
+    if fid is None:
+        lines = [f"- Fidelity: not measured ({unmeasured.get('fidelity', 'no reason recorded')})"]
+    else:
+        def why(part: str) -> str:
+            return f"not measured ({unmeasured.get('fidelity.' + part, 'no reason recorded')})"
+        ev, val, edits, refusals = fid.get("evidence"), fid.get("validation"), fid.get("edits"), fid.get("refusals")
+        lines = []
+        if ev is None:
+            lines.append(f"- Fidelity, exit evidence: {why('evidence')}")
+        else:
+            lines.append(f"- Fidelity, exit evidence of {_count(sum(ev.get(c, 0) for c in EVIDENCE_CLASSES), 'accepted stage')}: "
+                         + ", ".join(f"{c} {ev[c]}" for c in EVIDENCE_CLASSES if c in ev)
+                         + "; declared script-run checks with no script record: "
+                         + ("not measured (" + unmeasured.get("fidelity.declared", "no reason recorded") + ")"
+                            if "scriptRunWithoutRecord" not in ev else ", ".join(ev["scriptRunWithoutRecord"]) or "none"))
+        if val is None:
+            lines.append(f"- Fidelity, validation: {why('validation')}")
+        else:
+            groups = [", ".join(f"{val[k]} {label}" for k, label in group if k in val) for group in (
+                (("records", "records"), ("runs", "command runs"), ("distinctCommands", "distinct commands")),
+                (("passed", "passed"), ("red", "ran red"), ("couldNotRun", "could not run"), ("unread", "unreadable")))]
+            if "counted" in val:
+                groups.append(f"{val['zeroRan']} of {val['counted']} rows with a test count ran no test" if "zeroRan" in val
+                              else f"{val['counted']} rows with a test count")
+            if "testsRanUnmeasured" in val:
+                groups.append(f"{val['testsRanUnmeasured']} focused or regression rows with no test count")
+            lines.append("- Fidelity, validation: " + "; ".join(g for g in groups if g))
+        if edits is None:
+            lines.append(f"- Fidelity, edits: {why('edits')}")
+        else:
+            owned = edits.get("scriptOwned")
+            lines.append("- Fidelity, edits (a list to confirm, no hit is not proof): "
+                         + ", ".join(part for part in (
+                             f"{_count(owned['count'], 'script-owned edit')}" if owned else "", f"{_count(edits['nameKills'], 'kill')} by process name"
+                             if "nameKills" in edits else "", f"{_count(edits['modelCommits'], 'command')} that ran git add or commit"
+                             if "modelCommits" in edits else "") if part))
+        if refusals is None:
+            lines.append(f"- Fidelity, refusals: {why('refusals')}")
+        else:
+            lines.append("- Fidelity, refusals (a list to confirm, no repeat flagged is not proof): "
+                         + (f"{run['refusals']} in all, " if "refusals" in run else "")
+                         + ("repeated not measured" if "repeated" not in refusals else f"{refusals['repeated']} repeated")
+                         + (f", {refusals['unstaged']} with no stage" if "unstaged" in refusals else "")
+                         + ("; by stage " + ", ".join(f"{b['stage']} {b['count']}" for b in refusals["byStage"]) if refusals.get("byStage") else ""))
+    packets = run.get("improvePackets")
+    if packets is None:
+        lines.append(f"- Improve packets: not measured ({unmeasured.get('improvePackets', 'no reason recorded')})")
+    elif not packets["read"]:
+        lines.append("- Improve packets: none (the run has no Improve child)")
+    else:
+        lines.append(f"- Improve packets ({run['release']}; read {packets['read']}; skill-craft 1.25.0 added Goal and Done when, so an earlier "
+                     "release has none): " + ", ".join(f"{label} {packets['carried'][key]}" for key, label in (
+                         ("goal", "goal"), ("doneWhen", "done when"), ("checkedBy", "checked by"), ("output", "output"), ("recovery", "recovery"))))
+    return lines
+
+
 def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, loops, unknown, from_state,
-           seeded_note, option, packet_set, unreadable) -> list[str]:
+           seeded_note, option, packet_set, unreadable, verify_loose=(0, 0)) -> list[str]:
     stages = run["stages"]
     totals: dict[str, list] = {}
     for row in stages:
@@ -1483,11 +3236,12 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
     knowledge = run["knowledge"]
     largest = next(iter(knowledge.items()), None)
     lines = [f"# Run Review facts: {run['key']}", "",
-             f"- Run: ShipLoop status {raw_status or 'unknown'}; {len(stages)} accepted actions{kinds}; "
+             f"- Run: ShipLoop status {raw_status or 'unknown'}; {_count(len(stages), 'accepted action')}{kinds}; "
              f"{run.get('wallMin', 'unknown')} min from start to the last accept",
              f"- Driver: {' '.join(run[k] for k in ('host', 'model', 'effort') if k in run) or 'unknown'}; "
              f"case {run.get('case', 'unknown')}; {run['release']}",
-             "- Verdicts: " + (", ".join(f"{k} {'pass' if v else 'fail'}" for k, v in run["verdicts"].items())
+             "- Verdicts: " + (", ".join(f"{k} {v['passed']}/{v['total']}" if isinstance(v, dict) else f"{k} {'pass' if v else 'fail'}"
+                                         for k, v in run["verdicts"].items())
                                if run.get("verdicts") else "no result.json"),
              "- Slowest stages (min, accept to accept): " + (", ".join(
                  f"{stage} {sum(m):.1f}" + (f" ({len(m)}x)" if len(m) > 1 else "") for stage, m in slowest) or "none"),
@@ -1511,7 +3265,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
              + (f" in {knowledge_root.relative_to(out).as_posix() if knowledge_root.is_relative_to(out) else knowledge_root}"
                 f"; largest {largest[0]} {largest[1] / 1024:.1f} KB" if largest else ""),
              f"- Packets {sum(r.get('packetBytes', 0) for r in stages) / 1024:.1f} KB, results "
-             f"{sum(r.get('resultBytes', 0) for r in stages) / 1024:.1f} KB over {len(stages)} accepted actions",
+             f"{sum(r.get('resultBytes', 0) for r in stages) / 1024:.1f} KB over {_count(len(stages), 'accepted action')}",
              _plan_line(run),
              f"- Packet documents: {len(packet_set)} written, {sum(d['bytes'] for d in packet_set.values()) / 1024:.1f} KB "
              f"of packet files, {sum(1 for d in packet_set.values() if d.get('truncated'))} truncated; "
@@ -1521,12 +3275,20 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
              f"- Planning review option (state.md): {run['planningReview']}",
              f"- Backchain passes option (state.md): {option}",
              "- Backchain loops: " + ("; ".join(
+                 f"{d['loop']}: {next(f['v'] for f in d['facts'] if f['k'] == 'Graph check')}" if d.get("graphCheckOnly") else
                  f"{d['loop']} {next((f['v'] for f in d['facts'] if f['k'] == 'Passes'), '?')} passes, "
                  f"{next((f['v'] for f in d['facts'] if f['k'] == 'Final status'), '?')}"
                  + (f", stage {d['stageMin']} min" if d.get("stageMin") is not None else "")
                  + (f", candidate match {_MATCH_WORD[d['candidateMatch']]}" if "candidateMatch" in d else "")
                  for d in loops.values()) or "none found under scratch/ or backchain/"),
              f"- Run directory: {run_dir.relative_to(out).as_posix()}"]
+    lines += _ending_lines(run)
+    lines += _measure_lines(run, verify_loose)
+    lines += _record_lines(run)
+    lines += _delivered_lines(run)
+    lines += _fresh_lines(run)
+    lines += _quality_lines(run)
+    lines += _fidelity_lines(run)
     if untimed:
         lines.append(f"- Stages with no minutes (no accept stamp, or none on the visit before): {untimed} of "
                      f"{len(stages)}; their minutes are null, not 0")
@@ -1584,13 +3346,58 @@ def write_export(out: Path, docs: dict[str, dict[str, dict]], facts: list[str] |
     return out
 
 
+TEMPLATE_DIR = SKILL_ROOT / "template"
+STATIC_FILE = "run-review.html"
+STATIC_HEAD = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+FONT_LINKS = re.compile(r'<link rel="(?:preconnect|stylesheet)" href="https://fonts\.[^"]*">\n')
+
+
+def _script_data(value) -> str:
+    """JSON that can sit inside a <script>: every `<` is escaped (so no `</script>`, `<!--` or `<script` survives in the
+    data) and so are U+2028/2029, which end a line in older script parsers. Still the same JSON value."""
+    text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return text.replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+
+
+def static_html(docs: dict[str, dict[str, dict]]) -> str:
+    """The page template with `docs` (a run's documents) and the default expectations and settings embedded, and a
+    read-only stand-in for the database (template/static-db.js): one self-contained file with no network. The page checks
+    `window.__RR_STATIC` to say it is a static copy. The same input gives the same text."""
+    page = (TEMPLATE_DIR / "index.html").read_text(encoding="utf-8")
+    stand_in = (TEMPLATE_DIR / "static-db.js").read_text(encoding="utf-8")
+    defaults = defaults_docs()
+    merged = {c: dict(items) for c, items in defaults.items()}
+    for collection, items in docs.items():
+        merged.setdefault(collection, {}).update(items)  # the run's own documents win over a default of the same id
+    runs = list(docs.get("runs", {}).values())
+    title = f"Run Review: {runs[0].get('name') or next(iter(docs['runs']))}" if runs else "Run Review"
+    if isinstance(merged.get("config", {}).get("page"), dict):  # the page sets its heading and tab title from config/page.title
+        merged["config"]["page"] = {**merged["config"]["page"], "title": title}
+    data = {c: [{"id": i, "data": merged[c][i]} for i in sorted(merged[c])] for c in sorted(merged)}
+    page, titles = re.subn(r"<title>[^<]*</title>", lambda _m: f"<title>{html_escape(title)}</title>", page, count=1)
+    page = FONT_LINKS.sub("", page)  # nothing is fetched: the page falls back to the system fonts
+    marker, wrap = '<script id="logic">', '<div class="wrap">'
+    if titles != 1 or page.count(marker) != 1 or page.count(wrap) != 1:
+        raise ExportError("template/index.html lost its title, wrap or logic script: the static copy cannot be built")
+    data_script = f"<script>window.__RR_STATIC=true;window.__RR_DATA={_script_data(data)};</script>\n<script>\n{stand_in}</script>\n"
+    page = page.replace(wrap, "</head>\n<body>\n" + wrap, 1).replace(marker, data_script + marker, 1)
+    return STATIC_HEAD + page.rstrip("\n") + "\n</body>\n</html>\n"
+
+
+def html_escape(text: str) -> str:
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def export_run(run_out: Path, key: str | None = None, name: str | None = None, order: int | None = None,
-               out: Path | None = None) -> Path:
-    """Export one run output directory; returns the export directory."""
+               out: Path | None = None, html: bool = True) -> Path:
+    """Export one run output directory; returns the export directory. `html` also writes run-review.html there."""
     run_out = Path(run_out).expanduser().resolve()
     docs, facts = build_run(run_out, key, name, order)
     run_key = next(iter(docs["runs"]))
-    return write_export(out or run_out / "review-export", docs, facts, compact=True, prune_prefix=run_key)
+    target = write_export(out or run_out / "review-export", docs, facts, compact=True, prune_prefix=run_key)
+    if html:
+        (target / STATIC_FILE).write_text(static_html(docs), encoding="utf-8")
+    return target
 
 
 # ---------------------------------------------------------------- the stage catalog (--stages, defaults/stages.json)
@@ -1731,6 +3538,12 @@ def upgrade_docs(live: dict[str, dict[str, dict]], page_url: str | None = None) 
         if have and have.get("artifactUrl"):
             notes.append(f"config/page: artifactUrl {have['artifactUrl']} is replaced by {page_url}")
         docs["config"]["page"] = {**(have if have is not None else defaults["config"]["page"]), "artifactUrl": page_url}
+    # A page that has no repoUrl gets the defaults' (repo references in the review text become links); one that names its own keeps it.
+    page, repo = docs["config"].get("page", have), defaults["config"]["page"].get("repoUrl")
+    if page is not None and repo and "repoUrl" not in page:
+        docs["config"]["page"] = {**page, "repoUrl": repo}
+        if page is have:
+            notes.append(f"config/page: repoUrl {repo} is added (repo references in the review text become links)")
     return docs, notes
 
 
@@ -1890,8 +3703,9 @@ def _read_bundle(path: Path):
         raise ExportError(f"cannot read the review bundle {path}: {exc}") from exc
 
 
-def _count(n: int, word: str) -> str:
-    return f"{n} {word}" + ("" if n == 1 else "s")
+def _count(n: int, word: str, plural: str | None = None) -> str:
+    """"1 check", "2 checks", "1 review pass", "2 review passes", "1 child", "2 children" (the third argument is an irregular plural)."""
+    return f"{n} " + (word if n == 1 else plural or word + ("es" if word.endswith("s") else "s"))
 
 
 def check_file(path: Path) -> tuple[int, dict | None]:
@@ -1939,10 +3753,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--key", help="the runs document id (default <host>-<model>-<release>-<case>-<yyyymmdd>)")
     parser.add_argument("--name", help="the run's display name")
     parser.add_argument("--order", type=int, help="sort key (default the run's start, epoch seconds)")
+    parser.add_argument("--no-html", action="store_true", help="with RUN_DIR: do not write run-review.html")
     parser.add_argument("--out", type=Path, help="export directory (default RUN_DIR/review-export; for --docs a new temporary directory)")
     args = parser.parse_args(argv)
     if [args.run_dir is not None, args.defaults, args.stages, args.check is not None, args.docs is not None].count(True) != 1:
         parser.error("give one of RUN_DIR, --defaults, --stages, --check FILE or --docs FILE")
+    if args.no_html and args.run_dir is None:
+        parser.error("--no-html goes with RUN_DIR")
     if args.live is not None and not args.defaults:
         parser.error("--live goes with --defaults")
     if args.page_url is not None and not args.defaults:
@@ -1957,7 +3774,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.defaults:
             path = export_defaults(args.out, args.live, args.page_url)
         else:
-            path = export_run(args.run_dir, args.key, args.name, args.order, args.out)
+            path = export_run(args.run_dir, args.key, args.name, args.order, args.out, html=not args.no_html)
     except ExportError as exc:
         print(f"export: {exc}", file=sys.stderr)
         return 2

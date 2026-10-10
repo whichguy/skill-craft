@@ -6,7 +6,7 @@ description: >-
   numbers, write findings, advice and options for the owner to tick, check that review
   file, and publish both to the page. Use after a ShipLoop E2E run or iteration, or when
   asked for the Run Review page, a run export or advice on a run.
-version: 0.1.2
+version: 0.1.3
 license: MIT
 platforms:
   - linux
