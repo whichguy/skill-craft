@@ -547,7 +547,10 @@ commits are not on your branch, so it would be the only copy) or recorded no cha
 (the follow-up return that carries the knowledge commits comes after the decision,
 which stays conservative), when the living spec lacks an ID it names or names none
 at all, and when the file has uncommitted changes; ShipLoop says
-which, and never refuses the handoff for the IDs or the route. The run's plan, test and outcome
+which, and never refuses the handoff for the IDs or the route. A removal or a list
+write that cannot be made (a read-only file, a Git index lock, a hook) leaves the
+handoff pending with the file's absolute path first; fix that and submit the same
+result again. The run's plan, test and outcome
 records stay. A replan that starts after a retire finds the planned feature spec
 only in Git history (`git log` on the folder, or the list's recover command); a
 squash merge of the run's branch drops that history, and with it the retired file.

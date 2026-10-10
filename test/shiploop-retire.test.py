@@ -170,10 +170,29 @@ class TerminalCloseTests(kt.HomeCase):
 
     def test_a_retire_that_cannot_commit_refuses_the_handoff_with_the_file_in_place(self) -> None:
         with mock.patch.object(kt.shiploop_git, "commit_paths", side_effect=kt.shiploop_git.CommitError("cannot commit it")):
-            with self.assertRaisesRegex(navigator.NavigatorError, "cannot commit it; handoff remains pending"):
+            with self.assertRaises(navigator.NavigatorError) as caught:
                 self.close()
+        first = str(caught.exception).splitlines()[0]
+        self.assertTrue(first.startswith("ShipLoop knowledge: cannot retire " + str(self.spec) + ": cannot commit it"), first)
+        self.assertIn("; handoff remains pending. Fix that, then submit the same handoff result again.", first)
         self.assertTrue(self.spec.is_file())
         self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+
+    def test_a_list_that_cannot_be_written_is_a_refusal_at_the_terminal_close_and_a_notice_before_it(self) -> None:
+        """Audit (batch 1012): the PermissionError of the list write escaped _knowledge_close as a raw traceback."""
+        listed = self.repo / knowledge.FEATURE_LIST
+        self.write("docs/shiploop/features/second-bbbbbb/plan.md", "# p\n")               # the list text would change
+        with self.unwritable(knowledge.FEATURE_LIST):
+            with self.assertRaises(navigator.NavigatorError) as caught:
+                self.close()
+            first = str(caught.exception).splitlines()[0]
+            self.assertTrue(first.startswith("ShipLoop knowledge: cannot write " + str(listed) + ": "), first)
+            self.assertIn("; handoff remains pending. Fix that, then submit the same handoff result again.", first)
+            out, err = self.close(terminal=False)                                           # not the terminal close: a notice
+        self.assertEqual(out, "")
+        self.assertTrue(err.startswith("ShipLoop knowledge: cannot write " + str(listed) + ": "), err)
+        self.assertTrue(err.rstrip().endswith("; the next accepted stage commits it."), err)
+        self.assertTrue(self.spec.is_file())
 
     def test_a_list_that_is_not_shiploops_is_named_in_one_notice_and_left_alone(self) -> None:
         listed = self.repo / knowledge.FEATURE_LIST

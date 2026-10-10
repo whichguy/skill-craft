@@ -258,7 +258,11 @@ def commit(state: Mapping[str, Any], stage: str) -> shiploop_git.Committed:
     repo = Path(str(state["repo"]))
     if not _home_changed(repo):
         return shiploop_git.Committed("", [], [])
-    write_feature_list(repo)
+    try:
+        write_feature_list(repo)
+    except OSError as exc:
+        # The navigator turns a RuntimeError into its "handoff remains pending" refusal or notice; a raw OSError would escape.
+        raise RuntimeError("cannot write " + str(repo / FEATURE_LIST) + ": " + str(exc) + _WRITE_HINT) from exc
     message = knowledge_subject(state, stage)
     if stage == "release-verify":
         body = "\n\n".join(name + "\n" + text for name, text in learnings(state).items() if text)
@@ -271,6 +275,9 @@ def commit(state: Mapping[str, Any], stage: str) -> shiploop_git.Committed:
 
 
 # --- the feature list ---------------------------------------------------------------------------------------------
+
+# The next step a failure to write or remove a knowledge file names, because the reader of a refusal has lost the context.
+_WRITE_HINT = " (check write permission on that file and the folder it is in)"
 
 # The generated list opens with this mark.  A file at FEATURE_LIST that does not is someone else's and is left alone; the
 # header below may change between releases while its first lines stay, so an older generated list is still ShipLoop's.
@@ -536,6 +543,10 @@ def retire(state: Mapping[str, Any], reaches_branch: Optional[bool]) -> Retired:
     if missing:
         return Retired("", ", ".join(missing) + (" is" if len(missing) == 1 else " are") + " not in the living spec "
                        + str(repo / HOME / "spec.md"))
+    if spec.is_symlink():
+        # A link's history holds the target path, not the text the message promises in the parent commit, and a failed
+        # attempt could not put the link back as a link.
+        return Retired("", "it is a symbolic link")
     if _git(repo, "cat-file", "-e", "HEAD:" + relative).returncode or _git(repo, "diff", "--quiet", "HEAD", "--",
                                                                            relative).returncode:
         return Retired("", "it has changes that are not committed")
@@ -552,15 +563,31 @@ def retire(state: Mapping[str, Any], reaches_branch: Optional[bool]) -> Retired:
             paths.append(FEATURE_LIST)
         done = shiploop_git.commit_paths(repo, paths, message)
     except (shiploop_git.CommitError, OSError) as exc:
-        spec.write_bytes(original)
-        if owned and list_before is not None:
-            listed.write_bytes(list_before)
-        elif owned:
-            listed.unlink(missing_ok=True)   # the list did not exist before this attempt wrote it
-        _git(repo, "reset", "-q", "--", *paths)
-        raise RuntimeError(str(exc) if isinstance(exc, shiploop_git.CommitError)
-                           else "cannot remove " + relative + ": " + str(exc)) from exc
+        _put_back(repo, spec, original, listed if owned else None, list_before, paths)
+        # The first line is what a reader who has lost the context needs: the absolute path, the reason, the likely causes.
+        raise RuntimeError("cannot retire " + str(spec) + ": " + " ".join(str(exc).split())
+                           + (" (check for a Git index lock or a hook that refuses the commit)"
+                              if isinstance(exc, shiploop_git.CommitError) else _WRITE_HINT)) from exc
     return Retired(done.commit, "")
+
+
+def _put_back(repo: Path, spec: Path, original: bytes, listed: Optional[Path], list_before: Optional[bytes],
+              paths: Sequence[str]) -> None:
+    """Undo a failed retire as far as the file system allows: the feature spec, the list and the index.
+
+    A step that cannot be done is skipped, never raised: the caller is reporting the failure that brought it here, and a
+    second error out of this handler would replace that report.
+    """
+    steps = [lambda: spec.write_bytes(original)]
+    if listed is not None:
+        steps.append((lambda: listed.write_bytes(list_before)) if list_before is not None
+                     else (lambda: listed.unlink(missing_ok=True)))   # the list did not exist before this attempt wrote it
+    for step in steps:
+        try:
+            step()
+        except OSError:
+            pass
+    _git(repo, "reset", "-q", "--", *paths)
 
 
 def retired_by(repo: Path, feature: str) -> str:

@@ -5,6 +5,7 @@ Real Git repositories in temporary directories.
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -597,6 +598,22 @@ class HomeCase(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
 
+    @contextlib.contextmanager
+    def unwritable(self, relative: str):
+        """Every write to one file fails with a permission error, whoever runs the test (a mode bit would not stop root)."""
+        target = self.repo / relative
+
+        def deny(real):
+            def guarded(path, *args, **kwargs):
+                if path == target:
+                    raise PermissionError(13, "Permission denied", str(path))
+                return real(path, *args, **kwargs)
+            return guarded
+
+        with mock.patch.object(Path, "write_text", deny(Path.write_text)), \
+                mock.patch.object(Path, "write_bytes", deny(Path.write_bytes)):
+            yield target
+
     def planned_home(self, living: str = LIVING, feature_spec: str = STUB) -> str:
         """The home as a real run leaves it before its prepare close: committed after the spec stage."""
         self.write("docs/shiploop/spec.md", living)
@@ -916,6 +933,22 @@ class FeatureListTests(HomeCase):
         self.assertEqual(outside.read_text(), "not ShipLoop's\n")
         self.assertTrue(path.is_symlink())
 
+    def test_a_list_that_cannot_be_written_is_a_runtime_error_with_the_absolute_path_first_and_a_next_step(self) -> None:
+        """Audit (batch 1012): the PermissionError escaped knowledge.commit as a raw traceback; the navigator catches only
+        RuntimeError and turns it into "handoff remains pending" (terminal) or a notice."""
+        self.planned_home()
+        self.write("docs/shiploop/features/second-bbbbbb/plan.md", "# p\n")          # the list text would change
+        before = git(self.repo, "rev-list", "--count", "HEAD")
+        with self.unwritable(knowledge.FEATURE_LIST) as listed:
+            with self.assertRaises(RuntimeError) as caught:
+                knowledge.commit(self.state, "plan")
+        message = str(caught.exception)
+        self.assertTrue(message.startswith("cannot write " + str(listed) + ": "), message)   # absolute first, never the relative path
+        self.assertIn("Permission denied", message)
+        self.assertIn("write permission", message)                                          # a next step
+        self.assertEqual(git(self.repo, "rev-list", "--count", "HEAD"), before)             # nothing was committed
+        self.assertTrue(knowledge.commit(self.state, "plan").commit)                         # the same call works once it can write
+
     def test_earlier_features_says_none_yet_or_names_the_list(self) -> None:
         self.assertEqual(knowledge.earlier_features(self.state), "Earlier features: none yet.")
         self.planned_home()                                                                  # only this run's own folder
@@ -1045,9 +1078,77 @@ class RetireTests(HomeCase):
         self.prepared()
         spec = self.repo / self.feature() / "spec.md"
         with mock.patch.object(Path, "unlink", side_effect=PermissionError("denied")):
-            with self.assertRaisesRegex(RuntimeError, "cannot remove " + re.escape(self.feature() + "/spec.md") + ".*denied"):
+            with self.assertRaises(RuntimeError) as caught:
                 knowledge.retire(self.state, True)
+        message = str(caught.exception)
+        self.assertTrue(message.startswith("cannot retire " + str(spec) + ": "), message)   # the absolute path first
+        self.assertIn("denied", message)
+        self.assertIn("write permission", message)                                          # and a next step
         self.assertTrue(spec.is_file())
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+
+    def test_a_failed_commit_names_the_absolute_path_first_and_the_likely_causes(self) -> None:
+        self.prepared()
+        spec = self.repo / self.feature() / "spec.md"
+        with mock.patch.object(shiploop_git, "commit_paths",
+                               side_effect=shiploop_git.CommitError("cannot commit it:\nfatal: Unable to create index.lock")):
+            with self.assertRaises(RuntimeError) as caught:
+                knowledge.retire(self.state, True)
+        message = str(caught.exception)
+        self.assertTrue(message.startswith("cannot retire " + str(spec) + ": cannot commit it: fatal: Unable to create index.lock"),
+                        message)
+        self.assertEqual(len(message.splitlines()), 1)                                        # the causes are on line 1 too
+        self.assertIn("index lock", message)
+        self.assertIn("hook", message)
+
+    def test_a_list_that_cannot_be_written_or_put_back_still_ends_in_a_runtime_error_with_the_file_in_place(self) -> None:
+        """Audit (batch 1012): the restore inside the failure handler raised the PermissionError itself, out of the handler,
+        so the wrapped refusal never came and a raw traceback replaced it."""
+        self.prepared()
+        spec = self.repo / self.feature() / "spec.md"
+        original = spec.read_bytes()
+        with self.unwritable(knowledge.FEATURE_LIST):
+            with self.assertRaises(RuntimeError) as caught:
+                knowledge.retire(self.state, True)
+        self.assertTrue(str(caught.exception).startswith("cannot retire " + str(spec) + ": "), str(caught.exception))
+        self.assertEqual(spec.read_bytes(), original)
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+        self.assertTrue(knowledge.retire(self.state, True).commit)                           # and the retry works
+
+    def test_a_failed_commit_removes_a_list_that_the_attempt_wrote_when_none_existed_before(self) -> None:
+        """The other rollback branch (audit): a repository without a list gets one written by the attempt; a failure must not
+        leave it behind as an untracked file."""
+        self.prepared()
+        listed = self.repo / knowledge.FEATURE_LIST
+        git(self.repo, "rm", "-q", "--", knowledge.FEATURE_LIST)
+        git(self.repo, "commit", "-qm", "the list is gone")
+        self.assertFalse(listed.exists())
+        with mock.patch.object(shiploop_git, "commit_paths", side_effect=shiploop_git.CommitError("cannot commit it")):
+            with self.assertRaisesRegex(RuntimeError, "cannot commit it"):
+                knowledge.retire(self.state, True)
+        self.assertFalse(listed.exists())
+        self.assertTrue((self.repo / self.feature() / "spec.md").is_file())
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+        done = knowledge.retire(self.state, True)                                           # the retry writes it and commits both
+        self.assertEqual(sorted(git(self.repo, "show", "--name-status", "--format=", "HEAD").split("\n")[:-1]),
+                         sorted(["D\t" + self.feature() + "/spec.md", "A\t" + knowledge.FEATURE_LIST]))
+        self.assertTrue(done.commit)
+
+    def test_a_feature_spec_that_is_a_symbolic_link_is_kept_and_stays_a_link(self) -> None:
+        """Audit (batch 1012): the rollback re-created a link as a regular file (a type change) and a link's history holds the
+        target path, not the text the retire message promises in the parent commit, so a link is never retired."""
+        self.prepared()
+        spec = self.repo / self.feature() / "spec.md"
+        (spec.parent / "real-spec.md").write_bytes(spec.read_bytes())
+        spec.unlink()
+        spec.symlink_to("real-spec.md")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "the feature spec becomes a link")
+        before = self.commits()
+        kept = knowledge.retire(self.state, True)
+        self.assertEqual(kept, knowledge.Retired("", "it is a symbolic link"))
+        self.assertTrue(spec.is_symlink())
+        self.assertEqual(self.commits(), before)
         self.assertEqual(git(self.repo, "status", "--porcelain"), "")
 
     def test_a_removal_that_stopped_before_its_commit_is_committed_later_as_plain_knowledge(self) -> None:

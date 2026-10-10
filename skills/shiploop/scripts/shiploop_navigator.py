@@ -1763,6 +1763,10 @@ def _item_title(state: Mapping[str, Any], work_item: str) -> str:
     return ""
 
 
+# What the terminal close's refusals end with: the handoff waits, and a reader who lost the context is told the route back.
+_PENDING = "; handoff remains pending. Fix that, then submit the same handoff result again."
+
+
 def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: Path | None = None,
                      *, terminal: bool = False) -> None:
     """Commit knowledge after an accepted close, including terminal preflight.
@@ -1785,7 +1789,7 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
         committed = knowledge.commit(after, stages[-1])
     except RuntimeError as exc:
         if terminal:
-            raise NavigatorError("ShipLoop knowledge: " + str(exc) + "; handoff remains pending.") from exc
+            raise NavigatorError("ShipLoop knowledge: " + str(exc) + _PENDING) from exc
         # The transition stands; the next accepted stage commits the same files.
         print("ShipLoop knowledge: " + str(exc) + "; the next accepted stage commits it.", file=sys.stderr)
         return
@@ -1801,7 +1805,7 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
         try:
             retired = knowledge.retire(after, _run_commits_reach_branch(after, root))
         except RuntimeError as exc:
-            raise NavigatorError("ShipLoop knowledge: " + str(exc) + "; handoff remains pending.") from exc
+            raise NavigatorError("ShipLoop knowledge: " + str(exc) + _PENDING) from exc
     returned = False
     if (root is not None and after.get("execution_mode") == "navigator-worktree"
             and (committed.commit or retired.commit or terminal)):
@@ -1814,7 +1818,7 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
             # the commands, which this error would replace with a dead end.
             if terminal and committed.commit:
                 raise NavigatorError("ShipLoop knowledge: the follow-up return was not made (" + str(exc)
-                                     + "); handoff remains pending.") from exc
+                                     + ")" + _PENDING) from exc
             print("ShipLoop knowledge: the follow-up return was not made (" + str(exc) + "); "
                   "handoff will ask for it.", file=sys.stderr)
         else:
