@@ -482,17 +482,20 @@ class PacketContractTests(DelegationStateTests):
                     checked += 1
         self.assertGreaterEqual(checked, 12)
 
-    def test_only_the_release_stage_improve_may_perform_a_release_effect(self):
+    def test_no_improve_packet_may_perform_a_release_effect(self):
         # SPEC S-3 and environment-lifecycle.md#release-operation-ownership: a stage-scoped Improve assesses and records
-        # its handoff.  The release-plan Improve packet said "Improve may perform deployments" in the packet that says
-        # it plans without executing release (packet review 2026-10-10, P-imp-1).
+        # its handoff, and no Improve child runs at release itself.  The release-plan Improve packet said "Improve may
+        # perform deployments" in the packet that says it plans without executing release (packet review 2026-10-10,
+        # P-imp-1).
         with tempfile.TemporaryDirectory(prefix="shiploop-release-guard-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
             packets = bound_walk(repo, "inline")
         improve = {stage: " ".join(packet.split()) for stage, kind, packet in packets if kind == "improve"}
+        self.assertNotIn("release", improve)  # the walk binds no Improve child at the release stage
+        for stage, packet in improve.items():
+            self.assertNotIn("may perform deployments", packet, stage)
         text = improve["release-plan"]
-        self.assertNotIn("Improve may perform deployments", text)
         self.assertIn("does not execute or replay a release effect", text)
         self.assertIn("without executing release", text)
 

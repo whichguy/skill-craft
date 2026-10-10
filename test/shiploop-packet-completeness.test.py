@@ -269,7 +269,8 @@ class ObservedHarmPacketTests(unittest.TestCase):
         for stage in FOCUS_STAGES:
             text = flat(self.none[(stage, "producer")])
             with self.subTest(stage):
-                self.assertIn("no Improve child reviews this result in this run", text)
+                # The lead states the duty only: a packet names Improve only where its stage runs a child (owner rule).
+                self.assertIn("Planning review focus (meet these conditions before you submit):", text)
                 self.assertNotIn("the Improve child applies these conditions", text)
                 self.assertNotIn("That review applies", text)
                 self.assertNotIn((stage, "improve"), self.none)

@@ -325,13 +325,8 @@ def transition_writes(root: Path, after: Mapping[str, Any], work_item: Optional[
     return {contract_path(action): loop_contract.dumps(contract)}
 
 
-def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str) -> List[str]:
-    """Read-only packet lines: runtime, start command, packet paths, the command list and the counting rules."""
-    return loop_lines(root, state, work_item, action, stage) + rule_lines(state, work_item, stage)
-
-
 def rule_lines(state: Mapping[str, Any], work_item: str, stage: str) -> List[str]:
-    """How ShipLoop counts the listed commands' tests: the part of ``render_lines`` that stays below the head."""
+    """How ShipLoop counts the listed commands' tests: printed in the full packet below the head (``loop_lines``)."""
     if not stage_commands(state, stage, work_item)[0]:
         return []
     return [COUNT_RULE] + _floor_lines(stage)
@@ -1179,7 +1174,6 @@ __all__ = (
     "probe_lines",
     "loop_lines",
     "red_lines",
-    "render_lines",
     "rule_lines",
     "rerun_lines",
     "stage_commands",

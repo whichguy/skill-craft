@@ -1382,8 +1382,10 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         "",
         status_block(state),
         "",
-        *_after_status_lines(root, state, stage, action["id"]),
+        # The narrative before the loop lines: a status hook reads only the first 8000 bytes, and a loop stage's
+        # command list (which varies in length) after it pushed a milestone narrative past that window.
         *narrative_lines(state, timeline),
+        *_after_status_lines(root, state, stage, action["id"]),
     ]
     return "\n".join(lines)
 
@@ -1812,7 +1814,7 @@ def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]
 _EVIDENCE_SUFFIX = re.compile(r"(#.*|::.*|:\d+(?::\d+)?)$")
 
 
-def _check_submitted_evidence(result: Any) -> None:
+def _check_submitted_evidence(result: Any, own_receipt: Path | None = None) -> None:
     """Refuse a submitted result that cites a local file that does not exist.
 
     Runs at the CLI gates only (history is revalidated on every load, and a
@@ -1820,6 +1822,10 @@ def _check_submitted_evidence(result: Any) -> None:
     dropping a ``#anchor`` or ``:line`` suffix; URLs and other locators pass.
     An existing file is not proof of anything: test evidence is ShipLoop's
     own test-run record.
+
+    ``own_receipt`` is this action's loop receipt, which the result template prefills: a result other than done may
+    keep it before the loop wrote it (the loop checks accept blocked without a terminal packet), and done still needs
+    it, through the loop's own terminal check.
     """
     if not isinstance(result, Mapping):
         return
@@ -1828,6 +1834,9 @@ def _check_submitted_evidence(result: Any) -> None:
         if not isinstance(ref, str) or not ref.startswith("/"):
             continue
         path = Path(_EVIDENCE_SUFFIX.sub("", ref))
+        if (own_receipt is not None and result.get("outcome") != "done"
+                and str(path) == str(own_receipt)):
+            continue
         if not path.exists():
             missing.append(ref)
     _need(not missing, "evidence_refs cite files that do not exist: " + ", ".join(missing[:5])
@@ -3184,8 +3193,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         # notice above, and early enough to survive head-kept Bash output.
         status_block(state),
         "",
-        *_after_status_lines(root, state, stage, action["id"]),
         *narrative_lines(state, timeline),
+        *_after_status_lines(root, state, stage, action["id"]),
         progress_guidance,
         # After the status block's END, so variable-length lists never compete with the kept head.
         *_unverified_lines(state, stage),
@@ -3578,7 +3587,8 @@ def _after_status_lines(root: Path, state: Mapping[str, Any], stage: str, action
 
     The status block must end inside the first 8000 bytes a status hook reads, and the largest packet (step-plan) ends
     it within 31 bytes of that, so neither the template note nor a loop's command list (which varies in length) can
-    precede it; this block follows it, as ``_unverified_lines`` does.
+    precede it; this block follows it, as ``_unverified_lines`` does. It also follows a milestone narrative, which the
+    hook reads from the same window.
     """
     if state["status"] != "active" or state.get("active_improve"):
         return []
@@ -4889,7 +4899,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             except quality.QualityError as exc:
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
-            _check_submitted_evidence(submitted)
+            _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item))
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)

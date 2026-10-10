@@ -777,8 +777,7 @@ REVIEW_FOCUS_CONDITIONS = """\
 REVIEW_FOCUS_DUTY_STAGES = ("spec", "test-strategy")
 _REVIEW_FOCUS_LEAD = ("Planning review focus (the Improve child applies these conditions to this result; meet them "
                       "before you submit):\n")
-_REVIEW_FOCUS_LEAD_NONE = ("Planning review focus (no Improve child reviews this result in this run; meet these "
-                           "conditions before you submit):\n")
+_REVIEW_FOCUS_LEAD_NONE = "Planning review focus (meet these conditions before you submit):\n"
 
 # How ShipLoop matches a listed test ID against the runner's output (``shiploop_test_counts.named``).  One sentence,
 # restated by every duty and packet line that says a listed ID must be shown, so the rule is worded once.
@@ -2614,21 +2613,10 @@ structural validation or a Backchain result alone does not complete this handoff
 
     release_guard = ""
     if any(label == "Release operation guidance" for label, _ in STAGE_REFERENCES[stage]):
-        # Only the release stage performs release effects.  Another stage's Improve assesses and records its handoff
-        # (SPEC S-3; environment-lifecycle.md#release-operation-ownership): release-plan's Improve was told it "may
-        # perform deployments" in the same packet that says it plans without executing release.
-        if stage == "release":
-            performs = """\
-its authority. Improve may perform deployments, MCP interactions and other release
-operations already authorized for the current task and stage, with their required
-checks. Do not repeat unchanged release effects merely to advance the review streak.
-Reconcile uncertain or partial outcomes before retrying, without inventing provider guarantees.
-Retry only when the reconciled state warrants it and the operation remains
-authorized under the release guidance; retain the prior operation/receipt identity
-and follow the provider's supported retry or idempotency procedure.
-"""
-        else:
-            performs = """\
+        # No Improve child runs at the release stage itself (stage_spec: release has no improve), so every Improve
+        # that reads this guard is stage-scoped: it assesses and records, and never executes or replays a release
+        # effect (SPEC S-3; environment-lifecycle.md#release-operation-ownership).
+        performs = """\
 its authority. A stage-scoped Improve assesses and records its handoff; it does not
 execute or replay a release effect (a deployment, an MCP interaction or any other
 release operation). Those run only at the release stage, with a recorded grant and

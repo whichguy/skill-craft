@@ -3102,8 +3102,6 @@ class PlanningReviewNoneTest(unittest.TestCase):
         "no Improve child reviews them in this run": "the none text of the step-plan duty: says no child reviews the steps",
         "No Improve child reviews this result in this run": "the none text of the step-plan duty: says no child reviews it",
         "No Improve child reviews `skill_na` in this run": "the none text of the step-plan duty: says no child reviews skill_na",
-        "Planning review focus (no Improve child reviews this result in this run; meet these conditions before you "
-        "submit)": "the none text of the spec and test-strategy duties: says no child reviews it, the conditions stay a checklist",
         "Improve follows its own selected context and ownership policy": "the chain-precedence rule on an ask-agent "
         "packet: whose context an Improve invocation uses, not a child at this stage",
         "Do not embed an Improve review campaign in this result": "forbids a nested review inside the producer; promises no child",
@@ -3220,6 +3218,19 @@ class PlanningReviewNoneTest(unittest.TestCase):
                                 found.update(allowed)
         self.assertEqual(found, set(self.ALLOWED), "an allowlist entry matched no sentence: "
                          + str(sorted(set(self.ALLOWED) - found)))
+
+    def test_the_review_focus_lead_of_a_none_run_names_no_improve(self) -> None:
+        """Owner rule: a packet mentions Improve only where its stage runs an Improve child, as a directive.  The none
+        lead said "no Improve child reviews this result"; it now states only the duty."""
+        for delegation in prompts.DELEGATIONS:
+            for stage in prompts.REVIEW_FOCUS_DUTY_STAGES:
+                with self.subTest(delegation=delegation, stage=stage):
+                    lead = next(line for line in self.packet(stage, "none", delegation).splitlines()
+                                if line.startswith("Planning review focus"))
+                    self.assertEqual(lead, "Planning review focus (meet these conditions before you submit):")
+                    staged = next(line for line in self.packet(stage, "stage", delegation).splitlines()
+                                  if line.startswith("Planning review focus"))
+                    self.assertIn("the Improve child applies these conditions", staged)  # stage mode keeps its directive
 
     def test_no_none_packet_promises_a_review_in_words_that_do_not_name_the_improve_child(self) -> None:
         """E3 and the review's F1: two sentences promised a review at every stage, in a none run too, and the scan

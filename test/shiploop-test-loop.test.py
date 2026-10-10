@@ -192,8 +192,10 @@ class TestLoopTests(unittest.TestCase):
         nav.save(self.run_dir, updated, writes)
         nav._lint_finish(self.run_dir, payload)
 
-    def drive_to(self, stage: str, *, step_plan: dict | None = None) -> dict:
-        """Advance with synthetic results; the step plan records ``step_plan`` (default: COMMANDS)."""
+    def drive_to(self, stage: str, *, step_plan: dict | None = None, each=None) -> dict:
+        """Advance with synthetic results; the step plan records ``step_plan`` (default: COMMANDS).
+
+        ``each`` is called with the state at every producer stage before it is completed."""
         recorded = ({"test_commands": [dict(COMMANDS[0], criteria=["C1"]), *COMMANDS[1:]], "paths": ["a.py"],
                      "criteria": [{"id": "C1", "text": "The item's focused check passes."}]}
                     if step_plan is None else step_plan)
@@ -210,6 +212,8 @@ class TestLoopTests(unittest.TestCase):
             current = nav.current_stage(state)
             if current == stage:
                 return state
+            if each is not None:
+                each(state)
             if current in knowledge_support.knowledge.CLOSES:
                 knowledge_support.write(state)
             if current == "step-plan":
@@ -528,7 +532,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertNotIn("blocked, blocked_by access", duty)
         self.complete(dict(DONE, system_commands=[COMMANDS[1]], summary=(
             "Open item TC-16 (needs a browser this host cannot reach): requirement R-4 stays unverified; a person "
-            "opens the page and reports the board renders; due handoff.")))
+            "runs the check by hand and reports what it shows; due handoff.")))
         self.drive_to("system-test")
         self.assertEqual(self.state()["status"], "active")
         self.assertIn("Carry in the open items system-test-author recorded", " ".join(self.packet().split()))
@@ -1492,11 +1496,64 @@ class TestLoopTests(unittest.TestCase):
         self.complete(dict(self.template_of(head), headline="The loop ran clean.", summary="Only trivial findings."))
         self.assertEqual(nav.current_stage(self.state()), "verify")
 
+    def test_a_blocked_result_before_the_loop_ran_may_keep_the_prefilled_receipt_and_done_may_not(self):
+        """The template prefills evidence_refs with the loop receipt and the head says keep it; blocked before the
+        loop ran was refused for citing that unwritten file, though the loop checks accept blocked without a terminal
+        packet.  Through the real complete gate, at a test loop and at the quality loop."""
+        for stage in ("test-green", "static-checks"):
+            with self.subTest(stage=stage):
+                self.start()
+                self.drive_to(stage)
+                head = self.head()
+                template = self.template_of(head)
+                receipt = Path(template["evidence_refs"][0])
+                self.assertTrue(receipt.name.endswith("-terminal.json"))
+                self.assertFalse(receipt.exists())
+                filled = dict(template, headline="The loop cannot start here.",
+                              summary="The runner the loop needs is not installed in this environment.")
+                # done without the receipt is still refused, by the loop's own check.
+                self.assert_refused(filled, "terminal|receipt|loop")
+                self.complete(dict(filled, outcome="blocked", blocked_by="access"))
+                self.assertEqual(self.state()["status"], "blocked")
+                self.assertEqual(nav.current_stage(self.state()), stage)
+                self.assertIn("keep it when you report done", head)  # the head's line matches the gate
+
     def test_a_loop_stage_without_a_bound_runtime_or_a_command_prefills_no_receipt(self):
         self.start(improve_skill="")
         self.drive_to("test-green")
         evidence = self.template_of(self.head())["evidence_refs"]
         self.assertNotIn("-terminal.json", " ".join(evidence))
+
+    def test_every_head_keeps_its_status_block_and_milestone_narrative_inside_the_hook_window(self):
+        """A status hook reads only the first WINDOW bytes of a head.  The loop lines (conditions, Start, receipt and
+        a command list that grows with the commands and the run-dir path) printed before the narrative pushed the
+        regression milestone's narrative END to byte 8430 while the head told the model the hook already showed it.
+        Walked with a long run directory and six commands, under the CLI entry point that hands the narrative to it."""
+        import shiploop_status_hook as hook
+        long_run = self.run_dir / ("long-run-directory-" * 6) / "run"
+        long_run.mkdir(parents=True)
+        self.run_dir = long_run
+        commands = [{"command": "sh check.sh fixed.txt --case " + "x" * 40 + str(index), "suite": "focused"}
+                    for index in range(5)] + [COMMANDS[1]]
+        seen: dict[str, str] = {}
+
+        def check(state: dict) -> None:
+            if state.get("active_improve") is not None:
+                return
+            stage = nav.current_stage(state)
+            head = nav.packet_head(CORE, self.run_dir, state, nav.packet_path(self.run_dir, state))
+            with self.subTest(stage=stage):
+                self.assertLess(head.index(nav.STATUS_END), hook.WINDOW)
+                if nav.narrative.BEGIN in head:
+                    seen[stage] = head
+                    self.assertLess(head.index(nav.narrative.END), hook.WINDOW)
+                    self.assertIsNotNone(hook.narrative_text(head))
+
+        with mock.patch.dict(os.environ, {"CLAUDE_CODE_ENTRYPOINT": "cli"}):
+            self.start()
+            self.drive_to("handoff", step_plan={"test_commands": commands, "paths": ["a.py"]}, each=check)
+        self.assertIn("regression", seen)  # the milestone loop stage the finding reproduced at
+        self.assertIn("\nStart: ", seen["regression"])
 
     def test_regression_done_when_claims_only_what_the_loop_and_the_rerun_check(self):
         done = " ".join(stage_spec.stage("regression").done_when)
@@ -1823,8 +1880,11 @@ class WholeWordIdTests(unittest.TestCase):
                 "test-author duty": test_loop.guidance.duty("test-author"),
                 "test-author probe": "\n".join(test_loop.probe_lines(state, "W1")),
                 "test-red": "\n".join(test_loop.red_lines(state, "W1")),
-                "test-green": "\n".join(test_loop.render_lines(root, state, "W1", "A1", "test-green")),
-                "regression": "\n".join(test_loop.render_lines(root, state, "W1", "A1", "regression")),
+                # The head carries loop_lines and the full packet's tail rule_lines: both are in the one packet.
+                "test-green": "\n".join(test_loop.loop_lines(root, state, "W1", "A1", "test-green")
+                                        + test_loop.rule_lines(state, "W1", "test-green")),
+                "regression": "\n".join(test_loop.loop_lines(root, state, "W1", "A1", "regression")
+                                        + test_loop.rule_lines(state, "W1", "regression")),
                 "test-refine": "\n".join(test_loop.rerun_lines(root, state, "W1", "test-refine")),
                 "static-checks": "\n".join(test_loop.rerun_lines(root, state, "W1", "static-checks")),
             }
@@ -2029,8 +2089,8 @@ class CountFloorTests(unittest.TestCase):
         self.assertIn(test_loop.COUNT_RULE, outer)
         self.assertNotIn(test_loop.RATCHET_RULE, outer)
         self.assertNotIn(test_loop.REFINE_RULE, outer)
-        for lines in (test_loop.render_lines(self.root, self.state, "W1", "A1", "test-green"),
-                      test_loop.render_lines(self.root, self.state, "W1", "A1", "regression"),
+        for lines in (test_loop.rule_lines(self.state, "W1", "test-green"),  # the counting rules the packet prints
+                      test_loop.rule_lines(self.state, "W1", "regression"),
                       test_loop.red_lines(self.state, "W1")):
             self.assertIn(test_loop.RATCHET_RULE, lines)
         self.assertNotIn("revise", test_loop.RATCHET_RULE.replace("is a revise", ""))  # it defers; the refusal names the exit
