@@ -206,6 +206,7 @@ class AskAgentWorkspaceCliTests(unittest.TestCase):
         receipt: Path | None = None,
         helper: Path | None = None,
         isolated_python: bool = False,
+        commit_snapshot: bool = False,
     ) -> dict[str, Any]:
         arguments = ["prepare"]
         if receipt is None:
@@ -216,6 +217,8 @@ class AskAgentWorkspaceCliTests(unittest.TestCase):
         else:
             arguments.extend(["--receipt", str(receipt.resolve())])
         arguments.append("--writers-quiescent")
+        if commit_snapshot:
+            arguments.append("--commit-snapshot")
         payload = self._cli_success(
             *arguments,
             helper=helper,
@@ -539,7 +542,7 @@ raise SystemExit(module.main(sys.argv[2:]))
         (self.source / "untracked.bin").write_bytes(b"\x00untracked\xfeinput\n")
         (self.source / "untracked-link").symlink_to("linked-target.txt")
 
-    def _assert_dirty_fidelity(self, worktree: Path) -> None:
+    def _assert_git_layers_equal(self, worktree: Path) -> None:
         self.assertEqual(
             self._run_bytes(self.source, "diff", "--cached", "--binary").stdout,
             self._run_bytes(worktree, "diff", "--cached", "--binary").stdout,
@@ -552,6 +555,9 @@ raise SystemExit(module.main(sys.argv[2:]))
             self._run_bytes(self.source, "ls-files", "--stage").stdout,
             self._run_bytes(worktree, "ls-files", "--stage").stdout,
         )
+
+    def _assert_dirty_fidelity(self, worktree: Path) -> None:
+        self._assert_git_layers_equal(worktree)
         for relative in (
             "dual.txt",
             "staged-add-edited.txt",
@@ -747,6 +753,255 @@ raise SystemExit(module.main(sys.argv[2:]))
 
         self._assert_dirty_fidelity(worktree)
         self.assertEqual(self._snapshot(self.source), source_before)
+
+    def test_root_control_files_preserve_staged_and_unstaged_git_patches(self) -> None:
+        controls = (".gitignore", ".claspignore")
+        for relative in controls:
+            (self.source / relative).write_text(f"# baseline {relative}\n", encoding="utf-8")
+        self._run(self.source, "add", *controls)
+        self._run(self.source, "commit", "-q", "-m", "track root controls")
+
+        for relative in controls:
+            staged = f"# staged {relative}\n"
+            (self.source / relative).write_text(staged, encoding="utf-8")
+            self._run(self.source, "add", relative)
+            (self.source / relative).write_text(staged + f"# unstaged {relative}\n", encoding="utf-8")
+
+        prepared = self._prepare(label="root controls staged and unstaged")
+        worktree = Path(prepared["worktree"])
+        self._assert_git_layers_equal(worktree)
+        for relative in controls:
+            with self.subTest(relative=relative):
+                self.assertEqual((worktree / relative).read_bytes(), (self.source / relative).read_bytes())
+        (worktree / "app.py").write_text("base application\nworker contribution\n", encoding="utf-8")
+        inspected = self._inspect_mode(Path(prepared["receipt"]), "patch")
+        self.assertEqual(inspected["contribution_paths"], ["app.py"], inspected)
+
+    def test_ignored_root_controls_are_inherited_and_source_drift_checked(self) -> None:
+        self._exclude("/.gitignore", "/.claspignore", "node_modules/", "credentials.private")
+        gitignore = b"# ignored root git rules\n"
+        claspignore = b"# ignored root clasp rules\n"
+        (self.source / ".gitignore").write_bytes(gitignore)
+        (self.source / ".claspignore").write_bytes(claspignore)
+        (self.source / "node_modules" / "pkg").mkdir(parents=True)
+        (self.source / "node_modules" / "pkg" / "index.js").write_text("module.exports = 1\n", encoding="utf-8")
+        (self.source / "credentials.private").write_text("not copied\n", encoding="utf-8")
+
+        prepared = self._prepare(label="ignored root controls")
+        worktree = Path(prepared["worktree"])
+        omitted = prepared["ignored_dependencies_omitted"]
+        self.assertNotIn(".gitignore", omitted)
+        self.assertNotIn(".claspignore", omitted)
+        self.assertIn("node_modules/", omitted)
+        self.assertIn("credentials.private", omitted)
+        self.assertEqual((worktree / ".gitignore").read_bytes(), gitignore)
+        self.assertEqual((worktree / ".claspignore").read_bytes(), claspignore)
+        self.assertFalse((worktree / "node_modules").exists())
+        self.assertFalse((worktree / "credentials.private").exists())
+
+        (self.source / ".claspignore").write_bytes(claspignore + b"# changed after prepare\n")
+        result, drift = self._cli("prepare", "--receipt", prepared["receipt"], "--writers-quiescent")
+        self.assertNotEqual(result.returncode, 0, drift)
+        self.assertIn("source drifted since preparation", drift["error"], drift)
+        self.assertTrue(worktree.is_dir())
+
+    def test_private_snapshot_preserves_dirty_working_bytes_and_root_controls(self) -> None:
+        self._exclude("/.gitignore", "/.claspignore", "node_modules/", "credentials.private")
+        gitignore = b"# captured ignored root control\n"
+        claspignore = b"# captured clasp control\n"
+        (self.source / ".gitignore").write_bytes(gitignore)
+        (self.source / ".claspignore").write_bytes(claspignore)
+        (self.source / "node_modules" / "pkg").mkdir(parents=True)
+        (self.source / "node_modules" / "pkg" / "index.js").write_text("ignored dependency\n", encoding="utf-8")
+        (self.source / "credentials.private").write_text("omitted ignored secret\n", encoding="utf-8")
+
+        (self.source / "dual.txt").write_text("caller staged layer\n", encoding="utf-8")
+        self._run(self.source, "add", "dual.txt")
+        (self.source / "dual.txt").write_text("caller staged layer\ncaller working layer\n", encoding="utf-8")
+        staged_then_deleted = self.source / "staged-add-then-deleted.txt"
+        staged_then_deleted.write_text("staged only\n", encoding="utf-8")
+        self._run(self.source, "add", "staged-add-then-deleted.txt")
+        staged_then_deleted.unlink()
+        self._run(self.source, "rm", "-q", "delete-recreate.txt")
+        (self.source / "delete-recreate.txt").write_text("resurrected working file\n", encoding="utf-8")
+        untracked = self.source / "ordinary-untracked.txt"
+        untracked.write_text("captured untracked input\n", encoding="utf-8")
+
+        source_before = self._snapshot(self.source)
+        source_files = {
+            path: (self.source / path).read_bytes()
+            for path in (".gitignore", ".claspignore", "dual.txt", "delete-recreate.txt", "ordinary-untracked.txt")
+        }
+        prepared = self._prepare(label="private dirty snapshot", commit_snapshot=True)
+        worker = Path(prepared["worktree"])
+        metadata = prepared["snapshot"]
+        self.assertEqual(prepared["commit_base"], metadata["commit"])
+        self.assertEqual(metadata["mode"], "private-commit")
+        self.assertTrue(metadata["source_dirty"], metadata)
+        self.assertTrue(metadata["created"], metadata)
+        self.assertEqual(self._run(worker, "show", "-s", "--format=%P", metadata["commit"]).stdout.split(), [source_before["head"]])
+        self.assertEqual(self._run(worker, "rev-parse", f"{metadata['commit']}^{{tree}}").stdout.strip(), metadata["tree"])
+        self.assertEqual(self._run(worker, "status", "--porcelain=v1", "-z", "--untracked-files=all").stdout, "")
+        for path, expected in source_files.items():
+            self.assertEqual((worker / path).read_bytes(), expected, path)
+        self.assertFalse((worker / "staged-add-then-deleted.txt").exists())
+        self.assertFalse((worker / "node_modules").exists())
+        self.assertFalse((worker / "credentials.private").exists())
+        tree_paths = set(self._run_bytes(worker, "ls-tree", "-r", "--name-only", "-z", metadata["commit"]).stdout.rstrip(b"\0").decode().split("\0"))
+        self.assertIn(".gitignore", tree_paths)
+        self.assertIn(".claspignore", tree_paths)
+        self.assertIn("delete-recreate.txt", tree_paths)
+        self.assertIn("ordinary-untracked.txt", tree_paths)
+        self.assertNotIn("staged-add-then-deleted.txt", tree_paths)
+
+        baseline = json.loads(Path(prepared["baseline"]).read_text(encoding="utf-8"))
+        self.assertEqual(baseline["source_capture"]["head"], source_before["head"])
+        self.assertEqual(baseline["source_worker_state"]["head"], source_before["head"])
+        self.assertEqual(baseline["snapshot"], metadata)
+        self.assertEqual(baseline["worker_state"]["head"], metadata["commit"])
+        self.assertEqual(self._snapshot(self.source), source_before)
+        for path, expected in source_files.items():
+            self.assertEqual((self.source / path).read_bytes(), expected, path)
+
+    def test_private_snapshot_clean_source_skips_s_and_receipt_retry_keeps_selection(self) -> None:
+        source_before = self._snapshot(self.source)
+        source_head = source_before["head"]
+        prepared = self._prepare(label="private clean snapshot", commit_snapshot=True)
+        self.assertEqual(prepared["commit_base"], source_head)
+        self.assertEqual(prepared["snapshot"]["commit"], source_head)
+        self.assertEqual(prepared["snapshot"]["tree"], self._run(self.source, "rev-parse", f"{source_head}^{{tree}}").stdout.strip())
+        self.assertFalse(prepared["snapshot"]["created"], prepared["snapshot"])
+        self.assertFalse(prepared["snapshot"]["source_dirty"], prepared["snapshot"])
+        retry = self._prepare(receipt=Path(prepared["receipt"]))
+        self.assertTrue(retry.get("reused"), retry)
+        self.assertEqual(retry["snapshot"], prepared["snapshot"])
+        self.assertEqual(self._snapshot(self.source), source_before)
+
+    def test_private_snapshot_retry_cannot_upgrade_legacy_receipt(self) -> None:
+        prepared = self._prepare(label="legacy snapshot retry")
+        worker = Path(prepared["worktree"])
+        source_before = self._snapshot(self.source)
+        worker_before = self._snapshot(worker)
+        result, payload = self._cli(
+            "prepare",
+            "--receipt", prepared["receipt"],
+            "--writers-quiescent",
+            "--commit-snapshot",
+        )
+        self.assertNotEqual(result.returncode, 0, payload)
+        self.assertEqual(payload.get("status"), "error", payload)
+        self.assertIn("cannot upgrade an existing legacy receipt", payload.get("error", ""))
+        self.assertEqual(self._snapshot(self.source), source_before)
+        self.assertEqual(self._snapshot(worker), worker_before)
+
+    def test_private_snapshot_keeps_dirty_marker_when_tree_is_net_zero(self) -> None:
+        source_head = self._run(self.source, "rev-parse", "HEAD").stdout.strip()
+        (self.source / "dual.txt").write_text("temporary staged content\n", encoding="utf-8")
+        self._run(self.source, "add", "dual.txt")
+        (self.source / "dual.txt").write_text("base dual layer\n", encoding="utf-8")
+        source_before = self._snapshot(self.source)
+
+        prepared = self._prepare(label="private net zero snapshot", commit_snapshot=True)
+        self.assertEqual(prepared["commit_base"], source_head)
+        self.assertEqual(prepared["snapshot"]["commit"], source_head)
+        self.assertFalse(prepared["snapshot"]["created"], prepared["snapshot"])
+        self.assertTrue(prepared["snapshot"]["source_dirty"], prepared["snapshot"])
+        worker = Path(prepared["worktree"])
+        self.assertEqual(self._run(worker, "status", "--porcelain=v1", "-z", "--untracked-files=all").stdout, "")
+        baseline = json.loads(Path(prepared["baseline"]).read_text(encoding="utf-8"))
+        self.assertNotEqual(baseline["source_worker_state"]["cached_patch_sha256"], hashlib.sha256(b"").hexdigest())
+        self.assertEqual(baseline["worker_state"]["cached_patch_sha256"], hashlib.sha256(b"").hexdigest())
+        self.assertEqual(self._snapshot(self.source), source_before)
+
+    def test_private_snapshot_respects_disabled_filemode_projection(self) -> None:
+        self._run(self.source, "config", "core.fileMode", "false")
+        script = self.source / "script.sh"
+        script.chmod(0o755)
+        self.assertEqual(script.stat().st_mode & 0o111, 0o111)
+        self.assertEqual(self._run(self.source, "status", "--porcelain=v1").stdout, "")
+        source_before = self._snapshot(self.source)
+        prepared = self._prepare(label="private snapshot filemode", commit_snapshot=True)
+        worker = Path(prepared["worktree"])
+        metadata = prepared["snapshot"]
+        self.assertFalse(metadata["created"], metadata)
+        self.assertFalse(metadata["source_dirty"], metadata)
+        tree_mode = self._run(worker, "ls-tree", metadata["commit"], "--", "script.sh").stdout.split()[0]
+        self.assertEqual(tree_mode, "100644")
+        # core.fileMode=false makes the source chmod invisible to Git. The
+        # child is checked out from Git's 100644 tree entry, so it correctly
+        # has no execute bits even though the parent file retains them.
+        self.assertEqual((worker / "script.sh").stat().st_mode & 0o111, 0)
+        self.assertEqual(script.stat().st_mode & 0o111, 0o111)
+        self.assertEqual(self._snapshot(self.source), source_before)
+        self.assertEqual(self._run(worker, "status", "--porcelain=v1").stdout, "")
+
+    def test_private_snapshot_failure_removes_only_its_known_branch_tip(self) -> None:
+        self._make_dirty_caller()
+        source_before = self._snapshot(self.source)
+        injection = (
+            "original_worker_state = module._worker_state\n"
+            "worker_state_calls = {'count': 0}\n"
+            "def fail_after_snapshot_ref_move(worktree):\n"
+            "    worker_state_calls['count'] += 1\n"
+            "    if worker_state_calls['count'] == 2:\n"
+            "        raise module.WorkspaceError('injected after private snapshot ref move')\n"
+            "    return original_worker_state(worktree)\n"
+            "module._worker_state = fail_after_snapshot_ref_move\n"
+        )
+        result, payload = self._cli_with_injection(
+            injection,
+            *self._prepare_args("snapshot-cleanup"),
+            "--commit-snapshot",
+        )
+        self.assertNotEqual(result.returncode, 0, payload)
+        self.assertEqual(payload.get("status"), "error", payload)
+        self.assertIn("injected after private snapshot ref move", payload.get("error", ""))
+        self.assertEqual(self._run(self.source, "branch", "--list", "ask-agent/snapshot-cleanup-*").stdout.strip(), "")
+        registrations = self._run(self.source, "worktree", "list", "--porcelain").stdout
+        self.assertNotIn("refs/heads/ask-agent/snapshot-cleanup-", registrations)
+        self.assertEqual(self._snapshot(self.source), source_before)
+
+    def test_private_snapshot_rejects_line_ending_conversion_before_source_mutation(self) -> None:
+        self._run(self.source, "config", "core.autocrlf", "true")
+        (self.source / "converted.txt").write_bytes(b"first line\r\nsecond line\r\n")
+        source_before = self._snapshot(self.source)
+        result, payload = self._cli(
+            *self._prepare_args("snapshot-conversion"),
+            "--commit-snapshot",
+        )
+        self.assertNotEqual(result.returncode, 0, payload)
+        self.assertEqual(payload.get("status"), "error", payload)
+        self.assertIn("cannot preserve captured CRLF bytes", payload.get("error", ""))
+        self.assertEqual(self._snapshot(self.source), source_before)
+        self.assertEqual(self._run(self.source, "branch", "--list", "ask-agent/snapshot-conversion-*").stdout.strip(), "")
+
+    def test_absent_and_staged_deleted_root_controls_are_not_resurrected(self) -> None:
+        (self.source / ".gitignore").write_text("# tracked then deleted\n", encoding="utf-8")
+        self._run(self.source, "add", ".gitignore")
+        self._run(self.source, "commit", "-q", "-m", "track root ignore file")
+        self._run(self.source, "rm", "-q", ".gitignore")
+        self.assertFalse((self.source / ".gitignore").exists())
+        self.assertFalse((self.source / ".claspignore").exists())
+
+        prepared = self._prepare(label="deleted and absent root controls")
+        worktree = Path(prepared["worktree"])
+        self.assertFalse((worktree / ".gitignore").exists())
+        self.assertFalse((worktree / ".claspignore").exists())
+        self._assert_git_layers_equal(worktree)
+
+    def test_new_ignored_root_controls_remain_contributions(self) -> None:
+        self._exclude("/.gitignore", "/.claspignore")
+        prepared = self._prepare(label="new ignored root controls")
+        worktree = Path(prepared["worktree"])
+        (worktree / ".gitignore").write_text("# worker contribution\n", encoding="utf-8")
+        (worktree / ".claspignore").write_text("# worker clasp contribution\n", encoding="utf-8")
+
+        inspected = self._inspect_mode(Path(prepared["receipt"]), "patch")
+        self.assertEqual(inspected["contribution_paths"], [".claspignore", ".gitignore"], inspected)
+        self.assertNotIn("ignored_paths", inspected, inspected)
+        contribution = Path(inspected["delivery"]["contribution_patch"]).read_bytes()
+        self.assertIn(b"# worker contribution", contribution)
+        self.assertIn(b"# worker clasp contribution", contribution)
 
     def test_dirty_worktree_inheritance_replays_two_generations_without_mutating_ancestors(self) -> None:
         self._make_dirty_caller()

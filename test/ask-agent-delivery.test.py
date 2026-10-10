@@ -135,8 +135,8 @@ class AskAgentDeliveryTests(unittest.TestCase):
         self.assertIsInstance(payload.get("error"), str, payload)
         return payload
 
-    def _prepare(self, label: str) -> dict[str, Any]:
-        prepared = self._success(
+    def _prepare(self, label: str, *, commit_snapshot: bool = False) -> dict[str, Any]:
+        arguments = [
             "prepare",
             "--source",
             str(self.source),
@@ -145,7 +145,10 @@ class AskAgentDeliveryTests(unittest.TestCase):
             "--label",
             label,
             "--writers-quiescent",
-        )
+        ]
+        if commit_snapshot:
+            arguments.append("--commit-snapshot")
+        prepared = self._success(*arguments)
         self.assertEqual(prepared.get("status"), "prepared", prepared)
         self.assertTrue(Path(prepared["receipt"]).is_file(), prepared)
         self.assertTrue(Path(prepared["worktree"]).is_dir(), prepared)
@@ -505,6 +508,67 @@ class AskAgentDeliveryTests(unittest.TestCase):
         self.assertIn("clean inherited snapshot", error["error"])
         after = self._source_snapshot()
         self.assertEqual(after, before)
+
+    def test_private_snapshot_commit_delivery_starts_after_dirty_parent_capture(self) -> None:
+        self._make_dirty_source()
+        before = self._source_snapshot()
+        prepared = self._prepare("dirty private snapshot", commit_snapshot=True)
+        snapshot = prepared["snapshot"]
+        self.assertEqual(prepared["commit_base"], snapshot["commit"])
+        self.assertEqual(snapshot["mode"], "private-commit")
+        self.assertTrue(snapshot["source_dirty"], snapshot)
+        self.assertTrue(snapshot["created"], snapshot)
+        worker = Path(prepared["worktree"])
+        private_base = snapshot["commit"]
+        self.assertEqual(self._git(worker, "rev-parse", "HEAD").stdout.strip(), private_base)
+        self.assertEqual(
+            self._git(worker, "show", "-s", "--format=%P", private_base).stdout.split(),
+            [before["head"]],
+        )
+        self.assertEqual(self._git(worker, "rev-parse", f"{private_base}^{{tree}}").stdout.strip(), snapshot["tree"])
+
+        (worker / "app.txt").write_text("base application\nworker contribution\n", encoding="utf-8")
+        contribution = self._commit(worker, ["app.txt"], "worker contribution")
+
+        wrong_base = self._inspect(
+            prepared,
+            mode="commits",
+            commit_base=before["head"],
+            commits=[contribution],
+            expect_success=False,
+        )
+        self.assertIn("prepared private snapshot", wrong_base["error"])
+        inspected = self._inspect(
+            prepared,
+            mode="commits",
+            commit_base=private_base,
+            commits=[contribution],
+        )
+        delivery = inspected["delivery"]
+        self.assertEqual(delivery["base"], private_base)
+        self.assertEqual(delivery["commits"], [contribution])
+        self.assertNotIn(private_base, delivery["commits"])
+        self.assertEqual(delivery["commit_paths"], ["app.txt"])
+        self.assertEqual(delivery["residual_paths"], [])
+        patch = Path(delivery["contribution_patch"])
+        patch_text = patch.read_text(encoding="utf-8")
+        self.assertIn("+worker contribution\n", patch_text)
+        self.assertNotIn("caller staged", patch_text)
+        self.assertNotIn("caller unstaged", patch_text)
+        self.assertNotIn("caller-note.txt", patch_text)
+        self.assertEqual(self._source_snapshot(), before)
+
+        self._git(self.source, "apply", "--binary", str(patch))
+        after = self._source_snapshot()
+        self.assertEqual(after["head"], before["head"])
+        self.assertEqual(after["raw_index"], before["raw_index"])
+        self.assertEqual(after["cached"], before["cached"])
+        self.assertEqual((self.source / "app.txt").read_text(encoding="utf-8"), "base application\nworker contribution\n")
+        self.assertEqual(
+            (self.source / "inherited.txt").read_text(encoding="utf-8"),
+            "caller staged\ncaller unstaged\n",
+        )
+        self.assertEqual((self.source / "caller-note.txt").read_text(encoding="utf-8"), "caller untracked input\n")
 
     def test_delivery_modes_reject_mismatched_or_empty_commit_arguments(self) -> None:
         prepared = self._prepare("delivery argument guards")
