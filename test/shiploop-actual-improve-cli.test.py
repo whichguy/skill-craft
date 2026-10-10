@@ -1675,15 +1675,19 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.begin()
         self.edit()
         self.write("docs: x\n\nKey learnings:\n\nRemaining work: none\n")
-        line = self.line_one(self.refused())
+        empty = self.refused()
+        line = self.line_one(empty)
         self.assertTrue(line.startswith('The "Key learnings" label'), line)
         self.assertIn("has no text", line)
         self.write("docs: x\n\nReview: a. Plan: b. Changes: c. Validation: d. Key learnings: e. Remaining work: f.\n")
         stderr = self.refused()
         self.assertTrue(self.line_one(stderr).startswith('Add a "Key learnings:'))
-        self.assertIn("on a line of its own", stderr.splitlines()[1])
+        self.assertIn("on a line of its own starting in column 1", stderr.splitlines()[1])
         self.write("docs: x\n\n## Key learnings\n\nCo-Authored-By: T <t@example.invalid>\n")
         self.assertTrue(self.line_one(self.refused()).startswith('The "Key learnings" label'))  # a trailer is no lesson
+        self.write("docs: x\n\n## Key learnings\n\nthe label had no text in it\n")  # the fix line 1 asks for
+        self.run_named(empty)
+        self.assertIn("the label had no text in it", self.head_message())
 
     def test_a_review_that_changed_nothing_never_asks_for_lessons_makes_no_commit_and_consumes_the_message(self):
         """Guard (it passes but for the last line): an unchanged pass is never asked for lessons (D4)."""
@@ -1732,7 +1736,9 @@ class ImproveCommitContractTests(ImproveCliFixture):
         stderr = self.refused()
         line = self.line_one(stderr)
         self.assertIn("no bind snapshot", line)
-        self.assertIn("improve-complete", line)
+        # the frozen contract lets the child run improve-commit and nothing else: improve-complete is the parent's
+        self.assertIn("The bound child stops here", line)
+        self.assertIn("Parent, run: ", line)
         self.assertEqual(self.named_exit(stderr)[2], "improve-complete")
 
     def test_a_credential_is_refused_by_line_without_echoing_it_even_in_a_learned_from_token(self):
@@ -1799,6 +1805,50 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.assertTrue(stored.endswith("Co-Authored-By: T <t@example.invalid>\n"))
         self.assertNotIn("none cited", stored)
 
+    def test_a_citation_of_an_older_commit_is_accepted_and_one_ahead_of_head_is_refused(self):
+        """Guard (batch 1012 review): the other citation tests cite HEAD itself, so 'only HEAD' passed them."""
+        self.begin()
+        self.edit()
+        older = self.base_commit
+        self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-q", "--allow-empty", "-m", "later")
+        later = self.git("rev-parse", "HEAD").strip()
+        self.assertNotEqual(older, later)
+        self.write("docs: fix\n\nKey learnings: the layout is one file.\nLearned-from: " + older[:9] + " the original layout\n")
+        self.invoke(*self.commit_args)
+        self.assertIn("Learned-from: " + older + " the original layout", self.head_message())
+        # a commit that is ahead of HEAD exists but is not reachable from it
+        self.git("reset", "-q", "--hard", older)
+        self.edit("Version 2.\n")
+        self.write("docs: fix again\n\nKey learnings: none\nLearned-from: " + later[:9] + " a commit from the future\n")
+        stderr = self.refused()
+        self.assertIn("- line 4: the ID is not reachable from HEAD", stderr)
+        self.assertEqual(older, self.git("rev-parse", "HEAD").strip())
+
+    def test_a_lesson_written_as_hyphenated_token_lines_is_read_as_the_lesson(self):
+        """Route test for 7d9e4255: the last paragraph of Root-cause:/Fix-applied: lines was clipped as a trailer block,
+        so this exact message was refused with 'the label has no text' (red with the old grammar, see the journal)."""
+        self.begin()
+        self.edit()
+        self.write("docs: fix\n\nKey learnings:\n\nRoot-cause: the mock hid the seam\nFix-applied: guard the parse\n")
+        self.invoke(*self.commit_args)
+        self.assertIn("Root-cause: the mock hid the seam", self.head_message())
+
+    def test_a_git_failure_while_committing_names_the_fix_and_the_command_on_line_one(self):
+        """Fail-first: the raw Git text was the whole refusal, with no fix and no command."""
+        self.begin()
+        self.edit()
+        self.write("docs: fix\n\nKey learnings: none\n")
+        lock = self.repo / ".git" / "index.lock"
+        lock.write_text("", encoding="utf-8")
+        stderr = self.refused()
+        line = self.line_one(stderr)
+        self.assertTrue(line.startswith("Git could not make the commit: fix the repository problem named below"), line)
+        self.assertIn("index.lock", stderr)
+        self.assertEqual(self.base_commit, self.git("rev-parse", "HEAD").strip())
+        lock.unlink()  # the fix
+        self.run_named(stderr)
+        self.assertNotEqual(self.base_commit, self.git("rev-parse", "HEAD").strip())
+
     def test_the_checks_run_credentials_first_and_the_lessons_and_citations_come_in_one_refusal(self):
         self.begin()
         self.edit()
@@ -1846,8 +1896,25 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.begin()
         before = self.git("rev-parse", "HEAD").strip()
         self.write("docs: x\n\nKey learnings: none\nRemote change: staging-site, purged the cache\n")
-        self.assertIn("Nothing to commit", self.invoke(*self.commit_args).stdout)
+        done = self.invoke(*self.commit_args).stdout
+        self.assertIn("Nothing to commit", done)
         self.assertEqual(before, self.git("rev-parse", "HEAD").strip())
+        # ... but it says so: a model that really changed a remote system and forgot the flag is told what to do
+        notice = next(row for row in done.splitlines() if "--remote-change" in row)
+        self.assertIn("Remote change section", notice)
+        self.assertIn(str(self.message), notice)
+        self.assertFalse(self.message.exists())  # consumed, so the notice says to write the message again
+        self.write("docs: x\n\nKey learnings: none\nRemote change: staging-site, purged the cache\n")
+        again = subprocess.run(shlex.split(notice.rsplit("run: ", 1)[1]), text=True, capture_output=True, cwd=self.base,
+                               timeout=60, env=self.environment)
+        self.assertEqual(again.returncode, 0, again.stdout + again.stderr)
+        self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(), [])
+        self.assertNotEqual(before, self.git("rev-parse", "HEAD").strip())
+
+    def test_no_remote_change_notice_when_the_message_has_no_such_section(self):
+        self.begin()
+        self.write("docs: x\n\nKey learnings: none\n")
+        self.assertNotIn("--remote-change", self.invoke(*self.commit_args).stdout)
 
     def test_the_flag_with_files_pending_commits_the_files_and_the_section_rides_in_the_message(self):
         self.begin()
@@ -1874,6 +1941,10 @@ class ImproveCommitContractTests(ImproveCliFixture):
         stderr = self.refused("--remote-change")
         self.assertTrue(self.line_one(stderr).startswith('Add a "Key learnings:'))
         self.assertTrue(self.line_one(stderr).endswith("--remote-change"))
+        self.write("docs: x\n\nRemote change: staging-site, purged the cache\nKey learnings: none\n")
+        done = self.run_named(stderr).stdout  # the named exit keeps the flag, so it makes the commit with no files
+        self.assertIn("remote change", done)
+        self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(), [])
 
     OPENING = ("## Current context and desired improvements\nTighten the spec examples.\n\n"
                "## Scope\nproduct/contracts/cold-recovery.md\n\n## Authority\nLocal edits and scoped commits; no push.\n\n"
@@ -1987,16 +2058,26 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.assertNotIn("Stage exactly these paths", stderr)
         self.write("docs: tighten\n\nKey learnings: exact examples catch drift.\n")
         self.run_named(stderr)
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *self.completion)
+        again = next(row for row in stderr.splitlines() if row.startswith("Then run the improve-complete command again: "))
+        argv = shlex.split(again.split(": ", 1)[1])  # the refusal prints it: a cleared parent needs no other packet
+        self.assertEqual(argv[2], "improve-complete")
+        self.run_argv(argv)
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+
+    def run_argv(self, argv, status=0):
+        result = subprocess.run(argv, text=True, capture_output=True, cwd=self.base, timeout=60, env=self.environment)
+        self.assertEqual(result.returncode, status, result.stdout + result.stderr)
+        return result
 
     def test_the_uncommitted_edits_refusal_names_the_no_commit_exit_and_improve_complete_accepts_it(self):
         stderr = self.commit_gate_refusal()
-        self.assertIn("--no-commit", stderr)
         exit_line = next(row for row in stderr.splitlines() if "--no-commit" in row)
         self.assertNotIn("receipt", exit_line)  # improve-complete has no receipt file to edit: it has a flag
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *self.completion,
-                    "--no-commit", "The user said not to commit.")
+        # the command is on the line itself, last, with the instruction placeholder: submitted through the real gate
+        argv = shlex.split(exit_line.split(": ", 1)[1])
+        self.assertEqual((argv[2], argv[-2:]), ("improve-complete", ["--no-commit", "<their instruction>"]))
+        argv[-1] = "The user said not to commit."
+        self.run_argv(argv)
         self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
 
 

@@ -2451,8 +2451,8 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
     """Refuse an Improve import that left its own edits uncommitted; rerun tests after a changing end review.
 
     Compares the candidate with the snapshot taken at improve-bind.  The
-    end-of-work review (the final carry-forward) reruns every completed
-    item's recorded commands only when it changed the tree; an unchanged tree keeps
+    end-of-work review (the final carry-forward) reruns every completed item's
+    recorded commands only when it changed the tree; an unchanged tree keeps
     the recorded passes.
     """
     changes = improve_changes.review_changes(root, Path(state["repo"]), action_id)
@@ -2461,7 +2461,8 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
         message_path = improve_commit_message_path(child)
         raise NavigatorError(improve_changes.commit_refusal(
             owed, str(message_path), _callback(core, root, "improve-commit", action=action_id,
-                                               message=str(message_path))))
+                                               message=str(message_path)),
+            _callback(core, root, "improve-complete", action=action_id)))
     if changes is not None and changes[0] and _unchanged_first_pass(child):
         raise NavigatorError("The Improve runtime ended on one unchanged trivial pass, but these files changed "
                              "since the review was bound: " + ", ".join(changes[0]) + ". Report the pass "
@@ -4566,7 +4567,8 @@ def _lessons_and_citations_refusal(repo: Path, message: str, message_path: Path,
     lines = [first + ", then run: " + command]
     if lesson:
         lines.append('ShipLoop reads "Key learnings: <text>" (also "Lessons:" or "Learned:") or a "## Key learnings" '
-                     "heading with the text under it, each on a line of its own, not inside a one-paragraph message. "
+                     "heading with the text under it, each on a line of its own starting in column 1, not inside a "
+                     "one-paragraph message. "
                      'If the iteration taught nothing new, write "Key learnings: none"; do not invent a lesson.')
     if problems:
         lines.append('A citation is one line, "Learned-from: <commit id> <what it contributed>": 7 to 64 hex digits '
@@ -4606,8 +4608,8 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     changes = improve_changes.review_changes(root, repo, action_id)
     _need(changes is not None,
           "ShipLoop cannot tell what this review changed (no bind snapshot), so it cannot commit this review for "
-          "you: leave the files as they are and, when the loop's terminal packet exists, run: "
-          + _callback(core, root, "improve-complete", action=action_id))
+          "you: leave the files as they are. The bound child stops here; the parent imports the review once the "
+          "loop's terminal packet exists. Parent, run: " + _callback(core, root, "improve-complete", action=action_id))
     pending = changes[1]
     if remote:
         _need(bool(commit_lessons.remote_change(message)),
@@ -4618,6 +4620,11 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     elif not pending:
         print("Nothing to commit: every file this review changed is already committed"
               + (" (" + ", ".join(changes[0]) + ")." if changes[0] else "; the review changed no file."))
+        if commit_lessons.remote_change(message):  # the section was not recorded: say so rather than drop it silently
+            print("A Remote change section changes nothing without --remote-change. If this iteration did change a "
+                  "remote system, write the message to " + str(message_path) + " again, then run: "
+                  + _callback(core, root, "improve-commit", action=action_id, message=str(message_path))
+                  + " --remote-change")
         message_path.unlink()  # a stale message must not be committed by a later run
         return 0
     refusal = _credential_refusal(message, message_path, command)
@@ -4628,7 +4635,8 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any) 
     try:
         committed = shiploop_git.commit_paths(repo, pending, "", allow_empty=not pending, message_file=message_path)
     except shiploop_git.CommitError as exc:
-        raise NavigatorError(str(exc)) from exc
+        raise NavigatorError("Git could not make the commit: fix the repository problem named below, then run: "
+                             + command + "\n" + str(exc)) from exc
     notice = shiploop_git.skipped_notice(committed.skipped)
     if not committed.commit:
         print("Nothing committed. " + notice)

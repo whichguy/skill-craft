@@ -54,11 +54,14 @@ class ImproveChangesTests(unittest.TestCase):
         self.assertEqual(found, (["app.py", "new_test.py"], ["app.py", "new_test.py"]))
         owed = changes.uncommitted(found, {})
         self.assertEqual(owed, ["app.py", "new_test.py"])
-        refusal = changes.commit_refusal(owed, "/run/commit-message.md", "python3 shiploop improve-commit --x")
+        refusal = changes.commit_refusal(owed, "/run/commit-message.md", "python3 shiploop improve-commit --x",
+                                         "python3 shiploop improve-complete --x")
         self.assertIn("did not commit them:\n- app.py\n- new_test.py", refusal)
         self.assertEqual(refusal.splitlines()[0], "Commit this review's changes first: write the message to "
                          "/run/commit-message.md with a file tool, then run: python3 shiploop improve-commit --x")
-        self.assertIn("--no-commit", refusal)
+        self.assertIn("Then run the improve-complete command again: python3 shiploop improve-complete --x\n", refusal)
+        self.assertEqual(refusal.splitlines()[-1], "If the user or repository said not to commit, record their instruction "
+                         "instead: python3 shiploop improve-complete --x --no-commit \"<their instruction>\"")
         self.assertNotIn("receipt", refusal)
         self.assertEqual(changes.uncommitted(found, {"no_commit": "The user said: do not commit."}), [])
         git(self.repo, "add", "app.py", "new_test.py")

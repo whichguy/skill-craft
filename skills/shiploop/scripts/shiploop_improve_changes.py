@@ -91,20 +91,22 @@ def uncommitted(changes: Optional[Tuple[List[str], List[str]]], receipt: Mapping
     return list(changes[1])
 
 
-def commit_refusal(paths: List[str], message_path: str, command: str) -> str:
+def commit_refusal(paths: List[str], message_path: str, command: str, complete_command: str) -> str:
     """The import refusal for the review's uncommitted edits.
 
-    Line 1 is the fix and the exact command (last, so it can be copied); the exit for a user's or repository's
-    instruction not to commit is improve-complete's ``--no-commit`` flag, which fills the receipt's ``no_commit``.
+    Line 1 is the fix and the exact command (last, so it can be copied).  The exit for a user's or repository's
+    instruction not to commit is improve-complete's ``--no-commit`` flag, which fills the receipt's ``no_commit``;
+    both improve-complete lines print the command, so a parent that has lost its packet needs nothing else.
     """
     return ("Commit this review's changes first: write the message to " + message_path + " with a file tool, "
             "then run: " + command + "\n"
             "ShipLoop Improve import: the review changed these files but did not commit them:\n"
             + "".join("- " + path + "\n" for path in paths)
             + "improve-commit commits exactly these files and needs a \"Key learnings:\" line in the message "
-              "(\"Key learnings: none\" when nothing was learned); a git commit typed by hand skips that check. "
-              "Then run the same improve-complete command again. If the user or repository said not to commit, "
-              "run that command with --no-commit \"<their instruction>\" added.")
+              "(\"Key learnings: none\" when nothing was learned); a git commit typed by hand skips that check.\n"
+              "Then run the improve-complete command again: " + complete_command + "\n"
+              "If the user or repository said not to commit, record their instruction instead: "
+            + complete_command + " --no-commit \"<their instruction>\"")
 
 
 def rerun_commands(state: Mapping[str, Any]) -> List[Dict[str, Any]]:
