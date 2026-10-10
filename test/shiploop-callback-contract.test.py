@@ -509,6 +509,36 @@ class RefusalRouteTests(RealCliCase):
         self.assertTrue(self.git(repo, "log", "-1", "--format=%s").strip().endswith("knowledge at prepare"))
         self.assertEqual(self.git(repo, "show", "--name-only", "--format=", "HEAD").split(), ["docs/shiploop/architecture.md"])
 
+    def test_a_dropped_decision_id_is_refused_with_its_exit_on_line_1_and_the_exit_is_accepted(self) -> None:
+        # A later run's prepare, on a repository whose home an earlier run committed with two decisions.  Line 1 is the
+        # fix, the file and the command, with no ID list; the IDs follow on line 2.  The heading to use is read from the
+        # refusal, not known by the test.
+        run, head = self.new_run("prepare")
+        command, path, action = printed_callback(head)
+        repo = self.repo_of(run)
+        write_block(path, self.fill_done(head))
+        for named in re.findall(r"^- (/\S+)$", self.refused(command, run), re.M):
+            Path(named).parent.mkdir(parents=True, exist_ok=True)
+            Path(named).write_text("What this file records.\n", encoding="utf-8")
+        architecture = repo / "docs/shiploop/architecture.md"
+        architecture.write_text("# Architecture\n\nAD-1 In-memory board.\nAD-2 One module per concern.\n", encoding="utf-8")
+        self.git(repo, "add", "docs/shiploop")
+        self.git(repo, "commit", "-qm", "an earlier run's home")
+        architecture.write_text("# Architecture\n\nAD-1 In-memory board.\n", encoding="utf-8")  # this run's version loses AD-2
+        reply = self.refused(command, run)
+        first = reply.splitlines()[0]
+        self.assertTrue(first.startswith("ShipLoop navigator: Restore the lost AD-<n> in " + str(architecture) + " or move it under '"),
+                        first)
+        self.assertIn("then run the same complete command again.", first[:250])  # what `cut -c1-250` of the line keeps
+        self.assertNotIn("AD-2", first)
+        self.assertIn("The architecture no longer mentions AD-2.", reply.splitlines()[1])
+        heading = re.search(r"move it under '([^']+)'", first).group(1)
+        architecture.write_text(architecture.read_text(encoding="utf-8") + "\n## " + heading + "\n\nAD-2: split by layer instead.\n",
+                                encoding="utf-8")
+        self.accepted(command)  # the same printed command
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        self.assertIn("## " + heading, self.git(repo, "show", "HEAD:docs/shiploop/architecture.md"))
+
     def test_a_blocked_result_with_done_fields_is_refused_once_with_every_field_named(self) -> None:
         run, head = self.new_run("plan")
         command, path, _ = printed_callback(head)

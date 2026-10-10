@@ -1724,10 +1724,10 @@ def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
           + ". Create the entry's source files before the release plan, or correct the paths.")
 
 
-def _knowledge_gate(state: Mapping[str, Any], stage: str, result: Any) -> None:
+def _knowledge_gate(state: Mapping[str, Any], stage: str, result: Any, command: str = "complete") -> None:
     """Refuse a close stage's done while the repository knowledge home is incomplete, leaky or drops an ID."""
     if isinstance(result, Mapping) and result.get("outcome") == "done":
-        refusal = knowledge.check(state, stage)
+        refusal = knowledge.check(state, stage, command)
         _need(not refusal, refusal)
 
 
@@ -4992,7 +4992,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_awaiting(child["seed_result"] if final_result is None else final_result)
                     _knowledge_gate(state, child["stage"],
-                                    child["seed_result"] if final_result is None else final_result)
+                                    child["seed_result"] if final_result is None else final_result, "improve-complete")
                     _improve_change_gate(core, root, state, action_id, child, receipt)
                     record, extra_writes = standalone.complete(child, receipt)
                     record["submission"] = deepcopy(receipt)

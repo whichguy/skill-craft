@@ -4,7 +4,7 @@ Owner decision 2026-09-26: planning produces a spec and environment knowledge th
 outlive the run.  The model writes them under ``docs/shiploop/`` during planning;
 at four closes ShipLoop checks the expected files (prepare, test-spec, release-plan,
 release-verify), screens them for credentials,
-refuses a living spec that drops an earlier requirement ID, and commits exactly
+refuses a living spec or architecture that drops an earlier requirement or decision ID, and commits exactly
 ``docs/shiploop/`` and the repository index ``SHIPLOOP.md`` with its own message.
 A later run starts from these files.
 
@@ -81,6 +81,12 @@ def next_close(stage: str, name: str) -> Optional[str]:
 
 
 _REQUIREMENT_ID = re.compile(r"\b(R-\d+)\b")
+_DECISION_ID = re.compile(r"\b(AD-\d+)\b")
+# The living files whose stable IDs a later version must keep: the file under HOME, its ID pattern, the refusal's name for the
+# file and word for one ID, and the heading a dropped one moves under (with its reason).  AD-, not D-: a spec may number its
+# own product decisions D-<n>, and neither file's check reads the other's numbering.
+_RETAINED = (("spec.md", _REQUIREMENT_ID, "living spec", "requirement", "Retired"),
+             (ARCHITECTURE, _DECISION_ID, "architecture", "decision", "Superseded"))
 # outcome.md sections that become the release-verify commit body (owner to-do 2026-09-26).
 LEARNING_SECTIONS = ("Learned", "Key considerations", "Open for the next run")
 
@@ -180,8 +186,9 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
                           capture_output=True, text=True, check=False)
 
 
-def _committed_spec(repo: Path) -> str:
-    shown = _git(repo, "show", "HEAD:" + HOME + "/spec.md")
+def _committed(repo: Path, name: str) -> str:
+    """The home file ``name`` as HEAD holds it; "" when HEAD has none (a first run, or an unborn branch)."""
+    shown = _git(repo, "show", "HEAD:" + HOME + "/" + name)
     return shown.stdout if shown.returncode == 0 else ""
 
 
@@ -190,11 +197,12 @@ def _home_changed(repo: Path) -> bool:
     return bool(_git(repo, "status", "--porcelain", "--untracked-files=all", "--", *KNOWLEDGE).stdout.strip())
 
 
-def check(state: Mapping[str, Any], stage: str) -> str:
+def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> str:
     """Refusal text when a stage's done would commit knowledge that is missing, leaks a credential or drops an ID.
 
     A close requires its files; any other stage is checked only when it changed the home,
-    because ShipLoop commits the home after every accepted stage that changed it.
+    because ShipLoop commits the home after every accepted stage that changed it.  ``command`` is the callback the
+    refusal tells the model to run again (``complete``, or ``improve-complete`` for a reviewed result).
     """
     repo = Path(str(state["repo"]))
     if _git(repo, "rev-parse", "--is-inside-work-tree").returncode != 0:
@@ -230,15 +238,20 @@ def check(state: Mapping[str, Any], stage: str) -> str:
             return ("Write these sections in " + str(repo / feature_dir(state) / "outcome.md") + ", in detail; "
                     "they become this run's learnings commit, which the next run reads first: "
                     + ", ".join("'## " + name + "'" for name in empty))
-    before = set(_REQUIREMENT_ID.findall(_committed_spec(repo)))
-    now = set(_REQUIREMENT_ID.findall((repo / HOME / "spec.md").read_text(encoding="utf-8", errors="replace"))
-              if (repo / HOME / "spec.md").is_file() else ())
-    dropped = sorted(before - now, key=lambda value: int(value.split("-")[1]))
-    if dropped:
-        return ("The living spec " + str(repo / HOME / "spec.md") + " no longer mentions " + ", ".join(dropped)
-                + ". Keep every earlier requirement ID: modify it in place, or move it under a 'Retired' "
-                "heading with the reason.")
-    return ""
+    # A plain mention anywhere in the file keeps an ID (a heading, a table row, a line under Retired or Superseded); nothing
+    # is dropped from a file HEAD does not hold yet.  Line 1 is the fix, the absolute path and the command, with no ID
+    # list, so a long list can never cut the fix off a model that reads the first 250 characters; the IDs follow, in full.
+    refusals = []
+    for name, ids, what, kind, section in _RETAINED:
+        path = repo / HOME / name
+        now = set(ids.findall(path.read_text(encoding="utf-8", errors="replace"))) if path.is_file() else set()
+        dropped = sorted(set(ids.findall(_committed(repo, name))) - now, key=lambda value: int(value.split("-")[1]))
+        if dropped:
+            refusals.append("Restore the lost " + dropped[0].split("-")[0] + "-<n> in " + str(path) + " or move it under '"
+                            + section + "', then run the same " + command + " command again.\n"
+                            "The " + what + " no longer mentions " + ", ".join(dropped) + ". Keep every earlier " + kind
+                            + " ID: modify it in place, or move it under a '" + section + "' heading with the reason.")
+    return "\n".join(refusals)
 
 
 def commit(state: Mapping[str, Any], stage: str) -> shiploop_git.Committed:

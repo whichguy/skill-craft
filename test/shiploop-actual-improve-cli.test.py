@@ -1321,6 +1321,54 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(navigator.current_stage(resumed), "test-spec")
         self.assertNotIn("skill_na", resumed["accepted"][self.action])
 
+    def test_a_reviewed_step_plan_that_drops_a_decision_id_is_refused_at_improve_complete_and_the_named_exit_is_accepted(self):
+        """The review may rewrite docs/shiploop/architecture.md; the gate that checks the producer result checks that too.
+
+        The knowledge gate runs before the gate for the review's uncommitted edits, so the named exit takes two steps: the
+        knowledge refusal (fix the file, run improve-complete again), then the commit refusal that names improve-commit.
+        """
+        if not self.inline():
+            self.skipTest("improve-commit is the inline route")
+        git = lambda *a: subprocess.run(["git", "-C", str(self.repo), "-c", "user.name=T", "-c", "user.email=t@example.invalid", *a],
+                                        check=True, capture_output=True, text=True, env=self.environment).stdout
+        architecture = self.repo / "docs/shiploop/architecture.md"
+        architecture.parent.mkdir(parents=True)
+        architecture.write_text("# Architecture\n\nNode 22.\n\n### AD-1 In-memory board\n### AD-2 One module per concern\n",
+                                encoding="utf-8")
+        git("init", "-q")
+        git("add", "-A")
+        git("commit", "-qm", "an earlier run's home")
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        architecture.write_text("# Architecture\n\nNode 22.\n\n### AD-1 In-memory board\n", encoding="utf-8")  # the review's edit
+        completion, _receipt = self.completion_receipt()
+        before = (self.run / "state.md").read_bytes()
+        refused = self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
+        lines = refused.stderr.splitlines()
+        self.assertTrue(lines[0].startswith("ShipLoop navigator: Restore the lost AD-<n> in " + str(architecture) + " or move it under '"),
+                        lines[0])
+        self.assertIn("then run the same improve-complete command again.", lines[0][:250])  # the route's own verb
+        self.assertNotIn("AD-2", lines[0])
+        self.assertIn("The architecture no longer mentions AD-2.", lines[1])
+        self.assertEqual(before, (self.run / "state.md").read_bytes())
+        # The named exit, read from the refusal: the heading it names, with the ID under it.
+        heading = re.search(r"move it under '([^']+)'", lines[0]).group(1)
+        architecture.write_text(architecture.read_text(encoding="utf-8") + "\n## " + heading + "\n\nAD-2: split by layer instead.\n",
+                                encoding="utf-8")
+        completion, _receipt = self.completion_receipt()
+        again = self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
+        self.assertIn("Commit this review's changes first", again.stderr)  # the fix is the review's uncommitted edit
+        self.assertIn("improve-commit", again.stderr.splitlines()[0])
+        message = bridge.receipt_path(self.bound).with_name("commit-message.md")
+        message.parent.mkdir(parents=True, exist_ok=True)
+        message.write_text("docs: keep the module decision\n\nKey learnings: a replaced decision moves under its heading.\n",
+                           encoding="utf-8")
+        self.invoke(CLI, "improve-commit", "--run-dir", self.run, "--action", self.action, "--message", message)
+        completion, _receipt = self.completion_receipt()
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion)
+        self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
+        self.assertIn("AD-2: split by layer instead.", git("show", "HEAD:docs/shiploop/architecture.md"))
+
     def test_a_wrong_result_path_is_refused_with_the_expected_path(self):
         """Batch 1.12.1: Luna passed the worktree as --result; the refusal now names the path to use."""
         import types
