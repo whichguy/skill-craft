@@ -1,0 +1,986 @@
+{
+ "packets": [
+  {
+   "file": "13-document.md",
+   "stage": "document",
+   "kind": "producer",
+   "chars": 29207,
+   "five_elements": {
+    "purpose": "OK: head Goal line 14 'Update the documentation this change affects.'",
+    "operation": "Weak in head: only 'Develop: Update code, API, user and operator documentation from observed behaviour.' (20); the real guidance is lines 253-267 in the unread file, half of it conditional (service decision note, current-system baseline).",
+    "check": "OK: line 18 (mechanical refusal + skill_na gate) and Done-when 16-17.",
+    "output": "OK: template 21-34, outcomes 35-40.",
+    "recovery": "OK: Recovery command 99-100 (also 7-9, 101-103)."
+   },
+   "missing_or_weak": [
+    "No-change path is not stated: the run's actual result was 'no doc change needed' (behaviour: one grep then done); the packet never says what a justified no-change result must contain (which docs were checked). Proposed text adds it.",
+    "Checked-by names the skill_na gate (a skill file changed after skill_na -> revise) but skill-assess has not yet run at document; the model cannot act on it here. Harmless but confusing; keep only if the gate really fires at document."
+   ],
+   "findings": [
+    {
+     "block": "Document stage guidance",
+     "lines": "253-267 ('Update necessary code, API, user, operator, design...' to '...leave the only usable handoff inside transient results or chat.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:duty() stage text 'document' (around line 1456)",
+     "kind": "verbose",
+     "action": "condense",
+     "chars_now": 1163,
+     "chars_after": 690,
+     "why": "'Update README/index links' is said twice (259-260 and 263); the opening sentence restates Considerations line 20; the baseline and service-note sentences apply only when the item touched those artefacts.",
+     "proposed_text": "Update the code, API, user, operator, design and decision documentation the accepted change affects, from observed behaviour and test results; keep public, error and debug behaviour accurate and discoverable. Reconcile maintained requirements with the accepted change (keep unaffected conditions; link tests or open gaps). Promote durable facts and lessons into repository docs, not run notes, and link them from README/index without copying the contract. If the item changed a recorded current-system baseline or service decision, update that durable note (Current-system baseline guide, Service discovery guidance), keeping superseded choices distinguishable. A no-change result names the documents checked and why none needed an edit.",
+     "risk": "Low: every obligation kept; the conditional ones are made explicitly conditional."
+    },
+    {
+     "block": "Considerations Develop line",
+     "lines": "20 ('- Develop: Update code, API, user and operator documentation...')",
+     "source": "skills/shiploop/scripts/shiploop_stage_spec.py:Stage('document').develop",
+     "kind": "duplicate",
+     "action": "keep",
+     "chars_now": 86,
+     "chars_after": 86,
+     "why": "Duplicates the first sentence of 253, but it is the only operation text in the printed head the model actually read; keep it and drop the duplicate in the body (done in the condensed text above).",
+     "proposed_text": "",
+     "risk": "None."
+    },
+    {
+     "block": "Code craft rubric for docs",
+     "lines": "270-319 ('Code craft. Write for the next maintainer...')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:CODE_CRAFT via stage_spec document blocks={'code-craft'}",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 3688,
+     "chars_after": 260,
+     "why": "document edits only docs (stage_spec edits={'docs'}); only rules 3 (contract docstrings) and 4 (no restating comments) bear on code documentation; rules 1-2 and 5-9 govern writing code.",
+     "proposed_text": "Code documentation: a public function's docstring gives purpose, argument constraints, return, errors and side effects; comment only what code cannot say (why, invariants, workarounds); delete comments that restate a name or the next line.",
+     "risk": "Low: implement/static-checks carry the full rubric for code changes. Implement as a small DOC_CRAFT constant or a slice of CODE_CRAFT for stages whose edits are docs only."
+    },
+    {
+     "block": "Improve non-directive lines",
+     "lines": "243-247 ('...Do not embed an Improve review campaign... Only planning results (spec, ...) ... the graph advances directly.') and 355 ('Improve: This result advances directly; no Improve child runs for this stage.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:COMMON (the 'Only planning results' sentence, swapped by _NO_REVIEW_SWAPS) and shiploop_navigator.py:_improve_line (else branch)",
+     "kind": "not-applicable",
+     "action": "cut",
+     "chars_now": 537,
+     "chars_after": 0,
+     "why": "This stage has no Improve child; both sentences only tell the model what does NOT happen (owner rule: packets mention Improve only as a directive). The blocked hint in the same Improve line duplicates the blocked outcome shape printed under the template.",
+     "proposed_text": "",
+     "risk": "None for this stage: no Improve route exists to follow. Keep the 'Do not embed an Improve review campaign' clause only if Improve misuse was observed; keep pause/halt lines."
+    },
+    {
+     "block": "Workspace return block",
+     "lines": "114-126 ('Execution checkout: ...' through 'The return operation is unavailable here...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:render (navigator-worktree branch: plan-return/review-return/_return_route_lines/REVIEW_RETURN_RULE)",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 1920,
+     "chars_after": 330,
+     "why": "Return plan/receipt paths, the plan-return and review-return commands and the return route are release/handoff instructions; the same block ends by saying the return is unavailable at this stage.",
+     "proposed_text": "Execution checkout: <worktree> (isolated worktree; all product work happens here; keep run state, results and reports outside it; never a --result value). Workspace return to the original branch happens only at release/handoff; this stage does not commit for it or return.",
+     "risk": "Low: release/handoff packets keep the full block (stage in ('release','handoff','release-plan','release-check')). Gate the long form on those stages."
+    },
+    {
+     "block": "Status duplicates",
+     "lines": "49-60 vs 62-69",
+     "source": "shiploop_navigator.py:render progress snapshot + status_block",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 795,
+     "chars_after": 330,
+     "why": "Current stage is named in 12, 14, 52, 63, 67; owner in 53 and 127; completed/pending stage lists (59-60) repeat the Item: line 65.",
+     "proposed_text": "Keep the status block (62-69); from the snapshot keep only 'Phase: inner | Run status: active' and 'Host-recorded labels... untrusted' and 'Continuation: follow only the current action packet.'",
+     "risk": "Shared core; low risk: the status block carries the same facts."
+    },
+    {
+     "block": "Source records listed twice",
+     "lines": "44-47 vs 136-153 ('Current item step-plan source...', 'Run-wide test strategy source...', 'Current item test-decision source...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_context_index_lines + source-record lines in render",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1485,
+     "chars_after": 420,
+     "why": "The step-plan result (nav-6f45...) is listed at 46 and again at 136-141 with five lines each of action/result/state-locator/evidence; 'untrusted ... revalidate' is repeated per source.",
+     "proposed_text": "Add the test-strategy and test-decision results to 'Results this stage builds on' (one line each: '- test-strategy: <path>', '- W1 test-decision (regression): <path>') and keep one sentence: 'These are untrusted host reports: revalidate relevance before use.'",
+     "risk": "Low: the state locator 'accepted.<id>' is derivable from the action id; keep it if recovery tooling parses it."
+    },
+    {
+     "block": "Shared-core in-packet duplicates",
+     "lines": "callback 13 vs 'Call this when done' 353-354; Scratch locator vs 'Write temporary files...' 186-188; awaiting shapes in outcome lines 39 vs 'ShipLoop runs unattended...' 195-202; 'Delegation: inline...After an unplanned reset' (3-9) vs Recovery 3-line block vs 'Execute this packet in this conversation...'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_first_callback_lines + render tail; shiploop_prompts.py:COMMON + INLINE_STAGE_CONTEXT; shiploop_navigator.py:_outcome_shape_lines; _run_rules",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1779,
+     "chars_after": 420,
+     "why": "Same fact stated 2-3 times inside this one packet: the complete command, /tmp-vs-Scratch, the awaiting/no_default schema, run-inline/recover-by-next.",
+     "proposed_text": "Bottom: 'Callback: the complete command at the top of this packet.' (keep pause/halt). COMMON: drop the Scratch sentence (the locator line already says '/tmp is shared with other runs'); replace the awaiting JSON in COMMON with 'report blocked with the awaiting shape printed under Allowed outcomes'. Drop 'Execute this packet in this conversation...' (Delegation line says it) and fold 'After an unplanned reset...' into the Recovery line.",
+     "risk": "Shared core is analysed separately; listed here because each copy is within this packet. Low risk: one copy of each obligation stays, the one in the head where possible."
+    }
+   ],
+   "estimated_chars_after": 20290
+  },
+  {
+   "file": "14-skill-assess.md",
+   "stage": "skill-assess",
+   "kind": "producer",
+   "chars": 24916,
+   "five_elements": {
+    "purpose": "OK: Goal line 14.",
+    "operation": "Missing from the head: no Considerations line; the only 'how' is lines 246-261 in the unread file. The model saw a 265-char head (it truncated at the callback) and submitted through a self-written done_() function without any decision procedure.",
+    "check": "OK but thin: 17 mechanical-only check; Done-when 16.",
+    "output": "OK: template + outcomes 18-36.",
+    "recovery": "OK: Recovery command."
+   },
+   "missing_or_weak": [
+    "No operation line in the head: stage_spec Stage('skill-assess') has no develop/test field, so the printed head carries Goal + Done-when only. Add develop='Check the repo skill index or README/AGENTS skill links; prefer unchanged reuse, then a compatible local update; record reuse, update, create or N/A with its reason.'",
+    "The callback line is the first ~250 chars after the title; a model that truncates with head -c (as here) keeps the callback but not the Goal. Consider putting Goal before Callback in packet_head/_first_callback_lines order."
+   ],
+   "findings": [
+    {
+     "block": "skill-assess stage guidance",
+     "lines": "246-261 ('Assess whether an existing skill, helper, MCP capability...' to '...validation for a no-fit disposition.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:duty() stage text 'skill-assess' (around line 1473)",
+     "kind": "verbose",
+     "action": "condense",
+     "chars_now": 1196,
+     "chars_after": 640,
+     "why": "Long enumerations (task fit, maintenance/portability, examples, consumer value; index, entrypoint, input/default sources, contract, validation evidence) for a decision that is usually N/A; 'presence or installation does not prove execution' belongs to skill-validate.",
+     "proposed_text": "Decide reuse, update, create or N/A for a skill, helper, MCP capability or library pattern, with the reason (task fit, maintenance, consumer value). First read any skill index or README/AGENTS skill links; no index is not a blocker. Prefer unchanged reuse, then a compatible local update; create a local skill only for an evidenced gap. Make warranted skill/index edits within this item's scope, keeping older uses working; keep skills in the product repository, never install globally, and add no dependency or publication. Cite the disposition note, index and entrypoint in evidence_refs; for N/A, invent no entrypoint or validation.",
+     "risk": "Low: every obligation kept."
+    },
+    {
+     "block": "Add operation line to head",
+     "lines": "after 16 (new)",
+     "source": "skills/shiploop/scripts/shiploop_stage_spec.py:Stage('skill-assess') (add develop=...)",
+     "kind": "missing",
+     "action": "move-to-head",
+     "chars_now": 0,
+     "chars_after": 190,
+     "why": "The head (what the model reads) has no 'how' for this stage; behaviour shows the decision was made from the goal line alone.",
+     "proposed_text": "- Develop: Check the repo's skill index or README/AGENTS skill links; prefer unchanged reuse, then a compatible local update; record reuse, update, create or N/A with its reason.",
+     "risk": "None; adds ~190 chars to the head."
+    },
+    {
+     "block": "Improve non-directive lines",
+     "lines": "236-243 ('...Do not embed an Improve review campaign... Only planning results (spec, ...) ... the graph advances directly.') and 297 ('Improve: This result advances directly; no Improve child runs for this stage.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:COMMON (the 'Only planning results' sentence, swapped by _NO_REVIEW_SWAPS) and shiploop_navigator.py:_improve_line (else branch)",
+     "kind": "not-applicable",
+     "action": "cut",
+     "chars_now": 537,
+     "chars_after": 0,
+     "why": "This stage has no Improve child; both sentences only tell the model what does NOT happen (owner rule: packets mention Improve only as a directive). The blocked hint in the same Improve line duplicates the blocked outcome shape printed under the template.",
+     "proposed_text": "",
+     "risk": "None for this stage: no Improve route exists to follow. Keep the 'Do not embed an Improve review campaign' clause only if Improve misuse was observed; keep pause/halt lines."
+    },
+    {
+     "block": "Workspace return block",
+     "lines": "~108-120 (same block as document 114-126) ('Execution checkout: ...' through 'The return operation is unavailable here...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:render (navigator-worktree branch: plan-return/review-return/_return_route_lines/REVIEW_RETURN_RULE)",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 1920,
+     "chars_after": 330,
+     "why": "Return plan/receipt paths, the plan-return and review-return commands and the return route are release/handoff instructions; the same block ends by saying the return is unavailable at this stage.",
+     "proposed_text": "Execution checkout: <worktree> (isolated worktree; all product work happens here; keep run state, results and reports outside it; never a --result value). Workspace return to the original branch happens only at release/handoff; this stage does not commit for it or return.",
+     "risk": "Low: release/handoff packets keep the full block (stage in ('release','handoff','release-plan','release-check')). Gate the long form on those stages."
+    },
+    {
+     "block": "Shared-core in-packet duplicates",
+     "lines": "callback 13 vs 'Call this when done' 295-296; Scratch locator vs 'Write temporary files...' ~180-182; awaiting shapes in outcome lines ~36 vs 'ShipLoop runs unattended...' ~189-196; 'Delegation: inline...After an unplanned reset' (3-9) vs Recovery 3-line block vs 'Execute this packet in this conversation...'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_first_callback_lines + render tail; shiploop_prompts.py:COMMON + INLINE_STAGE_CONTEXT; shiploop_navigator.py:_outcome_shape_lines; _run_rules",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1779,
+     "chars_after": 420,
+     "why": "Same fact stated 2-3 times inside this one packet: the complete command, /tmp-vs-Scratch, the awaiting/no_default schema, run-inline/recover-by-next.",
+     "proposed_text": "Bottom: 'Callback: the complete command at the top of this packet.' (keep pause/halt). COMMON: drop the Scratch sentence (the locator line already says '/tmp is shared with other runs'); replace the awaiting JSON in COMMON with 'report blocked with the awaiting shape printed under Allowed outcomes'. Drop 'Execute this packet in this conversation...' (Delegation line says it) and fold 'After an unplanned reset...' into the Recovery line.",
+     "risk": "Shared core is analysed separately; listed here because each copy is within this packet. Low risk: one copy of each obligation stays, the one in the head where possible."
+    }
+   ],
+   "estimated_chars_after": 21064
+  },
+  {
+   "file": "15-skill-validate.md",
+   "stage": "skill-validate",
+   "kind": "producer",
+   "chars": 24276,
+   "five_elements": {
+    "purpose": "OK: Goal line 14.",
+    "operation": "Missing from head (no Considerations); 244-252 in the unread file.",
+    "check": "OK: 17 mechanical only; Done-when 16 covers the N/A path.",
+    "output": "OK.",
+    "recovery": "OK."
+   },
+   "missing_or_weak": [
+    "No head operation line (stage_spec Stage('skill-validate') has no develop/test). Done-when 16 already carries the N/A path, which is what the model used; a one-line test= would carry the 'triggering case + older use + failure boundary' rule into the head."
+   ],
+   "findings": [
+    {
+     "block": "skill-validate stage guidance",
+     "lines": "244-252 ('Validate the selected reusable skill/helper...' to '...cold-context reuse remains untested.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:duty() stage text 'skill-validate' (around line 1491)",
+     "kind": "verbose",
+     "action": "condense",
+     "chars_now": 692,
+     "chars_after": 470,
+     "why": "'emit and verify the justified N/A result instead of silently skipping' restates Done-when 16; 'examples, inputs, failure behavior' and 'triggering case... failure boundary' say the same thing twice.",
+     "proposed_text": "Validate the skill or helper change skill-assess selected: on real inputs, run its triggering case and a retained older use, with applicable defaults/overrides and one failure boundary; record the tested scope and limits. Discovery or installation is not validation. A cross-context reuse claim needs a fresh-reader trial (repo index + skill + new task only); otherwise record it untested. If skill-assess recorded N/A, report done citing that result.",
+     "risk": "Low."
+    },
+    {
+     "block": "Add operation line to head",
+     "lines": "after 16 (new)",
+     "source": "skills/shiploop/scripts/shiploop_stage_spec.py:Stage('skill-validate') (add test=...)",
+     "kind": "missing",
+     "action": "move-to-head",
+     "chars_now": 0,
+     "chars_after": 150,
+     "why": "Head has no 'how'.",
+     "proposed_text": "- Test: Run the changed skill on its triggering case, a retained older use and one failure boundary; if skill-assess recorded N/A, cite it.",
+     "risk": "None."
+    },
+    {
+     "block": "Improve non-directive lines",
+     "lines": "~234-241 ('...Do not embed an Improve review campaign... Only planning results (spec, ...) ... the graph advances directly.') and 288 ('Improve: This result advances directly; no Improve child runs for this stage.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:COMMON (the 'Only planning results' sentence, swapped by _NO_REVIEW_SWAPS) and shiploop_navigator.py:_improve_line (else branch)",
+     "kind": "not-applicable",
+     "action": "cut",
+     "chars_now": 537,
+     "chars_after": 0,
+     "why": "This stage has no Improve child; both sentences only tell the model what does NOT happen (owner rule: packets mention Improve only as a directive). The blocked hint in the same Improve line duplicates the blocked outcome shape printed under the template.",
+     "proposed_text": "",
+     "risk": "None for this stage: no Improve route exists to follow. Keep the 'Do not embed an Improve review campaign' clause only if Improve misuse was observed; keep pause/halt lines."
+    },
+    {
+     "block": "Workspace return block",
+     "lines": "~107-119 ('Execution checkout: ...' through 'The return operation is unavailable here...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:render (navigator-worktree branch: plan-return/review-return/_return_route_lines/REVIEW_RETURN_RULE)",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 1920,
+     "chars_after": 330,
+     "why": "Return plan/receipt paths, the plan-return and review-return commands and the return route are release/handoff instructions; the same block ends by saying the return is unavailable at this stage.",
+     "proposed_text": "Execution checkout: <worktree> (isolated worktree; all product work happens here; keep run state, results and reports outside it; never a --result value). Workspace return to the original branch happens only at release/handoff; this stage does not commit for it or return.",
+     "risk": "Low: release/handoff packets keep the full block (stage in ('release','handoff','release-plan','release-check')). Gate the long form on those stages."
+    },
+    {
+     "block": "Shared-core in-packet duplicates",
+     "lines": "callback 13 vs 'Call this when done' 286-287; Scratch locator vs 'Write temporary files...' ~179-181; awaiting shapes in outcome lines ~36 vs 'ShipLoop runs unattended...' ~188-195; 'Delegation: inline...After an unplanned reset' (3-9) vs Recovery 3-line block vs 'Execute this packet in this conversation...'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_first_callback_lines + render tail; shiploop_prompts.py:COMMON + INLINE_STAGE_CONTEXT; shiploop_navigator.py:_outcome_shape_lines; _run_rules",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1779,
+     "chars_after": 420,
+     "why": "Same fact stated 2-3 times inside this one packet: the complete command, /tmp-vs-Scratch, the awaiting/no_default schema, run-inline/recover-by-next.",
+     "proposed_text": "Bottom: 'Callback: the complete command at the top of this packet.' (keep pause/halt). COMMON: drop the Scratch sentence (the locator line already says '/tmp is shared with other runs'); replace the awaiting JSON in COMMON with 'report blocked with the awaiting shape printed under Allowed outcomes'. Drop 'Execute this packet in this conversation...' (Delegation line says it) and fold 'After an unplanned reset...' into the Recovery line.",
+     "risk": "Shared core is analysed separately; listed here because each copy is within this packet. Low risk: one copy of each obligation stays, the one in the head where possible."
+    }
+   ],
+   "estimated_chars_after": 20718
+  },
+  {
+   "file": "16-static-checks.md",
+   "stage": "static-checks",
+   "kind": "producer",
+   "chars": 35268,
+   "five_elements": {
+    "purpose": "OK: Goal 14 (but 'Run formatting, lint, type and build checks' undersells the real job: the quality loop of entry-point traces).",
+    "operation": "Split: head has Considerations 20-21 (trace each entry point valid/boundary/invalid); the loop mechanics (Start command, receipt, Until Loop card) are only at 248-261 and 410-415 in the unread file.",
+    "check": "OK: 18 (terminal packet vs contract, then test rerun) + 417-421.",
+    "output": "OK: template 22-34; outcomes 36 (done | blocked | revise).",
+    "recovery": "OK for the stage (Recovery command); for the loop, the receipt's next_argv (256-259) is only in the unread body."
+   },
+   "missing_or_weak": [
+    "Quality-loop Start command and receipt path (413-414) are not in the printed head; the model never opened the packet and ran its own loop.sh wrapper that reported one clean iteration. Move the Start/receipt lines into the head (they are what the Checked-by gate checks).",
+    "Contradiction: Tools line 21 'ShipLoop records the change inventory' vs line 415 'No change inventory recorded for W1 ... Build one from git status'. Print line 415 in the head when it applies, or reword 21 as 'ShipLoop records the change inventory when a base snapshot exists'.",
+    "Goal line names formatting/lint/type/build while Done-when and Develop describe a trace-and-fix quality loop; a model reading only the goal runs a linter and stops."
+   ],
+   "findings": [
+    {
+     "block": "Quality loop block into head",
+     "lines": "410-415 ('Quality loop (bound Until Loop...' to 'No change inventory recorded...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:render quality-loop lines (static-checks entry_runs 'quality-contract')",
+     "kind": "missing",
+     "action": "move-to-head",
+     "chars_now": 984,
+     "chars_after": 560,
+     "why": "This is the operation the Checked-by gate verifies, yet the head omits it; behaviour: the model used a self-written loop.sh.",
+     "proposed_text": "Quality loop: start with `<Start command>` (contract <run>/quality/<id>-contract.json, pass unchanged); run each returned iteration as its work says and call its done command until complete or stopped; cite the receipt <run>/quality/<id>-terminal.json (the runtime writes it; never edit it). Rules: <skills>/improve/runtime/until-loop/ADAPTER.md.",
+     "risk": "Head grows ~560 chars; acceptable since the head is ~1.9k here and PRINT_LIMIT is 16k."
+    },
+    {
+     "block": "Stage guidance Purpose/Do/Report",
+     "lines": "248-272 ('Purpose: run this work item's quality loop...' to '...still run the step's own checks inside the loop.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:duty() stage text 'static-checks' (around line 1502)",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1697,
+     "chars_after": 900,
+     "why": "Report paragraph 262-266 restates Allowed outcomes (36) and blocked shape (39); 'ShipLoop refuses this result unless the saved terminal packet matches' restates Checked by (18); 270-272 lint note repeats 364 and 407; Do steps 1-3 repeat the Quality loop lines 411-414.",
+     "proposed_text": "Purpose: run this item's quality loop on the bound Until Loop; the Until Loop script counts iterations and decides when it ends; you execute each iteration honestly. Each iteration: trace every changed public entry point with a valid, a boundary and an invalid input, fix findings against Code craft, and run the step's own format/lint/type/build checks. Read the Until Loop card once per context; do not edit the contract or receipt; after a reset the receipt's next_argv resumes. Report revise (naming the finding) only when a finding shows the item's goal is wrong as planned. Summarize the entry-point inventory, each trace that found an issue, the fixes, the final check commands with exit codes, and any required unrun check with its reason.",
+     "risk": "Low: every obligation kept once."
+    },
+    {
+     "block": "Lint block git plumbing",
+     "lines": "390-402 ('Git plumbing for scope (not linters...' to the second 'git ls-files ... --exclude-standard -> exit 0')",
+     "source": "skills/shiploop/scripts/shiploop_lint.py:(render around line 1129, 'Git plumbing for scope')",
+     "kind": "not-applicable",
+     "action": "cut",
+     "chars_now": 1200,
+     "chars_after": 0,
+     "why": "Thirteen git plumbing commands with exit 0 (two printed twice) carry no instruction or finding; the block itself says they are not linters.",
+     "proposed_text": "",
+     "risk": "None for the model; keep them in the lint record file (<run>/lint/<id>.md) for audit, print only on a non-zero exit."
+    },
+    {
+     "block": "Lint block command output",
+     "lines": "380-389 ('Commands ShipLoop ran...' with 'stdout: (empty)' / 'stderr: (empty)' pairs)",
+     "source": "skills/shiploop/scripts/shiploop_lint.py (command rendering)",
+     "kind": "verbose",
+     "action": "condense",
+     "chars_now": 700,
+     "chars_after": 330,
+     "why": "Six lines of '(empty)' for three passing commands.",
+     "proposed_text": "Commands ShipLoop ran (cwd <worktree>): [1] git diff --check <base> <tree> -- <4 files> -> exit 0; [2] node --check ./src/paginate.js -> exit 0; [3] node --check ./test/paginate.test.js -> exit 0 (no output).",
+     "risk": "Low: print stdout/stderr only when non-empty or exit != 0."
+    },
+    {
+     "block": "Lint advisory stated three times",
+     "lines": "364, 366-367, 407 (and 270-272)",
+     "source": "skills/shiploop/scripts/shiploop_lint.py:1155 ('this pass is advisory') + header line; shiploop_prompts.py static-checks text",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 605,
+     "chars_after": 220,
+     "why": "'supporting output; not exit-criteria evidence' (364), 'This pass is report-only' (367), 'At static-checks this pass is advisory...' (407) and 270-272 say the same; 'Base: fallback base...' (366) and 'Scope is not this work item's: base fell back...' (367) repeat the base.",
+     "proposed_text": "Header: 'ShipLoop lint (advisory, report-only; not this step's evidence). Base: workspace baseline 80cd2bec8c6c (fallback; scope may exceed this item).' Footer: 'Fix what applies or say why a finding stays; rerun: <cmd>.'",
+     "risk": "Low."
+    },
+    {
+     "block": "Test rerun count rule",
+     "lines": "420-421 ('A command passes only when it exits 0...' and 'A run must also run at least as many tests...')",
+     "source": "skills/shiploop/scripts/shiploop_test_loop.py:COUNT_RULE and the test-rerun lines (around 442)",
+     "kind": "verbose",
+     "action": "condense",
+     "chars_now": 1050,
+     "chars_after": 560,
+     "why": "Mostly authoring advice (how to title IDs, which reporter to use); at a check stage the obligation is: commands must run tests, show every listed ID, and not drop tests.",
+     "proposed_text": "A command passes only when it exits 0, runs at least one test, prints every listed ID as its own word, and runs no fewer tests than its last accepted run for this item (a removed or newly skipped test is refused; removing one because the plan changed is a revise). A filter that matches nothing, or the whole suite in place of named cases, is not evidence.",
+     "risk": "Medium-low: the 'TC-4a vs TC-4 (a)' example and the reporter hint help when a refusal happens; the refusal message can carry them (it already explains)."
+    },
+    {
+     "block": "Improve non-directive lines",
+     "lines": "~242-246 ('...Do not embed an Improve review campaign... Only planning results (spec, ...) ... the graph advances directly.') and 360 ('Improve: This result advances directly; no Improve child runs for this stage.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:COMMON (the 'Only planning results' sentence, swapped by _NO_REVIEW_SWAPS) and shiploop_navigator.py:_improve_line (else branch)",
+     "kind": "not-applicable",
+     "action": "cut",
+     "chars_now": 537,
+     "chars_after": 0,
+     "why": "This stage has no Improve child; both sentences only tell the model what does NOT happen (owner rule: packets mention Improve only as a directive). The blocked hint in the same Improve line duplicates the blocked outcome shape printed under the template.",
+     "proposed_text": "",
+     "risk": "None for this stage: no Improve route exists to follow. Keep the 'Do not embed an Improve review campaign' clause only if Improve misuse was observed; keep pause/halt lines."
+    },
+    {
+     "block": "Workspace return block",
+     "lines": "109-121 ('Execution checkout: ...' through 'The return operation is unavailable here...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:render (navigator-worktree branch: plan-return/review-return/_return_route_lines/REVIEW_RETURN_RULE)",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 1920,
+     "chars_after": 330,
+     "why": "Return plan/receipt paths, the plan-return and review-return commands and the return route are release/handoff instructions; the same block ends by saying the return is unavailable at this stage.",
+     "proposed_text": "Execution checkout: <worktree> (isolated worktree; all product work happens here; keep run state, results and reports outside it; never a --result value). Workspace return to the original branch happens only at release/handoff; this stage does not commit for it or return.",
+     "risk": "Low: release/handoff packets keep the full block (stage in ('release','handoff','release-plan','release-check')). Gate the long form on those stages."
+    },
+    {
+     "block": "Shared-core in-packet duplicates",
+     "lines": "callback 13 vs 'Call this when done' 358-359; Scratch locator vs 'Write temporary files...' 181-183; awaiting shapes in outcome lines 39 vs 'ShipLoop runs unattended...' 184-197; 'Delegation: inline...After an unplanned reset' (3-9) vs Recovery 3-line block vs 'Execute this packet in this conversation...'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_first_callback_lines + render tail; shiploop_prompts.py:COMMON + INLINE_STAGE_CONTEXT; shiploop_navigator.py:_outcome_shape_lines; _run_rules",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1779,
+     "chars_after": 420,
+     "why": "Same fact stated 2-3 times inside this one packet: the complete command, /tmp-vs-Scratch, the awaiting/no_default schema, run-inline/recover-by-next.",
+     "proposed_text": "Bottom: 'Callback: the complete command at the top of this packet.' (keep pause/halt). COMMON: drop the Scratch sentence (the locator line already says '/tmp is shared with other runs'); replace the awaiting JSON in COMMON with 'report blocked with the awaiting shape printed under Allowed outcomes'. Drop 'Execute this packet in this conversation...' (Delegation line says it) and fold 'After an unplanned reset...' into the Recovery line.",
+     "risk": "Shared core is analysed separately; listed here because each copy is within this packet. Low risk: one copy of each obligation stays, the one in the head where possible."
+    }
+   ],
+   "estimated_chars_after": 28116
+  },
+  {
+   "file": "17-verify.md",
+   "stage": "verify",
+   "kind": "producer",
+   "chars": 34238,
+   "five_elements": {
+    "purpose": "OK: Goal 14.",
+    "operation": "OK in head: Considerations 20-21; detail 260-302.",
+    "check": "Stated three times: 18, 260-262, 407-411.",
+    "output": "OK.",
+    "recovery": "OK."
+   },
+   "missing_or_weak": [
+    "None necessary missing. The model ran npm test + the focused TC-1 command and reported per-criterion confirmation, which matches the head; the body's receipt/inventory cross-checks (271-278) were not visibly done, because they are only in the unread file. Consider one head Considerations clause: 'check the implement per-criterion receipt and the static-checks entry-point inventory against the diff'."
+   ],
+   "findings": [
+    {
+     "block": "Verify stage guidance + selected-case reconciliation",
+     "lines": "260-288 ('On done, ShipLoop runs every command...' to '...Keep later-phase checks explicitly pending.') and 291-302 ('Selected-case reconciliation: ...')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:duty() stage text 'verify' (around 1529-1557) + SELECTED_CASE_RECONCILIATION",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 3118,
+     "chars_after": 1350,
+     "why": "260-262 repeats Checked by (18) and Test rerun (407); 'later-phase checks pending' appears in Done-when 17, 284 and 288; revise for unachievable criteria appears at 277-280 and in Allowed outcomes 36; 'reconcile every selected case' (20) is expanded twice (281-283, 291-302).",
+     "proposed_text": "A criterion is confirmed by its passing recorded command (ShipLoop reruns them on done), not by this summary. For each completion criterion of the accepted step plan: check the implement result's per-criterion receipt, then rerun or inspect its confirmation on the current candidate; stale, missing or skipped evidence is incomplete. Name any confirmable criterion that failed or was not confirmed and do not accept the item. Report revise when a criterion reported `inspected`/`unconfirmable` needed execution by its `Confirm by:`, or is proven unachievable (product-wide: replan at an OUTER stage). Compare the actual diff and affected consumers with the accepted plan (Coding decision guide), and check the static-checks entry-point inventory covers every entry point in the diff. Classify every selected case and affected requirement clause as passed, failed, blocked, not-run or justified N/A with its checked surface and evidence; a pass at another surface, or source/DOM structure for a rendered interaction, is supporting evidence, not closure; never claim all requirements met while due observations are unrun. If the item selected a service, verify its due outcomes and failure cases per Service discovery guidance, separating local simulation from remote readback. This is item acceptance, not integration or release.",
+     "risk": "Low: SELECTED_CASE_RECONCILIATION is shared with integration-verify and outer stages; either fold this shorter wording into it or keep it and drop 281-283 only (saves ~250)."
+    },
+    {
+     "block": "Code craft rubric (9 rules)",
+     "lines": "305-354 ('Code craft. Write for the next maintainer...' to '...the option chosen and why in one line.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:CODE_CRAFT, attached via shiploop_stage_spec.py blocks={'code-craft'} for this stage",
+     "kind": "not-applicable",
+     "action": "cut",
+     "chars_now": 3688,
+     "chars_after": 0,
+     "why": "Nothing in this stage's guidance, Done-when or Considerations refers to Code craft, and the stage writes no new code units; the rubric is the largest stage-specific block in the packet.",
+     "proposed_text": "",
+     "risk": "Low: static-checks (traces and fixes against Code craft) and integration-verify (fixes code in its pass-or-stop loop) keep the full rubric; drop 'code-craft' from this stage's blocks in shiploop_stage_spec.py."
+    },
+    {
+     "block": "Lint block unchanged record",
+     "lines": "394-405 ('ShipLoop lint (supporting output...' to 'Rerun (report-only)...')",
+     "source": "skills/shiploop/scripts/shiploop_lint.py (report-lint entry run render)",
+     "kind": "verbose",
+     "action": "condense",
+     "chars_now": 1291,
+     "chars_after": 330,
+     "why": "Record is unchanged and has 0 findings, yet the packet reprints its Result and Coverage 'word for word' and asks for 'a disposition for each new finding' when there are none.",
+     "proposed_text": "ShipLoop lint (advisory): unchanged since <run>/lint/nav-d376...md (tree beba8351a8c5); 0 new findings, 0 uncovered files. Rerun (report-only): <cmd>.",
+     "risk": "Low: print Coverage and the disposition line only when findings or uncovered files > 0."
+    },
+    {
+     "block": "Test rerun count rule",
+     "lines": "410-411",
+     "source": "skills/shiploop/scripts/shiploop_test_loop.py:COUNT_RULE",
+     "kind": "verbose",
+     "action": "condense",
+     "chars_now": 1050,
+     "chars_after": 560,
+     "why": "Same as static-checks 420-421.",
+     "proposed_text": "(same replacement as static-checks)",
+     "risk": "Same."
+    },
+    {
+     "block": "Improve non-directive lines",
+     "lines": "~248-252 ('...Do not embed an Improve review campaign... Only planning results (spec, ...) ... the graph advances directly.') and 390 ('Improve: This result advances directly; no Improve child runs for this stage.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:COMMON (the 'Only planning results' sentence, swapped by _NO_REVIEW_SWAPS) and shiploop_navigator.py:_improve_line (else branch)",
+     "kind": "not-applicable",
+     "action": "cut",
+     "chars_now": 537,
+     "chars_after": 0,
+     "why": "This stage has no Improve child; both sentences only tell the model what does NOT happen (owner rule: packets mention Improve only as a directive). The blocked hint in the same Improve line duplicates the blocked outcome shape printed under the template.",
+     "proposed_text": "",
+     "risk": "None for this stage: no Improve route exists to follow. Keep the 'Do not embed an Improve review campaign' clause only if Improve misuse was observed; keep pause/halt lines."
+    },
+    {
+     "block": "Workspace return block",
+     "lines": "121-133 ('Execution checkout: ...' through 'The return operation is unavailable here...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:render (navigator-worktree branch: plan-return/review-return/_return_route_lines/REVIEW_RETURN_RULE)",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 1920,
+     "chars_after": 330,
+     "why": "Return plan/receipt paths, the plan-return and review-return commands and the return route are release/handoff instructions; the same block ends by saying the return is unavailable at this stage.",
+     "proposed_text": "Execution checkout: <worktree> (isolated worktree; all product work happens here; keep run state, results and reports outside it; never a --result value). Workspace return to the original branch happens only at release/handoff; this stage does not commit for it or return.",
+     "risk": "Low: release/handoff packets keep the full block (stage in ('release','handoff','release-plan','release-check')). Gate the long form on those stages."
+    },
+    {
+     "block": "Shared-core in-packet duplicates",
+     "lines": "callback 13 vs 'Call this when done' 388-389; Scratch locator vs 'Write temporary files...' 193-195; awaiting shapes in outcome lines 40 vs 'ShipLoop runs unattended...' 196-209; 'Delegation: inline...After an unplanned reset' (3-9) vs Recovery 3-line block vs 'Execute this packet in this conversation...'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_first_callback_lines + render tail; shiploop_prompts.py:COMMON + INLINE_STAGE_CONTEXT; shiploop_navigator.py:_outcome_shape_lines; _run_rules",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1779,
+     "chars_after": 420,
+     "why": "Same fact stated 2-3 times inside this one packet: the complete command, /tmp-vs-Scratch, the awaiting/no_default schema, run-inline/recover-by-next.",
+     "proposed_text": "Bottom: 'Callback: the complete command at the top of this packet.' (keep pause/halt). COMMON: drop the Scratch sentence (the locator line already says '/tmp is shared with other runs'); replace the awaiting JSON in COMMON with 'report blocked with the awaiting shape printed under Allowed outcomes'. Drop 'Execute this packet in this conversation...' (Delegation line says it) and fold 'After an unplanned reset...' into the Recovery line.",
+     "risk": "Shared core is analysed separately; listed here because each copy is within this packet. Low risk: one copy of each obligation stays, the one in the head where possible."
+    }
+   ],
+   "estimated_chars_after": 23845
+  },
+  {
+   "file": "18-integrate.md",
+   "stage": "integrate",
+   "kind": "producer",
+   "chars": 29120,
+   "five_elements": {
+    "purpose": "OK: Goal 14 (but 'into the working branch' contradicts 120/272: assembly is in the execution checkout, return is later).",
+    "operation": "Head 20-21 carries the commit rule (truncated by the model's own head -c); body 266-272.",
+    "check": "Mechanical only (17); Done-when 16.",
+    "output": "OK.",
+    "recovery": "OK."
+   },
+   "missing_or_weak": [
+    "Conflicting commit instructions: line 20 'It names any other changed file: commit the ones the product needs' vs workspace line ~124 'plan-return commits files left uncommitted, so commit nothing for the return except a file it reports as not committed'. A fresh model cannot tell whether to commit undeclared files now. Also 'It names' does not say where ShipLoop names them (refusal? next packet?).",
+    "Goal 'Integrate the candidate into the working branch' reads as a merge to the original branch; the body says the original branch is untouched until the final return. Reword the goal: 'Assemble the item's changes in the execution checkout.'",
+    "No concrete operation: nothing says to inspect `git status`/`git diff` in <worktree> against the step plan's paths; the model reported done from memory with no tool call."
+   ],
+   "findings": [
+    {
+     "block": "Integrate guidance + Considerations",
+     "lines": "20-21 ('Develop: When this stage is accepted done, ShipLoop commits...', 'Deploy: The original branch is returned only...') and 266-272 ('Perform only authorized Git/worktree integration...' to 'The original branch is returned only at the final workspace return.')",
+     "source": "skills/shiploop/scripts/shiploop_stage_spec.py:Stage('integrate').develop/.deploy + shiploop_prompts.py:duty() stage text 'integrate' (around 1560)",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 728,
+     "chars_after": 560,
+     "why": "'The original branch is returned only at the final workspace return' is printed at 21 and 272, and the workspace block (~120) says 'Inner integrate assembles here, not back into the original branch' a third time; 'keep run state ... out of product commits' at 20 and 268.",
+     "proposed_text": "Head (Develop): Run git status and git diff in <worktree>; confirm the item's changes are there with no conflicts and no run state, logs, credentials or generated output. When this stage is accepted done, ShipLoop commits the files the step plan's paths declare (and docs/shiploop/); do not commit them yourself. Any other changed file: commit it if the product needs it, delete it if generated, and list it in the summary. Do not merge, push or return to the original branch; that happens only at the final workspace return.\nBody: Do not infer a merge, commit, push or deployment from a plan or a command attempt; record a justified no-op when nothing needs assembling.",
+     "risk": "Low; also resolves the 'commit nothing' conflict if the workspace block in this packet is reduced as below."
+    },
+    {
+     "block": "Workspace return block at integrate",
+     "lines": "127-139 ('Execution checkout:...' through 'The return operation is unavailable here...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:render (navigator-worktree lines)",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 1920,
+     "chars_after": 420,
+     "why": "Integrate is where commit/return matters, but only as a boundary: the plan-return/review-return commands and the return route (fast-forward vs apply-kept-files) are executed at release/handoff, and the block itself says return is unavailable here. Its 'commit nothing for the return' sentence conflicts with the integrate commit rule.",
+     "proposed_text": "Execution checkout: <worktree> (isolated worktree; all product work happens here; run state, results and reports stay outside it). Integrate assembles the item here; ShipLoop's stage commit lands on run branch shiploop/run-a66c4510b6f2969e. The original branch (master) is untouched until the workspace return at release/handoff; workspace authority: <out>/.shiploop-runs/seed/workspace.md.",
+     "risk": "Low: the return details remain in workspace.md and in release/handoff packets; naming the run branch keeps the model aware of where commits go."
+    },
+    {
+     "block": "Code craft rubric (9 rules)",
+     "lines": "275-324 ('Code craft. Write for the next maintainer...' to '...the option chosen and why in one line.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:CODE_CRAFT, attached via shiploop_stage_spec.py blocks={'code-craft'} for this stage",
+     "kind": "not-applicable",
+     "action": "cut",
+     "chars_now": 3688,
+     "chars_after": 0,
+     "why": "Nothing in this stage's guidance, Done-when or Considerations refers to Code craft, and the stage writes no new code units; the rubric is the largest stage-specific block in the packet.",
+     "proposed_text": "",
+     "risk": "Low: static-checks (traces and fixes against Code craft) and integration-verify (fixes code in its pass-or-stop loop) keep the full rubric; drop 'code-craft' from this stage's blocks in shiploop_stage_spec.py."
+    },
+    {
+     "block": "Workspace integration guidance locator",
+     "lines": "126 ('Workspace integration guidance: ...#inner-assembly-and-final-return')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:STAGE_REFERENCES['integrate']",
+     "kind": "not-applicable",
+     "action": "keep",
+     "chars_now": 120,
+     "chars_after": 120,
+     "why": "Applicable: the one reference this stage needs; keep.",
+     "proposed_text": "",
+     "risk": "None."
+    },
+    {
+     "block": "Improve non-directive lines",
+     "lines": "~254-258 ('...Do not embed an Improve review campaign... Only planning results (spec, ...) ... the graph advances directly.') and 360 ('Improve: This result advances directly; no Improve child runs for this stage.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:COMMON (the 'Only planning results' sentence, swapped by _NO_REVIEW_SWAPS) and shiploop_navigator.py:_improve_line (else branch)",
+     "kind": "not-applicable",
+     "action": "cut",
+     "chars_now": 537,
+     "chars_after": 0,
+     "why": "This stage has no Improve child; both sentences only tell the model what does NOT happen (owner rule: packets mention Improve only as a directive). The blocked hint in the same Improve line duplicates the blocked outcome shape printed under the template.",
+     "proposed_text": "",
+     "risk": "None for this stage: no Improve route exists to follow. Keep the 'Do not embed an Improve review campaign' clause only if Improve misuse was observed; keep pause/halt lines."
+    },
+    {
+     "block": "Shared-core in-packet duplicates",
+     "lines": "callback 13 vs 'Call this when done' 358-359; Scratch locator vs 'Write temporary files...' ~199-201; awaiting shapes in outcome lines 39 vs 'ShipLoop runs unattended...' ~202-215; 'Delegation: inline...After an unplanned reset' (3-9) vs Recovery 3-line block vs 'Execute this packet in this conversation...'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_first_callback_lines + render tail; shiploop_prompts.py:COMMON + INLINE_STAGE_CONTEXT; shiploop_navigator.py:_outcome_shape_lines; _run_rules",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1779,
+     "chars_after": 420,
+     "why": "Same fact stated 2-3 times inside this one packet: the complete command, /tmp-vs-Scratch, the awaiting/no_default schema, run-inline/recover-by-next.",
+     "proposed_text": "Bottom: 'Callback: the complete command at the top of this packet.' (keep pause/halt). COMMON: drop the Scratch sentence (the locator line already says '/tmp is shared with other runs'); replace the awaiting JSON in COMMON with 'report blocked with the awaiting shape printed under Allowed outcomes'. Drop 'Execute this packet in this conversation...' (Delegation line says it) and fold 'After an unplanned reset...' into the Recovery line.",
+     "risk": "Shared core is analysed separately; listed here because each copy is within this packet. Low risk: one copy of each obligation stays, the one in the head where possible."
+    }
+   ],
+   "estimated_chars_after": 21868
+  },
+  {
+   "file": "19-integration-verify.md",
+   "stage": "integration-verify",
+   "kind": "producer",
+   "chars": 31191,
+   "five_elements": {
+    "purpose": "OK: Goal 14.",
+    "operation": "Weak in head: Considerations 20 repeats the goal verbatim; 'shared interfaces' is never defined; body 249-286.",
+    "check": "OK: 18 + 378-382.",
+    "output": "OK.",
+    "recovery": "OK."
+   },
+   "missing_or_weak": [
+    "'Shared interfaces are checked' (Done-when 17) has no how: the packet never says to list the exports/APIs/CLI/schemas the item touched and exercise their callers. The model improvised a grep for callers; make it the head Considerations line.",
+    "Pass-or-stop allows 3 genuine fix attempts (284) while Test rerun allows 7 refused runs (378); different counters, but a fresh reader may conflate them. One clause clarifying 'refused runs are counted by ShipLoop at complete; fix attempts are yours inside the stage' would help."
+   ],
+   "findings": [
+    {
+     "block": "Considerations Test line",
+     "lines": "20 ('- Test: Verify the integrated result and the shared interfaces.')",
+     "source": "skills/shiploop/scripts/shiploop_stage_spec.py:Stage('integration-verify').test",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 64,
+     "chars_after": 190,
+     "why": "Restates the Goal; the head carries no operation.",
+     "proposed_text": "- Test: List the exports, APIs, CLI, schemas or files that other code or consumers use and that the item touched; find their callers and run or inspect each path on the integrated checkout.",
+     "risk": "None."
+    },
+    {
+     "block": "Stage guidance",
+     "lines": "249-253 ('Verify the assembled integrated candidate...')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:duty() stage text 'integration-verify' (around 1571)",
+     "kind": "verbose",
+     "action": "keep",
+     "chars_now": 381,
+     "chars_after": 381,
+     "why": "Short and specific; keep.",
+     "proposed_text": "",
+     "risk": "None."
+    },
+    {
+     "block": "Selected-case reconciliation",
+     "lines": "256-267",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:SELECTED_CASE_RECONCILIATION",
+     "kind": "verbose",
+     "action": "condense",
+     "chars_now": 864,
+     "chars_after": 420,
+     "why": "Two paragraphs with overlapping 'preserve gaps/not yet due' clauses; verify already reconciled cases for this item, so here only re-checks after integration edits matter.",
+     "proposed_text": "Selected-case reconciliation: classify every selected case and affected requirement clause as passed, failed, blocked, not-run or justified N/A, with its checked surface, candidate and evidence; a pass at another surface, or source/DOM structure for a rendered interaction, is supporting evidence, not closure. Keep cases not yet due pending with phase, owner and prerequisites; already-due missing evidence is incomplete.",
+     "risk": "Low; same text proposed for verify."
+    },
+    {
+     "block": "Pass-or-stop loop",
+     "lines": "270-286",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:PASS_OR_STOP",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1174,
+     "chars_after": 820,
+     "why": "Step (3) restates Allowed outcomes and blocked shape; 'A red check never leaves this stage as done' restates the opening sentence.",
+     "proposed_text": "Pass-or-stop loop: done only when every check passes on the current candidate in one final pass after your last edit. When a check fails, find why with a small observation (product defect, invalid test, environment), fix the product code, and rerun what the fix affects. Change a test, fixture, golden file or threshold only for an independent reason that the check itself is wrong, recorded; never to get green. Revise when a check is proven unachievable or still fails after 3 genuine fix attempts; blocked when a tool, access or authority is absent. Report each check's command, final-pass output and status (passed, failed, not run with reason).",
+     "risk": "Low."
+    },
+    {
+     "block": "Code craft",
+     "lines": "289-338",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:CODE_CRAFT",
+     "kind": "not-applicable",
+     "action": "keep",
+     "chars_now": 3688,
+     "chars_after": 3688,
+     "why": "Applicable: pass-or-stop fixes product code here. Keep (or reduce to rules 1, 2, 6, 9 that govern a fix, ~1700) if a smaller rubric is wanted.",
+     "proposed_text": "",
+     "risk": "None."
+    },
+    {
+     "block": "Test rerun count rule",
+     "lines": "381-382",
+     "source": "skills/shiploop/scripts/shiploop_test_loop.py:COUNT_RULE",
+     "kind": "verbose",
+     "action": "condense",
+     "chars_now": 1050,
+     "chars_after": 560,
+     "why": "Same as static-checks.",
+     "proposed_text": "(same replacement as static-checks)",
+     "risk": "Same."
+    },
+    {
+     "block": "Improve non-directive lines",
+     "lines": "~237-241 ('...Do not embed an Improve review campaign... Only planning results (spec, ...) ... the graph advances directly.') and 374 ('Improve: This result advances directly; no Improve child runs for this stage.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:COMMON (the 'Only planning results' sentence, swapped by _NO_REVIEW_SWAPS) and shiploop_navigator.py:_improve_line (else branch)",
+     "kind": "not-applicable",
+     "action": "cut",
+     "chars_now": 537,
+     "chars_after": 0,
+     "why": "This stage has no Improve child; both sentences only tell the model what does NOT happen (owner rule: packets mention Improve only as a directive). The blocked hint in the same Improve line duplicates the blocked outcome shape printed under the template.",
+     "proposed_text": "",
+     "risk": "None for this stage: no Improve route exists to follow. Keep the 'Do not embed an Improve review campaign' clause only if Improve misuse was observed; keep pause/halt lines."
+    },
+    {
+     "block": "Workspace return block",
+     "lines": "110-122 ('Execution checkout: ...' through 'The return operation is unavailable here...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:render (navigator-worktree branch: plan-return/review-return/_return_route_lines/REVIEW_RETURN_RULE)",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 1920,
+     "chars_after": 330,
+     "why": "Return plan/receipt paths, the plan-return and review-return commands and the return route are release/handoff instructions; the same block ends by saying the return is unavailable at this stage.",
+     "proposed_text": "Execution checkout: <worktree> (isolated worktree; all product work happens here; keep run state, results and reports outside it; never a --result value). Workspace return to the original branch happens only at release/handoff; this stage does not commit for it or return.",
+     "risk": "Low: release/handoff packets keep the full block (stage in ('release','handoff','release-plan','release-check')). Gate the long form on those stages."
+    },
+    {
+     "block": "Shared-core in-packet duplicates",
+     "lines": "callback 13 vs 'Call this when done' 372-373; Scratch locator vs 'Write temporary files...' 182-184; awaiting shapes in outcome lines 39 vs 'ShipLoop runs unattended...' 185-198; 'Delegation: inline...After an unplanned reset' (3-9) vs Recovery 3-line block vs 'Execute this packet in this conversation...'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_first_callback_lines + render tail; shiploop_prompts.py:COMMON + INLINE_STAGE_CONTEXT; shiploop_navigator.py:_outcome_shape_lines; _run_rules",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1779,
+     "chars_after": 420,
+     "why": "Same fact stated 2-3 times inside this one packet: the complete command, /tmp-vs-Scratch, the awaiting/no_default schema, run-inline/recover-by-next.",
+     "proposed_text": "Bottom: 'Callback: the complete command at the top of this packet.' (keep pause/halt). COMMON: drop the Scratch sentence (the locator line already says '/tmp is shared with other runs'); replace the awaiting JSON in COMMON with 'report blocked with the awaiting shape printed under Allowed outcomes'. Drop 'Execute this packet in this conversation...' (Delegation line says it) and fold 'After an unplanned reset...' into the Recovery line.",
+     "risk": "Shared core is analysed separately; listed here because each copy is within this packet. Low risk: one copy of each obligation stays, the one in the head where possible."
+    }
+   ],
+   "estimated_chars_after": 26543
+  },
+  {
+   "file": "20-carry-forward.md",
+   "stage": "carry-forward",
+   "kind": "producer",
+   "chars": 31056,
+   "five_elements": {
+    "purpose": "OK: Goal 14.",
+    "operation": "Head: Considerations 21-22 (two short lines); queue rules split across 36, 134-136, 262-266; learning rules 267-297; Backchain 313-340.",
+    "check": "Mechanical only (18). The real gate is the end-of-work Improve (376) when no item is pending.",
+    "output": "OK: template + 36 work_items rule.",
+    "recovery": "OK."
+   },
+   "missing_or_weak": [
+    "Where learnings go is not concrete in the head: 'outside run notes' (Done-when) but the obvious home (docs/shiploop/features/<feature>/plan.md, test docs, SHIPLOOP.md) is only implied by 'Repository knowledge home'. The model opened the packet (lines 24-40) to find it and appended to plan.md. A head Considerations line naming the homes would remove that lookup."
+   ],
+   "findings": [
+    {
+     "block": "Queue replacement rule (x3)",
+     "lines": "36 ('Optional work_items replaces the queue...'), 135-136 ('Omit work_items to retain...', 'Read every pending item's full title/context...'), 262-266 ('Read the full ordered queue...Explain removals, merges or supersession...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_allowed_outcome_lines (carry-forward) + render 'Omit work_items' (~3278) + shiploop_prompts.py duty() 'carry-forward' (~1578)",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1037,
+     "chars_after": 420,
+     "why": "Replace-not-append, read-every-pending-item and explain-removals-in-the-plan-note are each stated two or three times.",
+     "proposed_text": "Keep 36 in the head. Replace 135-136 and 262-266 with: 'Queue (state.md work_items): read every pending item in full first. Omit work_items to keep it; supplied work_items replaces the whole future queue (all still-required items in prerequisite order, excluding current/completed; [] only when none remains). Explain removals, merges or supersession in the linked plan note. A completed prerequisite invalidated by new evidence needs a corrective item before its consumer; never rewrite past completion evidence.'",
+     "risk": "Low."
+    },
+    {
+     "block": "Learning and context-locator rules",
+     "lines": "267-297 ('Record reusable learning, unresolved dependencies...' to '...treat a context summary as proof.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:duty() 'carry-forward' + WORK_ITEM_CONTEXT (543)",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 2237,
+     "chars_after": 900,
+     "why": "The item-context rule (carry only locator/decision/rationale/revalidation in `context`, sources in evidence_refs, no transcripts, no second decision store) appears at 271-275 and again at 293-297 (WORK_ITEM_CONTEXT); rerun-procedure rule at 22 and 276-279; skill index rules 282-287 overlap skill-assess.",
+     "proposed_text": "Record reusable learnings, conventions, new risks, unresolved dependencies, system-test obligations, release prerequisites and owners in repository docs (the feature's docs/shiploop/ plan, test documentation, SHIPLOOP.md, the skill index for new or changed local skills), not run notes; keep completed evidence separate from future plans, and do not expand scope or adopt tentative ideas as policy. Keep rerun commands (focused, smoke, full), fixture decisions, harness/case locators and pending real-boundary checks with their owner in the repository test documentation, with the originating test-strategy locator. Carry the prior baseline, incoming delta and updated knowledge locators forward without replacing approved intent or old evidence. A new or revised item carries only its decision/convention locator, rationale, scope and revalidation condition in `context`, sources in evidence_refs; no transcripts, no second decision store.",
+     "risk": "Low: WORK_ITEM_CONTEXT is shared with plan; drop the duty() copy (271-275) rather than the constant."
+    },
+    {
+     "block": "Reusable test facilities",
+     "lines": "300-310 ('Use the packet's Reusable test facilities guide...')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:TEST_FACILITY_HANDOFF via stage_spec carry-forward blocks={'test-facility'}",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 883,
+     "chars_after": 170,
+     "why": "Carry-forward defines or extends no test facility; only the 'retain its locator ... in repository test documentation' clause applies, and the learning rules above already carry it.",
+     "proposed_text": "Retain any test facility's definition locator, interface, readiness gap and owner in repository test documentation and the item context.",
+     "risk": "Low: authoring stages keep the full block. Drop 'test-facility' from carry-forward's blocks and rely on the condensed learning text."
+    },
+    {
+     "block": "Backchain review/repair + Until Loop budget",
+     "lines": "130-133 (Backchain locators) and 313-340 ('Follow the packet's Backchain planning guide...' to the byte-measure one-liner)",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:_backchain_guidance('carry-forward') (~2014-2050) + navigator Backchain locator lines",
+     "kind": "verbose",
+     "action": "condense",
+     "chars_now": 3103,
+     "chars_after": 560,
+     "why": "About 2.5k chars describe review/audit vs repair/revise child calls and a 9,216-byte contract budget; at carry-forward these apply only when a queue revision is materially ambiguous. The always-applicable part is: run backchain-check on a revised queue and cite its receipt.",
+     "proposed_text": "If you supply work_items, run `python3 <skills>/shiploop/scripts/shiploop backchain-check --run-dir <run> --candidate <file>` and cite its receipt; a failure is a finding to fix. Only for a material prerequisite ambiguity, request a read-only Backchain `review`/`audit`, or one `repair`/`revise` child, as the Backchain planning guide's source-aware-native caller section defines (<skills>/shiploop/references/backchain-planning.md#navigator-planning); its start contract must serialize to at most 9,216 bytes (put long text in files and cite them).",
+     "risk": "Medium-low: a model that does request repair must open the guide for the 'Backchain passes: one' marker and loop-resource rules. Acceptable because that path is rare at carry-forward and the guide is named."
+    },
+    {
+     "block": "Considerations head lines",
+     "lines": "21-22",
+     "source": "skills/shiploop/scripts/shiploop_stage_spec.py:Stage('carry-forward').develop/.test",
+     "kind": "missing",
+     "action": "move-to-head",
+     "chars_now": 84,
+     "chars_after": 230,
+     "why": "Head operation is too thin to tell the model where learnings go; the model had to open the packet.",
+     "proposed_text": "- Develop: Record reusable learnings and conventions in the feature's docs/shiploop/ plan, SHIPLOOP.md or the skill index, not run notes; revise the queue only if a still-required item is missing or wrong.\n- Test: Keep rerun commands and pending checks in the repository's test documentation.",
+     "risk": "None."
+    },
+    {
+     "block": "Improve in COMMON vs Improve line",
+     "lines": "243-251 (COMMON 'Only planning results ... and the carry-forward that leaves no work item pending get an actual Improve-skill handoff...') vs 376",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:COMMON + shiploop_navigator.py:_improve_line",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 462,
+     "chars_after": 0,
+     "why": "Here Improve applies, and the bottom Improve line (376) is the directive; the COMMON sentence restates it.",
+     "proposed_text": "",
+     "risk": "None; 376 stays."
+    },
+    {
+     "block": "Workspace return block",
+     "lines": "116-128 ('Execution checkout: ...' through 'The return operation is unavailable here...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:render (navigator-worktree branch: plan-return/review-return/_return_route_lines/REVIEW_RETURN_RULE)",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 1920,
+     "chars_after": 330,
+     "why": "Return plan/receipt paths, the plan-return and review-return commands and the return route are release/handoff instructions; the same block ends by saying the return is unavailable at this stage.",
+     "proposed_text": "Execution checkout: <worktree> (isolated worktree; all product work happens here; keep run state, results and reports outside it; never a --result value). Workspace return to the original branch happens only at release/handoff; this stage does not commit for it or return.",
+     "risk": "Low: release/handoff packets keep the full block (stage in ('release','handoff','release-plan','release-check')). Gate the long form on those stages."
+    },
+    {
+     "block": "Shared-core in-packet duplicates",
+     "lines": "callback 13 vs 'Call this when done' 374-375; Scratch locator vs 'Write temporary files...' 195-197; awaiting shapes in outcome lines 41 vs 'ShipLoop runs unattended...' 198-211; 'Delegation: inline...After an unplanned reset' (3-9) vs Recovery 3-line block vs 'Execute this packet in this conversation...'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_first_callback_lines + render tail; shiploop_prompts.py:COMMON + INLINE_STAGE_CONTEXT; shiploop_navigator.py:_outcome_shape_lines; _run_rules",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1779,
+     "chars_after": 420,
+     "why": "Same fact stated 2-3 times inside this one packet: the complete command, /tmp-vs-Scratch, the awaiting/no_default schema, run-inline/recover-by-next.",
+     "proposed_text": "Bottom: 'Callback: the complete command at the top of this packet.' (keep pause/halt). COMMON: drop the Scratch sentence (the locator line already says '/tmp is shared with other runs'); replace the awaiting JSON in COMMON with 'report blocked with the awaiting shape printed under Allowed outcomes'. Drop 'Execute this packet in this conversation...' (Delegation line says it) and fold 'After an unplanned reset...' into the Recovery line.",
+     "risk": "Shared core is analysed separately; listed here because each copy is within this packet. Low risk: one copy of each obligation stays, the one in the head where possible."
+    }
+   ],
+   "estimated_chars_after": 22581
+  },
+  {
+   "file": "22-system-test-author.md",
+   "stage": "system-test-author",
+   "kind": "producer",
+   "chars": 30474,
+   "five_elements": {
+    "purpose": "OK: Goal 3.",
+    "operation": "OK-ish: head Considerations 8-9 (long but load-bearing: run each once, three end states); body 262-333.",
+    "check": "OK: 6 (system_commands / system_commands_na gate) + Improve child (369).",
+    "output": "OK: template 13-32 with system_commands; outcomes 33-38 incl. replan.",
+    "recovery": "OK."
+   },
+   "missing_or_weak": [
+    "No delegation line (inner packets open with 'Delegation: inline...'); only the A line 'Execute this packet in this conversation...' (~121) says run here. Sufficient, but it is in the body, not the head.",
+    "Template shows suite 'focused' and ids ['ST-1'] but not `host_dependent` or the `check` suite that 262-269 define; a head-only reader cannot record a non-runner check correctly. Add one template row comment or a one-line head note: 'suite: focused | regression | check (non-runner, judged by exit code); host_dependent: true when a host tool is needed'.",
+    "Never executed in this run (stopped here), so no behaviour evidence."
+   ],
+   "findings": [
+    {
+     "block": "Run-once / end-state rule (x2)",
+     "lines": "8 ('- Test: Author end-to-end and system tests... Every case ends in one of three states...') vs 270-275 ('ShipLoop runs every one itself... Run each system command once while authoring... not an end state.')",
+     "source": "skills/shiploop/scripts/shiploop_stage_spec.py:CASE_END_STATES (Stage('system-test-author').test) + shiploop_prompts.py duty() 'system-test-author' (~1609)",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 471,
+     "chars_after": 150,
+     "why": "The three end states and 'not run is not an end state' are in the head (8) and again in the body (271-274).",
+     "proposed_text": "ShipLoop runs every system command itself when system-test reports done and refuses unless each passes; each case must already end in one of the head's three states. With no applicable system test, give [] plus `system_commands_na` and the reason.",
+     "risk": "Low: head line 8 keeps the full rule."
+    },
+    {
+     "block": "Deploy line (x2)",
+     "lines": "9 ('- Deploy: Plan which tests run against the deployed target.') vs 298-299 ('Identify which checks run now and which require the authorized release first...')",
+     "source": "skills/shiploop/scripts/shiploop_stage_spec.py:Stage('system-test-author').deploy + duty()",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 221,
+     "chars_after": 175,
+     "why": "Same obligation twice; the body version is the precise one.",
+     "proposed_text": "Head: '- Deploy: Mark which checks run now and which need the release first; post-release checks are assigned to release-verify, not waived.' Body: cut 298-299.",
+     "risk": "None."
+    },
+    {
+     "block": "Planning-handoff sentence",
+     "lines": "302 ('Preserve this planning pass's key reference statements... At plan and step-plan, consolidate...')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:_PLANNING_HANDOFF / _inline_planning_handoff (~2288)",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 566,
+     "chars_after": 190,
+     "why": "Half the paragraph addresses plan and step-plan ('At plan and step-plan...', 'Each reviewed step's task/ready/done criteria...').",
+     "proposed_text": "Keep this pass's key decisions, constraints and acceptance context in the summary, and register every produced planning file and required source as an absolute path in evidence_refs; an unrecorded conversation is not a handoff.",
+     "risk": "Low: render the plan/step-plan clause only for those stages."
+    },
+    {
+     "block": "OUTER test-planning handshake",
+     "lines": "317-333 ('Use the packet's OUTER test-planning handshake guide...')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:OUTER_TEST_HANDOFF (~1914)",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 1341,
+     "chars_after": 600,
+     "why": "Written for all OUTER stages: 'At consumers, acknowledge which plan applies...', 'do not require a future producer's plan', 'Review a pending producer proposal separately during its Improve handoff' do not apply to the producer of the plan; the producer part overlaps 295-297.",
+     "proposed_text": "Recover the latest done system-test-author and release-plan records after the most recent accepted replan (earlier, pending, repeat or blocked records are inputs to revalidate, not authority); retain their action/result and plan locators here and in the Improve child's context. Create or reconcile this stage's plan; a plan is not execution evidence. Material changes to code, tests, fixtures, configuration or target invalidate affected observations: keep prior receipts and rerun the affected checks; reuse unaffected evidence only with its identity established. Never guess commands, erase required coverage, or deploy to make a check available.",
+     "risk": "Low: consumer stages keep the full constant; split OUTER_TEST_HANDOFF into producer and consumer halves."
+    },
+    {
+     "block": "System-test authoring guidance",
+     "lines": "276-297 ('Reopen the Run-wide test strategy source...' to '...prerequisites and execution owners.')",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:duty() 'system-test-author'",
+     "kind": "verbose",
+     "action": "keep",
+     "chars_now": 1950,
+     "chars_after": 1950,
+     "why": "Stage-specific and applicable; mild verbosity ('Author or refine whole-product/system test cases...' lists eight boundary kinds) but each is an obligation. Keep.",
+     "proposed_text": "",
+     "risk": "None."
+    },
+    {
+     "block": "Reusable test facilities",
+     "lines": "304-314",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:TEST_FACILITY_HANDOFF",
+     "kind": "verbose",
+     "action": "condense",
+     "chars_now": 883,
+     "chars_after": 520,
+     "why": "Applicable (authoring stage) but wordy; 'Planning names missing prerequisite work; the owning authoring work implements...' is planner-side.",
+     "proposed_text": "Use the Reusable test facilities guide: reuse, configure or extend existing frameworks, helpers, skills or MCP capabilities before defining the smallest missing facility; never assume a named skill/MCP is available or authorized. Record its definition locator, interface, readiness evidence or gap, owner and revalidation conditions in evidence_refs, the repository test documentation and the Improve child's context. Discovery or readiness is not test execution.",
+     "risk": "Low."
+    },
+    {
+     "block": "Improve in COMMON vs Improve line",
+     "lines": "252-256 vs 369",
+     "source": "skills/shiploop/scripts/shiploop_prompts.py:COMMON + shiploop_navigator.py:_improve_line",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 462,
+     "chars_after": 0,
+     "why": "369 is the directive (every result starts the Improve child); COMMON restates which stages get Improve.",
+     "proposed_text": "",
+     "risk": "None."
+    },
+    {
+     "block": "Workspace return block",
+     "lines": "131-142 (release is 8 stages away; return unavailable here) ('Execution checkout: ...' through 'The return operation is unavailable here...')",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:render (navigator-worktree branch: plan-return/review-return/_return_route_lines/REVIEW_RETURN_RULE)",
+     "kind": "not-applicable",
+     "action": "condense",
+     "chars_now": 1920,
+     "chars_after": 330,
+     "why": "Return plan/receipt paths, the plan-return and review-return commands and the return route are release/handoff instructions; the same block ends by saying the return is unavailable at this stage.",
+     "proposed_text": "Execution checkout: <worktree> (isolated worktree; all product work happens here; keep run state, results and reports outside it; never a --result value). Workspace return to the original branch happens only at release/handoff; this stage does not commit for it or return.",
+     "risk": "Low: release/handoff packets keep the full block (stage in ('release','handoff','release-plan','release-check')). Gate the long form on those stages."
+    },
+    {
+     "block": "Shared-core in-packet duplicates",
+     "lines": "callback 2 vs 'Call this when done' 367-368; Scratch locator vs 'Write temporary files...' 195-197; awaiting shapes in outcome lines 37 vs 'ShipLoop runs unattended...' 198-211; 'Delegation: inline...After an unplanned reset' (3-9) vs Recovery 3-line block vs 'Execute this packet in this conversation...'",
+     "source": "skills/shiploop/scripts/shiploop_navigator.py:_first_callback_lines + render tail; shiploop_prompts.py:COMMON + INLINE_STAGE_CONTEXT; shiploop_navigator.py:_outcome_shape_lines; _run_rules",
+     "kind": "duplicate",
+     "action": "condense",
+     "chars_now": 1779,
+     "chars_after": 420,
+     "why": "Same fact stated 2-3 times inside this one packet: the complete command, /tmp-vs-Scratch, the awaiting/no_default schema, run-inline/recover-by-next.",
+     "proposed_text": "Bottom: 'Callback: the complete command at the top of this packet.' (keep pause/halt). COMMON: drop the Scratch sentence (the locator line already says '/tmp is shared with other runs'); replace the awaiting JSON in COMMON with 'report blocked with the awaiting shape printed under Allowed outcomes'. Drop 'Execute this packet in this conversation...' (Delegation line says it) and fold 'After an unplanned reset...' into the Recovery line.",
+     "risk": "Shared core is analysed separately; listed here because each copy is within this packet. Low risk: one copy of each obligation stays, the one in the head where possible."
+    }
+   ],
+   "estimated_chars_after": 25216
+  }
+ ],
+ "cross_cutting": [
+  "Heads are the packet: in this run the model opened 1 of 22 packet files and saw 265-1922 chars of each head (it truncated with head -c / sed). Every operation the stage's check depends on must be in the head: skill-assess and skill-validate have no Considerations line at all (stage_spec has no develop/test), static-checks' quality-loop Start command and receipt are body-only, and integration-verify's Considerations line just repeats the goal.",
+  "Code craft (3,688 chars) is attached to document, verify and integrate although their guidance never refers to it (document edits docs only; verify reviews; integrate commits). Remove 'code-craft' from those stages' blocks in shiploop_stage_spec.py (keep a 2-line docstring/comment excerpt for document). It stays where code is fixed: static-checks, integration-verify.",
+  "The Improve sentence in COMMON ('Only planning results ... get an actual Improve-skill handoff ... advances directly') plus the bottom 'Improve: This result advances directly; no Improve child runs' appear in every non-Improve stage: they state what does NOT happen (owner rule: mention Improve only as a directive). In carry-forward/system-test-author the bottom line is the directive and the COMMON sentence duplicates it.",
+  "The 1,920-char workspace return block (plan-return, review-return, return route, receipt) is printed in every inner stage while saying the return is unavailable there; at integrate it also conflicts with the stage's own commit rule ('commit the ones the product needs' vs 'commit nothing for the return except...'). Print a ~330-char boundary note outside release/handoff.",
+  "Check-type duplication: the 'ShipLoop reruns every recorded command' gate is stated in Checked by, in stage text (verify 260-262) and in the Test rerun block; Allowed outcomes are restated in static-checks' Report paragraph and PASS_OR_STOP step (3). Keep the head copy plus the command list; the body should give only how to satisfy it.",
+  "Lint blocks print raw audit material: 13 lines of git plumbing (1.2k) and stdout/stderr '(empty)' pairs at static-checks; at verify an unchanged 0-finding record is reprinted word for word and asks for dispositions of no findings. Print plumbing and empty output only on failure, and a one-line summary when nothing changed.",
+  "Within-packet shared-core duplicates in every packet: the complete command twice (top + 'Call this when done'), the Scratch//tmp rule twice, the awaiting/no_default schema twice (outcome shapes + COMMON unattended paragraph) plus a third blocked hint in the Improve line, run-inline/recovery three times, current stage named 5 times, and the step-plan result listed in 'Results this stage builds on' and again as a 6-line 'source' record.",
+  "Stage guidance text is generally written for the worst case (services, remote boundaries, skills, baselines) with conditions implicit; making the conditional ones explicit ('If the item selected a service...') lets them shrink without dropping obligations, and gives a fresh model a clear N/A path, which is what most of these stages produced in this run."
+ ]
+}
