@@ -194,7 +194,7 @@ where they run depends on the run:
   directory and the workspace root as Git's ceiling, so a parent repository is not
   found. The copy is made fresh on each attempt and kept after a refusal so you can
   reproduce there. A receipt or manifest ShipLoop cannot read is not "no return":
-  the attempt is `could-not-run`, which does not count toward the 7 refused runs.
+  the attempt is `could-not-run`, which does not count toward the 11 refused runs.
 - **No completed return yet**: the checks run in the work area, and the packet, the
   test record (`observed`) and the handoff say that they did not observe the user's
   checkout. The run is not refused: `workspace return` is allowed only at `release`
@@ -202,7 +202,7 @@ where they run depends on the run:
 - **An in-place run** has no workspace: the checks run in the checkout, as before.
 
 The user's checkout is not used because ShipLoop runs these commands unprompted, up
-to seven times, and any file one of them writes there (a cache, a log, a build
+to eleven times, and any file one of them writes there (a cache, a log, a build
 directory) makes the strict clean-status receipt non-current. ShipLoop then refuses
 the source as drifted, no ShipLoop route clears it, and this card forbids deleting
 the user's files to force it. The work area is the run's own to clean.

@@ -732,7 +732,7 @@ an outside dependency must unblock it. On done, ShipLoop checks the terminal
 packet against the contract and then runs every listed command itself; it
 refuses done unless each exits 0 and prints the failures. After a refusal, fix
 the code, start the loop again with the printed command (its terminal packet is
-replaced) and submit again. After 7 refused runs done is no longer accepted:
+replaced) and submit again. After 11 refused runs done is no longer accepted:
 report revise. Before the test run, ShipLoop lints this item's changes as at
 implement: it refuses done once after an auto-fix and while a new finding on a
 changed line has no `lint_waivers` entry.
@@ -1419,7 +1419,7 @@ pass counts. When a check fails, change the work, not the check, and rerun them 
 here`, and none failed → outcome done; a criterion proven unachievable → outcome
 revise, naming it, so the step plan is corrected rather than blindly retried
 (blocked, with blocked_by, only when the user, an access grant or an outside
-dependency must resolve it); the same check still failing after 3 genuine fix
+dependency must resolve it); the same check still failing after 7 genuine fix
 attempts → outcome revise with that criterion failed. A criterion is proven unachievable only when (a) it contradicts another
 criterion, the item, or a protected file, shown by a check after all compatible
 work is done and with the existing behavior kept at the conflict point; (b)
@@ -2508,7 +2508,7 @@ outcome done; a check proven unachievable (it contradicts the specification or
 another requirement, or would exceed the item) → outcome revise, naming it, so
 the step plan is corrected; a check that needs a tool, access or authority that
 is absent → outcome blocked with blocked_by; the same check still failing after
-3 genuine fix attempts → outcome revise with that check failed. A red check never leaves this stage as done.
+7 genuine fix attempts → outcome revise with that check failed. A red check never leaves this stage as done.
 Report each check's command, its final-pass output and whether it passed,
 failed or was not run (with the reason).
 """

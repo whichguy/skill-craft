@@ -75,7 +75,7 @@ VERIFY_STAGES = STAGES + RERUN_STAGES
 # Product failures per action before done is no longer accepted (then the stage's own
 # remedy outcome, or blocked).  Attempts that only failed to run do not count: see
 # UNAVAILABLE and refused_runs.
-MAX_REFUSED_RUNS = 7
+MAX_REFUSED_RUNS = 11
 # focused and regression commands run tests; a check (for example a search that a
 # document names a required term) is judged by its exit code alone.
 SUITES = ("focused", "regression", "check")

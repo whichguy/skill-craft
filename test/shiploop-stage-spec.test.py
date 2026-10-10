@@ -119,7 +119,7 @@ class StageTableTest(unittest.TestCase):
         for condition in (prompts.QUALITY_REPEAT_CONDITION, prompts.TEST_REPEAT_CONDITION):
             self.assertIn("no iteration limit", condition)
             self.assertNotIn("Stop cancelled when", condition)
-        self.assertEqual(test_loop.MAX_REFUSED_RUNS, 7)
+        self.assertEqual(test_loop.MAX_REFUSED_RUNS, 11)
 
     def test_stages_that_edit_code_run_a_script_check_before_done(self) -> None:
         # A stage that may change code or tests must end with a script-run lint

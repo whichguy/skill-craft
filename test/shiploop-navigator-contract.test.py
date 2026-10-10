@@ -1111,7 +1111,7 @@ class NavigatorContractTests(unittest.TestCase):
             "or reported `unconfirmable` when the accepted plan already marks it `Confirm by: "
             "unconfirmable here`, and none failed → outcome done",
             "for a criterion the plan did not already mark `Confirm by: unconfirmable here`",
-            "still failing after 3 genuine fix attempts",
+            "still failing after 7 genuine fix attempts",
             "with the existing behavior kept at the conflict point",
             "`confirmed`, `inspected`, `failed`, `not_run`, or `unconfirmable`",
         )

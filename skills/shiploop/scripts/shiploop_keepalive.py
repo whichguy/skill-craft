@@ -345,7 +345,7 @@ CONTINUATION_CAPS = {"grok": 8}
 # start, skipped on budget) never counts toward that gate, so for it this release
 # is the only bound; the refusal names the remedy outcome that ShipLoop accepts on
 # its own record of that attempt (shiploop_test_loop.remedy_open).
-STUCK_CONTINUATIONS = 14
+STUCK_CONTINUATIONS = 22  # 2 x shiploop_test_loop.MAX_REFUSED_RUNS (11); a literal, so the hook imports nothing more
 # From this many continuations before a cap, the reason asks harder not to stop.
 CAP_WARNING_MARGIN = 2
 

@@ -608,7 +608,7 @@ test (at least `min_tests`) with every listed ID shown; a non-zero exit needs a
 failing test inside a test. A run that stops before any test runs, for example
 because a file the tests load is missing, is refused here, where the smallest
 loadable placeholder at a path in the step plan's `paths` can be created (or the
-load moved inside the test); `test-red` forbids product edits. After 7 refused
+load moved inside the test); `test-red` forbids product edits. After 11 refused
 runs `done` is no longer accepted and `revise` is the named remedy; a command that
 reaches no verdict (timeout, cannot start) refuses without counting, and `revise`
 and `blocked` are never gated.
@@ -624,7 +624,7 @@ the workspace return delivered (made fresh from the return receipt into
 `consumer-check` under the workspace root, never in your checkout); with no
 completed return yet they run in the work area, and the test record (`observed`)
 and the handoff say so.
-Each action allows 7 refused runs; after that ShipLoop no longer accepts `done`,
+Each action allows 11 refused runs; after that ShipLoop no longer accepts `done`,
 so a failing command takes the stage's own remedy — back to the step plan with
 `revise` at an INNER stage, or corrective work items with `replan` at
 `system-test` and `release-verify` — instead of an endless retry.
@@ -632,9 +632,9 @@ so a failing command takes the stage's own remedy — back to the step plan with
 A command that times out, cannot start, or is skipped because the invocation's
 budget ran out reached no verdict about the product. It still refuses the stage,
 because nothing is accepted on unrun tests, but the attempt is recorded
-`could-not-run` and does not spend one of the 7. A timeout is not a diagnosis:
+`could-not-run` and does not spend one of the 11. A timeout is not a diagnosis:
 it can mean a deadlock, a broken test, a suite too slow for the budget, or an
-external dependency. Because those attempts never reach the 7, the routes out
+external dependency. Because those attempts never reach the 11, the routes out
 are explicit: a hang in this item's own code, test or fixture is yours to fix
 here and is not a blocker; if the recorded command is itself wrong or too slow
 to fit the run's budget (a skipped command is that case: the same ones are
@@ -685,7 +685,7 @@ prompts: run the checks; when one fails, diagnose it, fix the product code and
 rerun; change a check only for an independent reason that the check itself is
 wrong. Only a final full pass after the last edit counts. The step ends on
 exactly one of: every check passes (`done`); a check proven unachievable
-(`revise`); or the same check still failing after 3 genuine fix attempts
+(`revise`); or the same check still failing after 7 genuine fix attempts
 (`revise`). A check that needs a tool, access or authority that is absent ends
 `blocked` with `blocked_by`. At these stages it is prompt duty; `test-green` and
 `regression` run the script-enforced [test loop](#test-loop).
@@ -833,7 +833,7 @@ question about the loop is not a stop: answer it and continue the packet.
    criteria as exit criteria: confirm each by its stated method with what is
    already present, fix the work rather than the check, rerun every check in one
    pass after the last edit, and stop only when all are confirmed, one is proven
-   unachievable (route it to planning), or the same check still fails after 3
+   unachievable (route it to planning), or the same check still fails after 7
    genuine fix attempts ([step exit criteria](references/parallel-chain.md#step-exit-criteria)).
    At `test-green` and `regression`, run the packet's [test loop](#test-loop),
    and at `static-checks` its [quality loop](#static-checks-quality-loop), on

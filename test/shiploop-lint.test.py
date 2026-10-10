@@ -1402,7 +1402,7 @@ class PromptContractTests(unittest.TestCase):
         for stage in ("test-refine", "integration-verify"):
             text = guidance.prompt(stage, delegation=guidance.INLINE)
             self.assertIn("Pass-or-stop loop: this stage is done only when every check it runs passes", text)
-            self.assertIn("the same check still failing after 3 genuine fix attempts → outcome revise", " ".join(text.split()))
+            self.assertIn("the same check still failing after 7 genuine fix attempts → outcome revise", " ".join(text.split()))
         # test-green and regression run the script-enforced test loop instead.
         for stage in ("verify", "test-green", "regression"):
             self.assertNotIn("Pass-or-stop loop", guidance.prompt(stage, delegation=guidance.INLINE))

@@ -906,15 +906,15 @@ class TestLoopTests(unittest.TestCase):
         self.assertTrue(store.read_record(self.run_dir / test_loop.verify_path(action, 2))["passed"])
         self.assertIn("SYS-RENDER-1", self.packet())  # the last accepted summary reaches the next stage
 
-    def test_after_seven_refused_runs_only_blocked_is_accepted(self):
+    def test_after_the_last_refused_run_only_blocked_is_accepted(self):
         self.start()
         self.drive_to("test-refine")
         (self.repo / "retained.txt").unlink()
-        for attempt in range(1, 8):
-            self.assert_refused(DONE, "Refused runs for this action: " + str(attempt) + " of 7")
+        for attempt in range(1, test_loop.MAX_REFUSED_RUNS + 1):
+            self.assert_refused(DONE, "Refused runs for this action: " + str(attempt) + " of 11")
         (self.repo / "retained.txt").write_text("retained\n")  # even a now-passing tree
         with mock.patch.object(test_loop, "lint", wraps=test_loop.lint) as runner:
-            self.assert_refused(DONE, "was refused 7 times; done is no longer accepted")
+            self.assert_refused(DONE, "was refused 11 times; done is no longer accepted")
             runner.run_argv.assert_not_called()
         self.complete(dict(DONE, outcome="blocked", blocked_by="external"))
         self.assertEqual(self.state()["status"], "blocked")
@@ -971,7 +971,7 @@ class TestLoopTests(unittest.TestCase):
         self.drive_to("test-green")
         self.run_loop([TRIVIAL])  # complete, but fixed.txt is missing, so ShipLoop's own run fails
         done = dict(DONE, evidence_refs=[str(self.terminal())])
-        self.assert_refused(done, r"Refused runs for this action: 1 of 7")
+        self.assert_refused(done, r"Refused runs for this action: 1 of 11")
         self.assertEqual(test_loop.refused_runs(self.run_dir, self.action()), 1)
         self.assert_refused(dict(done, outcome="revise"), "a complete test loop reports outcome done")
         (self.repo / "fixed.txt").write_text("fixed\n")
@@ -985,7 +985,7 @@ class TestLoopTests(unittest.TestCase):
         self.run_loop([TRIVIAL])
         done = dict(DONE, evidence_refs=[str(self.terminal())])
         self.refuse_unrunnable(done)
-        self.assert_refused(done, r"Refused runs for this action: 1 of 7")  # fixed.txt missing: a real failure
+        self.assert_refused(done, r"Refused runs for this action: 1 of 11")  # fixed.txt missing: a real failure
         self.assert_refused(dict(done, outcome="revise"), "a complete test loop reports outcome done")
 
     def test_revise_and_blocked_are_accepted_at_static_checks_after_a_could_not_run_attempt(self):
@@ -1005,15 +1005,15 @@ class TestLoopTests(unittest.TestCase):
                     self.assertEqual(self.state()["status"], "blocked")
 
     def test_revise_is_accepted_at_static_checks_after_the_cap_the_refusal_names(self):
-        """After 7 refused runs `verify` says "Report outcome revise"; the quality gate must accept it."""
+        """After 11 refused runs `verify` says "Report outcome revise"; the quality gate must accept it."""
         self.start()
         self.drive_to("static-checks")
         self.run_quality_loop()
         done = dict(DONE, evidence_refs=self.quality_refs())
         (self.repo / "retained.txt").unlink()  # a regression command fails on every run
         for attempt in range(1, test_loop.MAX_REFUSED_RUNS + 1):
-            self.assert_refused(done, "Refused runs for this action: " + str(attempt) + " of 7")
-        self.assert_refused(done, "was refused 7 times; done is no longer accepted")
+            self.assert_refused(done, "Refused runs for this action: " + str(attempt) + " of 11")
+        self.assert_refused(done, "was refused 11 times; done is no longer accepted")
         self.complete(dict(done, outcome="revise"))  # the route the refusal names
         self.assertEqual(nav.current_stage(self.state()), "step-plan")
 
@@ -1141,7 +1141,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn(test_loop.PROBE_RULE, flat)
         self.assertIn("smallest loadable placeholder", flat)
         self.assertIn("`paths`", flat)
-        self.assertIn("Refused runs for this action: 1 of 7; after that the item goes back to its step plan (revise).",
+        self.assertIn("Refused runs for this action: 1 of 11; after that the item goes back to its step plan (revise).",
                       flat)
         # Not the wording of the stage that forbids product edits: the way out here is to create the file.
         self.assertNotIn("did not fail as expected", flat)
@@ -1154,15 +1154,15 @@ class TestLoopTests(unittest.TestCase):
         self.assertTrue(record["passed"])
         self.assertEqual(record["runs"][0]["status"], "passed")
 
-    def test_after_seven_refused_probe_runs_done_is_refused_and_revise_is_accepted(self):
+    def test_after_the_last_refused_probe_run_done_is_refused_and_revise_is_accepted(self):
         self.start()
         (self.repo / "run.sh").write_text(LOADER)
         self.drive_to("test-author", step_plan=self.probe_item())
         for attempt in range(1, test_loop.MAX_REFUSED_RUNS + 1):
-            self.assert_refused(DONE, "Refused runs for this action: " + str(attempt) + " of 7")
+            self.assert_refused(DONE, "Refused runs for this action: " + str(attempt) + " of 11")
         (self.repo / "widgets.txt").write_text("created too late\n")  # even a now-passing tree
         with mock.patch.object(test_loop, "lint", wraps=test_loop.lint) as runner:
-            self.assert_refused(DONE, r"test-author was refused 7 times; done is no longer accepted for this action"
+            self.assert_refused(DONE, r"test-author was refused 11 times; done is no longer accepted for this action"
                                       r"\. Report outcome revise, naming the failing command")
             runner.run_argv.assert_not_called()
         self.complete(dict(DONE, outcome="revise"))  # the named remedy, through the same gate
@@ -1391,13 +1391,13 @@ class TestLoopTests(unittest.TestCase):
                       "(at least 5) (unittest reported 4 run, 0 failed). Restore the tests that were removed or now "
                       "skip.", flat)
         self.assertNotIn("report revise", flat)  # a stage that refuses revise now must not tell the model to send it
-        self.assertIn("Refused runs for this action: 1 of 7; after that the item goes back to its step plan (revise).",
+        self.assertIn("Refused runs for this action: 1 of 11; after that the item goes back to its step plan (revise).",
                       flat)
         self.assertIn("accepts it once the refused runs below reach the limit or the loop stops as blocked", flat)
         self.assert_refused(dict(done, outcome="revise"), "a complete test loop reports outcome done")
         for attempt in range(2, test_loop.MAX_REFUSED_RUNS + 1):
-            self.assert_refused(done, "Refused runs for this action: " + str(attempt) + " of 7")
-        self.assertEqual(test_loop.refused_runs(self.run_dir, action), 7)
+            self.assert_refused(done, "Refused runs for this action: " + str(attempt) + " of 11")
+        self.assertEqual(test_loop.refused_runs(self.run_dir, action), test_loop.MAX_REFUSED_RUNS)
         self.complete(dict(done, outcome="revise"))  # the limit the refusal names has opened it
         self.assertEqual(nav.current_stage(self.state()), "step-plan")
         (self.repo / "fixed.txt").unlink()  # the redone item's tests fail again before its change
@@ -1421,7 +1421,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn("accepts it once the refused runs below reach the limit or the loop stops as blocked", flat)
         self.assert_refused(dict(done, outcome="revise"), "a complete quality loop reports outcome done")
         for attempt in range(2, test_loop.MAX_REFUSED_RUNS + 1):
-            self.assert_refused(done, "Refused runs for this action: " + str(attempt) + " of 7")
+            self.assert_refused(done, "Refused runs for this action: " + str(attempt) + " of 11")
         self.complete(dict(done, outcome="revise"))
         self.assertEqual(nav.current_stage(self.state()), "step-plan")
 
@@ -2300,7 +2300,7 @@ class UnavailableExecutionTests(unittest.TestCase):
             root = Path(temp)
             for _attempt in range(test_loop.MAX_REFUSED_RUNS + 3):
                 refusal = self.assert_unavailable(root, "test-green", command_timeout=0.2)
-                self.assertIn("does not count toward the 7 refused runs", refusal)
+                self.assertIn("does not count toward the 11 refused runs", refusal)
                 self.assertEqual(test_loop.refused_runs(root, "A1"), 0)
             # The gate never closed, so ShipLoop still runs the commands.
             self.assertNotIn("done is no longer accepted", refusal)
@@ -2334,7 +2334,7 @@ class UnavailableExecutionTests(unittest.TestCase):
                 (root / relative).write_text(text)
             self.assertEqual(test_loop.refused_runs(root, "A1"), 1)
         self.assertEqual(record["disposition"], "failed")
-        self.assertIn("Refused runs for this action: 1 of 7", refusal)
+        self.assertIn("Refused runs for this action: 1 of 11", refusal)
         self.assertNotIn("does not count toward", refusal)
 
     def test_the_remedy_named_at_the_cap_is_the_one_its_stage_allows(self):
@@ -2350,7 +2350,7 @@ class UnavailableExecutionTests(unittest.TestCase):
                                         "runs": [{"status": "failed"}]})
                 writes, refusal = test_loop.verify(root, self.state(root, "true"), "W1", "A1", stage)
                 self.assertEqual(writes, {})  # the gate refuses before running anything
-                self.assertIn("was refused 7 times; done is no longer accepted", refusal)
+                self.assertIn("was refused 11 times; done is no longer accepted", refusal)
                 self.assertIn("Report outcome " + expected, refusal)
                 self.assertNotIn("Report outcome " + ("replan" if expected == "revise" else "revise"), refusal)
                 self.assertIn(expected, stage_spec.STAGE_SPEC[stage].outcomes)
@@ -2376,7 +2376,7 @@ class UnavailableExecutionTests(unittest.TestCase):
             self.assertIn("end-of-work review is not done", refusal)
             # A failing run is fixable, so the text never offers blocked as where a failure ends.
             self.assertNotIn("reports blocked", refusal)
-            self.assertIn("Refused runs for this action: 1 of 7; after that done is no longer accepted", refusal)
+            self.assertIn("Refused runs for this action: 1 of 11; after that done is no longer accepted", refusal)
             # No remedy outcome is named for something that is not a graph stage.
             self.assertNotIn("revise", refusal)
             self.assertNotIn("replan", refusal)
@@ -2557,7 +2557,7 @@ class UnavailableExecutionTests(unittest.TestCase):
                 self.assertEqual(record["disposition"], "could-not-run")
                 self.assertFalse(record["passed"])
                 self.assertEqual(test_loop.refused_runs(root, "A1"), 0)
-            self.assertIn("does not count toward the 7 refused runs", refusal)
+            self.assertIn("does not count toward the 11 refused runs", refusal)
             self.assertNotIn("done is no longer accepted", refusal)
 
     def test_a_budget_skip_names_the_budget_and_a_route_that_can_change_it(self):
@@ -2601,7 +2601,7 @@ class UnavailableExecutionTests(unittest.TestCase):
                 store.write_record(root / test_loop.verify_path("A1", number), dict(legacy))
                 self.assertEqual(test_loop.refused_runs(root, "A1"), number)
                 self.assertFalse(test_loop.latest_attempt_could_not_run(root, "A1"))
-            self.assertTrue(test_loop.remedy_open(root, "A1"))  # seven failures open the remedy as before
+            self.assertTrue(test_loop.remedy_open(root, "A1"))  # MAX_REFUSED_RUNS failures open the remedy as before
 
     def test_only_the_latest_record_decides_whether_the_run_could_not_run(self):
         with tempfile.TemporaryDirectory() as temp:

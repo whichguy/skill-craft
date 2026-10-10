@@ -288,7 +288,7 @@ as a discrepancy; after the last edit rerun every check in one pass; stop on
 exactly one of SUCCEEDED (every item confirmed or inspected, or reported
 `unconfirmable` when the plan already marks it `Confirm by: unconfirmable here`,
 none failed), BLOCKED (an item proven unachievable) or FAILED (the same check
-still failing after 3 genuine fix attempts). An item is proven unachievable only
+still failing after 7 genuine fix attempts). An item is proven unachievable only
 when it contradicts another item, the task or a protected file after all
 compatible work with existing behavior kept at the conflict point, needs an
 absent tool, runtime, access or authority (unless the plan already marked it

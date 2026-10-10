@@ -310,7 +310,7 @@ remains responsible for evidence quality, test adequacy and truthful reporting.
 
 A step's exit-criteria loop normally runs inside its step prompt: confirm each
 criterion by its stated method, rerun every check after the last edit, and stop
-on done, proven unachievable, or the same check failing after 3 genuine fix
+on done, proven unachievable, or the same check failing after 7 genuine fix
 attempts. For a step expected to need many iterations or context resets, or for
 a retried step, that fix-until-confirmed loop may instead run as a bound Until
 Loop child with `work` = the step, `exit_condition` = every criterion confirmed
