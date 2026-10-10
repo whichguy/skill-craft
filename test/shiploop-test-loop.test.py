@@ -457,6 +457,102 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn("?? server.log", git(self.repo, "status", "--porcelain"))
         self.assertNotIn(" M a.py", git(self.repo, "status", "--porcelain"))
 
+    def test_integrate_also_commits_changed_documentation_the_step_plan_did_not_declare(self):
+        """P-document-1: a README the document stage adds is committed by ShipLoop, so the model never commits it.
+
+        Four hand commits of an undeclared README/AGENTS.md in 16 recorded runs broke SPEC S-4/S-5.  Documentation is
+        the one undeclared class ShipLoop commits (the document stage's ``edits``); any other undeclared file stays
+        for plan-return, which commits files left uncommitted at the return.
+        """
+        self.start()
+        self.drive_to("integrate")
+        (self.repo / "a.py").write_text("x = 2\n")
+        (self.repo / "README.md").write_text("# Notes\n")
+        (self.repo / "docs").mkdir(exist_ok=True)
+        (self.repo / "docs" / "guide.md").write_text("guide\n")
+        (self.repo / "server.log").write_text("listening 3000\n")
+        output = self.complete(DONE)
+        committed = git(self.repo, "show", "--name-only", "--format=", "HEAD").split()
+        self.assertEqual(sorted(committed), ["README.md", "a.py", "docs/guide.md"])
+        notice = next(line for line in output.splitlines() if line.startswith("Not committed"))
+        self.assertIn("server.log", notice)
+        self.assertNotIn("README.md", notice)
+        self.assertNotIn("README.md", git(self.repo, "status", "--porcelain"))
+        self.assertIn("?? server.log", git(self.repo, "status", "--porcelain"))
+
+    def test_the_integrate_packet_lists_what_shiploop_will_commit_and_what_it_leaves_with_one_sentence(self):
+        """P-integrate-1/-3: the lists come from the script; the undeclared-file sentence is the Return route's."""
+        self.start()
+        self.drive_to("integrate")
+        (self.repo / "a.py").write_text("x = 2\n")
+        (self.repo / "README.md").write_text("# Notes\n")
+        (self.repo / "server.log").write_text("listening 3000\n")
+        packet = self.packet()
+        lines = packet.splitlines()
+        will = next(line for line in lines if line.startswith("Changed, ShipLoop will commit: "))
+        self.assertEqual(will, "Changed, ShipLoop will commit: README.md, a.py")
+        left = next(line for line in lines if line.startswith("Changed, ShipLoop will not commit: "))
+        self.assertIn("server.log", left.split(": ", 1)[1].split(", "))  # the driver's own scratch files are listed too
+        self.assertNotIn("README.md", left)
+        self.assertIn("Step plan paths: a.py", packet)
+        # One consistent sentence: the contradicting "commit the ones the product needs" is gone, and the
+        # stage text agrees with the workspace Return route line (plan-return commits left-over files).
+        self.assertNotIn("commit the ones the product needs", packet)
+        self.assertIn("plan-return commits files left uncommitted at the return, so commit nothing yourself", packet)
+        goal = next(line for line in lines if line.startswith("Goal: "))
+        self.assertNotIn("working branch", goal)
+        self.assertIn("execution checkout", goal)
+
+    def test_the_commit_lists_are_absent_when_the_changes_are_unknown_and_say_nothing_changed_when_none(self):
+        self.start()
+        self.drive_to("integrate")
+        with mock.patch.object(item_scope, "changed_paths", return_value=None):
+            packet = self.packet()
+        self.assertIn("Step plan paths: a.py", packet)
+        self.assertNotIn("ShipLoop will commit: ", packet)
+        with mock.patch.object(item_scope, "changed_paths", return_value=[]):
+            self.assertIn("Changed since this item's base: nothing.", self.packet())
+
+    def test_a_case_that_cannot_run_is_submitted_as_an_open_item_and_the_run_continues(self):
+        """P-sta-2, SPEC S-14: the route the system-test-author packet names goes through the real complete gate.
+
+        The summary names the case, the requirement left unverified and the due stage; the command that cannot pass
+        stays out of system_commands, so ShipLoop's rerun at system-test has nothing it must fail on, and the next
+        stage carries the open item.  Both Grok BLOCKED runs stopped here instead.
+        """
+        self.start()
+        self.drive_to("system-test-author")
+        duty = " ".join(self.packet().split())
+        self.assertIn("record it as an open item in this result's summary", duty)
+        self.assertNotIn("blocked, blocked_by access", duty)
+        self.complete(dict(DONE, system_commands=[COMMANDS[1]], summary=(
+            "Open item TC-16 (needs a browser this host cannot reach): requirement R-4 stays unverified; a person "
+            "opens the page and reports the board renders; due handoff.")))
+        self.drive_to("system-test")
+        self.assertEqual(self.state()["status"], "active")
+        self.assertIn("Carry in the open items system-test-author recorded", " ".join(self.packet().split()))
+
+    def test_the_document_packet_prints_the_declared_paths_and_the_commit_rule(self):
+        self.start()
+        self.drive_to("document", step_plan={**self.NO_TESTS, "paths": ["docs/fleet.md", "docs/ops.md"]})
+        packet = self.packet()
+        self.assertIn("Step plan paths: docs/fleet.md, docs/ops.md", packet)
+        self.assertIn("changed documentation files (for example README.md or files under docs/)", packet)
+        self.assertIn("plan-return commits files left uncommitted at the return, so commit nothing yourself", packet)
+
+    def test_the_skill_na_clause_is_printed_only_when_recorded_and_names_the_surface(self):
+        self.start()
+        self.drive_to("document", step_plan=self.NO_SKILL)
+        recorded = next(row for row in self.packet().splitlines() if row.startswith("Checked by: "))
+        self.assertRegex(recorded, r"skill file changed after the step plan recorded skill_na \(report revise\)")
+        for name in ("SKILL.md", "skills/", "agents/", ".claude/"):
+            self.assertIn(name, recorded)
+        self.assertNotIn("AGENTS.md", recorded)  # the document stage maintains it: not a skill change
+        self.complete(dict(DONE, outcome="revise", summary="Plan the skill."))
+        self.drive_to("document", step_plan=self.NO_TESTS)
+        absent = next(row for row in self.packet().splitlines() if row.startswith("Checked by: "))
+        self.assertNotIn("skill_na", absent)
+
     NO_TESTS = {"test_commands": [], "test_commands_na": "Navigation metadata only.",
                 "paths": ["force-app/main/default/tabs/Fleet_command.tab-meta.xml", "docs/fleet.md"]}
 

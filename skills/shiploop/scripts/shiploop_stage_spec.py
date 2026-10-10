@@ -103,9 +103,23 @@ CASE_END_STATES = (
     "Every case ends in one of three states: validated (executed, and the observation matches the expectation), "
     "validated another way (the first method could not observe it, so the method changed and the new one was executed "
     "and passed; the result says what changed and why), or unachievable (a named reason, and the requirement it leaves "
-    "unverified; report blocked with blocked_by access, or revise or replan when the plan is wrong). A case that is "
+    "unverified; record it as an open item in the summary with the stage it is due at and continue, report blocked with "
+    "blocked_by access only when nothing else can proceed, or revise or replan when the plan is wrong). A case that is "
     "written but not run, or recorded as not run, is not an end state."
 )
+
+# Who commits an item's files (SPEC S-4, S-5): one rule, printed by every stage that adds files to the item.  The first
+# sentence mirrors ``item_scope.commit_item`` (declared paths, the docs path class and docs/shiploop/); the second
+# mirrors ``workspace.commit_leftovers``, which plan-return runs, and the workspace Return route line.
+ITEM_COMMITS = (
+    "When integrate is accepted, ShipLoop commits the item's changed files that the step plan's paths declare, its "
+    "changed documentation files (for example README.md or files under docs/) and docs/shiploop/."
+)
+ITEM_LEFT = (
+    "Any other changed file is left for the return: plan-return commits files left uncommitted at the return, so "
+    "commit nothing yourself; delete generated output the product does not need."
+)
+ITEM_COMMIT_RULE = ITEM_COMMITS + " " + ITEM_LEFT
 
 _ROWS = (
     # ------------------------------------------------------------------ prelude
@@ -356,7 +370,7 @@ _ROWS = (
             "each changed public behaviour is documented where users and maintainers look",
             "each changed document was reread after the last edit",
         ),
-        develop="Update code, API, user and operator documentation from observed behaviour.",
+        develop="Update code, API, user and operator documentation from observed behaviour. " + ITEM_COMMIT_RULE,
         edits=frozenset({"docs"}),
         reads=("spec", "plan", "item:step-plan", "item:implement"),
         blocks=frozenset({"code-craft"}),
@@ -406,12 +420,9 @@ _ROWS = (
     ),
     Stage(
         "integrate", "inner",
-        goal="integrate the candidate into the working branch",
+        goal="assemble the item's candidate in the execution checkout",
         done_when=("the item's changes are assembled in the execution checkout, or a justified no-op is recorded",),
-        develop=("When this stage is accepted done, ShipLoop commits the item's changed files that the step plan's "
-                 "paths declare (and docs/shiploop/); do not write that commit yourself. It names any other "
-                 "changed file: commit the ones the product needs, delete generated output. Keep run state and "
-                 "logs out of product commits."),
+        develop=ITEM_COMMIT_RULE + " Keep run state and logs out of product commits.",
         deploy="The original branch is returned only at the final workspace return.",
         edits=frozenset({"code"}),
         reads=("plan", "item:step-plan", "item:verify"),

@@ -1616,9 +1616,15 @@ regression commands at system-test and refuses if any of that row's `ids` appear
 in their output, because the default suite must pass without the host tool.
 ShipLoop runs every one itself when system-test reports done and refuses
 unless each passes. Run each system command once while authoring: a command that
-cannot pass here is changed to observe the same requirement another way, or
-reported as unachievable (blocked, blocked_by access, naming the requirement it
-leaves unverified); a command recorded as not run is not an end state. When no system test applies, give an empty list with
+cannot pass here is changed to observe the same requirement another way. A case
+that cannot run here (a browser or an account this host cannot reach, or a route
+that fails when run) is unachievable: leave its command out of `system_commands`,
+because ShipLoop runs every recorded one and refuses unless each passes, and
+record it as an open item in this result's summary: case ID, the requirement it
+leaves unverified, who does what, what they report, and the stage it is due at
+(handoff, or the stage whose external effect it gates). Then continue with every
+case that can run, and report blocked only when nothing else can proceed. A
+command recorded as not run is not an end state. When no system test applies, give an empty list with
 `system_commands_na` and the reason.
 Reopen the Run-wide test strategy source. From accepted history, select the
 latest done test-decision record for every relevant completed item: step-plan,
@@ -1664,9 +1670,12 @@ check relevant repeatability; never blindly replay an uncertain external effect.
 Verify execution location, remote framework availability and deployed/test revision
 identity. A local pass cannot replace a blocked/unrun required remote check or
 establish a combined full-suite pass; preserve its assigned owner and boundary.
+Carry in the open items system-test-author recorded: run any this stage can now,
+and leave the rest listed with the due stage they name.
 A required case that only a person can run (for example, in a signed-in browser),
-for which the discovery and test-strategy records show this host has no route, does
-not make this result blocked. Record it as an open item in the result: case ID, who
+for which the discovery and test-strategy records show this host has no route, or
+the route fails when the case is run (for example a browser opens but the page never
+loads), does not make this result blocked. Record it as an open item in the result: case ID, who
 does what, what they report, owner (a person), due stage (handoff, or the stage
 whose external effect it gates). Submit done once every other due check and
 ShipLoop's rerun pass; the handoff reports it unverified, never as a pass. Report
@@ -1693,7 +1702,7 @@ check ran and passed); or unachievable here or not yet due, listed in `unverifie
 with its reason, owner and due stage while the run continues. A list entry is the
 outcome, the named reason, what its owner does and reports to settle it, the owner,
 and the later stage that reports it (handoff, or the stage whose external effect it
-gates). Carry in the open items an earlier stage recorded (system-test). Before
+gates). Carry in the open items an earlier stage recorded (system-test-author, system-test). Before
 listing an outcome, try another way to observe it. An outcome stated only in the
 summary has no end state; an empty list says every request outcome was observed.
 """,

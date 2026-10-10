@@ -115,12 +115,13 @@ class PacketCompletenessTests(unittest.TestCase):
     # Declared here, not read from the navigator: the words a stage's Checked-by line must carry because its gate
     # exists, and the only stages that may carry them.  test/shiploop-callback-contract.test.py pairs each named fault
     # with the real refusal and an accepted correction (the step plan's skill_na fault there, the document stage's in
-    # test/shiploop-test-loop.test.py, which drives that stage's gate against a real diff).
+    # test/shiploop-test-loop.test.py, which drives that stage's gate against a real diff).  The document stage names
+    # skill_na only once the step plan recorded it (these synthetic plans record none), so it is absent here.
     GATE_WORDS = {
         "assumption": {"plan"},
         "criterion": {"step-plan"},
         "deps": {"step-plan"},
-        "skill_na": {"step-plan", "document"},
+        "skill_na": {"step-plan"},
         "system_commands": {"system-test-author"},
         "consumer_checks": {"release-plan"},
         "consumer_entry": {"release-plan"},

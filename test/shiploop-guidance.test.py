@@ -2403,6 +2403,35 @@ class CaseEndStateTests(unittest.TestCase):
                 self.assertIn("unachievable", text)
                 self.assertIn("not an end state", text)
 
+    def test_an_unachievable_case_is_an_open_item_and_blocked_only_when_nothing_else_can_proceed(self) -> None:
+        """P-sta-2, SPEC S-14: both Grok BLOCKED runs stopped on a case the host could not run (TC-16 needed a browser;
+        a browser opened but the page never loaded), while the same packet said to record an open item and continue."""
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_stage_spec as spec
+        for stage in self.STAGES:
+            with self.subTest(stage):
+                text = " ".join((spec.stage(stage).test or "").split())
+                self.assertIn("record it as an open item in the summary with the stage it is due at and continue", text)
+                self.assertIn("only when nothing else can proceed", text)
+                self.assertNotIn("unverified; report blocked with blocked_by access", text)
+        duty = normalized(prompts.DUTIES["system-test-author"])
+        for clause in (
+            "A case that cannot run here",
+            "leave its command out of `system_commands`",
+            "record it as an open item in this result's summary: case ID, the requirement it leaves unverified, "
+            "who does what, what they report, and the stage it is due at (handoff, or the stage whose external "
+            "effect it gates)",
+            "report blocked only when nothing else can proceed",
+        ):
+            self.assertIn(clause, duty)
+        self.assertNotIn("blocked, blocked_by access", duty)
+
+    def test_system_test_treats_a_route_that_fails_when_run_like_a_missing_route(self) -> None:
+        paragraph = normalized(prompts.DUTIES["system-test"])
+        self.assertIn("this host has no route, or the route fails when the case is run (for example a browser "
+                      "opens but the page never loads)", paragraph)
+        self.assertIn("Carry in the open items system-test-author recorded", paragraph)
+
     def test_the_system_test_author_runs_each_command_once_while_authoring(self) -> None:
         sys.path.insert(0, str(SCRIPTS))
         import shiploop_prompts as prompts
