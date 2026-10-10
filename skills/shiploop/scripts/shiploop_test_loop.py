@@ -197,6 +197,21 @@ def _latest_root_result(state: Mapping[str, Any], stage: str) -> Mapping[str, An
     return {}
 
 
+def loop_receipt(root: Path, state: Mapping[str, Any], stage: str, work_item: str, action: str) -> Optional[Path]:
+    """The terminal packet this loop stage's result must cite, or None when the stage has no loop to run.
+
+    A stage has one when it lists commands and a bound runtime resolves; otherwise the packet says what to do instead
+    and nothing is prefilled.
+    """
+    if stage not in STAGES or not stage_commands(state, stage, work_item)[0]:
+        return None
+    try:
+        quality._runtime(state)
+    except quality.QualityError:
+        return None
+    return Path(root) / terminal_path(action)
+
+
 def stage_commands(state: Mapping[str, Any], stage: str, work_item: str) -> Tuple[List[Dict[str, str]], str]:
     """This stage's commands and, when there are none, why.
 
@@ -311,7 +326,23 @@ def transition_writes(root: Path, after: Mapping[str, Any], work_item: Optional[
 
 
 def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str) -> List[str]:
-    """Read-only packet lines: runtime, start command, packet paths and the command list."""
+    """Read-only packet lines: runtime, start command, packet paths, the command list and the counting rules."""
+    return loop_lines(root, state, work_item, action, stage) + rule_lines(state, work_item, stage)
+
+
+def rule_lines(state: Mapping[str, Any], work_item: str, stage: str) -> List[str]:
+    """How ShipLoop counts the listed commands' tests: the part of ``render_lines`` that stays below the head."""
+    if not stage_commands(state, stage, work_item)[0]:
+        return []
+    return [COUNT_RULE] + _floor_lines(stage)
+
+
+def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str) -> List[str]:
+    """The loop's conditions, Start command, receipt and command list: what the callback's head carries.
+
+    The status block must end inside the first 8000 bytes a hook reads, so the counting rules (``rule_lines``) stay
+    lower in the packet; the loop stages were refused for the receipt and the exit condition, not for the counts.
+    """
     root = Path(root)
     commands, reason = stage_commands(state, stage, work_item)
     lines = ["", "Test loop (bound Until Loop; the loop script counts iterations; there is no "
@@ -333,10 +364,12 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
     if runtime is not None:
         contract = root / contract_path(action)
         lines += [
+            *quality.condition_lines(guidance.TEST_EXIT_CONDITION, guidance.TEST_REPEAT_CONDITION),
             "Bound Until Loop card (open it if its rules are not already in your context): " + runtime["runtime_card"],
             "Loop contract (written by ShipLoop; pass it unchanged): " + str(contract),
             "Start: " + quality.start_command(runtime, root / terminal_path(action), contract),
             quality.RECEIPT_LINE + str(root / terminal_path(action)),
+            quality.RECEIPT_REF_LINE,
         ]
         if (root / terminal_path(action)).exists():
             lines.append(quality.RESUME_LINE)
@@ -345,7 +378,6 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
     lines.append("Test command list (ShipLoop runs each one from " + str(state["repo"])
                  + " before accepting done):")
     lines += ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)]
-    lines += [COUNT_RULE] + _floor_lines(stage)
     return lines
 
 
@@ -472,6 +504,46 @@ def observed_lines(root: Path, state: Mapping[str, Any]) -> List[str]:
         line += (" No completed return was recorded then, so they did not observe the user's checkout: list that as a "
                  "limit.")
     return [line + " Record: " + str(path) + "."]
+
+
+def probe_lines(state: Mapping[str, Any], work_item: str) -> List[str]:
+    """Packet lines for test-author: the focused commands ShipLoop runs once on done, and what accepts that run.
+
+    The stage was refused twice with ``ids-missing`` for titles that did not show a listed ID, and its packet printed
+    no command list, no ids and no rule (packet review 2026-10-10, P-test-author-1).
+    """
+    commands, reason = stage_commands(state, PROBE_STAGE, work_item)
+    if not commands:
+        if reason:
+            return ["", "Test probe: no focused command to run (" + reason.rstrip(".") + ")."]
+        return []
+    return (["", "Test probe: on done, ShipLoop runs each focused command once from " + str(state["repo"])
+             + " and accepts the stage only when a test ran and every listed ID is shown in the output: a run that "
+             "ran at least the listed minimum, or a failing test that shows every listed ID. " + guidance.ID_WORD_RULE
+             + " A failure before any test runs (syntax, import, setup) is refused."]
+            + ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)]
+            + _floor_lines(PROBE_STAGE))
+
+
+def baseline_lines(root: Path, state: Mapping[str, Any], work_item: str) -> List[str]:
+    """Packet lines for baseline: the commands to run on the unchanged item base and where discovery recorded its own.
+
+    baseline accepted shell-loop error output as evidence in a checked run because the packet named neither the
+    commands nor the earlier baseline (packet review 2026-10-10, P-baseline-1).
+    """
+    commands, _reason = stage_commands(state, "baseline", work_item)
+    lines: List[str] = []
+    if commands:
+        lines += ["", "Baseline commands (run each one on the unchanged item base from " + str(state["repo"])
+                  + "; record its exit code and whether tests ran; ShipLoop does not run them at this stage):"]
+        lines += ["  " + str(number) + ". " + _listing(row) for number, row in enumerate(commands, 1)]
+    action = next((row.get("action") for row in reversed(state.get("history", ()))
+                   if row.get("stage") == "discovery" and row.get("workitem") is None
+                   and row.get("outcome") == "done"), None)
+    if action:
+        lines.append("Discovery's recorded baseline (its result and evidence_refs; reuse it only when it still "
+                     "applies to this item's starting state): " + str(Path(root) / "results" / (str(action) + ".md")))
+    return lines
 
 
 def red_lines(state: Mapping[str, Any], work_item: str) -> List[str]:
@@ -1102,8 +1174,13 @@ __all__ = (
     "normalise_commands",
     "observation",
     "observed_lines",
+    "baseline_lines",
+    "loop_receipt",
+    "probe_lines",
+    "loop_lines",
     "red_lines",
     "render_lines",
+    "rule_lines",
     "rerun_lines",
     "stage_commands",
     "terminal_path",

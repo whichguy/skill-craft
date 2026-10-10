@@ -1362,7 +1362,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
         *_first_callback_lines(core, root, state),
         *_goal_lines(state, stage),
-        *(_result_contract_lines(root, state, stage, action["id"])
+        *(_result_contract_lines(root, state, stage, action["id"], _current_work_item(state))
           if not state.get("active_improve") else []),
         "",
         f"Full packet: {path}",
@@ -1380,6 +1380,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         "",
         status_block(state),
         "",
+        *_after_status_lines(root, state, stage, action["id"]),
         *narrative_lines(state, timeline),
     ]
     return "\n".join(lines)
@@ -2583,13 +2584,17 @@ HEADLINE_PLACEHOLDER = "<one line for the user, under 100 characters: what this 
 HEADLINE_LIMIT = 100
 
 
-def _result_template(state: Mapping[str, Any], stage: str) -> str:
-    """Render a current-action template without making the host track anchors."""
+def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None = None) -> str:
+    """Render a current-action template without making the host track anchors.
+
+    ``receipt`` is the terminal packet a loop stage's done must cite: it is the one evidence_refs entry the template
+    can fill in, because ShipLoop names its path before the loop runs.
+    """
     result: dict[str, Any] = {
         "outcome": "done",
         "headline": HEADLINE_PLACEHOLDER,
         "summary": "...",
-        "evidence_refs": [EVIDENCE_PLACEHOLDER],
+        "evidence_refs": [str(receipt)] if receipt is not None else [EVIDENCE_PLACEHOLDER],
     }
     if stage == "plan":
         result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
@@ -3101,7 +3106,16 @@ def _progress_lines(state: Mapping[str, Any]) -> list[str]:
         lines.append("Queued work items: " + item_labels(queued))
 
     skill_status = None
-    completed = [node for node in stages if (owner, node) in done]
+    # Inline implement is issued once per planned step: a done row for an earlier step is not the stage's completion,
+    # and the snapshot that listed implement as accepted-done beside "Current: implement" could send a cleared model
+    # past the remaining steps (packet review 2026-10-10, P-implement-1).
+    steps_accepted = steps_planned = 0
+    if (stage == "implement" and owner is not None and status in ("active", "paused", "blocked")
+            and delegation(state) == guidance.INLINE):
+        steps_accepted, plan_steps = implement_progress(state, owner)
+        steps_planned = len(plan_steps)
+    implement_open = steps_planned > steps_accepted
+    completed = [node for node in stages if (owner, node) in done and not (implement_open and node == stage)]
     pending = [
         node for node in stages if (owner, node) not in done
         and (node != stage or status == "halted")
@@ -3110,6 +3124,9 @@ def _progress_lines(state: Mapping[str, Any]) -> list[str]:
     label = "Current item" if phase == "inner" else "Preparation" if phase == "preparation" else "Outer"
     lines.append(f"{label} stages completed (accepted done): " + (", ".join(completed) or "none"))
     lines.append(f"{label} stages pending: " + (", ".join(pending) or "none"))
+    if implement_open:
+        lines.append(f"Current stage implement: in progress ({steps_accepted} of {steps_planned} steps accepted); "
+                     "it is accepted done only after its last step.")
     if phase == "preparation":
         skill_status = "conditional for future work items"
     if skill_status is not None:
@@ -3151,7 +3168,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_first_callback_lines(core, root, state),
         *_goal_lines(state, stage),
-        *(_result_contract_lines(root, state, stage, action["id"])
+        *(_result_contract_lines(root, state, stage, action["id"], workitem)
           if state["status"] == "active" and not state.get("active_improve") else []),
         *_step_lines(state, stage, workitem),
         *_context_index_lines(root, state, stage, workitem),
@@ -3163,6 +3180,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         # notice above, and early enough to survive head-kept Bash output.
         status_block(state),
         "",
+        *_after_status_lines(root, state, stage, action["id"]),
         *narrative_lines(state, timeline),
         progress_guidance,
         # After the status block's END, so variable-length lists never compete with the kept head.
@@ -3485,14 +3503,20 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         ]
     )
     lines.extend(_lint_lines(core, root, state, stage, action["id"]))
+    # A loop stage's conditions, Start command, receipt and command list follow the status block (_after_status_lines),
+    # inside the head; here stay the change inventory the quality loop reviews and the test-counting rules.
     if stage == quality.STAGE:
-        lines.extend(quality.render_lines(root, state, workitem or "", action["id"]))
+        lines.extend(quality.inventory_lines(root, state, workitem or "", action["id"]))
     if stage in test_loop.STAGES:
-        lines.extend(test_loop.render_lines(root, state, workitem or "", action["id"], stage))
+        lines.extend(test_loop.rule_lines(state, workitem or "", stage))
     elif stage in test_loop.RERUN_STAGES:
         lines.extend(test_loop.rerun_lines(root, state, workitem or "", stage))
     elif stage == test_loop.RED_STAGE:
         lines.extend(test_loop.red_lines(state, workitem or ""))
+    elif stage == test_loop.PROBE_STAGE:
+        lines.extend(test_loop.probe_lines(state, workitem or ""))
+    elif stage == "baseline":
+        lines.extend(test_loop.baseline_lines(root, state, workitem or ""))
     elif stage == "handoff":
         lines.extend(test_loop.observed_lines(root, state))
     return "\n".join(lines) + "\n"
@@ -3524,13 +3548,59 @@ _HOUSEKEEPING_PAUSE = re.compile(
     r"new (conversation|session)|out of (context|tokens))")
 
 
-def _result_contract_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str) -> list[str]:
+def _loop_receipt(root: Path, state: Mapping[str, Any], stage: str, action_id: str,
+                  work_item: str | None) -> Path | None:
+    """The terminal packet a loop stage's result must cite (a test loop's or the quality loop's), if it has a loop."""
+    if stage == quality.STAGE:
+        return quality.loop_receipt(root, state, action_id)
+    return test_loop.loop_receipt(root, state, stage, work_item or "", action_id)
+
+
+def _loop_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str, work_item: str | None) -> list[str]:
+    """The bound loop's conditions, Start command, receipt and command list, for the stages that run one.
+
+    They travel with the head, not at the tail: the loop stages were refused for a receipt missing from
+    evidence_refs and for a loop that had not run, while these lines sat after the Code craft rubric.
+    """
+    if stage == quality.STAGE:
+        return quality.render_lines(root, state, work_item or "", action_id)
+    if stage in test_loop.STAGES:
+        return test_loop.loop_lines(root, state, work_item or "", action_id, stage)
+    return []
+
+
+def _after_status_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str) -> list[str]:
+    """What to do with the template, then a loop stage's lines: directly after the status block, inside the head.
+
+    The status block must end inside the first 8000 bytes a status hook reads, and the largest packet (step-plan) ends
+    it within 31 bytes of that, so neither the template note nor a loop's command list (which varies in length) can
+    precede it; this block follows it, as ``_unverified_lines`` does.
+    """
+    if state["status"] != "active" or state.get("active_improve"):
+        return []
+    lines = _template_note_lines(stage) + _loop_lines(root, state, stage, action_id, _current_work_item(state))
+    return lines + [""]
+
+
+def _template_note_lines(stage: str) -> list[str]:
+    """What to do with the printed template, which is the only complete result the packet shows."""
+    lines = ["Fill the template: each key once (a repeated key is refused), and replace every placeholder (text in "
+             "<angle brackets> and \"...\") with real content."]
+    if stage == test_loop.RED_STAGE:
+        lines.append('Optional at test-red: when the new tests are characterisation tests that already pass, add '
+                     '"red_na": "<why these tests are expected to pass now>" to the result; ShipLoop then expects them '
+                     'to pass and still checks that they ran. Leave red_na out otherwise.')
+    return lines
+
+
+def _result_contract_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str,
+                           work_item: str | None = None) -> list[str]:
     """The result path, template and outcomes, printed right under the callback.
 
     Hosts that truncate long tool output keep the head of a packet, so the
     contract the callback checks travels with the callback instead of at the end.
     """
-    result_template = _result_template(state, stage).rstrip()
+    result_template = _result_template(state, stage, _loop_receipt(root, state, stage, action_id, work_item)).rstrip()
     lines = [f"Write the structured result to: {_result_input_path(root, action_id)}"]
     if len(result_template) > 6000:
         lines.append("The delivery template is too large to inline. Read the complete delivery contract "
@@ -3579,12 +3649,13 @@ def _outcome_shape_lines(stage: str) -> list[str]:
 # What ShipLoop itself does when a stage reports done (the stage table's ``complete_runs``), in a packet's words.
 _CHECK_TEXT = {
     "lint-gate": "lints this item's changes and refuses done while a new finding on a changed line has no waiver",
-    "test-loop": "checks the test-loop terminal packet, then runs every recorded test command itself and refuses done "
-                 "unless each passes",
+    "test-loop": "checks the test-loop terminal packet (the terminal packet path must be in evidence_refs), then runs "
+                 "every recorded test command itself and refuses done unless each passes",
     "test-probe": "runs the focused test commands once and refuses done unless a test ran",
     "test-red": "runs the focused test commands and refuses done unless they fail in a test",
     "test-rerun": "reruns every recorded test command and refuses done unless each passes",
-    "quality-terminal": "checks the quality-loop terminal packet against its contract",
+    "quality-terminal": "checks the quality-loop terminal packet against its contract (the terminal packet path must "
+                        "be in evidence_refs)",
 }
 
 
@@ -3624,10 +3695,13 @@ def _stage_gates(stage: str) -> list[str]:
 
 def _checked_line(row: Any) -> str:
     """How this stage's result is checked, so a model holding only this packet knows what judges its work."""
-    if row.complete_runs:
-        return "Checked by: when you report done, ShipLoop " + "; then ".join(
-            _CHECK_TEXT[run] for run in row.complete_runs) + "."
     extra = _stage_gates(row.name)
+    if row.complete_runs:
+        # A stage that both runs a script check and closes the knowledge home (release-verify) keeps both: the gates
+        # beyond the run are refused too, and a line that named only the run left them to the refusal.
+        return ("Checked by: when you report done, ShipLoop " + "; then ".join(
+            _CHECK_TEXT[run] for run in row.complete_runs)
+            + ("; it also refuses " + "; ".join(extra) if extra else "") + ".")
     return ("Checked by: when you report done, ShipLoop refuses a result with a mechanical fault: " + _COMMON_GATES
             + ("; at this stage also " + "; ".join(extra) if extra else "")
             + ". A refusal does not advance the run: fix the result and run the same complete command again. "
@@ -3926,6 +4000,16 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "Then run: " + _callback(core, root, "improve-start", action=action_id, opening=str(improve_opening_path(child)))
             + " . ShipLoop freezes the child contract from the opening (binding line, workspace, work, exit and repeat conditions, commit policy, exclusions and every return locator; written to start.json beside the receipt), starts the bound runtime with the receipt below and prints the child's first packet. Do not write the start contract or start the runtime yourself. If this child already started, recover it from its receipt as described below instead.",
     ]
+    if not planning_reconcile:
+        # Beside improve-start, not 20 KB below it: a review that wrote the commit message to the wrong file name was
+        # refused, and another searched for the command (packet review 2026-10-10, P-improve-1).
+        start_lines.append(
+            "To commit a review iteration's changes, write the commit message (what the review fixed) to "
+            + str(improve_commit_message_path(child)) + " with a file-writing tool, then run: "
+            + _callback(core, root, "improve-commit", action=action_id,
+                        message=str(improve_commit_message_path(child)))
+            + " . ShipLoop commits exactly the files this review changed and has not committed. Do not "
+            "write the message with a shell heredoc or run git commit yourself.")
     if inline:
         ownership_lines = [
             *start_lines,
@@ -3987,12 +4071,6 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                 "parent-return.md beside the receipt), so the terminal packet can locate the parent return "
                 "after context loss.",
                 "Commit policy: use the selected Improve card's scoped-commit policy with the task's explicit overrides; retain existing frozen authority on recovery.",
-                "To commit a review iteration's changes, write the commit message (what the review fixed) to "
-                + str(improve_commit_message_path(child)) + " with a file-writing tool, then run: "
-                + _callback(core, root, "improve-commit", action=action_id,
-                            message=str(improve_commit_message_path(child)))
-                + " . ShipLoop commits exactly the files this review changed and has not committed. Do not "
-                "write the message with a shell heredoc or run git commit yourself.",
             ] if not planning_reconcile else [
                 "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
                 "For this planning Improve child, use the context-first opening as the compact planning summary plus locators for "

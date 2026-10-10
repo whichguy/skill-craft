@@ -1892,11 +1892,20 @@ class GuidanceTests(unittest.TestCase):
         for stage in RELEASE_OPERATION_STAGES:
             with self.subTest(release=stage):
                 improve = normalized(prompts.improve_prompt(stage))
-                self.assertIn("operations already authorized for the current task and stage", improve)
-                self.assertIn("Reconcile uncertain or partial outcomes before retrying", improve)
-                self.assertIn("operation remains authorized under the release guidance", improve)
                 self.assertIn("Do not repeat unchanged release effects merely to advance the review streak", improve)
                 self.assertNotIn("Improve does not initiate or replay release effects", improve)
+                if stage == "release":
+                    # The only stage that performs a release effect.
+                    self.assertIn("operations already authorized for the current task and stage", improve)
+                    self.assertIn("Reconcile uncertain or partial outcomes before retrying", improve)
+                    self.assertIn("operation remains authorized under the release guidance", improve)
+                else:
+                    # Every other stage's Improve assesses (SPEC S-3; environment-lifecycle.md#release-operation-
+                    # ownership): the release-plan Improve packet said it "may perform deployments" while it plans
+                    # without executing release (packet review 2026-10-10, P-imp-1).
+                    self.assertIn("does not execute or replay a release effect", improve)
+                    self.assertNotIn("may perform deployments", improve)
+                    self.assertNotIn("already authorized for the current task and stage", improve)
         planning = normalized(prompts.improve_prompt("plan"))
         self.assertIn("These restrictions belong to that Backchain child", planning)
         discovery = normalized(prompts.improve_prompt("discovery"))

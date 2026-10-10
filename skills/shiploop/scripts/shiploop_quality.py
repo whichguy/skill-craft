@@ -53,9 +53,21 @@ RECEIPT_LINE = ("Receipt (the runtime writes every packet here, the terminal one
 
 # Shown once the receipt exists, so a host that lost its context continues the
 # loop instead of starting a second one.
+# The receipt is the one evidence_refs entry a loop stage cannot do without.
+RECEIPT_REF_LINE = ("The result template's evidence_refs already lists the receipt: keep it. ShipLoop refuses done "
+                    "without it.")
+
 RESUME_LINE = ("The loop already started: do not run Start again. While the receipt's status is active, run "
                "its next_argv once and follow the returned packet; once it is complete or stopped, submit this "
                "stage's result.")
+
+# The conditions the bound loop judges itself by, printed beside the callback in the contract's own words: a packet
+# that paraphrased them ("until every command passes") sent a loop that had not run, was still active or was not
+# complete to the refusal (packet review 2026-10-10, P-test-green-2).
+def condition_lines(exit_condition: str, repeat_condition: str) -> list[str]:
+    return ["Exit condition (the loop is done only when this holds): " + exit_condition,
+            "Repeat condition (otherwise it runs another iteration): " + repeat_condition]
+
 
 def start_command(runtime: Mapping[str, str], receipt: Path, contract: Path) -> str:
     """The one command that starts a bound loop: the packet prints it, and the refusal for a loop that never ran
@@ -156,7 +168,7 @@ def transition_writes(root: Path, after: Mapping[str, Any], work_item: Optional[
 
 
 def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str) -> list[str]:
-    """Read-only packet lines: runtime, start command, packet paths and inventory."""
+    """Read-only packet lines: conditions, runtime, start command and packet paths (the inventory is separate)."""
     root = Path(root)
     lines = ["", "Quality loop (bound Until Loop; the loop script counts iterations; there is no "
              "iteration limit):"]
@@ -164,19 +176,35 @@ def render_lines(root: Path, state: Mapping[str, Any], work_item: str, action: s
         runtime = _runtime(state)
     except QualityError as exc:
         lines.append("Unavailable: " + str(exc) + ". Report outcome blocked with this reason.")
-        return lines + lint.render_inventory_lines(root, action, work_item)
+        return lines
     contract = root / contract_path(action)
     lines += [
+        *condition_lines(guidance.QUALITY_EXIT_CONDITION, guidance.QUALITY_REPEAT_CONDITION),
         "Bound Until Loop card (open it if its rules are not already in your context): " + runtime["runtime_card"],
         "Loop contract (written by ShipLoop; pass it unchanged): " + str(contract),
         "Start: " + start_command(runtime, root / terminal_path(action), contract),
         RECEIPT_LINE + str(root / terminal_path(action)),
+        RECEIPT_REF_LINE,
     ]
     if (root / terminal_path(action)).exists():
         lines.append(RESUME_LINE)
     if not contract.is_file():
         lines.append("The loop contract is missing; report outcome blocked naming this path.")
-    return lines + lint.render_inventory_lines(root, action, work_item)
+    return lines
+
+
+def inventory_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str) -> list[str]:
+    """Read-only packet lines: the change inventory the quality loop reviews."""
+    return lint.render_inventory_lines(Path(root), action, work_item)
+
+
+def loop_receipt(root: Path, state: Mapping[str, Any], action: str) -> Optional[Path]:
+    """The terminal packet the static-checks result must cite, or None when no bound runtime resolves."""
+    try:
+        _runtime(state)
+    except QualityError:
+        return None
+    return Path(root) / terminal_path(action)
 
 
 def _read_json(path: Path, label: str) -> Any:
@@ -309,6 +337,10 @@ def check_loop_packet(path: Path, result: Mapping[str, Any], expected: Mapping[s
 __all__ = (
     "QualityError",
     "RECEIPT_LINE",
+    "RECEIPT_REF_LINE",
+    "condition_lines",
+    "inventory_lines",
+    "loop_receipt",
     "check_loop_packet",
     "RUBRIC_PATH",
     "STAGE",

@@ -1318,7 +1318,7 @@ Authoring is complete only when selected clauses have executable check bindings
 or justified reproducible manual procedures at their required surfaces. Keep
 unavailable execution prerequisites and later-phase observations pending.
 On done, ShipLoop runs the item's focused commands once and refuses unless a test
-ran (a counted test with every listed ID shown, or a failing test). """ + ID_WORD_RULE + """ The number
+ran (a counted pass that shows every listed ID, or a failing test that shows every listed ID). """ + ID_WORD_RULE + """ The number
 of tests that run here is the least any later run of the command may run for this item, until test-refine reconciles any
 removed case. Tests that
 load something this item creates need it loadable now: create the smallest
@@ -2573,9 +2573,11 @@ structural validation or a Backchain result alone does not complete this handoff
 
     release_guard = ""
     if any(label == "Release operation guidance" for label, _ in STAGE_REFERENCES[stage]):
-        release_guard = """\
-Read and retain Release operation guidance and the current operation/evidence
-locators. Review this stage's plan, readiness checks, or observed outcome within
+        # Only the release stage performs release effects.  Another stage's Improve assesses and records its handoff
+        # (SPEC S-3; environment-lifecycle.md#release-operation-ownership): release-plan's Improve was told it "may
+        # perform deployments" in the same packet that says it plans without executing release.
+        if stage == "release":
+            performs = """\
 its authority. Improve may perform deployments, MCP interactions and other release
 operations already authorized for the current task and stage, with their required
 checks. Do not repeat unchanged release effects merely to advance the review streak.
@@ -2583,9 +2585,26 @@ Reconcile uncertain or partial outcomes before retrying, without inventing provi
 Retry only when the reconciled state warrants it and the operation remains
 authorized under the release guidance; retain the prior operation/receipt identity
 and follow the provider's supported retry or idempotency procedure.
+"""
+        else:
+            performs = """\
+its authority. A stage-scoped Improve assesses and records its handoff; it does not
+execute or replay a release effect (a deployment, an MCP interaction or any other
+release operation). Those run only at the release stage, with a recorded grant and
+their required checks. Do not repeat unchanged release effects merely to advance the
+review streak. Reconcile uncertain or partial outcomes by reading the recorded
+receipts, without inventing provider guarantees; a retry belongs to the release
+stage, under the release guidance, with the prior operation/receipt identity and the
+provider's supported retry or idempotency procedure.
+"""
+        release_guard = """\
+Read and retain Release operation guidance and the current operation/evidence
+locators. Review this stage's plan, readiness checks, or observed outcome within
+""" + performs + """\
 Material candidate changes require corrective planning and affected revalidation.
 External release N/A still requires applicable local candidate and consumer checks.
 """
+
     assessment = ""
     if any(label == "State and data assessment" for label, _ in STAGE_REFERENCES[stage]):
         assessment = """\

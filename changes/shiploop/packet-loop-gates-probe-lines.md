@@ -1,0 +1,4 @@
+---
+bump: patch
+---
+Packets now say what the gates refuse, up front. release-verify's Checked-by and Done-when name the knowledge files and the outcome.md sections its close requires. The loop stages (test-green, regression, static-checks) prefill the terminal packet path in the result template, print the loop's exit and repeat conditions and the Start and Receipt lines after the status block (inside the head), and say the path must be in evidence_refs. test-author prints the focused commands, their IDs, minimum counts and the whole-word ID rule; baseline prints its commands and the discovery baseline result; test-red names red_na; every template says to use each key once. Inner stages no longer offer replan. A bound Improve packet prints the commit command right after improve-start, and an Improve child outside the release stage assesses a release instead of performing one. The progress snapshot shows implement as in progress while planned steps remain.

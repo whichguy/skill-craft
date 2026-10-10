@@ -413,6 +413,32 @@ class RefusalRouteTests(RealCliCase):
                 Path(named).write_text("What this file records.\n", encoding="utf-8")
             self.accepted(command)
 
+    def test_release_verify_names_its_knowledge_files_before_the_refusal_and_the_named_files_are_accepted(self) -> None:
+        # release-verify runs the consumer checks and closes the knowledge home.  Its Checked-by line named only the
+        # run, so outcome.md was met first as a refusal in 4 runs, and its sections as a second one (packet review
+        # 2026-10-10, P-rv-1).  The packet now says it first; writing what it says is accepted in one go.
+        run, head = self.new_run("release-verify")
+        command, path, action = printed_callback(head)
+        full = full_packet_text(head)
+        checked = next(row for row in full.splitlines() if row.startswith("Checked by: "))
+        self.assertIn("a docs/shiploop file this stage must have written, missing or empty", checked)
+        self.assertIn("reruns every recorded test command", checked)  # the run the line used to name alone
+        done = full[full.index("Done when"):full.index("Checked by: ")]
+        for word in ("outcome.md", "environment.md", "README.md"):
+            self.assertIn(word, done)
+        write_block(path, self.fill_done(head))
+        reply = self.refused(command, run)
+        named = re.findall(r"^- (/\S+)$", reply, re.M)
+        self.assertEqual(sorted(Path(file).name for file in named), ["README.md", "environment.md", "outcome.md"])
+        for file in named:
+            self.assertIn(Path(file).name, done)  # every file the refusal names was named before it
+            Path(file).parent.mkdir(parents=True, exist_ok=True)
+            Path(file).write_text("".join(f"## {section}\n\nDetail of what this run found.\n\n"
+                                          for section in ("Learned", "Key considerations", "Open for the next run"))
+                                  if Path(file).name == "outcome.md" else "What this file records.\n", encoding="utf-8")
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+
     def test_a_blocked_result_with_done_fields_is_refused_once_with_every_field_named(self) -> None:
         run, head = self.new_run("plan")
         command, path, _ = printed_callback(head)
