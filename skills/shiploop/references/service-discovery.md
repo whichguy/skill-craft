@@ -241,15 +241,16 @@ future design, or claim that unknown provider coverage satisfies the requirement
 
 ## Development handoff
 
-Keep one concise, maintained decision in an existing architecture, design, or
-environment note. Its current, authoritative sections should state status
-(accepted, unresolved, superseded, or not applicable), target/role observations,
-the four-way delta, selected capability and runtime maps, data/cache and async
-contracts, observability coverage/reuse decision, evidence limits, file roles,
-ordered prerequisites, checks, and revalidation triggers. Link that note from
-the repository knowledge index at `REPO/SHIPLOOP.md`, preserving existing
-project-document links and structure. Do not impose a filename or duplicate a
-project's documentation.
+Keep one concise, maintained decision as an `AD-<n>` entry in
+`docs/shiploop/architecture.md`, linking the repository's own architecture,
+design, or environment note for the detail instead of copying it. Its current,
+authoritative sections should state status (accepted, unresolved, superseded, or
+not applicable), target/role observations, the four-way delta, selected
+capability and runtime maps, data/cache and async contracts, observability
+coverage/reuse decision, evidence limits, file roles, ordered prerequisites,
+checks, and revalidation triggers. Link that note from the repository knowledge
+index at `REPO/SHIPLOOP.md`, preserving existing project-document links and
+structure. Do not duplicate a project's documentation.
 
 At planning and operations, reopen the index and the exact current sections,
 not a remembered chat transcript or arbitrary whole documents. Retain their
