@@ -1,0 +1,54 @@
+{
+ "colon-line-improve.md": {
+  "lessons": "the request says illegal moves return ok:false and leave the turn unchanged, so clients must read the turn from the failure body; the earlier text left that implicit.",
+  "remote_change": ""
+ },
+ "bare-learned-release-verify.md": {
+  "lessons": "- A review of the HTTP layer found `new URL(req.url, base)` throws on a request target like `//[`; any thin node:http server needs that parse guarded.\n- node --test with the spec reporter prints each TC id, which ShipLoop's id check needs.",
+  "remote_change": ""
+ },
+ "label-alone-then-blank-then-body.md": {
+  "lessons": "- the board is 0-based, so a loop to 10 is off by one",
+  "remote_change": ""
+ },
+ "first-body-line-word-colon.md": {
+  "lessons": "Mocks hide seams: test the real path once.",
+  "remote_change": ""
+ },
+ "bare-label.md": {
+  "lessons": "the server must restart on a config change.",
+  "remote_change": ""
+ },
+ "bulleted-bold-label.md": {
+  "lessons": "pin the oracle in the spec first.",
+  "remote_change": ""
+ },
+ "heading-then-only-trailer.md": {
+  "lessons": "",
+  "remote_change": ""
+ },
+ "heading-form.md": {
+  "lessons": "- the first lesson\n\n- the second lesson, after a blank line",
+  "remote_change": ""
+ },
+ "learned-from-is-not-a-lesson.md": {
+  "lessons": "",
+  "remote_change": ""
+ },
+ "none-counts.md": {
+  "lessons": "none new beyond commit d171177ac28b (error-response shape R-15).",
+  "remote_change": ""
+ },
+ "one-paragraph.md": {
+  "lessons": "",
+  "remote_change": ""
+ },
+ "remote-change-colon.md": {
+  "lessons": "the staging host caches index.html for ten minutes; purge after every deploy.",
+  "remote_change": "staging-site, purged the CDN cache after build 41 (evidence: /tmp/release-check.log)"
+ },
+ "remote-change-heading.md": {
+  "lessons": "- purge after every deploy",
+  "remote_change": "- staging-site: purged cache, evidence in the release log"
+ }
+}

@@ -5,8 +5,10 @@ Real Git repositories in temporary directories.
 """
 from __future__ import annotations
 
+import json
 import os
 import re
+import time
 import subprocess
 import sys
 import tempfile
@@ -18,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test"))
 import shiploop_git  # noqa: E402
+import shiploop_lessons as commit_lessons  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_knowledge_support as support  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
@@ -193,6 +196,138 @@ class KnowledgeAfterEveryStageTests(KnowledgeTests):
 
     def test_an_unchanged_home_is_not_checked_outside_a_close(self) -> None:
         self.assertEqual(knowledge.check(self.state, "implement"), "")  # no home at all: nothing to require
+
+
+FIXTURES = ROOT / "test" / "fixtures" / "commit-contract"
+TRAILER = "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+FULL = "3f2a9c1e0b7d4a5c8e6f1a2b3c4d5e6f708192a3"
+
+
+class LessonsGrammarTests(unittest.TestCase):
+    """shiploop_lessons: the one reader of the commit-message grammar (lessons, a remote change, citations)."""
+
+    def test_the_shapes_saved_commits_use_are_read_as_expected(self) -> None:
+        expected = json.loads((FIXTURES / "expected.json").read_text(encoding="utf-8"))
+        self.assertEqual(sorted(expected), sorted(path.name for path in FIXTURES.glob("*.md") if path.name != "README.md"))
+        for name, want in expected.items():
+            message = (FIXTURES / name).read_text(encoding="utf-8")
+            with self.subTest(shape=name):
+                self.assertEqual(commit_lessons.lessons(message), want["lessons"])
+                self.assertEqual(commit_lessons.remote_change(message), want["remote_change"])
+
+    def test_every_lesson_label_is_read_in_any_case_and_other_labels_are_not(self) -> None:
+        for label in ("Key learnings", "Key learning", "Lessons learned", "Lessons", "Learnings", "Learning", "Lesson",
+                      "Learned"):
+            for spelled in (label, label.upper(), label.lower()):
+                with self.subTest(label=spelled):
+                    self.assertEqual(commit_lessons.lessons("s\n\n" + spelled + ": reuse the oracle"), "reuse the oracle")
+        for text in ("s\n\nKey considerations: x", "s\n\nOpen for the next run: x", "s\n\nWe learned: x",
+                     "s\n\nLearned that x", "s\n\nKey learnings (this pass): x",
+                     "s\n\nLearned-from: " + FULL + " the log format"):
+            with self.subTest(text=text):
+                self.assertEqual(commit_lessons.lessons(text), "")
+
+    def test_a_bullet_a_quote_mark_or_a_bold_wrapper_around_the_label_is_tolerated(self) -> None:
+        for line in ("- Key learnings: x", "* Key learnings: x", "> Key learnings: x", "**Key learnings:** x",
+                     "**Key learnings**: x", "__Key learnings:__ x", "- **Key learnings:** x"):
+            with self.subTest(line=line):
+                self.assertEqual(commit_lessons.lessons("s\n\n" + line), "x")
+        self.assertEqual(commit_lessons.lessons("s\n\n**Key learnings**\nthe text"), "the text")
+        # indentation is not one of the tolerated forms
+        self.assertEqual(commit_lessons.lessons("s\n\n    Key learnings: x"), "")
+
+    def test_a_section_with_no_words_is_not_a_lesson_but_none_is(self) -> None:
+        for text in ("s\n\nKey learnings:", "s\n\nKey learnings: -", "s\n\nKey learnings: ...", "s\n\n## Key learnings\n\n",
+                     "s\n\n## Key learnings\n-\n", "s\n\nKey learnings\n\n"):
+            with self.subTest(text=text):
+                self.assertEqual(commit_lessons.lessons(text), "")
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings: none"), "none")
+        self.assertEqual(commit_lessons.lessons("s\n\nLessons: 0"), "0")
+
+    def test_an_empty_label_takes_the_first_non_blank_line_even_when_it_looks_like_word_colon_text(self) -> None:
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings:\nPitfall: the board is 0-based\n"),
+                         "Pitfall: the board is 0-based")
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings\n\n\nDecision: use the real port\n"),
+                         "Decision: use the real port")
+        # ... unless that line is itself one of the known labels: then the section is empty
+        for following in ("Remaining work: x", "Changes: x", "Remote change: x", "Learned-from: abcdef1 y", TRAILER):
+            with self.subTest(following=following):
+                self.assertEqual(commit_lessons.lessons("s\n\nKey learnings:\n" + following + "\n"), "")
+
+    def test_a_colon_or_bare_body_stops_at_a_blank_line_a_heading_a_known_label_or_a_trailer(self) -> None:
+        stops = ("\n\nnext paragraph", "\n## Next", "\nRemaining work: y", "\nRemote change: y", "\nLearned-from: abcdef1 y",
+                 "\n" + TRAILER, "\n\n" + TRAILER)
+        for stop in stops:
+            with self.subTest(stop=stop):
+                self.assertEqual(commit_lessons.lessons("s\n\nKey learnings: first\nsecond line" + stop), "first\nsecond line")
+        # a line that merely looks like a label is body, not a stop
+        self.assertEqual(commit_lessons.lessons("s\n\nKey learnings: first\nPitfall: second"), "first\nPitfall: second")
+
+    def test_a_heading_body_spans_blank_lines_and_is_clipped_at_the_trailer_and_at_other_sections(self) -> None:
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\none\n\ntwo\n\n" + TRAILER + "\n"), "one\n\ntwo")
+        self.assertEqual(commit_lessons.lessons("s\n\n### Key learnings:\none\n\nLearned-from: abcdef1 y\n\n" + TRAILER),
+                         "one")
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\none\nRemote change: staging, purged\n"), "one")
+        self.assertEqual(commit_lessons.remote_change("s\n\n## Remote change\nstaging, purged\n\nKey learnings: x\n"),
+                         "staging, purged")
+        # a four-hash heading is not one of the forms
+        self.assertEqual(commit_lessons.lessons("s\n\n#### Key learnings\none\n"), "")
+        # any hyphenated Token: value paragraph at the end is the trailer block, whoever wrote it
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nNo-Change-Note: internal helper\n"), "")
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\nthe text\n\nNo-Change-Note: x\nSkill-Craft-Release: y"),
+                         "the text")
+        # ... but a final paragraph that is not all trailers is the lesson, and so is a lone subject
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nthe text\nNo-Change-Note: x\n"),
+                         "the text\nNo-Change-Note: x")
+        self.assertEqual(commit_lessons.lessons("Key-learnings: x\n"), "")
+        # two signed lines in the last paragraph are a trailer block, not the lesson
+        self.assertEqual(commit_lessons.lessons("s\n\n## Key learnings\n\nSigned-off-by: A <a@x.invalid>\n" + TRAILER), "")
+
+    def test_the_lessons_of_every_section_are_joined_and_a_remote_change_needs_its_own_label(self) -> None:
+        message = "s\n\nKey learnings: one\n\nLessons: two\n\nRemote change: staging, purged\n"
+        self.assertEqual(commit_lessons.lessons(message), "one\ntwo")
+        self.assertEqual(commit_lessons.remote_change(message), "staging, purged")
+        self.assertEqual(commit_lessons.remote_change("s\n\nKey learnings: one"), "")
+        self.assertEqual(commit_lessons.remote_change("s\n\nRemote change:\n\n"), "")
+        sections = commit_lessons.sections(message, ("Key learnings", "Lessons"))
+        self.assertEqual([(section.label, section.body) for section in sections], [("Key learnings", "one"), ("Lessons", "two")])
+
+    def test_line_endings_and_a_very_long_line_do_not_matter(self) -> None:
+        crlf = "s\r\n\r\nKey learnings:\r\n\r\n- one\r\n\r\n" + TRAILER + "\r\n"
+        self.assertEqual(commit_lessons.lessons(crlf), "- one")
+        started = time.monotonic()
+        commit_lessons.lessons("s\n\nKey learnings" + " " * 200_000 + "x\n" + " " * 200_000 + "\n")
+        self.assertLess(time.monotonic() - started, 2.0)
+
+    def test_citations_tolerate_the_spellings_a_model_uses_and_report_their_line(self) -> None:
+        message = "\n".join([
+            "s", "",
+            "Learned-from: " + FULL + " the release-check log format",
+            "learned-from: `abcdef1`: the quoted one",
+            "- Learned-from: commit abcdef2, the prefix one",
+            "Learned-from: [abcdef3] bracketed.",
+            "Learned-from: abcdef4",
+            "Learned-from:",
+            "Learned-from: sk-notacommit what it gave",
+            "Key learnings: not a citation Learned-from: abcdef5 mid-line",
+        ])
+        found = [(c.line, c.token, c.contribution) for c in commit_lessons.citations(message)]
+        self.assertEqual(found, [
+            (3, FULL, "the release-check log format"), (4, "abcdef1", "the quoted one"),
+            (5, "abcdef2", "the prefix one"), (6, "abcdef3", "bracketed."), (7, "abcdef4", ""), (8, "", ""),
+            (9, "sk-notacommit", "what it gave")])
+        self.assertEqual(commit_lessons.citations("s\n\nLEARNED-FROM: " + FULL[:7] + " x")[0].token, FULL[:7])
+
+    def test_with_full_ids_rewrites_only_the_citation_lines_and_keeps_the_rest(self) -> None:
+        message = ("s\n\n## Key learnings\nbody\n\nLearned-from: `abcdef1`: first\nLearned-from: bad second\n\n"
+                   + TRAILER + "\n")
+        full = {"abcdef1": FULL}
+        rewritten = commit_lessons.with_full_ids(message, lambda token: full.get(token, token))
+        self.assertEqual(rewritten, message.replace("Learned-from: `abcdef1`: first", "Learned-from: " + FULL + " first"))
+        self.assertEqual(commit_lessons.with_full_ids("no citation\n", lambda token: FULL), "no citation\n")
+        # a rewritten message is read the same way again
+        self.assertEqual(commit_lessons.citations(rewritten)[0].token, FULL)
+        self.assertEqual(commit_lessons.lessons(rewritten), "body")
 
 
 class CommitHelperTests(unittest.TestCase):
