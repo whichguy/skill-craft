@@ -4149,7 +4149,7 @@ def _improve_rerun_clause(stage: str) -> str:
     if stage in stage_spec.with_improve("last-item"):
         return "ShipLoop reruns every completed item's recorded commands over it."
     if stage in stage_spec.with_improve("step"):
-        return "the lint gate of the next step and the test stage after the last step run over it."
+        return "the next step's lint gate (when a step follows) and the test stage after the last step run over it."
     return "no command reruns over it here, so check it yourself before importing."
 
 
