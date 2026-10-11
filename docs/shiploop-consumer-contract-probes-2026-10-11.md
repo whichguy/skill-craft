@@ -43,6 +43,23 @@ So the packet is the consumer's real input after a clear. What the next stage ne
 
 Cost: the slices record turns (107, 98, 105) but no dollar cost.
 
-## Step 1: next-run consumer, Battleship then the scoring follow-on (running)
+## Step 1: next-run consumer, Battleship then the scoring follow-on (done)
 
-Fresh `battleship` on `28191c5b`, output `/Users/dadleet/e2e-runs/20261011/battleship-probe-28191c5b`; `battleship-scoring --continue-from` follows. Results are recorded here when both finish.
+Runs:
+- A fresh `battleship` on `28191c5b`: PASS, $3.62, 13 minutes, mutation 33 of 38 caught.
+- `battleship-scoring --continue-from` it: PASS, $3.76, 193 turns, 16 minutes, 0 refused callbacks.
+- Every retention check passed: earlier files kept, no dependency added, tests grew, every earlier requirement ID kept with new ones added (12 IDs).
+- Outputs: `/Users/dadleet/e2e-runs/20261011/battleship-probe-28191c5b` and `battleship-scoring-probe-28191c5b`.
+
+**What the cold next run read** (step 0's script on the follow-on; firm for this one pair):
+- **The living files, at the right stages.** `spec.md` 8 reads (discovery 2, plan 2, spec 3, carry-forward 1), `architecture.md` 3 (discovery 1, plan 2), `test-strategy.md` 5, `environment.md` 2. It kept the earlier decisions `AD-1` to `AD-4` and added `AD-5`.
+- **Three files of the earlier run's feature folder, as precedent:** `test-spec.md` (at test-spec), `system-tests.md` (at system-test-author) and `release-plan.md` (at release-plan).
+- **The intake window:** it saw the earlier run's learnings commit second in the last-three-commits window. The order was retire, learnings, leftovers.
+- **Citations:** `cited_earlier_run` was 0. The follow-on's Improve children made no commits.
+
+**Finding that changes the contract.** Those three precedent reads are a real cross-run consumer. If the test cases, the system test catalog and the release steps live only in a run's state, the next run cannot read them, because run state is not in the repository. Their persistent part must land in a living file:
+- the test ID convention and harnesses in `environment.md`, with the IDs in the test code;
+- the system test catalog (command, purpose, requirement) in `environment.md`;
+- the release steps and rollback in `environment.md`'s targets and access sections, or a named new section.
+
+Each needs a named consumer: the next run's test-spec, system-test-author and release-plan stages. This was sent to the contract writer for step 3.
