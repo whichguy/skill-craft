@@ -89,7 +89,7 @@ class QualityLoopTests(fx.RunDriver):
             nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
                 command="improve-bind", action=state["active_improve"]["action_id"],
                 skill_card=str(IMPROVE_CARD)))
-        packet = self.packet()
+        packet = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
         self.assertIn(prompts.END_REVIEW_FOCUS.strip().splitlines()[0], packet)
         self.assertIn("2. Fail at the door.", packet)
         self.assertIn("4. Spend tokens on information.", packet)
@@ -104,7 +104,7 @@ class QualityLoopTests(fx.RunDriver):
             nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
                 command="improve-bind", action=state["active_improve"]["action_id"],
                 skill_card=str(IMPROVE_CARD)))
-        packet = self.packet()
+        packet = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
         self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS.strip().splitlines()[0], packet)
         self.assertEqual(packet.count("2. Fail at the door."), 1)
         self.assertNotIn(prompts.END_REVIEW_FOCUS.strip().splitlines()[0], packet)
@@ -116,20 +116,24 @@ class QualityLoopTests(fx.RunDriver):
             nav.dispatch(CORE, self.run_dir, state, types.SimpleNamespace(
                 command="improve-bind", action=state["active_improve"]["action_id"],
                 skill_card=str(IMPROVE_CARD)))
-        self.assertIn("Planning review focus", self.packet())
-        self.assertNotIn("End-of-work code review focus", self.packet())
+        handoff = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
+        self.assertIn("Planning review focus", handoff)
+        self.assertNotIn("End-of-work code review focus", handoff)
 
 
-VERIFY_REVIEW = " ".join(loops.WORK["verify"].split())  # verify's loop work: the review static-checks ran
+# verify's review: its loop Work line cites the duty items, which hold the review (packet re-cut 2026-10-11).
+VERIFY_REVIEW = " ".join(prompts.prompt("verify").split())
 
 
 class PromptTests(unittest.TestCase):
     def test_code_craft_appears_once_in_code_stages_for_both_routes(self):
+        """Owner decision 2026-10-11: the full rubric prints at implement only; verify's review and each step's
+        Improve review (IMPLEMENT_STEP_REVIEW_FOCUS) apply it."""
         for delegation in (prompts.ASK_AGENT, prompts.INLINE):
             for stage in ("implement", "test", "document", "verify"):
                 text = prompts.prompt(stage, delegation=delegation)
                 with self.subTest(delegation=delegation, stage=stage):
-                    self.assertEqual(text.count("2. Fail at the door."), 1)
+                    self.assertEqual(text.count("2. Fail at the door."), 1 if stage == "implement" else 0)
         self.assertNotIn("Fail at the door", prompts.prompt("spec"))
 
     def test_code_craft_keeps_user_facing_text_translatable(self):
@@ -137,25 +141,27 @@ class PromptTests(unittest.TestCase):
         self.assertIn("7. Write text that can be translated.", rubric)
         self.assertIn("never assembled from fragments", rubric)
         self.assertIn("Keep log text, error codes and machine identifiers stable and untranslated", rubric)
-        self.assertIn("user text that is concatenated or bypasses the catalog", VERIFY_REVIEW)
+        self.assertIn("user text concatenated or bypassing the catalog", VERIFY_REVIEW)
 
     def test_namespace_placement_is_planned_and_reviewed(self):
         rubric = " ".join(prompts.CODE_CRAFT.split())
         self.assertIn("8. Put it where it belongs.", rubric)
         self.assertIn("narrowest visibility a present consumer needs", rubric)
-        self.assertIn("names outside the planned namespace or exported wider than needed", VERIFY_REVIEW)
+        self.assertIn("names outside the planned namespace or exported too wide", VERIFY_REVIEW)
         plan = " ".join(prompts.prompt("plan").split())
-        self.assertIn("When the work adds code or stored data, forecast where it lives.", plan)
-        self.assertIn("a remote runtime behind an MCP server", plan)
-        self.assertIn("each service of a multi-service system", plan)
-        self.assertIn("Record both as a short", plan)
+        self.assertIn("Code or stored data added: write the namespace and data entries in HOME/architecture.md "
+                      "## Structure with an AD-<n> per decision", plan)
+        self.assertIn("remote runtime behind an MCP server", plan)
+        self.assertIn("each service", plan)
+        self.assertIn("data storage per environment (Schema and storage guidance): existing and destination schema",
+                      plan)
         step = " ".join(prompts.prompt("step-plan").split())
-        self.assertIn("reopen the plan's Namespace and data map and the current tree of each environment it touches.", step)
+        self.assertIn("reopen the namespace and data entries in HOME/architecture.md ## Structure and each touched "
+                      "environment's tree", step)
         self.assertIn("Stored data follows the planned schema", rubric)
-        self.assertIn("Using Schema and storage guidance, decide how each environment stores the data", plan)
-        self.assertIn("Namespace and data map", plan)
-        self.assertIn("each stored field, key, table or payload with its owning environment, migration", step)
-        self.assertIn("and round-trip check; record a changed placement or schema with its reason", step)
+        self.assertIn("Per stored field, key, table or payload: owning environment, migration", step)
+        self.assertIn("round-trip check", step)
+        self.assertIn("Reason for a changed placement or schema", step)
         routes = (
             ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
             ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
@@ -168,25 +174,25 @@ class PromptTests(unittest.TestCase):
     def test_ui_work_defaults_to_a_rich_interactive_interface(self):
         self.assertIn("or the rich UI interaction the plan calls for", " ".join(prompts.CODE_CRAFT.split()))
         self.assertIn("a plain interaction where the plan called for a rich one", VERIFY_REVIEW)
-        for stage in ("plan", "step-plan"):
+        for stage, phrase in (("plan", "A human-facing UI defaults to an ambitious, highly interactive design"),
+                              ("step-plan", "a human-facing UI defaults to ambitious and highly interactive")):
             with self.subTest(stage=stage):
-                self.assertIn("For a human-facing UI, default to an ambitious, highly interactive design",
-                              " ".join(prompts.prompt(stage).split()))
+                self.assertIn(phrase, " ".join(prompts.prompt(stage).split()))
 
     def test_supporting_stages_carry_their_code_quality_duties(self):
         expected = {
-            "step-plan": "each such entry point checks its arguments and carries a contract",
-            "test-spec": "one rejection case per\nconstraint it checks",
-            "test": "Each new or changed public entry point gets its rejection cases",
-            "system-test-author": "shared test helpers check their arguments",
+            "step-plan": "A new or changed public entry point: add a criterion that it checks its arguments and carries a contract",
+            "test-spec": "Each new or changed public entry point: one rejection case per constraint",
+            "test": "Each new or changed public entry point gets rejection cases",
+            "system-test-author": "shared helpers check their arguments",
         }
         for stage, phrase in expected.items():
             with self.subTest(stage=stage):
                 self.assertIn(" ".join(phrase.split()), " ".join(prompts.prompt(stage).split()))
         # verify's entry-point walk is its loop's work, which the packet prints in the invoke block.
         self.assertIn("list every new or changed public entry point", VERIFY_REVIEW)
-        self.assertIn("walk one valid, one boundary and one invalid input", VERIFY_REVIEW)
-        self.assertIn("argument checks and contract docstrings at each entry point", VERIFY_REVIEW)
+        self.assertIn("Walk one valid, one boundary and one invalid input", VERIFY_REVIEW)
+        self.assertIn("missing argument checks or contract docstrings at an entry point", VERIFY_REVIEW)
 
 
 if __name__ == "__main__":

@@ -3122,8 +3122,11 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
             _callback(core, root, "improve-complete", action=action_id)))
     if changes is not None and changes[0] and _unchanged_first_pass(child):
         raise NavigatorError("The Improve runtime ended on one unchanged trivial pass, but these files changed "
-                             "since the review was bound: " + ", ".join(changes[0]) + ". Report the pass "
-                             "non-trivial and run the loop's next review.")
+                             "since the review was bound: " + ", ".join(changes[0]) + ". Review them again, "
+                             "reporting each pass that changes a file non-trivial: record why in the opening file, "
+                             "then run: " + _callback(core, root, "improve-start", action=action_id,
+                                                      opening=str(improve_opening_path(child)))
+                             + " --restart-stopped")
     if child.get("stage") != "carry-forward" or (changes is not None and not changes[0]):
         return
     commands = improve_changes.rerun_commands(state)
@@ -6173,7 +6176,8 @@ def _improve_start(core: Any, root: Path, state: Mapping[str, Any], args: Any) -
             saved_status = json.loads(receipt.read_text(encoding="utf-8")).get("status")
         except (OSError, ValueError, AttributeError):
             saved_status = None
-        _need(restart and saved_status == "stopped",
+        # A completed child whose one unchanged pass the change gate refused restarts the same way.
+        _need(restart and (saved_status == "stopped" or _unchanged_first_pass(child)),
               "this child already started; recover it from its saved receipt " + str(receipt)
               + " (active: run its next_argv once; complete: run improve-complete; "
               " stopped: once the blocker is resolved or the user authorizes continuing, "

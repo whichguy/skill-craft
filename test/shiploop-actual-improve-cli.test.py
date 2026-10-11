@@ -1803,6 +1803,31 @@ class ImproveCommitContractTests(ImproveCliFixture):
     def head_message(self):
         return self.git("log", "-1", "--format=%B").rstrip("\n") + "\n"
 
+    def test_a_change_after_an_unchanged_first_pass_restarts_through_the_named_exit(self):
+        """Fail-first: the refusal said to run the loop's next review, but the loop was already complete and
+        --restart-stopped refused a complete child, so a live run (node-add-route, 2026-10-11) had to pause."""
+        self.begin()
+        _raw, first = self.start_ephemeral_child()
+        _raw, terminal = self.done_ephemeral(first, self.child_report("trivial", "satisfied", "allowed", "one pass"))
+        self.assertTrue(terminal["progress"]["unchanged_first_pass"])
+        self.edit()  # a fix made after the bind, then committed through improve-commit
+        self.write("docs: fix the example\n\nKey learnings: none\n")
+        self.invoke(*self.commit_args)
+        completion, _receipt = self.completion_receipt()
+        stderr = self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
+                             *completion, status=2).stderr
+        self.assertIn("product/contracts/cold-recovery.md", self.line_one(stderr))
+        bridge.receipt_path(self.bound).with_name("opening.md").write_text(
+            "## Current context and desired improvements\nA fix landed after the one unchanged pass.\n\n"
+            "## Scope\nproduct/contracts/cold-recovery.md\n\n## Authority\nInline.\n\n"
+            "## Environment\nPython fixture.\n", encoding="utf-8")
+        restarted = self.run_named(stderr)
+        self.assertIn("Archived the stopped child", restarted.stderr)
+        self.finish_ephemeral(json.loads(restarted.stdout[restarted.stdout.index("{"):]))
+        completion, _receipt = self.completion_receipt()
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion)
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+
     def test_lessons_are_required_for_a_commit_and_the_named_exit_commits(self):
         """Fail-first: any message used to be committed."""
         self.begin()
