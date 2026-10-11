@@ -595,6 +595,28 @@ class RefusalRouteTests(RealCliCase):
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
         self.assertNotIn(knowledge.NOTICE_PREFIX, result.stdout + result.stderr)
 
+    def test_the_test_spec_close_prints_its_notice_although_the_script_records_validate_existing_after_it(self) -> None:
+        # The common route: test-spec is accepted and, in the same call, the script records validate-existing (every
+        # expectation matches), so the new history rows end with a stage that is no close.  The count must still be there.
+        run, head = self.new_run("test-spec", **{"planning-review": "none"})
+        command, path, action = printed_callback(head)
+        repo, state = self.repo_of(run), self.state(run)
+        home = repo / knowledge.HOME
+        (repo / knowledge.feature_dir(state)).mkdir(parents=True, exist_ok=True)
+        (repo / knowledge.feature_dir(state) / "plan.md").write_text("The plan.\n", encoding="utf-8")
+        for name in knowledge.SECTIONS:
+            (home / name).parent.mkdir(parents=True, exist_ok=True)
+            (home / name).write_text("What this file records.\n", encoding="utf-8")
+        write_block(path, self.fill_done(head))
+        before = len(state["history"])
+        result = self.run_printed(command)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        rows = [(row["stage"], row["outcome"]) for row in self.state(run)["history"][before:]]
+        self.assertEqual(rows, [("test-spec", "done"), ("validate-existing", "done")], "the route under test")
+        found = [row for row in result.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX)]
+        self.assertEqual(len(found), sum(len(headings) for headings in knowledge.SECTIONS.values()))
+        self.assertEqual(found, knowledge.section_notices(self.state(run), "test-spec"))
+
     def test_a_stage_that_is_no_close_prints_no_notice_although_a_file_lacks_its_sections(self) -> None:
         run, head = self.new_run("intake")
         command, path, action = printed_callback(head)

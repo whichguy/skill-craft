@@ -1942,7 +1942,8 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
 
     A close (prepare, test-spec, release-plan, release-verify) also prints the section notices
     (``knowledge.section_notices``) right after its commit: a count, never a refusal, and none at
-    the terminal handoff, which is no close.
+    the terminal handoff, which is no close.  A close accepted in this call prints them even when
+    the script records another stage after it (test-spec, then validate-existing).
     """
     rows = after["history"][len(before["history"]):]
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
@@ -1959,8 +1960,11 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     notice = shiploop_git.skipped_notice(committed.skipped)
     if notice:
         print("ShipLoop knowledge: " + notice)
-    # At a close only: one counted line per named section a living file lacks (never a refusal, never raised).
-    for line in knowledge.section_notices(after, stages[-1]):
+    # At a close only: one counted line per named section a living file lacks (never a refusal, never raised).  The close is
+    # the stage among this call's accepted rows that closes, not the last row: test-spec is followed in the same call by the
+    # validate-existing row the script records, and the last row alone would leave that close silent.
+    close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])
+    for line in knowledge.section_notices(after, close):
         print(line)
     if terminal:
         # Once per run, at its last close: the file is left alone however many knowledge commits came before it.

@@ -871,15 +871,37 @@ class SectionNoticeCloseTests(HomeFixture):
             with self.subTest(stage):
                 self.assertEqual(self.close(stage), ("", ""))
 
-    def test_the_stage_that_decides_is_the_last_one_accepted_like_the_commits_subject(self) -> None:
+    def test_the_close_among_the_accepted_stages_prints_whatever_the_script_records_after_it(self) -> None:
+        """The test-spec close and the validate-existing row the script records in the same transition are one call.
+
+        The commit's subject names the last stage accepted, but a close that was accepted earlier in the call still checked
+        its files and still owes its notice: counted from the last row alone, one of the four closes would print nothing on
+        the common route (a reviewer's real-CLI probe, batch 1012 task A2 fix round).
+        """
         self.write_bare_home()
-        for rows, expected in ((["step-plan", "prepare"], 17), (["prepare", "step-plan"], 0)):
+        total = sum(len(headings) for headings in knowledge.SECTIONS.values())
+        for rows, expected in ((["test-spec", "validate-existing"], total), (["step-plan", "prepare"], total),
+                               (["prepare", "step-plan"], total), (["release-verify"], total),
+                               (["validate-existing", "implement"], 0), (["implement", "test"], 0), (["handoff"], 0)):
             with self.subTest(rows=rows):
                 after = dict(self.state, history=[{"stage": stage, "outcome": "done"} for stage in rows])
                 out = io.StringIO()
                 with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
                     navigator._knowledge_close({"history": []}, after, Path("/ws/run"))
                 self.assertEqual(out.getvalue().count(knowledge.NOTICE_PREFIX), expected)
+
+    def test_a_row_that_did_not_finish_is_no_accepted_close(self) -> None:
+        self.write_bare_home()
+        after = dict(self.state, history=[{"stage": "test-spec", "outcome": "done"}, {"stage": "prepare", "outcome": "blocked"}])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            navigator._knowledge_close({"history": []}, after, Path("/ws/run"))
+        self.assertEqual(out.getvalue().count(knowledge.NOTICE_PREFIX), sum(len(h) for h in knowledge.SECTIONS.values()))
+        blocked = dict(self.state, history=[{"stage": "prepare", "outcome": "blocked"}])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            navigator._knowledge_close({"history": []}, blocked, Path("/ws/run"))
+        self.assertEqual(out.getvalue(), "")
 
     def test_a_home_with_every_section_prints_nothing_at_a_close(self) -> None:
         support.write(self.state)
