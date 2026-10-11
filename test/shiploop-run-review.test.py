@@ -5468,7 +5468,7 @@ class StageCatalogPageTests(unittest.TestCase):
     def test_schema_md_documents_the_stage_card_the_reader_labels_and_the_reserved_audit(self):
         schema = " ".join(SCHEMA_MD.read_text(encoding="utf-8").split())
         for phrase in ("## The stage card", "\"Stage cards\" list", "declared by the stage spec",
-                       "no stage declares reading it", "records no observed reads", "not recorded per visit", "xN skipped"):
+                       "no stage declares reading it", "records no observed reads", "not recorded per visit", "xN recorded by ShipLoop"):
             self.assertIn(phrase, schema, phrase)
 
 
