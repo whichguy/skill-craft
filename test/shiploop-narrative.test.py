@@ -86,17 +86,17 @@ class NarrativeTests(unittest.TestCase):
         state = self.driver.planned(ROWS)
         state = self.driver.advance_to(state, "carry-forward")
         state = self.driver.produce(state, headline="Loader split into two modules; 12 tests added")
-        state = self.driver.advance_to(state, "test-author")
+        state = self.driver.advance_to(state, "test-spec")
         facts = navigator.narrative_facts(state)
         self.assertFalse(facts["milestone"])  # mid-group
         self.assertEqual(facts["achieved"][0], {"label": "W1 Config loader refactor",
                                                 "text": "Loader split into two modules; 12 tests added"})
-        self.assertEqual(facts["now"]["label"], "W2 Add --version flag (2 of 3) › Tests first › test-author")
-        self.assertEqual(facts["ahead"][0], {"label": "this item", "text": "Build → Check → Integrate"})
+        self.assertEqual(facts["now"]["label"], "W2 Add --version flag (2 of 3) › Plan › test-spec")
+        self.assertEqual(facts["ahead"][0], {"label": "this item", "text": "Validate existing → Build → Verify → Carry forward"})
         self.assertIn({"label": "W3 Document the flag", "text": ""}, facts["ahead"])
         self.assertIn("Preparation ✓", narrative.markdown(facts))
         self.assertIn("**Work items 1/3**", narrative.markdown(facts))
-        self.assertTrue(navigator.narrative_facts(self.driver.advance_to(state, "implement"))["milestone"])
+        self.assertTrue(navigator.narrative_facts(self.driver.advance_to(state, "validate-existing"))["milestone"])
 
     def test_stop_states_replace_now_and_drop_ahead(self) -> None:
         state = self.driver.advance_to(self.driver.state(), "research")
@@ -128,7 +128,7 @@ class NarrativeTests(unittest.TestCase):
         # from 0.8 to 9.6 minutes, another's from 2.5 to 121); a forecast read 2.4 to 6.8 times short at its first
         # showing in five recorded preparations.
         prepared = self.driver.advance_to(self.driver.state(), "research")
-        working = self.driver.advance_to(self.driver.advance_to(self.driver.planned(ROWS), "test-author"), "implement")
+        working = self.driver.advance_to(self.driver.advance_to(self.driver.planned(ROWS), "test-spec"), "implement")
         releasing = self.driver.advance_to(self.driver.advance_to(self.driver.planned(ROWS), "carry-forward"),
                                            "system-test-author")
         for scope, state in (("preparation", prepared), ("work items", working), ("release", releasing)):
@@ -219,10 +219,10 @@ class TimelineAndPacketTests(unittest.TestCase):
         driver = Driver()
         driver.setUp()
         self.addCleanup(driver.temp.cleanup)
-        state = driver.advance_to(driver.planned(ROWS[:1]), "test-author")
+        state = driver.advance_to(driver.planned(ROWS[:1]), "test-spec")
         self.assertEqual(navigator.narrative_lines(state), [])
         block = navigator.status_block(state)
-        stdout = f"ShipLoop navigator | test-author | revision 1\n\n{block}\n"
+        stdout = f"ShipLoop navigator | test-spec | revision 1\n\n{block}\n"
         payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash",
                    "tool_input": {"command": f"python3 {self.cli} next --run-dir={self.run_dir}"},
                    "tool_response": {"stdout": stdout, "stderr": ""}}

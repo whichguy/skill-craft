@@ -178,7 +178,7 @@ class InteractionGuidanceTests(unittest.TestCase):
         for term in shared_terms:
             self.assertIn(term, normalized)
         # Stages that do not plan interactions do not carry the paragraph.
-        for stage in ("test-red", "release", "operations"):
+        for stage in ("test", "release", "operations"):
             self.assertNotIn("Interaction design guide and its", navigator_prompts.prompt(stage))
 
         for stage in ("discovery", "spec", "plan", "step-plan"):
@@ -233,13 +233,16 @@ class InteractionGuidanceTests(unittest.TestCase):
                 "guidance locator plus identity/version or digest (or named fallback),"
             ),
             "evidence_refs",
-            "ordinary notes, not new result fields.",
         )
         for stage in ("plan", "step-plan"):
             with self.subTest(stage=stage):
                 prompt = " ".join(navigator_prompts.prompt(stage).split())
                 for cue in required_cues:
                     self.assertIn(cue, prompt)
+        # The plan keeps its design basis as ordinary notes.  step-plan now records expectations, check commands
+        # and step skills as result fields of its own (8-stage inner loop, 2026-10-10), so the cue is plan's alone.
+        self.assertIn("ordinary notes, not new result fields.",
+                      " ".join(navigator_prompts.prompt("plan").split()))
 
         implementation_prompt = " ".join(
             navigator_prompts.prompt("implement").split()
@@ -285,9 +288,8 @@ class InteractionGuidanceTests(unittest.TestCase):
 
         self.assertEqual(navigator.current_stage(state), "plan")
         state = self._finish_synthetic_v3_step(state, work_items=[work_item])
-        for stage in ("prepare", "get-next-work-item"):
-            self.assertEqual(navigator.current_stage(state), stage)
-            state = self._finish_synthetic_v3_step(state)
+        self.assertEqual(navigator.current_stage(state), "prepare")
+        state = self._finish_synthetic_v3_step(state)
 
         self.assertEqual(navigator.current_stage(state), "step-plan")
         return state

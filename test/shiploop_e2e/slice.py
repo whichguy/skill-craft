@@ -6,8 +6,8 @@
     python3 test/shiploop_e2e/packets.py <output> --compare <earlier output>
 
 A full E2E run (run.py) plans from intake and releases at the end; a step slice exercises one item's inner loop:
-get-next-work-item, step-plan, ... implement ... integrate, carry-forward (and the last item's carry-forward Improve
-child). The harness copies the case's fixture (step_cases.json) into a new git repository, records every stage before
+step-plan, test-spec, validate-existing, implement, test, document, verify, carry-forward (with an Improve child after
+each implement step and the last item's carry-forward Improve child). The harness copies the case's fixture (step_cases.json) into a new git repository, records every stage before
 step-plan without doing it (run.seed_run, on the plugin's own navigator, with the case's work item as the plan's only
 item), and the host follows ShipLoop's packets from step-plan. A poll every POLL_SECONDS archives each distinct packet
 ShipLoop emits (packets.archive_packets) and ends the host once the item's inner loop is over (``slice_complete``): the
@@ -30,10 +30,10 @@ Verdicts (slice-result.json):
                  ShipLoop's own (docs/shiploop/ knowledge, .shiploop-improve/ run evidence)
   checks         every case check exits 0 in a clean copy of that candidate (the files `workspace plan-return` would
                  commit: tracked and untracked, not ignored, without ShipLoop's run evidence)
-The candidate is graded uncommitted on purpose: the inner `integrate` stage assembles each item inside the execution
-checkout, and the product is committed only at the final return (`workspace plan-return`, at release), which a slice
-does not reach (references/workspace-lifecycle.md, "Inner assembly and final return"). Observed on the first live
-slice, 2026-10-10: the fix was correct and uncommitted; only knowledge files had been committed.
+The candidate is graded against the seed commit, committed or not: each item is assembled inside the execution
+checkout, verify commits the files the step plan declares (and documentation and docs/shiploop/), and anything else is
+committed only at the final return (`workspace plan-return`, at release), which a slice does not reach
+(references/workspace-lifecycle.md, "Inner assembly and final return").
 ShipLoop command failures, model glue and queue growth (items a carry-forward added) are recorded, not verdicts.
 """
 from __future__ import annotations

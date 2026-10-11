@@ -23,17 +23,16 @@ SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 REFERENCES = SCRIPTS.parent / "references"
 IMPROVE_CARD = ROOT / "skills" / "improve" / "SKILL.md"
 TEST_HARNESS_STAGES = (
-    "test-strategy", "step-plan", "test-spec", "baseline", "test-author", "test-red",
-    "implement", "test-green", "test-refine", "regression", "verify",
-    "integration-verify", "system-test-author", "system-test",
+    "test-strategy", "step-plan", "test-spec", "validate-existing", "implement", "test",
+    "verify", "system-test-author", "system-test",
 )
 REPEATABLE_TEST_SUITE_ROUTE = (
     "Repeatable test-suite guide: "
     + str(REFERENCES / "repeatable-test-suites.md#select-or-revalidate-the-harness")
 )
 TEST_FACILITY_STAGES = (
-    "test-strategy", "plan", "step-plan", "test-spec", "test-author", "test-red",
-    "test-refine", "regression", "carry-forward", "system-test-author", "release-plan",
+    "test-strategy", "plan", "step-plan", "test-spec", "test",
+    "carry-forward", "system-test-author", "release-plan",
 )
 REUSABLE_TEST_FACILITY_ROUTE = (
     "Reusable test facilities: "
@@ -56,7 +55,7 @@ RELEASE_OPERATION_ROUTE = (
 # Deliberately independent of the prompt catalog: these are the only stages
 # where a local skill must be discoverable before or during a skill decision.
 LOCAL_SKILL_ROUTE_STAGES = (
-    "discovery", "step-plan", "skill-assess", "skill-validate",
+    "discovery", "step-plan", "carry-forward",
 )
 LOCAL_SKILL_GUIDE_ROUTE = (
     "Repository-local skill guidance: "
@@ -133,6 +132,7 @@ CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS = {
     "test-strategy": "planning-and-review-handoff",
     "plan": "planning-and-review-handoff",
     "step-plan": "planning-and-review-handoff",
+    "validate-existing": "evidence-and-authority",
     "document": "retain-across-runs",
     "carry-forward": "retain-across-runs",
     "product-acceptance": "retain-across-runs",
@@ -153,8 +153,8 @@ HOUSE_STYLE_GUIDANCE_LABEL = "House-style guidance"
 HOUSE_STYLE_STAGE_ANCHORS = {
     "discovery": "extract-the-house-style",
     "step-plan": "write-the-match-contract",
-    "test-author": "match-while-building",
     "implement": "match-while-building",
+    "test": "match-while-building",
     "verify": "check-the-diff-against-the-contract",
     "carry-forward": "retain-the-house-style",
 }
@@ -338,7 +338,7 @@ class GuidanceTests(unittest.TestCase):
 
     def test_match_contract_reaches_every_stage_that_builds_or_checks_the_item(self) -> None:
         """The contract lives in the step-plan result; work items take context only at plan."""
-        for stage in ("test-author", "implement", "static-checks", "verify", "document"):
+        for stage in ("implement", "test", "verify", "document"):
             with self.subTest(stage=stage):
                 self.assertIn("item:step-plan", context_index.STAGE_READS[stage])
 
@@ -503,15 +503,14 @@ class GuidanceTests(unittest.TestCase):
             "spec": "independently verifiable clauses",
             "test-strategy": "required surface and due phase",
             "test-spec": "every assigned clause",
-            "test-author": "Authoring is complete",
-            "test-refine": "removed or narrowed case",
-            "step-plan": "two people running it separately would be forced to agree",
-            "implement": "After your last edit to any file, rerun every check in one pass",
-            "verify": "report revise so the step plan is corrected, not accepted",
+            "test": "Every case ends as a test the focused command runs and passes",
+            "step-plan": "two people running its check would agree",
+            "implement": "run every recorded check command and the printed lint command and record each exit code",
+            "verify": "the item goes back to its step plan rather than to a blind retry",
             "product-acceptance": "pending release verification",
             "release-verify": "usable consumer entry",
         }
-        reconciles = {"verify", "integration-verify", "system-test",
+        reconciles = {"verify", "system-test",
                       "product-acceptance", "release-verify", "handoff"}
         locator = str(REFERENCES / "testing-and-documentation.md#stage-readiness-and-completion")
         state = self.state()
@@ -537,10 +536,10 @@ class GuidanceTests(unittest.TestCase):
                 extra["work_items"] = [{"id": "W1", "title": "Capture behavior", "context": clause}]
             state, _ = self.complete_stage(state, **extra)
             visited.add(stage)
-        self.assertEqual(len(visited), 34)
+        self.assertEqual(len(visited), 24)
 
     def test_quality_guidance_keeps_planning_review_and_product_review_distinct(self) -> None:
-        for stage in ("spec", "test-spec", "baseline", "release-verify"):
+        for stage in ("spec", "test-spec", "validate-existing", "release-verify"):
             with self.subTest(stage=stage):
                 text = normalized(prompts.improve_prompt(stage))
                 self.assertIn("selected staged/unstaged/untracked candidate paths", text)
@@ -551,9 +550,11 @@ class GuidanceTests(unittest.TestCase):
             "Repeated templated wording is an audit cue only",
             normalized(IMPROVE_CARD.read_text()),
         )
-        # Inspection of an untracked candidate must not grant edit authority.
-        baseline = normalized(prompts.improve_prompt("baseline"))
-        self.assertIn("may not edit product source, tests", baseline)
+        # Inspection of an untracked candidate must not grant edit authority.  The guard
+        # is discovery's alone now: validate-existing may make a preparatory fix and has
+        # no Improve child.
+        discovery = normalized(prompts.improve_prompt("discovery"))
+        self.assertIn("may not edit product source, tests", discovery)
 
     def test_each_current_packet_renders_its_selected_stage_references(self) -> None:
         state = self.state()
@@ -723,7 +724,7 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(
             tuple(improved),
             tuple(stage for stage in prompts.STAGES
-                  if stage in prompts.PLANNING_REVIEW_STAGES or stage == "carry-forward"),
+                  if stage in prompts.PLANNING_REVIEW_STAGES or stage in {"implement", "carry-forward"}),
         )
 
     def test_cold_local_skill_routes_cover_early_and_late_decisions(self) -> None:
@@ -757,7 +758,8 @@ class GuidanceTests(unittest.TestCase):
 
                 pending, _action = self.produce(producer)
                 observed.append(target)
-                if target not in prompts.PLANNING_REVIEW_STAGES:
+                # The single item's carry-forward is the last item's, which parks its Improve child.
+                if target not in prompts.PLANNING_REVIEW_STAGES and target != "carry-forward":
                     self.assertIsNone(pending["active_improve"])
                     continue
                 recovered_pending, pending_packet = self.cold_packet(pending)
@@ -768,10 +770,10 @@ class GuidanceTests(unittest.TestCase):
                 improved.append(target)
 
         self.assertEqual(tuple(observed), LOCAL_SKILL_ROUTE_STAGES)
-        self.assertEqual(improved, ["step-plan"])
+        self.assertEqual(improved, ["step-plan", "carry-forward"])
 
-    def test_the_step_plan_packet_states_the_skill_na_rule_and_its_template_does_not_print_it(self) -> None:
-        """skill_na is an explicit choice: a placeholder in the template would be a false opt-out when copied."""
+    def test_the_step_plan_packet_asks_each_step_for_its_skills(self) -> None:
+        """skill_na and the two skill stages are gone (8-stage loop, 2026-10-10): each step names its skills."""
         state = self.state()
         while navigator.current_stage(state) != "step-plan":
             extra: dict[str, object] = {}
@@ -779,18 +781,11 @@ class GuidanceTests(unittest.TestCase):
                 extra["work_items"] = [{"id": "W1", "title": "Fixture item"}]
             state, _action_id = self.complete_stage(state, **extra)
         _recovered, packet = self.cold_packet(state)
-        template = packet.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0]
-        self.assertNotIn("skill_na", template)
         flat = normalized(packet)
-        for clause in ("record `skill_na`", "skill-assess and skill-validate as not applicable",
-                       "Omit `skill_na` when the item selects, uses, creates or changes a skill",
-                       "refuses `skill_na` in two places",
-                       "At this step plan, beside a skill file in `paths`",
-                       "At `document`, when the item's real diff touches a skill file",
-                       "AGENTS.md, CLAUDE.md, GEMINI.md and .mcp.json edits there are fine",
-                       "report revise, then resubmit the step plan without `skill_na`",
-                       "resubmit the step plan without `skill_na`", "Improve reviews `skill_na`",
-                       "late helper, MCP and library reuse assessment"):
+        self.assertNotIn("skill_na", flat)
+        for clause in ("Give each step its `skills`",
+                       "reread the host's skills and the repository's skill index or directory now",
+                       "the implement packet prints them"):
             self.assertIn(clause, flat)
 
     def test_coding_guide_is_selective_in_cold_producer_and_improve_packets(self) -> None:
@@ -1060,8 +1055,7 @@ class GuidanceTests(unittest.TestCase):
         self.assertIn(replacement_locator, replacement_packet)
         self.assertIn("reviewed UI replacement with explicit precedence", replacement_packet)
         self.assertNotIn(original_locator, replacement_packet)
-        state, _ = self.complete_stage(state)
-        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
+        self.assertEqual(navigator.current_stage(state), "prepare")
         state, _ = self.complete_stage(state)
         state, cold_packet = self.cold_packet(state)
         self.assertEqual(navigator.current_stage(state), "step-plan")
@@ -1102,7 +1096,7 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(recovered["work_items"][0]["context"], context)
         self.assertEqual(recovered["accepted"][plan_action]["evidence_refs"], [plan_evidence])
         self.assertIn("Work item context: " + context, packet)
-        self.assertIn("Reopen only the relevant item `context`, plan/evidence locators", packet)
+        self.assertIn("Reopen this item's `context` and its section of the feature plan.md", normalized(packet))
         for label, locator in prompts.STAGE_REFERENCES["step-plan"]:
             self.assertIn(label + ": " + str(REFERENCES / locator), packet)
 
@@ -1120,8 +1114,7 @@ class GuidanceTests(unittest.TestCase):
         strategy_ref = "docs/testing.md#accepted-strategy"
         hidden_tail = "UNTRUSTED-STRATEGY-TAIL-MUST-NOT-BE-RENDERED"
         long_ref = "untrusted://strategy/" + ("x" * 2600) + hidden_tail
-        checkpoints = {"step-plan", "test-spec", "test-author", "test-refine", "regression",
-                       "system-test-author"}
+        checkpoints = {"step-plan", "test-spec", "test", "system-test-author"}
         state = self.state()
         strategy_action = ""
         decision_action: str | None = None
@@ -1270,9 +1263,7 @@ class GuidanceTests(unittest.TestCase):
         changed_step_plan_ref = "docs/testing.md#revised-step-plan"
         draft_step_plan_ref = "untrusted://draft-step-plan"
         author_ref = "docs/testing.md#authored-case"
-        refine_ref = "docs/testing.md#refined-case"
         test_spec_repeat_ref = "untrusted://test-spec-repeat"
-        regression_ref = "docs/testing.md#regression-decision"
         w2_ref = "docs/testing.md#w2-decision"
         state = self.state()
         strategy_action = ""
@@ -1314,9 +1305,6 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(state), "prepare")
         state, _prepare_action = self.complete_stage(state, evidence_refs=["unrelated://prepare"])
         state = self.save_reload(state)
-        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
-        state, _select_action = self.complete_stage(state, evidence_refs=["unrelated://select-w1"])
-        state = self.save_reload(state)
         self.assertEqual(navigator.current_stage(state), "step-plan")
 
         final_step_plan = result(
@@ -1335,55 +1323,52 @@ class GuidanceTests(unittest.TestCase):
         self.assertNotIn(draft_step_plan_ref, packet)
         self.assertIn("Work item context: " + contexts["W1"], packet)
 
-        # A pending repeat proposal under review is not a test decision.
-        repeat_action = dict(navigator.current_action(state))["id"]
+        # A pending blocked proposal under review is not a test decision (repeat is no longer an inner
+        # outcome, 2026-10-10).
+        blocked_action = dict(navigator.current_action(state))["id"]
         waiting, _waiting_action = self.pending_improve(
-            state, outcome="repeat", evidence_refs=[test_spec_repeat_ref]
+            state, outcome="blocked", blocked_by="external", evidence_refs=[test_spec_repeat_ref]
         )
         pending, packet = self.cold_packet(waiting)
         self.assertIn("Current action: Improve the completed test-spec result.", packet)
         assert_sources(packet, step_plan_action, changed_step_plan_ref)
-        self.assertNotIn("Current item test-decision source action: " + repeat_action, packet)
-        state = navigator.finish_improve(pending, repeat_action, receipt("test-spec"))
+        self.assertNotIn("Current item test-decision source action: " + blocked_action, packet)
+        state = navigator.finish_improve(pending, blocked_action, receipt("test-spec"))
+        self.assertEqual(state["status"], "blocked")
+        state = navigator.control(state, "resume")
         state, packet = self.cold_packet(state)
         self.assertEqual(navigator.current_stage(state), "test-spec")
         assert_sources(packet, step_plan_action, changed_step_plan_ref)
-        self.assertNotIn("Current item test-decision source action: " + repeat_action, packet)
+        self.assertNotIn("Current item test-decision source action: " + blocked_action, packet)
 
         state, test_spec_action = self.complete_stage(
             state, evidence_refs=["docs/testing.md#test-spec"]
         )
         state, packet = self.cold_packet(state)
-        self.assertEqual(navigator.current_stage(state), "baseline")
+        self.assertEqual(navigator.current_stage(state), "validate-existing")
         assert_sources(packet, test_spec_action, "docs/testing.md#test-spec")
 
-        state, _baseline_action = self.complete_stage(
-            state, evidence_refs=["unrelated://baseline"]
+        state, _validate_action = self.complete_stage(
+            state, evidence_refs=["unrelated://validate-existing"]
         )
         state, packet = self.cold_packet(state)
-        self.assertEqual(navigator.current_stage(state), "test-author")
+        self.assertEqual(navigator.current_stage(state), "implement")
         assert_sources(packet, test_spec_action, "docs/testing.md#test-spec")
 
-        state, test_author_action = self.complete_stage(state, evidence_refs=[author_ref])
-        state = self.save_reload(state)
-        while navigator.current_stage(state) != "test-refine":
+        while navigator.current_stage(state) != "test":
             stage = navigator.current_stage(state)
             state, _action_id = self.complete_stage(
                 state, evidence_refs=["unrelated://" + stage]
             )
             state = self.save_reload(state)
         state, packet = self.cold_packet(state)
-        assert_sources(packet, test_author_action, author_ref)
+        assert_sources(packet, test_spec_action, "docs/testing.md#test-spec")
 
-        state, test_refine_action = self.complete_stage(state, evidence_refs=[refine_ref])
-        state, packet = self.cold_packet(state)
-        self.assertEqual(navigator.current_stage(state), "regression")
-        assert_sources(packet, test_refine_action, refine_ref)
-
-        state, regression_action = self.complete_stage(state, evidence_refs=[regression_ref])
+        # test-author, test-refine and regression are one test stage now: its result is the decision source.
+        state, test_action = self.complete_stage(state, evidence_refs=[author_ref])
         state, packet = self.cold_packet(state)
         self.assertEqual(navigator.current_stage(state), "document")
-        assert_sources(packet, regression_action, regression_ref)
+        assert_sources(packet, test_action, author_ref)
 
         while not (
             navigator.current_stage(state) == "step-plan"
@@ -1403,14 +1388,14 @@ class GuidanceTests(unittest.TestCase):
             packet,
         )
         self.assertNotIn(changed_step_plan_ref, packet)
-        self.assertNotIn(refine_ref, packet)
+        self.assertNotIn(author_ref, packet)
 
         state, w2_action = self.complete_stage(state, evidence_refs=[w2_ref])
         state, packet = self.cold_packet(state)
         self.assertEqual(navigator.current_stage(state), "test-spec")
         assert_sources(packet, w2_action, w2_ref)
         self.assertNotIn(changed_step_plan_ref, packet)
-        self.assertNotIn(refine_ref, packet)
+        self.assertNotIn(author_ref, packet)
 
     def test_reusable_test_facilities_route_and_recover_without_new_state(self) -> None:
         """Facility locators are ordinary cold-context records, never execution proof."""
@@ -1449,13 +1434,10 @@ class GuidanceTests(unittest.TestCase):
             # Only stages that start an Improve child are told to carry locators into it.
             has_child = stage in prompts.PLANNING_REVIEW_STAGES or stage == "carry-forward"
             self.assertEqual("Improve child's context/notes" in text, has_child, stage)
+        # test-red and regression are folded into test (8-stage loop, 2026-10-10): it reuses facilities first.
         self.assertIn(
-            "A missing test facility is a prerequisite gap, not meaningful RED.",
-            normalized(prompts.prompt("test-red")),
-        )
-        self.assertIn(
-            "Revalidate retained facility definitions and readiness for this regression target",
-            normalized(prompts.prompt("regression")),
+            "Reuse the existing harness, helpers and fixtures before adding a facility",
+            normalized(prompts.prompt("test")),
         )
 
         skill_ref = "docs/testing.md#local-framework-skill-v2"
@@ -1468,7 +1450,7 @@ class GuidanceTests(unittest.TestCase):
         strategy_action = ""
         plan_action = ""
         author_action = ""
-        while navigator.current_stage(state) != "test-author":
+        while navigator.current_stage(state) != "test":
             stage = navigator.current_stage(state)
             extra: dict[str, object] = {"evidence_refs": ["synthetic://" + stage]}
             if stage == "test-strategy":
@@ -1576,11 +1558,11 @@ class GuidanceTests(unittest.TestCase):
             stage = navigator.current_stage(state)
             owner = navigator._current_work_item(state)
             refs = ["unrelated://" + stage]
-            if owner in decisions and stage == "regression":
+            if owner in decisions and stage == "test":
                 refs = [decisions[owner]]
             state, action = self.complete_stage(state, evidence_refs=refs)
             state = self.save_reload(state)
-            if owner in decisions and stage == "regression":
+            if owner in decisions and stage == "test":
                 decision_actions[owner] = action
 
         state, packet = self.cold_packet(state)
@@ -1674,18 +1656,18 @@ class GuidanceTests(unittest.TestCase):
         state = navigator.apply(state, replan_action, replan_result)
         self.assertIsNone(state["active_improve"])
         state = self.save_reload(state)
-        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
+        self.assertEqual(navigator.current_stage(state), "step-plan")
         self.assertEqual(navigator._current_work_item(state), "W3")
 
         while navigator.current_stage(state) != "system-test-author":
             stage = navigator.current_stage(state)
             owner = navigator._current_work_item(state)
             refs = ["unrelated://" + stage]
-            if owner == "W3" and stage == "regression":
+            if owner == "W3" and stage == "test":
                 refs = [decisions["W3"]]
             state, action = self.complete_stage(state, evidence_refs=refs)
             state = self.save_reload(state)
-            if owner == "W3" and stage == "regression":
+            if owner == "W3" and stage == "test":
                 decision_actions["W3"] = action
 
         state, packet = self.cold_packet(state)
@@ -2097,7 +2079,8 @@ class GuidanceTests(unittest.TestCase):
             state = navigator.finish_improve(pending, action["id"], receipt(stage))
 
         self.assertEqual(tuple(observed), tuple(SERVICE_DISCOVERY_STAGE_ANCHORS))
-        self.assertEqual(improved, ["spec", "test-strategy", "plan", "step-plan"])
+        # implement's Improve child reviews every accepted step (owner decision 2026-10-10).
+        self.assertEqual(improved, ["spec", "test-strategy", "plan", "step-plan", "implement"])
 
 
     def test_service_discovery_guide_sections_and_links_survive_package_relocation(self) -> None:
@@ -2396,7 +2379,7 @@ class CaseEndStateTests(unittest.TestCase):
     """Owner rule (2026-10-08): a test is authored and executed, and a case completes only when it is validated, re-validated
     another way, or declared unachievable. A case written but not run, or recorded `not run`, is not an end state."""
 
-    STAGES = ("test-author", "test-green", "regression", "system-test-author", "system-test")
+    STAGES = ("test", "system-test-author", "system-test")
 
     def test_the_stage_rows_state_the_three_end_states(self) -> None:
         sys.path.insert(0, str(SCRIPTS))
@@ -2510,13 +2493,6 @@ class CarriedOpenItemTests(unittest.TestCase):
             with self.subTest(name):
                 self.assertIn(name, spec.stage("product-acceptance").reads)
 
-    def test_the_skill_card_says_what_dropping_a_skill_file_from_paths_does(self) -> None:
-        """F4: integrate now commits an undeclared documentation file, SKILL.md and AGENTS.md included, so "removing
-        the file from paths would leave it uncommitted" is no longer true; the card says what the code does."""
-        skill = " ".join((SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8").split())
-        self.assertNotIn("removing the file from `paths` would leave it uncommitted", skill)
-        self.assertIn("integrate commits an undeclared file only when it is documentation", skill)
-
 
 class UnattendedWordingTests(unittest.TestCase):
     """SPEC S-14: a stage row asks for nothing an unattended run cannot do, and one packet never contradicts itself."""
@@ -2534,7 +2510,7 @@ class UnattendedWordingTests(unittest.TestCase):
     def test_the_integrate_guidance_leaves_the_commit_to_shiploop_and_binds_no_chain_inline(self) -> None:
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
-                text = normalized(prompts.prompt("integrate", delegation=route))
+                text = normalized(prompts.prompt("verify", delegation=route))  # integrate folded into verify
                 self.assertNotIn("assemble or commit", text)  # the stage row says ShipLoop commits; the duty does not ask
                 self.assertEqual("bound chain" in text, route == "ask-agent")  # a chain exists only when delegation is ask-agent
 

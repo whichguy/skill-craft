@@ -64,19 +64,18 @@ def host_work_per_item(step_plans):
 class BattleshipMeasurementTests(unittest.TestCase):
     """The run-feedback plan's measurement: a metadata-only item costs the host far less."""
 
-    def test_a_metadata_only_item_skips_its_seven_test_stages_and_the_test_spec_review(self):
+    def test_a_metadata_only_item_skips_its_test_stage(self):
         counts = host_work_per_item({"W1": CODE_ITEM, "W2": METADATA_ITEM})
-        # W1 walks all 18 INNER stages; its step-plan and test-spec get Improve reviews.
-        self.assertEqual(counts["W1"], {"packets": 18, "reviews": 2})
-        # W2 loses test-spec, baseline, test-author, test-red, test-green, test-refine and
-        # regression (7 packets) and the test-spec review; the end-of-work review remains.
-        self.assertEqual(counts["W2"], {"packets": 11, "reviews": 2})
+        # W1 walks all 8 INNER stages; its step-plan, test-spec and its implement step get Improve reviews.
+        self.assertEqual(counts["W1"], {"packets": 8, "reviews": 3})
+        # W2 loses the test stage (no command, only non-code paths); the end-of-work review is added.
+        self.assertEqual(counts["W2"], {"packets": 7, "reviews": 4})
 
     def test_without_proof_a_no_command_item_still_walks_every_stage(self):
         code_without_commands = {"paths": ["src/**"], "test_commands": [],
                                  "test_commands_na": "The model says there is nothing to test."}
         counts = host_work_per_item({"W1": code_without_commands})
-        self.assertEqual(counts["W1"]["packets"], 18)
+        self.assertEqual(counts["W1"]["packets"], 8)
 
 class NavigatorDryRunTests(unittest.TestCase):
     def test_access_policy_is_reachable_through_actual_graph_and_recovery(self):
@@ -143,8 +142,8 @@ class NavigatorDryRunTests(unittest.TestCase):
                         self.assertEqual(prompt.count(line), int(discovery), line)
 
     def test_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
-        expected = {'delivery': 42, 'two-work-items': 62, 'blocked-resume': 44,
-                    'repeat-improve': 44, 'revise': 50, 'pause-resume': 44, 'halted': 1}
+        expected = {'delivery': 33, 'two-work-items': 44, 'blocked-resume': 35,
+                    'repeat-improve': 35, 'revise': 39, 'pause-resume': 35, 'halted': 1}
         scenarios = driver.scenarios()
         self.assertEqual(set(scenarios), set(expected))
         for name, scenario in scenarios.items():
@@ -167,9 +166,10 @@ class NavigatorDryRunTests(unittest.TestCase):
                 produces = [event for event in report['events'] if event['command'] == 'produce']
                 finishes = [event for event in report['events'] if event['command'] == 'finish-improve']
                 # An actual Improve child starts only for a planning/contract
-                # stage result or the end-of-work carry-forward; every other
-                # produce advances directly with no paired finish-improve.
-                checkpoint_stages = guidance.PLANNING_REVIEW_STAGES | {'carry-forward'}
+                # stage result, an accepted implement step or the end-of-work
+                # carry-forward; every other produce advances directly with no
+                # paired finish-improve.
+                checkpoint_stages = guidance.PLANNING_REVIEW_STAGES | {'implement', 'carry-forward'}
                 self.assertTrue({event['from'] for event in finishes} <= checkpoint_stages)
                 planning_produces = sorted(event['from'] for event in produces
                                            if event['from'] in guidance.PLANNING_REVIEW_STAGES)
@@ -184,17 +184,18 @@ class NavigatorDryRunTests(unittest.TestCase):
         self.assertEqual({event['owner'] for event in two_items['events']
                           if event['owner'] != 'root'}, {'W1', 'W2'})
         produce_inner = [event for event in two_items['events']
-                         if event['from'] in ('get-next-work-item', 'implement', 'carry-forward')
+                         if event['from'] in ('step-plan', 'implement', 'carry-forward')
                          and event['command'] == 'produce']
         self.assertEqual([event['owner'] for event in produce_inner],
                          ['W1', 'W1', 'W1', 'W2', 'W2', 'W2'])
-        # get-next-work-item/implement are not planning stages and W1's carry-forward
+        # Each item's one implement step gets its step review. W1's carry-forward
         # leaves W2 pending, so only W2's end-of-work carry-forward gets a
         # review; W1's carry-forward advances straight to W2 without one.
         finish_inner = [event for event in two_items['events']
-                        if event['from'] in ('get-next-work-item', 'implement', 'carry-forward')
+                        if event['from'] in ('implement', 'carry-forward')
                         and event['command'] == 'finish-improve']
-        self.assertEqual([event['owner'] for event in finish_inner], ['W2'])
+        self.assertEqual([(event['from'], event['owner']) for event in finish_inner],
+                         [('implement', 'W1'), ('implement', 'W2'), ('carry-forward', 'W2')])
         w1_produce = next(event for event in two_items['events']
                           if event['owner'] == 'W1' and event['from'] == 'carry-forward'
                           and event['command'] == 'produce')
@@ -346,14 +347,16 @@ class NavigatorDryRunTests(unittest.TestCase):
 
     def test_the_dry_run_schedule_is_declared_per_planning_review_mode(self):
         """An independent oracle: the stages whose result starts an Improve child, declared here for each mode."""
+        # implement's per-step review runs in both modes (owner decision 2026-10-10: planning_review none does not
+        # skip the per-step Improve).
         reviewed = {'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec',
-                              'system-test-author', 'release-plan'},
-                    'none': {'system-test-author', 'release-plan'}}
-        events = {'stage': {'delivery': 42, 'two-work-items': 62, 'blocked-resume': 44, 'repeat-improve': 44,
-                            'revise': 50, 'pause-resume': 44, 'halted': 1},
+                              'system-test-author', 'release-plan', 'implement'},
+                    'none': {'system-test-author', 'release-plan', 'implement'}}
+        events = {'stage': {'delivery': 33, 'two-work-items': 44, 'blocked-resume': 35, 'repeat-improve': 35,
+                            'revise': 39, 'pause-resume': 35, 'halted': 1},
                   # none drops one finish-improve row for each planning result the option covers
-                  'none': {'delivery': 37, 'two-work-items': 55, 'blocked-resume': 39, 'repeat-improve': 39,
-                           'revise': 43, 'pause-resume': 39, 'halted': 1}}
+                  'none': {'delivery': 28, 'two-work-items': 37, 'blocked-resume': 30, 'repeat-improve': 30,
+                           'revise': 32, 'pause-resume': 30, 'halted': 1}}
         self.assertEqual(set(driver.REVIEWED3), set(navigator.PLANNING_REVIEW_MODES))
         for mode in navigator.PLANNING_REVIEW_MODES:
             self.assertEqual(driver.REVIEWED3[mode], reviewed[mode])

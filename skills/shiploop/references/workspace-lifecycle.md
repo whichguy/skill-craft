@@ -106,9 +106,9 @@ still contain usable durable document links and enough rationale to stand alone.
 
 ## Inner assembly and final return
 
-The INNER `integrate` action combines the item's step and worker changes
-**inside the execution checkout**. It does not merge into the original branch
-after each item. All remaining items, system tests, outer Improve reviews and
+Each item's step and worker changes are combined **inside the execution
+checkout**, and ShipLoop commits the item there when its `verify` is accepted. It
+does not merge into the original branch after each item. All remaining items, system tests, outer Improve reviews and
 authorized release work use the same assembled candidate. Recheck any integration-affected
 behavior.
 
@@ -301,7 +301,7 @@ the execution worktree is removed.
   and keeps the later history, but it also undoes what those later commits changed,
   and it discards uncommitted edits. To keep their changes, reverse only the run's
   files with the working-tree recipe below. `git revert <source_head>..HEAD` is not a
-  recipe: it stops on an integrate merge commit in the run's history.
+  recipe: it stops on a chain integration merge commit in the run's history.
 - **Working-tree return** (a dirty start, or a clean start whose plan excluded a
   committed path), or only the run's files after a fast-forward:
   `git diff --binary <baseline_commit> <run branch> -- <kept paths>`

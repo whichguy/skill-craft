@@ -750,17 +750,19 @@ function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").repl
 /* The engine's phases and the stages each one serves, in flow order (the exporter's phase table; a test keeps them equal).
    A stage this table does not know belongs to the phase of the visit before it. */
 var STAGE_FLOW=[["Understand",["intake","discovery","research"]],["Specify",["spec","test-strategy"]],
-  ["Plan",["plan","prepare","get-next-work-item","step-plan"]],
-  ["Build",["test-spec","baseline","test-author","test-red","implement","test-green","test-refine"]],
-  ["Prove",["regression","document","skill-assess","skill-validate","static-checks","verify"]],
-  ["Integrate",["integrate","integration-verify","carry-forward"]],
+  ["Plan",["plan","prepare","step-plan","test-spec"]],
+  ["Build",["validate-existing","implement","test","document"]],
+  ["Verify",["verify"]],
+  ["Carry forward",["carry-forward"]],
   ["System test",["system-test-author","system-test","product-acceptance"]],
   ["Release",["release-plan","release-check","release","release-verify","operations","handoff"]]];
-/* The engine renamed select-work to get-next-work-item and refuses a saved run with the old name, so a new run never needs
-   this: it is here so committed history (exports of ShipLoop 1.22.0 and earlier runs, the database, old run directories)
-   renders under either name. The first name is canonical. One group, resolved by stageNames only; a test keeps it equal to
-   the exporter's STAGE_ALIASES. */
-var STAGE_ALIASES=[["get-next-work-item","select-work"]];
+/* Read-only names for saved evidence: the engine refuses a saved run that carries a removed stage name, so a new run never
+   needs this. It is here so committed history (exports of runs of the 17-stage inner loop and of select-work, the database,
+   old run directories) places an old visit in the phase of the stage that replaced it. The first name is canonical. Resolved
+   by stageNames only; a test keeps it equal to the exporter's STAGE_ALIASES. */
+var STAGE_ALIASES=[["step-plan","get-next-work-item","select-work"],["validate-existing","baseline"],
+  ["test","test-author","test-red","test-green","test-refine","regression"],
+  ["verify","static-checks","integrate","integration-verify"],["carry-forward","skill-assess","skill-validate"]];
 function stageNames(stage){for(var i=0;i<STAGE_ALIASES.length;i++)if(STAGE_ALIASES[i].indexOf(stage)>=0)return STAGE_ALIASES[i];return [stage];}
 function phaseOfStage(stage,previous){
   var names=stageNames(stage);
@@ -1017,7 +1019,7 @@ function deliveredModel(run){
   /* No return plan means no file list for any kind: say so once, in one row, not once per row. */
   var src=kept("source");if(f)rows.push(["Implemented",src.join("\n")]);else rows.push(["Files kept",why("files")]);
   var tf=kept("tests"),t=d.tests&&typeof d.tests==="object"&&isCount(d.tests.ran)?d.tests:null;
-  var ran=t?"Last run: "+plural(t.ran,"test")+" ran"+(isCount(t.failed)?", "+t.failed+" failed":"")+", at "+t.stage+(t.where?" ("+t.where+")":"")+(t.stage==="test-red"?": the new tests are meant to fail here":""):"Last run: "+why("tests");
+  var ran=t?"Last run: "+plural(t.ran,"test")+" ran"+(isCount(t.failed)?", "+t.failed+" failed":"")+", at "+t.stage+(t.where?" ("+t.where+")":""):"Last run: "+why("tests");
   rows.push(["Tests",(tf?tf:[]).concat([ran]).join("\n")]);
   var df=kept("docs"),kf=kept("knowledge"),docLines=df?df.slice():[];
   if(kf&&f&&isCount(f.knowledge.count))docLines.push("ShipLoop records: "+(f.knowledge.count===0?"none kept":plural(f.knowledge.count,"file")+" under docs/shiploop (the run's own planning, outcome and release records)"));
@@ -1417,7 +1419,7 @@ function packetMeta(d){
 }
 /* ---- the stage card (step 1): what a stage was, what it was sent, what it wrote back ---- */
 /* A stage's display text, derived (the engine's stage row has no display name): hyphens to spaces, first letter upper-cased, so
-   'get-next-work-item' reads 'Get next work item'. The raw name stays as a tooltip and, when it differs, as secondary text. */
+   'validate-existing' reads 'Validate existing'. The raw name stays as a tooltip and, when it differs, as secondary text. */
 function stageLabel(stage){var s=typeof stage==="string"?stage.replace(/-/g," "):"";return s.charAt(0).toUpperCase()+s.slice(1);}
 function rawShown(stage){return typeof stage==="string"&&stage!==""&&stageLabel(stage).toLowerCase()!==stage;}
 /* The stage catalog (config/stages.stages, derived from the engine's stage table) entry of a stage, found under either name of

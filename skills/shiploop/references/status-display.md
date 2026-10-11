@@ -6,11 +6,11 @@ neither; in a terminal CLI a hook can show them to the user directly.
 
 ```text
 === ShipLoop status ===
-Where:     Work items > W2 "Add --version flag" (2 of 4) > Tests first > test-author
+Where:     Work items > W2 "Add --version flag" (2 of 4) > Build > test
 Run:       Preparation ✓ | Work items 1/4 ▶ | Release ·
-Item:      Plan ✓ | Tests first ▶ | Build · | Check · | Integrate ·
-Done:      W2 baseline: existing suite 142/142 passing; no --version coverage yet.
-Next:      test-author: write the tests the item's test spec calls for
+Item:      Plan ✓ | Validate existing ✓ | Build ▶ | Verify · | Carry forward ·
+Done:      W2 implement: --version added to the cli.py argparse; checks pass.
+Next:      test: write the specified tests and make every recorded command pass
 Item plan: Add --version to cli.py argparse; tests in test_cli.py.
 Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
 === end ShipLoop status ===
@@ -22,7 +22,7 @@ Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
 |---|---|
 | Where | Phase, then item (N of M) and its stage group, then the stage. `(Improve review)` while an Improve child owns the step. |
 | Run | Preparation, work items (completed/total) and Release. |
-| Item / Stages | During a work item, its 18 stages in five groups: Plan, Tests first, Build, Check, Integrate. In preparation and release, each stage. |
+| Item / Stages | During a work item, its 8 stages in five phases: Plan, Validate existing, Build, Verify, Carry forward. In preparation and release, each stage. |
 | Done | The latest accepted result's first sentence, marked when Improve reviewed it or the outcome was repeat, blocked, replan or reconcile. While a child is parked, the result it is reviewing. |
 | Next / Stopped | The current stage and its one-line purpose, or the Improve review in progress. A paused, blocked or halted run shows its reason; the packet prints the resume command. |
 | Item plan | The first sentence of the item's accepted `step-plan` summary, or of the item's `context` before that. Omitted when neither exists. |
@@ -128,8 +128,8 @@ no ongoing observation unless an observer still owns its original path.
    model never sees it:
 
    ```text
-   ShipLoop ▶ Work items > W2 "Add --version flag" (2 of 4) > Tests first > test-author
-   Done: W2 baseline: existing suite 142/142 passing; no --version coverage yet. | Next: test-author: write the tests the item's test spec calls for
+   ShipLoop ▶ Work items > W2 "Add --version flag" (2 of 4) > Build > test
+   Done: W2 implement: --version added to the cli.py argparse; checks pass. | Next: test: write the specified tests and make every recorded command pass
    ```
 
    The second line takes `Waiting on you` or `Stopped` in place of `Next` when
@@ -144,7 +144,7 @@ At milestones a packet carries a script-rendered narrative between
 progress bar per phase, what has been achieved, what is happening now, what
 comes next and the run's observed pace. Milestones are the start of a run,
 every accepted preparation and release stage, the end of each work-item stage
-group (Plan, Tests first, Build, Check, Integrate), and every paused, blocked,
+phase (Plan, Validate existing, Build, Verify, Carry forward), and every paused, blocked,
 awaiting, halted or done packet. Other packets carry no narrative.
 
 ```markdown

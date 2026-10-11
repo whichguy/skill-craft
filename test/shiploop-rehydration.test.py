@@ -46,29 +46,30 @@ def drive_to(stage: str) -> dict:
 
 class IndexTests(unittest.TestCase):
     def test_in_progress_names_the_pass_log_and_loop_packets(self) -> None:
-        state = drive_to("test-green")
+        state = drive_to("test")
         action = nav.current_action(state)["id"]
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            text = context_index.render(state, root, "test-green")
+            text = context_index.render(state, root, "test")
             self.assertIn("## In progress", text)
             line = next(line for line in text.splitlines() if line.startswith("- Pass log"))
             self.assertTrue(line.endswith(f": {root / 'notes' / (action + '.md')}"), line)
             self.assertIn("if it exists", line)
-            self.assertIn(str(root / "tests" / (action + "-terminal.json")), text)
+            # Every inner stage runs one Until Loop; its receipt is the one loop record (shiploop_loops.receipt_path).
+            self.assertIn(str(root / "loops" / (action + "-terminal.json")), text)
             self.assertNotIn("-latest.json", text)  # nothing writes it; the receipt is the one loop record
             self.assertLess(text.index("## In progress"), text.index("## Request"))
 
     def test_script_records_list_what_the_script_wrote(self) -> None:
-        state = drive_to("test-green")
+        state = drive_to("test")
         action = nav.current_action(state)["id"]
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            self.assertNotIn("## Script records", context_index.render(state, root, "test-green"))
+            self.assertNotIn("## Script records", context_index.render(state, root, "test"))
             (root / "tests").mkdir()
             record = root / "tests" / (action + "-verify1.md")
             record.write_text("record\n")
-            text = context_index.render(state, root, "test-green")
+            text = context_index.render(state, root, "test")
             self.assertIn("## Script records", text)
             self.assertIn(f"- {record}", text)
             self.assertIn("ShipLoop test runs for this action: 1", text)
@@ -81,7 +82,8 @@ class IndexTests(unittest.TestCase):
         self.assertIn("W1 has gone back to step-plan 1 of 2 times", text)
 
     def test_verify_and_handoff_read_the_evidence_they_judge(self) -> None:
-        self.assertTrue({"item:implement", "item:test-green", "item:regression", "item:static-checks"}
+        # test absorbed test-green and regression; verify itself now runs static-checks' review loop.
+        self.assertTrue({"item:step-plan", "item:test-spec", "item:implement", "item:test"}
                         <= set(context_index.STAGE_READS["verify"]))
         self.assertTrue({"product-acceptance", "operations"} <= set(context_index.STAGE_READS["handoff"]))
 
@@ -178,7 +180,7 @@ class GoalFirstTests(unittest.TestCase):
                 for condition in spec.stage(stage).done_when:         # and it states what the review judges against
                     self.assertIn("- " + condition, improve)
                 state = nav.finish_improve(state, action, step["receipt"], step.get("final_result"))
-        self.assertEqual(len(seen), 34)
+        self.assertEqual(seen, set(spec.STAGES))  # every one of the 24 stages issued a producer packet
 
 
     def test_the_improve_packet_for_a_blocked_result_does_not_claim_the_result_meets_the_done_when(self) -> None:

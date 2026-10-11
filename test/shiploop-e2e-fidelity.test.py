@@ -367,7 +367,7 @@ class EvidenceTest(unittest.TestCase):
 
     def test_script_beats_loop_beats_file_and_the_records_list_keeps_what_the_class_hides(self):
         rows = replay("r3-battleship-sonnet")["block"]["evidence"]["stages"]
-        both = [r for r in rows if "improve" in r["records"] and {"verify", "lint", "quality", "backchain"} & set(r["records"])]
+        both = [r for r in rows if "improve" in r["records"] and {"verify", "lint", "loop", "backchain"} & set(r["records"])]
         self.assertTrue(both, "a carry-forward with a verify record and an Improve child reads script")
         for row in both:
             self.assertEqual(row["class"], "script")
@@ -376,7 +376,7 @@ class EvidenceTest(unittest.TestCase):
         for row in loops:
             self.assertEqual(row["records"], ["improve"])
         counts = replay("r3-battleship-sonnet")["block"]["evidence"]["records"]
-        self.assertEqual(set(counts), {"verify", "lint", "quality", "backchain", "improve"})
+        self.assertEqual(set(counts), {"verify", "lint", "loop", "expectation", "backchain", "improve"})
         self.assertEqual(counts["improve"], 8, "7 loop rows and the carry-forward that also carries a verify record")
 
     def test_an_improve_child_is_found_by_its_receipt_or_by_its_improve_results_entry(self):
@@ -443,8 +443,10 @@ class EvidenceTest(unittest.TestCase):
                     for a, s, o in history}}
 
     def test_a_stage_declaring_two_scripts_is_listed_when_one_of_them_left_no_record(self):
-        # Review A1: test-green and regression declare [lint-gate, test-loop] and static-checks [quality-terminal, test-rerun]; a lint or
-        # quality record alone must not satisfy them. The deletion is exactly the review's: only tests/<action>-verify*.md of three stages.
+        # Review A1: test-green and regression declare [lint-gate, test-loop]; a lint record alone must not satisfy them. The deletion
+        # is exactly the review's: only tests/<action>-verify*.md of three stages. static-checks declares [quality-terminal,
+        # test-rerun] in these saved runs' table; the 8-stage reader no longer knows quality-terminal (an inner stage's loop receipt
+        # is loops/<action>-terminal.json, kind "loop"), so static-checks is not judged there and names the run in unmapped_runs.
         for alias in ("r3-battleship-sonnet", "r1-battleship-sonnet"):
             with self.subTest(run=alias), tempfile.TemporaryDirectory() as tmp:
                 shown = Path(tmp) / alias
@@ -458,26 +460,29 @@ class EvidenceTest(unittest.TestCase):
                         record.unlink()
                 block = self.fidelity.build(shown, run_dir, metrics.ToolLog(), engine_scripts=CURRENT_TABLE, exporter=EXPORTER)
                 evidence = block["evidence"]
-                self.assertEqual(sorted(set(evidence["declared_script_run_without_record"])), sorted(wanted))
+                self.assertEqual(sorted(set(evidence["declared_script_run_without_record"])), ["regression", "test-green"])
+                self.assertIn("quality-terminal", evidence["unmapped_runs"])
                 rows = [r for r in evidence["stages"] if r["action"] in actions]
                 self.assertEqual({r["stage"]: r["lacks"] for r in rows}, {"test-green": ["verify"], "regression": ["verify"],
-                                                                         "static-checks": ["verify"]})
-                self.assertEqual({r["class"] for r in rows}, {"script"}, "the class still comes from the records that exist")
+                                                                         "static-checks": None})
+                self.assertEqual({r["class"] for r in rows if r["stage"] != "static-checks"}, {"script"},
+                                 "the class still comes from the records that exist")
                 self.assertEqual(replay(alias)["block"]["evidence"]["declared_script_run_without_record"], [])
 
     def test_the_kinds_a_stage_needs_come_from_the_runs_its_table_row_declares(self):
-        declared = {"test-green": {"check": "script-run", "runs": ["lint-gate", "test-loop"]},
-                    "static-checks": {"check": "script-run", "runs": ["quality-terminal", "test-rerun"]},
-                    "test-author": {"check": "script-run", "runs": ["test-probe"]},
-                    "test-red": {"check": "script-run", "runs": ["test-red"]},
+        declared = {"test": {"check": "script-run", "runs": ["loop-terminal", "lint-gate", "test-base", "test-loop"]},
+                    "verify": {"check": "script-run", "runs": ["loop-terminal", "lint-gate", "test-rerun"]},
+                    "implement": {"check": "script-run", "runs": ["loop-terminal", "lint-gate"]},
+                    "document": {"check": "script-run", "runs": ["loop-terminal"]},
                     "intake": {"check": "model judgement", "runs": []}}
         run_dir = Path("/nonexistent-run-dir")
-        state = self.run_state([("a", "test-green", "done"), ("b", "static-checks", "done"), ("c", "test-author", "done"),
-                                ("d", "test-red", "done"), ("e", "intake", "done")])
+        state = self.run_state([("a", "test", "done"), ("b", "verify", "done"), ("c", "implement", "done"),
+                                ("d", "document", "done"), ("e", "intake", "done")])
         rows = {r["stage"]: r for r in self.fidelity.evidence(run_dir, state, declared)["stages"]}
         self.assertEqual({k: (r["needs"], r["lacks"]) for k, r in rows.items()}, {
-            "test-green": (["lint", "verify"], ["lint", "verify"]), "static-checks": (["quality", "verify"], ["quality", "verify"]),
-            "test-author": (["verify"], ["verify"]), "test-red": (["verify"], ["verify"]), "intake": ([], [])})
+            "test": (["lint", "loop", "verify"], ["lint", "loop", "verify"]),
+            "verify": (["lint", "loop", "verify"], ["lint", "loop", "verify"]),
+            "implement": (["lint", "loop"], ["lint", "loop"]), "document": (["loop"], ["loop"]), "intake": ([], [])})
 
     def test_a_run_with_the_lint_option_off_does_not_need_a_lint_gate_record(self):
         declared = {"implement": {"check": "script-run", "runs": ["lint-gate"]}, "test-green": {"check": "script-run", "runs": ["lint-gate", "test-loop"]}}
@@ -532,16 +537,19 @@ class EvidenceTest(unittest.TestCase):
             row = self.fidelity.evidence(run_dir, state, None)["stages"][0]
             self.assertEqual((row["records"], row["class"]), (["lint"], "script"))
 
-    def test_a_quality_terminal_record_and_a_backchain_check_are_script_evidence(self):
+    def test_an_until_loop_terminal_receipt_and_a_backchain_check_are_script_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "run"
-            (run_dir / "quality").mkdir(parents=True)
+            (run_dir / "loops").mkdir(parents=True)
             (run_dir / "backchain" / "nav-2").mkdir(parents=True)
-            (run_dir / "quality" / "nav-1-terminal.json").write_text("{}")
+            (run_dir / "loops" / "nav-1-terminal.json").write_text("{}")
+            (run_dir / "loops" / "nav-1-contract.json").write_text("{}")  # the contract alone is ShipLoop's input, not a record
+            (run_dir / "loops" / "nav-3-contract.json").write_text("{}")
             (run_dir / "backchain" / "nav-2" / "check-abc.json").write_text("{}")
-            state = self.run_state([("nav-1", "static-checks", "done"), ("nav-2", "plan", "done")])
+            state = self.run_state([("nav-1", "verify", "done"), ("nav-2", "plan", "done"), ("nav-3", "test-spec", "done")])
             rows = {r["action"]: r for r in self.fidelity.evidence(run_dir, state, None)["stages"]}
-            self.assertEqual((rows["nav-1"]["records"], rows["nav-1"]["class"]), (["quality"], "script"))
+            self.assertEqual((rows["nav-1"]["records"], rows["nav-1"]["class"]), (["loop"], "script"))
+            self.assertEqual(rows["nav-3"]["records"], [])
             self.assertEqual((rows["nav-2"]["records"], rows["nav-2"]["class"]), (["backchain"], "script"))
 
     def test_a_ref_is_the_rows_own_only_when_it_names_the_rows_action(self):

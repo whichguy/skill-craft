@@ -25,7 +25,6 @@ BLOCKS = frozenset({
     "backchain",               # Backchain caller guidance (native call or audit)
     "reconciliation",          # selected-case reconciliation
     "code-craft",              # the Code craft rubric
-    "pass-or-stop",            # the prompt-only pass-or-stop loop
     "interaction-design",      # actors, channels, events and UI planning
     "work-items",              # how a plan or carry-forward records work-item context
 })
@@ -33,23 +32,26 @@ BLOCKS = frozenset({
 # Assistive tool runs the script performs around a stage.
 ENTRY_RUNS = frozenset({
     "lint-base",           # snapshot the work item's lint base when the item starts
-    "test-loop-contract",  # write the test-loop Until Loop contract
-    "change-inventory",    # record the item's changed files for the quality loop
-    "quality-contract",    # write the quality-loop contract and the Code craft rubric
+    "loop-contract",       # write the stage's Until Loop contract (every inner stage)
+    "expectation-check",   # run the step plan's expectation checks on the item base; all match: no packet
+    "change-inventory",    # record the item's changed files for the review loop
     "advisory-lint",       # lint the item's changes, auto-fixing on the first entry
-    "report-lint",         # lint report-only (or repeat the unchanged record)
 })
 COMPLETE_RUNS = frozenset({
+    "loop-terminal",       # check the stage's Until Loop terminal packet against the contract rebuilt from state
     "lint-gate",           # refuse done while a new finding on a changed line is unwaived
-    "test-loop",           # check the test-loop terminal packet, then run the commands
-    "test-probe",          # run the focused commands once and require that a test ran
-    "test-red",            # run the focused commands and require them to fail in a test
+    "expectation-check",   # rerun every expectation check and require each to match its state
+    "test-base",           # run the item's tests on the base checkout: no new test ID passes; sets the floor
+    "test-loop",           # run every recorded command on the candidate: each passes, every ID, the floor
     "test-rerun",          # run every recorded test command and require each to pass
-    "quality-terminal",    # check the quality-loop terminal packet
 })
 EDITS = frozenset({"code", "tests", "docs"})
 PHASES = ("prelude", "inner", "outer")
 OUTCOMES = frozenset({"done", "repeat", "blocked", "replan", "revise"})
+
+# Improve rules: "always" starts a child after the stage's accepted result, "last-item" only after the last work item's,
+# and "step" after every accepted implement step (owner, 2026-10-10), whatever the planning review option says.
+IMPROVE_RULES = ("always", "last-item", "step")
 
 # A work item whose goal proves wrong while it is being built goes back to its
 # step plan with the evidence, at most MAX_REVISES times; after that the user
@@ -77,7 +79,7 @@ class Stage:
     edits: frozenset[str] = frozenset()    # what the stage may change: code, tests, docs
     entry_runs: tuple[str, ...] = ()       # script tool runs when the stage's action is issued
     complete_runs: tuple[str, ...] = ()    # script tool runs before done is accepted
-    improve: str | None = None             # "always", "last-item" or None
+    improve: str | None = None             # one of IMPROVE_RULES, or None
     reads: tuple[str, ...] = ()            # accepted results to read first ("item:" = this item)
     blocks: frozenset[str] = field(default_factory=frozenset)
     outcomes: tuple[str, ...] = ("done", "repeat", "blocked")
@@ -94,7 +96,7 @@ class Stage:
             unknown = set(values) - allowed
             if unknown:
                 raise ValueError(f"{self.name}: unknown {label} {sorted(unknown)}")
-        if self.improve not in (None, "always", "last-item"):
+        if self.improve not in (None, *IMPROVE_RULES):
             raise ValueError(f"{self.name}: unknown improve rule {self.improve!r}")
         if not set(self.outcomes) <= OUTCOMES or "done" not in self.outcomes:
             raise ValueError(f"{self.name}: outcomes must include done and use known outcomes")
@@ -142,9 +144,9 @@ RETURN_LEFTOVERS = ("plan-return commits files left uncommitted, so commit nothi
 # Who commits an item's files (SPEC S-4, S-5): one rule, printed by every stage that adds files to the item.  The first
 # sentence mirrors ``item_scope.commit_scope`` (declared paths, the docs path class and docs/shiploop/); the second
 # depends on the run: a worktree run's plan-return commits what is left, an in-place run has no return.
-ITEM_COMMIT_STAGES = ("document", "integrate")
+ITEM_COMMIT_STAGES = ("document", "verify")
 ITEM_COMMITS = (
-    "When integrate is accepted, ShipLoop commits the item's changed files that the step plan's paths declare, its "
+    "When verify is accepted, ShipLoop commits the item's changed files that the step plan's paths declare, its "
     "changed documentation files (for example README.md or files under docs/) and docs/shiploop/."
 )
 _LEFT_FOR_RETURN = ("Any other changed file is left for the return: " + RETURN_LEFTOVERS
@@ -272,146 +274,111 @@ _ROWS = (
         reads=("plan", "test-strategy"),
     ),
     # ------------------------------------------------------------------ inner
-    Stage(
-        "get-next-work-item", "inner",
-        goal="confirm this work item is still the right next item",
-        done_when=(
-            "the item's prerequisites are accepted done",
-            "the item is still required by the plan",
-        ),
-        tools="ShipLoop records the item's lint base when the item starts.",
-        entry_runs=("lint-base",),
-        reads=("spec", "plan"),
-    ),
+    # Owner decision 2026-10-10: eight stages in five phases (Plan: step-plan, test-spec; Validate existing; Build:
+    # implement per step with an Improve child after each, test, document; Verify; Carry forward).  Each stage's work
+    # runs as one Until Loop with a ShipLoop-written contract (entry run loop-contract); its exit conditions are the
+    # done_when lines below, and the gate rechecks by script what it can.  Evidence and the coverage review of the
+    # seventeen stages this replaces: docs/experiments/inner-loop-redesign-20261010/.
     Stage(
         "step-plan", "inner",
-        goal="plan this item's concrete changes and checks",
+        goal="plan this item's concrete changes, checks and the facts they build on",
         done_when=(
             "the result opens with one sentence naming the change and the checks that prove it",
-            "steps lists every implementation step in the order to do them (one step is fine)",
-            "each step declares deps as the IDs of its actual earlier prerequisites, or [] when independent",
-            "each step names the criteria it satisfies and the paths it changes, every criterion is satisfied by a "
-            "step, and no step only changes test files (unless the whole item is tests)",
-            "test_commands are recorded (focused and regression), or test_commands_na gives the reason",
+            "steps lists every implementation step in the order to do them",
+            "each step declares deps, the criteria it satisfies and the paths it changes, every criterion is satisfied "
+            "by a step, and no step only changes test files (unless the whole item is tests)",
+            "test_commands records focused, regression and at least one check command (lint, type or build), with "
+            "check_na giving the reason when there is no check command, or test_commands_na giving the reason there "
+            "are no commands",
+            "expectations record, for every existing path a step changes or relies on, a works or broken "
+            "expectation, and for every new path an absent one, each with a read-only check command",
+            "each step's skills list names a concrete use for each helper skill, or is empty",
             "the files the item will change are declared in paths",
         ),
         develop="Name target files, interfaces and conventions; follow the house-style match contract.",
-        test="Record the item's test commands; test-red, test-green and regression run them exactly.",
+        test="Record the item's test commands; the test stage and verify run them exactly.",
         deploy="Note integration impact and any release prerequisite.",
-        tools="Name the linters and type checks that cover the changed files.",
+        tools="ShipLoop records the item's lint base when the item starts; name the linters, type checks and build "
+              "commands that cover the changed files.",
+        entry_runs=("lint-base", "loop-contract"),
+        complete_runs=("loop-terminal",),
         improve="always",
         reads=("spec", "test-strategy", "plan", "prepare"),
-        blocks=frozenset({"test-facility", "test-decision", "backchain", "interaction-design"}),
+        blocks=frozenset({"test-facility", "test-decision", "backchain", "interaction-design"}),        outcomes=("done", "blocked"),
     ),
     Stage(
         "test-spec", "inner",
         goal="specify the tests this item needs before code changes",
         done_when=(
             "every completion criterion has at least one test case, or a justified not-applicable",
-            "each case has an independent oracle and a RED and GREEN definition",
+            "each case has an independent oracle, a RED and a GREEN definition, and an ID a focused command lists",
         ),
         test="Specify cases before code: positive, failure and boundary.",
+        entry_runs=("loop-contract",),
+        complete_runs=("loop-terminal",),
         improve="always",
         reads=("spec", "test-strategy", "plan", "item:step-plan"),
-        blocks=frozenset({"test-facility", "test-decision"}),
+        blocks=frozenset({"test-facility", "test-decision"}),        outcomes=("done", "blocked"),
     ),
     Stage(
-        "baseline", "inner",
-        goal="record the relevant checks before any change",
+        "validate-existing", "inner",
+        goal="verify that what this item is about to change works before changing it",
         done_when=(
-            "each recorded command ran on the unchanged item base, with its exit code and output recorded",
-            "pre-existing failures are classified",
+            "every works expectation passes its check on the current checkout",
+            "every absent expectation finds nothing at its place",
+            "every broken expectation fails exactly as the request reports",
+            "each preparatory fix touches only the paths of an expectation that did not match, and ShipLoop commits "
+            "it on accept",
         ),
-        test="Record the before state; fix nothing here.",
-        reads=("test-strategy", "item:step-plan", "item:test-spec"),
-    ),
-    Stage(
-        "test-author", "inner",
-        goal="write the tests the item's test spec calls for",
-        done_when=(
-            "each case in the test spec has a test the focused command runs",
-            "the tests are wired into the suite and repeatable",
-        ),
-        test="Write the tests the spec calls for; never weaken an assertion to fit an expected implementation.",
-        tools="Tests follow the repository's test framework and lint rules.",
-        edits=frozenset({"tests"}),
-        complete_runs=("test-probe",),
-        cases=True,
-        reads=("test-strategy", "item:step-plan", "item:test-spec"),
-        blocks=frozenset({"test-facility", "test-decision", "code-craft"}),
-    ),
-    Stage(
-        "test-red", "inner",
-        goal="run the new tests and confirm they fail for the right reason",
-        done_when=(
-            "the focused commands fail, and each new test's failure names the missing behaviour",
-            "no failure is caused by syntax, import, fixture or environment",
-        ),
-        develop="Do not edit product code.",
-        test="ShipLoop runs the focused commands and requires them to fail inside a test.",
-        edits=frozenset({"tests"}),
-        complete_runs=("test-red",),
-        reads=("item:test-spec", "item:test-author"),
-        blocks=frozenset({"test-facility", "code-craft"}),
+        develop="Change no product file except a known small fix to a works expectation found broken, made before "
+                "the build; ShipLoop commits it on accept as its own commit. Never start the item's own change here.",
+        test="ShipLoop runs every expectation check on the item base; when all match, no packet is issued.",
+        edits=frozenset({"code"}),
+        entry_runs=("expectation-check", "loop-contract"),
+        complete_runs=("loop-terminal", "expectation-check"),
+        reads=("plan", "item:step-plan"),
+        outcomes=("done", "blocked"),
     ),
     Stage(
         "implement", "inner",
-        goal="make the planned change",
+        goal="make the planned step's change",
         done_when=(
-            "each completion criterion this step's work covers is confirmed after the last edit",
-            "the lint gate reports no unwaived new finding on changed lines",
+            "only the step's paths changed since the step began, and no later step's work is in them",
+            "after the last edit, every recorded check command exited 0",
+            "after the last edit, the lint gate reports no unwaived new finding on a line this step changed",
+            "the result lists each behaviour the change added that no test-spec case covers (or none), and whether "
+            "each of the step's skills was used",
         ),
         develop="Make the planned change in the execution checkout, one reviewed step at a time, matching the house style.",
-        test="After each step, rerun the checks it affects; change the work, never the check.",
-        tools="Run `shiploop lint --action` after each step; the lint gate runs at complete.",
-        edits=frozenset({"code", "tests"}),
-        complete_runs=("lint-gate",),
-        reads=("spec", "plan", "item:step-plan", "item:test-spec"),
-        blocks=frozenset({"code-craft"}),
-    ),
-    Stage(
-        "test-green", "inner",
-        goal="run the focused tests and confirm they pass",
-        done_when=(
-            "every focused command passes on the bound Until Loop and when ShipLoop reruns it",
-        ),
-        test="Loop on the focused commands until they pass.",
-        cases=True,
-        tools="The lint gate runs before ShipLoop's own test run.",
-        edits=frozenset({"code", "tests"}),
-        entry_runs=("test-loop-contract",),
-        complete_runs=("lint-gate", "test-loop"),
-        reads=("item:test-spec", "item:implement"),
+        test="After each edit, rerun the check commands; change the work, never the check. Tests are written in the "
+             "test stage.",
+        tools="Run `shiploop lint --action` after each edit; the lint gate runs at complete, on every step.",
+        edits=frozenset({"code"}),
+        entry_runs=("loop-contract",),
+        complete_runs=("loop-terminal", "lint-gate"),
+        improve="step",
+        reads=("spec", "plan", "item:step-plan", "item:test-spec", "item:validate-existing"),
         blocks=frozenset({"code-craft"}),
         outcomes=("done", "blocked"),
     ),
     Stage(
-        "test-refine", "inner",
-        goal="tighten the tests against the actual implementation",
+        "test", "inner",
+        goal="write the specified tests and make every recorded command pass",
         done_when=(
-            "tests are tightened against the actual implementation",
-            "every recorded command passes when ShipLoop reruns it",
+            "every case in the test spec is a test the focused command runs, with its ID in the name",
+            "no new test ID passes on the item's base checkout, unless red_na names it",
+            "one complete iteration after the last edit ran every recorded command, each exiting 0, running every "
+            "listed ID and at least the floor of tests",
+            "every test change made to pass a run has a recorded independent reason",
         ),
-        test="Tighten weak assertions; change a check only for an independent reason.",
-        edits=frozenset({"code", "tests"}),
-        complete_runs=("test-rerun",),
-        reads=("spec", "item:test-spec", "item:implement"),
-        blocks=frozenset({"test-facility", "test-decision", "code-craft", "pass-or-stop"}),
-    ),
-    Stage(
-        "regression", "inner",
-        goal="rerun the retained suites for regressions",
-        done_when=(
-            "every recorded command passes on the bound Until Loop and when ShipLoop reruns it, so no recorded "
-            "check that passed at baseline fails now",
-        ),
-        test="Run the retained suites; fix the code, not the checks.",
+        test="Write the tests from the test spec, run every command, and fix the code (or a test, for a recorded "
+             "independent reason) until all pass.",
         cases=True,
-        tools="The lint gate runs before ShipLoop's own test run.",
+        tools="The lint gate runs before ShipLoop's own test runs.",
         edits=frozenset({"code", "tests"}),
-        entry_runs=("test-loop-contract",),
-        complete_runs=("lint-gate", "test-loop"),
-        reads=("test-strategy", "item:baseline"),
+        entry_runs=("loop-contract",),
+        complete_runs=("loop-terminal", "lint-gate", "test-base", "test-loop"),
+        reads=("test-strategy", "item:step-plan", "item:test-spec", "item:implement"),
         blocks=frozenset({"test-facility", "test-decision", "code-craft"}),
         outcomes=("done", "blocked"),
     ),
@@ -424,88 +391,51 @@ _ROWS = (
         ),
         develop="Update code, API, user and operator documentation from observed behaviour.",
         edits=frozenset({"docs"}),
-        reads=("spec", "plan", "item:step-plan", "item:implement"),
-        blocks=frozenset({"code-craft"}),
-    ),
-    Stage(
-        "skill-assess", "inner",
-        goal="decide whether a reusable skill or helper change is warranted",
-        done_when=("a reuse or new-skill decision is recorded with its reason",),
-        reads=("plan", "item:step-plan"),
-    ),
-    Stage(
-        "skill-validate", "inner",
-        goal="validate any skill or helper change against real inputs",
-        done_when=("any changed skill or helper ran on a real input, or the not-applicable reason is recorded",),
-        reads=("item:skill-assess",),
-    ),
-    Stage(
-        "static-checks", "inner",
-        goal="run formatting, lint, type and build checks",
-        done_when=(
-            "the quality loop ends with an iteration of only trivial findings",
-            "every recorded command passes when ShipLoop reruns it",
-        ),
-        develop="Trace each changed public entry point with a valid, a boundary and an invalid input; fix against Code craft.",
-        tools="ShipLoop records the change inventory, lints again (auto-fixing on first entry) and writes the quality-loop contract.",
-        edits=frozenset({"code", "tests"}),
-        entry_runs=("change-inventory", "quality-contract", "advisory-lint"),
-        complete_runs=("quality-terminal", "test-rerun"),
-        reads=("item:step-plan", "item:implement"),
-        blocks=frozenset({"code-craft"}),
-        outcomes=("done", "blocked"),
+        entry_runs=("loop-contract",),
+        complete_runs=("loop-terminal",),
+        reads=("spec", "plan", "item:step-plan", "item:implement", "item:test"),
+        blocks=frozenset({"code-craft"}),        outcomes=("done", "blocked"),
     ),
     Stage(
         "verify", "inner",
-        goal="verify the item against its acceptance criteria",
+        goal="verify the item against its acceptance criteria and review the change",
         done_when=(
-            "every completion criterion of the item is confirmed on the current candidate, with evidence made after the last edit",
+            "every completion criterion is confirmed on the current candidate, with evidence made after the last edit",
+            "every recorded command exits 0 on the candidate after the last edit",
+            "each changed public entry point was traced with a valid, a boundary and an invalid input, and the "
+            "latest review iteration found only trivial issues",
             "later-phase checks are marked pending with their owner",
         ),
-        test="Rerun or inspect each criterion's confirmation; reconcile every selected case.",
-        tools="ShipLoop reruns lint report-only on entry, and on done runs every recorded command.",
-        entry_runs=("report-lint",),
-        complete_runs=("test-rerun",),
-        reads=("spec", "test-strategy", "item:step-plan", "item:test-spec", "item:implement",
-               "item:test-green", "item:regression", "item:static-checks"),
-        blocks=frozenset({"reconciliation", "code-craft"}),
-    ),
-    Stage(
-        "integrate", "inner",
-        goal="assemble the item's candidate in the execution checkout",
-        done_when=("the item's changes are assembled in the execution checkout, or a justified no-op is recorded",),
-        develop="Keep run state and logs out of product commits.",
-        deploy="The original branch is returned only at the final workspace return.",
-        edits=frozenset({"code"}),
-        reads=("plan", "item:step-plan", "item:verify"),
-        blocks=frozenset({"code-craft"}),
-    ),
-    Stage(
-        "integration-verify", "inner",
-        goal="verify the integrated result and shared interfaces",
-        done_when=(
-            "every recorded command passes on the integrated result when ShipLoop reruns it",
-            "shared interfaces are checked",
-        ),
-        test="Verify the integrated result and the shared interfaces.",
+        develop="Review the whole item's diff for what the per-step reviews could not see; on chained work, assemble "
+                "the steps' results and check the shared interfaces.",
+        test="Confirm each criterion; reconcile every selected case.",
+        tools="ShipLoop records the change inventory and lints the item's changes on entry (auto-fixing once); on "
+              "done it lints again and reruns every recorded command.",
         edits=frozenset({"code", "tests"}),
-        complete_runs=("test-rerun",),
-        reads=("spec", "item:integrate"),
-        blocks=frozenset({"reconciliation", "code-craft", "pass-or-stop"}),
+        entry_runs=("change-inventory", "advisory-lint", "loop-contract"),
+        complete_runs=("loop-terminal", "lint-gate", "test-rerun"),
+        reads=("spec", "test-strategy", "item:step-plan", "item:test-spec", "item:implement", "item:test"),
+        blocks=frozenset({"reconciliation", "code-craft"}),
+        outcomes=("done", "blocked"),
     ),
     Stage(
         "carry-forward", "inner",
-        goal="record lessons and revise the remaining queue",
+        goal="record lessons, revise the remaining queue and decide on a reusable skill",
         done_when=(
             "every still-required future item is in the queue, in prerequisite order",
-            "learnings and durable knowledge are recorded outside run notes",
+            "learnings and durable knowledge are recorded in the knowledge home, not in run notes",
+            "the skill decision is recorded: none, reuse, update or create, with its reason and repeat evidence",
         ),
-        develop="Record reusable learnings and conventions.",
+        develop="Record reusable learnings and conventions; create or update a local skill only for a procedure that "
+                "repeated or will recur and that no existing skill covers.",
         test="Keep rerun procedures in the repository's test documentation.",
         edits=frozenset({"docs"}),
+        entry_runs=("loop-contract",),
+        complete_runs=("loop-terminal",),
         improve="last-item",
-        reads=("spec", "plan", "item:integration-verify"),
+        reads=("spec", "plan", "item:verify"),
         blocks=frozenset({"test-facility", "backchain", "work-items"}),
+        outcomes=("done", "blocked"),
     ),
     # ------------------------------------------------------------------ outer
     Stage(
@@ -616,13 +546,12 @@ _ROWS = (
 def _finish(rows: tuple[Stage, ...]) -> tuple[Stage, ...]:
     """Add the outcomes that follow from a stage's place in the graph.
 
-    INNER stages from test-spec through integration-verify build the item
-    against its step plan, so a goal that proves wrong there goes back to the
-    step plan (revise).  OUTER stages route missing product work as replan.
+    INNER stages from test-spec through verify build the item against its step
+    plan, so a goal that proves wrong there goes back to the step plan (revise).  OUTER stages route missing product work as replan.
     A row that prints the case end states gets them here, from its final outcomes.
     """
     names = [row.name for row in rows]
-    first, last = names.index("test-spec"), names.index("integration-verify")
+    first, last = names.index("test-spec"), names.index("verify")
     finished = []
     for index, row in enumerate(rows):
         if first <= index <= last:
@@ -707,8 +636,8 @@ def reviewed_stages(mode: str) -> frozenset[str]:
 
 def _check_table() -> None:
     names = [row.name for row in _ROWS]
-    if len(names) != 34 or len(set(names)) != 34:
-        raise RuntimeError("the stage table must list 34 unique stages")
+    if len(names) != 24 or len(set(names)) != 24:
+        raise RuntimeError("the stage table must list 24 unique stages")
     order = {name: index for index, name in enumerate(names)}
     for row in _ROWS:
         for read in row.reads:

@@ -208,8 +208,8 @@ class CountTests(unittest.TestCase):
 class JudgeTests(unittest.TestCase):
     FOCUSED = {"command": "npm test -- -t TC-9", "suite": "focused", "ids": ["TC-9", "TC-10"]}
 
-    def status(self, row: dict, code: int, output: str, **kw) -> str:
-        return test_loop.judge(row, code, output, **kw)["status"]
+    def status(self, row: dict, code: int, output: str) -> str:
+        return test_loop.judge(row, code, output)["status"]
 
     def test_the_battleship_filter_that_matched_nothing_is_refused(self):
         self.assertEqual(self.status(self.FOCUSED, 0, JEST_SKIPPED), "no-tests")
@@ -229,22 +229,88 @@ class JudgeTests(unittest.TestCase):
         self.assertEqual(self.status(regression, 0, "ok\n"), "passed-uncounted")
         self.assertEqual(self.status(dict(regression, min_tests=1), 0, "ok\n"), "uncounted")
 
-    def test_red_needs_a_failing_test_not_a_setup_error(self):
+    def base(self, row: dict, code: int, output: str, *, exempt=(), added=()) -> dict:
+        """The base run's judgement (the test stage's RED check): new IDs must fail on the item's base."""
+        return test_loop._judge_base(row, code, output, list(exempt), [], list(added))
+
+    def test_red_on_the_base_needs_each_new_id_to_fail_not_a_setup_error(self):
+        """The red check moved from a test-red stage to the test stage's base run (2026-10-10): each new ID is read
+        from its own line, so a suite that never ran the test is not taken for a failing one."""
         row = {"command": "npm test -- -t TC-9", "suite": "focused", "ids": ["TC-9"]}
-        self.assertEqual(self.status(row, 1, JEST_RED, red=True), "red")
-        self.assertEqual(self.status(row, 1, JEST_SUITE_ERROR, red=True), "no-tests")
-        self.assertEqual(self.status(row, 0, JEST_PASS, red=True), "green")
-        self.assertEqual(self.status(row, 1, "Ran 1 test in 0.01s\nOK\n", red=True), "not-red")
-        self.assertEqual(self.status({"command": "./t", "suite": "focused"}, 1, "boom\n", red=True), "uncounted")
+        self.assertEqual(self.base(row, 1, JEST_RED)["status"], "red")
+        not_run = self.base(row, 1, JEST_SUITE_ERROR)
+        self.assertEqual((not_run["status"], not_run["ids_unrun"]), ("not-run", ["TC-9"]))
+        green = self.base(row, 0, JEST_PASS)
+        self.assertEqual((green["status"], green["ids_passing"]), ("passes-on-base", ["TC-9"]))
+        self.assertEqual(self.base(row, 1, "Ran 1 test in 0.01s\nOK\n")["status"], "not-run")
+        # red_na exempts a characterisation test; with every ID exempt nothing is left to be red.
+        self.assertEqual(self.base(row, 0, JEST_PASS, exempt=["TC-9"])["status"], "red")
+        # a focused command without ids is judged by its exit code alone
+        self.assertEqual(self.base({"command": "./t", "suite": "focused"}, 1, "boom\n")["status"], "red")
+        self.assertEqual(self.base({"command": "./t", "suite": "focused"}, 0, "ok\n")["status"], "passes-on-base")
+        # a regression command is only counted on the base
+        self.assertEqual(self.base({"command": "npm test", "suite": "regression"}, 0, JEST_PASS)["status"], "counted")
 
+    def test_a_load_failure_is_red_only_when_it_names_a_file_the_item_adds(self):
+        """Owner decision 3 (2026-10-10): a new test that fails to load because a file the item adds is missing on the
+        base counts as RED; a load failure that names no added file did not run the test."""
+        row = {"command": "python3 -m unittest -v test_widgets", "suite": "focused", "ids": ["test_tc_1"]}
+        self.assertEqual(self.base(row, 1, UNITTEST_LOAD_FAILURE)["status"], "not-run")
+        red = self.base(row, 1, UNITTEST_LOAD_FAILURE, added=["widgets.py"])
+        self.assertEqual((red["status"], red["load_failure_names"]), ("red", ["widgets.py"]))
+        # a passing run is never red, whatever file it names
+        self.assertEqual(self.base(row, 0, "test_tc_1 (test_widgets.T.test_tc_1) ... ok\nRan 1 test\nOK\n",
+                                   added=["test_widgets.py"])["status"], "passes-on-base")
 
-    def test_an_unloadable_unittest_module_reads_as_no_test_ran_in_both_modes(self):
+    def test_an_unloadable_unittest_module_reads_as_no_test_ran(self):
         """The W1 defect class for the most common Python runner: no listed ID, so only the count can refuse it."""
         row = {"command": "python3 -m unittest test_widgets", "suite": "focused"}
         self.assertEqual(self.status(row, 1, UNITTEST_LOAD_FAILURE), "no-tests")
-        self.assertEqual(self.status(row, 1, UNITTEST_LOAD_FAILURE, red=True), "no-tests")
-        self.assertEqual(self.status(row, 1, UNITTEST_ONE_MODULE_LOADS, red=True), "not-red")
-        self.assertEqual(self.status(row, 1, UNITTEST_FAILING_AND_UNLOADABLE, red=True), "red")
+        self.assertEqual(self.status(row, 1, UNITTEST_ONE_MODULE_LOADS), "failed")
+        self.assertEqual(self.status(row, 1, UNITTEST_FAILING_AND_UNLOADABLE), "failed")
+
+
+class OutcomesTests(unittest.TestCase):
+    """``counts.outcomes``: per declared ID, the runner's own pass or fail mark on the line that names it."""
+
+    def test_spec_and_tap_marks_are_read_per_id(self):
+        ids = ["TC-1", "TC-2", "TC-3", "TC-4", "TC-5", "TC-7", "TC-8", "TC-99"]
+        expected = {"TC-1": "passed", "TC-2": "passed", "TC-3": "missing", "TC-4": "missing", "TC-5": "failed",
+                    "TC-7": "failed", "TC-8": "passed", "TC-99": "missing"}
+        for name in ("fail-spec.txt", "fail-tap.txt", "fail-spec-color.txt"):
+            with self.subTest(name):
+                self.assertEqual(counts.outcomes(node(name), ids), expected)
+
+    def test_each_runner_mark(self):
+        cases = {
+            JEST_PASS: {"TC-9": "passed", "TC-10": "passed", "TC-11": "missing"},
+            JEST_RED: {"TC-9": "failed"},
+            PYTEST_PASS: {"test_tc_9": "passed"},
+            GO_VERBOSE: {"TestPlace": "passed", "TestSink": "failed"},
+            MOCHA: {"TC-1": "passed"},
+            "test_a (m.T.test_a) ... ok\ntest_b (m.T.test_b) ... FAIL\n": {"test_a": "passed", "test_b": "failed"},
+            "test tc_1 ... ok\ntest tc_2 ... FAILED\n": {"tc_1": "passed", "tc_2": "failed"},
+        }
+        for output, expected in cases.items():
+            with self.subTest(output=output[:40]):
+                self.assertEqual(counts.outcomes(output, list(expected)), expected)
+
+    def test_a_failure_mark_wins_over_a_pass_mark_for_the_same_id(self):
+        self.assertEqual(counts.outcomes("✔ TC-1 first\n✖ TC-1 again\n", ["TC-1"]), {"TC-1": "failed"})
+
+    def test_unittest_without_verbose_marks_the_failure_on_the_header_line_before_the_docstring(self):
+        output = "F\n======\nFAIL: test_x (m.T.test_x)\nTC-3 rejects a bad cell\n------\nRan 1 test\n"
+        self.assertEqual(counts.outcomes(output, ["TC-3"]), {"TC-3": "failed"})
+
+    def test_a_name_without_an_outcome_mark_is_shown_not_passed(self):
+        self.assertEqual(counts.outcomes("running TC-1\n", ["TC-1"]), {"TC-1": "shown"})
+
+    def test_skip_lines_and_announcements_do_not_name_a_test(self):
+        self.assertEqual(counts.outcomes("# Subtest: TC-1\nok 1 - TC-1 # SKIP\n", ["TC-1"]), {"TC-1": "missing"})
+
+    def test_an_id_inside_a_longer_token_is_not_that_id(self):
+        self.assertEqual(counts.outcomes("✔ TC-10 x\n", ["TC-1"]), {"TC-1": "missing"})
+
 
 NODE = ROOT / "test/fixtures/shiploop-node-test"
 
@@ -314,13 +380,17 @@ class NodeTestRunnerTests(unittest.TestCase):
 
     def test_the_judge_refuses_a_node_load_failure_and_accepts_the_real_runs(self):
         focused = {"command": "node --test", "suite": "focused"}
-        status = lambda row, code, name, **kw: test_loop.judge(row, code, node(name), **kw)["status"]  # noqa: E731
+        status = lambda row, code, name: test_loop.judge(row, code, node(name))["status"]  # noqa: E731
         self.assertEqual(status(focused, 1, "load-spec.txt"), "no-tests")
-        self.assertEqual(status(focused, 1, "load-spec.txt", red=True), "no-tests")
         self.assertEqual(status(focused, 0, "pass-spec.txt"), "passed")
         self.assertEqual(status(dict(focused, min_tests=3), 0, "pass-spec.txt"), "too-few-tests")
         self.assertEqual(status(dict(focused, ids=["TC-3"]), 0, "pass-tap.txt"), "ids-missing")
-        self.assertEqual(status(focused, 1, "fail-spec.txt", red=True), "red")
+        self.assertEqual(status(focused, 1, "fail-spec.txt"), "failed")
+        base = lambda name, code, added: test_loop._judge_base(  # noqa: E731
+            dict(focused, ids=["TC-7"]), code, node(name), [], [], added)["status"]
+        self.assertEqual(base("fail-spec.txt", 1, []), "red")
+        self.assertEqual(base("load-spec.txt", 1, []), "not-run")
+        self.assertEqual(base("load-spec.txt", 1, ["missing.js"]), "red")
         self.assertEqual(status(focused, 0, "pass-dot.txt"), "uncounted")
 
 

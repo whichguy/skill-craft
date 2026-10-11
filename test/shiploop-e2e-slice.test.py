@@ -172,11 +172,12 @@ class StopTests(SliceCase):
         seeded = self.seed()
         self.fake(seeded, "normal")
         archived = sorted(p.name for p in (self.out / packets.ARCHIVE).iterdir())
-        self.assertGreaterEqual(len(archived), 17)  # every inner stage reprinted at least once
         report = packets.write_report(self.out)
         self.assertEqual(report["emissions_source"].split()[0], "packet-archive")
         stages = {row["stage"] for row in report["packets"]}
-        self.assertTrue({"step-plan", "implement", "carry-forward"} <= stages, stages)
+        inner = {"step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify", "carry-forward"}
+        self.assertTrue(inner <= stages, stages)  # every inner stage printed at least once
+        self.assertGreaterEqual(len(archived), len(inner))
         self.assertTrue((self.out / packets.REPORT_MD).is_file())
 
 

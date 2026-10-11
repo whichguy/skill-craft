@@ -151,7 +151,7 @@ def launch(repo: Path, packet: Path, case: str) -> str:
 Work only in `{repo}`. {task}
 
 Read `README.md`, `SHIPLOOP.md`, `docs/lessons.md`, the applicable contract, and
-`data/bundle.json`. Read the frozen, actually rendered v3 `skill-assess` packet at
+`data/bundle.json`. Read the frozen, actually rendered `carry-forward` packet (its skill decision) at
 `{packet}` for its current stage guidance. Its transition history is synthetic
 packet setup: do not run any callback, do not claim Improve ran, and do not use its
 paths as a live run.
@@ -173,32 +173,30 @@ def copy_package(out: Path) -> Path:
     return package
 
 
-def rendered_packets(package: Path, out: Path, repo: Path, goal: str) -> tuple[Path, Path]:
+def rendered_packets(package: Path, out: Path, repo: Path, goal: str) -> Path:
+    """Render the carry-forward packet, whose skill decision replaced skill-assess and skill-validate (2026-10-10)."""
     sys.path.insert(0, str(package / "scripts"))
     import shiploop_navigator as nav  # type: ignore
     state = nav.new_state(str(repo), goal)
-    found: dict[str, Path] = {}
     for _ in range(64):
         stage = nav.current_stage(state)
-        if stage in ("skill-assess", "skill-validate"):
+        if stage == "carry-forward":
             run = out / "synthetic-packet-state" / stage
             run.mkdir(parents=True, exist_ok=True)
             nav.save(run, state)
             result = subprocess.run([sys.executable, "-B", str(package / "scripts" / "shiploop"), "next", "--run-dir", str(run)], text=True, capture_output=True, check=True).stdout
             destination = out / "packets" / f"{stage}.md"
             put(destination, result)
-            found[stage] = destination
-            if stage == "skill-validate":
-                break
+            return destination
         action = nav.current_action(state)["id"]
         synthetic = {"outcome": "done", "summary": "Synthetic packet setup only; no work, callback, or Improve execution occurred.", "evidence_refs": []}
+        if stage == "plan":
+            synthetic["work_items"] = [{"id": "W1", "title": "Triage the release-evidence bundle"}]
         state = nav.apply(state, action, synthetic)
         if state["active_improve"] is not None:
-            # Only planning checkpoints and the last carry-forward park a child.
+            # Planning checkpoints, each implement step and the last carry-forward park a child.
             state = nav.finish_improve(state, action, {"synthetic_packet_setup": True})
-    if set(found) != {"skill-assess", "skill-validate"}:
-        raise RuntimeError("could not render both v3 skill packets")
-    return found["skill-assess"], found["skill-validate"]
+    raise RuntimeError("could not render the carry-forward packet")
 
 
 def seed(repo: Path) -> None:
@@ -218,12 +216,12 @@ def init(out: Path) -> dict:
         raise ValueError(f"fixture already exists: {repo}")
     repo.mkdir()
     seed(repo)
-    assess, validate = rendered_packets(package, out, repo, "Triage the local release-evidence bundle and assess reusable work.")
+    packet = rendered_packets(package, out, repo, "Triage the local release-evidence bundle and assess reusable work.")
     before = manifest(out / "control" / "before-manifest.json", repo)
     launch_path = out / "launch-initial.md"
-    put(launch_path, launch(repo, assess, "initial"))
-    return {"fixture": str(repo), "package": str(package), "skill_assess_packet": str(assess),
-            "skill_validate_packet": str(validate), "before_manifest": str(before), "launch": str(launch_path)}
+    put(launch_path, launch(repo, packet, "initial"))
+    return {"fixture": str(repo), "package": str(package), "carry_forward_packet": str(packet),
+            "before_manifest": str(before), "launch": str(launch_path)}
 
 
 def strip_transient(repo: Path) -> None:
@@ -297,9 +295,9 @@ def next_case(source: Path, out: Path, case: str) -> dict:
     repo, package = out / "fixture", out / "shiploop"
     strip_transient(repo)
     replace_bundle(repo, case)
-    assess, _ = rendered_packets(package, out, repo, TASKS[case])
+    packet = rendered_packets(package, out, repo, TASKS[case])
     launch_path = out / "launch.md"
-    put(launch_path, launch(repo, assess, case))
+    put(launch_path, launch(repo, packet, case))
     return {"fixture": str(repo), "before_manifest": str(before), "launch": str(launch_path), "case": case}
 
 

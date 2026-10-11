@@ -1545,9 +1545,9 @@ def verifications(run_dir: Path | None) -> dict:
     about the product (it timed out, could not start, or was skipped on budget).
     Those refuse their stage without being evidence against it, so a run with
     any of them is reporting an environment problem, not a product one.
-    ``red`` counts the records in which a command ran red (a run whose own status is `red`): a test-red record, or a
-    test-author probe, passes because red is what it accepts, so ``passed`` includes it. What ran is counted, not what
-    the record expected: a probe accepts red or passed, and one that ran green is a green pass.
+    ``red`` counts the records in which a command ran red (a run whose own status is `red`): the test stage's base run
+    on the base checkout passes because red is what it accepts, so ``passed`` includes it. What ran is counted, not
+    what the record expected.
     """
     records = sorted(run_dir.rglob("*-verify*.md")) if run_dir and run_dir.is_dir() else []
     passed = commands = could_not_run = red = 0

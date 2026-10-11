@@ -278,7 +278,7 @@ class PathAndSharedLineTests(unittest.TestCase):
 class ReportTests(unittest.TestCase):
     def packets(self, directory: Path) -> None:
         (directory / "nav-aa.md").write_text(PRODUCER)
-        (directory / "nav-bb.md").write_text(PRODUCER.replace("implement", "test-green"))
+        (directory / "nav-bb.md").write_text(PRODUCER.replace("implement", "test"))
         (directory / "nav-cc-improve.md").write_text(IMPROVE)
         (directory / "nav-cc-improve-bind.md").write_text(IMPROVE)
 
@@ -294,10 +294,10 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(sum(report["sectionBytes"].values()), report["totalBytes"])
         for row in report["rows"]:
             self.assertEqual(sum(row["sections"].values()), row["bytes"])
-        self.assertEqual({row["stage"] for row in report["rows"]}, {"implement", "test-green", "plan"})
+        self.assertEqual({row["stage"] for row in report["rows"]}, {"implement", "test", "plan"})
         markdown = anatomy.render_markdown(report)
         self.assertIn("| implement |", markdown)
-        self.assertIn("| test-red/green/refine/regression |", markdown)
+        self.assertIn("| test |", markdown)
         self.assertIn("| plan |", markdown)
         self.assertIn("Unclassified:", markdown)
 

@@ -19,6 +19,16 @@ import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
+import shiploop_knowledge_home as knowledge  # noqa: E402
+import shiploop_stage_spec as stage_spec  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "test"))
+from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
+import shiploop_knowledge_home as knowledge  # noqa: E402
+import shiploop_stage_spec as stage_spec  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "test"))
+from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
 
 
 CLI = ROOT / "skills/shiploop/scripts/shiploop"
@@ -134,6 +144,24 @@ class ImproveCliFixture(unittest.TestCase):
             str(self.run_note) + "#parent-evidence-transfer",
         ]
 
+    def _write_producer(self, stage):
+        """Write self.producer as the current result; an INNER stage first runs its Until Loop for real.
+
+        Every inner stage's complete checks its loop receipt (owner decision 2026-10-10), so the receipt joins the
+        evidence_refs the way the printed template prefills it; parent_evidence_refs follows the submitted list.
+        """
+        if stage in stage_spec.INNER:
+            if stage == "test-spec":
+                spec_file = self.repo / knowledge.feature_dir(store.read_record(self.run / "state.md")) / "test-spec.md"
+                spec_file.parent.mkdir(parents=True, exist_ok=True)
+                if not spec_file.is_file():
+                    spec_file.write_text("# Test spec\n\nNo cases: the step plan records no test command.\n",
+                                         encoding="utf-8")
+            self.producer = with_receipt(self.producer, finish_loop(self.run))
+            self.parent_evidence_refs = list(self.producer["evidence_refs"])
+        self.input = self.run / "inbox" / (self.action + ".md")
+        store.write_record(self.input, self.producer)
+
     def _start_parent(self, card):
         self.invoke(CLI, "init", "--repo", self.repo, "--run-dir", self.run,
                     "--prompt", "Protocol composition fixture", "--improve-skill", card,
@@ -207,10 +235,12 @@ class ImproveCliFixture(unittest.TestCase):
             self.producer["test_commands"] = []
             self.producer["test_commands_na"] = "Synthetic fixture; no test commands."
             self.producer["paths"] = ["src/**"]
-            self.producer["steps"] = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"]}]
+            self.producer["steps"] = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"],
+                                       "criteria": [], "skills": []}]
+            self.producer["expectations"] = [{"id": "E1", "state": "absent", "statement": "src/ does not exist yet.",
+                                              "steps": ["S1"], "paths": ["src/**"], "check": "test ! -e src"}]
         self.producer.update(producer_extra or {})
-        self.input = self.run / "inbox" / (self.action + ".md")
-        store.write_record(self.input, self.producer)
+        self._write_producer(stage)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(card)
 
@@ -363,8 +393,7 @@ class ImproveCliFixture(unittest.TestCase):
             "summary": summary,
             "evidence_refs": self.parent_evidence_refs,
         }
-        self.input = self.run / "inbox" / (self.action + ".md")
-        store.write_record(self.input, self.producer)
+        self._write_producer(stage)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current()
         self.finish_ephemeral()
@@ -384,8 +413,7 @@ class ImproveCliFixture(unittest.TestCase):
             "summary": summary,
             "evidence_refs": self.parent_evidence_refs,
         }
-        self.input = self.run / "inbox" / (self.action + ".md")
-        store.write_record(self.input, self.producer)
+        self._write_producer(stage)
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         return stage, self.action, store.read_record(self.run / "state.md")
 
@@ -686,7 +714,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 self.assertEqual(navigator.current_stage(resumed), expected_stage)
                 self.assertEqual(
                     resumed["improve_results"][self.action]["seed_result"]["evidence_refs"],
-                    [graph_identity],
+                    self.parent_evidence_refs,
                 )
                 self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
 
@@ -694,28 +722,27 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     continue
 
                 step_plan_action = self.action
-                # test-spec is still a planning-review stage and starts a real
-                # Improve child; baseline/test-author/test-red are not and
-                # advance directly with a plain callback.
-                for next_stage in ("test-spec", "baseline", "test-author", "test-red"):
+                step_plan_refs = list(self.parent_evidence_refs)
+                # test-spec is still a planning-review stage and starts a real Improve child.  Every expectation
+                # matches, so ShipLoop records validate-existing by script and issues implement next.
+                for next_stage in ("test-spec",):
                     self.assertEqual(navigator.current_stage(resumed), next_stage)
                     evidence = self.repo / "evidence" / (next_stage + ".md")
                     evidence.parent.mkdir(parents=True, exist_ok=True)
                     evidence.write_text("# " + next_stage + "\n", encoding="utf-8")
-                    advance = (self.complete_current_stage_through_actual_improve
-                              if next_stage == "test-spec" else self.complete_current_stage_directly)
-                    observed_stage, _action, resumed = advance(
+                    observed_stage, _action, resumed = self.complete_current_stage_through_actual_improve(
                         [str(evidence) + "#fixture"],
                         "Fixture advance through actual Improve for " + next_stage + ".",
                     )
                     self.assertEqual(observed_stage, next_stage)
 
                 self.assertEqual(navigator.current_stage(resumed), "implement")
+                self.assertIn("validate-existing", [entry["stage"] for entry in resumed["history"]])
                 self.assertNotEqual(resumed["history"][-1]["action"], step_plan_action)
-                self.assertEqual(resumed["accepted"][step_plan_action]["evidence_refs"], [graph_identity])
+                self.assertEqual(resumed["accepted"][step_plan_action]["evidence_refs"], step_plan_refs)
                 self.assertEqual(
                     resumed["improve_results"][step_plan_action]["seed_result"]["evidence_refs"],
-                    [graph_identity],
+                    step_plan_refs,
                 )
 
                 cold = self.invoke(CLI, "next", "--run-dir", self.run).stdout
@@ -1296,31 +1323,6 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
         self.assertEqual(before, (self.run / "state.md").read_bytes())
 
-    def test_a_reviewed_step_plan_that_pairs_skill_na_with_a_skill_file_is_refused_at_improve_complete(self):
-        """The Improve child may revise the step plan; the gate that checks the producer result checks its final_result."""
-        reason = "No repo-local skill applies: README.md is the index and names none."
-        self._start_parent_at_stage("step-plan", [str(self.product_contract)], producer_extra={"skill_na": reason})
-        self.finish_ephemeral()
-        contradictory = dict(self.producer, paths=["src/**", ".claude/skills/review/SKILL.md"])
-        completion, _receipt = self.completion_receipt(final_result=contradictory)
-        before = (self.run / "state.md").read_bytes()
-        refused = self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
-                              *completion, status=2)
-        self.assertIn("skill_na", refused.stderr)
-        self.assertIn(".claude/skills/review/SKILL.md", refused.stderr)
-        self.assertIn("resubmit the step plan without skill_na", refused.stderr)
-        # The same function serves complete and improve-complete, so its tail names neither verb.
-        self.assertIn("run the same command again", refused.stderr)
-        self.assertNotIn("complete command", refused.stderr)
-        self.assertEqual(before, (self.run / "state.md").read_bytes())
-        # The named exit: the final result without skill_na is accepted by the same command.
-        plain = {key: value for key, value in contradictory.items() if key != "skill_na"}
-        completion, _receipt = self.completion_receipt(final_result=plain)
-        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion)
-        resumed = store.read_record(self.run / "state.md")
-        self.assertEqual(navigator.current_stage(resumed), "test-spec")
-        self.assertNotIn("skill_na", resumed["accepted"][self.action])
-
     ARCHITECTURE = "# Architecture\n\nNode 22.\n\n### AD-1 In-memory board\n### AD-2 One module per concern\n"
 
     def commit_architecture(self) -> Path:
@@ -1685,6 +1687,24 @@ class ImproveCommitContractTests(ImproveCliFixture):
     The shared helpers read LINE 1 of a refusal, take the command it ends with and run it, so a refusal that names
     an exit the gate then refuses cannot pass.  A neutral repository: nothing here comes from a saved run.
     """
+
+    def _write_producer(self, stage):
+        """Write self.producer as the current result; an INNER stage first runs its Until Loop for real.
+
+        Every inner stage's complete checks its loop receipt (owner decision 2026-10-10), so the receipt joins the
+        evidence_refs the way the printed template prefills it; parent_evidence_refs follows the submitted list.
+        """
+        if stage in stage_spec.INNER:
+            if stage == "test-spec":
+                spec_file = self.repo / knowledge.feature_dir(store.read_record(self.run / "state.md")) / "test-spec.md"
+                spec_file.parent.mkdir(parents=True, exist_ok=True)
+                if not spec_file.is_file():
+                    spec_file.write_text("# Test spec\n\nNo cases: the step plan records no test command.\n",
+                                         encoding="utf-8")
+            self.producer = with_receipt(self.producer, finish_loop(self.run))
+            self.parent_evidence_refs = list(self.producer["evidence_refs"])
+        self.input = self.run / "inbox" / (self.action + ".md")
+        store.write_record(self.input, self.producer)
 
     def _start_parent(self, card):
         """No parent yet: each test makes the repository a Git repository first, then binds at its stage."""

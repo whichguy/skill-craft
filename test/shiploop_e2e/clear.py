@@ -2,7 +2,7 @@
 session that holds only the packet, and measure the work the fresh session redid.
 
     slice.py --case node-fix-bug --clear-at implement            # at the boundary: the packet arrived, nothing done
-    slice.py --case node-fix-bug --clear-at test-green:inside    # after the stage's first completed call
+    slice.py --case node-fix-bug --clear-at test:inside          # after the stage's first completed call
 
 S-6 passes only with no redone work: zero completed state-changing calls repeated after the clear. A call counts
 as redone when it repeats one that was **completed** (its result was in the stream) before the stop. A call cut off

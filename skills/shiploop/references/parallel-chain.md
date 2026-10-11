@@ -31,7 +31,7 @@ flowchart TD
     B --> V
     V --> D
     V --> J[Verify integration and return]
-    J --> I[Existing ShipLoop Improve and tests]
+    J --> I[The step's Improve child, then the test stage]
 ```
 
 ## Bind the selected packages and reviewed graph

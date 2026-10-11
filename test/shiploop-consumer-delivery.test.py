@@ -32,12 +32,10 @@ import shiploop_prompts as guidance  # noqa: E402
 
 
 INNER_AFTER_PLAN = (
-    "prepare", "get-next-work-item", "step-plan", "test-spec", "baseline",
-    "test-author", "test-red", "implement", "test-green", "test-refine",
-    "regression", "document", "skill-assess", "skill-validate",
-    "static-checks", "verify", "integrate", "integration-verify", "carry-forward",
+    "prepare", "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify",
+    "carry-forward",
 )
-# A corrective replan re-enters at get-next-work-item and runs the item's whole cycle.
+# A corrective replan re-enters at step-plan and runs the item's whole cycle.
 CORRECTIVE_CYCLE = INNER_AFTER_PLAN[1:] + ("system-test-author",)
 
 
@@ -82,6 +80,8 @@ class ConsumerDeliveryTests(unittest.TestCase):
         """Say whether this suite expects the result to park an Improve child."""
         if stage in guidance.PLANNING_REVIEW_STAGES:
             return True
+        if stage == "implement":  # an Improve child reviews every accepted implement step
+            return submitted["outcome"] == "done"
         if stage != "carry-forward" or submitted["outcome"] != "done":
             return False
         if "work_items" in submitted:
@@ -286,7 +286,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
             },
         )
         self.assertEqual(state["completed_work_items"], ["W1"])
-        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
+        self.assertEqual(navigator.current_stage(state), "step-plan")
         self.assertEqual(consumer_delivery.project(state)["contract"], changed)
         for stage in CORRECTIVE_CYCLE:
             state = self.advance(state, stage)
@@ -331,7 +331,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertLessEqual({row["action"] for row in history if row["stage"] == "plan"}, reviewed)
         self.assertEqual(
             {row["stage"] for row in history if row["action"] in reviewed},
-            set(guidance.PLANNING_REVIEW_STAGES) | {"carry-forward"},
+            set(guidance.PLANNING_REVIEW_STAGES) | {"implement", "carry-forward"},
         )
 
         # Terminal validation rejects a completed history whose required
@@ -490,16 +490,11 @@ class ConsumerDeliveryTests(unittest.TestCase):
                 "supersedes": prior["anchor"],
             },
         )
-        self.assertEqual(navigator.current_stage(state), "get-next-work-item")
+        self.assertEqual(navigator.current_stage(state), "step-plan")
         self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])
         self.assertIn("accepted outer replan", navigator.render(None, self.root, state))
 
-        for stage in (
-            "get-next-work-item", "step-plan", "test-spec", "baseline", "test-author",
-            "test-red", "implement", "test-green", "test-refine", "regression",
-            "document", "skill-assess", "skill-validate", "static-checks", "verify",
-            "integrate", "integration-verify", "carry-forward", "system-test-author",
-        ):
+        for stage in CORRECTIVE_CYCLE:
             state = self.advance(state, stage)
         state = self.advance(
             state,
@@ -538,12 +533,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         )
         self.assertIsNone(consumer_delivery.project(state)["replan_required"])
 
-        for stage in (
-            "get-next-work-item", "step-plan", "test-spec", "baseline", "test-author",
-            "test-red", "implement", "test-green", "test-refine", "regression",
-            "document", "skill-assess", "skill-validate", "static-checks", "verify",
-            "integrate", "integration-verify", "carry-forward", "system-test-author",
-        ):
+        for stage in CORRECTIVE_CYCLE:
             state = self.advance(state, stage)
 
         # A full correction may carry this same action's observations without a

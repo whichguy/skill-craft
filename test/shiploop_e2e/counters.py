@@ -250,7 +250,7 @@ def _objects(work: Path, ids: list[str]) -> dict[str, dict]:
 
 def _item_prefixes(run_dir: Path | None) -> tuple[str, ...]:
     """The subject starts of the commits ShipLoop makes for the run's work items (``feat: <id> <title>``), from state.md's
-    ``work_items``; empty when the run has no ledger. The integrate stage's reply names the commit too, but the model's pipe can
+    ``work_items``; empty when the run has no ledger. The verify stage's reply names the commit too, but the model's pipe can
     cut that reply; the id is the run's own, so a model commit that starts ``feat:`` and names no work item is not matched."""
     items = metrics.engine_state(Path(run_dir) if run_dir else None).get("work_items")
     return tuple(f"feat: {item['id']} " for item in items if isinstance(item, dict) and isinstance(item.get("id"), str)

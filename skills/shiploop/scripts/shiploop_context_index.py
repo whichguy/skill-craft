@@ -21,8 +21,7 @@ import shiploop_planning_revision as planning_revision
 import shiploop_stage_spec as stage_spec
 
 # Script-written records a fresh context may need, relative to the run directory.
-RECORD_GLOBS = ("tests/*-verify*.md", "tests/*-terminal.json", "quality/*-terminal.json",
-                "lint/*.md", "improve/*/receipt.md")
+RECORD_GLOBS = ("tests/*-verify*.md", "loops/*-terminal.json", "lint/*.md", "improve/*/receipt.md")
 
 INDEX_FILE = "context-index.md"
 SUMMARY_LIMIT = 400
@@ -164,11 +163,9 @@ def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     lines = ["## In progress", "",
              f"- Action {action_id} ({stage}); result file {root / 'inbox' / (action_id + '.md')}",
              f"- Pass log ({PASS_LOG_RULE}): {pass_log_path(root, action_id)}"]
-    loop_dir = ("tests" if "test-loop" in row.complete_runs
-                else "quality" if "quality-terminal" in row.complete_runs else None)
-    if loop_dir:
+    if "loop-terminal" in row.complete_runs:  # every inner stage: its Until Loop receipt (shiploop_loops.receipt_path)
         lines.append(f"- Loop receipt (the runtime writes every packet here, the last one terminal): "
-                     f"{root / loop_dir / (action_id + '-terminal.json')}")
+                     f"{root / 'loops' / (action_id + '-terminal.json')}")
     runs = sorted(root.glob(f"tests/{action_id}-verify*.md"))
     if runs:
         lines.append(f"- ShipLoop test runs for this action: {len(runs)}, latest {runs[-1]}")

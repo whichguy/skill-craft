@@ -161,7 +161,15 @@ class ChainIntegrationTests(ChainFixture):
     def test_history_survives_child_drift_and_views_allow_indexed_past_actions(self):
         self.complete_single_chain()
         self.parent_complete(ok=True)
-        # Implement is not an Improve checkpoint: the producer result advances.
+        # The producer result is accepted; implement's step review is the only thing parked on the action.
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual((state["active_improve"]["action_id"], state["active_improve"]["stage"]),
+                         (self.action, "implement"))
+        self.assertEqual(state["active_improve"]["seed_result"]["outcome"], "done")
+        # The step review returns (a synthetic receipt, as the fixture's planning reviews), so the chain's action is
+        # a past action from here on.
+        improve, writes = self.synthetic_improve_record(self.action, "implement")
+        nav.save(self.run, nav.finish_improve(state, self.action, improve), writes)
         state = store.read_record(self.run / "state.md")
         self.assertNotEqual(nav.current_action(state)["id"], self.action)
         before = self.run_bytes()
@@ -281,11 +289,12 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual(p.returncode, 73, p.stdout + p.stderr)
 
     def assert_producer_advanced_past_finished_chain(self):
-        """Implement parks no Improve child: completion advances and keeps the binding."""
+        """Completion is accepted and keeps the binding; the only thing parked is implement's step review (owner
+        decision 2026-10-10: an Improve child follows each accepted implement step), not the finished chain."""
         state = store.read_record(self.run / "state.md")
-        self.assertNotEqual(nav.current_stage(state), "implement")
-        self.assertNotEqual(nav.current_action(state)["id"], self.action)
-        self.assertIsNone(state["active_improve"])
+        self.assertEqual((state["active_improve"]["action_id"], state["active_improve"]["stage"]),
+                         (self.action, "implement"))
+        self.assertEqual(state["active_improve"]["seed_result"]["outcome"], "done")
         self.assertNotIn(self.action, state["improve_results"])
         self.assertIn(self.action, state["chain_bindings"])
         self.assertTrue((self.run / "chains" / self.action / "binding.md").is_file())
@@ -295,7 +304,6 @@ class ChainIntegrationTests(ChainFixture):
         )
         self.assertEqual(cold.returncode, 0, cold.stderr)
         self.assertNotIn("Chain recovery:", cold.stdout)
-        self.assertNotIn("Current action: Improve the completed implement result.", cold.stdout)
         return state
 
     def test_serial_managed_full_diamond_executes_in_main_context_before_finish(self):
@@ -697,12 +705,35 @@ class ChainIntegrationTests(ChainFixture):
         self.assertEqual(set(self.call("next")["ready"]), {"A", "B"})
         self.call("claim", {"steps": ["A"]}, ok=False)
 
-    def test_producer_repeat_after_finished_chain_starts_a_new_implementation(self):
+    def test_producer_repeat_is_refused_the_loop_repeats_the_work(self):
+        # implement is an Until Loop: the loop repeats the work, so the graph refuses repeat (a new implementation
+        # starts at the next step; see TwoStepChainTests).
+        self.complete_single_chain()
+        refused = self.parent_complete("repeat", ok=False)
+        self.assertIn("the bound Until Loop repeats the work, not the graph", refused.stdout + refused.stderr)
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(nav.current_action(state)["id"], self.action)
+        self.assertIsNone(state["active_improve"])
+
+    def test_a_revise_after_a_finished_chain_starts_a_new_implementation(self):
+        # Under ask-agent delegation one implement action covers the item's steps, so a new implementation after a
+        # finished chain comes from a revise: the item goes back to step-plan and returns to a fresh implement action.
         self.complete_single_chain()
         old_action = self.action
-        self.parent_complete("repeat", ok=True)
+        self.parent_complete("revise", ok=True)
         state = store.read_record(self.run / "state.md")
-        self.assertEqual(nav.current_stage(state), "implement")
+        self.assertEqual(nav.current_stage(state), "step-plan")
+        while nav.current_stage(state) != "implement":
+            aid, stage = nav.current_action(state)["id"], nav.current_stage(state)
+            value = {"outcome": "done", "summary": "Synthetic redone " + stage + "."}
+            if stage == "step-plan":
+                value["steps"] = [dict(step) for step in self.STEP_PLAN_STEPS]
+            state = nav.apply(state, aid, value)
+            writes = None
+            if state["active_improve"] is not None:
+                improve, writes = self.synthetic_improve_record(aid, stage)
+                state = nav.finish_improve(state, aid, improve)
+            nav.save(self.run, state, writes)
         self.assertEqual(state["status"], "active")
         self.assertIsNone(state["active_improve"])
         self.action = nav.current_action(state)["id"]

@@ -77,8 +77,8 @@ class ImproveScheduleTests(unittest.TestCase):
         state, reviewed = walk(self.new(), plan_items=items)
         self.assertEqual(reviewed, [
             ("spec", None), ("test-strategy", None), ("plan", None),
-            ("step-plan", "W1"), ("test-spec", "W1"),
-            ("step-plan", "W2"), ("test-spec", "W2"), ("carry-forward", "W2"),
+            ("step-plan", "W1"), ("test-spec", "W1"), ("implement", "W1"),
+            ("step-plan", "W2"), ("test-spec", "W2"), ("implement", "W2"), ("carry-forward", "W2"),
             ("system-test-author", None), ("release-plan", None),
         ])
         self.assertEqual(state["status"], "done")
@@ -165,11 +165,9 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIsNone(blocked["active_improve"])
         self.assertEqual(blocked["status"], "blocked")
         self.assertEqual(blocked["improve_results"], records)
-        repeated = nav.apply(state, action, dict(DONE, outcome="repeat", summary="Synthetic retry."))
-        self.assertIsNone(repeated["active_improve"])
-        self.assertEqual(nav.current_stage(repeated), "carry-forward")
-        self.assertNotEqual(nav.current_action(repeated)["id"], action)
-        self.assertEqual(repeated["improve_results"], records)
+        # carry-forward runs an Until Loop that repeats the work itself, so repeat is not one of its outcomes.
+        with self.assertRaisesRegex(nav.NavigatorError, "repeat is not an outcome at carry-forward"):
+            nav.apply(state, action, dict(DONE, outcome="repeat", summary="Synthetic retry."))
 
     def test_improve_record_for_an_unrecorded_action_is_refused(self):
         state, _ = walk(self.new())
@@ -182,7 +180,7 @@ class ImproveScheduleTests(unittest.TestCase):
     def test_forged_improve_child_at_a_non_checkpoint_stage_is_refused(self):
         # apply() never parks a child here; a saved run that has one was forged.
         items = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}]
-        for target in ("implement", "carry-forward"):
+        for target in ("verify", "carry-forward"):
             with self.subTest(stage=target):
                 state = advance_to(self.new(), "plan")
                 state = nav.finish_improve(
@@ -207,12 +205,12 @@ class ImproveScheduleTests(unittest.TestCase):
 
     def test_improve_record_at_a_non_planning_step_is_refused(self):
         state, _ = walk(self.new())
-        action = next(e["action"] for e in state["history"] if e["stage"] == "implement")
+        action = next(e["action"] for e in state["history"] if e["stage"] == "verify")
         broken = copy.deepcopy(state)
-        broken["improve_results"][action] = receipt("implement")
+        broken["improve_results"][action] = receipt("verify")
         with self.assertRaisesRegex(
                 nav.NavigatorError,
-                "Improve result " + action + " is at implement, a stage that never starts"):
+                "Improve result " + action + " is at verify, a stage that never starts"):
             nav.validate(broken)
 
     def test_saved_improve_cadence_key_is_refused_with_a_named_error(self):
@@ -316,10 +314,12 @@ ITEMS = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}]
 # The validator's refusal of a missing planning record names the option that decides which records exist.
 SCHEDULED_RECORDS = r"every planning-stage result this run's planning_review option reviews"
 # Declared here, independently of stage_spec: the children a two-item run starts, by planning_review.
+# implement's per-step Improve runs in both modes (owner decisions 5 and 6, 2026-10-10).
 STAGE_CHILDREN = [("spec", None), ("test-strategy", None), ("plan", None), ("step-plan", "W1"),
-                  ("test-spec", "W1"), ("step-plan", "W2"), ("test-spec", "W2"), ("carry-forward", "W2"),
-                  ("system-test-author", None), ("release-plan", None)]
-NONE_CHILDREN = [("carry-forward", "W2"), ("system-test-author", None), ("release-plan", None)]
+                  ("test-spec", "W1"), ("implement", "W1"), ("step-plan", "W2"), ("test-spec", "W2"),
+                  ("implement", "W2"), ("carry-forward", "W2"), ("system-test-author", None), ("release-plan", None)]
+NONE_CHILDREN = [("implement", "W1"), ("implement", "W2"), ("carry-forward", "W2"), ("system-test-author", None),
+                 ("release-plan", None)]
 PLANNING_CHOICE = ("spec", "test-strategy", "plan", "step-plan", "test-spec")
 
 
@@ -549,15 +549,15 @@ class PlanningReviewNoneCliTests(CliRunCase):
     NEEDS_CARD = "--planning-review none needs --improve-skill"
 
     def test_a_none_run_must_name_its_card_at_init_because_no_planning_child_binds_it(self):
-        """F1: the quality and test loops read the recorded card at the first item, and under none the first child
+        """F1: the stage Until Loops read the recorded card at the first item, and under none the first child
         (the one that binds it) is the last item's carry-forward: a run started without the card would block at its
-        first static-checks. The refusal leaves the run directory empty."""
+        first inner stage. The refusal leaves the run directory empty."""
         repo = self.repository("repo-nocard")
         run = self.base / "run-nocard"
         refused = self.cli("init", "--repo", repo, "--run-dir", run, "--prompt=add hello",
                            "--planning-review", "none", status=2)
         self.assertIn(self.NEEDS_CARD + "=", refused.stdout + refused.stderr)
-        self.assertIn("quality and test loops", " ".join((refused.stdout + refused.stderr).split()))
+        self.assertIn("before the first item's stage Until Loops, which read it", " ".join((refused.stdout + refused.stderr).split()))
         self.assertFalse((run / "state.md").exists())
         missing = self.cli("init", "--repo", repo, "--run-dir", run, "--prompt=add hello", "--planning-review", "none",
                            "--improve-skill", self.base / "no-such-card" / "SKILL.md", status=2)

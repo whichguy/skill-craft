@@ -18,21 +18,21 @@ sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
+import shiploop_loops as loops  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_quality as quality  # noqa: E402
 import shiploop_stage_spec as spec  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
 PRELUDE = ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare")
-INNER = ("get-next-work-item", "step-plan", "test-spec", "baseline", "test-author", "test-red", "implement",
-         "test-green", "test-refine", "regression", "document", "skill-assess", "skill-validate",
-         "static-checks", "verify", "integrate", "integration-verify", "carry-forward")
+INNER = ("step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify", "carry-forward")
 OUTER = ("system-test-author", "system-test", "product-acceptance", "release-plan", "release-check",
          "release", "release-verify", "operations", "handoff")
 
 
 class StageTableTest(unittest.TestCase):
-    def test_graph_order_is_the_fixed_34_stages(self) -> None:
+    def test_graph_order_is_the_fixed_24_stages(self) -> None:
+        self.assertEqual(len(spec.STAGES), 24)
         self.assertEqual(spec.PRELUDE, PRELUDE)
         self.assertEqual(spec.INNER, INNER)
         self.assertEqual(spec.OUTER, OUTER)
@@ -79,46 +79,46 @@ class StageTableTest(unittest.TestCase):
 
     def test_prompt_block_sets(self) -> None:
         self.assertEqual(prompts.TEST_FACILITY_STAGES, frozenset({
-            "test-strategy", "plan", "step-plan", "test-spec", "test-author", "test-red", "test-refine",
-            "regression", "carry-forward", "system-test-author", "release-plan"}))
-        self.assertEqual(prompts.TEST_DECISION_STAGES, frozenset({
-            "step-plan", "test-spec", "test-author", "test-refine", "regression"}))
+            "test-strategy", "plan", "step-plan", "test-spec", "test", "carry-forward", "system-test-author",
+            "release-plan"}))
+        self.assertEqual(prompts.TEST_DECISION_STAGES, frozenset({"step-plan", "test-spec", "test"}))
         self.assertEqual(prompts.BACKCHAIN_STAGES, frozenset({
             "spec", "plan", "step-plan", "carry-forward", "product-acceptance"}))
         self.assertEqual(prompts.BACKCHAIN_AUDIT_STAGES, frozenset({
             "spec", "step-plan", "carry-forward", "product-acceptance"}))
         self.assertEqual(prompts.RECONCILIATION_STAGES, frozenset({
-            "verify", "integration-verify", "system-test", "product-acceptance", "release-verify", "handoff"}))
+            "verify", "system-test", "product-acceptance", "release-verify", "handoff"}))
         # Code craft goes where code or tests are written or reviewed, not to
         # the planning stages step-plan and test-spec.
-        self.assertEqual(prompts.IMPLEMENTATION_STAGES, frozenset({
-            "test-author", "test-red", "implement", "test-green", "test-refine",
-            "regression", "document", "static-checks", "verify", "integrate", "integration-verify"}))
+        self.assertEqual(prompts.IMPLEMENTATION_STAGES, frozenset({"implement", "test", "document", "verify"}))
         self.assertEqual(spec.with_block("interaction-design"),
                          frozenset({"discovery", "research", "spec", "plan", "step-plan"}))
         self.assertEqual(spec.with_block("work-items"), frozenset({"plan", "carry-forward"}))
-        self.assertEqual(prompts.PASS_OR_STOP_STAGES, frozenset({"test-refine", "integration-verify"}))
         self.assertEqual(set(prompts.ENVIRONMENT_DISCOVERY_REQUIREMENTS), {"discovery", "research"})
 
     def test_assistive_tool_runs(self) -> None:
-        self.assertEqual(lint.GATE_STAGES, ("implement", "test-green", "regression"))
+        self.assertEqual(lint.GATE_STAGES, ("implement", "test", "verify"))
         self.assertEqual(lint.GATE_STAGE, "implement")
-        self.assertEqual(lint.LINT_STAGES, ("static-checks", "verify"))
-        self.assertEqual(test_loop.STAGES, ("test-green", "regression"))
-        self.assertEqual(test_loop.RERUN_STAGES, ("test-refine", "static-checks", "verify", "integration-verify",
-                                                 "system-test", "release-verify"))
-        self.assertEqual(test_loop.RED_STAGE, "test-red")
-        self.assertEqual(test_loop.PROBE_STAGE, "test-author")
-        self.assertEqual(spec.with_complete_run("test-probe"), ("test-author",))
-        self.assertIn("test-probe", spec.COMPLETE_RUNS)
-        self.assertEqual(spec.stage("test-author").complete_runs, ("test-probe",))
-        self.assertEqual(quality.STAGE, "static-checks")
-        self.assertEqual(spec.with_entry_run("lint-base"), ("get-next-work-item",))
+        self.assertEqual(lint.LINT_STAGES, ("verify",))
+        self.assertEqual(test_loop.STAGES, ("test",))
+        self.assertEqual(test_loop.RERUN_STAGES, ("verify", "system-test", "release-verify"))
+        self.assertFalse(hasattr(test_loop, "RED_STAGE"))
+        self.assertFalse(hasattr(test_loop, "PROBE_STAGE"))
+        self.assertEqual(spec.with_complete_run("test-base"), ("test",))
+        self.assertNotIn("test-probe", spec.COMPLETE_RUNS)
+        self.assertEqual(spec.with_complete_run("expectation-check"), ("validate-existing",))
+        self.assertEqual(quality.STAGE, "verify")
+        self.assertEqual(spec.with_entry_run("lint-base"), ("step-plan",))
+        # Every inner stage is an Until Loop: its contract is written on entry and its receipt checked at complete.
+        self.assertEqual(spec.with_entry_run("loop-contract"), spec.INNER)
+        self.assertEqual(spec.with_complete_run("loop-terminal"), spec.INNER)
+        self.assertEqual(loops.STAGES, spec.INNER)
         # ShipLoop loops are unbounded (owner decision 2026-09-26): no stage carries a limit.
         self.assertFalse(any(hasattr(spec.stage(name), "loop_limit") for name in spec.STAGES))
-        for condition in (prompts.QUALITY_REPEAT_CONDITION, prompts.TEST_REPEAT_CONDITION):
-            self.assertIn("no iteration limit", condition)
-            self.assertNotIn("Stop cancelled when", condition)
+        for name in spec.INNER:
+            with self.subTest(stage=name):
+                self.assertIn("no iteration limit", loops.REPEAT[name])
+                self.assertNotIn("Stop cancelled when", loops.REPEAT[name])
         self.assertEqual(test_loop.MAX_REFUSED_RUNS, 11)
 
     def test_every_prose_copy_of_a_cap_names_its_constant_value(self) -> None:
@@ -161,12 +161,9 @@ class StageTableTest(unittest.TestCase):
 
     def test_stages_that_edit_code_run_a_script_check_before_done(self) -> None:
         # A stage that may change code or tests must end with a script-run lint
-        # gate, test run or loop check.  Exempt, each checked by a later stage:
-        # integrate (integration-verify reruns every command) and
-        # system-test-author (its tests run at system-test).  test-author is not
-        # exempt: ShipLoop runs its focused commands once and requires that a test ran
-        # (the test-probe run), so a test that cannot load is refused where it can be fixed.
-        exempt = {"integrate", "system-test-author"}
+        # gate, test run or loop check.  Exempt, checked by a later stage:
+        # system-test-author (its tests run at system-test).
+        exempt = {"system-test-author"}
         for name, row in spec.STAGE_SPEC.items():
             if {"code", "tests"} & row.edits and name not in exempt:
                 with self.subTest(stage=name):

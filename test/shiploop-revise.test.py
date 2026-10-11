@@ -107,8 +107,8 @@ class ReviseTests(unittest.TestCase):
 
     def test_revise_is_allowed_only_where_the_stage_table_allows_it(self) -> None:
         self.assertEqual(spec.with_outcome("revise")[0], "test-spec")
-        self.assertEqual(spec.with_outcome("revise")[-1], "integration-verify")
-        for stage in ("intake", "plan", "get-next-work-item", "step-plan", "carry-forward"):
+        self.assertEqual(spec.with_outcome("revise")[-1], "verify")
+        for stage in ("intake", "plan", "step-plan", "carry-forward"):
             with self.subTest(stage=stage):
                 state = drive_to(stage)
                 with self.assertRaisesRegex(nav.NavigatorError, "revise sends a work item back"):
@@ -118,18 +118,19 @@ class ReviseTests(unittest.TestCase):
         state = drive_to("implement")
         current = planning_revision.current_actions(state)
         self.assertIn(("W1", "test-spec"), current)
-        self.assertIn(("W1", "get-next-work-item"), current)
+        self.assertIn(("W1", "validate-existing"), current)
         state = submit(state, REVISE)
         current = planning_revision.current_actions(state)
         self.assertNotIn(("W1", "step-plan"), current)
         self.assertNotIn(("W1", "test-spec"), current)
-        self.assertIn(("W1", "get-next-work-item"), current)
+        self.assertNotIn(("W1", "validate-existing"), current)
+        self.assertIn((None, "prepare"), current)
         self.assertIn((None, "plan"), current)
 
     def test_packet_states_the_revise_outcome_and_budget(self) -> None:
-        state = drive_to("test-refine")
+        state = drive_to("test")
         packet = nav.render(dry_run.CORE, dry_run.RUN, state)
-        self.assertIn("Allowed outcomes: done | repeat | blocked | revise (", packet)
+        self.assertIn("Allowed outcomes: done | blocked | revise (", packet)
         self.assertIn("2 of 2 left for this item", packet)
         state = submit(state, REVISE)
         packet = nav.render(dry_run.CORE, dry_run.RUN, state)
@@ -171,17 +172,17 @@ class ReviseTests(unittest.TestCase):
         self.assertNotIn(result_path(first_plan), packet)
         self.assertNotIn(result_path(first_sent_back), packet)
 
-    def test_the_amend_lines_follow_a_repeat_of_the_redone_step_plan(self) -> None:
+    def test_the_amend_lines_survive_a_refused_repeat_of_the_redone_step_plan(self) -> None:
+        # The redone plan goes round again inside its Until Loop, never through the graph: a repeat callback is refused,
+        # and the packet still names the plan to amend and the revise result.
         state = drive_to("implement")
         plan = last_action(state, "step-plan", "done")
         state = submit(state, REVISE)
         sent_back = state["history"][-1]["action"]
-        # The redone plan goes round again, so the revise result leaves the last-transition block.
-        state = submit(state, {"outcome": "repeat", "summary": "The redone plan is not finished."})
-        state = nav.finish_improve(state, nav.current_action(state)["id"],
-                                   dry_run._improve_receipt("step-plan"), None)
+        with self.assertRaisesRegex(nav.NavigatorError, "repeat is not an outcome at step-plan"):
+            submit(state, {"outcome": "repeat", "summary": "The redone plan is not finished."})
         self.assertEqual(nav.current_stage(state), "step-plan")
-        self.assertEqual(state["history"][-1]["outcome"], "repeat")
+        self.assertEqual(state["history"][-1]["outcome"], "revise")
         packet = nav.render(dry_run.CORE, dry_run.RUN, state)
         self.assertIn(result_path(plan), packet)
         self.assertIn(result_path(sent_back), packet)
@@ -204,8 +205,9 @@ class ReviseTests(unittest.TestCase):
         self.assertNotIn(result_path(sent_back), nav.render(dry_run.CORE, dry_run.RUN, state))
         self.assertNotIn("carried over", head_of(state))
         # W2 reaches its own step plan once W1 finishes: nothing of W1's plans or revise result is named.
-        second_item = [i for i, row in enumerate(rows) if row["at"] == "get-next-work-item"][1]
-        state = walk(state, rows[test_spec:second_item + 1])
+        first_carry = next(i for i, row in enumerate(rows) if row["at"] == "carry-forward")
+        second_item = next(i for i, row in enumerate(rows) if i > first_carry and row["at"] == "step-plan")
+        state = walk(state, rows[test_spec:second_item])
         self.assertEqual(state["work_items"][state["work_index"]]["id"], "W2")
         self.assertEqual(nav.current_stage(state), "step-plan")
         packet = nav.render(dry_run.CORE, dry_run.RUN, state)
@@ -258,10 +260,14 @@ class ReviseTests(unittest.TestCase):
         old.pop("revisions")
         with self.assertRaisesRegex(nav.NavigatorError, "missing: revisions"):
             nav.validate(old)
-        wrong_version = deepcopy(state)
-        wrong_version["version"] = 3
-        with self.assertRaisesRegex(nav.NavigatorError, "state version 3 is not the supported version 4"):
-            nav.validate(wrong_version)
+        # A run saved by the 17-stage inner loop (state version 4) is refused with its own reason.
+        for version, reason in ((3, "state version 3 is not the supported version 5"),
+                                (4, "seventeen-stage inner loop \\(state version 4\\)")):
+            wrong_version = deepcopy(state)
+            wrong_version["version"] = version
+            with self.subTest(version=version), self.assertRaisesRegex(
+                    nav.NavigatorError, reason + ".*fresh --run-dir"):
+                nav.validate(wrong_version)
 
     def test_revisions_must_name_real_items_within_the_budget(self) -> None:
         state = drive_to("implement")

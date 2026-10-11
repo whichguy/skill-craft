@@ -156,12 +156,12 @@ def effectiveness(state: dict, out: Path) -> dict:
     """Script facts on whether the stages did their job (the slice verdicts when slice.py wrote them)."""
     history = [row for row in state.get("history") or [] if isinstance(row, dict)]
     order = [row.get("stage") for row in history]
-    red = order.index("test-red") if "test-red" in order else None
-    green = order.index("test-green") if "test-green" in order else None
+    spec = order.index("test-spec") if "test-spec" in order else None
+    build = order.index("implement") if "implement" in order else None
     found = {"stage_outcomes": [{"stage": row.get("stage"), "outcome": row.get("outcome"), "work_item": row.get("workitem")}
                                 for row in history],
              "revise_loops": sum(1 for row in history if row.get("outcome") == "revise"),
-             "test_red_before_green": None if red is None or green is None else red < green}
+             "test_spec_before_implement": None if spec is None or build is None else spec < build}
     try:
         found["slice"] = json.loads((out / "slice-result.json").read_text())
     except (OSError, ValueError):
@@ -326,7 +326,7 @@ def render(report: dict) -> str:
         verdicts = ", ".join(f"{name} {'PASS' if ok else 'FAIL'}" for name, ok in slice_result.get("verdicts", {}).items())
         lines += [f"**Slice {'PASS' if slice_result.get('pass') else 'FAIL'}**: {verdicts}", ""]
     eff = report["effectiveness"]
-    lines += [f"Revise loops {eff['revise_loops']}; test-red before test-green: {_cell(eff['test_red_before_green'])}.", "",
+    lines += [f"Revise loops {eff['revise_loops']}; test-spec before implement: {_cell(eff['test_spec_before_implement'])}.", "",
               "## Packets", "",
               "| # | stage | kind | outcome | chars | ~tokens | emissions | next | repeated | skill refs | missing | largest section |",
               "|---|---|---|---|---|---|---|---|---|---|---|---|"]

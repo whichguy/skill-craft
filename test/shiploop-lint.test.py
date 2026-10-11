@@ -28,6 +28,7 @@ PACKAGE = ROOT / "skills/shiploop"
 CLI = PACKAGE / "scripts/shiploop"
 sys.path.insert(0, str(PACKAGE / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shiploop_inner_fixture as inner  # noqa: E402
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
@@ -302,7 +303,7 @@ class Fixture(unittest.TestCase):
                  env: dict | None = None, **kwargs):
         if base == "capture":
             base = lint.read_base(self.run_dir, "W1")
-        return lint.lint_pass(self.repo, self.run_dir, action="A1", work_item="W1", stage="static-checks",
+        return lint.lint_pass(self.repo, self.run_dir, action="A1", work_item="W1", stage="verify",
                               mode=mode, run_option=mode, base=base, allow_fix=allow_fix,
                               env=env or self.env(), **kwargs)
 
@@ -564,12 +565,12 @@ class LintPassTests(Fixture):
         self.assertIn("| +y = 2", payload["block"])
         self.assertEqual((self.repo / "a.py").read_text(), "y = 2  # fixme\n")
 
-    def test_later_static_checks_entry_is_report_only(self):
+    def test_later_verify_entry_is_report_only(self):
         self.commit({"a.py": "x = 1\n"})
         self.base()
         self.edit({"a.py": "y = 2  # fixme\n"})
         payload = self.run_pass(allow_fix=False)
-        self.assertIn("auto-fix runs only on the work item's first static-checks entry", payload["block"])
+        self.assertIn("auto-fix runs only on the work item's first verify entry", payload["block"])
         self.assertEqual(payload["mode"], "report")
 
     def test_deletion_rules_are_never_auto_applied(self):
@@ -707,7 +708,7 @@ class LintPassTests(Fixture):
         plain = Path(self.temp.name) / "plain"
         plain.mkdir()
         with self.assertRaisesRegex(lint.LintError, "not a Git checkout"):
-            lint.lint_pass(plain, self.run_dir, action="A1", work_item="W1", stage="static-checks",
+            lint.lint_pass(plain, self.run_dir, action="A1", work_item="W1", stage="verify",
                            mode="fix", run_option="fix", base=None, allow_fix=False, env=self.env())
 
     def test_only_formatters_and_pre_commit_are_listed_as_not_run(self):
@@ -753,7 +754,7 @@ class LintPassTests(Fixture):
             (self.run_dir / relative).write_text(text)
         self.edit({"svc_a/a.py": "x = 1\nz = 2  # fixme\n", "svc_b/b.py": "y = 1\nw = 2  # fixme\n"})
         payload = lint.lint_pass(self.repo / "svc_a", self.run_dir, action="A1", work_item="W1",
-                                 stage="static-checks", mode="fix", run_option="fix",
+                                 stage="verify", mode="fix", run_option="fix",
                                  base=lint.read_base(self.run_dir, "W1"), allow_fix=True, env=self.env())
         self.assertIn("limited to the run's repository svc_a", payload["block"])
         self.assertNotIn("svc_b", payload["block"])
@@ -915,15 +916,22 @@ def _packet_file_text(stdout: str) -> str:
     return stdout
 
 
-def complete(run: Path, state: dict, result: dict = DONE) -> str:
+# The step plan of every driven run: it changes a.py and adds b.py (owner rules 2026-10-10: each path has an
+# expectation, each step lists its skills; inner_fixture.fill adds both).
+PATHS = ["a.py", "b.py"]
+
+
+def complete(run: Path, state: dict, result: dict = DONE, *, loop: bool = True) -> str:
+    """Submit ``result`` through real dispatch; an inner stage's loop runs through the real runtime unless ``loop`` is
+    False (a refusal test that must reach the gate without a receipt, or a result already prepared)."""
     action = nav.current_action(state)["id"]
     stage = nav.current_stage(state)
     if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
         result = dict(result, assumptions=[])
-    if stage == "step-plan" and result.get("outcome") == "done" and "test_commands" not in result:
-        result = dict(result, steps=[{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"]}],
-                          test_commands=[], test_commands_na="Synthetic fixture; no test commands.",
-                      paths=["src/**"])
+    if stage == "step-plan" and result.get("outcome") == "done" and "paths" not in result:
+        result = dict(result, paths=list(PATHS))
+    if loop:
+        result = inner.prepare(run, state, result)
     if stage in knowledge_support.knowledge.CLOSES:
         knowledge_support.write(state)
     inbox = run / "inbox"
@@ -936,8 +944,8 @@ def complete(run: Path, state: dict, result: dict = DONE) -> str:
     return _packet_file_text(buffer.getvalue())
 
 
-def complete_implement(run: Path, state: dict) -> str:
-    """Submit implement as done through the lint gate: resubmit after an auto-fix, waive what remains."""
+def complete_gated(run: Path, state: dict) -> str:
+    """Submit a gate stage as done through the lint gate: resubmit after an auto-fix, waive what remains."""
     result = DONE
     for _ in range(4):
         try:
@@ -950,33 +958,48 @@ def complete_implement(run: Path, state: dict) -> str:
             if not ids:
                 raise
             result = dict(DONE, lint_waivers=[{"id": found, "reason": "Fixture keeps it."} for found in ids])
-    raise AssertionError("the lint gate kept refusing implement")
+    raise AssertionError("the lint gate kept refusing " + nav.current_stage(state))
 
 
-def drive(run: Path, until: str, *, edit=None, edit_at: str = "implement") -> dict:
-    """Walk a saved run through real dispatch (so the lint hooks run) to ``until``."""
+def finish_improve(run: Path) -> dict:
+    """The improve-complete branch of dispatch: finish the pending child, run the transition hooks, save."""
     state = store.read_record(run / "state.md")
+    action = state["active_improve"]["action_id"]
+    updated = nav.finish_improve(state, action, {"summary": "Synthetic Improve.", "review_refs": ["synthetic://r"],
+                                                 "check_refs": ["synthetic://c"]})
+    updated, writes, payload = nav._transition(CORE, run, state, updated)
+    nav.save(run, updated, writes)
+    nav._lint_finish(run, payload)
+    return updated
+
+
+def settle(run: Path) -> dict:
+    """The saved state with any pending Improve child finished."""
+    state = store.read_record(run / "state.md")
+    while state.get("active_improve"):
+        state = finish_improve(run)
+    return state
+
+
+def drive(run: Path, until: str, *, edits: dict | None = None) -> dict:
+    """Walk a saved run through real dispatch (so the lint hooks run) to ``until``.
+
+    ``edits`` maps a stage to a callable run just before that stage is completed.  implement writes b.py by default,
+    so the item's diff touches code and document is issued (owner decision 7).
+    """
+    edits = {"implement": lambda: (run.parent / "repo" / "b.py").write_text("z = 1\n"), **(edits or {})}
+    state = settle(run)
     for _ in range(200):
-        if nav.current_stage(state) == until and not state.get("active_improve"):
+        if nav.current_stage(state) == until:
             return state
         stage = nav.current_stage(state)
-        if edit is not None and stage == edit_at:
-            edit()
-        action = nav.current_action(state)["id"]
+        if stage in edits:
+            edits[stage]()
         if stage in lint.GATE_STAGES:
-            complete_implement(run, state)
+            complete_gated(run, state)
         else:
             complete(run, state)
-        state = store.read_record(run / "state.md")
-        if state.get("active_improve"):
-            # The improve-complete branch of dispatch: finish the child, run the lint hook, save.
-            updated = nav.finish_improve(state, action, {"summary": "Synthetic Improve.",
-                                                         "review_refs": ["synthetic://r"],
-                                                         "check_refs": ["synthetic://c"]})
-            writes, payload = nav._lint_transition(CORE, run, state, updated)
-            nav.save(run, updated, writes)
-            nav._lint_finish(run, payload)
-            state = updated
+        state = settle(run)
     raise AssertionError("did not reach " + until)
 
 
@@ -992,51 +1015,74 @@ class HookTests(Fixture):
     def edit_item(self) -> None:
         self.edit({"a.py": "x = 1\ny = 2  # fixme\n"})
 
-    def test_static_checks_entry_fixes_once_and_next_never_relints(self):
+    def enter_verify_with_a_fixable_edit(self) -> dict:
+        """Drive to document, add a fixable finding there (document is not gated) and enter verify."""
         self.commit({"a.py": "x = 1\n"})
         self.start()
         with self.patched_env():
-            state = drive(self.run_dir, "skill-validate", edit=self.edit_item, edit_at="document")
+            state = drive(self.run_dir, "document")
             self.assertTrue((self.run_dir / "lint" / "items" / "W1.md").is_file())
-            packet = complete(self.run_dir, state)
-            state = store.read_record(self.run_dir / "state.md")
-            self.assertEqual(nav.current_stage(state), "static-checks")
-            self.assertIn("AUTO-FIX APPLIED", packet)
-            self.assertLess(packet.index("Call this when done:"), packet.index("ShipLoop lint (supporting output"))
+            self.edit_item()
+            self.entered = complete(self.run_dir, state)
+        state = store.read_record(self.run_dir / "state.md")
+        self.assertEqual(nav.current_stage(state), "verify")
+        return state
+
+    def test_verify_entry_fixes_once_and_never_relints_on_render(self):
+        """The advisory pass moved from static-checks to verify (2026-10-10): its entry lints and auto-fixes once."""
+        with self.patched_env():
+            state = self.enter_verify_with_a_fixable_edit()
+            action = nav.current_action(state)["id"]
+            record = store.read_record(self.run_dir / "lint" / (action + ".md"))
+            self.assertEqual((record["stage"], record["applied"]), ("verify", ["a.py"]))
+            self.assertIn("AUTO-FIX APPLIED", record["block"])
             self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2\n")
             self.assertEqual(list((self.run_dir / "lint").glob("pending-*.patch")), [])
             calls = len(self.logged())
-            again = nav.render(CORE, self.run_dir, state)
+            nav.render(CORE, self.run_dir, state)
             nav.render(CORE, self.run_dir, state)
             self.assertEqual(len(self.logged()), calls)
-            self.assertIn("AUTO-FIX APPLIED", again)
+            # The bound Until Loop repeats the review, so the graph refuses repeat here.
+            before = (self.run_dir / "state.md").read_bytes()
+            with self.assertRaisesRegex(nav.NavigatorError, "verify accepts only done, blocked, revise"):
+                complete(self.run_dir, state, dict(DONE, outcome="repeat"), loop=False)
+            self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+            self.assertEqual(len(self.logged()), calls)
+
+    def test_the_verify_packet_shows_its_entry_pass_and_marks_it_stale(self):
+        with self.patched_env():
+            state = self.enter_verify_with_a_fixable_edit()
+            self.assertIn("AUTO-FIX APPLIED", self.entered)
+            self.assertLess(self.entered.index("Call this when done:"),
+                            self.entered.index("ShipLoop lint (supporting output"))
+            self.assertIn("AUTO-FIX APPLIED", nav.render(CORE, self.run_dir, state))
+            calls = len(self.logged())
             # Model repairs make the stored record stale; rendering says so without linting.
             self.edit({"a.py": "x = 1\ny = 3\n"})
             self.assertIn("Status: stale. a.py changed after this pass", nav.render(CORE, self.run_dir, state))
             self.assertEqual(len(self.logged()), calls)
-            # The bound Until Loop repeats the quality review, so the graph refuses repeat here.
-            before = (self.run_dir / "state.md").read_bytes()
-            with self.assertRaisesRegex(nav.NavigatorError, "static-checks accepts only done, revise or blocked"):
-                complete(self.run_dir, state, dict(DONE, outcome="repeat"))
-            self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
-
-    def test_verify_entry_names_the_static_checks_auto_fix(self):
-        """The planning-stage Improve completions pass through the hook; complete enters both lint stages."""
+    def test_a_later_verify_entry_of_the_item_is_report_only(self):
+        """Auto-fix runs only on the item's first verify entry; after a revise the next entry reports what it would
+        fix and changes nothing (``static_entries`` counts the item's earlier verify entries)."""
         self.commit({"a.py": "x = 1\n"})
         self.start()
         with self.patched_env():
-            state = drive(self.run_dir, "static-checks", edit=self.edit_item, edit_at="document")
-            self.assertTrue((self.run_dir / "lint" / "items" / "W1.md").is_file())
-            action = nav.current_action(state)["id"]
-            record = store.read_record(self.run_dir / "lint" / (action + ".md"))
-            self.assertEqual(record["applied"], ["a.py"])
-            self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2\n")
-            self.assertIn("AUTO-FIX APPLIED", nav.render(CORE, self.run_dir, state))
-            state = drive(self.run_dir, "verify")
-            verify = store.read_record(self.run_dir / "lint" / (nav.current_action(state)["id"] + ".md"))
-        self.assertEqual(verify["stage"], "verify")
-        self.assertIn("ShipLoop auto-fixed a.py", verify["block"])
-
+            state = drive(self.run_dir, "document")
+            self.edit_item()
+            complete(self.run_dir, state)
+            state = store.read_record(self.run_dir / "state.md")
+            first = nav.current_action(state)["id"]
+            self.assertEqual(store.read_record(self.run_dir / "lint" / (first + ".md"))["applied"], ["a.py"])
+            complete(self.run_dir, state, dict(DONE, outcome="revise", summary="A finding needs a test-spec case."))
+            state = drive(self.run_dir, "verify", edits={
+                "implement": lambda: None,
+                "document": lambda: self.edit({"a.py": "x = 1\ny = 2  # fixme\n"})})
+            second = nav.current_action(state)["id"]
+        self.assertNotEqual(first, second)
+        record = store.read_record(self.run_dir / "lint" / (second + ".md"))
+        self.assertEqual(record["applied"], [])
+        self.assertIn("auto-fix runs only on the work item's first verify entry", record["block"])
+        self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2  # fixme\n")
     def test_an_improve_completion_that_starts_a_work_item_captures_its_base(self):
         """The end review may add work items; its completion starts the next item's inner loop."""
         self.commit({"a.py": "x = 1\n"})
@@ -1052,7 +1098,7 @@ class HookTests(Fixture):
                                 "check_refs": ["synthetic://c"]},
                 dict(DONE, work_items=[{"id": "W2", "title": "Review follow-up"}]))
             writes, payload = nav._lint_transition(CORE, self.run_dir, state, updated)
-        self.assertEqual(nav.current_stage(updated), "get-next-work-item")
+        self.assertEqual(nav.current_stage(updated), "step-plan")
         self.assertIn("lint/items/W2.md", writes)
         self.assertIsNone(payload)
 
@@ -1066,25 +1112,13 @@ class HookTests(Fixture):
         paused = nav.control(state, "pause", "user stop")
         self.assertIn("UNCONSUMED LINT JOURNAL", nav.render(CORE, self.run_dir, paused))
 
-    def test_verify_entry_repeats_an_unchanged_result_word_for_word(self):
-        self.commit({"a.py": "x = 1\n"})
-        self.start("report")
-        with self.patched_env():
-            state = drive(self.run_dir, "static-checks", edit=lambda: self.edit({"a.py": "x = 1  # lint\n"}))
-            record = store.read_record(self.run_dir / "lint" / (nav.current_action(state)["id"] + ".md"))
-            calls = len(self.logged())
-            packet = complete(self.run_dir, state)
-        self.assertIn("no linter ran. Still, word for word from that record:", packet)
-        self.assertIn(record["result_line"], packet)
-        self.assertEqual(len(self.logged()), calls)
-
     def test_mode_off_runs_no_linter_but_records_the_change_inventory(self):
-        """lint=off stops linters and auto-fix; the item base and inventory still serve the quality loop."""
+        """lint=off stops linters and auto-fix; the item base and inventory still serve verify's review loop."""
         self.commit({"a.py": "x = 1\n"})
         self.start("off")
         with self.patched_env(), \
                 mock.patch.object(lint, "lint_pass", side_effect=AssertionError("no lint pass")):
-            state = drive(self.run_dir, "static-checks", edit=self.edit_item)
+            state = drive(self.run_dir, "verify", edits={"implement": self.edit_item})
         self.assertEqual(self.logged(), [])
         action = nav.current_action(state)["id"]
         self.assertTrue((self.run_dir / "lint" / "items" / "W1.md").is_file())
@@ -1114,19 +1148,23 @@ class HookTests(Fixture):
         self.commit({"a.py": "x = 1\n"})
         self.start()
         with self.patched_env():
-            state = drive(self.run_dir, "skill-validate", edit=self.edit_item, edit_at="document")
-            expected = nav.apply(state, nav.current_action(state)["id"], DONE)
+            state = drive(self.run_dir, "document")
+            self.edit_item()
+            result = inner.prepare(self.run_dir, state, DONE)
+            expected = nav.apply(state, nav.current_action(state)["id"], result)
             with mock.patch.object(lint, "lint_pass", side_effect=SystemExit(2)):
-                packet = complete(self.run_dir, state)
+                packet = complete(self.run_dir, state, result, loop=False)
         saved = store.read_record(self.run_dir / "state.md")
         # Only the transition changed state: identical except the fresh action ID.
         issued = nav.current_action(saved)["id"]
         self.assertEqual(json.loads(json.dumps(saved).replace(issued, "NEW")),
                          json.loads(json.dumps(expected).replace(nav.current_action(expected)["id"], "NEW")))
-        self.assertEqual(nav.current_stage(saved), "static-checks")
+        self.assertEqual(nav.current_stage(saved), "verify")
+        record = store.read_record(self.run_dir / "lint" / (issued + ".md"))
+        self.assertEqual(record["kind"], "failure")
+        self.assertIn("could not run: SystemExit: 2", record["block"])
         self.assertIn("could not run: SystemExit: 2", packet)
         self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2  # fixme\n")
-
     def test_unconsumed_journal_is_surfaced(self):
         journal = self.run_dir / "lint" / "pending-nav-x.patch"
         journal.parent.mkdir(parents=True)
@@ -1143,7 +1181,7 @@ class HookTests(Fixture):
         payload = self.run_pass(mode="report")
         for relative, text in lint.record_writes(payload).items():
             store.atomic_write_text(self.run_dir / relative, text)
-        lines = lint.render_lines(self.run_dir, "A1", stage="static-checks", run_option="report",
+        lines = lint.render_lines(self.run_dir, "A1", stage="verify", run_option="report",
                                   repo=str(self.repo), command=str(CLI))
         parts = lint._parts(payload["block"])
         self.assertGreater(len(parts), 1)
@@ -1263,7 +1301,7 @@ class InvokerLogTests(unittest.TestCase):
 
 
 class GateTests(Fixture):
-    """implement's done passes through the lint gate."""
+    """implement's (every step's), test's and verify's done pass through the lint gate."""
 
     def start(self, option: str = "fix") -> dict:
         nav.save(self.run_dir, nav.new_state(str(self.repo), "Lint gate fixture.", improve_skill="",
@@ -1296,43 +1334,43 @@ class GateTests(Fixture):
                 complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": "x", "reason": "r"}]))
             complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": found[0], "reason": "Kept on purpose."}]))
         saved = store.read_record(self.run_dir / "state.md")
-        self.assertEqual(nav.current_stage(saved), "test-green")
+        self.assertEqual(saved["active_improve"]["stage"], "implement")  # accepted: the step's Improve review is next
         # The malformed waiver was refused before any pass ran: two gate passes in all.
         self.assertFalse((self.run_dir / "lint" / (action + ".gate3.md")).exists())
         record = store.read_record(self.run_dir / "lint" / (action + ".gate2.md"))
         self.assertEqual(record["waived"], found)
-        self.assertEqual(saved["accepted"][action]["lint_waivers"], [{"id": found[0], "reason": "Kept on purpose."}])
+        # The step's Improve child carries the accepted result; finishing it records the waiver with the step.
+        self.assertEqual(saved["active_improve"]["seed_result"]["lint_waivers"],
+                         [{"id": found[0], "reason": "Kept on purpose."}])
+        self.assertEqual(settle(self.run_dir)["accepted"][action]["lint_waivers"],
+                         [{"id": found[0], "reason": "Kept on purpose."}])
 
-    def test_an_earlier_implement_step_reports_and_the_last_step_gates(self):
-        """X5 (e8_lint_steps.py): step S1 was refused (and auto-fixed) for an import step S2 uses."""
+    def test_every_implement_step_is_gated(self):
+        """Owner decision 4 (2026-10-10): the lint gate runs on every implement step, not only the last; a finding a
+        later step resolves is waived at the earlier step (X5, e8_lint_steps.py, was the import a later step uses)."""
         self.commit({"a.py": "x = 1\n"})
         nav.save(self.run_dir, nav.new_state(str(self.repo), "Lint gate fixture.", improve_skill="",
                                              lint_option="fix"))
-        steps = [{"id": "S1", "task": "Add the import.", "paths": ["a.py"]},
+        steps = [{"id": "S1", "task": "Add the helper.", "paths": ["a.py"]},
                  {"id": "S2", "task": "Use it.", "paths": ["a.py"]}]
         with self.patched_env():
             state = drive(self.run_dir, "step-plan")
             complete(self.run_dir, state, dict(DONE, steps=steps, test_commands=[],
                                                test_commands_na="Synthetic fixture.", paths=["a.py"]))
-            state = store.read_record(self.run_dir / "state.md")
-            if state.get("active_improve"):
-                action = state["active_improve"]["action_id"]
-                updated = nav.finish_improve(state, action, {"summary": "Synthetic Improve.",
-                                                             "review_refs": ["synthetic://r"],
-                                                             "check_refs": ["synthetic://c"]})
-                nav.save(self.run_dir, updated)
             state = drive(self.run_dir, "implement")
-            self.edit({"a.py": "import os  # unused\nx = 1\n"})
-            complete(self.run_dir, state)  # S1: reported, not refused and not auto-fixed
-            self.assertEqual((self.repo / "a.py").read_text(), "import os  # unused\nx = 1\n")
-            state = store.read_record(self.run_dir / "state.md")
-            self.assertEqual(nav.current_stage(state), "implement")
-            with self.assertRaisesRegex(nav.NavigatorError, "ShipLoop lint gate"):
-                complete(self.run_dir, state)  # S2 is the last step: a finding still present gates it
-            self.edit({"a.py": "import os\nx = os.sep\n"})
+            self.edit({"a.py": "x = 1\ny = 2  # lint\n"})
+            with self.assertRaises(nav.NavigatorError) as refused:
+                complete(self.run_dir, state)  # S1 is gated although it is not the last step
+            self.assertIn("implement is not done while 1 new lint finding", str(refused.exception))
+            found = re.findall(r"^- (L[0-9a-f]{10}) ", str(refused.exception), re.M)
+            complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": found[0], "reason": "S2 resolves it."}]))
+            state = settle(self.run_dir)
+            self.assertEqual(nav.current_stage(state), "implement")  # S2
+            with self.assertRaisesRegex(nav.NavigatorError, "implement is not done while 1 new lint finding"):
+                complete(self.run_dir, state)  # S1's waiver does not carry over to S2
+            self.edit({"a.py": "x = 1\ny = 2\n"})
             complete(self.run_dir, state)
-        self.assertEqual(nav.current_stage(store.read_record(self.run_dir / "state.md")), "test-green")
-
+        self.assertEqual(nav.current_stage(settle(self.run_dir)), "test")
     def test_auto_fix_refuses_once_then_accepts(self):
         self.commit({"a.py": "x = 1\n"})
         state = self.start()
@@ -1343,30 +1381,31 @@ class GateTests(Fixture):
                 complete(self.run_dir, state)
             self.assertEqual((self.repo / "a.py").read_text(), "x = 1\ny = 2\n")
             complete(self.run_dir, state)
-        self.assertEqual(nav.current_stage(store.read_record(self.run_dir / "state.md")), "test-green")
+        self.assertEqual(nav.current_stage(settle(self.run_dir)), "test")
 
-    def test_test_green_edits_pass_through_the_same_gate(self):
+    def test_test_stage_edits_pass_through_the_same_gate(self):
+        """test-green's gate moved to the test stage (2026-10-10): a fix made while the tests run is gated too."""
         self.commit({"a.py": "x = 1\n"})
         state = self.start()
         with self.patched_env():
-            complete(self.run_dir, state)  # implement: nothing changed yet
-            state = store.read_record(self.run_dir / "state.md")
-            self.assertEqual(nav.current_stage(state), "test-green")
+            self.edit({"b.py": "z = 1\n"})
+            complete(self.run_dir, state)
+            state = settle(self.run_dir)
+            self.assertEqual(nav.current_stage(state), "test")
             self.edit({"a.py": "x = 1\ny = 2  # lint\n"})  # a fix made during the test loop
             with self.assertRaises(nav.NavigatorError) as refused:
                 complete(self.run_dir, state)
-            self.assertIn("test-green is not done while 1 new lint finding", str(refused.exception))
+            self.assertIn("test is not done while 1 new lint finding", str(refused.exception))
             found = re.findall(r"^- (L[0-9a-f]{10}) ", str(refused.exception), re.M)
             complete(self.run_dir, state, dict(DONE, lint_waivers=[{"id": found[0], "reason": "Kept."}]))
-        self.assertEqual(nav.current_stage(store.read_record(self.run_dir / "state.md")), "test-refine")
-
+        self.assertEqual(nav.current_stage(settle(self.run_dir)), "document")
     def test_lint_off_and_non_done_outcomes_run_no_gate(self):
         self.commit({"a.py": "x = 1\n"})
         state = self.start("off")
         self.edit({"a.py": "x = 1\ny = 2  # lint\n"})
         with self.patched_env(), mock.patch.object(lint, "lint_pass", side_effect=AssertionError("no pass")):
             complete(self.run_dir, state)
-        self.assertEqual(nav.current_stage(store.read_record(self.run_dir / "state.md")), "test-green")
+        self.assertEqual(nav.current_stage(settle(self.run_dir)), "test")
 
     def test_blocked_implement_is_not_linted(self):
         self.commit({"a.py": "x = 1\n"})
@@ -1385,31 +1424,37 @@ class GateTests(Fixture):
         self.assertEqual(record["kind"], "failure")
         self.assertIn("could not run: RuntimeError: boom", record["block"])
 
-    def test_lint_waivers_are_refused_outside_a_done_implement(self):
+    def test_lint_waivers_are_refused_outside_a_done_gate_stage(self):
         waivers = [{"id": "L0123456789", "reason": "r"}]
-        with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement, test-green, regression result"):
-            nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="verify")
+        self.assertEqual(lint.GATE_STAGES, ("implement", "test", "verify"))
+        with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement, test, verify result"):
+            nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="document")
         # A blocked result carrying them is refused for the fields it must not carry (the refusal names them and says
         # to delete them); the stage-specific sentence above applies to a done result at another stage.
         with self.assertRaisesRegex(nav.NavigatorError, "a blocked result does not carry lint_waivers"):
             nav._canonical_result(dict(DONE, outcome="blocked", blocked_by="external", lint_waivers=waivers), stage="implement")
-        self.assertEqual(nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="implement")["lint_waivers"],
-                         waivers)
-
+        for stage in lint.GATE_STAGES:
+            with self.subTest(stage=stage):
+                self.assertEqual(nav._canonical_result(dict(DONE, lint_waivers=waivers), stage=stage)["lint_waivers"],
+                                 waivers)
 
 class PromptContractTests(unittest.TestCase):
-    def test_test_stages_carry_the_pass_or_stop_loop(self):
+    def test_gate_stages_tell_the_model_to_lint_inside_their_loop(self):
+        """The pass-or-stop text left with the 17-stage loop (2026-10-10): every inner stage's Until Loop repeats until
+        its exit holds, and each gate stage's loop work runs the printed lint command; a finding that must stay goes
+        in lint_waivers, which the gate stages alone accept."""
+        import shiploop_loops as loops
         import shiploop_prompts as guidance
-        for stage in ("test-refine", "integration-verify"):
-            text = guidance.prompt(stage, delegation=guidance.INLINE)
-            self.assertIn("Pass-or-stop loop: this stage is done only when every check it runs passes", text)
-            self.assertIn("the same check still failing after 7 genuine fix attempts → outcome revise", " ".join(text.split()))
-        # test-green and regression run the script-enforced test loop instead.
-        for stage in ("verify", "test-green", "regression"):
+        for stage in loops.STAGES:
             self.assertNotIn("Pass-or-stop loop", guidance.prompt(stage, delegation=guidance.INLINE))
-        implement = guidance.prompt("implement", delegation=guidance.INLINE)
-        self.assertIn("Lint every step: after a step's last edit, run the packet's printed lint command", implement)
-        self.assertIn("`lint_waivers`", implement)
+        for stage in ("implement", "test"):
+            with self.subTest(stage=stage):
+                self.assertIn("the lint command printed in the packet", " ".join(loops.WORK[stage].split()))
+                self.assertIn("`lint_waivers`", guidance.prompt(stage, delegation=guidance.INLINE))
+        implement = " ".join(guidance.prompt("implement", delegation=guidance.INLINE).split())
+        self.assertIn("run every recorded check command and the printed lint command and record each exit code",
+                      implement)
+        self.assertIn("the same check still fails after 7 genuine fix attempts", implement)
 
 
 class CliTests(Fixture):

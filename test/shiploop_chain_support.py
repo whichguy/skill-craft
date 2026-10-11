@@ -22,6 +22,8 @@ import shiploop_navigator as nav
 import shiploop_store as store
 import shiploop_chain_ledger as chain_ledger
 import shiploop_chain as chain
+sys.path.insert(0, str(ROOT / "test"))
+from shiploop_loop_support import finish_loop, with_receipt  # noqa: E402
 
 CLI = SCRIPTS / "shiploop"
 # Chains bind the repository's own Plan Dispatcher package: the one supported
@@ -51,6 +53,10 @@ def with_packet_file(stdout: str) -> str:
 
 
 class ChainFixture(unittest.TestCase):
+    # implement works one accepted step at a time; the chain's A/B/C/J graph runs inside this one step.
+    STEP_PLAN_STEPS = ({"id": "S1", "task": "Implement the A/B/C/J chain", "deps": [], "criteria": ["C1"], "skills": [],
+                        "paths": ["context_alpha.py", "context_beta.py", "context_join.py", "context_report.py"]},)
+
     def setUp(self):
         self.assert_fixture(FIXTURE)
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-chain-")
@@ -146,6 +152,8 @@ class ChainFixture(unittest.TestCase):
                     "id": "feature", "title": "Parallel feature",
                     "context": "Use the reviewed context-code contract and the architecture decision.",
                 }]
+            if stage == "step-plan":
+                value["steps"] = [dict(step) for step in self.STEP_PLAN_STEPS]
             self.state = nav.apply(self.state, aid, value)
             improve_writes = None
             if self.state["active_improve"] is not None:
@@ -411,6 +419,10 @@ class ChainFixture(unittest.TestCase):
         result = {"outcome": outcome, "summary": "Synthetic chain integration complete"}
         if outcome == "blocked":
             result["blocked_by"] = "external"  # every blocked result names who can unblock it
+        if outcome in ("done", "revise"):
+            # implement is an Until Loop: done (a satisfied loop) and revise (a loop stopped blocked) need its terminal
+            # receipt, so a refusal below is the chain's own.
+            result = with_receipt(result, finish_loop(self.run, outcome="done" if outcome == "done" else "blocked"))
         store.write_record(p, result)
         result = subprocess.run([sys.executable, "-B", str(CLI), "complete", "--run-dir", str(self.run),
                                  "--action", self.action, "--result", str(p)], text=True, capture_output=True)

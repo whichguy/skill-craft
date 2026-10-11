@@ -79,15 +79,15 @@ def _require_retry_planning_review(existing: dict, requested: "str | None", run_
 def _require_card_for_unreviewed_planning(requested: "str | None", card: str) -> None:
     """A run with no planning child names its Improve card where it starts, and the card is resolved there.
 
-    Under ``stage`` the first child, at ``spec``, binds the card.  Under ``none`` the first child is the last item's
-    ``carry-forward``, but the quality and test loops of the first item read the recorded card, so a run started
-    without one blocks at its first ``static-checks``, and nothing can bind it without a child.
+    Under ``stage`` the first child, at ``spec``, binds the card.  Under ``none`` the first child is the first
+    implement step's review, but every inner stage's Until Loop reads the recorded card from step-plan on (falling
+    back to the bundled one), so the card a run names is recorded here, before its first loop.
     """
     if (requested or navigator.DEFAULT_PLANNING_REVIEW) != "none":
         return
     need(bool(card), "--planning-review none needs --improve-skill=<absolute selected Improve SKILL.md>: with no "
                      "Improve child at the planning stages nothing else binds the card before the first item's "
-                     "quality and test loops, which read it. Start the run again with the flag.")
+                     "stage Until Loops, which read it. Start the run again with the flag.")
     import shiploop_standalone_improve as standalone
     try:
         standalone.resolve_skill(str(Path(card).expanduser().absolute()))
@@ -519,7 +519,7 @@ def main(core, argv=None):
         return hook_status(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "workspace":
         return workspace_command(core, raw_argv[1:])
-    if raw_argv and raw_argv[0] in ("chain", "lint"):
+    if raw_argv and raw_argv[0] in ("chain", "lint", "red-check"):
         # Both write run state; a lost grant gets the same repair as next.
         refused = _grant_refusal(core, raw_argv, _argv_run_dir(raw_argv))
         if refused is not None:
@@ -530,6 +530,8 @@ def main(core, argv=None):
     if raw_argv and raw_argv[0] == "lint":
         import shiploop_lint
         return shiploop_lint.main(core, raw_argv[1:])
+    if raw_argv and raw_argv[0] == "red-check":
+        return navigator.red_check_command(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "backchain-check":
         import shiploop_backchain_graph
         return shiploop_backchain_graph.main(core, raw_argv[1:])
@@ -542,6 +544,8 @@ def main(core, argv=None):
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
     subs.add_parser("chain", help="bind and operate a parallel or serial chain within the current implementation action")
     subs.add_parser("lint", help="advisory lint rerun for the current action, or show a stored record part (never gates)")
+    subs.add_parser("red-check", help="the test stage's base run without completing: does any new test pass "
+                                      "without this item's change? (never counted, never gates)")
     subs.add_parser("backchain-check", help="record-only Backchain graph check of a candidate plan file (never gates)")
     subs.add_parser("hook-status", help="read-only JSON: can this run still move (for keepalive hooks and the driver)")
     navigator_dry_run.add_arguments(subs.add_parser(
@@ -607,6 +611,10 @@ def main(core, argv=None):
             sub.add_argument("--action", required=True)
         if name in ("complete", "improve-reconcile"):
             sub.add_argument("--result", required=True)
+        if name == "complete":
+            sub.add_argument("--check-only", dest="check_only", action="store_true",
+                             help="run this stage's script gates on the result and report, without completing the "
+                                  "action (an Until Loop's way to observe its exit conditions before done)")
         if name == "improve-complete":
             sub.add_argument("--notes", help="optional plain-text lessons from the review, for later steps")
             sub.add_argument("--final-result", dest="final_result",

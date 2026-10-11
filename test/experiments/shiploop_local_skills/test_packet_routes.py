@@ -15,7 +15,7 @@ import shiploop_store as store
 
 
 class LocalSkillRoutes(unittest.TestCase):
-    def test_cold_skill_stages_point_to_local_contract_and_repo_index(self):
+    def test_cold_carry_forward_skill_decision_points_to_local_contract_and_repo_index(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo, run = root / "repo", root / "run"
@@ -23,10 +23,10 @@ class LocalSkillRoutes(unittest.TestCase):
             run.mkdir()
             state = nav.new_state(str(repo), "Review current evidence.")
             checked = []
-            while nav.current_stage(state) != "static-checks":
+            while not checked:
                 stage = nav.current_stage(state)
                 action = nav.current_action(state)
-                if stage in {"skill-assess", "skill-validate"}:
+                if stage == "carry-forward":
                     nav.save(run, state)
                     before = (run / "state.md").read_bytes()
                     recovered = store.read_record(run / "state.md")
@@ -37,17 +37,18 @@ class LocalSkillRoutes(unittest.TestCase):
                     self.assertEqual((run / "state.md").read_bytes(), before)
                     self.assertEqual(nav.current_action(recovered)["id"], action["id"])
                     checked.append(stage)
+                    break
                 result = {"outcome": "done", "summary": "Synthetic navigation setup only."}
                 if stage == "plan":
                     result["work_items"] = [{"id": "W1", "title": "Review evidence"}]
                 state = nav.apply(state, action["id"], result)
                 if state["active_improve"] is not None:
-                    # Only planning checkpoints and the last carry-forward park a child.
+                    # Planning checkpoints, each implement step and the last carry-forward park a child.
                     state = nav.finish_improve(state, action["id"], {
                         "summary": "Synthetic navigation setup, no Improve executed.",
                         "lessons": "No live work claimed.",
                     })
-            self.assertEqual(checked, ["skill-assess", "skill-validate"])
+            self.assertEqual(checked, ["carry-forward"])
 
 
 if __name__ == "__main__":

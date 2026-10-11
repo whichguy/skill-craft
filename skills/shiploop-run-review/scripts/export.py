@@ -69,24 +69,32 @@ FIGURE_TONES = ("expected", "saw", "limit")
 
 # Stage -> phase. The phase orders match defaults/expectations.json (phase-<order>); the stage names
 # are shiploop_stage_spec.STAGES, and a test checks that every stage there is listed here once.
-# carry-forward ("record lessons and revise the remaining queue") runs once per work item before
-# the next get-next-work-item, so it belongs to Integrate, not System test.
+# The inner loop's five groups (Plan, Validate existing, Build, Verify, Carry forward) fold into four phases here:
+# step-plan and test-spec plan the item, validate-existing joins Build, verify proves it, and carry-forward ("record
+# lessons, decide the skill, revise the remaining queue") runs once per work item before the next item's step-plan.
 PHASES = (
     ("Understand", ("intake", "discovery", "research")),
     ("Specify", ("spec", "test-strategy")),
-    ("Plan", ("plan", "prepare", "get-next-work-item", "step-plan")),
-    ("Build", ("test-spec", "baseline", "test-author", "test-red", "implement", "test-green", "test-refine")),
-    ("Prove", ("regression", "document", "skill-assess", "skill-validate", "static-checks", "verify")),
-    ("Integrate", ("integrate", "integration-verify", "carry-forward")),
+    ("Plan", ("plan", "prepare", "step-plan", "test-spec")),
+    ("Build", ("validate-existing", "implement", "test", "document")),
+    ("Verify", ("verify",)),
+    ("Carry forward", ("carry-forward",)),
     ("System test", ("system-test-author", "system-test", "product-acceptance")),
     ("Release", ("release-plan", "release-check", "release", "release-verify", "operations", "handoff")),
 )
-# The engine renamed select-work to get-next-work-item and refuses a saved run that carries the old name, so a new run
-# never needs this table: it exists only so committed historical evidence (runs of ShipLoop 1.22.0 and earlier), the page's
-# database and exports of old run directories (which this exporter still re-exports) render under either name. The first
-# name of a group is canonical (the engine's; PHASES lists it); the rest are history. One group, one place: STAGE_PHASE
-# below and the page's stage lookup resolve a name through it, nothing else mentions the old name.
-STAGE_ALIASES = (("get-next-work-item", "select-work"),)
+# Read-only names for saved evidence. The engine refuses a saved run that carries a removed stage name, so a new run never
+# needs this table: it exists only so committed historical evidence (runs of the 17-stage inner loop and of select-work),
+# the page's database and exports of old run directories (which this exporter still re-exports) place an old visit in
+# the phase of the stage that replaced it. The first name of a group is canonical (the engine's; PHASES lists it); the
+# rest are history. One place: STAGE_PHASE below and the page's stage lookup resolve a name through it, nothing else
+# mentions an old name.
+STAGE_ALIASES = (
+    ("step-plan", "get-next-work-item", "select-work"),
+    ("validate-existing", "baseline"),
+    ("test", "test-author", "test-red", "test-green", "test-refine", "regression"),
+    ("verify", "static-checks", "integrate", "integration-verify"),
+    ("carry-forward", "skill-assess", "skill-validate"),
+)
 
 
 def stage_names(stage: str) -> tuple[str, ...]:
@@ -107,8 +115,7 @@ def _with_aliases(table: dict) -> dict:
 STAGE_PHASE = _with_aliases({stage: order for order, (_, stages) in enumerate(PHASES) for stage in stages})
 # The inner-loop stages ShipLoop runs after `implement` (shiploop_stage_spec.INNER; a test keeps them equal). A work item
 # that has any of them accepted has left implement.
-AFTER_IMPLEMENT = ("test-green", "test-refine", "regression", "document", "skill-assess", "skill-validate",
-                   "static-checks", "verify", "integrate", "integration-verify", "carry-forward")
+AFTER_IMPLEMENT = ("test", "document", "verify", "carry-forward")
 # ShipLoop run status -> the page's run status. A run whose engine says `active` but whose harness record says the host is
 # over is `stopped` (see build_run): the engine cannot say that, it is not running when its host goes away.
 RUN_STATUS = {"active": "active", "paused": "paused", "blocked": "blocked", "halted": "failed", "done": "done"}
@@ -388,7 +395,7 @@ SCHEMA = {
                "stages": (("items", {"stage": (S, True), "purpose": (S, True),
                                      "exitCheck": (("enum", EXIT_CHECKS), True),
                                      "completeRuns": (("list", S), False),
-                                     "improve": (("enum", ("always", "last-item")), False),
+                                     "improve": (("enum", ("always", "last-item", "step")), False),
                                      "planningChoice": (B, False), "reads": (("list", S), True)}), False)},
     # packets/<runKey>--<action>: the text of one visit's packet file, read by the page on demand. Never in the
     # committed review-export.json (megabytes); the run directory is the record.
@@ -1782,12 +1789,11 @@ def _delivered(root: Path, stages: list[dict]) -> tuple[dict, dict[str, str]]:
         found["tests"] = tests
     else:
         why["delivered.tests"] = tests_why
-    skill = {field: text for field, stage in (("assessed", "skill-assess"), ("validated", "skill-validate"))
-             if (text := _delivered_words(stages, stage, MAX_DELIVERED_SKILL))}
+    skill = {"assessed": text} if (text := _delivered_words(stages, "carry-forward", MAX_DELIVERED_SKILL)) else {}
     if skill:
         found["skill"] = skill
     else:
-        why["delivered.skill"] = "no accepted skill-assess or skill-validate visit with a summary"
+        why["delivered.skill"] = "no accepted carry-forward visit with a summary"
     release = {field: text for field, stage in (("plan", "release-plan"), ("done", "release"))
                if (text := _delivered_words(stages, stage, MAX_DELIVERED_RELEASE))}
     if release:
@@ -1807,7 +1813,7 @@ TREE_DIGEST = re.compile(r"[0-9a-f]{12,64}")
 def _verify_by_action(tests: Path) -> tuple[dict[str, dict], int]:
     """({action id: verify block}, readable-record count missed) from `tests/<action>-verifyN.md`, the checks ShipLoop itself
     ran and recorded. A visit's block counts every record of its action (`records`, `passed`, `red`: records in which a command
-    ran red, which a test-red record accepts; `couldNotRun`, only when some record never reached a verdict) and keeps the
+    ran red, which the test stage's base run accepts; `couldNotRun`, only when some record never reached a verdict) and keeps the
     `runs` of the last record, the one that decided it: status, tests ran, failed and accepted. `observed` is where the last
     record that names one ran its checks (release-verify: returned-result, work-area or in-place) and the first 12 digits of the
     tree. No command, no stdout, no path is copied. A record with no readable shiploop-state fence is counted unreadable."""
@@ -3418,10 +3424,11 @@ def exit_check(complete_runs, improve) -> str:
 
     `script-run`: the row has `complete_runs`, so the script runs a gate or the recorded commands (lint gate, test loop,
     the focused or every test command, the quality loop's terminal check) before it accepts done. Else `review loop`:
-    the row has an `improve` rule (`always`, or `last-item`), so an Improve child reviews the result before the graph
-    advances. Else `model judgement`: the model decides against the row's `done_when` and nothing script-run or reviewed
-    follows. A row with both is `script-run`; no row has both today (a test says so). The mode is not here: see
-    effective_exit_check."""
+    the row has an `improve` rule (`always`, `last-item` or `step`), so an Improve child reviews the result before the
+    graph advances. Else `model judgement`: the model decides against the row's `done_when` and nothing script-run or
+    reviewed follows. A row with both is `script-run`: every inner stage runs its Until Loop's terminal check
+    (`loop-terminal`), and implement (`step`) and carry-forward (`last-item`) also have an Improve child. The mode is not
+    here: see effective_exit_check."""
     return "script-run" if complete_runs else "review loop" if improve else "model judgement"
 
 

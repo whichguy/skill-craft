@@ -9,6 +9,7 @@ model sees), and checks each for the five.  Synthetic results; no model, no Impr
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -79,7 +80,9 @@ class PacketCompletenessTests(unittest.TestCase):
         stages = {stage for stage, kind in self.found if kind == "producer"}
         self.assertEqual(stages, set(stage_spec.STAGE_SPEC))
         reviewed = {stage for stage, kind in self.found if kind == "improve"}
-        self.assertEqual(reviewed, set(stage_spec.reviewed_stages("stage")) | {"carry-forward"})
+        # implement's rule is "step": an Improve child after every accepted step (owner, 2026-10-10).
+        self.assertEqual(reviewed, set(stage_spec.reviewed_stages("stage")) | {"carry-forward"}
+                         | stage_spec.with_improve("step"))
 
     def test_a_producer_packet_states_purpose_operation_check_output_and_recovery(self) -> None:
         for (stage, kind), packet in sorted(self.found.items()):
@@ -132,14 +135,13 @@ class PacketCompletenessTests(unittest.TestCase):
 
     # Declared here, not read from the navigator: the words a stage's Checked-by line must carry because its gate
     # exists, and the only stages that may carry them.  test/shiploop-callback-contract.test.py pairs each named fault
-    # with the real refusal and an accepted correction (the step plan's skill_na fault there, the document stage's in
-    # test/shiploop-test-loop.test.py, which drives that stage's gate against a real diff).  The document stage names
-    # skill_na only once the step plan recorded it (these synthetic plans record none), so it is absent here.
+    # with the real refusal and an accepted correction.  Since the 8-stage inner loop (2026-10-10) every inner stage runs
+    # a script check (its loop receipt), so this test no longer reaches step-plan and its rows below are vacuous;
+    # skill_na is gone with the skill stages.
     GATE_WORDS = {
         "assumption": {"plan"},
         "criterion": {"step-plan"},
         "deps": {"step-plan"},
-        "skill_na": {"step-plan"},
         "system_commands": {"system-test-author"},
         "consumer_checks": {"release-plan"},
         "consumer_entry": {"release-plan"},
@@ -172,7 +174,9 @@ class PacketCompletenessTests(unittest.TestCase):
     def test_a_producer_with_a_script_run_check_still_names_the_other_faults_complete_refuses(self) -> None:
         # release-verify runs the consumer checks and closes the knowledge home.  Its line named only the run, so the
         # docs/shiploop gate was met first as a refusal in 4 runs (packet review 2026-10-10, P-rv-1).
-        closes = {"release-verify"}
+        # test-spec's close requires the item's test-spec.md under docs/shiploop, and its row now runs the loop
+        # receipt check too, so its line belongs to this group (8-stage inner loop, 2026-10-10).
+        closes = {"release-verify", "test-spec"}
         for (stage, kind), packet in sorted(self.found.items()):
             row = stage_spec.stage(stage)
             if kind != "producer" or not row.complete_runs:
@@ -219,6 +223,8 @@ class ObservedHarmPacketTests(unittest.TestCase):
             if kind != "producer":
                 continue
             text = json.dumps(template_of(packet))
+            # An inner stage's template prefills its Until Loop receipt locator: a run file, not product content.
+            text = text.replace(str(next(iter(re.findall(r'"([^"]*/loops/[^"]*-terminal\.json)"', text)), "")), "")
             with self.subTest(stage):
                 self.assertNotRegex(text, r"(?i)readme")
                 self.assertNotRegex(text, r"[\w-]+\.(md|txt|py|js|json|html)\b")
@@ -230,25 +236,30 @@ class ObservedHarmPacketTests(unittest.TestCase):
         duty = prompts.DUTIES["step-plan"]
         self.assertNotRegex(duty, r"(?i)readme[^/]")  # README/AGENTS links of repository-local skills stay (a path, not a product file)
         self.assertNotIn("--greeting", duty)
-        self.assertIn("add a `check` command (suite `check`, judged by its exit code)", duty)
+        self.assertIn("check commands are the lint, type and build commands environment.md records for these files, "
+                      "judged by exit code", flat(duty))
 
     # row 7: the step plan declares the ids; test-spec titles its cases with them; check is a suite.
     def test_the_step_plan_declares_ids_it_will_title_and_names_every_suite(self) -> None:
         text = flat(self.found[("step-plan", "producer")])
-        self.assertIn("`ids` you will title the cases with", text)
+        self.assertIn("Give each focused command the ids its cases will carry", text)
         self.assertNotIn("of the test-spec cases", text)
         self.assertIn(" | ".join('"' + suite + '"' for suite in test_loop.SUITES), text)
 
     def test_test_spec_titles_each_case_with_the_declared_ids_and_says_where_the_cases_go(self) -> None:
         text = flat(self.found[("test-spec", "producer")])
-        self.assertIn("Title each case with the ids in the step plan's `test_commands`", text)
-        self.assertIn("one entry per case in test-spec.md: id, setup, action, independent oracle, RED, GREEN", text)
+        self.assertIn('Write one "### <ID>" entry per case in the feature test-spec.md, titled with an id a focused '
+                      "command in the step plan's `test_commands` lists", text)
+        for part in ("setup and fixture; action; independent oracle", "RED (", "GREEN;"):
+            self.assertIn(part, text)
 
     # row 2: a check row carries no ids or min_tests (shiploop-callback-contract pairs the refusal with its correction).
     def test_the_stages_that_record_commands_say_a_check_row_carries_no_ids_or_min_tests(self) -> None:
-        for stage in ("step-plan", "system-test-author", "release-plan"):
+        for stage in ("system-test-author", "release-plan"):
             with self.subTest(stage):
                 self.assertIn("a check row carries no ids or min_tests", flat(self.found[(stage, "producer")]))
+        # step-plan's duty (rewritten 2026-10-10) states the same rule in its own words.
+        self.assertIn("judged by exit code, with no ids or min_tests", flat(self.found[("step-plan", "producer")]))
 
     def test_a_template_check_row_carries_no_ids_or_min_tests(self) -> None:
         for stage, field in (("step-plan", "test_commands"), ("system-test-author", "system_commands"),

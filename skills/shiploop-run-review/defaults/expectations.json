@@ -47,24 +47,24 @@
   "kind": "phase",
   "order": 3,
   "title": "Build",
-  "short": "Tests first, implement, loop",
-  "text": "For each work item the script serves test-spec, baseline, test-author, test-red, implement, test-green and test-refine in order. A revise outcome returns through the script for a replan."
+  "short": "Validate, implement, test, document",
+  "text": "For each work item the script serves validate-existing, implement, test and document in order, each as an Until Loop whose contract the script writes and whose terminal packet it checks. validate-existing runs the step plan's expectation checks on the item base and is skipped when every one matches; implement runs one packet per step, each followed by an Improve child and the lint gate; test proves the new tests fail on the base checkout and pass on the candidate; document runs only when the change is behavioural. A revise outcome returns through the script to step-plan for a replan."
  },
  {
   "key": "phase-4",
   "kind": "phase",
   "order": 4,
-  "title": "Prove",
-  "short": "Regression, docs, static checks",
-  "text": "Regression, documentation, skill assessment and validation, and static checks each run as a script-served stage with their own result file."
+  "title": "Verify",
+  "short": "Rerun every check, commit the item",
+  "text": "The script reruns every recorded test command and the lint gate on the item's candidate, always, and commits the verified item."
  },
  {
   "key": "phase-5",
   "kind": "phase",
   "order": 5,
-  "title": "Integrate",
-  "short": "Script merges verified work",
-  "text": "The script integrates verified work and re-verifies the integrated result before the next item."
+  "title": "Carry forward",
+  "short": "Lessons, skill decision, queue",
+  "text": "Once per work item the model records lessons, decides whether a skill is reused, updated or created (the script commits a created or updated skill), and revises the remaining queue before the next item's step plan."
  },
  {
   "key": "phase-6",

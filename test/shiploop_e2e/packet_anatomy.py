@@ -69,6 +69,8 @@ RULES: tuple[Rule, ...] = (
     _r("done-when", r"^Done when", "bullets"),
     _r("checked-by", r"^Checked by:"),
     _r("considerations", r"^Considerations for this stage:", "bullets"),
+    # --- an inner stage's Until Loop invoke block (shiploop_loops.invoke_lines): heading, argument, how to invoke, start, receipt rules
+    _r("until-loop", r"^Until Loop \(this stage's work runs inside it", "para"),
     # --- result contract and template (_result_contract_lines)
     _r("result-contract", r"^Write the structured result to:", "before",
        r"^(Run context index|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
@@ -108,7 +110,7 @@ RULES: tuple[Rule, ...] = (
     _r("backchain", r"^Selected Backchain and Until Loop resources", "indent"),
     _r("backchain", r"^(Backchain planning guide|Backchain audit resource|Loop resources for a repair|"
        r"Backchain graph check)"),
-    # --- planning sources and queue rules (render(): plan, get-next-work-item, carry-forward)
+    # --- planning sources and queue rules (render(): plan, step-plan, carry-forward)
     _r("work-queue-rules", r"^(Full ordered work queue|Proposed queue awaiting Improve|At plan, supplied work_items|"
        r"Revalidate the current work-item queue|Omit work_items to retain|Read every pending item)"),
     _r("planning-sources", r"^Current planning sources", "bullets"),
@@ -180,7 +182,7 @@ ID = re.compile(r"nav-[0-9a-f]{32}")
 REV = re.compile(r"\b(revision|rev=)\s?\d+")
 
 SECTION_ORDER = (
-    PREAMBLE, "head", "callback", "goal", "done-when", "checked-by", "considerations", "result-contract", "step-context",
+    PREAMBLE, "head", "callback", "goal", "done-when", "checked-by", "considerations", "until-loop", "result-contract", "step-context",
     "context-index", "progress-snapshot", "status-block", "narrative", "unverified-and-deltas", "state-locators", "reading-list",
     "recovery", "original-request", "workspace-return", "backchain", "work-queue-rules", "planning-sources", "last-accepted",
     "carried-sources", "work-item", "knowledge-home", "environment-discovery", "guidance-common", GUIDANCE_DUTY,
@@ -344,12 +346,10 @@ def path_roots(paths: list[str], min_count: int = 20, fan: float = 0.9) -> list[
 
 STAGE_GROUPS = (
     ("intake", ("intake",)), ("discovery/research", ("discovery", "research")), ("spec/test-strategy", ("spec", "test-strategy")),
-    ("plan", ("plan",)), ("prepare", ("prepare",)), ("get-next-work-item", ("get-next-work-item",)),
-    ("step-plan", ("step-plan",)), ("test-spec/test-author", ("test-spec", "test-author")),
-    ("baseline/skill-assess/skill-validate", ("baseline", "skill-assess", "skill-validate")),
-    ("test-red/green/refine/regression", ("test-red", "test-green", "test-refine", "regression")),
-    ("implement", ("implement",)), ("document/static-checks/verify", ("document", "static-checks", "verify")),
-    ("integrate/integration-verify/carry-forward", ("integrate", "integration-verify", "carry-forward")),
+    ("plan", ("plan",)), ("prepare", ("prepare",)),
+    ("step-plan/test-spec", ("step-plan", "test-spec")), ("validate-existing", ("validate-existing",)),
+    ("implement", ("implement",)), ("test", ("test",)), ("document", ("document",)), ("verify", ("verify",)),
+    ("carry-forward", ("carry-forward",)),
     ("system-test-author/system-test/product-acceptance", ("system-test-author", "system-test", "product-acceptance")),
     ("release-plan", ("release-plan",)), ("release-check/release/release-verify/operations",
                                            ("release-check", "release", "release-verify", "operations")),

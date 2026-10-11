@@ -450,7 +450,7 @@ class GitCase(unittest.TestCase):
 
     def by_shiploop(self, name: str, message: str, kind: str | None = None) -> str:
         """A commit ShipLoop's own function makes (the one every ShipLoop commit goes through); ``kind`` names the line ShipLoop
-        prints to announce it: 'improve' (improve-commit) or an item id (the integrate stage's commit)."""
+        prints to announce it: 'improve' (improve-commit) or an item id (the verify stage's commit)."""
         self.write(name, f"{name}: {len(self.replies)}\n")
         message_file = Path(self.tmp.name) / "message.txt"
         message_file.write_text(message)
@@ -495,7 +495,7 @@ class ClassifyTest(GitCase):
         knowledge_home.commit(self.state, "intake")                                   # subject-only knowledge commit
         self.by_shiploop("spec.md", MESSAGES["improve-six-labels"], "improve")      # an Improve commit with every label
         self.by_shiploop("plan.md", MESSAGES["improve-free-prose"], "improve")      # an Improve commit with no label at all
-        self.by_shiploop("lib.js", MESSAGES["item"], "W1")                           # the integrate stage's item commit
+        self.by_shiploop("lib.js", MESSAGES["item"], "W1")                           # the verify stage's item commit
         self.by_the_model("README.md", MESSAGES["raw-readme"])                       # the model's own commits
         self.by_the_model("notes.md", MESSAGES["raw-with-key-learnings"])
         self.by_the_model("check.md", MESSAGES["improve-six-labels"])                # an Improve child that bypassed improve-commit
@@ -557,7 +557,7 @@ class ClassifyTest(GitCase):
         self.assertEqual((after["script"]["n"], after["other"]["n"]), (before["script"]["n"], before["other"]["n"] + 3))
 
     def test_a_work_item_commit_whose_reply_was_not_recorded_is_still_the_scripts_by_its_subject(self):
-        # The integrate stage's reply can be cut by the model's pipe. state.md names the run's work item ids, and the commit's
+        # The verify stage's reply can be cut by the model's pipe. state.md names the run's work item ids, and the commit's
         # subject is `feat: <id> <title>`; a model commit that starts the same way but names no work item is not the script's.
         self.by_shiploop("w2.js", "feat: W2 Another item\n\nWhat it did.\n")
         self.by_the_model("m.js", "feat: add a thing\n")
@@ -636,17 +636,17 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
         self.assertIn("\"ShipLoop committed \"", navigator)
         self.assertTrue(counters.LEFTOVERS_SUBJECT.startswith("chore(shiploop): commit files written after the last work item"))
 
-    def test_the_work_item_subject_counters_matches_is_the_one_the_integrate_stage_writes(self):
-        # The integrate stage's reply names the commit, but the model's pipe can cut that reply, and then only the subject tells the
+    def test_the_work_item_subject_counters_matches_is_the_one_the_verify_stage_writes(self):
+        # The verify stage's reply names the commit, but the model's pipe can cut that reply, and then only the subject tells the
         # script's commit from the model's. The message is built in shiploop_navigator._item_commit: call it with the commit itself
         # replaced and read the message it hands over, so a reworded subject turns the matched work item commits into `other` here
         # and not silently in a run.
         before = {"history": []}
-        after = {"history": [{"stage": "integrate", "outcome": "done", "workitem": "W1", "summary": "What it did."}],
+        after = {"history": [{"stage": "verify", "outcome": "done", "workitem": "W1", "summary": "What it did."}],
                  "work_items": [{"id": "W1", "title": "Add the grid"}]}
         with mock.patch.object(shiploop_item_scope, "commit_item", return_value=("", [], [])) as made:
             shiploop_navigator._item_commit(Path("."), before, after)
-        self.assertEqual(made.call_count, 1, "the integrate row of the history makes one item commit")
+        self.assertEqual(made.call_count, 1, "the verify row of the history makes one item commit")
         message = made.call_args.args[3]
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "state.md").write_text('# ShipLoop navigator state\n\n```shiploop-state\n{"work_items": [{"id": "W1", '

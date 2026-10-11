@@ -1219,7 +1219,7 @@ class PlanAndExecutionTest(unittest.TestCase):
     def test_counts_that_do_not_line_up_with_one_packet_per_step_are_unknown_not_guessed(self):
         # one implement visit for a two-step plan, then the item moved on: it was not paired step by step
         rows = [PLAN_ROWS[0], PLAN_ROWS[1], ("sp", "step-plan", "done", "W1", steps_of("S1", "S2")),
-                ("i1", "implement", "done", "W1", {}), ("test-green", "test-green", "done", "W1", {})]
+                ("i1", "implement", "done", "W1", {}), ("t1", "test", "done", "W1", {})]
         run, _ = self.build(make_plan_run(self.fresh(), rows))
         item = run["workItems"][0]
         self.assertNotIn("stepsExecuted", item)
@@ -2547,6 +2547,9 @@ class DefaultsUpgradeTests(unittest.TestCase):
         self.assertEqual(set(docs), {"expectations", "config"})
         self.assertEqual(notes, [
             "expectations/phase-1: the page's text, which has no revision of its own, is replaced by the defaults' text",
+            # phases 3-5 describe the 8-stage inner loop (Build, Verify, Carry forward) since 2026-10-10
+            *(f"expectations/phase-{n}: the page's text, which has no revision of its own, is replaced by the defaults' text"
+              for n in (3, 4, 5)),
             "expectations/group-principles: the page's text, which has no revision of its own, is replaced by the "
             "defaults' text",
             "config/prompt: replaced by the defaults (fields the defaults do not have are dropped)",
@@ -4952,11 +4955,14 @@ class RoundRunFindingsTests(unittest.TestCase):
         for key, finding, appended in (("phase-2", "o65", "the plan packet makes the Backchain child the host's choice"),
                                        ("phase-4", "o80", "when the accepted step plan records skill_na")):
             aid, option = changes[key]
-            now = self.defaults[key]["text"]
-            self.assertTrue(option["change"]["to"].startswith(now), key)  # nothing of the current text is removed
-            self.assertIn(appended, option["change"]["to"][len(now):], key)
+            self.assertIn(appended, option["change"]["to"], key)
             self.assertEqual((option["findings"], option.get("recommended")), ([finding], True), key)
             self.assertIn(key, option["goal"])
+        # phase-2's text is unchanged, so its option still keeps all of it. phase-4 was rewritten for the 8-stage inner loop
+        # (2026-10-10: Verify, no skill_na), so the option written against the 17-stage text no longer starts with it.
+        now = self.defaults["phase-2"]["text"]
+        self.assertTrue(changes["phase-2"][1]["change"]["to"].startswith(now))  # nothing of the current text is removed
+        self.assertNotIn("skill_na", self.defaults["phase-4"]["text"])
         self.assertTrue(self.defaults["phase-2"]["text"].endswith("there is no limit to this"))  # the owner's sentence
         self.assertIn("there is no limit to this", changes["phase-2"][1]["change"]["to"])
         self.assertIn("'there is no limit to this' is kept word for word", changes["phase-2"][1]["change"]["reason"])
@@ -5105,36 +5111,43 @@ class StageCatalogTests(unittest.TestCase):
 
     def test_each_exit_check_class_has_a_real_stage_and_the_rule_reads_only_the_rows_own_fields(self):
         self.assertEqual({n: self.entry(n)["exitCheck"] for n in
-                          ("implement", "test-green", "verify", "intake", "get-next-work-item", "document", "release",
+                          ("implement", "test", "verify", "intake", "prepare", "document", "release",
                            "spec", "plan", "step-plan", "carry-forward", "release-plan")},
-                         {"implement": "script-run", "test-green": "script-run", "verify": "script-run",
-                          "intake": "model judgement", "get-next-work-item": "model judgement", "document": "model judgement",
+                         {"implement": "script-run", "test": "script-run", "verify": "script-run",
+                          "intake": "model judgement", "prepare": "model judgement", "document": "script-run",
                           "release": "model judgement", "spec": "review loop", "plan": "review loop",
-                          "step-plan": "review loop", "carry-forward": "review loop", "release-plan": "review loop"})
+                          "step-plan": "script-run", "carry-forward": "script-run", "release-plan": "review loop"})
         for stage in self.spec.STAGES:
             row = self.spec.STAGE_SPEC[stage]
             self.assertEqual(self.by_name[stage]["exitCheck"],
                              "script-run" if row.complete_runs else "review loop" if row.improve else "model judgement", stage)
         # the rule on its own, including the precedence no engine row exercises today
-        self.assertEqual([export.exit_check(r, i) for r, i in (((), None), ((), "always"), ((), "last-item"),
+        self.assertEqual([export.exit_check(r, i) for r, i in (((), None), ((), "always"), ((), "last-item"), ((), "step"),
                                                                (("lint-gate",), None), (("lint-gate",), "always"))],
-                         ["model judgement", "review loop", "review loop", "script-run", "script-run"])
+                         ["model judgement", "review loop", "review loop", "review loop", "script-run", "script-run"])
         self.assertEqual({e["exitCheck"] for e in self.catalog}, set(export.EXIT_CHECKS))
-        self.assertFalse([s for s in self.spec.STAGES if self.spec.STAGE_SPEC[s].complete_runs
-                          and self.spec.STAGE_SPEC[s].improve], "a stage with both would be script-run by rule, not by an example")
+        # Every inner stage has both (its Until Loop's terminal check and, for four of them, an Improve child): the rule
+        # gives script-run, the stronger check.
+        both = {s for s in self.spec.STAGES if self.spec.STAGE_SPEC[s].complete_runs and self.spec.STAGE_SPEC[s].improve}
+        self.assertEqual(both, {"step-plan", "test-spec", "implement", "carry-forward"})
+        self.assertEqual({self.by_name[s]["exitCheck"] for s in both}, {"script-run"})
 
     def test_the_mode_none_case_follows_the_engines_own_reviewed_stages(self):
         self.assertEqual({e["stage"] for e in self.catalog if e.get("planningChoice")}, set(self.spec.PLANNING_CHOICE_STAGES))
         for stage in self.spec.PLANNING_CHOICE_STAGES:  # only a stage the Improve rule `always` covers can be the option's
             self.assertEqual(self.by_name[stage]["improve"], "always", stage)
-        last_item = {e["stage"] for e in self.catalog if e.get("improve") == "last-item"}
+        # A stage whose script check ends it (every inner stage's Until Loop) reads script-run in every mode: the review
+        # loop label is for a stage whose only check is its Improve child.
+        scripted = {s for s in self.spec.STAGES if self.spec.STAGE_SPEC[s].complete_runs}
+        last_item = {e["stage"] for e in self.catalog if e.get("improve") == "last-item"} - scripted
         for mode in self.spec.PLANNING_REVIEW_MODES:
             reviewed = {e["stage"] for e in self.catalog if export.effective_exit_check(e, mode) == "review loop"}
-            self.assertEqual(reviewed, set(self.spec.reviewed_stages(mode)) | last_item, mode)
-        for stage in ("spec", "test-strategy", "plan", "step-plan", "test-spec"):
+            self.assertEqual(reviewed, (set(self.spec.reviewed_stages(mode)) - scripted) | last_item, mode)
+        for stage in ("spec", "test-strategy", "plan"):
             self.assertEqual([export.effective_exit_check(self.by_name[stage], m) for m in MODES],
                              ["review loop", "review loop", "model judgement", "review loop", "review loop"], stage)
-        for stage in ("carry-forward", "system-test-author", "release-plan", "implement", "intake"):
+        for stage in ("step-plan", "test-spec", "carry-forward", "system-test-author", "release-plan", "implement",
+                      "intake"):
             self.assertEqual({export.effective_exit_check(self.by_name[stage], m) for m in MODES},
                              {self.by_name[stage]["exitCheck"]}, stage)  # the option does not touch these
 
@@ -5169,21 +5182,32 @@ class StageCatalogTests(unittest.TestCase):
 
 
 class StageAliasTests(unittest.TestCase):
-    """select-work and get-next-work-item are one group, resolved once, so old evidence and new runs both render."""
+    """A removed stage name (select-work, get-next-work-item and the 17-stage inner loop's names) is grouped with the stage
+    that replaced it, resolved once, so old evidence and new runs both render."""
 
     def test_both_names_resolve_to_the_same_group_phase_and_catalog_entry(self):
-        self.assertEqual(export.STAGE_ALIASES, (("get-next-work-item", "select-work"),))  # the engine's name first: canonical
-        self.assertEqual(export.stage_names("select-work"), export.stage_names("get-next-work-item"))
-        self.assertEqual(export.stage_names("select-work")[0], "get-next-work-item")
-        self.assertEqual([stage for _, stages in export.PHASES for stage in stages if "work-item" in stage or stage == "select-work"],
-                         ["get-next-work-item"])  # the old name is in the alias table only
+        self.assertEqual(export.STAGE_ALIASES, (  # the engine's name first: canonical
+            ("step-plan", "get-next-work-item", "select-work"),
+            ("validate-existing", "baseline"),
+            ("test", "test-author", "test-red", "test-green", "test-refine", "regression"),
+            ("verify", "static-checks", "integrate", "integration-verify"),
+            ("carry-forward", "skill-assess", "skill-validate")))
+        phased = [stage for _, stages in export.PHASES for stage in stages]
+        for group in export.STAGE_ALIASES:
+            with self.subTest(group=group[0]):
+                self.assertIn(group[0], phased)
+                for old in group[1:]:
+                    self.assertNotIn(old, phased)  # an old name is in the alias table only
+                    self.assertEqual(export.stage_names(old), group)
+                    self.assertEqual(export.STAGE_PHASE[old], export.STAGE_PHASE[group[0]])
+        self.assertEqual(export.stage_names("select-work")[0], "step-plan")
         self.assertEqual(export.stage_names("spec"), ("spec",))
-        self.assertEqual(export.STAGE_PHASE["select-work"], export.STAGE_PHASE["get-next-work-item"])
         self.assertEqual(export.PHASES[export.STAGE_PHASE["get-next-work-item"]][0], "Plan")
-        # the table goes both ways: a table that lists the new name gives the old one the same value
-        self.assertEqual(export._with_aliases({"get-next-work-item": 7, "spec": 1}),
-                         {"get-next-work-item": 7, "select-work": 7, "spec": 1})
-        self.assertEqual(export._with_aliases({"select-work": 7, "spec": 1}), {"get-next-work-item": 7, "select-work": 7, "spec": 1})
+        # the table goes both ways: a table that lists the new name gives the old ones the same value
+        self.assertEqual(export._with_aliases({"step-plan": 7, "spec": 1}),
+                         {"step-plan": 7, "get-next-work-item": 7, "select-work": 7, "spec": 1})
+        self.assertEqual(export._with_aliases({"select-work": 7, "spec": 1}),
+                         {"step-plan": 7, "get-next-work-item": 7, "select-work": 7, "spec": 1})
 
     def test_a_run_whose_rows_carry_either_name_exports_the_same_phases_and_lists_no_unknown_stage(self):
         results = []
@@ -5384,12 +5408,12 @@ class StageCatalogPageTests(unittest.TestCase):
         for stage in engine_spec().STAGES:
             self.assertEqual(page[stage], inverse.get(stage, []), stage)
         self.assertEqual(page["handoff"], [])  # nothing reads the last stage
-        self.assertIn({"stage": "test-green", "item": True}, page["implement"])
+        self.assertIn({"stage": "test", "item": True}, page["implement"])
         self.assertIsNone(run_logic('readersOf(null,"spec")'))  # no catalog: unknown, never "no readers"
 
     def test_the_page_aliases_resolve_either_name_to_one_group_and_one_phase(self):
         self.assertEqual(run_logic('[stageNames("select-work"),stageNames("get-next-work-item"),stageNames("spec")]'),
-                         [list(g) for g in export.STAGE_ALIASES] * 2 + [["spec"]])
+                         [list(export.STAGE_ALIASES[0])] * 2 + [["spec"]])
         self.assertEqual(run_logic("STAGE_ALIASES"), [list(g) for g in export.STAGE_ALIASES])  # the page's table equals the exporter's
         self.assertEqual(run_logic('[phaseOfStage("select-work",-1),phaseOfStage("get-next-work-item",-1),phaseOfStage("nothing",5)]'),
                          [2, 2, 5])
@@ -5482,7 +5506,7 @@ class StageCardLogicTests(unittest.TestCase):
     def test_a_work_visit_reads_purpose_check_checklist_sizes_and_declared_readers_from_the_catalog(self):
         c = card(CARD_RUN, 5)  # the revise visit of implement
         self.assertEqual((c["title"], c["stage"], c["kind"], c["outcome"]), ("Visit 6: Implement", "implement", "work", "revise"))
-        self.assertEqual(c["purpose"], "Make the planned change")
+        self.assertEqual(c["purpose"], "Make the planned step's change")
         self.assertEqual(c["check"]["kind"], "script-run")
         self.assertIn("lint-gate", c["check"]["why"])
         self.assertEqual(c["sent"]["bytes"], 40_677)
@@ -5503,8 +5527,7 @@ class StageCardLogicTests(unittest.TestCase):
         self.assertEqual(c["written"]["summary"], "S1 cannot be built")
         self.assertEqual(written["Result file"], "written, 1.3 KB")
         self.assertEqual(written["Read by (declared by the stage spec)"], readers_text("implement"))
-        self.assertEqual(readers_text("implement"), "test-green, test-refine, document, static-checks, verify "
-                         "(each reads this work item's result)")
+        self.assertEqual(readers_text("implement"), "test, document, verify (each reads this work item's result)")
 
     def test_readers_read_as_run_level_stages_then_those_that_read_this_work_items_result(self):
         text = run_logic('[readersText([]),readersText(null),readersText([{stage:"a",item:false},{stage:"b",item:false}]),'
@@ -5679,7 +5702,7 @@ class StageCardListTests(unittest.TestCase):
         self.assertEqual((skipped["outcome"], skipped["check"], skipped["sent"], skipped["written"], skipped["readBy"], skipped["purpose"]),
                          ("skipped", "", "", "", None, ""))
         self.assertEqual((revise["outcome"], revise["check"], revise["readBy"], revise["sent"], revise["written"]),
-                         ("revise", "script-run", 5, "39.7 KB", "1.3 KB"))
+                         ("revise", "script-run", 3, "39.7 KB", "1.3 KB"))
         self.assertEqual(rows[6]["outcome"], "seeded")
         self.assertEqual(rows[6]["min"], "")
 
@@ -5718,8 +5741,8 @@ class StageCardPageTests(unittest.TestCase):
         self.assertIn("exit check: script-run", chips)
         self.assertIn("✓ where", chips)
         self.assertIn("✗ recovery", chips)
-        self.assertIn("What the stage is for. Make the planned change.", text)
-        self.assertIn("How it is checked: script-run. ShipLoop runs lint-gate before it accepts done.", text)
+        self.assertIn("What the stage is for. Make the planned step's change.", text)
+        self.assertIn("How it is checked: script-run. ShipLoop runs loop-terminal, lint-gate before it accepts done.", text)
         self.assertIn("not found in the packet text", text)  # the legend, readable without hovering
         self.assertIn("Packet size39.7 KB", text)
         self.assertIn("Summary. S1 cannot be built", text)
@@ -5753,9 +5776,9 @@ class StageCardPageTests(unittest.TestCase):
                          'rows()[4].onclick();var a=[pickedCol,rows()[4].className,rows()[4].attrs["aria-expanded"],rows()[0].attrs["aria-expanded"]];'
                          'rows()[3].onclick();[n,hidden,first,a,pickedCol,textOf("seqdetail").indexOf("Visits 4 to 5")>=0,rows()[3].textContent,bits]', setup=card_setup())
         self.assertEqual((out[0], out[1]), (7, False))
-        for part in ("6", "Implement", "revise", "script-run", "Make the planned change"):
+        for part in ("6", "Implement", "revise", "script-run", "Make the planned step's change"):
             self.assertIn(part, out[2])
-        self.assertEqual(out[7], ["6 min", "sent 39.7 KB", "written 1.3 KB", "declared readers 5"])  # one span each, so a phone wraps between them
+        self.assertEqual(out[7], ["6 min", "sent 39.7 KB", "written 1.3 KB", "declared readers 3"])  # one span each, so a phone wraps between them
         self.assertEqual(out[3], [4, "sc-row sel", "true", "false"])
         self.assertEqual(out[4], 3)
         self.assertTrue(out[5])
@@ -5845,7 +5868,7 @@ class StageCardPageTests(unittest.TestCase):
             run["stages"][2]["stage"] = stage
             c = card(run, 2)
             purpose = next(e["purpose"] for e in export.stage_catalog(engine_spec()) if e["stage"] in export.stage_names(stage))
-            self.assertEqual((c["purpose"], c["check"]["kind"]), (purpose[0].upper() + purpose[1:], "model judgement"), stage)
+            self.assertEqual((c["purpose"], c["check"]["kind"]), (purpose[0].upper() + purpose[1:], "script-run"), stage)  # both old names are step-plan now
 
 
 class PacketHeadTests(unittest.TestCase):
@@ -9208,7 +9231,7 @@ class R23bFidelityPageTests(unittest.TestCase):
 R23D_FIXTURE = ROOT / "docs" / "experiments" / "run-review-r23-20261009" / "delivered.json"
 R23D_CHECKERS, R23D_HELLO = "20261008/r3-checkers-sonnet", "20261009/s6-after-spec"
 R23D_BLOCKED, R23D_STOPPED = "20261008/r1-battleship-grok-none", "20261008/r3-battleship-grok-none"
-R23D_STAGES = ("skill-assess", "skill-validate", "release-plan", "release", "release-verify")
+R23D_STAGES = ("carry-forward", "release-plan", "release", "release-verify")  # carry-forward records the skill decision
 for _index, _name in enumerate(R23D_STAGES):  # the fixture run has no visit at these stages; give each an action id like the others
     IDS.setdefault(_name, f"nav-9{_index}{hashlib.sha256(_name.encode()).hexdigest()[:30]}")
 R23D_ACCEPTS = ACCEPTS + [(name, name, 150 + 5 * index, "done") for index, name in enumerate(R23D_STAGES)]
@@ -9350,7 +9373,7 @@ class R23dDeliveredExportTests(unittest.TestCase):
         self.assertNotIn("tests", again["delivered"])
 
     def test_the_skill_decision_and_the_release_are_the_runs_own_words_cut_and_free_of_local_paths(self):
-        said = {"skill-assess": "Decision: no new skill. " + "word " * 80, "skill-validate": "N/A: nothing to run.",
+        said = {"carry-forward": "Decision: no new skill. " + "word " * 80,
                 "release-plan": "Release = guarded fast-forward return of the run branch to main (no push). See /Users/someone/e2e/run/notes/plan.md",
                 "release": "Ran the planned local release. " + "y" * 400}
         out = r23d_run(Path(tempfile.mkdtemp(dir=self.tmp)), R23D_HELLO, summaries=said)
@@ -9358,7 +9381,7 @@ class R23dDeliveredExportTests(unittest.TestCase):
         self.assertEqual(export.validate_doc("runs", run), [])
         self.assertNotIn("/Users/", json.dumps(run["delivered"]))
         skill, release = run["delivered"]["skill"], run["delivered"]["release"]
-        self.assertEqual(skill["validated"], "N/A: nothing to run.")
+        self.assertEqual(set(skill), {"assessed"})  # carry-forward's one skill decision; no separate validation stage
         self.assertTrue(skill["assessed"].startswith("Decision: no new skill. word word"))
         self.assertLessEqual(len(skill["assessed"]), export.MAX_DELIVERED_SKILL)
         self.assertTrue(skill["assessed"].endswith("…"))
@@ -9367,8 +9390,8 @@ class R23dDeliveredExportTests(unittest.TestCase):
         self.assertNotIn("delivered.skill", run["unmeasured"])
 
     def test_a_skipped_visit_is_not_a_decision_and_a_stage_never_reached_is_unmeasured(self):
-        rows = [{"stage": "skill-assess", "outcome": "done", "summary": "first answer"},
-                {"stage": "skill-assess", "outcome": "done", "summary": "skipped answer", "skipped": True},
+        rows = [{"stage": "carry-forward", "outcome": "done", "summary": "first answer"},
+                {"stage": "carry-forward", "outcome": "done", "summary": "skipped answer", "skipped": True},
                 {"stage": "release-plan", "outcome": "done", "summary": "p"}, {"stage": "release-plan", "outcome": "done"}]
         workspace = Path(tempfile.mkdtemp(dir=self.tmp))
         got, why = export._delivered(workspace, rows)
@@ -9377,7 +9400,7 @@ class R23dDeliveredExportTests(unittest.TestCase):
         self.assertNotIn("delivered.skill", why)
         got, why = export._delivered(workspace, [{"stage": "intake", "outcome": "done"}])
         self.assertNotIn("skill", got)
-        self.assertIn("skill-assess", why["delivered.skill"])
+        self.assertIn("carry-forward", why["delivered.skill"])
         self.assertIn("release-plan", why["delivered.release"])
 
     def test_a_receipt_that_cannot_be_read_leaves_the_status_and_branches_and_names_the_missing_mode(self):
@@ -9400,7 +9423,7 @@ class R23dDeliveredExportTests(unittest.TestCase):
 
     def test_the_facts_carry_the_files_the_test_run_and_the_words_of_the_skill_and_release_stages(self):
         _, facts = self.build(R23D_CHECKERS, verify={"release-verify": VERIFY_RELEASE},
-                              summaries={"skill-assess": "Decision: no new skill.", "release": "Ran the local release."})
+                              summaries={"carry-forward": "Decision: no new skill.", "release": "Ran the local release."})
         text = "\n".join(facts)
         self.assertIn("- Delivered files (kept in the return plan): source 3, tests 4, docs 1, knowledge 10, skills 0", text)
         self.assertIn("- Delivered tests: 15 ran, 0 failed (release-verify, returned-result)", text)
@@ -9463,7 +9486,7 @@ class R23dPageLogicTests(unittest.TestCase):
 
     def test_the_card_rows_are_implemented_tests_documentation_skills_and_release_in_the_runs_words(self):
         doc = r23d_page_doc(R23D_CHECKERS, verify={"release-verify": VERIFY_RELEASE},
-                            summaries={"skill-assess": "no new skill.", "skill-validate": "N/A.", "release-plan": "Local only.", "release": "Ran it."})
+                            summaries={"carry-forward": "no new skill.", "release-plan": "Local only.", "release": "Ran it."})
         model = run_logic("deliveredModel(%s)" % json.dumps(doc))
         rows = dict(model["rows"])
         self.assertEqual(model["title"], "What was delivered")
@@ -9473,7 +9496,7 @@ class R23dPageLogicTests(unittest.TestCase):
         self.assertNotIn("system/http-smoke.js", rows["Implemented"])  # a system test is a test, listed under Tests
         self.assertEqual(rows["Tests"], "4 files\nsystem/http-smoke.js\nsystem/ui-click.js\ntest/rules.test.js\ntest/server.test.js\nLast run: 15 tests ran, 0 failed, at release-verify (returned-result)")
         self.assertEqual(rows["Documentation"], "1 file\nREADME.md\nShipLoop records: 10 files under docs/shiploop (the run's own planning, outcome and release records)")
-        self.assertEqual(rows["Skills"], "Decision: no new skill.\nValidation: N/A.\nProduced: none")
+        self.assertEqual(rows["Skills"], "Decision: no new skill.\nProduced: none")
         self.assertEqual(rows["Release"], "Planned: Local only.\nDone: Ran it.")
 
     def test_a_part_the_export_could_not_measure_is_said_with_its_reason_and_a_marked_change_is_shown(self):
@@ -9514,13 +9537,15 @@ class R23dPageTests(unittest.TestCase):
             self.assertIn(text, out[1])
         self.assertEqual(out[2], 0)  # paths are files on the machine that ran the case: text, not links
 
-    def test_a_red_run_is_not_read_as_a_failing_product(self):
+    def test_a_red_last_run_is_shown_with_its_counts_and_stage_and_no_excuse(self):
+        # The 8-stage loop has no stage whose last run is meant to be red (test's base run is followed by its loop run), so a
+        # red last run is shown as it is, at whatever stage it ran.
         doc = r23d_page_doc(R23D_STOPPED)
-        doc["delivered"]["tests"] = {"ran": 17, "failed": 15, "stage": "test-red"}
-        rows = dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])
-        self.assertIn("Last run: 17 tests ran, 15 failed, at test-red: the new tests are meant to fail here", rows["Tests"])
-        doc["delivered"]["tests"] = {"ran": 17, "failed": 2, "stage": "regression"}
-        self.assertNotIn("meant to fail", dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])["Tests"])
+        for stage in ("test", "test-red", "verify"):
+            doc["delivered"]["tests"] = {"ran": 17, "failed": 15, "stage": stage}
+            rows = dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])
+            self.assertIn("Last run: 17 tests ran, 15 failed, at " + stage, rows["Tests"])
+            self.assertNotIn("meant to fail", rows["Tests"])
 
     def test_a_run_from_before_the_card_has_it_hidden_and_a_not_returned_run_says_so_with_the_reason_for_the_files(self):
         self.assertTrue(self.page(DONE_RUN, 'REG.delcard.hidden'))
