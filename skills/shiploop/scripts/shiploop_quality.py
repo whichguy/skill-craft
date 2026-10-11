@@ -25,25 +25,6 @@ import shiploop_stage_spec as stage_spec
 STAGE, = stage_spec.with_entry_run("change-inventory")
 RUBRIC_PATH = loops.RUBRIC_PATH
 
-QualityError = loops.LoopError
-check_loop_packet = loops.check_loop_packet
-condition_lines = loops.condition_lines
-start_command = loops.start_command
-RECEIPT_LINE = loops.RECEIPT_LINE
-RECEIPT_REF_LINE = loops.RECEIPT_REF_LINE
-RESUME_LINE = loops.RESUME_LINE
-
-
-def _runtime(state: Mapping[str, Any]) -> dict[str, str]:
-    """The run's Until Loop runtime (``shiploop_loops.runtime``); raises ``QualityError``."""
-    return loops.runtime(state)
-
-
-def _work_title(state: Mapping[str, Any], work_item: str) -> str:
-    for row in state.get("work_items", ()):
-        if row.get("id") == work_item:
-            return str(row.get("title") or work_item)
-    return work_item
 
 
 def rubric_writes() -> dict[str, str]:

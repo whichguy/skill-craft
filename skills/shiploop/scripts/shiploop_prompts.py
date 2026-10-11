@@ -438,7 +438,8 @@ sessions, and a fixed /tmp name can read another run's file.
 ShipLoop runs unattended: no one is watching and nothing arrives on standard
 input. When a decision is open, take the default that best fits the request and
 the recorded knowledge, record it as an assumption (the alternatives and why
-this one), and continue. When a step can only be done by a person (a sign-in, a
+this one) in the result's summary (only plan's result has an assumptions list),
+and continue. When a step can only be done by a person (a sign-in, a
 grant, an observation in a signed-in browser), record it as an open item in the
 result, with who must do what and what they should report, and continue with
 everything that does not depend on it. Only when nothing further can proceed
@@ -517,8 +518,8 @@ personal or secret data, state where it is shown, stored and logged, how long it
 kept, and how it is removed. Map each to what the runtime and the project's own
 layers already offer, from their documentation, configuration and code. Do not add
 identity, sharing or persistence the request does not call for; when the request
-leaves them open, take the default you would choose, record it as an assumption,
-and continue.
+leaves them open, take the default you would choose, record it as an assumption
+in the result's summary, and continue.
 Choose the simplest placement that meets the request: a single-user game or tool
 with no shared or lasting state runs entirely in the client. Add server state,
 identity, a store or a live channel only for a requirement that needs it, and use
@@ -1004,8 +1005,8 @@ HTTP response alone is neither.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
-producers.  Order readiness, test, implementation, integration, documentation,
-and release work so consumers do not run before their prerequisites.  Define
+producers.  Order readiness, implementation, integration and release work so
+consumers do not run before their prerequisites.  Define
 ready/done conditions, candidate scope, check evidence, authority boundaries,
 and correction routes.  Do not use the plan to imply unrun tests or authorized
 external operations.
@@ -1088,8 +1089,8 @@ independently. Merge fragments that share prerequisites and an implementation
 boundary without yielding a useful independently checkable state. No minimum
 task count, planning-time quota, or mandatory scaffolding item is needed.
 Keep preservation and negative requirements as checks on affected work unless
-they require their own change. The inner loop already plans, tests, documents,
-reviews and integrates each item; do not duplicate these stages as work items.
+they require their own change. The inner loop already plans, validates, builds,
+tests, documents, verifies and commits each item; do not duplicate these stages as work items.
 Keep genuinely cross-item or later-environment checks at their required boundary.
 For each dependency, name the supplier and the concrete output/state the consumer
 needs. Distinguish authoring an artifact from applying it in a running environment;
@@ -1142,8 +1143,8 @@ Consult these knowledge-home files and cite the headings you used: spec.md
 (## Requirements, ## Non-functional requirements) for the R-<n> this item serves,
 each criterion tracing to one; architecture.md (## Structure, ## Interfaces and
 boundaries, ## Conventions, ## Decisions) for where the change goes and the house
-style, writing a structural choice it does not make yet as a new AD-<n> under
-## Decisions now; environment.md (## Commands, ## Targets and runtimes, ## Skills)
+style, writing a structural choice this item makes that it does not record yet as
+a new AD-<n> under ## Decisions now; environment.md (## Commands, ## Targets and runtimes, ## Skills)
 for the test, lint, type and build commands, adding a newly working command under
 ## Commands; test-strategy.md (## Harnesses and suites, ## ID convention).
 Run the callback with --check-only on your draft result and fix each refusal
@@ -1156,7 +1157,8 @@ not a dependency), the `criteria` IDs it satisfies (listed IDs only) and the
 some step. Give each step its `skills`: reread the host's skills and the
 repository's skill index or directory now (an earlier item may have added one)
 and list `{"name", "why", "locator"}` for each skill with a concrete use in that
-step, or []; the implement packet prints them.
+step, or []; the implement packet prints them. `locator` is optional: when given,
+it is the path of its SKILL.md or card, which must exist.
 Criteria: list the item's completion criteria in `criteria`
 (`[{"id": "C1", "text": "..."}]`). Write each so two people running its check
 would agree: `<condition>. Confirm by: <command, observation or inspection>; pass
@@ -1191,19 +1193,25 @@ or the tap reporter, never dot or junit). """ + ID_WORD_RULE + """ Add `min_test
 where a command must run at least that many. ShipLoop refuses a list too large
 for the test loop's contract: shorten ids, drop duplicates or split the item.
 Expectations: record in `expectations` each fact the steps build on
-(`[{"id": "E1", "state": "works" | "absent" | "broken", "statement": "...", "steps": ["S1"], "check": "<command>", "from": "<assumption id>"}]`).
+(`[{"id": "E1", "state": "works" | "absent" | "broken", "statement": "...", "steps": ["S1"], "paths": ["<path or glob>"], "check": "<command>", "from": "<assumption id, optional>"}]`).
 Every existing path a step changes or relies on gets a works expectation (it
 works today) or a broken one (the request says it is broken), and every new path
-an absent one (its place is free). `check` is one read-only shell command run
-from the repository root: it passes when a works statement holds, finds nothing
-for an absent one, and fails the way the request reports for a broken one. Each
+an absent one (its place is free); ShipLoop matches each step path to an
+expectation whose `paths` lists it. `check` is one read-only shell command run
+from the repository root that exits 0 when its state holds: a works statement is
+true, an absent place is free, or a broken behaviour still fails the way the
+request reports (write it so the reproduction exits 0, for example
+`! npm test -- -t TC-3` or `node cli.js 2>&1 | grep -q 'TypeError'`). Each
 open plan assumption whose consumer is this item becomes an expectation whose
 `from` names it. Record only what this plan relies on; this is not a health
-check. ShipLoop runs every check on the unchanged item base before implement.
+check. ShipLoop runs every check on the unchanged item base at validate-existing,
+after test-spec and before implement.
 Paths: record every file this item will change in `paths` (repository-relative
-files or globs). ShipLoop commits these, changed documentation and docs/shiploop/,
-and refuses implement edits outside them. An item with no test command skips the
-test stage, and one whose change touches no behaviour skips document.
+files or globs), including the test files the test stage will write. The item
+commit takes these, changed documentation and docs/shiploop/. An item
+with no test command and only non-code paths skips the test stage (implement is
+then refused for a code, test or undeclared path), and one whose real diff touches
+no code or test path skips document.
 Plan note: under this item's heading in the feature plan.md, record the outcome,
 invariants kept, contracts and responsibilities changed, each step's failure cases
 and the diagnostics and errors it must produce, the documentation to change,
@@ -1250,8 +1258,8 @@ before implement uses them.
 """,
     "test-spec": _LOOP_DUTY + """\
 Specify, before any code changes, the tests this item needs: at least one case
-per completion criterion, each with an independent oracle and a RED and a GREEN
-definition.
+per completion criterion a test confirms, each with an independent oracle and a
+RED and a GREEN definition.
 Consult and cite: spec.md (## Requirements), where every case cites its criterion
 and R-<n> and takes its oracle from the requirement's text, never from code (check
 a golden, fixture or snapshot oracle against that text first); architecture.md
@@ -1261,9 +1269,12 @@ harness and where a real boundary is required, stating which of its decisions th
 item keeps or changes and why; the step plan's criteria and its focused commands'
 ids.
 Write one "### <ID>" entry per case in the feature test-spec.md, titled with an
-id a focused command in the step plan's `test_commands` lists. Every id the focused
-commands list needs its own "### <ID>" entry too: ShipLoop refuses a case ID that no
-focused command lists, and a focused command id with no entry: criterion and R-<n>; surface (unit, the
+id a focused command in the step plan's `test_commands` lists, and give every id
+those commands list its own entry: ShipLoop refuses a case ID that no focused
+command lists and a focused command id with no entry. Run the callback with
+--check-only on your draft result (the loop's id-match command) and fix each
+refusal; a missing id means the step plan must change: report revise naming it.
+Each entry holds: criterion and R-<n>; surface (unit, the
 module's public interface, the real boundary, rendered UI) and due phase; setup
 and fixture; action; independent oracle (the expected observation, never only that
 a page loads); RED (how it fails on the item's base, or characterisation: it
@@ -1275,8 +1286,11 @@ type or shape, out of range), asserting the error type, the named argument and
 unchanged state. Isolate per test unless sharing setup is shown safe, never
 sharing mutable state; plan failure cleanup and say which suite registers each
 case and whether it joins smoke. Preserve every assigned clause with its required
-surface and due phase; a case due later (system test, release) is linked with its
-phase and owner, not claimed here. This file is a specification, not evidence:
+surface and due phase. A case due later (system test, release) is not a "### <ID>"
+entry: list it under "## Due later" as `- <ID>: <criterion, R-<n>, oracle, due
+stage, owner>`, where system-test-author picks it up. A criterion confirmed only by
+a check command (lint, type, build) or by inspection gets no case: name it and its
+confirming command under "## Not tested here". This file is a specification, not evidence:
 the test stage writes and runs these cases after implement. If a criterion cannot
 be tested as written, report revise naming it.
 """,
@@ -1376,8 +1390,8 @@ or async completion semantics require their recorded safe fallback or correction
 Write every test-spec case as a test and make every recorded command pass: the
 code must behave as the test spec defines.
 Consult and cite: the feature test-spec.md (every case and its oracle); the
-implement results (a behaviour no case covers: add it to test-spec.md with an
-oracle from the spec, then test it); test-strategy.md (## Harnesses and suites,
+implement results (a behaviour no case covers is a test-spec gap: see below);
+test-strategy.md (## Harnesses and suites,
 ## ID convention, ## Real-boundary checks); environment.md (## Commands);
 architecture.md (## Conventions) for test style and seams; the spec for what each
 behaviour must be.
@@ -1393,8 +1407,11 @@ change the approach.
 Reuse the existing harness, helpers and fixtures before adding a facility, and
 record a new one in test-strategy.md (## Harnesses and suites), as you do a test
 decision the implementation changed (harness, boundary, suite). Each new or
-changed public entry point gets its rejection cases; one the test spec lacks is a
-test-spec gap: add the case to test-spec.md with its oracle, then write it. Test a
+changed public entry point gets its rejection cases. A test-spec gap (a rejection
+case or an implemented behaviour the spec lacks) goes into test-spec.md as a
+sub-case of the closest "### <ID>" entry, with its oracle from the spec, and its
+test is titled `<ID> (<letter>)` so a listed ID covers it; a new "### <ID>"
+entry needs a focused command to list it, so when no entry fits, report revise. Test a
 new error path or debug output, on and off, with safe diagnostic context. Adding
 to the regression command an existing suite the changed paths now affect changes
 a recorded command: stop the loop blocked and report revise. Keep probes and
@@ -1403,9 +1420,12 @@ proves only the cases it runs; a smoke or subset run never stands for a recorded
 command, and a local pass does not replace a required remote or real-boundary
 check. Never install, download or fetch a tool or dependency; never commit or
 push.
-Every case ends as a test the focused command runs and passes, validated another
-way (the result records the method and why), or pending (the result names its
-later due stage and owner); a case written but not run is not an end state.
+Every case ends as a test the focused command runs and passes (when the first
+method cannot observe the oracle, a test by another method, still titled with its
+ID, and the result says what changed and why), or unachievable (a named reason
+and the requirement it leaves unverified: report revise so the step plan reroutes
+it); a case written but not run is not an end state. A case in test-spec.md's
+"## Due later" list is not written here; it stays there for system-test-author.
 A new test that passes on the item's base without this change is a
 characterisation test: name it in `red_na` (`[{"id": "<test ID>", "reason": "<why it passes without this change>"}]`).
 A test this item deliberately retires goes in `retired_tests`
@@ -1413,15 +1433,21 @@ A test this item deliberately retires goes in `retired_tests`
 any other drop below a command's floor is refused.
 On done ShipLoop lints this item's changes first (refusing done once after an
 auto-fix: keep or revert it, rerun, submit again; and while a new finding on a
-changed line has no `lint_waivers` entry); then runs the focused commands on the
-item's base with only this item's test files, refusing when a new test ID passes
+changed line has no `lint_waivers` entry); then runs the focused and regression
+commands on the item's base with only this item's test files, refusing when a new test ID passes
 there and `red_na` does not name it (a test that fails to load a file this item
-adds counts as failing); then runs every command on the candidate, refusing unless
+adds counts as failing, because on new code nothing can run on the base); then
+runs every command on the candidate, refusing unless
 each exits 0, runs every listed ID and reaches its floor (the larger of the base
-run's count and the most an earlier run of this action counted). A command that
+run's count and the most an earlier run of this action counted); then mutates a
+sample of this item's changed product lines, one token at a time in a temporary
+copy, and refuses done when the focused tests catch none of those mutants: that,
+not the base run, proves your assertions check the behaviour the test spec's
+oracle states, so a test that only loads the code is refused. A command that
 already failed on the base must still pass here. After a refusal, fix the cause,
 start the loop again and submit again. A run that times out or cannot start
-refuses without counting; after 11 counted refusals, base and candidate together,
+refuses without counting; after 11 counted refusals, base, candidate and mutation
+runs together,
 done is no longer accepted: report revise.
 Report revise when a failure is proven unachievable (it contradicts the
 specification or another requirement, needs a tool, access or authority that is
@@ -1459,7 +1485,9 @@ blocked only when a behaviour cannot be observed here, naming it.
     "verify": _LOOP_DUTY + """\
 Accept this item: every completion criterion confirmed by evidence made after the
 last edit, the whole change reviewed, and chained work assembled. This is
-work-item acceptance, not a claim that integration or release has happened.
+work-item acceptance, not a claim that integration or release has happened. The
+test stage wrote the tests and got every command green: confirm and review that
+result, and change a test only to fix a finding.
 Consult and cite: the spec (## Requirements, ## Non-functional requirements) for
 every R-<n> this item serves and its criteria; architecture.md (## Decisions,
 ## Interfaces and boundaries, ## Conventions), which the change follows or
@@ -1482,7 +1510,8 @@ Each review iteration:
    (exported function, CLI handler, request or event handler, callback); walk one
    valid, one boundary and one invalid input to its return value, error or side
    effect, and write one trace line per path in the run notes. A wrong, unhandled
-   or untested path is a finding (add a test for an untested path); an entry point
+   or untested path is a finding (add a test for an untested path, titled as a
+   sub-case `<ID> (<letter>)` of the case it extends); an entry point
    in the diff but missing from the inventory has not been traced.
 4. Review the whole item's diff against the accepted step plan's steps, paths and
    justified revisions, its affected consumers, the Code craft rubric below and
@@ -1505,9 +1534,10 @@ Reconcile tests, documentation, error behaviour, diagnostics, dependencies and
 known limitations. Use Service discovery guidance for the item's selected service
 and observability contracts: verify the due outcomes, including safe fallback and
 failure cases, and separate local simulation from required remote readback,
-permission enforcement, completion and event retrieval. List every later-phase
-check the criteria need (system, release, real boundary) in the run notes with its
-owner and due stage. Keep run state, raw logs, credentials and generated artifacts
+permission enforcement, completion and event retrieval. Confirm every later-phase
+check the criteria need (system, release, real boundary) is listed under the
+feature test-spec.md's "## Due later" with its owner and due stage, adding any
+missing one; system-test-author picks them up from there. Keep run state, raw logs, credentials and generated artifacts
 out of the product commit.
 Summarize the entry points traced, each trace that found an issue and its fix,
 each command with its exit code, any required check not run and why, and the
@@ -1599,7 +1629,10 @@ command recorded as not run is not an end state. When no system test applies, gi
 `system_commands_na` and the reason.
 Reopen the Run-wide test strategy source. From accepted history, select the
 latest done test-decision record for every relevant completed item: step-plan,
-test-spec or test, with its retained prior locators.
+test-spec or test, with its retained prior locators. Read every entry under
+"## Due later" in this run's feature test-spec.md and the system-test obligations
+in its plan.md "## Open": each becomes a system case here, or an open item with
+its due stage.
 Keep selected action/result and durable test-note locators in evidence_refs.
 Do not infer whole-product coverage from the last transition or final item.
 Reconcile their suite membership and prerequisites before adding cases.

@@ -378,8 +378,10 @@ class PacketContractTests(DelegationStateTests):
         self.assertIn("\nAllowed outcomes: done | blocked | revise", head)
         self.assertIn("\nCall this when done:\n", entry.split("Current stage guidance:", 1)[1])
         self.assertIn("Halt (terminal and irreversible; only on an explicit user stop): ", entry)
-        # verify is not a planning/checkpoint stage; it advances directly.
-        self.assertIn("This result advances directly; no Improve child runs for this stage.", entry)
+        # verify starts no Improve child, and its packet says nothing about Improve (owner rule 2026-10-10: Improve is
+        # mentioned only as a directive); it still says how to report a stop.
+        self.assertNotIn("advances directly", entry)
+        self.assertIn("If work cannot continue, submit outcome 'blocked'", entry)
         # No route offers a pause for a context clear: the host cannot be cleared from a packet.
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
@@ -557,8 +559,9 @@ class PacketContractTests(DelegationStateTests):
                             # packet must not say the result advances with no child.
                             self.assertNotIn("no Improve child runs for this stage", packet)
                         else:
-                            self.assertIn("Improve: This result advances directly; no Improve child "
-                                          "runs for this stage.", packet)
+                            # No child: no Improve sentence at all (owner rule 2026-10-10), only the blocked route.
+                            self.assertNotIn("advances directly", packet)
+                            self.assertIn("If work cannot continue, submit outcome 'blocked'", packet)
                         continue
                     # A bound child that has not started leads with improve-start on both routes
                     # (551b8b49); the improve-complete callback follows in the packet body.

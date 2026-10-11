@@ -6,7 +6,7 @@ tests, or not its named IDs is refused (``shiploop_test_counts``): a filter that
 
 The ``test`` stage runs after implement: the model writes the tests and, inside its Until Loop (``shiploop_loops``,
 which owns the contract and the terminal check), runs every recorded command and fixes until all pass.  On ``done``
-ShipLoop runs two things itself, in this order:
+ShipLoop runs three things itself, in this order:
 
 - ``base_check``: every focused and regression command in a temporary detached Git worktree at the item's lint base
   (``shiploop_lint.read_base``), with only this item's test files copied in.  A new test ID (one a focused command
@@ -16,7 +16,12 @@ ShipLoop runs two things itself, in this order:
   listed ID and run at least its floor: the larger of the base count and the most any earlier run of this action ran,
   less the tests the result's ``retired_tests`` retires that the base run showed.
 
-Both refusals count toward ``MAX_REFUSED_RUNS`` (one shared tally per action); a run that times out, cannot start or is
+- ``mutation_check`` (``shiploop_mutation``): the focused commands on single-line mutants of the item's changed
+  product lines, in a temporary copy of the candidate; refused when at least one mutant ran and none was killed.  The
+  base run's rule that a load failure of an added file counts as RED stays, because on new code nothing can run on
+  the base; this check is what proves the tests assert real behaviour.
+
+All three refusals count toward ``MAX_REFUSED_RUNS`` (one shared tally per action); a run that times out, cannot start or is
 skipped on budget refuses without counting (``UNAVAILABLE``), and ``remedy_open`` then accepts the stage's remedy.
 
 Commands are shell strings the step plan recorded; ShipLoop runs them with ``/bin/sh -c`` (owner decision 2026-09-25),
@@ -117,6 +122,16 @@ def red_check_path(action: str) -> str:
 def check_only_path(action: str) -> str:
     """The candidate run ``complete --check-only`` asks for: replaced on each call, never counted, never a floor."""
     return "tests/" + action + "-check-only.md"
+
+
+def mutation_path(action: str, number: int) -> str:
+    """ShipLoop's mutation-check record number ``number`` of one test action (``shiploop_mutation``)."""
+    return "tests/" + action + "-mutation" + str(number) + ".md"
+
+
+def mutation_check_only_path(action: str) -> str:
+    """The mutation check ``complete --check-only`` asks for: replaced on each call, never counted."""
+    return "tests/" + action + "-mutation-check-only.md"
 
 
 def normalise_commands(value: Any) -> List[Dict[str, Any]]:
@@ -621,10 +636,17 @@ def _base_count(root: Path, action: str) -> int:
     return _count(root, action, base_path)
 
 
+def _mutation_count(root: Path, action: str) -> int:
+    """How many ShipLoop mutation-check records this action has."""
+    return _count(root, action, mutation_path)
+
+
 def _records(root: Path, action: str) -> Iterator[Tuple[str, Any]]:
-    """Every counted record of this action (candidate, then base), as (kind, record); unreadable ones as None."""
+    """Every counted record of this action (candidate, base, then mutation), as (kind, record); unreadable ones as
+    None."""
     for kind, path, total in (("verify", verify_path, _verify_count(root, action)),
-                              ("base", base_path, _base_count(root, action))):
+                              ("base", base_path, _base_count(root, action)),
+                              ("mutation", mutation_path, _mutation_count(root, action))):
         for number in range(1, total + 1):
             try:
                 yield kind, store.read_record(Path(root) / path(action, number))
@@ -680,7 +702,7 @@ def remedy_open(root: Path, action: str) -> bool:
 
 
 def _next_attempt(root: Path, action: str) -> int:
-    return _verify_count(root, action) + _base_count(root, action) + 1
+    return _verify_count(root, action) + _base_count(root, action) + _mutation_count(root, action) + 1
 
 
 def accepted_counts(root: Path, state: Mapping[str, Any], work_item: str) -> Dict[str, int]:
@@ -1278,6 +1300,9 @@ def _judge_base(row: Mapping[str, Any], code: Optional[int], output: str, exempt
         return verdict
     per_id = counts.outcomes(output, ids)
     verdict["id_outcomes"] = per_id
+    # A load failure that names a file this item adds counts as RED: the tests come after the build, so on new code
+    # nothing can run on the base.  That proves nothing about the assertions; the mutation check on the candidate
+    # (``mutation_check``) is what proves the tests assert real behaviour.
     loads = _added_named(output, added) if code != 0 else []
     if loads:
         verdict["load_failure_names"] = loads
@@ -1453,6 +1478,18 @@ def _base_summary(record: Mapping[str, Any]) -> List[str]:
     return lines
 
 
+def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: str,
+                   result: Optional[Mapping[str, Any]] = None, *, count: bool = True, **options: Any) -> List[str]:
+    """The test stage's mutation check after ``loop_run`` passed (``shiploop_mutation.mutation_check``).
+
+    Raises ``TestLoopError`` when at least one mutant of the item's changed product lines ran and the focused commands
+    killed none.  ``options`` pass through (base_commit, runner, env, clock, budget).
+    """
+    import shiploop_mutation as mutation  # imports this module: resolved at call time
+
+    return mutation.mutation_check(root, state, work_item, action_id, result, count=count, **options)
+
+
 def red_check(root: Path, state: Mapping[str, Any], work_item: str, action_id: str,
               result: Optional[Mapping[str, Any]] = None, *, base_commit: Optional[str] = None,
               **options: Any) -> Tuple[bool, List[str]]:
@@ -1503,6 +1540,9 @@ __all__ = (
     "latest_attempt_could_not_run",
     "loop_lines",
     "loop_run",
+    "mutation_check",
+    "mutation_check_only_path",
+    "mutation_path",
     "new_ids",
     "normalise_commands",
     "observation",

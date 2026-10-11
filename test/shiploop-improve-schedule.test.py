@@ -105,7 +105,9 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertTrue(lines[0].startswith("ShipLoop navigator | intake"))
         self.assertIn(" complete ", lines[1])
         self.assertIn(nav.current_action(state)["id"], lines[1])
-        self.assertIn("This result advances directly; no Improve child runs", "\n".join(lines))
+        # A stage with no Improve child says nothing about Improve (owner rule 2026-10-10), only how to report a stop.
+        self.assertNotIn("advances directly", "\n".join(lines))
+        self.assertIn("If work cannot continue, submit outcome 'blocked'", "\n".join(lines))
 
     def test_template_placeholder_is_refused(self):
         state = self.new()
