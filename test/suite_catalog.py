@@ -176,8 +176,9 @@ _DURATION_SECONDS = {
     "test/shiploop-step-packets.test.py": 0.4,  # measured locally 2026-10-10
     "test/shiploop-reference.test.py": 0.5,  # measured locally 2026-10-10
     # measured locally 2026-10-11: 36 tests, two of them through the real CLI, 9.0 s; with the two isolated-run CLI tests
-    # moved in from the retired shiploop-retire suite (consumer contract 4c): 38 tests, 17.1 s at load average 4.8.
-    "test/shiploop-handoff.test.py": 17.1,
+    # moved in from the retired shiploop-retire suite (consumer contract 4c): 38 tests, 17.1 s at load average 4.8; with
+    # the report tests and the working-tree return (4d) and main's settlement tests: 45 tests, 23.9 s.
+    "test/shiploop-handoff.test.py": 24.0,
     "test/shiploop-e2e-slice.test.py": 33.0,  # measured locally 2026-10-10: three fake-host sessions
     "test/experiments/shiploop_ui_allocation/test_evidence.py": 0.602,
     "test/shiploop-auth-readiness.test.py": 29.207,

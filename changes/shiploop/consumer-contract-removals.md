@@ -24,3 +24,9 @@ slices 4b to 4d).
   Packets still name it as the host-authored index to read if present.
 - **Progress view.** It lists the living spec and the run's accepted results; the feature drafts, the test strategy and
   the retired-spec row are gone.
+- **The completion report shows the hand-offs.** After "Work item progress": the uncut spec and architecture diff since
+  the run began, each work item's `follows`, test cases and `not_covered` per implement step, the open items still open,
+  the system-test commands, and the release-verify lessons commit's exact message. A stage that ran without its field
+  says "not recorded"; one that never ran adds no section. After a working-tree return the report says the lessons
+  commit did not reach the source branch and asks you to commit the returned files (or an empty commit) with exactly
+  that message, so the next run's intake quotes the lessons.

@@ -5262,6 +5262,153 @@ def _leftovers_section(found: dict[str, Any] | None) -> list[str]:
     ]
 
 
+# --- the report's hand-off sections (consumer contract 6.1) ------------------------------------------------------------
+
+_NOT_RECORDED = "not recorded"   # the producing stage ran without the field: not the same as none
+
+
+def _e(value: Any) -> str:
+    return html.escape(str(value))
+
+
+def _cells(values: Any) -> str:
+    return "<tr>" + "".join("<td>" + _e(value) + "</td>" for value in values) + "</tr>"
+
+
+def _table(heads: tuple[str, ...], rows: list[str]) -> list[str]:
+    return ["<table><thead><tr>" + "".join("<th>" + _e(head) + "</th>" for head in heads) + "</tr></thead><tbody>",
+            *rows, "</tbody></table>"]
+
+
+def _spec_diff_section(state: Mapping[str, Any], root: Path | None) -> list[str]:
+    if root is None:
+        return []
+    found = knowledge.spec_diff(root, state)
+    try:
+        baseline = (Path(root) / knowledge.RUN_BASELINE).read_text(encoding="utf-8").strip()
+    except OSError:
+        baseline = ""
+    lines = ["<h2>Spec and architecture changes</h2>"]
+    if found is None:
+        lines.append("<p>not computed: " + _e(state["repo"]) + " is not a Git checkout, or the run has no baseline.</p>")
+    elif not found:
+        lines.append("<p>none since the run began (baseline " + _e(baseline[:12]) + ").</p>")
+    else:
+        lines += ["<p>The uncut diff of docs/shiploop/spec.md and architecture.md since the run began (baseline "
+                  + _e(baseline[:12]) + "):</p>", "<pre>" + _e(found) + "</pre>"]
+    return lines
+
+
+def _item_handoff_lines(state: Mapping[str, Any], current: Mapping[Any, str], item: Mapping[str, Any]) -> list[str]:
+    """One work item's hand-offs; [] when its step plan never ran."""
+    ident = str(item.get("id"))
+    plan_action, plan = test_loop._step_plan(state, ident)
+    if not plan_action:
+        return []
+    accepted = state["accepted"]
+    follows = plan.get("follows")
+    lines = ["<h3>" + _e(ident + " " + str(item.get("title") or "")) + "</h3>",
+             "<p>Follows: " + (_NOT_RECORDED if follows is None else _e(", ".join(follows) or "none")) + "</p>"]
+    spec_action = current.get((ident, "test-spec"))
+    if spec_action:
+        cases = accepted[spec_action].get("test_cases")
+        if cases is None:
+            lines.append("<p>Test cases: " + _NOT_RECORDED + "</p>")
+        elif not cases:
+            lines.append("<p>Test cases: none</p>")
+        else:
+            lines += _table(("ID", "Criterion", "Requirement", "Oracle", "Red", "Green"),
+                            [_cells(case.get(key, "") for key in ("id", "criterion", "requirement", "oracle", "red",
+                                                                    "green")) for case in cases])
+    for label, action in _item_actions(state, ident, "implement", current):
+        rows = accepted[action].get("not_covered")
+        if rows is None:
+            text = _NOT_RECORDED
+        elif not rows:
+            text = "none"
+        else:
+            text = "; ".join(str(row.get("behaviour", "")) + " (" + str(row.get("reason", "")) + ")" for row in rows)
+        lines.append("<p>Not covered by a test case (" + _e(label) + "): " + _e(text) + "</p>")
+    return lines
+
+
+def _lessons_message(state: Mapping[str, Any], lessons: Mapping[str, Any]) -> str:
+    """The release-verify lessons commit's exact message: the commit's own when the checkout has it, else rebuilt."""
+    subject = knowledge.knowledge_subject(state, "release-verify")
+    found = knowledge.last_lessons(Path(str(state["repo"])))
+    if found is not None and found.subject == subject:
+        return found.subject + ("\n\n" + found.body if found.body else "")
+    return subject + "\n\n" + knowledge.lessons_body(lessons, _lessons_open_items(state))
+
+
+def _working_tree_branch(state: Mapping[str, Any], root: Path | None) -> str | None:
+    """The source branch when this isolated run's newest return was a working-tree return, else None."""
+    if root is None or state.get("execution_mode") != "navigator-worktree":
+        return None
+    try:
+        import shiploop_workspace as workspace
+    except ImportError:  # pragma: no cover - supports package-style local imports.
+        from . import shiploop_workspace as workspace  # type: ignore
+    if workspace.return_kind(Path(root).parent) != "working-tree-return":
+        return None
+    try:
+        return str(store.read_record(Path(root).parent / "workspace.md").get("source_branch") or "your branch")
+    except (OSError, ValueError):
+        return "your branch"
+
+
+def _handoff_sections(state: Mapping[str, Any], root: Path | None) -> list[str]:
+    """The report's record of what each stage handed to the next (consumer contract 6.1), every value escaped.
+
+    A section whose producing stage never ran is omitted; one whose stage ran without the field says "not recorded",
+    which is not the same as none (the ``unverified.html_section`` convention).
+    """
+    current = planning_revision.current_actions(state)
+    accepted = state["accepted"]
+    lines = _spec_diff_section(state, root)
+    items = [line for item in state.get("work_items") or () for line in _item_handoff_lines(state, current, item)]
+    if items:
+        lines += ["<h2>Work item hand-offs</h2>", *items]
+    if any(stage in assumptions.STAGES for _item, stage in current):
+        still = assumptions.open_items(state)
+        lines.append("<h2>Open items</h2>")
+        if not still:
+            lines.append("<p>None open.</p>")
+        else:
+            lines += _table(("Recorded by", "ID", "Assumption", "Check", "Reason", "Consumer", "Owner"), [
+                _cells((found.stage + (" " + str(found.workitem) if found.workitem else ""),
+                        *(found.row.get(key, "") for key in ("id", "assumption", "check", "reason", "consumer", "owner"))))
+                for found in still])
+    system_action = current.get((None, RECORDED_COMMANDS["system_commands"]))
+    if system_action:
+        rows = accepted[system_action].get("system_commands")
+        lines.append("<h2>System tests</h2>")
+        if rows is None:
+            lines.append("<p>System tests: " + _NOT_RECORDED + "</p>")
+        elif not rows:
+            lines.append("<p>System tests: none</p>")
+        else:
+            lines += _table(("Command", "Suite", "IDs"), [_cells((row.get("command", ""), row.get("suite", ""),
+                                                                   ", ".join(row.get("ids") or ()))) for row in rows])
+    verify_action = current.get((None, "release-verify"))
+    if verify_action:
+        lessons = accepted[verify_action].get("lessons")
+        lines.append("<h2>Lessons</h2>")
+        if lessons is None:
+            lines.append("<p>Lessons: " + _NOT_RECORDED + "</p>")
+        else:
+            message = _lessons_message(state, lessons)
+            branch = _working_tree_branch(state, root)
+            if branch is not None:
+                lines.append("<p>" + _e("This run's commits did not reach " + branch + " (working-tree return). Commit "
+                                        "the returned files, or make an empty commit when there are none, with exactly "
+                                        "this message, so the next run's intake quotes the lessons:") + "</p>")
+            else:
+                lines.append("<p>The release-verify knowledge commit's message, which the next run's intake quotes:</p>")
+            lines.append("<pre>" + _e(message) + "</pre>")
+    return lines
+
+
 def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
     """Derive a small escaped report with a live worktree-return projection."""
     validate(state)
@@ -5338,7 +5485,8 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
         ]
     delivery_section = consumer_delivery.html_section(state)
     leftover_section = _leftovers_section(_leftovers(root, state))
-    report_tail = ["</tbody></table>", *progress_section, *unverified.html_section(state), *workspace_section,
+    report_tail = ["</tbody></table>", *progress_section, *_handoff_sections(state, root), *unverified.html_section(state),
+                   *workspace_section,
                    *leftover_section, delivery_section, "</body></html>"]
     return "\n".join(
         [
