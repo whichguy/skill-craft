@@ -28,15 +28,15 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "\"test-strategy.md\", ARCHITECTURE,",
    "with": "\"test-strategy.md\",",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 17
+   "failing": 6
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "\"plan\": (\"{feature}/plan.md\", \"README.md\", ARCHITECTURE)",
    "with": "\"plan\": (\"{feature}/plan.md\", \"README.md\")",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 2
   },
@@ -44,7 +44,7 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "\"step-plan\": (\"{feature}/plan.md\", ARCHITECTURE)",
    "with": "\"step-plan\": (\"{feature}/plan.md\",)",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 2
   },
@@ -52,15 +52,15 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "\"prepare\": (\"environment.md\",),",
    "with": "\"prepare\": (\"environment.md\", ARCHITECTURE),",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 4
+   "failing": 2
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "LIVING = (\"README.md\", \"spec.md\", \"environment.md\", \"test-strategy.md\", ARCHITECTURE)",
    "with": "LIVING = (\"README.md\", \"spec.md\", \"environment.md\", \"test-strategy.md\"",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 1
   },
@@ -68,7 +68,7 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "(ARCHITECTURE + \" holds \" + ARCHITECTURE_HOLDS + \".\\n\" if str(repo / HOME / ARCHITECTURE) ",
    "with": "\"\"",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 1
   },
@@ -76,7 +76,15 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "(ARCHITECTURE + \" holds \" + ARCHITECTURE_HOLDS + \".\\n\" if str(repo / HOME / ARCHITECTURE) ",
    "with": "(ARCHITECTURE + \" holds \" + ARCHITECTURE_HOLDS + \".\\n\")",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if str(repo / HOME / ARCHITECTURE) in paths else \"\"",
+   "with": "if str(repo / HOME / ARCHITECTURE) in paths and len(paths) == 1 else \"",
+   "tests": "KnowledgeTests",
    "exit": 1,
    "failing": 1
   },
@@ -84,7 +92,7 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "\"the stack (language, frameworks, dependencies and why), the structure",
    "with": "\"the stack and runtime (language, frameworks, dependencies and why), t",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 1
   },
@@ -92,7 +100,7 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "stable IDs AD-<n> (choice",
    "with": "stable IDs D-<n> (choice",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 2
   },
@@ -100,31 +108,31 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": ",",
    "with": ")",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 31
+   "failing": 21
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "_RETAINED = ((\"spec.md\", _REQUIREMENT_ID, \"living spec\", \"requirement\", \"Retired\"),",
    "with": "_RETAINED = ((ARCHITECTURE, _DECISION_ID, \"architecture\", \"decision\", ",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 6
+   "failing": 3
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "(ARCHITECTURE, _DECISION_ID, \"architecture\", \"decision\", \"Superseded\")",
    "with": "(ARCHITECTURE, _DECISION_ID, \"architecture\", \"decision\", \"Retired\")",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 5
+   "failing": 17
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "_DECISION_ID = re.compile(r\"\\b(AD-\\d+)\\b\")",
    "with": "_DECISION_ID = re.compile(r\"(AD-\\d+)\")",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 1
   },
@@ -132,7 +140,7 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "_DECISION_ID = re.compile(r\"\\b(AD-\\d+)\\b\")",
    "with": "_DECISION_ID = re.compile(r\"\\b(AD-\\d+)\")",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 1
   },
@@ -140,15 +148,15 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "_DECISION_ID = re.compile(r\"\\b(AD-\\d+)\\b\")",
    "with": "_DECISION_ID = re.compile(r\"\\b(D-\\d+)\\b\")",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 12
+   "failing": 11
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "key=lambda value: int(value.split(\"-\")[1]))",
    "with": "key=None)",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 2
   },
@@ -156,7 +164,7 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "if path.is_file() else set()",
    "with": "if path.is_file() else set(ids.findall(_committed(repo, name)))",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 1
   },
@@ -164,15 +172,15 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "return \"\\n\".join(refusals)",
    "with": "return \"\\n\".join(refusals) if stage in CLOSES else \"\"",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 10
+   "failing": 8
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "return \"\\n\".join(refusals)",
    "with": "return refusals[0] if refusals else \"\"",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 1
   },
@@ -180,49 +188,137 @@
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
    "replaced": "shown = _git(repo, \"show\", \"HEAD:\" + HOME + \"/\" + name)",
    "with": "shown = _git(repo, \"show\", \"HEAD:\" + HOME + \"/spec.md\")",
-   "tests": "test/shiploop-knowledge.test.py",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 11
+   "failing": 10
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
-   "replaced": ", then run the same \" + command + \" command again.\\n\"",
-   "with": ".\\n\"",
-   "tests": "test/shiploop-knowledge.test.py",
+   "replaced": "shown = _git(repo, \"show\", \"HEAD:\" + HOME + \"/\" + name)",
+   "with": "shown = _git(repo, \"show\", \":\" + HOME + \"/\" + name)",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 7
+   "failing": 1
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
-   "replaced": ", then run the same \" + command + \" command again.\\n\"",
-   "with": ", then run the same complete command again.\\n\"",
-   "tests": "test/shiploop-knowledge.test.py",
+   "replaced": "\"', then run the same complete command again.\")",
+   "with": "\"'.\")",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 17
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"', then run the same complete command again.\")",
+   "with": "\"', then run the same improve-complete command again.\")",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 17
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"Restore the lost \" + prefix + \"-<n> in \"",
+   "with": "\"Restore the lost \" + \", \".join(dropped) + \" in \"",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 18
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\" or move it under '\" + section",
+   "with": "\" or move it under a '\" + section",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 17
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"Restore the lost \" + prefix + \"-<n> in \" + str(path)",
+   "with": "\"Restore the lost \" + prefix + \"-<n> in docs/shiploop/\" + name",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 17
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"; if the review changed it, improve-commit it; \"",
+   "with": "\"; \"",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 15
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"then run \" + command + \".\")",
+   "with": "\"then run complete.\")",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 15
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if command == \"complete\":",
+   "with": "if command == \"complete\" or name == \"spec.md\":",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 1
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if command == \"complete\":",
+   "with": "if command != \"complete\":",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 32
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"Reword \" + leaks[0]",
+   "with": "\"Reword \" + leaks[-1]",
+   "tests": "ArchitectureTests",
    "exit": 1,
    "failing": 2
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
-   "replaced": "\"Restore the lost \" + dropped[0].split(\"-\")[0] + \"-<n> in \"",
-   "with": "\"Restore the lost \" + \", \".join(dropped) + \" in \"",
-   "tests": "test/shiploop-knowledge.test.py",
+   "replaced": "leaks.append(str(path) + \":\" + str(number))",
+   "with": "leaks.append(str(path.relative_to(repo)) + \":\" + str(number))",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 7
+   "failing": 28
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
-   "replaced": "\" or move it under '\"",
-   "with": "\" or move it under a '\"",
-   "tests": "test/shiploop-knowledge.test.py",
+   "replaced": "assignment; then run the same \" + command",
+   "with": "assignment; then run the same complete\"",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 6
+   "failing": 14
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
-   "replaced": "\"Restore the lost \" + dropped[0].split(\"-\")[0] + \"-<n> in \" + str(path)",
-   "with": "\"Restore the lost \" + dropped[0].split(\"-\")[0] + \"-<n> in docs/shiploo",
-   "tests": "test/shiploop-knowledge.test.py",
+   "replaced": "\"\\n\".join(\"- \" + place for place in leaks)",
+   "with": "\"\\n\".join(\"- \" + place for place in leaks[:1])",
+   "tests": "ArchitectureTests",
    "exit": 1,
-   "failing": 6
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "\"These knowledge lines look like credentials;",
+   "with": "\"These knowledge lines resemble secrets;",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 2
+  },
+  {
+   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+   "replaced": "if command == \"improve-complete\" else \"\"))",
+   "with": "if False else \"\"))",
+   "tests": "ArchitectureTests",
+   "exit": 1,
+   "failing": 1
   },
   {
    "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
@@ -268,20 +364,20 @@
    "file": "skills/shiploop/scripts/shiploop_navigator.py",
    "replaced": "child[\"seed_result\"] if final_result is None else final_result, \"improve-complete\")",
    "with": "child[\"seed_result\"] if final_result is None else final_result)",
-   "tests": "EphemeralImproveCliTests.test_a_reviewed_step_plan_that_drops_a_decision_id_is_refused_at_improve_complete_and_the_named_exit_is_accepted",
+   "tests": "EphemeralImproveCliTests.test_a_reviewed_step_plan_that_drops_a_decision_id_is_refused_at_improve_complete_and_the_named_sequence_is_accepted EphemeralImproveCliTests.test_a_reviewed_step_plan_whose_architecture_looks_like_a_credential_is_refused_with_the_fix_and_the_route_commands",
    "exit": 1,
-   "failing": 1
+   "failing": 2
   },
   {
    "file": "skills/shiploop/scripts/shiploop_navigator.py",
    "replaced": "refusal = knowledge.check(state, stage, command)",
    "with": "refusal = knowledge.check(state, stage)",
-   "tests": "EphemeralImproveCliTests.test_a_reviewed_step_plan_that_drops_a_decision_id_is_refused_at_improve_complete_and_the_named_exit_is_accepted",
+   "tests": "EphemeralImproveCliTests.test_a_reviewed_step_plan_that_drops_a_decision_id_is_refused_at_improve_complete_and_the_named_sequence_is_accepted EphemeralImproveCliTests.test_a_reviewed_step_plan_whose_architecture_looks_like_a_credential_is_refused_with_the_fix_and_the_route_commands",
    "exit": 1,
-   "failing": 1
+   "failing": 2
   }
  ],
- "killed": 35,
- "of": 35,
+ "killed": 47,
+ "of": 47,
  "survivors": 0
 }
