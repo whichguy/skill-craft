@@ -137,7 +137,7 @@ class RepeatPacketTests(KeepaliveTestCase):
         self.assertEqual(recovered, self.packet)
         full = _packet_file_text(recovered)
         self.assertIn("Original request (preserve user scope", full)
-        self.assertIn("Recovery command (it only reads the saved state", full)
+        self.assertIn("Recovery command (reprints the current packet from saved state", full)
 
     def test_the_result_contract_is_printed_under_the_callback(self) -> None:
         # Only the short stage-goal block sits between the callback and the
@@ -156,7 +156,8 @@ class RepeatPacketTests(KeepaliveTestCase):
             self.assertTrue(line.startswith(("Done when", "Checked by: ", "Considerations for this stage:", "- ",
                                              # the References block (owner, 2026-10-11), one item per line
                                              nav.REFERENCES_HEAD, "HOME = ", "FEATURE = ", "RUN = ", "WORKTREE = ",
-                                             "Read at this stage", "Results this stage builds on")), line)
+                                             "Read at this stage", "Results this stage builds on",
+                                             "Knowledge files: ")), line)
         self.assertEqual(lines[contract + 1], "# ShipLoop navigator result")
         outcomes = next(i for i, line in enumerate(lines) if line.startswith("Allowed outcomes: "))
         self.assertEqual(sum(line == "Result template:" for line in lines), 1)
@@ -175,14 +176,12 @@ class RepeatPacketTests(KeepaliveTestCase):
         shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")
         shiploop("resume", "--run-dir", str(self.run_dir))
         again = shiploop("next", "--run-dir", str(self.run_dir)).stdout
-        packet_path = _packet_path_from_stdout(again)
-        self.assertIsNotNone(packet_path, again)
-        self.assertIn(f"Full packet: {packet_path}", again)
-        full = packet_path.read_text(encoding="utf-8")
-        self.assertIn("Original request (preserve user scope", full)
+        # Round 2: a packet at most PRINT_LIMIT prints whole; the "Full packet:" pointer is only for a larger one.
+        self.assertIsNone(_packet_path_from_stdout(again), again)
+        self.assertLessEqual(len(again), nav.PRINT_LIMIT)
+        self.assertIn("Original request (preserve user scope", again)
         repeated = shiploop("next", "--run-dir", str(self.run_dir))
         self.assertEqual(repeated.stdout, again)
-        self.assertEqual(packet_path.read_text(encoding="utf-8"), full)
         for name in ("rules.md", "last-packet.json"):
             self.assertFalse((self.run_dir / name).exists(), name)
 

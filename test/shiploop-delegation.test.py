@@ -46,10 +46,10 @@ DELEGATED_ROUTE_TEXT = (
     "ask-agent/consumer-owned-workspace/v1",
     "Workspace route: consumer-owned",
     "Native owner record:",
-    "bind this action to the default parallel",
+    "bind the default parallel mode",
     "Parallel-chain guide:",
-    "so the default parallel chain can run",
-    "its own step with deps []",
+    "so the parallel chain can run them together",
+    "its own step (`deps` [])",
 )
 # Delegated wording that only bound Improve packets or duties can carry.
 BOUND_DELEGATED_TEXT = DELEGATED_ROUTE_TEXT + (
@@ -60,8 +60,12 @@ BOUND_DELEGATED_TEXT = DELEGATED_ROUTE_TEXT + (
 )
 
 
-def bound_walk(repo, delegation):
-    """Render every producer and its bound ephemeral Improve packet for one item."""
+def bound_walk(repo, delegation, handoffs=False):
+    """Render every producer and its bound ephemeral Improve packet for one item.
+
+    With ``handoffs`` each Improve packet is followed by a ``handoff`` entry: the file text ShipLoop writes beside the
+    opening (everything the improve skill needs, re-cut 2026-10-11), since the packet itself is two instructions.
+    """
     selected = standalone.resolve_skill(str(CARD))
     state = nav.new_state(str(repo), "Synthetic bound walk.", delegation=delegation)
     run = Path(repo).parent / ("run-" + str(delegation))
@@ -80,6 +84,8 @@ def bound_walk(repo, delegation):
             state["active_improve"] = standalone.binding(state, action, child["stage"],
                                                          child["seed_result"], selected)
             packets.append((stage, "improve", nav.render(None, run, state)))
+            if handoffs:
+                packets.append((stage, "handoff", nav.improve_handoff_text(None, run, state)))
             state["active_improve"] = child
             state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
     return packets
@@ -149,38 +155,46 @@ class DelegationStateTests(unittest.TestCase):
         self.assertTrue(self.render(state).startswith("ShipLoop navigator | intake |"))
         state = advance(state, "step-plan")
         entry = self.render(state)
+        # The preamble (two lines since the 2026-10-11 re-cut) says to do this stage here, submit its callback and never
+        # clear or hand it off; it no longer names step-plan, because every stage, step-plan included, gets the same
+        # line.
         self.assertTrue(entry.startswith(
-            "Continue in this context and execute the prompt.\n\nDelegation: inline."))
-        # The preamble (shortened 2026-10-11) says to do this stage here and submit its callback; it no longer names
-        # step-plan, because every stage, step-plan included, gets the same line.
-        self.assertIn("Do this stage in this conversation, and submit its callback\nyourself.", entry)
+            "Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit its "
+            "callback\nyourself; never clear or hand it off. After lost context, run the Recovery command.\n"))
         self.assertNotIn("Clear and then", entry)
         self.assertIn("Pause without consuming the action:", entry)
         # step-plan is a planning-review stage, so completing it starts an
         # actual Improve child.
+        # The Improve packet is the two instructions (re-cut 2026-10-11): it opens with its own header, not a prefix.
         improve = self.render(advance(state, "step-plan", stop_after_apply=True))
-        self.assertTrue(improve.startswith(
-            "Keep the invoking parent alive and run this Improve invocation inline.\n"))
+        self.assertTrue(improve.startswith("ShipLoop navigator | step-plan | revision "), improve[:80])
+        self.assertIn("| Improve\n", improve.split("\n\n", 1)[0] + "\n")
         for stage in ("step-plan", "implement", "carry-forward"):
             with self.subTest(stage=stage):
                 packet = self.render(advance(state, stage))
-                self.assertTrue(packet.startswith("Continue in this context and execute the prompt.\n"))
-                self.assertIn("Do not clear the context or hand the stage to Ask Agent or a native\nworker", packet)
+                self.assertTrue(packet.startswith("Continue in this context and execute the prompt. Delegation: inline"))
+                self.assertIn("never clear or hand it off", packet.split("\n\n", 1)[0])
+                self.assertNotIn("Clear and then", packet)
 
     def test_ask_agent_step_plan_splits_independent_changes_into_separate_steps(self):
         # Live 2026-10-04 (p1-temperature-plain): without this rule the model put two modules
         # that do not use each other into one step, so the chain had nothing to run in parallel.
         packet = self.render(advance(self.state("ask-agent"), "step-plan"))
-        self.assertIn("its own step with deps []", packet)
-        self.assertIn("join them in a later step that needs both", " ".join(packet.split()))
+        # Duty 11 (Execution graph) of the re-cut step-plan states the rule once.
+        flat = " ".join(packet.split())
+        self.assertIn("Give each change that needs no other its own step (`deps` [])", flat)
+        self.assertIn("joined by a later step that needs both", flat)
 
     def test_inline_implement_runs_reviewed_steps_directly_without_a_chain(self):
         inline = self.render(advance(self.state(), "implement"))
-        self.assertIn("Delegation is inline: this packet is for the one step named in its Step line.", inline)
+        self.assertIn("**Inline.** Do the one step on the packet's Step line in this conversation. "
+                      "Bind no chain and dispatch no worker.", inline)
         step_plan = self.render(advance(self.state(), "step-plan"))
-        self.assertIn("`steps`: every implementation step, in the order to do them",
-                      " ".join(step_plan.split()))
-        self.assertIn("Each reviewed step's task/ready/done criteria", step_plan)
+        flat_plan = " ".join(step_plan.split())
+        self.assertIn("steps lists every implementation step in the order to do them", flat_plan)
+        self.assertIn("`steps`**: every implementation step in order (one is fine)", flat_plan)
+        # The "sole execution directive" sentence became this one in duty 9 (re-cut 2026-10-11).
+        self.assertIn("each step's task and criteria stay its only directive", flat_plan)
         for packet in (inline, step_plan):
             for text in DELEGATED_ROUTE_TEXT:
                 self.assertNotIn(text, packet)
@@ -221,12 +235,19 @@ class DelegationStateTests(unittest.TestCase):
         self.assertIn("--action=" + action, callback)
         checkpoint = nav.apply(switched, action, {"outcome": "done", "summary": "Synthetic."})
         held_child = self.render(checkpoint)
-        self.assertIn("Keep the invoking parent alive and follow Improve's selected context ownership.",
-                      held_child)
+        # The re-cut Improve packet is the two instructions plus the status block (2026-10-11): it names no route, so it
+        # no longer prints the "Delegation change" line (REPORTED: that line is now only on producer packets).  The hold
+        # stays recorded on the state, the parked child is unbound, and its first line is the one legal callback.
+        self.assertEqual(checkpoint["delegation_hold"], {"action": action, "route": "ask-agent"})
         lines = held_child.splitlines()
-        callback = lines[lines.index(change) + 1]
+        self.assertTrue(lines[0].startswith("ShipLoop navigator | step-plan | revision ") and
+                        lines[0].endswith("| Improve"), lines[0])
+        for text in DELEGATED_ROUTE_TEXT:
+            self.assertNotIn(text, held_child)
+        callback = lines[1]
         # The parked child is unbound, so its one legal callback is improve-bind.
-        self.assertTrue(callback.startswith("Next command (bind the selected Improve card"), callback)
+        self.assertTrue(callback.startswith("No Improve card is recorded for this run. Next command (bind the Improve "
+                                            "skill's SKILL.md"), callback)
         self.assertIn(" improve-bind ", callback)
         self.assertIn("--action=" + action, callback)
         following = nav.finish_improve(checkpoint, action, {"summary": "Synthetic receipt."})
@@ -437,8 +458,10 @@ class PacketContractTests(DelegationStateTests):
         self.assertIn("- W1 step-plan result: RUN/results/", test_spec)
         self.assertNotIn("Current item step-plan source", self.render(advance(self.state(), "step-plan")))
         # The inline route's "Execute this packet in this conversation..." run-rule line is gone: the preamble says it.
+        # The Repository knowledge index line and the pointer to reference.md are one run-rule line since the second
+        # re-cut pass; the card line is still listed in reference.md#policies.
         self.assertNotIn("Execute this packet in this conversation, submit its current callback yourself", packet)
-        self.assertIn("Do this stage in this conversation, and submit its callback\nyourself.", packet)
+        self.assertIn("do this stage here and submit its callback\nyourself; never clear or hand it off", packet)
         delegated = self.render(dict(state, delegation="ask-agent"))
         self.assertIn("Give the executing agent only the current action packet", delegated)
         self.assertIn("- W1 step-plan result: RUN/results/" + step_plan + ".md", delegated)
@@ -450,7 +473,9 @@ class PacketContractTests(DelegationStateTests):
             with self.subTest(route=route):
                 text = " ".join(nav.guidance.prompt("verify", delegation=route).split())
                 # ShipLoop commits the declared files when verify is accepted; no route tells the model to commit.
-                self.assertIn("confirm this item's candidate is assembled in the execution checkout", text.lower())
+                # Duty 8 (Assembly, re-cut 2026-10-11): the inline wording says "the item's candidate", the ask-agent
+                # fallback sentence "the candidate"; both name the execution checkout.
+                self.assertIn("candidate is assembled in the execution checkout", text.lower())
                 self.assertNotIn("assemble or commit", text)
                 # A chain exists only when delegation is ask-agent, so only that route confirms its finish commit.
                 self.assertEqual("confirm its finish commit is an ancestor of the execution checkout HEAD" in text,
@@ -465,7 +490,10 @@ class PacketContractTests(DelegationStateTests):
                 action = nav.current_action(state)["id"]
                 waiting = nav.apply(state, action, {"outcome": "done", "summary": "Proposed.",
                                                     "work_items": proposal})
-                self.assertIn("A done final_result must list the complete intended queue", self.render(waiting))
+                # The Improve detail is in the handoff file ShipLoop writes (re-cut 2026-10-11), not the packet.
+                self.assertIn("A done final_result must list the complete intended queue",
+                              " ".join(nav.improve_handoff_text(None, self.run, waiting).split()))
+                self.assertNotIn("complete intended queue", self.render(waiting))
                 with self.assertRaisesRegex(nav.NavigatorError, "must list the complete intended queue"):
                     nav.finish_improve(waiting, action, receipt, {"outcome": "done", "summary": "Revised."})
                 # Non-done dispositions and an explicit queue are unaffected.
@@ -477,16 +505,19 @@ class PacketContractTests(DelegationStateTests):
                                    {"outcome": "done", "summary": "Revised.", "work_items": proposal})
 
     def test_bound_improve_packets_carry_only_their_route(self):
+        # The Improve packet is two instructions (re-cut 2026-10-11); the route text lives in the handoff file.
         with tempfile.TemporaryDirectory(prefix="shiploop-bound-walk-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
-            inline = bound_walk(repo, "inline")
-            delegated = bound_walk(repo, "ask-agent")
-        self.assertEqual(len(inline), 33)
+            inline = bound_walk(repo, "inline", handoffs=True)
+            delegated = bound_walk(repo, "ask-agent", handoffs=True)
+        self.assertEqual(len([entry for entry in inline if entry[1] != "handoff"]), 33)
         for stage, kind, packet in inline:
             for text in BOUND_DELEGATED_TEXT:
                 self.assertNotIn(text, packet, (stage, kind, text))
             if kind == "improve":
+                self.assertNotIn("Delegation:", packet)
+            if kind == "handoff":
                 self.assertIn("Delegation: inline. Run the selected Improve card", packet)
                 self.assertIn("start no reviewer, test-runner or executor agent unless the user asked for "
                               "independent review", packet)
@@ -505,11 +536,12 @@ class PacketContractTests(DelegationStateTests):
         with tempfile.TemporaryDirectory(prefix="shiploop-commit-walk-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
-            walks = {route: bound_walk(repo, route) for route in ("inline", "ask-agent")}
+            walks = {route: bound_walk(repo, route, handoffs=True) for route in ("inline", "ask-agent")}
         checked = planned = 0
         for route, packets in walks.items():
             for stage, kind, packet in packets:
-                if kind != "improve":
+                # The commit rules moved from the Improve packet into the handoff file (re-cut 2026-10-11).
+                if kind != "handoff":
                     continue
                 lines = packet.splitlines()
                 with self.subTest(route=route, stage=stage):
@@ -546,8 +578,9 @@ class PacketContractTests(DelegationStateTests):
         with tempfile.TemporaryDirectory(prefix="shiploop-release-guard-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
-            packets = bound_walk(repo, "inline")
-        improve = {stage: " ".join(packet.split()) for stage, kind, packet in packets if kind == "improve"}
+            packets = bound_walk(repo, "inline", handoffs=True)
+        # The Improve detail is in the handoff file, not the two-instruction packet (re-cut 2026-10-11).
+        improve = {stage: " ".join(packet.split()) for stage, kind, packet in packets if kind == "handoff"}
         self.assertNotIn("release", improve)  # the walk binds no Improve child at the release stage
         for stage, packet in improve.items():
             self.assertNotIn("may perform deployments", packet, stage)
@@ -559,7 +592,7 @@ class PacketContractTests(DelegationStateTests):
         with tempfile.TemporaryDirectory(prefix="shiploop-callback-walk-") as temp:
             repo = Path(temp).resolve() / "repo"
             repo.mkdir()
-            walks = {route: bound_walk(repo, route) for route in ("inline", "ask-agent")}
+            walks = {route: bound_walk(repo, route, handoffs=True) for route in ("inline", "ask-agent")}
         planning = nav.guidance.PLANNING_REVIEW_STAGES
         for route, packets in walks.items():
             for stage, kind, packet in packets:
@@ -567,66 +600,82 @@ class PacketContractTests(DelegationStateTests):
                     # No packet-size bound: the owner prefers complete prompts (2026-09-25).
                     self.assertNotIn("Improve cadence", packet)
                     lines = packet.splitlines()
+                    if kind == "handoff":
+                        self.check_handoff(stage, planning, lines, packet)
+                        continue
                     # An inline prefix may precede the header; nothing else may.
                     header = next(i for i, line in enumerate(lines)
                                   if line.startswith("ShipLoop navigator | "))
+                    if kind == "improve":
+                        # The bound Improve packet is two instructions (re-cut 2026-10-11): run the improve skill with
+                        # the handoff path, then improve-complete.  Its header carries the "Improve" tag.
+                        self.assertEqual(lines[header], "ShipLoop navigator | " + stage + " | revision "
+                                         + lines[header].split("revision ", 1)[1].split(" |")[0] + " | Improve")
+                        self.assertEqual(header, 0)
+                        self.assertTrue(lines[1].startswith("1. Run the improve skill on the " + stage + " result."),
+                                        lines[1])
+                        self.assertTrue(lines[2].lstrip().startswith("/improve ShipLoop Improve: "), lines[2])
+                        self.assertTrue(lines[2].rstrip().endswith("/handoff.md"), lines[2])
+                        callback = next(line for line in lines if line.startswith("2. When the improve skill"))
+                        argv = shlex.split(callback.split("run: ", 1)[1])
+                        self.assertEqual(argv[2], "improve-complete")
+                        # P12: no completion record; ShipLoop derives it from the review files.
+                        self.assertFalse(any(arg.startswith("--result") for arg in argv), argv)
+                        self.assertNotIn("improve-start", packet)
+                        self.assertNotIn("improve-bind", packet)  # the card is bound at the transition
+                        continue
                     self.assertRegex(lines[header],
                                      r"^ShipLoop navigator \| " + re.escape(stage) + r" \| revision \d+$")
                     lead = lines[header + 1]
-                    if kind == "produce":
-                        self.assertTrue(lead.startswith("Callback for this stage "), lead)
-                        # The first callback line is the only one: "Call this when done:" is gone (2026-10-11 dedupe),
-                        # so the lead carries the complete command and the result file it reads.
-                        self.assertNotIn("Call this when done:", packet)
-                        command = shlex.split(lead.split("): ", 1)[1])
-                        self.assertEqual(command[2], "complete")
-                        self.assertTrue(any(arg.startswith("--result=") and arg.endswith(".md") for arg in command),
-                                        command)
-                        if stage in planning:
-                            others = [o for o in ("blocked", "repeat") if o in nav.stage_spec.stage(stage).outcomes]
-                            self.assertIn("Improve: Every " + stage + " result, including " + " and ".join(others)
-                                          + ", starts this action's Improve child.", packet)
-                        elif stage == "carry-forward":
-                            self.assertIn("starts the run's single end-of-work Improve child", packet)
-                        elif stage == "implement":
-                            # An Improve child reviews every accepted step (owner decision 2026-10-10), so the
-                            # packet must not say the result advances with no child.
-                            self.assertNotIn("no Improve child runs for this stage", packet)
-                        else:
-                            # No child: no Improve sentence at all (owner rule 2026-10-10); the blocked route is the
-                            # outcome shapes' (the trailing sentence is gone, 2026-10-11 dedupe).
-                            self.assertNotIn("advances directly", packet)
-                            self.assertNotIn("If work cannot continue, submit outcome 'blocked'", packet)
-                            self.assertFalse([line for line in lines if line.startswith("Improve:")])
-                            self.assertIn("blocked", next(line for line in lines if line.startswith("Allowed outcomes:")))
-                        continue
-                    # A bound child that has not started leads with improve-start on both routes
-                    # (551b8b49); the improve-complete callback follows in the packet body.
-                    self.assertTrue(lead.startswith("Next command (start the bound Improve child "), lead)
-                    start = shlex.split(lead.split("): ", 1)[1])
-                    self.assertEqual(start[2], "improve-start")
-                    self.assertTrue(any(arg.startswith("--opening=") and arg.endswith("/opening.md")
-                                        for arg in start), start)
-                    argv = shlex.split(next(line for line in lines if " improve-complete " in line
-                                            and line.startswith("python3 ")))
-                    self.assertEqual(argv[2], "improve-complete")
-                    # P12: no completion record; ShipLoop derives it from the review files.
-                    self.assertFalse(any(arg.startswith("--result") for arg in argv), argv)
-                    self.assertTrue(any(line.startswith("Evidence: write each review pass to ") for line in lines))
-                    parent = next(i for i, line in enumerate(lines)
-                                  if line.startswith(("Parent callback;", "Parent-only callback;")))
-                    self.assertEqual(argv, shlex.split(lines[parent + 1]))
-                    if stage == "carry-forward":
-                        self.assertIn("End-of-work review: this is the run's single Improve", packet)
-                        self.assertNotIn("Planning review focus", packet)
-                    elif stage == "implement":
-                        self.assertIn("Implementation step review focus.", packet)
-                        self.assertNotIn("Planning review focus", packet)
-                        self.assertNotIn("End-of-work review", packet)
-                    else:
-                        self.assertIn(stage, planning)
-                        self.assertIn("Planning review focus.", packet)
-                        self.assertNotIn("End-of-work review", packet)
+                    self.assertTrue(lead.startswith("Callback for this stage "), lead)
+                    # The first callback line is the only one: "Call this when done:" is gone (2026-10-11 dedupe),
+                    # so the lead carries the complete command and the result file it reads.
+                    self.assertNotIn("Call this when done:", packet)
+                    command = shlex.split(lead.split("): ", 1)[1])
+                    self.assertEqual(command[2], "complete")
+                    self.assertTrue(any(arg.startswith("--result=") and arg.endswith(".md") for arg in command),
+                                    command)
+                    # No producer packet mentions Improve ahead of time (owner rule 2026-10-10, re-cut 2026-10-11):
+                    # no "Improve:" line, no "starts this action's Improve child" sentence.
+                    self.assertFalse([line for line in lines if line.startswith("Improve:")])
+                    self.assertNotIn("starts this action's Improve child", packet)
+                    self.assertNotIn("single end-of-work Improve child", packet)
+                    self.assertNotIn("the Improve child's", packet)
+                    if stage == "implement":
+                        # An Improve child reviews every accepted step (owner decision 2026-10-10), so the
+                        # packet must not say the result advances with no child.
+                        self.assertNotIn("no Improve child runs for this stage", packet)
+                    elif stage not in planning and stage != "carry-forward":
+                        # The blocked route is the outcome shapes' (the trailing sentence is gone, 2026-10-11 dedupe).
+                        self.assertNotIn("advances directly", packet)
+                        self.assertNotIn("If work cannot continue, submit outcome 'blocked'", packet)
+                        self.assertIn("blocked", next(line for line in lines if line.startswith("Allowed outcomes:")))
+
+    def check_handoff(self, stage, planning, lines, packet):
+        """The handoff file holds what the old Improve packet led with (re-cut 2026-10-11)."""
+        self.assertTrue(lines[0].startswith("# ShipLoop Improve handoff: the " + stage + " result"), lines[0])
+        # A bound child that has not started: the improve-start command, then the improve-complete callback.
+        start = shlex.split(next(line for line in lines if line.startswith("Then run: ")
+                                 and " improve-start " in line)[len("Then run: "):].split(" . ", 1)[0])
+        self.assertEqual(start[2], "improve-start")
+        self.assertTrue(any(arg.startswith("--opening=") and arg.endswith("/opening.md") for arg in start), start)
+        parent = next(i for i, line in enumerate(lines)
+                      if line.startswith(("Parent callback;", "Parent-only callback;")))
+        argv = shlex.split(lines[parent + 1])
+        self.assertEqual(argv[2], "improve-complete")
+        self.assertFalse(any(arg.startswith("--result") for arg in argv), argv)
+        self.assertTrue(any(line.startswith("Evidence: write each review pass to ") for line in lines))
+        if stage == "carry-forward":
+            self.assertIn("End-of-work review: this is the run's single Improve", packet)
+            self.assertNotIn("Planning review focus", packet)
+        elif stage == "implement":
+            self.assertIn("Implementation step review focus.", packet)
+            self.assertNotIn("Planning review focus", packet)
+            self.assertNotIn("End-of-work review", packet)
+        else:
+            self.assertIn(stage, planning)
+            self.assertIn("Planning review focus.", packet)
+            self.assertNotIn("End-of-work review", packet)
 
 
 class DelegationCliTests(unittest.TestCase):
@@ -732,8 +781,12 @@ class DelegationCliTests(unittest.TestCase):
         switched = self.cli("delegation", "--run-dir", self.run, "--set", "ask-agent")
         self.assertEqual(switched.returncode, 0, switched.stderr)
         # The bound child keeps its inline route; later actions use ask-agent.
-        self.assertIn("Delegation: inline. Run the selected Improve card", switched.stdout)
-        self.assertIn("Delegation change: this action keeps inline", switched.stdout)
+        # The Improve packet is two instructions (re-cut 2026-10-11): the route text is in the handoff file it names,
+        # and the "Delegation change" line (REPORTED) is no longer printed on Improve packets; the hold is on the state.
+        self.assertIn("1. Run the improve skill on the spec result.", switched.stdout)
+        handoff = Path(re.search(r"/improve ShipLoop Improve: (\S+)", switched.stdout).group(1))
+        self.assertIn("Delegation: inline. Run the selected Improve card", handoff.read_text(encoding="utf-8"))
+        self.assertNotIn("Prefer a native fresh worker", switched.stdout + handoff.read_text(encoding="utf-8"))
         self.assertEqual(self.saved()["delegation_hold"], {"action": action, "route": "inline"})
 
     def test_chain_bind_is_refused_on_inline_runs_before_any_side_effect(self):
@@ -781,7 +834,8 @@ class DelegationCliTests(unittest.TestCase):
     def test_graph_dry_run_defaults_to_new_run_delegation(self):
         default = self.cli("graph-dry-run", "--scenario", "delivery", "--format", "markdown")
         self.assertEqual(default.returncode, 0, default.stderr)
-        self.assertIn("Delegation: inline.", default.stdout)
+        # Inner packets open with "Delegation: inline: ..." (the two-line preamble, re-cut 2026-10-11).
+        self.assertIn("Delegation: inline: do this stage here", default.stdout)
         delegated = self.cli("graph-dry-run", "--scenario", "delivery", "--format", "markdown",
                              "--delegation", "ask-agent")
         self.assertEqual(delegated.returncode, 0, delegated.stderr)

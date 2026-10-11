@@ -614,9 +614,13 @@ class RemovalTests(HomeFixture):
                                                                            + re.escape(name) + r" = )", row))
                 self.assertIn(mark, "\n".join(source[max(0, line - 2):line + 1]))
 
+    SKILL_INDEX_TEMPLATE = "each skill index file outside HOME/ and SHIPLOOP.md"
+
     def test_engine_scripts_name_shiploop_md_only_in_the_host_authored_locator_line(self) -> None:
         for name in self.ENGINE_SCRIPTS:
             for number, line in enumerate((ROOT / "skills/shiploop/scripts" / name).read_text(encoding="utf-8").splitlines(), 1):
+                if self.SKILL_INDEX_TEMPLATE in line:
+                    continue  # the carry-forward result template says a skill index outside HOME/ may sit beside SHIPLOOP.md
                 if "SHIPLOOP.md" in line or "Repository knowledge index" in line:
                     with self.subTest(file=name, line=number):
                         self.assertIn(self.LOCATOR, line)
@@ -826,9 +830,6 @@ class SectionsTests(HomeFixture):
         self.assertIn("ShipLoop refuses release-plan if any of these is missing or empty: " + environment + ".", lines)
 
     DUTY_FILES = ("spec", "environment", "architecture", "test-strategy")
-    # Until the inner-loop session rewords the duties and the renderer swap replaces _CONSULT (consumer contract X6), they
-    # still name test-strategy.md headings; 4b moved that content, so each must be a section of the file it moved to.
-    MOVED = {"test-strategy.md": ("environment.md", "architecture.md")}
 
     @classmethod
     def named_in_the_scripts(cls) -> dict:
@@ -867,7 +868,7 @@ class SectionsTests(HomeFixture):
         for name, items in named.items():
             with self.subTest(file=name):
                 for item in sorted(items):
-                    sections = [heading for moved in self.MOVED.get(name, (name,)) for heading in knowledge.SECTIONS[moved]]
+                    sections = list(knowledge.SECTIONS[name])
                     self.assertTrue(any(item.startswith(heading) for heading in sections),
                                     repr(item) + " is named for " + name + " but is not in SECTIONS[" + repr(name) + "]")
 

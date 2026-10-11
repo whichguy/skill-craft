@@ -154,8 +154,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         # tool-managed authentication) is kept whole in the run reference file the packet points to (2026-10-11
         # dedupe: COMMON left the packet, reference.md#rules has it).
         flat = " ".join(packet.split())
-        self.assertIn("Never read, decode, keep or report local authentication, session or credential-store "
-                      "contents.", flat)
+        self.assertIn("Never read, keep or report credential-store or session contents.", flat)
         self.assertIn("reference#rules", flat)
         self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(self._reference(run_dir).split()))
 
@@ -193,7 +192,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         self.assertEqual(packet.count(LIFECYCLE_NOTE_LABEL), packet.count(note))
         self.assertLessEqual(packet.count(note), 1, packet)
         # The packet points at the reference file for everything it does not print.
-        self.assertIn("Every other policy and guide, and the long form of the rules: "
+        self.assertIn("every other policy and guide, and the rules' long form: "
                       + str(run_dir.resolve() / "reference.md") + " (#policies, #rules, #recovery).", packet)
 
     def _cold_packet(self, run_dir: Path) -> str:

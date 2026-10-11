@@ -84,10 +84,16 @@ class PacketBoundsTests(unittest.TestCase):
         waiting = navigator.apply(state, action["id"], {"outcome": "done", "summary": summary})
         self.assertIsNotNone(waiting.get("active_improve"))
         packet = self.cold_packet(waiting)
-        self.assertIn("active_improve.seed_result", packet)
-        self.assertIn("Outcome: done", packet)
-        self.assertIn(action["id"], packet)
+        # Packet re-cut (2026-10-11): the Improve packet is two instructions; the seed result and its exact locator
+        # are in the handoff file ShipLoop writes (navigator.improve_handoff_text).
+        handoff = navigator.improve_handoff_text(None, self.run, waiting)
+        self.assertIn("active_improve.seed_result", handoff)
+        self.assertIn("Outcome: done", handoff)
+        self.assertIn(action["id"], handoff)
+        self.assertNotIn(summary, handoff)
         self.assertNotIn(summary, packet)
+        self.assertIn(action["id"], packet)
+        self.assertNotIn("active_improve.seed_result", packet)
         self.assertEqual(waiting["active_improve"]["seed_result"]["summary"], summary)
 
     def test_many_long_evidence_references_keep_full_record_and_bound_packet(self):
@@ -151,7 +157,8 @@ class PacketBoundsTests(unittest.TestCase):
         self.assertEqual(producer.name, action + ".md")
         self.assertEqual(improve.name, action + "-improve-bind.md")  # no card is bound yet: the bind packet
         self.assertEqual(producer.read_text(), sent)
-        self.assertIn("Current action: Improve the completed spec result.", improve.read_text())
+        self.assertIn("Current action: Improve the completed spec result.",
+                      navigator.improve_handoff_text(None, self.run, waiting))  # the handoff holds the detail (re-cut)
 
     def test_the_improve_bind_packet_keeps_its_own_file_when_improve_start_prints(self):
         """An Improve child prints two packets before the runtime starts: improve-bind (no card bound yet) and, once bound,
@@ -184,7 +191,13 @@ class PacketBoundsTests(unittest.TestCase):
         self.assertEqual(start.name, action + "-improve.md")
         self.assertEqual(bind.name, action + "-improve-bind.md")
         self.assertEqual(bind.read_text(), sent)
-        self.assertIn("improve-start", start.read_text())
+        # Bound at the transition or by hand, the first packet is the two instructions: run the improve skill, then
+        # improve-complete; there is no improve-start or improve-bind step left in it (packet re-cut, 2026-10-11).
+        started = start.read_text()
+        self.assertIn("/improve ShipLoop Improve: " + str(navigator.improve_handoff_path(bound["active_improve"])), started)
+        self.assertIn("improve-complete", started)
+        self.assertNotIn("improve-bind", started)
+        self.assertNotIn("improve-start", started)
 
     def test_oversized_delivery_template_is_not_truncated_into_invalid_json(self):
         state = navigator.new_state(str(self.repo), "Observe local behavior.", delivery_contract=True)

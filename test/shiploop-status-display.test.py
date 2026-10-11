@@ -100,7 +100,7 @@ class StatusBlockTests(unittest.TestCase):
         self.assertEqual([name for name, _ in prompts.INNER_GROUPS],
                          ["Plan", "Validate existing", "Build", "Verify", "Carry forward"])
         for stage, purpose in prompts.STAGE_PURPOSE.items():
-            self.assertTrue(purpose and len(purpose) <= 80 and "\n" not in purpose, stage)
+            self.assertTrue(purpose and len(purpose) <= 360 and "\n" not in purpose, stage)  # one action sentence naming its output (was 80)
 
     # --- rendering by run position -----------------------------------------
 

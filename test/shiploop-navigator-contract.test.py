@@ -76,12 +76,12 @@ REPEATABLE_TEST_SUITE_REFERENCE = (
     "repeatable-test-suites.md#select-or-revalidate-the-harness",
 )
 GLOBAL_PLATFORM_TESTING_CLAUSE = (
-    "Consider supported platform/library testing systems and available browser tools"
+    "Choose test systems and browser tools by capability, not product name"
 )
 # Since the 8-stage inner loop (2026-10-10) step-plan routes each case's harness through the guide, and the guide
 # carries the platform/library and browser revalidation (coverage-plan-validate.json: "moved").
 INNER_PLATFORM_TESTING_CLAUSE = (
-    "place each case's harness and suite (Repeatable test-suite guide)"
+    "Revalidate harness, suite and browser tools for the changed surfaces (Repeatable test-suite guide)"
 )
 BACKCHAIN_RESOURCE_PATHS = (
     ("Backchain SKILL.md", Path("backchain/SKILL.md")),
@@ -204,7 +204,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertIn("- " + line, reference.splitlines(), label)
         self.assertLessEqual(packet.count(line), 1, packet)
         if not packet.count(line):
-            self.assertRegex(packet, r"Every other policy and guide, and the long form of the rules: .+/reference\.md "
+            self.assertRegex(packet, r"every other policy and guide, and the rules' long form: .+/reference\.md "
                                      r"\(#policies, #rules, #recovery\)\.")
 
     def _assert_requirements_policy(self, packet: str) -> None:
@@ -262,6 +262,29 @@ class NavigatorContractTests(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         return _with_packet_file(completed.stdout)
+
+    def _improve_view(self, root: Path, state: dict) -> str:
+        """The Improve packet plus the handoff file ShipLoop writes beside it (re-cut, 2026-10-11): the packet is
+        two instructions, and everything else the old packet said is in the handoff text."""
+        return navigator.render(None, root, state) + "\n" + navigator.improve_handoff_text(None, root, state)
+
+    def _assert_improve_policy_routes(self, view: str, *, backchain_expected: bool | None = None) -> None:
+        """The Improve view (packet plus handoff file) routes the requirement policies. The Backchain planning guide
+        locator pin FAILS since the re-cut: improve_handoff_text names the guide in its review text but prints no
+        locator for it, and reference.md does not list it (reported lost obligation)."""
+        with self.subTest(check="Improve view routes the requirement policies"):
+            self._assert_requirements_policy(view)
+        # Owner, 2026-10-11: "improve should not actually ever mention backchain". The producer packet routes the
+        # Backchain guide; the Improve packet and its handoff never name it.
+        with self.subTest(check="Improve view never mentions Backchain"):
+            self.assertNotRegex(view, r"[Bb]ackchain")
+
+    def _assert_two_instruction_improve_packet(self, packet: str) -> None:
+        self.assertIn("1. Run the improve skill on the ", packet)
+        self.assertIn("/improve ShipLoop Improve: ", packet)
+        self.assertIn("2. When the improve skill has completed, run: ", packet)
+        self.assertIn(" improve-complete ", packet)
+        self.assertNotIn(" improve-start ", packet)
 
     def _complete_improve(self, state: dict, action: dict, stage: str) -> dict:
         return navigator.finish_improve(state, action["id"], receipt(stage))
@@ -362,19 +385,19 @@ class NavigatorContractTests(unittest.TestCase):
         root = self.repo / ".shiploop"
         state = self.state()
         producer_packet = navigator.render(None, root, state)
-        # The producer packet carries the prohibition in its STAGE_RULES bullet and points at reference#rules, which
+        # The producer packet carries the prohibition in its STAGE_RULES paragraph and points at reference#rules, which
         # holds the whole boundary (probes, sanitized evidence, tool-managed authentication) unchanged.
-        self.assertIn("Never read, decode, keep or report local authentication, session or credential-store "
-                      "contents.", " ".join(producer_packet.split()))
+        self.assertIn("Never read, keep or report credential-store or session contents.", " ".join(producer_packet.split()))
         self.assertIn("reference#rules", producer_packet)
         reference = run_reference.render({"run_id": "r", "repo": str(self.repo)}, root)
         self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(reference.split()))
 
         waiting = self._pending(self._at_spec(state))
-        reviewer_packet = navigator.render(
-            None, root, self._bind_synthetic_child(waiting)
-        )
-        self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(reviewer_packet.split()))
+        bound = self._bind_synthetic_child(waiting)
+        self._assert_two_instruction_improve_packet(navigator.render(None, root, bound))
+        # The boundary reaches the reviewer through the handoff file (re-cut, 2026-10-11), unchanged.
+        self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY,
+                      " ".join(navigator.improve_handoff_text(None, root, bound).split()))
 
     def test_declares_the_flat_sdlc_graph_independently(self) -> None:
         self.assertEqual(tuple(prompts.PRELUDE), EXPECTED_PRELUDE)
@@ -406,11 +429,19 @@ class NavigatorContractTests(unittest.TestCase):
                     packet = navigator.render(None, root, current)
                     expected_prefix = (prompts.IMPROVE_INNER_CONTEXT if owner == "improve"
                                        else prompts.SERIAL_INNER_CONTEXT)
-                    self.assertEqual(packet.startswith(expected_prefix), stage in EXPECTED_INNER)
+                    if owner == "improve":
+                        # Re-cut (2026-10-11): the Improve packet is two instructions and starts with no context
+                        # prefix; the prefix opens the handoff file ShipLoop writes for the child.
+                        self.assertFalse(packet.startswith(expected_prefix))
+                        packet = navigator.improve_handoff_text(None, root, current)
+                    else:
+                        self.assertEqual(packet.startswith(expected_prefix), stage in EXPECTED_INNER)
+                    if owner == "improve" and stage not in EXPECTED_INNER:
+                        with self.subTest(check="handoff prefix only at INNER stages"):
+                            self.assertNotIn(expected_prefix, packet)
                     if stage in EXPECTED_INNER:
                         observed.append((stage, owner, state["work_index"]))
                         self.assertEqual(packet.count(expected_prefix), 1)
-                        self.assertRegex(packet, r"(?m)^Recovery command \(it only reads [^\n]*\):\n[^\n]* next ")
                         if owner == "improve":
                             self.assertNotIn(prefix, packet)
                             self.assertIn("Keep the invoking parent alive", packet)
@@ -419,6 +450,7 @@ class NavigatorContractTests(unittest.TestCase):
                             self.assertIn("do not clear again", packet)
                             self.assertNotIn("execute the assignment in this conversation", packet)
                         else:
+                            self.assertRegex(packet, r"(?m)^Recovery command \([^\n]*\):\n[^\n]* next ")
                             # Without a fresh worker the producer runs here; it never pauses for a clear.
                             self.assertIn("do not delegate it again", packet)
                             self.assertIn("execute the assignment in this conversation", packet)
@@ -458,9 +490,18 @@ class NavigatorContractTests(unittest.TestCase):
             # the file before acting sees it first, as the recovery contract
             # requires.
             cold = self._cold_next(root)
-            packet_path = _packet_path_from_stdout(cold)
-            self.assertIsNotNone(packet_path, cold)
-            self.assertTrue(packet_path.read_text(encoding="utf-8").startswith(expected_prefix), cold)
+            if current.get("active_improve"):
+                # The Improve packet is two instructions (re-cut, 2026-10-11); the prefix opens the handoff body that
+                # a cold `next` rewrites beside the child's opening file.
+                self._assert_two_instruction_improve_packet(cold)
+                handoff = navigator.improve_handoff_path(current["active_improve"]).read_text(encoding="utf-8")
+                self.assertIn("\n" + expected_prefix, handoff)
+            else:
+                # emit prints the whole packet when it fits PRINT_LIMIT, else a head and the file; either way the
+                # complete packet leads with the prefix.
+                packet_path = _packet_path_from_stdout(cold)
+                full = packet_path.read_text(encoding="utf-8") if packet_path else cold
+                self.assertTrue(full.startswith(expected_prefix), cold)
             for command in ("pause", "halt"):
                 stopped = navigator.control(current, command, "Synthetic stop")
                 self.assertNotIn(expected_prefix, navigator.render(None, root, stopped))
@@ -506,12 +547,14 @@ class NavigatorContractTests(unittest.TestCase):
                              stage in backchain_stages - {"plan"})
             self.assertEqual("Loop resources for a repair/revise request, under " in producer_packet,
                              stage in backchain_stages - {"plan"})
-            # The requirement and handoff rules are the STAGE_RULES bullet in the packet; the long text (the
-            # Reference handoff policy sentence) is reference#requirements.
-            self.assertIn("Put the requirement sections and test locators you used in evidence_refs",
-                          " ".join(producer_packet.split()))
-            self.assertIn("reference#rules, #requirements, #progress", producer_packet)
-            self.assertIn("Follow the packet's Reference handoff policy", self._reference_text(root))
+            # The requirement and handoff rules are no longer in the packet (re-cut, 2026-10-11): its RULES paragraph
+            # points at reference#rules, and the long text (evidence_refs carry the requirement sections and test
+            # locators; the Reference handoff policy sentence) is in the run reference file.
+            self.assertIn("reference#rules", producer_packet)
+            reference_text = " ".join(self._reference_text(root).split())
+            self.assertIn("include the selected maintained requirement sections and test/evidence locators in the "
+                          "result's existing evidence_refs", reference_text)
+            self.assertIn("Follow the packet's Reference handoff policy", reference_text)
             extra = {}
             if stage == "plan":
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
@@ -524,16 +567,15 @@ class NavigatorContractTests(unittest.TestCase):
             self.assertEqual(navigator.current_stage(waiting), stage)
             self.assertEqual(waiting["active_improve"]["action_id"], action["id"])
             bound = self._bind_synthetic_child(waiting)
-            child_packet = navigator.render(None, root, bound)
-            self._assert_requirements_policy(child_packet)
-            self._assert_backchain_planning_locator(
-                child_packet, expected=stage in backchain_stages
-            )
+            self._assert_two_instruction_improve_packet(navigator.render(None, root, bound))
+            child_packet = self._improve_view(root, bound)
+            self._assert_improve_policy_routes(child_packet, backchain_expected=stage in backchain_stages)
             self.assertNotIn("backchain-check", child_packet)
-            # A bound Improve child never starts a whole loop: no resource list, no loop status, only the audit line.
+            # A bound Improve child never starts a whole loop: no resource list, no loop status, and (since the
+            # re-cut) not even the audit resource line.
             self.assertNotIn("Selected Backchain and Until Loop resources", child_packet)
             self.assertNotIn("Loop resources for a repair/revise request", child_packet)
-            self.assertEqual("Backchain audit resource (" in child_packet, stage in backchain_stages)
+            self.assertNotIn("Backchain audit resource (", child_packet)
             self.assertIn("Follow the packet's Reference handoff policy", child_packet)
             state = self._complete_improve(bound, action, stage)
 
@@ -646,8 +688,12 @@ class NavigatorContractTests(unittest.TestCase):
             with self.subTest(child=name):
                 root = Path(self.temp.name) / (name + " requirements recovery")
                 root.mkdir()
-                current = navigator.render(None, root, candidate)
-                self._assert_requirements_policy(current)
+                current = (self._improve_view(root, candidate) if name == "bound"
+                           else navigator.render(None, root, candidate))
+                if name == "bound":
+                    self._assert_improve_policy_routes(current)
+                else:
+                    self.assertIn(" improve-bind ", current)  # an unbound child's packet is the bind step and `next`
                 if name == "bound":
                     self.assertIn("Follow the packet's Maintained requirements policy", current)
                     self.assertIn("requirement and test locators", current)
@@ -655,10 +701,14 @@ class NavigatorContractTests(unittest.TestCase):
                 navigator.save(root, candidate)
                 before = (root / "state.md").read_bytes()
                 recovered = store.read_record(root / "state.md")
-                cold = navigator.render(None, root, recovered)
+                cold = (self._improve_view(root, recovered) if name == "bound"
+                        else navigator.render(None, root, recovered))
                 self.assertEqual((root / "state.md").read_bytes(), before)
                 self.assertEqual(recovered, candidate)
-                self._assert_requirements_policy(cold)
+                if name == "bound":
+                    self._assert_improve_policy_routes(cold)
+                else:
+                    self.assertIn(" improve-bind ", cold)
                 if name == "bound":
                     self.assertIn("Follow the packet's Maintained requirements policy", cold)
                     self.assertIn("requirement and test locators", cold)
@@ -685,19 +735,22 @@ class NavigatorContractTests(unittest.TestCase):
         root = Path(self.temp.name) / "cold-requirements-definition-child"
         root.mkdir()
         before_state = copy.deepcopy(bound)
-        current = navigator.render(None, root, bound)
+        current = self._improve_view(root, bound)
         self.assertEqual(bound, before_state)
         navigator.save(root, bound)
         before = (root / "state.md").read_bytes()
 
-        cold = self._cold_next(root)
+        cold_packet = self._cold_next(root)
+        # The cold Improve packet is two instructions; its detail is the handoff file `next` rewrites.
+        self._assert_two_instruction_improve_packet(cold_packet)
+        cold = cold_packet + "\n" + navigator.improve_handoff_path(bound["active_improve"]).read_text(encoding="utf-8")
         recovered = store.read_record(root / "state.md")
 
         self.assertEqual((root / "state.md").read_bytes(), before)
         self.assertEqual(recovered, bound)
         self.assertEqual(recovered["active_improve"], bound["active_improve"])
         for packet in (current, cold):
-            self._assert_requirements_policy(packet)
+            self._assert_improve_policy_routes(packet)
             self.assertIn(original_request, packet)
             self.assertIn(requirement_locator, packet)
             self.assertIn("Use the packet's Requirements definition guide", packet)
@@ -760,26 +813,33 @@ class NavigatorContractTests(unittest.TestCase):
         before_state = copy.deepcopy(bound)
         root = Path(self.temp.name) / "requirement-locator-child"
         root.mkdir()
-        current = navigator.render(None, root, bound)
+        self._assert_two_instruction_improve_packet(navigator.render(None, root, bound))
+        current = self._improve_view(root, bound)
         self.assertEqual(bound, before_state)
-        self._assert_requirements_policy(current)
-        self.assertIn("Work item context: " + work_context, current)
-        for locator in (requirement_locator, test_locator):
-            self.assertEqual(current.count(locator), 2, current)
-        self.assertEqual(current.count(run_note_locator), 1, current)
+        self._assert_improve_policy_routes(current)
+        for locator in (requirement_locator, test_locator, run_note_locator):
+            self.assertIn(locator, current)  # the step result's evidence_refs, in the handoff
+        with self.subTest(check="Improve view carries the work item context"):
+            self.assertIn("Work item context: " + work_context, current)
+            for locator in (requirement_locator, test_locator):
+                self.assertEqual(current.count(locator), 2, current)
+            self.assertEqual(current.count(run_note_locator), 1, current)
         self.assertEqual(run_note.read_bytes(), run_note_bytes)
 
         navigator.save(root, bound)
         before = (root / "state.md").read_bytes()
         recovered = store.read_record(root / "state.md")
-        cold = navigator.render(None, root, recovered)
+        cold = self._improve_view(root, recovered)
         self.assertEqual((root / "state.md").read_bytes(), before)
         self.assertEqual(recovered, bound)
-        self._assert_requirements_policy(cold)
-        self.assertIn("Work item context: " + work_context, cold)
-        for locator in (requirement_locator, test_locator):
-            self.assertEqual(cold.count(locator), 2, cold)
-        self.assertEqual(cold.count(run_note_locator), 1, cold)
+        self._assert_improve_policy_routes(cold)
+        for locator in (requirement_locator, test_locator, run_note_locator):
+            self.assertIn(locator, cold)
+        with self.subTest(check="cold Improve view carries the work item context"):
+            self.assertIn("Work item context: " + work_context, cold)
+            for locator in (requirement_locator, test_locator):
+                self.assertEqual(cold.count(locator), 2, cold)
+            self.assertEqual(cold.count(run_note_locator), 1, cold)
         self.assertEqual(run_note.read_bytes(), run_note_bytes)
 
     def test_common_and_improve_prompts_preserve_requirements_review_cues(self) -> None:
@@ -816,10 +876,12 @@ class NavigatorContractTests(unittest.TestCase):
 
     def test_native_backchain_operations_reuse_selected_until_loop_subcall(self) -> None:
         """Backchain owns dependency work; Until Loop owns its runtime and terminal."""
+        # spec and plan fold the Backchain guidance into their duty (re-cut, 2026-10-11) and word each operation
+        # as "`plan` / `draft`"; the other stages print the guidance as "action `plan` / stage `draft`".
         operations = {
-            "draft": "action `plan` / stage `draft`",
-            "audit": "action `review` / stage `audit`",
-            "revise": "action `repair` / stage `revise`",
+            "draft": ("action `plan` / stage `draft`", "`plan` / `draft`"),
+            "audit": ("action `review` / stage `audit`", "`review` / `audit`"),
+            "revise": ("action `repair` / stage `revise`", "`repair` / `revise`"),
         }
         expected = {
             "spec": ["audit", "revise"],
@@ -833,28 +895,28 @@ class NavigatorContractTests(unittest.TestCase):
                 producer = " ".join(prompts.prompt(stage).split())
                 improve = " ".join(prompts.improve_prompt(stage).split())
                 self.assertEqual(
-                    [name for name, selector in operations.items() if selector in producer],
+                    [name for name, selectors in operations.items() if any(sel in producer for sel in selectors)],
                     expected.get(stage, []),
                 )
                 self.assertEqual(
-                    [name for name, selector in operations.items() if selector in improve],
+                    [name for name, selectors in operations.items() if any(sel in improve for sel in selectors)],
                     [],
                 )
         plan = " ".join(prompts.prompt("plan").split())
         audit = " ".join(prompts.prompt("step-plan").split())
         for required in (
             "Backchain standalone Until Loop binding:",
-            'packet\'s printed "Selected Backchain and Until Loop resources" block below',
-            "A `MISSING: ...` entry blocks the route for that named resource",
-            "report it as the blocker, not as unverifiable",
+            'every resource in the printed "Selected Backchain and Until Loop resources" block is required',
+            "A `MISSING` entry is the blocker to report",
             "never substitute a sibling, cache or other install",
-            "Record the binding id, candidate and receipt paths",
-            "is not execution evidence or a passed experiment",
-            "The planning guide's Source-aware native caller section holds",
-            "opaque actual Until Loop terminal evidence",
-            "only after the child reports `complete`",
-            "must not be submitted as a completed parent action",
-            "The Until Loop child is plan-only",
+            "record the binding id, candidate and receipt paths",
+            "is not execution evidence",
+            # The capability check, old-loop incompatibility and no-fallback rule stay in the guide section the
+            # duty cites (checked on the guide below), not in the duty (fidelity map, plan.md).
+            "Run the dependency audit of the Backchain planning guide on every route",
+            "report done only with the child's exact `complete` receipt saved",
+            "leaves this stage incomplete",
+            "The child is plan-only",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, plan)
@@ -871,8 +933,9 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertIn("read-only, one-pass diagnostic", audit)
         self.assertIn("A whole `plan`/`draft` is requested only at `plan`", audit)
         self.assertIn("A MISSING loop resource blocks repair/revise; no other install substitutes", audit)
-        self.assertIn("final candidate identity and domain evidence", plan)
-        self.assertIn("one-pass Backchain primitive", " ".join(prompts.improve_prompt("plan").split()))
+        self.assertIn("the final candidate's identity and its domain evidence", plan)
+        # An Improve review never mentions Backchain (owner, 2026-10-11).
+        self.assertNotRegex(prompts.improve_prompt("plan"), r"[Bb]ackchain")
         self.assertNotIn("Backchain standalone Improve binding:", plan)
         self.assertNotIn("selected physical Improve root", plan)
         self.assertNotIn("run notes identify", plan)
@@ -896,6 +959,7 @@ class NavigatorContractTests(unittest.TestCase):
             'packet\'s printed "Selected Backchain and Until Loop resources" block',
             guide_text,
         )
+        self.assertIn("## Source-aware native caller", self.backchain_planning_guide.read_text(encoding="utf-8"))
         self.assertIn("`references/caller-contract.md`", guide_text)
         self.assertIn("Until Loop `ADAPTER.md`", guide_text)
         for field in ("terminal_receipt", "domain_evidence", "planning_gaps", "execution_blockers", "next_action"):
@@ -939,8 +1003,9 @@ class NavigatorContractTests(unittest.TestCase):
             f"  {missing_label}: MISSING: skills/{missing_relative.as_posix()}"
         )
         self.assertIn(missing_line, packet)
+        # The plan duty's Backchain item (packet re-cut, 2026-10-11) words the same blocker rule.
         self.assertIn(
-            "A `MISSING: ...` entry blocks the route for that named resource",
+            'A `MISSING` entry is the blocker to report; never substitute a sibling, cache or other install',
             " ".join(packet.split()),
         )
 
@@ -1009,7 +1074,8 @@ class NavigatorContractTests(unittest.TestCase):
                 for label in loop_only:  # the six files only a whole loop reads
                     self.assertEqual(f"  {label}: " in packet, whole, label)
                 self.assertEqual(self._expected_backchain_resource_block(skills_root) in packet, whole)
-                self.assertEqual("action `plan` / stage `draft`" in " ".join(packet.split()), whole)
+                self.assertEqual("You may also request one Backchain `plan` / `draft` through `source-aware-native`"
+                                 in " ".join(packet.split()), whole)
                 self.assertEqual(
                     f"Loop resources for a repair/revise request, under {skills_root.resolve()}: all present" in packet,
                     not whole)
@@ -1046,7 +1112,9 @@ class NavigatorContractTests(unittest.TestCase):
                     self.assertNotIn(retired, flat)
         for label in ("guide", "card", "prompt plan"):
             with self.subTest(source=label):
-                self.assertIn("only Backchain", " ".join(texts[label].split()))
+                # The plan duty (packet re-cut, 2026-10-11) says it as "the only call route".
+                self.assertIn("only call route" if label == "prompt plan" else "only Backchain",
+                              " ".join(texts[label].split()))
 
     def test_backchain_planning_guidance_is_scoped_to_selected_stages(self) -> None:
         """Producer and actual Improve prompts use the guide only for planning decisions."""
@@ -1073,9 +1141,8 @@ class NavigatorContractTests(unittest.TestCase):
                 self.assertEqual(
                     "Backchain planning guide" in prompts.prompt(stage), expected
                 )
-                self.assertEqual(
-                    "Backchain planning guide" in prompts.improve_prompt(stage), expected
-                )
+                # An Improve review never mentions Backchain (owner, 2026-10-11).
+                self.assertNotIn("Backchain planning guide", prompts.improve_prompt(stage))
                 for legacy in legacy_carriers:
                     self.assertNotIn(legacy, prompts.prompt(stage))
                     self.assertNotIn(legacy, prompts.improve_prompt(stage))
@@ -1088,11 +1155,11 @@ class NavigatorContractTests(unittest.TestCase):
             " ".join(prompts.DUTIES["discovery"].split()),
         )
         self.assertIn(
-            "Research consequential quality-target and feasibility unknowns",
+            "Research quality-target and feasibility unknowns from existing contracts and evidence",
             " ".join(prompts.DUTIES["research"].split()),
         )
         self.assertIn(
-            "measurable bounds or observable criteria",
+            "measurable bound or observable criterion",
             " ".join(prompts.DUTIES["spec"].split()),
         )
 
@@ -1100,11 +1167,11 @@ class NavigatorContractTests(unittest.TestCase):
         """Research records dispositions; the plan result is where they are enforced."""
         research = " ".join(prompts.DUTIES["research"].split())
         for phrase in (
-            "List each load-bearing assumption in that decision note",
-            "evidenced (source locator)",
-            "probed (the read or command and its saved outcome)",
-            "open (the check that would settle it and why it was not run)",
-            "The plan's assumption list starts from it",
+            "RUN/notes/research.md ## Assumptions: each load-bearing assumption",
+            "evidenced (locator)",
+            "probed (command and saved output)",
+            "open (the check that would settle it, why not run)",
+            "Plan builds its `assumptions` from it",
             "A recalled fact is not evidence",
         ):
             self.assertIn(phrase, research)
@@ -1119,25 +1186,25 @@ class NavigatorContractTests(unittest.TestCase):
         """
         authoring = (  # step-plan's numbered duty (2026-10-11 dedupe) says each of these once, in item 2 and item 7
             "`<condition>. Confirm by: <command, observation or inspection>; pass when <expected result>`",
-            "say whether it must be exercised or whether inspection suffices",
-            "A docs or coverage criterion gets a command check, such as a search for the required terms",
-            "A condition that no command can confirm is not a criterion: list it in the summary as an open item",
-            "mark it in the plan note as `Confirm by: unconfirmable here — <what would confirm it>`",
-            "Confirm that an external oracle (a golden file, fixture or snapshot) agrees with the task",
+            "say whether it must be exercised or inspection suffices",
+            "A docs or coverage criterion gets a command check (a search for the required terms)",
+            "A condition no command can confirm is not a criterion: list it in the summary as an open item",
+            "with `Confirm by: unconfirmable here — <what would confirm it>`",
+            "confirm an external oracle (golden file, fixture, snapshot) agrees with the task",
         )
         loop = (
             "Existing tests, check scripts, golden or fixture files and thresholds are checks",
-            "never download, install or fetch a tool, runtime or dependency",
-            "Call an exit condition satisfied only when a command or file shows it after your last edit.",
-            "report revise naming the criterion or command and which case holds",
-            "for a criterion the plan did not mark `Confirm by: unconfirmable here`",
+            "download, install or fetch nothing",
+            "report revise, naming the criterion or command and the case",
+            "the criterion text does not say `Confirm by: unconfirmable here`",
             f"the same check still fails after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts",
-            "with the existing behaviour kept at the conflict point",
+            "with existing behaviour kept at the conflict point",
         )
         parent = (
-            "Evidence for another candidate, command, configuration or target is not a confirmation either",
-            "whose `Confirm by:` needs execution cannot be met here: report revise",
-            "the item goes back to its step plan rather than to a blind retry",
+            "Stale, skipped, missing or other-candidate, command, configuration or target evidence confirms nothing",
+            "whose `Confirm by:` needs execution: report revise",
+            # The verify duty keeps the revise route (its closing item) in the re-cut's wording.
+            "Criterion or check unachievable as planned: report revise naming it",
         )
         for delegation in (prompts.ASK_AGENT, prompts.INLINE):
             for stage, phrases in (("step-plan", authoring), ("implement", loop), ("verify", parent)):
@@ -1145,19 +1212,23 @@ class NavigatorContractTests(unittest.TestCase):
                 for phrase in phrases:
                     with self.subTest(delegation=delegation, stage=stage, phrase=phrase):
                         self.assertEqual(text.count(phrase), 1)
-        # What the loop's Work states is stated there once (owner, 2026-10-11), not again in the duty.
+        # Packet re-cut (2026-10-11): the duty states the work once, and the loop's Work only points at the duty's
+        # items; the exit-condition rule is the loop rule, printed once in the until-loop invoke block.
         import shiploop_loops as loops
-        for stage, work, duty in (
-                ("implement", "Make {step_change} on its paths against its criteria",
-                 "Make the planned step's change against its criteria"),
-                ("implement", "change the work, never the check, its expected result or the recorded command",
-                 "change the work, never the check, its expected result or the recorded command"),
-                ("verify", "For each completion criterion, name the passing command or the inspection that confirms "
-                           "it now (stale, skipped or missing evidence is not a confirmation)",
-                 "For each completion criterion, name the passing command")):
-            with self.subTest(work=stage, phrase=work):
-                self.assertIn(work, " ".join(loops.WORK[stage].split()))
-                self.assertNotIn(duty, " ".join(prompts.prompt(stage).split()))
+        for stage, work_pointer, duty_phrase in (
+                ("implement", "Do duty items 1-4 of {run}/packets/{action}.md for {step_change}",
+                 "edit its paths to meet its criteria"),
+                ("implement", "Do duty items 1-4 of {run}/packets/{action}.md",
+                 "changing the work, never the check, its expected result or the command"),
+                ("verify", "Do duty items 1-7 of {run}/packets/{action}.md in order",
+                 "Per criterion name the passing command or inspection that confirms it now")):
+            with self.subTest(work=stage, phrase=duty_phrase):
+                self.assertIn(work_pointer, " ".join(loops.WORK[stage].split()))
+                self.assertEqual(" ".join(prompts.prompt(stage).split()).count(duty_phrase), 1)
+        self.assertIn("Call an exit condition satisfied only when a command or file shows it after your last edit.",
+                      " ".join(loops.LOOP_RULE.split()))
+        for stage in ("implement", "verify"):
+            self.assertNotIn("satisfied only when a command or file shows it", " ".join(prompts.prompt(stage).split()))
         # The stopping rule is implement's: a stage that runs no check loop does not carry it.
         self.assertNotIn("genuine fix attempts", " ".join(prompts.prompt("document").split()))
 
@@ -1165,11 +1236,10 @@ class NavigatorContractTests(unittest.TestCase):
         """The global strategy chooses rerunnable coverage before item work starts."""
         strategy = " ".join(prompts.prompt("test-strategy").split())
         for duty in (
-            "Read the Repeatable test-suite guide.",
-            "Select the major harnesses and suite entry points now",
-            "reuse a prior-run harness only after revalidating its current fit",
-            "focused, smoke, and full-suite commands",
-            "smoke is a bounded subset, never evidence for the full suite",
+            "Select or revalidate harnesses and suite entry points (Repeatable test-suite guide)",
+            "reuse a prior harness only after revalidating fit",
+            "Write the focused, smoke and full-suite commands",
+            "Smoke is a bounded subset, never evidence for the full suite",
         ):
             with self.subTest(duty=duty):
                 self.assertIn(duty, strategy)
@@ -1178,12 +1248,19 @@ class NavigatorContractTests(unittest.TestCase):
         """The global choice and each testing checkpoint retain the same guide route."""
         strategy = " ".join(prompts.prompt("test-strategy").split())
         self.assertIn(GLOBAL_PLATFORM_TESTING_CLAUSE, strategy)
-        self.assertIn("by required capability rather than product name", strategy)
-        self.assertIn("distinguish inspection from retained assertions", strategy)
+        self.assertIn("Keep inspection separate from retained assertions", strategy)
 
+        # Packet re-cut (2026-10-11): a stage whose duty cites the guide keeps its STAGE_REFERENCES line; the others
+        # (test-spec, validate-existing, implement, verify, system-test) reach it through the one run reference file
+        # (#policies), which every packet points at and which lists the guide with the same locator.
+        reference = self._reference_text(self.repo / ".shiploop")
+        self.assertIn("- Repeatable test-suite guide: ", reference)
         for stage in TEST_HARNESS_STAGES:
             with self.subTest(stage=stage, check="guide route"):
-                self.assertIn(REPEATABLE_TEST_SUITE_REFERENCE, prompts.STAGE_REFERENCES[stage])
+                if stage in ("test-strategy", "step-plan", "test", "system-test-author"):
+                    self.assertIn(REPEATABLE_TEST_SUITE_REFERENCE, prompts.STAGE_REFERENCES[stage])
+                else:
+                    self.assertNotIn(REPEATABLE_TEST_SUITE_REFERENCE, prompts.STAGE_REFERENCES.get(stage, ()))
 
         step_plan = " ".join(prompts.prompt("step-plan").split())
         self.assertIn(INNER_PLATFORM_TESTING_CLAUSE, step_plan)
@@ -1191,14 +1268,16 @@ class NavigatorContractTests(unittest.TestCase):
         for clause in ("platform/library", "browser"):
             self.assertIn(clause, guide)
 
-        self.assertIn("Link the durable strategy note in ordinary evidence_refs", strategy)
+        self.assertIn("`evidence_refs`: HOME/environment.md, HOME/architecture.md, each probe output", strategy)
         for stage in ("plan", "system-test-author"):
             with self.subTest(stage=stage, check="saved test strategy consumption"):
-                self.assertIn("Run-wide test strategy source", prompts.prompt(stage))
+                # The shared handoff is folded into these duties (re-cut, 2026-10-11): the strategy is the
+                # HOME/environment.md ## Harnesses and suites section, which each duty names.
+                self.assertIn("## Harnesses and suites", prompts.prompt(stage))
+                self.assertIn("test strategy", " ".join(prompts.prompt(stage).split()))
         with self.subTest(stage="test", check="saved test strategy consumption"):
-            # the decision handoff names the strategy as "the run's test strategy" (listed under "Results this stage
-            # builds on", or printed as a source block when not), since the 2026-10-11 dedupe
-            self.assertIn("the run's test strategy", " ".join(prompts.prompt("test").split()))
+            self.assertIn("HOME/environment.md's harness and suite decisions",
+                          " ".join(prompts.prompt("test").split()))
         with self.subTest(stage="step-plan", check="saved test strategy consumption"):
             # step-plan's duty no longer carries the shared handoff text (2026-10-11 dedupe); its packet's References
             # block lists the strategy file's sections to consult and the strategy stage result it builds on.
@@ -1210,10 +1289,10 @@ class NavigatorContractTests(unittest.TestCase):
             packet = navigator.render(None, self.repo / ".shiploop", state)
             # Consumer contract D1: step-plan reads environment.md whole, where the harnesses and suites live once
             # test-strategy.md merges into it (contract 3.6); the strategy stage result stays listed.
-            self.assertRegex(packet, r"(?m)^Read at this stage, quoted whole below .*HOME/environment\.md")
+            self.assertRegex(packet, r"(?m)^Knowledge files this stage reads, each quoted whole(?s:.*)^HOME/environment\.md:")
             self.assertRegex(packet, r"(?m)^- test-strategy stage result: RUN/results/")
         self.assertIn(
-            "beside the originating strategy locator",
+            "harness and case locators; fixture lifecycle",
             " ".join(prompts.prompt("carry-forward").split()),
         )
         self.assertIn("Run-wide test strategy source", prompts.improve_prompt("test"))
@@ -1222,19 +1301,24 @@ class NavigatorContractTests(unittest.TestCase):
         for stage in decision_stages:
             with self.subTest(stage=stage, check="current item decision carry-forward"):
                 instruction = " ".join(prompts.prompt(stage).split())
-                self.assertIn("Reopen the current item's test decision and the run's test strategy", instruction)
-                self.assertIn("prior decision locators and any justified revision", instruction)
+                if stage == "test-spec":
+                    self.assertIn("which harness and suite decisions in HOME/environment.md this item keeps, "
+                                  "refines or supersedes, and why", instruction)
+                else:
+                    self.assertIn("Reopen the item's test decision and HOME/environment.md's harness and suite "
+                                  "decisions", instruction)
+                    self.assertIn("retain, refine or supersede and why", instruction)
+                self.assertIn("locators", instruction)
 
     def test_remote_test_routes_keep_local_and_remote_evidence_distinct(self) -> None:
         """Route remote test assets without treating a local result as their evidence."""
         strategy = " ".join(prompts.prompt("test-strategy").split())
         for duty in (
-            "execution location separately from target location",
-            "client checks against a deployed target",
-            "remote-resident tests",
-            "remote framework",
-            "availability, access and deployment prerequisites",
-            "define/register, install and invoke remote tests",
+            "record, per check, where it runs and its target",
+            "client against a deployed target",
+            "remote-resident",
+            "framework, availability, access, deployment prerequisites",
+            "define or register, install and invoke them",
             "local pass is not a remote pass",
         ):
             with self.subTest(stage="test-strategy", duty=duty):
@@ -1244,19 +1328,19 @@ class NavigatorContractTests(unittest.TestCase):
         # remote-resident case, the test stage keeps a local pass apart from a required remote check, and the
         # Repeatable test-suite guide both stages cite carries the remote-resident procedure.
         step_plan = " ".join(prompts.prompt("step-plan").split())
-        self.assertIn("remote-resident case needs its framework and its authorized setup, invocation, result "
+        self.assertIn("remote-resident case needs its framework and an authorized setup, invocation, result "
                       "retrieval and teardown route", step_plan)
         tester = " ".join(prompts.prompt("test").split())
-        self.assertIn("a local pass does not replace a required remote or real-boundary check", tester)
+        self.assertIn("local pass does not replace a required remote or real-boundary check", tester)
         self.assertIn(REPEATABLE_TEST_SUITE_REFERENCE, prompts.STAGE_REFERENCES["test"])
         guide = " ".join((SCRIPTS.parent / "references" / "repeatable-test-suites.md").read_text().split())
         self.assertIn("remote-resident", guide)
 
         system_author = " ".join(prompts.prompt("system-test-author").split())
         for duty in (
-            "remote-resident definitions and registration",
-            "remote framework requires them",
-            "authorized installation and invocation",
+            "version the remote-resident test definitions and registration",
+            "If the remote framework requires it",
+            "authorized install and invocation",
         ):
             with self.subTest(stage="system-test-author", duty=duty):
                 self.assertIn(duty, system_author)
@@ -1265,8 +1349,8 @@ class NavigatorContractTests(unittest.TestCase):
         for duty in (
             "execution location",
             "remote framework availability",
-            "deployed/test revision identity",
-            "local pass cannot replace a blocked/unrun required remote check",
+            "the deployed or test revision",
+            "A local pass replaces no blocked or unrun required remote check",
             "combined full-suite pass",
         ):
             with self.subTest(stage="system-test", duty=duty):
@@ -1276,10 +1360,11 @@ class NavigatorContractTests(unittest.TestCase):
         """Check packet routing and boundaries, without claiming model compliance."""
         test_spec = " ".join(prompts.prompt("test-spec").split())
         for duty in (
-            "setup and fixture; action;",
-            'teardown, or "stateless"',
-            "Isolate per test unless sharing setup is shown safe, never sharing mutable state",
-            "plan failure cleanup and say which suite registers each case and whether it joins smoke",
+            "setup and fixture, action, teardown",
+            'teardown (or "stateless")',
+            "Isolate each test: no shared mutable state",
+            "each with its failure cleanup",
+            "registering suite and smoke membership",
         ):
             with self.subTest(stage="test-spec", duty=duty):
                 self.assertIn(duty, test_spec)
@@ -1288,12 +1373,14 @@ class NavigatorContractTests(unittest.TestCase):
         # did not run, which is what "discovery selects the cases" asked the model to check.
         tester = " ".join(prompts.prompt("test").split())
         import shiploop_loops as loops
-        self.assertIn("titled with its ID as its own word, registered in the focused and regression commands",
-                      " ".join(loops.WORK["test"].split()))  # the loop's Work, its one home
-        self.assertIn("Reuse the existing harness, helpers and fixtures before adding a facility", tester)
+        # Re-cut (2026-10-11): the duty states it once; the loop's Work points at the duty's items.
+        self.assertIn("a test titled with its ID as its own word, in the suite and command its case names", tester)
+        self.assertIn("Do duty items 1-4 of {run}/packets/{action}.md for every test case quoted in the packet",
+                      " ".join(loops.WORK["test"].split()))
+        self.assertIn("Reuse existing harness, helpers and fixtures first", tester)
         # What ShipLoop's run refuses is the Checked-by line's, its one home (owner, 2026-10-11), not the duty's.
-        self.assertIn("runs every listed ID", navigator._check_text("test-loop", "test"))
-        self.assertNotIn("runs every listed ID", tester)
+        self.assertIn("run every listed ID", navigator._check_text("test-loop", "test"))
+        self.assertNotIn("run every listed ID", tester)
 
         state = self.state()
         while navigator.current_stage(state) != "test-spec":
@@ -1311,9 +1398,9 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(waiting["active_improve"]["action_id"], action["id"])
         bound = self._bind_synthetic_child(waiting)
 
-        handoff = " ".join(
-            navigator.render(None, self.repo / ".shiploop", bound).split()
-        )
+        # The Improve packet is two instructions (re-cut, 2026-10-11); its detail is in the handoff file.
+        self._assert_two_instruction_improve_packet(navigator.render(None, self.repo / ".shiploop", bound))
+        handoff = " ".join(navigator.improve_handoff_text(None, self.repo / ".shiploop", bound).split())
         for duty in (
             "For test plans, authored/refined tests, fixtures, suite wiring or test evidence",
             "harness, case and suite locators",
@@ -1360,18 +1447,19 @@ class NavigatorContractTests(unittest.TestCase):
         validate = " ".join(prompts.DUTIES["validate-existing"].split())
         for prompt in (discovery, strategy, plan, prepare):
             self.assertIn("Initial repository baseline guide", prompt)
-        self.assertIn("first verification activity", discovery)
-        self.assertIn("actual execution", discovery)
-        self.assertIn("observed initial baseline", strategy)
+        self.assertIn("Baseline first (Initial repository baseline guide)", discovery)
+        self.assertIn("Choosing a command or citing an old pass does not count", discovery)
+        self.assertIn("Consume discovery's baseline (Initial repository baseline guide)", strategy)
         self.assertIn("earliest", plan)
         self.assertIn("repair", plan)
-        self.assertIn("post-bootstrap characterization", plan)
+        self.assertIn("passing characterization of unchanged application behaviour", plan)
         self.assertIn("rerun the original initial check", prepare)
         # baseline's per-item revalidation moved to validate-existing (coverage-plan-validate.json): ShipLoop reruns
         # each expectation's check on the item base, and a broken foundation is a failed expectation to repair.
-        self.assertIn("ShipLoop ran each step-plan expectation's check", validate)
-        self.assertIn("a works expectation is broken and the fix is known and small: fix it now", validate)
-        self.assertIn("a needed repair becomes an earlier step of this item", validate)
+        self.assertIn("ShipLoop ran each expectation's check", validate)
+        self.assertIn("`works` expectation broken, fix known and small: fix it in the working tree",
+                      validate)
+        self.assertIn("a needed repair becomes an earlier step", validate)
         improve = " ".join(prompts.improve_prompt("discovery").split())
         self.assertIn("Initial repository baseline guide", improve)
         self.assertIn("may not edit product source, tests", improve)
@@ -1380,7 +1468,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(state), "discovery")
         discovery_packet = navigator.render(None, self.repo / ".shiploop", state)
         self._assert_initial_baseline_locator(discovery_packet)
-        self.assertIn("first verification activity", " ".join(discovery_packet.split()))
+        self.assertIn("Baseline first (Initial repository baseline guide)", " ".join(discovery_packet.split()))
 
         baseline_extra = dict(
             summary="The existing smoke route failed before feature edits.",
@@ -1405,9 +1493,20 @@ class NavigatorContractTests(unittest.TestCase):
         before = (run_root / "state.md").read_bytes()
         cold = self._cold_next(run_root)
         self.assertEqual((run_root / "state.md").read_bytes(), before)
-        for packet in (unbound, bound_packet, cold):
-            self._assert_initial_baseline_locator(packet)
-            self.assertIn(initial_baseline, packet)
+        # The Improve packet is two instructions (re-cut, 2026-10-11): an unbound child's packet holds only the bind
+        # step and `next`; the evidence rides in the handoff file ShipLoop writes (live and after a cold `next`).
+        self.assertIn(" improve-bind ", unbound)
+        self.assertIn(" next ", unbound)
+        self._assert_two_instruction_improve_packet(bound_packet)
+        handoff = navigator.improve_handoff_text(None, self.repo / ".shiploop", bound)
+        cold_handoff = navigator.improve_handoff_path(bound["active_improve"]).read_text(encoding="utf-8")
+        for label, packet in (("handoff", handoff), ("cold handoff", cold_handoff)):
+            with self.subTest(view=label):
+                self.assertIn(initial_baseline, packet)
+        # The Improve handoff files carry the baseline guide locator too.
+        for label, packet in (("handoff", handoff), ("cold handoff", cold_handoff)):
+            with self.subTest(view=label, check="baseline guide locator"):
+                self._assert_initial_baseline_locator(packet)
 
         state = self._complete_improve(waiting, action, "test-strategy")
         self.assertEqual(navigator.current_stage(state), "plan")
@@ -1472,9 +1571,9 @@ class NavigatorContractTests(unittest.TestCase):
             else:
                 packet = navigator.render(None, self.repo / ".shiploop", state)
             normalized_packet = " ".join(packet.split())
-            # The packet's STAGE_RULES bullet carries the runtime rule short; the long text is reference#requirements.
-            self.assertIn("Keep each requested runtime and entry point: a local fixture cannot stand in for a "
-                          "target capability.", normalized_packet)
+            # The runtime rule is in the run reference file only (re-cut, 2026-10-11); the packet's RULES paragraph
+            # points at it.
+            self.assertIn("reference#rules", normalized_packet)
             reference = " ".join(self._reference_text(cold_root).split())
             self.assertIn("Requested runtime / entry point / material dependency", reference)
             self.assertIn("Record local-test-route evidence separately", reference)
@@ -1486,11 +1585,12 @@ class NavigatorContractTests(unittest.TestCase):
                 self.assertIn("targetruntime", normalized_packet)
                 self.assertIn("localpreview", normalized_packet)
             if stage in reconciliation_stages:
-                self.assertIn("Selected-case reconciliation", normalized_packet)
+                # The shared reconciliation block is folded into these duties (re-cut, 2026-10-11).
+                self.assertIn("requirement clause with its case", normalized_packet)
                 self.assertIn(
-                    "passed, failed, blocked, not-run, or justified N/A", normalized_packet
+                    "passed, failed, blocked, not-run or justified N/A", normalized_packet
                 )
-                self.assertIn("Source, HTTP, or DOM structure", normalized_packet)
+                self.assertIn("source, HTTP or DOM structure", normalized_packet)
             if stage == "handoff":
                 break
             extra = {}
@@ -1503,11 +1603,11 @@ class NavigatorContractTests(unittest.TestCase):
         waiting = self._bind_synthetic_child(self._pending(self._at_spec()))
         with tempfile.TemporaryDirectory(prefix="shiploop-contract-improve-notes-") as temporary:
             root = Path(temporary)
-            current_packet = navigator.render(None, root, waiting)
+            current_packet = self._improve_view(root, waiting)  # packet plus handoff file (re-cut, 2026-10-11)
             navigator.save(root, waiting)
             before = (root / "state.md").read_bytes()
             recovered = store.read_record(root / "state.md")
-            cold_packet = navigator.render(None, root, recovered)
+            cold_packet = self._improve_view(root, recovered)
 
             self.assertEqual((root / "state.md").read_bytes(), before)
             self.assertEqual(recovered["active_improve"], waiting["active_improve"])
@@ -1827,12 +1927,19 @@ class NavigatorContractTests(unittest.TestCase):
             )
         )
         self.assertEqual([item["id"] for item in plan_child["work_items"]], ["W1"])
-        self.assertIn(queue_locator, navigator.render(None, root, plan_child))
-        self.assertIn(proposed_queue_locator, navigator.render(None, root, plan_child))
+        self._assert_two_instruction_improve_packet(navigator.render(None, root, plan_child))
+        # The queue locators are in the Improve handoff file (re-cut, 2026-10-11), not in the two-instruction packet.
+        with self.subTest(check="plan child view locates the queues"):
+            self.assertIn(queue_locator, self._improve_view(root, plan_child))
+            self.assertIn(proposed_queue_locator, self._improve_view(root, plan_child))
         navigator.save(root, plan_child)
         cold_plan_child_packet = self._cold_next(root)
-        self.assertIn(queue_locator, cold_plan_child_packet)
-        self.assertIn(proposed_queue_locator, cold_plan_child_packet)
+        self._assert_two_instruction_improve_packet(cold_plan_child_packet)
+        cold_plan_child_packet += "\n" + navigator.improve_handoff_path(plan_child["active_improve"]).read_text(
+            encoding="utf-8")
+        with self.subTest(check="cold plan child view locates the queues"):
+            self.assertIn(queue_locator, cold_plan_child_packet)
+            self.assertIn(proposed_queue_locator, cold_plan_child_packet)
         state = navigator.finish_improve(plan_child, plan_action["id"], receipt("plan"))
         state = self._produce(state, "prepare")
         # step-plan opens each item (get-next-work-item's successor): ShipLoop selected the item in queue order.
@@ -1842,7 +1949,8 @@ class NavigatorContractTests(unittest.TestCase):
         # The step-plan duty no longer opens with the "ShipLoop issued this packet after checking ..." sentence
         # (2026-10-11 dedupe); it opens with the recheck of the item's context, and the queue locator above is the
         # selection ShipLoop made.
-        self.assertIn("Recheck first. Reopen this item's `context` and its section of FEATURE/plan.md",
+        # (FEATURE/plan.md went with the 4b knowledge layout.)
+        self.assertIn("**Recheck the item.** Reopen its `context` and recheck each condition",
                       " ".join(select_packet.split()))
         self.assertNotIn("Select the next ready work item", select_packet)
         state = self._advance_to_carry_forward(state)
@@ -1853,12 +1961,17 @@ class NavigatorContractTests(unittest.TestCase):
         carry_action = self._action(state)
         # Only a carry-forward that leaves no work pending starts a child.
         carry_child = self._bind_synthetic_child(self._pending(state, work_items=[]))
-        self.assertIn(proposed_queue_locator, navigator.render(None, root, carry_child))
+        self._assert_two_instruction_improve_packet(navigator.render(None, root, carry_child))
         navigator.save(root, carry_child)
         cold_child_packet = self._cold_next(root)
-        self.assertIn(queue_locator, cold_child_packet)
-        self.assertIn(proposed_queue_locator, cold_child_packet)
-        self.assertIn(replacement_rule, cold_child_packet)
+        self._assert_two_instruction_improve_packet(cold_child_packet)
+        cold_child_packet += "\n" + navigator.improve_handoff_path(carry_child["active_improve"]).read_text(
+            encoding="utf-8")
+        with self.subTest(check="carry-forward child view locates the queues"):
+            self.assertIn(proposed_queue_locator, self._improve_view(root, carry_child))
+            self.assertIn(queue_locator, cold_child_packet)
+            self.assertIn(proposed_queue_locator, cold_child_packet)
+            self.assertIn(replacement_rule, cold_child_packet)
 
     def test_malformed_bound_skill_fails_with_controlled_recovery_error(self) -> None:
         waiting = self._pending(self._at_spec())
@@ -1897,24 +2010,23 @@ class NavigatorContractTests(unittest.TestCase):
         )
         for phrase in in_reference:
             self.assertIn(phrase, reference)
-        in_packet = (  # the packet's own short form of the same rules
-            "Report blocked only when nothing can proceed without a person",
-            "is fixed here and rerun",
-            "A question about the run is not a stop",
-            "A request to stop, pause or not implement runs Pause",
-            "reference#rules, #requirements, #progress",
+        in_packet = (  # the packet's RULES paragraph: the short form of the same rules (re-cut, 2026-10-11); the
+            # documentation-fix, question-is-not-a-stop, stop-runs-Pause and not-implement rules are in the reference list above
+            "blocked only when nothing can proceed without a person",
+            "a person-only step is an open item",
+            "reference#rules",
         )
         by_stage = {
-            "intake": ("State where the result will be visible and when",),
+            "intake": ("Say where and when the outcome is visible",),
             "test-strategy": (
-                "one file owns the suite commands",
-                "Store each command in a fenced code block, never in a Markdown table cell",
-                "A passing command names the test IDs or cases it ran",
+                "This section owns the suite commands",
+                "each in a fenced code block, never in a Markdown table cell",
+                "A passing command names the IDs or cases it ran",
             ),
-            "step-plan": ("source-check fixture", "separate from the runtime control"),
+            "step-plan": ("source-check fixture", "apart from the runtime control"),
             "release-plan": (
-                "as a named step with its exact command and its authorization status",
-                "source return occurs at release or handoff once no Improve child is active",
+                "is a named step with its exact command and authorization status",
+                "Source return happens at release or handoff, not here",
             ),
         }
         retired = ("every producer attempt result is followed", "Improve cadence",
@@ -2330,7 +2442,10 @@ class NavigatorContractTests(unittest.TestCase):
             early_report = navigator._render_report(worktree, report_root)
         self.assertEqual(worktree, before)
         self.assertEqual(completed.call_args_list, [((workspace_root, Path(worktree["repo"])), {})])
-        self.assertEqual(early_packet.count("Execution checkout: "), 1)
+        # The WORKTREE line absorbs the "Execution checkout" line outside return stages (packet re-cut, 2026-10-11).
+        self.assertEqual(early_packet.count("WORKTREE = "), 1)
+        self.assertIn("an isolated worktree", early_packet)
+        self.assertNotIn("Execution checkout: ", early_packet)
         self.assertNotIn("Return receipt:", early_packet)
         self.assertNotIn("Current workspace return:", early_packet)
         self.assertIn("Current workspace return: currently verified", early_report)
@@ -2609,8 +2724,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertIn(f"CLI locator: {cli.resolve()}", initial)
         # One State line locates the run directory (and names results and inbox); the repository is located by the
         # knowledge-index line (2026-10-11 dedupe: the separate run-directory and repository lines went).
-        self.assertIn(f"State: {run_dir.resolve() / 'state.md'} (results: {run_dir.resolve() / 'results'}; "
-                      f"inbox: {run_dir.resolve() / 'inbox'})", initial)
+        self.assertIn(f"State: {run_dir.resolve() / 'state.md'} (results/, inbox/ beside it)", initial)
         self.assertIn(f"Repository knowledge index (host-authored, if present): {repo.resolve() / 'SHIPLOOP.md'}",
                       initial)
         self.assertNotIn("Run directory locator:", initial)
@@ -2618,10 +2732,9 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertEqual(initial.count("Current stage guidance:"), 1)
         # The first callback line is the only one: no second "Call this when done:" and no "Write the structured
         # result to:" line (the callback's --result names the file).
-        packet_file = _packet_path_from_stdout(started.stdout)
-        self.assertIsNotNone(packet_file, started.stdout)
-        self.assertEqual(started.stdout.count("Callback for this stage "), 1)  # the printed head
-        self.assertEqual(packet_file.read_text(encoding="utf-8").count("Callback for this stage "), 1)  # the file
+        # emit prints the whole packet at or below PRINT_LIMIT: no head and no "Full packet:" pointer.
+        self.assertIsNone(_packet_path_from_stdout(started.stdout), started.stdout)
+        self.assertEqual(started.stdout.count("Callback for this stage "), 1)
         self.assertNotIn("Call this when done:", initial)
         self.assertNotIn("Write the structured result to:", initial)
         lines = initial.splitlines()
@@ -2631,7 +2744,8 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertTrue(lead.startswith("Callback for this stage "), lead)
         completion_command = lead.split("): ", 1)[1]
 
-        recovery_command = initial.split("Recovery command (it only reads ", 1)[1].split("):\n", 1)[1].splitlines()[0]
+        recovery_command = initial.split("Recovery command (reprints the current packet from saved state; check what is already done "
+                                      "before redoing it):\n", 1)[1].splitlines()[0]
         recovery_argv = shlex.split(recovery_command)
         self.assertEqual(recovery_argv[0], "python3")
         self.assertEqual(Path(recovery_argv[1]).resolve(), cli.resolve())
@@ -3090,8 +3204,10 @@ class PlanningReviewOptionTest(unittest.TestCase):
                                      prompts.prompt(stage, delegation=delegation))
                     self.assertEqual(prompts.duty(stage, delegation=delegation, planning_review="stage"),
                                      prompts.duty(stage, delegation=delegation))
-                    # the duties `none` rewrites: those that promised a child (declared here, not read from the table)
-                    differs = stage in ("spec", "test-strategy", "plan", "step-plan")
+                    # The duties `none` rewrites: those that promised a child (declared here, not read from the table).
+                    # Packet re-cut (2026-10-11): no producer duty names an Improve child in advance, so no duty
+                    # promises one and `none` rewrites none of them.
+                    differs = False
                     self.assertEqual(
                         prompts.duty(stage, delegation=delegation, planning_review="none")
                         != prompts.duty(stage, delegation=delegation), differs)
@@ -3185,10 +3301,8 @@ class PlanningReviewNoneTest(unittest.TestCase):
     NONE_LINE = "Improve: no Improve child starts after this result in this run (planning_review: none)"
     # Every sentence of an unreviewed planning stage's packet that names Improve and is not rewritten: why it may stay.
     ALLOWED = {
-        NONE_LINE: "the none text of the Improve line itself",
         "Improve follows its own selected context and ownership policy": "the chain-precedence rule on an ask-agent "
         "packet: whose context an Improve invocation uses, not a child at this stage",
-        "for planning and Improve": "the spec duty's generic retention rule; names Improve, not a child at this stage",
     }
 
     @staticmethod
@@ -3212,34 +3326,49 @@ class PlanningReviewNoneTest(unittest.TestCase):
     def packet(self, stage: str, mode: str, delegation: str = "inline", **extra) -> str:
         return navigator.render(None, self.RUN, self.state_at(stage, mode, delegation, **extra))
 
+    def handoff(self, stage: str, mode: str = "stage", delegation: str = "inline") -> str:
+        """The handoff file text of the stage's Improve child (bound to a synthetic skill), as ShipLoop writes it."""
+        state = self.state_at(stage, mode, delegation)
+        waiting = navigator.apply(state, navigator.current_action(state)["id"], self.DONE)
+        child = waiting["active_improve"]
+        self.assertIsNotNone(child, stage + " starts no Improve child in mode " + mode)
+        scratch = tempfile.TemporaryDirectory(prefix="shiploop-handoff-")
+        self.addCleanup(scratch.cleanup)
+        base = Path(scratch.name)
+        waiting["repo"] = child["workspace"] = scratch.name
+        child.update({
+            "version": 1, "contract_marker": "ShipLoop standalone Improve binding: " + child["binding_id"],
+            "skill": {"skill_card": str(base / "improve" / "SKILL.md"),
+                      "runtime_card": str(base / "until-loop" / "ADAPTER.md"),
+                      "runtime_cli": str(base / "until-loop" / "scripts" / "until_loop_ephemeral.py"),
+                      "skill_version": "synthetic", "runtime_version": "synthetic"}})
+        return navigator.improve_handoff_text(None, self.RUN, waiting)
+
     def test_the_registered_modes_are_the_ones_declared_here(self) -> None:
         self.assertEqual(set(navigator.PLANNING_REVIEW_MODES), set(self.MODES))
 
     def test_the_improve_line_promises_a_child_exactly_where_the_mode_starts_one(self) -> None:
+        """Packet re-cut (2026-10-11): no producer packet mentions an Improve child in advance, in any mode or at any
+        stage, so none can promise one a run will not start.  The review is the Improve packet's business alone; what
+        a producer packet keeps are the backward-looking lines ("reviewed by Improve", "Prior Improve evidence")."""
         for mode in self.MODES:
             for delegation in prompts.DELEGATIONS:
                 for stage in self.PLANNING:
                     with self.subTest(mode=mode, delegation=delegation, stage=stage):
                         packet = self.flat(self.packet(stage, mode, delegation))
-                        others = [o for o in ("blocked", "repeat") if o in stage_spec.stage(stage).outcomes]
-                        promise = ("Improve: Every " + stage + " result, including " + " and ".join(others) + ", "
-                                   "starts this action's Improve child.")
-                        if stage in self.REVIEWED[mode]:
-                            self.assertIn(promise, packet)
-                            self.assertNotIn(self.NONE_LINE, packet)
-                        else:
-                            # The line is the Improve directive alone since the 2026-10-11 dedupe: the blocked
-                            # route is the outcome shapes' and the rules' (reference#blocked), said once.
-                            self.assertIn(self.NONE_LINE + "; ShipLoop's own checks at complete are the only gate "
-                                          "before the graph advances.", packet)
+                        self.assertNotIn("starts this action's Improve child", packet)
+                        self.assertNotIn(self.NONE_LINE, packet)
+                        self.assertFalse([line for line in self.packet(stage, mode, delegation).splitlines()
+                                          if line.startswith("Improve:")])
+                        if mode == "none":
+                            # The blocked route is the outcome shapes' and the rules' (reference#blocked), said once.
                             self.assertNotIn("If work cannot continue, submit outcome 'blocked'", packet)
-                            self.assertNotIn("starts this action's Improve child", packet)
 
     def test_the_improve_schedule_is_stated_once_by_each_stage_line_and_not_in_a_shared_sentence(self) -> None:
         """The COMMON schedule sentence (planning results, each implement step, the last carry-forward) went in the
-        2026-10-11 dedupe: the packet's own Improve line is the only directive.  Per mode, the planning stages the
-        mode reviews say so on their line, and the per-step and end-of-work reviews are named on theirs in both
-        modes (owner decision 5, 2026-10-10: none keeps the per-step Improve)."""
+        2026-10-11 dedupe, and the per-stage Improve lines with the packet re-cut: a producer packet names no
+        Improve schedule at all, in either mode (owner decision 5, 2026-10-10: none keeps the per-step Improve, which
+        is ShipLoop's to start, not the producer packet's to announce)."""
         for mode in self.MODES:
             for delegation in prompts.DELEGATIONS:
                 for stage in ("intake", "spec", "implement", "release-plan"):
@@ -3248,15 +3377,17 @@ class PlanningReviewNoneTest(unittest.TestCase):
                         self.assertNotIn("ShipLoop starts an Improve child after planning results", text)
                         self.assertNotIn("after the carry-forward that leaves no work item pending", text)
                 with self.subTest(mode=mode, delegation=delegation, line="implement"):
-                    self.assertIn("Improve: A done result starts this step's Improve child before the next step",
-                                  self.flat(self.packet("implement", mode, delegation)))
+                    self.assertNotIn("starts this step's Improve child",
+                                     self.flat(self.packet("implement", mode, delegation)))
                 with self.subTest(mode=mode, delegation=delegation, line="carry-forward"):
-                    self.assertIn("starts the run's single end-of-work Improve child",
-                                  self.flat(self.packet("carry-forward", mode, delegation)))
+                    self.assertNotIn("end-of-work Improve child",
+                                     self.flat(self.packet("carry-forward", mode, delegation)))
 
     def test_each_swapped_sentence_is_in_the_stage_text_once_and_the_none_text_in_its_place(self) -> None:
         rows = prompts._NO_REVIEW_SWAPS
-        self.assertGreaterEqual(len(rows), 7)
+        # The re-cut (2026-10-11) took every producer-packet sentence that promised a child out of the duties, so the
+        # table shrank to the two rows whose sentences survive only in COMMON (the run reference file).
+        self.assertGreaterEqual(len(rows), 1)
         used = set()
         for stage_name, old, new in rows:
             old, new = self.flat(old), self.flat(new)
@@ -3311,17 +3442,19 @@ class PlanningReviewNoneTest(unittest.TestCase):
                          + str(sorted(set(self.ALLOWED) - found)))
 
     def test_the_review_focus_lead_of_a_none_run_names_no_improve(self) -> None:
-        """Owner rule: a packet mentions Improve only where its stage runs an Improve child, as a directive.  The none
-        lead said "no Improve child reviews this result"; it now states only the duty."""
+        """Owner rule: a packet mentions Improve only where its stage runs an Improve child, as a directive.  Since the
+        packet re-cut (2026-10-11) the Planning review focus lead is in no producer packet, in either mode, and names
+        no Improve child; the focus itself opens the Improve child's handoff file."""
         for delegation in prompts.DELEGATIONS:
             for stage in prompts.REVIEW_FOCUS_DUTY_STAGES:
-                with self.subTest(delegation=delegation, stage=stage):
-                    lead = next(line for line in self.packet(stage, "none", delegation).splitlines()
-                                if line.startswith("Planning review focus"))
-                    self.assertEqual(lead, "Planning review focus (meet these conditions before you submit):")
-                    staged = next(line for line in self.packet(stage, "stage", delegation).splitlines()
-                                  if line.startswith("Planning review focus"))
-                    self.assertIn("the Improve child applies these conditions", staged)  # stage mode keeps its directive
+                for mode in self.MODES:
+                    with self.subTest(delegation=delegation, stage=stage, mode=mode):
+                        packet = self.packet(stage, mode, delegation)
+                        self.assertFalse([line for line in packet.splitlines()
+                                          if line.startswith("Planning review focus")])
+                        self.assertNotIn("the Improve child applies these conditions", self.flat(packet))
+                with self.subTest(delegation=delegation, stage=stage, check="handoff focus"):
+                    self.assertIn("Planning review focus.", self.handoff(stage, "stage", delegation))
 
     def test_no_none_packet_promises_a_review_in_words_that_do_not_name_the_improve_child(self) -> None:
         """E3 and the review's F1: two sentences promised a review at every stage, in a none run too, and the scan
@@ -3333,35 +3466,40 @@ class PlanningReviewNoneTest(unittest.TestCase):
                     none = self.flat(prompts.prompt(stage, delegation=delegation, planning_review="none"))
                     self.assertNotIn("Each reviewed step's", none)
                     self.assertNotIn("the normal Improve handoff", none)
-        staged = {stage: self.flat(prompts.prompt(stage, delegation="inline", planning_review="stage"))
-                  for stage in ("spec", "plan")}
-        sp_stage = self.flat(prompts.prompt("step-plan", delegation="inline", planning_review="stage"))
-        sp_none = self.flat(prompts.prompt("step-plan", delegation="inline", planning_review="none"))
-        self.assertIn("Each reviewed step's task/ready/done criteria remain its sole execution directive.", sp_stage)
-        self.assertIn("Each step's task/ready/done criteria remain its sole execution directive.", sp_none)
-        self.assertNotIn("Each reviewed step's", sp_none)
-        for stage, text in staged.items():  # stage mode is untouched, byte for byte (the golden proves it too)
-            self.assertIn("Each reviewed step's task/ready/done criteria remain its sole execution directive.", text)
-            self.assertIn("for cold recovery and the normal Improve handoff; do not start a nested review.", text)
-        none = self.flat(prompts.prompt("spec", delegation="inline", planning_review="none"))
-        self.assertIn("Each step's task/ready/done criteria remain its sole execution directive.", none)
-        self.assertIn("for cold recovery; do not start a nested review.", none)
+        # The reviewed/unreviewed variants of these sentences are gone (re-cut, 2026-10-11): one wording serves both
+        # modes and names no review.
+        for mode in self.MODES:
+            with self.subTest(mode=mode):
+                sp = self.flat(prompts.prompt("step-plan", delegation="inline", planning_review=mode))
+                self.assertIn("each step's task and criteria stay its only directive.", sp)
+                self.assertNotIn("Each reviewed step's", sp)
+                plan = self.flat(prompts.prompt("plan", delegation="inline", planning_review=mode))
+                self.assertIn("each item's ready and done conditions stay its only execution directive.", plan)
+                self.assertIn("Start no nested review.", self.flat(prompts.prompt("plan", planning_review=mode)))
+                self.assertNotIn("Each reviewed step's", plan)
+                self.assertNotIn("the normal Improve handoff", plan)
 
     def test_the_plan_experiment_locators_and_purpose_belong_to_the_plan_child(self) -> None:
         locators = ("Planning experiments guide", "Planning investigation notebook",
                     "Keep detailed experiment prompts, raw logs, and review material behind these locators")
+        # Re-cut (2026-10-11): no producer packet prints the locators or the "Planning phase intent" purpose line, in
+        # either mode; they belong to the plan child, whose handoff file carries them.
         for stage in ("discovery", "research", "spec", "test-strategy", "plan"):
-            with self.subTest(stage=stage):
-                none = self.flat(self.packet(stage, "none"))
-                staged = self.flat(self.packet(stage, "stage"))
+            for mode in self.MODES:
+                with self.subTest(stage=stage, mode=mode):
+                    packet = self.flat(self.packet(stage, mode))
+                    for locator in locators:
+                        self.assertNotIn(locator, packet)
+                    self.assertNotIn("Planning phase intent", packet)
+        with self.subTest(check="the plan child's handoff"):
+            handoff = self.flat(self.handoff("plan", "stage"))
+            for locator in locators:
+                self.assertIn(locator, handoff)
+        for stage in ("spec", "test-strategy"):
+            with self.subTest(check="other children's handoffs", stage=stage):
+                handoff = self.flat(self.handoff(stage, "stage"))
                 for locator in locators:
-                    self.assertNotIn(locator, none)
-                    self.assertIn(locator, staged)
-                self.assertIn("Planning phase intent: ", none)
-        purpose = "Build a provisional dependency plan with explicit readiness, completion and integration ownership"
-        self.assertIn(purpose + ".", self.flat(self.packet("plan", "none")))
-        self.assertIn(purpose + "; its Improve child evaluates whether the evidence supports it.",
-                      self.flat(self.packet("plan", "stage")))
+                    self.assertNotIn(locator, handoff)
 
     def test_the_work_queue_rule_names_no_improve_result_a_none_run_cannot_have(self) -> None:
         none = self.flat(self.packet("plan", "none"))
@@ -3380,61 +3518,47 @@ class PlanningReviewNoneTest(unittest.TestCase):
             with self.subTest(backchain_passes=passes):
                 none = self.flat(self.packet("plan", "none", backchain_passes=passes))
                 staged = self.flat(self.packet("plan", "stage", backchain_passes=passes))
-                self.assertIn("Material findings remain visible. The planning guide's Source-aware native caller "
-                              "section", none)
-                self.assertIn("or broaden scope. These restrictions belong to that Backchain child.", none)
-                self.assertNotIn("ordinary Improve", none)
-                self.assertNotIn("separate Improve executor", none)
-                self.assertIn("cannot clear ordinary Improve", staged)
-                self.assertIn("not the separate Improve executor's authority", staged)
-        # a run with no whole Backchain loop at plan renders the none text too
-        self.assertIn(self.NONE_LINE, self.flat(self.packet("plan", "none", backchain_passes="none")))
+                # Re-cut (2026-10-11): one Backchain item serves both modes and names no Improve review.
+                for text in (none, staged):
+                    self.assertIn("The child is plan-only: it may change the candidate plan and permitted planning "
+                                  "companions, and may not commit, push, merge, run the project or broaden scope.",
+                                  text)
+                    self.assertNotIn("ordinary Improve", text)
+                    self.assertNotIn("separate Improve executor", text)
+        # a run with no whole Backchain loop at plan names no Improve line either
+        self.assertNotIn(self.NONE_LINE, self.flat(self.packet("plan", "none", backchain_passes="none")))
 
     def test_the_test_facility_sentence_drops_the_child_only_where_none_starts_none(self) -> None:
-        child = "Carry relevant locators into item context and the Improve child's context/notes."
-        plain = "Carry relevant locators into item context."
-        for stage in ("test-strategy", "plan", "test-spec"):
-            with self.subTest(stage=stage):
-                self.assertIn(child, self.flat(self.packet(stage, "stage")))
-                none = self.flat(self.packet(stage, "none"))
-                self.assertNotIn(child, none)
-                self.assertIn(plain, none)
-        # step-plan states it in its item 4 (2026-10-11 dedupe): "...; carry its locator and readiness gap into item
-        # context and the Improve child's context/notes."  A none run's swap drops the child.
+        """The facility sentence named the Improve child in stage mode and dropped it in none.  Re-cut (2026-10-11):
+        the duties say where the facility's locator goes and name no child in any mode or at any stage."""
+        for stage in ("test-strategy", "plan", "test-spec", "step-plan", "system-test-author", "release-plan"):
+            for mode in self.MODES:
+                for delegation in prompts.DELEGATIONS:
+                    with self.subTest(stage=stage, mode=mode, delegation=delegation):
+                        self.assertNotIn("Improve child's context/notes", self.flat(self.packet(stage, mode, delegation)))
+        plan = self.flat(self.packet("plan", "stage"))
+        self.assertIn("record in the consuming item's `context` its definition locator, readiness gap and owner",
+                      plan)
         for delegation in prompts.DELEGATIONS:
             with self.subTest(stage="step-plan", delegation=delegation):
-                staged = self.flat(self.packet("step-plan", "stage", delegation))
-                none = self.flat(self.packet("step-plan", "none", delegation))
-                self.assertIn("carry its locator and readiness gap into item context and the Improve child's "
-                              "context/notes.", staged)
-                self.assertNotIn("Improve child's context/notes", none)
-                self.assertIn("carry its locator and readiness gap into item context.", none)
-        # the two OUTER planning stages keep their child and so their sentence
-        for stage in ("system-test-author", "release-plan"):
-            with self.subTest(stage=stage):
-                self.assertIn("Improve child's context/notes", self.flat(self.packet(stage, "none")))
+                self.assertIn("record its locator and readiness gap in the summary.",
+                              self.flat(self.packet("step-plan", "stage", delegation)))
 
     def test_the_step_plan_duty_gates_through_complete_in_both_delegations(self) -> None:
-        # Owner rule (2026-10-10): a packet names Improve only where its stage runs a child, so the none duty states
-        # the gate and names no Improve at all.
+        # Owner rule (2026-10-10): a packet names Improve only where its stage runs a child, so the duty names no
+        # Improve at all.  Since the packet re-cut (2026-10-11) the packet has no Improve line in either mode.
         for delegation in prompts.DELEGATIONS:
             with self.subTest(delegation=delegation):
-                # The duty names no Improve in either mode (the swap row and its sentence went in the 2026-10-11
-                # dedupe); the packet's Improve line is the one directive, and says per mode who gates the plan.
                 duty = self.flat(prompts.duty("step-plan", delegation=delegation, planning_review="none"))
                 self.assertNotIn("Improve", duty)
-                self.assertIn("Each step's task/ready/done criteria remain its sole execution directive.", duty)
+                self.assertIn("each step's task and criteria stay its only directive.", duty)
                 self.assertNotIn("Each reviewed step's", duty)
-                none = self.flat(self.packet("step-plan", "none", delegation))
-                self.assertIn(self.NONE_LINE + "; ShipLoop's own checks at complete are the only gate before the "
-                              "graph advances.", none)
-                staged = self.flat(self.packet("step-plan", "stage", delegation))
-                self.assertIn("Improve: Every step-plan result, including blocked, starts this action's Improve "
-                              "child.", staged)
+                for mode in self.MODES:
+                    packet = self.flat(self.packet("step-plan", mode, delegation))
+                    self.assertNotIn(self.NONE_LINE, packet)
+                    self.assertNotIn("starts this action's Improve child", packet)
         plan = self.flat(prompts.duty("plan", planning_review="none"))
-        self.assertIn("ShipLoop's own checks at complete are its gate, and the accepted plan is what dependent "
-                      "work builds on.", plan)
-        self.assertIn("Do not schedule a review stage or claim one ran.", plan)
+        self.assertIn("Add no item for step planning, validation, build, test, documentation, verification, commit or review", plan)
         self.assertNotIn("remains a draft until that loop completes", plan)
 
 

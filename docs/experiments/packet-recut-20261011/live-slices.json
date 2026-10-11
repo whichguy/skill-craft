@@ -1,0 +1,100 @@
+{
+ "schema": "packet-recut-live-slices/1",
+ "date": "2026-10-11",
+ "rows": [
+  {
+   "round": "v4 (before)",
+   "case": "node-fix-bug",
+   "commit": "pre-re-cut renderer (commit not recorded in the run directory)",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "pass": true,
+   "failed_verdicts": [],
+   "seconds": 269,
+   "turns": 81,
+   "packets": 17,
+   "packet_chars_written": 545662
+  },
+  {
+   "round": "v5",
+   "case": "node-fix-bug",
+   "commit": "8c258649",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "pass": true,
+   "failed_verdicts": [],
+   "seconds": 234,
+   "turns": 74,
+   "packets": 13,
+   "packet_chars_written": 211659
+  },
+  {
+   "round": "v5",
+   "case": "node-add-function",
+   "commit": "8c258649",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "pass": true,
+   "failed_verdicts": [],
+   "seconds": 246,
+   "turns": 78,
+   "packets": 13,
+   "packet_chars_written": 216822
+  },
+  {
+   "round": "v5",
+   "case": "node-rename",
+   "commit": "8c258649",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "pass": true,
+   "failed_verdicts": [],
+   "seconds": 234,
+   "turns": 70,
+   "packets": 13,
+   "packet_chars_written": 210756
+  },
+  {
+   "round": "v5 clear implement:inside",
+   "case": "clear",
+   "commit": "8c258649",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "pass": true,
+   "failed_verdicts": [],
+   "seconds": 230,
+   "turns": 110,
+   "packets": 13,
+   "packet_chars_written": 208641
+  },
+  {
+   "round": "v5",
+   "case": "node-add-route",
+   "commit": "8c258649",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "pass": false,
+   "failed_verdicts": [
+    "inner_loop",
+    "assembled"
+   ],
+   "seconds": 246,
+   "turns": 80,
+   "packets": 7,
+   "packet_chars_written": 102789
+  },
+  {
+   "round": "v6",
+   "case": "node-add-route",
+   "commit": "42beb2d5",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "pass": true,
+   "failed_verdicts": [],
+   "seconds": 417,
+   "turns": 94,
+   "packets": 13,
+   "packet_chars_written": 212049
+  }
+ ]
+}

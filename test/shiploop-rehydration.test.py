@@ -92,7 +92,7 @@ class PacketTests(unittest.TestCase):
     def test_active_and_paused_packets_name_the_pass_log(self) -> None:
         state = drive_to("implement")
         action = nav.current_action(state)["id"]
-        expected = "This action's pass log"
+        expected = "this action's pass log"  # one line with the run context index (round 2)
         packet = nav.render(dry_run.CORE, dry_run.RUN, state)
         self.assertIn(expected, packet)
         self.assertIn(str(dry_run.RUN / "notes" / (action + ".md")), packet)
@@ -105,7 +105,7 @@ class PacketTests(unittest.TestCase):
         # has created the log by then.
         state = drive_to("implement")
         line = next(line for line in nav.render(dry_run.CORE, dry_run.RUN, state).splitlines()
-                    if line.startswith("This action's pass log"))
+                    if line.startswith("Run context index") and "pass log" in line)
         # PASS_LOG_RULE was shortened (2026-10-11 dedupe): "ShipLoop does not create it" and "nothing was logged"
         # went; the host creates it ("create it and append ...") and opens it first only if it exists.
         for part in ("optional", "never a completion gate", "create it and append",
@@ -171,7 +171,9 @@ class GoalFirstTests(unittest.TestCase):
                 header = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator |"))
                 with self.subTest(stage=stage):
                     self.assertTrue(lines[header + 1].startswith("Callback for this stage"))
-                    self.assertEqual(lines[header + 2], "Goal: " + row.goal[0].upper() + row.goal[1:] + ".")
+                    # A goal is one action sentence naming its output (packet re-cut, 2026-10-11) and may end in its own period.
+                    self.assertEqual(lines[header + 2], "Goal: " + row.goal[0].upper() + row.goal[1:]
+                                     + ("" if row.goal.endswith(".") else "."))
                     if stage in spec.INNER:
                         # Each thing once (owner, 2026-10-11): the head points at the /until-loop argument, which
                         # numbers the conditions; they are not listed a second time.
@@ -188,8 +190,12 @@ class GoalFirstTests(unittest.TestCase):
             else:
                 improve = nav.render(dry_run.CORE, dry_run.RUN, state)
                 self.assertNotIn("Done when (confirm each", improve)  # the producer's heading: this packet is the review's
-                for condition in spec.stage(stage).done_when:         # and it states what the review judges against
-                    self.assertIn("- " + condition, improve)
+                # The review's goal and done-when moved into the Improve handoff file (round 2); the packet holds two
+                # instructions only.
+                handoff = nav.improve_handoff_text(dry_run.CORE, dry_run.RUN, state)
+                for condition in spec.stage(stage).done_when:
+                    self.assertIn("- " + condition, handoff)
+                    self.assertNotIn("- " + condition, improve)
                 state = nav.finish_improve(state, action, step["receipt"], step.get("final_result"))
         self.assertEqual(seen, set(spec.STAGES))  # every one of the 24 stages issued a producer packet
 
@@ -206,7 +212,7 @@ class GoalFirstTests(unittest.TestCase):
                             {"outcome": "blocked", "blocked_by": "external", "summary": "Synthetic block.",
                              "evidence_refs": ["synthetic://evidence"]})
         self.assertIsNotNone(blocked["active_improve"])
-        packet = nav.render(dry_run.CORE, dry_run.RUN, blocked)
+        packet = nav.improve_handoff_text(dry_run.CORE, dry_run.RUN, blocked)  # the review's goal lives in the handoff
         self.assertIn("Reviewing the returned " + stage + " result. Goal: ", packet)
         self.assertIn("Done when (a done result must meet each", packet)
         self.assertNotIn("accepted " + stage + " result", packet)  # the parent step stays pending until improve-complete
