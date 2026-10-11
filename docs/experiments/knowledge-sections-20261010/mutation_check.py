@@ -3,9 +3,10 @@
 
 Repeat with:  PYTHONDONTWRITEBYTECODE=1 SHIPLOOP_PROGRESS=off python3 docs/experiments/knowledge-sections-20261010/mutation_check.py
 
-Round 2 (the fix round after review, 2026-10-10): the rows follow the code after the Skills heading, the step-plan entry, the
-close taken from the call's accepted rows, the CommonMark fence opener, the byte order mark and the notice wording.  Round 1's
-record is mutations-round1.json (55 rows; this file's rows replace them).
+Round 3 (the one-line-per-file round, 2026-10-10): the notice is one line per file naming every missing and empty heading, so the
+wording rows follow the new code (the join of the lists, the quoted names, the fix, the architecture wording once); the rows for
+the tables, the matching rules, the fences and the navigator are unchanged.  Round 2 (the fix round after review) is
+mutations-round2.json (84 rows) and round 1 mutations-round1.json (55 rows); this file's rows replace them.
 
 Each row names a file, the exact text replaced, its replacement and the test selector run.  The file is restored after every row
 (and on any error); the run refuses to start when the source files are not clean in Git.  Writes mutations.json beside this file.
@@ -26,10 +27,10 @@ TABLES = [K, "SectionsTests"]
 NOTICE = [K, "SectionNoticeTests"]
 CLOSE = [K, "SectionNoticeCloseTests"]
 CLI = ["test/shiploop-callback-contract.test.py",
-       "RefusalRouteTests.test_a_close_whose_files_have_no_named_sections_is_accepted_and_prints_one_counted_line_per_section",
+       "RefusalRouteTests.test_a_close_whose_files_have_no_named_sections_is_accepted_and_prints_one_counted_line_per_file",
        "RefusalRouteTests.test_a_close_whose_files_have_every_named_section_is_accepted_and_prints_no_notice",
        "RefusalRouteTests.test_a_stage_that_is_no_close_prints_no_notice_although_a_file_lacks_its_sections",
-       "RefusalRouteTests.test_the_fix_a_notice_names_applied_to_its_file_silences_that_line_and_only_that_line"]
+       "RefusalRouteTests.test_the_fix_a_notice_names_applied_to_its_file_silences_that_heading_and_only_that_heading"]
 PACKET = ["test/shiploop-packet-completeness.test.py"]
 ROUTE_PLAIN = ["test/shiploop-callback-contract.test.py",
                "RefusalRouteTests.test_the_test_spec_close_prints_its_notice_although_the_script_records_validate_existing_after_it"]
@@ -69,7 +70,7 @@ ROWS = [
     (KNOW, "    if stage not in CLOSES:\n        return []\n    repo = Path(str(state[\"repo\"]))\n    notices", "    repo = Path(str(state[\"repo\"]))\n    notices", NOTICE),
     (KNOW, "    if stage not in CLOSES:\n        return []\n    repo = Path(str(state[\"repo\"]))\n    notices", "    if stage not in STAGE_FILES:\n        return []\n    repo = Path(str(state[\"repo\"]))\n    notices", NOTICE),
     (KNOW, "        if not _filled(path):\n            continue\n        try:\n            # utf-8-sig", "        if not path.is_file():\n            continue\n        try:\n            # utf-8-sig", NOTICE),
-    (KNOW, "        except OSError:\n            continue\n        outline, first", "        except ValueError:\n            continue\n        outline, first", NOTICE),
+    (KNOW, "        except OSError:\n            continue\n        outline = _outline", "        except ValueError:\n            continue\n        outline = _outline", NOTICE),
     (KNOW, "    for name, headings in SECTIONS.items():\n        path = repo / HOME / name\n        if not _filled", "    for name, headings in sorted(SECTIONS.items()):\n        path = repo / HOME / name\n        if not _filled", NOTICE),
     # the matching rules
     (KNOW, "if not title.lower().startswith(heading.lower()):", "if not title.startswith(heading):", NOTICE),
@@ -98,25 +99,40 @@ ROWS = [
     (KNOW, '_FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")', '_FENCE = re.compile(r"^ {0,3}(`{2,}(?=[^`]*$)|~{2,})")', NOTICE),
     # the byte order mark
     (KNOW, 'path.read_text(encoding="utf-8-sig", errors="replace").splitlines()', 'path.read_text(encoding="utf-8", errors="replace").splitlines()', NOTICE),
-    # the wording a reader greps and acts on
+    # the wording a reader greps and acts on: the prefix, the file as the first word, the lists, the acceptance, the fix, the architecture words
     (KNOW, 'NOTICE_PREFIX = "ShipLoop knowledge notice: "', 'NOTICE_PREFIX = "ShipLoop knowledge: "', NOTICE),
-    (KNOW, 'notices.append(NOTICE_PREFIX + str(path) + " has no \'"', 'notices.append(NOTICE_PREFIX + str(path.relative_to(repo)) + " has no \'"', NOTICE),
-    (KNOW, 'notices.append(NOTICE_PREFIX + str(path) + " has no \'"', 'notices.append(NOTICE_PREFIX + "has no \'" + heading + "\' in " + str(path) + ", and none \'"', NOTICE),
-    (KNOW, 'notices.append(NOTICE_PREFIX + str(path) + " has an empty \'" + heading + "\' section " + _ACCEPTED', 'notices.append(NOTICE_PREFIX + str(path) + ": \'" + heading + "\' is empty " + _ACCEPTED', NOTICE),
-    (KNOW, '" has no \'" + heading + "\' section " + _ACCEPTED + "; add a \'## "', '" has no \'" + heading + "\' section; add a \'## "', NOTICE),
-    (KNOW, '" has an empty \'" + heading + "\' section " + _ACCEPTED', '" has an empty \'" + heading + "\' section"', NOTICE),
+    (KNOW, 'notices.append(NOTICE_PREFIX + str(path) + " has " + " and ".join(said)', 'notices.append(NOTICE_PREFIX + str(path.relative_to(repo)) + " has " + " and ".join(said)', NOTICE),
+    (KNOW, 'notices.append(NOTICE_PREFIX + str(path) + " has " + " and ".join(said)', 'notices.append(NOTICE_PREFIX + "has " + " and ".join(said) + " in " + str(path)', NOTICE),
+    (KNOW, 'notices.append(NOTICE_PREFIX + str(path) + " has " + " and ".join(said)', 'notices.append(NOTICE_PREFIX + str(path) + ": " + " and ".join(said)', NOTICE),
+    (KNOW, '" has " + " and ".join(said) + " " + _ACCEPTED', '" has " + "".join(said) + " " + _ACCEPTED', NOTICE),
+    (KNOW, '" has " + " and ".join(said) + " " + _ACCEPTED', '" has " + ", ".join(said) + " " + _ACCEPTED', NOTICE),
+    (KNOW, '" has " + " and ".join(said) + " " + _ACCEPTED', '" has " + " and ".join(said[:1]) + " " + _ACCEPTED', NOTICE),
+    (KNOW, 'for state_name, lead in (("missing", "no "), ("empty", "an empty ")):', 'for state_name, lead in (("empty", "an empty "), ("missing", "no ")):', NOTICE),
+    (KNOW, 'for state_name, lead in (("missing", "no "), ("empty", "an empty ")):', 'for state_name, lead in (("missing", "no "),):', NOTICE),
+    (KNOW, 'for state_name, lead in (("missing", "no "), ("empty", "an empty ")):', 'for state_name, lead in (("missing", "no "), ("empty", "empty ")):', NOTICE),
+    (KNOW, 'for state_name, lead in (("missing", "no "), ("empty", "an empty ")):', 'for state_name, lead in (("missing", "no "), ("empty", "no ")):', NOTICE),
+    (KNOW, 'said.append(lead + ", ".join(quoted) + " section")', 'said.append(lead + ",".join(quoted) + " section")', NOTICE),
+    (KNOW, 'said.append(lead + ", ".join(quoted) + " section")', 'said.append(lead + ", ".join(quoted) + " sections")', NOTICE),
+    (KNOW, 'said.append(lead + ", ".join(quoted) + " section")', 'said.append(lead + ", ".join(quoted[:1]) + " section")', NOTICE),
+    (KNOW, 'said.append(lead + ", ".join(quoted) + " section")', 'said.append(lead + "; ".join(quoted) + " section")', NOTICE),
+    (KNOW, '''quoted = ["'" + heading + "'" for heading in headings if found[heading] == state_name]''', '''quoted = ["'" + heading + "'" for heading in sorted(headings) if found[heading] == state_name]''', NOTICE),
+    (KNOW, '''quoted = ["'" + heading + "'" for heading in headings if found[heading] == state_name]''', '''quoted = ["'" + heading + "'" for heading in headings if found[heading] != "present"]''', NOTICE),
+    (KNOW, '''quoted = ["'" + heading + "'" for heading in headings if found[heading] == state_name]''', '''quoted = [heading for heading in headings if found[heading] == state_name]''', NOTICE),
+    (KNOW, '''quoted = ["'" + heading + "'" for heading in headings if found[heading] == state_name]''', '''quoted = ['"' + heading + '"' for heading in headings if found[heading] == state_name]''', NOTICE),
+    (KNOW, "        if said:\n            notices.append", "        if True:\n            notices.append", NOTICE),
+    (KNOW, "        if said:\n            notices.append", "        if said and found[headings[0]] != 'present':\n            notices.append", NOTICE),
     (KNOW, '_ACCEPTED = "(this close is accepted)"', '_ACCEPTED = "(this close is refused)"', NOTICE),
-    (KNOW, '"\' section (" + hint + "), or write \'none\' under it when nothing applies.")', '"\' section (" + hint + ").")', NOTICE),
-    (KNOW, '+ "; write under it (" + hint + "), or write \'none\' when nothing applies.")', '+ "; write under it (" + hint + ").")', NOTICE),
-    (KNOW, 'return name + " holds " + ARCHITECTURE_HOLDS', 'return name + " has the sections " + ", ".join(SECTIONS[name])', NOTICE),
-    (KNOW, 'return name + " has the sections " + ", ".join(SECTIONS[name])', 'return name + " holds " + ARCHITECTURE_HOLDS', NOTICE),
-    (KNOW, "    if name == ARCHITECTURE and first:", "    if name == ARCHITECTURE:", NOTICE),
-    (KNOW, "    if name == ARCHITECTURE and first:", "    if first:", NOTICE),
-    (KNOW, "    if name == ARCHITECTURE and first:", "    if False:", NOTICE),
-    (KNOW, '            first = first and found == "present"', '            first = True', NOTICE),
-    (KNOW, '            first = first and found == "present"', '            first = False', NOTICE),
-    (KNOW, "        outline, first = _outline(lines), True", "        outline, first = _outline(lines), False", NOTICE),
-    (KNOW, '            if found == "missing":', '            if found != "present":', NOTICE),
+    (KNOW, '" " + _ACCEPTED + "; " + _FIX', '"; " + _FIX', NOTICE),
+    (KNOW, '" " + _ACCEPTED + "; " + _FIX', '" " + _ACCEPTED + ". " + _FIX', NOTICE),
+    (KNOW, '" " + _ACCEPTED + "; " + _FIX', '" " + _ACCEPTED + " " + _FIX', NOTICE),
+    (KNOW, """or write 'none' there if it does not apply.")""", """or leave it if it does not apply.")""", NOTICE),
+    (KNOW, '''_FIX = ("for each, write its content under a '## <heading>' (add the heading if missing), "''', '''_FIX = ("for each, write its content under a '## <heading>', "''', NOTICE),
+    (KNOW, '(" " + name + " holds " + ARCHITECTURE_HOLDS + "." if name == ARCHITECTURE else "")', '(" " + name + " holds " + ARCHITECTURE_HOLDS + "." if True else "")', NOTICE),
+    (KNOW, '(" " + name + " holds " + ARCHITECTURE_HOLDS + "." if name == ARCHITECTURE else "")', '(" " + name + " holds " + ARCHITECTURE_HOLDS + "." if name != ARCHITECTURE else "")', NOTICE),
+    (KNOW, '(" " + name + " holds " + ARCHITECTURE_HOLDS + "." if name == ARCHITECTURE else "")', '("" if name == ARCHITECTURE else "")', NOTICE),
+    (KNOW, '(" " + name + " holds " + ARCHITECTURE_HOLDS + "." if name == ARCHITECTURE else "")', '(" " + name + " holds " + ARCHITECTURE_HOLDS if name == ARCHITECTURE else "")', NOTICE),
+    (KNOW, '(" " + name + " holds " + ARCHITECTURE_HOLDS + "." if name == ARCHITECTURE else "")', '(" holds " + ARCHITECTURE_HOLDS + "." if name == ARCHITECTURE else "")', NOTICE),
+    (KNOW, '(" " + name + " holds " + ARCHITECTURE_HOLDS + "." if name == ARCHITECTURE else "")', '(" " + name + " holds " + ARCHITECTURE_HOLDS + "." if name == ARCHITECTURE and "Stack" in said[0] else "")', NOTICE),
     # the navigator: printed once, on stdout, at the close accepted in this call, after the commit
     (NAV, "    for line in knowledge.section_notices(after, close):\n        print(line)\n", "", CLOSE),
     (NAV, "    for line in knowledge.section_notices(after, close):\n        print(line)\n", "", CLI),

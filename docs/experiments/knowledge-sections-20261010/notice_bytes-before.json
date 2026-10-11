@@ -1,0 +1,194 @@
+{
+ "prose_home": {
+  "environment_md_path_137": {
+   "bytes": 7554,
+   "environment_md_path_chars": 137,
+   "lines": 18,
+   "longest_line": 601
+  },
+  "environment_md_path_212": {
+   "bytes": 8904,
+   "environment_md_path_chars": 212,
+   "lines": 18,
+   "longest_line": 676
+  },
+  "temporary_directory": {
+   "bytes": 6870,
+   "environment_md_path_chars": 99,
+   "lines": 18,
+   "longest_line": 563
+  }
+ },
+ "saved_homes": {
+  "bytes_min_median_mean_max_total": [
+   3242,
+   3675,
+   3820,
+   5262,
+   118421
+  ],
+  "homes": 31,
+  "lines_min_max": [
+   9,
+   14
+  ],
+  "per_home": {
+   "20261003/hello": {
+    "bytes": 3475,
+    "lines": 10,
+    "longest_line": 361
+   },
+   "20261003/seat-reservations": {
+    "bytes": 3595,
+    "lines": 10,
+    "longest_line": 373
+   },
+   "20261003/v1161-hello": {
+    "bytes": 3535,
+    "lines": 10,
+    "longest_line": 367
+   },
+   "20261004/v1180-hello-sonnet": {
+    "bytes": 3605,
+    "lines": 10,
+    "longest_line": 374
+   },
+   "20261004/v1190-hello-sonnet": {
+    "bytes": 3242,
+    "lines": 9,
+    "longest_line": 374
+   },
+   "20261004/v1190-hello-sonnet-2": {
+    "bytes": 3625,
+    "lines": 10,
+    "longest_line": 376
+   },
+   "20261004/v1200-hello-sonnet": {
+    "bytes": 3605,
+    "lines": 10,
+    "longest_line": 374
+   },
+   "20261006/v1220-battleship-grok-medium-none": {
+    "bytes": 3728,
+    "lines": 10,
+    "longest_line": 389
+   },
+   "20261006/v1220-battleship-sonnet": {
+    "bytes": 3655,
+    "lines": 10,
+    "longest_line": 379
+   },
+   "20261007/v1230-battleship-sonnet": {
+    "bytes": 3655,
+    "lines": 10,
+    "longest_line": 379
+   },
+   "20261008/r1-battleship-sonnet": {
+    "bytes": 4259,
+    "lines": 12,
+    "longest_line": 376
+   },
+   "20261008/r1-checkers-sonnet": {
+    "bytes": 4235,
+    "lines": 12,
+    "longest_line": 374
+   },
+   "20261008/r2-battleship-grok-none": {
+    "bytes": 3303,
+    "lines": 9,
+    "longest_line": 379
+   },
+   "20261008/r2-battleship-sonnet": {
+    "bytes": 3947,
+    "lines": 11,
+    "longest_line": 376
+   },
+   "20261008/r2-checkers-sonnet": {
+    "bytes": 3605,
+    "lines": 10,
+    "longest_line": 374
+   },
+   "20261008/r3-battleship-sonnet": {
+    "bytes": 3947,
+    "lines": 11,
+    "longest_line": 376
+   },
+   "20261008/r3-checkers-sonnet": {
+    "bytes": 3925,
+    "lines": 11,
+    "longest_line": 374
+   },
+   "20261009/s6-after-spec": {
+    "bytes": 3555,
+    "lines": 10,
+    "longest_line": 369
+   },
+   "20261009/s6-inside-implement": {
+    "bytes": 3615,
+    "lines": 10,
+    "longest_line": 375
+   },
+   "20261009/s6-inside-implement-k2": {
+    "bytes": 3969,
+    "lines": 11,
+    "longest_line": 378
+   },
+   "20261009/s6-inside-implement-mtime": {
+    "bytes": 3675,
+    "lines": 10,
+    "longest_line": 381
+   },
+   "20261009/s6-inside-implement-write": {
+    "bytes": 3675,
+    "lines": 10,
+    "longest_line": 381
+   },
+   "20261009/s6-inside-test-strategy": {
+    "bytes": 3655,
+    "lines": 10,
+    "longest_line": 379
+   },
+   "20261009/s6-inside-test-strategy-2": {
+    "bytes": 3675,
+    "lines": 10,
+    "longest_line": 381
+   },
+   "20261010/battleship-1": {
+    "bytes": 3849,
+    "lines": 11,
+    "longest_line": 368
+   },
+   "20261010/checkers-1": {
+    "bytes": 4139,
+    "lines": 12,
+    "longest_line": 366
+   },
+   "20261010/checkers-1270-sonnet": {
+    "bytes": 4259,
+    "lines": 12,
+    "longest_line": 376
+   },
+   "20261010/checkers-8stage-88d412e9": {
+    "bytes": 5262,
+    "lines": 14,
+    "longest_line": 555
+   },
+   "20261010/hello-1270-claude-2": {
+    "bytes": 3615,
+    "lines": 10,
+    "longest_line": 375
+   },
+   "20261010/hello-8stage-13d278dd": {
+    "bytes": 4590,
+    "lines": 12,
+    "longest_line": 560
+   },
+   "20261010/pc1i-checkers-sonnet": {
+    "bytes": 3947,
+    "lines": 11,
+    "longest_line": 376
+   }
+  }
+ },
+ "scripts": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/f24838dd-d5f5-44a8-854e-3d9ddea18aed/scratchpad/b1012/a2r-before/skills/shiploop/scripts"
+}

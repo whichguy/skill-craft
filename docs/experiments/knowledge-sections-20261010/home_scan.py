@@ -8,7 +8,8 @@ For every saved home with a docs/shiploop directory it runs ``knowledge_home.sec
 the same at every close for the same files) and counts, per file and per heading, how many homes
   - have the file with text,
   - have the heading with a body (present), with nothing under it (empty), or no such heading (missing),
-and how many notice lines each home would have printed.  ``either_way_prefix`` counts the homes whose file has a heading that is a
+how many notice lines (one per file) and how many headings (the quoted names before each line's first semicolon, the count the
+reference documents) each home would have printed.  ``either_way_prefix`` counts the homes whose file has a heading that is a
 prefix of the table's heading as well (for example "Non-functional" for "Non-functional requirements"), the heading words only,
 the body not checked: the delta a looser matching rule would make, for the later decision.  It also lists the headings the saved files really use (levels one to
 four, outside code fences), most common first, so a later decision about turning the notice into a refusal can see which words the
@@ -27,12 +28,13 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 import shiploop_knowledge_home as k  # noqa: E402
 
 RUNS = "/Users/dadleet/e2e-runs"
-MISSING = re.compile(r"^" + re.escape(k.NOTICE_PREFIX) + r"(\S+) has no '([^']+)' section")
-EMPTY = re.compile(r"^" + re.escape(k.NOTICE_PREFIX) + r"(\S+) has an empty '([^']+)' section")
+# One printed line: the file, the headings said missing, the headings said empty (the lines are the notice's only output).
+LINE = re.compile(r"^" + re.escape(k.NOTICE_PREFIX) + r"(\S+) has (?:no ((?:'[^']+'(?:, )?)+) section)?(?: and )?"
+                  r"(?:an empty ((?:'[^']+'(?:, )?)+) section)? \(this close is accepted\); ")
 
 
 def main(out: str) -> None:
-    homes, per_home = [], {}
+    homes, per_home, headings_per_home = [], {}, {}
     cell = {name: {heading: collections.Counter() for heading in headings} for name, headings in k.SECTIONS.items()}
     has_file = collections.Counter()
     either_way = {name: collections.Counter() for name in k.SECTIONS}
@@ -47,12 +49,12 @@ def main(out: str) -> None:
         per_home[name] = len(lines)
         found = {}
         for line in lines:
-            hit = MISSING.match(line)
-            kind = "missing"
-            if not hit:
-                hit, kind = EMPTY.match(line), "empty"
-            path, heading = hit.group(1), hit.group(2)
-            found[(os.path.basename(path), heading)] = kind
+            hit = LINE.match(line)
+            assert hit, line
+            for kind, group in (("missing", 2), ("empty", 3)):
+                for heading in re.findall(r"'([^']+)'", hit.group(group) or ""):
+                    found[(os.path.basename(hit.group(1)), heading)] = kind
+        headings_per_home[name] = len(found)
         for file, headings in k.SECTIONS.items():
             path = Path(work, k.HOME, file)
             if not k._filled(path):
@@ -77,10 +79,12 @@ def main(out: str) -> None:
     lines_per_home = sorted(per_home.values())
     result = {"homes": len(homes), "table": table, "notice_lines_per_home": per_home,
               "notice_lines_total": sum(lines_per_home),
+              "notice_headings_per_home": headings_per_home, "notice_headings_total": sum(headings_per_home.values()),
               "homes_with_no_notice": sum(1 for count in lines_per_home if count == 0),
               "notice_lines_min_median_max": [lines_per_home[0], lines_per_home[len(lines_per_home) // 2], lines_per_home[-1]]}
     Path(out).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print("homes", len(homes), "| notice lines", result["notice_lines_total"], "| homes with none", result["homes_with_no_notice"])
+    print("homes", len(homes), "| notice lines (files)", result["notice_lines_total"], "| headings named",
+          result["notice_headings_total"], "| homes with none", result["homes_with_no_notice"])
     for file, row in table.items():
         print(file, "in", row["homes_with_the_file"], "homes")
         for heading, counts in row["headings"].items():
