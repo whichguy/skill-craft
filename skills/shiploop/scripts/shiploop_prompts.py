@@ -452,11 +452,13 @@ and do not reread history to repeat it.
 # hit; the long texts stay whole in the run reference file (reference#rules, #requirements, #progress), so nothing is
 # lost, and the blocked shapes are printed once, with the stage's outcomes.
 STAGE_RULES = """\
-RULES  Do only this stage, then run Done; ShipLoop picks the next. Unattended: take the best default and record it as
-an assumption; a person-only step is an open item; block only when nothing can proceed. Base claims on what you
-ran; recheck old notes. Requirements are HOME/spec.md; never relax one to fit the code. Temp files in RUN/scratch;
-never read credential stores. Run ShipLoop commands in the foreground, unpiped, and never end the turn while one
-runs. One line to the user per stage; a request to stop runs Pause. (Long form: reference#rules.)
+RULES (each one fixes a failure live runs showed; the long form is reference#rules):
+- Do only this stage, then run its callback; ShipLoop picks the next stage.
+- Unattended: take the best default and record it as an assumption; a person-only step is an open item; report
+  blocked only when nothing can proceed without a person.
+- Run ShipLoop commands in the foreground, unpiped, and never end the turn while one runs.
+- Temporary files go in RUN/scratch, never /tmp.
+- Never read, keep or report credential-store or session contents.
 """
 
 # Every INNER stage runs its work as one Until Loop that ShipLoop starts from a contract it wrote (shiploop_loops).  The
@@ -626,26 +628,6 @@ file cold with no run history. Every rule serves that reader.
 
 
 # What a producer packet prints instead of CODE_CRAFT: one line per rule; the full rubric stays in the reference.
-CODE_CRAFT_SHORT = """\
-Code craft (for the next maintainer opening one file cold):
-1. Match the house: its error types, validators, docstring style, logging; add no dependency, option or fallback
-   without a present need; record a justified departure.
-2. Fail at the door: an externally reachable function checks arguments before any effect, rejecting with the house
-   error naming argument, constraint and received value; swallow no error, substitute no success default.
-3. State the contract where it lives: a file opens with its purpose; a public docstring gives purpose, argument
-   constraints, return, errors, side effects; body comments say only why.
-4. Spend tokens on information: no comment restating a name, no banner, change history or dead code.
-5. Small, not thin: KISS and YAGNI never remove an argument check, error path, contract docstring or planned rich UI.
-6. Make failure diagnosable: check a response's contract; keep operation, IDs, expected versus observed; reuse the
-   debug switch; keep secrets out of messages.
-7. Write translatable text: use the message catalog, else whole-sentence messages with named placeholders; locale-aware
-   formatting; stable log text and codes.
-8. Put it where it belongs: the planned namespace, narrowest visibility, no name collisions, no `utils` bucket,
-   planned schema.
-9. Compose before you build: reuse, compose or augment an existing unit (one shared meaning) before new code; a
-   near-copy is a defect; state the choice in one line.
-(Full rubric: reference#code-craft.)
-"""
 
 
 # The step exit criteria's stopping rule; test/shiploop-stage-spec.test.py pins every prose copy to this value.
@@ -869,7 +851,8 @@ DUTIES = {
     "spec": """\
 1. Start from HOME/spec.md (quoted below), the research and discovery results and RUN/notes/current-system-baseline.md
    (Current-system baseline guide). Keep every R-<n>: change one in place, move a dropped one under ## Retired with
-   its reason.
+   its reason. Current explicit user instructions supersede older clauses; never relax a requirement to fit the code
+   or tests.
 2. Write each requirement under HOME/spec.md ## Requirements as R-<n> with its acceptance criteria inside
    (Behavior-model guidance): behaviour, boundaries, error behaviour, consumer outcome. Each criterion: positive,
    failure and boundary expectations, the consumer surface where it is observed, how it is confirmed. Split
@@ -1354,7 +1337,8 @@ in order.
      condition.
    - HOME/architecture.md ## Real-boundary checks: each pending full-suite and real-boundary check with its owner.
    - HOME/spec.md: each R-<n> this item satisfied; an open gap under its R-<n>, an unresolved state or data change
-     included (State and data assessment). Keep unaffected clauses. Test IDs live only in test code: write none here.
+     included (State and data assessment). Keep unaffected clauses, and never relax one to fit the code or tests.
+     Test IDs live only in test code: write none here.
    - Open risks, unresolved dependencies, system-test obligations, release prerequisites and any observation no item
      owns: open items in `assumptions`, each with owner and, as `consumer`, the later outer stage it is due at.
    - Carry the prior baseline, incoming delta and updated knowledge locators forward, keeping historical snapshots
@@ -2234,8 +2218,8 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
         parts.append(_backchain_contract_budget().rstrip("\n"))  # the budget the folded Backchain item points at
     elif stage in BACKCHAIN_STAGES:
         parts.append(_swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage, planning_review))
-    if stage in IMPLEMENTATION_STAGES:
-        parts.append(CODE_CRAFT_SHORT)
+    if stage in IMPLEMENTATION_STAGES:  # implement only: where product code is written (owner, 2026-10-11)
+        parts.append(CODE_CRAFT)
     parts.append(STAGE_RULES)
     return "\n\n".join(parts)
 

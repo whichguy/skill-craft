@@ -24,7 +24,7 @@ BLOCKS = frozenset({
     "test-decision",           # reopen the current item's test decisions
     "backchain",               # Backchain caller guidance (native call or audit)
     "reconciliation",          # selected-case reconciliation
-    "code-craft",              # the Code craft rubric
+    "code-craft",              # the full Code craft rubric: implement only (owner, 2026-10-11)
     "interaction-design",      # actors, channels, events and UI planning
     "work-items",              # how a plan or carry-forward records work-item context
 })
@@ -397,7 +397,7 @@ _ROWS = (
         entry_runs=("loop-contract",),
         complete_runs=("loop-terminal", "lint-gate", "test-base", "test-loop"),
         reads=("test-strategy", "item:step-plan", "item:test-spec", "item:implement"),
-        blocks=frozenset({"test-facility", "test-decision", "code-craft"}),
+        blocks=frozenset({"test-facility", "test-decision"}),
         outcomes=("done", "blocked"),
     ),
     Stage(
@@ -413,7 +413,7 @@ _ROWS = (
         entry_runs=("loop-contract",),
         complete_runs=("loop-terminal",),
         reads=("spec", "plan", "item:step-plan", "item:implement", "item:test"),
-        blocks=frozenset({"code-craft"}),        outcomes=("done", "blocked"),
+        blocks=frozenset(),        outcomes=("done", "blocked"),
     ),
     Stage(
         "verify", "inner",
@@ -435,7 +435,7 @@ _ROWS = (
         entry_runs=("change-inventory", "advisory-lint", "loop-contract"),
         complete_runs=("loop-terminal", "lint-gate", "test-rerun"),
         reads=("spec", "test-strategy", "item:step-plan", "item:test-spec", "item:implement", "item:test"),
-        blocks=frozenset({"reconciliation", "code-craft"}),
+        blocks=frozenset({"reconciliation"}),
         outcomes=("done", "blocked"),
     ),
     Stage(
