@@ -215,3 +215,22 @@ to 270k characters. The step-plan packet fell from 58k to 33k (`packets.py offli
 
   Every verdict passes.
 - Not yet run: the S-6 clear-the-context probe. It should run before a release.
+
+### Second pass (2026-10-11, same day)
+
+After the first pass, no sentence repeats verbatim inside any offline packet (checked by a sentence-level count over
+all 12). Two kinds of text remained: shared prose that overlapped in meaning, and gaps the pin workers reported.
+
+- **Shortened:** TEST_FACILITY_HANDOFF, TEST_DECISION_HANDOFF, OUTER_TEST_HANDOFF and SELECTED_CASE_RECONCILIATION.
+  The tests pin their key phrases, and the new wording keeps each one.
+- **Inline carry-forward:** it gets the one-line Backchain audit, as step-plan does (`INLINE_AUDIT_STAGES`).
+- **Improve-child packets:** they now locate the policies their review text names (`_named_policy_text`).
+- **Tried and reverted, with the learning:**
+  - **The previous stage's evidence references, printed as a count and a path instead of the list.** Tests showed
+    the list is the hand-off route for locators that the next stage must open: the access-readiness note, the prior
+    baseline section, and a UI review. It stays printed, bounded at 2,400 characters.
+  - **The same cut for the test-source blocks:** reverted for the same reason.
+  - **A step-plan gate that refuses a focused command without ids:** the engine supports id-less focused commands by
+    design (counted by run size), and 50 test-loop fixtures use them. The live revise it was meant to prevent was the
+    designed route working.
+- **Result:** the 30 packet suites pass. Offline sizes move only slightly (the fixture's evidence lists are short).

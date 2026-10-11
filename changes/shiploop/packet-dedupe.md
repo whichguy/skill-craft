@@ -33,3 +33,9 @@ language and deduplicate").
 - **Shorter texts.** The inline preamble, the Until Loop duty paragraph and the pass-log rule are shorter.
 - **Size.** Measured offline on node-fix-bug, the inner loop drops from 431k to 270k characters, and its step-plan
   packet from 58k to 33k.
+- **Second pass.**
+  - Four shared test texts are shorter, and each keeps its obligations: test facilities, test decision, the OUTER test
+    plans and selected-case reconciliation.
+  - Inline carry-forward carries the one optional Backchain audit line instead of the caller guidance and its
+    contract budget.
+  - An Improve child's packet prints the locators of the policies its review text names.
