@@ -355,7 +355,10 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
 # Every notice line starts with this, so a reader or the harness counts them with one grep.  Distinct from the "ShipLoop
 # knowledge: " lines (a commit, a kept file), which a count of those must not pick up.
 NOTICE_PREFIX = "ShipLoop knowledge notice: "
-_FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
+# A fence opens as CommonMark says: up to three spaces, then three or more backticks or tildes; the text after a backtick run holds
+# no backtick (so a line that starts with inline code, ```npm test``` is it, opens nothing).  A line that opens a fence by
+# mistake would hide every later heading.
+_FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")
 
 
 def _outline(lines: Sequence[str]) -> List[Tuple[int, int, str]]:
@@ -422,7 +425,8 @@ def section_notices(state: Mapping[str, Any], stage: str) -> List[str]:
         if not _filled(path):
             continue
         try:
-            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+            # utf-8-sig: a mark that Notepad or Windows PowerShell puts before a first-line heading is no part of the heading.
+            lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
         except OSError:
             continue
         outline, hint = _outline(lines), _section_hint(name)

@@ -768,6 +768,47 @@ class SectionNoticeTests(HomeFixture):
         self.put("environment.md", text)
         self.assertEqual(self.notices(), [])
 
+    def test_a_line_that_is_no_fence_opener_hides_nothing(self) -> None:
+        """What opens a fence is the CommonMark rule: up to three spaces, three marks, and no backtick in a backtick fence's text.
+
+        A wrongly opened fence hides every later heading, so each present section is reported missing and the model is told
+        to add a duplicate; a false notice is worse than a missed one.
+        """
+        for label, line in (("four spaces make an indented code block, not a fence", "    ```"),
+                            ("a tab makes one too", "\t```"),
+                            ("inline code that starts a line", "```npm test``` is the command."),
+                            ("a backtick in the text after the marks", "```sh `x`"),
+                            ("two marks are no fence", "``"),
+                            ("two tildes are no fence", "~~")):
+            with self.subTest(label):
+                text = self.full("environment.md").replace("## Targets and runtimes\n\nSome text.\n",
+                                                            "## Targets and runtimes\n\n" + line + "\n")
+                self.put("environment.md", text)
+                self.assertEqual(self.notices(), [])
+        # a tilde fence may carry a backtick in its text and is still a fence
+        text = self.full("environment.md").replace("## Commands\n\nSome text.\n\n", "~~~sh `x`\n## Commands\n~~~\n\n")
+        self.put("environment.md", text)
+        self.assertEqual([line.split("notice: ", 1)[1].split(" ", 1)[1][:19] for line in self.notices()], ["has no 'Commands' s"])
+
+    def test_only_an_atx_heading_at_the_start_of_the_line_counts_as_the_reference_says(self) -> None:
+        """The documented limits (references/project-knowledge.md, Named sections): an indented heading and a setext one are no
+        heading to the notice, so a file written that way is told to add the section."""
+        for label, replacement in (("indented one space", " ## Commands"), ("indented three spaces", "   ## Commands"),
+                                   ("underlined (setext)", "Commands\n--------")):
+            with self.subTest(label):
+                self.put("environment.md", self.full("environment.md").replace("## Commands", replacement))
+                self.assertEqual([line.split("notice: ", 1)[1].split(" ", 1)[1][:19] for line in self.notices()],
+                                 ["has no 'Commands' s"])
+
+    def test_a_byte_order_mark_at_the_start_of_the_file_hides_nothing(self) -> None:
+        """A tool that saves UTF-8 with a mark (Notepad, Windows PowerShell) puts it before a first-line heading."""
+        for first in ("## Targets and runtimes", "# Targets and runtimes"):
+            with self.subTest(first):
+                body = "".join("## " + h + "\n\ntext\n\n" for h in knowledge.SECTIONS["environment.md"] if h != "Targets and runtimes")
+                path = self.put("environment.md", first + "\n\ntext\n\n" + body)
+                path.write_bytes(b"\xef\xbb\xbf" + path.read_bytes())
+                self.assertEqual(self.notices(), [])
+
     def test_a_section_runs_to_the_next_heading_of_the_same_or_a_higher_level_and_a_deeper_heading_is_body(self) -> None:
         # architecture.md: "## Decisions" whose body is its own "### AD-n" headings is present
         text = self.full("architecture.md").replace("## Decisions\n\nSome text.\n", "## Decisions\n### AD-1 In memory\nWhy.\n")
