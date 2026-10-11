@@ -79,20 +79,127 @@ def _require_retry_planning_review(existing: dict, requested: "str | None", run_
 def _require_card_for_unreviewed_planning(requested: "str | None", card: str) -> None:
     """A run with no planning child names its Improve card where it starts, and the card is resolved there.
 
-    Under ``stage`` the first child, at ``spec``, binds the card.  Under ``none`` the first child is the last item's
-    ``carry-forward``, but the quality and test loops of the first item read the recorded card, so a run started
-    without one blocks at its first ``static-checks``, and nothing can bind it without a child.
+    Under ``stage`` the first child, at ``spec``, binds the card.  Under ``none`` the first child is the first
+    implement step's review, but every inner stage's Until Loop reads the recorded card from step-plan on (falling
+    back to the bundled one), so the card a run names is recorded here, before its first loop.
     """
     if (requested or navigator.DEFAULT_PLANNING_REVIEW) != "none":
         return
     need(bool(card), "--planning-review none needs --improve-skill=<absolute selected Improve SKILL.md>: with no "
                      "Improve child at the planning stages nothing else binds the card before the first item's "
-                     "quality and test loops, which read it. Start the run again with the flag.")
+                     "stage Until Loops, which read it. Start the run again with the flag.")
     import shiploop_standalone_improve as standalone
     try:
         standalone.resolve_skill(str(Path(card).expanduser().absolute()))
     except standalone.StandaloneImproveError as exc:
         raise ProtocolError(f"the selected Improve card cannot be resolved: {exc}") from exc
+
+
+class _Paths:
+    """A printed line that holds a path list: ``head``, the paths, ``tail``.  ``_fit`` decides how many paths show."""
+
+    def __init__(self, head, paths, tail=""):
+        self.head, self.paths, self.tail = head, list(paths), tail
+
+    def text(self, room):
+        """The line within ``room`` characters; a longer list is cut at a path and the rest counted."""
+        room -= len(self.head) + len(self.tail)
+        whole = ", ".join(self.paths)
+        if len(whole) <= room:
+            return self.head + whole + self.tail
+
+        def more(count):
+            return f", and {count} more"
+
+        room -= len(more(len(self.paths)))
+        shown, used = [], 0
+        for path in self.paths:
+            if used + len(path) + 2 > room:
+                break
+            shown.append(path)
+            used += len(path) + 2
+        return self.head + ", ".join(shown) + more(len(self.paths) - len(shown)) + self.tail
+
+
+def _fit(parts, limit=None):
+    """The lines of one command's output, as text of at most ``limit`` characters (default ``PRINT_LIMIT``) in all.
+
+    A plain string is a fixed line and prints whole.  Each ``_Paths`` takes an even share of the room the fixed lines
+    leave, in order, so a short list leaves its room to the longer ones after it.  Output hosts cut near 20,000
+    characters, and the line a cleared context needs is the last one (the next command), so the whole output, not each
+    list, is held to the limit.
+    """
+    room = (limit or navigator.PRINT_LIMIT) - sum(len(part) + 1 for part in parts if isinstance(part, str))
+    lists = sum(not isinstance(part, str) for part in parts)
+    lines = []
+    for part in parts:
+        if not isinstance(part, str):
+            part = part.text(room // lists - 1)
+            room -= len(part) + 1
+            lists -= 1
+        lines.append(part)
+    return lines
+
+
+def _emit(parts, stream=None):
+    for line in _fit(parts):
+        print(line, file=stream or sys.stdout)
+
+
+def _recorded_parts(reviewed):
+    """What a review-return call recorded, for the model that has to confirm it.
+
+    The excludes are counted here and listed once, with the other excludes a review decided, by ``_review_parts``.
+    """
+    kept, excluded = reviewed["kept"], reviewed["excluded"]
+    if not kept and not excluded:
+        return ["No decision was recorded (no --keep or --exclude path was named)."]
+    return [*([_Paths("Recorded: kept ", kept, ".")] if kept else []),
+            *([f"Recorded: excluded {len(excluded)} (every exclude a review decided is listed below)."]
+              if excluded else [])]
+
+
+def _review_parts(core, root, summary, expected=None, policy=None):
+    """The plan's tally, the excludes a review decided, and the next command, which is always the last line.
+
+    While paths are undecided the next command is the review that decides them; with none left it is the return, after
+    ``expected``, the route a return would take, for the model to compare with the rollback it wrote at release-plan.
+    """
+    parts = [f"Return plan {root / 'return-plan.md'}: {summary['total']} paths, {summary['keep']} keep, "
+             f"{summary['exclude']} exclude, {len(summary['pending'])} undecided."]
+    if policy:
+        parts.append(policy)
+    if summary["reviewed_excludes"]:
+        parts.append(_Paths("Excluded by review: ", summary["reviewed_excludes"], "."))
+    if summary["pending"]:
+        return [*parts, _Paths(f"Undecided ({len(summary['pending'])}): ", summary["pending"], "."),
+                navigator.REVIEW_RETURN_RULE, "Decide them with: " + navigator.review_return_command(core, root)]
+    if expected:
+        parts.append(f"Expected return: {expected}; the return itself still refuses a moved source or a collision.")
+    return [*parts, "Nothing is undecided; run: " + shlex.join(
+        ["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"), "workspace", "return", "--workspace-root", str(root)])]
+
+
+# Not "default": under --planning-review none there is none, and the run is refused without the flag.
+IMPROVE_SKILL_HELP = ("absolute selected Improve SKILL.md (a stage run without it records the card installed beside "
+                      "ShipLoop; required with --planning-review none)")
+
+
+def _new_run_card(explicit: str) -> str:
+    """The Improve card a new run records: the one selected with ``--improve-skill``, else the one installed beside ShipLoop.
+
+    The installed card is found by file location in this plugin install and accepted only when
+    ``resolve_skill`` validates it, so no name or PATH search is involved.  Where none resolves the run records
+    nothing; under ``stage`` the first bind is then the spec checkpoint's packet, which prints a marked blank.
+    """
+    if explicit:
+        return explicit
+    import shiploop_prompts as prompts
+    import shiploop_standalone_improve as standalone
+    try:
+        return standalone.resolve_skill(str(prompts.installed_improve_card()))["skill_card"]
+    except standalone.StandaloneImproveError:
+        return ""
 
 
 def workspace_command(core, argv):
@@ -109,7 +216,7 @@ def workspace_command(core, argv):
     start.add_argument("--include-untracked", action="append", default=[])
     start.add_argument("--exclude", action="append", default=[])
     start.add_argument("--delivery-contract", action="store_true")
-    start.add_argument("--improve-skill", default="")
+    start.add_argument("--improve-skill", default="", help=IMPROVE_SKILL_HELP)
     start.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                        help="new run: inline (default) or ask-agent delegation")
     start.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
@@ -118,9 +225,13 @@ def workspace_command(core, argv):
                        help="new run: Backchain planning child passes, one (default), converge or none")
     start.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
                        help="new run: which planning results start an Improve child, stage (default) or none")
-    for name in ("plan-return", "return"):
+    for name in ("plan-return", "review-return", "return"):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
+        if name == "review-return":
+            for decision in ("keep", "exclude"):
+                child.add_argument("--" + decision, action="append", nargs="+", default=[], metavar="PATH",
+                                   help=f"paths (or directories) to {decision}, relative to the execution checkout")
     args = parser.parse_args(argv)
     import shiploop_grants as grants
     rerun = ["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"), "workspace", *argv]
@@ -191,27 +302,38 @@ def workspace_command(core, argv):
             if args.planning_review:
                 init += ["--planning-review", args.planning_review]
             return main(core, init)
-        if args.operation == "plan-return":
+        if args.operation in ("plan-return", "review-return"):
             # Like every run-bound verb, refuse a retired or unloadable run
             # before touching its workspace.
             saved = store.read_record(root / "run" / "state.md")
             navigator.validate(saved)
             workspace.assert_binding(root, Path(saved["repo"]))
-            leftover = workspace.commit_leftovers(root)
-            if leftover.commit:
-                print("Committed files left uncommitted in the candidate: " + ", ".join(leftover.paths)
-                      + f" ({leftover.commit[:12]}).")
-            if leftover.skipped:
-                print(shiploop_git.skipped_notice(leftover.skipped))
-            workspace.plan_return(root)
-            print(f"Review all keep/exclude dispositions in {root / 'return-plan.md'}.")
-            print("Keep only intended product changes and durable knowledge, not run artifacts.")
-            print("Return policy: fast-forward only for a clean starting checkout and a "
-                  "clean committed candidate with all reviewed paths kept; otherwise return "
-                  "only the kept working-tree delta, without a Git merge or commit.")
-            print("When reviewed, run:")
-            print(shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
-                              "workspace", "return", "--workspace-root", str(root)]))
+            parts = []  # everything this command prints, held to one budget (see _fit)
+            try:
+                if args.operation == "plan-return":
+                    leftover = workspace.commit_leftovers(root)
+                    if leftover.commit:
+                        parts.append(_Paths("ShipLoop committed these files that were left uncommitted (no action "
+                                            "needed): ", leftover.paths, f" ({leftover.commit[:12]})."))
+                    if leftover.skipped:
+                        parts.append(shiploop_git.skipped_notice(leftover.skipped))
+                    workspace.plan_return(root, fresh=leftover.skipped)
+                    summary = workspace.plan_summary(root)
+                else:
+                    reviewed = workspace.review_return(root, [name for group in args.keep for name in group],
+                                                       [name for group in args.exclude for name in group])
+                    parts.extend(_recorded_parts(reviewed))
+                    summary = reviewed["summary"]
+                kind = None if summary["pending"] else workspace.expected_return(root)
+                expected = None if kind is None else f"{kind} ({workspace.ROUTE_TEXT[kind]})"
+                policy = ("Return policy: fast-forward only for a clean starting checkout and a clean committed candidate "
+                          "with all reviewed paths kept; otherwise return only the kept working-tree delta, without a "
+                          "Git merge or commit." if args.operation == "plan-return" else None)
+                parts.extend(_review_parts(core, root, summary, expected, policy))
+            except Exception:
+                _emit(parts)  # what ShipLoop already did (the files it committed) stays visible when a later step refuses
+                raise
+            _emit(parts)
         else:
             saved = store.read_record(root / "run" / "state.md")
             navigator.validate(saved)
@@ -239,6 +361,19 @@ def workspace_command(core, argv):
     except grants.GrantError as exc:
         print(grants.report(exc, shlex.join(rerun)), file=sys.stderr)
         return grants.EXIT_GRANT_NEEDED
+    except workspace.ReviewRefused as exc:
+        # Line 1 carries the verb, the count and the paths: hosts and models read refusals through `head` and `cut`.
+        if isinstance(exc, workspace.PendingDispositions):
+            parts = [_Paths("ShipLoop workspace blocked: review-return is needed for "
+                            f"{len(exc.undecided)} undecided return paths: ", exc.undecided)]
+        else:
+            parts = [f"ShipLoop workspace blocked: {exc}"]
+            if exc.undecided:
+                parts.append(_Paths(f"Undecided ({len(exc.undecided)}): ", exc.undecided, "."))
+        parts += ["Run: " + navigator.review_return_command(core, root),
+                  navigator.REVIEW_RETURN_RULE + " Then run workspace return again."]
+        _emit(parts, sys.stderr)
+        return 2
     except (workspace.WorkspaceError, ProtocolError, store.StorageError, OSError, ValueError) as exc:
         print(f"ShipLoop workspace blocked: {exc}", file=sys.stderr)
         print("Preserve the workspace and source checkout; do not force, stash, reset, "
@@ -256,8 +391,9 @@ def workspace_completion_guard(root, previous, updated):
             if receipt is None:
                 cli = shlex.quote(str(Path(__file__).resolve().parent / "shiploop"))
                 where = shlex.quote(str(root.parent))
-                commands = (f"python3 {cli} workspace plan-return --workspace-root {where}, review the plan, "
-                            f"then python3 {cli} workspace return --workspace-root {where}")
+                commands = (f"python3 {cli} workspace plan-return --workspace-root {where}, record every decision "
+                            f"with python3 {cli} workspace review-return --workspace-root {where} --keep <paths> "
+                            f"--exclude <paths>, then python3 {cli} workspace return --workspace-root {where}")
                 if workspace.returned_before(root.parent):
                     need(False, "handoff requires a current workspace return, and the recorded one is stale: "
                          "the candidate or source changed after it (for example ShipLoop's own docs/shiploop/ "
@@ -383,7 +519,7 @@ def main(core, argv=None):
         return hook_status(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "workspace":
         return workspace_command(core, raw_argv[1:])
-    if raw_argv and raw_argv[0] in ("chain", "lint"):
+    if raw_argv and raw_argv[0] in ("chain", "lint", "red-check"):
         # Both write run state; a lost grant gets the same repair as next.
         refused = _grant_refusal(core, raw_argv, _argv_run_dir(raw_argv))
         if refused is not None:
@@ -394,6 +530,8 @@ def main(core, argv=None):
     if raw_argv and raw_argv[0] == "lint":
         import shiploop_lint
         return shiploop_lint.main(core, raw_argv[1:])
+    if raw_argv and raw_argv[0] == "red-check":
+        return navigator.red_check_command(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "backchain-check":
         import shiploop_backchain_graph
         return shiploop_backchain_graph.main(core, raw_argv[1:])
@@ -406,6 +544,8 @@ def main(core, argv=None):
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
     subs.add_parser("chain", help="bind and operate a parallel or serial chain within the current implementation action")
     subs.add_parser("lint", help="advisory lint rerun for the current action, or show a stored record part (never gates)")
+    subs.add_parser("red-check", help="the test stage's base run without completing: does any new test pass "
+                                      "without this item's change? (never counted, never gates)")
     subs.add_parser("backchain-check", help="record-only Backchain graph check of a candidate plan file (never gates)")
     subs.add_parser("hook-status", help="read-only JSON: can this run still move (for keepalive hooks and the driver)")
     navigator_dry_run.add_arguments(subs.add_parser(
@@ -436,7 +576,7 @@ def main(core, argv=None):
             sub.add_argument("--bound-plan", default="")
             sub.add_argument("--execution-mode", choices=("navigator", "navigator-worktree"), default="navigator",
                              help="navigator-worktree is created by workspace start; existing runs retain their recorded mode")
-            sub.add_argument("--improve-skill", default="")
+            sub.add_argument("--improve-skill", default="", help=IMPROVE_SKILL_HELP)
             sub.add_argument("--delivery-contract", action="store_true",
                              help="opt a new run in to consumer-delivery declaration checks")
             sub.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
@@ -463,11 +603,18 @@ def main(core, argv=None):
         if name == "improve-commit":
             sub.add_argument("--message", required=True,
                              help="the printed commit-message file, written with a file tool")
+            sub.add_argument("--remote-change", dest="remote_change", action="store_true",
+                             help="record a change to a remote system that left no file change: the message needs a "
+                                  "'Remote change:' section, and with no file pending the commit holds no files")
         if name in ("complete", "improve-bind", "improve-start", "improve-commit", "improve-complete",
                     "improve-reconcile"):
             sub.add_argument("--action", required=True)
         if name in ("complete", "improve-reconcile"):
             sub.add_argument("--result", required=True)
+        if name == "complete":
+            sub.add_argument("--check-only", dest="check_only", action="store_true",
+                             help="run this stage's script gates on the result and report, without completing the "
+                                  "action (an Until Loop's way to observe its exit conditions before done)")
         if name == "improve-complete":
             sub.add_argument("--notes", help="optional plain-text lessons from the review, for later steps")
             sub.add_argument("--final-result", dest="final_result",
@@ -590,7 +737,7 @@ def main(core, argv=None):
             state = navigator.new_state(
                 str(repo), args.prompt,
                 str(Path(args.bound_plan).resolve()) if args.bound_plan else "",
-                improve_skill=args.improve_skill,
+                improve_skill=_new_run_card(args.improve_skill),
                 delivery_contract=args.delivery_contract,
                 worktree=args.execution_mode == "navigator-worktree",
                 delegation=args.delegation or navigator.DEFAULT_DELEGATION,

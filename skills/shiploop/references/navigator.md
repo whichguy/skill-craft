@@ -20,14 +20,14 @@ refused with an error naming it.
 ```mermaid
 flowchart LR
   P[Current producer prompt] --> R[Producer result]
-  R -->|Reviewed planning stage or last carry-forward| I[Actual Improve skill]
+  R -->|Reviewed planning stage, implement step or last carry-forward| I[Actual Improve skill]
   R -->|Any other stage| F
   I --> U[Bound Until Loop cycle]
   U -->|Incomplete| U
   U -->|Accepted| C[Import evidence and final result]
   C --> F[Script routes the final result]
   F -->|done| N[Next producer]
-  F -->|repeat| P
+  F -->|repeat, prelude and outer only| P
   F -->|blocked| B[Wait for resume, then same stage]
   F -->|replan, outer only| W[New work items enter the inner loop]
   N --> P
@@ -37,29 +37,31 @@ The route is the same for a direct result and an Improve child's final result.
 The child can change the result it imports, so a reviewed `done` can become
 `repeat`, `blocked` or, at an outer stage, `replan`.
 
-The 34 producer stages are fixed by the navigator catalog: prelude `intake`,
-`discovery`, `research`, `spec`, `test-strategy`, `plan`, `prepare`; inner
-`select-work`, `step-plan`, `test-spec`, `baseline`, `test-author`, `test-red`,
-`implement`, `test-green`, `test-refine`, `regression`, `document`,
-`skill-assess`, `skill-validate`, `static-checks`, `verify`, `integrate`,
-`integration-verify`, `carry-forward`; and outer `system-test-author`,
+The 24 producer stages are fixed by the stage table (`scripts/shiploop_stage_spec.py`):
+prelude `intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`,
+`prepare`; inner `step-plan`, `test-spec`, `validate-existing`, `implement`,
+`test`, `document`, `verify`, `carry-forward`; and outer `system-test-author`,
 `system-test`, `product-acceptance`, `release-plan`, `release-check`, `release`,
-`release-verify`, `operations`, `handoff`. Every instantiated producer records a
-result, including a justified N/A output. The planning producers (`spec`,
+`release-verify`, `operations`, `handoff`. The 8 inner stages form 5 phases:
+Plan (`step-plan`, `test-spec`), Validate existing (`validate-existing`), Build
+(`implement` once per step, `test`, `document`), Verify (`verify`) and Carry
+forward (`carry-forward`). Every instantiated producer records a result,
+including a justified N/A output. The planning producers (`spec`,
 `test-strategy`, `plan`, `step-plan`, `test-spec`, `system-test-author`,
-`release-plan`) and the successful `carry-forward` that leaves no work item
-pending are then followed by the actual Improve skill; every other result is
-accepted on its own checks and the script selects the next producer directly.
-Three inner stages run a loop the script counts, each on the bound Until Loop
-with a ShipLoop-authored contract: `test-green` and `regression` run the
-[test loop](../SKILL.md#test-loop) on the step plan's recorded commands, and
-`static-checks` runs the [quality loop](../SKILL.md#static-checks-quality-loop).
-ShipLoop accepts their `done` only with a matching terminal packet, and for the
-test loops only after it has run every command itself and each exited 0.
-`implement` is accepted as done only through the
-[lint gate](../SKILL.md#script-owned-lint); `implement`, `test-refine` and
-`integration-verify` carry the [pass-or-stop loop](../SKILL.md#tests-pass-or-the-step-stops)
-in their prompts.
+`release-plan`), every accepted `implement` step and the successful
+`carry-forward` that leaves no work item pending are then followed by the actual
+Improve skill; every other result is accepted on its own checks and the script
+selects the next producer directly.
+Every inner stage does its work inside one bound Until Loop invoked by name,
+with a ShipLoop-authored contract and receipt under `loops/`
+([stage Until Loops](../SKILL.md#stage-until-loops)). ShipLoop accepts an inner
+`done` only with a terminal packet that matches the contract rebuilt from state,
+and only after the stage's script gates pass: the expectation checks at
+`validate-existing`, the [lint gate](../SKILL.md#script-owned-lint) at
+`implement`, `test` and `verify`, ShipLoop's base and candidate
+[test runs](../SKILL.md#test-loop) at `test`, and its rerun of every recorded
+command at `verify`. Every inner loop's repeat condition carries the
+[pass-or-stop rule](../SKILL.md#tests-pass-or-the-step-stops).
 No stage contains a copied Improve policy or independently counts review passes.
 
 ## Whole-run map
@@ -70,62 +72,61 @@ flowchart TD
     intake --> discovery --> research --> spec[spec ✦] --> ts[test-strategy ✦] --> plan[plan ✦] --> prepare
     plan -. "Plan Improve reconcile" .-> discovery
   end
-  prepare --> SW
-  subgraph INNER[Inner loop: once per work item, the item record owns the cursor]
-    SW[select-work] --> SP[step-plan ✦ records test commands] --> TS[test-spec ✦] --> BL[baseline → test-author → test-red]
-    BL --> IM[implement ⛔ lint gate, pass-or-stop]
-    IM --> TG[test-green ⟳⛔ test loop]
-    TG --> TR[test-refine ⛔ test rerun, pass-or-stop]
-    TR --> RG[regression ⟳⛔ test loop]
-    RG --> DOC[document → skill-assess → skill-validate]
-    DOC --> SC[static-checks ⟳ quality loop; ⛔ test rerun]
-    SC --> VI[verify → integrate → integration-verify ⛔ test rerun]
-    VI --> CF[carry-forward]
-    CF -->|more items| SW
+  prepare --> SP
+  subgraph INNER[Inner loop: once per work item, the item record owns the cursor; every stage runs one Until Loop]
+    SP[step-plan ✦ steps, commands, expectations] --> TS[test-spec ✦]
+    TS --> VE[validate-existing ⛔ expectation checks; all match: no packet]
+    VE --> IM[implement, per step ✦ ⛔ lint gate]
+    IM -->|next step| IM
+    IM --> TE[test ⛔ lint gate, base run, candidate run]
+    TE --> DOC[document, only when behavioural]
+    DOC --> VF[verify ⛔ lint gate, test rerun; item commit]
+    VF --> CF[carry-forward, skill decision]
+    CF -->|more items| SP
   end
   CF -->|"last item ✦ end review"| STA
   subgraph OUTER[Outer loop: root owns the cursor]
     STA[system-test-author ✦] --> ST[system-test] --> PA[product-acceptance] --> RP[release-plan ✦]
     RP --> REL[release-check → release → release-verify → operations → handoff]
   end
-  OUTER -. "replan: new work items" .-> SW
+  OUTER -. "replan: new work items" .-> SP
   REL --> done
 ```
 
 ✦ starts an actual Improve child. A run recorded with `planning_review: none` starts no Improve
 child at `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`: those five are accepted on
-ShipLoop's checks at `complete` and the graph advances; `system-test-author`, `release-plan` and the last
-`carry-forward` keep their child. ⛔ is script-enforced: `implement`,
-`test-green` and `regression` are not accepted while the lint gate reports an
-unwaived new finding, and every stage from `test-green` on that can edit code
-(`test-green`, `test-refine`, `regression`, `static-checks`, `verify`,
-`integration-verify`) is not accepted until ShipLoop has run the recorded test
-commands itself and each exited 0. The outer `system-test` and `release-verify`
-rerun their own recorded commands the same way. After 7 refused runs `done` is
-no longer accepted and the stage takes its own remedy: `revise` back to
-`step-plan` at an INNER stage, or `replan` with corrective work items at the two
-outer stages, which have no step plan to revise. A command that times out,
-cannot start, or is skipped on budget refuses the stage but is recorded
-`could-not-run` and does not spend one of the 7; the stage's remedy is accepted
-after it on ShipLoop's own record, without a new loop packet. ⟳ loops inside the stage: the bound Until Loop
-drives the test loops and the `static-checks` quality loop, and the pass-or-stop
-prompt loop reruns failing checks at `implement`, `test-refine` and
-`integration-verify` until they pass or the step reports `revise` (or `blocked` for what only the user, an access grant or an outside dependency can resolve).
+ShipLoop's checks at `complete` and the graph advances; every `implement` step, `system-test-author`,
+`release-plan` and the last `carry-forward` keep their child. ⛔ is script-enforced:
+`validate-existing` is not accepted while an expectation check does not match its state;
+`implement`, `test` and `verify` are not accepted while the lint gate reports an unwaived new
+finding; `test` is not accepted until ShipLoop's base run finds no new test ID passing on the
+item's base and its candidate run passes every recorded command at its floor; and `verify` is not
+accepted until ShipLoop has rerun every recorded command and each exited 0. The outer
+`system-test` and `release-verify` rerun their own recorded commands the same way. After 11
+refused runs `done` is no longer accepted and the stage takes its own remedy: `revise` back to
+`step-plan` at an INNER stage, or `replan` with corrective work items at the two outer stages,
+which have no step plan to revise. A command that times out, cannot start, or is skipped on
+budget refuses the stage but is recorded `could-not-run` and does not spend one of the 11; the
+stage's remedy is accepted after it on ShipLoop's own record, without a new loop packet. Each
+inner stage loops inside its bound Until Loop until its exit condition holds or the step reports
+`revise` (or `blocked` for what only the user, an access grant or an outside dependency can
+resolve).
 
 | | Inner loop | Outer loop |
 | --- | --- | --- |
 | Runs | once per work item, over one shared graph | once, unless `replan` reopens it |
-| Improve children | `step-plan`, `test-spec` (only when `planning_review` is `stage`), last `carry-forward` | `system-test-author`, `release-plan` |
-| Outcomes | `done`, `repeat`, `blocked`; from `test-spec` to `integration-verify` also `revise`, back to `step-plan` at most twice per item (`test-green`, `regression`, `static-checks`: `done`, `revise`, `blocked`) | adds `replan` with new work items |
+| Improve children | `step-plan`, `test-spec` (only when `planning_review` is `stage`), every `implement` step, last `carry-forward` | `system-test-author`, `release-plan` |
+| Outcomes | `done`, `blocked`; from `test-spec` to `verify` also `revise`, back to `step-plan` at most twice per item; no `repeat` (the stage's Until Loop repeats) | `done`, `repeat`, `blocked`, `replan` with new work items |
 | Going back | `revise` returns the item to `step-plan`; `carry-forward` replaces the future queue | `replan` appends items; after their end review, outer restarts at `system-test-author` |
-| Script-owned checks | recorded test commands at `step-plan`; lint gate at `implement`, `test-green`, `regression`; test-loop terminal packets at `test-green`, `regression`; ShipLoop's own test run at those two plus `test-refine`, `static-checks`, `integration-verify`; quality-loop terminal packet at `static-checks` | none |
+| Script-owned checks | a loop contract and terminal receipt at every stage; the step plan's commands, expectations and skills at `step-plan`; test-spec IDs at `test-spec`; expectation checks and the preparatory commit at `validate-existing`; lint gate at `implement`, `test`, `verify`; base and candidate runs at `test`; test rerun and item commit at `verify`; skill decision and skill commit at `carry-forward` | test reruns at `system-test` and `release-verify` |
 
 The graph describes order, not a substitute for engineering judgment. The prompt
 does not dictate exact prose, a check-manifest layout, a byte comparison, or a
 specific command. It requires a substantive producer result and, at an Improve
-checkpoint, an actual Improve child before a success edge can release that output. A meaningful RED is
-successful evidence for its test-control step; it never authorizes production
-edits before `implement`. A blocked Improve child leaves its parent incomplete.
+checkpoint, an actual Improve child before a success edge can release that output. RED is
+ShipLoop's base run at `test`: each new test fails on the item's base. Before
+`implement`, only `validate-existing`'s known small preparatory fix may change a
+product file. A blocked Improve child leaves its parent incomplete.
 
 Apply the [stage readiness and completion map](testing-and-documentation.md#stage-readiness-and-completion)
 to the current artifact. Definition fixes criteria; test planning allocates
@@ -179,10 +180,12 @@ new run. `next` rereads the saved effective owner after a context reset; it does
 not select or persist a successor. At an Improve checkpoint a producer `done`
 records the result then parks the parent at `active_improve`; it does not advance
 directly. Any other producer `done` advances to the next producer. When a skill
-was not selected at initialization, the checkpoint's packet supplies the exact
-`improve-bind --action ... --skill-card ...` command (a `--planning-review none` run is refused
-without `--improve-skill`: its first child is the last item's `carry-forward`, after the quality and
-test loops have read the card). Follow that command and
+was not selected at initialization, `init` records the card installed beside ShipLoop and the
+checkpoint's packet supplies the exact `improve-bind --action ... --skill-card ...` command with
+that path (where no installed card validates, it prints a marked blank and where ShipLoop looked;
+a `--planning-review none` run is refused
+without `--improve-skill`: it has no planning child to bind the card before its first `implement`
+step's child). Follow that command and
 the selected card's bound runtime rather than guessing an adapter. Only an
 accepted matching completion run through `improve-complete` imports the child and
 releases the next graph edge.
@@ -217,8 +220,8 @@ Every run also records its `planning_review` option (`stage` or `none`; `stage` 
 Improve child: `stage` is every planning result, as before, and no packet changes with it;
 `none` is no Improve child after `spec`, `test-strategy`, `plan`, `step-plan` or `test-spec`,
 so the Improve line of those packets says none starts and no reconcile route or plan-time
-experiment locator is printed. The children after `system-test-author` and `release-plan` and
-the last `carry-forward` start in both modes. No verb changes it mid-run, a retry of `init` or `workspace start` cannot change
+experiment locator is printed. The children after each `implement` step, `system-test-author`,
+`release-plan` and the last `carry-forward` start in both modes. No verb changes it mid-run, a retry of `init` or `workspace start` cannot change
 it, and a saved run without it is refused with the fresh-run hint. See
 [Planning review option](../SKILL.md#planning-review-option).
 
@@ -268,7 +271,7 @@ Active INNER packets begin with a context prefix selected by the run's
 delegation. Paused, blocked, halted and completed packets do not carry it.
 
 Under `delegation: inline`, the default for new runs, every INNER producer
-packet, including the `select-work` packet that opens each work item, begins
+packet, including the `step-plan` packet that opens each work item, begins
 with **Continue in this context and execute the prompt.** Execute it in this
 conversation without clearing, pausing for a clear or delegating (see
 [context boundaries](#context-boundaries)). This
@@ -365,7 +368,9 @@ Instead, an inline run executes every INNER stage in the same conversation, and
 the host's own compaction manages the context (Claude Code and Grok compact
 automatically). The durable run state and self-contained packets make that
 safe: after any compaction, reset or lost context, the Recovery command rewrites
-the current packet file (`<run>/packets/<action>.md`) and reprints its head.
+the current packet file (`<run>/packets/<action>.md`; while an Improve child is
+open, `<action>-improve-bind.md` before a card is bound and `<action>-improve.md`
+after) and reprints its head.
 
 Under `delegation: ask-agent`, each INNER producer assignment takes a fresh
 worker where one is usable. Claude documents both
@@ -413,17 +418,23 @@ The semantic result contract is small:
 
 | Field | Meaning |
 | --- | --- |
-| `outcome` | `done`, `repeat`, or `blocked`; outer steps also allow `replan` with new corrective work items; `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results the run's `planning_review` reviews and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
+| `outcome` | `done` or `blocked` at every stage; `repeat` at PRELUDE and OUTER stages (an INNER stage's Until Loop repeats instead); `revise` from `test-spec` through `verify`; outer steps also allow `replan` with new corrective work items; `reconcile` is recorded only through the initial plan child's `improve-reconcile`. Planning results the run's `planning_review` reviews, every `implement` step and the last carry-forward first wait for actual Improve; other results advance directly. The final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
 | `headline` | One line of at most 100 characters, for the user, saying what this step established; the [run narrative](status-display.md#run-narrative) lists it under Achieved. The template's placeholder is refused. Without it the narrative uses the summary's first sentence. |
 | `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. The template's placeholder is refused. |
 | `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `replan`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 
-`skill-assess` and `skill-validate` are always visited, each with an
-evidence-backed N/A disposition when no skill work applies.
+Stage results add their own fields where the stage needs them: `step-plan` records
+`steps`, `paths`, `criteria`, `test_commands` (or `test_commands_na`), `check_na`,
+`expectations` and each step's `skills`; `validate-existing`'s `revise` records
+`failed_expectations`; `test` may record `red_na` and `retired_tests`; and a done
+`carry-forward` records its `skill` decision (see [the skill guide](../SKILL.md#the-inner-loop)).
+`test` and `document` are recorded as not applicable, with a history row and a
+result file, only on the script's proof; `validate-existing` is recorded done by
+script when every expectation check matches.
 
-After any bound child has completed reviewing the attempt, `repeat` allocates another action at the same node, so the host can continue
+At a PRELUDE or OUTER stage, after any bound child has completed reviewing the attempt, `repeat` allocates another action at the same node, so the host can continue
 with new information. `blocked` retains unfinished work; after the condition
 is resolved, `resume` returns the same node. Neither is a successful advance.
 Within the actual Improve child, normal review iterations continue internally. An explicit
@@ -437,9 +448,10 @@ work items, while completed work-item records remain durable history; optional
 V3's plan template explicitly includes `work_items`. Return the complete ordered
 queue when the plan has multiple implementation increments; a note alone does
 not populate it. Omission remains compatible when the existing queue represents
-the whole approved plan. The script visits queue order serially; `select-work`
-revalidates the selected item's prerequisite evidence rather than selecting
-among dependency-ready alternatives. Keep independent branches and file/resource
+the whole approved plan. The script visits queue order serially; the item's
+`step-plan` revalidates its prerequisite evidence (its expectations' `from` cite the
+open plan assumptions it consumes) rather than selecting among dependency-ready
+alternatives. Keep independent branches and file/resource
 conflicts distinct from causal dependencies in the linked plan notes.
 
 At `carry-forward`, omitting `work_items` preserves every future item. Supplying
@@ -474,7 +486,8 @@ Every packet, including paused, blocked, halted and done packets, includes a
 read-only snapshot derived from the existing effective cursor, accepted history
 and current work queue. It shows phase/run status, owner/current assignment,
 recorded completed and pending stages for the current phase or item, completed
-item counts/labels and queued items. The skill stages are always visited.
+item counts/labels and queued items. A stage recorded not applicable, or done by
+script, is recorded like any other.
 Only accepted `done` completes a stage; `repeat` and `blocked` do not. These
 records are host declarations, not independent evidence of tests or external
 effects. Workspace return/merge/push status still comes from the separate return
@@ -513,12 +526,12 @@ existing boundaries. Reporting itself neither advances nor pauses the graph,
 and the script cannot keep a host process alive or force another tool call; the
 optional [keepalive hooks and driver](keepalive.md) do that from the host side.
 
-For example, after W1's accepted carry-forward and W2's accepted `document`
-result, the next packet assigns W2 `skill-assess`. A synthetic user update could
-say: “Recorded done: W1 and W2 through documentation. Current: W2 skill
-assessment is assigned. Pending: W2 skill validation, static checks,
-verification, integration, carry-forward and the outer stages. No blocker is
-recorded.” Add “The focused tests are running” only when the host has actually
+For example, after W1's accepted carry-forward and W2's accepted `test`
+result, the next packet assigns W2 `document` (when W2's diff touches a code or
+test path). A synthetic user update could
+say: “Recorded done: W1 and W2 through its tests. Current: W2 documentation is
+assigned. Pending: W2 verification, carry-forward and the outer stages. No
+blocker is recorded.” Add “The focused tests are running” only when the host has actually
 started and observed that test process. A blocked packet instead reports the
 condition and requires resume; a halted packet has unfinished work and no
 runnable assignment.
@@ -537,7 +550,7 @@ adds a timer, state field or traversal rule.
 
 ## One shared INNER graph and per-item records
 
-The flat SDLC path from `select-work` through `carry-forward` is one shared INNER
+The flat SDLC path from `step-plan` through `carry-forward` is one shared INNER
 graph, not a graph copy per work item. Root owns the run's global `status`,
 `status_reason`, ordered queue, and `work_index`. While an item is active, root
 is parked at `stage: inner-loop` with `action: null`; the active item's entry in
@@ -556,6 +569,7 @@ This compact state is illustrative rather than a complete persisted schema:
 ```json
 {
   "navigator_protocol_version": 4,
+  "version": 5,
   "execution_mode": "navigator",
   "status": "active",
   "stage": "inner-loop",
@@ -568,8 +582,8 @@ This compact state is illustrative rather than a complete persisted schema:
   "inner_loops": {
     "W1": {"stage": "done", "action": null},
     "W2": {
-      "stage": "select-work",
-      "action": {"id": "W2-select-work-1", "stage": "select-work"}
+      "stage": "step-plan",
+      "action": {"id": "W2-step-plan-1", "stage": "step-plan"}
     }
   }
 }
@@ -577,13 +591,12 @@ This compact state is illustrative rather than a complete persisted schema:
 
 No record exists for a future W3 until ShipLoop enters it. At an accepted W1
 `carry-forward`, one locked transaction marks W1 `done`/`null`, advances the
-selection, and creates W2 at `select-work`; if W1 is final, it instead restores
+selection, and creates W2 at `step-plan`; if W1 is final, it instead restores
 root ownership at `system-test-author`. W1 remains retained after W2 becomes active.
 Calling `next` after a context reset reprints W2's same effective action rather
 than advancing it. An identical accepted W1 replay after W2 selection is
 non-mutating; a conflicting or unknown old callback fails without changing W2.
 
-`repeat` replaces only the active item's action while root remains active.
 An accepted `blocked` result records the root blocker and a fresh pending action
 for that item because its reported action is already accepted; no further
 new completion is accepted until `resume`. An identical accepted replay remains
@@ -635,14 +648,15 @@ system-test, outer Improve and release planning read it and reconcile actual
 readiness with the remaining route. Script-enforced queue order is not proof
 that the host included all prerequisites or actually prepared a remote target.
 
-The inner path makes post-code quality visible: implementation is followed by
-test-case refinement from the code actually written, executable test authoring,
-documentation and reuse assessment, optional skill validation, then real
-linters/tests with justified fixes and rechecks. `integrate` performs only
-authorized Git/worktree work; it does not assert a merge, push, or deployment
-from intent. `carry-forward` reviews broad scope, dependencies, future
-system-test requirements, and skill obligations without pretending future work
-is complete.
+The inner path makes post-code quality visible: the expectations are checked
+before any change, each implement step is reviewed by its own Improve child,
+the tests are written from the test spec and must fail on the item's base and
+pass on the candidate, documentation follows observed behaviour, and `verify`
+reruns every command and reviews the whole diff with justified fixes and
+rechecks. ShipLoop's item commit at `verify` is authorized Git work in the
+execution checkout; it does not assert a merge, push, or deployment. `carry-forward`
+reviews broad scope, dependencies, future system-test requirements, and the
+skill decision without pretending future work is complete.
 
 Delivery planning names the intended consumer and distinguishes source updates,
 versioned releases, promotion, and access changes by their actual effects and
@@ -727,7 +741,7 @@ do not repeat all discovery or blindly preserve the old pattern.
 #### Implementation quality indicator
 
 The planning and code-quality prompts (`plan`, `step-plan`, `implement`,
-`test-refine`, `test-author`, `document`, `verify` and `integrate`) carry
+`test`, `document` and `verify`) carry
 error-checking, opt-in diagnostic and concise code-contract duties. This is
 prompt guidance for the current assignment, not a result field or a scripted
 pass/fail gate.
@@ -787,15 +801,15 @@ and cannot prove that the host performed the checks or wrote good documentation.
 
 | Responsibility | Stage | Expected evidence or decision |
 | --- | --- | --- |
-| Challenge acceptance and tests | `step-plan` and its Improve review (`stage` runs), `test-refine`, `test-author` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
-| Own delegated work | `step-plan`, `implement`, `integrate` | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
+| Challenge acceptance and tests | `step-plan` and its Improve review (`stage` runs), `test-spec`, `test` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
+| Own delegated work | `step-plan`, `implement`, `verify` | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
 | Diagnose persistent failure | `verify`, all Improve campaigns | Distinguish product, test and environment explanations with a small observable experiment. Record the conclusion and why the next action follows; a repeated attempt alone is not progress. |
 | Select relevant operational checks | `step-plan`, `verify` | Identify changed authorization/data boundaries, dependencies, recovery or diagnostic needs. Choose proportional checks and retain genuinely missing prerequisites as incomplete. |
-| Review the resulting candidate | Improve campaigns, `integrate` | Available independent review covers the final candidate. Material later edits invalidate affected evidence; integration rechecks shared interfaces and re-reviews changed scope. Whole-product obligations continue to `product-acceptance` and the release-plan Improve review. |
-| Place validated learnings | `document`, `skill-validate`, `carry-forward`, `product-acceptance` | Retain a run-specific lesson, add a repo-local regression/example, or propose a shared change with evidence and a target. Validate shared changes on triggering, failure and other representative cases before adoption within existing authority. |
+| Review the resulting candidate | Improve campaigns, `verify` | Available independent review covers the final candidate. Material later edits invalidate affected evidence; integration rechecks shared interfaces and re-reviews changed scope. Whole-product obligations continue to `product-acceptance` and the release-plan Improve review. |
+| Place validated learnings | `document`, `carry-forward` (its skill decision), `product-acceptance` | Retain a run-specific lesson, add a repo-local regression/example, or propose a shared change with evidence and a target. Validate shared changes on triggering, failure and other representative cases before adoption within existing authority. |
 
 For example, suppose two step contributions each pass their local tests, but
-one emits milliseconds while its consumer interprets seconds. At `integrate`,
+one emits milliseconds while its consumer interprets seconds. At `verify`,
 the owner checks the shared specification and runs the combined path. The
 observed unit mismatch prompts a scoped repair, review and affected rechecks;
 only then is an honest completion submitted. This hypothetical trace explains

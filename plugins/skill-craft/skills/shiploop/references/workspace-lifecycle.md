@@ -31,7 +31,7 @@ EXTERNAL/
   workspace.md       original checkout/branch and baseline; script-owned
   worktree/          execution checkout for all product changes
   run/               navigator state, prompts/results, notes, HTML report
-  return-plan.md     candidate-bound path review; host supplies dispositions
+  return-plan.md     candidate-bound path review; decisions recorded by review-return
   return-receipt.md  script-owned actual integration outcome
 ```
 
@@ -135,13 +135,31 @@ return is not evidence that a hosted consumer has been updated.
    It first commits product files still uncommitted in the candidate (for
    example a system test written after the last work item) onto the run branch,
    never run evidence, protected paths, caller exclusions or files that look
-   like credentials, then binds a Markdown path review to the candidate. Review **every**
-   disposition: `keep` for intended lasting work, `exclude` for transient work.
-   Pending decisions or an attempt to keep a forbidden runtime path block return.
-   Changed candidates require a fresh plan; do not edit hashes to bypass it.
+   like credentials, then binds a Markdown path review to the candidate and prints
+   the tally, every undecided path and the `review-return` command. Decide **every**
+   path with `workspace review-return --workspace-root EXTERNAL --keep PATH... --exclude PATH...`:
+   `keep` for intended lasting work, `exclude` for transient work. Paths are relative
+   to the execution checkout, as the plan lists them. A directory decides
+   every undecided path beneath it and the most specific name wins. Each command's
+   output is held to ShipLoop's one print limit, so a very long list is cut at a path
+   and the rest counted, and the last line is always the next command. Never edit
+   `return-plan.md` or its status: the verb records the decisions, refuses by name a keep
+   of a forbidden runtime path or caller-excluded path and an exclude of ShipLoop's
+   knowledge, and records nothing when it refuses. Undecided paths block return, whose
+   first line names them and the verb. A changed candidate requires a fresh `plan-return`
+   (the refusal says so); do not edit hashes to bypass it. The fresh plan keeps the
+   keep/exclude decision already recorded for the same path (rows carry no content
+   digest, so a changed file keeps its earlier decision; a file ShipLoop skipped as
+   credential-like is decided again), leaves new paths undecided, and names the
+   excludes a review decided, so a model without its earlier context can see them.
 2. Run `workspace return --workspace-root EXTERNAL` only after that review,
    current checks, and any required authority. The helper rechecks branch,
    baseline, source state, candidate and plan before mutating the source.
+   Once nothing is undecided, `review-return` (and `plan-return`, when carried
+   decisions already settle every path) prints the **expected return**, by the same
+   rule `return` follows; it is advisory, since `return` still refuses a moved source
+   or a collision. Every worktree packet states the run's return route from
+   `workspace.md`; see Rolling a return back for the rollback.
 3. Distinguish the result:
    - **Clean start:** a committed, clean, reviewed candidate can fast-forward
      into the exact original branch. Reachable candidate history is checked too:
@@ -161,12 +179,55 @@ return is not evidence that a hosted consumer has been updated.
    before its exact callback. Handoff's `done` is rejected without a current
    verified receipt. Script checks do not replace semantic review or tests.
 
+### Which checkout release-verify observes
+
+`release-verify` is the stage whose done-when is "observed where consumers use
+it". On done, ShipLoop reruns the consumer checks `release-plan` recorded, and
+where they run depends on the run:
+
+- **A completed return is recorded** (the return receipt has status `returned`):
+  in a clean copy of the returned result, never the user's checkout. ShipLoop
+  reads the tree the receipt records (the head tree of a fast-forward, the
+  working-tree snapshot of a working-tree or no-change return) and writes it,
+  through a private Git index that touches no repository, into `consumer-check`
+  under the workspace root. Every check runs with that directory as its working
+  directory and the workspace root as Git's ceiling, so a parent repository is not
+  found. The copy is made fresh on each attempt and kept after a refusal so you can
+  reproduce there. A receipt or manifest ShipLoop cannot read is not "no return":
+  the attempt is `could-not-run`, which does not count toward the 7 refused runs.
+- **No completed return yet**: the checks run in the work area, and the packet, the
+  test record (`observed`) and the handoff say that they did not observe the user's
+  checkout. The run is not refused: `workspace return` is allowed only at `release`
+  and `handoff`, so `release-verify` can precede the return and cannot make it.
+- **An in-place run** has no workspace: the checks run in the checkout, as before.
+
+The user's checkout is not used because ShipLoop runs these commands unprompted, up
+to seven times, and any file one of them writes there (a cache, a log, a build
+directory) makes the strict clean-status receipt non-current. ShipLoop then refuses
+the source as drifted, no ShipLoop route clears it, and this card forbids deleting
+the user's files to force it. The work area is the run's own to clean.
+
+Limits: the copy has no Git history (a check that needs `git log`, a tag or
+`git diff` cannot run there), holds no ignored or unmanaged file (installed
+dependencies, build output, local configuration), and a command that names the
+checkout by an absolute path runs there, not in the copy; write paths relative to
+the copy and put what a fresh consumer needs into the check itself. A check that
+fails only in the copy is refused with the copy's location, its usual causes (a path
+the plan excluded, an ignored or unmanaged file, a commit made after the return) and
+the one exit the stage has: `replan` with a corrective work item, so `release`
+returns the fix and `release-verify` observes it.
+
 ### Follow-up return
 
 A check that runs after the return, such as a post-deploy browser check, can
-find a defect that needs a product fix. Commit that fix in the execution
-checkout, rerun its checks, then run `plan-return` and `return` again. The new
-plan still reviews every path from the baseline. The follow-up starts from the
+find a defect that needs a product fix. Where the check runs at a stage that may
+return (`release`, `handoff`), commit that fix in the execution
+checkout, rerun its checks, then run `plan-return` and `return` again. At
+`release-verify` the stage cannot return (`workspace return` is allowed only at
+`release` and `handoff`) and its copy still holds the old tree: report `replan` with
+a corrective work item, and the next `release` returns the fix. The new
+plan still lists every path from the baseline; decisions already recorded for a path
+carry over and new paths are decided with `review-return`. The follow-up starts from the
 source state the previous receipt recorded, not from the preparation baseline:
 
 - After a **working-tree return**, the helper moves the source working tree
@@ -206,11 +267,44 @@ source's staged content exactly as it was; no unrelated original edit is staged
 or committed. A new source edit made during the run blocks the return rather
 than getting overwritten or silently accepted as a new baseline.
 
+### Rolling a return back
+
+`release-plan` writes a rollback, and that file is durable knowledge later runs
+inherit, so it must name the route the return really takes. The `release-plan` and
+`release-check` packets print recipes from `workspace.md` (its `source_head`,
+`baseline_commit` and run branch, never a receipt's `source_before`, which is the
+previous result after a follow-up). Write the plan's rollback with those SHAs and
+branch names as plain `git` commands run from the repository root, not this run's
+absolute paths. Every call runs in the source repository, so the recipes work after
+the execution worktree is removed.
+
+- **Fast-forward, nothing committed on top:** with the original branch checked out,
+  `git reset --keep <source_head>` moves it back and refuses to overwrite local
+  changes. The returned commits stay on the run branch.
+- **Fast-forward, later commits on top:** with a clean working tree,
+  `git restore --source=<source_head> --staged --worktree :/` followed by a commit
+  makes the tree equal to the one before the return (files the run added are removed)
+  and keeps the later history, but it also undoes what those later commits changed,
+  and it discards uncommitted edits. To keep their changes, reverse only the run's
+  files with the working-tree recipe below. `git revert <source_head>..HEAD` is not a
+  recipe: it stops on an integrate merge commit in the run's history.
+- **Working-tree return** (a dirty start, or a clean start whose plan excluded a
+  committed path), or only the run's files after a fast-forward:
+  `git diff --binary <baseline_commit> <run branch> -- <kept paths>`
+  piped to `git apply -R`, both run with `git -C <source repo>`. `<kept paths>` are the
+  keep rows of `return-plan.md`. The reversal is left uncommitted. It needs the run
+  branch and the baseline commit to still exist; ShipLoop never removes them.
+
+A tree id in a receipt (`expected_source.working_tree`) is not a rollback anchor: no
+ref points at it, so `git gc` can remove it.
+
 ## Recovery and limits
 
 No automatic cleanup: keep the worktree, private branch, run report and receipts
 available for inspection/recovery. Cleanup is a separate authorized operation,
-only after checking no unique work remains. Never delete user source files to
+only after checking no unique work remains. The `consumer-check` copy likewise
+stays in the workspace root (outside the product and the run records, and never
+returned) until the workspace is removed. Never delete user source files to
 force a clean return. A repeated return must reconcile its receipt and actual
 source/candidate effects; it must not apply the patch twice. A follow-up return
 applies only the change since the previous receipt's recorded result.

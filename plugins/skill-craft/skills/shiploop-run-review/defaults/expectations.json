@@ -13,7 +13,17 @@
   "order": 1,
   "title": "Specify",
   "short": "Spec and test strategy",
-  "text": "The model writes a spec and a test strategy from the notes, one stage at a time. The script accepts each only after its Improve review, and the spec is committed to docs/shiploop/."
+  "text": "The model writes a spec and a test strategy from the notes, one stage at a time. The script accepts each only after its Improve review, and the spec is committed to docs/shiploop/. The run option `planning_review` (recorded in `state.md` at `init` or `workspace start`, never changed afterwards) selects which of the five planning results `spec`, `test-strategy`, `plan`, `step-plan` and `test-spec` start an Improve child: `--planning-review stage` starts one after each of the five, as before, and `--planning-review none` starts none. In `none` a planning result is accepted without a review loop, the spec and test strategy are committed to the knowledge home when each is accepted and no Improve child reviews them afterwards, so later runs inherit them unreviewed. The Improve children after `system-test-author` and `release-plan` and the last `carry-forward` start in every mode (test/shiploop_e2e/SPEC.md, S-10 carve-out of 2026-10-05).",
+  "revs": [
+   {
+    "at": "2026-10-06T14:45:21Z",
+    "from": "The model writes a spec and a test strategy from the notes, one stage at a time. The script accepts each only after its Improve review, and the spec is committed to docs/shiploop/.",
+    "obs": "o44",
+    "option": "a26",
+    "reason": "Under planning_review none (skill-craft 1.22.0) the sentence 'the script accepts each only after its Improve review' is untrue for spec and test-strategy; the SPEC's S-10 carve-out of 2026-10-05 states the exception, and the page's Specify text should carry it.",
+    "to": "The model writes a spec and a test strategy from the notes, one stage at a time. The script accepts each only after its Improve review, and the spec is committed to docs/shiploop/. The run option `planning_review` (recorded in `state.md` at `init` or `workspace start`, never changed afterwards) selects which of the five planning results `spec`, `test-strategy`, `plan`, `step-plan` and `test-spec` start an Improve child: `--planning-review stage` starts one after each of the five, as before, and `--planning-review none` starts none. In `none` a planning result is accepted without a review loop, the spec and test strategy are committed to the knowledge home when each is accepted and no Improve child reviews them afterwards, so later runs inherit them unreviewed. The Improve children after `system-test-author` and `release-plan` and the last `carry-forward` start in every mode (test/shiploop_e2e/SPEC.md, S-10 carve-out of 2026-10-05)."
+   }
+  ]
  },
  {
   "key": "phase-2",

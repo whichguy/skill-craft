@@ -357,6 +357,32 @@ workspace-mode handoff gate. It never merges the source checkout running the
 test. [Workspace experiments](experiments/shiploop_workspace/README.md) explain
 why starting at HEAD and deleting transient files at the tip were insufficient.
 
+`python3 test/shiploop-return-review.test.py` drives the real CLI through how a
+model reviews and returns an isolated run: the blocked return names its undecided
+paths and the `review-return` verb on its first line, one verb records the
+decisions (no hand edit of `return-plan.md`), a fresh plan keeps them, and each
+return kind is predicted before it happens and undone by the rollback recipe the
+packet prints (the recipes are run through `sh` against real Git). It is a
+separate suite because the workspace suite is above `QUICK_MAX_SECONDS`; its
+Git calls ignore the machine's Git configuration, as a CI runner's carries
+git-lfs filters that the workspace refuses.
+
+`python3 test/shiploop-retire.test.py` checks the handoff retire (owner decision
+D3): the terminal close commits the pending knowledge, removes the run's feature
+spec in a commit of its own, returns what those commits added, and then prints
+what happened, so each line is true when it prints. The first class drives
+`_knowledge_close` on a real repository with the workspace calls stood in (the
+order, each message, a follow-up that fails with and without a knowledge commit
+made at the handoff, an unwritable list, the list notice once); a third class
+checks that a retried handoff may cite the spec the retire removed; the last
+drives the real CLI through a fast-forward return, a working-tree return and a
+no-change return (the file stays, and the notice is true after the follow-up
+return), a handoff before the return, a handoff refused after the retire and
+retried (one retire commit, a result that cites the retired spec accepted), and
+a source that moved (the guard's commands are reached). The retire's own pieces
+are in `test/shiploop-knowledge.test.py`. It is a suite of its own so that
+`shiploop-return-review` keeps its catalogued seconds.
+
 The three `shiploop-chain{,-git,-ledger}.test.py` suites belong to the ordinary
 ShipLoop aggregate. They exercise the public bridge with the repository's
 `skills/plan-dispatcher` package, disposable real Git worktrees, eager fan-out and
@@ -477,6 +503,11 @@ for changed bytes instead of invalidating unrelated evidence.
 prove that failed preconditions, changed candidates, dirty files and remote races
 cannot publish a divergent release through the guarded push command. These are
 publication-control tests; they do not establish GitHub branch-policy compliance.
+
+`release-preflight.test.py` (core) runs `release.py` in disposable repositories
+to prove that a release shipping ShipLoop is refused, as a dry run and for real,
+unless a commit since the last release touches the E2E `LEARNINGS.md` or carries a
+`No-E2E-Round: <reason>` trailer.
 
 `release-flow.test.sh` and `release-boundary.test.sh` (core) cut releases and
 run the release guard in disposable repositories. The guard checks each release

@@ -1,0 +1,800 @@
+{
+ "schema": "shiploop-e2e-commit-baseline-tallies/v1",
+ "harness_head": "4d4233331e6ad6ec89a737e7e4938c92bb78bfdf",
+ "reads": "the runs baseline.json regraded (read-only); no run file is written",
+ "runs": 39,
+ "head_replies": {
+  "all": {
+   "heads": 1597,
+   "whole": 438,
+   "not_whole": {
+    "the reply ends before the head's closing line": 1116,
+    "the reply opens the narrative block and ends inside it": 41,
+    "every line is there and a callback or keepalive line is shortened (a cut by column)": 2
+   }
+  },
+  "by_host": {
+   "claude": {
+    "heads": 1242,
+    "whole": 154,
+    "not_whole": {
+     "the reply ends before the head's closing line": 1049,
+     "the reply opens the narrative block and ends inside it": 38,
+     "every line is there and a callback or keepalive line is shortened (a cut by column)": 1
+    }
+   },
+   "codex": {
+    "heads": 151,
+    "whole": 151,
+    "not_whole": {}
+   },
+   "grok": {
+    "heads": 168,
+    "whole": 117,
+    "not_whole": {
+     "the reply ends before the head's closing line": 51
+    }
+   },
+   "mixed host (grok then claude)": {
+    "heads": 36,
+    "whole": 16,
+    "not_whole": {
+     "every line is there and a callback or keepalive line is shortened (a cut by column)": 1,
+     "the reply ends before the head's closing line": 16,
+     "the reply opens the narrative block and ends inside it": 3
+    }
+   }
+  }
+ },
+ "other_commits": {
+  "all": {
+   "n": 35,
+   "by_author": {
+    "Jim Wiese": 32,
+    "ShipLoop E2E": 3
+   },
+   "git_confirmed": 3
+  },
+  "by_host": {
+   "claude": {
+    "n": 22,
+    "by_author": {
+     "Jim Wiese": 22
+    },
+    "git_confirmed": 0
+   },
+   "codex": {
+    "n": 2,
+    "by_author": {
+     "ShipLoop E2E": 2
+    },
+    "git_confirmed": 2
+   },
+   "grok": {
+    "n": 1,
+    "by_author": {
+     "ShipLoop E2E": 1
+    },
+    "git_confirmed": 1
+   },
+   "mixed host (grok then claude)": {
+    "n": 10,
+    "by_author": {
+     "Jim Wiese": 10
+    },
+    "git_confirmed": 0
+   }
+  }
+ },
+ "commits_by_author": {
+  "by_host": {
+   "claude": {
+    "improve": {
+     "ShipLoop Workspace": 85
+    },
+    "script": {
+     "ShipLoop Workspace": 286
+    },
+    "other": {
+     "Jim Wiese": 22
+    }
+   },
+   "codex": {
+    "improve": {
+     "ShipLoop E2E": 34
+    },
+    "script": {
+     "ShipLoop E2E": 38
+    },
+    "other": {
+     "ShipLoop E2E": 2
+    }
+   },
+   "grok": {
+    "improve": {
+     "ShipLoop E2E": 17
+    },
+    "script": {
+     "ShipLoop E2E": 78
+    },
+    "other": {
+     "ShipLoop E2E": 1
+    }
+   },
+   "mixed host (grok then claude)": {
+    "improve": {},
+    "script": {
+     "ShipLoop E2E": 16,
+     "ShipLoop Workspace": 4
+    },
+    "other": {
+     "Jim Wiese": 10
+    }
+   }
+  }
+ },
+ "per_run": [
+  {
+   "run": "20261003/batch-sonnet/battleship",
+   "host": "claude",
+   "head_replies": {
+    "heads": 61,
+    "whole": 12,
+    "not_whole": {
+     "the reply ends before the head's closing line": 46,
+     "the reply opens the narrative block and ends inside it": 3
+    }
+   },
+   "other_commits": {
+    "n": 4,
+    "by_author": {
+     "Jim Wiese": 4
+    },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261003/batch-sonnet/battleship-scoring",
+   "host": "claude",
+   "head_replies": {
+    "heads": 49,
+    "whole": 10,
+    "not_whole": {
+     "the reply ends before the head's closing line": 38,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261003/batch-sonnet/hello",
+   "host": "claude",
+   "head_replies": {
+    "heads": 41,
+    "whole": 5,
+    "not_whole": {
+     "the reply ends before the head's closing line": 33,
+     "the reply opens the narrative block and ends inside it": 3
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261003/batch-sonnet/seat-reservations",
+   "host": "claude",
+   "head_replies": {
+    "heads": 71,
+    "whole": 14,
+    "not_whole": {
+     "the reply ends before the head's closing line": 53,
+     "the reply opens the narrative block and ends inside it": 4
+    }
+   },
+   "other_commits": {
+    "n": 1,
+    "by_author": {
+     "Jim Wiese": 1
+    },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261003/battleship-luna",
+   "host": "codex",
+   "head_replies": {
+    "heads": 18,
+    "whole": 18,
+    "not_whole": {}
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261003/hello",
+   "host": "claude",
+   "head_replies": {
+    "heads": 42,
+    "whole": 4,
+    "not_whole": {
+     "the reply ends before the head's closing line": 38
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261003/seat-reservations",
+   "host": "claude",
+   "head_replies": {
+    "heads": 50,
+    "whole": 8,
+    "not_whole": {
+     "the reply ends before the head's closing line": 42
+    }
+   },
+   "other_commits": {
+    "n": 3,
+    "by_author": {
+     "Jim Wiese": 3
+    },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261003/v1161-battleship-luna",
+   "host": "codex",
+   "head_replies": {
+    "heads": 77,
+    "whole": 77,
+    "not_whole": {}
+   },
+   "other_commits": {
+    "n": 2,
+    "by_author": {
+     "ShipLoop E2E": 2
+    },
+    "git_confirmed": 2
+   }
+  },
+  {
+   "run": "20261003/v1161-hello",
+   "host": "claude",
+   "head_replies": {
+    "heads": 41,
+    "whole": 3,
+    "not_whole": {
+     "the reply ends before the head's closing line": 37,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261004/v1180-hello-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 42,
+    "whole": 3,
+    "not_whole": {
+     "the reply ends before the head's closing line": 39
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261004/v1190-hello-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 42,
+    "whole": 5,
+    "not_whole": {
+     "the reply ends before the head's closing line": 37
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261004/v1190-hello-sonnet-2",
+   "host": "claude",
+   "head_replies": {
+    "heads": 43,
+    "whole": 3,
+    "not_whole": {
+     "the reply ends before the head's closing line": 40
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261004/v1200-battleship-luna",
+   "host": "codex",
+   "head_replies": {
+    "heads": 6,
+    "whole": 6,
+    "not_whole": {}
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261004/v1200-hello-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 44,
+    "whole": 9,
+    "not_whole": {
+     "the reply ends before the head's closing line": 34,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261005/v1210-battleship-grok-medium",
+   "host": "grok",
+   "head_replies": {
+    "heads": 23,
+    "whole": 22,
+    "not_whole": {
+     "the reply ends before the head's closing line": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261005/v1210-battleship-luna-xhigh",
+   "host": "codex",
+   "head_replies": {
+    "heads": 50,
+    "whole": 50,
+    "not_whole": {}
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261006/v1220-battleship-grok-medium-none",
+   "host": "grok",
+   "head_replies": {
+    "heads": 55,
+    "whole": 25,
+    "not_whole": {
+     "the reply ends before the head's closing line": 30
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261006/v1220-battleship-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 36,
+    "whole": 3,
+    "not_whole": {
+     "the reply ends before the head's closing line": 33
+    }
+   },
+   "other_commits": {
+    "n": 3,
+    "by_author": {
+     "Jim Wiese": 3
+    },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261007/v1230-battleship-grok-none",
+   "host": "grok",
+   "head_replies": {
+    "heads": 41,
+    "whole": 21,
+    "not_whole": {
+     "the reply ends before the head's closing line": 20
+    }
+   },
+   "other_commits": {
+    "n": 1,
+    "by_author": {
+     "ShipLoop E2E": 1
+    },
+    "git_confirmed": 1
+   }
+  },
+  {
+   "run": "20261007/v1230-battleship-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 38,
+    "whole": 3,
+    "not_whole": {
+     "the reply ends before the head's closing line": 35
+    }
+   },
+   "other_commits": {
+    "n": 1,
+    "by_author": {
+     "Jim Wiese": 1
+    },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261008/r1-battleship-grok-none",
+   "host": "grok",
+   "head_replies": {
+    "heads": 31,
+    "whole": 31,
+    "not_whole": {}
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261008/r1-battleship-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 42,
+    "whole": 3,
+    "not_whole": {
+     "the reply ends before the head's closing line": 38,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261008/r1-checkers-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 37,
+    "whole": 3,
+    "not_whole": {
+     "the reply ends before the head's closing line": 32,
+     "the reply opens the narrative block and ends inside it": 2
+    }
+   },
+   "other_commits": {
+    "n": 2,
+    "by_author": {
+     "Jim Wiese": 2
+    },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261008/r2-battleship-grok-none",
+   "host": "mixed host (grok then claude)",
+   "head_replies": {
+    "heads": 36,
+    "whole": 16,
+    "not_whole": {
+     "every line is there and a callback or keepalive line is shortened (a cut by column)": 1,
+     "the reply ends before the head's closing line": 16,
+     "the reply opens the narrative block and ends inside it": 3
+    }
+   },
+   "other_commits": {
+    "n": 10,
+    "by_author": {
+     "Jim Wiese": 10
+    },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261008/r2-battleship-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 40,
+    "whole": 2,
+    "not_whole": {
+     "the reply ends before the head's closing line": 37,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 1,
+    "by_author": {
+     "Jim Wiese": 1
+    },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261008/r2-checkers-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 45,
+    "whole": 3,
+    "not_whole": {
+     "the reply ends before the head's closing line": 42
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261008/r3-battleship-grok-none",
+   "host": "grok",
+   "head_replies": {
+    "heads": 18,
+    "whole": 18,
+    "not_whole": {}
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261008/r3-battleship-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 45,
+    "whole": 7,
+    "not_whole": {
+     "the reply ends before the head's closing line": 34,
+     "the reply opens the narrative block and ends inside it": 4
+    }
+   },
+   "other_commits": {
+    "n": 2,
+    "by_author": {
+     "Jim Wiese": 2
+    },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261008/r3-checkers-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 48,
+    "whole": 2,
+    "not_whole": {
+     "the reply ends before the head's closing line": 45,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261009/s6-after-spec",
+   "host": "claude",
+   "head_replies": {
+    "heads": 40,
+    "whole": 28,
+    "not_whole": {
+     "the reply ends before the head's closing line": 8,
+     "the reply opens the narrative block and ends inside it": 4
+    }
+   },
+   "other_commits": {
+    "n": 3,
+    "by_author": {
+     "Jim Wiese": 3
+    },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261009/s6-inside-implement",
+   "host": "claude",
+   "head_replies": {
+    "heads": 38,
+    "whole": 4,
+    "not_whole": {
+     "the reply ends before the head's closing line": 33,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261009/s6-inside-implement-k2",
+   "host": "claude",
+   "head_replies": {
+    "heads": 39,
+    "whole": 2,
+    "not_whole": {
+     "the reply ends before the head's closing line": 36,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261009/s6-inside-implement-mtime",
+   "host": "claude",
+   "head_replies": {
+    "heads": 41,
+    "whole": 5,
+    "not_whole": {
+     "every line is there and a callback or keepalive line is shortened (a cut by column)": 1,
+     "the reply ends before the head's closing line": 34,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261009/s6-inside-implement-write",
+   "host": "claude",
+   "head_replies": {
+    "heads": 37,
+    "whole": 2,
+    "not_whole": {
+     "the reply ends before the head's closing line": 34,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261009/s6-inside-test-strategy",
+   "host": "claude",
+   "head_replies": {
+    "heads": 27,
+    "whole": 2,
+    "not_whole": {
+     "the reply ends before the head's closing line": 24,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261009/s6-inside-test-strategy-2",
+   "host": "claude",
+   "head_replies": {
+    "heads": 37,
+    "whole": 2,
+    "not_whole": {
+     "the reply ends before the head's closing line": 34,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261010/battleship-1",
+   "host": "claude",
+   "head_replies": {
+    "heads": 43,
+    "whole": 3,
+    "not_whole": {
+     "the reply ends before the head's closing line": 38,
+     "the reply opens the narrative block and ends inside it": 2
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261010/checkers-1",
+   "host": "claude",
+   "head_replies": {
+    "heads": 45,
+    "whole": 3,
+    "not_whole": {
+     "the reply ends before the head's closing line": 41,
+     "the reply opens the narrative block and ends inside it": 1
+    }
+   },
+   "other_commits": {
+    "n": 2,
+    "by_author": {
+     "Jim Wiese": 2
+    },
+    "git_confirmed": 0
+   }
+  },
+  {
+   "run": "20261010/pc1i-checkers-sonnet",
+   "host": "claude",
+   "head_replies": {
+    "heads": 38,
+    "whole": 1,
+    "not_whole": {
+     "the reply ends before the head's closing line": 34,
+     "the reply opens the narrative block and ends inside it": 3
+    }
+   },
+   "other_commits": {
+    "n": 0,
+    "by_author": {},
+    "git_confirmed": 0
+   }
+  }
+ ]
+}

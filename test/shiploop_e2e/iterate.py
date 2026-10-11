@@ -153,9 +153,14 @@ def learnings_message(index: int, args, sha: str, result: dict, verdict: dict, p
              f"- ShipLoop: status {shiploop.get('status') or shiploop.get('reason')}, "
              f"stage {shiploop.get('stage')}, report {shiploop.get('report_html')}",
              f"- checks in work/: {sum(c['pass'] for c in checks)}/{len(checks)} pass"]
-    if shiploop.get("worktree_checks") is not None:
-        wt = shiploop["worktree_checks"]
-        lines.append(f"- unreturned product in ShipLoop's worktree: {sum(c['pass'] for c in wt)}/{len(wt)} pass")
+    if "outcome_basis" in result:  # how the run ended (a record: run.outcome_class), where the result has one
+        lines.append(f"- ended as: {result.get('outcome_class') or 'unknown'} ({result['outcome_basis']})")
+    at_stop = result.get("product_at_stop")
+    if isinstance(at_stop, dict) and at_stop.get("ran"):
+        engine = at_stop.get("engine") or {}
+        lines.append(f"- product at stop (information only, engine {engine.get('status')} at {engine.get('stage')}): "
+                     f"{at_stop['passed']}/{at_stop['total']} checks pass in ShipLoop's unreturned worktree"
+                     + (f", {at_stop['timed_out']} timed out" if at_stop.get("timed_out") else ""))
     for check in checks:
         if not check["pass"]:
             lines.append(f"  failed: {check['command'][:120]}")

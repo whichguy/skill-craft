@@ -1,0 +1,9 @@
+ShipLoop navigator | skill-validate | revision 45
+Goal: Validate any skill or helper change against real inputs.
+Done when (confirm each before calling done; keep going until all hold):
+Result template:
+Allowed outcomes: done | repeat | blocked | revise (the item's step plan or test spec is wrong or unachievable: it goes back to step-plan with this result as evidence; 1 of 2 left for this item).
+A blocked result adds blocked_by: user | access | external (who can unblock it); a problem this run can fix itself is repaired in this stage, not blocked.
+Results this stage builds on (open each one whose content is not already in your context; report a conflict with them instead of silently choosing):
+Current stage guidance:
+Improve: This result advances directly; no Improve child runs for this stage. If work cannot continue, submit outcome 'blocked' with a truthful summary; when the run stops blocked, the next packet prints its Resume command.

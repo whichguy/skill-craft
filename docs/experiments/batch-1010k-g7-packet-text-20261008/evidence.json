@@ -1,0 +1,530 @@
+{
+ "purpose": "Compact evidence for batch 1010 group G7 (packet text: A2 route sentence, A3 opening directory, A4 test-strategy Done-when), exported so the journal's claims do not rest on files that live only under e2e-runs or a session scratchpad.",
+ "source": {
+  "runs": "/Users/dadleet/e2e-runs/20261008/<run>/events.jsonl (line numbers below are 1-based lines of that file); round 1 = r1-*, round 2 = r2-*",
+  "base": "b73c30ba (origin/main; skill-craft 1.25.0, ShipLoop 0.57.0, release commit ea6ce8ce)",
+  "first_build": "6b20f6a2 (A2, A3, A4 as first built)",
+  "review_fixes": "the commits after 6b20f6a2 on this branch (review of the first build)"
+ },
+ "a2_route_sentence": {
+  "question": "Did a model hand-commit a file for the return, and what did it read before it did?",
+  "r2_battleship": {
+   "old_route_sentence_in_tool_results": [
+    {
+     "line": 25,
+     "via": "a Read of a packet file",
+     "characters_shown_from_Return_route": 382
+    },
+    {
+     "line": 58,
+     "via": "a Read of an Improve packet file",
+     "characters_shown_from_Return_route": 382
+    },
+    {
+     "line": 373,
+     "via": "grep -n -iE 'commit' packets/<integrate action>.md | head -8 | cut -c1-300",
+     "characters_shown_from_Return_route": 296
+    },
+    {
+     "line": 389,
+     "via": "grep -n -iE 'scope|inventory|candidate' packets/<action>-improve.md | cut -c1-300 | head -12",
+     "characters_shown_from_Return_route": 296
+    },
+    {
+     "line": 475,
+     "via": "grep -n -iE 'plan-return|review-return|workspace' packets/<action>.md | cut -c1-250 | sed -n 1,12p",
+     "characters_shown_from_Return_route": 246,
+     "after_the_hand_commit": true
+    },
+    {
+     "line": 507,
+     "via": "grep -n -iE 'return|report' packets/<action>.md | sed -n 1,8p | cut -c1-250",
+     "characters_shown_from_Return_route": 300,
+     "after_the_hand_commit": true
+    }
+   ],
+   "how_the_displays_ended": "every display was cut inside the second half of the sentence: at 296 to 382 characters it ended '...; if the plan excludes a committed path or leaves a file uncommitted, it applie' (the clause that says what the plan then does is cut off), at 246 it ended 'if the plan excludes a comm'",
+   "integrate_develop_line_read_at_373": "- Develop: When this stage is accepted done, ShipLoop commits the item's changed files that the step plan's paths declare (and docs/shiploop/); do not write that commit yourself. It names any other changed file: commit the ones the product needs, delete generated output. Keep run state and logs out of product commits.",
+   "old_route_line_as_cut_at_389": "136:Return route (from workspace.md): this run started from a clean main. The return fast-forwards main to the run branch shiploop/run-2cfd5d3ab3284ba9 when the candidate is committed and every path in its history is kept; if the plan excludes a committed path or leaves a file uncommitted, it applie",
+   "route_sentence_displayed_at_release_plan": false,
+   "clause_added_by_A2": "starts at character 70 and ends at 189 of the printed line, inside every window above",
+   "hand_commit": {
+    "line": 463,
+    "command_head": "W=/Users/dadleet/e2e-runs/20261008/r2-battleship-sonnet/.shiploop-runs/work-20261009-002022-c0f400/worktree; git -C $W status --short; git -C $W add test/system.test.js && git -C $W commit -q -m \"Add system tests ST-1 and ST-2 for the running server and page script\n\nKey learning: the system-test-author step ran after integrate, so its test file was\noutside the step plan's committed paths; committing it keeps the clean-copy consumer\nchecks (node --test, ST-1/ST-2) valid after the workspace return.\n\nCo-Authored-By: C",
+    "git_log_of_the_returned_worktree": [
+     "78eaae1|ShipLoop Workspace|docs(shiploop): record build-a-small-single-player-battleship-9cd81b knowledge at release-verify",
+     "7a4eabe|ShipLoop Workspace|chore(shiploop): commit files written after the last work item, before the return",
+     "24bb603|ShipLoop Workspace|docs(shiploop): record build-a-small-single-player-battleship-9cd81b knowledge at release-plan",
+     "6bba9a6|Jim Wiese|Add system tests ST-1 and ST-2 for the running server and page script",
+     "84c1c64|ShipLoop Workspace|docs(shiploop): record build-a-small-single-player-battleship-9cd81b knowledge after carry-forward",
+     "1036edc|ShipLoop Workspace|feat: W1 Battleship game: rules module, HTTP server, page, tests",
+     "eec967d|ShipLoop Workspace|Test spec: make the oversized-body oracle exact",
+     "0146d0b|ShipLoop Workspace|docs(shiploop): record build-a-small-single-player-battleship-9cd81b knowledge at prepare",
+     "5b6a3b2|ShipLoop Workspace|docs(shiploop): record build-a-small-single-player-battleship-9cd81b knowledge after plan",
+     "8ab2112|ShipLoop Workspace|docs(shiploop): record build-a-small-single-player-battleship-9cd81b knowledge after test-strategy",
+     "a62c174|ShipLoop Workspace|docs(shiploop): record build-a-small-single-player-battleship-9cd81b knowledge after spec",
+     "153635f|ShipLoop Workspace|Spec: pin HTTP methods and last-ship response"
+    ]
+   },
+   "note": "the model saw the old sentence four times before its hand commit at line 463 and each time only up to 'leaves a file uncommitted, it applie'; whether that drove the commit is unproven (the thinking blocks are redacted, n is 1), and the integrate Develop line at 373 ('commit the ones the product needs') is a competing source"
+  },
+  "r1_attribution": {
+   "r1_battleship": {
+    "line_460": "plan-return printed: Committed files left uncommitted in the candidate: test/system.test.js (81408572901f).",
+    "line_464": "git add test/system.test.js and git commit by hand: a no-op, ShipLoop's own commit 8140857 had already taken the file (line 465)",
+    "reading": "the trigger was the old plan-return notice (reworded in e39160ae), not the route sentence, which round 1 did not show in any tool result"
+   },
+   "r1_checkers": {
+    "line_324": "Not committed (changed, but not in the step plan's paths): README.md. Commit the ones the product needs, delete generated output.",
+    "line_326": "git add README.md and git commit by hand, after that integrate notice",
+    "line_362": "git add test/system.test.js and git commit by hand: the only round-1 leftover commit nothing instructed"
+   }
+  }
+ },
+ "a3_opening_directory": {
+  "question": "Did the models take a step the packet never printed to write the Improve opening file?",
+  "r2_checkers": {
+   "line_99": "ls of the opening directory, then write opening.md, in one command",
+   "line_100": "ls: No such file or directory; then: ShipLoop navigator: write the opening file first: <path>/opening.md",
+   "line_102": "the same command with mkdir -p $D in front",
+   "line_103": "Improve child started from the frozen contract (the start succeeded)",
+   "line_187": "the model's own start.sh wrapper also carries mkdir -p"
+  },
+  "r2_battleship": {
+   "line_141": "the model's start.sh wrapper runs improve-bind, then mkdir -p $D, then writes opening.md and runs improve-start; no tool result of this run holds 'write the opening file first' (0 hits), so it put the mkdir in before meeting the refusal",
+   "tool_result_hits_of_write_the_opening_file_first": []
+  },
+  "reading": "both round-2 runs ended with a mkdir -p of the opening directory in their own script, a step no packet printed; only Checkers met the refusal first. The journal's earlier wording that both met the refusal is corrected."
+ },
+ "a4_probe_in_done_when": {
+  "question": "Did either round-2 run read the test-strategy duty's probe paragraph?",
+  "tool_result_lines_holding_probed_now_by_doing": {
+   "r2_battleship": [],
+   "r2_checkers": []
+  },
+  "tool_result_lines_holding_stand_in": {
+   "r2_battleship": [],
+   "r2_checkers": []
+  },
+  "test_strategy_head_results": {
+   "r2_battleship": [
+    128,
+    132,
+    137
+   ],
+   "r2_checkers": [
+    175,
+    183
+   ]
+  },
+  "battleship_reads_head_with": {
+   "line": 131,
+   "command": "sed -n 3,14p"
+  },
+  "first_tool_use_naming_chrome": {
+   "r2_battleship": null,
+   "r2_checkers": 648
+  },
+  "note": "the only 'stand-in' in either log is the model's own words in a tool call it wrote (r2 Checkers line 187, an opening text about 'a weaker stand-in' check, a different meaning); the checks above are over tool results, which hold neither phrase"
+ },
+ "packet_sizes_dry_run": {
+  "method": "graph-dry-run --scenario all --format json for each delegation, base, first build and review-fix trees extracted at equal checkout path lengths so only the change differs; 'status_end' is the index of the status-block end marker (the number the kept-head window test bounds by 8000), 'characters' the packet length; values are [base, first build, review fixes]",
+  "path_note": "absolute values depend on the checkout path; the growth is path independent. Measured directly with the review-fix tree at this worktree's own 62-character path, the largest status end of any dry-run packet is 7971 (ask-agent delegation, the step-plan revise packet) and 6984 (inline), against the 8000 limit; at the longer scratch path used for the table below the ask-agent figure is 8027, which is the checkout-path dependence the audit found on unmodified code.",
+  "by_delegation": {
+   "inline": {
+    "packets": 287,
+    "changed": 12,
+    "growth_base_to_prev": [
+     306
+    ],
+    "growth_base_to_curr": [
+     310
+    ],
+    "max_status_end_any_packet": [
+     7040,
+     7040,
+     7040
+    ],
+    "changed_packets": [
+     {
+      "scenario": "delivery",
+      "sequence": 6,
+      "packet": "ShipLoop navigator | test-strategy | revision 5",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33035,
+       33341,
+       33345
+      ]
+     },
+     {
+      "scenario": "delivery",
+      "sequence": 7,
+      "packet": "ShipLoop navigator | test-strategy | revision 6",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18183,
+       18489,
+       18493
+      ]
+     },
+     {
+      "scenario": "two-work-items",
+      "sequence": 6,
+      "packet": "ShipLoop navigator | test-strategy | revision 5",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33035,
+       33341,
+       33345
+      ]
+     },
+     {
+      "scenario": "two-work-items",
+      "sequence": 7,
+      "packet": "ShipLoop navigator | test-strategy | revision 6",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18183,
+       18489,
+       18493
+      ]
+     },
+     {
+      "scenario": "blocked-resume",
+      "sequence": 8,
+      "packet": "ShipLoop navigator | test-strategy | revision 7",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33035,
+       33341,
+       33345
+      ]
+     },
+     {
+      "scenario": "blocked-resume",
+      "sequence": 9,
+      "packet": "ShipLoop navigator | test-strategy | revision 8",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18183,
+       18489,
+       18493
+      ]
+     },
+     {
+      "scenario": "repeat-improve",
+      "sequence": 6,
+      "packet": "ShipLoop navigator | test-strategy | revision 5",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33035,
+       33341,
+       33345
+      ]
+     },
+     {
+      "scenario": "repeat-improve",
+      "sequence": 7,
+      "packet": "ShipLoop navigator | test-strategy | revision 6",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18183,
+       18489,
+       18493
+      ]
+     },
+     {
+      "scenario": "revise",
+      "sequence": 6,
+      "packet": "ShipLoop navigator | test-strategy | revision 5",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33035,
+       33341,
+       33345
+      ]
+     },
+     {
+      "scenario": "revise",
+      "sequence": 7,
+      "packet": "ShipLoop navigator | test-strategy | revision 6",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18183,
+       18489,
+       18493
+      ]
+     },
+     {
+      "scenario": "pause-resume",
+      "sequence": 6,
+      "packet": "ShipLoop navigator | test-strategy | revision 5",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33035,
+       33341,
+       33345
+      ]
+     },
+     {
+      "scenario": "pause-resume",
+      "sequence": 7,
+      "packet": "ShipLoop navigator | test-strategy | revision 6",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18183,
+       18489,
+       18493
+      ]
+     }
+    ]
+   },
+   "ask-agent": {
+    "packets": 287,
+    "changed": 12,
+    "growth_base_to_prev": [
+     306
+    ],
+    "growth_base_to_curr": [
+     310
+    ],
+    "max_status_end_any_packet": [
+     8027,
+     8027,
+     8027
+    ],
+    "changed_packets": [
+     {
+      "scenario": "delivery",
+      "sequence": 6,
+      "packet": "ShipLoop navigator | test-strategy | revision 5",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33069,
+       33375,
+       33379
+      ]
+     },
+     {
+      "scenario": "delivery",
+      "sequence": 7,
+      "packet": "ShipLoop navigator | test-strategy | revision 6",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18222,
+       18528,
+       18532
+      ]
+     },
+     {
+      "scenario": "two-work-items",
+      "sequence": 6,
+      "packet": "ShipLoop navigator | test-strategy | revision 5",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33069,
+       33375,
+       33379
+      ]
+     },
+     {
+      "scenario": "two-work-items",
+      "sequence": 7,
+      "packet": "ShipLoop navigator | test-strategy | revision 6",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18222,
+       18528,
+       18532
+      ]
+     },
+     {
+      "scenario": "blocked-resume",
+      "sequence": 8,
+      "packet": "ShipLoop navigator | test-strategy | revision 7",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33069,
+       33375,
+       33379
+      ]
+     },
+     {
+      "scenario": "blocked-resume",
+      "sequence": 9,
+      "packet": "ShipLoop navigator | test-strategy | revision 8",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18222,
+       18528,
+       18532
+      ]
+     },
+     {
+      "scenario": "repeat-improve",
+      "sequence": 6,
+      "packet": "ShipLoop navigator | test-strategy | revision 5",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33069,
+       33375,
+       33379
+      ]
+     },
+     {
+      "scenario": "repeat-improve",
+      "sequence": 7,
+      "packet": "ShipLoop navigator | test-strategy | revision 6",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18222,
+       18528,
+       18532
+      ]
+     },
+     {
+      "scenario": "revise",
+      "sequence": 6,
+      "packet": "ShipLoop navigator | test-strategy | revision 5",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33069,
+       33375,
+       33379
+      ]
+     },
+     {
+      "scenario": "revise",
+      "sequence": 7,
+      "packet": "ShipLoop navigator | test-strategy | revision 6",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18222,
+       18528,
+       18532
+      ]
+     },
+     {
+      "scenario": "pause-resume",
+      "sequence": 6,
+      "packet": "ShipLoop navigator | test-strategy | revision 5",
+      "status_end": [
+       4832,
+       5138,
+       5142
+      ],
+      "characters": [
+       33069,
+       33375,
+       33379
+      ]
+     },
+     {
+      "scenario": "pause-resume",
+      "sequence": 7,
+      "packet": "ShipLoop navigator | test-strategy | revision 6",
+      "status_end": [
+       2973,
+       3279,
+       3283
+      ],
+      "characters": [
+       18222,
+       18528,
+       18532
+      ]
+     }
+    ]
+   }
+  }
+ }
+}

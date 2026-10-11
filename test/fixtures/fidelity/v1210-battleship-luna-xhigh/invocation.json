@@ -1,0 +1,7 @@
+{
+ "case": "battleship",
+ "host": "codex",
+ "versions": {
+  "source": "marketplace"
+ }
+}

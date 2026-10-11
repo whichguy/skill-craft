@@ -3,8 +3,9 @@
 
 The evaluator may launch one model process only after this module has shown
 that the selected ShipLoop package is the current published package: the
-released plugins/<leaf> and its entry in skill-craft's own
-.claude-plugin/marketplace.json on the same source head.  The check reads
+released copy under plugins/skill-craft (the one plugin that carries every
+skill) and its entry in skill-craft's own .claude-plugin/marketplace.json on
+the same source head.  The check reads
 immutable Git objects into temporary bare repositories; it never
 updates an operator checkout, installs a package, or executes fetched files.
 """
@@ -46,10 +47,14 @@ class FreshnessTarget:
     source_skill: str
     plugin_root: str
     plugin_skill: str
+    plugin_name: str
 
 
-_SHIPLOOP = FreshnessTarget("shiploop", "skills/shiploop", "plugins/shiploop", "skills/shiploop")
-_IMPROVE = FreshnessTarget("improve", "skills/improve", "plugins/improve", "skills/improve")
+# skill-craft publishes every skill in one plugin, so both targets share its root, its
+# manifest and its catalog row; each skill keeps its own version, the plugin has the bundle's.
+_PLUGIN = "skill-craft"
+_SHIPLOOP = FreshnessTarget("shiploop", "skills/shiploop", "plugins/" + _PLUGIN, "skills/shiploop", _PLUGIN)
+_IMPROVE = FreshnessTarget("improve", "skills/improve", "plugins/" + _PLUGIN, "skills/improve", _PLUGIN)
 _FRESHNESS_TARGETS = (_SHIPLOOP, _IMPROVE)
 
 
@@ -387,7 +392,7 @@ def _skill_version(data: bytes, code: str) -> str:
 def _plugin_metadata(tree: Tree, target: FreshnessTarget, code: str) -> tuple[str, str]:
     metadata = _json_object(tree.data(".claude-plugin/plugin.json"), code)
     name, version = metadata.get("name"), metadata.get("version")
-    if name != target.name or not isinstance(version, str) or not version:
+    if name != target.plugin_name or not isinstance(version, str) or not version:
         raise FreshnessProblem(code)
     return name, version
 
@@ -397,7 +402,7 @@ def _catalog_pin(tree: Tree, target: FreshnessTarget, head: str) -> tuple[str, s
     plugins = catalog.get("plugins")
     if not isinstance(plugins, list):
         raise FreshnessProblem("catalog-is-invalid")
-    rows = [row for row in plugins if isinstance(row, Mapping) and row.get("name") == target.name]
+    rows = [row for row in plugins if isinstance(row, Mapping) and row.get("name") == target.plugin_name]
     if len(rows) != 1:
         raise FreshnessProblem(f"catalog-{target.name}-entry-is-missing-or-duplicate")
     row = rows[0]
@@ -558,7 +563,7 @@ def _inspect_target(
         "pin_sha": pinned,
     }
 
-    # The released package is plugins/<leaf> at the catalog's own head, which
+    # The released package is plugins/skill-craft at the catalog's own head, which
     # is the source head: release.py writes both in one commit.
     skill_receipt["published"].update({
         "pin": {"sha": pinned},
@@ -567,11 +572,13 @@ def _inspect_target(
         "version": source_generated_version,
     })
 
-    if source_name != target.name:
+    if source_name != target.plugin_name:
         raise FreshnessProblem("plugin-name-is-invalid")
-    if len({source_skill_version, source_generated_version, source_plugin_version}) != 1:
+    # The skill's source and its released copy carry the skill's version; the catalog row and the
+    # plugin manifest carry the bundle's. The two numbers are independent and are never compared.
+    if len({source_skill_version, source_generated_version}) != 1:
         return "unpublished-source", "source-package-version-is-inconsistent"
-    if len({catalog_version, source_generated_version, source_plugin_version}) != 1:
+    if len({catalog_version, source_plugin_version}) != 1:
         return "freshness-unverified", "catalog-version-does-not-match-published-package"
 
     if not _same(source_skill, source_generated):

@@ -1,0 +1,101 @@
+{
+ "case": "battleship",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "pass": true,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.24.0",
+  "shiploop_version": "0.56.0",
+  "local_head": "587cd90d4d54745f67c5acd6a10535dd12afd769",
+  "regraded": true
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_seconds": 829.9,
+  "stop": "success",
+  "pass": true,
+  "regraded": true,
+  "sessions": [
+   {
+    "status": "exited",
+    "stop": "success",
+    "host": "claude",
+    "resumed": null
+   }
+  ]
+ },
+ "termination": {
+  "process_status": "exited",
+  "returncode": 0,
+  "sessions": 1,
+  "resumes": 0,
+  "session_stops": [
+   "success"
+  ],
+  "resume_stop": "host is not resumable",
+  "engine_status": "done",
+  "engine_stage": "done",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": null,
+  "regraded": true,
+  "engine_status_at_regrade": "done"
+ },
+ "shiploop": {
+  "pass": true,
+  "run_dir": "/Users/dadleet/e2e-runs/20261008/r1-battleship-sonnet/.shiploop-runs/work-20261008-173654-a943e7/run"
+ },
+ "committed": {
+  "pass": true
+ },
+ "checks": [
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  }
+ ],
+ "resumed_run": {
+  "from_host": "claude",
+  "from_model": "claude-sonnet-5-5",
+  "run_dir": "/Users/dadleet/e2e-runs/20261008/r1-battleship-sonnet/.shiploop-runs/work-20261008-173654-a943e7/run",
+  "revision": 51,
+  "stage": "done"
+ },
+ "seeded": null,
+ "metrics": {
+  "claude_code_version": "2.1.294",
+  "turns": 207,
+  "model_calls": 120,
+  "cost_usd": 5.7046,
+  "unreported_sessions": 0,
+  "compactions": null,
+  "truncated_outputs": null,
+  "cancelled_tool_calls": null,
+  "model_glue": 1,
+  "tmp_writes": 1,
+  "shiploop_failures": 5,
+  "unmeasured": {
+   "compactions": "reduced",
+   "truncated_outputs": "reduced",
+   "cancelled_tool_calls": "reduced",
+   "knowledge_reads": "reduced"
+  }
+ },
+ "output": "/Users/dadleet/e2e-runs/20261008/r1-battleship-sonnet"
+}

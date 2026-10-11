@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.54.0
+version: 0.59.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -193,13 +193,13 @@ The returned packet binds its repository locator to the execution worktree and
 its run directory to `WORKSPACE_ROOT/run`. `WORKSPACE_ROOT/workspace.md` retains
 the original checkout/branch and baseline. Do all product work in that worktree;
 do not silently fall back to editing the source. At the final planned integration
-boundary, follow the packet's return-plan and guarded return commands. Completion
+boundary, follow the packet's plan-return, review-return and guarded return commands. Completion
 requires a verified return receipt. A dirty starting checkout receives only the
 new delta and keeps its original index; this is not a Git merge/commit.
 The return happens at release or handoff, after the end-of-work Improve
 child, once no child is active. A product fix committed after that return (for
 example one found by a post-deploy check) goes back as a follow-up return: run
-the same return-plan and return commands again.
+the same plan-return, review-return and return commands again.
 If source return must itself trigger a required delivery check, retain that
 ordering conflict as incomplete; use the workspace policy's reconciliation rule.
 
@@ -235,12 +235,15 @@ New workspace and direct runs use navigator **protocol 4**; there is no protocol
 selector. A saved run the current code cannot load, including any navigator
 v1/v2/v3, managed or legacy run, is refused with an error that names its protocol
 or mode; start a fresh `--run-dir` (or workspace root) for that request. If
-new-run initialization did not select an Improve skill, the first Improve
-checkpoint stays pending until its packet directs the owner to bind the selected
-card with `improve-bind --action ... --skill-card ...` (a `--planning-review none` run has no planning
-child to bind it, so it is refused without `--improve-skill`). Use the packet's exact
-command and absolute selected-card path; never guess an installed copy or
-substitute a same-named skill. Recover an existing run's current packet with:
+new-run initialization did not select an Improve skill with `--improve-skill`, it records the
+card installed beside ShipLoop (found by file location in this plugin install and
+validated; no name or PATH search). The first Improve checkpoint's packet directs the
+owner to bind the recorded card with `improve-bind --action ... --skill-card ...`
+(a `--planning-review none` run has no planning child to bind it, so it is still refused
+without `--improve-skill`). Where no installed card validates, nothing is recorded and the
+packet prints a marked blank and says where ShipLoop looked. Use the packet's exact
+command and absolute selected-card path; never substitute a same-named skill. Recover
+an existing run's current packet with:
 
 ```sh
 python3 "$CLI" next --run-dir "$RUN_DIR"
@@ -401,7 +404,9 @@ run option `backchain_passes` (default `one`): how many passes the Backchain
 planning child may take. `one` is one review/fix/check cycle, `converge` is two
 consecutive trivial reviews, and `none` offers no whole Backchain loop at `plan`. The `one`
 plan packet prints the gate and an exit condition, which the host copies into the child's
-start contract; the `converge` plan packet prints the two-review gate, and the host takes its
+start contract, and says the child is the host's choice (nothing refuses a plan without it
+and ShipLoop cannot see whether it ran) and that the result's summary names the route taken;
+the `converge` plan packet prints the two-review gate, and the host takes its
 exit condition from Backchain's convergence reference. In `none` the plan packet prints the
 read-only audit route the other Backchain stages print (the one resource it needs and the
 loop-resource status line), says no whole `plan`/`draft` is requested in this run, and
@@ -506,7 +511,7 @@ Improve card:
    iteration runs every command, finds the cause of each failure, fixes the
    product code (never a check to get green) and reruns the whole list after
    its last edit. The loop ends after an iteration in which every command
-   exited 0 and nothing changed; iteration 4 that still fails stops it.
+   exited 0 and nothing changed; there is no iteration limit.
 3. The stage accepts only `done`, `revise` or `blocked`. `done` needs the saved terminal
    packet `tests/<action>-terminal.json`, checked against the contract rebuilt
    from run state. Then ShipLoop runs every listed command itself with
@@ -516,12 +521,35 @@ Improve card:
    pass and the end of its output.
 
 A command passes only when it exits 0 **and ran tests**. ShipLoop reads the
-runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet) and
+runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet, `node --test` with the spec or tap
+reporter, not dot or junit) and
 refuses a run of zero tests (`no-tests`), fewer than `min_tests`
 (`too-few-tests`), or one whose output does not show each listed ID on a line
-that is not a skip line (`ids-missing`). A focused command whose count ShipLoop
+that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). An ID counts only as its own
+word in a test's printed name: `TC-4a` does not show `TC-4`. When a missing ID is printed at the start of a longer token that continues it with a
+new kind of character (`TC-4a`, `TC-4_a`; not `TC-40`, which is another ID, nor a longer token that is itself a listed ID and so shows that ID), the refusal says so and quotes the line (`ids_inside` in the record);
+an ID that no line holds that way keeps the select-and-print remedy. A focused command whose count ShipLoop
 cannot read passes only with `ids` that all appear; a regression command without
 `ids` or `min_tests` may pass uncounted.
+
+`min_tests` is the step plan's first guess, so ShipLoop also holds each command to what it has already accepted. At the item's test stages
+(`test-red`, `test-green`, `regression`, `static-checks`, `verify` and `integration-verify`) a run may not run fewer tests than the most any run of the same command
+that ShipLoop accepted for the item ran since the item's latest step plan or accepted `test-refine` (`too-few-tests`, with the earlier
+number as `accepted_ran` in the record). The `test-author` probe sets the first number and a run with more raises it. `test-refine` is
+not held to a floor, because its duty is to explain every removed or narrowed case; the counts it accepts become the floor for the
+stages after it. A test removed on purpose is a plan change: report `revise` with the reason, and the redone step plan starts the
+count again. `revise` is accepted at once at `test-red`, `verify` and `integration-verify`; at `test-green`, `regression` and
+`static-checks` it needs a stopped loop or the 7th refused run, as for any refusal there, and the refusal says so. Known limits: the
+outer `system-test` and `release-verify` and the end-of-work review rerun commands another stage recorded and have no `revise` to
+lower a floor, so they are not held to one; the first number is the first accepted run, so tests removed before it (against the
+baseline) are not seen; a run whose count ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not
+recognise) passes with no floor to hold it to; a command whose test count varies by design (generated cases, a last-failed or changed-only selection, a
+host-dependent skip) needs a fixed count to be held to a floor; and the floor is unmeasured for brownfield items, because every
+recorded run it was replayed against is greenfield, where tests are only added.
+A system command row marked `"host_dependent": true` (its cases need a host tool: a browser, a device,
+an account, a service) is also checked for drift at `system-test`: ShipLoop runs the accepted
+regression commands and refuses when any of that row's `ids` is shown, run or failed, in their
+output, because the project's default suite must pass without the host tool.
 
 **Test stages not applicable to an item.** When the accepted step plan records
 no test command (`test_commands_na`) and every declared path is documentation,
@@ -533,6 +561,34 @@ them: each keeps a history row and result file, and `test-spec` gets no Improve
 child. `implement`'s `done` is then refused if the item's real diff touches code
 or any path outside `paths`, so the step plan is revised and the stages run.
 Anything short of that proof runs every test stage.
+
+**Skill stages not applicable to an item.** A done `step-plan` result may carry
+`skill_na`, its reason that no repo-local skill is selected, created or changed,
+naming the index it inspected. ShipLoop then records `skill-assess` and
+`skill-validate` as not applicable to that item instead of issuing them: each keeps
+a history row and a result file whose text starts "Not applicable to this item" and
+carries that reason, and the late helper, MCP and library reuse assessment
+`skill-assess` would have made is waived. Under the default `stage` planning review,
+Improve reviews `skill_na` with the rest of the step plan.
+
+`skill_na` is the model's declaration, so ShipLoop checks it twice:
+
+- A step plan that lists a skill file in `paths` is refused at `complete` and at
+  `improve-complete`. The skill files are the catalog's `skill_surface` (`SKILL.md`,
+  `skills/` and `agents/` trees, the host agent-config directories, `AGENTS.md`,
+  `CLAUDE.md`, `GEMINI.md`, `.mcp.json`). The way out is the step plan without
+  `skill_na`. Removing the file from `paths` instead does not help: `document`
+  still refuses a changed skill file (below), and integrate commits an undeclared file
+  only when it is documentation, so a skill script would stay uncommitted.
+- `document`'s `done` is refused when the item's real diff touches a skill file.
+  This check leaves out `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `.mcp.json`, because
+  `document` is told to maintain the agent-instruction files. The way out is `revise`,
+  which spends one of the item's two revisions; the redone step plan omits `skill_na`.
+
+Without `skill_na`, or after either refusal, both stages run as before. Known gaps:
+the lists are a package catalog, so a repository with a non-standard skill layout is
+covered only by the declaration; `README.md` is not treated as a skill index; an
+undeclared skill edit is observed only at `document`.
 
 `test-red` is script-checked too: on `done` ShipLoop runs the focused commands and
 expects each to fail inside a test (at least one failing test, every listed ID
@@ -556,7 +612,12 @@ at `test-refine`, `static-checks` (after its quality-loop check) and
 `integration-verify`, ShipLoop runs every recorded command and refuses unless
 each passes. The outer `system-test` and `release-verify` rerun their own
 recorded commands the same way, from `system-test-author` and `release-plan`.
-There is no loop at those stages; the packet lists the commands.
+There is no loop at those stages; the packet lists the commands. At
+`release-verify` of an isolated run the commands run in a clean copy of the result
+the workspace return delivered (made fresh from the return receipt into
+`consumer-check` under the workspace root, never in your checkout); with no
+completed return yet they run in the work area, and the test record (`observed`)
+and the handoff say so.
 Each action allows 7 refused runs; after that ShipLoop no longer accepts `done`,
 so a failing command takes the stage's own remedy — back to the step plan with
 `revise` at an INNER stage, or corrective work items with `replan` at
@@ -595,11 +656,21 @@ criterion. `step-plan` lists the item's `criteria` and names, in each test
 command's `criteria`, the ones that command confirms; ShipLoop refuses a step plan
 with an uncovered criterion. Content with no test runner gets a `check` command
 (suite `check`, judged by exit code), for example a `grep` that a README documents a
-flag. `verify` reruns every recorded command. `system-test-author` records
-`system_commands` and `release-plan` records `consumer_checks`; ShipLoop runs them
-when `system-test` and `release-verify` report done and refuses unless each passes.
-An empty list needs its `_na` reason. The run records under `tests/` are the
+flag. A condition no command can confirm is not a criterion: the step plan records it
+as an open item in its summary. `verify` reruns every recorded command.
+`system-test-author` records `system_commands` and `release-plan` records
+`consumer_checks`; ShipLoop runs them when `system-test` and `release-verify` report
+done and refuses unless each passes (`release-verify` runs them in a copy of the
+returned result when a return is recorded, else in the work area, and its record says
+which). An empty list needs its `_na` reason. The run records under `tests/` are the
 evidence; a result's summary is not.
+
+A request outcome no executed check observed is neither confirmed nor hidden: a
+done `product-acceptance` lists it in `unverified` (outcome, reason, check, owner,
+due stage), and `[]` says every outcome was observed. ShipLoop refuses a missing
+list, an incomplete or placeholder entry and a due stage that is not a later
+stage; it cannot judge that the list is complete. It prints each entry at its
+due stage and the whole list at `handoff` and in the report.
 
 ### Tests pass or the step stops
 
@@ -625,7 +696,10 @@ and a question. A script-run loop has no iteration limit: it runs until its
 exit condition holds. One that stops blocked because the item's goal proved wrong
 reports `revise`; a cancelled loop is refused, because a user's stop is the
 packet's `pause` command. The per-item
-count is kept in `state.md` `revisions`.
+count is kept in `state.md` `revisions`. The redone step-plan packet names the
+item's previous step plan and the result that sent it back (both under
+`results/`) and asks for an amendment: its Done-when has the summary say which
+rows are new or changed and which are carried over.
 
 ## Durable handoff
 
@@ -637,7 +711,7 @@ another state record. Do not copy a current node, action ID, result path, status
 or predicted successor into the handoff as graph authority.
 
 Under `delegation: inline`, every INNER producer packet, including the
-`select-work` packet that opens each work item, begins "Continue in this context
+`get-next-work-item` packet that opens each work item, begins "Continue in this context
 and execute the prompt." then "Delegation: inline.": no clear, no pause for a
 clear and no delegation. Inline INNER Improve packets begin "Keep the invoking
 parent alive and run this Improve invocation inline.": the parent runs the whole
@@ -695,7 +769,9 @@ with an accepted decision instead of silently choosing. Packets point at materia
 rather than asking you to reread it at every stage.
 
 Every packet is complete, and it lives in a file: ShipLoop writes the full
-packet to `<run>/packets/<action>.md` and prints only a short head, with the
+packet to `<run>/packets/<action>.md` (an Improve child's packets for the same action go to
+`<action>-improve.md`, and the packet asking for `improve-bind` to `<action>-improve-bind.md`, so the producer packet that
+was sent stays on disk) and prints only a short head, with the
 callback, the goal and done-when, the result path, template and allowed
 outcomes, the packet file's path, the recovery and pause commands and the status
 block. Read the packet file with a file-reading tool before acting; do not print
@@ -907,7 +983,7 @@ ordered work queue.
 
 After the navigator accepts `carry-forward` and imports its bound Improve completion, the
 locked state transaction marks the completed item, retains its evidence, and
-either creates the next item's `select-work` action or returns ownership to
+either creates the next item's `get-next-work-item` action or returns ownership to
 `system-test-author`. Root status and queue remain global. A `repeat` replaces
 only the current producer action; an active Improve child resumes through its
 own recorded state. A blocked child or producer keeps the parent action

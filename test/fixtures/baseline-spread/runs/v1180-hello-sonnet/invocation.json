@@ -1,0 +1,15 @@
+{
+ "case": "hello",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "plugin_dir": "/Users/dadleet/e2e-runs/20261004/v1180-hello-sonnet/build/plugins/skill-craft",
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.18.0",
+  "shiploop_version": "0.50.0",
+  "local_head": "4f237af46f5b4e9859f67faec7de1074d9941f48"
+ },
+ "resumed_run": null,
+ "seeded": null
+}

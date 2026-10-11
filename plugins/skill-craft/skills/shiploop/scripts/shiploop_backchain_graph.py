@@ -857,7 +857,14 @@ def main(core: Any, argv: Optional[List[str]] = None) -> int:
               "this is not a finding", file=sys.stderr)
         return EXIT_UNAVAILABLE
     except CheckUnavailable as exc:
-        print(f"ShipLoop backchain-check could not run: {exc}; this is not a finding", file=sys.stderr)
+        hint = ""
+        if str(exc).startswith("not JSON"):
+            # Both round-1 runs passed the Markdown plan note; say what the candidate is and where its shape is defined.
+            from shiploop_prompts import backchain_skills_root
+            hint = ("; the candidate is the Backchain plan graph as a JSON file, not a Markdown plan note and not a prose plan (its shape: "
+                    "Backchain SKILL.md, \"Plan document shape\"; schema in "
+                    f"{backchain_skills_root() / 'backchain' / 'prompts' / 'generator.v1.md'})")
+        print(f"ShipLoop backchain-check could not run: {exc}{hint}; this is not a finding", file=sys.stderr)
         return EXIT_UNAVAILABLE
     sys.stdout.write(receipt_text(record_))
     root, action, reason = _current_action(core, args.run_dir)

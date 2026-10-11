@@ -24,6 +24,7 @@ import unittest
 
 import package_build
 import shiploop_knowledge_support as knowledge_support
+from shiploop_loop_support import finish_loop, with_receipt
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,11 +49,12 @@ EXPECTED_PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
 EXPECTED_INNER = (
-    "select-work", "step-plan", "test-spec", "baseline", "test-author", "test-red",
-    "implement", "test-green", "test-refine", "regression", "document", "skill-assess",
-    "skill-validate", "static-checks", "verify", "integrate", "integration-verify",
+    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify",
     "carry-forward",
 )
+# ShipLoop records these by script when its own checks show nothing for the model to do: validate-existing when every
+# expectation matches, document when the item's diff touches no code or test path.  They keep a history row.
+SCRIPT_RECORDED_STAGES = frozenset({"validate-existing", "document"})
 EXPECTED_OUTER = (
     "system-test-author", "system-test", "product-acceptance", "release-plan",
     "release-check", "release", "release-verify", "operations", "handoff",
@@ -81,9 +83,9 @@ COLD_RECOVERY_STAGES = {"discovery", "implement", "release-check"}
 # other stage advances with a plain callback.  Independent of the navigator
 # implementation's own copy, per this file's public-contract convention above.
 CHECKPOINT_STAGES = frozenset({
-    "spec", "test-strategy", "plan", "step-plan", "test-spec",
+    "spec", "test-strategy", "plan", "step-plan", "test-spec", "implement",
     "system-test-author", "release-plan",
-})
+})  # implement: an Improve child reviews every accepted step (owner decision 2026-10-10)
 
 
 def _delivery_contract(*, candidate: str = "candidate-v1") -> dict:
@@ -182,7 +184,10 @@ def _fingerprint(root: Path) -> dict[str, str]:
 
 
 # A focused check that prints a unittest summary, so ShipLoop can see it ran a test.
-FOCUSED = "test -d . && echo 'Ran 1 test in 0.001s'"
+FOCUSED_ID = "TC-1"
+# A verbose-unittest-shaped listing, so ShipLoop reads the ID's outcome and the count.
+FOCUSED = "printf 'test_one (" + FOCUSED_ID + ") ... ok\\n\\nRan 1 test in 0.001s\\n\\nOK\\n'"
+DELIVERED = "delivered.txt"
 
 class FullRuntimeCompositionTests(unittest.TestCase):
     """Exercise a complete script-owned graph through fresh public processes."""
@@ -402,26 +407,16 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             producer.update(payload)
         if stage == "plan" and producer.get("outcome") == "done" and "assumptions" not in producer:
             producer["assumptions"] = []
-        if stage == "step-plan" and producer.get("outcome") == "done" and "test_commands" not in producer:
-            # Real commands: test-green and regression loop on them, then ShipLoop reruns them.
-            producer["test_commands"] = [{"command": FOCUSED, "suite": "focused", "criteria": ["C1"]},
-                                         {"command": "true", "suite": "regression"}]
-            producer.setdefault("criteria", [{"id": "C1", "text": "The focused check passes."}])
-        if stage == "step-plan" and producer.get("outcome") == "done" and "paths" not in producer:
-            producer["paths"] = ["src/**"]
-        if stage == "step-plan" and producer.get("outcome") == "done" and "steps" not in producer:
-            producer["steps"] = [{"id": "S1", "task": "Make the planned change."}]
+        self._inner_fields(run, repo, stage, producer)
         if stage == "system-test-author" and producer.get("outcome") == "done" and "system_commands" not in producer:
             producer.update(system_commands=[], system_commands_na="Synthetic fixture: no system command.")
         if stage == "release-plan" and producer.get("outcome") == "done" and "consumer_checks" not in producer:
             producer.update(consumer_checks=[], consumer_checks_na="Synthetic fixture: no consumer command.")
         if stage == "release-plan" and producer.get("outcome") == "done" and "consumer_entry" not in producer:
             producer["consumer_entry"] = {"how": "Synthetic fixture: read the repository files.", "sources": ["*"]}
-        if stage == "test-red" and producer.get("outcome") == "done" and "red_na" not in producer:
-            # The synthetic focused command already passes, so declare it and let ShipLoop check it ran.
-            producer["red_na"] = "synthetic fixture: the focused check already passes"
         if stage in knowledge_support.knowledge.CLOSES:
             knowledge_support.write(self._state(run))
+        producer = self._with_loop(run, stage, producer)
         result_path = run / "inbox" / f"{action_id}.md"
         _write_record(result_path, producer, "Synthetic ShipLoop producer callback")
         self._run(
@@ -716,15 +711,15 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             }
             if payload:
                 result.update(payload)
-            if stage in ("static-checks", "test-green", "regression"):
-                result["evidence_refs"] = [self._run_quality_loop(shiploop, run, action_id)]
+            self._inner_fields(run, Path(state["repo"]), stage, result)
         if stage == "plan" and result.get("outcome") == "done" and "assumptions" not in result:
             result["assumptions"] = []
+        if stage == "product-acceptance" and result.get("outcome") == "done" and "unverified" not in result:
+            result["unverified"] = []
         if stage in knowledge_support.knowledge.CLOSES:
             knowledge_support.write(state)
-        if stage == "test-red" and result.get("outcome") == "done" and "red_na" not in result:
-            # The synthetic focused command already passes, so declare it and let ShipLoop check it ran.
-            result["red_na"] = "synthetic fixture: the focused check already passes"
+        if final_result is None:
+            result = self._with_loop(run, stage, result)
         if stage in COLD_RECOVERY_STAGES:
             before = (run / "state.md").read_bytes()
             recovery = self._run(self._script(shiploop), "next", "--run-dir", run)
@@ -735,49 +730,64 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         result_path = run / "inbox" / f"{action_id}.md"
         _write_record(result_path, result, "Synthetic ShipLoop producer callback")
         self._run(self._script(shiploop), "complete", "--run-dir", run, "--action", action_id, "--result", result_path)
-        if stage in ("test-green", "regression") and result.get("outcome") == "done":
-            # ShipLoop itself ran the stage's commands before accepting done.
+        if stage in ("test", "verify") and result.get("outcome") == "done":
+            # ShipLoop itself ran the recorded commands on the candidate before accepting done.
             verified = _read_record(run / "tests" / f"{action_id}-verify1.md")
             self.assertTrue(verified["passed"])
-            self.assertEqual([row["command"] for row in verified["runs"]],
-                             [FOCUSED] if stage == "test-green" else [FOCUSED, "true"])
+            self.assertEqual([row["command"] for row in verified["runs"]], [FOCUSED, "true"])
         new_state = self._state(run)
         self.assertIsNone(new_state["active_improve"])
         context = {"stage": stage, "action": action_id, "run": run, "shiploop": shiploop}
         return new_state, context
 
-    def _run_quality_loop(self, shiploop: Path, run: Path, action_id: str) -> str:
-        """Run the packet's bound Until Loop start command for one trivial iteration.
+    def _inner_fields(self, run: Path, repo: Path, stage: str, result: dict) -> None:
+        """Fill the fields a done INNER result needs to pass ShipLoop's 2026-10-10 gates (fixture values only)."""
+        if result.get("outcome") != "done":
+            return
+        if stage == "step-plan":
+            result.setdefault("test_commands", [
+                {"command": FOCUSED, "suite": "focused", "ids": [FOCUSED_ID], "criteria": ["C1"]},
+                {"command": "true", "suite": "regression"}])
+            result.setdefault("check_na", "Synthetic fixture: no lint, type or build command for these files.")
+            result.setdefault("criteria", [{"id": "C1", "text": "The focused check passes. Confirm by: the focused "
+                                                                "command; pass when it exits 0"}])
+            result.setdefault("paths", [DELIVERED])
+            result.setdefault("steps", [{"id": "S1", "task": "Make the planned change.", "paths": [DELIVERED],
+                                         "criteria": ["C1"], "skills": []}])
+            # delivered.txt is new to W1 and on the base of every later item (verify committed it).
+            exists = (repo / DELIVERED).exists()
+            result.setdefault("expectations", [{
+                "id": "E1", "state": "works" if exists else "absent", "steps": ["S1"], "paths": [DELIVERED],
+                "statement": DELIVERED + (" exists from an earlier item." if exists else " does not exist yet."),
+                "check": ("test -f " if exists else "test ! -e ") + DELIVERED}])
+        elif stage == "test-spec":
+            spec_file = repo / knowledge_support.knowledge.feature_dir(self._state(run)) / "test-spec.md"
+            spec_file.parent.mkdir(parents=True, exist_ok=True)
+            spec_file.write_text("# Test spec\n\n### " + FOCUSED_ID + "\n\nThe focused check passes.\n",
+                                 encoding="utf-8")
+        elif stage == "test":
+            # The synthetic focused command passes without the change, so declare it and let ShipLoop check it ran.
+            result.setdefault("red_na", [{"id": FOCUSED_ID, "reason": "synthetic fixture: the focused command "
+                                                                      "prints a pass on any checkout"}])
+        elif stage == "carry-forward":
+            result.setdefault("skill", {"decision": "none", "reason": "Synthetic fixture: no procedure repeated."})
 
-        The ShipLoop packet names the runtime, the script-authored contract and
-        the terminal path; the real runtime issues the terminal packet that
-        ``complete`` then checks against that contract.
-        """
-        packet = self._run(self._script(shiploop), "next", "--run-dir", run).stdout
-        start = next(line for line in packet.splitlines() if line.startswith("Start: "))
-        words = shlex.split(start[len("Start: "):])
-        self.assertEqual(words[-2], "<")
-        argv, contract = words[:-2], words[-1]
-        self.assertEqual(argv[-3:-1], ["start", "--receipt"])
-        self.assertEqual(json.loads(Path(contract).read_text())["required_trivial_reviews"], 1)
-        started = subprocess.run(argv, input=Path(contract).read_text(), text=True,
-                                 capture_output=True, timeout=30, check=True)
-        active = json.loads(started.stdout)
-        self.assertEqual(active["status"], "active")
-        report = {
-            "classification": "trivial", "exit_assessment": "satisfied",
-            "continuation_assessment": "allowed",
-            "evidence": "Synthetic quality iteration: no entry points changed; no semantic claim.",
-            "handoff": "Synthetic fixture run; nothing remains.",
-        }
-        finished = subprocess.run(active["done_argv"], input=json.dumps(report), text=True,
-                                  capture_output=True, timeout=30, check=True)
-        self.assertEqual(json.loads(finished.stdout)["status"], "complete")
-        receipt = next(line for line in packet.splitlines() if line.startswith("Receipt (the runtime writes"))
-        path = Path(receipt.rsplit(": ", 1)[1])
-        # The runtime wrote the terminal packet itself; the host never copied stdout.
-        self.assertEqual(json.loads(path.read_text()), json.loads(finished.stdout))
-        return str(path)
+    @staticmethod
+    def _with_loop(run: Path, stage: str, result: dict) -> dict:
+        """An INNER result runs its Until Loop through the real runtime and carries the receipt."""
+        if stage not in EXPECTED_INNER:
+            return result
+        return with_receipt(result, finish_loop(run))
+
+    def _script_recorded(self, run: Path, stage: str) -> tuple[dict, dict] | None:
+        """When ShipLoop already recorded ``stage`` by script, return the state and its history row's context."""
+        state = self._state(run)
+        if stage not in SCRIPT_RECORDED_STAGES or self._cursor(state)[0] == stage:
+            return None
+        rows = [row for row in state["history"] if row["stage"] == stage]
+        self.assertTrue(rows, stage + " is neither current nor recorded")
+        self.assertEqual(rows[-1]["outcome"], "done")
+        return state, {"stage": stage, "action": rows[-1]["action"], "run": run, "script_recorded": True}
 
     def _advance_stage(
         self,
@@ -793,6 +803,9 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         before_import=None,
     ) -> tuple[dict, dict]:
         """Complete the current pending stage, binding Improve only if it checkpoints."""
+        recorded = self._script_recorded(run, stage)
+        if recorded is not None:
+            return recorded
         outcome = final_result.get("outcome", "done") if final_result else "done"
         if final_result is not None and "work_items" in final_result:
             explicit_work_items = final_result["work_items"]
@@ -942,7 +955,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
 
     def test_full_v3_runtime_composition_and_recovery_variants(self) -> None:
         """Exercise all stages, then a delayed contract correction and recovery."""
-        self.assertEqual(len(EXPECTED_STAGES), 34)
+        self.assertEqual(len(EXPECTED_STAGES), 24)
         source, workspace, run = self._start_workspace(delivery_contract=True)
         repo = workspace / "worktree"
         state = self._state(run)
@@ -953,7 +966,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
 
         for stage in EXPECTED_STAGES:
             if stage == "implement":
-                (repo / "delivered.txt").write_text("returned candidate\n", encoding="utf-8")
+                (repo / DELIVERED).write_text("returned candidate\n", encoding="utf-8")
             if stage == "operations":
                 checkpoint = self._checkpoint(run, repo)
             payload = None
@@ -997,8 +1010,15 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertIsNotNone(first_context)
         self.assertIsNotNone(checkpoint)
         self.assertEqual(state["status"], "done")
-        self.assertEqual(len(state["history"]), 34)
-        # Only the 7 planning/contract stages and the run's single end-of-work
+        self.assertEqual(len(state["history"]), 24)
+        # The run was returned by fast-forward before its handoff, so the terminal close removed the feature spec in a commit of
+        # its own (owner decision D3) and the knowledge follow-up carried that commit to the source branch.
+        feature = knowledge_support.knowledge.feature_dir(state)
+        self.assertEqual(self._git(source, "log", "-1", "--format=%s").stdout.strip(),
+                         knowledge_support.knowledge.retire_subject(state))
+        self.assertFalse((source / feature / "spec.md").exists())
+        self.assertTrue((source / feature / "plan.md").is_file())
+        # Only the planning/contract stages, the one implement step and the run's single end-of-work
         # carry-forward review actually bind an Improve child.
         first_pass_checkpoints = [s for s in EXPECTED_STAGES if s in CHECKPOINT_STAGES or s == "carry-forward"]
         self.assertEqual(len(state["improve_results"]), len(first_pass_checkpoints))
@@ -1019,37 +1039,19 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 "work_items": [{"id": "W2", "title": "Synthetic corrective item"}],
             },
         )
-        self.assertEqual(self._cursor(state)[0], "select-work")
+        self.assertEqual(self._cursor(state)[0], "step-plan")
         self.assertEqual(state["completed_work_items"], ["W1"])
         self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2"])
         self.assertTrue(previous_actions.issubset(state["improve_results"]))
         # operations is not a planning/contract stage, so this outer replan
         # advances directly; no Improve child or evidence directory starts.
         self.assertFalse((run / "improve" / replan_context["action"]).exists())
-
-        state, repeat_context = self._advance_stage(
-            shiploop=self.source_shiploop, improve=self.source_improve,
-            repo=repo, run=run, stage="select-work",
-            final_result={
-                "outcome": "repeat",
-                "summary": "Synthetic Improve correction requests another selection attempt.",
-            },
-        )
-        repeated_stage, repeated_action = self._cursor(state)
-        self.assertEqual(repeated_stage, "select-work")
-        self.assertNotEqual(repeated_action["id"], repeat_context["action"])
-        self.assertEqual(state["accepted"][repeat_context["action"]]["outcome"], "repeat")
-
-        state, _ = self._advance_stage(
-            shiploop=self.source_shiploop, improve=self.source_improve,
-            repo=repo, run=run, stage="select-work",
-        )
-        self.assertEqual(self._cursor(state)[0], "step-plan")
+        # get-next-work-item and its repeat are gone (8-stage loop, 2026-10-10): the replan opens W2's step-plan.
 
         # The first late replan has no correction.  Its successor receives a
         # delayed v2 contract from system-test and must still complete a new
         # release plan without retaining a stale replanning barrier.
-        for stage in EXPECTED_INNER[1:]:
+        for stage in EXPECTED_INNER:
             state, _ = self._advance_stage(
                 shiploop=self.source_shiploop, improve=self.source_improve,
                 repo=repo, run=run, stage=stage,
@@ -1100,7 +1102,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 },
             },
         )
-        self.assertEqual(self._cursor(state)[0], "select-work")
+        self.assertEqual(self._cursor(state)[0], "step-plan")
         self.assertEqual(state["completed_work_items"], ["W1", "W2"])
         self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2", "W3"])
         blocked_packet = self._run(

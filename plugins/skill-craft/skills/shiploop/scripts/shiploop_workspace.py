@@ -11,8 +11,9 @@ The public functions are intentionally small:
 
 ``prepare``
     Capture a source checkout and create ``<workspace-root>/worktree``.
-``plan_return``
-    Write a reviewed-path return plan without changing the source checkout.
+``plan_return`` / ``review_return``
+    Write a reviewed-path return plan without changing the source checkout, then
+    record the host's keep/exclude decisions in it (the host never edits the file).
 ``execute_return``
     Apply the approved delta or perform a safe fast-forward merge; after a
     verified return, carry later product changes as a follow-up return.
@@ -22,6 +23,12 @@ The public functions are intentionally small:
 ``completed_receipt_snapshot``
     A non-mutating packet/report projection that accepts only an already-stable
     workspace and receipt.
+``returned_result`` / ``export_returned_result``
+    Read what the latest completed return delivered, and make a clean copy of
+    exactly that tree under the workspace root.  Neither writes a repository:
+    ``release-verify`` runs its consumer checks in the copy, never in the user's
+    checkout (a file written there would make the receipt non-current) and never
+    in the work area (which holds files the return excluded).
 """
 
 from __future__ import annotations
@@ -38,11 +45,12 @@ import tempfile
 import shiploop_git
 import shiploop_grants
 import shiploop_knowledge_home as knowledge_home
+import shiploop_stage_spec as stage_spec
 import threading
 from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path, PurePosixPath
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Container, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 try:  # Scripts are normally imported with their directory on sys.path.
     import shiploop_store as store
@@ -52,6 +60,21 @@ except ImportError:  # pragma: no cover - supports package-style local imports.
 
 class WorkspaceError(RuntimeError):
     """The workspace cannot safely be prepared, returned, or recovered."""
+
+
+class ReviewRefused(WorkspaceError):
+    """A return plan cannot be reviewed as asked; ``undecided`` lists the paths still to decide, for the caller to show."""
+
+    def __init__(self, message: str, undecided: Iterable[str] = ()) -> None:
+        super().__init__(message)
+        self.undecided = list(undecided)
+
+
+class PendingDispositions(ReviewRefused):
+    """The return plan still holds paths nobody decided; the caller names them and the verb that decides them."""
+
+    def __init__(self, undecided: Iterable[str]) -> None:
+        super().__init__("return plan has unresolved path dispositions", undecided)
 
 
 SCHEMA = "shiploop-workspace"
@@ -73,15 +96,30 @@ FORBIDDEN_PARTS = frozenset({".git", ".shiploop", ".until-loop", ".shiploop-impr
 _SHA = re.compile(r"[0-9a-f]{40,64}")
 _LOCK_LOCAL = threading.local()
 
+# The clean copy of the returned result that release-verify's consumer checks run in.
+CONSUMER_COPY = "consumer-check"
+_RETURN_KINDS = ("fast-forward-merge", "working-tree-return", "no-change-return")
+
 __all__ = [
+    "CONSUMER_COPY",
+    "PendingDispositions",
+    "ReviewRefused",
     "WorkspaceError",
     "assert_binding",
     "completed_receipt",
     "returned_before",
     "completed_receipt_snapshot",
+    "ROUTE_TEXT",
     "execute_return",
+    "expected_return",
+    "export_returned_result",
     "plan_return",
+    "plan_summary",
     "prepare",
+    "returned_result",
+    "review_return",
+    "rollback_lines",
+    "route_sentence",
 ]
 
 
@@ -192,6 +230,16 @@ def _normal_paths(values: Iterable[str], *, label: str) -> List[str]:
 
 def _matches_exclusion(path: str, excluded: Sequence[str]) -> bool:
     return any(path == item or path.startswith(item + "/") for item in excluded)
+
+
+def never_committed(path: str, excluded: Sequence[str]) -> bool:
+    """A path ShipLoop never commits in a workspace: run evidence or a protected part, or one the caller excluded."""
+    return _forbidden(path) or _matches_exclusion(path, excluded)
+
+
+def excluded_paths(workspace_root: Path) -> List[str]:
+    """The caller's ``--exclude`` paths from workspace.md (read-only; raises WorkspaceError when unreadable)."""
+    return list(_manifest(_resolved_directory(Path(workspace_root), label="workspace root"))["excluded"])
 
 
 def _no_symlink_components(path: Path, *, label: str) -> None:
@@ -1096,8 +1144,13 @@ def _candidate_matches_snapshot(manifest: Mapping[str, Any], receipt: Mapping[st
 
 
 def _plan_rows(
-    changes: Mapping[str, str], history: Sequence[str], excluded: Sequence[str]
+    changes: Mapping[str, str],
+    history: Sequence[str],
+    excluded: Sequence[str],
+    decided: Optional[Mapping[str, str]] = None,
 ) -> List[Dict[str, Any]]:
+    """One row per candidate path.  Rules decide protected, caller-excluded and knowledge paths; a path no rule
+    decides is ``pending`` unless ``decided`` carries an earlier keep/exclude for the same path."""
     rows = []
     for path in sorted(set(changes).union(history)):
         rows.append(
@@ -1108,10 +1161,20 @@ def _plan_rows(
                 "in_history": path in history,
                 # ShipLoop's committed knowledge home always returns with the candidate.
                 "disposition": ("exclude" if (_forbidden(path) or _matches_exclusion(path, excluded))
-                                else "keep" if knowledge_home.in_home(path) else "pending"),
+                                else "keep" if knowledge_home.in_home(path)
+                                else (decided or {}).get(path, "pending")),
             }
         )
     return rows
+
+
+def _recorded_decisions(root: Path) -> Dict[str, str]:
+    """The keep/exclude decisions the last return plan holds, by path; a plan that cannot be read holds none."""
+    try:
+        paths = _record(root, RETURN_PLAN, "return plan")["paths"]
+        return {row["path"]: row["disposition"] for row in paths if row["disposition"] in ("keep", "exclude")}
+    except (WorkspaceError, KeyError, TypeError):
+        return {}
 
 
 def _reject_added_path_collisions(
@@ -1138,6 +1201,52 @@ def _reject_added_path_collisions(
         candidate = source / path
         if candidate.exists() or candidate.is_symlink():
             _fail(f"source has an untracked or ignored collision at candidate-added path: {path}")
+
+
+# What a return of each kind does, in the words review-return and the packets use.
+ROUTE_TEXT = {
+    "fast-forward-merge": "a fast-forward of the original branch to the run branch",
+    "working-tree-return": "the kept files applied to the original working tree, with no Git merge or commit",
+    "no-change-return": "no change to the original checkout",
+}
+
+
+def _retained_child_evidence(row: Mapping[str, Any], untracked_paths: Container[str]) -> bool:
+    """A final Improve child's receipt must stay untracked in the worker until the parent imports it after return.
+
+    Only excluded, untracked, never-committed child evidence qualifies; a committed or staged receipt, or a protected
+    path in history, still blocks the return.
+    """
+    return (row["path"].startswith(".shiploop-improve/")
+            and row["path"] in untracked_paths
+            and row["disposition"] == "exclude" and not row["in_history"])
+
+
+def _fast_forward_ok(worktree: Path, manifest: Mapping[str, Any], candidate: Mapping[str, Any],
+                     rows: Sequence[Mapping[str, Any]]) -> bool:
+    """Whether the reviewed candidate may fast-forward the source: the one rule execute_return follows.
+
+    The source started clean, the candidate has no tracked change and no untracked file other than retained child
+    evidence (which does not make a committed product candidate dirty), and every history path is kept.
+    """
+    untracked = {row["path"] for row in candidate["untracked"]}
+    clean_tracked = not _git_bytes(worktree, "status", "--porcelain=v1", "--untracked-files=no")
+    only_retained = all(_retained_child_evidence(row, untracked) for row in rows if row["path"] in untracked)
+    all_history_kept = all(row["disposition"] == "keep" for row in rows if row["in_history"])
+    return bool(manifest["start_clean"] and clean_tracked and only_retained and all_history_kept)
+
+
+def _return_kind(prior_kind: Optional[str], fast_forward_ok: bool, has_new_commits: bool, has_patch: bool) -> str:
+    """The route a return takes: execute_return follows it and expected_return reports it, one rule for both.
+
+    A follow-up keeps the route of the return it follows; a first return is nothing to return, a fast-forward or a
+    working-tree return.
+    """
+    if prior_kind in ("fast-forward-merge", "working-tree-return"):
+        return prior_kind
+    if not has_patch and not (fast_forward_ok and has_new_commits):
+        return "no-change-return"
+    return "fast-forward-merge" if fast_forward_ok else "working-tree-return"
 
 
 RETURN_POLICY = (
@@ -1167,7 +1276,7 @@ def commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:
     tracked = [name for name in _git_bytes(worktree, "diff", "--name-only", "-z", "HEAD").decode(
         "utf-8", "surrogateescape").split("\0") if name]
     paths = sorted({*tracked, *(row["path"] for row in _untracked(worktree))})
-    chosen = [path for path in paths if not _forbidden(path) and not _matches_exclusion(path, manifest["excluded"])]
+    chosen = [path for path in paths if not never_committed(path, manifest["excluded"])]
     if not chosen:
         return shiploop_git.Committed("", [], [])
     try:
@@ -1177,8 +1286,14 @@ def commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:
         _fail(str(exc))
 
 
-def plan_return(workspace_root: Path) -> Dict[str, Any]:
-    """Generate the exact reviewed return surface; no source mutation occurs."""
+@_locked_existing_root
+def plan_return(workspace_root: Path, fresh: Iterable[str] = ()) -> Dict[str, Any]:
+    """Generate the exact reviewed return surface; no source mutation occurs.
+
+    A new plan reviews every path again, but a path the last plan decided keep or exclude keeps that decision (the
+    same path; rows carry no content digest) so a model that lost its context does not decide twice.  ``fresh``
+    names paths whose earlier decision must not carry, such as a file ``commit_leftovers`` skipped as credential-like.
+    """
     root = _resolved_directory(Path(workspace_root), label="workspace root")
     manifest = _manifest(root)
     if manifest["status"] == "blocked":
@@ -1194,6 +1309,8 @@ def plan_return(workspace_root: Path) -> Dict[str, Any]:
     ):
         _fail("source checkout drifted since preparation; return is blocked")
     candidate, changes, history = _candidate(manifest, root)
+    skipped = set(fresh)
+    decided = {path: value for path, value in _recorded_decisions(root).items() if path not in skipped}
     plan: Dict[str, Any] = {
         "schema": PLAN_SCHEMA,
         "version": VERSION,
@@ -1201,7 +1318,7 @@ def plan_return(workspace_root: Path) -> Dict[str, Any]:
         "return_policy": RETURN_POLICY,
         "source_fingerprint": initial,
         "candidate_fingerprint": candidate,
-        "paths": _plan_rows(changes, history, manifest["excluded"]),
+        "paths": _plan_rows(changes, history, manifest["excluded"], decided),
     }
     manifest["status"] = "return-planned"
     manifest["candidate_fingerprint"] = candidate
@@ -1216,19 +1333,22 @@ def plan_return(workspace_root: Path) -> Dict[str, Any]:
 
 
 def _validate_plan(
-    root: Path, manifest: Mapping[str, Any], plan: Mapping[str, Any], candidate: Mapping[str, Any], changes: Mapping[str, str], history: Sequence[str]
+    root: Path, manifest: Mapping[str, Any], plan: Mapping[str, Any], candidate: Mapping[str, Any], changes: Mapping[str, str], history: Sequence[str],
+    *, allow_pending: bool = False,
 ) -> List[Dict[str, Any]]:
     required = {"schema", "version", "status", "return_policy", "source_fingerprint", "candidate_fingerprint", "paths"}
     if set(plan) != required or plan.get("schema") != PLAN_SCHEMA or plan.get("version") != VERSION:
         _fail("return plan has an unsupported schema")
     if plan.get("status") not in {"pending", "ready"}:
-        _fail("return plan has an invalid status")
+        _fail(f"return plan has an invalid status {plan.get('status')!r}; the allowed values are 'pending' and "
+              "'ready', and neither is edited by hand: record decisions with workspace review-return")
     if plan.get("return_policy") != RETURN_POLICY:
         _fail("return plan policy was edited")
     if not _fingerprint_equal(plan.get("source_fingerprint", {}), manifest["initial_fingerprint"]):
         _fail("return plan is bound to another source state")
     if not _fingerprint_equal(plan.get("candidate_fingerprint", {}), candidate):
-        _fail("return plan is stale because candidate state changed")
+        _fail("return plan is stale because candidate state changed; run plan-return again (decisions already "
+              "recorded are kept)")
     expected = _plan_rows(changes, history, manifest["excluded"])
     supplied = plan.get("paths")
     if not isinstance(supplied, list) or len(supplied) != len(expected):
@@ -1250,17 +1370,178 @@ def _validate_plan(
         if disposition not in {"pending", "keep", "exclude"}:
             _fail("return plan has an invalid disposition")
         if _matches_exclusion(path, manifest["excluded"]) and disposition != "exclude":
-            _fail("return plan cannot keep a caller-excluded path")
+            _fail(f"return plan cannot keep a caller-excluded path: {path}")
         if _forbidden(path) and disposition != "exclude":
-            _fail("return plan cannot keep a protected runtime path")
+            _fail(f"return plan cannot keep a protected runtime path: {path}")
         if knowledge_home.in_home(path) and disposition == "exclude" and not _matches_exclusion(
                 path, manifest["excluded"]):
-            _fail("return plan cannot exclude ShipLoop's knowledge (docs/shiploop/, SHIPLOOP.md); later runs "
-                  "inherit it")
+            _fail(f"return plan cannot exclude {path}: it is ShipLoop's knowledge (docs/shiploop/, SHIPLOOP.md), "
+                  "which later runs inherit")
         rows.append(dict(item))
-    if any(row["disposition"] == "pending" for row in rows):
-        _fail("return plan has unresolved path dispositions")
+    undecided = [row["path"] for row in rows if row["disposition"] == "pending"]
+    if undecided and not allow_pending:
+        raise PendingDispositions(sorted(undecided))
     return sorted(rows, key=lambda row: row["path"])
+
+
+def _summarize(plan: Mapping[str, Any], caller_excluded: Sequence[str]) -> Dict[str, Any]:
+    """Counts by disposition, the undecided paths, and the excludes a review (not a rule) decided."""
+    rows = plan["paths"]
+    return {
+        "total": len(rows),
+        "keep": sum(row["disposition"] == "keep" for row in rows),
+        "exclude": sum(row["disposition"] == "exclude" for row in rows),
+        "pending": [row["path"] for row in rows if row["disposition"] == "pending"],
+        "reviewed_excludes": [row["path"] for row in rows if row["disposition"] == "exclude"
+                              and not _forbidden(row["path"]) and not _matches_exclusion(row["path"], caller_excluded)],
+    }
+
+
+def plan_summary(workspace_root: Path) -> Dict[str, Any]:
+    """What the current return plan holds, read without changing anything (see ``_summarize``)."""
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    return _summarize(_record(root, RETURN_PLAN, "return plan"), _manifest(root)["excluded"])
+
+
+def _decisions(rows: Sequence[Mapping[str, Any]], keep: Iterable[str], exclude: Iterable[str]) -> Dict[str, str]:
+    """The disposition each named path or directory decides.
+
+    A name decides the plan row it equals, whatever that row holds now, and the still-undecided rows beneath it when
+    it is a directory.  The most specific name wins (``--keep src --exclude src/tmp``); the same name in both lists,
+    or a name that is no row and holds none, is refused with the undecided paths so the caller can correct it.
+    """
+    undecided = [row["path"] for row in rows if row["disposition"] == "pending"]
+    chosen: Dict[str, Tuple[int, str]] = {}
+    clashes: set = set()
+    unknown: List[str] = []
+    for action, names in (("keep", keep), ("exclude", exclude)):
+        for raw in names:
+            try:
+                name = _safe_rel(raw, label=f"--{action} path (relative to the execution checkout)")
+            except WorkspaceError as exc:
+                raise ReviewRefused(str(exc), undecided) from exc
+            found = False
+            for row in rows:
+                path = row["path"]
+                if path != name and not path.startswith(name + "/"):
+                    continue
+                found = True
+                if path != name and row["disposition"] != "pending":
+                    continue
+                if path not in chosen or len(name) > chosen[path][0]:
+                    chosen[path] = (len(name), action)
+                elif len(name) == chosen[path][0] and chosen[path][1] != action:
+                    clashes.add(path)
+            if not found:
+                unknown.append(name)
+    if unknown:
+        raise ReviewRefused("not a path in the return plan: " + ", ".join(unknown), undecided)
+    if clashes:
+        raise ReviewRefused("named in both --keep and --exclude: " + ", ".join(sorted(clashes)), undecided)
+    return {path: action for path, (_, action) in chosen.items()}
+
+
+@_locked_existing_root
+def review_return(workspace_root: Path, keep: Iterable[str] = (), exclude: Iterable[str] = ()) -> Dict[str, Any]:
+    """Record keep/exclude decisions in the return plan, so the host supplies judgement and never edits the file.
+
+    The decisions are checked against the plan exactly as the return checks it (protected runtime paths, caller
+    exclusions and ShipLoop's knowledge are refused by name), and a refusal records nothing.  The plan's status is
+    the script's own label: ``ready`` once nothing is undecided.  Returns the decisions this call recorded
+    (``kept``, ``excluded``) and the plan's ``summary``.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    manifest = _manifest(root)
+    if manifest["status"] != "return-planned":
+        _fail("no return plan is awaiting review; run plan-return first")
+    plan = _record(root, RETURN_PLAN, "return plan")
+    candidate, changes, history = _candidate(manifest, root)
+    rows = _validate_plan(root, manifest, plan, candidate, changes, history, allow_pending=True)
+    chosen = _decisions(rows, keep, exclude)
+    for row in rows:
+        row["disposition"] = chosen.get(row["path"], row["disposition"])
+    reviewed = {**plan, "paths": rows,
+                "status": "pending" if any(row["disposition"] == "pending" for row in rows) else "ready"}
+    _validate_plan(root, manifest, reviewed, candidate, changes, history, allow_pending=True)
+    if chosen:
+        _write(root, {RETURN_PLAN: (reviewed, "ShipLoop return plan")})
+    return {
+        "kept": sorted(path for path, action in chosen.items() if action == "keep"),
+        "excluded": sorted(path for path, action in chosen.items() if action == "exclude"),
+        "summary": _summarize(reviewed if chosen else plan, manifest["excluded"]),
+    }
+
+
+@_locked_existing_root
+def expected_return(workspace_root: Path) -> Optional[str]:
+    """The route a return would take now, by the rule ``execute_return`` follows; None while paths are undecided.
+
+    Advisory: the return itself still refuses a moved source, a collision or a stale plan.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    manifest = _manifest(root)
+    worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
+    candidate, changes, history = _candidate(manifest, root)
+    rows = _validate_plan(root, manifest, _record(root, RETURN_PLAN, "return plan"), candidate, changes, history,
+                          allow_pending=True)
+    if any(row["disposition"] == "pending" for row in rows):
+        return None
+    receipt = _receipt(root)
+    prior_kind = receipt.get("kind") if receipt and receipt.get("status") == "returned" else None
+    return _return_kind(prior_kind, _fast_forward_ok(worktree, manifest, candidate, rows),
+                        _head(worktree) != manifest["baseline_commit"],
+                        any(row["in_final_delta"] and row["disposition"] == "keep" for row in rows))
+
+
+# Said right after the route's first sentence, because a model reads this line cut short and a file written after the
+# last work item was committed by hand ahead of the return.  It describes plan-return (commit_leftovers) in both routes:
+# the files it skips are the credential-like ones, which its own notice tells the model to fix and then commit.  A
+# worktree run's integrate and document packets print the same constant (SPEC S-12).
+_LEFTOVERS_CLAUSE = stage_spec.RETURN_LEFTOVERS
+
+
+def route_sentence(workspace_root: Path) -> str:
+    """How this run's return will go, from workspace.md alone (read-only; raises WorkspaceError when unreadable)."""
+    manifest = _manifest(_resolved_directory(Path(workspace_root), label="workspace root"))
+    branch = manifest["source_branch"]
+    if manifest["start_clean"]:
+        return (f"Return route (from workspace.md): this run started from a clean {branch}. {_LEFTOVERS_CLAUSE} The "
+                f"return fast-forwards {branch} to the run branch {manifest['branch']} when the candidate is committed "
+                "and every path in its history is kept; if the plan excludes a committed path or still leaves a file "
+                "uncommitted, it applies only the kept files to the working tree instead, which is not a Git merge or "
+                "commit.")
+    return (f"Return route (from workspace.md): this run started from a dirty {branch}. {_LEFTOVERS_CLAUSE} The return "
+            "applies only the kept files to the working tree: it is not a Git merge or commit, and your original "
+            "index and work are left as they were.")
+
+
+def rollback_lines(workspace_root: Path) -> List[str]:
+    """Commands that undo each return the route above can make, from workspace.md alone (read-only).
+
+    The anchors are the manifest's ``source_head`` and ``baseline_commit`` and the run branch, never a receipt's
+    ``source_before`` (which is the previous result in a follow-up).  Every call runs in the source repository, so the
+    recipes survive removing the execution worktree and name no run path.  Raises WorkspaceError when unreadable.
+    """
+    manifest = _manifest(_resolved_directory(Path(workspace_root), label="workspace root"))
+    git = "git -C " + shlex.quote(manifest["source_repo"])
+    head, base, run = manifest["source_head"], manifest["baseline_commit"], manifest["branch"]
+    lines = ["Rollback of the return (SHAs and branches are from workspace.md; write the plan's rollback as plain `git` "
+             "commands run from the repository root with these values, never this run's absolute paths):"]
+    if manifest["start_clean"]:
+        lines += [
+            f"- A fast-forward, with {manifest['source_branch']} checked out and nothing committed after the "
+            f"returned commits: `{git} reset --keep {head}`",
+            "- A fast-forward with later commits on top. This makes the tree equal to the one before the return, so it "
+            "also undoes what those later commits changed (to keep their changes, reverse only the run's files with "
+            "the last recipe instead); it needs a clean working tree and discards uncommitted edits: "
+            f"`{git} restore --source={head} --staged --worktree :/ && {git} commit -m "
+            "'Roll back the ShipLoop return'`",
+        ]
+    lines.append(f"- A working-tree return, or only the run's files after a fast-forward (needs the run branch {run} and "
+                 f"commit {base} to still exist; <kept paths> are the keep rows of the return plan; the reversal is left "
+                 f"uncommitted): `{git} diff --binary {base} {run} -- <kept paths> | "
+                 f"{git} apply -R`")
+    return lines
 
 
 def _candidate_tree_with_kept_untracked(
@@ -1596,12 +1877,7 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
     # imports it after return. Permit only excluded, untracked child evidence;
     # a committed/staged receipt or a protected path in history still blocks.
     untracked_paths = {row["path"] for row in candidate["untracked"]}
-    def retained_child_evidence(row: Mapping[str, Any]) -> bool:
-        return (row["path"].startswith(".shiploop-improve/")
-                and row["path"] in untracked_paths
-                and row["disposition"] == "exclude" and not row["in_history"])
-
-    if any(_forbidden(row["path"]) and not retained_child_evidence(row) for row in rows):
+    if any(_forbidden(row["path"]) and not _retained_child_evidence(row, untracked_paths) for row in rows):
         _fail("candidate contains a protected transient/runtime path; preserve the workspace and remove it before return")
     if not adopt:
         _reject_added_path_collisions(
@@ -1615,20 +1891,7 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
     patch = _patch(worktree, manifest["baseline_tree"], candidate_tree, rows)
     plan_digest = _plan_digest(plan)
 
-    # A final Improve packet must remain untracked in the worker until the
-    # parent imports it.  It does not make a committed product candidate dirty
-    # for a fast-forward, but arbitrary untracked output still does.
-    clean_tracked_candidate = not _git_bytes(
-        worktree, "status", "--porcelain=v1", "--untracked-files=no"
-    )
-    only_retained_child_evidence = all(
-        retained_child_evidence(row)
-        for row in rows
-        if row["path"] in untracked_paths
-    )
-    clean_candidate = clean_tracked_candidate and only_retained_child_evidence
-    all_history_kept = all(row["disposition"] == "keep" for row in rows if row["in_history"])
-    fast_forward_ok = manifest["start_clean"] and clean_candidate and all_history_kept
+    fast_forward_ok = _fast_forward_ok(worktree, manifest, candidate, rows)
     has_new_commits = _head(worktree) != manifest["baseline_commit"]
     prior_kind = previous.get("kind") if previous else None
 
@@ -1731,11 +1994,12 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
             return record("working-tree-return", expected_source, extras, None)
         return record("working-tree-return", expected_source, extras, apply(delta.stdout))
 
-    if not patch and not (fast_forward_ok and has_new_commits):
+    kind = _return_kind(prior_kind, fast_forward_ok, has_new_commits, bool(patch))
+    if kind == "no-change-return":
         return record(
             "no-change-return", manifest["initial_fingerprint"], manifest["selected_untracked"], None
         )
-    if fast_forward_ok:
+    if kind == "fast-forward-merge":
         # A true fast-forward preserves candidate commits only after every
         # history path was explicitly reviewed.  Protected paths were rejected
         # before a plan existed, including add-then-delete transient commits.
@@ -1775,15 +2039,11 @@ def follow_up_knowledge_return(workspace_root: Path) -> Optional[Dict[str, Any]]
         "utf-8", "surrogateescape").splitlines() if line and not _forbidden(line[3:])]
     if not changed or dirty or not all(knowledge_home.in_home(path) for path in changed):
         return None
-    # The new plan reviews the whole delta again: paths the last reviewed plan decided keep that
-    # decision; the only new paths are knowledge, which the plan keeps.
-    reviewed = {row["path"]: row["disposition"] for row in _record(root, RETURN_PLAN, "return plan")["paths"]}
+    # The new plan reviews the whole delta again: paths the last reviewed plan decided keep that decision
+    # (plan_return carries it); the only new paths are knowledge, which the plan keeps.
     plan = plan_return(root)
-    for row in plan["paths"]:
-        if row["disposition"] == "pending":
-            if reviewed.get(row["path"], "pending") == "pending":
-                return None
-            row["disposition"] = reviewed[row["path"]]
+    if any(row["disposition"] == "pending" for row in plan["paths"]):
+        return None
     plan["status"] = "ready"
     _write(root, {RETURN_PLAN: (plan, "ShipLoop return plan")})
     return execute_return(root)
@@ -1944,3 +2204,99 @@ def completed_receipt_snapshot(workspace_root: Path, repo: Path) -> Optional[Dic
             return receipt if _source_result_matches_snapshot(source, receipt) else None
         except (KeyError, TypeError, WorkspaceError):
             return None
+
+
+def returned_result(workspace_root: Path) -> Optional[Dict[str, Any]]:
+    """What the newest completed return delivered, read without writing anything; None when no return is recorded.
+
+    ``None`` means only that the receipt is absent or not ``returned``.  A manifest or receipt that cannot be read,
+    an unsupported kind or a tree id that is not a Git object name raises ``WorkspaceError``: the caller surfaces
+    that, it is not "no return".  The result names the ``tree`` the receipt records (``expected_source.tree`` for a
+    fast-forward, ``expected_source.working_tree`` for the other two kinds), the candidate ``head`` the receipt
+    covers, and ``ahead``: whether the work area has moved past that head since.
+
+    This deliberately does not call ``completed_receipt_snapshot``: that compares the whole candidate fingerprint,
+    including untracked files, so a file the model writes at release-verify would make it report "not current"
+    although the receipt still names exactly what was delivered.  It takes the same shared snapshot lock, so a
+    busy workspace or a pending transaction is an error here, not a half-applied read.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    with _workspace_snapshot_lock(root) as locked:
+        if not locked:
+            _fail("the workspace is busy, has a pending transaction or lacks its lock file, so its return cannot "
+                  "be read now")
+        manifest = _manifest(root)
+        receipt = _receipt(root)
+        if not receipt or receipt.get("status") != "returned":
+            return None
+        worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
+        _assert_binding(root, worktree)
+        kind = receipt.get("kind")
+        expected = receipt.get("expected_source")
+        candidate = receipt.get("candidate_fingerprint")
+        if (receipt.get("schema") != RECEIPT_SCHEMA or receipt.get("version") != VERSION or kind not in _RETURN_KINDS
+                or not isinstance(expected, dict) or not isinstance(candidate, dict)):
+            _fail("the return receipt has an unsupported schema or kind")
+        tree = expected.get("tree" if kind == "fast-forward-merge" else "working_tree")
+        head = candidate.get("head")
+        if not (isinstance(tree, str) and _SHA.fullmatch(tree) and isinstance(head, str) and _SHA.fullmatch(head)):
+            _fail("the return receipt records no valid result tree or candidate head")
+        return {
+            "kind": kind, "tree": tree, "head": head, "ahead": _head(worktree) != head,
+            "source": manifest["source_repo"], "receipt": os.fspath(root / RETURN_RECEIPT),
+            "plan": os.fspath(root / RETURN_PLAN), "copy": os.fspath(root / CONSUMER_COPY),
+        }
+
+
+def export_returned_result(workspace_root: Path) -> Dict[str, Any]:
+    """Make ``<workspace root>/consumer-check`` hold exactly the tree the newest completed return delivered.
+
+    The tree goes through a private index inside the workspace root (``read-tree``, then ``checkout-index``), run
+    from the execution worktree because it shares the source's object database; so the source's index, HEAD,
+    branches and files, the object database and the work area are all left as they were.  It is not
+    ``git archive``: attributes such as ``export-ignore`` do not apply, and line-ending attributes convert as in a
+    normal checkout.  The copy has no ``.git``, no ignored file and no file the return plan excluded.
+
+    An earlier copy of this one directory is replaced; anything else at that path (a symlink, a file) is refused,
+    never followed or removed.  A failure leaves no partial copy.  Returns ``returned_result``'s mapping plus
+    ``path``.
+    """
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    found = returned_result(root)
+    if found is None:
+        _fail("no completed return is recorded, so there is no returned result to copy")
+    destination = root / CONSUMER_COPY
+    if os.path.lexists(destination):
+        if destination.is_symlink():
+            _fail(f"{destination} is a symlink; remove it before ShipLoop makes its copy there")
+        if not destination.is_dir():
+            _fail(f"{destination} is not a directory; remove it before ShipLoop makes its copy there")
+        try:
+            shutil.rmtree(destination)
+        except OSError as exc:
+            _fail(f"cannot replace the previous copy at {destination}: {exc}")
+    descriptor, index = _temporary_index(root)
+    os.close(descriptor)
+    env = {"GIT_INDEX_FILE": os.fspath(index)}
+    worktree = root / "worktree"
+    try:
+        for args in (("read-tree", found["tree"]),
+                     ("checkout-index", "-a", "-f", "--prefix=" + os.fspath(destination) + "/")):
+            result = _git(worktree, *args, env=env, readonly=True)
+            if result.returncode:
+                detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
+                _fail(f"git {args[0]} failed while copying the returned result"
+                      + (f": {detail[-1]}" if detail else ""))
+        try:
+            destination.mkdir(exist_ok=True)  # a tree with no file produces no directory
+        except OSError as exc:
+            _fail(f"cannot create the copy at {destination}: {exc}")
+    except WorkspaceError:
+        shutil.rmtree(destination, ignore_errors=True)
+        raise
+    finally:
+        try:
+            index.unlink()
+        except OSError:
+            pass
+    return {**found, "path": os.fspath(destination)}

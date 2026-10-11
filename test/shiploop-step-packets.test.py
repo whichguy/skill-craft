@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""Step-slice packets, no model: each step case's inner-loop packets, as a cleared model reads them.
+
+For every case in test/shiploop_e2e/step_cases.json, the checkout's navigator walks the run with synthetic results
+(packets.offline_packets: the plan's only item is the case's work item, and the step plan records the case's first check
+as its test command). Every inner-loop stage, and every Improve packet the item's loop starts, must render:
+- naming the case's work item;
+- with each skill reference it names present on disk;
+- with the printed head inside the host's shell-output limit.
+From test-red on, each packet that runs the item's tests must also name the recorded test command.
+
+Run `python3 test/shiploop_e2e/packets.py --offline <case>` to see sizes, sections and the cross-packet overlap.
+"""
+from __future__ import annotations
+
+import contextlib
+import io
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
+sys.path.insert(0, str(ROOT / "test/shiploop_e2e"))
+import packets  # noqa: E402
+import shiploop_navigator as navigator  # noqa: E402
+import shiploop_stage_spec as stage_spec  # noqa: E402
+import shiploop_store as store  # noqa: E402
+
+CASES = {name: case for name, case in json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text()).items()
+         if not name.startswith("_")}
+# The stages whose packets carry the item's recorded test commands to run them.
+RUNS_THE_TESTS = ("test-red", "test-green", "regression")
+
+
+class StepPacketTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.found = {name: packets.offline_packets(case) for name, case in CASES.items()}
+
+    def test_every_inner_stage_renders_once_for_the_one_item(self) -> None:
+        for name, found in self.found.items():
+            producers = [key.split("-", 1)[1] for key in found if not key.endswith("-improve")]
+            with self.subTest(name):
+                self.assertEqual(producers, list(stage_spec.INNER))
+                self.assertIn("carry-forward-improve", " ".join(found))  # the last item's end review
+
+    def test_each_packet_names_the_case_work_item(self) -> None:
+        for name, found in self.found.items():
+            title = CASES[name]["work_item"]["title"]
+            for key, text in found.items():
+                with self.subTest(case=name, packet=key):
+                    self.assertIn(title, text)
+
+    def test_named_skill_references_exist(self) -> None:
+        for name, found in self.found.items():
+            for key, text in found.items():
+                with self.subTest(case=name, packet=key):
+                    self.assertEqual(packets.references(text)["missing"], [])
+
+    def test_stages_that_run_the_tests_name_the_recorded_command(self) -> None:
+        for name, found in self.found.items():
+            command = CASES[name]["checks"][0]
+            for key, text in found.items():
+                if key.split("-", 1)[1] in RUNS_THE_TESTS:
+                    with self.subTest(case=name, packet=key):
+                        self.assertIn(command, text)
+
+    def test_the_printed_head_fits_the_host_output_limit(self) -> None:
+        case = CASES["node-fix-bug"]
+        with tempfile.TemporaryDirectory(prefix="shiploop-step-head-") as temp:
+            run_dir = Path(temp) / "run"
+            run_dir.mkdir()
+            state = navigator.new_state(temp, case["prompt"], delegation="inline")
+            while navigator.current_stage(state) != "step-plan":
+                action = navigator.current_action(state)["id"]
+                extra = {"work_items": [case["work_item"]]} if navigator.current_stage(state) == "plan" else {}
+                state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
+                if state.get("active_improve") is not None:
+                    state = navigator.finish_improve(state, action, {"summary": "Synthetic review", "lessons": "x"})
+            store.write_record(run_dir / "state.md", state)
+            shown = io.StringIO()
+            with contextlib.redirect_stdout(shown):
+                full = navigator.emit(None, run_dir, store.read_record(run_dir / "state.md"))
+        printed = shown.getvalue()
+        self.assertLessEqual(len(printed), navigator.PRINT_LIMIT)
+        self.assertGreater(len(full), len(printed))  # the packet file holds the rest
+
+    def test_offline_report_counts_every_packet(self) -> None:
+        report = packets.offline_report("node-add-function", CASES["node-add-function"])
+        self.assertEqual(report["totals"]["packets"], len(self.found["node-add-function"]))
+        self.assertEqual(report["packets"][0]["repeated_share"], 0.0)  # nothing was sent before the first packet
+        self.assertTrue(all(row["chars"] > 0 and row["sections"] for row in report["packets"]))
+
+
+if __name__ == "__main__":
+    unittest.main()

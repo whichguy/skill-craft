@@ -1,0 +1,1056 @@
+{
+ "group": "verify-carry",
+ "summary": {
+  "obligations": 126,
+  "MISSING": 39,
+  "CONTRADICTED": 7
+ },
+ "obligations": [
+  {
+   "old_stage": "document",
+   "source": "stage_spec.py:Stage document.done_when[0]",
+   "obligation": "each changed public behaviour is documented where users and maintainers look",
+   "status": "covered",
+   "where": "document DONE WHEN 1: \"Every changed public behaviour ... is described in the README, API or operator document where its users look\"",
+   "fix": ""
+  },
+  {
+   "old_stage": "document",
+   "source": "stage_spec.py:Stage document.done_when[1]",
+   "obligation": "each changed document was reread after the last edit",
+   "status": "covered",
+   "where": "document DONE WHEN 2: \"Each changed document was reread after its last edit\"",
+   "fix": ""
+  },
+  {
+   "old_stage": "document",
+   "source": "stage_spec.py:Stage document.develop",
+   "obligation": "update code, API, user and operator documentation from observed behaviour",
+   "status": "covered",
+   "where": "document work: \"from the behaviour you observe by running it, not from the plan\"",
+   "fix": ""
+  },
+  {
+   "old_stage": "document",
+   "source": "prompts.py:DUTIES[document]",
+   "obligation": "also update design and decision documentation",
+   "status": "MISSING",
+   "where": "draft document names only README, API and operator docs",
+   "fix": "document work: \"A design or service decision this item made is an AD-<n> in architecture.md ## Decisions (write it if implement did not).\""
+  },
+  {
+   "old_stage": "document",
+   "source": "prompts.py:DUTIES[document]",
+   "obligation": "keep public, error and debug behaviour accurate, concise and discoverable",
+   "status": "MISSING",
+   "where": "draft document says nothing about error/debug behaviour",
+   "fix": "document work: \"... including the errors a user can see and how to turn on diagnostics\""
+  },
+  {
+   "old_stage": "document",
+   "source": "prompts.py:DUTIES[document]",
+   "obligation": "promote durable facts and lessons into repository documentation, not run notes",
+   "status": "covered",
+   "where": "draft document: \"Durable facts and lessons go in the repository's docs, not in run notes.\"",
+   "fix": ""
+  },
+  {
+   "old_stage": "document",
+   "source": "prompts.py:DUTIES[document]",
+   "obligation": "preserve uncertainty and material caveats",
+   "status": "MISSING",
+   "where": "not in draft",
+   "fix": "document work: \"state known limits and caveats; do not document unobserved behaviour as working\""
+  },
+  {
+   "old_stage": "document",
+   "source": "prompts.py:DUTIES[document]",
+   "obligation": "reconcile maintained requirements with accepted changes (preserve unaffected conditions, link tests/evidence or gaps)",
+   "status": "MISSING",
+   "where": "draft says moved to 'spec and carry-forward', but the carry-forward draft never mentions spec.md",
+   "fix": "carry-forward work + exit 2: \"spec.md: mark each R-<n> this item satisfied with its test IDs, keep every unaffected clause, and record an open gap under its R-<n>\""
+  },
+  {
+   "old_stage": "document",
+   "source": "prompts.py:DUTIES[document]",
+   "obligation": "update README/index links to the authoritative home without duplicating its contract",
+   "status": "covered",
+   "where": "document DONE WHEN 4: \"links to its authoritative home instead of copying\"",
+   "fix": ""
+  },
+  {
+   "old_stage": "document",
+   "source": "prompts.py:DUTIES[document]",
+   "obligation": "current-system baseline: keep recovered observations and accepted deltas in durable docs with their evidence status and as-of baseline",
+   "status": "moved",
+   "where": "run/reference.md#current-system-baseline (FILES line of document)",
+   "fix": "FILES: \"run/reference.md#current-system-baseline (only when this item recovered existing-system behaviour)\""
+  },
+  {
+   "old_stage": "document",
+   "source": "prompts.py:DUTIES[document]",
+   "obligation": "maintain the indexed service decision note (contracts, files, check evidence, owners, revalidation triggers)",
+   "status": "MISSING",
+   "where": "not in draft",
+   "fix": "Fold into architecture.md: \"a service choice is an AD-<n> with its contract, owner and revalidation trigger\"; detail at run/reference.md#service-handoff"
+  },
+  {
+   "old_stage": "document",
+   "source": "prompts.py:STAGE_REFERENCES[document]",
+   "obligation": "Documentation guidance: always assess the repo README (record absence and whether one is needed)",
+   "status": "MISSING",
+   "where": "draft has no README assessment",
+   "fix": "document exit 3: \"The README was assessed: changed, or <run>/notes/<id>.md says why not\""
+  },
+  {
+   "old_stage": "document",
+   "source": "stage_spec.py:ITEM_COMMIT_STAGES + navigator._commit_scope_lines",
+   "obligation": "document packet prints the step plan paths and the item-commit rule (docs-class files are committed; other undeclared files are left / delete generated output)",
+   "status": "MISSING",
+   "where": "draft document has no commit lines; ITEM_COMMIT_STAGES still names document and integrate",
+   "fix": "document FILES: \"Step plan paths: <paths>. ShipLoop commits, when verify is accepted, the declared paths, changed documentation files and docs/shiploop/; commit nothing yourself.\" Change ITEM_COMMIT_STAGES to (\"document\", \"verify\")"
+  },
+  {
+   "old_stage": "document",
+   "source": "stage_spec.py:Stage document.blocks code-craft",
+   "obligation": "code craft rubric",
+   "status": "intentionally-dropped",
+   "where": "drafts.py document dropped: 'nothing in documenting uses it'; verify's review applies rule 3 (contract docstrings)",
+   "fix": ""
+  },
+  {
+   "old_stage": "document",
+   "source": "item_scope.py:skill_scope_refusal (SKILL_NA_DIFF_STAGE)",
+   "obligation": "document's done refused when the item diff touches a skill file after skill_na",
+   "status": "intentionally-dropped",
+   "where": "owner decision 5 (skill-assess/skill-validate removed; skill_na no longer exists)",
+   "fix": "Remove SKILL_NA_DIFF_STAGE, skill_scope_refusal and the step-plan skill_na gate together"
+  },
+  {
+   "old_stage": "document",
+   "source": "navigator.py:_normalise_choices",
+   "obligation": "document may submit choices.skill_required",
+   "status": "intentionally-dropped",
+   "where": "owner decision 5; no reader of skill_required exists",
+   "fix": "Delete the choices field"
+  },
+  {
+   "old_stage": "document",
+   "source": "drafts.py:document gate_after",
+   "obligation": "document issued only when a public behaviour changed",
+   "status": "MISSING",
+   "where": "draft rule 'step-plan paths include code, or the plan says so' has no script proof",
+   "fix": "Add document to item_scope.LEFT_OUT_STAGES: not applicable when item_scope.behavioural(changed_paths) is empty after test (script-provable); otherwise issued"
+  },
+  {
+   "old_stage": "document",
+   "source": "prompts.py:IMPROVE_SCOPES[document]",
+   "obligation": "Improve scope text",
+   "status": "intentionally-dropped",
+   "where": "document has no Improve child today (stage_spec improve=None)",
+   "fix": ""
+  },
+  {
+   "old_stage": "skill-assess",
+   "source": "stage_spec.py:Stage skill-assess.done_when",
+   "obligation": "a reuse or new-skill decision is recorded with its reason",
+   "status": "covered",
+   "where": "carry-forward exit 3: \"result field skill ... decision and reason\"",
+   "fix": ""
+  },
+  {
+   "old_stage": "skill-assess",
+   "source": "prompts.py:DUTIES[skill-assess]",
+   "obligation": "dispositions: reuse unchanged, update locally, create separately, or N/A",
+   "status": "CONTRADICTED",
+   "where": "draft result shape is skill: {\"decision\": \"created\" | \"none\"} only, though its text says 'reuse or extend an existing one first'",
+   "fix": "decision: \"none\" | \"reuse\" | \"update\" | \"create\" (exact shape in carry-forward notes)"
+  },
+  {
+   "old_stage": "skill-assess",
+   "source": "prompts.py:DUTIES[skill-assess]",
+   "obligation": "check task fit, maintenance/portability, examples and consumer value",
+   "status": "covered",
+   "where": "carry-forward work: \"no existing skill covers it ... would make this work faster or more reliable\"",
+   "fix": ""
+  },
+  {
+   "old_stage": "skill-assess",
+   "source": "prompts.py:DUTIES[skill-assess]",
+   "obligation": "presence/installation is not proof of execution; no new dependency or publication authorized",
+   "status": "MISSING",
+   "where": "not in draft",
+   "fix": "carry-forward work: \"Keep a new skill in the repository; never install it globally, add a dependency or publish it.\""
+  },
+  {
+   "old_stage": "skill-assess",
+   "source": "prompts.py:DUTIES[skill-assess]",
+   "obligation": "read the skill index / README / AGENTS skill links; absence of an index is not a blocker",
+   "status": "MISSING",
+   "where": "draft names only environment.md ## Skills",
+   "fix": "carry-forward work: \"Read the repository's skill index (or README/AGENTS.md skill links) first; a missing index is not a blocker\""
+  },
+  {
+   "old_stage": "skill-assess",
+   "source": "prompts.py:DUTIES[skill-assess]",
+   "obligation": "prefer unchanged reuse, then compatible local update; create only for an evidenced gap; preserve older supported uses",
+   "status": "covered",
+   "where": "carry-forward work: \"reuse or extend an existing one first\" + update needs older_use trial",
+   "fix": ""
+  },
+  {
+   "old_stage": "skill-assess",
+   "source": "prompts.py:DUTIES[skill-assess]",
+   "obligation": "link disposition note, index, entrypoint, inputs/defaults and validation evidence in evidence_refs",
+   "status": "covered",
+   "where": "skill field path/index/trial.output + evidence_refs",
+   "fix": ""
+  },
+  {
+   "old_stage": "skill-assess",
+   "source": "prompts.py:DUTIES[skill-assess]",
+   "obligation": "do not invent entrypoints or validation for a no-fit disposition",
+   "status": "covered",
+   "where": "skill shape: none/reuse carry no path or trial",
+   "fix": ""
+  },
+  {
+   "old_stage": "skill-assess",
+   "source": "prompts.py:STAGE_REFERENCES[skill-assess]",
+   "obligation": "reuse-before-a-new-mechanism and reusable-product-skills guidance",
+   "status": "moved",
+   "where": "run/reference.md#local-skills",
+   "fix": ""
+  },
+  {
+   "old_stage": "skill-validate",
+   "source": "stage_spec.py:Stage skill-validate.done_when",
+   "obligation": "any changed skill ran on a real input, or N/A recorded",
+   "status": "covered",
+   "where": "carry-forward exit 3: \"its trial output file exists\"",
+   "fix": ""
+  },
+  {
+   "old_stage": "skill-validate",
+   "source": "prompts.py:DUTIES[skill-validate]",
+   "obligation": "for a changed skill, exercise the triggering case and a retained older use",
+   "status": "MISSING",
+   "where": "draft: 'try it once on this run's real procedure'",
+   "fix": "skill.older_use required for decision update, and its trial output records both runs"
+  },
+  {
+   "old_stage": "skill-validate",
+   "source": "prompts.py:DUTIES[skill-validate]",
+   "obligation": "check defaults/overrides and a relevant failure boundary",
+   "status": "moved",
+   "where": "run/reference.md#local-skills (rarely needed)",
+   "fix": ""
+  },
+  {
+   "old_stage": "skill-validate",
+   "source": "prompts.py:DUTIES[skill-validate]",
+   "obligation": "cross-context reuse claim needs a fresh-reader trial, else record cold-context reuse untested",
+   "status": "MISSING",
+   "where": "not in draft",
+   "fix": "carry-forward work: \"Record in the trial file whether a fresh reader tried it; otherwise write 'cold-context reuse untested'.\""
+  },
+  {
+   "old_stage": "skill-validate",
+   "source": "prompts.py:DUTIES[skill-validate]",
+   "obligation": "discovery or installation alone is not validation; record tested scope and limitations",
+   "status": "covered",
+   "where": "trial.result + trial output file required",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "stage_spec.py:Stage static-checks.done_when[0]",
+   "obligation": "the quality loop ends with an iteration of only trivial findings",
+   "status": "covered",
+   "where": "verify contract required_trivial_reviews 1; verify exit 6",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "stage_spec.py:Stage static-checks.done_when[1]",
+   "obligation": "every recorded command passes when ShipLoop reruns it",
+   "status": "covered",
+   "where": "verify exit 1 + test-rerun gate",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "stage_spec.py:Stage static-checks.develop",
+   "obligation": "trace each changed public entry point with a valid, a boundary and an invalid input; fix against Code craft",
+   "status": "covered",
+   "where": "verify work step 3, exit 3",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "stage_spec.py:Stage static-checks.tools / entry_runs change-inventory",
+   "obligation": "ShipLoop records the change inventory on entry",
+   "status": "CONTRADICTED",
+   "where": "draft path <run>/quality/<id>-inventory.md; the real path is lint.inventory_path: <run>/lint/<id>-inventory.md",
+   "fix": "Print <run>/lint/<id>-inventory.md (or move inventory_path; one path)"
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "stage_spec.py:entry_runs advisory-lint",
+   "obligation": "first-entry lint with safe auto-fix",
+   "status": "covered",
+   "where": "verify DO: \"On entry ShipLoop lints this item's changes (auto-fixing formatting once)\"",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "stage_spec.py:entry_runs quality-contract",
+   "obligation": "ShipLoop writes the quality-loop contract and the Code craft rubric file",
+   "status": "covered",
+   "where": "verify Until Loop block: contract written by ShipLoop; FILES <run>/quality/code-craft.md",
+   "fix": "quality.STAGE derives from with_complete_run('quality-terminal'); move that run to verify"
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "stage_spec.py:complete_runs quality-terminal",
+   "obligation": "terminal packet checked against the contract; receipt must be in evidence_refs",
+   "status": "covered",
+   "where": "verify gate_after (quality-terminal) + DONE WHEN receipt line",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "stage_spec.py:Stage static-checks.outcomes (done, blocked, revise)",
+   "obligation": "repeat is never valid: the loop, not the graph, repeats the review (quality.check_terminal)",
+   "status": "CONTRADICTED",
+   "where": "draft verify 'Outcomes: done | repeat | blocked | revise'",
+   "fix": "verify outcomes: done | blocked | revise"
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:DUTIES[static-checks] Do 1",
+   "obligation": "read the bound Until Loop card once per context; start with the printed command; never edit, retype or extend the contract",
+   "status": "MISSING",
+   "where": "draft verify prints the start line only",
+   "fix": "the Amendment INVOKE block + \"start from it unchanged\""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:DUTIES[static-checks] Do 2",
+   "obligation": "execute each iteration, call its done command; never write the receipt; after a reset resume via its next_argv",
+   "status": "MISSING",
+   "where": "draft verify has no receipt/resume rule (the test draft has it)",
+   "fix": "verify DO: \"Never write the receipt; after a reset, if it exists, run its next_argv; do not start again.\""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:DUTIES[static-checks] Do 3",
+   "obligation": "list the receipt path in evidence_refs",
+   "status": "MISSING",
+   "where": "not in draft verify",
+   "fix": "verify DONE WHEN: \"evidence_refs lists the receipt <run>/loops/<id>-terminal.json\""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:DUTIES[static-checks] Report",
+   "obligation": "done when complete; revise when stopped blocked because the goal is wrong as planned; blocked only for user/access/outside dependency",
+   "status": "covered",
+   "where": "verify Outcomes line",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:DUTIES[static-checks] Report",
+   "obligation": "summarize entry-point inventory, traces that found issues, fixes, final check commands with exit codes; state any required unrun check",
+   "status": "MISSING",
+   "where": "draft verify has no summary content",
+   "fix": "verify RUN: \"Summary: the entry points traced, each trace that found an issue and its fix, each command with its exit code, any required check not run and why.\""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:DUTIES[static-checks] lint",
+   "obligation": "the lint block is supporting output: keep or revert any auto-fix it names, and still run the checks",
+   "status": "MISSING",
+   "where": "draft says only 'auto-fixing formatting once'",
+   "fix": "verify DO: \"Keep or revert each auto-fix the lint record names.\""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:QUALITY_ITERATION 1",
+   "obligation": "first iteration runs focused tests and the static checks, recording each command and exit code; later iterations start from the previous results",
+   "status": "covered",
+   "where": "verify work step 1 (all recorded commands)",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:QUALITY_ITERATION 2-3",
+   "obligation": "inventory public entry points; one-line trace per path; untested path -> add a test",
+   "status": "MISSING",
+   "where": "draft work omits 'add a test for an untested path' and the per-path trace record",
+   "fix": "verify work step 3 (as written)"
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:QUALITY_ITERATION 4",
+   "obligation": "review list: argument checks, contract docstrings, error paths, silent failures, restating/stale comments, dead code, uncatalogued text, namespace/visibility, schema, near-copies, rich UI interaction",
+   "status": "MISSING",
+   "where": "draft: 'review the diff against code craft and architecture.md' only",
+   "fix": "verify work step 4 (as written)"
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:QUALITY_ITERATION 5",
+   "obligation": "material vs trivial classification; do not reopen a fixed finding unless its code changed",
+   "status": "MISSING",
+   "where": "draft contract has no classification rule, yet the exit depends on it",
+   "fix": "verify work step 6"
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:QUALITY_ITERATION 6",
+   "obligation": "fix within scope, never a check or its expected result; rerun after changes",
+   "status": "covered",
+   "where": "verify work step 7",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:QUALITY_EXIT_CONDITION",
+   "obligation": "exit: trivial iteration AND focused tests and static checks pass on the final candidate",
+   "status": "CONTRADICTED",
+   "where": "draft verify exit_condition drops the command pass, so the loop can exit on a candidate the test-rerun gate then refuses (brief rule)",
+   "fix": "verify exit 1: every recorded command exited 0 after the last edit"
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:QUALITY_REPEAT_CONDITION",
+   "obligation": "no iteration limit; stop blocked when unfixable in scope/authority or a required check cannot run; never stop cancelled",
+   "status": "MISSING",
+   "where": "draft repeat lacks 'never cancelled' and the check-cannot-run stop",
+   "fix": "verify repeat_condition (as written)"
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "quality.py:build_contract",
+   "obligation": "contract context: scope = change inventory + tests; authority = edit in-scope files, no commit/push/install, never change a check; resources = rubric, inventory, lint record, notes, step plan",
+   "status": "covered",
+   "where": "kept; resources add spec, architecture, environment, test-strategy, test-spec (CONTEXT_SHAPE)",
+   "fix": "build_contract resources: add the four knowledge-home files and <feature>/test-spec.md"
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "test_loop.py:MAX_REFUSED_RUNS via _has_loop_packet",
+   "obligation": "after 11 refused reruns done is no longer accepted: report revise",
+   "status": "MISSING",
+   "where": "draft verify omits it (draft test has it)",
+   "fix": "verify Checked by: \"After 11 refused runs done is no longer accepted: report revise.\""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "stage_spec.py:blocks code-craft",
+   "obligation": "Code craft rubric carried in the packet",
+   "status": "covered",
+   "where": "verify FILES: <run>/quality/code-craft.md",
+   "fix": ""
+  },
+  {
+   "old_stage": "static-checks",
+   "source": "prompts.py:STAGE_REFERENCES[static-checks]",
+   "obligation": "iteration and verification guidance",
+   "status": "moved",
+   "where": "run/reference.md#iteration",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "stage_spec.py:Stage verify.done_when[0]",
+   "obligation": "every completion criterion confirmed on the current candidate with evidence after the last edit",
+   "status": "covered",
+   "where": "verify exit 2",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "stage_spec.py:Stage verify.done_when[1]",
+   "obligation": "later-phase checks are marked pending with their owner",
+   "status": "covered",
+   "where": "verify exit 7",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "stage_spec.py:Stage verify.test",
+   "obligation": "rerun or inspect each criterion's confirmation; reconcile every selected case",
+   "status": "covered",
+   "where": "verify work step 2; reconciliation below",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "stage_spec.py:entry_runs report-lint",
+   "obligation": "report-only lint on entry",
+   "status": "intentionally-dropped",
+   "where": "replaced by static-checks' advisory-lint at verify entry (owner decision 4)",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "stage_spec.py:complete_runs test-rerun",
+   "obligation": "on done ShipLoop reruns every recorded command and refuses unless each passes",
+   "status": "covered",
+   "where": "verify gate_after",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "drafts.py:verify Checked by",
+   "obligation": "rerun 'skipped when no file changed since the test stage's accepted run'",
+   "status": "MISSING",
+   "where": "new behaviour with no implementation; test_loop.verify always runs",
+   "fix": "Implement in _test_rerun_gate by comparing lint snapshot trees (test accept tree == verify tree), or drop the clause"
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify]",
+   "obligation": "a criterion is confirmed by its passing command, not by the result summary",
+   "status": "covered",
+   "where": "verify exit 2",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify]",
+   "obligation": "evidence must apply to the current candidate, command, configuration and target; stale/missing/skipped is incomplete",
+   "status": "covered",
+   "where": "verify work step 2",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify]",
+   "obligation": "use the authoritative acceptance criterion; keep diagnostic scores separate",
+   "status": "moved",
+   "where": "run/reference.md#verify-evidence",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify] Coding decision guide",
+   "obligation": "compare the actual diff and affected consumers with the accepted plan and justified revisions",
+   "status": "MISSING",
+   "where": "draft step 2 reviews against code craft and architecture only",
+   "fix": "verify work step 4 starts \"against the step plan's steps and paths\""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify]",
+   "obligation": "preserve a required real-boundary gap; a tool pass is not proof of unexercised behaviour",
+   "status": "covered",
+   "where": "draft: 'A real-boundary gap stays pending with its owner'",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify]",
+   "obligation": "check the entry-point inventory against the actual diff",
+   "status": "covered",
+   "where": "verify exit 3 (from the change inventory)",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify]",
+   "obligation": "check implement's per-criterion receipt; independently rerun or inspect each criterion",
+   "status": "covered",
+   "where": "verify exit 2 (implement no longer reports a receipt; the rerun replaces it)",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify]",
+   "obligation": "inspected/unconfirmable criterion whose Confirm-by required execution -> revise",
+   "status": "covered",
+   "where": "verify Checked by",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify]",
+   "obligation": "proven-unachievable criterion -> revise, or replan at an OUTER stage when product-wide",
+   "status": "covered",
+   "where": "verify outcomes revise; repeat_condition stop",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify]",
+   "obligation": "reconcile tests, static checks, docs, error behaviour, diagnostics, dependencies and known limitations",
+   "status": "MISSING",
+   "where": "draft has no known-limitations reconciliation",
+   "fix": "verify RUN summary: \"... and the known limitations\""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify]",
+   "obligation": "work-item acceptance is not a claim that integration or release happened",
+   "status": "covered",
+   "where": "exit 7 later-phase pending",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:DUTIES[verify] Service discovery",
+   "obligation": "verify due service outcomes incl. safe fallback and failure; separate local simulation from remote readback",
+   "status": "moved",
+   "where": "run/reference.md#service-verification (FILES line, only when the item selected a service)",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:SELECTED_CASE_RECONCILIATION (block reconciliation)",
+   "obligation": "classify every selected case passed/failed/blocked/not-run/N/A; a pass on a different surface is only supporting; keep not-yet-due cases with phase and owner; check for dropped cases",
+   "status": "MISSING",
+   "where": "not in draft verify",
+   "fix": "verify work step 2: \"Classify every test-spec case passed, failed, blocked or not due (with its phase and owner); a pass on another surface only supports.\""
+  },
+  {
+   "old_stage": "verify",
+   "source": "stage_spec.py:Stage verify.blocks code-craft",
+   "obligation": "code craft rubric",
+   "status": "covered",
+   "where": "FILES <run>/quality/code-craft.md",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "prompts.py:IMPROVE_SCOPES[verify] / _improve_prompt coding_review",
+   "obligation": "Improve coding review at verify",
+   "status": "intentionally-dropped",
+   "where": "verify has no Improve child (improve=None); the coding_review branch for verify is dead text",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "lint.py:GATE_STAGES",
+   "obligation": "verify lints again at done (new)",
+   "status": "covered",
+   "where": "added: lint-gate in verify complete_runs",
+   "fix": "complete_runs=(\"lint-gate\", \"quality-terminal\", \"test-rerun\")"
+  },
+  {
+   "old_stage": "integrate",
+   "source": "stage_spec.py:Stage integrate.done_when",
+   "obligation": "the item's changes are assembled in the execution checkout, or a justified no-op recorded",
+   "status": "covered",
+   "where": "verify work step 5 (chained); inline route: no-op by construction (owner decision 4)",
+   "fix": ""
+  },
+  {
+   "old_stage": "integrate",
+   "source": "stage_spec.py:Stage integrate.develop",
+   "obligation": "keep run state and logs out of product commits",
+   "status": "covered",
+   "where": "script: lint._runtime_path and commit_scope exclude them",
+   "fix": ""
+  },
+  {
+   "old_stage": "integrate",
+   "source": "stage_spec.py:Stage integrate.deploy",
+   "obligation": "the original branch is returned only at the final workspace return",
+   "status": "CONTRADICTED",
+   "where": "run rules still say 'Inner integrate assembles here' (navigator._run_rules, reference.WORKSPACE_TEXT, workspace-lifecycle.md#inner-assembly-and-final-return)",
+   "fix": "Reword to \"verify assembles chained work here; the original branch is returned only at release or handoff\""
+  },
+  {
+   "old_stage": "integrate",
+   "source": "prompts.py:DUTIES[integrate]",
+   "obligation": "only authorized Git/worktree integration; do not infer merge/commit/push from a plan",
+   "status": "covered",
+   "where": "contract authority: no commit, push or install; the item commit is ShipLoop's",
+   "fix": ""
+  },
+  {
+   "old_stage": "integrate",
+   "source": "prompts.py:DUTIES[integrate]",
+   "obligation": "inspect actual diffs, branches, conflicts, identities and combined interfaces",
+   "status": "covered",
+   "where": "verify work step 5",
+   "fix": ""
+  },
+  {
+   "old_stage": "integrate",
+   "source": "prompts.py:DUTIES[integrate]",
+   "obligation": "preserve user work; keep run state, logs, credentials and generated artifacts out of commits and returns",
+   "status": "MISSING",
+   "where": "draft verify has no 'delete generated output' or will/won't-commit lines",
+   "fix": "verify FILES prints _commit_scope_lines (\"Changed, ShipLoop will commit: ... / will not commit: ...\") + stage_spec.item_left(mode)"
+  },
+  {
+   "old_stage": "integrate",
+   "source": "prompts.py:_INLINE_DUTY_PARAGRAPHS[integrate] / DUTIES",
+   "obligation": "bound chain: confirm its finish commit is an ancestor of the execution checkout HEAD and record it",
+   "status": "MISSING",
+   "where": "draft step 3 says 'assemble' but not the ancestor check",
+   "fix": "verify exit 5 + script check git merge-base --is-ancestor <finish> HEAD"
+  },
+  {
+   "old_stage": "integrate",
+   "source": "stage_spec.py:ITEM_COMMITS + navigator._item_commit",
+   "obligation": "on integrate accept ShipLoop commits declared paths, changed docs and docs/shiploop/",
+   "status": "moved",
+   "where": "drafts.py verify: 'the item commit happens on accept'",
+   "fix": "_item_commit keys on row stage 'verify'; ITEM_COMMITS text says 'When verify is accepted'; verify packet prints it"
+  },
+  {
+   "old_stage": "integrate",
+   "source": "prompts.py:STAGE_REFERENCES[integrate]",
+   "obligation": "workspace integration guidance",
+   "status": "moved",
+   "where": "run/reference.md#inner-assembly",
+   "fix": ""
+  },
+  {
+   "old_stage": "integration-verify",
+   "source": "stage_spec.py:Stage integration-verify.done_when[0]",
+   "obligation": "every recorded command passes on the integrated result when ShipLoop reruns it",
+   "status": "covered",
+   "where": "verify exit 1 + test-rerun gate (one rerun on the assembled tree)",
+   "fix": ""
+  },
+  {
+   "old_stage": "integration-verify",
+   "source": "stage_spec.py:Stage integration-verify.done_when[1]",
+   "obligation": "shared interfaces are checked",
+   "status": "covered",
+   "where": "verify work step 5",
+   "fix": ""
+  },
+  {
+   "old_stage": "integration-verify",
+   "source": "prompts.py:DUTIES[integration-verify]",
+   "obligation": "recheck evidence invalidated by merge/conflict-resolution edits",
+   "status": "covered",
+   "where": "exit 1 'after the last edit'",
+   "fix": ""
+  },
+  {
+   "old_stage": "integration-verify",
+   "source": "prompts.py:DUTIES[integration-verify]",
+   "obligation": "separate local integrated result from remote delivery",
+   "status": "covered",
+   "where": "exit 7",
+   "fix": ""
+  },
+  {
+   "old_stage": "integration-verify",
+   "source": "prompts.py:DUTIES[integration-verify]",
+   "obligation": "route a concrete integration failure to correction; passing parts do not prove the combination",
+   "status": "covered",
+   "where": "verify work step 5 + revise",
+   "fix": ""
+  },
+  {
+   "old_stage": "integration-verify",
+   "source": "stage_spec.py:blocks pass-or-stop",
+   "obligation": "pass-or-stop incl. 7 genuine fix attempts -> revise",
+   "status": "intentionally-dropped",
+   "where": "SPEC S-10 carve-out 2026-10-10: genuine-fix cap applies to the test loop and chain step; verify's loop is the quality loop (uncapped) bounded by MAX_REFUSED_RUNS",
+   "fix": ""
+  },
+  {
+   "old_stage": "integration-verify",
+   "source": "stage_spec.py:blocks reconciliation",
+   "obligation": "selected-case reconciliation",
+   "status": "MISSING",
+   "where": "see verify row",
+   "fix": "same fix as verify reconciliation"
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "stage_spec.py:Stage carry-forward.done_when[0]",
+   "obligation": "every still-required future item is in the queue, in prerequisite order",
+   "status": "covered",
+   "where": "carry-forward exit 1",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "stage_spec.py:Stage carry-forward.done_when[1]",
+   "obligation": "learnings and durable knowledge recorded outside run notes",
+   "status": "covered",
+   "where": "carry-forward exit 2",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "stage_spec.py:Stage carry-forward.test",
+   "obligation": "keep rerun procedures in the repository's test documentation",
+   "status": "covered",
+   "where": "exit 2: test-strategy.md ## Harnesses and suites",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:DUTIES[carry-forward]",
+   "obligation": "read the full ordered queue (state.md work_items incl. contexts) before revising",
+   "status": "covered",
+   "where": "draft: 'Read every pending item's title and context'",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:DUTIES[carry-forward]",
+   "obligation": "explain removals, merges or supersession in the linked plan note",
+   "status": "MISSING",
+   "where": "not in draft",
+   "fix": "carry-forward work: \"Explain each removal or merge in <feature>/plan.md.\""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:DUTIES + carry-forward.md#mandatory-post-inner-mapping",
+   "obligation": "a defect found in completed work is a corrective item ahead of its consumers; an invalidated prerequisite needs corrective work and revalidation; never rewrite past evidence",
+   "status": "MISSING",
+   "where": "not in draft",
+   "fix": "carry-forward exit 4"
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "carry-forward.md#mandatory-post-inner-mapping",
+   "obligation": "a needed research/preparation prerequisite is its own item ahead of every consumer",
+   "status": "MISSING",
+   "where": "not in draft",
+   "fix": "carry-forward exit 4"
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "carry-forward.md#mandatory-post-inner-mapping",
+   "obligation": "an incompatible finding (changed requirement, permission, contract) is blocked or pause, not a queue edit",
+   "status": "MISSING",
+   "where": "not in draft",
+   "fix": "carry-forward repeat_condition stop + Outcomes"
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:DUTIES[carry-forward]",
+   "obligation": "record risks, unresolved dependencies, system-test obligations, release prerequisites and owners",
+   "status": "MISSING",
+   "where": "draft records commands/ADs/suites only",
+   "fix": "carry-forward work: \"open risks, system-test obligations and release prerequisites go in <feature>/plan.md ## Open with their owner\""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:DUTIES[carry-forward]",
+   "obligation": "keep completed evidence separate from future plans; do not silently expand scope or adopt tentative ideas as policy",
+   "status": "moved",
+   "where": "run/reference.md#carry-forward",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:WORK_ITEM_CONTEXT (block work-items)",
+   "obligation": "a new item's context carries only the compact decision locator, rationale and revalidation condition; sources in evidence_refs; no transcripts, no second decision store",
+   "status": "MISSING",
+   "where": "draft gives no work_items row shape or context rule",
+   "fix": "carry-forward RUN: work_items rows {id, title, context}; exit 1 'each new item's context names its decision locator, rationale and revalidation condition'"
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:DUTIES[carry-forward]",
+   "obligation": "test docs keep harness/case locators and focused/smoke/full commands; link pending full-suite or real-boundary checks with owner",
+   "status": "covered",
+   "where": "exit 2: test-strategy.md ## Harnesses and suites",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:DUTIES[carry-forward]",
+   "obligation": "retain the originating strategy locator with item test decisions",
+   "status": "moved",
+   "where": "run/reference.md#carry-forward",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:DUTIES[carry-forward]",
+   "obligation": "for selected local skills retain index/entrypoint, inputs, validation evidence, revalidation trigger",
+   "status": "covered",
+   "where": "skill field (path, index, trial, revalidate)",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:DUTIES[carry-forward]",
+   "obligation": "maintain the skill index/README links and the short SHIPLOOP.md locator so the next item finds new skills",
+   "status": "MISSING",
+   "where": "not in draft",
+   "fix": "skill.index required for create/update; script checks it names the skill"
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:DUTIES[carry-forward]",
+   "obligation": "carry prior baseline, incoming delta and knowledge locators; preserve historical snapshots",
+   "status": "moved",
+   "where": "run/reference.md#current-system-baseline",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "stage_spec.py:blocks backchain (BACKCHAIN_AUDIT_STAGES)",
+   "obligation": "read-only Backchain review/audit only for a material prerequisite ambiguity; repair/revise rules",
+   "status": "moved",
+   "where": "drafts.py: 'Backchain/budget text (to the reference)'",
+   "fix": "FILES must name run/reference.md#backchain-audit so the route is still reachable"
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "stage_spec.py:blocks test-facility",
+   "obligation": "reuse test facilities; retain their locators",
+   "status": "moved",
+   "where": "run/reference.md#test-facilities",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "navigator.py:_allowed_outcome_lines",
+   "obligation": "work_items replaces the whole future queue, not a delta",
+   "status": "covered",
+   "where": "draft: 'it replaces the whole future queue'",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "navigator.py:_replace_future_work_items",
+   "obligation": "a work_items ID may not repeat a completed or current item",
+   "status": "MISSING",
+   "where": "draft Checked-by omits it",
+   "fix": "Checked by: \"refuses a work_items ID that repeats a completed or the current item\""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "navigator.py:_improve_line / _improve_checkpoint",
+   "obligation": "a done result leaving no item pending starts the end-of-work Improve over every executed step; a later Improve that adds items moves it",
+   "status": "covered",
+   "where": "draft Checked by 'on the last item an Improve child reviews all executed work'",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "navigator.py:_improve_change_gate",
+   "obligation": "the end review commits its own edits; when it changed the tree ShipLoop reruns every completed item's commands",
+   "status": "MISSING",
+   "where": "not stated in the draft",
+   "fix": "carry-forward Checked by: \"... the end review commits its edits, and if it changed the tree ShipLoop reruns every completed item's recorded commands\""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:END_REVIEW_FOCUS",
+   "obligation": "end review traces every changed entry point across all items and applies Code craft",
+   "status": "covered",
+   "where": "unchanged Improve packet",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "knowledge_home.py:check",
+   "obligation": "screens the home for credentials; refuses a dropped R-<n>",
+   "status": "covered",
+   "where": "draft Checked by",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "drafts.py:carry-forward Checked by",
+   "obligation": "refuses a dropped AD-<n>",
+   "status": "CONTRADICTED",
+   "where": "no such gate: knowledge_home.check tracks only R-<n>, and architecture.md is not in LIVING/STAGE_FILES",
+   "fix": "Add architecture.md to LIVING and STAGE_FILES; extend check() with AD-<n> retention against HEAD:docs/shiploop/architecture.md (superseded ADs stay under ## Superseded)"
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "knowledge_home.py:commit / navigator._knowledge_close",
+   "obligation": "ShipLoop commits docs/shiploop/ and SHIPLOOP.md after the accepted stage; the model commits nothing",
+   "status": "covered",
+   "where": "draft 'then commits'",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "drafts.py:carry-forward skill create",
+   "obligation": "a new local skill <name>/SKILL.md created at carry-forward gets committed",
+   "status": "MISSING",
+   "where": "the item commit ran at verify; knowledge.commit covers only docs/shiploop and SHIPLOOP.md; an in-place run leaves the skill uncommitted (stage_spec._LEFT_IN_PLACE)",
+   "fix": "After a done carry-forward with decision create/update, ShipLoop commits skill.path's directory and skill.index through shiploop_git.commit_paths (privacy-screened)"
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:IMPROVE_SCOPES[carry-forward]",
+   "obligation": "Improve scope: durable learning, pending obligations, revalidation conditions",
+   "status": "covered",
+   "where": "unchanged",
+   "fix": ""
+  },
+  {
+   "old_stage": "carry-forward",
+   "source": "prompts.py:STAGE_REFERENCES[carry-forward]",
+   "obligation": "project-knowledge, house-style retention, state and data assessment",
+   "status": "moved",
+   "where": "run/reference.md#carry-forward",
+   "fix": ""
+  },
+  {
+   "old_stage": "verify",
+   "source": "navigator.py:dispatch comment 'Only complete enters static-checks or verify'",
+   "obligation": "transition writes (inventory, contract) happen on entry to the quality stage",
+   "status": "covered",
+   "where": "the improve-complete path also calls _lint_transition, so verify reached from the last implement's Improve (test and document left out) still gets its contract",
+   "fix": "Update the stale comment"
+  },
+  {
+   "old_stage": "verify",
+   "source": "quality.py:contract_path/terminal_path",
+   "obligation": "contract and receipt paths",
+   "status": "CONTRADICTED",
+   "where": "Amendment prints <run>/loops/<id>-contract.json; quality.py writes quality/<id>-contract.json and checks quality/<id>-terminal.json",
+   "fix": "One path: move contract_path/terminal_path to loops/ for every loop (test_loop too)"
+  }
+ ],
+ "stages": [
+  {
+   "id": "document",
+   "prompt": "DO\nGoal: the documentation this item's change affects says what the change now does.\nConsult, and cite the headings you used:\n- spec (## Requirements): the R-<n> this item changed, for the intended behaviour.\n- architecture.md (## Structure, ## Interfaces and boundaries, ## Decisions): what is now true; a design or service decision this item made is an AD-<n> under ## Decisions (write it if implement did not).\n- environment.md (## Commands): the commands your examples use.\n\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Run each changed public behaviour (from the change inventory) and update the README, API, operator and error documentation from what you observe, including the errors a user can see and how to turn on diagnostics; state known limits and caveats; link to the authoritative home instead of copying a contract; then reread every document you changed and run its commands and examples.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. Every changed public behaviour (each public entry point, command, API, setting or screen in <run>/lint/<id>-inventory.md) is described where its users look, or <run>/notes/<id>.md names why it needs no documentation.\n    2. Every document changed in this stage was reread after its last edit, and each command or example it shows ran, or <run>/notes/<id>.md says why it cannot run here.\n    3. The README was assessed: it changed, or <run>/notes/<id>.md says why it did not.\n    4. No changed document copies a contract that has an authoritative home; it links to that home.\n  Repeat while: Repeat while a changed public behaviour is undocumented or a reread or example run found a wrong statement; there is no iteration limit. Stop blocked only when a behaviour cannot be observed here (name it).\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/<id>-contract.json\n  Receipt: <run>/loops/<id>-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs until-loop ADAPTER.md> and follow it with this argument. Either way the loop starts with:\n  python3 <abs until_loop_ephemeral.py> start --receipt <run>/loops/<id>-terminal.json < <run>/loops/<id>-contract.json\nNever write or edit the receipt. After a reset, if the receipt exists and its status is active, run its next_argv once; do not start again.\n\nDurable facts go in the repository's docs, never only in run notes. Do not document behaviour you did not observe as working.\nStep plan paths: <paths>. ShipLoop commits, when verify is accepted, the declared paths, changed documentation files and docs/shiploop/; commit nothing yourself. <item_left(mode)>\n\nDONE WHEN (the loop's exit conditions, the same words)\n1. Every changed public behaviour (each public entry point, command, API, setting or screen in <run>/lint/<id>-inventory.md) is described where its users look, or <run>/notes/<id>.md names why it needs no documentation.\n2. Every document changed in this stage was reread after its last edit, and each command or example it shows ran, or <run>/notes/<id>.md says why it cannot run here.\n3. The README was assessed: it changed, or <run>/notes/<id>.md says why it did not.\n4. No changed document copies a contract that has an authoritative home; it links to that home.\n- evidence_refs lists the receipt <run>/loops/<id>-terminal.json.\nChecked by: ShipLoop checks the terminal packet against the contract, then refuses a mechanical fault (no outcome or summary, an absolute evidence_refs path that does not exist, a credential pattern). ShipLoop issues this stage only when the item's changed paths include code (item_scope.behavioural); otherwise it records not applicable.\nOutcomes: done | blocked | revise (the plan or a criterion is wrong as observed: name it).\n\nRUN  the INVOKE block above \u00b7 result template \u00b7 callback \u00b7 recovery \u00b7 pause\nFILES  grounding: spec, architecture.md, environment.md (absolute paths) \u00b7 change inventory <run>/lint/<id>-inventory.md \u00b7 results: step-plan, implement, test \u00b7 run/reference.md#documentation, #current-system-baseline (only when this item recovered existing behaviour), #service-handoff (only when it selected a service)",
+   "contract": {
+    "work": "Run each changed public behaviour (from the change inventory) and update the README, API, operator and error documentation from what you observe, including the errors a user can see and how to turn on diagnostics; state known limits and caveats; link to the authoritative home instead of copying a contract; then reread every document you changed and run its commands and examples.",
+    "exit_condition": "(1) Every changed public behaviour (each public entry point, command, API, setting or screen in <run>/lint/<id>-inventory.md) is described where its users look, or <run>/notes/<id>.md names why it needs no documentation. (2) Every document changed in this stage was reread after its last edit, and each command or example it shows ran, or <run>/notes/<id>.md says why it cannot run here. (3) The README was assessed: it changed, or <run>/notes/<id>.md says why it did not. (4) No changed document copies a contract that has an authoritative home; it links to that home.",
+    "repeat_condition": "Repeat while a changed public behaviour is undocumented or a reread or example run found a wrong statement; there is no iteration limit. Stop blocked only when a behaviour cannot be observed here (name it).",
+    "required_trivial_reviews": 0
+   },
+   "gate_after": "quality-terminal-style check of <run>/loops/<id>-terminal.json against the contract (complete, exit satisfied) -> all four exits are the loop's assessment; exit 1: model evidence (script can only confirm notes/<id>.md exists or a docs-class path changed when the inventory has a public entry point); exit 2: model evidence; exit 3: script can check README.md changed or notes/<id>.md contains 'README'; exit 4: model evidence. Plus the common mechanical gates. Issue rule: script (item_scope.behavioural over changed_paths).",
+   "notes": "Owner: document now has a loop contract only because the Amendment requires one in every stage; its exits are mostly model evidence. Decide whether a docs-only item (no behavioural path changed) skips document by script, as proposed. ITEM_COMMIT_STAGES must become (document, verify)."
+  },
+  {
+   "id": "verify",
+   "prompt": "DO\nGoal: accept this item: every criterion confirmed after the last edit, the change reviewed, and chained work assembled.\nConsult, and cite the headings you used:\n- spec (## Requirements, ## Non-functional requirements): every R-<n> this item serves and its criteria.\n- architecture.md (## Decisions, ## Interfaces and boundaries, ## Conventions): the change follows them or records a new AD-<n>.\n- test-strategy.md (## Real-boundary checks): a boundary a local test cannot prove stays pending with its owner.\n- test-spec.md: every case, for the case classification.\n\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): 1. Run every recorded command (focused, regression, check) and record each exit code and test count. 2. For each completion criterion, name the passing command or the inspection that confirms it now (stale, skipped or missing evidence is not a confirmation); classify every test-spec case passed, failed, blocked or not due (with its phase and owner); a pass on another surface only supports. 3. From the change inventory, list every new or changed public entry point (exported function, CLI, request or event handler, callback); walk one valid, one boundary and one invalid input to its return, error or side effect, and write one trace line per path in <run>/notes/<id>.md; a wrong, unhandled or untested path is a finding (add a test for an untested path). 4. Review the whole item's diff against the step plan's steps and paths, the Code craft rubric and architecture.md: argument checks and contract docstrings at each entry point, missing error paths, silent failures, comments that restate or are stale, dead code, user text that is concatenated or bypasses the catalog, names outside the planned namespace or exported wider than needed, stored data off the planned schema, a near-copy of existing logic, a plain interaction where the plan called for a rich one, and a deviation from architecture.md with no new AD-<n>. 5. Chained or parallel work only: confirm the chain's finish commit is an ancestor of HEAD, inspect the combined diff, conflicts and the shared interfaces between steps. 6. Classify: material = wrong behaviour on a traced path, a missing or wrong argument check, contract, error path or test, a failing command, a misleading comment, logic that should have been composed; trivial = wording, ordering, a sharper name. Do not reopen a finding an earlier iteration fixed unless its code changed. 7. Fix every finding within scope by changing the work, never a check or its expected result; if anything changed, rerun step 1 and record the results.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. Every recorded command (focused, regression, check) exited 0 in this iteration's run after the last edit, each running at least one test and every ID listed for it.\n    2. Every completion criterion is confirmed by a passing command from that run, or, where its Confirm-by is an inspection, by an inspection recorded in <run>/notes/<id>.md after the last edit.\n    3. Every public entry point in the change inventory <run>/lint/<id>-inventory.md has a valid, a boundary and an invalid trace line in <run>/notes/<id>.md.\n    4. python3 <cli> lint --run-dir=<run> --action=<id>, run after the last edit, reports no unwaived new finding on a changed line.\n    5. Chained or parallel work only: git -C <worktree> merge-base --is-ancestor <chain finish commit> HEAD exits 0.\n    6. Every later-phase check the criteria need (system, release, real boundary) is listed in <run>/notes/<id>.md with its owner and due stage.\n    7. The latest complete iteration found no material finding.\n  Repeat while: Repeat while the latest iteration fixed a material finding, a command failed, or a criterion or entry point is still unconfirmed; there is no iteration limit. Stop blocked when a finding cannot be fixed within the item's scope or authority, a required check cannot run here, or a criterion proves unachievable as planned. Never stop cancelled: a user's stop is the packet's pause command.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/<id>-contract.json\n  Receipt: <run>/loops/<id>-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs until-loop ADAPTER.md> and follow it with this argument. Either way the loop starts with:\n  python3 <abs until_loop_ephemeral.py> start --receipt <run>/loops/<id>-terminal.json < <run>/loops/<id>-contract.json\nNever write or edit the receipt. After a reset, if the receipt exists and its status is active, run its next_argv once; do not start again.\n\nOn entry ShipLoop linted this item's changes, auto-fixing safe formatting once, and wrote the change inventory <run>/lint/<id>-inventory.md. Keep or revert each auto-fix the lint record names.\nStep plan paths: <paths>. Changed, ShipLoop will commit: <list>. Changed, ShipLoop will not commit: <list>. <item_left(mode)> When verify is accepted ShipLoop commits the item; commit nothing yourself.\n\nDONE WHEN (the loop's exit conditions, the same words)\n1. Every recorded command (focused, regression, check) exited 0 in this iteration's run after the last edit, each running at least one test and every ID listed for it.\n2. Every completion criterion is confirmed by a passing command from that run, or, where its Confirm-by is an inspection, by an inspection recorded in <run>/notes/<id>.md after the last edit.\n3. Every public entry point in the change inventory <run>/lint/<id>-inventory.md has a valid, a boundary and an invalid trace line in <run>/notes/<id>.md.\n4. python3 <cli> lint --run-dir=<run> --action=<id>, run after the last edit, reports no unwaived new finding on a changed line.\n5. Chained or parallel work only: git -C <worktree> merge-base --is-ancestor <chain finish commit> HEAD exits 0.\n6. Every later-phase check the criteria need (system, release, real boundary) is listed in <run>/notes/<id>.md with its owner and due stage.\n7. The latest complete iteration found no material finding.\n- evidence_refs lists the receipt <run>/loops/<id>-terminal.json.\nChecked by: ShipLoop checks the terminal packet against the contract (complete, trivial, exit satisfied), lints (a new unwaived finding on a changed line is refused), checks the chain ancestor on chained work, then reruns every recorded command and refuses unless each passes and reaches the test-count floor. After 11 refused runs done is no longer accepted: report revise. A criterion reported unconfirmable whose Confirm-by needed execution means revise. On acceptance ShipLoop commits the item's declared paths, changed documentation and docs/shiploop/.\nOutcomes: done | blocked | revise (a criterion or check is unachievable as planned: name it; the item goes back to step-plan). Never repeat: the loop repeats the review.\n\nRUN  the INVOKE block above \u00b7 result template (summary: entry points traced, each trace that found an issue and its fix, each command with its exit code, any required check not run and why, known limitations) \u00b7 callback \u00b7 recovery \u00b7 pause\nFILES  grounding: spec, architecture.md, environment.md, test-strategy.md (absolute paths) \u00b7 Code craft rubric <run>/quality/code-craft.md \u00b7 change inventory <run>/lint/<id>-inventory.md \u00b7 lint record <run>/lint/<id>.md \u00b7 results: step-plan, test-spec, implement, test \u00b7 run/reference.md#verify-evidence, #inner-assembly (chained), #service-verification (only when the item selected a service)",
+   "contract": {
+    "work": "1. Run every recorded command (focused, regression, check) and record each exit code and test count. 2. For each completion criterion, name the passing command or the inspection that confirms it now (stale, skipped or missing evidence is not a confirmation); classify every test-spec case passed, failed, blocked or not due (with its phase and owner); a pass on another surface only supports. 3. From the change inventory, list every new or changed public entry point (exported function, CLI, request or event handler, callback); walk one valid, one boundary and one invalid input to its return, error or side effect, and write one trace line per path in <run>/notes/<id>.md; a wrong, unhandled or untested path is a finding (add a test for an untested path). 4. Review the whole item's diff against the step plan's steps and paths, the Code craft rubric and architecture.md: argument checks and contract docstrings at each entry point, missing error paths, silent failures, comments that restate or are stale, dead code, user text that is concatenated or bypasses the catalog, names outside the planned namespace or exported wider than needed, stored data off the planned schema, a near-copy of existing logic, a plain interaction where the plan called for a rich one, and a deviation from architecture.md with no new AD-<n>. 5. Chained or parallel work only: confirm the chain's finish commit is an ancestor of HEAD, inspect the combined diff, conflicts and the shared interfaces between steps. 6. Classify: material = wrong behaviour on a traced path, a missing or wrong argument check, contract, error path or test, a failing command, a misleading comment, logic that should have been composed; trivial = wording, ordering, a sharper name. Do not reopen a finding an earlier iteration fixed unless its code changed. 7. Fix every finding within scope by changing the work, never a check or its expected result; if anything changed, rerun step 1 and record the results.",
+    "exit_condition": "(1) Every recorded command (focused, regression, check) exited 0 in this iteration's run after the last edit, each running at least one test and every ID listed for it. (2) Every completion criterion is confirmed by a passing command from that run, or, where its Confirm-by is an inspection, by an inspection recorded in <run>/notes/<id>.md after the last edit. (3) Every public entry point in the change inventory <run>/lint/<id>-inventory.md has a valid, a boundary and an invalid trace line in <run>/notes/<id>.md. (4) python3 <cli> lint --run-dir=<run> --action=<id>, run after the last edit, reports no unwaived new finding on a changed line. (5) Chained or parallel work only: git -C <worktree> merge-base --is-ancestor <chain finish commit> HEAD exits 0. (6) Every later-phase check the criteria need (system, release, real boundary) is listed in <run>/notes/<id>.md with its owner and due stage. (7) The latest complete iteration found no material finding.",
+    "repeat_condition": "Repeat while the latest iteration fixed a material finding, a command failed, or a criterion or entry point is still unconfirmed; there is no iteration limit. Stop blocked when a finding cannot be fixed within the item's scope or authority, a required check cannot run here, or a criterion proves unachievable as planned. Never stop cancelled: a user's stop is the packet's pause command.",
+    "required_trivial_reviews": 1
+   },
+   "gate_after": "exit 1 -> test-rerun gate (test_loop.verify: exit 0, counted tests, listed IDs, floor; 11-run cap); exit 2 -> script for command-confirmed criteria (each step-plan criterion names a command that passed in that rerun record); inspection criteria: model evidence; exit 3 -> model evidence (script can confirm notes/<id>.md exists and names each changed code file of the inventory); exit 4 -> lint-gate (add to verify complete_runs); exit 5 -> new script check: git merge-base --is-ancestor of the chain binding's finish commit (only when chain_bindings has this item); exit 6 -> model evidence; exit 7 -> quality-terminal (complete packet, last report trivial and exit satisfied, required_trivial_reviews 1). Then _item_commit on accept.",
+   "notes": "QUALITY_ITERATION / QUALITY_EXIT_CONDITION / QUALITY_REPEAT_CONDITION must be replaced by these texts, since check_loop_packet compares the packet with the contract rebuilt from the catalog. The draft's 'rerun skipped when no file changed since test' has no implementation: decide to build it (compare lint snapshot trees) or drop it. Contract/receipt paths move from quality/ to loops/ (Amendment); one path for every loop."
+  },
+  {
+   "id": "carry-forward",
+   "prompt": "DO\nGoal: record what this item taught in the knowledge home, revise the remaining queue, and decide whether a repeated procedure deserves a local skill.\nConsult, and cite the headings you used:\n- spec.md (## Requirements, Retired): the R-<n> this item served.\n- architecture.md (## Decisions, ## Superseded): the AD-<n> this item added or changed.\n- environment.md (## Commands, ## Skills) and test-strategy.md (## Harnesses and suites).\n- <feature>/plan.md (## Open) and state.md work_items.\n\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Update the knowledge home in place: environment.md ## Commands (every command that worked), architecture.md ## Decisions (each AD-<n> this item added; a superseded one moves to ## Superseded, never deleted), test-strategy.md ## Harnesses and suites (suites, focused/smoke/full commands, pending real-boundary checks with owner), spec.md (each R-<n> this item satisfied, with its test IDs; keep unaffected clauses; an open gap under its R-<n>). Put open risks, system-test obligations and release prerequisites, each with an owner, in <feature>/plan.md ## Open. Read state.md work_items (every pending title and context); map every observation that affects later work to an owner: a defect in completed work becomes a corrective item ahead of its consumers, a needed research or preparation prerequisite becomes its own item ahead of every consumer; explain each removal or merge in <feature>/plan.md. Skill decision: read the skill index (or README/AGENTS.md skill links; a missing index is not a blocker) and the skills your host offers; choose none, reuse, update or create. Create or update only when the same procedure ran in two or more steps or items of this run, or a pending item or R-<n> says it will recur, and no existing skill covers it; keep it in the repository (environment.md ## Skills names the directory), never install it globally, add a dependency or publish it; link it from the index; run it once on this run's real procedure (an update also on a retained older use) and write the output to <run>/notes/<id>-skill-trial.md, saying whether a fresh reader tried it or 'cold-context reuse untested'.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. The result's work_items, when present, lists every still-required future item in prerequisite order, repeats no completed or current ID, and each new item's context names its decision locator, rationale and revalidation condition; when absent, every pending item stays.\n    2. Every recorded test command of this item appears in environment.md ## Commands or test-strategy.md ## Harnesses and suites; every AD-<n> and R-<n> in the committed architecture.md and spec.md is still present; no line in docs/shiploop/ looks like a credential.\n    3. The result's skill field has the exact shape below; for create or update, its SKILL.md exists with name and description frontmatter, its index file names it, and <run>/notes/<id>-skill-trial.md exists and is non-empty.\n    4. Every observation that affects later work has an owner: a queue item, an entry in <feature>/plan.md ## Open, or outcome blocked for an incompatible finding.\n  Repeat while: Repeat while an exit condition fails after an iteration; there is no iteration limit. Stop blocked when a finding is incompatible with the approved work (a changed requirement, permission or invocation contract): that is not a queue edit.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/<id>-contract.json\n  Receipt: <run>/loops/<id>-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs until-loop ADAPTER.md> and follow it with this argument. Either way the loop starts with:\n  python3 <abs until_loop_ephemeral.py> start --receipt <run>/loops/<id>-terminal.json < <run>/loops/<id>-contract.json\nNever write or edit the receipt. After a reset, if the receipt exists and its status is active, run its next_argv once; do not start again.\n\nDurable knowledge goes in the knowledge home, never only in run notes. A `repeat` outcome only retries this stage; it reopens no earlier one.\n\nDONE WHEN (the loop's exit conditions, the same words)\n1. The result's work_items, when present, lists every still-required future item in prerequisite order, repeats no completed or current ID, and each new item's context names its decision locator, rationale and revalidation condition; when absent, every pending item stays.\n2. Every recorded test command of this item appears in environment.md ## Commands or test-strategy.md ## Harnesses and suites; every AD-<n> and R-<n> in the committed architecture.md and spec.md is still present; no line in docs/shiploop/ looks like a credential.\n3. The result's skill field has the exact shape below; for create or update, its SKILL.md exists with name and description frontmatter, its index file names it, and <run>/notes/<id>-skill-trial.md exists and is non-empty.\n4. Every observation that affects later work has an owner: a queue item, an entry in <feature>/plan.md ## Open, or outcome blocked for an incompatible finding.\n- evidence_refs lists the receipt <run>/loops/<id>-terminal.json.\nChecked by: ShipLoop checks the terminal packet against the contract; refuses a work_items row that is malformed or repeats a completed or current ID; refuses a dropped R-<n> or AD-<n>, a credential-like line in docs/shiploop/, a skill field that does not fit the shape, or a create/update whose SKILL.md, frontmatter, index entry or trial file is missing; then commits docs/shiploop/, SHIPLOOP.md and, for create/update, the skill directory and index file. When this done result leaves no item pending, an end-of-work Improve child reviews every executed item; it commits its own edits, and if it changed the tree ShipLoop reruns every completed item's recorded commands. If it adds items, the review moves to the new last item.\nOutcomes: done | repeat | blocked.\n\nRUN  the INVOKE block above \u00b7 result template (work_items optional, rows {id, title, context}, replacing the whole future queue; skill: {\"decision\": \"none\" | \"reuse\" | \"update\" | \"create\", \"reason\": \"<one sentence>\", \"inspected\": [\"<index file or skill name checked>\", ...], \"evidence\": [\"<step or item ID where the procedure ran>\", ... | \"<pending item ID or R-<n> that says it recurs>\"], \"path\": \"<repo-relative>/<name>/SKILL.md\", \"index\": \"<repo-relative index file>\", \"trial\": \"<run>/notes/<id>-skill-trial.md\", \"older_use\": \"<retained use exercised>\", \"revalidate\": \"<when to recheck it>\"}; none and reuse need reason and inspected (reuse also names the skill in path); update and create need every field except older_use, which update also needs.) \u00b7 callback \u00b7 Improve start (last item) \u00b7 recovery \u00b7 pause\nFILES  grounding: spec.md, architecture.md, environment.md, test-strategy.md, <feature>/plan.md (absolute paths) \u00b7 results: step-plan, verify \u00b7 run/reference.md#carry-forward, #local-skills, #backchain-audit (a material prerequisite ambiguity only), #test-facilities",
+   "contract": {
+    "work": "Update the knowledge home in place: environment.md ## Commands (every command that worked), architecture.md ## Decisions (each AD-<n> this item added; a superseded one moves to ## Superseded, never deleted), test-strategy.md ## Harnesses and suites (suites, focused/smoke/full commands, pending real-boundary checks with owner), spec.md (each R-<n> this item satisfied, with its test IDs; keep unaffected clauses; an open gap under its R-<n>). Put open risks, system-test obligations and release prerequisites, each with an owner, in <feature>/plan.md ## Open. Read state.md work_items (every pending title and context); map every observation that affects later work to an owner: a defect in completed work becomes a corrective item ahead of its consumers, a needed research or preparation prerequisite becomes its own item ahead of every consumer; explain each removal or merge in <feature>/plan.md. Skill decision: read the skill index (or README/AGENTS.md skill links; a missing index is not a blocker) and the skills your host offers; choose none, reuse, update or create. Create or update only when the same procedure ran in two or more steps or items of this run, or a pending item or R-<n> says it will recur, and no existing skill covers it; keep it in the repository (environment.md ## Skills names the directory), never install it globally, add a dependency or publish it; link it from the index; run it once on this run's real procedure (an update also on a retained older use) and write the output to <run>/notes/<id>-skill-trial.md, saying whether a fresh reader tried it or 'cold-context reuse untested'.",
+    "exit_condition": "(1) The result's work_items, when present, lists every still-required future item in prerequisite order, repeats no completed or current ID, and each new item's context names its decision locator, rationale and revalidation condition; when absent, every pending item stays. (2) Every recorded test command of this item appears in environment.md ## Commands or test-strategy.md ## Harnesses and suites; every AD-<n> and R-<n> in the committed architecture.md and spec.md is still present; no line in docs/shiploop/ looks like a credential. (3) The result's skill field has the exact shape below; for create or update, its SKILL.md exists with name and description frontmatter, its index file names it, and <run>/notes/<id>-skill-trial.md exists and is non-empty. (4) Every observation that affects later work has an owner: a queue item, an entry in <feature>/plan.md ## Open, or outcome blocked for an incompatible finding.",
+    "repeat_condition": "Repeat while an exit condition fails after an iteration; there is no iteration limit. Stop blocked when a finding is incompatible with the approved work (a changed requirement, permission or invocation contract): that is not a queue edit.",
+    "required_trivial_reviews": 0
+   },
+   "gate_after": "exit 1 -> script: _normalise_work_items + _replace_future_work_items (shape, unique, no completed/current ID); 'still required' and context content: model evidence (end-of-work Improve challenges it). exit 2 -> script: each step-plan test_commands command string found in environment.md or test-strategy.md; knowledge_home.check (R-<n> retention, credential screen) extended with AD-<n> retention against HEAD:docs/shiploop/architecture.md. exit 3 -> new script check _check_submitted_skill: decision enum; reason nonblank; inspected non-empty; for update/create: path repo-relative, inside the repo and (when environment.md ## Skills names one) under that directory, file exists, frontmatter between --- lines has name and description, name equals the directory name; index file exists and contains the name or path; trial file exists and is non-empty; evidence has two or more distinct IDs that are accepted steps or items of this run, or one pending work item ID or an R-<n> present in spec.md; update also needs older_use. exit 4 -> model evidence. After accept: knowledge.commit, plus a new commit of skill dir + index (privacy-screened, shiploop_git.commit_paths).",
+   "notes": "Owner decisions: (a) the skill decision gains reuse/update besides create/none, matching the removed skill-assess dispositions; (b) a skill made at carry-forward needs its own script commit (the item commit already ran at verify, and an in-place run otherwise leaves it uncommitted); (c) architecture.md must join knowledge_home.LIVING/STAGE_FILES for the AD-<n> gate the draft claims; (d) carry-forward now has a loop contract only because the Amendment requires one in every stage."
+  }
+ ]
+}

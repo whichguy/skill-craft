@@ -1,0 +1,267 @@
+{
+ "suite": "test/shiploop-e2e-commit-counters.test.py",
+ "mutants": 43,
+ "killed": 43,
+ "survived": [],
+ "not_applicable": [],
+ "results": [
+  {
+   "mutant": "narrative block not followed to its end",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=11)"
+  },
+  {
+   "mutant": "callback line not checked",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=3)"
+  },
+  {
+   "mutant": "keepalive line not checked",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "closing line not required",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=5)"
+  },
+  {
+   "mutant": "a head cut inside the narrative gives the wrong reason",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=2)"
+  },
+  {
+   "mutant": "a cut by column gives the wrong reason",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=2)"
+  },
+  {
+   "mutant": "a head with no Full packet line is given to the first file",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "calls that name a packet file are prints",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "the last print counts",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=2)"
+  },
+  {
+   "mutant": "characters instead of bytes",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=10)"
+  },
+  {
+   "mutant": "entries not in run order",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "stage read from the first line only",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=2)"
+  },
+  {
+   "mutant": "an empty packets folder is null",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "the reason does not name the host",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "a repeated result is kept again",
+   "file": "test/shiploop_e2e/metrics.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "every reply is kept",
+   "file": "test/shiploop_e2e/metrics.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "whether the call named a packet is lost",
+   "file": "test/shiploop_e2e/metrics.py",
+   "killed": true,
+   "suite": "FAILED (failures=2)"
+  },
+  {
+   "mutant": "improve told by the six-label shape",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=14)"
+  },
+  {
+   "mutant": "the work item's reply ignored",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=5)"
+  },
+  {
+   "mutant": "the work item's subject ignored",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "any feat: subject is a work item",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=2)"
+  },
+  {
+   "mutant": "the knowledge subject loosened",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "the empty baseline is not the script's",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=5)"
+  },
+  {
+   "mutant": "the starting head ignored",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=2)"
+  },
+  {
+   "mutant": "the starting head not checked",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "the classes do not sum to counted",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=9)"
+  },
+  {
+   "mutant": "the author is not read",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "every script commit is marked knowledge",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "no commit is ever from an earlier run",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "a citation need not resolve",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=8)"
+  },
+  {
+   "mutant": "a citation token need not be shaped like an ID",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=4)"
+  },
+  {
+   "mutant": "an ID may be shorter than the gate allows",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=2)"
+  },
+  {
+   "mutant": "citations are read from the subject paragraph only",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=12)"
+  },
+  {
+   "mutant": "lessons are read from the subject line only",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=52)"
+  },
+  {
+   "mutant": "every commit has lessons",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=22)"
+  },
+  {
+   "mutant": "only Improve commits are asked for lessons",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=51)"
+  },
+  {
+   "mutant": "a reader of the harness's own in place of the shared one",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=43)"
+  },
+  {
+   "mutant": "events.jsonl not required",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "invocation.json not required",
+   "file": "test/shiploop_e2e/counters.py",
+   "killed": true,
+   "suite": "FAILED (failures=1)"
+  },
+  {
+   "mutant": "run.py does not build the blocks",
+   "file": "test/shiploop_e2e/run.py",
+   "killed": true,
+   "suite": "FAILED (failures=4, errors=9)"
+  },
+  {
+   "mutant": "run.py hands the builder an empty tool log",
+   "file": "test/shiploop_e2e/run.py",
+   "killed": true,
+   "suite": "FAILED (failures=3)"
+  },
+  {
+   "mutant": "run.py hands the builder no run directory",
+   "file": "test/shiploop_e2e/run.py",
+   "killed": true,
+   "suite": "FAILED (failures=3)"
+  },
+  {
+   "mutant": "run.py does not fail open",
+   "file": "test/shiploop_e2e/run.py",
+   "killed": true,
+   "suite": "FAILED (errors=4)"
+  }
+ ]
+}

@@ -13,21 +13,28 @@ from __future__ import annotations
 
 import contextlib
 import datetime
+import importlib.util
 import io
 import json
 import shutil
 import os
 from pathlib import Path
 import re
+import shlex
+import signal
+import socket
 import stat
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import unittest
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+import environment  # noqa: E402
 import hosts  # noqa: E402
 import iterate  # noqa: E402
 import metrics  # noqa: E402
@@ -36,6 +43,36 @@ import review  # noqa: E402
 import rollouts  # noqa: E402
 import run  # noqa: E402
 import fanout  # noqa: E402
+
+# listeners.py is the module the leftover-listener tests are about. Where it does not exist (the state a failing test is first run
+# in) only those tests may fail, each on an assertion (needs_listeners), so a missing module never takes the other tests down.
+try:
+    import listeners  # noqa: E402
+except ModuleNotFoundError as missing:
+    if missing.name != "listeners":
+        raise
+    listeners = None
+
+# The real observer, kept before any test patches it: the classes that exercise lsof scope what it sees to their own folder.
+REAL_OBSERVE = listeners.observe if listeners else None
+
+
+def needs_listeners(cls):
+    """Class decorator: while listeners.py does not exist every test of the class fails on this assertion, one by one."""
+    inner = cls.setUp
+
+    def setUp(self):
+        self.assertIsNotNone(listeners, "test/shiploop_e2e/listeners.py does not exist")
+        inner(self)
+
+    cls.setUp = setUp
+    return cls
+
+
+def nothing_listens():
+    """A patch that makes the machine's process table show no listener, so no test reads it (nothing to patch where listeners.py
+    does not exist yet, and the older tests then run as before)."""
+    return mock.patch.object(listeners, "observe", return_value=[]) if listeners else contextlib.nullcontext()
 
 # Shared product writer for both fakes: the hello case's files plus a done run.
 PRODUCT = f"""
@@ -66,23 +103,77 @@ def product():
     subprocess.run(["git", *ident, "commit", "-q", "--allow-empty", "-m", "product"], check=True)
 """
 
+# A TCP server in a process of its own, as a model's `node server.js &` is: its own session (a host's group kill cannot
+# reach it), no stdio shared with its parent, and it expires by itself after two minutes. argv[1] is a port file that
+# appears, complete, once the server listens ("<pid> <port>"); argv[2] == "ignore-term" makes it ignore SIGTERM. It accepts and
+# drops each connection: a listener that never accepts resets some probes once its backlog fills, which made `answers` flaky.
+LISTENER_SOURCE = (
+    "import os, socket, sys, time\n"
+    "s = socket.socket(); s.bind(('127.0.0.1', 0)); s.listen(1)\n"
+    "if sys.argv[2:] == ['ignore-term']:\n"
+    "    import signal; signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+    "open(sys.argv[1] + '.part', 'w').write('%d %d' % (os.getpid(), s.getsockname()[1]))\n"
+    "os.rename(sys.argv[1] + '.part', sys.argv[1])\n"
+    "s.settimeout(0.5)\n"
+    "end = time.time() + 120\n"
+    "while time.time() < end:\n"
+    "    try:\n"
+    "        s.accept()[0].close()\n"  # accept and drop, so a probe's connect is not queued behind earlier ones and reset
+    "    except OSError:\n"
+    "        pass\n")
+
+# What both fake hosts can do with a listener: FAKE_LISTEN=<port file> leaves one running from the working directory, as a
+# model's backgrounded server does; FAKE_PROBE_PORT=<port file> records, in FAKE_LOG.probe, whether that server still
+# answers when the session starts.
+LISTEN = f"""
+def leak_a_listener():
+    portfile = os.environ.get("FAKE_LISTEN")
+    if not portfile:
+        return
+    import subprocess, time
+    subprocess.Popen([sys.executable, "-c", {LISTENER_SOURCE!r}, portfile], start_new_session=True,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(200):
+        if os.path.exists(portfile):
+            break
+        time.sleep(0.05)
+def probe_a_port():
+    portfile = os.environ.get("FAKE_PROBE_PORT")
+    if not portfile or not os.path.exists(portfile):
+        return
+    import socket
+    probe = socket.socket()
+    probe.settimeout(2)
+    answered = probe.connect_ex(("127.0.0.1", int(open(portfile).read().split()[1]))) == 0
+    with open(os.environ["FAKE_LOG"] + ".probe", "a") as log:
+        log.write("answers\\n" if answered else "refused\\n")
+"""
+
 # FAKE_MODE: done (product + done run), nothing (exit 0, no work), no-skill (done,
 # but no ShipLoop command registered).
 FAKE_CLAUDE = f"""#!{sys.executable}
 import json, os, sys
 from pathlib import Path
 {PRODUCT}
+{LISTEN}
 argv = sys.argv[1:]
 Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{"argv": argv, "cwd_listing": os.listdir(".")}}))
 mode = os.environ.get("FAKE_MODE")
 plugin = argv[argv.index("--plugin-dir") + 1] if "--plugin-dir" in argv else None
-print(json.dumps({{"type": "system", "subtype": "init", "model": "fake-model",
+print(json.dumps({{"type": "system", "subtype": "init", "model": "fake-model", "claude_code_version": "0.0.1-fake",
                   "slash_commands": [] if mode == "no-skill" else ["skill-craft:shiploop"],
                   "plugins": [{{"name": "skill-craft", "path": plugin}}] if plugin else []}}), flush=True)
 print(json.dumps({{"type": "assistant", "message": {{"content": [{{"type": "tool_use", "name": "Bash",
                   "input": {{"command": "shiploop next"}}}}]}}}}))
+if os.environ.get("FAKE_COMMAND"):  # one more tool call, for a test that needs the run to do something
+    print(json.dumps({{"type": "assistant", "message": {{"content": [{{"type": "tool_use", "name": "Bash",
+                      "input": {{"command": os.environ["FAKE_COMMAND"]}}}}]}}}}))
+leak_a_listener()
 if mode in ("done", "no-skill"):
     product()
+if mode == "active":
+    Path(".shiploop").mkdir(exist_ok=True)
+    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
 if mode == "chain-hang":
     sys.path.insert(0, {str(ROOT / 'skills/shiploop/scripts')!r})
     import shiploop_chain_ledger as ledger, time
@@ -94,6 +185,8 @@ if mode == "chain-hang":
             ledger.append_event(str(chain / "events"), f"e{{number}}", kind, data)
     if "This session ended" not in argv[argv.index("-p") + 1]:
         child.mkdir(parents=True)
+        # The run is active while its chain worker is in flight, as a real run's state.md says.
+        store.write_record(chain.parent.parent / "state.md", {{"status": "active", "stage": "implement", "revision": 3}})
         store.write_record(chain / "binding.md", {{"dispatcher_run": str(child), "mode": "parallel"}})
         ledger_events(("launched_result", {{"attempt": "A-1"}}), ("launched_result", {{"attempt": "B-1"}}))
         time.sleep(120)  # killed by --interrupt-at long before this ends
@@ -119,6 +212,7 @@ FAKE_GROK = f"""#!{sys.executable}
 import json, os, sys
 from pathlib import Path
 {PRODUCT}
+{LISTEN}
 argv = sys.argv[1:]
 home = Path(os.environ["HOME"])
 registry = home / ".grok" / "fake-plugins.txt"
@@ -130,10 +224,11 @@ if argv[:2] == ["plugin", "list"]:
     print(registry.read_text() if registry.exists() else "")
     sys.exit(0)
 os.chdir(argv[argv.index("--cwd") + 1])
+probe_a_port()
 prompt = Path(argv[argv.index("--prompt-file") + 1]).read_text()
 resumed = argv[argv.index("--resume") + 1] if "--resume" in argv else None
 with open(os.environ["FAKE_LOG"] + ".sessions", "a") as log:
-    log.write(json.dumps({{"resumed": resumed, "prompt": prompt}}) + "\\n")
+    log.write(json.dumps({{"resumed": resumed, "prompt": prompt, "pid": os.getpid()}}) + "\\n")
 if os.environ.get("FAKE_MODE") == "crash-resumed" and resumed:
     sys.exit(1)  # a resumed session dies without writing any event
 Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{
@@ -144,6 +239,7 @@ print(json.dumps({{"type": "available_commands", "tools": [], "commands": ["ship
 print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "shiploop next"}}}}))
 for chunk in ("Ship", "ped."):
     print(json.dumps({{"type": "text", "data": chunk}}))
+leak_a_listener()
 mode = os.environ.get("FAKE_MODE")
 if mode == "done" or (mode == "resume" and resumed):
     import shutil
@@ -153,13 +249,18 @@ elif mode == "early" and not resumed:
     pass  # the first session ends before ShipLoop writes any state
 elif mode == "early":
     product()
-elif mode == "hang":
+elif mode in ("hang", "hang-active") or (mode == "hang-resumed" and resumed):
+    if mode == "hang-active":
+        Path(".shiploop").mkdir(exist_ok=True)
+        store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
     print(json.dumps({{"type": "session", "sessionId": "sess-1"}}), flush=True)
     import time
-    time.sleep(600)  # killed by --timeout
-elif mode in ("resume", "stuck", "anon", "crash-resumed"):
+    time.sleep(600)  # killed by --timeout or by a requested stop
+elif mode in ("resume", "stuck", "stuck-stop", "hang-resumed", "anon", "crash-resumed"):
     Path(".shiploop").mkdir(exist_ok=True)
     store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
+    if mode == "stuck-stop":
+        (Path.cwd().parent / "stop").write_text("")  # a person asks for a stop as this session ends
 end = {{"type": "end", "stopReason": "cancelled", "sessionId": "sess-1", "num_turns": 4, "total_cost_usd": 0.01}}
 if mode == "anon":
     del end["sessionId"]  # the host never named its session: there is nothing to resume
@@ -233,6 +334,10 @@ class HarnessCase(unittest.TestCase):
         self.plugin = self.tmp / "build" / "plugins" / "skill-craft"
         (self.plugin / ".claude-plugin").mkdir(parents=True)
         (self.plugin / ".claude-plugin" / "plugin.json").write_text("{}")
+        # The CLI file a resume prompt names (run.shiploop_cli): a plugin build always carries one.
+        self.cli = self.plugin / "skills" / "shiploop" / "scripts" / "shiploop"
+        self.cli.parent.mkdir(parents=True)
+        self.cli.write_text("")
         self.log = self.tmp / "fake-log.json"
         self.baselines = self.tmp / "baselines.jsonl"  # never the committed file
         os.environ["FAKE_LOG"] = str(self.log)
@@ -247,6 +352,16 @@ class HarnessCase(unittest.TestCase):
         patched = mock.patch.dict(os.environ, {"CODEX_HOME": str(codex_home)})
         patched.start()
         self.addCleanup(patched.stop)
+        # No harness case reads the machine's process table: a listener another session (or a leaked server) holds
+        # must not change a verdict here. The classes that exercise the real lsof scope what they see to their own folder.
+        patch = nothing_listens()
+        patch.__enter__()
+        self.addCleanup(patch.__exit__, None, None, None)
+        # No harness case starts a real browser: a case that declares the browser need would otherwise find one on this
+        # machine. The classes that exercise the capability record pass a fake with --browser-bin.
+        browser = mock.patch.object(environment, "autodetect_browser", return_value=None)
+        browser.start()
+        self.addCleanup(browser.stop)
 
     def invoke(self, host: str, mode: str, *extra: str) -> tuple[int, dict]:
         os.environ["FAKE_MODE"] = mode
@@ -376,17 +491,25 @@ class ClaudeResumePromptTest(unittest.TestCase):
     def test_a_claude_resume_names_the_run_s_own_marketplace_cli(self):
         with tempfile.TemporaryDirectory() as temp:
             out = Path(temp)
-            cli = out / "marketplace/plugins/skill-craft/skills/shiploop/scripts/shiploop"
-            cli.parent.mkdir(parents=True)
-            cli.write_text("#!/bin/sh\n")
-            prompt = run.resume_prompt(out, "/r/run", hosts.host("claude"))
+            plugin = out / "marketplace/plugins/skill-craft"
+            cli = run.shiploop_cli(plugin)
+            self.assertEqual(cli, plugin / "skills/shiploop/scripts/shiploop")
+            prompt = run.resume_prompt("/r/run", cli)
             self.assertIn(f'python3 "{cli}" next --run-dir "/r/run"', prompt)
             self.assertNotIn("`shiploop next", prompt)
 
-    def test_without_an_installed_marketplace_build_the_bare_command_remains(self):
-        with tempfile.TemporaryDirectory() as temp:
-            prompt = run.resume_prompt(Path(temp), "/r/run", hosts.host("claude"))
-            self.assertIn("`shiploop next --run-dir \"/r/run\"`", prompt)
+    def test_a_resume_names_the_cli_it_is_given_for_any_build_and_has_no_bare_command(self):
+        # A checkout build (v1220 and v1230 Sonnet) keeps its CLI under <output>/build, not <output>/marketplace.
+        cli = run.shiploop_cli(Path("/out/build/plugins/skill-craft"))
+        prompt = run.resume_prompt("/r/run", cli)
+        self.assertIn('python3 "/out/build/plugins/skill-craft/skills/shiploop/scripts/shiploop" next --run-dir "/r/run"',
+                      prompt)
+        self.assertNotIn("`shiploop next", prompt)
+
+    def test_a_resume_before_any_run_exists_names_no_command(self):
+        prompt = run.resume_prompt(None, Path("/p/cli"))
+        self.assertIn("ended before the ShipLoop run was started", prompt)
+        self.assertNotIn("next --run-dir", prompt)
 
 
 class ImproveReviewsMetricTest(unittest.TestCase):
@@ -486,6 +609,7 @@ class SeedTest(HarnessCase):
         self.assertTrue(packet.stdout.startswith("ShipLoop navigator | step-plan |"), packet.stdout[:200])
 
     def test_seeded_run_opens_at_the_run_and_writes_no_baseline(self):
+        shutil.rmtree(self.plugin / "skills")  # the real skills, and so the real CLI, replace the fixture's stub
         (self.plugin / "skills").symlink_to(ROOT / "skills")
         code, result = self.invoke("claude", "nothing", "--seed-at", "step-plan")
         self.assertEqual(code, 1, result)
@@ -741,8 +865,11 @@ class ReviewParsingTest(unittest.TestCase):
 class LearningsTest(unittest.TestCase):
     RESULT = {"host": "grok", "model": "grok-4.7", "effort": "medium", "pass": False,
               "process": {"status": "failed", "returncode": 1, "elapsed_seconds": 12.5},
-              "shiploop": {"status": "active", "stage": "regression", "report_html": False,
-                           "worktree_checks": [{"command": "node --test", "pass": True}]},
+              "shiploop": {"status": "active", "stage": "regression", "report_html": False},
+              "product_at_stop": {"information_only": True, "ran": True, "worktree": "/w", "total": 1, "passed": 1,
+                                  "failed": 0, "timed_out": 0,
+                                  "engine": {"status": "active", "stage": "regression"},
+                                  "checks": [{"command": "node --test", "pass": True, "returncode": 0, "timed_out": False}]},
               "checks": [{"command": "node --test", "pass": False}],
               "cli": {"num_turns": 150, "cost_usd": 10.88,
                       "truncated_outputs": [{"total_bytes": 36000, "shown_chars": 20467, "call": "x"}]}}
@@ -763,7 +890,7 @@ class LearningsTest(unittest.TestCase):
         message = self.message()
         self.assertTrue(message.startswith(
             "test(shiploop): record E2E iteration 2 learnings (battleship, grok medium)\n\n"))
-        for text in ("150 turns", "stage regression", "unreturned product in ShipLoop's worktree: 1/1",
+        for text in ("150 turns", "stage regression", "product at stop (information only, engine active at regression): 1/1",
                      "host truncated 1 tool outputs", "Evidence: work/ empty", "breaks premise: rejected",
                      "- apply: Return earlier", "Built on the learnings of aaa1111, bbb2222.",
                      "- further learning: Compare stage costs", "  proposal: track per stage",
@@ -904,6 +1031,25 @@ class FastPlanningRecordTest(unittest.TestCase):
                      "run-doc-luna-xhigh-v1210.json", "run-doc-grok-medium-v1210.json"):
             json.loads((evidence / name).read_text())
 
+    def test_the_doccheck_evidence_and_the_batch_1008_design_audit_are_in_the_repository(self):
+        # The DOCCHECK figures were produced by a classifier that was not kept, so this pins presence and shape: the
+        # committed output, the audit entries the journal cites, and the dated note that supersedes the ledger's L11.
+        journal = (ROOT / "docs" / "shiploop-batch-1008a-journal-2026-10-08.md").read_text()
+        audit = ROOT / "docs" / "experiments" / "batch-1008-design-audit-20261008" / "design-audit.json"
+        evidence = ROOT / "docs" / "experiments" / "docheck-20261008" / "evidence.json"
+        for path in (audit, evidence):
+            self.assertIn(str(path.relative_to(ROOT)), journal)
+        entries = {row["key"]: row for row in json.loads(audit.read_text())}
+        for key in ("DOCCHECK", "REGISTER", "B6", "REVISE"):
+            self.assertEqual(sorted(entries[key]), ["audit", "design", "key", "title"], key)
+        data = json.loads(evidence.read_text())
+        luna = data["luna_xhigh_1210"]
+        self.assertEqual(sum(row["scripts"] for row in luna["inline_scripts_by_purpose"]), luna["inline_scripts"])
+        for key in ("end_state", "caveats", "superseded_figure"):
+            self.assertTrue(data[key], key)
+        ledger_readme = ROOT / "docs" / "experiments" / "shiploop-planning-time-20261005" / "README.md"
+        self.assertIn("Superseded 2026-10-08: lever L11", ledger_readme.read_text())
+
     def test_the_ci_audit_evidence_is_in_the_repository(self):
         evidence = ROOT / "docs" / "experiments" / "ci-audit-20261005"
         for name in ("README.md", "ci-audit-final.json", "name-collision-trace.json", "dump_selection.py"):
@@ -952,7 +1098,11 @@ class ReviewExportTest(HarnessCase):
             "nav-0123456789abcdef": "2026-10-04T10:03:00Z"}}))
         (out / "metrics.json").write_text(json.dumps({"shiploop_failures": [], "model_glue": [], "unmeasured": {}}))
         line = run.review_export(out)
-        self.assertEqual(line, f"review export: {(out / 'review-export').resolve()}")
+        folder = (out / 'review-export').resolve()
+        # The exporter also writes the static page (run-review.html, shiploop-run-review 0.1.3): its path is printed after the
+        # folder, so a reader of the report finds the page without listing the folder.
+        self.assertTrue((folder / "run-review.html").is_file(), "the exporter writes the standalone page beside the bundle")
+        self.assertEqual(line, f"review export: {folder}; page {folder / 'run-review.html'}")
         bundle = json.loads((out / "review-export" / "review-export.json").read_text())
         self.assertEqual([s["min"] for s in next(iter(bundle["docs"]["runs"].values()))["stages"]], [3.0])
 
@@ -1230,12 +1380,14 @@ class CheckHygieneTest(unittest.TestCase):
             self.assertFalse(dropped["pass"], "a dropped earlier id still fails")
 
 def write_engine_records(run_dir: Path, accepted: list, *, status: str = "done",
-                         stage: str | None = None, inner: dict | None = None) -> None:
+                         stage: str | None = None, inner: dict | None = None,
+                         started: float | bool | None = None) -> None:
     """Write the state.md and timeline.json a run would leave behind.
 
     ``accepted`` is (action, stage, outcome, epoch-or-None); an action with None
     gets no acceptance stamp, which is how an unreadable or recreated timeline
-    looks to the reader.
+    looks to the reader. ``started`` is the engine's start (default: the first stamp);
+    False leaves it out, as in a run from before the pace line.
     """
     run_dir.mkdir(parents=True, exist_ok=True)
     state = {"navigator_protocol_version": 4, "status": status,
@@ -1250,8 +1402,9 @@ def write_engine_records(run_dir: Path, accepted: list, *, status: str = "done",
     def stamp(epoch: float) -> str:
         return datetime.datetime.fromtimestamp(epoch, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+    begin = min((t for *_x, t in accepted if t is not None), default=0) if started is None else started
     (run_dir / "timeline.json").write_text(json.dumps(
-        {"started": stamp(min((t for *_x, t in accepted if t is not None), default=0)),
+        {**({} if begin is False else {"started": stamp(begin)}),
          "accepted": {a: stamp(t) for a, _s, _o, t in accepted if t is not None}}, indent=2) + "\n")
 
 
@@ -1574,7 +1727,7 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(m["compactions"], 1)
         self.assertEqual(m["truncated_outputs"], 2)
         self.assertEqual(m["script_verifications"],
-                         {"records": 0, "passed": 0, "could_not_run": 0, "commands": 0})
+                         {"records": 0, "passed": 0, "could_not_run": 0, "commands": 0, "red": 0})
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
         self.assertEqual(m["asked_user"], ["Which port?"])
         self.assertEqual(m["improve_children"], 1)
@@ -1843,7 +1996,7 @@ class MetricsTest(unittest.TestCase):
             (tests / "nav-2-verify1.md").write_text('{"passed": false, "runs": [{"command": "c"}]}')
             (tests / "nav-2-contract.json").write_text("{}")
             self.assertEqual(metrics.verifications(Path(tmp) / "run"),
-                             {"records": 2, "passed": 1, "could_not_run": 0, "commands": 3})
+                             {"records": 2, "passed": 1, "could_not_run": 0, "commands": 3, "red": 0})
 
     def test_progress_reports_only_what_is_new_and_never_a_run_marker(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1905,7 +2058,7 @@ class CodexRunTest(HarnessCase):
         original = (out / "invocation.json").read_text()
         os.environ["FAKE_MODE"] = "done"
         with contextlib.redirect_stdout(io.StringIO()):
-            code = run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            code = run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         result = json.loads((out / "result.json").read_text())
         self.assertEqual(code, 0, result)
@@ -1918,8 +2071,9 @@ class CodexRunTest(HarnessCase):
         events = (out / "events.jsonl").read_text()
         self.assertIn('"sessionId": "sess-1"', events)          # the Grok session is kept
         self.assertIn('"sessionId": "codex-thread-1"', events)  # the Codex session is appended
-        rows = [json.loads(line) for line in self.baselines.read_text().splitlines()]
-        self.assertEqual(len(rows), 1, "only the original run writes a baseline row; a resume does not")
+        # The original run ended with its engine active, so it wrote no row (SPEC: a baseline row is a finished
+        # run's), and a resume never writes one.
+        self.assertFalse(self.baselines.exists(), "neither the unfinished original nor its resume writes a baseline row")
 
     def test_resume_run_refuses_a_run_that_is_neither_active_nor_done(self):
         code, finished = self.invoke("grok", "done")
@@ -2097,22 +2251,39 @@ class FanoutGradeTest(unittest.TestCase):
         self.assertFalse(result["pass"])
         self.assertFalse(result["complete"])
 
-def collect_stream(stream: list, accepted: list, *, status: str = "done", stage: str | None = None,
-                   inner: dict | None = None, first_event: float = 100.0, extra: dict | None = None,
-                   rollout_files: list[list[str]] | None = None) -> dict:
-    """metrics.collect over a hand-built host stream, one second between events, ShipLoop records beside it.
+def write_stream_run(out: Path, stream: list, accepted: list, *, status: str = "done", stage: str | None = None,
+                     inner: dict | None = None, first_event: float = 100.0,
+                     rollout_files: list[list[str]] | None = None, started: float | bool | None = None,
+                     binds: dict | None = None, timed: bool = True) -> Path:
+    """The files of a run in `out`: the host stream with its runner timeline, ShipLoop's records and Codex rollouts.
 
-    ``rollout_files`` are Codex rollouts (one list of lines each) written under the run's own CODEX_HOME."""
-    with tempfile.TemporaryDirectory() as tmp:
-        out = Path(tmp)
-        for number, lines in enumerate(rollout_files or []):
-            write_rollout(out, f"{number}", lines)
-        run_dir = out / "run"
-        (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+    ``binds`` maps an action id to the modification time of its Improve child's `improve/<action>-bind.md`;
+    ``timed=False`` leaves out the runner's timeline.jsonl. Returns the ShipLoop run directory."""
+    for number, lines in enumerate(rollout_files or []):
+        write_rollout(out, f"{number}", lines)
+    run_dir = out / "run"
+    (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
+    if timed:
         (out / "timeline.jsonl").write_text("".join(
             json.dumps({"line": n, "t": first_event + n}) + "\n"
             for n, e in enumerate(stream) if e.get("type") not in ("text", "thought")))
-        write_engine_records(run_dir, accepted, status=status, stage=stage, inner=inner)
+    write_engine_records(run_dir, accepted, status=status, stage=stage, inner=inner, started=started)
+    for action, mtime in (binds or {}).items():
+        bind = run_dir / "improve" / f"{action}-bind.md"
+        bind.parent.mkdir(parents=True, exist_ok=True)
+        bind.write_text("bound\n")
+        os.utime(bind, (mtime, mtime))
+    return run_dir
+
+
+def collect_stream(stream: list, accepted: list, **kw) -> dict:
+    """metrics.collect over a hand-built host stream, one second between events, ShipLoop records beside it.
+
+    ``rollout_files`` are Codex rollouts (one list of lines each) written under the run's own CODEX_HOME;
+    the other keywords are write_stream_run's."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp)
+        run_dir = write_stream_run(out, stream, accepted, **kw)
         return metrics.collect(out, run_dir)
 
 
@@ -2142,6 +2313,47 @@ def claude_stream(commands: list[str]) -> list[dict]:
     return stream
 
 
+# Claude calls recorded in the round-1 Sonnet runs, cut to a compact extract (docs/experiments/claude-tool-blocks-20261008).
+TOOL_BLOCKS = ROOT / "docs" / "experiments" / "claude-tool-blocks-20261008"
+
+
+def recorded_calls(*names: str, run: str = "battleship") -> list[dict]:
+    """The recorded Claude events (a message's thinking event, its tool_use and the tool_result) of the named calls,
+    in the order they were recorded. ``run`` is battleship or checkers."""
+    file = f"{run}-sonnet-calls.jsonl"
+    manifest = json.loads((TOOL_BLOCKS / "manifest.json").read_text())[file]
+    events = [json.loads(line) for line in (TOOL_BLOCKS / file).read_text().splitlines()]
+    return [events[n] for n in sorted({n for name in names for n in manifest[name]["lines"]})]
+
+
+def recorded_command(name: str, run: str = "battleship") -> str:
+    """The shell command of one recorded Bash call."""
+    return next(b["input"]["command"] for e in recorded_calls(name, run=run) if e["type"] == "assistant"
+                for b in e["message"]["content"] if b["type"] == "tool_use")
+
+
+def with_command(events: list[dict], command: str) -> list[dict]:
+    """The same recorded events with the Bash command of their tool_use replaced (its result is kept as recorded)."""
+    events = json.loads(json.dumps(events))
+    for e in events:
+        for b in e["message"]["content"] if e["type"] == "assistant" else []:
+            if b["type"] == "tool_use":
+                b["input"]["command"] = command
+    return events
+
+
+def with_result(events: list[dict], text: str) -> list[dict]:
+    """The same recorded events with the text of their last tool_result replaced."""
+    events = json.loads(json.dumps(events))
+    last = [b for e in events if e["type"] == "user" for b in e["message"]["content"]][-1]
+    last["content"] = text
+    return events
+
+
+CLAUDE_END = {"type": "result", "subtype": "success", "is_error": False, "terminal_reason": "completed",
+              "stop_reason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}
+
+
 class HostCoverageTest(unittest.TestCase):
     """A counter the host's events cannot show is unmeasured, never a zero that passes a comparison."""
 
@@ -2169,28 +2381,31 @@ class HostCoverageTest(unittest.TestCase):
         self.assertGreater(incomplete[0]["tool_calls"], 0)
         self.assertIsNone(incomplete[0]["turns"])
 
-    def test_a_claude_stream_marks_the_counters_it_cannot_read_as_unmeasured(self):
+    def test_a_claude_stream_measures_its_tool_calls_and_leaves_the_grok_only_counters_unmeasured(self):
         stream = claude_stream(["git add -A && git commit -m x", "shiploop complete --run-dir r"] * 3)
         m = collect_stream(stream, self.ACCEPTED)
-        for name in ("model_glue", "shiploop_failures", "cancelled_tool_calls", "tmp_writes",
-                     "stage_tool_calls"):
+        for name in ("cancelled_tool_calls", "knowledge_reads", "compactions", "truncated_outputs"):
             self.assertIn(name, m["unmeasured"], name)
+        for name in ("model_glue", "shiploop_failures", "tmp_writes", "stage_tool_calls"):
+            self.assertNotIn(name, m["unmeasured"], name)
         self.assertNotIn("stage_turns", m["unmeasured"])
-        self.assertEqual(m["model_glue"], [], "the lists stay: they are lower bounds, and the exporter reads them")
-        self.assertTrue(all(r["tool_calls"] is None and r["turns"] is not None for r in m["stages"]))
+        self.assertEqual(len(m["model_glue"]), 3, "three git commands by the model")
+        self.assertEqual(m["shiploop_failures"], [], "'error: refused' is no ShipLoop refusal line and carries no exit code")
+        self.assertEqual([(r["tool_calls"], r["turns"] is not None) for r in m["stages"]], [(3, True), (3, True)])
         self.assertEqual(m["tokens"], {"input_peak": 10})
-        self.assertIsNone(metrics.count(m, "model_glue"))
+        self.assertEqual(metrics.count(m, "model_glue"), 3)
         self.assertEqual(metrics.count({"unmeasured": {}, "model_glue": [1, 2]}, "model_glue"), 2)
         first = metrics.summary_lines(m)[0]
-        self.assertIn("model glue not measured", first)
-        self.assertIn("ShipLoop command failures not measured", first)
+        self.assertIn("model glue 3", first)
+        self.assertIn("ShipLoop command failures 0", first)
         self.assertIn("cancelled tool calls not measured", first)
 
     def test_a_grok_shaped_stream_measures_every_counter(self):
         stream = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
                   {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "git add -A"}}] * 4
-        # Every counter: the detectors read Grok's events. (A context window is a figure Grok never reports.)
-        self.assertEqual(set(collect_stream(stream, self.ACCEPTED)["unmeasured"]), {"window_tokens"})
+        # Every counter: the detectors read Grok's events. (A context window is a figure Grok never reports, and nothing in
+        # its events marks a session start, so the count of sessions that never reported is unmeasured too.)
+        self.assertEqual(set(collect_stream(stream, self.ACCEPTED)["unmeasured"]), {"window_tokens", "unreported_sessions"})
 
     def test_the_baseline_row_carries_unmeasured_counters_as_null_with_their_names(self):
         result = {"case": "hello", "metrics": {"turns": 5, "cost_usd": None, "model_glue": None,
@@ -2234,6 +2449,327 @@ class HostCoverageTest(unittest.TestCase):
         # The in-progress stage is the item's own, not the navigator's pseudo-label.
         self.assertIn("stage implement", text)
         self.assertNotIn("stage inner-loop", text)
+
+
+class ClaudeToolBlocksTest(unittest.TestCase):
+    """Claude's tool_use and tool_result blocks go through the one classifier Grok's tool_call events do: failures, model
+    glue, /tmp writes and per-stage tool calls are measured. The calls are recorded ones, from the round-1 Sonnet runs
+    (docs/experiments/claude-tool-blocks-20261008, cut by its extract.py); a few are rewritten, as the test says."""
+
+    def collect(self, events: list[dict], accepted: list | None = None, **kw) -> dict:
+        accepted = accepted or [("A1", "intake", "done", 100.0 + len(events) + 2)]
+        return collect_stream([*events, CLAUDE_END], accepted, **kw)
+
+    def failures(self, *names: str) -> list[dict]:
+        return self.collect(recorded_calls(*names))["shiploop_failures"]
+
+    def test_a_refusal_behind_a_pipe_is_a_shiploop_failure_with_its_verb_and_no_exit(self):
+        found = self.failures("refusal-behind-head")
+        self.assertEqual([(f["verb"], f["exit"]) for f in found], [("complete", None)], "the host showed no exit code")
+        # The result also holds the shell's own "no such file" line before the refusal: the refusal is the line recorded.
+        self.assertTrue(found[0]["line"].startswith(
+            "ShipLoop navigator: evidence_refs cite files that do not exist: "), found)
+        knowledge = self.failures("refusal-knowledge-file")
+        self.assertEqual([(f["verb"], f["exit"]) for f in knowledge], [("complete", None)])
+        self.assertTrue(knowledge[0]["line"].startswith("ShipLoop navigator: ShipLoop keeps this run's planning knowledge"))
+
+    def test_the_workspace_block_is_a_refusal_line_and_the_script_prints_it(self):
+        found = self.failures("workspace-blocked-plan", "workspace-blocked-status")
+        self.assertEqual([(f["verb"], f["exit"]) for f in found], [("workspace", None)] * 2)
+        self.assertEqual([f["line"] for f in found],
+                         ["ShipLoop workspace blocked: return plan has unresolved path dispositions",
+                          "ShipLoop workspace blocked: return plan has an invalid status"])
+        source = " ".join((ROOT / "skills/shiploop/scripts/shiploop_protocol.py").read_text().split())
+        self.assertIn('f"ShipLoop workspace blocked: {exc}"', source, "the prefix is copied from the script's own text")
+        self.assertRegex("ShipLoop workspace blocked: x", metrics.REFUSAL_LINE)
+
+    def test_a_prefix_inside_a_line_and_a_failed_command_that_is_not_shiploop_are_not_failures(self):
+        refusal = "ShipLoop navigator: result requires outcome and summary"
+        for text in ("quoted: " + refusal, "  " + refusal, "# " + refusal):
+            with self.subTest(text):
+                events = with_result(recorded_calls("sed-a-packet"), "before\n" + text + "\nafter\n")
+                self.assertEqual(self.collect(events)["shiploop_failures"], [])
+        # Recorded `Exit code 1` results of commands that name no ShipLoop verb: a sed of a SKILL.md, and the model's own
+        # helper script failing on a missing file (the body it wrote, earlier, names no verb). A host refusal is no ShipLoop one.
+        self.assertEqual(self.failures("exit-1-not-shiploop"), [])
+        self.assertEqual(self.failures("write-idone", "run-idone-exit-1"), [])
+        self.assertEqual(self.failures("edit-tool-error"), [])
+
+    def test_the_anchored_line_alone_decides_a_refusal_whatever_command_produced_it(self):
+        events = with_result(recorded_calls("sed-a-packet"), "ShipLoop navigator: x\nmore\n")
+        self.assertEqual(self.collect(events)["shiploop_failures"], [{"verb": "unknown", "exit": None, "line": "ShipLoop navigator: x"}])
+
+    def test_a_nonzero_exit_of_a_shiploop_command_keeps_its_exit_code(self):
+        command = ("CLI=/runs/r1/build/plugins/skill-craft/skills/shiploop/scripts/shiploop\n"
+                   "python3 $CLI complete --run-dir=/runs/r1/run")
+        found = self.collect(with_command(recorded_calls("exit-1-not-shiploop"), command))["shiploop_failures"]
+        self.assertEqual([(f["verb"], f["exit"]) for f in found], [("complete", 1)])
+        # Through a script the model wrote, whose body names the verb: the exit is kept, the verb is not guessed.
+        events = [*recorded_calls("write-and-run-sub"), *with_result(recorded_calls("run-sub-piped"), "Exit code 2\nboom")]
+        found = self.collect(events)["shiploop_failures"]
+        self.assertEqual([(f["verb"], f["exit"], f["line"]) for f in found], [("unknown", 2, "")])
+
+    def test_one_failure_is_one_tool_result_however_many_refusal_lines_it_holds(self):
+        text = "ShipLoop navigator: first\nShipLoop navigator: second\n"
+        found = self.collect(with_result(recorded_calls("refusal-knowledge-file"), text))["shiploop_failures"]
+        self.assertEqual([f["line"] for f in found], ["ShipLoop navigator: first"])
+
+    def test_a_refusal_is_recorded_from_its_own_line_not_from_an_earlier_line_of_the_models_output(self):
+        # An earlier line that names an error ("KeyError", "required") is the model's own script failing, not why ShipLoop
+        # refused; failure_line alone would pick it. The line recorded starts at the refusal line.
+        refusal = "ShipLoop navigator: result requires outcome and summary"
+        text = "Traceback (most recent call last):\nKeyError: 'outcome'\n" + refusal + "\nmore\n"
+        found = self.collect(with_result(recorded_calls("sed-a-packet"), text))["shiploop_failures"]
+        self.assertEqual([f["line"] for f in found], [refusal])
+        # With no refusal line the whole text is read: a nonzero exit of a ShipLoop command keeps its first error line.
+        command = "CLI=/runs/r1/build/plugins/skill-craft/skills/shiploop/scripts/shiploop\npython3 $CLI next --run-dir=/runs/r1/run"
+        events = with_command(with_result(recorded_calls("sed-a-packet"), "Exit code 1\nKeyError: 'x'\n"), command)
+        self.assertEqual([(f["exit"], f["line"]) for f in self.collect(events)["shiploop_failures"]], [(1, "KeyError: 'x'")])
+
+    def test_an_exit_line_quoted_in_the_middle_of_a_result_is_not_the_hosts_exit(self):
+        # The host's `Exit code N` is the first line of the result; a result that quotes one later (a document, a log) is
+        # not a failed command.
+        self.assertEqual(metrics.claude_exit("Exit code 2\nboom"), 2)
+        self.assertIsNone(metrics.claude_exit("fine\nExit code 1 means the run is blocked\n"))
+        self.assertIsNone(metrics.claude_exit("fine"))
+        command = "CLI=/runs/r1/build/plugins/skill-craft/skills/shiploop/scripts/shiploop\npython3 $CLI next --run-dir=/runs/r1/run"
+        events = with_command(with_result(recorded_calls("sed-a-packet"), "packet text\nExit code 1 is quoted here\n"), command)
+        self.assertEqual(self.collect(events)["shiploop_failures"], [])
+
+    def test_a_host_that_numbers_its_calls_again_in_each_session_has_every_failure_counted(self):
+        # Codex ids restart at item_0 in every session (the recorded Luna run v1210 has 1542 tool_call events and 486
+        # distinct ids). A failure is counted once per call, so a second call that reuses an id is a failure of its own.
+        cli = "python3 x/shiploop next --run-dir r"
+        refusal = "ShipLoop navigator: no ShipLoop run directory"
+        first = codex_session([codex_command(0, cli, refusal + "\n", 2)])
+        second = codex_session([codex_command(0, cli, refusal + "\n", 2)], thread="t2")
+        found = collect_stream([*first, *second], [])["shiploop_failures"]
+        self.assertEqual([(f["verb"], f["exit"], f["line"]) for f in found], [("next", 2, refusal)] * 2)
+        # One call is still one failure when the host repeats its update (Grok), even with an id that came back.
+        update = {"type": "tool_call_update", "toolCallId": "g", "status": "completed",
+                  "rawOutput": {"exit_code": 2, "output_for_prompt": refusal + "\n"}}
+        grok = [{"type": "tool_call", "toolCallId": "g", "rawInput": {"command": cli}}, update, update]
+        self.assertEqual(len(collect_stream(grok, [])["shiploop_failures"]), 1)
+
+    def test_the_same_rule_reads_a_grok_and_a_codex_stream(self):
+        refusal = "ShipLoop blocked: the run directory is not readable"
+        cli = "python3 x/shiploop next --run-dir r | head"
+        grok = [{"type": "tool_call", "toolCallId": "a", "rawInput": {"command": cli}},
+                {"type": "tool_call_update", "toolCallId": "a", "status": "completed",
+                 "rawOutput": {"exit_code": 0, "output_for_prompt": refusal + "\n"}},
+                {"type": "tool_call", "toolCallId": "b", "rawInput": {"command": cli}},
+                {"type": "tool_call_update", "toolCallId": "b", "status": "completed",
+                 "rawOutput": {"exit_code": 0, "output_for_prompt": "fine\n"}}]
+        codex = codex_session([codex_command(0, cli, refusal + "\n", 0), codex_command(1, cli, "fine\n", 0)])
+        for label, stream in (("grok", grok), ("codex", codex)):
+            with self.subTest(label):
+                self.assertEqual(collect_stream(stream, [])["shiploop_failures"],
+                                 [{"verb": "next", "exit": 0, "line": refusal}])
+
+    def test_a_grok_call_is_read_from_its_final_update_not_the_running_one(self):
+        # The shape of a recorded Grok call (v1210, a refused `complete`): running updates carry a placeholder exit 0 and the
+        # output so far, the completed update the real exit 2. One call, one failure, with the exit the host reported last.
+        cli = "python3 x/shiploop complete --run-dir r"
+        refusal = "ShipLoop navigator: result requires outcome and summary"
+        stream = [{"type": "tool_call", "toolCallId": "a", "rawInput": {"command": cli}},
+                  {"type": "tool_call_update", "toolCallId": "a", "status": "in_progress",
+                   "rawOutput": {"exit_code": 0, "output_for_prompt": ""}},
+                  {"type": "tool_call_update", "toolCallId": "a", "status": "in_progress",
+                   "rawOutput": {"exit_code": 0, "output_for_prompt": refusal + "\n"}},
+                  {"type": "tool_call_update", "toolCallId": "a", "status": "completed",
+                   "rawOutput": {"exit_code": 2, "output_for_prompt": refusal + "\n"}}]
+        self.assertEqual(collect_stream(stream, [])["shiploop_failures"], [{"verb": "complete", "exit": 2, "line": refusal}])
+
+    def test_model_glue_and_tmp_writes_see_through_command_variables(self):
+        names = list(json.loads((TOOL_BLOCKS / "manifest.json").read_text())["battleship-sonnet-calls.jsonl"])
+        m = self.collect(recorded_calls(*names))
+        # Recorded: one git commit by the model (`git -C $WT add` and `commit`); the notes, inbox and scratch writes are
+        # what the packets ask for, so they are no glue.
+        self.assertEqual([g["reasons"] for g in m["model_glue"]], [["git commit/add by the model"]])
+        self.assertEqual(m["tmp_writes"], [])
+        for name in ("stage_tool_calls", "model_glue", "tmp_writes", "shiploop_failures"):
+            self.assertNotIn(name, m["unmeasured"], name)
+        derived = ("RUN=/runs/r1/.shiploop-runs/work-1/run\ncat > $RUN/state.md <<EOF\nx\nEOF\n"
+                   "T=/tmp/bs.pid; echo 1 > $T\necho 2 > /tmp/bs.log")
+        m = self.collect(with_command(recorded_calls("sed-a-packet"), derived))
+        self.assertEqual([g["reasons"] for g in m["model_glue"]], [["shell write into a ShipLoop-owned path"]])
+        self.assertEqual(m["tmp_writes"], ["/tmp/bs.log", "/tmp/bs.pid"])
+
+    def test_an_assignment_inside_a_quoted_sh_c_does_not_replace_the_real_one(self):
+        command = recorded_command("assignment-shadowed-by-sh-c", run="checkers")
+        variables = metrics.shell_variables(command)
+        # `R=<run dir>` is assigned first; the quoted sh -c then says `R=$?` and `P=$!`, which are not values.
+        self.assertEqual(variables["R"], "/runs/r2/.shiploop-runs/work-1/run")
+        self.assertNotIn("P", variables)
+        self.assertIn(" /runs/r2/.shiploop-runs/work-1/run/scratch/sub.sh ", " " + metrics.expand_variables(command, variables))
+        self.assertEqual(metrics.shell_variables("A=$B/x; B=/y; C=$B/z"), {"B": "/y", "C": "/y/z"},
+                         "a value that names a variable not yet assigned is not recorded")
+
+    def test_a_path_through_the_run_directory_to_its_sibling_is_the_product_worktree_not_a_shiploop_path(self):
+        # Recorded in Batch 1003 (seat-reservations, v1161-hello): `W=$R/../worktree` then writes under $W. The worktree
+        # beside the run directory is product space; before the path was resolved it matched the run directory's prefix.
+        run = "/runs/r1/.shiploop-runs/work-1/run"
+        sibling = (f"B={run}; W=$B/../worktree; F=$W/docs/shiploop/features/x\n"
+                   "cat >> $W/docs/shiploop/environment.md <<'EOF'\nruntime facts\nEOF\n"
+                   "printf 'learned' >> $F/plan.md\nrm -rf $B/../worktree/__pycache__")
+        self.assertEqual(self.collect(with_command(recorded_calls("sed-a-packet"), sibling))["model_glue"], [])
+        # A path that leaves the run directory and comes back into it is still the run directory.
+        back = f"B={run}; cat > $B/../run/state.md <<'EOF'\nx\nEOF"
+        glue = self.collect(with_command(recorded_calls("sed-a-packet"), back))["model_glue"]
+        self.assertEqual([g["reasons"] for g in glue], [["shell write into a ShipLoop-owned path"]])
+        self.assertEqual(metrics.expand_variables("$A/b/../c /d/e/f/../../g /h/i/.. /../j", {"A": "/x"}),
+                         "/x/c /d/g /h /../j", "a segment is dropped with its `..`; one that leads the path is left as written")
+        self.assertEqual(metrics.shell_variables("B=/x/run; W=$B/../worktree")["W"], "/x/worktree")
+
+    def test_compactions_cancelled_calls_and_knowledge_reads_stay_unmeasured_for_claude(self):
+        compact = {"type": "system", "subtype": "compact_boundary", "compact_metadata": {"trigger": "auto"}}
+        m = self.collect([compact, *recorded_calls("read-packet-whole", "refusal-behind-head")])
+        for name in ("compactions", "cancelled_tool_calls", "knowledge_reads", "truncated_outputs"):
+            self.assertIn(name, m["unmeasured"], name)
+        self.assertEqual((m["cancelled_tool_calls"], m["knowledge_reads"]), ([], []))
+
+    def test_the_run_review_export_shows_a_claude_runs_refusals_and_glue(self):
+        # The exporter (skills/shiploop-run-review, unmodified) reads shiploop_failures and model_glue from metrics.json and
+        # omits a count only when `unmeasured` names it: a Claude run's refusals and glue now reach the page.
+        names = list(json.loads((TOOL_BLOCKS / "manifest.json").read_text())["battleship-sonnet-calls.jsonl"])
+        events = [*recorded_calls(*names), CLAUDE_END]
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "graded"
+            out.mkdir()
+            written = write_stream_run(out, events, [("A1", "intake", "done", 110.0), ("A2", "spec", "done", 140.0)])
+            (out / ".shiploop-runs" / "work-1").mkdir(parents=True)
+            run_dir = written.rename(out / ".shiploop-runs" / "work-1" / "run")  # where the exporter looks for it
+            (run_dir / "results").mkdir()
+            found = metrics.collect(out, run_dir)
+            (out / "metrics.json").write_text(json.dumps(found))
+            self.assertTrue(run.review_export(out).startswith("review export: "), run.review_export(out))
+            bundle = json.loads((out / "review-export" / "review-export.json").read_text())
+        exported = next(iter(bundle["docs"]["runs"].values()))
+        self.assertEqual(exported["refusals"], len(found["shiploop_failures"]))
+        self.assertGreater(exported["refusals"], 0)
+        self.assertEqual(exported["glue"], len(found["model_glue"]))
+        for name in ("shiploop_failures", "model_glue"):
+            self.assertNotIn(name, exported["unmeasured"], name)
+        self.assertEqual([stage["context"]["calls"] for stage in exported["stages"]], [found["stages"][0]["context"]["calls"],
+                                                                                       found["stages"][1]["context"]["calls"]])
+        self.assertNotIn("visitContext", exported["unmeasured"])
+
+    def test_stage_rows_count_model_calls_and_their_peak_context_not_events(self):
+        # Claude writes one event per content block: 30 assistant events here are 16 messages, and a stage's calls are the
+        # messages whose first event falls in its window. The context window is the one the result event names.
+        ended = dict(CLAUDE_END, modelUsage={"claude-sonnet-5-5": {"contextWindow": 1000000}})
+        names = list(json.loads((TOOL_BLOCKS / "manifest.json").read_text())["battleship-sonnet-calls.jsonl"])
+        events = [*recorded_calls(*names), ended]
+        m = collect_stream(events, [("A1", "intake", "done", 115.0), ("A2", "spec", "done", 130.0),
+                                    ("A3", "plan", "done", 200.0)])
+        self.assertEqual([r["context"] for r in m["stages"]],
+                         [{"calls": 6, "peak": 103290, "peakPct": 10.3}, {"calls": 4, "peak": 184145, "peakPct": 18.4},
+                          {"calls": 6, "peak": 231581, "peakPct": 23.2}])
+        self.assertEqual([r["turns"] for r in m["stages"]], [11, 9, 10], "turns keep counting events")
+        self.assertEqual([r["tool_calls"] for r in m["stages"]], [6, 5, 6])
+        self.assertEqual(m["model_calls"], 16)
+        self.assertEqual(sum(r["context"]["calls"] for r in m["stages"]), 16, "the last stage ends after the last event")
+        self.assertEqual(m["tokens"]["input_peak"], 231581)
+        # A call after the last accepted stage is in no window, so the stages hold fewer calls than the run.
+        cut = collect_stream(events, [("A1", "intake", "done", 115.0), ("A2", "spec", "done", 130.0)])
+        self.assertEqual(sum(r["context"]["calls"] for r in cut["stages"]), 10)
+        self.assertEqual(cut["model_calls"], 16)
+        # A stage the timeline cannot place has no context, and a run with no window figure has no percentage.
+        unplaced = collect_stream([*events[:-1], CLAUDE_END], [("A1", "intake", "done", 115.0)], timed=False)
+        self.assertTrue(all("context" not in r for r in unplaced["stages"]), unplaced["stages"])
+        self.assertIsNone(collect_stream([*events[:-1], CLAUDE_END], [("A1", "intake", "done", 115.0)])["stages"][0]["context"]["peakPct"])
+
+    def all_calls(self) -> list[dict]:
+        return recorded_calls(*json.loads((TOOL_BLOCKS / "manifest.json").read_text())["battleship-sonnet-calls.jsonl"])
+
+    def test_the_tool_use_block_counts_calls_by_tool_and_the_characters_they_returned(self):
+        use = self.collect(self.all_calls())["tool_use"]
+        self.assertEqual((use["calls"], use["by_tool"], use["result_chars"]), (17, {"Bash": 13, "Edit": 1, "Read": 3}, 5753))
+        none = self.collect([{"type": "assistant", "message": {"id": "m1", "usage": {"input_tokens": 1}, "content": [
+            {"type": "text", "text": "hello"}]}}])["tool_use"]
+        self.assertEqual((none["calls"], none["by_tool"], none["result_chars"], none["scratch_scripts"]), (0, {}, 0, []),
+                         "a Claude stream with no tool call is a measured none")
+
+    def test_scratch_scripts_list_what_the_model_wrote_and_how_many_calls_ran_it(self):
+        run = "/runs/r1/.shiploop-runs/work-1/run/scratch/"
+        found = self.collect(self.all_calls())["tool_use"]["scratch_scripts"]
+        # sub.sh is written and run in one call, then run in another; idone.py is run once; istart.sh once (its heredoc
+        # holds `improve-start`). The notes and inbox files the model also wrote with heredocs are documents, not scripts.
+        self.assertEqual(found, [{"path": run + "idone.py", "bytes": 443, "wraps_shiploop": False, "runs": 1},
+                                 {"path": run + "istart.sh", "bytes": 943, "wraps_shiploop": True, "runs": 1},
+                                 {"path": run + "sub.sh", "bytes": 548, "wraps_shiploop": True, "runs": 2}])
+        # Runs are tool calls: two invocation lines in one call are one run; a path used as an argument or as a
+        # `--result=` value, and a script never invoked, are not runs.
+        derived = ("RUN=/runs/r1/.shiploop-runs/work-1/run\n$RUN/scratch/sub.sh a b\ncd /x && $RUN/scratch/sub.sh c d\n"
+                   "ls -l $RUN/scratch/sub.sh\ncat $RUN/scratch/sub.sh | head -3\n"
+                   "python3 $CLI complete --result=$RUN/scratch/sub.sh")
+        events = [*recorded_calls("write-and-run-sub"), *with_command(recorded_calls("run-sub-piped"), derived)]
+        scripts = self.collect(events)["tool_use"]["scratch_scripts"]
+        self.assertEqual([(s["path"].rsplit("/", 1)[1], s["runs"]) for s in scripts], [("sub.sh", 2)])
+
+    def test_a_script_is_listed_only_when_a_call_ran_it_and_outside_scratch_only_when_it_wraps_the_cli(self):
+        run = "/runs/r1/.shiploop-runs/work-1/run"
+        write = ("RUN=" + run + "\ncat > $RUN/scratch/never.sh <<'EOF'\n#!/bin/sh\necho never run\nEOF\n"
+                 "cat > /runs/r1/helper.sh <<'EOF'\n#!/bin/sh\npython3 /runs/r1/build/scripts/shiploop complete --run-dir=$1\nEOF\n"
+                 "cat > /runs/r1/plain.sh <<'EOF'\n#!/bin/sh\necho plain\nEOF\n"
+                 "/runs/r1/helper.sh a")
+        scripts = self.collect(with_command(recorded_calls("sed-a-packet"), write))["tool_use"]["scratch_scripts"]
+        # never.sh was written in the scratch folder and never run, plain.sh does not wrap the CLI and lives outside scratch;
+        # helper.sh wraps the CLI, so it is listed wherever it lives.
+        self.assertEqual([(s["path"], s["wraps_shiploop"], s["runs"]) for s in scripts], [("/runs/r1/helper.sh", True, 1)])
+        # Run, the scratch script that does not wrap the CLI is listed too (idone.py in the recorded run).
+        ran = write + "\n$RUN/scratch/never.sh\n/runs/r1/plain.sh"
+        scripts = self.collect(with_command(recorded_calls("sed-a-packet"), ran))["tool_use"]["scratch_scripts"]
+        self.assertEqual([(s["path"].rsplit("/", 1)[1], s["wraps_shiploop"], s["runs"]) for s in scripts],
+                         [("never.sh", False, 1), ("helper.sh", True, 1)], "plain.sh is outside scratch and wraps nothing")
+
+    def test_packet_use_counts_printed_heads_reads_and_the_packets_on_disk(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            events = [*self.all_calls(), CLAUDE_END]
+            run_dir = write_stream_run(out, events, [("A1", "intake", "done", 150.0)])
+            self.assertIsNone(metrics.collect(out, run_dir)["tool_use"]["packets"]["on_disk"], "no packets folder")
+            (run_dir / "packets").mkdir()
+            for name, size in (("nav-1.md", 1000), ("nav-2.md", 2500), ("nav-3.md", 40)):
+                (run_dir / "packets" / name).write_text("x" * size)
+            (run_dir / "packets" / "ignored.json").write_text("{}")
+            packets = metrics.collect(out, run_dir)["tool_use"]["packets"]
+        # Printed: results that show a packet head (ShipLoop navigator | stage |) from calls that do not name a packet file.
+        self.assertEqual(packets["printed"], {"replies": 3, "chars": 322 + 322 + 249})
+        self.assertEqual(packets["read"]["read_tool"], [
+            {"packet": "nav-b5efb9acc5be4d4a95a7c8ccc924f360", "whole": True, "chars": 323},
+            {"packet": "nav-80a00f1aba124ef8923838789237eba9", "whole": False, "chars": 322},
+            {"packet": "nav-80a00f1aba124ef8923838789237eba9", "whole": False, "chars": 322}])
+        self.assertEqual(packets["read"]["shell"], {"calls": 1, "chars": 399})
+        self.assertEqual(packets["on_disk"], {"files": 3, "bytes": 3540})
+
+    def test_other_hosts_have_no_tool_use_block(self):
+        grok = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
+                {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "ls"}}]
+        for label, stream in (("grok", grok), ("codex", codex_stream(3))):
+            m = collect_stream(stream, [])
+            self.assertIsNone(m["tool_use"], label)
+            self.assertNotIn("tool_use", m["unmeasured"], "no host but Claude ever had this block: nothing to name")
+
+    def test_the_summary_says_what_the_model_ran_beside_the_glue_count(self):
+        lines = metrics.summary_lines(self.collect(self.all_calls()))
+        use = next(line for line in lines if line.startswith("tool use (main thread):"))
+        for text in ("17 calls (Bash 13, Read 3, Edit 1)", "5,753 result chars", "sub.sh 2 runs (wraps ShipLoop)",
+                     "idone.py 1 run", "istart.sh 1 run (wraps ShipLoop)", "not counted in model glue",
+                     "3 printed packet replies (893 chars)", "3 packet Reads (1 whole)", "1 shell command on packets (399 chars)"):
+            self.assertIn(text, use)
+        self.assertFalse(any(line.startswith("tool use") for line in metrics.summary_lines(collect_stream(codex_stream(2), []))))
+
+    def test_progress_names_a_claude_refusal_and_does_not_print_an_exit_that_was_not_shown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in recorded_calls("refusal-behind-head")))
+            text = progress.report(out)
+        self.assertIn("ShipLoop complete failed (exit not shown): ShipLoop navigator: evidence_refs cite files", text)
+        self.assertNotIn("exit None", text)
+        self.assertEqual(metrics.failure_text({"verb": "next", "exit": 2, "line": ""}), "exit 2")
+        self.assertEqual(metrics.failure_text({"verb": "next", "exit": None, "line": ""}), "exit not shown")
+
 
 
 class StageDiffTest(unittest.TestCase):
@@ -2362,7 +2898,8 @@ class TerminationThroughMainTest(PrintedCase):
         self.assertEqual((t["process_status"], t["returncode"], t["sessions"], t["resumes"]), ("exited", 0, 1, 0))
         self.assertEqual((t["session_stops"], t["resume_stop"], t["engine_status"]),
                          (["cancelled"], "ShipLoop run is done", "done"))
-        self.assertEqual(self.last_row()["termination"], t)
+        # The row keeps why it stopped; the blocked detail stays in result.json (batch 1011 integration).
+        self.assertEqual(self.last_row()["termination"], run.row_termination(t))
         self.assertEqual(self.stopped(printed), "  stopped   host exited rc=0; session stops cancelled; "
                                                 "no further resume: ShipLoop run is done; engine done")
 
@@ -2381,7 +2918,7 @@ class TerminationThroughMainTest(PrintedCase):
         t = result["termination"]
         self.assertEqual((t["sessions"], t["resumes"], t["resume_stop"]), (3, 2, "resume budget spent (2)"))
         self.assertEqual((t["engine_status"], t["engine_unaccepted_stage"]), ("active", "test-refine"))
-        self.assertEqual(self.last_row()["termination"], t)
+        self.assertFalse(self.baselines.exists(), "a run left active is not a baseline, so no row carries its termination")
         self.assertEqual(self.stopped(printed),
                          "  stopped   host exited rc=0; session stops cancelled, cancelled, cancelled; "
                          "no further resume: resume budget spent (2); engine active with test-refine never accepted")
@@ -2438,16 +2975,28 @@ class TerminationThroughMainTest(PrintedCase):
 
 
 class MeasuredHostPrintingTest(PrintedCase):
-    def test_claude_runs_say_which_counters_they_cannot_show_and_never_compare_them_as_zeros(self):
+    def test_claude_runs_measure_their_tool_calls_and_still_say_which_counters_they_cannot_show(self):
         code, first, printed = self.invoke_printed("claude", "done")
         self.assertEqual(code, 0, first)
-        for name in ("model_glue", "shiploop_failures", "cancelled_tool_calls", "tmp_writes"):
-            self.assertIsNone(first["metrics"][name], name)
-            self.assertIn(name, first["metrics"]["unmeasured"])
-        self.assertIn("model glue not measured", printed)
-        self.assertEqual(self.last_row()["model_glue"], None)
+        self.assertIsNone(first["metrics"]["cancelled_tool_calls"])
+        self.assertIn("cancelled_tool_calls", first["metrics"]["unmeasured"])
+        for name in ("model_glue", "shiploop_failures", "tmp_writes"):
+            self.assertEqual(first["metrics"][name], 0, name)
+            self.assertNotIn(name, first["metrics"]["unmeasured"], name)
+        self.assertIn("model glue 0", printed)
+        self.assertIn("cancelled tool calls not measured", printed)
+        self.assertEqual(self.last_row()["model_glue"], 0)
         code, second, printed = self.invoke_printed("claude", "done")
-        self.assertIn("glue not measured -> not measured", printed)
+        self.assertIn("glue 0 -> 0", printed)
+
+    def test_a_claude_row_from_before_the_tool_blocks_were_read_compares_as_not_measured(self):
+        code, first, printed = self.invoke_printed("claude", "done")
+        row = json.loads(self.baselines.read_text().splitlines()[-1])
+        old = dict(row, model_glue=None, shiploop_failures=None, tmp_writes=None,
+                   unmeasured=sorted({*row["unmeasured"], "model_glue", "shiploop_failures", "tmp_writes", "stage_tool_calls"}))
+        self.baselines.write_text(json.dumps(old) + "\n")
+        code, second, printed = self.invoke_printed("claude", "done")
+        self.assertIn("glue not measured -> 0", printed)
 
 
 class ReportedCostThroughMainTest(PrintedCase):
@@ -2538,7 +3087,7 @@ class ResumedRunRecordTest(PrintedCase):
         self.assertTrue((out / "metrics.json").is_file())
         self.assertEqual(len(list(out.glob("invocation-resume-*.json"))), 1)
         rows = self.baselines.read_text().splitlines() if self.baselines.exists() else []
-        self.assertEqual(len(rows), 1, "only the original run writes a baseline row; a regrade does not")
+        self.assertEqual(rows, [], "the original run was left active and so wrote no baseline row; a regrade writes none")
 
     def test_a_regrade_with_no_record_says_no_host_ran_and_fabricates_no_exit(self):
         out = self.stopped_run()
@@ -2588,7 +3137,7 @@ class ResumedRunRecordTest(PrintedCase):
         with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
                 run, "marketplace_preflight", return_value=(self.plugin, None, versions)):
             with self.assertRaisesRegex(SystemExit, "version gate"):
-                run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+                run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                           "--baseline", str(self.baselines)])
         self.assertEqual((out / "result.json").read_text(), before)
 
@@ -2597,7 +3146,7 @@ class ResumedRunRecordTest(PrintedCase):
         original = json.loads((out / "result.json").read_text())["termination"]
         os.environ["FAKE_MODE"] = "done"
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         result = json.loads((out / "result.json").read_text())
         self.assertEqual(result["earlier_terminations"], [original])
@@ -2867,7 +3416,7 @@ class RegradeRecordTest(PrintedCase):
         out = Path(stopped["output"])
         os.environ["FAKE_MODE"] = "nothing"
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         resumed = json.loads((out / "result.json").read_text())
         self.assertEqual((resumed["host"], resumed["resumed_run"]["from_host"]), ("codex", "grok"))
@@ -2893,7 +3442,7 @@ class BaselineAbsentTest(PrintedCase):
         os.environ["FAKE_MODE"] = "done"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", stopped["output"],
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", stopped["output"],
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertIn("baseline  nothing compared: a resumed or seeded run is not a baseline", printed.getvalue())
 
@@ -2957,7 +3506,7 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
         self.assertIn("no earlier row of mode none", printed)
         self.number_rows(11, 22)
         _, printed = self.run_with("stage")  # [stage, none] then stage: the stage row, found past the none row
-        self.assertIn("planning_review stage): turns 11 -> ", printed)
+        self.assertIn("planning_review stage): turns 11 (lower bound) -> ", printed)
         self.assertNotIn("not compared across", printed)
 
     def test_two_modes_interleaved_each_pick_their_own_last_row(self):
@@ -2965,10 +3514,10 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
             self.run_with(mode)
         self.number_rows(111, 222, 333, 444)
         _, printed = self.run_with("none")
-        self.assertIn("planning_review none): turns 444 -> ", printed)
+        self.assertIn("planning_review none): turns 444 (lower bound) -> ", printed)
         self.number_rows(111, 222, 333, 444, 555)
         _, printed = self.run_with("stage")
-        self.assertIn("planning_review stage): turns 333 -> ", printed)
+        self.assertIn("planning_review stage): turns 333 (lower bound) -> ", printed)
         self.assertNotIn("not compared across", printed)
 
     def test_an_earlier_row_with_no_mode_compares_as_stage_only_when_its_plugin_predates_the_option(self):
@@ -2993,7 +3542,7 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
         _, printed = self.run_with("none")
         self.assertIn("(none vs stage); no earlier row of mode none; ", printed)
         _, printed = self.run_with("stage")  # [old row, none row] then stage: the old row, read as stage
-        self.assertIn("planning_review stage): turns 555 -> ", printed)
+        self.assertIn("planning_review stage): turns 555 (lower bound) -> ", printed)
         self.assertIn("            the earlier row records no mode, read as stage because plugin 1.21.0 predates the option", printed)
 
     def test_a_run_whose_state_named_no_mode_is_compared_with_no_row(self):
@@ -3085,7 +3634,7 @@ class CouldNotRunCountTest(unittest.TestCase):
     def test_could_not_run_records_are_counted_apart_from_failures_and_passes(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(metrics.verifications(self.records(tmp)),
-                             {"records": 3, "passed": 1, "could_not_run": 1, "commands": 3})
+                             {"records": 3, "passed": 1, "could_not_run": 1, "commands": 3, "red": 0})
 
     def test_the_report_and_the_progress_line_show_the_could_not_run_count(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3096,6 +3645,38 @@ class CouldNotRunCountTest(unittest.TestCase):
             m = metrics.collect(out, run_dir)
             self.assertIn("script verifications 1/3 passed (1 could not run)", metrics.summary_lines(m)[0])
             self.assertIn("1 could not run", progress.report(out))
+
+
+class RedRecordCountTest(unittest.TestCase):
+    """A record that passed because its commands ran red is counted apart from the green passes (r1 Battleship: 2 of the
+    10 passed records). The count reads what ran (a run whose status is `red`), not what the record expected."""
+
+    def verify(self, records: dict) -> dict:
+        with tempfile.TemporaryDirectory() as tmp:
+            tests = Path(tmp) / "run" / "tests"
+            tests.mkdir(parents=True)
+            for name, record in records.items():
+                (tests / f"{record['action']}-verify1.md").write_text(run.store.dumps(record, "ShipLoop test-loop verification"))
+            return metrics.verifications(Path(tmp) / "run")
+
+    def test_records_whose_commands_ran_red_are_counted_apart_from_green_passes(self):
+        records = json.loads((TOOL_BLOCKS / "verify-records.json").read_text())
+        self.assertEqual(self.verify(records), {"records": 3, "passed": 3, "could_not_run": 0, "commands": 5, "red": 2})
+        # The test-author probe accepts red or passed (`expect: a test ran`): one that ran green is a green pass.
+        probe = json.loads(json.dumps(records))
+        for each in probe["test-author"]["runs"]:
+            each["status"], each["exit"] = "passed", 0
+        self.assertEqual(self.verify(probe)["red"], 1)
+
+    def test_the_report_names_the_red_records_without_calling_them_expected(self):
+        m = collect_stream(codex_stream(1), [])
+        m["script_verifications"] = {"records": 10, "passed": 10, "could_not_run": 0, "commands": 20, "red": 2}
+        line = metrics.summary_lines(m)[0]
+        self.assertIn("script verifications 10/10 passed (2 ran red)", line)
+        m["script_verifications"] = {"records": 10, "passed": 9, "could_not_run": 1, "commands": 20, "red": 0}
+        self.assertIn("script verifications 9/10 passed (1 could not run)", metrics.summary_lines(m)[0])
+        self.assertNotIn("ran red", metrics.summary_lines(m)[0])
+        self.assertNotIn("expected", metrics.summary_lines(m)[0])
 
 
 class RetentionIdCountTest(unittest.TestCase):
@@ -3193,10 +3774,12 @@ def rollout_line(kind: str, t: float, payload: dict) -> str:
     return json.dumps({"timestamp": stamp.replace("+00:00", "Z"), "type": kind, "payload": payload})
 
 
-def usage_line(t: float, thread: str, session: str, response: str, total: int) -> str:
+def usage_line(t: float, thread: str, session: str, response: str, total: int, output: int = 100,
+               reasoning: int | None = None) -> str:
     return rollout_line("token_usage_record", t, {
         "thread_id": thread, "session_id": session, "response_id": response,
-        "usage": {"input_tokens": total - 100, "output_tokens": 100, "total_tokens": total}})
+        "usage": {"input_tokens": total - output, "output_tokens": output, "total_tokens": total,
+                  **({} if reasoning is None else {"reasoning_output_tokens": reasoning})}})
 
 
 def count_line(t: float, window: int, total: int, *, after_compaction: bool = False) -> str:
@@ -3319,6 +3902,22 @@ class RolloutContextTest(unittest.TestCase):
         self.assertEqual(got["subagents"], {"calls": 0, "peak": None, "compactions": 0})
 
 
+class MixedHostTurnsTest(unittest.TestCase):
+    """Live finding (round 2, Grok resume): a run's events.jsonl can hold turn rows of two shapes, those with a `call`
+    key (Claude's assistant messages) and those without (Grok's usage events); per_stage crashed on the mix, after the
+    host had finished, so the run got no metrics and no review export."""
+
+    def test_per_stage_counts_the_rows_that_carry_a_call_and_ignores_the_rest(self):
+        accepted = [{"stage": "a", "outcome": "done", "t": 105.0}, {"stage": "b", "outcome": "done", "t": 112.0}]
+        stamps = {n: 100.0 + n for n in range(21)}
+        turns = [{"t": 101.5, "input": 10, "call": True}, {"t": 102.0, "input": 20},
+                 {"t": 103.0, "input": 30, "call": False}, {"t": 106.0, "input": 40, "call": True}]
+        rows = metrics.per_stage(accepted, turns, {}, stamps, None, context_window=100)
+        self.assertEqual([r["context"]["calls"] for r in rows], [1, 1])
+        self.assertEqual([r["context"]["peak"] for r in rows], [30, 40])
+        self.assertEqual([r["turns"] for r in rows], [3, 1])
+
+
 class StageWindowsTest(unittest.TestCase):
     """The windows per_stage already derived are one implementation the rollout reader shares."""
 
@@ -3386,7 +3985,10 @@ class CodexRolloutMetricsTest(unittest.TestCase):
         stream = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}] * 2
         m = collect_stream(stream, self.ACCEPTED, rollout_files=self.rollouts())
         self.assertEqual((m["model_calls"], m["compactions"]), (2, 0), "Grok's own events: no compaction event")
-        self.assertTrue(all("context" not in r for r in m["stages"]))
+        # The stage rows carry the stream's own calls (batch 1011: a Grok usage event is a model call, and a stage with no
+        # event has no context); none of the rollouts' figures (calls 2 peak 3000 / calls 1 peak 2000) reach them.
+        self.assertEqual(m["stages"][0]["context"], {"calls": 2, "peak": 1, "peakPct": None})
+        self.assertNotIn("context", m["stages"][1])
 
     def test_rollouts_that_hold_no_call_are_unmeasured_with_the_reason(self):
         m = collect_stream(codex_stream(3), self.ACCEPTED, rollout_files=[[rollout_line("session_meta", 1, {})]])
@@ -3446,7 +4048,7 @@ class ModelCallsAndWindowTest(unittest.TestCase):
         m = collect_stream([{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}] * 4, [])
         self.assertEqual((m["model_calls"], m["turns"]), (4, 4))
         self.assertIsNone(m["window_tokens"])
-        self.assertEqual(set(m["unmeasured"]), {"window_tokens"})
+        self.assertEqual(set(m["unmeasured"]), {"window_tokens", "unreported_sessions"})  # Grok marks no session start
 
     def test_a_host_with_no_per_call_usage_has_no_call_count_not_zero_calls(self):
         m = collect_stream(codex_stream(3), [])
@@ -3517,7 +4119,8 @@ class HostSignalCountersTest(unittest.TestCase):
             {"type": "auto_compact_completed"},
             {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}]
         m = collect_stream(stream, self.ACCEPTED)
-        self.assertEqual(set(m["unmeasured"]), {"window_tokens"}, "every detector reads a Grok stream")
+        self.assertEqual(set(m["unmeasured"]), {"window_tokens", "unreported_sessions"},
+                         "every detector reads a Grok stream; its events mark no session start")
         self.assertEqual((m["compactions"], m["truncated_outputs"]), (1, 1))
         self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
         self.assertEqual(m["knowledge_reads"], ["docs/shiploop/spec.md"])
@@ -3657,8 +4260,7 @@ class CliSummaryRecordTest(PrintedCase):
 
 
 class SuiteTmpCheckHostTest(HarnessCase):
-    """The suite's /tmp collision check says it could not look, rather than 'clean', for a host whose events
-    cannot show writes (review 2: shared_tmp_writes)."""
+    """The suite's /tmp collision check reads the writes of every host's runs, Claude's included."""
 
     @staticmethod
     def claude_writer(out: Path, target: str) -> Path:
@@ -3677,22 +4279,18 @@ class SuiteTmpCheckHostTest(HarnessCase):
         (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
         return out
 
-    def test_claude_runs_are_not_checked_clean(self):
+    def test_two_claude_runs_that_write_the_same_tmp_name_collide(self):
         outs = [self.claude_writer(self.tmp / name, "/tmp/shared-notes.txt") for name in ("a", "b")]
-        unchecked: dict = {}
-        self.assertEqual(run.shared_tmp_writes(outs, unchecked), {})
-        self.assertEqual(sorted(unchecked), ["a", "b"])
-        self.assertIn("tool_use", unchecked["a"])
+        self.assertEqual(run.shared_tmp_writes(outs), {"/tmp/shared-notes.txt": ["a", "b"]})
 
-    def test_a_run_that_cannot_be_checked_does_not_hide_a_collision_between_two_that_can(self):
+    def test_a_collision_is_found_across_hosts(self):
         outs = [self.claude_writer(self.tmp / "a", "/tmp/shared-notes.txt"),
                 self.grok_writer(self.tmp / "b", "/tmp/shared-notes.txt"),
-                self.grok_writer(self.tmp / "c", "/tmp/shared-notes.txt")]
-        unchecked: dict = {}
-        self.assertEqual(run.shared_tmp_writes(outs, unchecked), {"/tmp/shared-notes.txt": ["b", "c"]})
-        self.assertEqual(sorted(unchecked), ["a"])
+                self.grok_writer(self.tmp / "c", "/tmp/shared-notes.txt"),
+                self.claude_writer(self.tmp / "d", "/tmp/own-notes.txt")]
+        self.assertEqual(run.shared_tmp_writes(outs), {"/tmp/shared-notes.txt": ["a", "b", "c"]})
 
-    def test_a_claude_suite_prints_and_records_that_the_check_could_not_run(self):
+    def test_a_claude_suite_names_a_tmp_collision_and_records_no_unchecked_run(self):
         cases = {"first": {"style": "s", "prompt": "p", "checks": []},
                  "second": {"style": "t", "prompt": "p", "checks": []}}
         for attr, data in (("CASES", cases), ("SUITES", {"wide": {"kind": "breadth", "cases": ["first", "second"]}})):
@@ -3702,6 +4300,8 @@ class SuiteTmpCheckHostTest(HarnessCase):
             setattr(run, attr, path)
             self.addCleanup(setattr, run, attr, saved)
         os.environ["FAKE_MODE"] = "done"
+        os.environ["FAKE_COMMAND"] = "echo x > /tmp/shared-notes.txt"
+        self.addCleanup(os.environ.pop, "FAKE_COMMAND", None)
         out, printed = self.tmp / "suite-out", io.StringIO()
         with contextlib.redirect_stdout(printed):
             code = run.main(["--suite", "wide", "--host", "claude", "--claude-bin", str(self.fakes["claude"]),
@@ -3709,9 +4309,10 @@ class SuiteTmpCheckHostTest(HarnessCase):
                              "--baseline", str(self.baselines)])
         self.assertEqual(code, 0, printed.getvalue())
         result = json.loads((out / "suite-result.json").read_text())
-        self.assertEqual(result["shared_tmp_writes"], {})
-        self.assertEqual(sorted(result["tmp_writes_unmeasured"]), ["first", "second"])
-        self.assertIn("/tmp collisions not checked for first, second", printed.getvalue())
+        self.assertEqual(result["shared_tmp_writes"], {"/tmp/shared-notes.txt": ["first", "second"]})
+        self.assertNotIn("tmp_writes_unmeasured", result)
+        self.assertIn("/tmp names written by more than one case", printed.getvalue())
+        self.assertNotIn("not checked", printed.getvalue())
 
 
 
@@ -3759,6 +4360,1883 @@ class ContextTokensTest(unittest.TestCase):
                          {"input_peak": None})
         self.assertEqual(collect_stream(codex_stream(3), [])["tokens"], {"input_peak": None})
 
+
+class ResumeCliThroughMainTest(PrintedCase):
+    """The prompt that continues a run names the ShipLoop CLI of the plugin the run started on, through run.main.
+
+    A Claude run built from a checkout was continued with a bare `shiploop next` (ClaudeHost.plugin_cli looked only
+    under <output>/marketplace); a run continued on another host used the first host's installed copy or nothing."""
+
+    def setUp(self):
+        super().setUp()
+        (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
+        patched = mock.patch.object(run, "POLL_SECONDS", 0.2, create=True)  # the interrupt test waits on the poll
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def resume(self, out: Path, host: str, plugin: Path | None = None, *extra: str) -> None:
+        released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False,
+                    "catalog_version": "9.9.9", "shiploop_version": None, "unreleased": [], "ci": "success"}
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(run, "released_versions", return_value=released):
+            run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--resume-run", str(out),
+                      "--plugin-dir", str(plugin or self.plugin), "--baseline", str(self.baselines),
+                      "--max-resumes", "0", *extra])
+
+    def test_a_claude_checkout_run_is_continued_with_its_own_cli_in_the_prompt(self):
+        code, first, _ = self.invoke_printed("claude", "active")
+        self.assertEqual(first["shiploop"]["status"], "active")
+        self.log.unlink()
+        os.environ["FAKE_MODE"] = "active"
+        self.resume(Path(first["output"]), "claude")
+        argv = self.seen()["argv"]
+        prompt = argv[argv.index("-p") + 1]
+        self.assertIn("This session ended while the ShipLoop run was still active", prompt)
+        self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)
+        self.assertNotIn("`shiploop next", prompt)
+
+    def test_a_resume_inside_the_run_names_the_cli_the_run_started_on(self):
+        # The resume loop (a Grok or Codex session that ended while ShipLoop was active) is the third call site that
+        # builds this prompt, beside the first resume and the resume after an interrupt.
+        code, result, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "1")
+        sessions = [json.loads(line) for line in Path(str(self.log) + ".sessions").read_text().splitlines()]
+        self.assertEqual(len(sessions), 2)
+        self.assertIsNotNone(sessions[1]["resumed"])
+        command = f'python3 "{self.cli}" next --run-dir "'
+        self.assertIn(command, sessions[1]["prompt"])
+        self.assertIn(command, (Path(result["output"]) / "resume-1.txt").read_text())
+        self.assertNotIn("`shiploop next", sessions[1]["prompt"])
+
+    def test_a_run_continued_on_another_host_keeps_the_cli_it_started_on(self):
+        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        other = self.tmp / "other" / "plugins" / "skill-craft"
+        (other / ".claude-plugin").mkdir(parents=True)
+        (other / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
+        other_cli = run.shiploop_cli(other)
+        other_cli.parent.mkdir(parents=True)
+        other_cli.write_text("")
+        self.log.unlink()
+        os.environ["FAKE_MODE"] = "stuck"
+        self.resume(Path(first["output"]), "codex", other, "--allow-host-change")
+        prompt = self.seen()["prompt"]
+        self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)  # the first host's install, not the new one
+        self.assertNotIn(str(other_cli), prompt)
+
+    def test_the_resume_after_an_interrupt_names_the_cli_the_run_started_on(self):
+        code, result, _ = self.invoke_printed("claude", "chain-hang", "--interrupt-at", "chain-launched")
+        self.assertEqual(code, 0, result)
+        argv = self.seen()["argv"]
+        prompt = argv[argv.index("-p") + 1]
+        self.assertIn("This session ended while the ShipLoop run was still active", prompt)
+        self.assertIn(f'python3 "{self.cli}" next --run-dir "', prompt)
+
+    def test_a_resume_whose_plugin_cli_is_gone_is_refused_before_any_host_starts(self):
+        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        self.cli.unlink()
+        self.log.unlink()
+        Path(str(self.log) + ".sessions").unlink()
+        os.environ["FAKE_MODE"] = "stuck"
+        with self.assertRaisesRegex(SystemExit, "ShipLoop CLI.*is gone"):
+            self.resume(Path(first["output"]), "grok")
+        self.assertFalse(self.log.exists(), "no host was started")
+
+    def test_a_regrade_never_needs_the_cli(self):
+        code, first, _ = self.invoke_printed("grok", "done")
+        self.cli.unlink()
+        self.resume(Path(first["output"]), "grok")  # done: graded again, no host, no prompt
+        self.assertTrue(json.loads((Path(first["output"]) / "result.json").read_text())["process"]["regraded"])
+
+
+class RunCliTest(unittest.TestCase):
+    """run.run_cli: one rule for the CLI a run uses, for the seed and for every resume prompt."""
+
+    def test_claude_loads_its_plugin_dir_so_the_plugin_dir_is_its_cli(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            for plugin in (out / "marketplace/plugins/skill-craft", out / "build/plugins/skill-craft"):
+                self.assertEqual(run.run_cli("claude", out, plugin), plugin / "skills/shiploop/scripts/shiploop")
+
+    def test_grok_and_codex_use_the_copy_they_installed_and_fall_back_to_the_plugin_dir(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            build = out / "build/plugins/skill-craft"
+            self.assertEqual(run.run_cli("grok", out, build), run.shiploop_cli(build))
+            grok_copy = out / "home/.grok/installed-plugins/skill-craft-1234/skills/shiploop/scripts/shiploop"
+            grok_copy.parent.mkdir(parents=True)
+            grok_copy.write_text("")
+            self.assertEqual(run.run_cli("grok", out, build), grok_copy)
+            codex_copy = out / "home/.codex/plugins/cache/whichguy/skill-craft/1.0.0/skills/shiploop/scripts/shiploop"
+            codex_copy.parent.mkdir(parents=True)
+            codex_copy.write_text("")
+            self.assertEqual(run.run_cli("codex", out, build), codex_copy)
+
+
+class StopFileTest(PrintedCase):
+    """A requested stop (<output>/stop) ends the host with its records written, and is never a pass."""
+
+    def setUp(self):
+        super().setUp()
+        patched = mock.patch.object(run, "POLL_SECONDS", 0.2, create=True)
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def sessions(self) -> list[dict]:
+        return [json.loads(line) for line in Path(str(self.log) + ".sessions").read_text().splitlines()]
+
+    def stop_when_the_host_runs(self, out: Path, session: int = 1) -> None:
+        """Create the stop file once the fake host has started its `session`th session (1 = the first)."""
+        def ask():
+            sessions = Path(str(self.log) + ".sessions")
+            for _ in range(400):
+                if sessions.exists() and len(sessions.read_text().splitlines()) >= session:
+                    break
+                time.sleep(0.05)
+            (out / "stop").write_text("")
+        threading.Thread(target=ask, daemon=True).start()
+
+    def main(self, out: Path, *extra: str) -> tuple[int, dict, str]:
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), mock.patch.object(
+                run, "review_export", return_value="review export: fake") as exporter:
+            code = run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines),
+                             "--timeout", "30", *extra])
+        self.exporter = exporter
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue()
+
+    def test_the_stop_file_ends_the_host_and_the_records_are_written_without_a_relaunch(self):
+        os.environ["FAKE_MODE"] = "hang-active"
+        out = self.tmp / "out-stop"
+        self.stop_when_the_host_runs(out)
+        code, result, printed = self.main(out)
+        self.assertEqual(code, 1, "a requested stop is not a finished run: it must never exit 0")
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["sessions"], t["engine_status"]), ("stopped", 1, "active"))
+        self.assertEqual(t["resume_stop"], f"stopped by {out.resolve() / 'stop'}")
+        self.assertEqual(len(self.sessions()), 1, "a stopped host is not relaunched")
+        self.assertFalse((out / "stop").exists(), "the request is consumed when it is acted on")
+        self.assertTrue((out / "metrics.json").is_file())
+        self.exporter.assert_called_once()
+        self.assertFalse(self.baselines.exists(), "a stopped run is not a baseline")
+        self.assertFalse((out / "mismatch.md").exists(), "a requested stop is not a mismatch to explain")
+        self.assertRegex(printed, r"(?m)^STOPPED  shiploop e2e case=")
+        self.assertIn("host stopped rc=-9", printed)
+
+    def test_a_stop_requested_as_a_session_ends_stops_the_resume_loop_and_reads_as_stopped_everywhere(self):
+        os.environ["FAKE_MODE"] = "stuck-stop"
+        out = self.tmp / "out-stop-between"
+        code, result, printed = self.main(out)
+        self.assertEqual(code, 1)
+        self.assertEqual(len(self.sessions()), 1, "the loop would otherwise resume up to the cap")
+        self.assertEqual(result["termination"]["resume_stop"], f"stopped by {out.resolve() / 'stop'}")
+        self.assertFalse((out / "stop").exists())
+        self.assertRegex(printed, r"(?m)^STOPPED  shiploop e2e case=")
+        # The host ended by itself (exit 0) as the request arrived, yet the run reads as stopped in every record, the
+        # same as a killed host (SPEC: a requested stop has no process verdict); the session keeps its own status.
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        self.assertEqual(result["termination"]["process_status"], "stopped")
+        self.assertEqual([s["status"] for s in result["process"]["sessions"]], ["exited"])
+        self.assertIn("host stopped rc=0", printed)
+        self.assertFalse(self.baselines.exists(), "a stopped run is not a baseline")
+
+    def test_a_stop_during_a_resumed_session_reads_as_stopped_and_is_not_relaunched(self):
+        os.environ["FAKE_MODE"] = "hang-resumed"
+        out = self.tmp / "out-stop-resumed"
+        self.stop_when_the_host_runs(out, session=2)
+        code, result, printed = self.main(out, "--timeout", "120")  # a resume needs more than 60 s of the run deadline left
+        self.assertEqual(code, 1)
+        self.assertEqual(len(self.sessions()), 2, "one session, one resume, and no third launch")
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        self.assertEqual([s["status"] for s in result["process"]["sessions"]], ["exited", "stopped"])
+        self.assertEqual(result["termination"]["resume_stop"], f"stopped by {out.resolve() / 'stop'}")
+        self.assertRegex(printed, r"(?m)^STOPPED  shiploop e2e case=")
+        self.assertFalse((out / "stop").exists())
+
+    def test_a_stop_before_any_engine_state_exists_writes_no_baseline_row_and_no_resume_command(self):
+        # The host was killed before ShipLoop wrote any state, so the engine status is unknown: still not a finished run.
+        os.environ["FAKE_MODE"] = "hang"
+        out = self.tmp / "out-stop-no-state"
+        self.stop_when_the_host_runs(out)
+        code, result, printed = self.main(out)
+        self.assertEqual(code, 1)
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["engine_status"]), ("stopped", "unknown"))
+        self.assertFalse(self.baselines.exists(), "the row would be offered as the last comparable row")
+        self.assertIn("baseline  nothing compared: the run is not finished", printed)
+        self.assertEqual(printed.count("--resume-run"), 1, "only the start line: a run with no engine state cannot be resumed")
+
+    def test_a_stale_stop_file_does_not_stop_a_later_resume(self):
+        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        (out / "stop").write_text("")  # left over from a stop nobody consumed
+        os.environ["FAKE_MODE"] = "done"
+        with contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")
+        self.assertNotEqual(result["process"]["status"], "stopped")
+        self.assertFalse((out / "stop").exists())
+
+    def test_a_stop_never_answers_a_blocked_run(self):
+        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        out = Path(first["output"])
+        shutil.rmtree(out / "work" / ".shiploop")
+        (out / "work" / ".shiploop").mkdir()
+        run.store.write_record(out / "work" / ".shiploop" / "state.md",
+                               {"status": "blocked", "stage": "test-refine", "status_reason": "waiting for a person"})
+        (out / "stop").write_text("")
+        self.log.unlink(missing_ok=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        result = json.loads((out / "result.json").read_text())
+        self.assertFalse(self.log.exists(), "no host was started for a blocked run")
+        self.assertEqual(result["shiploop"]["status"], "blocked")
+        self.assertNotEqual(result["termination"].get("process_status"), "stopped")
+        self.assertFalse((out / "stop").exists(), "the request was cleared at the start, not acted on")
+
+
+class GradeOnlyTest(PrintedCase):
+    """--resume-run <dir> --grade-only: records from what is on disk, no host, for a run whose harness was killed."""
+
+    def killed_harness_run(self) -> Path:
+        code, result, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        out = Path(result["output"])
+        for name in ("result.json", "metrics.json"):  # a task kill gives the harness no chance to write them
+            (out / name).unlink()
+        shutil.rmtree(out / "review-export", ignore_errors=True)
+        self.log.unlink()
+        return out
+
+    def grade_only(self, out: Path, *extra: str) -> tuple[int, dict, str]:
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), mock.patch.object(
+                run, "review_export", return_value="review export: fake") as exporter:
+            code = run.main([*extra, "--resume-run", str(out), "--grade-only", "--plugin-dir", str(self.plugin),
+                             "--baseline", str(self.baselines)])
+        self.exporter = exporter
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue()
+
+    def test_an_active_run_whose_harness_was_killed_is_graded_without_a_host(self):
+        out = self.killed_harness_run()
+        recorded = json.loads((out / "invocation.json").read_text())
+        rows = self.baselines.read_text() if self.baselines.exists() else ""
+        code, result, printed = self.grade_only(out)
+        self.assertEqual(code, 1, "an unfinished run is not a pass")
+        self.assertFalse(self.log.exists(), "no host process was started")
+        self.assertTrue((out / "metrics.json").is_file())
+        self.exporter.assert_called_once()
+        self.assertTrue(result["process"]["regraded"])
+        self.assertEqual(result["shiploop"]["status"], "active")
+        self.assertEqual((result["host"], result["model"], result["effort"]),
+                         (recorded["host"], recorded["model"], recorded["effort"]))
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["engine_status"], t["engine_unaccepted_stage"]),
+                         (run.NOT_OBSERVED, "active", "test-refine"))
+        self.assertEqual(self.baselines.read_text() if self.baselines.exists() else "", rows,
+                         "a grade-only writes no baseline row")
+        self.assertIn("no host ran (regraded); engine active", printed)
+
+    def test_a_regrade_names_a_refusal_whose_exit_the_host_did_not_show(self):
+        # A Claude refusal behind `| head` has no exit; the printed line says so, and does not print "exit None".
+        out = self.killed_harness_run()
+        (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in recorded_calls("refusal-behind-head")))
+        code, result, printed = self.grade_only(out)
+        line = next(ln for ln in printed.splitlines() if ln.startswith("  failed    shiploop"))
+        self.assertTrue(line.startswith("  failed    shiploop complete exit not shown: ShipLoop navigator: evidence_refs cite"), line)
+        self.assertNotIn("exit None", printed)
+
+    def test_a_regrade_prints_no_resume_command_because_its_flags_are_not_the_runs(self):
+        # The grading invocation's --timeout is the default (10800 s, above any task limit); presenting it as the exact
+        # command that continues the run would send a resume to be killed with no records.
+        out = self.killed_harness_run()
+        code, result, printed = self.grade_only(out)
+        self.assertEqual(result["shiploop"]["status"], "active")
+        self.assertNotIn("--resume-run", printed)
+        self.assertNotRegex(printed, r"--timeout \d+")
+        line = next(ln for ln in printed.splitlines() if ln.startswith("  resume"))
+        self.assertIn("printed when the run started", line)
+        self.assertIn("--timeout below the launcher's limit", line)
+
+    def test_a_paused_run_is_graded_under_the_flag_and_refused_without_it(self):
+        out = self.killed_harness_run()
+        shutil.rmtree(out / "work" / ".shiploop")
+        (out / "work" / ".shiploop").mkdir()
+        run.store.write_record(out / "work" / ".shiploop" / "state.md", {"status": "paused", "stage": "spec",
+                                                                        "status_reason": "paused for a person"})
+        with contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(SystemExit, "needs an active, blocked or finished"):
+                run.main(["--resume-run", str(out), "--plugin-dir", str(self.plugin)])
+        code, result, _ = self.grade_only(out)
+        self.assertEqual(result["shiploop"]["status"], "paused")
+        self.assertFalse(self.log.exists())
+
+    def test_the_flag_needs_a_run_to_grade_and_a_run_with_no_state_is_still_refused(self):
+        with self.assertRaisesRegex(SystemExit, "--grade-only needs --resume-run"):
+            run.main(["--grade-only", "--host", "grok", "--output", str(self.tmp / "never")])
+        self.assertFalse((self.tmp / "never").exists())
+        code, result, _ = self.invoke_printed("grok", "nothing", "--max-resumes", "0")
+        out = Path(result["output"])
+        with self.assertRaisesRegex(SystemExit, "needs an active, blocked or finished"):
+            run.main(["--resume-run", str(out), "--grade-only", "--plugin-dir", str(self.plugin)])
+
+
+class ResumeCommandTest(PrintedCase):
+    """The harness prints the exact command that continues the run, before any host spend and again when it is left active.
+
+    invocation.json keeps the host argv but not the harness flags, so a command with only --resume-run would fall
+    back to the default --timeout (10800 s), which is above the limit of a launching task."""
+
+    def commands(self, printed: str) -> list[list[str]]:
+        lines = [ln for ln in printed.splitlines() if "--resume-run" in ln]
+        return [shlex.split(ln[ln.index("python3 "):]) for ln in lines]
+
+    def test_the_start_and_the_end_print_the_exact_command_that_continues_the_run(self):
+        code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "0", "--timeout", "900",
+                                                    "--permission-mode", "plan", "--max-budget-usd", "12.5")
+        found = self.commands(printed)
+        self.assertEqual(len(found), 2, "before the host starts, and again for a run left active")
+        self.assertEqual(found[0], found[1])
+        self.assertLess(printed.index("--resume-run"), printed.index("tool  run_terminal_command"))
+        argv = found[0]
+        self.assertEqual((argv[0], Path(argv[1])), ("python3", Path(run.__file__).resolve()))
+        parsed = run.parser().parse_args(argv[2:])
+        self.assertEqual(parsed.resume_run, Path(result["output"]))
+        self.assertEqual((parsed.host, parsed.model, parsed.effort), ("grok", "grok-4.7", "medium"))
+        self.assertEqual((parsed.timeout, parsed.max_resumes, parsed.max_budget_usd, parsed.permission_mode),
+                         (900, 0, 12.5, "plan"))  # each non-default, so dropping any flag from the command fails here
+        self.assertEqual(parsed.grok_bin, str(self.fakes["grok"]))
+        self.assertEqual(parsed.plugin_dir, self.plugin)
+
+    def test_a_finished_run_prints_it_once_and_a_host_without_an_effort_prints_none(self):
+        code, result, printed = self.invoke_printed("claude", "done")
+        found = self.commands(printed)
+        self.assertEqual(len(found), 1, "nothing to continue at the end")
+        self.assertNotIn("--effort", found[0])
+        self.assertEqual(run.parser().parse_args(found[0][2:]).host, "claude")
+
+    def test_the_printed_command_continues_the_run_in_place(self):
+        code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        argv = self.commands(printed)[0][2:]
+        os.environ["FAKE_MODE"] = "done"
+        self.log.unlink()
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
+                run, "released_versions", return_value={
+                    "origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False,
+                    "catalog_version": None, "shiploop_version": None, "unreleased": [], "ci": "success"}):
+            run.main([*argv, "--baseline", str(self.baselines)])
+        resumed = json.loads((Path(result["output"]) / "result.json").read_text())
+        self.assertEqual(resumed["termination"]["resume_stop"], "ShipLoop run is done")
+        self.assertEqual(resumed["output"], result["output"])
+
+
+class UnfinishedRunBaselineTest(PrintedCase):
+    """No baseline row for a run whose engine is still active when the harness ends."""
+
+    def setUp(self):
+        super().setUp()
+        patched = mock.patch.object(run, "POLL_SECONDS", 0.2, create=True)  # a deadline is noticed on the next poll
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def test_a_run_left_active_by_a_spent_resume_budget_writes_no_row(self):
+        code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "1")
+        self.assertEqual(result["termination"]["engine_status"], "active")
+        self.assertFalse(self.baselines.exists())
+        self.assertIn("baseline  nothing compared: the run is not finished (its engine is still active)", printed)
+        self.assertEqual(printed.count("--resume-run"), 2, "the start line and the end line carry the command")
+
+    def test_a_deadline_ends_with_the_records_leaves_the_run_resumable_and_writes_no_row(self):
+        # The README's recipe for a task with a limit: --timeout below it, so the harness finalizes.
+        code, result, printed = self.invoke_printed("grok", "hang-active", "--timeout", "2")
+        out = Path(result["output"])
+        self.assertEqual(code, 1)
+        self.assertTrue((out / "metrics.json").is_file())
+        self.assertRegex(printed, r"review export")
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["resume_stop"], t["engine_status"]),
+                         ("timeout", "run deadline spent", "active"))
+        self.assertFalse(self.baselines.exists(), "the first segment of a long run is not a baseline")
+
+    def test_a_finished_run_still_writes_its_row(self):
+        code, result, _ = self.invoke_printed("grok", "done")
+        self.assertEqual(code, 0)
+        self.assertEqual(len(self.baselines.read_text().splitlines()), 1)
+
+    def test_a_host_killed_at_the_deadline_before_any_engine_state_writes_no_row(self):
+        # The audit's reproduction: the existing `hang` fake, --timeout 3, engine status unknown. It appended a row with
+        # process status timeout, which scan_baseline then offered as the last comparable row.
+        code, result, printed = self.invoke_printed("grok", "hang", "--timeout", "3")
+        t = result["termination"]
+        self.assertEqual((t["process_status"], t["engine_status"]), ("timeout", "unknown"))
+        self.assertFalse(self.baselines.exists(), "a host the deadline killed is not a finished run")
+        self.assertIn("baseline  nothing compared: the run is not finished (the harness ended the host: timeout; "
+                      "engine unknown), so it is not a baseline", printed)
+        self.assertEqual(printed.count("--resume-run"), 1,
+                         "a run with no engine state is refused by --resume-run, so only the start line carries a command")
+
+    def test_a_later_run_is_not_compared_with_the_killed_one(self):
+        self.invoke_printed("grok", "hang", "--timeout", "3")
+        code, result, printed = self.invoke_printed("grok", "done")
+        self.assertEqual(code, 0, result)
+        self.assertIn("baseline  nothing compared: no earlier row for hello", printed)
+
+    def test_a_host_that_ends_by_itself_with_no_engine_state_still_writes_its_row(self):
+        # Its own exit is the ending the row records, unlike a deadline or a stop the harness imposed.
+        code, result, _ = self.invoke_printed("grok", "nothing")
+        self.assertEqual((result["termination"]["engine_status"], result["termination"]["process_status"]),
+                         ("unknown", "exited"))
+        self.assertEqual(len(self.baselines.read_text().splitlines()), 1)
+
+
+class ClaudeCodeVersionTest(PrintedCase):
+    """The host CLI build is recorded with the run: the two Sonnet runs of 2026-10-06 and 2026-10-07 ran one prompt on
+    Claude Code 2.1.291 and 2.1.292, a variable no record of the harness named until now (only the init event held it)."""
+
+    def init(self, version=None) -> dict:
+        return {"type": "system", "subtype": "init", "model": "m", **({} if version is None else {"claude_code_version": version})}
+
+    def test_the_init_event_s_version_is_recorded_in_the_metrics(self):
+        m = collect_stream([self.init("2.1.292"), *claude_stream(["echo a"])], [])
+        self.assertEqual(m["claude_code_version"], "2.1.292")
+
+    def test_sessions_on_two_builds_name_both_and_a_host_without_a_version_records_none(self):
+        both = collect_stream([self.init("2.1.291"), *claude_stream(["echo a"]), self.init("2.1.292"),
+                               *claude_stream(["echo b"])], [])
+        self.assertEqual(both["claude_code_version"], "2.1.291, 2.1.292")
+        self.assertIsNone(collect_stream([self.init(), *claude_stream(["echo a"])], [])["claude_code_version"])
+        self.assertIsNone(collect_stream(codex_stream(2), [])["claude_code_version"])
+
+    def test_a_run_through_main_leaves_the_version_in_metrics_json_and_result_json(self):
+        code, result, _ = self.invoke_printed("claude", "done")
+        self.assertEqual(json.loads((Path(result["output"]) / "metrics.json").read_text())["claude_code_version"], "0.0.1-fake")
+        self.assertEqual(result["metrics"]["claude_code_version"], "0.0.1-fake")
+        code, grok, _ = self.invoke_printed("grok", "done")
+        self.assertIsNone(grok["metrics"]["claude_code_version"])
+
+
+class KeepAwakeTest(unittest.TestCase):
+    """A host session runs under `caffeinate -d -i` on macOS, so the display stays on for the whole run.
+
+    On 2026-10-07 the display was off from 06:04 to 10:10 (pmset log) and headless Chrome never loaded a page in the
+    Grok run's window, 09:25 to 10:12; on 2026-10-06, with the display on, the same host loaded it. The correlation is
+    unproven as a cause (a display woken by `caffeinate -u -d` still hung once), so this removes the variable and
+    claims nothing more. -i, the earlier hold, keeps the machine from idle-sleeping."""
+
+    ARGV = [sys.executable, "-c", "print('hi')"]
+
+    def test_on_macos_the_session_is_wrapped_to_hold_the_display_and_the_system_awake(self):
+        with mock.patch.object(sys, "platform", "darwin"), mock.patch.object(run.shutil, "which", return_value="/usr/bin/caffeinate"):
+            self.assertEqual(run.keep_awake(self.ARGV), ["/usr/bin/caffeinate", "-d", "-i", *self.ARGV])
+
+    def test_elsewhere_or_without_the_tool_the_argv_is_unchanged(self):
+        with mock.patch.object(sys, "platform", "linux"), mock.patch.object(run.shutil, "which", return_value="/usr/bin/caffeinate"):
+            self.assertEqual(run.keep_awake(self.ARGV), self.ARGV)
+        with mock.patch.object(sys, "platform", "darwin"), mock.patch.object(run.shutil, "which", return_value=None):
+            self.assertEqual(run.keep_awake(self.ARGV), self.ARGV)
+
+    def launched(self, platform: str) -> tuple[list | None, str]:
+        """Run one session through run.launch with a recording caffeinate first on PATH."""
+        with tempfile.TemporaryDirectory() as temp:
+            temp = Path(temp)
+            tool = temp / "bin" / "caffeinate"
+            tool.parent.mkdir()
+            tool.write_text(f"#!{sys.executable}\nimport json, os, sys\n"
+                            "open(os.environ['CAFFEINATE_LOG'], 'w').write(json.dumps(sys.argv[1:]))\n"
+                            "args = sys.argv[1:]\nwhile args and args[0].startswith('-'):\n    args = args[1:]\n"
+                            "os.execv(args[0], args)\n")
+            tool.chmod(tool.stat().st_mode | stat.S_IXUSR)
+            out = temp / "out"
+            (out / "work").mkdir(parents=True)
+            log = temp / "caffeinate.log"
+            with mock.patch.dict(os.environ, {"PATH": f"{tool.parent}{os.pathsep}{os.environ['PATH']}",
+                                              "CAFFEINATE_LOG": str(log)}), \
+                    mock.patch.object(sys, "platform", platform), \
+                    nothing_listens():  # launch looks for leftovers; not in the real table
+                result = run.launch(self.ARGV, out / "work", out, dict(os.environ), 60, watch=False)
+            self.assertEqual((result["status"], result["returncode"]), ("exited", 0))
+            return (json.loads(log.read_text()) if log.exists() else None), (out / "events.jsonl").read_text()
+
+    def test_a_session_started_by_launch_runs_under_the_wrapper_on_macos_and_the_host_still_runs(self):
+        argv, events = self.launched("darwin")
+        self.assertEqual(argv, ["-d", "-i", *self.ARGV])
+        self.assertEqual(events.strip(), "hi")
+
+    def test_a_session_started_by_launch_elsewhere_is_not_wrapped_and_still_runs(self):
+        argv, events = self.launched("linux")
+        self.assertIsNone(argv, "caffeinate was not run")
+        self.assertEqual(events.strip(), "hi")
+
+
+LSOF_LISTENING = """p969
+crapportd
+u501
+f14
+n*:58318
+f15
+n*:58318
+p2059
+cOllama
+u501
+f3
+n127.0.0.1:11434
+p300
+cmDNSResponder
+u0
+f7
+n*:5353
+p63973
+cnode
+u501
+f12
+n*:3457
+f13
+n[::1]:3457
+"""
+LSOF_CWD = "p2059\nfcwd\nn/\np63973\nfcwd\nn/Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/work\n"
+PS_COMMANDS = ("  300 /usr/sbin/mDNSResponder\n 2059 /Applications/Ollama.app/Contents/Resources/ollama serve\n"
+               "63973 node /Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/.shiploop-runs/work-1/worktree/server.js\n")
+
+
+def listener(pid: int, cwd: str | None, argv: str = "", ports: tuple = (3457,)) -> dict:
+    return {"pid": pid, "command": argv.split()[0] if argv else "x", "ports": list(ports), "cwd": cwd, "argv": argv}
+
+
+@needs_listeners
+class ListenerParseSelectionTest(unittest.TestCase):
+    """Which processes the harness stops: read from lsof's field output, chosen by place, and never the harness itself.
+
+    Pure checks over captured output, so they run on a runner with no lsof (the real-process classes skip there)."""
+
+    def test_lsof_field_output_is_parsed_into_pid_ports_cwd_and_argv(self):
+        self.assertEqual(listeners.listeners_of(LSOF_LISTENING, 501),
+                         [{"pid": 969, "command": "rapportd", "ports": [58318]},
+                          {"pid": 2059, "command": "Ollama", "ports": [11434]},
+                          {"pid": 63973, "command": "node", "ports": [3457]}], "own user only; one port listed once")
+        self.assertEqual(listeners.cwds_of(LSOF_CWD), {2059: "/", 63973: "/Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/work"})
+        self.assertEqual(listeners.argvs_of(PS_COMMANDS)[63973],
+                         "node /Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/.shiploop-runs/work-1/worktree/server.js")
+
+        def fake_run(argv):
+            return LSOF_LISTENING if "-iTCP" in argv else LSOF_CWD if "cwd" in argv else PS_COMMANDS
+        with mock.patch.object(listeners, "_run", side_effect=fake_run), mock.patch.object(listeners.os, "getuid", return_value=501):
+            seen = {item["pid"]: item for item in listeners.observe()}
+        self.assertEqual(sorted(seen), [969, 2059, 63973])
+        self.assertEqual((seen[63973]["ports"], seen[63973]["cwd"]),
+                         ([3457], "/Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/work"))
+        self.assertTrue(seen[63973]["argv"].endswith("/worktree/server.js"))
+        self.assertEqual((seen[969]["cwd"], seen[969]["argv"]), (None, ""), "a process that vanished between the calls has neither")
+
+    def test_a_name_that_is_not_host_and_port_is_not_a_port_and_never_raises(self):
+        # lsof prints host:port for a TCP listener; a name without a colon (an all-digit one included) is no endpoint to list.
+        odd = "p1\ncx\nu501\nn123\nnno-colon-here\nn*:80\nnhost:notaport\n"
+        self.assertEqual(listeners.listeners_of(odd, 501), [{"pid": 1, "command": "x", "ports": [80]}])
+
+    def test_only_a_listener_inside_the_case_folder_on_a_path_boundary_is_selected(self):
+        folder = "/e2e/case-1"
+        chosen = [listener(10, "/e2e/case-1/work"), listener(11, "/e2e/case-1"),
+                  listener(12, "/", "node /e2e/case-1/.shiploop-runs/x/server.js"),
+                  listener(13, "/", "node server.js --root=/e2e/case-1/site"), listener(14, "/e2e/case-1/work/deep/er")]
+        left = [listener(20, "/e2e/case-10/work"),
+                listener(21, "/", "node /e2e/case-10/server.js"), listener(22, "/", "tail -f /e2e/case-1-other/log"),
+                listener(23, "/e2e/case-1/work"), listener(24, None, ""), listener(25, "/", "python3 -m http.server"),
+                listener(1, "/e2e/case-1/work"), listener(26, "/e2e")]
+        got = {item["pid"] for item in listeners.under(chosen + left, folder, protected={23})}
+        self.assertEqual(got, {10, 11, 12, 13, 14}, "pid 23 is protected, pid 1 is never touched, siblings and parents are not inside")
+
+    def test_a_folder_reached_through_a_symlink_is_matched_by_either_spelling(self):
+        with tempfile.TemporaryDirectory() as temp:
+            real = Path(temp).resolve() / "real"
+            (real / "case").mkdir(parents=True)
+            link = Path(temp) / "link"
+            link.symlink_to(real)
+            asked = str(link / "case")  # how the output folder was spelled; lsof reports a cwd as the real path
+            by_cwd, by_argv = listener(30, str(real / "case" / "work")), listener(31, "/", f"node {asked}/server.js")
+            self.assertEqual({i["pid"] for i in listeners.under([by_cwd, by_argv], asked)}, {30, 31})
+
+    def test_the_harness_and_its_ancestors_are_protected(self):
+        parents = {500: 400, 400: 300, 300: 1, 600: 1}
+        self.assertEqual(listeners.ancestors(parents, 500), {500, 400, 300})
+        self.assertEqual(listeners.ancestors(parents, 999), {999}, "a pid with no parent row is only itself")
+        with mock.patch.object(listeners, "_run", return_value="  1 0\n 500 400\n 400 300\n 300 1\n"), \
+                mock.patch.object(listeners.os, "getpid", return_value=500):
+            self.assertEqual(listeners.protected_pids(), {500, 400, 300})
+        with mock.patch.object(listeners, "_run", side_effect=listeners.Unobserved("ps not found")), \
+                mock.patch.object(listeners.os, "getpid", return_value=500), mock.patch.object(listeners.os, "getppid", return_value=400):
+            self.assertEqual(listeners.protected_pids(), {500, 400}, "no process table: at least this process and its parent")
+
+    def test_a_tool_that_cannot_run_is_unobserved_with_its_reason(self):
+        with mock.patch.object(listeners.subprocess, "run", side_effect=FileNotFoundError):
+            with self.assertRaisesRegex(listeners.Unobserved, "lsof not found"):
+                listeners.observe()
+        with mock.patch.object(listeners.subprocess, "run",
+                               side_effect=listeners.subprocess.TimeoutExpired(["lsof"], listeners.LSOF_TIMEOUT)):
+            with self.assertRaisesRegex(listeners.Unobserved, "lsof timed out"):
+                listeners.observe()
+        failed = subprocess.CompletedProcess(["lsof"], 2, stdout="", stderr="lsof: permission denied\nmore\n")
+        with mock.patch.object(listeners.subprocess, "run", return_value=failed):
+            with self.assertRaisesRegex(listeners.Unobserved, r"lsof exited 2: lsof: permission denied"):
+                listeners.observe()
+        none_listening = subprocess.CompletedProcess(["lsof"], 1, stdout="", stderr="")
+        with mock.patch.object(listeners.subprocess, "run", return_value=none_listening):
+            self.assertEqual(listeners.observe(), [], "exit 1 with no output is a measured none")
+
+    def pass_record(self, *reaped: int, survived: tuple = (), observed: bool = True, reason: str | None = None) -> dict:
+        if not observed:
+            return {"observed": False, "reason": reason}
+        return {"observed": True, "reaped": [dict(listener(pid, "/x"), ended_by="SIGTERM") for pid in reaped],
+                "survived": [listener(pid, "/x") for pid in survived]}
+
+    def test_the_passes_of_a_run_merge_and_an_unseen_pass_never_reads_as_none(self):
+        self.assertIsNone(listeners.merge_left_behind([]), "a regrade ran no pass")
+        self.assertIsNone(listeners.merge_left_behind([None, None]))
+        merged = listeners.merge_left_behind([self.pass_record(7), self.pass_record(8, survived=(9,)), self.pass_record(survived=(9,))])
+        self.assertIsNotNone(merged)
+        self.assertEqual(merged["observed"], True)
+        self.assertEqual([i["pid"] for i in merged["reaped"]], [7, 8])
+        self.assertEqual([i["pid"] for i in merged["survived"]], [9], "one process seen twice is listed once")
+        later = listeners.merge_left_behind([self.pass_record(survived=(9,)), self.pass_record(9)])
+        self.assertEqual(([i["pid"] for i in later["reaped"]], later["survived"]), ([9], []), "stopped by a later pass: not a survivor")
+        nothing = listeners.merge_left_behind([self.pass_record(), self.pass_record()])
+        self.assertEqual(nothing, {"observed": True, "reaped": [], "survived": []}, "two passes that looked and found none")
+        blind = listeners.merge_left_behind([self.pass_record(observed=False, reason="lsof not found"),
+                                             self.pass_record(observed=False, reason="lsof not found")])
+        self.assertEqual(blind, {"observed": False, "reason": "lsof not found"}, "no pass looked: no reaped key to read as none")
+        partial = listeners.merge_left_behind([self.pass_record(7), self.pass_record(observed=False, reason="lsof timed out after 30s")])
+        self.assertIsNotNone(partial)
+        self.assertEqual((partial["observed"], partial["reason"]), (False, "lsof timed out after 30s"))
+        self.assertEqual([i["pid"] for i in partial["reaped"]], [7], "what the pass that looked found is kept beside the reason")
+        again = listeners.merge_left_behind([partial, self.pass_record(8)])  # a resume merges the earlier record with its own
+        self.assertIsNotNone(again)
+        self.assertEqual(([i["pid"] for i in again["reaped"]], again["observed"]), ([7, 8], False))
+
+    def test_the_printed_line_names_what_was_stopped_and_what_could_not_be_seen(self):
+        self.assertIsNone(listeners.left_behind_line(None))
+        self.assertIsNone(listeners.left_behind_line({"observed": True, "reaped": [], "survived": []}), "a clean run prints nothing")
+        line = listeners.left_behind_line(listeners.merge_left_behind([self.pass_record(7), self.pass_record(survived=(9,))]))
+        self.assertEqual(line, "  left      stopped pid 7 x (port 3457) by SIGTERM; could not stop pid 9 x (port 3457)")
+        blind = listeners.left_behind_line({"observed": False, "reason": "lsof not found"})
+        self.assertEqual(blind, "  left      not observed: lsof not found")
+
+
+needs_lsof = unittest.skipUnless(shutil.which("lsof") and shutil.which("ps"),
+                                 "the real-process tests need lsof and ps on PATH (the pure parse and selection tests still run)")
+
+
+def end_quietly(proc: subprocess.Popen) -> None:
+    with contextlib.suppress(ProcessLookupError):
+        proc.kill()
+    proc.wait()
+    if proc.stdout:
+        proc.stdout.close()
+
+
+def kill_leaked(portfile: Path) -> None:
+    """Stop a listener a fake host left behind (it was reparented, so there is no Popen); it also expires on its own."""
+    if portfile.exists():
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(int(portfile.read_text().split()[0]), 9)
+
+
+def answers(port: int) -> bool:
+    with socket.socket() as probe:
+        probe.settimeout(2)
+        return probe.connect_ex(("127.0.0.1", port)) == 0
+
+
+def refuses_soon(port: int, seconds: float = 5.0) -> bool:
+    end = time.time() + seconds
+    while time.time() < end:
+        if not answers(port):
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def isolate_git(case: unittest.TestCase) -> None:
+    """A fake host runs real git: neither the machine's system nor its global config (signing, an lfs filter) may reach it."""
+    patched = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+    patched.start()
+    case.addCleanup(patched.stop)
+
+
+class CaseRunCase(PrintedCase):
+    """A harness case that runs one named case into its own folder and returns what the run recorded."""
+
+    def case_main(self, name: str, *extra: str, mode: str = "done", host: str = "claude", env: dict | None = None):
+        out = self.tmp / name
+        os.environ["FAKE_MODE"] = mode
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), mock.patch.dict(os.environ, env or {}):
+            code = run.main(["--host", host, f"--{host}-bin", str(self.fakes[host]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+        return code, json.loads((out / "result.json").read_text()), printed.getvalue(), out
+
+    def reaped(self, result: dict) -> list[int]:
+        return [i["pid"] for i in (result.get("left_behind") or {}).get("reaped", [])]
+
+
+class RealListeners:
+    """Mixin: tests that start real servers and let the harness stop them, in a world scoped to the test's own folder."""
+
+    def scope_to_tmp(self) -> None:
+        """What lsof shows is only what has its working directory under self.tmp, so no other session's server (or a leaked one
+        on this machine) can change a result; the real lsof, ps and signals are still used. The scope is checked here, not by
+        listeners.under, and a signal to any pid outside it is refused: a defect in the code under test (or a mutant of it) must
+        never be able to stop a process of the machine's user that the test did not start."""
+        root = os.path.realpath(self.tmp)
+
+        def in_tmp() -> list[dict]:
+            return [item for item in REAL_OBSERVE() if item.get("cwd") and (item["cwd"] == root or item["cwd"].startswith(root + os.sep))]
+
+        real_signal = listeners._signal
+
+        def guarded_signal(pid: int, number: int) -> None:
+            if pid not in {item["pid"] for item in in_tmp()}:
+                raise AssertionError(f"refusing to signal pid {pid}: it is not a listener under the test's own folder")
+            real_signal(pid, number)
+
+        for patcher in (mock.patch.object(listeners, "observe", side_effect=in_tmp),
+                        mock.patch.object(listeners, "_signal", side_effect=guarded_signal)):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        isolate_git(self)
+
+    def serve(self, cwd: Path, *flags: str) -> tuple[subprocess.Popen, int]:
+        """A listening server whose working directory is `cwd`, as a model leaves one; killed when the test ends."""
+        cwd.mkdir(parents=True, exist_ok=True)
+        portfile = self.tmp / f"port-{len(list(self.tmp.glob('port-*')))}"
+        proc = subprocess.Popen([sys.executable, "-c", LISTENER_SOURCE, str(portfile), *flags], cwd=cwd, start_new_session=True,
+                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.addCleanup(end_quietly, proc)
+        for _ in range(200):
+            if portfile.exists():
+                break
+            time.sleep(0.05)
+        else:
+            raise AssertionError("the test's listener never started")
+        proc.portfile = portfile
+        return proc, int(portfile.read_text().split()[1])
+
+
+@needs_lsof
+@needs_listeners
+class ReapTest(RealListeners, unittest.TestCase):
+    """listeners.reap with the real lsof, ps and signals, on servers the test starts."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.scope_to_tmp()
+
+    def test_a_folder_with_nothing_under_it_is_a_measured_none(self):
+        self.assertEqual(listeners.reap(self.tmp / "empty"), {"observed": True, "reaped": [], "survived": []})
+
+    def test_a_listener_under_the_folder_is_stopped_and_a_sibling_with_the_same_prefix_is_not(self):
+        inside, port = self.serve(self.tmp / "case-1" / "work")
+        beside, beside_port = self.serve(self.tmp / "case-10" / "work")
+        record = listeners.reap(self.tmp / "case-1")
+        self.assertEqual([(i["pid"], i["ports"], i["ended_by"]) for i in record.get("reaped", [])], [(inside.pid, [port], "SIGTERM")])
+        self.assertEqual(record.get("survived"), [])
+        self.assertTrue(refuses_soon(port))
+        self.assertTrue(answers(beside_port), "case-10 is not inside case-1")
+
+    def test_a_listener_that_ignores_sigterm_is_killed_after_the_grace(self):
+        stubborn, port = self.serve(self.tmp / "case-1", "ignore-term")
+        with mock.patch.object(listeners, "GRACE_SECONDS", 0.3):
+            record = listeners.reap(self.tmp / "case-1")
+        self.assertEqual([(i["pid"], i["ended_by"]) for i in record.get("reaped", [])], [(stubborn.pid, "SIGKILL")])
+        self.assertTrue(refuses_soon(port))
+
+    def test_a_listener_that_stays_is_reported_as_survived_and_never_as_reaped(self):
+        stays, port = self.serve(self.tmp / "case-1")
+        with mock.patch.object(listeners, "_signal"), mock.patch.object(listeners, "GRACE_SECONDS", 0.2), \
+                mock.patch.object(listeners, "FORCE_SECONDS", 0.2):
+            record = listeners.reap(self.tmp / "case-1")
+        self.assertEqual(record.get("reaped"), [])
+        self.assertEqual([(i["pid"], i["ports"]) for i in record.get("survived", [])], [(stays.pid, [port])])
+        self.assertTrue(answers(port))
+
+    def test_a_world_that_cannot_be_read_is_unobserved_even_for_a_folder_with_a_listener(self):
+        with mock.patch.object(listeners, "observe", side_effect=listeners.Unobserved("lsof not found")):
+            self.assertEqual(listeners.reap(self.tmp / "case-1"), {"observed": False, "reason": "lsof not found"})
+
+
+@needs_lsof
+@needs_listeners
+class LeftBehindThroughMainTest(RealListeners, CaseRunCase):
+    """What a host or a check leaves listening is stopped, recorded in result.json and printed (SPEC: a run leaves nothing listening)."""
+
+    def setUp(self):
+        super().setUp()
+        self.scope_to_tmp()
+
+    def test_a_server_a_host_leaves_running_is_stopped_and_recorded(self):
+        for host in ("claude", "grok"):
+            with self.subTest(host=host):
+                portfile = self.tmp / f"leak-{host}"
+                self.addCleanup(kill_leaked, portfile)
+                code, result, printed, out = self.case_main(f"case-{host}", host=host, env={"FAKE_LISTEN": str(portfile)})
+                pid, port = map(int, portfile.read_text().split())
+                self.assertEqual(code, 0, result)
+                self.assertIn("left_behind", result)
+                left = result.get("left_behind", {})
+                self.assertEqual(left.get("observed"), True, left)
+                self.assertEqual([(i["pid"], i["ports"], i["ended_by"]) for i in left.get("reaped", [])], [(pid, [port], "SIGTERM")])
+                self.assertEqual([i["cwd"] for i in left.get("reaped", [])], [str((out / "work").resolve())])
+                self.assertEqual(left.get("survived"), [])
+                self.assertTrue(refuses_soon(port), "the server no longer answers")
+                self.assertRegex(printed, rf"(?m)^  left      stopped pid {pid} .*\(port {port}\) by SIGTERM$")
+                self.assertTrue(result["pass"], "a leftover is a record, not a verdict")
+
+    def test_a_clean_run_records_a_measured_none_and_prints_no_left_line(self):
+        code, result, printed, out = self.case_main("case-clean")
+        self.assertEqual(result.get("left_behind"), {"observed": True, "reaped": [], "survived": []})
+        self.assertNotRegex(printed, r"(?m)^  left ")
+
+    def test_listeners_outside_the_case_folder_are_left_alone(self):
+        portfile = self.tmp / "leak"
+        self.addCleanup(kill_leaked, portfile)
+        elsewhere, elsewhere_port = self.serve(self.tmp / "elsewhere")
+        sibling, sibling_port = self.serve(self.tmp / "case-10" / "work")  # shares a name prefix with the case folder
+        code, result, printed, out = self.case_main("case-1", env={"FAKE_LISTEN": str(portfile)})
+        self.assertEqual(self.reaped(result), [int(portfile.read_text().split()[0])])
+        self.assertTrue(answers(elsewhere_port) and answers(sibling_port))
+
+    def test_a_listener_a_check_leaves_is_stopped_after_the_checks(self):
+        portfile = self.tmp / "leak-check"
+        self.addCleanup(kill_leaked, portfile)
+        spawner = ("import os, subprocess, sys, time\n"
+                   f"subprocess.Popen([sys.executable, '-c', {LISTENER_SOURCE!r}, {str(portfile)!r}], start_new_session=True,\n"
+                   "                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+                   f"while not os.path.exists({str(portfile)!r}):\n    time.sleep(0.05)\n")
+        check = f"{shlex.quote(sys.executable)} -c {shlex.quote(spawner)}"
+        code, result, printed, out = self.case_main("case-check", "--prompt", "say hello", "--check", check)
+        pid, port = map(int, portfile.read_text().split())
+        self.assertEqual(self.reaped(result), [pid], "the session ended before the check started it")
+        self.assertTrue(refuses_soon(port))
+        self.assertTrue(all(c["pass"] for c in result["checks"]), result["checks"])
+
+    def test_launch_reaps_when_its_session_ends_and_returns_the_record(self):
+        portfile = self.tmp / "leak-launch"
+        self.addCleanup(kill_leaked, portfile)
+        out = self.tmp / "case-launch"
+        (out / "work").mkdir(parents=True)
+        spawner = ("import os, subprocess, sys, time\n"
+                   f"subprocess.Popen([sys.executable, '-c', {LISTENER_SOURCE!r}, {str(portfile)!r}], start_new_session=True,\n"
+                   "                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+                   f"while not os.path.exists({str(portfile)!r}):\n    time.sleep(0.05)\n")
+        session = run.launch([sys.executable, "-c", spawner], out / "work", out, dict(os.environ), 60, watch=False)
+        pid, port = map(int, portfile.read_text().split())
+        self.assertEqual(session["status"], "exited")
+        self.assertEqual(self.reaped(session), [pid])
+        self.assertTrue(refuses_soon(port))
+
+    def test_a_regrade_and_grade_only_reap_nothing_and_keep_the_earlier_record(self):
+        code, first, _, out = self.case_main("case-done")
+        live = listeners.hold_case(out)  # a live host means a live harness: without the lock this folder would look like a leak to other launches
+        self.assertIsNotNone(live)
+        self.addCleanup(live.close)
+        proc, port = self.serve(out / "work")  # something a live host could be serving: a regrade starts no host and must not touch it
+        recorded = first.get("left_behind")
+        self.assertIsNotNone(recorded, "the run being regraded recorded what it left behind")
+        for extra in ((), ("--grade-only",)):
+            with contextlib.redirect_stdout(io.StringIO()):
+                run.main(["--resume-run", str(out), "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+            self.assertTrue(answers(port), f"a regrade {extra} reaped")
+            self.assertEqual(json.loads((out / "result.json").read_text()).get("left_behind"), recorded)
+        old = json.loads((out / "result.json").read_text())
+        old.pop("left_behind", None)  # a result written before the key existed
+        (out / "result.json").write_text(json.dumps(old))
+        with contextlib.redirect_stdout(io.StringIO()):
+            run.main(["--resume-run", str(out), "--grade-only", "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        self.assertNotIn("left_behind", json.loads((out / "result.json").read_text()), "not recorded is not none")
+        self.assertTrue(answers(port))
+
+    def test_a_world_that_cannot_be_read_is_recorded_as_unobserved_and_the_run_is_not_failed(self):
+        with mock.patch.object(listeners, "observe", side_effect=listeners.Unobserved("lsof not found")):
+            code, result, printed, out = self.case_main("case-blind")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result.get("left_behind"), {"observed": False, "reason": "lsof not found"})
+        self.assertIn("  left      not observed: lsof not found", printed)
+
+    def test_a_resume_stops_what_the_earlier_invocation_left_before_its_host_starts(self):
+        code, first, _, out = self.case_main("case-resume", "--max-resumes", "0", mode="stuck", host="grok")
+        self.assertEqual(first["shiploop"]["status"], "active")
+        orphan, port = self.serve(out / "work")  # a model's server that outlived a killed harness
+        self.log.unlink()
+        Path(str(self.log) + ".probe").unlink(missing_ok=True)
+        os.environ["FAKE_MODE"] = "done"
+        released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False, "catalog_version": None,
+                    "shiploop_version": None, "unreleased": [], "ci": "success"}  # a resume on its own install checks main's state
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.dict(os.environ, {"FAKE_PROBE_PORT": str(orphan.portfile)}), \
+                mock.patch.object(run, "released_versions", return_value=released):
+            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
+                      "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        self.assertEqual(Path(str(self.log) + ".probe").read_text().split(), ["refused"], "gone before the new session began")
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual(self.reaped(result), [orphan.pid])
+
+
+@needs_listeners
+class CaseLockTest(unittest.TestCase):
+    """A case's harness is alive exactly while it holds an exclusive lock on <output>/.harness-lock; the kernel drops it on any death."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name).resolve()
+
+    def case(self, name: str) -> Path:
+        folder = self.tmp / name
+        (folder / "work").mkdir(parents=True)
+        (folder / "invocation.json").write_text("{}")
+        return folder
+
+    def test_a_case_folder_is_the_nearest_ancestor_with_an_invocation_record_and_a_work_directory(self):
+        folder = self.case("case-1")
+        self.assertEqual(listeners.case_folder(folder / "work" / "deep" / "server.js"), folder)
+        self.assertEqual(listeners.case_folder(folder), folder)
+        self.assertIsNone(listeners.case_folder(self.tmp / "elsewhere" / "a"))
+        (self.tmp / "half").mkdir()
+        (self.tmp / "half" / "invocation.json").write_text("{}")  # a record without a work directory is not a case
+        self.assertIsNone(listeners.case_folder(self.tmp / "half" / "x"))
+
+    def test_the_lock_is_held_while_its_file_is_open_and_a_second_holder_gets_none(self):
+        folder = self.case("case-1")
+        self.assertFalse(listeners.case_alive(folder), "no lock file: no live harness")
+        self.assertFalse((folder / ".harness-lock").exists(), "looking creates nothing in a folder the run does not own")
+        held = listeners.hold_case(folder)
+        self.assertIsNotNone(held)
+        self.assertTrue(listeners.case_alive(folder), "a second open file description in this very process sees it held")
+        self.assertIsNone(listeners.hold_case(folder), "one harness per case folder; the second gets None, not an exception (main refuses on it)")
+        held.close()
+        self.assertFalse(listeners.case_alive(folder))
+        self.assertIsNone(listeners.hold_case(self.tmp / "no-such-folder"), "never raises")
+
+    def test_the_kernel_drops_the_lock_when_its_holder_is_killed(self):
+        folder = self.case("case-1")
+        holder = subprocess.Popen([sys.executable, "-c", "import fcntl, sys, time\nf = open(sys.argv[1], 'a')\n"
+                                   "fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)\nprint('held', flush=True)\ntime.sleep(60)\n",
+                                   str(folder / ".harness-lock")], stdout=subprocess.PIPE, text=True)
+        self.addCleanup(end_quietly, holder)
+        self.assertEqual(holder.stdout.readline().strip(), "held")
+        self.assertTrue(listeners.case_alive(folder))
+        holder.kill()
+        holder.wait()
+        self.assertFalse(listeners.case_alive(folder), "a SIGKILLed harness leaves no lock behind")
+
+    def test_stale_lists_the_listeners_of_ended_cases_other_than_its_own(self):
+        alive, ended, own = self.case("alive"), self.case("ended"), self.case("own")
+        held = listeners.hold_case(alive)
+        self.assertIsNotNone(held)
+        self.addCleanup(held.close)
+        items = [listener(900001, str(ended / "work"), "node server.js"),
+                 listener(900002, str(alive / "work"), "node server.js"),
+                 listener(900003, str(own / "work"), "node server.js"),
+                 listener(900004, "/", f"node {ended}/.shiploop-runs/x/server.js"),
+                 listener(900005, "/", "node unrelated.js"),
+                 listener(900006, str(ended / "work"), "node protected.js")]
+        with mock.patch.object(listeners, "observe", return_value=items), \
+                mock.patch.object(listeners, "protected_pids", return_value={900006}):
+            found = listeners.stale(own)
+            everything = listeners.stale(None)
+        self.assertEqual({(i["pid"], i["case"]) for i in found}, {(900001, str(ended)), (900004, str(ended))},
+                         "a live harness, the run's own folder, an unrelated process and a protected pid are not stale")
+        self.assertEqual({i["pid"] for i in everything}, {900001, 900003, 900004}, "with no folder of its own, the own case is stale too")
+
+
+@needs_listeners
+class StalePreflightThroughMainTest(CaseRunCase):
+    """A launch is refused, whole, while another case leaves a listener and its harness is not alive (SPEC: a run leaves nothing listening)."""
+
+    def setUp(self):
+        super().setUp()
+        isolate_git(self)
+        patched = mock.patch.object(run, "POLL_SECONDS", 0.2, create=True)
+        patched.start()
+        self.addCleanup(patched.stop)
+
+    def ended_case(self, name: str = "case-old") -> Path:
+        folder = self.tmp / name
+        (folder / "work").mkdir(parents=True)
+        (folder / "invocation.json").write_text("{}")
+        return folder
+
+    def leaking(self, folder: Path, pid: int = 900001) -> mock._patch:
+        return mock.patch.object(listeners, "observe", return_value=[listener(pid, str(folder / "work"), "node server.js", (3457,))])
+
+    def test_a_launch_is_refused_while_an_ended_case_leaves_a_listener_and_no_host_starts(self):
+        ended = self.ended_case()
+        with self.leaking(ended), self.assertRaises(SystemExit) as refused:
+            self.case_main("case-new")
+        for part in ("pid 900001", "port 3457", str(ended), "kill 900001"):
+            self.assertIn(part, str(refused.exception))
+        self.assertFalse(self.log.exists(), "no host started")
+        self.assertFalse((self.tmp / "case-new").exists(), "a refused launch leaves no output folder behind")
+
+    def test_preflight_only_refuses_the_same_way_and_a_clean_machine_passes(self):
+        ended = self.ended_case()
+        for leaks, want in ((True, 1), (False, 0)):
+            printed = io.StringIO()
+            with (self.leaking(ended) if leaks else mock.patch.object(listeners, "observe", return_value=[])), \
+                    mock.patch.object(run, "marketplace_preflight", return_value=(self.plugin, None, {"gate": []})), \
+                    contextlib.redirect_stdout(printed):
+                code = run.main(["--preflight-only", "--host", "claude", "--output", str(self.tmp / f"pf-{leaks}")])
+            self.assertEqual(code, want, printed.getvalue())
+            self.assertEqual("kill 900001" in printed.getvalue(), leaks)
+
+    def test_a_case_whose_harness_is_alive_is_not_stale_even_in_the_same_process(self):
+        ended = self.ended_case()
+        held = listeners.hold_case(ended)  # what a sibling case of a parallel suite holds
+        self.assertIsNotNone(held)
+        self.addCleanup(held.close)
+        with self.leaking(ended):
+            code, result, printed, out = self.case_main("case-new")
+        self.assertEqual(code, 0, result)
+
+    def resume_argv(self, out: Path, *extra: str) -> list[str]:
+        return ["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out), "--plugin-dir", str(self.plugin),
+                "--baseline", str(self.baselines), *extra]
+
+    def test_a_second_harness_for_a_case_whose_harness_is_alive_is_refused_and_touches_nothing(self):
+        code, first, _, out = self.case_main("case-live", "--max-resumes", "0", mode="stuck", host="grok")
+        self.assertEqual(first["shiploop"]["status"], "active")
+        live = listeners.hold_case(out)  # the harness that is running this case
+        self.assertIsNotNone(live)
+        self.addCleanup(live.close)
+        (out / "stop").write_text("")  # its owner has asked it to end
+        self.log.unlink()
+        reaped: list = []
+        released = {"origin_main": "a" * 40, "local_head": "a" * 40, "local_behind_main": False, "catalog_version": None,
+                    "shiploop_version": None, "unreleased": [], "ci": "success"}
+        with mock.patch.object(listeners, "reap", side_effect=lambda folder: reaped.append(folder)), \
+                mock.patch.object(run, "released_versions", return_value=released), \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as refused:
+            run.main(self.resume_argv(out))
+        self.assertIn("another harness is running", str(refused.exception))
+        self.assertIn(str(out), str(refused.exception))
+        self.assertTrue((out / "stop").exists(), "the stop request belongs to the harness that is running")
+        self.assertFalse(self.log.exists(), "no host started")
+        self.assertEqual(reaped, [], "the live harness's servers are not this invocation's to stop")
+
+    def test_a_regrade_of_a_case_whose_harness_is_alive_is_not_refused_and_leaves_its_stop_request(self):
+        code, first, _, out = self.case_main("case-done")
+        live = listeners.hold_case(out)
+        self.assertIsNotNone(live)
+        self.addCleanup(live.close)
+        (out / "stop").write_text("")
+        for extra in ((), ("--grade-only",)):
+            with contextlib.redirect_stdout(io.StringIO()):
+                run.main(self.resume_argv(out, *extra))
+            self.assertTrue(json.loads((out / "result.json").read_text())["process"]["regraded"], extra)
+            self.assertTrue((out / "stop").exists(), f"a regrade {extra} starts nothing, so it owns no stop request")
+
+    def test_a_regrade_is_never_refused_because_it_starts_nothing(self):
+        code, first, _, out = self.case_main("case-done")
+        ended = self.ended_case()
+        for extra in ((), ("--grade-only",)):
+            with self.leaking(ended), contextlib.redirect_stdout(io.StringIO()):
+                run.main(["--resume-run", str(out), "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
+            self.assertTrue(json.loads((out / "result.json").read_text())["process"]["regraded"], extra)
+
+    def test_a_listener_that_cannot_be_looked_for_is_noted_and_the_launch_goes_ahead(self):
+        with mock.patch.object(listeners, "observe", side_effect=listeners.Unobserved("lsof not found")):
+            code, result, printed, out = self.case_main("case-new")
+        self.assertEqual(code, 0, result)
+        self.assertIn("stale-listener check skipped: lsof not found", printed)
+
+    def test_the_harness_holds_its_case_lock_while_it_runs_and_drops_it_when_it_ends(self):
+        out = self.tmp / "case-lock"
+        seen: list[bool] = []
+
+        def watch():
+            sessions = Path(str(self.log) + ".sessions")
+            for _ in range(400):
+                if sessions.exists():
+                    break
+                time.sleep(0.05)
+            seen.append(listeners.case_alive(out))
+            (out / "stop").write_text("")
+
+        threading.Thread(target=watch, daemon=True).start()
+        code, result, printed, _ = self.case_main("case-lock", "--timeout", "30", mode="hang-active", host="grok")
+        self.assertEqual(seen, [True], "alive while the host runs")
+        self.assertFalse(listeners.case_alive(out), "dropped when main returns")
+
+    def test_a_suite_refuses_once_before_any_case_starts_and_its_cases_do_not_check_again(self):
+        SuiteTest.use_catalog(self, {"a": {"style": "s", "prompt": "p", "checks": []}, "b": {"style": "t", "prompt": "p", "checks": []}},
+                              {"wide": {"kind": "breadth", "cases": ["a", "b"]}})
+        ended = self.ended_case()
+        os.environ["FAKE_MODE"] = "done"
+        argv = ["--suite", "wide", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(self.tmp / "suite-out"),
+                "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)]
+        with self.leaking(ended), contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as refused:
+            run.main(argv)
+        self.assertIn("kill 900001", str(refused.exception))
+        self.assertFalse((self.tmp / "suite-out").exists(), "refused before the suite's folder or any case existed")
+        self.assertFalse(self.log.exists())
+        # A case the suite starts has been checked by the suite, once: it must not raise inside a worker thread.
+        with self.leaking(ended):
+            code, result, printed, out = self.case_main("case-in-suite", "--case", "a", "--suite-name", "wide")
+        self.assertEqual(code, 0, result)
+
+
+@needs_lsof
+@needs_listeners
+class StaleListenerRealTest(RealListeners, CaseRunCase):
+    """The same refusal against a real server and the real lsof."""
+
+    def setUp(self):
+        super().setUp()
+        self.scope_to_tmp()
+
+    def test_a_real_server_an_ended_case_left_refuses_the_launch_and_is_never_stopped_by_the_refusal(self):
+        ended = self.tmp / "case-old"
+        leaked, port = self.serve(ended / "work")
+        # The one state this test is about is a case with no live harness, which another session's real launch would also refuse
+        # on: so the case record is written last and the lock taken as soon as the refusal is seen, a window of one scan.
+        (ended / "invocation.json").write_text("{}")
+        with self.assertRaises(SystemExit) as refused:
+            self.case_main("case-new")
+        held = listeners.hold_case(ended)
+        self.assertIsNotNone(held)
+        self.addCleanup(held.close)
+        for part in (f"pid {leaked.pid}", f"port {port}", str(ended), f"kill {leaked.pid}"):
+            self.assertIn(part, str(refused.exception))
+        self.assertTrue(answers(port), "a refusal names the process and leaves it to the owner")
+        code, result, _, _ = self.case_main("case-new")
+        self.assertEqual(code, 0, result)
+        self.assertTrue(answers(port), "the other case's server is not this run's to stop")
+
+
+class TerminationSignalTest(CaseRunCase):
+    """The harness as a task runner meets it: a program that is sent a signal while its host works.
+
+    The harness runs as a real subprocess (python3 run.py), so the signal wiring under __main__ is the one tested, and the test
+    process's own handlers are never touched. A fake `lsof` first on PATH shows an empty process table, so no real listener of
+    this machine can refuse or change a run."""
+
+    def setUp(self):
+        super().setUp()
+        isolate_git(self)
+        self.home = self.tmp / "home"
+        (self.home / ".grok").mkdir(parents=True)
+        (self.home / ".grok" / "auth.json").write_text("{}")
+        tools = self.tmp / "tools"
+        tools.mkdir()
+        (tools / "lsof").write_text("#!/bin/sh\nexit 1\n")
+        (tools / "lsof").chmod(0o755)
+        self.env = dict(os.environ, HOME=str(self.home), PATH=f"{tools}{os.pathsep}{os.environ['PATH']}", FAKE_LOG=str(self.log),
+                        FAKE_MODE="hang-active", SHIPLOOP_PROGRESS="off")
+
+    # What the task runner's child starts with is not what this test process inherited: a job a shell started in the background
+    # has SIGINT ignored (and one under nohup has SIGHUP ignored), and Python installs no Ctrl-C handler for an ignored SIGINT.
+    # The harness is started through this, which sets the named signals to their defaults first and keeps the rest as inherited.
+    DEFAULT_SIGNALS = ("import os, signal, sys\n[signal.signal(getattr(signal, n), signal.SIG_DFL) for n in sys.argv[1].split(',') if n]\n"
+                       "os.execv(sys.executable, [sys.executable] + sys.argv[2:])\n")
+
+    def start(self, name: str, *extra: str, launcher: tuple = (), reset: str = "SIGINT,SIGTERM,SIGHUP") -> tuple[subprocess.Popen, Path]:
+        out = self.tmp / name
+        proc = subprocess.Popen([*launcher, sys.executable, "-c", self.DEFAULT_SIGNALS, reset, str(run.HERE / "run.py"), "--host", "grok",
+                                 "--grok-bin", str(self.fakes["grok"]), "--output", str(out), "--plugin-dir", str(self.plugin),
+                                 "--baseline", str(self.baselines), "--timeout", "120", *extra],
+                                env=self.env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        # Registered before the harness's own kill, so it runs after it: a harness that is still alive would start another host.
+        self.addCleanup(self.kill_hosts)
+        self.addCleanup(end_quietly, proc)
+        return proc, out
+
+    def kill_hosts(self) -> None:
+        """Every host the harness ever started in this test (the fake logs one line per session), whole group, whatever the code
+        under test did: a test that fails must not leave an orphan host (each also sleeps for at most 600 s)."""
+        sessions = Path(str(self.log) + ".sessions")
+        for line in sessions.read_text().splitlines() if sessions.exists() else []:
+            with contextlib.suppress(ValueError, KeyError, ProcessLookupError, PermissionError):
+                pid = json.loads(line)["pid"]
+                if os.getpgid(pid) == pid:  # a host leads the session it was started in; a reused pid does not
+                    os.killpg(pid, signal.SIGKILL)
+
+    def host_pid(self) -> int:
+        """The fake host's pid, once it is running."""
+        sessions = Path(str(self.log) + ".sessions")
+        for _ in range(600):
+            if sessions.exists() and sessions.read_text().strip():
+                break
+            time.sleep(0.05)
+        else:
+            raise AssertionError("the host never started")
+        return json.loads(sessions.read_text().splitlines()[0])["pid"]
+
+    @staticmethod
+    def kill_pid(pid: int) -> None:
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(pid, 9)
+
+    @staticmethod
+    def gone(pid: int, seconds: float = 5.0) -> bool:
+        end = time.time() + seconds
+        while time.time() < end:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                return True
+            time.sleep(0.05)
+        return False
+
+    def test_sigterm_kills_the_host_writes_the_records_and_reads_as_stopped(self):
+        proc, out = self.start("case-term")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGTERM)
+        printed, _ = proc.communicate(timeout=60)
+        self.assertTrue(self.gone(host), "the host does not outlive its harness")
+        self.assertEqual(proc.returncode, 1, printed)
+        self.assertTrue((out / "result.json").is_file(), printed)
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        self.assertEqual(result["termination"]["resume_stop"], "terminated by SIGTERM")
+        self.assertTrue((out / "metrics.json").is_file())
+        self.assertFalse(self.baselines.exists(), "a stopped run is not a baseline")
+        self.assertEqual(len(Path(str(self.log) + ".sessions").read_text().splitlines()), 1, "a terminated host is not relaunched")
+        self.assertRegex(printed, r"(?m)^STOPPED  shiploop e2e case=")
+
+    def test_sighup_ends_the_run_the_same_way_unless_the_launch_ignored_it(self):
+        proc, out = self.start("case-hup")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGHUP)
+        printed, _ = proc.communicate(timeout=60)
+        self.assertTrue(self.gone(host))
+        self.assertEqual(proc.returncode, 1, printed)
+        self.assertEqual(json.loads((out / "result.json").read_text())["termination"]["resume_stop"], "terminated by SIGHUP")
+
+    @unittest.skipUnless(shutil.which("nohup"), "needs nohup")
+    def test_a_nohup_launch_keeps_its_run_through_a_hangup(self):
+        proc, out = self.start("case-nohup", launcher=("nohup",), reset="SIGINT,SIGTERM")  # nohup's own SIGHUP is ignored; keep it so
+        host = self.host_pid()
+        proc.send_signal(signal.SIGHUP)  # the terminal went away; nohup's whole purpose is that the run does not
+        time.sleep(1.5)
+        self.assertIsNone(proc.poll(), "the harness ended on a hangup that its launch ignored")
+        self.assertFalse(self.gone(host, 0.1), "the host was killed by a hangup that its launch ignored")
+        proc.send_signal(signal.SIGTERM)  # an explicit stop still works
+        printed, _ = proc.communicate(timeout=60)
+        self.assertTrue((out / "result.json").is_file(), printed)
+        self.assertEqual(json.loads((out / "result.json").read_text())["termination"]["resume_stop"], "terminated by SIGTERM", printed)
+
+    def test_a_second_signal_ends_the_harness_at_once_even_while_a_check_runs(self):
+        marker, pidfile = self.tmp / "check-started", self.tmp / "check-pid"
+        proc, out = self.start("case-twice", "--prompt", "say hello", "--check", f"echo $$ > {pidfile}; touch {marker}; exec sleep 20")
+        self.host_pid()
+        proc.send_signal(signal.SIGTERM)  # ends the host; the harness goes on to its checks
+        for _ in range(600):
+            if marker.exists():
+                break
+            time.sleep(0.05)
+        self.addCleanup(lambda: pidfile.exists() and self.kill_pid(int(pidfile.read_text())))
+        self.assertTrue(marker.exists(), "the harness reached its checks after the first signal")
+        proc.send_signal(signal.SIGTERM)  # the person means it
+        proc.communicate(timeout=30)
+        self.assertEqual(proc.returncode, -signal.SIGTERM)
+
+    def test_ctrl_c_on_a_suite_ends_its_hosts_at_once_and_writes_the_records(self):
+        # A suite runs its cases in worker threads and a Ctrl-C reaches only the main thread, which then waits for them: without
+        # its own handling the hosts ran on (the review saw them alive 40 s later) because the atexit kill comes after that wait.
+        proc, out = self.start("suite-int", "--suite", "smoke")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGINT)
+        try:
+            printed, _ = proc.communicate(timeout=45)
+        except subprocess.TimeoutExpired:
+            self.fail("the suite kept running after a Ctrl-C")
+        self.assertTrue(self.gone(host), "the host does not outlive a Ctrl-C of its suite")
+        self.assertEqual(proc.returncode, 1, printed)
+        self.assertEqual([(r["case"], r["pass"]) for r in json.loads((out / "suite-result.json").read_text())["cases"]], [("hello", False)])
+        result = json.loads((out / "hello" / "result.json").read_text())
+        self.assertEqual((result["process"]["status"], result["termination"]["resume_stop"]), ("stopped", "terminated by SIGINT"))
+        self.assertEqual(len(Path(str(self.log) + ".sessions").read_text().splitlines()), 1, "a terminated host is not relaunched")
+
+    def test_ctrl_c_leaves_no_host_behind(self):
+        proc, out = self.start("case-int")
+        host = self.host_pid()
+        proc.send_signal(signal.SIGINT)
+        printed, _ = proc.communicate(timeout=60)
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertTrue(self.gone(host), "a Ctrl-C on the harness must not orphan its host")
+        self.assertFalse((out / "result.json").exists(), "a Ctrl-C on a single case writes no records (the README says so)")
+
+
+@needs_listeners
+class LiveHostTest(unittest.TestCase):
+    """The harness's bookkeeping of the hosts it started, driven without any real signal.
+
+    The poll interval is long here, so a session can only end promptly because the harness killed its group, not because the
+    poll loop noticed."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        for patcher in (mock.patch.object(listeners, "observe", return_value=[]), mock.patch.object(run, "POLL_SECONDS", 30, create=True)):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        self.addCleanup(run.end_live_hosts)  # runs first: a failing test leaves no host (each also sleeps for at most 20 s)
+
+    def session(self, name: str) -> tuple[threading.Thread, dict, Path]:
+        out = self.tmp / name
+        (out / "work").mkdir(parents=True)
+        result: dict = {}
+        thread = threading.Thread(target=lambda: result.update(run.launch(
+            [sys.executable, "-c", "import time; time.sleep(20)"], out / "work", out, dict(os.environ), 60, watch=False)))
+        thread.start()
+        return thread, result, out
+
+    @staticmethod
+    def registered(count: int) -> bool:
+        for _ in range(100):
+            if len(run.LIVE_HOST_GROUPS) == count:
+                return True
+            time.sleep(0.05)
+        return False
+
+    def test_end_live_hosts_kills_every_registered_group_and_launch_discards_its_own(self):
+        threads = [self.session(f"case-{n}") for n in range(2)]
+        self.assertTrue(self.registered(2), "each running session is registered")
+        groups = sorted(run.LIVE_HOST_GROUPS)
+        run.end_live_hosts()
+        for thread, result, _ in threads:
+            thread.join(timeout=15)
+            self.assertFalse(thread.is_alive(), "the session ended at once, not at the next poll")
+            self.assertEqual(result["status"], "failed")  # no one asked for a stop: only the groups were killed
+        self.assertEqual(run.LIVE_HOST_GROUPS, set(), "a session that ended is no longer registered, so a reused pgid is never signalled")
+        for pid in groups:
+            with self.assertRaises(ProcessLookupError):
+                os.killpg(pid, 0)
+
+    def test_a_termination_ends_a_running_session_at_once_as_stopped_and_starts_no_later_one(self):
+        thread, result, out = self.session("case-running")
+        self.assertTrue(self.registered(1))
+        run.on_termination(signal.SIGTERM, None)
+        thread.join(timeout=15)
+        self.assertFalse(thread.is_alive(), "the handler killed the group; the 30 s poll did not have to notice")
+        self.assertEqual(result.get("status"), "stopped", result)
+        self.assertTrue(run.TERMINATION.is_set())
+        self.assertEqual(run.TERMINATED_BY, ["SIGTERM"])
+
+    def test_a_session_that_begins_after_the_harness_was_told_to_end_is_ended_at_its_first_poll(self):
+        run.TERMINATED_BY.append("SIGTERM")
+        run.TERMINATION.set()  # say, during the install, before any host
+        later = self.tmp / "case-later"
+        (later / "work").mkdir(parents=True)
+        started = time.time()
+        after = run.launch([sys.executable, "-c", "import time; time.sleep(20)"], later / "work", later, dict(os.environ), 60, watch=False)
+        self.assertEqual(after["status"], "stopped")
+        self.assertLess(time.time() - started, 10, "it did not run to its end")
+        self.assertEqual(run.LIVE_HOST_GROUPS, set())
+        self.assertTrue((later / "events.jsonl").is_file(), "the session's files exist so the records can be written")
+
+    def test_a_signal_that_arrives_before_the_host_is_registered_still_ends_it(self):
+        real_popen = subprocess.Popen
+
+        def popen_then_signal(*args, **kwargs):
+            proc = real_popen(*args, **kwargs)
+            run.on_termination(signal.SIGTERM, None)  # the handler runs now and cannot know this group yet
+            return proc
+
+        with mock.patch.object(run.subprocess, "Popen", side_effect=popen_then_signal):
+            thread, result, out = self.session("case-race")
+            thread.join(timeout=15)
+        self.assertFalse(thread.is_alive(), "the poll loop must notice the termination and end the group")
+        self.assertEqual(result.get("status"), "stopped")
+
+
+class SignalledHarnessThroughMainTest(CaseRunCase):
+    def test_a_suite_told_to_end_starts_no_further_case(self):
+        SuiteTest.use_catalog(self, {"a": {"style": "s", "prompt": "p", "checks": []}, "b": {"style": "t", "prompt": "p", "checks": []}},
+                              {"wide": {"kind": "breadth", "cases": ["a", "b"]}})
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        run.TERMINATED_BY.append("SIGTERM")
+        run.TERMINATION.set()
+        out = self.tmp / "suite-out"
+        os.environ["FAKE_MODE"] = "done"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = run.main(["--suite", "wide", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        rows = json.loads((out / "suite-result.json").read_text())["cases"]
+        self.assertEqual(code, 1)
+        self.assertEqual([(r["case"], r.get("skipped")) for r in rows], [("a", "terminated by SIGTERM"), ("b", "terminated by SIGTERM")])
+        self.assertFalse(self.log.exists(), "no host started")
+
+    def test_a_batch_suite_told_to_end_skips_its_gate_and_the_cases_behind_it(self):
+        SuiteTest.use_catalog(self, {"g": {"style": "s", "prompt": "p", "checks": []}, "a": {"style": "t", "prompt": "p", "checks": []}},
+                              {"b": {"kind": "batch", "gate": ["g"], "cases": ["a"]}})
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        run.TERMINATED_BY.append("SIGTERM")
+        run.TERMINATION.set()
+        out = self.tmp / "suite-out"
+        os.environ["FAKE_MODE"] = "done"
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            code = run.main(["--suite", "b", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+                             "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
+        rows = json.loads((out / "suite-result.json").read_text())["cases"]
+        self.assertEqual(code, 1)
+        self.assertEqual(rows, [{"case": "g", "pass": False, "skipped": "terminated by SIGTERM", "gate": True},
+                                {"case": "a", "skipped": "the gate failed"}])
+        self.assertIn("gate failed (g)", printed.getvalue())
+        self.assertFalse(self.log.exists(), "no host started, not even the gate's")
+
+    def test_a_signal_as_a_session_ends_stops_the_resume_loop_without_a_phantom_session(self):
+        self.addCleanup(run.TERMINATION.clear)
+        self.addCleanup(run.TERMINATED_BY.clear)
+        calls: list[int] = []
+
+        def host_that_ends_as_the_signal_arrives(argv, work, out, *args, **kwargs):
+            calls.append(1)
+            for name in ("events.jsonl", "stderr.txt", "timeline.jsonl"):
+                (out / name).write_text("")
+            run.TERMINATED_BY.append("SIGHUP")
+            run.TERMINATION.set()
+            return {"status": "exited", "returncode": 0, "elapsed_seconds": 1.0, "stop": None, "left_behind": None}
+
+        with mock.patch.object(run, "launch", side_effect=host_that_ends_as_the_signal_arrives):
+            code, result, printed, out = self.case_main("case-between", host="grok")
+        self.assertEqual(len(calls), 1, "no second session is started or recorded for a harness that was told to end")
+        self.assertEqual(result["termination"]["resume_stop"], "terminated by SIGHUP")
+        self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
+        self.assertEqual(len(result["process"]["sessions"]), 1)
+        self.assertEqual(code, 1)
+
+
+class LeftBehindReadmeTest(unittest.TestCase):
+    def test_the_readme_says_what_the_harness_does_with_a_leftover_listener(self):
+        readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
+        for phrase in ("stops every TCP listener of your user whose working directory or command line lies under the case's output folder",
+                       "`left_behind` in `result.json`", "never reads as none", "do not serve a case folder by hand while its run ends"):
+            self.assertIn(phrase, readme)
+        self.assertNotIn("nothing looks for what the host left behind", readme)
+
+    def test_the_readme_says_when_a_launch_is_refused_and_how_liveness_is_known(self):
+        readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
+        for phrase in ("A launch is refused while a listener sits under another case's output folder",
+                       "`<output>/.harness-lock`", "no override", "stop it by pid with `kill <pid>`",
+                       "A `--resume-run` of a case whose harness is running is refused too",
+                       "A harness started before the lock existed holds none, so a launch refuses its listeners as stale while it is still running"):
+            self.assertIn(phrase, readme)
+
+    def test_the_operator_contract_in_the_module_docstring_names_signals_left_behind_and_the_refusals(self):
+        doc = " ".join(run.__doc__.split())
+        for phrase in ("A SIGTERM or SIGHUP to the harness", "`left_behind`", "A launch is refused while", "--resume-run of a case whose harness is running"):
+            self.assertIn(phrase, doc)
+
+    def test_the_readme_says_to_run_compared_runs_one_after_the_other_and_what_that_cannot_promise(self):
+        readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
+        for phrase in ("Run the runs you compare one after the other", "`--serial` for a suite",
+                       "The suite default of 3 parallel chains stays", "no overlap field", "a discipline and not a guarantee"):
+            self.assertIn(phrase, readme)
+
+    def test_the_spec_carries_the_rules_this_code_serves(self):
+        spec = " ".join((ROOT / "test" / "shiploop_e2e" / "SPEC.md").read_text().split())
+        for phrase in ("**A run leaves nothing listening**", "`<output>/.harness-lock`", "`left_behind`",
+                       "A SIGTERM to the harness (a task runner's stop, `kill`) is a requested stop too",
+                       "**Runs compared on wall time or per-call cost run one after the other**",
+                       "a pair whose figures are compared is the exception stated in the bullet "
+                       "\"Runs compared on wall time or per-call cost run one after the other\"",
+                       "a Ctrl-C on a suite is handled as a SIGTERM",
+                       "A `--resume-run` of a case whose harness is running (its lock is held) is refused too; a regrade is not"):
+            self.assertIn(phrase, spec)
+        self.assertNotIn("bullet after next", spec, "a position breaks when a bullet is added: the bullet is named")
+
+    def test_the_readme_says_what_a_signal_to_the_harness_does(self):
+        readme = " ".join((ROOT / "test" / "shiploop_e2e" / "README.md").read_text().split())
+        for phrase in ("A SIGTERM or SIGHUP to the harness ends every live host at once", "`terminated by SIGTERM`",
+                       "a detached `nohup` launch ignores the hangup", "Only a SIGKILL gives the harness no chance to run anything",
+                       "not `iterate.py`", "A Ctrl-C on a suite is handled as a SIGTERM",
+                       "a Ctrl-C on a single case ends the hosts as the harness exits and writes no records"):
+            self.assertIn(phrase, readme)
+        self.assertNotIn("no harness code runs", readme)
+        self.assertNotIn("taking the harness and its host with it", readme)
+
+
+def grok_usage(count: int, output: int = 100, reasoning: int = 40) -> list[dict]:
+    """`count` per-call usage events, the shape Grok writes (and the Codex translator does not)."""
+    return [{"type": "usage", "usage": {"input_tokens": 1000, "output_tokens": output, "reasoning_tokens": reasoning}}
+            for _ in range(count)]
+
+
+# A planning window: the host's first event is at 1000, the engine starts at 1030, and the first accepted test-spec is 400 s
+# after the host began (370 s after the engine did). The implement row is after the window.
+PLANNING_ROWS = [("a-intake", "intake", "done", 1160), ("a-spec", "spec", "done", 1250),
+                 ("a-ts", "test-spec", "done", 1400), ("a-impl", "implement", "done", 1500)]
+
+
+class PlanningBlockCase(unittest.TestCase):
+    """metrics.collect's `planning` block, built from files a run left behind."""
+
+    def planning(self, rows=PLANNING_ROWS, *, stream=None, started=1030.0, improve=None, binds=None, **kw) -> dict:
+        inner = {} if improve is None else {"improve_results": improve}
+        m = collect_stream(grok_usage(3) if stream is None else stream, rows, status="active", first_event=1000.0,
+                           started=started, inner=inner, binds=binds, **kw)
+        return m["planning"]
+
+
+class PlanningClockTest(PlanningBlockCase):
+    def test_the_window_runs_from_the_engine_start_to_the_first_done_test_spec(self):
+        plan = self.planning(improve={})
+        self.assertEqual(plan["window"], {"closed": True, "through": "test-spec", "seconds": 370.0,
+                                          "host_seconds": 400.0, "before_engine_seconds": 30.0})
+        self.assertEqual([(r["stage"], r["outcome"], r["seconds"]) for r in plan["stages"]],
+                         [("intake", "done", 130.0), ("spec", "done", 90.0), ("test-spec", "done", 150.0)])
+        self.assertEqual(plan["unmeasured"].get("window"), None)
+
+    def test_a_revised_test_spec_does_not_close_the_window(self):
+        rows = [("a-intake", "intake", "done", 1160), ("a-ts1", "test-spec", "revise", 1300),
+                ("a-ts2", "test-spec", "done", 1500)]
+        plan = self.planning(rows, improve={})
+        self.assertEqual((plan["window"]["closed"], plan["window"]["seconds"]), (True, 470.0))
+        self.assertEqual([r["outcome"] for r in plan["stages"]], ["done", "revise", "done"])
+
+    def test_a_run_that_never_reached_test_spec_is_open_and_says_through_which_stage(self):
+        plan = self.planning(PLANNING_ROWS[:2], improve={})
+        self.assertEqual(plan["window"], {"closed": False, "through": "spec", "seconds": 220.0,
+                                          "host_seconds": 250.0, "before_engine_seconds": 30.0})
+        self.assertGreater(plan["window"]["seconds"], 0, "an open window is never reported as 0")
+
+    def test_a_run_with_no_accepted_stage_has_no_window_and_says_why(self):
+        plan = self.planning([], improve={})
+        self.assertIsNone(plan["window"]["seconds"])
+        self.assertIn("no stage has been accepted", plan["unmeasured"]["window"])
+
+    def test_an_unstamped_stage_inside_the_window_leaves_its_own_seconds_unknown_not_the_window_shorter(self):
+        rows = [("a-intake", "intake", "done", 1160), ("a-spec", "spec", "done", None), ("a-ts", "test-spec", "done", 1400)]
+        plan = self.planning(rows, improve={})
+        self.assertEqual(plan["window"]["seconds"], 370.0, "the window needs only the start and the end stamp")
+        self.assertEqual([r["seconds"] for r in plan["stages"]], [130.0, None, None])
+
+    def test_a_seeded_run_has_no_planning_window(self):
+        # The harness recorded the early stages itself, before the host's first event (1000).
+        rows = [("a-intake", "intake", "done", 900), ("a-ts", "test-spec", "done", 1400)]
+        plan = self.planning(rows, improve={})
+        self.assertIsNone(plan["window"]["seconds"])
+        self.assertIn("before the host", plan["unmeasured"]["window"])
+
+    def test_a_recreated_timeline_reads_as_unmeasured_never_as_a_zero_window(self):
+        # The engine gives every historical action one stamp when it recreates a lost timeline.json.
+        rows = [("a-intake", "intake", "done", 1160), ("a-spec", "spec", "done", 1160), ("a-ts", "test-spec", "done", 1160)]
+        plan = self.planning(rows, started=1160.0, improve={})
+        self.assertIsNone(plan["window"]["seconds"])
+        self.assertIn("one stamp", plan["unmeasured"]["window"])
+
+    def test_a_recreated_timeline_with_one_accepted_row_is_unmeasured_not_a_measured_zero(self):
+        # One accepted row whose stamp equals the start: not a duration, and an open window is never 0.
+        plan = self.planning([("a-intake", "intake", "done", 1160)], started=1160.0, improve={})
+        self.assertFalse(plan["window"]["closed"])
+        self.assertIsNone(plan["window"]["seconds"])
+        self.assertIsNone(plan["window"]["host_seconds"])
+        self.assertIn("one stamp", plan["unmeasured"]["window"])
+        closed = self.planning([("a-ts", "test-spec", "done", 1160)], started=1160.0, improve={})
+        self.assertIsNone(closed["window"]["seconds"])
+        self.assertIn("one stamp", closed["unmeasured"]["window"])
+
+    def test_a_timeline_with_no_start_is_unmeasured(self):
+        plan = self.planning(improve={}, started=False)
+        self.assertIsNone(plan["window"]["seconds"])
+        self.assertIn("no start time", plan["unmeasured"]["window"])
+
+    def test_the_host_clock_is_unknown_without_the_runner_timeline_and_the_engine_clock_stands(self):
+        plan = self.planning(improve={}, timed=False)
+        self.assertEqual((plan["window"]["seconds"], plan["window"]["host_seconds"], plan["window"]["before_engine_seconds"]),
+                         (370.0, None, None))
+        self.assertIn("runner", plan["unmeasured"]["host_seconds"])
+
+
+class PlanningImproveSplitTest(PlanningBlockCase):
+    def test_improve_seconds_run_from_the_bind_file_to_the_accept_for_an_action_with_an_improve_result(self):
+        plan = self.planning(improve={"a-spec": {"summary": "reviewed"}}, binds={"a-spec": 1190.4})
+        self.assertEqual([(r["stage"], r["improve_seconds"]) for r in plan["stages"]],
+                         [("intake", 0.0), ("spec", 59.6), ("test-spec", 0.0)])
+        self.assertEqual(plan["improve"], {"children": 1, "seconds": 59.6})
+
+    def test_producer_seconds_plus_improve_seconds_equal_the_window(self):
+        plan = self.planning(improve={"a-spec": {}, "a-ts": {}}, binds={"a-spec": 1190.0, "a-ts": 1300.0})
+        self.assertEqual(plan["improve"], {"children": 2, "seconds": 160.0})
+        self.assertEqual(plan["producer_seconds"] + plan["improve"]["seconds"], plan["window"]["seconds"])
+
+    def test_a_none_run_has_a_measured_zero_improve_share_in_the_window(self):
+        plan = self.planning(improve={})
+        self.assertEqual(plan["improve"], {"children": 0, "seconds": 0.0})
+        self.assertEqual(plan["producer_seconds"], plan["window"]["seconds"])
+
+    def test_an_improve_result_with_no_bind_file_makes_improve_unknown_not_zero(self):
+        plan = self.planning(improve={"a-spec": {}})
+        self.assertEqual(plan["improve"], {"children": 1, "seconds": None})
+        self.assertIsNone(plan["producer_seconds"])
+        self.assertEqual(plan["window"]["seconds"], 370.0)
+        self.assertIn("bind", plan["unmeasured"]["improve"])
+        self.assertIsNone(next(r for r in plan["stages"] if r["stage"] == "spec")["improve_seconds"])
+
+    def test_a_state_with_no_improve_results_makes_improve_unknown(self):
+        plan = self.planning()  # no improve_results key in state.md
+        self.assertIsNone(plan["improve"])
+        self.assertIn("improve_results", plan["unmeasured"]["improve"])
+
+    def test_an_accept_stamp_within_a_second_below_the_bind_time_is_whole_second_truncation_not_a_negative(self):
+        # Accept stamps are truncated to whole seconds; the bind file's mtime is fractional. Seen on a real Sonnet run: -0.33 s.
+        plan = self.planning(improve={"a-spec": {}}, binds={"a-spec": 1250.9})
+        self.assertEqual(next(r for r in plan["stages"] if r["stage"] == "spec")["improve_seconds"], 0.0)
+        self.assertEqual(plan["improve"]["seconds"], 0.0)
+
+    def test_a_stamp_more_than_a_second_below_the_bind_time_is_unmeasured_and_never_reaches_producer_seconds(self):
+        plan = self.planning(improve={"a-spec": {}}, binds={"a-spec": 1253.0})
+        self.assertIsNone(next(r for r in plan["stages"] if r["stage"] == "spec")["improve_seconds"])
+        self.assertIsNone(plan["improve"]["seconds"])
+        self.assertIsNone(plan["producer_seconds"])
+        self.assertIn("before", plan["unmeasured"]["improve"])
+
+
+class PlanningTokensTest(PlanningBlockCase):
+    ROWS = [("a-intake", "intake", "done", 1002), ("a-ts", "test-spec", "done", 1005), ("a-impl", "implement", "done", 1008)]
+
+    def test_a_grok_window_sums_the_usage_events_inside_the_host_window_and_names_the_clock(self):
+        # Events are stamped 1000 to 1009; the window ends at 1005, so events 0 to 5 are inside it.
+        plan = self.planning(self.ROWS, stream=grok_usage(10), started=1001.0, improve={})
+        self.assertEqual(plan["tokens"], {"output": 600, "reasoning": 240, "clock": "host", "source": "usage events"})
+
+    def test_a_grok_window_that_covers_the_run_equals_the_sum_of_every_usage_event(self):
+        plan = self.planning([("a-ts", "test-spec", "done", 1500)], stream=grok_usage(10), started=1001.0, improve={})
+        self.assertEqual((plan["tokens"]["output"], plan["tokens"]["reasoning"]), (1000, 400))
+
+    def test_a_grok_run_with_no_runner_timeline_has_unmeasured_tokens(self):
+        plan = self.planning(self.ROWS, stream=grok_usage(10), started=1001.0, improve={}, timed=False)
+        self.assertIn("runner", plan["tokens"]["unmeasured"])
+        self.assertNotIn("output", plan["tokens"])
+
+    def test_an_open_window_has_no_token_figure(self):
+        plan = self.planning(self.ROWS[:1], stream=grok_usage(10), started=1001.0, improve={})
+        self.assertIn("open", plan["tokens"]["unmeasured"])
+
+    def test_a_claude_run_has_no_window_tokens_and_says_why(self):
+        plan = self.planning(self.ROWS, stream=claude_stream(["echo hi"]), started=1001.0, improve={})
+        self.assertIn("snapshot", plan["tokens"]["unmeasured"])
+
+    def rollouts(self) -> list[list[str]]:
+        root = [usage_line(1001, "root", "root", "r1", 1000, output=100, reasoning=40),
+                usage_line(1010, "root", "root", "r2", 2000, output=200, reasoning=80),
+                usage_line(1011, "root", "root", "r2", 2000, output=200, reasoning=80),  # the same response repeated
+                usage_line(1020, "root", "root", "rq1", 9000, output=50, reasoning=0),   # a compaction request
+                compacted_line(1020.01, "rq1"),
+                usage_line(1040, "root", "root", "r3", 3000, output=300, reasoning=100),
+                usage_line(1060, "root", "root", "r4", 3500, output=400, reasoning=150)]  # after the window
+        sub = [usage_line(1030, "sub", "root", "s1", 5000, output=70, reasoning=30)]
+        return [root, sub]
+
+    def test_a_codex_window_counts_each_response_once_includes_compaction_requests_and_reports_sub_agents_apart(self):
+        rows = [("a-intake", "intake", "done", 1002), ("a-ts", "test-spec", "done", 1050), ("a-impl", "implement", "done", 1100)]
+        plan = self.planning(rows, stream=codex_stream(3), started=1001.0, improve={}, rollout_files=self.rollouts())
+        # 100 + 200 + 50 (the compaction request) + 300; r2 once; r4 is after the window; the sub-agent's 70 is beside.
+        self.assertEqual(plan["tokens"], {"output": 650, "reasoning": 220, "subagent_output": 70, "clock": "host",
+                                          "source": "rollout token_usage_records"})
+
+    def test_a_codex_run_with_no_rollouts_has_unmeasured_tokens(self):
+        rows = [("a-ts", "test-spec", "done", 1050)]
+        plan = self.planning(rows, stream=codex_stream(3), started=1001.0, improve={})
+        self.assertIn("rollout", plan["tokens"]["unmeasured"])
+
+
+class PlanningPlumbingTest(HarnessCase):
+    def test_collect_leaves_the_top_level_unmeasured_map_alone(self):
+        m = collect_stream(grok_usage(3), PLANNING_ROWS, status="active", first_event=1000.0, started=False)
+        self.assertIn("window", m["planning"]["unmeasured"])
+        self.assertFalse([name for name in m["unmeasured"] if "planning" in name], m["unmeasured"])
+
+    def test_a_run_written_by_the_harness_carries_the_planning_block_in_metrics_json(self):
+        code, result = self.invoke("grok", "done")
+        out = Path(result["output"])
+        written = json.loads((out / "metrics.json").read_text())
+        self.assertIn("planning", written)
+        self.assertEqual(set(written["planning"]), {"window", "stages", "improve", "producer_seconds", "tokens", "unmeasured"})
+        self.assertNotIn("planning", result["metrics"], "result.json keeps its explicit subset; metrics.json is the evidence")
+
+    def test_summary_lines_name_the_window_the_improve_share_and_the_tokens_right_after_the_counters(self):
+        m = collect_stream(grok_usage(10), [("a-intake", "intake", "done", 1002), ("a-spec", "spec", "done", 1003),
+                                            ("a-ts", "test-spec", "done", 1005)],
+                           status="active", first_event=1000.0, started=1001.0,
+                           inner={"improve_results": {"a-spec": {}}}, binds={"a-spec": 1002.0})
+        lines = metrics.summary_lines(m)
+        self.assertTrue(lines[0].startswith("turns "))
+        self.assertEqual(lines[1], "planning window closed at test-spec: 0.1 min engine / 0.1 min host; Improve 0.0 min in 1 child, "
+                                   "other 0.1 min; output tokens 600 (40% reasoning, host clock)")
+
+    def test_summary_lines_say_when_the_window_could_not_be_measured(self):
+        m = collect_stream(grok_usage(3), PLANNING_ROWS, status="active", first_event=1000.0, started=False)
+        self.assertEqual(metrics.summary_lines(m)[1],
+                         "planning window not measured: " + m["planning"]["unmeasured"]["window"])
+
+    def test_progress_prints_the_planning_line_once_when_the_window_closes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            write_stream_run(out, grok_usage(10), PLANNING_ROWS[:1], status="active", first_event=1000.0, started=1030.0,
+                             inner={"improve_results": {}})
+            self.assertNotIn("planning window", progress.report(out))  # still open: nothing to print
+            write_stream_run(out, grok_usage(10), PLANNING_ROWS, status="active", first_event=1000.0, started=1030.0,
+                             inner={"improve_results": {}})
+            first, second = progress.report(out), progress.report(out)
+            self.assertIn("planning window closed at test-spec: 6.2 min engine / 6.7 min host", first)
+            self.assertNotIn("planning window", second)
+
+
+class RecordedRunReproductionTest(unittest.TestCase):
+    """The planning block reproduces the figures of recorded runs (validated another way: real-run extracts).
+
+    The extracts under docs/experiments/planning-measures-20261008/ hold the accepted rows, stamps, Improve bind times and
+    per-call token rows of three recorded planning windows (no run text); `extract.py` rebuilds them from the run folders.
+    The expected figures are the ones the 2026-10-05 planning-time account reported (Luna xhigh: window 374.95 min, 203.35
+    in Improve children; Grok `none`: 20.5 min on the engine clock, 22.05 on the host's), recomputed on 2026-10-08."""
+
+    EXTRACTS = ROOT / "docs" / "experiments" / "planning-measures-20261008"
+
+    def planning(self, name: str) -> dict:
+        data = json.loads((self.EXTRACTS / f"{name}.json").read_text())
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = out / "run"
+            write_engine_records(run_dir, [(r["action"], r["stage"], r["outcome"], r["t"]) for r in data["rows"]],
+                                 status="active", inner={"improve_results": {a: {} for a in data["improve"]}},
+                                 started=data["started"])
+            for action, mtime in data["improve"].items():
+                bind = run_dir / "improve" / f"{action}-bind.md"
+                bind.parent.mkdir(parents=True, exist_ok=True)
+                bind.write_text("bound\n")
+                os.utime(bind, (mtime, mtime))
+            first = {"type": "available_commands", "commands": []}
+            events, stamps = [first], [data["first_event"]]
+            if data["host"] == "grok":
+                for t, output, reasoning in data["usage"]:
+                    events.append({"type": "usage", "usage": {"output_tokens": output, "reasoning_tokens": reasoning}})
+                    stamps.append(t)
+            if data["host"] == "claude":
+                events.append({"type": "assistant", "message": {"id": "m0", "content": [{"type": "text", "text": "x"}]}})
+                stamps.append(data["first_event"] + 1)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+            (out / "timeline.jsonl").write_text("".join(json.dumps({"line": n, "t": t}) + "\n" for n, t in enumerate(stamps)))
+            if data["host"] == "codex":
+                lines = []
+                for number, (t, output, reasoning, thread, request) in enumerate(data["rollouts"]):
+                    lines.append(usage_line(t, "root" if thread == "main" else "sub", "root", f"r{number}", output + 1000,
+                                            output=output, reasoning=reasoning))
+                    if request:
+                        lines.append(compacted_line(t + 0.01, f"r{number}"))
+                write_rollout(out, "0", lines)
+            return metrics.collect(out, run_dir)["planning"]
+
+    def test_the_luna_xhigh_extract_reproduces_374_95_203_35_and_171_6_and_the_five_stage_improve_shares(self):
+        plan = self.planning("luna-xhigh-1.21.0")
+        window = plan["window"]
+        self.assertEqual((window["closed"], round(window["seconds"] / 60, 2), round(window["host_seconds"] / 60, 2)),
+                         (True, 374.95, 375.93))
+        self.assertEqual((plan["improve"]["children"], round(plan["improve"]["seconds"] / 60, 2),
+                          round(plan["producer_seconds"] / 60, 1)), (5, 203.35, 171.6))
+        shares = {r["stage"]: round(r["improve_seconds"] / 60, 2) for r in plan["stages"] if r["improve_seconds"]}
+        self.assertEqual(shares, {"spec": 44.49, "test-strategy": 61.06, "plan": 56.92, "step-plan": 26.7, "test-spec": 14.17})
+
+    def test_the_luna_xhigh_tokens_include_the_compaction_requests_of_the_window(self):
+        tokens = self.planning("luna-xhigh-1.21.0")["tokens"]
+        # Leaving the 10 requests of the window out gives 1,116,758: their 37,141 output tokens carry no reasoning.
+        self.assertEqual((tokens["output"], tokens["reasoning"], tokens["subagent_output"]), (1153899, 682569, 0))
+        self.assertEqual(round(100 * tokens["reasoning"] / tokens["output"], 1), 59.2)
+
+    def test_the_grok_none_extract_reproduces_20_5_engine_22_05_host_and_86986_tokens_at_43_percent_reasoning(self):
+        plan = self.planning("grok-none-1.22.0")
+        window = plan["window"]
+        self.assertEqual((round(window["seconds"] / 60, 2), round(window["host_seconds"] / 60, 2), window["before_engine_seconds"]),
+                         (20.5, 22.05, 92.8))
+        self.assertEqual(plan["improve"], {"children": 0, "seconds": 0.0})
+        self.assertEqual(plan["tokens"], {"output": 86986, "reasoning": 37770, "clock": "host", "source": "usage events"})
+        self.assertEqual(round(100 * 37770 / 86986, 1), 43.4)
+
+    def test_the_sonnet_extract_reproduces_6_47_minutes_and_2_57_in_five_improve_children_with_no_token_figure(self):
+        plan = self.planning("sonnet-1.23.0")
+        self.assertEqual((round(plan["window"]["seconds"] / 60, 2), plan["improve"]["children"],
+                          round(plan["improve"]["seconds"] / 60, 2)), (6.47, 5, 2.57))
+        self.assertIn("snapshot", plan["tokens"]["unmeasured"])
+
+
+class SonnetCostDecompositionTest(unittest.TestCase):
+    """The Sonnet cost rise of the batch-1007 live pair, rebuilt from the committed export (the folders are outside the repo).
+
+    `inputs` of docs/experiments/batch-1007-live-20261007/cost-decomposition.json holds what cost_decomposition.py read
+    from the two run folders; `recomputed` must equal `decompose(inputs)`, so the LEARNINGS entry that cites it can be
+    checked by a script run instead of being taken from a model-judged account (journal rule)."""
+
+    DIR = ROOT / "docs" / "experiments" / "batch-1007-live-20261007"
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location("cost_decomposition", self.DIR / "cost_decomposition.py")
+        self.script = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.script)
+        self.data = json.loads((self.DIR / "cost-decomposition.json").read_text())
+
+    def test_the_recomputed_figures_are_the_arithmetic_on_the_committed_inputs(self):
+        self.assertEqual(self.script.decompose(self.data["inputs"]), self.data["recomputed"])
+
+    def test_the_fitted_rates_reproduce_both_recorded_session_costs(self):
+        for name, cost in (("old", 6.5405192), ("new", 9.6542784)):
+            self.assertAlmostEqual(self.script.cost(self.data["inputs"][name]["usage"]), cost, places=7)
+            self.assertLess(self.data["recomputed"][name]["fit_error_usd"], 1e-6)
+
+    def test_the_rise_is_the_sum_of_its_components_and_most_of_it_is_cache_reads_of_the_extra_calls(self):
+        r = self.data["recomputed"]
+        self.assertAlmostEqual(sum(r["rise_by_component_usd"].values()), r["rise_usd"], places=3)
+        self.assertEqual(r["rise_usd"], 3.1138)
+        self.assertGreater(r["rise_by_component_usd"]["cache_read_input_tokens"], 0.8 * r["rise_usd"])
+        q = r["quadratic"]
+        self.assertEqual((q["first_calls_of_the_new_run"], q["extra_calls"]), (133, 34))
+        self.assertEqual(q["cache_read_tokens_of_those_calls"] + q["cache_read_tokens_of_extra_calls"],
+                         self.data["inputs"]["new"]["usage"]["cache_read_input_tokens"])
+        self.assertGreater(q["share_of_the_increase_in_the_extra_calls"], 0.8)
+
+    def test_the_two_runs_are_not_a_controlled_pair(self):
+        old, new = self.data["inputs"]["old"], self.data["inputs"]["new"]
+        self.assertNotEqual(old["claude_code_version"], new["claude_code_version"])
+        self.assertEqual(old["versions"]["plugin_version"], new["versions"]["plugin_version"])
+        self.assertNotEqual(old["versions"]["local_head"], new["versions"]["local_head"])
+
+    def test_decompose_splits_the_cache_reads_of_a_longer_run_at_the_length_of_the_shorter(self):
+        usage = lambda cr: {"input_tokens": 0, "cache_creation_input_tokens": 0, "cache_read_input_tokens": cr, "output_tokens": 0}  # noqa: E731
+        old = {"cost_usd": 1.0, "usage": usage(30), "cache_read_per_call": [10, 20], "context_per_call": [10, 20]}
+        new = {"cost_usd": 2.0, "usage": usage(70), "cache_read_per_call": [10, 20, 40], "context_per_call": [10, 20, 40]}
+        q = self.script.decompose({"old": old, "new": new})["quadratic"]
+        self.assertEqual((q["cache_read_tokens_of_those_calls"], q["cache_read_tokens_of_extra_calls"]), (30, 40))
+        self.assertEqual((q["against_the_old_run"], q["share_of_the_increase_in_the_extra_calls"]), (0.0, 1.0))
+
+
+
+class GitDiscoveryTests(unittest.TestCase):
+    """A case's work folder never adopts a repository above the run (2026-10-10: a home folder that is itself a Git
+    repository made the hello case's empty work folder resolve to it, and ShipLoop refused to start there)."""
+
+    def test_git_in_the_work_folder_stops_at_the_run_output_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent = Path(tmp) / "home"
+            work = parent / "runs" / "out" / "work"
+            work.mkdir(parents=True)
+            git_env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+            subprocess.run(["git", "init", "-q", str(parent)], check=True, env=git_env)
+            probe = ["git", "-C", str(work), "rev-parse", "--show-toplevel"]
+            found = subprocess.run(probe, capture_output=True, text=True, env=git_env)
+            self.assertEqual(found.returncode, 0, "the control: without the ceiling git finds the outer repository")
+            env = run.isolate_git_discovery(git_env, work.parent)
+            isolated = subprocess.run(probe, capture_output=True, text=True, env=env)
+            self.assertNotEqual(isolated.returncode, 0, isolated.stdout)
+            self.assertIn(str(work.parent.resolve()), env["GIT_CEILING_DIRECTORIES"].split(os.pathsep))
+
+    def test_an_existing_ceiling_is_kept(self):
+        env = run.isolate_git_discovery({"GIT_CEILING_DIRECTORIES": "/a"}, Path("/tmp/out"))
+        self.assertIn("/a", env["GIT_CEILING_DIRECTORIES"].split(os.pathsep))
 
 if __name__ == "__main__":
     unittest.main()

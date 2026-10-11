@@ -47,7 +47,7 @@ DELEGATED_ROUTE_TEXT = (
     "Native owner record:",
     "bind this action to the default parallel",
     "Parallel-chain guide:",
-    "for the default parallel chain",
+    "so the default parallel chain can run",
     "its own step with deps []",
 )
 # Delegated wording that only bound Improve packets or duties can carry.
@@ -146,15 +146,15 @@ class DelegationStateTests(unittest.TestCase):
         # pause for a clear stopped every work item until the user came back.
         state = self.state()
         self.assertTrue(self.render(state).startswith("ShipLoop navigator | intake |"))
-        state = advance(state, "select-work")
+        state = advance(state, "step-plan")
         entry = self.render(state)
         self.assertTrue(entry.startswith(
             "Continue in this context and execute the prompt.\n\nDelegation: inline."))
-        self.assertIn("including the\nselect-work stage that opens each work item", entry)
+        self.assertIn("including the\nstep-plan that opens each work item", entry)
         self.assertNotIn("Clear and then", entry)
         self.assertIn("Pause without consuming the action:", entry)
         # step-plan is a planning-review stage, so completing it starts an
-        # actual Improve child (select-work itself no longer does).
+        # actual Improve child.
         improve = self.render(advance(state, "step-plan", stop_after_apply=True))
         self.assertTrue(improve.startswith(
             "Keep the invoking parent alive and run this Improve invocation inline.\n"))
@@ -169,13 +169,14 @@ class DelegationStateTests(unittest.TestCase):
         # that do not use each other into one step, so the chain had nothing to run in parallel.
         packet = self.render(advance(self.state("ask-agent"), "step-plan"))
         self.assertIn("its own step with deps []", packet)
-        self.assertIn("combine changes into one step only when one needs the other", packet)
+        self.assertIn("join them in a later step that needs both", " ".join(packet.split()))
 
     def test_inline_implement_runs_reviewed_steps_directly_without_a_chain(self):
         inline = self.render(advance(self.state(), "implement"))
         self.assertIn("Delegation is inline: this packet is for the one step named in its Step line.", inline)
         step_plan = self.render(advance(self.state(), "step-plan"))
-        self.assertIn("Record every implementation step in the result's steps list", step_plan)
+        self.assertIn("list every implementation step in `steps`, in the order to do them",
+                      " ".join(step_plan.split()))
         self.assertIn("Each reviewed step's task/ready/done criteria", step_plan)
         for packet in (inline, step_plan):
             for text in DELEGATED_ROUTE_TEXT:
@@ -248,7 +249,8 @@ class DelegationStateTests(unittest.TestCase):
 class StepTests(DelegationStateTests):
     """The script, not the host, walks a work item's step plan: one implement packet per step."""
 
-    STEPS = [{"id": "S1", "task": "Add divide() to calc.py."}, {"id": "S2", "task": "Document divide in README."}]
+    STEPS = [{"id": "S1", "task": "Add divide() to calc.py.", "paths": ["calc.py"]},
+             {"id": "S2", "task": "Document divide in README.", "paths": ["README.md"]}]
 
     def at_implement(self, delegation="inline", steps=None):
         state = advance(self.state(delegation), "step-plan")
@@ -260,7 +262,12 @@ class StepTests(DelegationStateTests):
         return advance(state, "implement")
 
     def done(self, state, summary):
-        return nav.apply(state, nav.current_action(state)["id"], {"outcome": "done", "summary": summary})
+        """Accept the current producer; an implement step's Improve child (owner decision 2026-10-10) is finished."""
+        action = nav.current_action(state)["id"]
+        state = nav.apply(state, action, {"outcome": "done", "summary": summary})
+        if state.get("active_improve") is not None:
+            state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+        return state
 
     def test_inline_implement_issues_one_packet_per_step_in_order(self):
         state = self.at_implement()
@@ -281,6 +288,29 @@ class StepTests(DelegationStateTests):
         self.assertEqual(self.render(nav.loads(nav.dumps(state))) if hasattr(nav, "loads") else second, second)
         state = self.done(state, "README documents divide.")
         self.assertNotEqual(nav.current_stage(state), "implement")
+
+    def test_the_snapshot_does_not_list_implement_as_done_while_steps_remain(self):
+        # On steps 2..N the Progress snapshot listed implement among the accepted-done stages and dropped it from the
+        # pending list beside "Current: implement", which a model that lost its context could read as finished (seen in
+        # 3 packets of one checkers run; packet review 2026-10-10, P-implement-1).
+        state = self.at_implement()
+        first = self.render(state)
+        self.assertIn("Current: implement", first)
+        self.assertIn("Current stage implement: in progress (0 of 2 steps accepted)", first)
+        self.assertNotRegex(first, r"stages completed \(accepted done\):.*\bimplement\b")
+        state = self.done(state, "divide() added.")
+        second = self.render(state)
+        self.assertIn("Current: implement", second)
+        self.assertIn("Current stage implement: in progress (1 of 2 steps accepted)", second)
+        self.assertNotRegex(second, r"stages completed \(accepted done\):.*\bimplement\b")
+        self.assertNotIn("Current stage implement: in progress", self.render(self.done(state, "README documents divide.")))
+        # Only the last accepted step makes implement a completed stage.
+        after = self.render(self.done(state, "README documents divide."))
+        self.assertRegex(after, r"stages completed \(accepted done\):.*\bimplement\b")
+
+    def test_a_chain_implement_has_no_step_count_in_the_snapshot(self):
+        # The chain runs every step inside its one implement action: there is no per-step acceptance to count.
+        self.assertNotIn("Current stage implement: in progress", self.render(self.at_implement("ask-agent")))
 
     def test_one_step_is_one_implement_packet(self):
         state = self.at_implement(steps=[{"id": "S1", "task": "Make the change."}])
@@ -322,7 +352,7 @@ class StepTests(DelegationStateTests):
             nav._normalise_steps([{"id": "S1", "task": "First", "deps": ["S2"]}, declared[1]])
 
     def test_steps_are_required_and_well_formed(self):
-        plan = {"outcome": "done", "summary": "s", "paths": ["calc.py"], "test_commands": [],
+        plan = {"outcome": "done", "summary": "s", "paths": ["calc.py", "README.md"], "test_commands": [],
                 "test_commands_na": "synthetic"}
         with self.assertRaisesRegex(nav.NavigatorError, "must list steps"):
             nav._check_submitted_test_commands("step-plan", plan)
@@ -340,19 +370,20 @@ class PacketContractTests(DelegationStateTests):
     """Packet fields a fresh inline context needs, pinned on both routes where shared."""
 
     def test_producer_packets_state_outcomes_and_explicit_commands(self):
-        entry = self.render(advance(self.state(), "select-work"))
+        entry = self.render(advance(self.state(), "verify"))
         # The result contract sits under the callback; the tail repeats only the callback.
         head = entry.split("Current stage guidance:", 1)[0]
         self.assertIn("\nWrite the structured result to: ", head)
-        self.assertIn("\nAllowed outcomes: done | repeat | blocked.\n", head)
+        # repeat is no longer an inner outcome (8-stage loop, 2026-10-10).
+        self.assertIn("\nAllowed outcomes: done | blocked | revise", head)
         self.assertIn("\nCall this when done:\n", entry.split("Current stage guidance:", 1)[1])
         self.assertIn("Halt (terminal and irreversible; only on an explicit user stop): ", entry)
-        # select-work is not a planning/checkpoint stage; it advances directly.
+        # verify is not a planning/checkpoint stage; it advances directly.
         self.assertIn("This result advances directly; no Improve child runs for this stage.", entry)
         # No route offers a pause for a context clear: the host cannot be cleared from a packet.
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
-                packet = self.render(advance(self.state(route), "select-work"))
+                packet = self.render(advance(self.state(route), "verify"))
                 self.assertNotIn("context-boundary", packet)
                 self.assertNotIn("Recovery command, then the printed Resume", packet)
         self.assertIn("Optional work_items replaces the whole queue", self.render(advance(self.state(), "plan")))
@@ -382,12 +413,17 @@ class PacketContractTests(DelegationStateTests):
         self.assertIn("Give the executing agent only the current action packet", delegated)
         self.assertIn("Current item step-plan source action: " + step_plan, delegated)
 
-    def test_integrate_assembles_direct_or_chain_work(self):
+    def test_verify_assembles_direct_or_chain_work(self):
+        # integrate is folded into verify (8-stage loop, 2026-10-10).
         for route in ("inline", "ask-agent"):
             with self.subTest(route=route):
-                text = " ".join(nav.guidance.prompt("integrate", delegation=route).split())
-                self.assertIn("confirm its finish commit is an ancestor of the execution checkout HEAD", text)
-                self.assertIn("assemble or commit this item's candidate in the execution checkout", text)
+                text = " ".join(nav.guidance.prompt("verify", delegation=route).split())
+                # ShipLoop commits the declared files when verify is accepted; no route tells the model to commit.
+                self.assertIn("confirm this item's candidate is assembled in the execution checkout", text.lower())
+                self.assertNotIn("assemble or commit", text)
+                # A chain exists only when delegation is ask-agent, so only that route confirms its finish commit.
+                self.assertEqual("confirm its finish commit is an ancestor of the execution checkout HEAD" in text,
+                                 route == "ask-agent")
 
     def test_final_result_must_list_the_reviewed_queue(self):
         receipt = {"summary": "Synthetic receipt; no review claim."}
@@ -402,7 +438,10 @@ class PacketContractTests(DelegationStateTests):
                 with self.assertRaisesRegex(nav.NavigatorError, "must list the complete intended queue"):
                     nav.finish_improve(waiting, action, receipt, {"outcome": "done", "summary": "Revised."})
                 # Non-done dispositions and an explicit queue are unaffected.
-                nav.finish_improve(waiting, action, receipt, {"outcome": "repeat", "summary": "Redo."})
+                # carry-forward runs an Until Loop, so repeat is not one of its outcomes; blocked is its non-done one.
+                other = ({"outcome": "repeat", "summary": "Redo."} if "repeat" in nav.stage_spec.stage(stage).outcomes
+                         else {"outcome": "blocked", "summary": "Waiting on a service.", "blocked_by": "external"})
+                nav.finish_improve(waiting, action, receipt, other)
                 nav.finish_improve(waiting, action, receipt,
                                    {"outcome": "done", "summary": "Revised.", "work_items": proposal})
 
@@ -412,7 +451,7 @@ class PacketContractTests(DelegationStateTests):
             repo.mkdir()
             inline = bound_walk(repo, "inline")
             delegated = bound_walk(repo, "ask-agent")
-        self.assertEqual(len(inline), 42)
+        self.assertEqual(len(inline), 33)
         for stage, kind, packet in inline:
             for text in BOUND_DELEGATED_TEXT:
                 self.assertNotIn(text, packet, (stage, kind, text))
@@ -425,6 +464,65 @@ class PacketContractTests(DelegationStateTests):
         delegated_text = "\n".join(packet for _stage, _kind, packet in delegated)
         for text in BOUND_DELEGATED_TEXT:
             self.assertIn(text, delegated_text)
+
+    def test_a_bound_improve_packet_prints_the_commit_command_right_after_improve_start(self):
+        # The command and the exact commit-message path sat at about 30 KB of a 47 KB packet, below improve-start: one
+        # review wrote the wrong file name and was refused, another searched for the command (packet review
+        # 2026-10-10, P-improve-1).  The planning packet prints no command: it names parent-return.md, which improve-start
+        # writes with the command and its message rules, right after its Commit policy line.  Since 8f3d4cbe improve-commit
+        # refuses a message with no Key learnings line, so the line shows that format and ends with the command.
+        with tempfile.TemporaryDirectory(prefix="shiploop-commit-walk-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            walks = {route: bound_walk(repo, route) for route in ("inline", "ask-agent")}
+        checked = planned = 0
+        for route, packets in walks.items():
+            for stage, kind, packet in packets:
+                if kind != "improve":
+                    continue
+                lines = packet.splitlines()
+                with self.subTest(route=route, stage=stage):
+                    commits = [i for i, line in enumerate(lines) if " improve-commit --run-dir=" in line]
+                    if stage == "plan":
+                        self.assertEqual(commits, [])
+                        policy = next(i for i, line in enumerate(lines) if line.startswith("Commit policy:"))
+                        pointer = lines[policy + 1]
+                        self.assertRegex(pointer, r"^To commit a review iteration's changes, run the improve-commit "
+                                                  r"command in \S+/parent-return\.md; its message rules are there\.")
+                        self.assertIn("Do not run git commit yourself.", pointer)
+                        planned += 1
+                        continue
+                    start = next(i for i, line in enumerate(lines)
+                                 if line.startswith("Then run: ") and " improve-start " in line)
+                    self.assertEqual(commits, [start + 1])
+                    commit = lines[start + 1]
+                    self.assertTrue(commit.startswith("To commit a review iteration's changes"), commit)
+                    written = re.search(r"write the commit message to (\S+) with a file-writing tool", commit).group(1)
+                    self.assertIn("`Key learnings: none`", commit)
+                    self.assertIn("column 1", commit)
+                    command = commit.rsplit("Then run: ", 1)[1]
+                    self.assertEqual(command.split()[2], "improve-commit")
+                    self.assertTrue(command.endswith("--message=" + written), command)  # one file; nothing after it
+                    checked += 1
+        self.assertGreaterEqual(checked, 12)
+        self.assertEqual(planned, 2)
+
+    def test_no_improve_packet_may_perform_a_release_effect(self):
+        # SPEC S-3 and environment-lifecycle.md#release-operation-ownership: a stage-scoped Improve assesses and records
+        # its handoff, and no Improve child runs at release itself.  The release-plan Improve packet said "Improve may
+        # perform deployments" in the packet that says it plans without executing release (packet review 2026-10-10,
+        # P-imp-1).
+        with tempfile.TemporaryDirectory(prefix="shiploop-release-guard-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            packets = bound_walk(repo, "inline")
+        improve = {stage: " ".join(packet.split()) for stage, kind, packet in packets if kind == "improve"}
+        self.assertNotIn("release", improve)  # the walk binds no Improve child at the release stage
+        for stage, packet in improve.items():
+            self.assertNotIn("may perform deployments", packet, stage)
+        text = improve["release-plan"]
+        self.assertIn("does not execute or replay a release effect", text)
+        self.assertIn("without executing release", text)
 
     def test_every_active_packet_leads_with_its_legal_callback_and_schedule_text(self):
         with tempfile.TemporaryDirectory(prefix="shiploop-callback-walk-") as temp:
@@ -449,10 +547,15 @@ class PacketContractTests(DelegationStateTests):
                         done = lines[lines.index("Call this when done:") + 1]
                         self.assertEqual(shlex.split(lead.split("): ", 1)[1]), shlex.split(done))
                         if stage in planning:
-                            self.assertIn("Improve: Every " + stage + " result, including blocked and "
-                                          "repeat, starts this action's Improve child.", packet)
+                            others = [o for o in ("blocked", "repeat") if o in nav.stage_spec.stage(stage).outcomes]
+                            self.assertIn("Improve: Every " + stage + " result, including " + " and ".join(others)
+                                          + ", starts this action's Improve child.", packet)
                         elif stage == "carry-forward":
                             self.assertIn("starts the run's single end-of-work Improve child", packet)
+                        elif stage == "implement":
+                            # An Improve child reviews every accepted step (owner decision 2026-10-10), so the
+                            # packet must not say the result advances with no child.
+                            self.assertNotIn("no Improve child runs for this stage", packet)
                         else:
                             self.assertIn("Improve: This result advances directly; no Improve child "
                                           "runs for this stage.", packet)
@@ -476,6 +579,10 @@ class PacketContractTests(DelegationStateTests):
                     if stage == "carry-forward":
                         self.assertIn("End-of-work review: this is the run's single Improve", packet)
                         self.assertNotIn("Planning review focus", packet)
+                    elif stage == "implement":
+                        self.assertIn("Implementation step review focus.", packet)
+                        self.assertNotIn("Planning review focus", packet)
+                        self.assertNotIn("End-of-work review", packet)
                     else:
                         self.assertIn(stage, planning)
                         self.assertIn("Planning review focus.", packet)

@@ -1,0 +1,25 @@
+{
+ "schema": "run-review-export/v2",
+ "docs": {
+  "reviews": {
+   "r3-battleship-grok-none": {
+    "summary": [
+     "Grok 4.7 medium ran Node Battleship on skill-craft 1.26.0 with planning_review none; the run is STOPPED: 15 accepted visits, the engine active at implement step S3, 0 of 4 checks on the unreturned product (4 of 4 pass in its worktree).",
+     "What happened: planning took 23.2 min (1393 s, no Improve child), inside the owner's 30-minute rule; the credential screen refused the spec twice for a 'Signature:' design note; a model's pkill -f in the concurrent Checkers run ended the first harness at test-author; resumed, the run finished test-author, test-red and two implement steps, then spent 27.1 unaccepted minutes (104 turns, 12 browser-debug scripts) on headless Chrome that would not load the page over loopback, until the E2E session stopped it.",
+     "Conclusions: the engine behaved; the run was lost to the Grok host's Chrome and to a harness that shared the machine with another track. Its test-strategy probe passed on a file: stand-in, which hid the loopback failure until implement.",
+     "Learnings: a probe must use the product's transport; and the resumed session's 35.2 minutes are not all Chrome work (browser work began 490 s in, when implement S3 opened).",
+     "Next: settle the Grok-host Chrome cause with a multi-launch probe before the next Grok browser case, or run browser cases on the Claude host."
+    ],
+    "basis": {
+     "P1": "Holds: 15 visits accepted through the script in state.md history (revision 15), all done; after the SIGTERM the resumed host continued from next at test-author without redoing an accepted stage.",
+     "P2": "Holds: under planning_review none no Improve child started (0, by design), and the only loop records are the script's two verify records (the test-author probe and test-red, both red as designed; metrics.json script_verifications).",
+     "P4": "Holds: each accepted visit came through its callback; the two refusals (metrics.json shiploop_failures) were the same credential line, repaired by a reworded spec in the same stage (42.8 s).",
+     "P5": "Broken by o47 (a model's pkill in another run ended this harness); bent by o75 (two credential refusals for a design note) and o74 (the printed resume line lacked --plugin-dir).",
+     "P6": "Broken by o71: headless Chrome would not load the page over loopback in the Grok host, as in round 1, while every Claude run of the case loaded it.",
+     "B2": "Bent by o65: the plan was a dependency audit only ('Route: dependency audit only'), with no backchain-check receipt."
+    },
+    "reviewedAt": "2026-10-09T16:00:00Z"
+   }
+  }
+ }
+}

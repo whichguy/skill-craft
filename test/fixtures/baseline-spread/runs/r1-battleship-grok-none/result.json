@@ -1,0 +1,96 @@
+{
+ "case": "custom",
+ "host": "grok",
+ "model": "grok-4.7",
+ "effort": "medium",
+ "pass": false,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.24.0",
+  "shiploop_version": "0.56.0",
+  "local_head": "587cd90d4d54745f67c5acd6a10535dd12afd769"
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_seconds": 89.2,
+  "stop": "end_turn",
+  "pass": true,
+  "regraded": null,
+  "sessions": [
+   {
+    "status": "exited",
+    "stop": "cancelled",
+    "host": "grok",
+    "resumed": null
+   },
+   {
+    "status": "exited",
+    "stop": "end_turn",
+    "host": "grok",
+    "resumed": "01a11c96-d509-7381-b9c5-a4331a8c57bc"
+   }
+  ]
+ },
+ "termination": {
+  "process_status": "exited",
+  "returncode": 0,
+  "sessions": 2,
+  "resumes": 1,
+  "session_stops": [
+   "cancelled",
+   "end_turn"
+  ],
+  "resume_stop": "ShipLoop run is blocked",
+  "engine_status": "blocked",
+  "engine_stage": "system-test-author",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": "access: SYS-SERVE passed: node scripts/system-serve.js started server.js and saw the title, 100 buttons, a new game, a shot, and a 400. TC-16 did not run. Headless Chrome left the document on about:bl"
+ },
+ "shiploop": {
+  "pass": false,
+  "run_dir": "/Users/dadleet/e2e-runs/20261008/r1-battleship-grok-none/.shiploop-runs/work-20261008-173739-8e3c9a/run"
+ },
+ "committed": {
+  "pass": false
+ },
+ "checks": [
+  {
+   "pass": false
+  },
+  {
+   "pass": false
+  },
+  {
+   "pass": false
+  },
+  {
+   "pass": false
+  }
+ ],
+ "resumed_run": null,
+ "seeded": null,
+ "metrics": {
+  "claude_code_version": null,
+  "turns": 301,
+  "model_calls": 301,
+  "cost_usd": 8.7455,
+  "unreported_sessions": 312,
+  "compactions": 4,
+  "truncated_outputs": 0,
+  "cancelled_tool_calls": 1,
+  "model_glue": 0,
+  "tmp_writes": 0,
+  "shiploop_failures": 0,
+  "unmeasured": {
+   "window_tokens": "reduced"
+  }
+ },
+ "output": "/Users/dadleet/e2e-runs/20261008/r1-battleship-grok-none"
+}

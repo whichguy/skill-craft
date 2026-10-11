@@ -39,7 +39,7 @@ The child can change the result it imports, so a reviewed `done` can become
 
 The 34 producer stages are fixed by the navigator catalog: prelude `intake`,
 `discovery`, `research`, `spec`, `test-strategy`, `plan`, `prepare`; inner
-`select-work`, `step-plan`, `test-spec`, `baseline`, `test-author`, `test-red`,
+`get-next-work-item`, `step-plan`, `test-spec`, `baseline`, `test-author`, `test-red`,
 `implement`, `test-green`, `test-refine`, `regression`, `document`,
 `skill-assess`, `skill-validate`, `static-checks`, `verify`, `integrate`,
 `integration-verify`, `carry-forward`; and outer `system-test-author`,
@@ -72,7 +72,7 @@ flowchart TD
   end
   prepare --> SW
   subgraph INNER[Inner loop: once per work item, the item record owns the cursor]
-    SW[select-work] --> SP[step-plan ✦ records test commands] --> TS[test-spec ✦] --> BL[baseline → test-author → test-red]
+    SW[get-next-work-item] --> SP[step-plan ✦ records test commands] --> TS[test-spec ✦] --> BL[baseline → test-author → test-red]
     BL --> IM[implement ⛔ lint gate, pass-or-stop]
     IM --> TG[test-green ⟳⛔ test loop]
     TG --> TR[test-refine ⛔ test rerun, pass-or-stop]
@@ -179,8 +179,10 @@ new run. `next` rereads the saved effective owner after a context reset; it does
 not select or persist a successor. At an Improve checkpoint a producer `done`
 records the result then parks the parent at `active_improve`; it does not advance
 directly. Any other producer `done` advances to the next producer. When a skill
-was not selected at initialization, the checkpoint's packet supplies the exact
-`improve-bind --action ... --skill-card ...` command (a `--planning-review none` run is refused
+was not selected at initialization, `init` records the card installed beside ShipLoop and the
+checkpoint's packet supplies the exact `improve-bind --action ... --skill-card ...` command with
+that path (where no installed card validates, it prints a marked blank and where ShipLoop looked;
+a `--planning-review none` run is refused
 without `--improve-skill`: its first child is the last item's `carry-forward`, after the quality and
 test loops have read the card). Follow that command and
 the selected card's bound runtime rather than guessing an adapter. Only an
@@ -268,7 +270,7 @@ Active INNER packets begin with a context prefix selected by the run's
 delegation. Paused, blocked, halted and completed packets do not carry it.
 
 Under `delegation: inline`, the default for new runs, every INNER producer
-packet, including the `select-work` packet that opens each work item, begins
+packet, including the `get-next-work-item` packet that opens each work item, begins
 with **Continue in this context and execute the prompt.** Execute it in this
 conversation without clearing, pausing for a clear or delegating (see
 [context boundaries](#context-boundaries)). This
@@ -365,7 +367,9 @@ Instead, an inline run executes every INNER stage in the same conversation, and
 the host's own compaction manages the context (Claude Code and Grok compact
 automatically). The durable run state and self-contained packets make that
 safe: after any compaction, reset or lost context, the Recovery command rewrites
-the current packet file (`<run>/packets/<action>.md`) and reprints its head.
+the current packet file (`<run>/packets/<action>.md`; while an Improve child is
+open, `<action>-improve-bind.md` before a card is bound and `<action>-improve.md`
+after) and reprints its head.
 
 Under `delegation: ask-agent`, each INNER producer assignment takes a fresh
 worker where one is usable. Claude documents both
@@ -420,8 +424,12 @@ The semantic result contract is small:
 | `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `replan`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 
-`skill-assess` and `skill-validate` are always visited, each with an
-evidence-backed N/A disposition when no skill work applies.
+`skill-assess` and `skill-validate` are always recorded: they are issued to the model
+with an evidence-backed N/A disposition when no skill work applies, unless the item's
+step plan records `skill_na` and the script accepts it (a step plan that lists a skill
+file in `paths`, or a `document` whose real diff touches one, is refused), in which case
+the script records both as not applicable to that item with the step plan's own reason,
+a history row and a result file.
 
 After any bound child has completed reviewing the attempt, `repeat` allocates another action at the same node, so the host can continue
 with new information. `blocked` retains unfinished work; after the condition
@@ -437,7 +445,7 @@ work items, while completed work-item records remain durable history; optional
 V3's plan template explicitly includes `work_items`. Return the complete ordered
 queue when the plan has multiple implementation increments; a note alone does
 not populate it. Omission remains compatible when the existing queue represents
-the whole approved plan. The script visits queue order serially; `select-work`
+the whole approved plan. The script visits queue order serially; `get-next-work-item`
 revalidates the selected item's prerequisite evidence rather than selecting
 among dependency-ready alternatives. Keep independent branches and file/resource
 conflicts distinct from causal dependencies in the linked plan notes.
@@ -474,7 +482,7 @@ Every packet, including paused, blocked, halted and done packets, includes a
 read-only snapshot derived from the existing effective cursor, accepted history
 and current work queue. It shows phase/run status, owner/current assignment,
 recorded completed and pending stages for the current phase or item, completed
-item counts/labels and queued items. The skill stages are always visited.
+item counts/labels and queued items. The skill stages are always recorded.
 Only accepted `done` completes a stage; `repeat` and `blocked` do not. These
 records are host declarations, not independent evidence of tests or external
 effects. Workspace return/merge/push status still comes from the separate return
@@ -514,7 +522,8 @@ and the script cannot keep a host process alive or force another tool call; the
 optional [keepalive hooks and driver](keepalive.md) do that from the host side.
 
 For example, after W1's accepted carry-forward and W2's accepted `document`
-result, the next packet assigns W2 `skill-assess`. A synthetic user update could
+result, the next packet assigns W2 `skill-assess` (for an item whose step plan does not record
+`skill_na`). A synthetic user update could
 say: “Recorded done: W1 and W2 through documentation. Current: W2 skill
 assessment is assigned. Pending: W2 skill validation, static checks,
 verification, integration, carry-forward and the outer stages. No blocker is
@@ -537,7 +546,7 @@ adds a timer, state field or traversal rule.
 
 ## One shared INNER graph and per-item records
 
-The flat SDLC path from `select-work` through `carry-forward` is one shared INNER
+The flat SDLC path from `get-next-work-item` through `carry-forward` is one shared INNER
 graph, not a graph copy per work item. Root owns the run's global `status`,
 `status_reason`, ordered queue, and `work_index`. While an item is active, root
 is parked at `stage: inner-loop` with `action: null`; the active item's entry in
@@ -568,8 +577,8 @@ This compact state is illustrative rather than a complete persisted schema:
   "inner_loops": {
     "W1": {"stage": "done", "action": null},
     "W2": {
-      "stage": "select-work",
-      "action": {"id": "W2-select-work-1", "stage": "select-work"}
+      "stage": "get-next-work-item",
+      "action": {"id": "W2-get-next-work-item-1", "stage": "get-next-work-item"}
     }
   }
 }
@@ -577,7 +586,7 @@ This compact state is illustrative rather than a complete persisted schema:
 
 No record exists for a future W3 until ShipLoop enters it. At an accepted W1
 `carry-forward`, one locked transaction marks W1 `done`/`null`, advances the
-selection, and creates W2 at `select-work`; if W1 is final, it instead restores
+selection, and creates W2 at `get-next-work-item`; if W1 is final, it instead restores
 root ownership at `system-test-author`. W1 remains retained after W2 becomes active.
 Calling `next` after a context reset reprints W2's same effective action rather
 than advancing it. An identical accepted W1 replay after W2 selection is

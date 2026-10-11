@@ -12,9 +12,12 @@ prove.
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 _INT = r"(\d+)"
+# How much of an output line a refusal quotes when it shows where an ID sits inside a longer token.  Display only: it
+# decides nothing.
+INSIDE_CHARS = 100
 
 
 def _sum(text: str, pattern: str) -> int:
@@ -109,7 +112,8 @@ def _go(text: str) -> Optional[Dict[str, int]]:
     if verdicts:
         failed = verdicts.count("FAIL")
         return {"ran": len(verdicts), "failed": failed}
-    ok_lines = re.findall(r"^ok\s+\S+\s+.*$", text, re.MULTILINE)
+    # ``ok  <package>  0.12s`` or ``(cached)``; TAP's ``ok 1 - title`` is not a Go package line.
+    ok_lines = re.findall(r"^ok\s+(?!\d+ - )\S+\s+(?:[\d.]+s|\(cached\)).*$", text, re.MULTILINE)
     empty = re.findall(r"\[no test files\]|\[no tests to run\]|testing: warning: no tests to run", text)
     ran_packages = [line for line in ok_lines if "[no tests to run]" not in line]
     fail_packages = re.findall(r"^FAIL\s+\S+\s+[\d.]+s", text, re.MULTILINE)
@@ -119,6 +123,28 @@ def _go(text: str) -> Optional[Dict[str, int]]:
     if empty:
         return {"ran": 0, "failed": 0}
     return None
+
+
+_NODE_FILE_FAILURE = re.compile(r"^(?:\u2716 |not ok \d+ - )(\S+\.[cm]?[jt]s)(?: \(|\s*$)", re.MULTILINE)
+
+
+def _node(text: str) -> Optional[Dict[str, int]]:
+    """``node --test``: spec ``\u2139 tests 4`` or TAP ``# tests 4``, then ``pass``, ``fail`` and ``cancelled`` lines.
+
+    ``skipped`` and ``todo`` tests are in ``tests`` but not in ``pass``, so they are not counted as run.  A test file
+    that fails to load is one synthetic failing "test" named by its path (the summary counts it); no test of that
+    file ran, so it is taken out of both counts, as ``_unittest`` does.  The ``dot`` and junit reporters print no
+    summary and are not guessed.
+    """
+    totals = {}
+    for key in ("tests", "pass", "fail", "cancelled"):
+        found = re.findall(r"^(?:\u2139|#) " + key + r" (\d+)\s*$", text, re.MULTILINE)
+        if not found:
+            return None
+        totals[key] = sum(int(value) for value in found)
+    unloadable = len(set(_NODE_FILE_FAILURE.findall(text)))
+    failed = totals["fail"] + totals["cancelled"]
+    return {"ran": max(totals["pass"] + failed - unloadable, 0), "failed": max(failed - unloadable, 0)}
 
 
 def _dotnet(text: str) -> Optional[Dict[str, int]]:
@@ -134,11 +160,12 @@ def _dotnet(text: str) -> Optional[Dict[str, int]]:
 
 def count(output: str, exit_code: Optional[int]) -> Optional[Dict[str, object]]:
     """Return ``{"ran", "failed", "runners"}`` summed over every recognised runner, or ``None``."""
+    output = _plain(output)
     found: List[str] = []
     ran = failed = 0
     for name, reader in (
         ("jest", _jest), ("vitest", _vitest), ("unittest", _unittest), ("mocha", _mocha),
-        ("cargo", _cargo), ("go", _go), ("dotnet", _dotnet),
+        ("cargo", _cargo), ("go", _go), ("dotnet", _dotnet), ("node", _node),
     ):
         result = reader(output)
         if result is not None:
@@ -155,25 +182,105 @@ def count(output: str, exit_code: Optional[int]) -> Optional[Dict[str, object]]:
     return {"ran": ran, "failed": failed, "runners": found}
 
 
-_SKIP_LINE = re.compile(r"\bskipped\b|\bskip\b|\bSKIP\b|\bpending\b|\bdeselected\b|\btodo\b|○|✎", re.IGNORECASE)
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+
+
+def _plain(text: str) -> str:
+    """Output without terminal colour codes (``FORCE_COLOR``, a TTY runner)."""
+    return _ANSI.sub("", text)
+
+
+# A skipped test is marked by each runner's own syntax, never by a word in a test title: a leading skip glyph (jest
+# and vitest, node spec), mocha's pending ``- title``, a trailing ``# SKIP``/``# TODO`` (TAP, node), pytest's
+# ``SKIPPED``, unittest's ``... skipped`` and go's ``--- SKIP:``.  ``# Subtest:`` is TAP's announcement of a test,
+# printed before its result line, so it shows nothing about the outcome.
+_SKIP_LINE = re.compile(
+    r"^\s*[○✎﹣↓] |^\s*- |#\s*(?:SKIP|TODO)\b|\bSKIPPED\b|\.\.\. skipped\b|--- SKIP: |\[skipped\]", re.IGNORECASE)
+_ANNOUNCEMENT = re.compile(r"^\s*# Subtest:")
 
 
 def _id_pattern(test_id: str) -> "re.Pattern[str]":
     return re.compile(r"(?<![\w-])" + re.escape(test_id) + r"(?![\w])")
 
 
-def named(output: str, ids: Sequence[str]) -> Dict[str, List[str]]:
-    """Split declared IDs into ``shown`` (on a non-skip output line) and ``missing``."""
-    lines = output.splitlines()
+def _inside_pattern(test_id: str) -> "re.Pattern[str]":
+    """The longer token that starts with the ID and whose next character begins a new run: ``TC-4a`` for ``TC-4``.
+
+    A digit after a digit (or a letter after a letter) continues the ID's own kind of character, which makes a different
+    ID (``TC-10`` is not ``TC-1`` inside a longer token), so only a character of another kind counts.  Group 1 is the
+    whole token, so a caller can tell a token that is itself another listed ID (``TC-4a`` beside a listed ``TC-4``).
+    """
+    last = test_id[-1:]
+    new_run = r"[^\W\d]" if last.isdigit() else r"[\d_]" if last.isalpha() else r"\w"
+    return re.compile(r"(?<![\w-])(" + re.escape(test_id) + "(?=" + new_run + r")\w+)")
+
+
+def named(output: str, ids: Sequence[str]) -> Dict[str, Any]:
+    """Split declared IDs into ``shown`` (on a non-skip output line) and ``missing``.
+
+    ``inside`` maps each missing ID to the first non-skip line that holds it at the start of a longer token of the same
+    word (``TC-4`` inside ``TC-4a``): the ID is printed, but not as its own word, which is what the match requires.  A
+    longer token that is itself a listed ID is that ID shown, not the shorter one inside it, so such a line is not
+    counted.  An ID that no line holds that way is just absent and has no entry.
+    """
+    lines = [line for line in _plain(output).splitlines() if not _ANNOUNCEMENT.match(line)]
+    text = "\n".join(lines)
+    listed = set(ids)
     shown: List[str] = []
     missing: List[str] = []
+    inside: Dict[str, str] = {}
     for test_id in ids:
         pattern = _id_pattern(test_id)
         if any(pattern.search(line) and not _SKIP_LINE.search(line) for line in lines):
             shown.append(test_id)
+            continue
+        missing.append(test_id)
+        if test_id not in text:
+            continue  # printed nowhere, so no longer token holds it either: no second pass over the lines
+        pattern = _inside_pattern(test_id)
+        first = next((line.strip() for line in lines
+                      if any(match.group(1) not in listed for match in pattern.finditer(line))
+                      and not _SKIP_LINE.search(line)), None)
+        if first is not None:
+            inside[test_id] = first[:INSIDE_CHARS]
+    return {"shown": shown, "missing": missing, "inside": inside}
+
+
+# A runner's own mark that one test passed or failed, on the line that names it: spec, TAP, verbose unittest and
+# pytest, go -v, cargo, mocha, jest and vitest, dotnet.  A failure mark wins over a pass mark for the same ID (a failing
+# test is often printed twice: in the run and again in the failure summary).
+_PASS_LINE = re.compile(
+    r"^\s*(?:[\u2713\u2714\u221a]\s|ok \d+\b)|\.\.\.\s*ok\s*$|\bPASSED\b|--- PASS: |^\s*Passed\s")
+_FAIL_LINE = re.compile(
+    r"^\s*(?:[\u2717\u2715\u2716\u00d7]\s|not ok \d+\b|\d+\) |\u25cf |(?:FAIL|ERROR):? )"
+    r"|\.\.\.\s*(?:FAIL|ERROR|FAILED)\s*$|\bFAILED\b|--- FAIL: |^\s*Failed\s")
+# unittest without -v prints ``FAIL: test_x (module.Case.test_x)`` and the docstring (where the ID is) on the next line.
+_FAIL_HEADER = re.compile(r"^(?:FAIL|ERROR): ")
+
+
+def outcomes(output: str, ids: Sequence[str]) -> Dict[str, str]:
+    """Per declared ID, what the output says about that one test: ``failed``, ``passed``, ``shown`` or ``missing``.
+
+    Built on ``named``'s line rule: only a non-skip line holding the ID as its own word counts.  ``failed`` when such a
+    line carries the runner's failure mark (or follows unittest's ``FAIL:``/``ERROR:`` header), else ``passed`` when one
+    carries its pass mark, else ``shown`` (named, but no line says how it ended: a reporter that marks no outcome), and
+    ``missing`` when no line names it (it did not run, or the file holding it failed to load).
+    """
+    lines = [line for line in _plain(output).splitlines() if not _ANNOUNCEMENT.match(line)]
+    result: Dict[str, str] = {}
+    for test_id in ids:
+        pattern = _id_pattern(test_id)
+        hits = [index for index, line in enumerate(lines) if pattern.search(line) and not _SKIP_LINE.search(line)]
+        if not hits:
+            result[test_id] = "missing"
+        elif any(_FAIL_LINE.search(lines[index]) or (index and _FAIL_HEADER.match(lines[index - 1]))
+                 for index in hits):
+            result[test_id] = "failed"
+        elif any(_PASS_LINE.search(lines[index]) for index in hits):
+            result[test_id] = "passed"
         else:
-            missing.append(test_id)
-    return {"shown": shown, "missing": missing}
+            result[test_id] = "shown"
+    return result
 
 
-__all__ = ("count", "named")
+__all__ = ("count", "named", "outcomes")

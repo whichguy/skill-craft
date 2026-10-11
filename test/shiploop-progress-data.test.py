@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -265,6 +266,75 @@ class ProgressDataTests(unittest.TestCase):
         state_path.write_text("# malformed\n", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "malformed"):
             progress_data.build_snapshot(self.run_root)
+
+    # --- the retired feature spec (owner decision D3) -----------------------------------------------------------------------
+    def git(self, *args: str) -> str:
+        env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
+        done = subprocess.run(["git", "-C", str(self.repo), "-c", "user.email=p@example.invalid", "-c", "user.name=P",
+                               "-c", "commit.gpgsign=false", "-c", "core.hooksPath=" + os.devnull, *args],
+                              check=True, capture_output=True, text=True, env=env)
+        return done.stdout
+
+    def run_to(self, stage: str) -> dict:
+        """The run's state at ``stage`` (``done`` after the handoff), built with synthetic accepted results."""
+        state = self.state()
+        while navigator.current_stage(state) != stage and state["status"] != "done":
+            fields = {"work_items": [{"id": "W1", "title": "Parser implementation", "context": "Read fixtures."}]} \
+                if navigator.current_stage(state) == "plan" else {}
+            state = self.accept(state, **fields)
+        return state
+
+    def removed_spec(self, state: dict, removal_subject: str) -> None:
+        """A repository where the feature spec was committed and then removed by a commit with ``removal_subject``."""
+        self.git("init", "-q")
+        feature = self.repo / knowledge_home.feature_dir(state)
+        feature.mkdir(parents=True)
+        (feature / "spec.md").write_text("Adds: R-1\n")
+        (feature / "plan.md").write_text("# Plan\n")
+        self.git("add", "-A")
+        self.git("commit", "-qm", knowledge_home.knowledge_subject(state, "spec"))
+        (feature / "spec.md").unlink()
+        self.git("add", "-A")
+        self.git("commit", "-qm", removal_subject)
+
+    def test_a_retired_feature_spec_shows_as_retired_with_its_commit_at_the_handoff_and_when_done(self) -> None:
+        for stage in ("handoff", "done"):
+            with self.subTest(stage=stage):
+                self.repo = self.base / ("repo-" + stage)
+                self.repo.mkdir()
+                state = self.run_to(stage)
+                self.assertEqual(navigator.current_stage(state), stage)
+                self.removed_spec(state, knowledge_home.retire_subject(state))
+                self.save_state(state)
+                short = self.git("log", "-1", "--format=%h").strip()
+                snapshot = progress_data.build_snapshot(self.run_root)
+                row = self.document(snapshot, "feature-spec")
+                self.assertEqual(row["status"], "retired")
+                self.assertEqual(row["title"], "Feature specification (retired)")
+                self.assertEqual(row["summary"], "Retired at handoff by commit " + short + ": its requirement IDs were checked "
+                                                 "against docs/shiploop/spec.md.")
+                self.assertEqual((row["content"], row["sha256"]), ("", None))
+                self.assertNotIn("Document missing: feature-spec.", snapshot["warnings"])
+                self.assertEqual(self.document(snapshot, "feature-plan")["status"], "draft")        # the other rows are as before
+                self.assertEqual(self.document(snapshot, "living-spec")["status"], "missing")
+
+    def test_a_feature_spec_removed_by_any_other_commit_is_still_missing(self) -> None:
+        """Guard (passes on the base too): a spec the model deleted, or a folder never committed, keeps its true warning."""
+        state = self.run_to("handoff")
+        self.removed_spec(state, "model: delete the feature spec")
+        self.save_state(state)
+        snapshot = progress_data.build_snapshot(self.run_root)
+        self.assertEqual(self.document(snapshot, "feature-spec")["status"], "missing")
+        self.assertIn("Document missing: feature-spec.", snapshot["warnings"])
+
+    def test_before_the_handoff_the_snapshot_asks_git_nothing_about_the_feature_spec(self) -> None:
+        """The observer builds a snapshot every two seconds, and the spec is absent for the whole planning window."""
+        state = self.run_to("plan")
+        self.save_state(state)
+        with mock.patch.object(progress_data.knowledge_home, "retired_by", side_effect=AssertionError("git was asked")):
+            snapshot = progress_data.build_snapshot(self.run_root)
+        self.assertEqual(self.document(snapshot, "feature-spec")["status"], "missing")
+        self.assertIn("Document missing: feature-spec.", snapshot["warnings"])
 
 
 if __name__ == "__main__":

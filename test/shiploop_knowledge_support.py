@@ -24,3 +24,6 @@ def write(state: Mapping[str, Any]) -> None:
                 body = "".join("## " + name + "\n\nSynthetic " + name.lower() + ".\n\n"
                                for name in knowledge.LEARNING_SECTIONS)
             path.write_text("# " + path.stem + "\n\n" + body, encoding="utf-8")
+    # A real run's first knowledge commit (after the spec stage) writes the feature list long before any work item takes its
+    # base snapshot; write it here so a fixture that passes its closes at the item boundary does not see it appear late.
+    knowledge.write_feature_list(repo)

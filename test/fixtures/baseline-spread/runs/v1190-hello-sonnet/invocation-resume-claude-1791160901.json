@@ -1,0 +1,32 @@
+{
+ "case": "hello",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "plugin_dir": "/Users/dadleet/e2e-runs/20261004/v1190-hello-sonnet/marketplace/plugins/skill-craft",
+ "versions": {
+  "source": "marketplace",
+  "plugin_version": "1.19.0",
+  "shiploop_version": "0.51.0",
+  "installed_by": "origin/main export",
+  "released": {
+   "origin_main": "19fa890d7c6aa4772fa19f7a56f0ccc4683ecf35",
+   "local_head": "19fa890d7c6aa4772fa19f7a56f0ccc4683ecf35",
+   "local_behind_main": true,
+   "catalog_version": "1.19.0",
+   "shiploop_version": "0.51.0",
+   "unreleased": [],
+   "ci": "pending"
+  },
+  "gate": [],
+  "regraded": true
+ },
+ "resumed_run": {
+  "from_host": "claude",
+  "from_model": "claude-sonnet-5-5",
+  "run_dir": "/Users/dadleet/e2e-runs/20261004/v1190-hello-sonnet/.shiploop-runs/work-20261004-183212-0d0d4f/run",
+  "revision": 50,
+  "stage": "done"
+ },
+ "seeded": null
+}

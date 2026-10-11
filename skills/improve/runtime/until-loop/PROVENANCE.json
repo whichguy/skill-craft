@@ -9,9 +9,9 @@
     {
       "bundled_path": "ADAPTER.md",
       "upstream_path": "SKILL.md",
-      "sha256": "f229b390c1bfd1a6ccbac787f0110e9ba4612fc36f54e473a84ebba6e3a86723",
+      "sha256": "eff4c477cafec4f0ce0cb3f50817681274c76209df44e2acc81dfbed90c6dc8f",
       "upstream_sha256": "421ec3e497a54eac6d818d0f03279ed97a5c8ca0366412eded80822d42b60928",
-      "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions: an owner-bound child follows its consumer's update contract instead of cancelling and replacing the owner's run."
+      "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions: an owner-bound child follows its consumer's update contract instead of cancelling and replacing the owner's run. Start from a parent-written contract file unchanged (ShipLoop inner stages, 2026-10-10): disable-model-invocation false, a first section that skips interpretation and pipes the named contract into start --receipt, and continues an active receipt instead of starting again."
     },
     {
       "bundled_path": "LICENSE",
@@ -26,7 +26,9 @@
     {
       "bundled_path": "references/runtime-ephemeral.md",
       "upstream_path": "references/runtime-ephemeral.md",
-      "sha256": "f465289d481223f5b173b79acf2299fbc2b81b7508955e4117090e726e2bf104"
+      "sha256": "8ae8c02d684055392c7d9c7c18deacaa9c1a67e296dd281dae2f3df95a794bd7",
+      "upstream_sha256": "f465289d481223f5b173b79acf2299fbc2b81b7508955e4117090e726e2bf104",
+      "adaptation_reason": "Name the parent-written contract start (pipe the file unchanged into start --receipt; continue an active receipt) beside the executor-built contract."
     }
   ]
 }

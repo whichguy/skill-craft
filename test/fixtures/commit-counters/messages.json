@@ -1,0 +1,47 @@
+[
+  {
+    "name": "improve-six-labels",
+    "source": "20261008/r3-battleship-sonnet 7e11860",
+    "message": "Ignore stale fire responses after New game in the page\n\nReview: end-of-work review of the whole change; tracing the page showed a New game press while a fire request was in flight let the old game's response mark a cell on the new board.\nPlan: capture the game id per shot and drop the response if the game changed.\nChanges: public/index.html fire().\nValidation: node --test 13/13 pass; grep shows the guard.\nKey learnings: the quality loop traced server entry points; the page's async state needed the same scrutiny.\nRemaining work: real-browser play still unobserved.\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n"
+  },
+  {
+    "name": "improve-free-prose",
+    "source": "20261007/v1230-battleship-sonnet e363bc6",
+    "message": "Spec R-1: record invalid-PORT behavior\n\nThe quality loop made resolvePort throw on a set but invalid PORT; the living spec still described a silent default. Align R-1 and its Confirm by with the code and TC-1c.\n"
+  },
+  {
+    "name": "knowledge-with-learned",
+    "source": "20261008/r3-battleship-sonnet a7c16af",
+    "message": "docs(shiploop): record build-a-small-single-player-battleship-8f4f83 knowledge at release-verify\n\nLearned\n- Tracing invalid inputs at the quality loop found a real crash that the first test set missed: a malformed request target (`GET http://[`) made `new URL()` throw in the request handler and kill the process. It is now a 400 and covered in TC-11 through a raw socket.\n- Oversized bodies need both the Content-Length and chunked paths checked (413 in each).\n- The page's async state needed review too: a New game press during an in-flight shot could mark the new board; fixed by dropping stale responses.\n- An either/or status in a test oracle (413/400) is not an oracle; the spec was pinned first.\n- `node --test --test-reporter=spec` with flat tests lets ShipLoop read names and counts.\n\nKey considerations\n- Choices the request left open, recorded in spec.md: fleet 5/4/3/3/2, 0-indexed coordinates, repeat shot and fire-after-game-over are 400s, unknown game 404, wrong method 405, body cap 64 KB, 1000 games in memory (oldest dropped).\n- State is in memory and single-process; ship positions never leave the server (the game over response does not reveal them either).\n- Local-only delivery: release was the guarded fast-forward return; nothing pushed or deployed.\n\nOpen for the next run\n- Real-browser play of `public/index.html` was not observed (page logic was exercised through a fake DOM against the real server); the user is asked to open http://localhost:3000 and play once.\n- Possible follow-ups, not requested: reveal the fleet when the game is over, a computer opponent that fires back, persistence across restarts.\n"
+  },
+  {
+    "name": "knowledge-subject-only",
+    "source": "20261008/r3-battleship-sonnet e2f70e4",
+    "message": "docs(shiploop): record build-a-small-single-player-battleship-8f4f83 knowledge at release-plan\n"
+  },
+  {
+    "name": "item",
+    "source": "20261008/r3-battleship-sonnet 65cd022",
+    "message": "feat: W1 Battleship rules module, HTTP server, page and node:test tests\n\nAll W1 changes are assembled in the execution checkout. README.md (not in step-plan paths) committed separately; lib/, server.js, public/, test/, package.json and docs/shiploop are committed by ShipLoop on acceptance. No-op for branch merge: return to main happens at release.\n"
+  },
+  {
+    "name": "raw-readme",
+    "source": "20261008/r3-battleship-sonnet 9e28b73",
+    "message": "Add system tests that play a game against the real server process\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n"
+  },
+  {
+    "name": "raw-with-key-learnings",
+    "source": "20261006/v1220-battleship-sonnet d7b380f",
+    "message": "Add single-player Battleship server, rules module, page and tests\n\nZero-dependency Node.js server: game.js (pure rules, injectable RNG, capped store), server.js (GET /, GET /api/new, POST /api/fire with JSON errors), public/index.html (10x10 grid), node:test suites TC-1..TC-15 run by node --test.\n\nKey learnings: tests caught two real server bugs (page Buffer JSON-stringified; socket destroyed before replying to an oversized body); ShipLoop cannot read node:test counts so regression is keyed on test ids.\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n"
+  },
+  {
+    "name": "leftovers",
+    "source": "20261007/v1230-battleship-sonnet 9b3cc84",
+    "message": "chore(shiploop): commit files written after the last work item, before the return\n"
+  },
+  {
+    "name": "baseline",
+    "source": "20261008/r3-battleship-sonnet d82b183",
+    "message": "Empty baseline for the first ShipLoop run\n"
+  }
+]

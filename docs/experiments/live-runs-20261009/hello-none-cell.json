@@ -1,0 +1,333 @@
+{
+ "cells": [
+  {
+   "cell": {
+    "case": "hello",
+    "source": "checkout",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": null,
+    "planning_review": "none",
+    "prompt_sha256": "d2d7e2dabeeb"
+   },
+   "attempts": {
+    "seen": 7,
+    "counted": 5,
+    "passed": 5,
+    "did_not_reach_done": 0,
+    "mixed_host": 0,
+    "resumed": 2,
+    "seeded": 0,
+    "ended_by_harness": 0,
+    "process_not_observed": 0,
+    "no_driver_recorded": 0,
+    "no_result": 0
+   },
+   "builds": {
+    "plugin_sha256": {
+     "a03059c9db03": 5
+    },
+    "unrecorded": 0
+   },
+   "host_builds": {
+    "2.1.295": 5,
+    "unrecorded": 0
+   },
+   "measures": {
+    "cost_usd": {
+     "n": 5,
+     "min": 3.0589,
+     "median": 3.8162,
+     "max": 5.3491,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "turns": {
+     "n": 5,
+     "min": 126,
+     "median": 146,
+     "max": 196,
+     "not_measured": 0,
+     "lower_bound_rows": 0,
+     "lower_bound_unknown_rows": 0
+    },
+    "minutes": {
+     "n": 5,
+     "min": 5.7,
+     "median": 7.8,
+     "max": 14.9,
+     "not_measured": 0,
+     "overlapped_by_span": 0,
+     "not_seen_overlapping": 5
+    },
+    "planning_minutes": {
+     "n": 5,
+     "min": 1.38,
+     "median": 1.45,
+     "max": 9.03,
+     "not_measured": 0
+    }
+   },
+   "overlap": {
+    "rows": 5,
+    "overlapped_by_span": 0,
+    "not_seen_overlapping": 5,
+    "unknown": 0
+   },
+   "outputs": {
+    "counted": [
+     "s6-inside-implement",
+     "s6-inside-implement-k2",
+     "s6-inside-test-strategy",
+     "s6-inside-test-strategy-2",
+     "s6-inside-implement-write"
+    ],
+    "resumed": [
+     "s6-after-spec",
+     "s6-inside-implement-mtime"
+    ]
+   }
+  }
+ ],
+ "records": [
+  {
+   "output": "<e2e-runs>/20261009/s6-after-spec",
+   "record": "folder",
+   "case": "hello",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "none",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.26.0",
+   "plugin_sha256": "a03059c9db03",
+   "host_build": "2.1.295",
+   "local_head": "5e22fd10075f0ee2bfade8b66c68a78f7f255ba5",
+   "started": 1791583580.025,
+   "ended": 1791584142.242,
+   "minutes": 9.4,
+   "planning_seconds": 116.0,
+   "planning_minutes": 1.93,
+   "cost_usd": 4.0717,
+   "turns": 180,
+   "lower_bound": true,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "resumed",
+   "why": "resumed (2 launch(es), 1 earlier termination(s)): a fragment of a run is not a baseline",
+   "recomputed": [],
+   "identity_unmeasured": {},
+   "overlaps": 0
+  },
+  {
+   "output": "<e2e-runs>/20261009/s6-inside-implement",
+   "record": "file+folder",
+   "case": "hello",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "none",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.26.0",
+   "plugin_sha256": "a03059c9db03",
+   "host_build": "2.1.295",
+   "local_head": "5e22fd10075f0ee2bfade8b66c68a78f7f255ba5",
+   "started": 1791584185.761,
+   "ended": 1791584527.301,
+   "minutes": 5.7,
+   "planning_seconds": 83.0,
+   "planning_minutes": 1.38,
+   "cost_usd": 3.0589,
+   "turns": 126,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [],
+   "identity_unmeasured": {},
+   "overlaps": 0
+  },
+  {
+   "output": "<e2e-runs>/20261009/s6-inside-implement-k2",
+   "record": "file+folder",
+   "case": "hello",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "none",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.26.0",
+   "plugin_sha256": "a03059c9db03",
+   "host_build": "2.1.295",
+   "local_head": "5e22fd10075f0ee2bfade8b66c68a78f7f255ba5",
+   "started": 1791584554.646,
+   "ended": 1791585002.224,
+   "minutes": 7.5,
+   "planning_seconds": 101.0,
+   "planning_minutes": 1.68,
+   "cost_usd": 3.5044,
+   "turns": 146,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [],
+   "identity_unmeasured": {},
+   "overlaps": 0
+  },
+  {
+   "output": "<e2e-runs>/20261009/s6-inside-test-strategy",
+   "record": "file+folder",
+   "case": "hello",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "none",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.26.0",
+   "plugin_sha256": "a03059c9db03",
+   "host_build": "2.1.295",
+   "local_head": "5e22fd10075f0ee2bfade8b66c68a78f7f255ba5",
+   "started": 1791585025.953,
+   "ended": 1791585640.234,
+   "minutes": 10.2,
+   "planning_seconds": 87.0,
+   "planning_minutes": 1.45,
+   "cost_usd": 5.3491,
+   "turns": 196,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [],
+   "identity_unmeasured": {},
+   "overlaps": 0
+  },
+  {
+   "output": "<e2e-runs>/20261009/s6-inside-test-strategy-2",
+   "record": "file+folder",
+   "case": "hello",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "none",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.26.0",
+   "plugin_sha256": "a03059c9db03",
+   "host_build": "2.1.295",
+   "local_head": "5e22fd10075f0ee2bfade8b66c68a78f7f255ba5",
+   "started": 1791585658.557,
+   "ended": 1791586553.979,
+   "minutes": 14.9,
+   "planning_seconds": 542.0,
+   "planning_minutes": 9.03,
+   "cost_usd": 4.0768,
+   "turns": 152,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [],
+   "identity_unmeasured": {},
+   "overlaps": 0
+  },
+  {
+   "output": "<e2e-runs>/20261009/s6-inside-implement-write",
+   "record": "file+folder",
+   "case": "hello",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "none",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.26.0",
+   "plugin_sha256": "a03059c9db03",
+   "host_build": "2.1.295",
+   "local_head": "5e22fd10075f0ee2bfade8b66c68a78f7f255ba5",
+   "started": 1791586593.705,
+   "ended": 1791587061.872,
+   "minutes": 7.8,
+   "planning_seconds": 85.0,
+   "planning_minutes": 1.42,
+   "cost_usd": 3.8162,
+   "turns": 146,
+   "lower_bound": false,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "counted",
+   "why": null,
+   "recomputed": [],
+   "identity_unmeasured": {},
+   "overlaps": 0
+  },
+  {
+   "output": "<e2e-runs>/20261009/s6-inside-implement-mtime",
+   "record": "folder",
+   "case": "hello",
+   "source": "checkout",
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "effort": null,
+   "planning_review": "none",
+   "prompt_sha256": "d2d7e2dabeeb",
+   "plugin_version": "1.26.0",
+   "plugin_sha256": "a03059c9db03",
+   "host_build": "2.1.295, 2.1.296",
+   "local_head": "93331d7f2d902c8296488bed78ca66dbb55330d7",
+   "started": 1791587090.449,
+   "ended": 1791646034.377,
+   "minutes": 982.4,
+   "planning_seconds": 217.0,
+   "planning_minutes": 3.62,
+   "cost_usd": 1.9206,
+   "turns": 183,
+   "lower_bound": true,
+   "pass": true,
+   "engine_status": "done",
+   "process_status": "exited",
+   "hosts_used": [
+    "claude"
+   ],
+   "class": "resumed",
+   "why": "resumed (2 launch(es), 1 earlier termination(s)): a fragment of a run is not a baseline",
+   "recomputed": [],
+   "identity_unmeasured": {},
+   "overlaps": 0
+  }
+ ]
+}

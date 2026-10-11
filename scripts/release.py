@@ -33,6 +33,12 @@ skill never shipped in plugins/skill-craft may ship at its authored version
 with a `version:` note. When the release fails before committing, the checkout
 is restored to HEAD and the notes are kept.
 
+A release that ships the shiploop skill also needs an E2E round on record: a
+commit since the last release (every commit, before the first one) that touches
+test/shiploop_e2e/LEARNINGS.md, or one that carries a `No-E2E-Round: <reason>`
+trailer (final message paragraph, non-empty reason). Without either, the run
+and --dry-run both refuse and write nothing. Other releases are not asked.
+
 It never pushes. Publish the commit with scripts/release-push.py.
 
 Usage:
@@ -52,6 +58,10 @@ CHANGES = ROOT / "changes"
 PLUGIN = "skill-craft"
 BUNDLE = ROOT / "catalog" / "skill-craft-plugin.json"
 TRAILER = "Skill-Craft-Release"
+# A release that ships this skill needs an E2E round on record (see e2e_round_missing).
+E2E_LEAF = "shiploop"
+E2E_JOURNAL = "test/shiploop_e2e/LEARNINGS.md"
+NO_ROUND = "No-E2E-Round"
 # Strict semver, as scripts/skill-frontmatter-to-plugin-json.js checks it.
 _NUM = r"0|[1-9]\d*"
 _PRE = r"0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*"
@@ -165,10 +175,41 @@ def plan_bundle(releases, released):
     return {"old": old, "new": new}
 
 
+def release_commits():
+    """[(sha, trailer value)] for every commit with a Skill-Craft-Release trailer, newest first."""
+    rows = []
+    for record in git("log", f"--format=%H%x1f%(trailers:key={TRAILER},valueonly)%x1e").split("\x1e"):
+        sha, _, value = record.strip().partition("\x1f")
+        if value.strip():
+            rows.append((sha, value))
+    return rows
+
+
 def released_versions():
     """Every `leaf@version` any Skill-Craft-Release trailer in history has named."""
-    values = git("log", f"--format=%(trailers:key={TRAILER},valueonly)")
-    return {token for token in re.split(r"[,\s]+", values) if "@" in token}
+    return {token for _, value in release_commits() for token in re.split(r"[,\s]+", value) if "@" in token}
+
+
+def e2e_round_missing(releases):
+    """Why a release that ships ShipLoop has no E2E round on record, or None. Reads only.
+
+    The range runs from the last release commit to HEAD, or is all of history before the
+    first release. A round is on record when a commit in it touches the journal, or one
+    carries a No-E2E-Round trailer with a reason (git reads trailers only in the final paragraph)."""
+    if E2E_LEAF not in releases:
+        return None
+    last = next((sha for sha, _ in release_commits()), None)
+    span = f"{last}..HEAD" if last else "HEAD"
+    if git("log", "--format=%H", span, "--", E2E_JOURNAL).strip():
+        return None
+    reasons = git("log", f"--format=%(trailers:key={NO_ROUND},valueonly,unfold)", span)
+    if any(line.strip() for line in reasons.splitlines()):
+        return None
+    since = f"since the last release ({last[:8]})" if last else "in the history before the first release"
+    return (f"{E2E_LEAF} would ship with no E2E round on record {since}.\n"
+            f"  Add an entry to {E2E_JOURNAL} in a commit in that range, or\n"
+            f"  add a '{NO_ROUND}: <reason>' trailer with a reason to a commit in that range "
+            "(final message paragraph, next to Co-Authored-By).")
 
 
 def plan():
@@ -210,7 +251,11 @@ def plan():
 def plan_all():
     """(skill releases, plugin version change). Reads only; changes nothing."""
     releases = plan()
-    return releases, plan_bundle(releases, released_versions())
+    bundle = plan_bundle(releases, released_versions())
+    missing = e2e_round_missing(releases)
+    if missing:
+        raise ReleaseError(missing)
+    return releases, bundle
 
 
 def apply(releases, bundle, date):

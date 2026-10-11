@@ -1,0 +1,369 @@
+{
+ "planning_choice_stages": [
+  "plan",
+  "spec",
+  "step-plan",
+  "test-spec",
+  "test-strategy"
+ ],
+ "rows": {
+  "baseline": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "test-strategy",
+    "item:step-plan",
+    "item:test-spec"
+   ]
+  },
+  "carry-forward": {
+   "complete_runs": [],
+   "improve": "last-item",
+   "reads": [
+    "spec",
+    "plan",
+    "item:integration-verify"
+   ]
+  },
+  "discovery": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "intake"
+   ]
+  },
+  "document": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "spec",
+    "plan",
+    "item:step-plan",
+    "item:implement"
+   ]
+  },
+  "get-next-work-item": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "spec",
+    "plan"
+   ]
+  },
+  "handoff": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "intake",
+    "spec",
+    "plan",
+    "product-acceptance",
+    "release-verify",
+    "operations"
+   ]
+  },
+  "implement": {
+   "complete_runs": [
+    "lint-gate"
+   ],
+   "improve": "",
+   "reads": [
+    "spec",
+    "plan",
+    "item:step-plan",
+    "item:test-spec"
+   ]
+  },
+  "intake": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": []
+  },
+  "integrate": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "plan",
+    "item:step-plan",
+    "item:verify"
+   ]
+  },
+  "integration-verify": {
+   "complete_runs": [
+    "test-rerun"
+   ],
+   "improve": "",
+   "reads": [
+    "spec",
+    "item:integrate"
+   ]
+  },
+  "operations": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "release-plan",
+    "release-verify"
+   ]
+  },
+  "plan": {
+   "complete_runs": [],
+   "improve": "always",
+   "reads": [
+    "intake",
+    "discovery",
+    "research",
+    "spec",
+    "test-strategy"
+   ]
+  },
+  "prepare": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "plan",
+    "test-strategy"
+   ]
+  },
+  "product-acceptance": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "intake",
+    "spec",
+    "system-test"
+   ]
+  },
+  "regression": {
+   "complete_runs": [
+    "lint-gate",
+    "test-loop"
+   ],
+   "improve": "",
+   "reads": [
+    "test-strategy",
+    "item:baseline"
+   ]
+  },
+  "release": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "release-plan",
+    "release-check"
+   ]
+  },
+  "release-check": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "release-plan"
+   ]
+  },
+  "release-plan": {
+   "complete_runs": [],
+   "improve": "always",
+   "reads": [
+    "spec",
+    "plan",
+    "system-test"
+   ]
+  },
+  "release-verify": {
+   "complete_runs": [
+    "test-rerun"
+   ],
+   "improve": "",
+   "reads": [
+    "spec",
+    "release-plan",
+    "release"
+   ]
+  },
+  "research": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "intake",
+    "discovery"
+   ]
+  },
+  "skill-assess": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "plan",
+    "item:step-plan"
+   ]
+  },
+  "skill-validate": {
+   "complete_runs": [],
+   "improve": "",
+   "reads": [
+    "item:skill-assess"
+   ]
+  },
+  "spec": {
+   "complete_runs": [],
+   "improve": "always",
+   "reads": [
+    "intake",
+    "discovery",
+    "research"
+   ]
+  },
+  "static-checks": {
+   "complete_runs": [
+    "quality-terminal",
+    "test-rerun"
+   ],
+   "improve": "",
+   "reads": [
+    "item:step-plan",
+    "item:implement"
+   ]
+  },
+  "step-plan": {
+   "complete_runs": [],
+   "improve": "always",
+   "reads": [
+    "spec",
+    "test-strategy",
+    "plan",
+    "prepare"
+   ]
+  },
+  "system-test": {
+   "complete_runs": [
+    "test-rerun"
+   ],
+   "improve": "",
+   "reads": [
+    "spec",
+    "system-test-author"
+   ]
+  },
+  "system-test-author": {
+   "complete_runs": [],
+   "improve": "always",
+   "reads": [
+    "spec",
+    "test-strategy",
+    "plan"
+   ]
+  },
+  "test-author": {
+   "complete_runs": [
+    "test-probe"
+   ],
+   "improve": "",
+   "reads": [
+    "test-strategy",
+    "item:step-plan",
+    "item:test-spec"
+   ]
+  },
+  "test-green": {
+   "complete_runs": [
+    "lint-gate",
+    "test-loop"
+   ],
+   "improve": "",
+   "reads": [
+    "item:test-spec",
+    "item:implement"
+   ]
+  },
+  "test-red": {
+   "complete_runs": [
+    "test-red"
+   ],
+   "improve": "",
+   "reads": [
+    "item:test-spec",
+    "item:test-author"
+   ]
+  },
+  "test-refine": {
+   "complete_runs": [
+    "test-rerun"
+   ],
+   "improve": "",
+   "reads": [
+    "spec",
+    "item:test-spec",
+    "item:implement"
+   ]
+  },
+  "test-spec": {
+   "complete_runs": [],
+   "improve": "always",
+   "reads": [
+    "spec",
+    "test-strategy",
+    "plan",
+    "item:step-plan"
+   ]
+  },
+  "test-strategy": {
+   "complete_runs": [],
+   "improve": "always",
+   "reads": [
+    "spec",
+    "research"
+   ]
+  },
+  "verify": {
+   "complete_runs": [
+    "test-rerun"
+   ],
+   "improve": "",
+   "reads": [
+    "spec",
+    "test-strategy",
+    "item:step-plan",
+    "item:test-spec",
+    "item:implement",
+    "item:test-green",
+    "item:regression",
+    "item:static-checks"
+   ]
+  }
+ },
+ "stages": [
+  "intake",
+  "discovery",
+  "research",
+  "spec",
+  "test-strategy",
+  "plan",
+  "prepare",
+  "get-next-work-item",
+  "step-plan",
+  "test-spec",
+  "baseline",
+  "test-author",
+  "test-red",
+  "implement",
+  "test-green",
+  "test-refine",
+  "regression",
+  "document",
+  "skill-assess",
+  "skill-validate",
+  "static-checks",
+  "verify",
+  "integrate",
+  "integration-verify",
+  "carry-forward",
+  "system-test-author",
+  "system-test",
+  "product-acceptance",
+  "release-plan",
+  "release-check",
+  "release",
+  "release-verify",
+  "operations",
+  "handoff"
+ ]
+}

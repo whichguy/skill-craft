@@ -1,0 +1,218 @@
+{
+ "battleship-sonnet-calls.jsonl": {
+  "workspace-start": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01DSPYRaNUobAYkTkHWijip3",
+   "original_result_chars": 5897,
+   "kept_result_chars": 322,
+   "lines": [
+    0,
+    1,
+    2
+   ]
+  },
+  "read-packet-whole": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Read",
+   "tool_use_id": "toolu_0174abLee5kgPn9m9ZstTZHp",
+   "original_result_chars": 28595,
+   "kept_result_chars": 323,
+   "lines": [
+    3,
+    4,
+    5
+   ]
+  },
+  "refusal-behind-head": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01G3UkyWdgM7joLnfRcrrk7K",
+   "original_result_chars": 570,
+   "kept_result_chars": 438,
+   "lines": [
+    6,
+    7,
+    8
+   ]
+  },
+  "write-and-run-sub": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01XRGyU9gr2DXv3GVMpBo9CV",
+   "original_result_chars": 1533,
+   "kept_result_chars": 322,
+   "lines": [
+    9,
+    10,
+    11
+   ]
+  },
+  "sed-a-packet": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_016DxfAh1NnL97fhp5FWy5o5",
+   "original_result_chars": 6313,
+   "kept_result_chars": 399,
+   "lines": [
+    12,
+    13,
+    14
+   ]
+  },
+  "exit-1-not-shiploop": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_0117MTWZN7RYKhnZHfZc2EWT",
+   "original_result_chars": 4021,
+   "kept_result_chars": 322,
+   "lines": [
+    15,
+    16
+   ]
+  },
+  "write-idone": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01H9nayxhYFrb7UJmMUymdPJ",
+   "original_result_chars": 80,
+   "kept_result_chars": 80,
+   "lines": [
+    17,
+    18,
+    19
+   ]
+  },
+  "write-istart": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01HJQyeWd9mZXRV3Qzau543m",
+   "original_result_chars": 803,
+   "kept_result_chars": 536,
+   "lines": [
+    20,
+    21,
+    22
+   ]
+  },
+  "read-packet-range-1": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Read",
+   "tool_use_id": "toolu_01DkQ4DN1YawH9Gdiqe67j2y",
+   "original_result_chars": 2508,
+   "kept_result_chars": 322,
+   "lines": [
+    23,
+    24,
+    25
+   ]
+  },
+  "read-packet-range-2": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Read",
+   "tool_use_id": "toolu_015Q9ZkFkNA4BnQdz8Uk76F7",
+   "original_result_chars": 5588,
+   "kept_result_chars": 322,
+   "lines": [
+    26,
+    27
+   ]
+  },
+  "edit-tool-error": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Edit",
+   "tool_use_id": "toolu_01DFf6hTx7Knx91ermiTgKW7",
+   "original_result_chars": 96,
+   "kept_result_chars": 96,
+   "lines": [
+    28,
+    29,
+    30
+   ]
+  },
+  "run-idone-exit-1": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01Uc4nDMckjGzm7VjsRZufE2",
+   "original_result_chars": 568,
+   "kept_result_chars": 436,
+   "lines": [
+    31,
+    32,
+    33
+   ]
+  },
+  "run-sub-piped": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01QJxJZYecmtcVzgFtHctAmp",
+   "original_result_chars": 249,
+   "kept_result_chars": 249,
+   "lines": [
+    34,
+    35
+   ]
+  },
+  "refusal-knowledge-file": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01MvRQxVZM1cWtJELJ3q3pVj",
+   "original_result_chars": 596,
+   "kept_result_chars": 530,
+   "lines": [
+    36,
+    37
+   ]
+  },
+  "git-by-the-model": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01ACRoxqu6r8ugAfbYJXH12t",
+   "original_result_chars": 540,
+   "kept_result_chars": 474,
+   "lines": [
+    38,
+    39,
+    40
+   ]
+  },
+  "workspace-blocked-plan": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01FgY9ioFhwyUujF469BdAGi",
+   "original_result_chars": 1965,
+   "kept_result_chars": 395,
+   "lines": [
+    41,
+    42,
+    43
+   ]
+  },
+  "workspace-blocked-status": {
+   "run": "r1-battleship-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01NYQcRvBDdJZHg5US3uX64q",
+   "original_result_chars": 187,
+   "kept_result_chars": 187,
+   "lines": [
+    44,
+    45,
+    46
+   ]
+  }
+ },
+ "checkers-sonnet-calls.jsonl": {
+  "assignment-shadowed-by-sh-c": {
+   "run": "r1-checkers-sonnet",
+   "tool_use": "Bash",
+   "tool_use_id": "toolu_01AMLMDozrymaKw88nx6RrqY",
+   "original_result_chars": 580,
+   "kept_result_chars": 452,
+   "lines": [
+    0,
+    1,
+    2
+   ]
+  }
+ }
+}

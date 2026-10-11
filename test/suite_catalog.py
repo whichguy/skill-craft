@@ -80,6 +80,9 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-standalone-improve.test.py",
     "test/shiploop-actual-improve-cli.test.py",
     "test/shiploop-packet-bounds.test.py",
+    "test/shiploop-packet-completeness.test.py",
+    "test/shiploop-step-packets.test.py",
+    "test/shiploop-reference.test.py",
     "test/shiploop-guidance.test.py",
     "test/shiploop-local-skills.test.py",
     "test/experiments/shiploop_ui_allocation/test_evidence.py",
@@ -97,6 +100,8 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-auth-readiness.test.py",
     "test/shiploop-cross-run.test.py",
     "test/shiploop-workspace.test.py",
+    "test/shiploop-return-review.test.py",
+    "test/shiploop-retire.test.py",
     "test/shiploop-chain-ledger.test.py",
     "test/shiploop-chain-git.test.py",
     "test/shiploop-chain.test.py",
@@ -114,6 +119,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-improve-schedule.test.py",
     "test/shiploop-lint.test.py",
     "test/shiploop-quality.test.py",
+    "test/shiploop-loops.test.py",
     "test/shiploop-test-loop.test.py",
     "test/shiploop-test-counts.test.py",
     "test/shiploop-backchain-check.test.py",
@@ -137,6 +143,15 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-e2e.test.py",
+    "test/shiploop-e2e-runrecord.test.py",
+    "test/shiploop-e2e-slice.test.py",
+    "test/shiploop-e2e-fidelity.test.py",
+    "test/shiploop-e2e-reorientation.test.py",
+    "test/shiploop-e2e-environment.test.py",
+    "test/shiploop-e2e-baseline.test.py",
+    "test/shiploop-e2e-quality.test.py",
+    "test/shiploop-e2e-packet-anatomy.test.py",
+    "test/shiploop-e2e-commit-counters.test.py",
     "test/shiploop-run-review.test.py",
     "test/shiploop-callback-contract.test.py",
 )
@@ -157,9 +172,29 @@ _DURATION_SECONDS = {
     "test/shiploop-navigator-contract.test.py": 2.793,
     "test/shiploop-v4-consumers.test.py": 1.048,
     "test/shiploop-packet-bounds.test.py": 0.167,
+    "test/shiploop-packet-completeness.test.py": 0.1,
+    "test/shiploop-step-packets.test.py": 0.4,  # measured locally 2026-10-10
+    "test/shiploop-reference.test.py": 0.5,  # measured locally 2026-10-10
+    "test/shiploop-e2e-slice.test.py": 33.0,  # measured locally 2026-10-10: three fake-host sessions
     "test/experiments/shiploop_ui_allocation/test_evidence.py": 0.602,
     "test/shiploop-auth-readiness.test.py": 29.207,
-    "test/shiploop-workspace.test.py": 19.448,
+    # 19.448 was written at 59 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average 4.7 to
+    # 6.8: 77 tests, 140.3 s (the other run 149.1 s; user plus system CPU 122 s).  The release-verify copy change (batch
+    # 1008 B3) grew it from 85 s (59 tests) to this.  Above QUICK_MAX_SECONDS, so the quick tier no longer selects it: an
+    # edit to the workspace module runs it at the release commit or by name, not on a push.  The ceiling is the owner's
+    # to move or the suite is to be split; neither is done here.
+    # 2026-10-10 (batch 1012 task R): 80 tests (return_kind and the follow-up after a no-change return); 191.2 s, one serial run at
+    # load average 9.5 to 10 (the machine was shared with other batch tasks, so the figure is high against the 140.3 s taken at
+    # load average 4.7 to 6.8 for 77 tests). Still above QUICK_MAX_SECONDS, so the quick tier does not select it.
+    "test/shiploop-workspace.test.py": 191.2,
+    "test/shiploop-return-review.test.py": 85.9,  # measured alone 2026-10-08 at load average 4.6 to 5.1: 23 tests, 85.9 s (81.5 s at 20, 65.5 s at 17, 36.8 s at 11)
+    # The handoff retire (owner decision D3, batch 1012 task R): the terminal close on a real repository, and the real CLI through the
+    # fast-forward, working-tree, before-the-return, guard-refused and drifted-source routes.  A suite of its own so that
+    # shiploop-return-review stays at its catalogued seconds under QUICK_MAX_SECONDS.  Local wall seconds, 2026-10-10: 17 tests, 44.3 s,
+    # the faster of two serial runs at load average 8 to 10 (the five CLI tests are about 6 s each, the other twelve under 4 s together).
+    # After the review fixes of the same day: 26 tests (two more CLI tests, the no-change route and the cited retry, and unit tests of
+    # the evidence check), 61.3 s, the faster of two serial runs (64.1 s) at load average 6 to 9.  Under QUICK_MAX_SECONDS.
+    "test/shiploop-retire.test.py": 61.3,
     "test/shiploop-chain.test.py": 191.262,
     "test/shiploop-chain-async.test.py": 35.083,
     "test/experiments/shiploop_chain/test_trace.py": 0.701,
@@ -169,9 +204,15 @@ _DURATION_SECONDS = {
     "test/shiploop-capability-fixture.test.py": 67.625,
     "test/shiploop-probe-decisions.test.py": 1.175,
     "test/shiploop-stopped-improve.test.py": 1.27,
-    "test/shiploop-actual-improve-cli.test.py": 45.762,
+    # 45.762 was measured at 35 tests.  Local wall seconds, 2026-10-10 (batch 1012 B1), one serial run at load average 5.4:
+    # 54 tests, 61.8 s (the improve-commit contract tests start a Git repository and walk a child to its stage).  Under
+    # QUICK_MAX_SECONDS.
+    "test/shiploop-actual-improve-cli.test.py": 62.0,
     "test/shiploop-local-skills.test.py": 1.983,
-    "test/shiploop-navigator-dry-run.test.py": 3.603,
+    # 3.603 was written when the dry run walked fewer scenarios.  Local wall seconds, 2026-10-08, the faster of two serial
+    # runs at load average 3.8 to 6.0: 32 tests, 12.7 s (the other run 12.99 s).  Batch 1009 B1a added a test that
+    # reads every bind command of every scenario under both delegations.  Under QUICK_MAX_SECONDS.
+    "test/shiploop-navigator-dry-run.test.py": 12.7,
     "test/shiploop-cross-run.test.py": 20.313,
     "test/shiploop-chain-git.test.py": 27.248,
     "test/shiploop-chain-lifecycle.test.py": 803.023,
@@ -194,14 +235,28 @@ _DURATION_SECONDS = {
     "test/experiments/shiploop_chain/test_grok_trace.py": 0.178,
     "test/shiploop-consumer-delivery-cli.test.py": 4.374,
     "test/shiploop-delegation.test.py": 3.445,
-    "test/shiploop-improve-schedule.test.py": 0.2,
+    # 0.2 was written at a handful of tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load
+    # average 3.8 to 6.0: 33 tests, 14.0 s (the other run 16.2 s).  The real-CLI classes (`none`, installed card, no
+    # installed card) run `init` and the walk to the spec result per test.  Under QUICK_MAX_SECONDS.
+    "test/shiploop-improve-schedule.test.py": 14.0,
     "test/shiploop-lint.test.py": 36.0,
     "test/shiploop-quality.test.py": 5.0,
-    "test/shiploop-test-loop.test.py": 3.0,
+    # New 2026-10-10 (the Until Loop every inner stage runs).  Local wall seconds, one serial run at load average 11 to
+    # 13 (other suites running): 24 tests, 18 s; the navigator classes walk a run to verify through the real runtime.
+    "test/shiploop-loops.test.py": 18.0,
+    # 3.0 was written when the suite had a fraction of its tests.  Local wall seconds, 2026-10-08, one serial run at load
+    # average 3.7 to 5.3 (batch 1010 G6, after the whole-word and count-floor tests and their review): 115 tests, 94.0 s (user
+    # plus system CPU 81.2 s); the 79.0 s before was 67 tests at a higher load.  Under QUICK_MAX_SECONDS.
+    "test/shiploop-test-loop.test.py": 94.0,
     "test/shiploop-test-counts.test.py": 0.2,
     "test/shiploop-backchain-check.test.py": 1.0,
     "test/shiploop-improve-changes.test.py": 1.5,
-    "test/shiploop-knowledge.test.py": 1.0,
+    # 1.0 was written for a smaller suite.  Local wall seconds, 2026-10-08, the faster of two serial runs at load
+    # average 5.7 to 6.5: 23 tests, 3.64 s.  2026-10-10 (batch 1012 B1): 42 tests (the commit-message grammar and the
+    # commit helper's real-Git tests), 4.5 s at load average 5.4.  2026-10-10 (batch 1012 task R): 89 tests (the retire's
+    # pieces, the feature list with its header commands run through sh, the retire step), 15.0 s, the faster of two serial
+    # runs at load average 8.6 to 9.5 (the other run 21.0 s).
+    "test/shiploop-knowledge.test.py": 15.0,
     "test/shiploop-assumptions.test.py": 0.2,
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py": 2.53,
     "test/shiploop-capability-runtime.test.py": 0.996,
@@ -211,9 +266,44 @@ _DURATION_SECONDS = {
     # 2 s poll sleep in run.launch() with a wait.  Estimate, not a GitHub reading: 64.5 s idle locally after the fix,
     # scaled by the measured GitHub/local ratio of this suite (303/322); the quick run that selected it finished in
     # 3m16s.  Replace it with the suite's own GitHub seconds once the runner prints per-suite time.
-    "test/shiploop-e2e.test.py": 61.0,
+    # 2026-10-08: 247 -> 320 tests (resume, stop and records, the planning block, the review corrections); 84.5 s
+    # locally against 64 s, so 61.0 scaled by 84.5/64 is 81.  Still an estimate, still under QUICK_MAX_SECONDS (120).
+    # 2026-10-08 (batch 1010 A6): 350 -> 398 tests (the leftover-listener reap and refusal, the signal handling, which use the
+    # real lsof, ps, flock and signals); 84.1 s locally at the start against 104.7 s now (the median of eight full runs, 94.7
+    # to 116.6 s), so 81.0 scaled by 104.7/84.1 is 100.  The new classes alone take 19.7 s.  Still an estimate and still under
+    # QUICK_MAX_SECONDS (120): a further 20 s of tests here moves the suite out of the quick tier.
+    "test/shiploop-e2e.test.py": 100.0,
+    "test/shiploop-e2e-runrecord.test.py": 0.2,
+    # 140 tests on the compact extracts of fourteen saved runs (test/fixtures/fidelity) and the harness's own fake hosts: 8.1 s locally on
+    # 2026-10-09 at load average about 6 (the replays are memoised; the through-main class runs fake-host cases).
+    "test/shiploop-e2e-fidelity.test.py": 9.0,
+    # The clear-the-context record (batch 1011, group G2): its own file because test/shiploop-e2e.test.py sits at 100 s of
+    # QUICK_MAX_SECONDS 120.  Local wall seconds, 2026-10-09, the faster of two serial runs at load average 6: 118 tests,
+    # 7.7 s (the README watcher tests and the through-main tests with the harness's fake hosts are most of it).
+    "test/shiploop-e2e-reorientation.test.py": 7.7,
+    # The environment record (batch 1011, group G4): its own file for the same reason.  125 tests, 60.5 s locally on 2026-10-09
+    # at load average 7 to 9 (its journal); the browser probe's process-safety tests start the fake browsers.  With the
+    # integration's listeners.end_group tests: 132 tests, 62.3 s at load average about 4.
+    "test/shiploop-e2e-environment.test.py": 65.0,
+    # 2026-10-09 (batch 1011 G3): 139 tests (fake hosts for the identity and comparison tests, compact run folders for the
+    # report); 25 s locally at load average 6 to 8, 8.5 s at 30 tests.  An estimate, far under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-baseline.test.py": 25.0,
+    # Local wall seconds, 2026-10-09: 91 tests 28.6 at load average 6 to 8; after the fix round (confirmation runs, the port
+    # guard's real-node tests, the orphan stand-ins) 125 tests 43.2 at load average 3 to 5. Under QUICK_MAX_SECONDS.
+    "test/shiploop-e2e-quality.test.py": 43.0,
+    # The packet-anatomy measurement tool (packet-compaction Phase 0): 13 tests, 0.2 s locally on 2026-10-10, most of it the
+    # class that renders every stage of the current engine.
+    "test/shiploop-e2e-packet-anatomy.test.py": 1.0,
+    # The packets and commits counters (batch 1012 task h): 99 tests on fixtures cut from saved runs, real git in temporary
+    # repositories (the lessons and citation tests commit one message at a time), the regrade's, tallies' and reader-change evidence
+    # and the fake hosts of the harness's through-main tests. Local wall seconds, 2026-10-10: 24.1 s (the faster of two serial runs at
+    # load average about 6; the 86 tests of task h took 14.8 s at load about 5). Far under QUICK_MAX_SECONDS.
+    # 2026-10-10 (batch 1012 task R): the retire commit is a script commit and not a knowledge record (3 more tests on top of task I's reader tests).
+    "test/shiploop-e2e-commit-counters.test.py": 24.5,
     "test/shiploop-run-review.test.py": 0.2,
-    "test/shiploop-callback-contract.test.py": 60.0,
+    # 56.0 was measured at 27 tests.  Local wall seconds, 2026-10-08, the faster of two serial runs at load average
+    # 5.7 to 6.5: 34 tests, 69.1 s (the other run 71.4 s).  Under QUICK_MAX_SECONDS.
+    "test/shiploop-callback-contract.test.py": 69.1,
 }
 _FALLBACK_DURATION_SECONDS = 60.0
 
@@ -290,6 +380,7 @@ _CORE_SUITES = (
     _suite("sync-plugin-views", "core", "test/sync-plugin-views.test.sh", "bash", "test/sync-plugin-views.test.sh"),
     _suite("release-flow", "core", "test/release-flow.test.sh", "bash", "test/release-flow.test.sh"),
     _suite("release-boundary", "core", "test/release-boundary.test.sh", "bash", "test/release-boundary.test.sh"),
+    _suite("release-preflight", "core", "test/release-preflight.test.py", "python3", "test/release-preflight.test.py"),
     _suite("native-marketplace-adapters", "core", "test/native-marketplace-adapters.test.sh", "bash", "test/native-marketplace-adapters.test.sh"),
     _suite("marketplace-package", "core", "test/marketplace-package.test.py", "python3", "test/marketplace-package.test.py"),
     _suite("marketplace-host-isolation", "core", "test/marketplace-host-isolation.test.py", "python3", "test/marketplace-host-isolation.test.py"),
@@ -332,7 +423,9 @@ _APPARATUS_SUITE = _suite(
     "all",
     "--skill-root",
     "skills/shiploop",
-    timeout_seconds=1_200,
+    # Release runs took 14:49 to 18:19 on the CI runner and one hit 1,200 s on 2026-10-10 (a slow runner, same code: its rerun passed in
+    # 20 min including setup). A ceiling, not a tuning value: the job's own limit is 60 minutes.
+    timeout_seconds=1_800,
 )
 
 # The apparatus's no-model replay slice: captured agent results drive the real
@@ -443,11 +536,33 @@ _PATH_SUITE_IDS = {
     "test/shiploop_e2e/SPEC.md": ("shiploop-e2e", "shiploop-navigator-contract", "shiploop-run-review"),
 }
 
+# Every suite of the E2E harness family that the catalog holds (shiploop-e2e and its shiploop-e2e-<topic> files; the
+# apparatus is another family and not a ShipLoop suite).  Read from the catalog, so a group that adds a family suite is
+# selected without a second list here; test-groups pins the family as it stands.
+_E2E_FAMILY_IDS = tuple(suite.id for suite in SHIPLOOP_SUITES
+                        if suite.id == "shiploop-e2e" or suite.id.startswith("shiploop-e2e-"))
+
 # Directories whose files have names too common to select by (run.py, hosts.py), and the leaf whose
 # ShipLoop-family suite its name does not select (the leaf-name rule skips that family).  A new leaf's
-# package build is its release gate, so the Run Review leaf also selects marketplace-package.
+# package build is its release gate, so the Run Review leaf also selects marketplace-package.  Each family
+# suite reads the harness's modules (run.py, metrics.py) itself, so an edit of one runs them all: about 182 s
+# of the quick tier on 2026-10-09 (shiploop-e2e 100, -environment 65, -fidelity 9, -reorientation 7.7, -runrecord 0.2).
 _PREFIX_SUITE_IDS = {
-    "test/shiploop_e2e/": ("shiploop-e2e",),
+    "test/shiploop_e2e/": _E2E_FAMILY_IDS,
+    # The committed output of `run.py --baseline-report` and the script that cut its fixtures: the baseline suite pins both.
+    "docs/experiments/baseline-spread-20261009/": ("shiploop-e2e-baseline",),
+    # The packets and commits regrade of the saved runs, its mutation record and the script that wrote them.
+    "docs/experiments/commit-baseline-20261010/": ("shiploop-e2e-commit-counters",),
+    # The frozen record shapes the Run Review tests read (figures.json) and the scripts that cut them: the Run Review suite pins both.
+    "docs/experiments/run-review-r22c-20261009/": ("shiploop-run-review",),
+    "docs/experiments/run-review-r23-20261009/": ("shiploop-run-review",),
+    # Frozen extracts of saved runs, each read by the one family suite named here (their file names select nothing).
+    "test/fixtures/baseline-spread/": ("shiploop-e2e-baseline",),
+    "test/fixtures/fidelity/": ("shiploop-e2e-fidelity",),
+    "test/fixtures/reorientation/": ("shiploop-e2e-reorientation",),
+    "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
+    "test/fixtures/quality/": ("shiploop-e2e-quality",),
+    "test/fixtures/commit-counters/": ("shiploop-e2e-commit-counters",),
     "skills/shiploop-run-review/": ("shiploop-run-review", "marketplace-package"),
 }
 
@@ -474,8 +589,11 @@ def _prefixed(stem: str, suites: Iterable[Suite]) -> set[str]:
 # evidence and fixtures carry them (PLAN.md, SPEC.md, review.json, frames/plan.txt: 56 tracked files, all but two
 # of them not read by the suites those names matched), and a name match would run eight plan-dispatcher suites, or
 # shiploop-e2e, shiploop-navigator-contract and shiploop-run-review, for a push that edits one.  The two real files
-# are named explicitly in _PATH_SUITE_IDS and _PREFIX_SUITE_IDS.
-_GENERIC_STEMS = frozenset({"skill", "readme", "changelog", "license", "--init--", "plan", "review", "spec"})
+# are named explicitly in _PATH_SUITE_IDS and _PREFIX_SUITE_IDS.  shiploop joins the list because the baseline-report
+# fixtures carry nineteen frozen copies of the CLI entry, each named shiploop, and a name match ran all seventy-one
+# ShipLoop suites (about nineteen minutes) for a push that edits one; the real entry is the leaf's own file name, which the
+# leaf rule already skips, and _SHIPLOOP_WIDE_PATHS selects its hub consumers.
+_GENERIC_STEMS = frozenset({"skill", "readme", "changelog", "license", "--init--", "plan", "review", "spec", "shiploop"})
 
 _ROOT = Path(__file__).resolve().parents[1]
 
@@ -487,6 +605,9 @@ _SHIPLOOP_PROMPT_IDS = (
     "shiploop-reference-routing",
     "shiploop-delegation",
     "shiploop-packet-bounds",
+    "shiploop-packet-completeness",
+    "shiploop-step-packets",
+    "shiploop-reference",
     "shiploop-navigator-dry-run",
 )
 _SHIPLOOP_PROMPT_PREFIXES = ("skills/shiploop/references/", "skills/shiploop/commands/")

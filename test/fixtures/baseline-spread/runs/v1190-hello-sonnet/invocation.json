@@ -1,0 +1,25 @@
+{
+ "case": "hello",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "plugin_dir": "/Users/dadleet/e2e-runs/20261004/v1190-hello-sonnet/marketplace/plugins/skill-craft",
+ "versions": {
+  "source": "marketplace",
+  "installed_by": "origin/main export",
+  "plugin_version": "1.19.0",
+  "shiploop_version": "0.51.0",
+  "released": {
+   "origin_main": "19fa890d7c6aa4772fa19f7a56f0ccc4683ecf35",
+   "local_head": "19fa890d7c6aa4772fa19f7a56f0ccc4683ecf35",
+   "local_behind_main": true,
+   "catalog_version": "1.19.0",
+   "shiploop_version": "0.51.0",
+   "unreleased": [],
+   "ci": "pending"
+  },
+  "gate": []
+ },
+ "resumed_run": null,
+ "seeded": null
+}

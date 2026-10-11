@@ -7,15 +7,15 @@
      "Codex GPT-6 Luna at effort max ran battleship on skill-craft 1.16.1 for 19.3 h: 39 accepted visits, two Backchain loops (7 and 4 passes) and 41 Improve passes in 9 children (360.3 min, 31%).",
      "It ended blocked at system-test on two person-only browser cases while all 4 harness checks passed in ShipLoop's worktree; product-acceptance, release and the report never ran. 13 commands were refused (4 run-path copy errors, 3 contracts over budget, 5 results or an opening in the wrong shape, 1 blocked result under S-14), and the main thread peaked at 97.5% of its 258,400-token window with 34 compactions.",
      "Conclusions: the hours went to how much Luna writes in its loops, not to packet size (plan passes 2 to 7 changed only confirm clauses and a label), and the block was a missing open-item route, not a product defect.",
-     "Learnings: three engine fixes this run prompted are released but not yet seen live (budget text and prompt trim in 1.19.0, the system-test open item in 1.20.0); the harness misread the run four ways: two are fixed (stage minutes, Improve children), one is fixed for new runs (plugin on a resume), one is open (refusal lines).",
-     "Next: one Luna run at xhigh with one Backchain pass checks a03, a06, a12, a13 and a17 together; before it, record refusal causes (a21), release the shape fixes (a25) and publish the v2 export (a09)."
+     "Learnings: three engine fixes this run prompted are released but not yet seen live (budget text and prompt trim in 1.19.0, the system-test open item in 1.20.0); the harness misread the run four ways: two are fixed (stage minutes, Improve children), one is fixed for new runs (plugin on a resume), one is open (refusal lines). [Superseded 2026-10-09: the refusal-line fix landed in 9c593a37 and a re-collect of this run shows each refusal's own line.]",
+     "Next: one Luna run at xhigh with one Backchain pass checks a03, a06, a12, a13 and a17 together; before it, record refusal causes (a21), release the shape fixes (a25) and publish the v2 export (a09). [Superseded 2026-10-09: refusal causes are recorded (a21 done); a17 shipped in 1.21.0.]"
     ],
     "basis": {
      "P1": "Bent by o24: the host chose to run two Backchain loops (7 and 4 passes); every stage transition was the script's (39 visits in state.md history, the revise replanned through the script, o04).",
      "P2": "Bent by o03: the host still writes the Backchain loop contract; Improve contracts over budget were refused at start (3 of 13 refusals) and all 9 Improve children have a receipt.",
      "P3": "Broken by o27 and o32 (an off-protocol step-plan loop chosen before its packet was read); bent by o05, o28 and o43 (13 refused commands, and the run went on after each).",
      "P4": "Holds: the run advanced only through callbacks (39 accepted visits, revision 57), and the resumed session ended its turn only after the accepted blocked result (cli stop end_turn).",
-     "P5": "Broken by o36 and o42 (a plugin verdict and an Improve time the record got wrong); bent by o21 and o40. o18 and o31 are fixed on this run's regraded record.",
+     "P5": "Broken by o36 and o42 (a plugin verdict and an Improve time the record got wrong); bent by o21 and o40. o18 and o31 are fixed on this run's regraded record. [Superseded 2026-10-09: o40 is fixed (9c593a37).]",
      "P6": "Broken by o06: Sonnet passed battleship in 19.1 min while Luna blocked after 19.3 h; bent by o23.",
      "B1": "Bent by o11, o12, o19, o29 and o30: plan passes 2 to 7 (92 min) changed only confirm clauses and a label; the owner chose one pass (a17).",
      "B2": "Broken by o13 and o26: no script checked either graph in this run, and the accepted step-plan candidate fails invariant 4; bent by o25.",
@@ -570,7 +570,7 @@
     "title": "Claude failure counts are lower bounds: the harness cannot see them",
     "criterion": "P5",
     "kind": "defect",
-    "status": "open",
+    "status": "fixed",
     "run": "sonnet",
     "runs": [
      "sonnet",
@@ -582,8 +582,8 @@
     ],
     "phase": 2,
     "expected": "Run metrics count the failures of every host.",
-    "observed": "metrics.collect reads only ACP tool_call_update events, so shiploop_failures is empty for all seven Claude runs while the same runs hold 15 failing ShipLoop or Until Loop commands and 28 to 40 refusals behind exit 0. Claude failure counts are lower bounds, and earlier journal cells reading 0 for Claude are unmeasured. Fix is a metrics item (M1) that waits for the other session's metrics.py change.",
-    "evidence": "metrics.json shiploop_failures for the seven Claude runs; failures.json",
+    "observed": "metrics.collect reads only ACP tool_call_update events, so shiploop_failures is empty for all seven Claude runs while the same runs hold 15 failing ShipLoop or Until Loop commands and 28 to 40 refusals behind exit 0. Claude failure counts are lower bounds, and earlier journal cells reading 0 for Claude are unmeasured. Fix is a metrics item (M1) that waits for the other session's metrics.py change. [Superseded 2026-10-09: the harness reads Claude's tool_use and tool_result blocks through the one classifier since c7a8187d to 4e656d23 (H1 of the round-1 analysis, 2026-10-08); round-2 counts reproduce from events.jsonl and the round runs record Claude refusals and glue as measured. The committed exports of the runs listed keep their lower bounds.]",
+    "evidence": "metrics.json shiploop_failures for the seven Claude runs; failures.json; c7a8187d; 4e656d23; docs/experiments/batch-1010-round2-round3-analysis-20261008/round2-analysis.json synthesis.batch3_scorecard H1",
     "createdAt": "2026-10-04T18:20:00Z"
    },
    "o35": {
@@ -700,13 +700,13 @@
     "title": "The refusal list shows a generic line for 9 of 13 refusals, not their cause",
     "criterion": "P5",
     "kind": "defect",
-    "status": "open",
+    "status": "fixed",
     "run": "luna1",
     "effect": "bent",
     "expected": "Each recorded refusal shows the line that names its cause.",
-    "observed": "metrics.collect records the first output line its failure pattern matches. For 8 refusals that is the generic tail 'Read the current packet with next; the rejected request did not advance the graph.' and for 1 an AssertionError from the model's own check; the cause sat on the line before ('ShipLoop navigator: ...'). Only the 4 run-path errors show their cause.",
-    "evidence": "test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json runs.luna1.failures; FAILURE_LINE in test/shiploop_e2e/metrics.py; /Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/events.jsonl lines 654, 661, 673, 2952, 3657, 4442, 6125, 7378 and 7389 (each refusal's 'ShipLoop navigator:' line).",
-    "advice": "Record the cause line (a21): one rule in the harness, checked on this run's recorded output. Until then read a Codex refusal from events.jsonl, not from the page.",
+    "observed": "metrics.collect records the first output line its failure pattern matches. For 8 refusals that is the generic tail 'Read the current packet with next; the rejected request did not advance the graph.' and for 1 an AssertionError from the model's own check; the cause sat on the line before ('ShipLoop navigator: ...'). Only the 4 run-path errors show their cause. [Superseded 2026-10-09: 9c593a37 (2026-10-05) records a refusal by its own line, not the trailer; a read-only re-collect of this run with today's harness records 0 generic tails among its 13 failures, and the round runs of 2026-10-08 record each refusal's 'ShipLoop navigator:' line. The committed export was not regenerated and keeps the old lines.]",
+    "evidence": "test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json runs.luna1.failures; FAILURE_LINE in test/shiploop_e2e/metrics.py; /Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/events.jsonl lines 654, 661, 673, 2952, 3657, 4442, 6125, 7378 and 7389 (each refusal's 'ShipLoop navigator:' line).; 9c593a37; docs/experiments/run-review-r22c-20261009/figures.json luna_recollect",
+    "advice": "Record the cause line (a21): one rule in the harness, checked on this run's recorded output. Until then read a Codex refusal from events.jsonl, not from the page. [Superseded 2026-10-09: done in 9c593a37.]",
     "figure": {
      "kind": "bars",
      "items": [
@@ -745,8 +745,8 @@
     "status": "accepted",
     "run": "luna1",
     "expected": "A run's grade covers the whole run.",
-    "observed": "result.json process reads 33,452.4 s, one session, resumes 0, pass true: the resumed session only. The first session ran to the 10 h timeout, and the run took 1,158.5 min from start to the last accept. Turns read 2,189 as a lower bound (one session never reported); the rollouts count 2,565 main-thread calls across both sessions. Documented as a limit: on a resume the process block describes the last invocation only (05269ede).",
-    "evidence": "/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/result.json (process, cli, metrics.unreported_sessions); test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json runs.luna1.calls; 05269ede",
+    "observed": "result.json process reads 33,452.4 s, one session, resumes 0, pass true: the resumed session only. The first session ran to the 10 h timeout, and the run took 1,158.5 min from start to the last accept. Turns read 2,189 as a lower bound (one session never reported); the rollouts count 2,565 main-thread calls across both sessions. Documented as a limit: on a resume the process block describes the last invocation only (05269ede). [Superseded in part 2026-10-09: since ce32a143 (2026-10-04) result.json keeps each host session of the latest invocation in process.sessions and the ending of each earlier invocation in earlier_terminations, and f6f1ac2f (2026-10-08) records a requested stop; the resumed round-3 Grok run shows both (r3-battleship-grok-none result.json). An earlier invocation's elapsed time is still not recorded, and this run's record predates both.]",
+    "evidence": "/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/result.json (process, cli, metrics.unreported_sessions); test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.json runs.luna1.calls; 05269ede; ce32a143; f6f1ac2f; /Users/dadleet/e2e-runs/20261008/r3-battleship-grok-none/result.json (process.sessions, earlier_terminations)",
     "figure": {
      "kind": "bars",
      "items": [
@@ -985,7 +985,7 @@
     "findings": [
      "o42"
     ],
-    "ref": "fd6810fe (branch rr8-af090e, R1 to R15 of docs/shiploop-run-review-redesign-plan-2026-10-04.md; unreleased)",
+    "ref": "fd6810fe (branch rr8-af090e, R1 to R15 of docs/shiploop-run-review-redesign-plan-2026-10-04.md; unreleased) [2026-10-09: released (shiploop-run-review 0.1.0 in 1.21.0, 1411d5f1; 0.1.2 in 1.23.0, 8a198cdd); whether the live page now shows the v2 exports is unknown: the journal entries R16 to R21 each leave the template republish to the owner, and this review made no Artifact call]",
     "goal": "Do: merge the Run Review skill (skills/shiploop-run-review) to main, release it, and publish its v2 exports and this review to the page, so each run shows its measured numbers, its Backchain ledger and expectation chips derived from its findings. Files and symbols: build_run, loop_doc, check_bundle and upgrade_docs in skills/shiploop-run-review/scripts/export.py; REVIEW_EXPORTER in test/shiploop_e2e/run.py. Test: python3 -B test/shiploop-run-review.test.py. Done when: the skill is released and the page shows Improve for luna1 as 360.3 minutes and 41 passes.",
     "why": "For: the page shows Improve at 135.8 min for a run that spent 360.3 (o42), and no finding there carries an effect, so every chip reads not rated. Against: a release and a publish while the template is still being edited (R14). Verdict: do it once R14 lands; the data upload needs no republish."
    },
@@ -1091,7 +1091,7 @@
     "title": "Default the plan-stage Backchain loop to one pass",
     "criterion": "B1",
     "kind": "fix-shiploop",
-    "status": "planned",
+    "status": "done",
     "effort": "M",
     "recommended": true,
     "cost": "a live Luna run at xhigh, the plan's only verification (its replay was skipped)",
@@ -1101,7 +1101,7 @@
      "o11",
      "o29"
     ],
-    "ref": "docs/shiploop-fast-planning-plan-2026-10-04.md (branch fastplan-1f1dd3, 9747d769); SPEC S-10 carve-out, unmerged",
+    "ref": "docs/shiploop-fast-planning-plan-2026-10-04.md (branch fastplan-1f1dd3, 9747d769); SPEC S-10 carve-out, unmerged [2026-10-09: shipped in 1.21.0 (1411d5f1: a89135f7, a34a6ee6) and seen live: the Luna xhigh 1.21.0 plan loop completed in one action (LEARNINGS 'Planning time: Luna xhigh and Grok medium on 1.21.0'), and every round run of 2026-10-08 records backchain_passes one]",
     "goal": "Do: build the plan's --backchain-passes one|converge|none option, default one: the plan-stage Backchain child runs one review, fix and check cycle with required_trivial_reviews 0 and the plan's exit text, and continues only for a named open gap; converge restores two clean passes and none offers no whole loop. Files and symbols: _backchain_guidance and prompt in skills/shiploop/scripts/shiploop_prompts.py; _STATE_KEYS and new_state in skills/shiploop/scripts/shiploop_navigator.py; skills/backchain/references/convergence.md and caller-contract.md. Test: the plan's guidance and state tests (the option is recorded in state.md, a saved run without it is refused, each mode prints its text). Done when: those tests pass and the next looped Luna run's plan loop records one pass, or the journal says why it ran more.",
     "why": "For: plan passes 2 to 7 took 92 min and changed only confirm clauses and a label, and the owner asked for one pass. Against: one pass leaves defects of the kind passes 2 to 4 fixed, and nothing enforces the gate the host writes (a02). Verdict: build it as decided and read the next run against the plan's pre-registered readings."
    },
@@ -1159,14 +1159,15 @@
     "title": "Record the line that names a refusal's cause",
     "criterion": "P5",
     "kind": "fix-harness",
-    "status": "open",
+    "status": "done",
     "effort": "S",
     "recommended": true,
     "findings": [
      "o40"
     ],
     "goal": "Do: for a failing ShipLoop command, record the first output line that starts with 'ShipLoop navigator:', 'ShipLoop blocked:', 'error:' or 'shiploop: error:', and only without one the first line FAILURE_LINE matches today. Files and symbols: FAILURE_LINE and the shiploop_failures loop in collect, test/shiploop_e2e/metrics.py. Test: a MetricsTest case with this run's two shapes (the cause line, then the 'Read the current packet with next' tail; an AssertionError, then the cause) that records the cause line. Done when: that test passes and a read-only re-collect of the Luna run records no generic tail among its 13 failures.",
-    "why": "For: 9 of 13 recorded lines hide the cause, so neither the page nor a reviewer can say why a command was refused. Against: the line of an older metrics.json changes only on a regrade. Verdict: do it; one rule, testable on recorded output."
+    "why": "For: 9 of 13 recorded lines hide the cause, so neither the page nor a reviewer can say why a command was refused. Against: the line of an older metrics.json changes only on a regrade. Verdict: do it; one rule, testable on recorded output. [Superseded 2026-10-09: done in 9c593a37; its Done when holds (a read-only re-collect records no generic tail).]",
+    "ref": "9c593a37 (2026-10-05); verified 2026-10-09 by a read-only re-collect of the Luna run (docs/experiments/run-review-r22c-20261009/figures.json luna_recollect)"
    },
    "a22": {
     "title": "Keep callback path typos as a monitored known limit",
@@ -1186,13 +1187,13 @@
     "title": "Export the Backchain passes option and whether the final candidate was checked",
     "criterion": "B2",
     "kind": "fix-harness",
-    "status": "planned",
+    "status": "built",
     "effort": "S",
     "recommended": true,
     "findings": [
      "o25"
     ],
-    "ref": "docs/shiploop-fast-planning-plan-2026-10-04.md (branch fastplan-1f1dd3, 9747d769) I4 (handed to the Run Review work)",
+    "ref": "docs/shiploop-fast-planning-plan-2026-10-04.md (branch fastplan-1f1dd3, 9747d769) I4 (handed to the Run Review work) [2026-10-09: built in 41c45512 (R16), released with shiploop-run-review 0.1.1 in skill-craft 1.21.2 (d1cca62f); no looped run has been exported since, so its Done when is not yet shown]",
     "goal": "Do: have the exporter add to each backchain document the run's backchain_passes option from state.md and whether the last backchain-check receipt's candidate digest equals the loop's final candidate digest (unknown when either is missing). Files and symbols: loop_doc and build_run in skills/shiploop-run-review/scripts/export.py; the receipts under run/backchain/<action>/. Test: python3 -B test/shiploop-run-review.test.py with loop fixtures whose receipt matches and does not match. Done when: that test passes and the next looped run's export names its mode and whether its final candidate was checked.",
     "why": "For: the review can then tell from the run's own files that a loop ran and what was checked (o25). Against: it needs a17's option first. Verdict: do it with a17."
    },

@@ -41,7 +41,13 @@ def _parse(stamp: Any) -> datetime | None:
 
 
 def pace_line(pace: Mapping[str, Any] | None) -> str | None:
-    """Observed pace, and a forecast only when at least two steps give a rate."""
+    """The observed pace: the steps accepted so far and the time they took, as recorded.
+
+    It forecasts nothing. A forecast (average time per step times the steps left) read 2.4 to 6.8 times too short at its
+    first showing, after the second step, in each of five recorded preparations, because a preparation's stages differ in
+    size (0.8 to 9.6 minutes in one run, 2.5 to 121 in another); in one of those runs the work-item and release forecasts were 2 times over and 2.3 times short (88
+    against 44.4 and 13 against 30.2 minutes). The display records; it does not predict.
+    """
     if not pace:
         return None
     started = _parse(pace.get("started"))
@@ -50,13 +56,7 @@ def pace_line(pace: Mapping[str, Any] | None) -> str | None:
         return None
     elapsed = max(0.0, (stamps[-1] - started).total_seconds())
     count = len(stamps)
-    line = f"{count} step{'s' if count != 1 else ''} in {duration(elapsed)}"
-    remaining = pace.get("remaining_steps") or 0
-    if count >= 2 and elapsed > 0 and remaining:
-        estimate = elapsed / count * remaining
-        line += (f" · about {duration(estimate)} left in {pace['scope']} "
-                 "at this run's pace (an estimate, not a promise)")
-    return line
+    return f"{count} step{'s' if count != 1 else ''} in {duration(elapsed)}"
 
 
 def _phase_line(phases: Sequence[Mapping[str, Any]]) -> tuple[str, str]:

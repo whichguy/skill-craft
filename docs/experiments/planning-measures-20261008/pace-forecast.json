@@ -1,0 +1,563 @@
+{
+ "runs": [
+  {
+   "run": "20261005/v1210-battleship-grok-medium",
+   "rows": [
+    {
+     "scope": "preparation",
+     "steps_done": 2,
+     "forecast_min": 8,
+     "actual_min": 54.5
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 3,
+     "forecast_min": 7,
+     "actual_min": 52.4
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 4,
+     "forecast_min": 19,
+     "actual_min": 32.4
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 5,
+     "forecast_min": 18,
+     "actual_min": 12.8
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 6,
+     "forecast_min": 10,
+     "actual_min": 0.7
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 7,
+     "forecast_min": 148,
+     "actual_min": null
+    }
+   ]
+  },
+  {
+   "run": "20261006/v1220-battleship-grok-medium-none",
+   "rows": [
+    {
+     "scope": "preparation",
+     "steps_done": 2,
+     "forecast_min": 6,
+     "actual_min": 14.7
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 3,
+     "forecast_min": 7,
+     "actual_min": 11.9
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 4,
+     "forecast_min": 5,
+     "actual_min": 10.2
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 5,
+     "forecast_min": 3,
+     "actual_min": 9.1
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 6,
+     "forecast_min": 3,
+     "actual_min": 0.7
+    },
+    {
+     "scope": "release",
+     "steps_done": 43,
+     "forecast_min": 13,
+     "actual_min": 30.2
+    },
+    {
+     "scope": "release",
+     "steps_done": 44,
+     "forecast_min": 14,
+     "actual_min": 14.6
+    },
+    {
+     "scope": "release",
+     "steps_done": 45,
+     "forecast_min": 12,
+     "actual_min": 12.9
+    },
+    {
+     "scope": "release",
+     "steps_done": 46,
+     "forecast_min": 10,
+     "actual_min": 12.5
+    },
+    {
+     "scope": "release",
+     "steps_done": 47,
+     "forecast_min": 9,
+     "actual_min": 9.4
+    },
+    {
+     "scope": "release",
+     "steps_done": 48,
+     "forecast_min": 7,
+     "actual_min": 4.8
+    },
+    {
+     "scope": "release",
+     "steps_done": 49,
+     "forecast_min": 5,
+     "actual_min": 3.5
+    },
+    {
+     "scope": "release",
+     "steps_done": 50,
+     "forecast_min": 4,
+     "actual_min": 1.8
+    },
+    {
+     "scope": "release",
+     "steps_done": 51,
+     "forecast_min": 2,
+     "actual_min": 0.9
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 7,
+     "forecast_min": 88,
+     "actual_min": 44.4
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 9,
+     "forecast_min": 74,
+     "actual_min": 41.8
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 13,
+     "forecast_min": 53,
+     "actual_min": 38.6
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 16,
+     "forecast_min": 49,
+     "actual_min": 32.6
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 22,
+     "forecast_min": 34,
+     "actual_min": 26.2
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 25,
+     "forecast_min": 27,
+     "actual_min": 24.1
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 27,
+     "forecast_min": 23,
+     "actual_min": 21.9
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 31,
+     "forecast_min": 17,
+     "actual_min": 17.7
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 34,
+     "forecast_min": 13,
+     "actual_min": 13.6
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 40,
+     "forecast_min": 4,
+     "actual_min": 5.4
+    }
+   ]
+  },
+  {
+   "run": "20261006/v1220-battleship-sonnet",
+   "rows": [
+    {
+     "scope": "preparation",
+     "steps_done": 2,
+     "forecast_min": 1.0,
+     "actual_min": 5.6
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 3,
+     "forecast_min": 1.0,
+     "actual_min": 5.5
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 4,
+     "forecast_min": 3,
+     "actual_min": 1.7
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 5,
+     "forecast_min": 2,
+     "actual_min": 1.0
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 6,
+     "forecast_min": 1,
+     "actual_min": 0.3
+    },
+    {
+     "scope": "release",
+     "steps_done": 37,
+     "forecast_min": 3,
+     "actual_min": 3.2
+    },
+    {
+     "scope": "release",
+     "steps_done": 38,
+     "forecast_min": 3,
+     "actual_min": 2.5
+    },
+    {
+     "scope": "release",
+     "steps_done": 39,
+     "forecast_min": 3,
+     "actual_min": 2.4
+    },
+    {
+     "scope": "release",
+     "steps_done": 40,
+     "forecast_min": 2,
+     "actual_min": 1.9
+    },
+    {
+     "scope": "release",
+     "steps_done": 41,
+     "forecast_min": 2,
+     "actual_min": 1.2
+    },
+    {
+     "scope": "release",
+     "steps_done": 42,
+     "forecast_min": 2,
+     "actual_min": 1.1
+    },
+    {
+     "scope": "release",
+     "steps_done": 43,
+     "forecast_min": 1,
+     "actual_min": 0.5
+    },
+    {
+     "scope": "release",
+     "steps_done": 44,
+     "forecast_min": 1,
+     "actual_min": 0.2
+    },
+    {
+     "scope": "release",
+     "steps_done": 45,
+     "forecast_min": 1.0,
+     "actual_min": 0.1
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 7,
+     "forecast_min": 15,
+     "actual_min": 8.3
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 9,
+     "forecast_min": 12,
+     "actual_min": 7.4
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 13,
+     "forecast_min": 8,
+     "actual_min": 6.0
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 18,
+     "forecast_min": 10,
+     "actual_min": 3.9
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 19,
+     "forecast_min": 9,
+     "actual_min": 3.7
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 23,
+     "forecast_min": 6,
+     "actual_min": 3.0
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 28,
+     "forecast_min": 4,
+     "actual_min": 2.7
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 34,
+     "forecast_min": 1,
+     "actual_min": 1.4
+    }
+   ]
+  },
+  {
+   "run": "20261007/v1230-battleship-grok-none",
+   "rows": [
+    {
+     "scope": "preparation",
+     "steps_done": 2,
+     "forecast_min": 6,
+     "actual_min": 14.4
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 3,
+     "forecast_min": 5,
+     "actual_min": 13.0
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 4,
+     "forecast_min": 4,
+     "actual_min": 11.7
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 5,
+     "forecast_min": 3,
+     "actual_min": 10.3
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 6,
+     "forecast_min": 3,
+     "actual_min": 0.8
+    },
+    {
+     "scope": "release",
+     "steps_done": 45,
+     "forecast_min": 18,
+     "actual_min": null
+    },
+    {
+     "scope": "release",
+     "steps_done": 46,
+     "forecast_min": 16,
+     "actual_min": null
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 7,
+     "forecast_min": 87,
+     "actual_min": 71.8
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 9,
+     "forecast_min": 69,
+     "actual_min": 70.5
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 13,
+     "forecast_min": 55,
+     "actual_min": 64.7
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 16,
+     "forecast_min": 48,
+     "actual_min": 59.9
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 22,
+     "forecast_min": 33,
+     "actual_min": 53.8
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 25,
+     "forecast_min": 27,
+     "actual_min": 51.5
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 27,
+     "forecast_min": 24,
+     "actual_min": 48.0
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 29,
+     "forecast_min": 24,
+     "actual_min": 44.9
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 33,
+     "forecast_min": 18,
+     "actual_min": 39.7
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 36,
+     "forecast_min": 17,
+     "actual_min": 21.3
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 42,
+     "forecast_min": 5,
+     "actual_min": 13.1
+    }
+   ]
+  },
+  {
+   "run": "20261007/v1230-battleship-sonnet",
+   "rows": [
+    {
+     "scope": "preparation",
+     "steps_done": 2,
+     "forecast_min": 1.0,
+     "actual_min": 4.4
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 3,
+     "forecast_min": 1.0,
+     "actual_min": 4.2
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 4,
+     "forecast_min": 2,
+     "actual_min": 1.9
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 5,
+     "forecast_min": 1,
+     "actual_min": 1.2
+    },
+    {
+     "scope": "preparation",
+     "steps_done": 6,
+     "forecast_min": 1,
+     "actual_min": 0.2
+    },
+    {
+     "scope": "release",
+     "steps_done": 29,
+     "forecast_min": 5,
+     "actual_min": 4.5
+    },
+    {
+     "scope": "release",
+     "steps_done": 30,
+     "forecast_min": 4,
+     "actual_min": 3.4
+    },
+    {
+     "scope": "release",
+     "steps_done": 31,
+     "forecast_min": 4,
+     "actual_min": 3.2
+    },
+    {
+     "scope": "release",
+     "steps_done": 32,
+     "forecast_min": 3,
+     "actual_min": 3.0
+    },
+    {
+     "scope": "release",
+     "steps_done": 33,
+     "forecast_min": 3,
+     "actual_min": 1.9
+    },
+    {
+     "scope": "release",
+     "steps_done": 34,
+     "forecast_min": 2,
+     "actual_min": 1.6
+    },
+    {
+     "scope": "release",
+     "steps_done": 35,
+     "forecast_min": 2,
+     "actual_min": 0.9
+    },
+    {
+     "scope": "release",
+     "steps_done": 36,
+     "forecast_min": 1,
+     "actual_min": 0.4
+    },
+    {
+     "scope": "release",
+     "steps_done": 37,
+     "forecast_min": 1,
+     "actual_min": 0.3
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 7,
+     "forecast_min": 12,
+     "actual_min": 10.6
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 9,
+     "forecast_min": 10,
+     "actual_min": 9.4
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 13,
+     "forecast_min": 7,
+     "actual_min": 7.8
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 20,
+     "forecast_min": 5,
+     "actual_min": 5.1
+    },
+    {
+     "scope": "the work items",
+     "steps_done": 26,
+     "forecast_min": 1,
+     "actual_min": 2.4
+    }
+   ]
+  }
+ ]
+}

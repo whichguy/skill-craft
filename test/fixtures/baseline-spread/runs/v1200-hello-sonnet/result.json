@@ -1,0 +1,100 @@
+{
+ "case": "hello",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "pass": true,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "versions": {
+  "source": "marketplace",
+  "installed_by": "origin/main export",
+  "plugin_version": "1.20.0",
+  "shiploop_version": "0.52.0",
+  "released": {
+   "origin_main": "7aff70aa154b1ff70f5c703793aa43400a923be2",
+   "local_head": "7aff70aa154b1ff70f5c703793aa43400a923be2",
+   "local_behind_main": true,
+   "catalog_version": "1.20.0",
+   "shiploop_version": "0.52.0",
+   "unreleased": [],
+   "ci": "pending"
+  },
+  "gate": []
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_seconds": 518.9,
+  "stop": "success",
+  "pass": true,
+  "regraded": null,
+  "sessions": [
+   {
+    "status": "exited",
+    "stop": "success",
+    "host": "claude",
+    "resumed": null
+   }
+  ]
+ },
+ "termination": {
+  "process_status": "exited",
+  "returncode": 0,
+  "sessions": 1,
+  "resumes": 0,
+  "session_stops": [
+   "success"
+  ],
+  "resume_stop": "host is not resumable",
+  "engine_status": "done",
+  "engine_stage": "done",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": null
+ },
+ "shiploop": {
+  "pass": true,
+  "run_dir": "/Users/dadleet/e2e-runs/20261004/v1200-hello-sonnet/.shiploop-runs/work-20261004-231618-044fcb/run"
+ },
+ "committed": {
+  "pass": true
+ },
+ "checks": [
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  }
+ ],
+ "resumed_run": null,
+ "seeded": null,
+ "metrics": {
+  "claude_code_version": null,
+  "turns": 149,
+  "model_calls": null,
+  "cost_usd": 3.6242,
+  "unreported_sessions": 0,
+  "compactions": null,
+  "truncated_outputs": null,
+  "cancelled_tool_calls": null,
+  "model_glue": null,
+  "tmp_writes": null,
+  "shiploop_failures": null,
+  "unmeasured": {
+   "compactions": "reduced",
+   "truncated_outputs": "reduced",
+   "cancelled_tool_calls": "reduced",
+   "knowledge_reads": "reduced",
+   "stage_tool_calls": "reduced",
+   "shiploop_failures": "reduced",
+   "model_glue": "reduced",
+   "tmp_writes": "reduced"
+  }
+ },
+ "output": "/Users/dadleet/e2e-runs/20261004/v1200-hello-sonnet"
+}

@@ -240,9 +240,28 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(unavailable.stdout, "")
                 self.assertIn("could not run", unavailable.stderr)
                 self.assertIn("this is not a finding", unavailable.stderr)
+                # A model that checked a prose plan learned the schema by reading this checker's source (batch 1009
+                # BC1); the message names the document that defines it instead.
+                self.assertIn('Backchain SKILL.md, "Plan document shape"', unavailable.stderr)
+                self.assertIn("not a prose plan", unavailable.stderr)
         missing = self.check(self.base / "absent.json", "--run-dir", str(self.run))
         self.assertEqual((missing.returncode, missing.stdout), (3, ""))
         self.assertEqual(len(list((self.run / "backchain" / self.action).iterdir())), 4)
+
+    def test_a_markdown_candidate_is_told_it_must_be_the_plan_graph_json_and_where_the_shape_is_defined(self):
+        # Both round-1 runs passed the Markdown plan note and read "not JSON: Expecting value" with no way forward.
+        note = self.base / "plan.md"
+        note.write_text("# Plan\n\n1. Build the thing.\n", encoding="utf-8")
+        refused = self.check(note, "--run-dir", str(self.run))
+        self.assertEqual((refused.returncode, refused.stdout), (3, ""))
+        self.assertIn("could not run: not JSON", refused.stderr)
+        self.assertIn("the Backchain plan graph as a JSON file, not a Markdown plan note", refused.stderr)
+        self.assertIn(str(prompts.backchain_skills_root() / "backchain" / "prompts" / "generator.v1.md"), refused.stderr)
+        self.assertTrue((prompts.backchain_skills_root() / "backchain" / "prompts" / "generator.v1.md").is_file())
+        self.assertIn("this is not a finding", refused.stderr)
+        absent = self.check(self.base / "absent.json", "--run-dir", str(self.run))
+        self.assertEqual(absent.returncode, 3)
+        self.assertNotIn("generator.v1.md", absent.stderr)  # only a file that is not JSON is told what to write instead
 
     def test_the_receipt_reports_the_packaged_check(self):
         candidate = CORPUS / "luna/step-plan-final.json"

@@ -1,0 +1,22 @@
+{
+ "case": "checkers",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "plugin_dir": "/Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/build/plugins/skill-craft",
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.24.0",
+  "shiploop_version": "0.56.0",
+  "local_head": "5e209285b8cc17f35bd7366e3733bf822dcac437",
+  "regraded": true
+ },
+ "resumed_run": {
+  "from_host": "claude",
+  "from_model": "claude-sonnet-5-5",
+  "run_dir": "/Users/dadleet/e2e-runs/20261008/r1-checkers-sonnet/.shiploop-runs/work-20261008-174135-41d2f7/run",
+  "revision": 52,
+  "stage": "done"
+ },
+ "seeded": null
+}

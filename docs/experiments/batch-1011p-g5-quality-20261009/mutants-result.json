@@ -1,0 +1,898 @@
+[
+ {
+  "id": "P01 end_group signals a reaped pid",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_group_whose_leader_has_exited_but_is_not_reaped_is_ended_and_one_already_reaped_is_not"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "P02 end_group does not check the leader leads its group",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_process_that_does_not_lead_its_group_is_never_signalled"
+  ],
+  "seconds": 32
+ },
+ {
+  "id": "P03 finish does not end the group",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_hanging_mutant_is_counted_killed_and_its_whole_group_ends",
+   "test_a_mutation_phase_over_a_test_run_that_leaves_helpers_leaves_none_alive",
+   "test_a_test_run_that_leaves_a_helper_in_its_group_leaves_nothing_behind_and_keeps_its_exit_code"
+  ],
+  "seconds": 72
+ },
+ {
+  "id": "P04 start does not register",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_group_is_ended_whole_while_its_leader_still_leads_it",
+   "test_a_group_the_phase_started_is_ended_by_the_harness_when_it_is_told_to_end",
+   "test_every_group_is_registered_while_it_runs_and_forgotten_after"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "P05 finish does not forget",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_hanging_mutant_is_counted_killed_and_its_whole_group_ends",
+   "test_a_test_run_that_leaves_a_helper_in_its_group_leaves_nothing_behind_and_keeps_its_exit_code",
+   "test_every_group_is_registered_while_it_runs_and_forgotten_after"
+  ],
+  "seconds": 3
+ },
+ {
+  "id": "P06 a leader that exited is waited for forever",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_baseline_that_does_not_finish_is_not_observed",
+   "test_a_hanging_mutant_is_counted_killed_and_its_whole_group_ends"
+  ],
+  "seconds": 211
+ },
+ {
+  "id": "G01 runs get no guard environment",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_delivery_whose_own_tests_touch_a_declared_port_is_not_run",
+   "test_a_mutant_caught_with_a_refusal_keeps_the_marker_and_the_count_and_no_other_run_shares_it",
+   "test_every_child_of_the_phase_gets_the_ports_and_its_own_refusal_log"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "G02 a baseline that touches a port is run",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_delivery_whose_own_tests_touch_a_declared_port_is_not_run"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "G03 a mutant's refusals are not counted",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_mutant_caught_with_a_refusal_keeps_the_marker_and_the_count_and_no_other_run_shares_it"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "G04 one refusal log for every run",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_mutant_caught_with_a_refusal_keeps_the_marker_and_the_count_and_no_other_run_shares_it"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "G05 the kill record drops the marker",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_mutant_caught_with_a_refusal_keeps_the_marker_and_the_count_and_no_other_run_shares_it"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "G06 NODE_OPTIONS replaced, not extended",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_the_catalog_puts_the_preload_in_node_options_beside_what_was_there"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "G07 a path with a space is not quoted",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_the_catalog_puts_the_preload_in_node_options_beside_what_was_there"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "G08 acceptance server not guarded",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_product_that_ignores_port_and_meets_the_guard_says_so_instead_of_exited_1"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "G09 preload ignores numeric strings",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_connecting_to_the_declared_port_is_refused_by_net_http_and_fetch",
+   "test_listening_on_the_declared_port_fails_like_an_address_in_use_in_every_form"
+  ],
+  "seconds": 31
+ },
+ {
+  "id": "G10 preload does not refuse connect",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_connecting_to_the_declared_port_is_refused_by_net_http_and_fetch"
+  ],
+  "seconds": 1
+ },
+ {
+  "id": "G11 preload does not note the refusal",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_connecting_to_the_declared_port_is_refused_by_net_http_and_fetch",
+   "test_listening_on_the_declared_port_fails_like_an_address_in_use_in_every_form",
+   "test_other_ports_and_ephemeral_listens_are_untouched_and_children_inherit_the_guard"
+  ],
+  "seconds": 1
+ },
+ {
+  "id": "G12 preload does not read an options object",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_connecting_to_the_declared_port_is_refused_by_net_http_and_fetch",
+   "test_listening_on_the_declared_port_fails_like_an_address_in_use_in_every_form"
+  ],
+  "seconds": 61
+ },
+ {
+  "id": "G13 preload does not refuse listen",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_listening_on_the_declared_port_fails_like_an_address_in_use_in_every_form",
+   "test_other_ports_and_ephemeral_listens_are_untouched_and_children_inherit_the_guard"
+  ],
+  "seconds": 210
+ },
+ {
+  "id": "G14 declared ports not carried by case_quality",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_the_cases_that_default_to_3000_declare_it"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "C01 a failure is not confirmed",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_failure_that_does_not_repeat_is_unconfirmed_and_stays_out_of_the_ratio"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "C02 a hang is run again",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_hang_is_not_run_twice_and_is_a_kill_that_says_it_timed_out"
+  ],
+  "seconds": 15
+ },
+ {
+  "id": "C03 the stop is not asked before the second run",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_stop_between_a_failing_run_and_its_confirmation_confirms_nothing",
+   "test_a_stop_that_arrives_during_the_last_mutant_discards_the_ratio_too"
+  ],
+  "seconds": 14
+ },
+ {
+  "id": "C04 a kill records no evidence",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_every_caught_mutant_is_confirmed_by_a_second_run_and_records_the_first_failing_line"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "C05 a hang is a sign of a load",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_only_a_confirmed_failure_that_is_not_a_hang_shows_a_sign_of_a_load"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "C06 unconfirmed counts against the ratio",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_failure_that_does_not_repeat_is_unconfirmed_and_stays_out_of_the_ratio"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "C07 a syntax check that hangs is invalid",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_syntax_check_that_does_not_finish_is_not_run_with_its_reason_and_not_invalid"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "C08 a syntax check that cannot start is invalid",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_syntax_check_that_cannot_start_is_not_run_not_invalid"
+  ],
+  "seconds": 14
+ },
+ {
+  "id": "C09 page script counted in docs",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_page_script_no_operator_reaches_is_named_with_its_lines_beside_the_lines_mutated"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "C10 a script with src counted",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_page_script_no_operator_reaches_is_named_with_its_lines_beside_the_lines_mutated"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "C11 the line says never loaded",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_file_with_no_sign_of_a_load_is_not_called_never_loaded"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "C12 a file's lines are not recorded",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_page_script_no_operator_reaches_is_named_with_its_lines_beside_the_lines_mutated"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "C13 unconfirmed not in the line",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_unconfirmed_timeouts_refusals_and_unreached_page_script_are_in_the_line_when_there_are_any"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "C14 no stop check after the last mutant",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_stop_that_arrives_during_the_last_mutant_discards_the_ratio_too"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "C15 the ceiling's reason is not recorded",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_ceiling_hit_leaves_a_sample_of_every_file_and_counts_the_rest_as_not_run"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "C16 TAP numbering stays in the evidence",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_failure_that_does_not_repeat_is_unconfirmed_and_stays_out_of_the_ratio",
+   "test_every_caught_mutant_is_confirmed_by_a_second_run_and_records_the_first_failing_line"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "R01 the phase runs before the export",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_kill_in_the_phase_loses_neither_the_export_nor_the_baseline_row_nor_the_result",
+   "test_a_run_that_returned_no_delivery_records_why_and_starts_nothing",
+   "test_a_run_whose_engine_is_still_active_is_not_measured",
+   "test_the_result_the_export_and_the_row_are_written_before_the_phase_and_the_result_again_with_the_block"
+  ],
+  "seconds": 15
+ },
+ {
+  "id": "R02 the row carries the block",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_case_that_declares_nothing_and_a_custom_prompt_record_that_and_leave_the_row_alone",
+   "test_a_finished_delivery_is_measured_and_recorded_in_the_result_and_the_report_and_not_in_the_row",
+   "test_a_run_that_returned_no_delivery_records_why_and_starts_nothing",
+   "test_the_result_the_export_and_the_row_are_written_before_the_phase_and_the_result_again_with_the_block"
+  ],
+  "seconds": 9
+ },
+ {
+  "id": "R03 a regrade replaces a measurement with a gap",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_regrade_that_cannot_measure_keeps_the_earlier_observed_block_and_says_why_beside_it"
+  ],
+  "seconds": 9
+ },
+ {
+  "id": "R04 the failed block lacks declared",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_an_error_in_the_phase_is_recorded_and_changes_neither_the_verdict_nor_the_exit",
+   "test_the_phase_failing_is_a_block_with_the_same_keys_a_reader_looks_for"
+  ],
+  "seconds": 14
+ },
+ {
+  "id": "R05 stage appends the sentence",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_stage_is_the_engines_default_so_it_appends_nothing_and_is_still_recorded"
+  ],
+  "seconds": 1
+ },
+ {
+  "id": "R06 the card is looked for after the host CLI",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_missing_improve_card_is_refused_before_any_host_cli_runs",
+   "test_none_without_the_improve_card_in_the_plugin_is_refused_before_any_host_starts"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "R07 mixed_host recomputed wrongly",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_hosts_are_runrecords_and_a_run_two_hosts_worked_on_is_marked_and_its_memory_list_says_it_covers_claude_only"
+  ],
+  "seconds": 5
+ },
+ {
+  "id": "R08 no launch record reads as an empty host list",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_run_folder_with_no_launch_record_says_so_and_does_not_guess_a_host"
+  ],
+  "seconds": 5
+ },
+ {
+  "id": "R09 the mixed-host note is dropped",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_hosts_are_runrecords_and_a_run_two_hosts_worked_on_is_marked_and_its_memory_list_says_it_covers_claude_only"
+  ],
+  "seconds": 5
+ },
+ {
+  "id": "R10 the held-out note is dropped",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_held_out_count_says_what_zero_does_not_prove"
+  ],
+  "seconds": 5
+ },
+ {
+  "id": "R11 a custom run is measured by battleship",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_custom_run_is_never_measured_by_a_case_declaration_whatever_the_catalog_holds"
+  ],
+  "seconds": 9
+ },
+ {
+  "id": "R12 quality_stop ignores the signal",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_the_phases_stop_is_a_signal_to_the_harness_or_a_stop_file_each_on_its_own"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "R13 quality_stop ignores the stop file",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_the_phases_stop_is_a_signal_to_the_harness_or_a_stop_file_each_on_its_own"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "R14 a follow-on does not inherit the declaration",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_follow_on_is_measured_by_the_followed_cases_declaration_unless_it_names_its_own",
+   "test_the_cases_that_default_to_3000_declare_it"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "R15 the child inherits the harness's PORT",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_child_never_inherits_the_harnesss_port"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "R16 coverage matches a sibling folder",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_coverage_counts_only_files_under_the_copy_itself"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "R17 the gate ignores the lock",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_regrade_that_cannot_measure_keeps_the_earlier_observed_block_and_says_why_beside_it",
+   "test_a_regrade_with_no_earlier_block_records_why_it_could_not_measure",
+   "test_each_reason"
+  ],
+  "seconds": 10
+ },
+ {
+  "id": "R18 the seed-at refusal is removed",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_seeded_run_takes_no_planning_review"
+  ],
+  "seconds": 1
+ },
+ {
+  "id": "R19 a resume may change the mode",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_resume_names_the_runs_own_value_or_none"
+  ],
+  "seconds": 1
+ },
+ {
+  "id": "R20 the phase's error fails closed",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_an_error_in_the_phase_is_recorded_and_changes_neither_the_verdict_nor_the_exit"
+  ],
+  "seconds": 9
+ },
+ {
+  "id": "A:M01 end_group: no reaped-pid guard",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_group_whose_leader_has_exited_but_is_not_reaped_is_ended_and_one_already_reaped_is_not"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "A:M02 end_group: no leader check",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_process_that_does_not_lead_its_group_is_never_signalled"
+  ],
+  "seconds": 32
+ },
+ {
+  "id": "A:M03 start: not registered",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_group_is_ended_whole_while_its_leader_still_leads_it",
+   "test_a_group_the_phase_started_is_ended_by_the_harness_when_it_is_told_to_end",
+   "test_every_group_is_registered_while_it_runs_and_forgotten_after"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "A:M04 finish: never forgotten",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_hanging_mutant_is_counted_killed_and_its_whole_group_ends",
+   "test_a_test_run_that_leaves_a_helper_in_its_group_leaves_nothing_behind_and_keeps_its_exit_code",
+   "test_every_group_is_registered_while_it_runs_and_forgotten_after"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "A:M05 run_once: timeout not group-killed",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_hanging_mutant_is_counted_killed_and_its_whole_group_ends",
+   "test_a_mutation_phase_over_a_test_run_that_leaves_helpers_leaves_none_alive",
+   "test_a_test_run_that_leaves_a_helper_in_its_group_leaves_nothing_behind_and_keeps_its_exit_code"
+  ],
+  "seconds": 18
+ },
+ {
+  "id": "A:M06 no stop check before a mutant",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_stop_between_a_failing_run_and_its_confirmation_confirms_nothing",
+   "test_a_stop_that_arrives_during_the_last_mutant_discards_the_ratio_too"
+  ],
+  "seconds": 14
+ },
+ {
+  "id": "A:M07 no stop check after the last",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_stop_that_arrives_during_the_last_mutant_discards_the_ratio_too"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "A:M08 ceiling >= to >",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_ceiling_hit_leaves_a_sample_of_every_file_and_counts_the_rest_as_not_run"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "A:M09 file order instead of round robin",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_ceiling_hit_leaves_a_sample_of_every_file_and_counts_the_rest_as_not_run"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "A:M10 a confirmed kill is no sign of a load",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_file_the_coverage_misses_but_a_caught_mutant_proves_is_loaded",
+   "test_what_the_tests_load_is_proved_by_a_caught_mutant_and_unknown_without_a_coverage_record"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "A:M11 no restore of the mutated file",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_failure_that_does_not_repeat_is_unconfirmed_and_stays_out_of_the_ratio",
+   "test_a_file_the_coverage_misses_but_a_caught_mutant_proves_is_loaded",
+   "test_a_hang_is_not_run_twice_and_is_a_kill_that_says_it_timed_out",
+   "test_a_mutant_that_is_not_valid_syntax_is_dropped_from_the_ratio",
+   "test_a_mutant_the_tests_catch_and_one_they_miss_are_told_apart_and_the_source_is_restored",
+   "test_a_requested_stop_ends_the_phase_with_no_ratio_and_the_source_intact"
+  ],
+  "seconds": 15
+ },
+ {
+  "id": "A:M12 unreadable events count 0",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_case_with_no_held_out_acceptance_has_nothing_held_out_to_see",
+   "test_a_run_with_no_claude_session_has_no_memory_measure_and_says_so",
+   "test_events_that_are_absent_or_unreadable_leave_both_facts_null_with_the_reason",
+   "test_launch_records_that_name_no_host_leave_the_memory_list_unknown"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:M13 MultiEdit not a write",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_edit_and_multiedit_count_and_a_path_that_only_resembles_the_memory_folder_does_not"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:M14 memory regex has no end boundary (the reviewer's version made an invalid regex, caught only by a crash)",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_edit_and_multiedit_count_and_a_path_that_only_resembles_the_memory_folder_does_not"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:M15 reap the whole output folder",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_server_a_test_run_leaves_under_the_copy_is_stopped_and_one_beside_the_delivery_is_not",
+   "test_an_error_inside_the_phase_still_reaps_the_copy_folder_and_propagates"
+  ],
+  "seconds": 6
+ },
+ {
+  "id": "A:M16 an earlier copy reused",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_an_earlier_copy_of_a_regrade_is_replaced_not_reused"
+  ],
+  "seconds": 4
+ },
+ {
+  "id": "A:M17 acceptance server not ended",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_requested_stop_ends_the_checks_without_a_pass_for_the_unrun",
+   "test_a_server_that_never_listens_leaves_the_checks_unrun_and_its_group_ended",
+   "test_every_check_passes_the_correct_service_and_fails_the_defect_it_reads"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "A:M18 PORT not stripped",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_child_never_inherits_the_harnesss_port"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "A:M19 a zero-test baseline accepted",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_red_baseline_is_not_observed_and_never_a_ratio"
+  ],
+  "seconds": 14
+ },
+ {
+  "id": "A:M20 a red baseline accepted",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_red_baseline_is_not_observed_and_never_a_ratio"
+  ],
+  "seconds": 14
+ },
+ {
+  "id": "A:M21 timeouts not counted",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_hanging_mutant_is_counted_killed_and_its_whole_group_ends",
+   "test_only_a_confirmed_failure_that_is_not_a_hang_shows_a_sign_of_a_load"
+  ],
+  "seconds": 16
+ },
+ {
+  "id": "A:M22 test-file pattern loses -test",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_test_files_dependencies_docs_and_the_cases_exclusions_are_not_source"
+  ],
+  "seconds": 14
+ },
+ {
+  "id": "A:M23 E2E_CHECKS marker dropped",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_saved_run_without_acceptance_declares_no_markers_but_the_shared_ones",
+   "test_held_out_seen_counts_lines_that_name_a_held_out_script_or_the_checks_folder"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:M24 coverage path check loosened",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_coverage_counts_only_files_under_the_copy_itself"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "A:M25 mixed_host always false",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_hosts_are_runrecords_and_a_run_two_hosts_worked_on_is_marked_and_its_memory_list_says_it_covers_claude_only"
+  ],
+  "seconds": 5
+ },
+ {
+  "id": "A:R01 gate: engine active ignored",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_each_reason",
+   "test_the_saved_records_of_round_3_are_gated_as_the_audit_read_them"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:R02 gate: stop file ignored",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_signal_to_the_harness_and_a_stop_file_are_stops"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:R03 gate: lock ignored",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_each_reason"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:R04 no first result write",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_kill_in_the_phase_loses_neither_the_export_nor_the_baseline_row_nor_the_result",
+   "test_the_result_the_export_and_the_row_are_written_before_the_phase_and_the_result_again_with_the_block"
+  ],
+  "seconds": 9
+ },
+ {
+  "id": "A:R05 phase groups not live",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_the_result_the_export_and_the_row_are_written_before_the_phase_and_the_result_again_with_the_block"
+  ],
+  "seconds": 9
+ },
+ {
+  "id": "A:R06 quality_stop ignores TERMINATION",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_the_phases_stop_is_a_signal_to_the_harness_or_a_stop_file_each_on_its_own"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:R07 resume any mode",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_resume_names_the_runs_own_value_or_none"
+  ],
+  "seconds": 1
+ },
+ {
+  "id": "A:R08 none without the card allowed",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_missing_improve_card_is_refused_before_any_host_cli_runs",
+   "test_none_without_the_improve_card_in_the_plugin_is_refused_before_any_host_starts"
+  ],
+  "seconds": 2
+ },
+ {
+  "id": "A:R09 hosts from the flag",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_regrade_measures_again_reproduces_the_memory_writes_from_the_events_and_names_both_hosts",
+   "test_each_host_is_measured_the_same_way",
+   "test_hosts_are_runrecords_and_a_run_two_hosts_worked_on_is_marked_and_its_memory_list_says_it_covers_claude_only"
+  ],
+  "seconds": 14
+ },
+ {
+  "id": "A:R10 the none sentence omits the card (the stage sentence no longer exists)",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_custom_prompt_takes_the_option_the_same_way",
+   "test_none_on_a_named_case_names_the_option_and_the_improve_card_and_keeps_the_case"
+  ],
+  "seconds": 1
+ },
+ {
+  "id": "A:R11 a custom run measured by battleship",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_custom_run_is_never_measured_by_a_case_declaration_whatever_the_catalog_holds"
+  ],
+  "seconds": 9
+ },
+ {
+  "id": "A:R12 gate: committed ignored",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_each_reason"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:R13 the followed case outranks the case's own declaration (acceptance lists no longer concatenate)",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_follow_on_is_measured_by_the_followed_cases_declaration_unless_it_names_its_own"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:M14b memory regex needs no slash",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_edit_and_multiedit_count_and_a_path_that_only_resembles_the_memory_folder_does_not"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:M26 memory read for every host",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_run_with_no_claude_session_has_no_memory_measure_and_says_so"
+  ],
+  "seconds": 0
+ },
+ {
+  "id": "A:M28 acceptance ignores the stop",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_requested_stop_ends_the_checks_without_a_pass_for_the_unrun"
+  ],
+  "seconds": 1
+ },
+ {
+  "id": "A:M30 acceptance server not given PORT",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_check_that_raises_fails_with_the_exception_and_the_others_still_run",
+   "test_a_requested_stop_ends_the_checks_without_a_pass_for_the_unrun",
+   "test_every_check_passes_the_correct_service_and_fails_the_defect_it_reads",
+   "test_nothing_but_the_servers_own_command_line_reaches_an_argv",
+   "test_the_off_board_item_is_its_own_check_and_the_other_illegal_moves_pass_when_it_fails",
+   "test_the_record_keeps_each_checks_source_and_a_short_note"
+  ],
+  "seconds": 131
+ },
+ {
+  "id": "A:M31 baseline coverage env dropped",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_the_real_runner_gives_the_ratio_the_stand_in_gives_and_knows_which_files_the_tests_load"
+  ],
+  "seconds": 6
+ },
+ {
+  "id": "A:M32 an unparseable mutant is run as if valid",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_mutant_that_is_not_valid_syntax_is_dropped_from_the_ratio"
+  ],
+  "seconds": 13
+ },
+ {
+  "id": "A:R14 the seed-at refusal removed",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_seeded_run_takes_no_planning_review"
+  ],
+  "seconds": 1
+ },
+ {
+  "id": "A:R15 the phase's error fails closed",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_an_error_in_the_phase_is_recorded_and_changes_neither_the_verdict_nor_the_exit"
+  ],
+  "seconds": 9
+ },
+ {
+  "id": "A:R16 no second result write",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_a_case_that_declares_nothing_and_a_custom_prompt_record_that_and_leave_the_row_alone",
+   "test_a_custom_run_is_never_measured_by_a_case_declaration_whatever_the_catalog_holds",
+   "test_a_finished_delivery_is_measured_and_recorded_in_the_result_and_the_report_and_not_in_the_row",
+   "test_a_regrade_measures_again_reproduces_the_memory_writes_from_the_events_and_names_both_hosts",
+   "test_a_regrade_that_cannot_measure_keeps_the_earlier_observed_block_and_says_why_beside_it",
+   "test_a_regrade_with_no_earlier_block_records_why_it_could_not_measure"
+  ],
+  "seconds": 8
+ },
+ {
+  "id": "A:R17 the stage option appends the sentence",
+  "verdict": "caught",
+  "failing_tests": [
+   "test_stage_is_the_engines_default_so_it_appends_nothing_and_is_still_recorded"
+  ],
+  "seconds": 1
+ }
+]

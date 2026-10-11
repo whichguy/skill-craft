@@ -1,0 +1,763 @@
+{
+ "group": "plan-validate",
+ "obligations": [
+  {
+   "old_stage": "get-next-work-item",
+   "source": "shiploop_stage_spec.py:_ROWS get-next-work-item done_when[0]",
+   "obligation": "the item's prerequisites are accepted done",
+   "status": "moved",
+   "where": "owner decision 6: script check before step-plan is issued; step-plan DO 'its prerequisites are accepted (ShipLoop lists them below)'",
+   "fix": ""
+  },
+  {
+   "old_stage": "get-next-work-item",
+   "source": "shiploop_stage_spec.py:_ROWS get-next-work-item done_when[1]",
+   "obligation": "the item is still required by the plan",
+   "status": "covered",
+   "where": "step-plan DO 'First confirm the item is still required by the plan'",
+   "fix": ""
+  },
+  {
+   "old_stage": "get-next-work-item",
+   "source": "shiploop_stage_spec.py:_ROWS get-next-work-item tools/entry_runs lint-base",
+   "obligation": "ShipLoop records the item's lint base when the item starts",
+   "status": "MISSING",
+   "where": "no new stage carries entry_runs lint-base; validate-existing and verify both depend on 'the item's lint base'",
+   "fix": "Stage table: move entry_runs=('lint-base',) to step-plan (first issue for the item, not repeat/revise). Packet line in step-plan RUN: 'ShipLoop recorded this item's lint base: <commit>'."
+  },
+  {
+   "old_stage": "get-next-work-item",
+   "source": "shiploop_prompts.py:DUTIES[get-next-work-item]",
+   "obligation": "revalidate the item's dependencies, scope, owner, relevant lessons and expected outcomes; reopen its compact context and plan/evidence locators and revalidate their stated conditions before relying on an earlier convention or environment decision",
+   "status": "MISSING",
+   "where": "step-plan draft names spec/architecture/environment/test-strategy but not the item's own context and plan locators",
+   "fix": "Add to step-plan DO: 'Reopen this item's context and its plan.md section; recheck each condition they state before relying on an earlier decision.'"
+  },
+  {
+   "old_stage": "get-next-work-item",
+   "source": "shiploop_prompts.py:DUTIES[get-next-work-item]",
+   "obligation": "a missing prerequisite returns blocked naming the missing producer; never skip the item or advance to carry-forward to repair the queue",
+   "status": "CONTRADICTED",
+   "where": "step-plan DO 'if not, report blocked naming the missing producer' conflicts with navigator BLOCKED_BY_RULE (blocked only for user/access/external; anything the run can fix is not blocked) and the prerequisite half is now a script check",
+   "fix": "Replace with: 'ShipLoop issued this packet only after checking the item's prerequisites are accepted. If the plan no longer requires this item, report blocked with blocked_by user and an awaiting answer (drop or keep the item), naming the plan section that superseded it; never skip it or repair the queue here.' Owner to confirm the not-required route (see notes)."
+  },
+  {
+   "old_stage": "get-next-work-item",
+   "source": "shiploop_prompts.py:STAGE_REFERENCES[get-next-work-item]",
+   "obligation": "Cold-start evidence guidance and decision carry-forward guidance",
+   "status": "moved",
+   "where": "reference.md#cold-start (step-plan FILES 'stage guide')",
+   "fix": "Name it in step-plan FILES: 'run/reference.md#cold-start'."
+  },
+  {
+   "old_stage": "get-next-work-item",
+   "source": "shiploop_stage_spec.py:_ROWS get-next-work-item reads",
+   "obligation": "reads spec and plan",
+   "status": "covered",
+   "where": "step-plan FILES 'results this builds on: spec, test-strategy, plan'",
+   "fix": ""
+  },
+  {
+   "old_stage": "get-next-work-item",
+   "source": "shiploop_prompts.py:INLINE_STAGE_CONTEXT",
+   "obligation": "execute the stage in this conversation; never pause for a clear; after lost context run Recovery and continue",
+   "status": "covered",
+   "where": "RUN 'Recovery' in every draft (shared packet frame, not stage text)",
+   "fix": ""
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:_ROWS step-plan done_when[0]",
+   "obligation": "result opens with one sentence naming the change and the checks that prove it",
+   "status": "covered",
+   "where": "step-plan DONE WHEN 'the result opens with one sentence naming the change and the checks'",
+   "fix": ""
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:_ROWS step-plan done_when[1]",
+   "obligation": "steps lists every implementation step in the order to do them (one step is fine)",
+   "status": "MISSING",
+   "where": "draft DONE WHEN has 'each step has deps, criteria and paths' but not order/completeness, and DO drops 'ShipLoop issues one implement packet per step in that order'",
+   "fix": "DONE WHEN: 'steps lists every implementation step in the order to do them (one is fine); ShipLoop issues one implement packet per step in that order.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:_ROWS step-plan done_when[2] + shiploop_navigator.py:_normalise_steps",
+   "obligation": "each step declares deps as IDs of actual earlier prerequisites or []; order alone is not a dependency; no invented edges; ids unique",
+   "status": "covered",
+   "where": "DONE WHEN 'each step has deps' + Checked by 'deps that are not earlier steps'",
+   "fix": "Tighten to 'deps names only earlier step IDs it truly needs, or []'."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:_ROWS step-plan done_when[3] + shiploop_navigator.py:_check_step_sizing",
+   "obligation": "each step names criteria and paths; every criterion satisfied by a step; no test-only step unless the item is all tests",
+   "status": "covered",
+   "where": "DONE WHEN 'each step has deps, criteria and paths; every criterion is satisfied by a step' + Checked by 'a step that only changes test files'",
+   "fix": "Add the test-only rule to DONE WHEN itself so the exit condition implies the gate."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_navigator.py:_check_step_sizing",
+   "obligation": "a step's paths must be within the item's declared paths (fnmatch on globs)",
+   "status": "covered",
+   "where": "Checked by 'a step path the item does not declare'",
+   "fix": "Put it in DONE WHEN: 'each step's paths are inside the item's paths'."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_navigator.py:_check_step_sizing",
+   "obligation": "a step names only criteria the result lists",
+   "status": "MISSING",
+   "where": "not in DONE WHEN nor Checked by",
+   "fix": "DONE WHEN: 'a step names only listed criterion IDs'."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_navigator.py:_check_step_sizing (known criteria only)",
+   "obligation": "criteria and step criteria are required only when test_commands is nonempty; step paths always required",
+   "status": "CONTRADICTED",
+   "where": "draft requires criteria on every step even under test_commands_na, while _check_submitted_test_commands requires criteria only with commands",
+   "fix": "Either gate criteria always (recommended: every item has criteria; a doc-only item confirms them with check commands) or word DONE WHEN 'when test_commands is not empty'. Owner decision."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:_ROWS step-plan done_when[4]",
+   "obligation": "test_commands recorded (focused and regression) or test_commands_na with the reason",
+   "status": "covered",
+   "where": "DONE WHEN 'test_commands lists focused, regression and at least one check command ... or test_commands_na says why'",
+   "fix": ""
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:_ROWS step-plan done_when[5] + shiploop_navigator.py:_check_submitted_test_commands",
+   "obligation": "paths declares every file the item will change (repository-relative files or globs, normalised)",
+   "status": "covered",
+   "where": "DONE WHEN 'paths lists every file the item changes'",
+   "fix": ""
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_navigator.py:_normalise_criteria",
+   "obligation": "criteria [{id,text}], unique ids without spaces; every criterion named by at least one test command's criteria; no command names an unlisted criterion",
+   "status": "MISSING",
+   "where": "only in Checked by ('a criterion no command names'); DONE WHEN lacks it and the criteria shape is not printed",
+   "fix": "DONE WHEN: 'every criterion is named by at least one command's criteria, and commands name only listed criteria'."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_navigator.py:_normalise_criteria refusal",
+   "obligation": "a condition no command can confirm is not a criterion: record it as an open item in the summary (who does what, what they report back); elsewhere mark it 'Confirm by: unconfirmable here - <what would confirm it>'",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'A condition no command can confirm is not a criterion: record it as an open item in the summary (who does what, what they report).'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_test_loop.py:normalise_commands",
+   "obligation": "test command shape: one-line command, suite focused|regression|check, optional ids/min_tests/criteria/host_dependent; a check takes no ids or min_tests and is judged by exit code",
+   "status": "MISSING",
+   "where": "draft names the suites but not the row shape or the check-row rule",
+   "fix": "Print the row shape in the RUN template (already in the navigator step-plan template); DO: 'A check row is judged by its exit code and takes no ids or min_tests.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan] + shiploop_test_loop.py:COUNT_RULE",
+   "obligation": "each focused command lists the ids its cases will be titled with and uses a runner flag that prints test names; ShipLoop refuses a run of zero tests; ID word rule (TC-4a does not show TC-4)",
+   "status": "MISSING",
+   "where": "absent from the draft; the test stage and the RED script check depend on it",
+   "fix": "DO: 'Give each focused command the ids its cases will carry and a runner flag that prints test names (Jest --verbose, pytest -v, node --test spec/tap reporter). An ID counts only as its own word in a printed name (title TC-4a as TC-4 (a)). ShipLoop refuses a run that executed no test.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan]",
+   "obligation": "commands are runnable from the repository root; ShipLoop runs them itself; add min_tests when a command must run at least that many",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'Each command runs from the repository root; ShipLoop runs them itself. Add min_tests where a command must run at least that many.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_test_loop.py:listing_problem",
+   "obligation": "refuse a command list too large for the test loop's contract budget (shorten ids, drop duplicates, split the item)",
+   "status": "MISSING",
+   "where": "not in Checked by",
+   "fix": "Add to Checked by: 'a command list too large for the test loop contract (shorten ids, drop duplicates, or split the item)'."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "drafts.py:step-plan (new) + owner decision 4",
+   "obligation": "record check commands (lint, type, build) for the changed files or check_na",
+   "status": "covered",
+   "where": "DONE WHEN 'at least one check command (or check_na says why there is none)'",
+   "fix": "Gate is new: add check_na to the result keys and a refusal in _check_submitted_test_commands when test_commands is nonempty with no suite=check row and no check_na."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:_ROWS step-plan tools",
+   "obligation": "name the linters and type checks that cover the changed files",
+   "status": "covered",
+   "where": "DO 'check: one entry for each lint, type-check and build command environment.md records'",
+   "fix": ""
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:_ROWS step-plan test",
+   "obligation": "test-red, test-green and regression run the recorded commands exactly",
+   "status": "covered",
+   "where": "DO 'the test stage runs them and ShipLoop reruns them at its gate and at verify' (owner decision 3)",
+   "fix": ""
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:_ROWS step-plan develop",
+   "obligation": "name target files, interfaces and conventions; follow the house-style match contract",
+   "status": "covered",
+   "where": "DO Consult 'architecture.md (## Structure, ## Interfaces and boundaries, ## Conventions ...)'",
+   "fix": "Add 'and the house-style match contract (run/reference.md#house-style)'."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:_ROWS step-plan deploy",
+   "obligation": "note integration impact and any release prerequisite",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'Note the item's integration impact and any release prerequisite in plan.md.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan]",
+   "obligation": "name behaviour and failure cases, diagnostic/error-handling obligations, documentation changes and required checks",
+   "status": "MISSING",
+   "where": "draft covers steps/criteria/commands but not failure cases, diagnostics or documentation changes",
+   "fix": "DO: 'For each step state its failure cases, the diagnostics and errors it must produce, and any documentation it changes.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan] (Coding decision guide)",
+   "obligation": "retain a compact decision record in the linked plan note (outcome, preserved invariants, changed responsibilities/contracts, decisions, ordered edits, checks, readiness, completion and revalidation conditions); link the plan in evidence_refs",
+   "status": "MISSING",
+   "where": "draft never tells step-plan to write <feature>/plan.md, though knowledge_home.STAGE_FILES['step-plan'] is plan.md",
+   "fix": "DO: 'Write this item's decision record under its heading in <feature>/plan.md (outcome, invariants kept, contracts changed, checks, revalidation conditions) and cite it in evidence_refs.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan]",
+   "obligation": "planning does not authorize edits (no product file changes at step-plan)",
+   "status": "MISSING",
+   "where": "absent (only validate-existing says 'Change no product file')",
+   "fix": "DO: 'Change no product file; write only the knowledge home.' Gate: refuse done when the execution checkout changed outside docs/shiploop/ and SHIPLOOP.md."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan]",
+   "obligation": "revalidate environment, skill/MCP/library and project-practice choices for this item; identify actual runtime/version, artifact and boundary",
+   "status": "covered",
+   "where": "DO Consult environment.md (## Commands, ## Targets and runtimes) and helper-skills paragraph",
+   "fix": ""
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:_INLINE_DUTY_PARAGRAPHS[step-plan] inline",
+   "obligation": "delegation inline: no Plan Dispatcher graph, no parallel worker branches; planning never expands the item's scope",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'Planning never expands this item's scope.' The dispatcher line belongs to the delegation-specific packet frame."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan] ask-agent paragraph",
+   "obligation": "ask-agent route: create the dependency graph for the default parallel chain (direct deps, readiness/completion, shared-resource exclusions, integration node; path+digest in plan notes)",
+   "status": "moved",
+   "where": "owner decision 4 (verify assembles chained or parallel steps); detail to run/reference.md#parallel-chain",
+   "fix": "Print one line on the ask-agent route only: 'Independent steps get deps []; see run/reference.md#parallel-chain for the graph and its integration node.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan]",
+   "obligation": "every completion criterion has a confirmation 'Confirm by: <command|observation|inspection>; pass when <expected>' that passes the two-people test, and says whether exercise or inspection suffices; content criteria get a command-checkable confirmation",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'Write each criterion so two people running its command would agree: what is exercised, and the expected result. Docs and coverage criteria get a check command (a search for the required terms).'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan]",
+   "obligation": "a public entry point added/changed carries the criterion: checks its arguments and has a contract docstring (Code craft 2-3), confirmed by diff inspection and rejection tests",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'When the item adds or changes a public entry point, add a criterion that it checks its arguments and carries a contract docstring (Code craft 2-3), confirmed by its rejection tests.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan]",
+   "obligation": "when a check relies on an external oracle (golden, fixture, snapshot), confirm the oracle agrees with the task",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "Add to test-spec DO: 'A golden, fixture or snapshot oracle is checked against the requirement text first.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan] (namespace/data map)",
+   "obligation": "when adding/moving code or stored data: name each file/module/public symbol with environment, namespace, visibility and collision check; each stored field/key/table with owner, schema change mechanism and round-trip check; record a changed placement and reason",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'When the item adds code or stored data, name each new symbol's home and its collision check, and each stored field's owner, migration and round-trip check (run/reference.md#namespaces-and-data).'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "references/execution-planning.md#baseline-tests-and-migrations",
+   "obligation": "persisted data/schema change: decide whether migration is unneeded, an earlier prerequisite, part of this step or a deploy obligation",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "Covered by the namespace/data line above ('migration')."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan]",
+   "obligation": "label pinned values (fixed dice, seed data) as source-check fixtures and name the runtime control separately; a test fixture never becomes the product's only behaviour",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'Label each pinned value a check replays as a fixture and name the runtime control separately; a fixture never becomes the only behaviour.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan]",
+   "obligation": "keep the interaction delta within the selected item; an unresolved prerequisite outside scope needs its supplier/correction route, not a future bullet",
+   "status": "covered",
+   "where": "expectations + validate-existing routes (a false fact -> revise); scope line added above",
+   "fix": ""
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:INTERACTION_DESIGN + DESIGN_BASIS_DUTY (block interaction-design)",
+   "obligation": "actors, channels, events, connection lifecycle, state ownership; state & information lifecycle (owner, visibility, concurrency, end, quotas, personal data); simplest placement; safeguards kept; lightest channel; UI design guidance identity, ambitious interactive default, async cues and reduced motion; design basis paragraph",
+   "status": "MISSING",
+   "where": "draft 'kept' claims the block is condensed, but the prompt has no interaction or state text and no pointer",
+   "fix": "DO: 'When the item touches UI, events, channels or stored state, follow run/reference.md#interaction-design and write the item's Design basis (state owner and visibility, channel, end of life, UI interactions planned) in plan.md.' Reference section carries the full INTERACTION_DESIGN + DESIGN_BASIS_DUTY text."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan] (Repository-local skill guidance)",
+   "obligation": "reopen the repo's skill index even if earlier context reported no fit (a preceding item may have created one); prefer unchanged reuse; record selection or no-fit",
+   "status": "covered",
+   "where": "DO 'Helper skills: for each step, pick the skills ... and the repository's local skills (environment.md ## Skills names the directory)'",
+   "fix": "Add 'reread that directory now: an earlier item may have added one'."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan] skill_na + shiploop_navigator.py:_check_submitted_skill_na",
+   "obligation": "skill_na with the no-fit reason; refused beside a skill file in paths; document refuses a skill file changed after skill_na",
+   "status": "intentionally-dropped",
+   "where": "owner decision 5 (skill-assess and skill-validate removed; per-step skills list replaces it)",
+   "fix": "Remove skill_na from RESULT_KEYS and its two gates in the same change, or the old field stays accepted (decision 10)."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "drafts.py:step-plan (new)",
+   "obligation": "skills: [{name, why, locator}] per step; a locator that does not exist is refused",
+   "status": "covered",
+   "where": "DONE WHEN 'each step's skills list names a concrete use'",
+   "fix": "Gate is new: _normalise_steps must accept 'skills' (today the step key set is {id,task,deps,criteria,paths} and would refuse it)."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "drafts.py:step-plan (new) expectations",
+   "obligation": "expectations [{id, statement, steps, check}] or expectations_na; refused without check or naming an unknown step",
+   "status": "CONTRADICTED",
+   "where": "draft allows check to be 'a read of a named file', but owner decision 2 says ShipLoop runs the checks itself; a prose read cannot be run",
+   "fix": "Replace with: 'check: one shell command, read-only, run from the repository root, that exits 0 when the statement holds on the unchanged base (a file's shape: grep -q or test -f; a defect that must reproduce: the command that shows it, exiting 0 when it does).' Gate: refuse a check that is not one nonblank line."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "owner decision 2",
+   "obligation": "open plan assumptions whose consumer is this item are checked by validate-existing",
+   "status": "MISSING",
+   "where": "plan assumptions store check as prose ('what would settle it', shiploop_assumptions._FIELDS['open']), so ShipLoop cannot run them",
+   "fix": "step-plan DO: 'Each open plan assumption whose consumer is this item becomes an expectation with from: <assumption id> and a runnable check.' Gate: refuse done when an open assumption naming this item has no expectation citing it."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:_ROWS step-plan reads prepare",
+   "obligation": "reads the prepare result",
+   "status": "covered",
+   "where": "FILES 'results this builds on'",
+   "fix": "List prepare in FILES."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan] (Initial repository baseline guide)",
+   "obligation": "revalidate initial baseline evidence for the item's starting state; a repair/test-bootstrap item may carry expected RED; a dependent feature waits for a passing rerun",
+   "status": "moved",
+   "where": "validate-existing (expectations checked on the base by ShipLoop; a broken foundation is a failed expectation)",
+   "fix": ""
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan] (Repeatable test-suite guide)",
+   "obligation": "reassess setup, oracle, teardown and focused/smoke/full placement; revalidate platform/browser testing tools; turn inspection findings into retained tests or manual procedures; remote-resident cases: framework, setup, invocation, retrieval, teardown route",
+   "status": "moved",
+   "where": "test-spec (setup/teardown/placement line added) + run/reference.md#test-suites",
+   "fix": "Add the remote-resident sentence to the reference section."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan] (planning sources)",
+   "obligation": "reopen accepted spec, plan, test strategy and the item's prior-baseline/incoming-spec sections; surface any missing consequential source",
+   "status": "covered",
+   "where": "DO Consult block (spec, architecture, environment, test-strategy with headings)",
+   "fix": ""
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan] (service work)",
+   "obligation": "affected service work: reopen the current contract; reconcile remote/local state, authority, cache invalidation, async recovery, owned logging",
+   "status": "moved",
+   "where": "run/reference.md#service-discovery",
+   "fix": "One conditional DO line: 'For service work, see run/reference.md#service-discovery.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:DUTIES[step-plan] paths classification",
+   "obligation": "a doc/config/navigation-only item with no test command gets the test stages recorded N/A; implement changing anything outside paths (or code) is refused until the step plan is revised",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'ShipLoop commits only declared paths and refuses implement changes outside them; a docs-or-config-only item with no test command skips the test stage.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:TEST_FACILITY_HANDOFF (block test-facility)",
+   "obligation": "reuse/extend existing frameworks, helpers and facilities before defining the smallest missing one; planning names missing prerequisite work",
+   "status": "moved",
+   "where": "test-spec + run/reference.md#test-facilities",
+   "fix": "test-spec DO line added (see stage)."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:TEST_DECISION_HANDOFF (block test-decision)",
+   "obligation": "reopen the current item test-decision source; state which decisions are retained, refined or superseded and why",
+   "status": "moved",
+   "where": "run/reference.md#test-decisions",
+   "fix": "test-spec DO: 'state which test-strategy decisions this item keeps or changes, and why'."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:_backchain_guidance (block backchain, audit route)",
+   "obligation": "material prerequisite ambiguity: read-only review/audit; a finding may request one repair/revise within edit bounds; backchain-check after each revision; MISSING loop resource blocks repair",
+   "status": "moved",
+   "where": "run/reference.md#backchain",
+   "fix": "One DO line: 'For a material dependency ambiguity, use the read-only Backchain audit (run/reference.md#backchain).'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:_PLANNING_HANDOFF",
+   "obligation": "preserve key decisions/constraints in summary and registered material; register every produced planning file as an absolute evidence_refs path",
+   "status": "covered",
+   "where": "RUN result template + FILES absolute paths",
+   "fix": "DONE WHEN: 'evidence_refs lists plan.md and every file written, as absolute paths'."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:IMPROVE_SCOPES[step-plan]",
+   "obligation": "Improve reviews the bounded steps, any execution graph, conventions, checks and diagnostic obligations",
+   "status": "covered",
+   "where": "Checked by 'then an Improve child reviews the plan'",
+   "fix": "Update IMPROVE_SCOPES['step-plan'] to: 'the behaviour-sized steps and their deps, criteria, recorded commands (focused, regression, check), expectations and their checks, per-step skills, and diagnostic obligations'."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_prompts.py:PLANNING_REVIEW_FOCUS / _REVIEW_FOCUS_ITEMS",
+   "obligation": "review focus: replayable steps/examples; checks a stand-in would pass; commands that don't run what they claim; dropped/weakened IDs or cases; unsourced runtime claims; missing prerequisite, wrong order or unowned verification in steps",
+   "status": "covered",
+   "where": "unchanged Improve packet text (not in the producer packet, as today: REVIEW_FOCUS_DUTY_STAGES is spec, test-strategy)",
+   "fix": "Add one focus item for expectations: 'an expectation a step relies on that is missing, or whose check would pass when the fact is false'."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_stage_spec.py:PLANNING_CHOICE_STAGES + shiploop_prompts.py:_NO_REVIEW_SWAPS",
+   "obligation": "under planning_review none, no Improve child at step-plan or test-spec, and no packet text promises one",
+   "status": "CONTRADICTED",
+   "where": "drafts print 'then an Improve child reviews the plan/cases' unconditionally",
+   "fix": "Render the Improve clause only when the run's planning_review is stage; under none print 'No Improve review follows: meet these exit conditions yourself.'"
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_knowledge_home.py:check (non-close stage)",
+   "obligation": "a step-plan that changes docs/shiploop (AD-<n>, environment commands) is screened for credentials and a dropped R-<n>, then committed by ShipLoop",
+   "status": "MISSING",
+   "where": "draft adds AD-<n> and environment.md writes but not the refusal",
+   "fix": "Checked by: 'knowledge files with a credential pattern, or a living spec that dropped an R-<n>'; DO: 'do not commit docs/shiploop yourself'. Note: architecture.md is not yet in knowledge_home.LIVING."
+  },
+  {
+   "old_stage": "step-plan",
+   "source": "shiploop_navigator.py:_COMMON_GATES",
+   "obligation": "no outcome/summary, a nonexistent absolute evidence_refs path, or a credential pattern",
+   "status": "covered",
+   "where": "shared Checked by frame (render)",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_stage_spec.py:_ROWS test-spec done_when[0]",
+   "obligation": "every completion criterion has at least one case, or a justified not-applicable",
+   "status": "covered",
+   "where": "test-spec DONE WHEN",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_stage_spec.py:_ROWS test-spec done_when[1]",
+   "obligation": "each case has an independent oracle and a RED and GREEN definition",
+   "status": "covered",
+   "where": "test-spec DONE WHEN",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_stage_spec.py:_ROWS test-spec test",
+   "obligation": "positive, failure and boundary cases before code",
+   "status": "covered",
+   "where": "DO 'Cover positive, failure and boundary cases'",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_prompts.py:DUTIES[test-spec]",
+   "obligation": "map assertions, fixtures and command paths; how regression coverage prevents weakening the oracle",
+   "status": "MISSING",
+   "where": "draft case fields lack fixture and command",
+   "fix": "Case fields: add 'fixture' and 'command (the focused or regression row that runs it)'."
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_prompts.py:DUTIES[test-spec]",
+   "obligation": "a test specification is not execution evidence",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'A spec is not evidence: the test stage writes and runs these cases.'"
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_prompts.py:DUTIES[test-spec]",
+   "obligation": "take clauses from the accepted spec and plan; preserve every assigned clause with its required surface and due phase; link later-phase procedures without claiming they ran",
+   "status": "MISSING",
+   "where": "draft cites R-<n> but drops surface and due phase",
+   "fix": "Case fields: add 'surface (unit, interface, real boundary, rendered UI) and due phase'; DO: 'a case due later (system test, release) is linked, not claimed'."
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_prompts.py:DUTIES[test-spec]",
+   "obligation": "specify the action and expected observable outcome for each distinct behaviour, not only that a page loads",
+   "status": "covered",
+   "where": "DO 'the input, the expected observation'",
+   "fix": "Add 'never only that a page loads'."
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_prompts.py:DUTIES[test-spec]",
+   "obligation": "for each new/changed public entry point, one rejection case per checked constraint (missing, wrong type/shape, out of range) asserting error type, named argument and unchanged state",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'For each new or changed public entry point, one rejection case per constraint it checks, asserting the error type, the named argument and unchanged state.'"
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_prompts.py:DUTIES[test-spec]",
+   "obligation": "title each case with the step plan's test_commands ids; one entry per case in test-spec.md: id, setup, action, oracle, RED, GREEN",
+   "status": "CONTRADICTED",
+   "where": "draft entry fields are ID, criterion, input, expected observation, RED, GREEN: setup is dropped and the path is '<repo>/<feature>/test-spec.md' while knowledge_home.CLOSES writes docs/shiploop/features/<slug>/test-spec.md",
+   "fix": "Entry: 'ID, criterion/R-<n>, surface, setup, action, independent oracle, RED, GREEN, teardown'. Path: the absolute docs/shiploop/features/<slug>/test-spec.md ShipLoop prints."
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_prompts.py:DUTIES[test-spec]",
+   "obligation": "specify setup, assertions and teardown together (or why stateless); no shared mutable fixture state; share expensive setup only with demonstrated noninterference; plan failure cleanup and suite registration",
+   "status": "MISSING",
+   "where": "absent",
+   "fix": "DO: 'Give each case its setup and teardown (or say it is stateless); isolate per test unless sharing is shown safe; say which suite registers it.'"
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "owner decision 3 (RED by script, red_na)",
+   "obligation": "RED is checked by script: new IDs must not pass on the base checkout; red_na exempts a characterisation test",
+   "status": "MISSING",
+   "where": "draft 'RED (how it fails today)' has no characterisation route",
+   "fix": "Case field RED: 'how it fails on the base, or characterisation: passes on the base (the test stage records red_na)'."
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "drafts.py:test-spec Checked by + shiploop_knowledge_home.py:CLOSES['test-spec']",
+   "obligation": "close refuses done unless plan.md and test-spec.md exist and are non-empty; screens credentials; refuses a dropped R-<n>; commits docs/shiploop",
+   "status": "covered",
+   "where": "Checked by 'ShipLoop refuses done until <feature>/test-spec.md exists and is non-empty'",
+   "fix": "Add plan.md, the credential screen and the R-<n> check to Checked by, and 'do not commit docs/shiploop yourself'."
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "drafts.py:test-spec (new)",
+   "obligation": "case IDs match the step plan's focused ids",
+   "status": "covered",
+   "where": "DONE WHEN 'a matching ID'",
+   "fix": "New gate: refuse done when a focused command id has no '### <id>' entry in test-spec.md, or an entry's id appears in no command (cheap, script-checkable)."
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_stage_spec.py:_finish (revise outcome)",
+   "obligation": "test-spec may report revise when the step plan's goal proves wrong",
+   "status": "covered",
+   "where": "Outcomes: done | repeat | blocked | revise",
+   "fix": "Say when: 'revise when a criterion cannot be tested as written (name it)'."
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_prompts.py:STAGE_REFERENCES[test-spec]",
+   "obligation": "Repeatable test-suite guide; test-case planning guidance",
+   "status": "moved",
+   "where": "run/reference.md#test-suites, #test-cases",
+   "fix": ""
+  },
+  {
+   "old_stage": "test-spec",
+   "source": "shiploop_prompts.py:IMPROVE_SCOPES[test-spec]",
+   "obligation": "Improve reviews test-first cases, independent oracles and RED/GREEN definitions",
+   "status": "covered",
+   "where": "Checked by 'then an Improve child reviews the cases'",
+   "fix": "Scope text: add 'rejection cases, setup/teardown, and ID match with the step plan'."
+  },
+  {
+   "old_stage": "baseline",
+   "source": "shiploop_stage_spec.py:_ROWS baseline done_when[0]",
+   "obligation": "each recorded command ran on the unchanged item base, with exit code and output recorded",
+   "status": "intentionally-dropped",
+   "where": "owner decision 2 (validate-existing checks only the plan's expectations) and 3 (the test stage's base run sets the regression floor)",
+   "fix": ""
+  },
+  {
+   "old_stage": "baseline",
+   "source": "shiploop_stage_spec.py:_ROWS baseline done_when[1]",
+   "obligation": "pre-existing failures are classified",
+   "status": "intentionally-dropped",
+   "where": "owner decision 2",
+   "fix": "Note for the test group: a regression test failing on the base must still pass at test (decision 3 floor counts tests, not failures); say so in the test packet."
+  },
+  {
+   "old_stage": "baseline",
+   "source": "shiploop_stage_spec.py:_ROWS baseline test",
+   "obligation": "record the before state; fix nothing here",
+   "status": "covered",
+   "where": "validate-existing DO 'Change no product file'",
+   "fix": ""
+  },
+  {
+   "old_stage": "baseline",
+   "source": "shiploop_prompts.py:DUTIES[baseline]",
+   "obligation": "a blocked or invalid baseline remains incomplete for dependent feature readiness",
+   "status": "covered",
+   "where": "validate-existing Checked by 'refuses done unless all hold'",
+   "fix": ""
+  },
+  {
+   "old_stage": "baseline",
+   "source": "shiploop_prompts.py:DUTIES[baseline]",
+   "obligation": "reuse initial (discovery) baseline evidence only when it still applies",
+   "status": "intentionally-dropped",
+   "where": "owner decision 2: ShipLoop reruns each expectation check on every item",
+   "fix": ""
+  },
+  {
+   "old_stage": "baseline",
+   "source": "shiploop_prompts.py:DUTIES[baseline] + execution-planning.md#baseline-tests-and-migrations case 3",
+   "obligation": "a repair item may keep an expected failure (the bug it fixes) as its baseline",
+   "status": "covered",
+   "where": "step-plan expectation 'the defect the item fixes reproduces today'",
+   "fix": ""
+  },
+  {
+   "old_stage": "baseline",
+   "source": "execution-planning.md#baseline-tests-and-migrations case 2",
+   "obligation": "a broken required foundation is repaired as an earlier step or work item; dependent work waits",
+   "status": "CONTRADICTED",
+   "where": "validate-existing route 'queues a repair item before this one' has no mechanism: work_items are accepted only at plan, carry-forward or replan (navigator _canonical_result), INNER stages have no replan, and BLOCKED_BY_RULE refuses blocked for a broken baseline",
+   "fix": "Route: 'the fact is false and fixing it is small and within the request: report revise so step-plan adds the repair as an earlier step; otherwise report blocked with blocked_by external, naming the producer, only when the fix is outside this run.' Owner decision on an INNER route to queue a new item."
+  },
+  {
+   "old_stage": "baseline",
+   "source": "shiploop_test_loop.py:baseline_lines",
+   "obligation": "packet prints the commands to run and discovery's recorded baseline",
+   "status": "covered",
+   "where": "validate-existing DO lists each expectation, check, exit and output path",
+   "fix": ""
+  },
+  {
+   "old_stage": "baseline",
+   "source": "shiploop_prompts.py:STAGE_REFERENCES[baseline]",
+   "obligation": "Baseline-test guidance (execution-planning.md#baseline-tests-and-migrations)",
+   "status": "moved",
+   "where": "run/reference.md#baseline (validate-existing FILES)",
+   "fix": ""
+  },
+  {
+   "old_stage": "validate-existing",
+   "source": "drafts.py:validate-existing",
+   "obligation": "correct a wrong check, show it holds, record why",
+   "status": "CONTRADICTED",
+   "where": "no result field carries a corrected check, so ShipLoop's rerun uses the old one and refuses; and a self-corrected check bypasses step-plan's Improve review (risk: weakening, which the draft itself forbids)",
+   "fix": "Route a wrong check as revise to step-plan naming the expectation and the corrected command (step-plan's Improve reviews it). Alternative for the owner: a check_fixes [{id, check, why}] field the gate reruns, statement unchanged."
+  },
+  {
+   "old_stage": "validate-existing",
+   "source": "drafts.py:validate-existing gate_after",
+   "obligation": "change no product path",
+   "status": "covered",
+   "where": "Checked by 'No product path may change'",
+   "fix": "Gate: git status of the execution checkout shows changes only under docs/shiploop/ and SHIPLOOP.md."
+  },
+  {
+   "old_stage": "validate-existing",
+   "source": "owner decision 2",
+   "obligation": "all expectations hold -> no model turn",
+   "status": "covered",
+   "where": "gate_after 'All hold: recorded as script facts and the run moves on with no model turn'",
+   "fix": ""
+  }
+ ],
+ "stages": [
+  {
+   "id": "step-plan",
+   "prompt": "DO\nGoal: plan this item's concrete changes and the checks that prove them.\nShipLoop checked that this item's prerequisites are accepted (listed below) and recorded its lint base <commit>.\nConfirm the plan still requires this item: reopen its context and its section of <feature>/plan.md and recheck each condition they state. If the plan no longer requires it, report blocked (blocked_by user, awaiting an answer: drop or keep), citing the plan section.\nConsult, and cite the headings you used:\n- spec.md (## Requirements, ## Non-functional requirements): the R-<n> this item serves; each criterion traces to one.\n- architecture.md (## Structure, ## Interfaces and boundaries, ## Conventions, ## Decisions): where the change goes and the house style. A structural choice the file does not make yet is a new AD-<n> under ## Decisions, written now.\n- environment.md (## Commands, ## Targets and runtimes, ## Skills): test, lint, type and build commands; a new working command goes under ## Commands.\n- test-strategy.md (## Harnesses and suites, ## ID convention).\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Draft or revise the step-plan result file <run>/results/<action>-draft.json and this item's plan.md section from the cited knowledge-home headings, then run `python3 <shiploop> complete --check-only --run-dir <run> --result <draft>` and fix each refusal.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. the result draft opens with one sentence naming the change and the checks that prove it\n    2. steps lists every step in order; each has deps (earlier IDs only), criteria (listed IDs only) and paths inside the item's paths; every criterion is served by a step; no step changes only test files unless every item path is a test\n    3. every criterion is named by at least one command's criteria, and commands name only listed criteria\n    4. test_commands has focused and regression rows and at least one check row, or check_na; or test_commands_na; and the list fits the test loop contract\n    5. every expectation has a one-line check and names existing steps; each open plan assumption whose consumer is this item has an expectation; or expectations_na gives the reason\n    6. every skill locator given exists\n    7. <feature>/plan.md has this item's section, and evidence_refs lists it and every file written, as absolute paths\n    8. the latest `complete --check-only` run on the final draft reports no refusal, and git status shows changes only under docs/shiploop/ and SHIPLOOP.md\n  Repeat while: a check-only refusal remains or an exit condition above does not hold; stop blocked only when the plan no longer requires the item.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/step-plan-contract.json\n  Receipt: <run>/loops/step-plan-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs skills>/improve/runtime/until-loop/ADAPTER.md and follow it with this argument. Either way the loop starts with:\n  python3 <abs skills>/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt <run>/loops/step-plan-terminal.json < <run>/loops/step-plan-contract.json\n- Steps: one behaviour-level change a named check proves, in the order to do them; ShipLoop issues one implement packet per step. Split two independently confirmable behaviours, a module-boundary crossing (interface first), an \"and\" between two outcomes, or a step too big to review in one pass. Merge a step no check confirms on its own into the step it serves. Tests are not a step (the test stage writes them after implement). deps: only earlier step IDs it truly needs, or [].\n- Criteria [{id, text}]: each says what is exercised and the expected result, so two people running its command would agree. A condition no command can confirm is not a criterion: record it as an open item in the summary (who does what, what they report). A new or changed public entry point adds the criterion \"checks its arguments and carries a contract docstring (Code craft 2-3)\".\n- test_commands [{command, suite, ids?, min_tests?, criteria?}]: focused (this item's cases), regression (the retained suites) and check (each lint, type and build command environment.md records for these files, exit 0 when clean; no ids or min_tests). Each runs from the repository root; ShipLoop runs them itself and refuses a run of zero tests. Give each focused command the ids its cases will carry and a flag that prints test names (Jest --verbose, pytest -v, node --test spec reporter). An ID counts only as its own word (title TC-4a as \"TC-4 (a)\"). No lint/type/build for these files: check_na with the reason. No command at all: test_commands_na.\n- paths: every file the item changes. ShipLoop commits only these and refuses implement edits outside them; a docs-or-config-only item with no command skips the test stage.\n- Per-step skills [{name, why, locator}]: reread the host's skills and the repository's skill directory now (an earlier item may have added one); pick a skill only for a concrete use in that step; [] is fine.\n- expectations [{id, statement, steps, check, from?}]: each fact the steps build on that must already hold (an existing symbol, route, schema or file with the shape used; the defect reproduces; a tool or service is reachable). check is one read-only shell command from the repository root that exits 0 when the statement holds on the unchanged base. Each open plan assumption whose consumer is this item becomes an expectation with from: <assumption id>. Only what this plan relies on; not a health check.\n- In <feature>/plan.md under this item: outcome, invariants kept, contracts changed, failure cases and diagnostics, docs to change, integration impact and release prerequisites, revalidation conditions. When the item adds code or stored data: each new symbol's home and collision check; each stored field's owner, migration and round-trip check. When it touches UI, events, channels or state: the Design basis per run/reference.md#interaction-design. Label pinned values a check replays as fixtures and name the runtime control apart.\nChange no product file. Planning never expands this item's scope. Do not commit docs/shiploop yourself.\n\nDONE WHEN (the loop's exit conditions, same words)\n1. the result draft opens with one sentence naming the change and the checks that prove it\n2. steps lists every step in order; each has deps (earlier IDs only), criteria (listed IDs only) and paths inside the item's paths; every criterion is served by a step; no step changes only test files unless every item path is a test\n3. every criterion is named by at least one command's criteria, and commands name only listed criteria\n4. test_commands has focused and regression rows and at least one check row, or check_na; or test_commands_na; and the list fits the test loop contract\n5. every expectation has a one-line check and names existing steps; each open plan assumption whose consumer is this item has an expectation; or expectations_na gives the reason\n6. every skill locator given exists\n7. <feature>/plan.md has this item's section, and evidence_refs lists it and every file written, as absolute paths\n8. the latest `complete --check-only` run on the final draft reports no refusal, and git status shows changes only under docs/shiploop/ and SHIPLOOP.md\nChecked by: ShipLoop reruns every refusal behind conditions 2-8 on complete; then (planning review: stage) an Improve child reviews the plan.\nOutcomes: done | repeat | blocked\n\nRUN  the /until-loop block (above) \u00b7 result template \u00b7 check-only \u00b7 callback \u00b7 Recovery\nFILES  spec.md, feature spec, architecture.md, environment.md, test-strategy.md, <feature>/plan.md (absolute) \u00b7 results: spec, test-strategy, plan, prepare \u00b7 run/reference.md#step-plan (backchain audit, parallel chain, namespaces and data, service work, interaction design, test decisions)",
+   "contract": {
+    "work": "Draft or revise the step-plan result file <run>/results/<action>-draft.json and this item's plan.md section from the cited knowledge-home headings, then run `python3 <shiploop> complete --check-only --run-dir <run> --result <draft>` and fix each refusal.",
+    "exit_condition": "1. the result draft opens with one sentence naming the change and the checks that prove it 2. steps lists every step in order; each has deps (earlier IDs only), criteria (listed IDs only) and paths inside the item's paths; every criterion is served by a step; no step changes only test files unless every item path is a test 3. every criterion is named by at least one command's criteria, and commands name only listed criteria 4. test_commands has focused and regression rows and at least one check row, or check_na; or test_commands_na; and the list fits the test loop contract 5. every expectation has a one-line check and names existing steps; each open plan assumption whose consumer is this item has an expectation; or expectations_na gives the reason 6. every skill locator given exists 7. <feature>/plan.md has this item's section, and evidence_refs lists it and every file written, as absolute paths 8. the latest `complete --check-only` run on the final draft reports no refusal, and git status shows changes only under docs/shiploop/ and SHIPLOOP.md",
+    "repeat_condition": "a check-only refusal remains or an exit condition above does not hold; stop blocked only when the plan no longer requires the item.",
+    "required_trivial_reviews": 0
+   },
+   "gate_after": "1 -> model evidence + Improve. 2 -> _normalise_steps, _check_step_sizing (+ unknown-criterion check). 3 -> _normalise_criteria. 4 -> normalise_commands + new check_na rule + listing_problem. 5 -> new _check_expectations (shape, step IDs, one-line check, open-assumption coverage from the plan's assumptions). 6 -> new locator existence check. 7 -> knowledge_home STAGE_FILES + heading search; _check_submitted_evidence. 8 -> the same CLI gates; git status outside KNOWLEDGE; knowledge_home.check (credentials, R-<n> drop).",
+   "notes": "Owner decisions: (1) add `complete --check-only` (a dry run of the CLI gates) so exit 8 is observable before complete; without it the loop is redundant with complete's own refusals. (2) Criteria always required (recommended) vs only with commands (today's gate). (3) The 'no longer required' route: blocked/user as written, or a new INNER route. (4) Move entry_runs lint-base from get-next-work-item to step-plan. (5) _normalise_steps must accept skills; remove skill_na and its two gates. (6) architecture.md must join knowledge_home.LIVING so AD-<n> writes are screened as living knowledge. (7) Improve clause printed only when planning_review is stage."
+  },
+  {
+   "id": "test-spec",
+   "prompt": "DO\nGoal: specify the tests this item needs before any code changes.\nConsult and cite:\n- spec.md (## Requirements): every case cites its criterion and R-<n>; its oracle comes from the requirement's text, never from code. A golden, fixture or snapshot oracle is checked against that text first.\n- architecture.md (## Interfaces and boundaries): the surface each case tests at (unit, the module's public interface, the real boundary, rendered UI).\n- test-strategy.md (## Harnesses and suites, ## ID convention, ## Real-boundary checks): IDs, harness, where a real boundary is required; reuse its frameworks and helpers before defining the smallest missing facility; state which of its decisions this item keeps or changes, and why.\n- the step plan: criteria and the focused commands' ids.\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Write or fix one test-spec.md entry per case for this item's criteria, then run the printed id-match command and fix any mismatch.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. every criterion has at least one entry in test-spec.md, or a justified not-applicable line naming it\n    2. every entry has criterion and R-<n>, surface and due phase, setup, action, independent oracle, RED, GREEN, teardown (or stateless) and its command row\n    3. the printed id-match command exits 0: every focused id has a '### <id>' entry and every entry id is in a command\n    4. test-spec.md and plan.md exist and are non-empty\n  Repeat while: a criterion has no entry, an entry lacks a field, or the id-match command fails; stop with revise when a criterion cannot be tested as written.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/test-spec-contract.json\n  Receipt: <run>/loops/test-spec-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs skills>/improve/runtime/until-loop/ADAPTER.md and follow it with this argument. Either way the loop starts with:\n  python3 <abs skills>/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt <run>/loops/test-spec-terminal.json < <run>/loops/test-spec-contract.json\n- One \"### <ID>\" entry per case in <abs docs/shiploop/features/<slug>/test-spec.md>: criterion and R-<n>, surface and due phase, setup, action, independent oracle (the expected observation, never only that a page loads), RED (how it fails on the base, or characterisation: passes on the base, so the test stage records red_na), GREEN, teardown (or \"stateless\"), and the command row that runs it.\n- Cover positive, failure and boundary behaviour. For each new or changed public entry point, one rejection case per constraint it checks, asserting the error type, the named argument and unchanged state.\n- Isolate per test unless sharing setup is shown safe; say which suite registers each case.\n- A case due later (system test, release) is linked with its phase, not claimed here. This file is a specification, not evidence.\nIf a criterion cannot be tested as written, report revise naming it.\n\nDONE WHEN (the loop's exit conditions, same words)\n1. every criterion has at least one entry in test-spec.md, or a justified not-applicable line naming it\n2. every entry has criterion and R-<n>, surface and due phase, setup, action, independent oracle, RED, GREEN, teardown (or stateless) and its command row\n3. the printed id-match command exits 0: every focused id has a '### <id>' entry and every entry id is in a command\n4. test-spec.md and plan.md exist and are non-empty\nChecked by: on done ShipLoop refuses a missing or empty test-spec.md or plan.md, an id mismatch, knowledge lines that look like credentials, or a living spec missing an earlier R-<n>; it commits docs/shiploop/ (do not commit it yourself); then (planning review: stage) an Improve child reviews the cases.\nOutcomes: done | repeat | blocked | revise\n\nRUN  the /until-loop block (above) \u00b7 id-match command \u00b7 result template \u00b7 callback \u00b7 Recovery\nFILES  spec.md, feature spec, architecture.md, test-strategy.md (absolute) \u00b7 results: spec, test-strategy, plan, step-plan \u00b7 test-spec.md to write (absolute) \u00b7 run/reference.md#test-cases, #test-suites",
+   "contract": {
+    "work": "Write or fix one test-spec.md entry per case for this item's criteria, then run the printed id-match command and fix any mismatch.",
+    "exit_condition": "1. every criterion has at least one entry in test-spec.md, or a justified not-applicable line naming it 2. every entry has criterion and R-<n>, surface and due phase, setup, action, independent oracle, RED, GREEN, teardown (or stateless) and its command row 3. the printed id-match command exits 0: every focused id has a '### <id>' entry and every entry id is in a command 4. test-spec.md and plan.md exist and are non-empty",
+    "repeat_condition": "a criterion has no entry, an entry lacks a field, or the id-match command fails; stop with revise when a criterion cannot be tested as written.",
+    "required_trivial_reviews": 0
+   },
+   "gate_after": "1, 2 -> new heading/field scan of test-spec.md (cheap) or model evidence; oracle independence -> model evidence + Improve. 3 -> new id-match script check (focused ids vs '### <id>' headings). 4 -> knowledge_home.CLOSES['test-spec']; plus knowledge_home.check (credentials, R-<n>).",
+   "notes": "Owner: print and gate the id-match check (recommended; a missing file/ID match caused the first live refusal). The per-entry field scan is optional; Improve already reviews quality."
+  },
+  {
+   "id": "validate-existing",
+   "prompt": "DO\nGoal: confirm the facts this plan builds on hold before implementation starts.\nShipLoop ran each check on the unchanged base (<base checkout> at the item's lint base <commit>):\n  E1 <statement> (steps S1, S2)  check: <command>  -> exit <n>  output: <run>/validate/<item>-E1.txt  HOLDS\n  E2 (from plan assumption A3) <statement>  check: <command>  -> exit <n>  output: ...  FAILED\nINVOKE /until-loop NOW with the argument below, verbatim. Do this stage's work only inside that loop.\n/until-loop\n  Work (one iteration): Take one failed expectation, run a small discriminating observation to learn whether the fact is false or the check is wrong, write <run>/validate/<item>-<id>-finding.md, then fix the environment and rerun the check, or record its revise/blocked route.\n  Exit when ALL of these hold (each shown by a command or file, after the last edit):\n    1. for done: every expectation's check, rerun after your last change, exits 0 on the base checkout; for revise or blocked: every still-failing expectation has <run>/validate/<item>-<id>-finding.md naming what is actually true and its route\n    2. git status shows changes only under docs/shiploop/ and SHIPLOOP.md\n  Repeat while: a failed expectation has neither a passing rerun nor a finding file with its route.\n  Contract (written by ShipLoop; start from it unchanged): <run>/loops/validate-existing-contract.json\n  Receipt: <run>/loops/validate-existing-terminal.json\nHow to invoke: on Claude Code, the Skill tool with skill \"until-loop\" and this argument; on any host, open the\ncard <abs skills>/improve/runtime/until-loop/ADAPTER.md and follow it with this argument. Either way the loop starts with:\n  python3 <abs skills>/improve/runtime/until-loop/scripts/until_loop_ephemeral.py start --receipt <run>/loops/validate-existing-terminal.json < <run>/loops/validate-existing-contract.json\nRoutes for a failed expectation, after a small discriminating observation:\n- the environment lacks it (a tool, service, setting this run can supply): fix the environment, record it in environment.md (## Commands, ## Targets and runtimes), and rerun the check;\n- the check is wrong (the fact holds): report revise naming the expectation and the corrected command, so step-plan records it and its review sees it;\n- the fact is false and the fix is small and within the request: report revise naming the expectation and what is true, so step-plan adds the repair as an earlier step or reshapes the steps;\n- the fact is false and only someone outside this run can fix it: report blocked with blocked_by external, naming the producer;\n- a plan assumption is wrong: report revise naming it and what is true.\nChange no product file. Never weaken an expectation to make its check pass.\nConsult: the step plan (steps each expectation supports); plan.md (## Assumptions); environment.md (## Commands); architecture.md (## Structure, ## Interfaces and boundaries) where the expected shape is stated.\n\nDONE WHEN (the loop's exit conditions, same words)\n1. for done: every expectation's check, rerun after your last change, exits 0 on the base checkout; for revise or blocked: every still-failing expectation has <run>/validate/<item>-<id>-finding.md naming what is actually true and its route\n2. git status shows changes only under docs/shiploop/ and SHIPLOOP.md\nChecked by: ShipLoop reruns every expectation check on the base and refuses done unless each exits 0; refuses revise or blocked that names no failed expectation (failed_expectations [{id, actual, route}]) or lacks its finding file; refuses any product-path change.\nOutcomes: done | blocked | revise\n\nRUN  each check with its saved output \u00b7 the /until-loop block (above) \u00b7 result template \u00b7 callback \u00b7 Recovery\nFILES  results: step-plan (expectations, steps), plan (assumptions) \u00b7 environment.md, architecture.md (absolute) \u00b7 finding files \u00b7 run/reference.md#baseline",
+   "contract": {
+    "work": "Take one failed expectation, run a small discriminating observation to learn whether the fact is false or the check is wrong, write <run>/validate/<item>-<id>-finding.md, then fix the environment and rerun the check, or record its revise/blocked route.",
+    "exit_condition": "1. for done: every expectation's check, rerun after your last change, exits 0 on the base checkout; for revise or blocked: every still-failing expectation has <run>/validate/<item>-<id>-finding.md naming what is actually true and its route 2. git status shows changes only under docs/shiploop/ and SHIPLOOP.md",
+    "repeat_condition": "a failed expectation has neither a passing rerun nor a finding file with its route.",
+    "required_trivial_reviews": 0
+   },
+   "gate_after": "Entry: ShipLoop runs every expectation check (read-only, from a clean base checkout at the lint base, with a timeout) and saves output; all exit 0 -> recorded, no packet. 1 -> done: rerun all, each must exit 0; revise/blocked: each failed id in failed_expectations with an existing finding file. 2 -> git status outside KNOWLEDGE.",
+   "notes": "Owner decisions: (1) a wrong check routes through step-plan (revise) instead of being corrected here, so a check cannot be weakened unseen; (2) queueing a separate repair item has no INNER mechanism (work_items only at plan/carry-forward/replan); the prompt uses revise or blocked/external; (3) the base checkout is a clean worktree at the lint base, since step-plan may have changed docs/shiploop; (4) revise from here counts toward MAX_REVISES=2."
+  }
+ ]
+}

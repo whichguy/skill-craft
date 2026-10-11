@@ -1,0 +1,266 @@
+{
+ "20261008/r1-battleship-grok-none": {
+  "plan": null,
+  "receipt": null,
+  "workspace": {
+   "baseline_commit": "2bd8a758d5a74d19736118774efab99006757aad",
+   "branch": "shiploop/run-cfac2cb47fd93aed",
+   "source_branch": "main",
+   "source_head": "2bd8a758d5a74d19736118774efab99006757aad",
+   "start_clean": true,
+   "status": "prepared"
+  }
+ },
+ "20261008/r3-battleship-grok-none": {
+  "plan": null,
+  "receipt": null,
+  "workspace": {
+   "baseline_commit": "c2ad5146a7bf5b70ba63c8cbad716e75e1bba929",
+   "branch": "shiploop/run-c0f462f8874ba861",
+   "source_branch": "main",
+   "source_head": "c2ad5146a7bf5b70ba63c8cbad716e75e1bba929",
+   "start_clean": true,
+   "status": "prepared"
+  }
+ },
+ "20261008/r3-checkers-sonnet": {
+  "plan": {
+   "paths": [
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "README.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/README.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/environment.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/build-a-small-two-player-checkers-7f78be/outcome.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/build-a-small-two-player-checkers-7f78be/plan.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/build-a-small-two-player-checkers-7f78be/release-plan.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/build-a-small-two-player-checkers-7f78be/spec.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/build-a-small-two-player-checkers-7f78be/system-tests.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/build-a-small-two-player-checkers-7f78be/test-spec.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/spec.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/test-strategy.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "index.html"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "rules.js"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "server.js"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "system/http-smoke.js"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "system/ui-click.js"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "test/rules.test.js"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "test/server.test.js"
+    }
+   ],
+   "return_policy": "fast-forward only for a clean source and committed candidate with no tracked changes, when every history path is kept and its only untracked files are reviewed excluded .shiploop-improve evidence; otherwise apply only the reviewed working-tree delta without a merge or commit",
+   "status": "ready"
+  },
+  "receipt": {
+   "expected_source": {
+    "branch": "main",
+    "head": "70f11aa0e4cf4bae5a653aa25b8ed71dd776b035",
+    "tree": "736bc73b83c920712e3596ee665f915143714bba"
+   },
+   "kind": "fast-forward-merge",
+   "source_before": {
+    "branch": "main",
+    "head": "af3a19efae1170564d2000390094961af7a77a99",
+    "tree": "ea341dd9ddf6b9cee12328b47d0308e8defc5132"
+   },
+   "status": "returned"
+  },
+  "workspace": {
+   "baseline_commit": "491b2af8bd05863f3c7c102c9c2932b0e4009691",
+   "branch": "shiploop/run-480ce4b6805df137",
+   "source_branch": "main",
+   "source_head": "491b2af8bd05863f3c7c102c9c2932b0e4009691",
+   "start_clean": true,
+   "status": "returned"
+  }
+ },
+ "20261009/s6-after-spec": {
+  "plan": {
+   "paths": [
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/README.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/environment.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/create-hello-py-that-prints-exactly-325325/outcome.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/create-hello-py-that-prints-exactly-325325/plan.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/create-hello-py-that-prints-exactly-325325/release-plan.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/create-hello-py-that-prints-exactly-325325/spec.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/create-hello-py-that-prints-exactly-325325/system-tests.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/features/create-hello-py-that-prints-exactly-325325/test-spec.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/spec.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "docs/shiploop/test-strategy.md"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "hello.py"
+    },
+    {
+     "change": "added",
+     "disposition": "keep",
+     "in_history": true,
+     "path": "test_hello.py"
+    }
+   ],
+   "return_policy": "fast-forward only for a clean source and committed candidate with no tracked changes, when every history path is kept and its only untracked files are reviewed excluded .shiploop-improve evidence; otherwise apply only the reviewed working-tree delta without a merge or commit",
+   "status": "ready"
+  },
+  "receipt": {
+   "expected_source": {
+    "branch": "main",
+    "head": "8c3552a43c738f1a1f44b402d6098afa612fe900",
+    "tree": "e2612fd78ef142fc2a2ee68c49a1bdc21e494cd7"
+   },
+   "kind": "fast-forward-merge",
+   "source_before": {
+    "branch": "main",
+    "head": "8fb9e293f52e1f6668e031e76dd20f433a5f0330",
+    "tree": "51aed6eb7cec8b681fedc7bb4fe0cb8ca489299c"
+   },
+   "status": "returned"
+  },
+  "workspace": {
+   "baseline_commit": "541415235f2da60ef7631451dbaa9909b65e5a72",
+   "branch": "shiploop/run-31659eab214f8f98",
+   "source_branch": "main",
+   "source_head": "541415235f2da60ef7631451dbaa9909b65e5a72",
+   "start_clean": true,
+   "status": "returned"
+  }
+ }
+}

@@ -19,16 +19,51 @@ import json
 import os
 from pathlib import Path
 import re
-import signal
 import subprocess
 import sys
 import threading
 import time
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import listeners  # noqa: E402  (the one group kill)
+import runrecord  # noqa: E402  (the one set of host-build reasons)
+
 # The user's Grok sign-in; the only file an isolated Grok HOME links to.
 GROK_AUTH = Path.home() / ".grok" / "auth.json"
 
 MARKETPLACE_SOURCE = "whichguy/skill-craft"
+
+# The one ceiling of a `<binary> --version` read, not a tuning value: the CLIs, tools and browsers answer in 0.01 to 0.05 s,
+# so a read still running after this long is stuck, and its value is recorded as unknown.
+VERSION_TIMEOUT_SECONDS = 20
+
+
+def probe_version(binary: str, env: dict | None = None) -> tuple[str | None, str | None]:
+    """(the first line of ``<binary> --version`` on stdout, None) or (None, why it could not be read). The one ``--version``
+    reader of the harness: a host CLI's build at launch (``Host.cli_version``), the node, python3 and git versions on the
+    harness's PATH (environment.read_tools) and the browser's (environment.browser_record).
+
+    The reasons: ``probe failed: not found``, ``non-zero exit N``, ``silent`` (no stdout) and ``hung`` (still running after
+    VERSION_TIMEOUT_SECONDS). stdin is closed and stderr is dropped: Codex prints a WARNING there when its CODEX_HOME does
+    not exist yet. ``env``: a host CLI is read in the launch's own isolated environment (``grok --version`` creates
+    ``~/.grok`` in whatever HOME it runs under); None (or empty) is the harness's own environment, for the tools and the
+    browser. A host build is a record of the build a run was launched on, taken once at launch (run.py) and never at report
+    time, because today's answer stamped on a past run would be a made-up fact.
+    """
+    try:
+        done = subprocess.run([binary, "--version"], env=env or None, stdin=subprocess.DEVNULL, capture_output=True,
+                              text=True, timeout=VERSION_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        return None, f"probe failed: hung (still running after {VERSION_TIMEOUT_SECONDS} s)"
+    except FileNotFoundError:
+        return None, "probe failed: not found"
+    except (OSError, subprocess.SubprocessError) as error:
+        return None, f"probe failed: {type(error).__name__}"
+    if done.returncode != 0:
+        return None, f"probe failed: non-zero exit {done.returncode}"
+    lines = done.stdout.strip().splitlines()
+    first = lines[0].strip() if lines else ""
+    return (first, None) if first else (None, "probe failed: silent")
 
 
 def grok_keepalive(env: dict, plugin_dir: Path) -> dict:
@@ -116,7 +151,7 @@ def run_agent(argv: list[str], cwd: Path, env: dict, events_path: Path, stderr_p
             proc.wait(timeout=timeout)
             status = "exited" if proc.returncode == 0 else "failed"
         except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGKILL)
+            listeners.end_group(proc.pid)  # the whole group, while the unreaped leader still holds its number
             proc.wait()
             status = "timeout"
         reader.join(timeout=10)
@@ -171,11 +206,24 @@ class Host:
         return None
 
     def plugin_cli(self, home: Path) -> Path | None:
-        """The ShipLoop CLI of the plugin installed in the isolated profile, if any."""
+        """The ShipLoop CLI of the copy of the plugin this host installed into its isolated profile, if it makes one.
+
+        Grok and Codex install a copy and load it, so their packets name that copy. Claude loads --plugin-dir itself,
+        so it has no second copy and the plugin dir is its CLI (run.run_cli).
+        """
         return None
 
     def translator(self):
         return _identity
+
+    def cli_version(self, env: dict) -> tuple[str | None, str | None]:
+        """(the build of this host's CLI as its own ``--version`` prints it, None) or (None, why not), probed by the
+        caller once at launch.
+
+        Claude names its build in its init event, so it is never probed. Never call it to describe a run that was
+        launched earlier.
+        """
+        return None, runrecord.CLAUDE_BUILD  # "Claude: read from the init event after the run"
 
 
 class GrokHost(Host):
@@ -240,17 +288,15 @@ class GrokHost(Host):
     def plugin_cli(self, home):
         return next((home / ".grok" / "installed-plugins").glob("skill-craft-*/skills/shiploop/scripts/shiploop"), None)
 
+    def cli_version(self, env):
+        return probe_version(self.binary, env)
+
 
 class ClaudeHost(Host):
     name, model, effort = "claude", "claude-sonnet-5-5", None
 
     def __init__(self, binary: str = "claude"):
         self.binary = binary
-
-    def plugin_cli(self, home):
-        """The CLI of the marketplace build the run loads with --plugin-dir (<output>/marketplace/...)."""
-        cli = home.parent / "marketplace" / "plugins" / "skill-craft" / "skills" / "shiploop" / "scripts" / "shiploop"
-        return cli if cli.is_file() else None
 
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
              max_budget_usd=10.0, plugin_dir=None, resume=None):
@@ -332,6 +378,9 @@ class CodexHost(Host):
     def plugin_cli(self, home):
         return next((home / ".codex" / "plugins" / "cache").glob("*/skill-craft/*/skills/shiploop/scripts/shiploop"),
                     None)
+
+    def cli_version(self, env):
+        return probe_version(self.binary, env)
 
     def translator(self):
         return CodexTranslator()

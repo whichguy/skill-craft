@@ -1,0 +1,15 @@
+{
+ "case": "custom",
+ "host": "grok",
+ "model": "grok-4.7",
+ "effort": "medium",
+ "plugin_dir": "/Users/dadleet/e2e-runs/20261008/r1-battleship-grok-none/build/plugins/skill-craft",
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.24.0",
+  "shiploop_version": "0.56.0",
+  "local_head": "587cd90d4d54745f67c5acd6a10535dd12afd769"
+ },
+ "resumed_run": null,
+ "seeded": null
+}

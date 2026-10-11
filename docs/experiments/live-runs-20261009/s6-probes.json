@@ -1,0 +1,326 @@
+[
+ {
+  "folder": "s6-after-spec",
+  "where": "a clear after the spec stage was accepted (the engine at test-strategy)",
+  "outcome_class": "PASS",
+  "fresh_starts": [
+   {
+    "kind": "fresh",
+    "n": 2,
+    "reason": "resume-run",
+    "host": "claude",
+    "t": 1791583638.68,
+    "events_line": 53,
+    "stage_in_flight": "test-strategy",
+    "after_kill": {
+     "end_revision": 4,
+     "start_revision": 4,
+     "first_next_revision": 4,
+     "moved": false
+    },
+    "reorientation": {
+     "measured": true,
+     "accepted": {
+      "stage": "test-strategy",
+      "action": "nav-c4ba9a9058014550990e958165d663fb"
+     },
+     "tool_calls": 6,
+     "seconds": 21.1,
+     "seconds_to_accept_stamp": 21.1,
+     "first_grounding": "next",
+     "calls_before_grounding": 0,
+     "recovery": {
+      "told": {
+       "cli": "<e2e-runs>/20261009/s6-after-spec/build/plugins/skill-craft/skills/shiploop/scripts/shiploop",
+       "run_dir": "<e2e-runs>/20261009/s6-after-spec/.shiploop-runs/work-20261009-220625-b4d2a7/run"
+      },
+      "next_calls": 1,
+      "first_next": {
+       "call": 1,
+       "failed": false,
+       "exit": null,
+       "cli": "exact",
+       "run_dir": "exact"
+      },
+      "revision_seen": 4
+     },
+     "failures": {
+      "items": [],
+      "bound": "lower",
+      "scope": "the window's own calls only: a ShipLoop command run through a script written in an earlier session is not seen"
+     },
+     "rewrote": {
+      "paths": [],
+      "bound": "lower",
+      "scope": "none seen by file-edit tools"
+     },
+     "asked_user": 0
+    }
+   }
+  ],
+  "fresh_starts_unmeasured": "compactions not detected on this host: only Grok's events carry this signal (an auto_compact_completed event); this host's do not, so a count of 0 is a missing signal and not a measurement",
+  "sessions": [
+   {
+    "row": "start",
+    "n": 1,
+    "kind": "first",
+    "reason": "start",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "t": 1791583578.01,
+    "events_line": 0,
+    "told": null,
+    "resumed_session": null,
+    "engine": null
+   },
+   {
+    "row": "end",
+    "n": 1,
+    "t": 1791583626.35,
+    "events_line": 53,
+    "status": "stopped",
+    "returncode": -9,
+    "engine": {
+     "status": "active",
+     "stage": "test-strategy",
+     "revision": 4,
+     "accepted": 4,
+     "last_accepted": {
+      "stage": "spec",
+      "action": "nav-6639ed3a886442cda62450d84f0c1a37"
+     }
+    }
+   },
+   {
+    "row": "start",
+    "n": 2,
+    "kind": "fresh",
+    "reason": "resume-run",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "t": 1791583638.68,
+    "events_line": 53,
+    "told": {
+     "cli": "<e2e-runs>/20261009/s6-after-spec/build/plugins/skill-craft/skills/shiploop/scripts/shiploop",
+     "run_dir": "<e2e-runs>/20261009/s6-after-spec/.shiploop-runs/work-20261009-220625-b4d2a7/run"
+    },
+    "resumed_session": null,
+    "engine": {
+     "status": "active",
+     "stage": "test-strategy",
+     "revision": 4,
+     "accepted": 4,
+     "last_accepted": {
+      "stage": "spec",
+      "action": "nav-6639ed3a886442cda62450d84f0c1a37"
+     }
+    }
+   },
+   {
+    "row": "end",
+    "n": 2,
+    "t": 1791584142.674,
+    "events_line": 393,
+    "status": "exited",
+    "returncode": 0,
+    "engine": {
+     "status": "done",
+     "stage": "done",
+     "revision": 41,
+     "accepted": 35,
+     "last_accepted": {
+      "stage": "handoff",
+      "action": "nav-19447f8d22e740e7bbff57f65e6b902b"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "folder": "s6-inside-implement-mtime",
+  "where": "a clear inside implement, 4.2 s after the stage began and after hello.py was first touched",
+  "outcome_class": "PASS",
+  "fresh_starts": [
+   {
+    "kind": "fresh",
+    "n": 2,
+    "reason": "resume-run",
+    "host": "claude",
+    "t": 1791645661.539,
+    "events_line": 101,
+    "stage_in_flight": "implement",
+    "after_kill": {
+     "end_revision": 13,
+     "start_revision": 13,
+     "first_next_revision": 13,
+     "moved": false
+    },
+    "reorientation": {
+     "measured": true,
+     "accepted": {
+      "stage": "implement",
+      "action": "nav-169ac29039914abb84512fd7dd65cc0b"
+     },
+     "tool_calls": 7,
+     "seconds": 16.5,
+     "seconds_to_accept_stamp": 16.7,
+     "first_grounding": "next",
+     "calls_before_grounding": 0,
+     "recovery": {
+      "told": {
+       "cli": "<e2e-runs>/20261009/s6-inside-implement-mtime/build/plugins/skill-craft/skills/shiploop/scripts/shiploop",
+       "run_dir": "<e2e-runs>/20261009/s6-inside-implement-mtime/.shiploop-runs/work-20261009-230454-a6b8be/run"
+      },
+      "next_calls": 1,
+      "first_next": {
+       "call": 1,
+       "failed": false,
+       "exit": null,
+       "cli": "exact",
+       "run_dir": "exact"
+      },
+      "revision_seen": 13
+     },
+     "failures": {
+      "items": [],
+      "bound": "lower",
+      "scope": "the window's own calls only: a ShipLoop command run through a script written in an earlier session is not seen"
+     },
+     "rewrote": {
+      "paths": [],
+      "bound": "lower",
+      "scope": "none seen by file-edit tools"
+     },
+     "asked_user": 0
+    }
+   }
+  ],
+  "fresh_starts_unmeasured": "compactions not detected on this host: only Grok's events carry this signal (an auto_compact_completed event); this host's do not, so a count of 0 is a missing signal and not a measurement",
+  "sessions": [
+   {
+    "row": "start",
+    "n": 1,
+    "kind": "first",
+    "reason": "start",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "t": 1791587090.23,
+    "events_line": 0,
+    "told": null,
+    "resumed_session": null,
+    "engine": null
+   },
+   {
+    "row": "end",
+    "n": 1,
+    "t": 1791587337.131,
+    "events_line": 101,
+    "status": "stopped",
+    "returncode": -9,
+    "engine": {
+     "status": "active",
+     "stage": "implement",
+     "revision": 13,
+     "accepted": 13,
+     "last_accepted": {
+      "stage": "test-red",
+      "action": "nav-e3360872f4594379abec6f9fbc7c390d"
+     }
+    }
+   },
+   {
+    "row": "start",
+    "n": 2,
+    "kind": "fresh",
+    "reason": "resume-run",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "t": 1791645661.539,
+    "events_line": 101,
+    "told": {
+     "cli": "<e2e-runs>/20261009/s6-inside-implement-mtime/build/plugins/skill-craft/skills/shiploop/scripts/shiploop",
+     "run_dir": "<e2e-runs>/20261009/s6-inside-implement-mtime/.shiploop-runs/work-20261009-230454-a6b8be/run"
+    },
+    "resumed_session": null,
+    "engine": {
+     "status": "active",
+     "stage": "implement",
+     "revision": 13,
+     "accepted": 13,
+     "last_accepted": {
+      "stage": "test-red",
+      "action": "nav-e3360872f4594379abec6f9fbc7c390d"
+     }
+    }
+   },
+   {
+    "row": "end",
+    "n": 2,
+    "t": 1791646034.759,
+    "events_line": 375,
+    "status": "exited",
+    "returncode": 0,
+    "engine": {
+     "status": "done",
+     "stage": "done",
+     "revision": 41,
+     "accepted": 35,
+     "last_accepted": {
+      "stage": "handoff",
+      "action": "nav-3941d4101b134c2183bfd4ffa10d31a3"
+     }
+    }
+   }
+  ],
+  "first_calls_of_the_fresh_session": [
+   {
+    "call": 1,
+    "seconds": 2.1,
+    "tool": "Bash",
+    "head": "python3 \"<out>/build/plugins/skill-craft/skills/shiploop/scripts/shiploop\" next --run-dir \"<out>/.shiploop-runs/work-20261009-230454-a6b8be/run\""
+   },
+   {
+    "call": 2,
+    "seconds": 4.8,
+    "tool": "Read",
+    "head": "<out>/.shiploop-runs/work-20261009-230454-a6b8be/run/packets/nav-169ac29039914abb84512fd7dd65cc0b.md"
+   },
+   {
+    "call": 3,
+    "seconds": 5.2,
+    "tool": "Bash",
+    "head": "ls -la <out>/work; cat <out>/work/test_hello.py"
+   },
+   {
+    "call": 4,
+    "seconds": 7.4,
+    "tool": "Write",
+    "head": "<out>/.shiploop-runs/work-20261009-230454-a6b8be/worktree/hello.py"
+   },
+   {
+    "call": 5,
+    "seconds": 9.1,
+    "tool": "Bash",
+    "head": "cd <out>/.shiploop-runs/work-20261009-230454-a6b8be/worktree && ls -la && cat hello.py"
+   },
+   {
+    "call": 6,
+    "seconds": 12.0,
+    "tool": "Bash",
+    "head": "cd <out>/.shiploop-runs/work-20261009-230454-a6b8be/worktree && python3 -m unittest -v test_hello 2>&1 | tail -8; python3 <out>/build/plugins/skill-craft/skills/shiploop/scripts/shiploop lint --run-di"
+   },
+   {
+    "call": 7,
+    "seconds": 16.5,
+    "tool": "Bash",
+    "head": "R=<out>/.shiploop-runs/work-20261009-230454-a6b8be cat > $R/run/inbox/nav-169ac29039914abb84512fd7dd65cc0b.md <<EOF # ShipLoop navigator result  \\`\\`\\`shiploop-state {   \"evidence_refs\": [\"$R/worktree"
+   },
+   {
+    "call": 8,
+    "seconds": 20.1,
+    "tool": "Bash",
+    "head": "R=<out>/.shiploop-runs/work-20261009-230454-a6b8be cat $R/worktree/test_hello.py; git -C $R/worktree status --short S=<out>/build/plugins/skill-craft/skills/shiploop/scripts/shiploop A=nav-4c84caa40d0"
+   }
+  ]
+ }
+]

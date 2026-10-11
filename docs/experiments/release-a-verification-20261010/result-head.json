@@ -1,0 +1,49 @@
+{
+ "case": "checkers",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "pass": true,
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.26.1",
+  "shiploop_version": "0.58.0",
+  "plugin_sha256": "54a954c85133",
+  "local_head": "e137455172e22e93eb291d26ebf64f52c78ec8c3"
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_seconds": 770.6,
+  "stop": "success",
+  "sessions": [
+   {
+    "status": "exited",
+    "returncode": 0,
+    "elapsed_seconds": 770.6,
+    "stop": "success",
+    "resumed": null,
+    "host": "claude"
+   }
+  ],
+  "resumes": 0,
+  "pass": true
+ },
+ "termination": {
+  "process_status": "exited",
+  "returncode": 0,
+  "sessions": 1,
+  "resumes": 0,
+  "session_stops": [
+   "success"
+  ],
+  "resume_stop": "host is not resumable",
+  "engine_status": "done",
+  "engine_stage": "done",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": null,
+  "engine_blocked_by": null,
+  "engine_awaiting_kind": null,
+  "engine_awaiting_no_default": null
+ },
+ "outcome_class": "PASS"
+}

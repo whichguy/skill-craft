@@ -163,7 +163,7 @@ awaiting, halted or done packet. Other packets carry no narrative.
 - **plan** — build the dependency plan and the work-item queue
 - **then prepare, the work items, release**
 
-**⏱ Pace** — 3 steps in 11 min · about 15 min left in preparation at this run's pace (an estimate, not a promise)
+**⏱ Pace** — 3 steps in 11 min
 ```
 
 - **Achieved** lists each accepted step's `headline`: one line of at most 100
@@ -175,9 +175,12 @@ awaiting, halted or done packet. Other packets carry no narrative.
   groups, work items and release.
 - **Pace** reads `<run>/timeline.json`, a derived display file written in the
   same transaction as `status.md`: the run's start and when each step was
-  accepted. The forecast appears after two accepted steps and is the observed
-  average time per step times the steps left in the phase. The model never
-  estimates time itself.
+  accepted. It states what was recorded, the steps accepted and the time they
+  took, and forecasts nothing: the average time per step times the steps left
+  is not a rate in any phase (one recorded preparation ran from 0.8 to 9.6
+  minutes per stage, another from 2.5 to 121, and the forecast read 2.4 to 6.8
+  times short after the second step of five recorded preparations). The model
+  never estimates time itself.
 
 The section's first line tells the owner who shows it:
 

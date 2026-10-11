@@ -1,0 +1,14 @@
+{
+  "name": "node-base",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A tiny dependency-free Node project: the starting point of ShipLoop's step-slice cases.",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test",
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

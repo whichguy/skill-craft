@@ -41,7 +41,7 @@ action's callback. No entire prompt snapshot is a pass condition.
 
 The two-work-item trace must distinguish W1 from W2: W1 owns its
 `carry-forward` callback, then the returned packet is owned by W2 at
-`select-work`. The synthetic carry-forward result records W1 as done and causes
+`get-next-work-item`. The synthetic carry-forward result records W1 as done and causes
 W2's execution record to be created in the same simulated transition. In a
 persisted run, `next` reports W2's pending effective action; it does not advance
 W2 or expose an actionable root `inner-loop` container. Future work items have

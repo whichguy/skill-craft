@@ -1,16 +1,23 @@
-# ShipLoop navigator 0.54.0
+# ShipLoop navigator 0.59.0
+
+> **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
+> its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
+> does so even when the previous packet said the same thing. Repetition from one packet to the next is how a cleared model is grounded;
+> the only repetition to remove is inside one packet. Make a packet smaller only by dropping what that stage does not need, and prove
+> the result by clearing the context at a stage boundary and inside a stage and comparing the redone work. SPEC S-6 states the rule.
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. New
 runs record `delegation: inline`, so that conversation also executes every
-assignment. It clears once per work item at the `select-work` packet (through a
-callable host reset, or the printed pause plus a host `/clear` or fresh
-conversation and the Recovery and Resume commands), continues each later INNER stage in the
-same context, and runs each bound Improve invocation through the selected
-Improve skill in the exact Child workspace without Ask Agent, native workers, an
-extra worktree or `host-owner.md`; its reviews and checks run there too, with no
-reviewer or test-runner agent unless the user asks for independent review. The
-boundary is per work item because a model
-cannot clear its own conversation: in the [clear-ledger study](https://github.com/whichguy/skill-craft/blob/59be9b8232e34dc00ae777052a608a13967ffab2/docs/shiploop-clear-ledger-experiments-2026-09-21.md#live-ledger-study-september-21-2026)
+assignment, continues every INNER stage in the same context, and runs each bound
+Improve invocation through the selected Improve skill in the exact Child workspace
+without Ask Agent, native workers, an extra worktree or `host-owner.md`; its
+reviews and checks run there too, with no reviewer or test-runner agent unless
+the user asks for independent review. No packet or hook clears the conversation:
+the packets say not to pause for a clear, because a model cannot clear its own
+conversation, and a host that clears or compacts anyway (or a crash) is resumed
+from the Recovery and Resume commands every packet prints, which is why each
+packet stands alone (the tenet above). In the
+[clear-ledger study](https://github.com/whichguy/skill-craft/blob/59be9b8232e34dc00ae777052a608a13967ffab2/docs/shiploop-clear-ledger-experiments-2026-09-21.md#live-ledger-study-september-21-2026)
 each packet-text variant produced a verified fresh entry in 0 of 2 cases, while
 external host `/clear` worked in 3 of 3 resets.
 
@@ -156,15 +163,16 @@ accepted on its own checks and the script selects the next producer directly
 are accepted on ShipLoop's checks at `complete` too, and only `system-test-author`, `release-plan`
 and the last `carry-forward` follow this sequence. The 34 producers' full flat
 order is: `intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`,
-`prepare`; then, for each ready item, `select-work`, `step-plan`, `test-spec`,
+`prepare`; then, for each ready item, `get-next-work-item`, `step-plan`, `test-spec`,
 `baseline`, `test-author`, `test-red`, `implement`, `test-green`, `test-refine`,
 `regression`, `document`, `skill-assess`, `skill-validate`, `static-checks`,
 `verify`, `integrate`, `integration-verify`, `carry-forward`; then
 `system-test-author`, `system-test`, `product-acceptance`, `release-plan`,
 `release-check`, `release`, `release-verify`, `operations`, and `handoff`.
 
-`skill-validate`, preparation, release, and operations still produce a reviewed
-result when they are inapplicable; they record a concrete N/A disposition rather
+Preparation, release, and operations still produce a reviewed result when they are
+inapplicable, and so do `skill-assess` and `skill-validate` unless the item's step
+plan records `skill_na` (below); they record a concrete N/A disposition rather
 than disappearing from the graph. `test-red` records an expected failure for the
 specified missing behavior and must not make production edits to turn it green.
 Release and verification never replay an uncertain external operation merely to
@@ -174,12 +182,18 @@ make traversal continue.
 stay in the product repository. `discovery` inspects the local index before
 planning; each `step-plan` rereads it for skills learned by earlier items.
 Prefer unchanged reuse with supported inputs/defaults, then a compatible local
-update, or a separate skill when contracts differ. `skill-assess` captures new
-learnings; `skill-validate` checks changed and retained uses. Carry selected-skill
+update, or a separate skill when contracts differ. `skill-assess` decides, for the item's
+declared paths, whether to reuse, update or create a skill and makes the warranted
+skill edits; `skill-validate` checks changed and retained uses. Carry selected-skill
 references into Improve's host-authored contract and maintain the repository index
 at `carry-forward`. This uses ordinary evidence/plan notes and work-item context;
 it adds no global installation or skill-specific runtime schema. Fresh-reader
 reuse remains untested until a reader actually finds and applies the local skill.
+A step plan that finds no repo-local skill to select, create or change records
+`skill_na` with the no-fit reason; ShipLoop then records `skill-assess` and
+`skill-validate` as not applicable to that item, and refuses `skill_na` beside a
+skill file in `paths` or a `document` that touches one (see "Skill stages not
+applicable to an item" in the [skill guide](SKILL.md)).
 
 Testing builds a [repeatable repository suite](references/repeatable-test-suites.md).
 Initial planning selects or revalidates the harness and focused/smoke/full commands.
@@ -193,8 +207,9 @@ route; unavailable remote checks remain unrun even when local tests pass.
 
 At initialization, `--improve-skill=ABSOLUTE_SELECTED_SKILL_CARD` may bind the
 actual card (`--planning-review none` requires it: no planning child binds the card before the first item's
-quality and test loops read it). If omitted, the first checkpoint remains pending until the packet
-instructs the owner to use `improve-bind --action ... --skill-card ...`. The
+quality and test loops read it). If omitted, `init` records the card installed beside ShipLoop when it
+validates, and the first checkpoint's packet prints the command `improve-bind --action ... --skill-card ...`
+with that path; where none validates the checkpoint stays pending on a marked blank. The
 packet is authoritative for argument values and recovery. It then supplies one
 actual Improve handoff; a recorded child is resumed through its own state, and
 `improve-complete` imports its last review pass(es) and check output once, with
@@ -210,7 +225,8 @@ the selected Until Loop runtime remains child-execution authority.
 The canonical Improve package bundles Until Loop **0.5.0**, pinned to
 upstream commit `5df2a2feef4d80b93ca3c8a749d7d265c082d376`. Its default child uses
 `scripts/until_loop_ephemeral.py`; the package provenance manifest records the
-copied source hashes. The explicit selected card determines this binding. An
+copied source hashes. The selected card (the explicit `--improve-skill`, else the card installed
+beside ShipLoop and recorded at `init`) determines this binding. An
 ambient same-named skill or an older `scripts/until-loop` on `PATH` cannot select
 the child runtime. Changing an external Until Loop installation alone does not
 refresh Improve's bundled copy.
@@ -315,8 +331,9 @@ the original branch receives nothing after an individual item. System checks
 and outer Improve evaluate the assembled candidate before final return.
 
 At the planned final integration boundary, the packet supplies `workspace
-plan-return` and `workspace return`. Review the candidate-bound Markdown plan's
-path dispositions: keep intended code/tests/configuration and maintained project
+plan-return`, `workspace review-return` and `workspace return`. Decide every path of
+the candidate-bound Markdown plan with `review-return --keep/--exclude`, never by
+editing the file: keep intended code/tests/configuration and maintained project
 knowledge; exclude transient output. The helper blocks pending/stale decisions,
 known runtime paths, source drift and unsafe merges. For a clean start it also
 checks reachable commit paths, so committing then deleting a runtime artifact
@@ -528,6 +545,10 @@ This last transfer is a host duty, not an automatic semantic guarantee.
 uses the same outcome/source/test mapping in the relevant planning and review
 packets. It is ShipLoop's planning checklist, not a second standalone planning
 run; a Backchain call uses only the `source-aware-native` route.
+The plan packet's Backchain loop takes one review/fix/check pass by default
+(`--backchain-passes one`; `converge` takes two consecutive trivial reviews, `none` takes no whole loop), and
+`--planning-review stage|none` turns the per-stage planning reviews on or off; both are fixed for the run
+(SKILL.md, *Backchain passes option* and *Planning review option*).
 Keep product-document links portable across worktree return; verify destination
 files and anchors, distinguish planned tests from evidence, and repair affected
 links together when an authorized change moves a destination. Improve/Until Loop
@@ -542,7 +563,7 @@ action. At an Improve checkpoint the script parks that action while its actual
 Improve child runs.
 
 After `carry-forward` is accepted (and, for the last item, its Improve child is
-imported), the script selects the next item's `select-work`, or returns
+imported), the script selects the next item's `get-next-work-item`, or returns
 ownership to `system-test-author` after the final item. The
 [navigator ownership guide](references/navigator.md#one-shared-inner-graph-and-per-item-records)
 explains the shared cursor boundary. ShipLoop stores the actual child binding
@@ -919,6 +940,7 @@ line after the header is the one legal callback. The command surface is:
 # Start a navigator protocol 4 run
 shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSOLUTE_SKILL_CARD] [--include-untracked=PATH]... [--exclude=PATH]... [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
 shiploop workspace plan-return --workspace-root ROOT
+shiploop workspace review-return --workspace-root ROOT [--keep PATH...] [--exclude PATH...]
 shiploop workspace return      --workspace-root ROOT
 shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
 # Reread the current packet; never advances

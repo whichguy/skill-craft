@@ -1,0 +1,23 @@
+{
+ "pass": false,
+ "host": "grok",
+ "process": {
+  "status": "exited",
+  "returncode": 0
+ },
+ "termination": {
+  "process_status": "exited",
+  "returncode": 0,
+  "sessions": 2,
+  "resumes": 1,
+  "session_stops": [
+   "cancelled",
+   "end_turn"
+  ],
+  "resume_stop": "ShipLoop run is blocked",
+  "engine_status": "blocked",
+  "engine_stage": "system-test-author",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": "access: SYS-SERVE passed: node scripts/system-serve.js started server.js and saw the title, 100 buttons, a new game, a shot, and a 400. TC-16 did not run. Headless Chrome left the document on about:bl"
+ }
+}

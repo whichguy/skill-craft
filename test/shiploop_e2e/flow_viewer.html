@@ -1,0 +1,456 @@
+<title>ShipLoop Run Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a ledger of runs on top, then one run as a two-lane sequence (ShipLoop | model), each row opening into detail. */
+:root {
+  --bg: #f3f4f6; --panel: #ffffff; --sunk: #eceef2; --line: #d5d9e0; --ink: #1b2130; --muted: #5d6576; --faint: #8a91a0;
+  --wrote: #c9d0dc; --reached: #2f55c8; --reached-soft: #e3e9fb; --flag: #a86400; --flag-soft: #fbefdb;
+  --pass: #1d7a4b; --pass-soft: #def2e7; --fail: #b3261e; --fail-soft: #fbe3e1; --model: #4b3fa8; --model-soft: #ecebfa;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12151c; --panel: #1a1e27; --sunk: #222733; --line: #323949; --ink: #e6e9f0; --muted: #a2a9b8; --faint: #747c8c;
+  --wrote: #3a4253; --reached: #7d9cff; --reached-soft: #232d4c; --flag: #f0b45a; --flag-soft: #3a2c16;
+  --pass: #5fcf93; --pass-soft: #17331f; --fail: #ff8a80; --fail-soft: #3d1d1b; --model: #a99cff; --model-soft: #26224a;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12151c; --panel: #1a1e27; --sunk: #222733; --line: #323949; --ink: #e6e9f0; --muted: #a2a9b8; --faint: #747c8c;
+  --wrote: #3a4253; --reached: #7d9cff; --reached-soft: #232d4c; --flag: #f0b45a; --flag-soft: #3a2c16;
+  --pass: #5fcf93; --pass-soft: #17331f; --fail: #ff8a80; --fail-soft: #3d1d1b; --model: #a99cff; --model-soft: #26224a;
+  color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--body); padding-inline: 16px; padding-block: 20px 48px }
+main { max-width: 1180px; margin: 0 auto; display: grid; gap: 22px }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0 }
+h1 { font-size: 26px; letter-spacing: .01em }
+h2 { font-size: 18px }
+h3 { font-size: 15px }
+.eyebrow { font: 500 11px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+.mono { font-family: var(--mono); font-size: 12.5px }
+.num { font-variant-numeric: tabular-nums }
+button, select, input { font: inherit; color: inherit }
+button:focus-visible, select:focus-visible, summary:focus-visible, .row:focus-visible { outline: 2px solid var(--reached); outline-offset: 2px }
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px }
+.drop { border: 1px dashed var(--line); border-radius: 8px; padding: 8px 12px; color: var(--muted); font-size: 13px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.drop.over { border-color: var(--reached); background: var(--reached-soft) }
+.drop label { color: var(--reached); cursor: pointer; text-decoration: underline }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px }
+.scroll { overflow-x: auto }
+table.runs { border-collapse: collapse; width: 100%; min-width: 760px }
+table.runs th, table.runs td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap }
+table.runs th { font: 500 11px/1 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
+table.runs tbody tr { cursor: pointer }
+table.runs tbody tr:hover { background: var(--sunk) }
+table.runs tbody tr[aria-selected="true"] { background: var(--reached-soft) }
+table.runs td.r { text-align: right }
+.pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 500; white-space: nowrap }
+.pill.pass { background: var(--pass-soft); color: var(--pass) }
+.pill.fail { background: var(--fail-soft); color: var(--fail) }
+.pill.flag { background: var(--flag-soft); color: var(--flag) }
+.pill.quiet { background: var(--sunk); color: var(--muted) }
+.summary { padding: 18px 20px; display: grid; gap: 14px }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--muted) }
+.facts b { color: var(--ink); font-weight: 600 }
+.figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px }
+.figure { background: var(--sunk); border-radius: 8px; padding: 10px 12px; min-width: 0 }
+.figure .v { font: 600 20px/1.2 var(--display); font-variant-numeric: tabular-nums }
+.figure .k { color: var(--muted); font-size: 12px }
+.request { border-left: 3px solid var(--model); padding: 4px 0 4px 12px; max-width: 75ch }
+.notes { display: grid; gap: 6px; margin: 0; padding-left: 18px }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--muted); align-items: center }
+.sw { display: inline-block; width: 18px; height: 8px; border-radius: 2px; vertical-align: middle; margin-right: 6px }
+.lanes { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr); gap: 0; padding: 10px 16px; color: var(--muted); border-bottom: 1px solid var(--line) }
+.lanes span:last-child { text-align: left }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr); align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); cursor: pointer }
+.row:hover { background: var(--sunk) }
+.row[aria-expanded="true"] { background: var(--sunk) }
+.ship { display: grid; gap: 5px; min-width: 0 }
+.ship .name { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
+.ship .name b { font-family: var(--display); font-size: 15px; font-weight: 600 }
+.bar { position: relative; height: 10px; background: var(--sunk); border-radius: 3px; overflow: hidden }
+.bar .w { position: absolute; inset: 0 auto 0 0; background: var(--wrote) }
+.bar .r { position: absolute; inset: 0 auto 0 0; background: var(--reached) }
+.arrow { text-align: center; color: var(--faint); font-size: 16px }
+.model { display: grid; gap: 5px; min-width: 0 }
+.model .line { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+.model .said { color: var(--model); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.seeded { padding: 10px 16px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px }
+.detail { padding: 14px 16px 18px; border-bottom: 1px solid var(--line); background: var(--panel); display: grid; gap: 12px }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap }
+.tabs button { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink) }
+.phase-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5 var(--mono); background: var(--sunk); border-radius: 8px; padding: 12px; max-height: 520px; overflow: auto }
+.events { display: grid; gap: 8px }
+.ev { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 10px; align-items: start }
+.ev .t { color: var(--faint); font: 12px/1.6 var(--mono); text-align: right }
+.ev.say .b { background: var(--model-soft); color: var(--ink); border-radius: 8px; padding: 8px 12px; max-width: 75ch }
+.ev.call .b { border: 1px solid var(--line); border-left: 3px solid var(--model); border-radius: 6px; padding: 8px 10px; display: grid; gap: 6px; min-width: 0 }
+.ev.result details, .ev.call details { min-width: 0 }
+.ev.result summary, .ev.call summary { cursor: pointer; color: var(--muted); font-size: 12.5px }
+.ev.hook .b { color: var(--faint); font-size: 12px; font-family: var(--mono); white-space: pre-wrap; word-break: break-word }
+.sections { display: grid; gap: 4px }
+.sec { display: grid; grid-template-columns: minmax(0, 1fr) 90px 160px; gap: 10px; align-items: center; font-size: 12.5px }
+.sec .bar { height: 8px }
+.empty { padding: 28px 20px; color: var(--muted) }
+.case { display: grid; gap: 8px }
+.checks { display: grid; gap: 6px }
+.check { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start }
+.check summary { cursor: pointer }
+.cleared { border-left: 3px solid var(--flag); background: var(--flag-soft); padding: 8px 12px; border-radius: 6px }
+.ev.divider .b { color: var(--flag); font-weight: 600; border-top: 2px dashed var(--flag); padding-top: 6px }
+.muted { color: var(--muted) }
+@media (max-width: 700px) {
+  .row, .lanes { grid-template-columns: minmax(0, 1fr) }
+  .arrow { display: none }
+  .lanes span:nth-child(2) { display: none }
+  .model { padding-top: 6px }
+  .sec { grid-template-columns: minmax(0, 1fr) 70px }
+  .sec .bar { display: none }
+  .ev { grid-template-columns: 40px minmax(0, 1fr) }
+}
+@media (prefers-reduced-motion: no-preference) { .row, table.runs tbody tr { transition: background .12s } }
+</style>
+
+<main>
+  <header class="top">
+    <div>
+      <div class="eyebrow">ShipLoop E2E</div>
+      <h1>ShipLoop Run Flow</h1>
+    </div>
+    <div class="drop" id="drop">
+      <span>Add runs: drop <span class="mono">flow.json</span> files here or</span>
+      <label for="files">choose files</label>
+      <input id="files" type="file" accept=".json,application/json" multiple hidden>
+    </div>
+  </header>
+
+  <section class="panel" aria-labelledby="runs-title">
+    <div style="padding:14px 16px 4px"><h2 id="runs-title">Runs</h2></div>
+    <div class="scroll"><table class="runs" id="runs"></table></div>
+  </section>
+
+  <section id="run" aria-live="polite"></section>
+</main>
+
+<!--FLOW-RUNS-->
+
+<script>
+(() => {
+  const runs = [];
+  try {
+    const node = document.getElementById("flow-runs");
+    if (node) runs.push(...JSON.parse(node.textContent));
+  } catch (e) { console.error("embedded runs could not be read", e); }
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const k = (n) => n == null ? "–" : n >= 10000 ? (n / 1000).toFixed(0) + "k" : n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
+  const secs = (s) => s == null ? "–" : s >= 90 ? (s / 60).toFixed(1) + " min" : Math.round(s) + " s";
+  const FLAG_TEXT = {
+    "trivial-pass": "self-reported trivial pass",
+    "scripted-review": "review written by its own script",
+  };
+  const flagText = (f) => FLAG_TEXT[f] || f.replace("defines-script:", "wrote script ").replace("runs-script:", "ran script ");
+
+  // What reached the model from one phase: the printed head, plus the whole file when it was opened whole.
+  const reached = (p) => p.head_chars + (p.reads.some((r) => r.includes("whole")) ? p.packet.chars : 0);
+
+  function runStats(run) {
+    const live = run.actions.filter((a) => !a.seeded);
+    const phases = live.flatMap((a) => a.phases);
+    const written = phases.reduce((n, p) => n + p.packet.chars, 0);
+    const reach = phases.reduce((n, p) => n + reached(p), 0);
+    const flags = {};
+    phases.forEach((p) => p.flags.forEach((f) => (flags[f] = (flags[f] || 0) + 1)));
+    return {
+      phases, written, reach, flags,
+      calls: phases.reduce((n, p) => n + p.calls, 0),
+      opened: phases.filter((p) => p.reads.length).length,
+      seeded: run.actions.filter((a) => a.seeded).length,
+      scripted: flags["scripted-review"] || 0,
+      trivial: flags["trivial-pass"] || 0,
+    };
+  }
+
+  function verdictPill(run) {
+    if (run.pass == null) return `<span class="pill quiet">${esc(run.run_status || "unknown")}</span>`;
+    return run.pass ? `<span class="pill pass">PASS</span>` : `<span class="pill fail">FAIL</span>`;
+  }
+
+  function renderCase(run) {
+    const c = run.case_details;
+    if (!c || (!c.checks.length && !c.expect_paths.length)) return "";
+    const checks = c.checks.map((k) => `<div class="check"><span class="pill ${k.pass ? "pass" : "fail"}">${k.pass ? "pass" : "fail"}</span>
+      <details><summary class="mono">${esc((k.command || "").slice(0, 160))}${(k.command || "").length > 160 ? "…" : ""}</summary>
+      <pre>${esc(k.command)}${k.output ? "\n\n" + esc(k.output) : ""}</pre></details></div>`).join("");
+    const a = c.assembled;
+    return `<div class="case"><div class="eyebrow">Case</div>
+      ${c.expect_paths.length ? `<div>Expected paths: <span class="mono">${c.expect_paths.map(esc).join(", ")}</span></div>` : ""}
+      ${a ? `<div>Changed by the item: <span class="mono">${(a.changed || []).map(esc).join(", ") || "none"}</span>${(a.missing || []).length ? ` · <span class="pill fail">missing ${a.missing.map(esc).join(", ")}</span>` : ""}${(a.uncommitted_product || []).length ? ` · <span class="muted">uncommitted (assembled for the release): ${a.uncommitted_product.map(esc).join(", ")}</span>` : ""}</div>` : ""}
+      ${checks ? `<div class="checks"><div class="muted">Case checks, run on a clean copy of the assembled candidate:</div>${checks}</div>` : ""}
+      ${c.queue_growth ? `<div>Work items added at carry-forward: ${c.queue_growth}</div>` : ""}
+      ${(c.overshoot || []).length ? `<div><span class="pill fail">overshoot</span> ${c.overshoot.map(esc).join(", ")}</div>` : ""}
+    </div>`;
+  }
+
+  let current = 0;
+  let open = null;
+
+  function renderRuns() {
+    const t = document.getElementById("runs");
+    if (!runs.length) {
+      t.innerHTML = `<tbody><tr><td class="empty">No runs loaded. Run <span class="mono">python3 test/shiploop_e2e/flow.py &lt;output&gt;</span> and drop its flow.json here.</td></tr></tbody>`;
+      return;
+    }
+    t.innerHTML = `<thead><tr><th>Case</th><th>Result</th><th>Host · model</th><th>Delegation</th><th>Started (UTC)</th>
+      <th class="r">Wall</th><th class="r">Calls</th><th class="r">Packet chars written</th><th class="r">Reached model</th><th>Flags</th></tr></thead>
+      <tbody>${runs.map((run, i) => {
+        const s = runStats(run);
+        const flagCount = s.scripted + s.trivial;
+        return `<tr data-i="${i}" aria-selected="${i === current}" tabindex="0">
+          <td><b>${esc(run.case || "custom")}</b> <span class="muted">${esc(run.kind)}</span></td>
+          <td>${verdictPill(run)}</td>
+          <td>${esc(run.host || "?")} · <span class="mono">${esc(run.model || "?")}</span></td>
+          <td>${esc(run.delegation || "–")}</td>
+          <td class="num">${esc((run.started || "").replace("T", " ").replace("+00:00", ""))}</td>
+          <td class="r num">${secs(run.seconds)}</td>
+          <td class="r num">${s.calls}</td>
+          <td class="r num">${k(s.written)}</td>
+          <td class="r num">${k(s.reach)} <span class="muted">(${s.written ? Math.round((100 * s.reach) / s.written) : 0}%)</span></td>
+          <td>${flagCount ? `<span class="pill flag">${flagCount}</span>` : `<span class="pill quiet">0</span>`}</td></tr>`;
+      }).join("")}</tbody>`;
+    t.querySelectorAll("tbody tr[data-i]").forEach((tr) => {
+      const pick = () => { current = +tr.dataset.i; open = null; renderAll(); setHash(); };
+      tr.addEventListener("click", pick);
+      tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+    });
+  }
+
+  function renderRun() {
+    const box = document.getElementById("run");
+    const run = runs[current];
+    if (!run) { box.innerHTML = ""; return; }
+    const s = runStats(run);
+    const maxPacket = Math.max(1, ...s.phases.map((p) => p.packet.chars));
+    const verdicts = Object.entries(run.verdicts || {}).map(([name, ok]) =>
+      `<span class="pill ${ok ? "pass" : "fail"}">${esc(name)}</span>`).join(" ");
+    const notes = [];
+    notes.push(`ShipLoop wrote <b>${k(s.written)}</b> characters of packets for the live stages; about <b>${k(s.reach)}</b> reached the model (${s.written ? Math.round((100 * s.reach) / s.written) : 0}%): the printed heads, plus ${s.opened} packet file${s.opened === 1 ? "" : "s"} it opened.`);
+    if (s.scripted) notes.push(`<b>${s.scripted}</b> Improve review${s.scripted === 1 ? " was" : "s were"} written by a script the model wrote, so the review text was fixed before anything was checked.`);
+    if (s.trivial) notes.push(`<b>${s.trivial}</b> phase${s.trivial === 1 ? "" : "s"} self-reported a trivial Until Loop pass (classification trivial, exit satisfied).`);
+    const scripts = Object.keys(s.flags).filter((f) => f.startsWith("defines-script:")).map((f) => f.split(":")[1]);
+    if (scripts.length) notes.push(`The model wrote its own drivers for ShipLoop: <span class="mono">${scripts.map(esc).join(", ")}</span>.`);
+    if (run.events_source !== "claude") notes.push(`This host's stream gives tool calls only; model text, results and the printed heads are not available.`);
+    if (run.packets_source !== "archive") notes.push(`Packets come from run/packets, which keeps only the last copy of each packet.`);
+
+    // The row the clear belongs to: the action whose events straddle the stop line, else (a clear at a stage boundary)
+    // the first action of the stage the run stopped in.
+    let clearRow = null;
+    if (run.clear && run.clear.stopped) {
+      const line = run.clear.stopped.events_line;
+      const straddles = (a) => {
+        const evs = a.phases.flatMap((p) => p.events).filter((e) => e.line != null);
+        return evs.some((e) => e.line < line) && evs.some((e) => e.line >= line);
+      };
+      const found = run.actions.find((a) => !a.seeded && straddles(a))
+        || run.actions.find((a) => !a.seeded && a.stage === run.clear.stopped.stage);
+      clearRow = found ? found.index : null;
+    }
+    let rows = "";
+    const seeded = run.actions.filter((a) => a.seeded);
+    if (seeded.length) rows += `<div class="seeded">${seeded.length} stages recorded by the harness without doing them: ${seeded.map((a) => esc(a.stage)).join(", ")}</div>`;
+    run.actions.filter((a) => !a.seeded).forEach((a) => {
+      const phases = a.phases.length ? a.phases : [{ kind: "producer", packet: { chars: 0 }, head_chars: 0, reads: [], events: [], calls: 0, flags: [] }];
+      const written = phases.reduce((n, p) => n + p.packet.chars, 0);
+      const reach = phases.reduce((n, p) => n + reached(p), 0);
+      const flags = [...new Set(phases.flatMap((p) => p.flags))];
+      const said = phases.flatMap((p) => p.events).find((e) => e.kind === "say");
+      const span = phases.reduce((n, p) => n + (p.span_seconds || 0), 0);
+      const improve = phases.some((p) => p.kind === "improve");
+      const clearedHere = a.index === clearRow;
+      const clearedBefore = false;
+      const expanded = open === a.index;
+      rows += `<div class="row" role="button" tabindex="0" aria-expanded="${expanded}" data-a="${a.index}">
+        <div class="ship">
+          <div class="name"><b>${esc(a.stage)}</b>
+            ${improve ? `<span class="pill quiet">+ Improve</span>` : ""}
+            ${clearedHere || clearedBefore ? `<span class="pill flag">context cleared here</span>` : ""}
+            ${a.accepted ? `<span class="muted">${esc(a.outcome || "")}</span>` : `<span class="pill quiet">stopped here</span>`}
+            <span class="muted num">${k(written)} written · ${k(reach)} reached</span></div>
+          <div class="bar" title="${written} characters written, about ${reach} reached the model">
+            <span class="w" style="width:${(100 * written) / (maxPacket * Math.max(1, phases.length))}%"></span>
+            <span class="r" style="width:${(100 * Math.min(reach, written)) / (maxPacket * Math.max(1, phases.length))}%"></span></div>
+        </div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="model">
+          <div class="line"><span class="num">${phases.reduce((n, p) => n + p.calls, 0)} call${phases.reduce((n, p) => n + p.calls, 0) === 1 ? "" : "s"}</span>
+            <span class="muted num">${span ? secs(span) : ""}</span>
+            ${phases.some((p) => p.reads.length) ? `<span class="pill quiet">opened packet</span>` : ""}
+            ${flags.map((f) => `<span class="pill flag">${esc(flagText(f))}</span>`).join("")}</div>
+          ${said ? `<div class="said" title="${esc(said.body.text)}">“${esc(said.body.text)}”</div>` : ""}
+        </div></div>`;
+      if (expanded) rows += `<div class="detail" id="detail">${renderDetail(a)}</div>`;
+    });
+
+    box.innerHTML = `<div class="panel summary">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+          <h2>${esc(run.case || "custom")} ${verdictPill(run)}</h2><div>${verdicts}</div></div>
+        <div class="facts">
+          <span>Host <b>${esc(run.host || "?")}</b></span><span>Model <b class="mono">${esc(run.model || "?")}</b></span>
+          <span>Delegation <b>${esc(run.delegation || "–")}</b></span><span>Wall <b class="num">${secs(run.seconds)}</b></span>
+          <span>ShipLoop <b>${esc((run.versions || {}).shiploop_version || "?")}</b></span>
+          <span>Run status <b>${esc(run.run_status || "?")}</b></span></div>
+        <div class="request"><div class="eyebrow">Request</div>${esc(run.prompt)}</div>
+        ${renderCase(run)}
+        ${run.clear ? `<div class="cleared"><b>Context cleared</b> ${run.clear.inside ? "inside" : "at the start of"} <b>${esc(run.clear.stage)}</b>
+          (stopped at ${esc((run.clear.stopped || {}).stage || "?")}, revision ${esc((run.clear.stopped || {}).revision ?? "?")});
+          a fresh session continued from the packet alone. Redone work after the clear:
+          <b>${(run.clear.redone || []).length}</b>${(run.clear.redone || []).length ? ": " + run.clear.redone.map((r) => esc(r.kind + " " + (r.key || [])[0])).join("; ") : ""}.
+          <span class="muted">(The redo metric is under repair after the 2026-10-10 review: read this count as provisional.)</span></div>` : ""}
+        <div class="figures">
+          <div class="figure"><div class="v">${s.phases.length}</div><div class="k">packets for live stages</div></div>
+          <div class="figure"><div class="v">${k(s.written)}</div><div class="k">packet characters written</div></div>
+          <div class="figure"><div class="v">${k(s.reach)}</div><div class="k">characters that reached the model</div></div>
+          <div class="figure"><div class="v">${s.calls}</div><div class="k">model tool calls</div></div>
+        </div>
+        <ul class="notes">${notes.map((n) => `<li>${n}</li>`).join("")}</ul>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <div style="padding:14px 16px;display:grid;gap:8px">
+          <h2>Sequence</h2>
+          <div class="legend"><span><span class="sw" style="background:var(--wrote)"></span>packet written by ShipLoop</span>
+            <span><span class="sw" style="background:var(--reached)"></span>reached the model (printed head, or the whole file when opened)</span>
+            <span><span class="pill flag">flag</span> found by script in the model's calls</span>
+            <span class="muted">Select a row for the head, the calls and the full packet.</span></div>
+        </div>
+        <div class="lanes eyebrow"><span>ShipLoop sends</span><span></span><span>Model does</span></div>
+        ${rows}
+      </div>`;
+
+    box.querySelectorAll(".row").forEach((row) => {
+      const toggle = () => { const i = +row.dataset.a; open = open === i ? null : i; renderRun(); setHash();
+        if (open != null) document.getElementById("detail")?.scrollIntoView({ block: "nearest" }); };
+      row.addEventListener("click", toggle);
+      row.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+    });
+    wireDetail();
+  }
+
+  let tab = "seen";
+  function renderDetail(a) {
+    return a.phases.map((p, pi) => {
+      const head = p.head ? `<pre>${esc(p.head)}</pre>` : `<p class="muted">No printed head was captured for this packet${p.kind === "producer" && !a.accepted ? " (the model cut the output short, or the run stopped here)" : ""}.</p>`;
+      const reads = p.reads.length ? `Opened the packet file: ${p.reads.map(esc).join("; ")}.` : "Never opened the packet file.";
+      const clearLine = runs[current].clear && runs[current].clear.stopped ? runs[current].clear.stopped.events_line : null;
+      let divided = false;
+      const events = p.events.length ? `<div class="events">${p.events.map((e) => {
+        let pre = "";
+        if (!divided && clearLine != null && e.line != null && e.line >= clearLine) {
+          divided = true;
+          pre = `<div class="ev divider"><span class="t"></span><div class="b">Context cleared here — a fresh session continues from the packet alone</div></div>`;
+        }
+        return pre + renderEvent(e);
+      }).join("")}</div>` : `<p class="muted">No model events in this phase.</p>`;
+      const maxSec = Math.max(1, ...p.packet.sections.map((x) => x.chars));
+      const sections = `<div class="sections">${p.packet.sections.map((x) => `<div class="sec"><span class="mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.section)}</span>
+          <span class="num muted">${k(x.chars)} chars</span><span class="bar"><span class="w" style="width:${(100 * x.chars) / maxSec}%"></span></span></div>`).join("")}</div>`;
+      return `<div class="phase" data-p="${pi}">
+        <div class="phase-head"><h3>${p.kind === "improve" ? "Improve review" : "Producer"} packet</h3>
+          <span class="muted num">${k(p.packet.chars)} chars written · head ${k(p.head_chars)} · ${p.packet.emissions} emission${p.packet.emissions === 1 ? "" : "s"} · ${p.packet.skill_references ?? 0} skill references</span>
+          <span class="muted">${reads}</span></div>
+        <div class="tabs" role="tablist">
+          <button role="tab" data-tab="seen" aria-selected="${tab === "seen"}">What the model saw</button>
+          <button role="tab" data-tab="did" aria-selected="${tab === "did"}">What the model did (${p.calls} call${p.calls === 1 ? "" : "s"})</button>
+          <button role="tab" data-tab="packet" aria-selected="${tab === "packet"}">Full packet</button></div>
+        <div class="pane" data-pane="seen" ${tab === "seen" ? "" : "hidden"}>${head}</div>
+        <div class="pane" data-pane="did" ${tab === "did" ? "" : "hidden"}>${events}</div>
+        <div class="pane" data-pane="packet" ${tab === "packet" ? "" : "hidden"}>${sections}
+          <details style="margin-top:10px"><summary>Show the full packet text (${k(p.packet.chars)} chars)</summary><pre data-full="${pi}"></pre></details></div>
+      </div>`;
+    }).join("<hr style='border:0;border-top:1px solid var(--line);margin:4px 0'>");
+  }
+
+  function renderEvent(e) {
+    const t = `<span class="t">${e.t}s</span>`;
+    const more = e.body.clipped ? ` <span class="muted">(first ${k(e.body.text.length)} of ${k(e.body.chars)} chars)</span>` : "";
+    if (e.kind === "say") return `<div class="ev say">${t}<div class="b">${esc(e.body.text)}</div></div>`;
+    if (e.kind === "hook") return `<div class="ev hook">${t}<div class="b">${esc(e.body.text)}</div></div>`;
+    if (e.kind === "call") {
+      const flags = (e.flags || []).map((f) => `<span class="pill flag">${esc(flagText(f))}</span>`).join(" ");
+      const first = e.body.text.split("\n")[0];
+      const long = e.body.text.length > first.length;
+      return `<div class="ev call">${t}<div class="b"><div><span class="pill quiet">${esc(e.tool)}</span> ${flags}</div>
+        ${long ? `<details><summary class="mono">${esc(first.slice(0, 160))}${first.length > 160 ? "…" : ""}</summary><pre>${esc(e.body.text)}</pre></details>`
+               : `<span class="mono" style="word-break:break-all">${esc(first)}</span>`}${more}</div></div>`;
+    }
+    const first = e.body.text.split("\n")[0];
+    return `<div class="ev result">${t}<details><summary>result: <span class="mono">${esc(first.slice(0, 140))}${first.length > 140 ? "…" : ""}</span> · ${k(e.body.chars)} chars</summary><pre>${esc(e.body.text)}</pre>${more}</details></div>`;
+  }
+
+  function wireDetail() {
+    const d = document.getElementById("detail");
+    if (!d) return;
+    const run = runs[current];
+    const a = run.actions.find((x) => x.index === open);
+    d.querySelectorAll(".phase").forEach((ph) => {
+      ph.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        tab = b.dataset.tab;
+        d.querySelectorAll(".phase").forEach((other) => {
+          other.querySelectorAll("[data-tab]").forEach((x) => x.setAttribute("aria-selected", String(x.dataset.tab === tab)));
+          other.querySelectorAll(".pane").forEach((pane) => (pane.hidden = pane.dataset.pane !== tab));
+        });
+      }));
+      const full = ph.querySelector("details pre[data-full]");
+      ph.querySelector(".pane[data-pane=packet] details")?.addEventListener("toggle", (e) => {
+        if (e.target.open && full && !full.textContent) full.textContent = a.phases[+full.dataset.full].packet.text;
+      });
+    });
+  }
+
+  function setHash() {
+    const token = `r${current}` + (open != null ? `-a${open}` : "");
+    try { history.replaceState(null, "", "#" + token); } catch (e) { /* the viewer may refuse */ }
+  }
+  function readHash() {
+    const m = /^#r(\d+)(?:-a(\d+))?$/.exec(location.hash || "");
+    if (m && runs[+m[1]]) { current = +m[1]; open = m[2] != null ? +m[2] : null; }
+  }
+
+  function renderAll() { renderRuns(); renderRun(); }
+
+  function addFiles(files) {
+    [...files].forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          (Array.isArray(data) ? data : [data]).forEach((run) => {
+            if (run && run.flow_version && Array.isArray(run.actions)) runs.push(run);
+          });
+          renderAll();
+        } catch (e) { alertBox(`${file.name} is not a flow.json file.`); }
+      };
+      reader.readAsText(file);
+    });
+  }
+  function alertBox(text) {
+    const drop = document.getElementById("drop");
+    drop.querySelector(".err")?.remove();
+    drop.insertAdjacentHTML("beforeend", `<span class="err" style="color:var(--fail)">${esc(text)}</span>`);
+  }
+  const drop = document.getElementById("drop");
+  ["dragenter", "dragover"].forEach((n) => document.addEventListener(n, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((n) => document.addEventListener(n, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+  document.addEventListener("drop", (e) => addFiles(e.dataTransfer.files));
+  document.getElementById("files").addEventListener("change", (e) => addFiles(e.target.files));
+
+  readHash();
+  renderAll();
+})();
+</script>
+<!-- data: test/shiploop_e2e/flow.py writes each run's flow.json; flow.py --bundle inlines runs at the FLOW-RUNS marker above. -->

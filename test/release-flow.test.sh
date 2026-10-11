@@ -56,6 +56,16 @@ git commit -q --amend -m "fix: typo" -m "No-Change-Note: typo only"
 boundary --base "$base" >/dev/null || fail "No-Change-Note trailer must satisfy the note rule"
 git reset -q --hard HEAD~1
 
+# 3b. A release that ships ShipLoop with no E2E round on record since the last release is refused, as a dry run
+# and for real, and writes nothing; the trailer the refusal names clears it. (The release-preflight suite holds
+# the rule's cases; this is the real cut through the same entry point.)
+before="$(git rev-parse HEAD)"
+out="$(python3 -B scripts/release.py --dry-run 2>&1)" && fail "a ShipLoop release with no E2E round must be refused"
+[[ "$out" == *"No-E2E-Round"* ]] || fail "the refusal does not name its trailer: $out"
+out="$(python3 -B scripts/release.py 2>&1)" && fail "a real ShipLoop release with no E2E round must be refused"
+[[ -z "$(git status --porcelain)" && "$(git rev-parse HEAD)" == "$before" ]] || fail "a refused release changed the checkout"
+git commit -q --amend -m "feat: fixture" -m "No-E2E-Round: release-flow fixture, no live run"
+
 # 4. A dry run changes nothing; a release consumes the notes.
 python3 -B scripts/release.py --dry-run >/dev/null
 [[ -z "$(git status --porcelain)" ]] || fail "dry run changed the checkout"

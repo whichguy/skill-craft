@@ -64,7 +64,7 @@ do not copy this table into every work item or create a second acceptance ledger
 | intake, discovery, research | Request, applicable sources and scoped investigation | Consumer intent, baseline observations, constraints and material unknowns retained; an investigated failure is not product readiness |
 | spec | Reconciled sources and decision basis | Independently verifiable clauses and required surfaces defined; unresolved criteria remain prerequisites |
 | test-strategy, plan | Defined criteria and initial baseline | Cases/verification methods allocated by surface, target, owner and due phase; prerequisites ordered before consumers |
-| prepare, select-work, step-plan | Authorized preparation or selected item with supplier evidence | Actual prerequisites and bounded item Ready/Done criteria revalidated; relevant clause/case locators retained |
+| prepare, get-next-work-item, step-plan | Authorized preparation or selected item with supplier evidence | Actual prerequisites and bounded item Ready/Done criteria revalidated; relevant clause/case locators retained |
 | test-spec | Assigned clauses and accepted strategy | Inputs, independent expected observations, required surfaces, fixtures and execution phases specified |
 | baseline, test-red | Starting candidate and applicable checks | Actual baseline or meaningful expected failure observed and classified; missing coverage/setup failure is not a passing product check |
 | test-author, system-test-author | Independent cases and permitted test scope | Executable checks or justified reproducible manual procedures supplied, discoverable and bound to clauses; authoring does not claim execution. At `test-author` ShipLoop runs the focused commands once and refuses unless a test ran, so tests that load something the item creates need a loadable placeholder or an in-test load |
@@ -423,7 +423,10 @@ and research do not create product files. Plan documentation outputs and checks 
 
 `document` records the documentation disposition for the current item, and
 `skill-assess` and `skill-validate` record the reusable-skill decision and its
-checks. An assessment is required; needless edits or skill creation are not.
+checks. An assessment is required; needless edits or skill creation are not. When
+the step plan finds no repo-local skill to select, create or change, it records
+`skill_na` with the no-fit reason and the index inspected, and ShipLoop records both
+stages as not applicable instead of issuing them; otherwise both are issued.
 Update or explicitly assess relevant README and interface documentation before
 actual verification, and complete `skill-validate` when a skill is selected.
 

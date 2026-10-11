@@ -92,9 +92,9 @@ class TestGroupTests(unittest.TestCase):
         return root, env, parent
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 67)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 41)
-        self.assertEqual(len(suite_catalog.SUITES), 110)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 82)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 42)
+        self.assertEqual(len(suite_catalog.SUITES), 126)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -139,13 +139,15 @@ class TestGroupTests(unittest.TestCase):
         self.assertLess(len(baseline), 17)
         cases = {
             "skills/shiploop/scripts/shiploop_keepalive.py": {"shiploop-keepalive"},
-            "scripts/release.py": {"release-push", "release-flow", "release-boundary"},
+            "scripts/release.py": {"release-push", "release-flow", "release-boundary", "release-preflight"},
             "skills/improve/SKILL.md": {"improve", "improve-plugin", "improve-agent", "improve-runtime"},
             "install.sh": {"install-targets", "install-arbitrary-skill", "install-status-uninstall"},
             "test/shiploop-lint.test.py": {"shiploop-lint"},
             "docs/notes.md": set(),
             "skills/shiploop/SKILL.md": {"shiploop-guidance", "shiploop-reference-routing",
-                                         "shiploop-delegation", "shiploop-package-integrity"},
+                                         "shiploop-delegation", "shiploop-package-integrity",
+                                         "shiploop-packet-completeness", "shiploop-step-packets",
+                                         "shiploop-reference"},
             "test/shiploop_consumer_delivery_support.py": {"shiploop-consumer-delivery"},
             # The Run Review leaf: its own suite plus the package build that gates a new leaf.
             "skills/shiploop-run-review/scripts/export.py": {"shiploop-run-review", "marketplace-package"},
@@ -408,6 +410,57 @@ class QuickSelectionNameCollisionTest(unittest.TestCase):
         for path, expected in cases.items():
             with self.subTest(path=path):
                 self.assertGreaterEqual(self.selected(path), expected)
+
+
+class E2EFamilySelectionTest(unittest.TestCase):
+    """An edit under test/shiploop_e2e/ runs every suite of the E2E harness family in the quick tier (batch 1011 integration).
+
+    The harness's modules (run.py, metrics.py, fidelity.py, sessionlog.py, environment.py) have names too common to select by,
+    and each family suite reads them through run.py or metrics.py: before, the prefix selected shiploop-e2e alone (and, after
+    group G2, shiploop-e2e-reorientation), so an edit of metrics.py skipped the fidelity, runrecord and environment suites.
+    The family is pinned as it stands on this branch, so a merged group that adds a suite updates this list on purpose.
+    """
+
+    FAMILY = {"shiploop-e2e", "shiploop-e2e-runrecord", "shiploop-e2e-fidelity", "shiploop-e2e-reorientation",
+              "shiploop-e2e-environment", "shiploop-e2e-baseline", "shiploop-e2e-quality",
+              "shiploop-e2e-packet-anatomy", "shiploop-e2e-commit-counters", "shiploop-e2e-slice"}
+
+    def test_the_pinned_family_is_every_e2e_suite_in_the_catalog(self) -> None:
+        catalog = {suite.id for suite in suite_catalog.SHIPLOOP_SUITES if suite.id.startswith("shiploop-e2e")}
+        self.assertEqual(catalog, self.FAMILY)
+
+    def test_an_edit_of_the_harness_runs_the_whole_family_in_the_quick_tier(self) -> None:
+        for path in ("test/shiploop_e2e/run.py", "test/shiploop_e2e/metrics.py", "test/shiploop_e2e/fidelity.py",
+                     "test/shiploop_e2e/sessionlog.py", "test/shiploop_e2e/environment.py"):
+            with self.subTest(path=path):
+                self.assertGreaterEqual(suite_catalog.targeted([path]), self.FAMILY)
+                self.assertGreaterEqual({suite.id for suite in suite_catalog.quick([path])}, self.FAMILY)
+
+    def test_the_committed_baseline_report_selects_the_suite_that_pins_it(self) -> None:
+        # runs.json is the committed output of `run.py --baseline-report`; the baseline suite pins it. Its file name selects nothing.
+        for path in ("docs/experiments/baseline-spread-20261009/runs.json",
+                     "docs/experiments/baseline-spread-20261009/reduce_fixtures.py"):
+            with self.subTest(path=path):
+                self.assertIn("shiploop-e2e-baseline", suite_catalog.targeted([path]))
+
+    def test_the_counters_evidence_and_fixtures_select_the_suite_that_pins_them(self) -> None:
+        for path in ("docs/experiments/commit-baseline-20261010/baseline.json", "docs/experiments/commit-baseline-20261010/regrade.py",
+                     "test/fixtures/commit-counters/grok/events.jsonl", "test/fixtures/commit-counters/messages.json"):
+            with self.subTest(path=path):
+                self.assertIn("shiploop-e2e-commit-counters", suite_catalog.targeted([path]))
+
+    def test_a_frozen_copy_of_the_cli_entry_in_a_fixture_selects_only_the_suite_that_reads_it(self) -> None:
+        # The baseline-report fixtures hold frozen copies of the CLI entry, each a file named shiploop. A name match ran
+        # every ShipLoop suite for an edit of one fixture (71 suites, about nineteen minutes of the quick tier).
+        path = "test/fixtures/baseline-spread/runs/x/build/plugins/skill-craft/skills/shiploop/scripts/shiploop"
+        self.assertLessEqual(suite_catalog.targeted([path]), {"shiploop-e2e-baseline"})
+        self.assertIn("shiploop-e2e-baseline", suite_catalog.targeted([path]))
+
+    def test_the_real_cli_entry_still_selects_its_hub_consumers(self) -> None:
+        self.assertGreater(len(suite_catalog.targeted(["skills/shiploop/scripts/shiploop"])), 1)
+
+    def test_the_apparatus_is_not_part_of_the_family(self) -> None:
+        self.assertNotIn("shiploop-e2e-apparatus", suite_catalog.targeted(["test/shiploop_e2e/run.py"]))
 
 
 if __name__ == "__main__":

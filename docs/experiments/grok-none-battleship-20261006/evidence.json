@@ -1,0 +1,364 @@
+{
+ "run": "full Node Battleship case on Grok 4.7 medium with --planning-review none, one prompt, --source checkout of e824945f (ShipLoop 0.54.0)",
+ "route": "main harness run.py --host grok --source checkout --prompt '<battleship case prompt> Start ShipLoop with the run option --planning-review none and --improve-skill <build>/skills/improve/SKILL.md.' with the case's four --check commands; state.md recorded planning_review none",
+ "output": "/Users/dadleet/e2e-runs/20261006/v1220-battleship-grok-medium-none",
+ "launched_utc": "2026-10-06T23:42:00Z",
+ "verdicts": {
+  "invoked": "pass",
+  "plugin": "pass",
+  "process": "pass rc=0 5616.2 s",
+  "shiploop": "pass done",
+  "committed": "pass HEAD eebda812, 17 files, 23 commits",
+  "product_checks": "4 of 4 pass"
+ },
+ "totals": {
+  "minutes": 93.6,
+  "turns_lower_bound": 467,
+  "cost_usd_lower_bound": 12.5,
+  "cost_note": "471 sessions never reported usage",
+  "compactions": 5,
+  "truncated_outputs": 0,
+  "cancelled_tool_calls": 0,
+  "shiploop_command_failures": 2,
+  "script_verifications": {
+   "records": 19,
+   "passed": 18,
+   "could_not_run": 0,
+   "commands": 41
+  },
+  "improve_children": 3,
+  "model_glue": 3,
+  "asked_user": 0,
+  "accepted_stages": 52
+ },
+ "phases_min": {
+  "planning_to_baseline_W1": 22.7,
+  "work_item_1_baseline_to_carry_forward": 16.4,
+  "work_item_2": 24.0,
+  "system_test_phase": 17.8,
+  "release_phase": 12.5,
+  "note": "derived from stage accept times; sums to about 93.4"
+ },
+ "comparison_same_case_same_host_effort": {
+  "stage_mode_1.21.0_probe": "planning 72.7 min, stopped before implementation",
+  "none_this_run": "planning about 22 min, full run 93.6 min, all verdicts pass"
+ },
+ "refusals": [
+  "complete at system-test: a passing test titled with the word 'pending' was read as skipped (shiploop_test_counts._SKIP_LINE), model renamed it",
+  "complete at release-plan: planning knowledge had to be written to the repository first (S-11 retention gate)"
+ ],
+ "stages": [
+  {
+   "min": 2.6,
+   "took": 2.6,
+   "stage": "intake",
+   "workitem": null
+  },
+  {
+   "min": 4.0,
+   "took": 1.4,
+   "stage": "discovery",
+   "workitem": null
+  },
+  {
+   "min": 6.8,
+   "took": 2.8,
+   "stage": "research",
+   "workitem": null
+  },
+  {
+   "min": 8.5,
+   "took": 1.7,
+   "stage": "spec",
+   "workitem": null
+  },
+  {
+   "min": 9.6,
+   "took": 1.1,
+   "stage": "test-strategy",
+   "workitem": null
+  },
+  {
+   "min": 18.0,
+   "took": 8.4,
+   "stage": "plan",
+   "workitem": null
+  },
+  {
+   "min": 18.7,
+   "took": 0.7,
+   "stage": "prepare",
+   "workitem": null
+  },
+  {
+   "min": 19.1,
+   "took": 0.4,
+   "stage": "select-work",
+   "workitem": "W1"
+  },
+  {
+   "min": 21.3,
+   "took": 2.2,
+   "stage": "step-plan",
+   "workitem": "W1"
+  },
+  {
+   "min": 22.1,
+   "took": 0.8,
+   "stage": "test-spec",
+   "workitem": "W1"
+  },
+  {
+   "min": 22.7,
+   "took": 0.6,
+   "stage": "baseline",
+   "workitem": "W1"
+  },
+  {
+   "min": 24.1,
+   "took": 1.4,
+   "stage": "test-author",
+   "workitem": "W1"
+  },
+  {
+   "min": 24.5,
+   "took": 0.3,
+   "stage": "test-red",
+   "workitem": "W1"
+  },
+  {
+   "min": 25.7,
+   "took": 1.2,
+   "stage": "implement",
+   "workitem": "W1"
+  },
+  {
+   "min": 27.5,
+   "took": 1.8,
+   "stage": "test-green",
+   "workitem": "W1"
+  },
+  {
+   "min": 30.5,
+   "took": 3.0,
+   "stage": "test-refine",
+   "workitem": "W1"
+  },
+  {
+   "min": 31.9,
+   "took": 1.4,
+   "stage": "regression",
+   "workitem": "W1"
+  },
+  {
+   "min": 33.4,
+   "took": 1.5,
+   "stage": "document",
+   "workitem": "W1"
+  },
+  {
+   "min": 33.9,
+   "took": 0.4,
+   "stage": "skill-assess",
+   "workitem": "W1"
+  },
+  {
+   "min": 34.2,
+   "took": 0.4,
+   "stage": "skill-validate",
+   "workitem": "W1"
+  },
+  {
+   "min": 36.1,
+   "took": 1.9,
+   "stage": "static-checks",
+   "workitem": "W1"
+  },
+  {
+   "min": 36.9,
+   "took": 0.8,
+   "stage": "verify",
+   "workitem": "W1"
+  },
+  {
+   "min": 37.4,
+   "took": 0.5,
+   "stage": "integrate",
+   "workitem": "W1"
+  },
+  {
+   "min": 38.3,
+   "took": 1.0,
+   "stage": "integration-verify",
+   "workitem": "W1"
+  },
+  {
+   "min": 39.1,
+   "took": 0.7,
+   "stage": "carry-forward",
+   "workitem": "W1"
+  },
+  {
+   "min": 39.4,
+   "took": 0.4,
+   "stage": "select-work",
+   "workitem": "W2"
+  },
+  {
+   "min": 41.2,
+   "took": 1.8,
+   "stage": "step-plan",
+   "workitem": "W2"
+  },
+  {
+   "min": 42.4,
+   "took": 1.2,
+   "stage": "test-spec",
+   "workitem": "W2"
+  },
+  {
+   "min": 43.0,
+   "took": 0.6,
+   "stage": "baseline",
+   "workitem": "W2"
+  },
+  {
+   "min": 45.0,
+   "took": 2.0,
+   "stage": "test-author",
+   "workitem": "W2"
+  },
+  {
+   "min": 45.4,
+   "took": 0.3,
+   "stage": "test-red",
+   "workitem": "W2"
+  },
+  {
+   "min": 47.7,
+   "took": 2.3,
+   "stage": "implement",
+   "workitem": "W2"
+  },
+  {
+   "min": 48.8,
+   "took": 1.0,
+   "stage": "test-green",
+   "workitem": "W2"
+  },
+  {
+   "min": 49.5,
+   "took": 0.8,
+   "stage": "test-refine",
+   "workitem": "W2"
+  },
+  {
+   "min": 51.9,
+   "took": 2.4,
+   "stage": "regression",
+   "workitem": "W2"
+  },
+  {
+   "min": 53.5,
+   "took": 1.6,
+   "stage": "document",
+   "workitem": "W2"
+  },
+  {
+   "min": 54.0,
+   "took": 0.5,
+   "stage": "skill-assess",
+   "workitem": "W2"
+  },
+  {
+   "min": 54.3,
+   "took": 0.3,
+   "stage": "skill-validate",
+   "workitem": "W2"
+  },
+  {
+   "min": 57.1,
+   "took": 2.9,
+   "stage": "static-checks",
+   "workitem": "W2"
+  },
+  {
+   "min": 57.7,
+   "took": 0.6,
+   "stage": "verify",
+   "workitem": "W2"
+  },
+  {
+   "min": 58.3,
+   "took": 0.6,
+   "stage": "integrate",
+   "workitem": "W2"
+  },
+  {
+   "min": 59.1,
+   "took": 0.8,
+   "stage": "integration-verify",
+   "workitem": "W2"
+  },
+  {
+   "min": 63.1,
+   "took": 4.0,
+   "stage": "carry-forward",
+   "workitem": "W2"
+  },
+  {
+   "min": 78.8,
+   "took": 15.6,
+   "stage": "system-test-author",
+   "workitem": null
+  },
+  {
+   "min": 80.5,
+   "took": 1.7,
+   "stage": "system-test",
+   "workitem": null
+  },
+  {
+   "min": 80.9,
+   "took": 0.4,
+   "stage": "product-acceptance",
+   "workitem": null
+  },
+  {
+   "min": 84.0,
+   "took": 3.0,
+   "stage": "release-plan",
+   "workitem": null
+  },
+  {
+   "min": 88.5,
+   "took": 4.6,
+   "stage": "release-check",
+   "workitem": null
+  },
+  {
+   "min": 89.9,
+   "took": 1.4,
+   "stage": "release",
+   "workitem": null
+  },
+  {
+   "min": 91.6,
+   "took": 1.6,
+   "stage": "release-verify",
+   "workitem": null
+  },
+  {
+   "min": 92.5,
+   "took": 0.9,
+   "stage": "operations",
+   "workitem": null
+  },
+  {
+   "min": 93.4,
+   "took": 0.9,
+   "stage": "handoff",
+   "workitem": null
+  }
+ ]
+}

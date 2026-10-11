@@ -30,8 +30,10 @@ COMMANDS = [{"command": "python3 -m pytest tests -k greet -v", "suite": "focused
 
 
 def step_plan(**extra):
-    return {"outcome": "done", "summary": "Plan the greeting change.", "paths": ["src/greet.py"],
-            "test_commands": COMMANDS, "criteria": CRITERIA, "steps": [{"id": "S1", "task": "Make the planned change."}], **extra}
+    return {"outcome": "done", "summary": "Plan the greeting change.", "paths": ["src/greet.py", "README.md"],
+            "test_commands": COMMANDS, "criteria": CRITERIA,
+            "steps": [{"id": "S1", "task": "Add the --greeting default to greet() and document it in the README.",
+                       "criteria": ["C1", "C2"], "paths": ["src/greet.py", "README.md"]}], **extra}
 
 
 def drive(stage: str, overrides: dict) -> dict:

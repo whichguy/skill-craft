@@ -97,8 +97,12 @@ Each completion criterion in the step plan carries its confirmation:
 <expected result>.`, with inspection declared where it is sufficient and
 `Confirm by: unconfirmable here — <what would confirm it>` where nothing
 available can confirm it ([authoring rule](backchain-planning.md#outcomes)).
-These criteria are `implement`'s exit criteria and what `verify` checks item by
-item; a plan check can flag a criterion that has neither form.
+The result's own `criteria` list is stricter: an entry there is confirmed by a
+recorded test command, so a condition no command can confirm is not listed in it
+but recorded as an open item in the result's summary (who does what, and what
+they report back). These criteria are `implement`'s exit criteria and what
+`verify` checks item by item; a plan check can flag a criterion that has neither
+form.
 
 ## Local microplan and backchain
 

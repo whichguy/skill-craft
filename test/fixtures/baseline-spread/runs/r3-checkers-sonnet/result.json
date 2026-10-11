@@ -1,0 +1,92 @@
+{
+ "case": "checkers",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "pass": true,
+ "invoked": {
+  "pass": true
+ },
+ "plugin": {
+  "pass": true
+ },
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.26.0",
+  "shiploop_version": "0.58.0",
+  "local_head": "200c32cec9bf569ae41bac26c511963947db813c"
+ },
+ "process": {
+  "status": "exited",
+  "returncode": 0,
+  "elapsed_seconds": 910.9,
+  "stop": "success",
+  "pass": true,
+  "regraded": null,
+  "sessions": [
+   {
+    "status": "exited",
+    "stop": "success",
+    "host": "claude",
+    "resumed": null
+   }
+  ]
+ },
+ "termination": {
+  "process_status": "exited",
+  "returncode": 0,
+  "sessions": 1,
+  "resumes": 0,
+  "session_stops": [
+   "success"
+  ],
+  "resume_stop": "host is not resumable",
+  "engine_status": "done",
+  "engine_stage": "done",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": null
+ },
+ "shiploop": {
+  "pass": true,
+  "run_dir": "/Users/dadleet/e2e-runs/20261008/r3-checkers-sonnet/.shiploop-runs/work-20261009-063248-ab43c5/run"
+ },
+ "committed": {
+  "pass": true
+ },
+ "checks": [
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  },
+  {
+   "pass": true
+  }
+ ],
+ "resumed_run": null,
+ "seeded": null,
+ "metrics": {
+  "claude_code_version": "2.1.294",
+  "turns": 232,
+  "model_calls": 120,
+  "cost_usd": 6.6509,
+  "unreported_sessions": 0,
+  "compactions": null,
+  "truncated_outputs": null,
+  "cancelled_tool_calls": null,
+  "model_glue": 0,
+  "tmp_writes": 0,
+  "shiploop_failures": 2,
+  "unmeasured": {
+   "compactions": "reduced",
+   "truncated_outputs": "reduced",
+   "cancelled_tool_calls": "reduced",
+   "knowledge_reads": "reduced"
+  }
+ },
+ "output": "/Users/dadleet/e2e-runs/20261008/r3-checkers-sonnet"
+}

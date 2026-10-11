@@ -134,7 +134,7 @@ class DagReplayTests(unittest.TestCase):
         self.assertEqual(["produce", "produce", "finish-improve"], [event["command"] for event in carry_forward])
         handoff = next(
             event for event in report["events"]
-            if event["from"] == "carry-forward" and event["to"] == "select-work"
+            if event["from"] == "carry-forward" and event["to"] == "get-next-work-item"
         )
         self.assertEqual("W2", handoff["next_owner"])
         self.assertEqual(["W1"], handoff["completed_work_items"])
@@ -217,7 +217,7 @@ class DagReplayTests(unittest.TestCase):
                 if name == "synthetic-corrective-replan":
                     replan = next(
                         event for event in report["events"]
-                        if event["from"] == "system-test" and event["to"] == "select-work"
+                        if event["from"] == "system-test" and event["to"] == "get-next-work-item"
                     )
                     self.assertEqual("W2", replan["next_owner"])
                     self.assertEqual(["W1"], replan["completed_work_items"])
@@ -348,7 +348,7 @@ class DagReplayTests(unittest.TestCase):
         # A checkpoint producer parks its own action.
         check(navigator, state("spec", "a1"), parked("spec", "a1"), "produce", "a1", done)
         # A carry-forward that leaves a later item pending advances directly.
-        check(navigator, state("carry-forward", "a1"), state("select-work", "a2", work_index=1),
+        check(navigator, state("carry-forward", "a1"), state("get-next-work-item", "a2", work_index=1),
               "produce", "a1", done)
         failures = (
             # (a) A checkpoint producer that advanced with no child.

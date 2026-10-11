@@ -64,19 +64,18 @@ def host_work_per_item(step_plans):
 class BattleshipMeasurementTests(unittest.TestCase):
     """The run-feedback plan's measurement: a metadata-only item costs the host far less."""
 
-    def test_a_metadata_only_item_skips_its_seven_test_stages_and_the_test_spec_review(self):
+    def test_a_metadata_only_item_skips_its_test_stage(self):
         counts = host_work_per_item({"W1": CODE_ITEM, "W2": METADATA_ITEM})
-        # W1 walks all 18 INNER stages; its step-plan and test-spec get Improve reviews.
-        self.assertEqual(counts["W1"], {"packets": 18, "reviews": 2})
-        # W2 loses test-spec, baseline, test-author, test-red, test-green, test-refine and
-        # regression (7 packets) and the test-spec review; the end-of-work review remains.
-        self.assertEqual(counts["W2"], {"packets": 11, "reviews": 2})
+        # W1 walks all 8 INNER stages; its step-plan, test-spec and its implement step get Improve reviews.
+        self.assertEqual(counts["W1"], {"packets": 8, "reviews": 3})
+        # W2 loses the test stage (no command, only non-code paths); the end-of-work review is added.
+        self.assertEqual(counts["W2"], {"packets": 7, "reviews": 4})
 
     def test_without_proof_a_no_command_item_still_walks_every_stage(self):
         code_without_commands = {"paths": ["src/**"], "test_commands": [],
                                  "test_commands_na": "The model says there is nothing to test."}
         counts = host_work_per_item({"W1": code_without_commands})
-        self.assertEqual(counts["W1"]["packets"], 18)
+        self.assertEqual(counts["W1"]["packets"], 8)
 
 class NavigatorDryRunTests(unittest.TestCase):
     def test_access_policy_is_reachable_through_actual_graph_and_recovery(self):
@@ -143,8 +142,8 @@ class NavigatorDryRunTests(unittest.TestCase):
                         self.assertEqual(prompt.count(line), int(discovery), line)
 
     def test_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
-        expected = {'delivery': 42, 'two-work-items': 62, 'blocked-resume': 44,
-                    'repeat-improve': 44, 'revise': 50, 'pause-resume': 44, 'halted': 1}
+        expected = {'delivery': 33, 'two-work-items': 44, 'blocked-resume': 35,
+                    'repeat-improve': 35, 'revise': 39, 'pause-resume': 35, 'halted': 1}
         scenarios = driver.scenarios()
         self.assertEqual(set(scenarios), set(expected))
         for name, scenario in scenarios.items():
@@ -167,9 +166,10 @@ class NavigatorDryRunTests(unittest.TestCase):
                 produces = [event for event in report['events'] if event['command'] == 'produce']
                 finishes = [event for event in report['events'] if event['command'] == 'finish-improve']
                 # An actual Improve child starts only for a planning/contract
-                # stage result or the end-of-work carry-forward; every other
-                # produce advances directly with no paired finish-improve.
-                checkpoint_stages = guidance.PLANNING_REVIEW_STAGES | {'carry-forward'}
+                # stage result, an accepted implement step or the end-of-work
+                # carry-forward; every other produce advances directly with no
+                # paired finish-improve.
+                checkpoint_stages = guidance.PLANNING_REVIEW_STAGES | {'implement', 'carry-forward'}
                 self.assertTrue({event['from'] for event in finishes} <= checkpoint_stages)
                 planning_produces = sorted(event['from'] for event in produces
                                            if event['from'] in guidance.PLANNING_REVIEW_STAGES)
@@ -184,17 +184,18 @@ class NavigatorDryRunTests(unittest.TestCase):
         self.assertEqual({event['owner'] for event in two_items['events']
                           if event['owner'] != 'root'}, {'W1', 'W2'})
         produce_inner = [event for event in two_items['events']
-                         if event['from'] in ('select-work', 'implement', 'carry-forward')
+                         if event['from'] in ('step-plan', 'implement', 'carry-forward')
                          and event['command'] == 'produce']
         self.assertEqual([event['owner'] for event in produce_inner],
                          ['W1', 'W1', 'W1', 'W2', 'W2', 'W2'])
-        # select-work/implement are not planning stages and W1's carry-forward
+        # Each item's one implement step gets its step review. W1's carry-forward
         # leaves W2 pending, so only W2's end-of-work carry-forward gets a
         # review; W1's carry-forward advances straight to W2 without one.
         finish_inner = [event for event in two_items['events']
-                        if event['from'] in ('select-work', 'implement', 'carry-forward')
+                        if event['from'] in ('implement', 'carry-forward')
                         and event['command'] == 'finish-improve']
-        self.assertEqual([event['owner'] for event in finish_inner], ['W2'])
+        self.assertEqual([(event['from'], event['owner']) for event in finish_inner],
+                         [('implement', 'W1'), ('implement', 'W2'), ('carry-forward', 'W2')])
         w1_produce = next(event for event in two_items['events']
                           if event['owner'] == 'W1' and event['from'] == 'carry-forward'
                           and event['command'] == 'produce')
@@ -346,14 +347,16 @@ class NavigatorDryRunTests(unittest.TestCase):
 
     def test_the_dry_run_schedule_is_declared_per_planning_review_mode(self):
         """An independent oracle: the stages whose result starts an Improve child, declared here for each mode."""
+        # implement's per-step review runs in both modes (owner decision 2026-10-10: planning_review none does not
+        # skip the per-step Improve).
         reviewed = {'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec',
-                              'system-test-author', 'release-plan'},
-                    'none': {'system-test-author', 'release-plan'}}
-        events = {'stage': {'delivery': 42, 'two-work-items': 62, 'blocked-resume': 44, 'repeat-improve': 44,
-                            'revise': 50, 'pause-resume': 44, 'halted': 1},
+                              'system-test-author', 'release-plan', 'implement'},
+                    'none': {'system-test-author', 'release-plan', 'implement'}}
+        events = {'stage': {'delivery': 33, 'two-work-items': 44, 'blocked-resume': 35, 'repeat-improve': 35,
+                            'revise': 39, 'pause-resume': 35, 'halted': 1},
                   # none drops one finish-improve row for each planning result the option covers
-                  'none': {'delivery': 37, 'two-work-items': 55, 'blocked-resume': 39, 'repeat-improve': 39,
-                           'revise': 43, 'pause-resume': 39, 'halted': 1}}
+                  'none': {'delivery': 28, 'two-work-items': 37, 'blocked-resume': 30, 'repeat-improve': 30,
+                           'revise': 32, 'pause-resume': 30, 'halted': 1}}
         self.assertEqual(set(driver.REVIEWED3), set(navigator.PLANNING_REVIEW_MODES))
         for mode in navigator.PLANNING_REVIEW_MODES:
             self.assertEqual(driver.REVIEWED3[mode], reviewed[mode])
@@ -537,6 +540,39 @@ class BackchainStageTextTests(unittest.TestCase):
                 self.assertEqual(one.replace(self.POINTER + ". ", ""), converge)
 
 
+    # Batch 1009 BC1: the one-pass plan packet said "may request" and, a few lines later, "Write the child's start
+    # contract ... verbatim", and models read the child as required or optional by chance; both Sonnet round-1 runs
+    # skipped it and ran the printed backchain-check on a prose plan.  The packet says what the script enforces.
+    CHOICE = ("The `plan`/`draft` request is your choice",
+              "nothing refuses a plan without it",
+              "ShipLoop cannot see whether the child ran",
+              "dependency audit is not optional on either route",
+              "Say in this result's `summary` which route you took and why",
+              "The start contract below applies only if you request the child",
+              "reads a candidate graph in Backchain's plan schema (Backchain SKILL.md, \"Plan document shape\"), not a prose plan")
+
+    def test_the_one_pass_plan_packet_says_the_child_is_a_choice_and_the_audit_is_not(self):
+        flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="one").split())
+        packet = " ".join(self.packets[self.LOOP_STAGE].split())
+        for phrase in self.CHOICE:
+            with self.subTest(phrase=phrase):
+                self.assertEqual(flat.count(phrase), 1)
+                self.assertEqual(packet.count(phrase), 1)  # the dry-run CLI route prints it, once
+        # It sits before the gate it qualifies, so a reader meets "optional" before "write the contract verbatim".
+        self.assertLess(flat.index(self.CHOICE[0]), flat.index("Write the child's start contract"))
+
+    def test_the_choice_is_said_only_where_the_one_pass_gate_is_printed(self):
+        """GUARD (passes on the unchanged tree): converge is the owner choosing the heavier route and its gate text has no
+        'write verbatim' sentence to qualify; the audit stages and a `none` run offer no whole child at all."""
+        quiet = {f"{stage} (one)": guidance._backchain_guidance(stage, backchain_passes="one") for stage in self.AUDIT_STAGES}
+        quiet["plan (converge)"] = guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="converge")
+        quiet["plan (none)"] = guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="none")
+        for label, text in quiet.items():
+            with self.subTest(label):
+                flat = " ".join(text.split())
+                self.assertNotIn("your choice", flat)
+                self.assertNotIn("nothing refuses a plan without it", flat)
+
     NONE_SENTENCE = "No whole `plan`/`draft` is requested in this run"
     # The six resources only a whole loop reads; the seventh, the caller contract, serves the read-only audit.
     LOOP_ONLY_LABELS = ("Backchain SKILL.md", "Backchain references/convergence.md",
@@ -628,6 +664,45 @@ class BackchainStageTextTests(unittest.TestCase):
                                  one)
             self.assertEqual(self.packets_in("none")[stage].count(
                 guidance._backchain_guidance(stage, backchain_passes="none")), 1)
+
+
+class BindCommandTests(unittest.TestCase):
+    """Batch 1009 B1a: a packet that tells the host to bind the Improve card prints a path ShipLoop knows, not a template.
+
+    The round-1 runs each built the path by hand (`IMP=.../skills/improve/SKILL.md; ls $IMP`) from the CLI path, although
+    ShipLoop's own sibling card is a fact it can read (SPEC S-4: copy printed values; S-5: the script decides what it can).
+    """
+
+    def test_no_dry_run_packet_prints_a_placeholder_path_in_a_command(self):
+        import shlex
+        seen = 0
+        for delegation in navigator.DELEGATIONS:
+            for name, scenario in driver.scenarios().items():
+                report = driver.run_scenario(name, scenario, delegation=delegation)
+                self.assertTrue(report['ok'], report.get('error'))
+                for event in report['events']:
+                    prompt = event['prompt']
+                    with self.subTest(delegation=delegation, scenario=name, sequence=event['sequence']):
+                        self.assertNotIn('/absolute/path/to', prompt)
+                        for line in prompt.splitlines():
+                            for token in shlex.split(line) if '--skill-card=' in line else ():
+                                if token.startswith('--skill-card='):
+                                    seen += 1
+                                    self.assertTrue(os.path.isabs(token.split('=', 1)[1]), line)
+        self.assertGreater(seen, 0, 'the dry run reaches a packet that binds the Improve card')
+
+    def test_a_run_with_no_recorded_card_prints_a_marked_blank_and_where_shiploop_looks(self):
+        """The not-recorded sample: a saved run that predates init-time resolution, or an install with no sibling card."""
+        done = {'outcome': 'done', 'summary': 'Synthetic declaration; no work executed.'}
+        state = navigator.new_state('/simulation-only/repo', 'Bind sample.', improve_skill='')
+        while navigator.current_stage(state) != 'spec':
+            state = navigator.apply(state, navigator.current_action(state)['id'], done)
+        waiting = navigator.apply(state, navigator.current_action(state)['id'], done)
+        packet = navigator.render(driver.CORE, driver.RUN, waiting)
+        self.assertNotIn('/absolute/path/to', packet)
+        self.assertIn(navigator.IMPROVE_CARD_BLANK, packet)
+        self.assertIn('No Improve card is recorded for this run', packet)
+        self.assertIn(str(guidance.installed_improve_card()), packet)
 
 if __name__ == '__main__':
     unittest.main()

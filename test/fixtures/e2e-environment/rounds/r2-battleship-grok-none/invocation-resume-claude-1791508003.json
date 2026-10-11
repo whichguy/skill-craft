@@ -1,0 +1,16 @@
+{
+ "case": "custom",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.25.0",
+  "shiploop_version": "0.57.0"
+ },
+ "resumed_run": {
+  "from_host": "grok",
+  "from_model": "grok-4.7",
+  "stage": "inner-loop"
+ }
+}

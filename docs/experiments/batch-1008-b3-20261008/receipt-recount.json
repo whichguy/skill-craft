@@ -1,0 +1,204 @@
+{
+ "meta": {
+  "recounted": "2026-10-08",
+  "what": "return receipts of the recorded E2E runs, for the release-verify observes the returned result change (B3)",
+  "glob": "/Users/dadleet/e2e-runs/*/*/.shiploop-runs/*/return-receipt.md",
+  "reading": "disposition null is a release-verify record written before the disposition field existed; has_observed false everywhere because the observed key is new in this batch; a command naming the source path runs in the user's checkout whatever directory release-verify uses",
+  "script": "recount.py in this directory"
+ },
+ "summary": {
+  "runs_with_a_return_receipt": 10,
+  "receipt_kinds": {
+   "fast-forward-merge": 10
+  },
+  "start_clean_true": 10,
+  "runs_with_a_follow_up_receipt": 10,
+  "runs_whose_consumer_checks_name_the_source_path": 5,
+  "runs_whose_consumer_checks_name_the_work_area_path": 0,
+  "runs_whose_every_release_verify_record_ran_in_the_work_area": 10,
+  "runs_with_no_release_verify_record": 0,
+  "release_verify_records_with_an_observed_key": 0
+ },
+ "runs": [
+  {
+   "run": "20261003/hello",
+   "receipt_kind": "fast-forward-merge",
+   "receipt_status": "returned",
+   "start_clean": true,
+   "follow_up_receipt": true,
+   "consumer_checks": 1,
+   "consumer_checks_na": false,
+   "commands_naming_source_path": 1,
+   "commands_naming_work_area_path": 0,
+   "release_verify_records": [
+    {
+     "cwd_is_work_area": true,
+     "disposition": null,
+     "has_observed": false
+    }
+   ]
+  },
+  {
+   "run": "20261003/seat-reservations",
+   "receipt_kind": "fast-forward-merge",
+   "receipt_status": "returned",
+   "start_clean": true,
+   "follow_up_receipt": true,
+   "consumer_checks": 2,
+   "consumer_checks_na": false,
+   "commands_naming_source_path": 2,
+   "commands_naming_work_area_path": 0,
+   "release_verify_records": [
+    {
+     "cwd_is_work_area": true,
+     "disposition": null,
+     "has_observed": false
+    }
+   ]
+  },
+  {
+   "run": "20261003/v1161-hello",
+   "receipt_kind": "fast-forward-merge",
+   "receipt_status": "returned",
+   "start_clean": true,
+   "follow_up_receipt": true,
+   "consumer_checks": 1,
+   "consumer_checks_na": false,
+   "commands_naming_source_path": 0,
+   "commands_naming_work_area_path": 0,
+   "release_verify_records": [
+    {
+     "cwd_is_work_area": true,
+     "disposition": null,
+     "has_observed": false
+    }
+   ]
+  },
+  {
+   "run": "20261004/v1180-hello-sonnet",
+   "receipt_kind": "fast-forward-merge",
+   "receipt_status": "returned",
+   "start_clean": true,
+   "follow_up_receipt": true,
+   "consumer_checks": 2,
+   "consumer_checks_na": false,
+   "commands_naming_source_path": 0,
+   "commands_naming_work_area_path": 0,
+   "release_verify_records": [
+    {
+     "cwd_is_work_area": true,
+     "disposition": null,
+     "has_observed": false
+    }
+   ]
+  },
+  {
+   "run": "20261004/v1190-hello-sonnet-2",
+   "receipt_kind": "fast-forward-merge",
+   "receipt_status": "returned",
+   "start_clean": true,
+   "follow_up_receipt": true,
+   "consumer_checks": 2,
+   "consumer_checks_na": false,
+   "commands_naming_source_path": 2,
+   "commands_naming_work_area_path": 0,
+   "release_verify_records": [
+    {
+     "cwd_is_work_area": true,
+     "disposition": null,
+     "has_observed": false
+    }
+   ]
+  },
+  {
+   "run": "20261004/v1190-hello-sonnet",
+   "receipt_kind": "fast-forward-merge",
+   "receipt_status": "returned",
+   "start_clean": true,
+   "follow_up_receipt": true,
+   "consumer_checks": 2,
+   "consumer_checks_na": false,
+   "commands_naming_source_path": 2,
+   "commands_naming_work_area_path": 0,
+   "release_verify_records": [
+    {
+     "cwd_is_work_area": true,
+     "disposition": null,
+     "has_observed": false
+    }
+   ]
+  },
+  {
+   "run": "20261004/v1200-hello-sonnet",
+   "receipt_kind": "fast-forward-merge",
+   "receipt_status": "returned",
+   "start_clean": true,
+   "follow_up_receipt": true,
+   "consumer_checks": 1,
+   "consumer_checks_na": false,
+   "commands_naming_source_path": 1,
+   "commands_naming_work_area_path": 0,
+   "release_verify_records": [
+    {
+     "cwd_is_work_area": true,
+     "disposition": "passed",
+     "has_observed": false
+    }
+   ]
+  },
+  {
+   "run": "20261006/v1220-battleship-grok-medium-none",
+   "receipt_kind": "fast-forward-merge",
+   "receipt_status": "returned",
+   "start_clean": true,
+   "follow_up_receipt": true,
+   "consumer_checks": 1,
+   "consumer_checks_na": false,
+   "commands_naming_source_path": 0,
+   "commands_naming_work_area_path": 0,
+   "release_verify_records": [
+    {
+     "cwd_is_work_area": true,
+     "disposition": "passed",
+     "has_observed": false
+    }
+   ]
+  },
+  {
+   "run": "20261006/v1220-battleship-sonnet",
+   "receipt_kind": "fast-forward-merge",
+   "receipt_status": "returned",
+   "start_clean": true,
+   "follow_up_receipt": true,
+   "consumer_checks": 1,
+   "consumer_checks_na": false,
+   "commands_naming_source_path": 0,
+   "commands_naming_work_area_path": 0,
+   "release_verify_records": [
+    {
+     "cwd_is_work_area": true,
+     "disposition": "passed",
+     "has_observed": false
+    }
+   ]
+  },
+  {
+   "run": "20261007/v1230-battleship-sonnet",
+   "receipt_kind": "fast-forward-merge",
+   "receipt_status": "returned",
+   "start_clean": true,
+   "follow_up_receipt": true,
+   "consumer_checks": 3,
+   "consumer_checks_na": false,
+   "commands_naming_source_path": 0,
+   "commands_naming_work_area_path": 0,
+   "release_verify_records": [
+    {
+     "cwd_is_work_area": true,
+     "disposition": "passed",
+     "has_observed": false
+    }
+   ]
+  }
+ ]
+}

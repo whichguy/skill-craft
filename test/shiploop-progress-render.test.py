@@ -176,6 +176,15 @@ class ProgressRenderTests(unittest.TestCase):
         self.assertIn("Latest run activity:", page)
         self.assertNotIn("Live", page)
 
+    def test_a_retired_document_renders_with_its_label_and_commit(self) -> None:
+        data = snapshot()
+        data["documents"][0].update(status="retired", summary="Retired at handoff by commit abc1234: its requirement IDs were "
+                                    "checked against docs/shiploop/spec.md.", content="", sha256=None)
+        page = progress_render.render(data)
+        self.assertIn(">Retired</span>", page)
+        self.assertIn("Retired at handoff by commit abc1234", page)
+        self.assertNotIn(">retired</span>", page)                      # not the raw status
+
     def test_missing_fields_render_a_readable_snapshot(self) -> None:
         data = deepcopy(snapshot())
         data.clear()

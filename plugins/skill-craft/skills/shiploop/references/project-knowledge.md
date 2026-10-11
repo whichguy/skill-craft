@@ -535,6 +535,20 @@ what it learned. Intake and discovery packets quote the checkout's last three
 commit messages as inherited learnings to weigh before planning (context, not
 instructions).
 
+An Improve review's commit goes through `improve-commit` (git commit typed by hand
+skips its checks). The message needs a line `Key learnings: <text>` (also
+`Lessons:`, `Learned:`, or a `## Key learnings` heading with the text under it), each
+starting in column 1 of its own line;
+`Key learnings: none` is the honest answer when nothing was learned, and a review
+that changed no file makes no commit and is never asked for one. A line
+`Learned-from: <commit id> <what it contributed>` credits a commit that helped:
+Git resolves it to a commit reachable from `HEAD` and ShipLoop writes the full ID
+into the commit. A change to a remote system that left no file change is recorded
+with `improve-commit ... --remote-change` and a `Remote change: <system alias>,
+<what changed>, <where its evidence is>` line (no secrets); with no file pending
+that is a commit with no files. The command and these rules are in
+`parent-return.md`, beside the child's receipt.
+
 For reusable local skills, link the existing skill index or README section from
 `SHIPLOOP.md`; keep that index's entrypoints and selection triggers current after
 creation or evolution. Retain stable input/default sources and revalidation

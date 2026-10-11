@@ -1,0 +1,7 @@
+{
+ "case": "custom",
+ "host": "claude",
+ "versions": {
+  "source": "checkout"
+ }
+}

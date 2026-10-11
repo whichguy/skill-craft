@@ -1,0 +1,8 @@
+{
+ "case": "battleship",
+ "host": "claude",
+ "versions": {
+  "regraded": true,
+  "source": "checkout"
+ }
+}

@@ -9,7 +9,7 @@ import shiploop_navigator as navigator
 
 # Independently declared expected paths: do not derive these from routing code.
 BEFORE3 = 'intake discovery research spec test-strategy plan prepare'.split()
-WORK3 = ('select-work step-plan test-spec baseline test-author test-red implement test-green '
+WORK3 = ('get-next-work-item step-plan test-spec baseline test-author test-red implement test-green '
          'test-refine regression document skill-assess skill-validate static-checks verify '
          'integrate integration-verify carry-forward').split()
 AFTER3 = ('system-test-author system-test product-acceptance release-plan release-check '
@@ -159,7 +159,8 @@ def run_scenario(name, scenario, *, delegation=navigator.DEFAULT_DELEGATION,
         state = navigator.new_state(
             '/simulation-only/repo',
             'Inspect the SDLC graph with synthetic declarations.',
-            improve_skill='', delegation=delegation, backchain_passes=backchain_passes,
+            # What `init` records (the card installed beside ShipLoop), so a bind packet prints an absolute value.
+            improve_skill='/simulation-only/improve/SKILL.md', delegation=delegation, backchain_passes=backchain_passes,
             planning_review=planning_review,
         )
         for index, step in enumerate(rows, 1):

@@ -1,0 +1,1708 @@
+{
+ "calls": 103,
+ "case": "checkers",
+ "contextPeak": 246993,
+ "contextWindow": 1000000,
+ "delivered": {
+  "files": {
+   "docs": {
+    "count": 1,
+    "items": [
+     {
+      "change": "added",
+      "path": "README.md"
+     }
+    ]
+   },
+   "knowledge": {
+    "count": 10,
+    "items": [
+     {
+      "change": "added",
+      "path": "docs/shiploop/README.md"
+     },
+     {
+      "change": "added",
+      "path": "docs/shiploop/environment.md"
+     },
+     {
+      "change": "added",
+      "path": "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/outcome.md"
+     },
+     {
+      "change": "added",
+      "path": "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/plan.md"
+     },
+     {
+      "change": "added",
+      "path": "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/release-plan.md"
+     },
+     {
+      "change": "added",
+      "path": "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/spec.md"
+     },
+     {
+      "change": "added",
+      "path": "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/system-tests.md"
+     },
+     {
+      "change": "added",
+      "path": "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/test-spec.md"
+     },
+     {
+      "change": "added",
+      "path": "docs/shiploop/spec.md"
+     },
+     {
+      "change": "added",
+      "path": "docs/shiploop/test-strategy.md"
+     }
+    ]
+   },
+   "skills": {
+    "count": 0,
+    "items": []
+   },
+   "source": {
+    "count": 4,
+    "items": [
+     {
+      "change": "added",
+      "path": "index.html"
+     },
+     {
+      "change": "added",
+      "path": "package.json"
+     },
+     {
+      "change": "added",
+      "path": "rules.js"
+     },
+     {
+      "change": "added",
+      "path": "server.js"
+     }
+    ]
+   },
+   "tests": {
+    "count": 3,
+    "items": [
+     {
+      "change": "added",
+      "path": "test/rules.test.js"
+     },
+     {
+      "change": "added",
+      "path": "test/server.test.js"
+     },
+     {
+      "change": "added",
+      "path": "test/system.test.js"
+     }
+    ]
+   }
+  },
+  "release": {
+   "done": "No external deploy exists; the release is the guarded workspace return. Verified receipt: fast-forward-merge of the original branch to shiploop/run-d641edabdd890671 (17 product/doc paths kept; runtime metadata excluded). Correction to release-check: test/system.test.js was still\u2026",
+   "plan": "No deployment target: delivery is the guarded return of the run branch to the original checkout; no remote write authority needed. Rollback is git reset to baseline f5316d1 in the original checkout. Post-release checks run node --test and the system tests in a clean copy of the\u2026"
+  },
+  "returned": {
+   "after": "bd578f4e6149",
+   "before": "f5316d123459",
+   "from": "shiploop/run-d641edabdd890671",
+   "into": "main",
+   "mode": "fast-forward-merge",
+   "status": "returned"
+  },
+  "tests": {
+   "failed": 0,
+   "ran": 22,
+   "stage": "release-verify",
+   "where": "returned-result"
+  }
+ },
+ "endedAt": "2026-10-10T18:28:32Z",
+ "environment": {
+  "browser": {
+   "declared": true,
+   "probed": true,
+   "targets": {
+    "file": "page title seen in 0.79 s",
+    "http": "page title seen in 0.43 s"
+   },
+   "version": "Google Chrome 154.0.8037.99"
+  },
+  "overlap": {
+   "basis": "the first and last host event of this run and of each sibling folder in the same parent folder (timeline.jsonl holds host events only): it counts a pause between sessions, and misses the setup before the first event and the checks and reap after the last, so the seconds are neither an upper nor a lower bound",
+   "runs": []
+  },
+  "tools": {
+   "git": "git version 2.54.0 (Apple Git-157)",
+   "node": "v25.9.0",
+   "python3": "Python 3.14.7"
+  }
+ },
+ "evidence": "/Users/dadleet/e2e-runs/20261010/pc1i-checkers-sonnet",
+ "failures": [
+  {
+   "line": "ShipLoop navigator: a check command is judged by its exit code and takes no ids or min_tests",
+   "verb": "unknown"
+  },
+  {
+   "line": "ShipLoop navigator: a check command is judged by its exit code and takes no ids or min_tests",
+   "verb": "unknown"
+  }
+ ],
+ "fidelity": {
+  "edits": {
+   "limits": "a list to confirm: no hit is not proof (an edit by interpreter code such as a python3 heredoc, a shell apply_patch or git apply, a kill by numeric pid or by port, and a relative path after cd other than the three workspace files, matched by name, are not seen) and a hit can be quoted text read as a command (a quoted > word reads as a redirect)",
+   "modelCommits": 0,
+   "nameKills": 0,
+   "scriptOwned": {
+    "count": 0,
+    "items": []
+   }
+  },
+  "evidence": {
+   "file": 10,
+   "loop": 7,
+   "note": 2,
+   "script": 15,
+   "scriptRunWithoutRecord": [],
+   "sentence": 1,
+   "skipped": 2,
+   "unclassified": 0
+  },
+  "refusals": {
+   "byStage": [
+    {
+     "count": 2,
+     "stage": "step-plan"
+    }
+   ],
+   "limits": "a repeat needs a known stage (the stage join is whole seconds and needs timeline.jsonl) and the same whole first line as the refusal just before it; the same line twice is a pointer, neutral about cause (a remedy that misled or an honest second failed try); a result the host saved to a file is not read",
+   "repeated": 1,
+   "unstaged": 0
+  },
+  "validation": {
+   "couldNotRun": 0,
+   "counted": 27,
+   "distinctCommands": 5,
+   "passed": 11,
+   "records": 11,
+   "red": 2,
+   "runs": 33,
+   "testsRanUnmeasured": 0,
+   "unread": 0,
+   "zeroRan": 0
+  }
+ },
+ "glue": 0,
+ "host": "claude",
+ "hosts": [
+  {
+   "host": "claude",
+   "model": "claude-sonnet-5-5"
+  }
+ ],
+ "identity": {
+  "hostBuild": "2.1.296",
+  "pluginSha": "54a954c85133",
+  "promptSha": "e4da54c7f03d"
+ },
+ "imp": "8 children, 16 review passes",
+ "improveMin": 2.63,
+ "improvePackets": {
+  "carried": {
+   "checkedBy": 8,
+   "doneWhen": 8,
+   "goal": 8,
+   "output": 8,
+   "recovery": 8
+  },
+  "read": 8
+ },
+ "improvePasses": 16,
+ "key": "claude-claude-sonnet-5-5-1.26.1-checkers-20261010",
+ "knowledge": {
+  "docs/shiploop/README.md": 664,
+  "docs/shiploop/environment.md": 531,
+  "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/outcome.md": 1281,
+  "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/plan.md": 1243,
+  "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/release-plan.md": 709,
+  "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/spec.md": 102,
+  "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/system-tests.md": 558,
+  "docs/shiploop/features/build-a-small-two-player-checkers-a0ada7/test-spec.md": 3498,
+  "docs/shiploop/spec.md": 3084,
+  "docs/shiploop/test-strategy.md": 4271
+ },
+ "leftBehind": {
+  "observed": true,
+  "reaped": [],
+  "survived": []
+ },
+ "model": "claude-sonnet-5-5",
+ "name": "claude claude-sonnet-5-5, checkers, release 1.26.1",
+ "order": 1791656160,
+ "outcome": {
+  "basis": "every verdict passed",
+  "class": "PASS"
+ },
+ "phases": [
+  "done",
+  "done",
+  "done",
+  "done",
+  "done",
+  "done",
+  "done",
+  "done"
+ ],
+ "planning": {
+  "children": 5,
+  "closed": true,
+  "hostWindowMin": 5.2,
+  "improveMin": 1.9,
+  "through": "test-spec",
+  "windowMin": 5.1
+ },
+ "planningReview": "stage",
+ "refusals": 2,
+ "release": "skill-craft 1.26.1, ShipLoop 0.58.0",
+ "stages": [
+  {
+   "action": "nav-a178f646e7e148f6bb46d08f896d4274",
+   "carried": {
+    "checked": true,
+    "inputs": false,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 3,
+    "peak": 76671,
+    "peakPct": 7.7
+   },
+   "evidenceClass": "sentence",
+   "min": 0.2,
+   "outcome": "done",
+   "packetBytes": 29269,
+   "packetDoc": true,
+   "resultBytes": 2030,
+   "resultFile": true,
+   "stage": "intake",
+   "summary": "Outcomes: (1) server.js (node http, no npm deps, PORT env default 3000); (2) GET / serves HTML page titled Checkers with 8x8 board, hot-seat two players; (3) GET new returns JSON with game id; (4) POST move {game,from,to} returns {ok,turn,winner}; illegal -> ok:false, turn unchanged; legal switches ",
+   "summaryTruncated": true
+  },
+  {
+   "action": "nav-f62ee327a3304697b63ece9047ee64ee",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 1,
+    "peak": 80554,
+    "peakPct": 8.1
+   },
+   "evidenceClass": "file",
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 43608,
+   "packetDoc": true,
+   "resultBytes": 1374,
+   "resultFile": true,
+   "stage": "discovery",
+   "summary": "Execution worktree is empty (one empty baseline commit, no files, no package.json, no linters/formatters configured, no CI, no deploy route). Baseline: `node --test` in the unchanged worktree exits 0 with 0 tests / 0 suites (output: 'tests 0 ... pass 0 fail 0') - recorded as missing coverage, not a ",
+   "summaryTruncated": true
+  },
+  {
+   "action": "nav-9ca690c0336049d98bcc557347c093e0",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 2,
+    "peak": 82520,
+    "peakPct": 8.3
+   },
+   "evidenceClass": "file",
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 38155,
+   "packetDoc": true,
+   "resultBytes": 1124,
+   "resultFile": true,
+   "stage": "research",
+   "summary": "No consequential unknowns need external evidence: Node v25.9.0 ships node:http and node:test (observed at discovery). Reuse/compose/augment assessment: no existing code or dependency is available (empty repo, npm deps forbidden by request), so a new stdlib-only rules module plus http server is the o",
+   "summaryTruncated": true
+  },
+  {
+   "action": "nav-284162de5e054d7b80ce269d024dbd0f",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 17,
+    "peak": 132290,
+    "peakPct": 13.2
+   },
+   "evidenceClass": "loop",
+   "improve": {
+    "min": 1.2,
+    "passes": 3
+   },
+   "improveCarried": {
+    "checkedBy": true,
+    "doneWhen": true,
+    "goal": true,
+    "output": true,
+    "recovery": true
+   },
+   "improvePacketBytes": 48101,
+   "improvePacketDoc": true,
+   "min": 1.6,
+   "outcome": "done",
+   "packetBytes": 42011,
+   "packetDoc": true,
+   "resultBytes": 1236,
+   "resultFile": true,
+   "stage": "spec",
+   "summary": "Living spec docs/shiploop/spec.md defines R-1..R-14 covering every request outcome (server/PORT, page, new, move contract, illegal/legal turn handling, jump removal, mandatory jump, king, setup) plus recorded defaults (multi-jump continuation, win condition, error statuses). NFRs: stdlib only, in-me",
+   "summaryTruncated": true
+  },
+  {
+   "action": "nav-35d0172a656f471798c2e1ef97fab391",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 5,
+    "peak": 140642,
+    "peakPct": 14.1
+   },
+   "evidenceClass": "loop",
+   "improve": {
+    "min": 0.36,
+    "passes": 3
+   },
+   "improveCarried": {
+    "checkedBy": true,
+    "doneWhen": true,
+    "goal": true,
+    "output": true,
+    "recovery": true
+   },
+   "improvePacketBytes": 48702,
+   "improvePacketDoc": true,
+   "min": 0.9,
+   "outcome": "done",
+   "packetBytes": 40860,
+   "packetDoc": true,
+   "resultBytes": 1162,
+   "resultFile": true,
+   "stage": "test-strategy",
+   "summary": "docs/shiploop/test-strategy.md maps every requirement R-1..R-16 to planned (not passed) cases TC-1..TC-14 across unit (rules), integration (real HTTP on port 0), system (spawned server + curl) layers using node:test via node --test; per-test isolated state. No host tool needed except a browser, whic",
+   "summaryTruncated": true
+  },
+  {
+   "action": "nav-3e2cb3ff504e46a99a6aa14db221c4b5",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 7,
+    "peak": 151310,
+    "peakPct": 15.1
+   },
+   "evidenceClass": "loop",
+   "improve": {
+    "min": 0.23,
+    "passes": 1
+   },
+   "improveCarried": {
+    "checkedBy": true,
+    "doneWhen": true,
+    "goal": true,
+    "output": true,
+    "recovery": true
+   },
+   "improvePacketBytes": 58916,
+   "improvePacketDoc": true,
+   "min": 0.7,
+   "outcome": "done",
+   "packetBytes": 57289,
+   "packetDoc": true,
+   "resultBytes": 2938,
+   "resultFile": true,
+   "stage": "plan",
+   "summary": "Plan: single work item W1 delivering rules.js -> server.js -> index page with node:test tests TC-1..TC-14. Route: no Backchain child requested; a manual backward dependency audit (page <- API <- server <- rules) is in plan.md. Assumptions A1 probed, A2 evidenced, A3 (real browser rendering) open and",
+   "summaryTruncated": true
+  },
+  {
+   "action": "nav-6b5aadb385f44bfa90a6dd86cfd5b37f",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 2,
+    "peak": 152372,
+    "peakPct": 15.2
+   },
+   "evidenceClass": "file",
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 32931,
+   "packetDoc": true,
+   "resultBytes": 1420,
+   "resultFile": true,
+   "stage": "prepare",
+   "summary": "Environment note written (local Node v25.9.0 only; start and test commands recorded). No preparation producers required: no remote target, account, or dependency install. Delivery authority: none needed - no deploy or publication; source return only at release."
+  },
+  {
+   "action": "nav-69cfe0b1178d4136b4b7202b845ba0e0",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 1,
+    "peak": 154196,
+    "peakPct": 15.4
+   },
+   "evidenceClass": "file",
+   "loop": 1,
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 31214,
+   "packetDoc": true,
+   "resultBytes": 581,
+   "resultFile": true,
+   "stage": "get-next-work-item",
+   "summary": "W1 is the only planned item; prerequisites (preparation) accepted; still required.",
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-6dfd719b899b4fedb144744dfc3f259f",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 4,
+    "peak": 161735,
+    "peakPct": 16.2
+   },
+   "evidenceClass": "loop",
+   "improve": {
+    "min": 0.01,
+    "passes": 1
+   },
+   "improveCarried": {
+    "checkedBy": true,
+    "doneWhen": true,
+    "goal": true,
+    "output": true,
+    "recovery": true
+   },
+   "improvePacketBytes": 54029,
+   "improvePacketDoc": true,
+   "loop": 1,
+   "min": 0.6,
+   "outcome": "done",
+   "packetBytes": 54689,
+   "packetDoc": true,
+   "resultBytes": 3894,
+   "resultFile": true,
+   "stage": "step-plan",
+   "summary": "Implement the checkers rules module, node http server with JSON API and the playable page, proven by node:test suites TC-1..TC-14 (rules unit tests, real-HTTP integration tests, and a static module-boundary check).",
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-fc6f9bb2f19b4bcd87825683bc6d67fa",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 4,
+    "peak": 168611,
+    "peakPct": 16.9
+   },
+   "evidenceClass": "loop",
+   "improve": {
+    "min": 0.1,
+    "passes": 3
+   },
+   "improveCarried": {
+    "checkedBy": true,
+    "doneWhen": true,
+    "goal": true,
+    "output": true,
+    "recovery": true
+   },
+   "improvePacketBytes": 48781,
+   "improvePacketDoc": true,
+   "loop": 1,
+   "min": 0.6,
+   "outcome": "done",
+   "packetBytes": 37262,
+   "packetDoc": true,
+   "resultBytes": 996,
+   "resultFile": true,
+   "stage": "test-spec",
+   "summary": "Every criterion C1-C3 has cases (C1: TC-1..9, C2: TC-10..13, C3: TC-14) with concrete oracles from the test strategy and explicit RED (module missing/assertion fails inside a test) and GREEN definitions; positive, failure and boundary cases included.",
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-bfea5ea0ee9641778c826423acfdd187",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 1,
+    "peak": 169753,
+    "peakPct": 17.0
+   },
+   "evidenceClass": "note",
+   "loop": 1,
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 34012,
+   "packetDoc": true,
+   "resultBytes": 849,
+   "resultFile": true,
+   "stage": "baseline",
+   "summary": "Ran `node --test --test-reporter=spec` on the unchanged item base: exit 0, tests 0, pass 0, fail 0 (output in baseline.txt). Classification: no pre-existing tests or failures; missing coverage is the whole item. Focused and grep commands target files that do not exist yet and are expected to fail un",
+   "summaryTruncated": true,
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-e8c7e107957b4a388a67ab0feddbc4d4",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 2,
+    "peak": 178893,
+    "peakPct": 17.9
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 1.1,
+   "outcome": "done",
+   "packetBytes": 41111,
+   "packetDoc": true,
+   "resultBytes": 1190,
+   "resultFile": true,
+   "stage": "test-author",
+   "summary": "Wrote test/rules.test.js (TC-1..TC-9) and test/server.test.js (TC-10..TC-13) with lazy module loaders. Probe runs: rules file 9 tests, 9 fail inside tests (rules.js missing); server file 4 tests, 4 fail. TC-14 is the grep check command (no test file).",
+   "verify": {
+    "passed": 1,
+    "records": 1,
+    "red": 1,
+    "runs": [
+     {
+      "failed": 9,
+      "ran": 9,
+      "status": "red"
+     },
+     {
+      "failed": 4,
+      "ran": 4,
+      "status": "red"
+     }
+    ]
+   },
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-46f765a31813455e9bd176144e4e6467",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 1,
+    "peak": 180017,
+    "peakPct": 18.0
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 0.2,
+   "outcome": "done",
+   "packetBytes": 39076,
+   "packetDoc": true,
+   "resultBytes": 956,
+   "resultFile": true,
+   "stage": "test-red",
+   "summary": "Ran the focused commands on the authored tests before any product code: test/rules.test.js 9 of 9 fail (rules module missing, require inside the test), test/server.test.js 4 of 4 fail (server module missing). TC-14 grep check fails because server.js and rules.js do not exist. No product files were e",
+   "summaryTruncated": true,
+   "verify": {
+    "passed": 1,
+    "records": 1,
+    "red": 1,
+    "runs": [
+     {
+      "acceptedRan": 9,
+      "failed": 9,
+      "ran": 9,
+      "status": "red"
+     },
+     {
+      "acceptedRan": 4,
+      "failed": 4,
+      "ran": 4,
+      "status": "red"
+     }
+    ]
+   },
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-5df2276275744889aa4b5dfbd38eeca6",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 2,
+    "peak": 185407,
+    "peakPct": 18.5
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 0.6,
+   "outcome": "done",
+   "packetBytes": 43157,
+   "packetDoc": true,
+   "resultBytes": 703,
+   "resultFile": true,
+   "stage": "implement",
+   "step": "S1",
+   "summary": "Wrote rules.js (createGame, fromBoard, applyMove with mandatory jump, same-piece multi-jump chain, kings, winner detection). node --test test/rules.test.js: 9 pass, 0 fail after the last edit.",
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-60fef92df37248fc9640bbce34d14fe3",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 3,
+    "peak": 190683,
+    "peakPct": 19.1
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 0.5,
+   "outcome": "done",
+   "packetBytes": 42145,
+   "packetDoc": true,
+   "resultBytes": 729,
+   "resultFile": true,
+   "stage": "implement",
+   "step": "S2",
+   "summary": "Wrote server.js (createServer, routes /, new, state, move, 64KB cap, PORT default 3000, requires ./rules). node --test test/server.test.js: 4 pass after the last edit; full node --test 13 pass.",
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-2f42c4a2fb0442cebdba98e93b825444",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 0.0,
+   "outcome": "done",
+   "packetBytes": 42191,
+   "packetDoc": true,
+   "resultBytes": 804,
+   "resultFile": true,
+   "stage": "implement",
+   "step": "S3",
+   "summary": "Wrote index.html titled Checkers: 8x8 button grid, click source then destination, posts to move, shows turn/winner/illegal-move message, New game button. Served page checked by TC-10 (title, move reference); full node --test 13 pass. Real-browser rendering remains the open assumption A3.",
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-d1ad4852b883425cb08472ef0ff7c6dd",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 0.0,
+   "outcome": "done",
+   "packetBytes": 42427,
+   "packetDoc": true,
+   "resultBytes": 743,
+   "resultFile": true,
+   "stage": "implement",
+   "step": "S4",
+   "summary": "package.json (no dependencies, test script node --test) and README run/test note written. node --test: 13 pass.",
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-7ff8e2bd268c464699b36e2178568db8",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 4,
+    "peak": 196483,
+    "peakPct": 19.6
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 0.3,
+   "outcome": "done",
+   "packetBytes": 41318,
+   "packetDoc": true,
+   "resultBytes": 713,
+   "resultFile": true,
+   "stage": "test-green",
+   "summary": "Test loop on the bound Until Loop completed (terminal packet saved). Both focused commands exit 0: rules.test.js 9 pass (TC-1..9), server.test.js 4 pass (TC-10..13).",
+   "verify": {
+    "passed": 1,
+    "records": 1,
+    "red": 0,
+    "runs": [
+     {
+      "acceptedRan": 9,
+      "failed": 0,
+      "ran": 9,
+      "status": "passed"
+     },
+     {
+      "acceptedRan": 4,
+      "failed": 0,
+      "ran": 4,
+      "status": "passed"
+     }
+    ]
+   },
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-765da73dce9f479d8079c04eb35cb24e",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 2,
+    "peak": 198791,
+    "peakPct": 19.9
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 0.3,
+   "outcome": "done",
+   "packetBytes": 41231,
+   "packetDoc": true,
+   "resultBytes": 757,
+   "resultFile": true,
+   "stage": "test-refine",
+   "summary": "Added TC-1 (b) board isolation per game, TC-2 (b) black direction and turn return, TC-3 (b) jump over friendly piece rejected, TC-5 (b) black mandatory jump. No existing check changed. node --test: 17 tests, 17 pass after last edit.",
+   "verify": {
+    "passed": 1,
+    "records": 1,
+    "red": 0,
+    "runs": [
+     {
+      "failed": 0,
+      "ran": 13,
+      "status": "passed"
+     },
+     {
+      "failed": 0,
+      "ran": 4,
+      "status": "passed"
+     },
+     {
+      "status": "passed"
+     },
+     {
+      "failed": 0,
+      "ran": 17,
+      "status": "passed"
+     }
+    ]
+   },
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-6e39ddf7090c48c9993a36e748bd9a34",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 2,
+    "peak": 200795,
+    "peakPct": 20.1
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 0.3,
+   "outcome": "done",
+   "packetBytes": 44249,
+   "packetDoc": true,
+   "resultBytes": 720,
+   "resultFile": true,
+   "stage": "regression",
+   "summary": "Regression loop completed; all four recorded commands exit 0 (focused rules, focused server, TC-14 grep check, full node --test with 17 passing).",
+   "verify": {
+    "passed": 1,
+    "records": 1,
+    "red": 0,
+    "runs": [
+     {
+      "acceptedRan": 13,
+      "failed": 0,
+      "ran": 13,
+      "status": "passed"
+     },
+     {
+      "acceptedRan": 4,
+      "failed": 0,
+      "ran": 4,
+      "status": "passed"
+     },
+     {
+      "status": "passed"
+     },
+     {
+      "acceptedRan": 17,
+      "failed": 0,
+      "ran": 17,
+      "status": "passed"
+     }
+    ]
+   },
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-a8655c08034649a59326fd6cf14b02be",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 2,
+    "peak": 202739,
+    "peakPct": 20.3
+   },
+   "evidenceClass": "file",
+   "loop": 1,
+   "min": 0.2,
+   "outcome": "done",
+   "packetBytes": 37618,
+   "packetDoc": true,
+   "resultBytes": 731,
+   "resultFile": true,
+   "stage": "document",
+   "summary": "Updated README.md with run/test commands, implemented rules (mandatory and chained jumps, kings, win) and the API contract incl. status codes. Reread after the last edit; matches observed behaviour from the passing HTTP tests.",
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-7d91a2d77b364b7484d9a5aa8184701b",
+   "evidenceClass": "skipped",
+   "loop": 1,
+   "min": 0.0,
+   "outcome": "done",
+   "resultBytes": 614,
+   "resultFile": true,
+   "skipped": true,
+   "stage": "skill-assess",
+   "summary": "Not applicable to this item: the step plan records that no repo-local skill is selected, created or changed (No repo-local skill, agent file or MCP config is selected, created or changed; the repository has no skill index (empty baseline)). ShipLoop recorded this stage without running it.",
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-e77f741eee3b4cfa807f2aa71c41f2d4",
+   "evidenceClass": "skipped",
+   "loop": 1,
+   "min": 0.0,
+   "outcome": "done",
+   "resultBytes": 616,
+   "resultFile": true,
+   "skipped": true,
+   "stage": "skill-validate",
+   "summary": "Not applicable to this item: the step plan records that no repo-local skill is selected, created or changed (No repo-local skill, agent file or MCP config is selected, created or changed; the repository has no skill index (empty baseline)). ShipLoop recorded this stage without running it.",
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-6d547ec92bc84a1aa6de7d74f0458d51",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 4,
+    "peak": 208474,
+    "peakPct": 20.8
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 0.5,
+   "outcome": "done",
+   "packetBytes": 45192,
+   "packetDoc": true,
+   "resultBytes": 827,
+   "resultFile": true,
+   "stage": "static-checks",
+   "summary": "Quality loop on the bound Until Loop finished (terminal packet saved). It fixed an unsent 413 response, a missing async catch, an unused export and an unguarded page fetch; node --test: 19 pass. No linters/formatters/type checkers are configured in the repo.",
+   "verify": {
+    "passed": 1,
+    "records": 1,
+    "red": 0,
+    "runs": [
+     {
+      "acceptedRan": 13,
+      "failed": 0,
+      "ran": 13,
+      "status": "passed"
+     },
+     {
+      "acceptedRan": 4,
+      "failed": 0,
+      "ran": 6,
+      "status": "passed"
+     },
+     {
+      "status": "passed"
+     },
+     {
+      "acceptedRan": 17,
+      "failed": 0,
+      "ran": 19,
+      "status": "passed"
+     }
+    ]
+   },
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-4e8e41efef954f4cba6459554fbd8cbe",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 2,
+    "peak": 210270,
+    "peakPct": 21.0
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 0.2,
+   "outcome": "done",
+   "packetBytes": 45872,
+   "packetDoc": true,
+   "resultBytes": 901,
+   "resultFile": true,
+   "stage": "verify",
+   "summary": "After the last edit: node --test 19 pass (rules 13, server 6), TC-14 grep check exit 0. Manual curl against PORT=3917 node server.js: GET new gives id; legal red move -> ok true turn black winner null; out-of-turn move -> ok false turn black; GET / has <title>Checkers</title>. Pending later phase: r",
+   "summaryTruncated": true,
+   "verify": {
+    "passed": 1,
+    "records": 1,
+    "red": 0,
+    "runs": [
+     {
+      "acceptedRan": 13,
+      "failed": 0,
+      "ran": 13,
+      "status": "passed"
+     },
+     {
+      "acceptedRan": 6,
+      "failed": 0,
+      "ran": 6,
+      "status": "passed"
+     },
+     {
+      "status": "passed"
+     },
+     {
+      "acceptedRan": 19,
+      "failed": 0,
+      "ran": 19,
+      "status": "passed"
+     }
+    ]
+   },
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-18b864fc8a744f62984e6b897770b306",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 1,
+    "peak": 211115,
+    "peakPct": 21.1
+   },
+   "evidenceClass": "file",
+   "loop": 1,
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 37296,
+   "packetDoc": true,
+   "resultBytes": 848,
+   "resultFile": true,
+   "stage": "integrate",
+   "summary": "All W1 changes (rules.js, server.js, index.html, package.json, README.md, test/*.test.js, docs/shiploop) are in the execution checkout; ShipLoop commits declared paths on acceptance. Full node --test 19 pass.",
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-13ca19d796944bdfa76bae6dc8465bf2",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 1,
+    "peak": 212236,
+    "peakPct": 21.2
+   },
+   "evidenceClass": "script",
+   "loop": 1,
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 39211,
+   "packetDoc": true,
+   "resultBytes": 773,
+   "resultFile": true,
+   "stage": "integration-verify",
+   "summary": "On the committed integration (62029ae) node --test: 19 pass; TC-14 module-boundary check exit 0. The shared interface (rules.js applyMove/createGame consumed by server.js; JSON API consumed by index.html) is exercised by TC-10..13 and manual curl.",
+   "verify": {
+    "passed": 1,
+    "records": 1,
+    "red": 0,
+    "runs": [
+     {
+      "acceptedRan": 13,
+      "failed": 0,
+      "ran": 13,
+      "status": "passed"
+     },
+     {
+      "acceptedRan": 6,
+      "failed": 0,
+      "ran": 6,
+      "status": "passed"
+     },
+     {
+      "status": "passed"
+     },
+     {
+      "acceptedRan": 19,
+      "failed": 0,
+      "ran": 19,
+      "status": "passed"
+     }
+    ]
+   },
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-1638fecbfe224dac98f23101c0c4b9a0",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 6,
+    "peak": 218736,
+    "peakPct": 21.9
+   },
+   "evidenceClass": "script",
+   "improve": {
+    "min": 0.58,
+    "passes": 3
+   },
+   "improveCarried": {
+    "checkedBy": true,
+    "doneWhen": true,
+    "goal": true,
+    "output": true,
+    "recovery": true
+   },
+   "improvePacketBytes": 53593,
+   "improvePacketDoc": true,
+   "loop": 1,
+   "min": 0.8,
+   "outcome": "done",
+   "packetBytes": 39492,
+   "packetDoc": true,
+   "resultBytes": 711,
+   "resultFile": true,
+   "stage": "carry-forward",
+   "summary": "Learnings recorded in docs/shiploop/README.md (lazy requires for RED, spec reporter, 413 drain, open browser-rendering gap). W1 was the only planned item; no further items are required.",
+   "verify": {
+    "passed": 1,
+    "records": 1,
+    "red": 0,
+    "runs": [
+     {
+      "failed": 0,
+      "ran": 13,
+      "status": "passed"
+     },
+     {
+      "failed": 0,
+      "ran": 7,
+      "status": "passed"
+     },
+     {
+      "status": "passed"
+     },
+     {
+      "failed": 0,
+      "ran": 20,
+      "status": "passed"
+     }
+    ]
+   },
+   "workitem": "W1"
+  },
+  {
+   "action": "nav-86ee154f6f0f4ad2b0327301ddf35d7b",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 5,
+    "peak": 226388,
+    "peakPct": 22.6
+   },
+   "evidenceClass": "loop",
+   "improve": {
+    "min": 0.13,
+    "passes": 1
+   },
+   "improveCarried": {
+    "checkedBy": true,
+    "doneWhen": true,
+    "goal": true,
+    "output": true,
+    "recovery": true
+   },
+   "improvePacketBytes": 47588,
+   "improvePacketDoc": true,
+   "min": 0.8,
+   "outcome": "done",
+   "packetBytes": 38361,
+   "packetDoc": true,
+   "resultBytes": 1391,
+   "resultFile": true,
+   "stage": "system-test-author",
+   "summary": "Authored test/system.test.js: ST-1 plays an opening over HTTP against a spawned node server.js (rejected simple move, mandatory jump, state endpoint, game independence); ST-2 runs the served page's script with a DOM stub against the live server (64 squares, 24 pieces, a move flips the turn). Both pa",
+   "summaryTruncated": true
+  },
+  {
+   "action": "nav-6ad62800663b41459d8237dd0fd56d36",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 2,
+    "peak": 227966,
+    "peakPct": 22.8
+   },
+   "evidenceClass": "script",
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 36884,
+   "packetDoc": true,
+   "resultBytes": 733,
+   "resultFile": true,
+   "stage": "system-test",
+   "summary": "Ran node --test --test-reporter=spec test/system.test.js on the real candidate: 2 tests, 2 pass (real spawned server over HTTP; page script under DOM stub). Real-browser rendering is still unobserved (A3).",
+   "verify": {
+    "passed": 1,
+    "records": 1,
+    "red": 0,
+    "runs": [
+     {
+      "failed": 0,
+      "ran": 2,
+      "status": "passed"
+     }
+    ]
+   }
+  },
+  {
+   "action": "nav-7debf0444c9440f389b73ec7d014077e",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 1,
+    "peak": 229298,
+    "peakPct": 22.9
+   },
+   "evidenceClass": "file",
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 37895,
+   "packetDoc": true,
+   "resultBytes": 1758,
+   "resultFile": true,
+   "stage": "product-acceptance",
+   "summary": "Each request outcome was observed by an executed check: PORT/default server and GET / titled Checkers (TC-10, ST-1/2, curl), new id (TC-11), move contract and turn/winner (TC-12, ST-1), illegal move leaves turn (TC-3, TC-12), legal move switches turn (TC-2), mandatory jump and jump removal (TC-4, TC",
+   "summaryTruncated": true,
+   "unverified": [
+    {
+     "check": "open http://localhost:3000 after node server.js, play a few moves for both colours and report what is wrong",
+     "dueStage": "handoff",
+     "outcome": "The playable page renders and accepts clicks in a real browser for two players on one page",
+     "owner": "user",
+     "reason": "no browser tool was used in this run; ST-2 covers script behaviour against a DOM stub only"
+    }
+   ]
+  },
+  {
+   "action": "nav-eea39b9647c641788ec8a8fafd76dea1",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 3,
+    "peak": 232964,
+    "peakPct": 23.3
+   },
+   "evidenceClass": "loop",
+   "improve": {
+    "min": 0.02,
+    "passes": 1
+   },
+   "improveCarried": {
+    "checkedBy": true,
+    "doneWhen": true,
+    "goal": true,
+    "output": true,
+    "recovery": true
+   },
+   "improvePacketBytes": 51856,
+   "improvePacketDoc": true,
+   "min": 0.3,
+   "outcome": "done",
+   "packetBytes": 41259,
+   "packetDoc": true,
+   "resultBytes": 1538,
+   "resultFile": true,
+   "stage": "release-plan",
+   "summary": "No deployment target: delivery is the guarded return of the run branch to the original checkout; no remote write authority needed. Rollback is git reset to baseline f5316d1 in the original checkout. Post-release checks run node --test and the system tests in a clean copy of the returned result."
+  },
+  {
+   "action": "nav-a44d0b3180a24727b6b0c86d8404f630",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 1,
+    "peak": 234467,
+    "peakPct": 23.4
+   },
+   "evidenceClass": "file",
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 34063,
+   "packetDoc": true,
+   "resultBytes": 950,
+   "resultFile": true,
+   "stage": "release-check",
+   "summary": "Preconditions observed: node --test 22 pass; all work committed in the run branch (clean tree except runtime metadata); no deploy step exists (local-only), so there is no dry-run deploy. Post-release confirm commands (node --test, system test) pass in the work area already; the clean-copy run happen",
+   "summaryTruncated": true
+  },
+  {
+   "action": "nav-0e89ece3e7c14f28a7e2281c1516129a",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 7,
+    "peak": 240485,
+    "peakPct": 24.0
+   },
+   "evidenceClass": "file",
+   "min": 0.4,
+   "outcome": "done",
+   "packetBytes": 32351,
+   "packetDoc": true,
+   "resultBytes": 881,
+   "resultFile": true,
+   "stage": "release",
+   "summary": "No external deploy exists; the release is the guarded workspace return. Verified receipt: fast-forward-merge of the original branch to shiploop/run-d641edabdd890671 (17 product/doc paths kept; runtime metadata excluded). Correction to release-check: test/system.test.js was still uncommitted then; pl",
+   "summaryTruncated": true
+  },
+  {
+   "action": "nav-dc28515588ed4d7baea8ab4269b21039",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 2,
+    "peak": 242769,
+    "peakPct": 24.3
+   },
+   "evidenceClass": "script",
+   "min": 0.3,
+   "outcome": "done",
+   "packetBytes": 36881,
+   "packetDoc": true,
+   "resultBytes": 1075,
+   "resultFile": true,
+   "stage": "release-verify",
+   "summary": "In the original checkout after the verified return: node --test 22 pass; PORT=3921 node server.js served <title>Checkers</title>, new gave an id and a legal red move returned ok true, turn black, winner null. outcome.md written with Learned, Key considerations, Open for the next run. Real-browser pl",
+   "summaryTruncated": true,
+   "verify": {
+    "observed": {
+     "tree12": "a328a18a096e",
+     "where": "returned-result"
+    },
+    "passed": 1,
+    "records": 1,
+    "red": 0,
+    "runs": [
+     {
+      "failed": 0,
+      "ran": 22,
+      "status": "passed"
+     },
+     {
+      "failed": 0,
+      "ran": 2,
+      "status": "passed"
+     }
+    ]
+   }
+  },
+  {
+   "action": "nav-9a06bce4650a4207bd90963f605d378c",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "evidenceClass": "note",
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 31994,
+   "packetDoc": true,
+   "resultBytes": 849,
+   "resultFile": true,
+   "stage": "operations",
+   "summary": "Justified not-applicable: no hosted service, monitoring or on-call. The server logs one startup line to stdout; failures return JSON ok:false and no request can crash the process (URL guard TC-13 (c)). Recovery is restarting node server.js (state is in memory); rollback is git reset to baseline f531",
+   "summaryTruncated": true
+  },
+  {
+   "action": "nav-0e059b4dfd2a40bf9164196c58d8a64c",
+   "carried": {
+    "checked": true,
+    "inputs": true,
+    "operates": true,
+    "produces": true,
+    "purpose": true,
+    "recovery": true,
+    "where": true
+   },
+   "context": {
+    "calls": 2,
+    "peak": 245575,
+    "peakPct": 24.6
+   },
+   "evidenceClass": "file",
+   "min": 0.1,
+   "outcome": "done",
+   "packetBytes": 35643,
+   "packetDoc": true,
+   "resultBytes": 1021,
+   "resultFile": true,
+   "stage": "handoff",
+   "summary": "Source: rules.js, server.js, index.html, package.json, README.md, test/{rules,server,system}.test.js, docs/shiploop returned to the original checkout by a verified fast-forward (receipt return-receipt.md). Tests: node --test 22 pass in the returned checkout. Release/consumer: local only; node server",
+   "summaryTruncated": true
+  }
+ ],
+ "startedAt": "2026-10-10T18:16:00Z",
+ "status": "done",
+ "stepsExecuted": 4,
+ "stepsPlanned": 4,
+ "time": "done in 13 min",
+ "toolUse": {
+  "packets": {
+   "bytes": 2023124,
+   "files": 52,
+   "printed": 38,
+   "printedChars": 68729,
+   "readPartial": 0,
+   "readWhole": 2,
+   "shellChars": 50946,
+   "shellReads": 22
+  },
+  "wrappers": [
+   {
+    "name": "cs.sh",
+    "runs": 28
+   },
+   {
+    "name": "ifinish.sh",
+    "runs": 7
+   },
+   {
+    "name": "istart.sh",
+    "runs": 7
+   }
+  ]
+ },
+ "unmeasured": {
+  "cancelled_tool_calls": "only Grok's events carry this signal (a failed tool_call_update saying the user cancelled it, Grok's permission refusal); this host's do not, so a count of 0 is a missing signal and not a measurement",
+  "compactions": "only Grok's events carry this signal (an auto_compact_completed event); this host's do not, so a count of 0 is a missing signal and not a measurement",
+  "delivered.skill": "no accepted skill-assess or skill-validate visit with a summary",
+  "freshStarts": "compactions not detected on this host: only Grok's events carry this signal (an auto_compact_completed event); this host's do not, so a count of 0 is a missing signal and not a measurement",
+  "knowledge_reads": "only Grok's events carry this signal (a read tool call naming a file path); this host's do not, so a count of 0 is a missing signal and not a measurement",
+  "planningTokens": "this host's per-message output counts are streaming snapshots (about 1/17 of the session's own total on a recorded run); only the whole-run usage is exact",
+  "truncated_outputs": "only Grok's events carry this signal (rawOutput.truncated on a tool_call_update); this host's do not, so a count of 0 is a missing signal and not a measurement",
+  "visitContext": "5 of 37 visits carry no context: the harness measured no model call in their stage windows (no host event there, or the window could not be placed); that is not zero calls"
+ },
+ "verdicts": {
+  "checks": true,
+  "committed": true,
+  "invoked": true,
+  "plugin": true,
+  "process": true,
+  "shiploop": true
+ },
+ "wallMin": 12.5,
+ "workItems": [
+  {
+   "id": "W1",
+   "implementVisits": {
+    "blocked": 0,
+    "done": 4,
+    "repeat": 0,
+    "replan": 0,
+    "revise": 0
+   },
+   "loops": 1,
+   "origin": "plan",
+   "repeats": 0,
+   "revises": 0,
+   "stepPlans": 1,
+   "steps": [
+    {
+     "action": "nav-5df2276275744889aa4b5dfbd38eeca6",
+     "id": "S1",
+     "task": "Write rules.js: createGame(), fromBoard(board, turn), applyMove(game, from, to) returning {ok, error?}, legal-move helpers; board[r][c] = null|{color,king}; no I/O"
+    },
+    {
+     "action": "nav-60fef92df37248fc9640bbce34d14fe3",
+     "id": "S2",
+     "task": "Write server.js: exports createServer(); Map of games; GET /, GET /api/new, GET /api/state, POST /api/move with 64KB cap; listens on PORT (default 3000) only when run directly"
+    },
+    {
+     "action": "nav-2f42c4a2fb0442cebdba98e93b825444",
+     "id": "S3",
+     "task": "Write index.html: title Checkers, 8x8 board, click-from/click-to hot-seat play via fetch to the API, shows turn/winner/errors"
+    },
+    {
+     "action": "nav-d1ad4852b883425cb08472ef0ff7c6dd",
+     "id": "S4",
+     "task": "Write package.json (no deps, test script node --test) and a short README run/test note"
+    }
+   ],
+   "stepsExecuted": 4,
+   "stepsPlanned": 4,
+   "title": "Checkers: rules module, HTTP server with API, playable page, node:test tests"
+  }
+ ]
+}

@@ -28,9 +28,12 @@ BOLD, PLAIN = "\x1b[1m", "\x1b[22m"
 NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
 NARRATIVE_END = "=== end ShipLoop narrative ==="
 HEADER = "ShipLoop navigator | "
-# The block must end this early in stdout; Claude Code keeps only the head of
-# oversized Bash output, and the block sits right after the callback line.
-WINDOW = 8000
+# The block must end this early in stdout: the navigator's PRINT_LIMIT, the most
+# ShipLoop prints. Claude Code keeps the first ~30,000 characters of oversized Bash
+# output (measured 2026-09-25), so the whole printed packet reaches the hook. It was
+# 8000 until the step-plan template's per-step criteria and paths (2026-10-10) pushed
+# the block 450 characters past it on the ask-agent route.
+WINDOW = 16_000
 ENTRY_POINTS = {"shiploop": None, "shiploop-complete": "complete", "shiploop-next": "next"}
 WRAPPER_LINES = {
     "complete": "shiploop complete — close the increment and print the next stdout\n",

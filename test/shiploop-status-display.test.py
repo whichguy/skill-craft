@@ -28,7 +28,9 @@ import shiploop_status_hook as hook  # noqa: E402
 BEGIN, END = navigator.STATUS_BEGIN, navigator.STATUS_END
 DONE, NOW, TODO = "✓", "▶", "·"
 HOOK = SCRIPTS / "shiploop-status-hook"
-ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+# The suite runner turns the progress view off (test/run_suites.py); a direct run must too, or `next` starts it and
+# writes progress files the file-set checks below do not expect.
+ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "SHIPLOOP_PROGRESS": "off"}
 
 
 def result(*, outcome: str = "done", summary: str = "Synthetic producer result.", **extra):
@@ -72,9 +74,14 @@ class StatusBlockTests(unittest.TestCase):
                                         result(**extra) if extra else None)
 
     def advance_to(self, state: dict, stage: str) -> dict:
-        while navigator.current_stage(state) != stage:
-            state = self.produce(state)
-        return state
+        for _ in range(100):  # a walk that cannot reach the stage fails instead of hanging
+            if navigator.current_stage(state) == stage:
+                return state
+            state = self.produce(state, **(self.ONE_STEP if navigator.current_stage(state) == "step-plan" else {}))
+        self.fail(f"the walk did not reach {stage}; it stopped at {navigator.current_stage(state)}")
+
+    # A step plan with one step, so implement is issued once and then accepted.
+    ONE_STEP = {"steps": [{"id": "S1", "task": "Make the change."}]}
 
     def planned(self, rows: list[dict]) -> dict:
         state = self.advance_to(self.state(), "plan")
@@ -90,7 +97,7 @@ class StatusBlockTests(unittest.TestCase):
         self.assertEqual(set(prompts.STAGE_PURPOSE), set(prompts.STAGES))
         self.assertEqual(tuple(s for _, group in prompts.INNER_GROUPS for s in group), prompts.INNER)
         self.assertEqual([name for name, _ in prompts.INNER_GROUPS],
-                         ["Plan", "Tests first", "Build", "Check", "Integrate"])
+                         ["Plan", "Validate existing", "Build", "Verify", "Carry forward"])
         for stage, purpose in prompts.STAGE_PURPOSE.items():
             self.assertTrue(purpose and len(purpose) <= 80 and "\n" not in purpose, stage)
 
@@ -132,35 +139,37 @@ class StatusBlockTests(unittest.TestCase):
 
     def test_work_item_map_item_plan_and_completed_items(self) -> None:
         state = self.planned(self.ROWS)
-        state = self.advance_to(state, "select-work")
+        state = self.advance_to(state, "step-plan")
         block = navigator.status_block(state)
         self.assertEqual(line(block, "Where"),
-                         'Where:     Work items > W1 "Config loader refactor" (1 of 2) > Plan > select-work')
+                         'Where:     Work items > W1 "Config loader refactor" (1 of 2) > Plan > step-plan')
         self.assertEqual(line(block, "Run"),
                          f"Run:       Preparation {DONE} | Work items 0/2 {NOW} | Release {TODO}")
         self.assertEqual(line(block, "Item"),
-                         f"Item:      Plan {NOW} | Tests first {TODO} | Build {TODO} | "
-                         f"Check {TODO} | Integrate {TODO}")
+                         f"Item:      Plan {NOW} | Validate existing {TODO} | Build {TODO} | "
+                         f"Verify {TODO} | Carry forward {TODO}")
         self.assertNotIn("Item plan:", block)  # neither a step plan nor item context yet
 
-        state = self.produce(self.advance_to(state, "step-plan"),
+        state = self.produce(state, **self.ONE_STEP,
                              summary="Split loader into parse and merge; cover both in test_config.py. Then more.")
-        state = self.advance_to(state, "test-author")
+        state = self.advance_to(state, "validate-existing")
         block = navigator.status_block(state)
         self.assertEqual(line(block, "Where"),
-                         'Where:     Work items > W1 "Config loader refactor" (1 of 2) > Tests first > test-author')
+                         'Where:     Work items > W1 "Config loader refactor" (1 of 2) > Validate existing > '
+                         'validate-existing')
         self.assertEqual(line(block, "Item"),
-                         f"Item:      Plan {DONE} | Tests first {NOW} | Build {TODO} | "
-                         f"Check {TODO} | Integrate {TODO}")
+                         f"Item:      Plan {DONE} | Validate existing {NOW} | Build {TODO} | "
+                         f"Verify {TODO} | Carry forward {TODO}")
         self.assertEqual(line(block, "Item plan"),
                          "Item plan: Split loader into parse and merge; cover both in test_config.py.")
-        self.assertEqual(line(block, "Next"), "Next:      test-author: " + prompts.STAGE_PURPOSE["test-author"])
+        self.assertEqual(line(block, "Next"),
+                         "Next:      validate-existing: " + prompts.STAGE_PURPOSE["validate-existing"])
 
         state = self.produce(self.advance_to(state, "carry-forward"),
                              summary="W1 merged into the worktree with 12 tests. Lessons noted.")
         block = navigator.status_block(state)
         self.assertEqual(line(block, "Where"),
-                         'Where:     Work items > W2 "Add --version flag" (2 of 2) > Plan > select-work')
+                         'Where:     Work items > W2 "Add --version flag" (2 of 2) > Plan > step-plan')
         self.assertEqual(line(block, "Done"),
                          "Done:      W1 carry-forward: W1 merged into the worktree with 12 tests.")
         self.assertEqual(line(block, "Completed"),
@@ -245,7 +254,7 @@ class StatusBlockTests(unittest.TestCase):
         for _ in range(4):  # finish three items so Completed is populated
             state = self.advance_to(state, "carry-forward")
             state = self.produce(state, summary="summary " * 1000)
-        state = self.advance_to(state, "test-author")
+        state = self.advance_to(state, "test")
         state = navigator.control(state, "pause", "reason " * 1000)
         long_root = Path(self.temp.name) / ("deep" * 100)
         block = navigator.status_block(state)
@@ -260,7 +269,7 @@ class StatusBlockTests(unittest.TestCase):
     # --- packet placement, status.md and the status verb --------------------
 
     def test_packet_carries_block_early_and_status_file_matches_cli(self) -> None:
-        state = self.advance_to(self.planned(self.ROWS), "test-red")
+        state = self.advance_to(self.planned(self.ROWS), "test")
         root = (Path(self.temp.name) / "run").resolve()
         root.mkdir()
         navigator.save(root, state)
@@ -362,7 +371,7 @@ class StatusHookTests(unittest.TestCase):
                         "shiploop complete — close the increment and print the next stdout\n" + self.packet),
             # Claude Code keeps the head of oversized output and persists the
             # rest. Since emit() now prints only the short head for an active
-            # packet, self.packet alone (~3 KB) is well under the hook's 8000-
+            # packet, self.packet alone (~3 KB) is well under the hook's 16,000-
             # char safety window, so repeating it (the old way of manufacturing
             # oversized stdout) would place a second real status block inside
             # that window too and the hook would correctly refuse the ambiguous

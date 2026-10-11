@@ -1,0 +1,2166 @@
+{
+ "question": "What does the G5 code (test/shiploop_e2e/quality.py, operator catalog js-1) say about the eight saved deliveries after the fix round, and does it reproduce the design's prototype?",
+ "how": "scratch copies of the saved work folders (git ls-files, no .git); the harness's own quality.measure with the declarations of cases.json, including quality.refuse_ports [3000]; every child of the phase ran under test/shiploop_e2e/refuse_ports.cjs, which refuses listen and connect on :3000 and counts the refusals. The saved folders are only read. A watcher polled `lsof -iTCP:3000 -sTCP:LISTEN` every 0.3 s during every run: no listener was seen (listeners_on_3000). SUPERSEDES the 2026-10-09 first evidence, whose 'starts no server on a fixed port' was false: the mutation phase itself listened on :3000 in five of the eight deliveries (the eq-flip of `require.main === module` and the logic-flip of `Number(process.env.PORT) || 3000`), see the port_refused marks below.",
+ "date": "2026-10-09",
+ "listeners_on_3000": "none seen",
+ "deliveries": {
+  "r1-battleship-sonnet": {
+   "prototype_killed_of_sites": [
+    27,
+    33
+   ],
+   "hosts_used": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "first_round_unguarded": null,
+   "mutation": {
+    "sites": 33,
+    "killed": 27,
+    "timeout": 3,
+    "port_refused": 2,
+    "port_refusals": 4,
+    "survived": 6,
+    "invalid": 0,
+    "unconfirmed": 0,
+    "not_run": 0,
+    "ratio": 0.8182,
+    "ceiling_hit": false,
+    "seconds": 54.9,
+    "baseline": {
+     "returncode": 0,
+     "seconds": 0.446,
+     "tests": 46,
+     "port_refusals": 0
+    },
+    "refuse_ports": [
+     3000
+    ]
+   },
+   "per_file": {
+    "game.js": {
+     "sites": 22,
+     "lines": 70,
+     "loaded_by_tests": true,
+     "killed": 19,
+     "timeout": 1,
+     "port_refusals": 0,
+     "survived": 3,
+     "invalid": 0,
+     "unconfirmed": 0,
+     "not_run": 0
+    },
+    "server.js": {
+     "sites": 11,
+     "lines": 97,
+     "loaded_by_tests": true,
+     "killed": 8,
+     "timeout": 2,
+     "port_refusals": 4,
+     "survived": 3,
+     "invalid": 0,
+     "unconfirmed": 0,
+     "not_run": 0
+    }
+   },
+   "uncovered": [
+    {
+     "file": "public/index.html",
+     "inline_script_lines": 68
+    }
+   ],
+   "kills_with_a_port_refusal": [
+    {
+     "file": "server.js",
+     "line": 92,
+     "op": "eq-flip",
+     "from": "===",
+     "to": "!==",
+     "timeout": true,
+     "port_refusals": 1,
+     "evidence": "timed out after 10 s"
+    },
+    {
+     "file": "server.js",
+     "line": 93,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&",
+     "timeout": true,
+     "port_refusals": 3,
+     "evidence": "timed out after 10 s"
+    }
+   ],
+   "kills_that_timed_out": [
+    {
+     "file": "game.js",
+     "line": 42,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&",
+     "timeout": true,
+     "port_refusals": 0,
+     "evidence": "timed out after 10 s"
+    },
+    {
+     "file": "server.js",
+     "line": 92,
+     "op": "eq-flip",
+     "from": "===",
+     "to": "!==",
+     "timeout": true,
+     "port_refusals": 1,
+     "evidence": "timed out after 10 s"
+    },
+    {
+     "file": "server.js",
+     "line": 93,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&",
+     "timeout": true,
+     "port_refusals": 3,
+     "evidence": "timed out after 10 s"
+    }
+   ],
+   "unconfirmed_mutants": [],
+   "survivors": [
+    {
+     "file": "game.js",
+     "line": 29,
+     "op": "rel-bound",
+     "from": "<",
+     "to": "<="
+    },
+    {
+     "file": "server.js",
+     "line": 28,
+     "op": "rel-bound",
+     "from": "<=",
+     "to": "<"
+    },
+    {
+     "file": "server.js",
+     "line": 30,
+     "op": "rel-bound",
+     "from": ">",
+     "to": ">="
+    },
+    {
+     "file": "game.js",
+     "line": 30,
+     "op": "arith-flip",
+     "from": "+",
+     "to": "-"
+    },
+    {
+     "file": "server.js",
+     "line": 42,
+     "op": "rel-bound",
+     "from": ">",
+     "to": ">="
+    },
+    {
+     "file": "game.js",
+     "line": 31,
+     "op": "arith-flip",
+     "from": "+",
+     "to": "-"
+    }
+   ],
+   "kills_count": 27
+  },
+  "r2-battleship-sonnet": {
+   "prototype_killed_of_sites": [
+    33,
+    42
+   ],
+   "hosts_used": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "first_round_unguarded": null,
+   "mutation": {
+    "sites": 42,
+    "killed": 33,
+    "timeout": 1,
+    "port_refused": 2,
+    "port_refusals": 4,
+    "survived": 9,
+    "invalid": 0,
+    "unconfirmed": 0,
+    "not_run": 0,
+    "ratio": 0.7857,
+    "ceiling_hit": false,
+    "seconds": 179.5,
+    "baseline": {
+     "returncode": 0,
+     "seconds": 0.986,
+     "tests": 11,
+     "port_refusals": 0
+    },
+    "refuse_ports": [
+     3000
+    ]
+   },
+   "per_file": {
+    "game.js": {
+     "sites": 25,
+     "lines": 75,
+     "loaded_by_tests": true,
+     "killed": 21,
+     "timeout": 0,
+     "port_refusals": 0,
+     "survived": 4,
+     "invalid": 0,
+     "unconfirmed": 0,
+     "not_run": 0
+    },
+    "server.js": {
+     "sites": 17,
+     "lines": 131,
+     "loaded_by_tests": true,
+     "killed": 12,
+     "timeout": 1,
+     "port_refusals": 4,
+     "survived": 5,
+     "invalid": 0,
+     "unconfirmed": 0,
+     "not_run": 0
+    }
+   },
+   "uncovered": [
+    {
+     "file": "public/index.html",
+     "inline_script_lines": 76
+    }
+   ],
+   "kills_with_a_port_refusal": [
+    {
+     "file": "server.js",
+     "line": 124,
+     "op": "eq-flip",
+     "from": "===",
+     "to": "!==",
+     "timeout": false,
+     "port_refusals": 1,
+     "evidence": "\u2716 TC-5 /api/new and /api/fire play a whole game over HTTP"
+    },
+    {
+     "file": "server.js",
+     "line": 125,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&",
+     "timeout": false,
+     "port_refusals": 3,
+     "evidence": "\u2716 TC-8 server.js listens on PORT and defaults to 3000"
+    }
+   ],
+   "kills_that_timed_out": [
+    {
+     "file": "server.js",
+     "line": 38,
+     "op": "bool-flip",
+     "from": "false",
+     "to": "true",
+     "timeout": true,
+     "port_refusals": 0,
+     "evidence": "timed out after 10 s"
+    }
+   ],
+   "unconfirmed_mutants": [],
+   "survivors": [
+    {
+     "file": "game.js",
+     "line": 24,
+     "op": "rel-bound",
+     "from": "<",
+     "to": "<="
+    },
+    {
+     "file": "server.js",
+     "line": 41,
+     "op": "bool-flip",
+     "from": "true",
+     "to": "false"
+    },
+    {
+     "file": "game.js",
+     "line": 25,
+     "op": "arith-flip",
+     "from": "+",
+     "to": "-"
+    },
+    {
+     "file": "server.js",
+     "line": 46,
+     "op": "rel-bound",
+     "from": ">",
+     "to": ">="
+    },
+    {
+     "file": "game.js",
+     "line": 26,
+     "op": "arith-flip",
+     "from": "+",
+     "to": "-"
+    },
+    {
+     "file": "server.js",
+     "line": 56,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&"
+    },
+    {
+     "file": "server.js",
+     "line": 56,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&"
+    },
+    {
+     "file": "server.js",
+     "line": 73,
+     "op": "rel-bound",
+     "from": ">=",
+     "to": ">"
+    },
+    {
+     "file": "game.js",
+     "line": 61,
+     "op": "arith-flip",
+     "from": "+",
+     "to": "-"
+    }
+   ],
+   "kills_count": 33
+  },
+  "r3-battleship-sonnet": {
+   "prototype_killed_of_sites": [
+    20,
+    36
+   ],
+   "hosts_used": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "first_round_unguarded": null,
+   "mutation": {
+    "sites": 36,
+    "killed": 20,
+    "timeout": 0,
+    "port_refused": 1,
+    "port_refusals": 1,
+    "survived": 16,
+    "invalid": 0,
+    "unconfirmed": 0,
+    "not_run": 0,
+    "ratio": 0.5556,
+    "ceiling_hit": false,
+    "seconds": 20.5,
+    "baseline": {
+     "returncode": 0,
+     "seconds": 0.392,
+     "tests": 15,
+     "port_refusals": 0
+    },
+    "refuse_ports": [
+     3000
+    ]
+   },
+   "per_file": {
+    "lib/game.js": {
+     "sites": 19,
+     "lines": 74,
+     "loaded_by_tests": true,
+     "killed": 15,
+     "timeout": 0,
+     "port_refusals": 0,
+     "survived": 4,
+     "invalid": 0,
+     "unconfirmed": 0,
+     "not_run": 0
+    },
+    "server.js": {
+     "sites": 17,
+     "lines": 148,
+     "loaded_by_tests": true,
+     "killed": 5,
+     "timeout": 0,
+     "port_refusals": 1,
+     "survived": 12,
+     "invalid": 0,
+     "unconfirmed": 0,
+     "not_run": 0
+    }
+   },
+   "uncovered": [
+    {
+     "file": "public/index.html",
+     "inline_script_lines": 80
+    }
+   ],
+   "kills_with_a_port_refusal": [
+    {
+     "file": "server.js",
+     "line": 143,
+     "op": "eq-flip",
+     "from": "===",
+     "to": "!==",
+     "timeout": false,
+     "port_refusals": 1,
+     "evidence": "\u2716 test/server.test.js"
+    }
+   ],
+   "kills_that_timed_out": [],
+   "unconfirmed_mutants": [],
+   "survivors": [
+    {
+     "file": "lib/game.js",
+     "line": 22,
+     "op": "arith-flip",
+     "from": "+",
+     "to": "-"
+    },
+    {
+     "file": "server.js",
+     "line": 18,
+     "op": "logic-flip",
+     "from": "&&",
+     "to": "||"
+    },
+    {
+     "file": "lib/game.js",
+     "line": 31,
+     "op": "eq-flip",
+     "from": "===",
+     "to": "!=="
+    },
+    {
+     "file": "server.js",
+     "line": 18,
+     "op": "rel-bound",
+     "from": ">",
+     "to": ">="
+    },
+    {
+     "file": "server.js",
+     "line": 18,
+     "op": "bound-literal",
+     "from": "0",
+     "to": "1"
+    },
+    {
+     "file": "lib/game.js",
+     "line": 32,
+     "op": "arith-flip",
+     "from": "+",
+     "to": "-"
+    },
+    {
+     "file": "server.js",
+     "line": 18,
+     "op": "logic-flip",
+     "from": "&&",
+     "to": "||"
+    },
+    {
+     "file": "server.js",
+     "line": 18,
+     "op": "rel-bound",
+     "from": "<",
+     "to": "<="
+    },
+    {
+     "file": "lib/game.js",
+     "line": 33,
+     "op": "arith-flip",
+     "from": "+",
+     "to": "-"
+    },
+    {
+     "file": "server.js",
+     "line": 18,
+     "op": "bound-literal",
+     "from": "65536",
+     "to": "65537"
+    },
+    {
+     "file": "server.js",
+     "line": 37,
+     "op": "rel-bound",
+     "from": ">",
+     "to": ">="
+    },
+    {
+     "file": "server.js",
+     "line": 48,
+     "op": "rel-bound",
+     "from": ">",
+     "to": ">="
+    },
+    {
+     "file": "server.js",
+     "line": 49,
+     "op": "bool-flip",
+     "from": "true",
+     "to": "false"
+    },
+    {
+     "file": "server.js",
+     "line": 71,
+     "op": "rel-bound",
+     "from": ">=",
+     "to": ">"
+    },
+    {
+     "file": "server.js",
+     "line": 82,
+     "op": "eq-flip",
+     "from": "===",
+     "to": "!=="
+    },
+    {
+     "file": "server.js",
+     "line": 85,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&"
+    }
+   ],
+   "kills_count": 20
+  },
+  "r1-checkers-sonnet": {
+   "prototype_killed_of_sites": [
+    88,
+    108
+   ],
+   "hosts_used": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "first_round_unguarded": null,
+   "mutation": {
+    "sites": 108,
+    "killed": 88,
+    "timeout": 0,
+    "port_refused": 1,
+    "port_refusals": 2,
+    "survived": 20,
+    "invalid": 0,
+    "unconfirmed": 0,
+    "not_run": 0,
+    "ratio": 0.8148,
+    "ceiling_hit": false,
+    "seconds": 52.0,
+    "baseline": {
+     "returncode": 0,
+     "seconds": 0.247,
+     "tests": 15,
+     "port_refusals": 0
+    },
+    "refuse_ports": [
+     3000
+    ]
+   },
+   "per_file": {
+    "rules.js": {
+     "sites": 76,
+     "lines": 144,
+     "loaded_by_tests": true,
+     "killed": 65,
+     "timeout": 0,
+     "port_refusals": 0,
+     "survived": 11,
+     "invalid": 0,
+     "unconfirmed": 0,
+     "not_run": 0
+    },
+    "server.js": {
+     "sites": 32,
+     "lines": 91,
+     "loaded_by_tests": true,
+     "killed": 23,
+     "timeout": 0,
+     "port_refusals": 2,
+     "survived": 9,
+     "invalid": 0,
+     "unconfirmed": 0,
+     "not_run": 0
+    }
+   },
+   "uncovered": [
+    {
+     "file": "public/index.html",
+     "inline_script_lines": 57
+    }
+   ],
+   "kills_with_a_port_refusal": [
+    {
+     "file": "server.js",
+     "line": 87,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&",
+     "timeout": false,
+     "port_refusals": 2,
+     "evidence": "\u2716 TC-9 GET /api/new returns independent games with distinct ids"
+    }
+   ],
+   "kills_that_timed_out": [],
+   "unconfirmed_mutants": [],
+   "survivors": [
+    {
+     "file": "server.js",
+     "line": 30,
+     "op": "rel-bound",
+     "from": "<=",
+     "to": "<"
+    },
+    {
+     "file": "server.js",
+     "line": 33,
+     "op": "rel-bound",
+     "from": ">",
+     "to": ">="
+    },
+    {
+     "file": "server.js",
+     "line": 48,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&"
+    },
+    {
+     "file": "rules.js",
+     "line": 18,
+     "op": "rel-bound",
+     "from": "<",
+     "to": "<="
+    },
+    {
+     "file": "rules.js",
+     "line": 18,
+     "op": "logic-flip",
+     "from": "&&",
+     "to": "||"
+    },
+    {
+     "file": "rules.js",
+     "line": 18,
+     "op": "rel-bound",
+     "from": "<",
+     "to": "<="
+    },
+    {
+     "file": "server.js",
+     "line": 67,
+     "op": "bool-flip",
+     "from": "false",
+     "to": "true"
+    },
+    {
+     "file": "server.js",
+     "line": 71,
+     "op": "logic-flip",
+     "from": "&&",
+     "to": "||"
+    },
+    {
+     "file": "server.js",
+     "line": 75,
+     "op": "rel-bound",
+     "from": ">",
+     "to": ">="
+    },
+    {
+     "file": "server.js",
+     "line": 78,
+     "op": "logic-flip",
+     "from": "&&",
+     "to": "||"
+    },
+    {
+     "file": "server.js",
+     "line": 79,
+     "op": "bool-flip",
+     "from": "false",
+     "to": "true"
+    },
+    {
+     "file": "server.js",
+     "line": 81,
+     "op": "bool-flip",
+     "from": "false",
+     "to": "true"
+    },
+    {
+     "file": "rules.js",
+     "line": 66,
+     "op": "arith-flip",
+     "from": "+",
+     "to": "-"
+    },
+    {
+     "file": "rules.js",
+     "line": 75,
+     "op": "rel-bound",
+     "from": "<",
+     "to": "<="
+    },
+    {
+     "file": "rules.js",
+     "line": 99,
+     "op": "logic-flip",
+     "from": "&&",
+     "to": "||"
+    },
+    {
+     "file": "rules.js",
+     "line": 99,
+     "op": "logic-flip",
+     "from": "&&",
+     "to": "||"
+    },
+    {
+     "file": "rules.js",
+     "line": 109,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&"
+    },
+    {
+     "file": "rules.js",
+     "line": 117,
+     "op": "eq-flip",
+     "from": "!==",
+     "to": "==="
+    },
+    {
+     "file": "rules.js",
+     "line": 117,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&"
+    },
+    {
+     "file": "rules.js",
+     "line": 117,
+     "op": "eq-flip",
+     "from": "!==",
+     "to": "==="
+    }
+   ],
+   "kills_count": 88,
+   "acceptance": {
+    "observed": true,
+    "ids": [
+     "red-moves-first",
+     "illegal-keeps-turn",
+     "off-board-keeps-turn",
+     "legal-moves-alternate",
+     "red-jump-mandatory",
+     "black-jump-mandatory-and-removal"
+    ],
+    "passed": [
+     "red-moves-first",
+     "illegal-keeps-turn",
+     "off-board-keeps-turn",
+     "legal-moves-alternate",
+     "red-jump-mandatory",
+     "black-jump-mandatory-and-removal"
+    ],
+    "failed": []
+   }
+  },
+  "r3-checkers-sonnet": {
+   "prototype_killed_of_sites": [
+    78,
+    86
+   ],
+   "hosts_used": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "first_round_unguarded": null,
+   "mutation": {
+    "sites": 86,
+    "killed": 78,
+    "timeout": 1,
+    "port_refused": 2,
+    "port_refusals": 2,
+    "survived": 8,
+    "invalid": 0,
+    "unconfirmed": 0,
+    "not_run": 0,
+    "ratio": 0.907,
+    "ceiling_hit": false,
+    "seconds": 71.9,
+    "baseline": {
+     "returncode": 0,
+     "seconds": 0.31,
+     "tests": 32,
+     "port_refusals": 0
+    },
+    "refuse_ports": [
+     3000
+    ]
+   },
+   "per_file": {
+    "rules.js": {
+     "sites": 64,
+     "lines": 109,
+     "loaded_by_tests": true,
+     "killed": 61,
+     "timeout": 1,
+     "port_refusals": 0,
+     "survived": 3,
+     "invalid": 0,
+     "unconfirmed": 0,
+     "not_run": 0
+    },
+    "server.js": {
+     "sites": 22,
+     "lines": 100,
+     "loaded_by_tests": true,
+     "killed": 17,
+     "timeout": 0,
+     "port_refusals": 2,
+     "survived": 5,
+     "invalid": 0,
+     "unconfirmed": 0,
+     "not_run": 0
+    }
+   },
+   "uncovered": [
+    {
+     "file": "index.html",
+     "inline_script_lines": 80
+    }
+   ],
+   "kills_with_a_port_refusal": [
+    {
+     "file": "server.js",
+     "line": 95,
+     "op": "eq-flip",
+     "from": "===",
+     "to": "!==",
+     "timeout": false,
+     "port_refusals": 1,
+     "evidence": "\u2716 test/server.test.js"
+    },
+    {
+     "file": "server.js",
+     "line": 96,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&",
+     "timeout": false,
+     "port_refusals": 1,
+     "evidence": "\u2716 TC-1 node server.js listens on the PORT environment variable"
+    }
+   ],
+   "kills_that_timed_out": [
+    {
+     "file": "rules.js",
+     "line": 14,
+     "op": "rel-bound",
+     "from": "<",
+     "to": "<=",
+     "timeout": true,
+     "port_refusals": 0,
+     "evidence": "timed out after 10 s"
+    }
+   ],
+   "unconfirmed_mutants": [],
+   "survivors": [
+    {
+     "file": "server.js",
+     "line": 33,
+     "op": "rel-bound",
+     "from": ">",
+     "to": ">="
+    },
+    {
+     "file": "server.js",
+     "line": 51,
+     "op": "rel-bound",
+     "from": ">=",
+     "to": ">"
+    },
+    {
+     "file": "server.js",
+     "line": 69,
+     "op": "logic-flip",
+     "from": "||",
+     "to": "&&"
+    },
+    {
+     "file": "server.js",
+     "line": 82,
+     "op": "eq-flip",
+     "from": "===",
+     "to": "!=="
+    },
+    {
+     "file": "server.js",
+     "line": 84,
+     "op": "logic-flip",
+     "from": "&&",
+     "to": "||"
+    },
+    {
+     "file": "rules.js",
+     "line": 29,
+     "op": "rel-bound",
+     "from": "<",
+     "to": "<="
+    },
+    {
+     "file": "rules.js",
+     "line": 61,
+     "op": "rel-bound",
+     "from": "<",
+     "to": "<="
+    },
+    {
+     "file": "rules.js",
+     "line": 74,
+     "op": "bool-flip",
+     "from": "true",
+     "to": "false"
+    }
+   ],
+   "kills_count": 78,
+   "acceptance": {
+    "observed": true,
+    "ids": [
+     "red-moves-first",
+     "illegal-keeps-turn",
+     "off-board-keeps-turn",
+     "legal-moves-alternate",
+     "red-jump-mandatory",
+     "black-jump-mandatory-and-removal"
+    ],
+    "passed": [
+     "red-moves-first",
+     "illegal-keeps-turn",
+     "legal-moves-alternate",
+     "red-jump-mandatory",
+     "black-jump-mandatory-and-removal"
+    ],
+    "failed": [
+     {
+      "id": "off-board-keeps-turn",
+      "note": "past the last row: HTTP 400 {\"ok\": false, \"error\": \"invalid coordinates\"}; a negative column: HTTP 400 {\"ok\": false, \"error\": \"invalid coordinates\"}"
+     }
+    ]
+   }
+  },
+  "v1230-battleship-sonnet": {
+   "prototype_killed_of_sites": [
+    43,
+    58
+   ],
+   "hosts_used": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "first_round_unguarded": null,
+   "mutation": {
+    "observed": false,
+    "reason": "its tests bind a fixed port; not run: the unmutated copy's test run touched a declared port (3000) 1 time",
+    "baseline": {
+     "returncode": 0,
+     "seconds": 1.334,
+     "tests": 38,
+     "port_refusals": 1
+    }
+   }
+  },
+  "r2-checkers-sonnet": {
+   "prototype_killed_of_sites": [
+    61,
+    72
+   ],
+   "hosts_used": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "first_round_unguarded": null,
+   "mutation": {
+    "observed": false,
+    "reason": "its tests bind a fixed port; not run: the unmutated copy's test run touched a declared port (3000) 1 time",
+    "baseline": {
+     "returncode": 0,
+     "seconds": 0.526,
+     "tests": 46,
+     "port_refusals": 1
+    }
+   },
+   "acceptance": {
+    "observed": true,
+    "ids": [
+     "red-moves-first",
+     "illegal-keeps-turn",
+     "off-board-keeps-turn",
+     "legal-moves-alternate",
+     "red-jump-mandatory",
+     "black-jump-mandatory-and-removal"
+    ],
+    "passed": [
+     "red-moves-first",
+     "illegal-keeps-turn",
+     "off-board-keeps-turn",
+     "legal-moves-alternate",
+     "red-jump-mandatory",
+     "black-jump-mandatory-and-removal"
+    ],
+    "failed": []
+   }
+  },
+  "r2-battleship-grok-none": {
+   "prototype_killed_of_sites": [
+    85,
+    105
+   ],
+   "hosts_used": [
+    "grok",
+    "claude"
+   ],
+   "mixed_host": true,
+   "first_round_unguarded": null,
+   "mutation": {
+    "observed": false,
+    "reason": "its tests bind a fixed port; not run: the unmutated copy's test run touched a declared port (3000) 97 times",
+    "baseline": {
+     "returncode": 1,
+     "seconds": 4.509,
+     "tests": 35,
+     "port_refusals": 97
+    }
+   }
+  }
+ },
+ "r3_checkers_five_sweeps": {
+  "sweeps": [
+   {
+    "sites": 86,
+    "killed": 78,
+    "timeout": 1,
+    "port_refused": 2,
+    "unconfirmed": 0,
+    "survived": 8,
+    "ratio": 0.907,
+    "seconds": 71.9
+   },
+   {
+    "sites": 86,
+    "killed": 78,
+    "timeout": 1,
+    "port_refused": 2,
+    "unconfirmed": 0,
+    "survived": 8,
+    "ratio": 0.907,
+    "seconds": 72.2
+   },
+   {
+    "sites": 86,
+    "killed": 78,
+    "timeout": 1,
+    "port_refused": 2,
+    "unconfirmed": 0,
+    "survived": 8,
+    "ratio": 0.907,
+    "seconds": 72.2
+   },
+   {
+    "sites": 86,
+    "killed": 78,
+    "timeout": 1,
+    "port_refused": 2,
+    "unconfirmed": 0,
+    "survived": 8,
+    "ratio": 0.907,
+    "seconds": 72.2
+   },
+   {
+    "sites": 86,
+    "killed": 78,
+    "timeout": 1,
+    "port_refused": 2,
+    "unconfirmed": 0,
+    "survived": 8,
+    "ratio": 0.907,
+    "seconds": 77.1
+   }
+  ],
+  "survivors_identical_in_all_five": true,
+  "kills_identical_in_all_five": true,
+  "note": "Reviewer A saw 78/86 four times and 80/86 once on one copy (two extra kills that passed 3 of 3 alone). These five sweeps, run alone on an otherwise idle machine, were identical and none needed the confirmation (unconfirmed 0): the instability is real on a loaded machine and was not reproduced here, so the confirmation is untested against a live flake."
+ },
+ "battleship_held_out_probe_recomputed": {
+  "probe": "the design's scratch /private/tmp/f5-scratch/heldout_probe.py battleship, unchanged, on git archive copies, ephemeral ports",
+  "result": {
+   "r1-battleship-sonnet": {
+    "runnable_items": 8,
+    "passed": 8,
+    "not_run": [
+     "HB11-default-port (port 3000)"
+    ]
+   },
+   "r2-battleship-sonnet": {
+    "runnable_items": 8,
+    "passed": 8,
+    "not_run": [
+     "HB11-default-port (port 3000)"
+    ]
+   },
+   "r3-battleship-sonnet": {
+    "runnable_items": 8,
+    "passed": 8,
+    "not_run": [
+     "HB11-default-port (port 3000)"
+    ]
+   },
+   "v1230-battleship-sonnet": {
+    "runnable_items": 8,
+    "passed": 8,
+    "not_run": [
+     "HB11-default-port (port 3000)"
+    ]
+   },
+   "r2-battleship-grok-none": {
+    "runnable_items": 8,
+    "passed": 8,
+    "not_run": [
+     "HB11-default-port (port 3000)"
+    ]
+   }
+  },
+  "verdict": "5 of 5 deliveries pass every runnable item, r3 included: the set separates nothing, so it is not built",
+  "probe_file": "heldout_probe.py in this folder (the design's scratch, unchanged)"
+ },
+ "memory_writes_census": {
+  "files_read": 25,
+  "with_writes": {
+   "20261008/r3-checkers-sonnet": [
+    {
+     "tool": "Write",
+     "line": 599,
+     "file": "memory/feedback_no-broad-pkill.md"
+    },
+    {
+     "tool": "Write",
+     "line": 605,
+     "file": "memory/MEMORY.md"
+    }
+   ]
+  },
+  "without_writes": 24,
+  "how": "quality.memory_writes over every /Users/dadleet/e2e-runs/2026*/*/events.jsonl"
+ },
+ "example_block": {
+  "run": "20261008/r3-checkers-sonnet (its real events.jsonl and work/, hosts from its invocation.json); sweep 1 of 5",
+  "block": {
+   "observed": true,
+   "declared": [
+    "mutation",
+    "acceptance"
+   ],
+   "hosts_used": [
+    "claude"
+   ],
+   "mixed_host": false,
+   "delivered_files": 18,
+   "acceptance": {
+    "observed": true,
+    "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged); calibrated against test/fixtures/quality/reference_checkers.py",
+    "ids": [
+     "red-moves-first",
+     "illegal-keeps-turn",
+     "off-board-keeps-turn",
+     "legal-moves-alternate",
+     "red-jump-mandatory",
+     "black-jump-mandatory-and-removal"
+    ],
+    "passed": [
+     "red-moves-first",
+     "illegal-keeps-turn",
+     "legal-moves-alternate",
+     "red-jump-mandatory",
+     "black-jump-mandatory-and-removal"
+    ],
+    "checks": [
+     {
+      "id": "red-moves-first",
+      "source": "the request: 'Red starts on rows 0 to 2 and moves first' and 'An illegal move returns \"ok\": false and leaves the turn unchanged'",
+      "pass": true,
+      "note": "black first: {\"ok\": false, \"error\": \"it is red's turn\", \"game\": \"c4691aa4-554d-453d-a433-6a5252e96820\", \"turn\": \"red\", \"winner\": null"
+     },
+     {
+      "id": "illegal-keeps-turn",
+      "source": "the request: 'An illegal move returns \"ok\": false and leaves the turn unchanged' and POST /api/move 'returns JSON with \"ok\" true or false, \"turn\" set to \"red\" or \"black\", and \"winner\" null or the winning colour'",
+      "pass": true,
+      "note": "every board-legal illegal move refused with the turn kept"
+     },
+     {
+      "id": "off-board-keeps-turn",
+      "source": "the same two sentences, read for a target off the board or with a negative index; a reader could take that for a malformed request, which is why it is its own check",
+      "pass": false,
+      "note": "past the last row: HTTP 400 {\"ok\": false, \"error\": \"invalid coordinates\"}; a negative column: HTTP 400 {\"ok\": false, \"error\": \"invalid coordinates\"}"
+     },
+     {
+      "id": "legal-moves-alternate",
+      "source": "the request: 'a legal move switches the turn'",
+      "pass": true,
+      "note": "(ok, turn) after red, black, red: [(True, 'black'), (True, 'red'), (True, 'black')]"
+     },
+     {
+      "id": "red-jump-mandatory",
+      "source": "the request: 'a jump removes the jumped piece and is mandatory when available'",
+      "pass": true,
+      "note": "ordinary move with a jump available: {\"ok\": false, \"error\": \"illegal move\", \"game\": \"0dfa18ba-aced-4729-a3f6-08ad28c9; the jump: {\"ok\": true, \"game\": \"0dfa18ba-aced-4729-a3f6-08ad28c97448\", \"turn\": \"black\", \"w"
+     },
+     {
+      "id": "black-jump-mandatory-and-removal",
+      "source": "the request: 'a jump removes the jumped piece and is mandatory when available', read for black and for the square of the removed piece",
+      "pass": true,
+      "note": "black ordinary move: {\"ok\": false, \"error\": \"illegal move\", \"game\": \"48561173-fedf-4f48-a6d3-c2ce40ff; black recapture onto the removed piece's square: {\"ok\": true, \"game\": \"48561173-fedf-4f48-a6d3-c2ce40ff8570\", \"turn\": \"red\", \"win"
+     }
+    ]
+   },
+   "mutation": {
+    "observed": true,
+    "operator_id": "js-1",
+    "command": "node --test",
+    "source": "the request: the game rules live in a module the server uses and are covered by node:test tests that run with `node --test`; system/ holds the model's own browser and system checks, which `node --test` does not run",
+    "baseline": {
+     "returncode": 0,
+     "seconds": 0.31,
+     "tests": 32,
+     "port_refusals": 0
+    },
+    "refuse_ports": [
+     3000
+    ],
+    "sites": 86,
+    "killed": 78,
+    "timeout": 1,
+    "port_refused": 2,
+    "port_refusals": 2,
+    "survived": 8,
+    "invalid": 0,
+    "unconfirmed": 0,
+    "not_run": 0,
+    "not_run_reasons": {},
+    "ratio": 0.907,
+    "ceiling_hit": false,
+    "ceilings": {
+     "run_seconds": 10,
+     "phase_seconds": 600
+    },
+    "per_file": {
+     "rules.js": {
+      "sites": 64,
+      "lines": 109,
+      "loaded_by_tests": true,
+      "killed": 61,
+      "timeout": 1,
+      "port_refusals": 0,
+      "survived": 3,
+      "invalid": 0,
+      "unconfirmed": 0,
+      "not_run": 0
+     },
+     "server.js": {
+      "sites": 22,
+      "lines": 100,
+      "loaded_by_tests": true,
+      "killed": 17,
+      "timeout": 0,
+      "port_refusals": 2,
+      "survived": 5,
+      "invalid": 0,
+      "unconfirmed": 0,
+      "not_run": 0
+     }
+    },
+    "uncovered": [
+     {
+      "file": "index.html",
+      "inline_script_lines": 80
+     }
+    ],
+    "kills": [
+     {
+      "file": "rules.js",
+      "line": 9,
+      "op": "arith-flip",
+      "from": "-",
+      "to": "+",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-11 a red man reaching row 7 becomes a king"
+     },
+     {
+      "file": "server.js",
+      "line": 19,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 an unknown game returns ok false"
+     },
+     {
+      "file": "rules.js",
+      "line": 14,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<=",
+      "timeout": true,
+      "port_refusals": 0,
+      "evidence": "timed out after 10 s"
+     },
+     {
+      "file": "rules.js",
+      "line": 15,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<=",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 GET /api/new returns a new game with the initial position"
+     },
+     {
+      "file": "rules.js",
+      "line": 16,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 initial position has 12 red and 12 black on the specified squares"
+     },
+     {
+      "file": "server.js",
+      "line": 63,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-15 invalid JSON, an oversized body and an unknown path do not break the server"
+     },
+     {
+      "file": "rules.js",
+      "line": 16,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 initial position has 12 red and 12 black on the specified squares"
+     },
+     {
+      "file": "rules.js",
+      "line": 17,
+      "op": "rel-bound",
+      "from": "<=",
+      "to": "<",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 initial position has 12 red and 12 black on the specified squares"
+     },
+     {
+      "file": "server.js",
+      "line": 69,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a legal move returns ok true and switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 17,
+      "op": "bound-literal",
+      "from": "2",
+      "to": "3",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 initial position has 12 red and 12 black on the specified squares"
+     },
+     {
+      "file": "server.js",
+      "line": 69,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-15 invalid JSON, an oversized body and an unknown path do not break the server"
+     },
+     {
+      "file": "rules.js",
+      "line": 17,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 initial position has 12 red and 12 black on the specified squares"
+     },
+     {
+      "file": "server.js",
+      "line": 73,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a mandatory jump from the initial position removes the jumped piece"
+     },
+     {
+      "file": "rules.js",
+      "line": 18,
+      "op": "rel-bound",
+      "from": ">=",
+      "to": ">",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 initial position has 12 red and 12 black on the specified squares"
+     },
+     {
+      "file": "server.js",
+      "line": 73,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a mandatory jump from the initial position removes the jumped piece"
+     },
+     {
+      "file": "rules.js",
+      "line": 18,
+      "op": "bound-literal",
+      "from": "5",
+      "to": "6",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 initial position has 12 red and 12 black on the specified squares"
+     },
+     {
+      "file": "server.js",
+      "line": 79,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 node server.js listens on the PORT environment variable"
+     },
+     {
+      "file": "rules.js",
+      "line": 18,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 initial position has 12 red and 12 black on the specified squares"
+     },
+     {
+      "file": "server.js",
+      "line": 79,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 GET /api/new returns a new game with the initial position"
+     },
+     {
+      "file": "rules.js",
+      "line": 26,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 initial position has 12 red and 12 black on the specified squares"
+     },
+     {
+      "file": "server.js",
+      "line": 79,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-1 node server.js listens on the PORT environment variable"
+     },
+     {
+      "file": "rules.js",
+      "line": 26,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-4 initial position has 12 red and 12 black on the specified squares"
+     },
+     {
+      "file": "server.js",
+      "line": 82,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 GET /api/new returns a new game with the initial position"
+     },
+     {
+      "file": "rules.js",
+      "line": 29,
+      "op": "rel-bound",
+      "from": ">=",
+      "to": ">",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-11 a black man reaching row 0 becomes a king"
+     },
+     {
+      "file": "server.js",
+      "line": 82,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a legal move returns ok true and switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 29,
+      "op": "bound-literal",
+      "from": "0",
+      "to": "1",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-11 a black man reaching row 0 becomes a king"
+     },
+     {
+      "file": "server.js",
+      "line": 82,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 GET /api/new returns a new game with the initial position"
+     },
+     {
+      "file": "rules.js",
+      "line": 29,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-12 blocking the opponent wins"
+     },
+     {
+      "file": "server.js",
+      "line": 82,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-3 GET /api/new returns a new game with the initial position"
+     },
+     {
+      "file": "rules.js",
+      "line": 29,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<=",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 a king continues a chain backward after its first jump"
+     },
+     {
+      "file": "rules.js",
+      "line": 29,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-12 blocking the opponent wins"
+     },
+     {
+      "file": "server.js",
+      "line": 84,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a legal move returns ok true and switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 29,
+      "op": "rel-bound",
+      "from": ">=",
+      "to": ">",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 29,
+      "op": "bound-literal",
+      "from": "0",
+      "to": "1",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "server.js",
+      "line": 84,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-5 a legal move returns ok true and switches the turn"
+     },
+     {
+      "file": "rules.js",
+      "line": 29,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-12 blocking the opponent wins"
+     },
+     {
+      "file": "server.js",
+      "line": 95,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 1,
+      "evidence": "\u2716 test/server.test.js"
+     },
+     {
+      "file": "server.js",
+      "line": 96,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": false,
+      "port_refusals": 1,
+      "evidence": "\u2716 TC-1 node server.js listens on the PORT environment variable"
+     },
+     {
+      "file": "rules.js",
+      "line": 30,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 missing or malformed fields return ok false with 400"
+     },
+     {
+      "file": "rules.js",
+      "line": 30,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 30,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 missing or malformed fields return ok false with 400"
+     },
+     {
+      "file": "rules.js",
+      "line": 30,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 missing or malformed fields return ok false with 400"
+     },
+     {
+      "file": "rules.js",
+      "line": 30,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 missing or malformed fields return ok false with 400"
+     },
+     {
+      "file": "rules.js",
+      "line": 42,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 43,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 a jump removes the jumped piece"
+     },
+     {
+      "file": "rules.js",
+      "line": 46,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 empty source, opponent source, off-board, occupied and non-diagonal targets are rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 48,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 48,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 49,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 a jump removes the jumped piece"
+     },
+     {
+      "file": "rules.js",
+      "line": 50,
+      "op": "arith-flip",
+      "from": "+",
+      "to": "-",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 a jump removes the jumped piece"
+     },
+     {
+      "file": "rules.js",
+      "line": 51,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 jumping over an own piece or onto an occupied square is rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 60,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<=",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 empty source, opponent source, off-board, occupied and non-diagonal targets are rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 63,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 empty source, opponent source, off-board, occupied and non-diagonal targets are rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 63,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 64,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 82,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-12 moves after a win are rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 83,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 missing or malformed fields return ok false with 400"
+     },
+     {
+      "file": "rules.js",
+      "line": 83,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 empty source, opponent source, off-board, occupied and non-diagonal targets are rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 85,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 empty source, opponent source, off-board, occupied and non-diagonal targets are rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 86,
+      "op": "eq-flip",
+      "from": "!==",
+      "to": "===",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 86,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 wrong turn is rejected and leaves state unchanged"
+     },
+     {
+      "file": "rules.js",
+      "line": 88,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 88,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 empty source, opponent source, off-board, occupied and non-diagonal targets are rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 88,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 88,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 empty source, opponent source, off-board, occupied and non-diagonal targets are rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 88,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 88,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 empty source, opponent source, off-board, occupied and non-diagonal targets are rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 88,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 empty source, opponent source, off-board, occupied and non-diagonal targets are rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 90,
+      "op": "bool-flip",
+      "from": "false",
+      "to": "true",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-6 empty source, opponent source, off-board, occupied and non-diagonal targets are rejected"
+     },
+     {
+      "file": "rules.js",
+      "line": 96,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 96,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     },
+     {
+      "file": "rules.js",
+      "line": 97,
+      "op": "bool-flip",
+      "from": "true",
+      "to": "false",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-11 a red man reaching row 7 becomes a king"
+     },
+     {
+      "file": "rules.js",
+      "line": 99,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 a jump removes the jumped piece"
+     },
+     {
+      "file": "rules.js",
+      "line": 99,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 a jump removes the jumped piece"
+     },
+     {
+      "file": "rules.js",
+      "line": 99,
+      "op": "bool-flip",
+      "from": "true",
+      "to": "false",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-8 a jump removes the jumped piece"
+     },
+     {
+      "file": "rules.js",
+      "line": 101,
+      "op": "bool-flip",
+      "from": "true",
+      "to": "false",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-10 a double jump keeps the turn until the chain ends"
+     },
+     {
+      "file": "rules.js",
+      "line": 105,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!==",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a black man moves toward lower rows"
+     },
+     {
+      "file": "rules.js",
+      "line": 106,
+      "op": "bool-flip",
+      "from": "true",
+      "to": "false",
+      "timeout": false,
+      "port_refusals": 0,
+      "evidence": "\u2716 TC-7 a red man moves one square forward and the turn switches"
+     }
+    ],
+    "survivors": [
+     {
+      "file": "server.js",
+      "line": 33,
+      "op": "rel-bound",
+      "from": ">",
+      "to": ">="
+     },
+     {
+      "file": "server.js",
+      "line": 51,
+      "op": "rel-bound",
+      "from": ">=",
+      "to": ">"
+     },
+     {
+      "file": "server.js",
+      "line": 69,
+      "op": "logic-flip",
+      "from": "||",
+      "to": "&&"
+     },
+     {
+      "file": "server.js",
+      "line": 82,
+      "op": "eq-flip",
+      "from": "===",
+      "to": "!=="
+     },
+     {
+      "file": "server.js",
+      "line": 84,
+      "op": "logic-flip",
+      "from": "&&",
+      "to": "||"
+     },
+     {
+      "file": "rules.js",
+      "line": 29,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<="
+     },
+     {
+      "file": "rules.js",
+      "line": 61,
+      "op": "rel-bound",
+      "from": "<",
+      "to": "<="
+     },
+     {
+      "file": "rules.js",
+      "line": 74,
+      "op": "bool-flip",
+      "from": "true",
+      "to": "false"
+     }
+    ],
+    "unconfirmed_mutants": [],
+    "seconds": 71.9
+   },
+   "left_behind": {
+    "observed": true,
+    "reaped": [],
+    "survived": []
+   },
+   "memory_writes": [
+    {
+     "path": "/Users/dadleet/.claude/projects/-Users-dadleet-e2e-runs-20261008-r3-checkers-sonnet-work/memory/feedback_no-broad-pkill.md",
+     "tool": "Write",
+     "line": 599
+    },
+    {
+     "path": "/Users/dadleet/.claude/projects/-Users-dadleet-e2e-runs-20261008-r3-checkers-sonnet-work/memory/MEMORY.md",
+     "tool": "Write",
+     "line": 605
+    }
+   ],
+   "held_out_seen": 0,
+   "notes": [
+    "held_out_seen counts event lines that name a held-out script, the checks folder or E2E_CHECKS; 0 is not proof the model never read the script: the harness prints the path of checks/ in its own command line and resume prompt"
+   ],
+   "seconds": 72.2,
+   "_wall_seconds": 72.2
+  }
+ },
+ "mutants": "mutants.py and mutants-result.json in this folder: every mutant of the implementation, the tests that went red"
+}

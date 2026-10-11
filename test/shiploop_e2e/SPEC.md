@@ -63,12 +63,21 @@ executed correctly: the goal, the exit criteria, the rules that apply to that
 step (stated once), the callback and the recovery command. It does not rely on
 earlier conversation.
 
+**S-6 is a main tenet of ShipLoop (owner decision 2026-10-07).** Assume the previous stage's context is gone before the next stage
+runs. Each packet therefore restates, for its own stage, how the stage is meant to operate and how its result will be checked and
+reviewed, even when earlier packets said the same; repetition between packets is grounding, not waste. Only repetition inside one packet
+is waste, and "stated once" above means once per packet. A proposal to shorten, merge or move packet text or ledger records is judged by
+this test: a model holding only the next packet knows what to do, how it is checked and where the run stands. The evidence base: after
+each of the 5 compactions in the 2026-10-06 Grok run the model's first call was to re-read the current packet. A change that moves
+grounding out of the packet, into a file the packet merely names or into a record the model has to find, fails S-6 unless a
+clear-the-context probe at a stage boundary and inside a stage shows no redone work.
+
 **S-7 Packets are small where they are printed; detail lives in files.** The
 printed head is short: callback, goal, result contract, the path of the full
 packet, recovery and pause. The full packet and every reference are files the
 model opens by path. References are cited by path and section; the model reads
 only the section a step needs and never re-reads whole cards or repeats
-unchanged run rules. Large planning context is acceptable when it sits in a
+unchanged run rules inside one packet (S-6: across packets the repetition stays). Large planning context is acceptable when it sits in a
 file the packet names.
 
 **S-8 The engine is product- and technology-agnostic.** Scripts, stage prompts,
@@ -144,7 +153,7 @@ each loop that runs. In `none` a planning result is accepted without a review
 loop. What stands in for the loop is what S-9 can name: ShipLoop's gates at
 `complete` (cited files exist; the plan's assumption list; the step plan's
 commands, criteria, paths and dependency order; the knowledge home's required
-files, credential screen and requirement-ID retention); the structural,
+files, credential screen and requirement-ID and decision-ID retention); the structural,
 record-only `backchain-check`; at `test-author`, a run of the focused commands
 that must run a test (a counted test and every listed ID shown on exit 0, a
 failing test on a non-zero exit), so a command whose tests cannot load is refused where it
@@ -179,10 +188,61 @@ against 0 of 15 without it (Sonnet, three trials per cell). No run without the
 planning reviews exists, so the rate of defects that escape without them is
 unknown. Record: docs/shiploop-planning-review-plan-2026-10-05.md.
 
+**S-10 carve-out, owner decision 2026-10-10.**
+- **Anchor.** The owner's ruling that the caps should be "much higher, more like 7 and 11". It is not a clause this
+  serves. It bounds a stage's acceptance gate, not a loop, and says so.
+- **Three limits, each a constant that a test pins against every prose copy**
+  (`test/shiploop-stage-spec.test.py`):
+  1. **Refused runs.** At a stage whose `complete` reruns the recorded commands (the test loop stages and
+     `static-checks`), ShipLoop accepts `done` only after its own run of every listed command passes. After
+     `shiploop_test_loop.MAX_REFUSED_RUNS` (11) refused runs for one action, `done` is no longer accepted, and the
+     stage's remedy outcome is: `revise` back to the step plan, or `blocked` where the stage allows only that. A
+     run that could not run (a timeout, a command that cannot start, or one skipped on budget) never counts
+     toward the 11.
+  2. **Genuine fix attempts.** In the step exit criteria the model applies (the test-loop duty and the chain
+     step contract), the same check still failing after `shiploop_stage_spec.GENUINE_FIX_ATTEMPTS` (7) genuine fix
+     attempts ends the stage as `revise`. No script counts these attempts; it is the model's stopping rule, as
+     the step exit criteria were before.
+  3. **Keepalive release.** The keepalive hook lets one session's turn end after
+     `shiploop_keepalive.STUCK_CONTINUATIONS` (22, twice the refused-run cap) continuations with no accepted
+     result. This releases a turn only. Nothing is accepted or refused, and the run stays active and resumable.
+- **What is not capped.** None of the three caps a loop. The Until Loop that runs the iterations keeps its frozen
+  contract, its counted iterations and its stated exit and repeat conditions, with no iteration limit. An
+  iteration that keeps making progress is never cut short. The caps bound only how often a stage may submit a
+  candidate that ShipLoop's own rerun rejects, so a check that cannot pass as planned returns to the step plan
+  instead of being resubmitted indefinitely. The quality and Improve loops, and the Backchain child, are
+  unchanged.
+- **Basis.** Until 2026-10-10 the refused-run cap was 7, the fix-attempt cap 3 and the continuation release 14. The
+  2026-10-10 packet-concision review flagged them as possibly conflicting with this clause, and the owner chose
+  to keep them as gate bounds at the higher values. Record: docs/shiploop-packet-concision-2026-10-10.md
+  ("Open").
+
 **S-11 Knowledge is retained in the repository.** Planning knowledge (living
-spec, environment, test strategy, per-feature records) is committed to the
-product's knowledge home, and the product itself ends committed on the
-source branch, so the next run builds on it instead of rediscovering it.
+spec, environment, test strategy, architecture with its numbered decisions,
+per-feature records) is committed to the product's knowledge home, and the
+product itself ends committed on the source branch, so the next run builds on
+it instead of rediscovering it. The living spec and the architecture stay
+apart: the spec holds what the product must do and survives a change of stack;
+the architecture holds the stack, structure and decisions and survives a change
+of spec. Neither file may lose an ID an earlier committed version had
+(requirement `R-<n>`, decision `AD-<n>`): a requirement or decision that no
+longer holds moves under `Retired` or `Superseded` with its reason. ShipLoop
+refuses a drop in an uncommitted version (the stage's own, or a review's before
+it commits through `improve-commit`); a drop a review has already committed is
+not seen, for either file (deferred; trigger in
+docs/shiploop-architecture-file-journal-2026-10-10.md).
+A run's feature spec is its historical record once it is
+committed with the plan: at handoff ShipLoop checks that every requirement ID
+it names is in the living spec and, when the run's commits reach the user's
+branch (an in-place run or a fast-forward return), removes it in a commit of
+its own, so the history of that branch keeps the versions that were committed
+at a knowledge close (a squash merge drops them). After a working-tree return,
+or a return that recorded no change, the return made before the close did not
+put the run's commits on the branch, so the file stays; it also stays when the
+living spec lacks an ID it names or names no ID at all, when the file was never
+committed or has changes that are not committed, and when it is a symbolic
+link. `docs/shiploop/features/README.md` lists the feature folders; ShipLoop
+writes it from the tree, only inside a knowledge commit.
 
 **S-12 One implementation of each mechanism.** A mechanism (committing, loop
 contracts and starts, receipts, identity, privacy screens) has one code path
@@ -294,15 +354,24 @@ on quickly before the breadth of everything is checked.
 
 | Clause | Evidence the harness records (result.json, metrics.json, review) |
 |---|---|
-| S-1, S-2 | ShipLoop command failures and refusals; resumed sessions continue from `next`; no state edits outside ShipLoop verbs |
-| S-4, S-5 | host-cancelled tool calls; `model_glue` (model `git commit`/`add`, shell writes into ShipLoop-owned paths, hand-built loop contracts) |
-| S-6 | runs survive compaction and session resumes without losing their place |
-| S-7 | truncated outputs, peak context, compactions, packet head size |
-| S-9, S-10 | `script_verifications` (ShipLoop's own verify records), Improve children; a zero-test pass fails |
-| S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew) |
+| S-1, S-2 | ShipLoop command failures and refusals (`shiploop_failures`: a tool result with a line that begins a ShipLoop refusal prefix, or a nonzero exit of a command that names a ShipLoop verb; read on every host, from Claude's `tool_result` blocks too, where a refusal behind a pipe shows no exit); resumed sessions continue from `next`; no state edits outside ShipLoop verbs |
+| S-4, S-5 | host-cancelled tool calls; `model_glue` (model `git commit`/`add`, shell writes into ShipLoop-owned paths, hand-built loop contracts), counted per command on every host: a script the model wrote that wraps the CLI hides its ShipLoop calls from it, so Claude's `tool_use.scratch_scripts` lists those scripts and their runs beside it, and a Claude glue of 0 is a lower bound |
+| S-6 | runs survive compaction and session resumes without losing their place; `sessions.jsonl` (added 2026-10-09: every host launch and every session end, written by the harness) and `fresh_starts` in metrics.json: for every fresh session and every compaction, what the model did from the fresh start to the next accepted action (tool calls, seconds, its first grounding call, whether the recovery command was repeated as told, ShipLoop failures, files written again). Recorded beside the verdicts and never scored; see "A fresh context is recorded, not scored" |
+| S-7 | truncated outputs, peak context, compactions, packet head size; per-stage `context` (model calls, peak, share of the window; a stage with no events carries none, and a Grok `usage` event is a model call like a Claude message) and, for Claude, `tool_use.packets` (packet bytes on disk, printed heads and Reads, whole or ranged) |
+| S-7 (as a record), S-6 | `packets` in metrics.json only (added 2026-10-10; not in `result.json` or a baseline row): one entry per file in the run's `packets/` folder, `{action, stage, file_bytes, head_bytes}`. `action` is the file's name without `.md` (the second packet a bound Improve child gets for one action is its own entry, `<action>-improve`), `stage` the stage of the first `ShipLoop navigator |` line anywhere in the file (it is line 1 in some packets and sits below a delegation preamble in others), `file_bytes` its size on disk, `head_bytes` the bytes of the head ShipLoop first printed for it, as the host recorded the reply (Claude, Grok and Codex alike: the result of a call that does not name a packet file; the head runs from its `ShipLoop navigator |` line to its own closing line, with its `Full packet:` line naming the file and its callback and keepalive lines unshortened, and neither the command's own output before it nor what follows it, such as the host's `Shell cwd was reset` note or output the model chained, is the head). `head_bytes` is null where no reply of the run shows that head whole: a reply the model's pipe or script cut, the host cut, or that holds a pointer and a prefix leaves it null, never the cut size, and the one reason is in `packets_unmeasured`; the whole block is null where the run has no packets folder. A record, never a verdict or a threshold: it lets a change to what packets print be shown to have changed it, while S-6's clear-the-context probe, not these bytes, decides whether a shorter packet is allowed |
+| S-9, S-10 | `script_verifications` (ShipLoop's own verify records, with the count that ran red, which a test-red record or a probe passes by design), Improve children; a zero-test pass fails |
+| S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner's 30-minute planning rule is read from it, and it is the one place these figures are computed |
+| S-12 | `claude_code_version` in metrics.json and result.json (added 2026-10-08): the host CLI build the sessions ran on, so two runs of one prompt on different builds (the Sonnet pair of 2026-10-06 and 2026-10-07 ran on 2.1.291 and 2.1.292) are not read as a controlled comparison. Null where the host's events do not carry it |
+| S-12, "Concurrency must not change a verdict" | `environment` in result.json, and `environment` in every launch record (`invocation*.json`) (added 2026-10-09): the node, python3 and git versions on the harness's PATH (the first line of `--version`, read by `hosts.probe_version`, the one reader of a `--version` that the host build uses too), the CPU count and load at the start of each launch and at the end of the run, whether the host ran under a display hold (`keep_awake`, the one place that decides it), `hosts_used` and `mixed_host` (unknown, with the reason, when a launch record cannot be read) and one `environments` entry per launch read through `runrecord.launches` (host, model, effort, the `host_build` the launch record carries or null with `identity_unmeasured.host_build`, and the start record that launch kept or null with `environment_reason`), the browser capability record of a declared need (below), and `overlap`: the sibling output folders whose host events overlap this run's (first to last event of `timeline.jsonl`), with case, hosts and overlapped seconds, read at the end of the run. A record beside the verdicts: it never changes `pass`, the exit code or a baseline rule, and a field nothing measured is null with its reason, never 0 or a pass |
+| S-12 | identity of a run, null where unknown (added 2026-10-09): `plugin_sha256` (one digest of the installed plugin tree: file paths and bytes, `__pycache__`, `*.pyc` and symlinks left out, taken when the run is launched), `prompt_sha256` (the case prompt, before the sentence `--planning-review none` appends, with the run's own output folder masked), `host_build`, `started` and `ended` (the stream's first and last stamp), `planning_seconds` (the closed planning window, the engine's clock) and `local_head`, on every baseline row and in `result.json`. A null among them carries its reason in `identity_unmeasured`. Records, never verdicts; `run.py --baseline-report` reads them |
+| S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, tests grew); `product_at_stop` (added 2026-10-09; replaces `shiploop.worktree_checks`): for a run whose ShipLoop did not reach `done`, the case checks run against ShipLoop's unreturned worktree, with the engine's status and stage, each check's return code and whether it timed out, and counts. Information only: checks graded in the worktree stay dropped as a verdict (a run that never delivered must not pass), so it never touches `checks`, `committed`, `pass` or the exit code. Absent for a run that passed; `ran: false` with its reason where there was nothing to run. A feature spec the run removed is not a missing file: `knowledge_facts` and the follow-on retention checks read the living spec and the files the prior repository tracks, never a feature spec. The Run Review exporter lists a removed spec as a kept `history-only` row of the return plan (the knowledge follow-up keeps it); that needs no code change |
+| S-11 (what a run leaves for the next), S-5 | `commits` in metrics.json only (added 2026-10-10): the commits made during the run in the product repository (every ref; after the head a follow-on or seeded run started from, all of a fresh run's), counted by who made them: `improve` (named by ShipLoop's own `improve-commit` reply in the host's tool results, because the Improve card does not fix a message shape; so a lower bound: an Improve commit whose reply the host's events do not hold, cut by the model's pipe or made where the host records no reply, is counted under `other`), `script` (ShipLoop's other commits: knowledge, the spec retire commit (`docs(shiploop): retire <feature> spec: checked its requirement IDs against the living spec`), empty baseline, leftovers, work-item and chain merge commits, by their ShipLoop-owned subject or ShipLoop's own reply) and `other` (the rest, the model's own commits). The classes sum to the commits counted. Each class counts `with_lessons` (a lessons section as `shiploop_lessons.lessons` reads it, the one reader ShipLoop's `improve-commit` gate also reads with, so the harness and the gate cannot disagree about what counts); `improve` also counts `cited` (a `Learned-from` line, as `shiploop_lessons.citations` reads it, whose token is a commit ID that resolves to a commit in the repository) and `cited_earlier_run` (a cited commit that predates the run). Presence only: the text of a section is never judged, so `Key learnings: none` counts. Null, with the reason in `commits_unmeasured`, where the repository, the starting head or the host's events cannot be read. Record-only, no threshold; a later change to what ShipLoop commits or prints is compared with the saved runs' counts, never with cost or wall time |
+| S-14, and a blocked result's honesty is a model judgement S-9 excludes as evidence | `outcome_class` (added 2026-10-09): PASS, FAILED, BLOCKED, STOPPED or null (unknown, with `outcome_basis`), a pure function of `termination` (which now also carries the blocked detail the engine recorded: `engine_blocked_by`, `engine_awaiting_kind`, `engine_awaiting_no_default`) and `pass`. BLOCKED says the engine accepted a blocked result and what it named, never that the block was warranted; a paused engine, which awaits resume as a blocked one does, is BLOCKED with no `blocked_by`; a halted engine, terminal and unfinished, is FAILED: the engine's `halt` control is terminal and takes a reason, and in an unattended run the model, not an operator, issues it; no recorded run has been halted (the 11 recorded results hold done, blocked and active engines only), so this is a definition and not an observation. STOPPED is an ending the harness set: a requested stop, a signal, the deadline, a spent resume budget, or a host session that ended on the cap the harness gave it (`--max-turns`, `--max-budget-usd`: `error_max_turns`, `error_max_budget_usd`, Grok's `max_turns`), read from the session's recorded stop; any other host ending with the engine unfinished is FAILED. Which baseline rows are comparable is the baseline code's own rule, not this record's: `outcome_class` is in result.json only and no baseline rule reads it |
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
-| S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered |
+| S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered; a requested stop (`<output>/stop`, added 2026-10-08) ends the host and is recorded as `stopped`, and never answers a blocked or awaiting run |
 | S-15 | `narrative`: milestone narratives ShipLoop emitted for the model to show, how many the model showed (heading present) and showed verbatim (every line), the stages whose narrative it skipped, and the share of accepted step results that carry a headline. Scored beside reliability, not a verdict, until a style has a baseline |
+| S-1, S-4, S-5, S-6, S-9, S-10 (as evidence, never a verdict) | `fidelity` in metrics.json only (added 2026-10-09; not in result.json or a baseline row, like `planning`): the evidence class of each accepted action against the check its stage declares (script, loop, file, note, sentence, skipped, with the records behind it), ShipLoop's verify records read as JSON (a focused or regression row whose counts are null is unmeasured, never a pass), the model's edits of script-owned files and its name-pattern kills and `git commit`/`add` commands as listed facts with event numbers, each ShipLoop refusal with whether the same first line came back, and the engine's end state. Heuristic rows are lists to confirm, not counts to trust: no hit is not proof and a hit can be quoted text, and they say so. Every part fails open and an input it cannot read is `unmeasured` with the reason; the paths in the block are relative to the run folder (`<run>`) and the home folder (`~`), so a block names no machine |
+| S-9 (oracle strength), S-11 | `quality` in result.json (added 2026-10-09), taken last and only from a finished, committed delivery, and in no baseline row: a mutation ratio of the delivered tests (JS text operators on a copy under `<output>/quality`, never on `work/`; recorded with its operator-catalog id, per-file site counts, whether the tests load each file, the caught mutants confirmed by a second run, the timeouts, the declared-port refusals and the page script no operator reaches), held-out acceptance for a case that declares it (Checkers only), `held_out_seen` (host events that name a held-out check; null where the events cannot be read), the Claude memory writes the events show, and `hosts_used` / `mixed_host` from the launch records. Recorded beside the verdicts, never a verdict and never a threshold; a measure that could not be taken is `{observed: false, reason}`, never 0, and two ratios are compared only when their operator-catalog ids are equal |
 
 Verdicts (invoked, plugin, process, shiploop, committed, checks) must all pass.
 Reliability (sessions, cancellations, failures) and cost (turns, dollars, per
@@ -326,12 +395,58 @@ E2E runs are long, so the loop spends its waiting time in parallel.
   its follow-ons) concurrently, up to `--max-parallel` (default 3); a
   follow-on always waits for its predecessor in the same chain. Separate
   suites or cases started by hand may also run at once, each in its own
-  output folder.
+  output folder. This is for finding failures sooner; a pair whose figures
+  are compared is the exception stated in the bullet "Runs compared on wall
+  time or per-call cost run one after the other".
 - Concurrency must not change a verdict. Concurrent runs are quiet (no
   interleaved live view), share no files, and pass the same checks. A
   failure seen only in a parallel run (for example two products' own tests
   binding the same fixed port, or a host rate limit) is rerun alone
   (`--serial`) before it is attributed to ShipLoop.
+- **Runs compared on wall time or per-call cost run one after the other**
+  (amended 2026-10-08; anchor "Concurrency must not change a verdict"). A
+  before/after pair, or a host or model comparison, is started the second
+  after the first has ended: `--serial` for a suite, or launch the second
+  once the first has ended. Overlap is for runs whose point is concurrency.
+  The suite default (`--max-parallel 3`) stays, because a suite's job is to
+  find failures; its figures are not a timing comparison. Basis: the two
+  round-2 Sonnet runs (r2-battleship-sonnet, r2-checkers-sonnet) were started
+  within 0.1 s of each other (first `timeline.jsonl` stamps), shared loopback
+  and CPU, and one model ran `pkill -f "node server.js"`, which matches any
+  run's server by its name. Known limit: a baseline row carries no overlap field, so a
+  later comparison cannot exclude an overlapped run. Amended 2026-10-09 (anchor
+  "Concurrency must not change a verdict"): two records now say what
+  overlapped, both read only, and neither is a verdict or excludes a run.
+  (1) A run's result.json records `environment.overlap`, read at the end of the
+  run from the first and last `timeline.jsonl` stamp of this run and of each
+  sibling output folder in the same parent folder. `timeline.jsonl` holds host
+  events only, so the span runs from the first to the last host event: it counts
+  a pause between sessions as overlap, and it misses the setup before the first
+  event (the browser probe included) and the case checks, the product-at-stop
+  run and the reap after the last (34.6 s and 37.4 s on the r1 and r3 Grok runs,
+  by the review's measurement). A sibling in another parent folder or with no
+  timeline yet is not seen, and one whose timeline cannot be read is named in
+  `siblings_unreadable`. The seconds are therefore neither an upper nor a lower
+  bound: they say which neighbours' host events overlapped this run's. The record
+  lists case, hosts, overlapped seconds and the sibling's start relative to this
+  run's, because a count taken when the run starts misses an overlap that begins
+  later: of the 9 round runs of 2026-10-08 all 9 overlapped another run, and 3 of
+  them saw the overlap begin more than a second after their own start (a
+  Checkers run launched 280 s and 763 s in). (2) A baseline row written from this
+  date carries `started` and `ended` (epoch seconds of the first and last stamp
+  of its stream), and `run.py --baseline-report` counts, per cell, how many rows
+  overlapped another recorded run's span (`overlapped_by_span`). That count is
+  neither a floor nor a ceiling either: it misses a run that left no record and a
+  row from before the span existed ("unknown"), and it can include a resumed
+  run's pause. Both read a span with one reader (`metrics.span`: finite stamps
+  only, and a stream whose first stamp is after its last has none, so it is named
+  unreadable or counted unknown) and decide overlap by one interval rule
+  (`metrics.spans_overlap`: spans that only touch do not overlap, an instant
+  inside the other span does). Nothing is excluded, because 4 of the 5 recorded Battleship Sonnet
+  runs and all 3 Checkers runs of the 2026-10-08 loop overlapped a sibling. This
+  does not close the known limit above: the baseline row still carries no
+  overlap field and no rule excludes an overlapped run, so a comparison cannot
+  rule one out from the row alone. This is a discipline, not a guarantee.
 - Agents do not replace evidence: an agent's analysis is a lead, and a
   claim it makes is checked against the event log or a script before it
   drives a change (Change admission).
@@ -406,6 +521,477 @@ stands at the commit under test.
 - Run unattended (S-14): the host and every check get closed standard input and
   a timeout; a case prompt never needs a person, and a check never waits for
   input.
+- **A resume names the CLI the run itself uses** (amended 2026-10-08; anchor S-6,
+  a packet stands alone and so does the prompt that continues a run, and S-4,
+  the model copies a printed command). The prompt that continues a run after a
+  stop, a kill or an interrupt carries `python3 "<cli>" next --run-dir "<dir>"`
+  with the ShipLoop CLI of the plugin the run started on, whatever host or source
+  built it. There is no bare-command fallback; a resume whose CLI file is gone is
+  refused before a host starts. Basis: a Claude run built from a checkout was
+  given a bare `shiploop next` (the marketplace route lost 13 turns to the same
+  prompt, fixed in 7c1f1014); the command the harness prints for continuing a run
+  carries the harness flags too, because a resume that falls back to the default
+  `--timeout` can outlive the task that launched it. It is printed only where
+  those flags are the run's own: not by a regrade (`--grade-only`), whose flags
+  are the grader's, and not for a run that wrote no ShipLoop state, which
+  `--resume-run` refuses.
+- **A resume continues the run's own driver** (amended 2026-10-09; anchor S-12, a
+  baseline compares only runs of the same host, model and effort, so a run's
+  identity is not a default; and S-6, the prompt that continues a run names what
+  the run uses). `--resume-run` takes host, model and effort from the run's last
+  launch record (`runrecord.launches`), so omitting `--host` continues on the
+  host that last ran it (for a mixed-host run, the last launch's host), and it
+  prints that it did; a model or effort that differs from the recorded one is
+  printed too. A `--host` that names another host is refused, before any host
+  starts and with both hosts named, unless `--allow-host-change` says the change
+  is deliberate; a run that two hosts worked on is then a mixed-host run, named
+  so by `environment.hosts_used` and `mixed_host`, read through the one reader
+  (`runrecord`) every part of the harness uses. `--model` and `--effort` given
+  explicitly still win, and the recorded ones apply only when the host is
+  unchanged. The needs a launch declared carry to the next launch of the run (a
+  resume declares the needs its last launch recorded, plus its own). A regrade
+  restates the identity of the same last launch (host, model, effort, plugin
+  verdict and versions) whatever the flags say, so a regraded mixed-host run is
+  named by its last launch and `mixed_host` says it was not one host's; before
+  2026-10-09 it restated result.json's host, which for r2-battleship-grok-none
+  was Grok beside a Claude-finished run. `resumed_run.from_host` and `from_model`
+  now name the last launch's host and model (they named the first launch's;
+  results written before keep the old meaning). Basis: the round-2 Grok run
+  (r2-battleship-grok-none) was resumed without `--host`, the harness defaulted
+  to Claude, and Claude Sonnet did visits 31 to 52 under a Grok label
+  (`invocation-resume-claude-1791508003.json`, and `metrics.claude_code_version`
+  2.1.294 in a result that says host grok); it is the only run of the nine whose
+  launch records name two hosts. What the flag guards: r2's mistake was an
+  omitted `--host`, which taking the host from the record now prevents on its
+  own; the flag guards against a mistaken explicit `--host` (a stale copied
+  command), which no recorded run shows, and keeps a deliberate cross-host
+  finish explicit and recorded.
+- **A record of the machine, of the product at stop or of the ending is not a
+  verdict** (amended 2026-10-09; anchors S-12 and "Concurrency must not change a
+  verdict" for `environment`, S-11 for `product_at_stop`, S-14 for
+  `outcome_class`; a blocked result's honesty is a model judgement S-9 excludes
+  as evidence). None of them changes `pass`, the exit code, a verdict, a baseline
+  rule or the control flow, and each fails open: a part that cannot be read is
+  recorded as not observed with its reason, and the run goes on. A blocked run is
+  never resumed or answered because a class names it (S-14). The record names
+  what was measured and its limit: `overlap` is the first to the last host event
+  of this run and of the siblings in the same parent folder, neither an upper nor
+  a lower bound (see Parallel work); the host CLI build is read from the launch
+  record and never probed here, so it is null, with `identity_unmeasured.host_build`, for a
+  launch that recorded none and for every Claude launch (Claude's build is
+  `metrics.claude_code_version`, from its init event); `outcome_class` is in
+  result.json only and no baseline rule reads it. A browser capability record exists only where a
+  case (`needs` in cases.json) or `--need browser` declares one, and a custom
+  prompt (`--prompt`) declares none by itself: say so with `--need browser`.
+  The probe runs on the harness side against a stand-in page, over `file:` and
+  then over `http://127.0.0.1` (one after the other, so each browser is measured
+  beside no other probe browser), and its evidence is the page title read from the
+  browser's output, not the browser's exit (the audit of this design measured it on
+  2026-10-09: 16 of 16 bounded launches of Chrome 154.0.8037.99 printed the title
+  in 0.36 to 0.47 s; 3 of the 16 exited before the audit's 12 to 20 s ceiling and
+  the other 13 were still running there and were killed, so their exit time is
+  unknown; this change has not run a real browser). It stops only the process
+  group of the browser it started, after the title and a short grace, and stops
+  it at once when the harness is told to end. Of its three times, the 20 s wait
+  for a launch that prints nothing and the 2 s wait for the stopped group to
+  empty are ceilings, not tuning values; the 1 s grace is a definition (a
+  browser still running after it `lingered`); all three are recorded, and the
+  worst case before a host starts is about 43 s (two targets that never print).
+  Nothing reads the record: an overlay that
+  turned a failed probe into an environment verdict was rejected, because no
+  recorded run can be suspect (the three Grok runs that motivated it were case
+  `custom`, so nothing declared a browser for them) and the audit's probe of
+  build 154.0.8037.99 passed on this machine on 2026-10-09; whether a probe would
+  have passed on the build that v1230 and r1 used (before the Chrome update of
+  2026-10-08 14:11, build unrecorded) is unknown. It waits for a real-browser calibration (10 launches from a Terminal
+  tab and 10 from a Desktop task) journaled before any use is considered.
+- **Every ending leaves its records** (amended 2026-10-08; anchor S-14, a run
+  is judged from files, and S-9). A run the harness ends (a deadline, a
+  requested stop, a spent resume budget) writes metrics.json, result.json and the
+  Run Review export through the same path as a finished run, and a run whose
+  harness was killed can be given them afterwards by `--resume-run <dir>
+  --grade-only`, which starts no host. A requested stop (the file
+  `<output>/stop`) ends the host, is never relaunched and is recorded as
+  `stopped` with no process verdict (the host did not fail) however the request
+  is found: it killed a running session, or it was found as a session ended on
+  its own, or between two sessions (the last session keeps its own status in
+  `process.sessions`); it exits non-zero,
+  because the run is not finished and a suite reads exit 0 as a pass. A stop
+  never answers a blocked or awaiting run (S-14). Basis: 3 of the 11 harness
+  runs from 2026-10-04 to 2026-10-07 (v1200-battleship-luna,
+  v1210-battleship-grok-medium, v1210-battleship-luna-xhigh) were stopped by hand
+  or by the task and have no metrics.json, result.json or export; the 8 that
+  ended on their own have all three. A stop that names a stage (`--stop-at`) is
+  not part of this amendment: it stays deferred until planning probes are routine.
+  A SIGTERM to the harness (a task runner's stop, `kill`) is a requested stop
+  too, and so is a SIGHUP unless the launch ignored it (`nohup` keeps a
+  detached run alive, as the README allows): the harness ends every live host
+  at once, writes the same records and records `stopped` with the reason
+  `terminated by SIGTERM`; a Ctrl-C on a suite is handled as a SIGTERM, and on
+  a single case ends the hosts as the harness exits. This
+  covers `run.py` started as a program, not `iterate.py`, which calls it in its
+  own process. A SIGKILL gives the harness no chance to run anything:
+  `--grade-only` is the remedy, and an orphan host of a SIGKILLed harness is
+  not looked for (open). Basis: the r2 Grok run's log ends `exit 241` (-15 mod
+  256, a SIGTERM) 855 s in; its host, started in a session of its own, was not
+  signalled and went on writing ledger files for about 28 minutes while no
+  events, metrics or result.json were being written. Which signal a task
+  runner sends at its time limit is unknown (open), so the handler is proven
+  for SIGTERM only.
+- **A baseline row is a finished run's** (amended 2026-10-08; anchor S-12, one
+  meaning for a baseline). No row is written for a resumed or seeded run, for a
+  run whose engine is still active when the harness ends (a deadline, a stop, a
+  spent resume budget), or for a run whose host the harness killed, by the
+  deadline or by a stop, before ShipLoop wrote any state (process status
+  `timeout` or `stopped`, engine status `unknown`): its turns, cost and stages
+  are a fragment, and the last row of a driver is what the next run is compared
+  with. A host that ends on its own, even with no engine state, is a finished
+  run and keeps its row, since its own ending is what the row records. Basis: the
+  existing `hang` fake with `--timeout 3` appended a row with process status
+  `timeout` and engine status `unknown`, which `scan_baseline` then offered as the
+  last comparable row (the first form of this rule covered only an active engine
+  and let that row through; corrected the same day).
+  Amended 2026-10-09 (anchor S-12 and the owner rule that unmeasured is
+  unknown): a row is still written for every run that ends with ShipLoop no
+  longer active, a blocked or halted one included, but it is a record and not a
+  basis. A row whose engine did not reach `done`, or whose `shiploop` verdict is
+  false, is never the row another run is compared with and never part of a
+  sample; and a run that itself did not reach `done` is compared with nothing and
+  says so, because its turns, cost and stages stop at a block. A run that two
+  hosts worked on (`runrecord.mixed_host`) is counted in no measure of any cell
+  (the report lists it, with its class, under the cell of the host its result
+  names). A run the harness ended (a deadline or a stop killed its host, or its
+  engine is still active) wrote no row and is classed "ended by the harness". A
+  regrade (`versions.regraded`) restates a finished run and is not a resume; a
+  real resume (`earlier_terminations` not empty, or more than one launch record)
+  is not counted. Basis: r1-battleship-grok-none (2026-10-08) was itself blocked
+  and printed `turns 503 -> 301, cost $14.1673 -> $8.7455` against the 2026-10-07
+  Grok row, which was blocked at system-test (`verdicts.shiploop` false), as if
+  cost had fallen; and `--baseline-report` over the 22 saved folders must not
+  read the finished runs that were only regraded afterwards (for example
+  v1230-battleship-sonnet, r1-battleship-sonnet, r1-checkers-sonnet and both
+  v1190 hello runs) as resumes, which the rule "`resumed_run` is set" would do.
+- **A comparison names its sample** (added 2026-10-09; anchor S-12, one meaning
+  for a baseline, and S-9, the harness records and a person judges). A line that
+  compares a run with earlier rows says which cell it draws on (case, source,
+  host, model, effort, `planning_review` mode, and for a case with no fixed
+  prompt (`custom`) the run's prompt with its own output folder masked out), how
+  many rows that is, on how many builds (the digest of the installed plugin
+  tree, `plugin_sha256`, because the version string does not identify a build:
+  the two Battleship Sonnet rows of 2026-10-06 and 2026-10-07 both say plugin
+  1.22.0 and ShipLoop 0.54.0 and have different trees, and a cost difference of
+  $6.54 against $9.65 was explained between two uncontrolled builds) and on
+  which host builds. `host_build` is the build of the run's first launch: for
+  Claude the build its init events name; for Grok and Codex the first line of
+  the CLI's `--version`, probed once when that launch started and written on
+  that launch's record (a later launch records its own probe on its own record;
+  the run's result keeps the first launch's). It is null for every launch made
+  before the probe existed and is never probed afterwards, because today's build
+  stamped on a past run would be a made-up fact. A null identity field carries
+  its reason in `identity_unmeasured` (launch predates the field, probe failed:
+  not found, non-zero exit, silent or hung, an unreadable plugin file, no stamps,
+  planning window still open), so a bare null is never all there is. The line
+  states facts: the plugin tree is the same or different, the host build is the
+  same or changed, the cell has n rows on k builds. It makes no claim that a run
+  is within, above or below its history and sets no threshold: for exchangeable
+  runs with nothing changed and no ties, a new run falls outside the range of the
+  earlier n with probability exactly 2/(n+1) (2 times in 4 at n = 3), and with ties
+  (turns are integers) at most that, so such a claim
+  supports nothing until a sample size is justified by the owner. A mixed-host
+  run, a run that did not reach `done`, a run the harness ended, a resume and a
+  seeded run are listed in the report with their class and counted in no measure
+  of the cell. A cost or turns figure the harness itself calls a lower bound (a
+  session that may never have reported) stays marked as one wherever it is
+  summarised: the printed report, the `baseline vs` line, the follow-on line, the
+  progress line and the baseline report. A count of overlapping runs from recorded
+  spans is a count and not a bound: it misses a run that left no record or a row
+  from before the span existed ("unknown"), and it can include a resumed run's
+  pause (a span runs from the first to the last stamp, and r2-battleship-grok-none
+  has a 32-minute gap). On the saved runs every one of the 15 overlaps of a counted
+  run was a real one (checked against the active intervals of the timelines, split
+  at gaps over 10 minutes). One predicate (`row_matches`, behind `matching_rows`)
+  decides whether a row is a basis for a run, and the live line and the report both
+  use it. The report differs on purpose in two ways, named here: it takes host,
+  model, effort, `planning_review` mode and prompt hash from the run's own folder
+  for a row that predates them (every field it supplied is listed in `recomputed`;
+  the live rule never does, so such a row stays no basis for a live comparison);
+  and a row with no prompt hash of a named case sits in the driver's only cell, or
+  in a cell of its own when the driver has several prompts, because the live rule
+  would match it with any of them and the report cannot say which. Transitional
+  break, named: of the 23 committed rows, 15 name no host, model or effort and were
+  never a basis; 6 (v1200-hello-sonnet, v1220-battleship-sonnet,
+  v1230-battleship-sonnet, r1-checkers-sonnet, r3-battleship-sonnet,
+  r3-checkers-sonnet) name a driver, carry no prompt hash and are cases with a fixed
+  prompt, so they keep comparing with a new run of the same driver (the prompt key
+  applies to a named case only when both the run and the row carry one); the two
+  Grok `none` rows (v1220-battleship-grok-medium-none and the blocked
+  v1230-battleship-grok-none) are case `custom`, where the key always applies, so
+  they match no new run until a row with the hash exists. The promotion bullet
+  above ("no worse than the style's baseline") is not edited: giving it a number is
+  the owner's decision.
+- **A run leaves nothing listening** (amended 2026-10-08; anchor S-11, a
+  lesson a contaminated run commits is retained as knowledge, and "Concurrency
+  must not change a verdict"). When a host session ends, and once after the
+  case checks, the harness stops every TCP listener of its own user whose
+  working directory or command line lies under that case's output folder, and
+  records what it stopped, or could not stop, as `left_behind` in result.json
+  (an optional key: where the process table could not be read the record says
+  `observed: false` and why, and never reads as none). It is a record and not a
+  verdict, and a regrade (`--grade-only`) reaps nothing, since a live host may
+  be running. A launch, and `--preflight-only`, is refused while a listener sits
+  under another case's output folder whose harness is not alive (liveness is a
+  held lock on `<output>/.harness-lock`, which the kernel drops on any death, so
+  parallel runs are not refused); the refusal has no override and names the
+  process, because a leaked process is stopped by pid. A `--resume-run` of a
+  case whose harness is running (its lock is held) is refused too; a regrade
+  is not, since it starts and stops nothing. That a finished case
+  folder served by hand blocks every later launch the same way is a choice: a
+  printed warning with a recorded `stale_listeners_at_start` was weighed and not
+  taken, because the round-2 contamination was a launch that went ahead.
+  Basis: pid 63973, the
+  `node server.js` of the r1 Checkers run's model, parent pid 1, bound `*:3457`
+  from 10:49 local on 2026-10-08 (that run exited rc 0, so no kill ran, and the
+  model's Bash call has a process group of its own, which the harness's
+  group kill never reaches); both r2 runs chose `PORT=3457`, both met
+  `EADDRINUSE`, and the Checkers run committed a false lesson about a
+  "foreign" server to its returned repository (r2-checkers-sonnet
+  `docs/shiploop/environment.md`). Limits: non-listening leftovers, UDP and
+  unix-socket servers, and a server whose working directory and command line are
+  both outside the folder are not reaped; a pair of concurrent runs still
+  shares loopback (see Parallel work).
+- **A fidelity block is a record, never a verdict** (amended 2026-10-09; anchor S-9, "a check that ran nothing is not a pass", and S-1, S-4, S-5
+  and S-6, the clauses its rows are evidence about; the S-15 rule that a measure is scored beside reliability until a style has a baseline).
+  Basis: rounds 1 to 3 of the bounded improvement loop spent 17 hand-mined lens reports on counts the run's own records hold (which stages
+  rest on a script-run record, how many verify rows ran a test, which refusals came back unchanged, the two `sed -i` edits of
+  `return-plan.md` in the round-1 Sonnet runs, the `pkill -f "node server.js"` commands that stopped sibling servers). `metrics.json` therefore
+  carries a `fidelity` block (`test/shiploop_e2e/fidelity.py`, built once per run or regrade by `run._main`), and these rules bound it:
+  1. It changes no verdict, exit code, baseline row, comparison or run, it is not shown to the model, and it starts no process and sends nothing to a
+     model. It is not copied into `result.json`, whose explicit subset is the same as for `planning`.
+  2. Unmeasured is unknown. A part whose input is absent, whose engine records are of another layout (an older stage table, a packet layout
+     without `-improve.md` files) or whose event stream holds no tool call (a regrade of a run whose stream is gone) is null with its reason in the
+     block's `unmeasured` map, never 0 and never a pass. A focused or regression row of a verify record whose `counts` are null is unmeasured, not
+     a pass (S-9): such a row does not show that a test ran (the v1220 Sonnet run has 34 of 34 such rows and the v1220 Grok run 30 of 30). The same
+     holds for a figure nothing measured: `accepted_ran` is null when no verify row carries the key (an engine that does not record it), `zero_ran` is
+     null for a suite with no counted row, and `repeated` is null when no refusal could be given a stage. The release-verify record is shown with its
+     own `passed` and is never worded as a pass: the engine writes what it observed before it decides. Two readers of the verify records exist (the
+     regex `metrics.verifications`, which baselines use, and the JSON reader); a block built from a folder where they disagree names both values in
+     `unmeasured["validation.readers"]`.
+  3. A heuristic part (script-owned edits, name-pattern kills, model commits, refusals read from tool results) is a list of facts for a reviewer to
+     confirm: no hit is not proof, and a hit can be a quoted string that read as a command, so the list is neither a lower nor an upper bound. Known
+     misses, each pinned by a test so it is not forgotten: an edit of a script-owned file by interpreter code (the round-1 `python3 - <<EOF ...
+     open(p, "w")` rewrite of `return-plan.md`), a shell `apply_patch` or `git apply`, a kill by numeric pid (a model's own job and a sibling's
+     process look alike), a relative path after `cd` for any file but the three workspace files that are matched by name (`return-plan.md`,
+     `return-receipt.md`, `workspace.md`), and a ShipLoop verb a model's wrapper script hides from the command (the refusal is still found from the
+     result text, with the verb `unknown`). The README lists the rest (a kill by port, `install`, `truncate`, `cp -t`, `find -exec` and `xargs`
+     writes, a redirect written without a space). The owned set the edit detector reads is anchored to the run directory and the Improve and
+     Until Loop directories, so a product file named `start.json` or `packet.json` is not listed. `model_glue` stays frozen so baselines compare, and
+     its write reason is narrower than the edit list (it does not read `sed -i`, `perl -i` or the workspace names, and it reads `mkdir`). It also does
+     not read inside a Codex `zsh -lc "..."` string, so a Codex glue count is not comparable with the fidelity lists: it misses a command at the
+     first position of the wrapper (shown on a constructed string) and, on the one recorded 1.21.0 run, it read three lines of a heredoc's prose as
+     commits (events 731, 776 and 779). Only the fidelity detectors unwrap such a string.
+  4. There is no pass or fail table. No row of the block is a clause verdict until a style has a baseline for it and a later dated amendment says
+     which rows are verdicts. An earlier design that scored eight clauses was set aside because S-10 as written would have failed 2 of the 11
+     saved Claude and Grok runs (a work item's first carry-forward has no Improve child by design), S-9 would have passed null counts, S-4
+     would have passed beside wrapper scripts, and S-15 says narratives are not a verdict.
+  5. What no script checks stays with a reviewer, and the README names it: whether one call carries one step (S-2), whether the cards agree with the
+     scripts (S-3), packet size (S-7), technology-agnostic wording (S-8), one implementation of each mechanism (S-12) and generality (S-13), and also
+     the truth of a model's sentence, the strength of a test's oracle, and whether a text is clear. The `file` class is satisfied by citing any
+     file, so it is a reading aid and never a target.
+  The one measure of the main tenet in action (the first call after a Grok compaction) belongs to the clear-context group, as `fresh_starts`, and
+  is not built here. Non-regression: only keys are added (`fidelity` in `metrics.json`, and a `tools` argument to `metrics.collect`, an `event` argument to
+  `ToolLog.call` and `ToolLog.result`, an optional `limit` to `failure_line`, and the new `ToolLog.sequence`, `ToolLog.failure_events` and `metrics.target_paths`); `shiploop_failures`, `model_glue`, `script_verifications`, the planning
+  block and every baseline row keep their shape, and S-1 through S-15 are not weakened because nothing here gates a run.
+- **A fresh context is recorded, not scored** (amended 2026-10-09; anchor S-6, the main tenet: "a clear-the-context
+  probe at a stage boundary and inside a stage" is the admission test for moving grounding out of a packet, and no run
+  ever made one on purpose). Phase 1 of the audited safer alternative: it records what a fresh context did and builds no
+  trigger and no kill. The harness writes `<output>/sessions.jsonl`, append-only: a `start` row before each host launch
+  (`kind` `first`, `fresh` or `continued`, `reason`, `events_line`, `t`, `told`, the CLI and run directory the resume
+  prompt named, stored as values because the Claude host passes its prompt in `-p` and keeps no prompt file, and `engine`, the
+  ledger as the session inherits it) and an `end`
+  row after it (end time, last events line, status, and the engine revision and last accepted action read from the ledger
+  at that moment). The host's own events cannot give these boundaries: Grok repeats `available_commands` (the 2026-10-08
+  r3 run has 237, so its `unreported_sessions` read 237). `metrics.json` gains a passive `fresh_starts` list: one block for
+  every `fresh` start (a `--resume-run`, the session after an `--interrupt-at`) and every compaction (Grok's
+  `auto_compact_completed` event; a Codex compaction from its rollouts; no Claude compaction is detected, because no
+  recorded Claude stream shows one), each over the events from the fresh start to
+  the tool call that got the next accepted action accepted. The action is the first one the ledger accepted after the
+  start (the start row's `engine.accepted` names it exactly; without it, the first one stamped at or after the start's
+  second). The call is the last `complete` or `improve-complete` that names it, did not fail, began before the second of
+  its accept stamp ended and returned at or after the stamp. The stamp is whole-second truncated, so a cut at the stamp
+  loses the call and a cut a second later keeps the next one (both seconds are recorded), and an Improve park's parent
+  `complete` returns long before the accept and is not the call. A window the records cannot place this way is
+  `measured: false` with its reason and is never extended to a later action: the action was accepted by something that
+  left no event (an orphan host, a script the window does not see), only a call that parked it was seen, or, in a run
+  with no `sessions.jsonl`, another host session began or ended inside the window. A `continued` session does not cut a
+  window (it keeps the context); the next `fresh` one does. A run with no `sessions.jsonl` lists only its
+  compactions, and `fresh_starts_unmeasured` says `not recorded` (a sibling key: the top-level `unmeasured` map is for counters). The same
+  key says `partial` where the first recorded session is not the run's first, and names a host whose compactions are not
+  detected (Claude's, a Codex run without rollouts), so an empty list is never read as a measured none.
+  *What it tests.* The production recovery path: the resume prompt, which names the `next` command (the rule above), plus
+  the packet that command prints. It is not S-6's "a model holding only the next packet", and a compaction carries no
+  recovery command at all. The files of the old session stay on disk and the harness reaps its servers, which a real
+  `/clear` would not; Claude's auto-memory and the user's global instructions load into both sessions.
+  *Lower bounds and unknowns.* `rewrote` (a path a file-edit tool wrote both in the same stage before the fresh start and
+  after it) is a lower bound whose scope reads "none seen by file-edit tools": the tool log sees write, edit, replace and
+  create tools only, and Claude writes most files by shell. Failures in the window are a lower bound too (a wrapper
+  script written in an earlier session is not known to the window). A figure the records cannot show is null with its
+  reason; an unknown is never a pass and never a zero.
+  *No verdict.* The engine's own records cannot show redone work: S-1 and the navigator refuse a stale or replayed action,
+  so such a check cannot fail on a live run, while the r3 fresh session spent its 164 s reading five product files and
+  running the test command three times. If a later phase adds such a check it is named `continuity`, it is necessary
+  and not sufficient for S-6, it never reads a null as a pass, and S-6's "shows no redone work" stays a reader's
+  judgement over the recorded blocks until a redo measure is settled (after three live probes). Nothing here names a
+  pass, adds a verdict, a threshold or a baseline key.
+  *The recorded accidental probes are not clean samples.* The r3 Grok session was resumed after its old session went
+  silent for 126 s at an unfinished auto-compaction; the r2 Claude fresh start follows a 1933 s gap that holds stages
+  accepted by an orphan Grok host which wrote no events; the four Luna xhigh resumes mistyped the run directory in two
+  of their first `next` calls. They reproduce as fixtures (r2 Claude start: 6 calls, 21.8 s to the submitting call, accept
+  stamp 22.7 s; r3 Grok: 23 calls, 163.2 s to the `complete` call, stamp 164.0 s; Luna xhigh: of 4 first `next` calls 2
+  failed with exit 2, 1 was exact and 1 differed only by `/./`), and they are not used to set expectations.
+  *Non-regression.* Additive keys and one additive file: the baseline row, every verdict and S-6's own text are unchanged,
+  and `result.json` gains no key. A fresh context gets no new gate. `ToolLog` is fed through one method for the whole-run
+  reading and the windowed one (S-12). The stage rows change in two ways, both corrections, and `result.json` carries the
+  stage rows too (it copies `metrics.stages`), so it changes with them: a stage with no events no longer carries a zero-call
+  `context`, and a Grok model call is counted in a stage's `context.calls` (a mixed-host run showed `calls: 0` beside a real
+  peak; r2's `result.json` carries such a zero context).
+  *Dispositions.* `--clear-at`, its kill logic, an `accepted_files` hash compare, the extra snapshot fields and a redo
+  measure are not built. The README and LEARNINGS deferral of a stage-named trigger stands: phase 1 does not reverse it,
+  and the documented path is an external watcher that creates `<output>/stop` when `state.md` shows the target boundary,
+  then `--resume-run`. Phase 2 (`--clear-at`) is built only if the first live probes show that the stop file's overshoot
+  (the watcher's 0.5 s poll plus the harness's 2 s one) or the two-invocation procedure is inadequate. Engine movement between the kill and the
+  fresh session is read from the revisions the killed session's `end` row, the fresh session's `start` row and its first
+  `next` result carry (`after_kill.moved`), never from an invented wait. *Evidence.* test/shiploop-e2e-reorientation.test.py, over compact extracts of the saved runs named
+  above (test/fixtures/reorientation/).
+- **A planning_review mode is an option of a named case** (amended 2026-10-09; anchor
+  S-13, a case's specifics stay in the case catalog, and this SPEC's rule that a baseline
+  compares a run only with its own driver and case). `--planning-review stage|none` works
+  with `--case` as it did inside a `--prompt`. `none` appends the run option to the case's
+  prompt, with the absolute path of the plugin's Improve card as `--improve-skill`, which the
+  S-10 carve-out of 2026-10-05 requires for that mode, and the card is looked for as soon as
+  the plugin directory is known, before any host CLI runs. `stage` is the engine's default:
+  it appends nothing, so a `stage` run has the prompt of a run without the option.
+  `invocation.json` records `planning_review` and `improve_skill` (null when the option was
+  not given); the mode a baseline row compares by stays the one `state.md` records. A
+  resume names the run's own value or none. Basis: the Grok `none` runs of 2026-10-06 and
+  2026-10-07 (baseline rows 2026-10-06T18:17 and 2026-10-07T10:17) and rounds 2 and 3 were
+  launched with `--prompt` and `--check`, so their case is `custom` and their style null:
+  they compare with any other custom run, and no measure a case declares can reach them. A
+  regrade cannot give such a saved run a mutation or an acceptance block either: its
+  `invocation.json` still says `custom`.
+- **Delivered quality is recorded, never judged** (amended 2026-10-09; anchor S-9, whose
+  known limit is that the strength of the delivered tests is model-judged: the 15 Battleship
+  tests of r3 passed three hand-made page mutants, and 8 of 17 hand-made mutants survived
+  there; also "Concurrency must not change a verdict", and S-14 for the stop). After the
+  host and the case checks, the harness measures the product the run returned, in this
+  order and within these limits:
+  - **Gate.** Only a delivery that is finished and returned is measured: `shiploop` and
+    `committed` pass, the engine is not active, no stop was requested and the harness was
+    not told to end. Otherwise the block is `{observed: false, reason}` (r3-battleship-grok-none
+    is active with no tracked file). The measures run under the case lock the harness already
+    holds and never take another (a second non-blocking lock in one process fails by
+    design); a regrade runs them too, and records `observed: false` when another harness
+    holds the case. A regrade that cannot measure keeps the earlier observed block and
+    records its own reason beside it (`quality_regrade_skipped`), so it never replaces a
+    measurement with a gap.
+  - **Order.** The phase runs last. result.json (without `quality`), metrics.json, the Run
+    Review export and the baseline row are written before it; the phase then adds its block
+    to result.json and nothing else. It can add minutes after the host ends and a task
+    launcher's limit is near 30 minutes: a kill in the phase must not lose any record that
+    exists today. The baseline row carries no `quality`, so nothing waits for the phase.
+  - **Processes.** The copy lives under `<output>/quality`. Every child (a test run, a
+    syntax check, the product's server) starts in a group of its own, is registered with the
+    harness's live groups so SIGTERM and exit end it, and runs under a preload that refuses
+    the case's declared fixed ports (below). When a child's leader exits the harness ends
+    the whole group before it reaps the leader, because a process a test run left behind
+    shares the group and an unreaped leader still pins its id; a hung leader is ended the
+    same way. A group is signalled only while its leader is alive and leads it, or has
+    exited and is not yet reaped, never after the leader was reaped (the harness's one guarded
+    group kill, `listeners.end_group`, since the 2026-10-09 integration). A requested stop (a
+    signal or `<output>/stop`) is checked before every run and ends the phase; listeners are
+    stopped under `<output>/quality` only, also in a regrade, which reaps nothing else. The
+    time limits are ceilings and not tuning values: a test run that reaches the first
+    (10 s, the limit the prototype sweeps used beside suites of 0.23 to 1.27 s) is counted
+    as a hang, a caught mutant counted also as a `timeout`, so changing it changes results;
+    the second (the whole phase) leaves the mutants it did not reach as `not_run` and sets
+    `ceiling_hit`. Mutants are taken round-robin across files so that a ceiling hit leaves a
+    sample of every file.
+  - **Fixed ports.** A delivered product defaults to a port its prompt names (3000), and a
+    mutant of the line that reads the environment, or of the guard that keeps a server from
+    starting under test, listens on it whatever `PORT` says. The phase therefore never lets
+    a child bind or connect to a port the case declares (`quality.refuse_ports` in
+    `cases.json`): a Node preload in the JS catalog makes the call fail as an address in
+    use or a refused connection, and counts it (`port_refusals`). A delivery whose own
+    unmutated tests touch a declared port is `observed: false` ("its tests bind a fixed
+    port; not run") and nothing of it runs further. A mutant that is caught with a refusal
+    counted keeps that marker (`port_refused`), and its kill record shows the count. Without
+    this, a mutant could answer a sibling case's or a sibling model's `curl` on that port,
+    and a held port read as a caught mutant. Recording which declared ports are busy before
+    a launch, and refusing a launch when one is bound, is not built here: the record belongs
+    to the environment and overlap record of group G4, and refusing or serialising is an
+    owner decision (SPEC, Parallel work, is unchanged).
+  - **Confirmation.** A failing run is run once more before a mutant counts as caught. A
+    mutant that failed once and then passed is `unconfirmed`: neither caught nor survived,
+    out of the ratio, both outcomes recorded. Five sweeps of one saved delivery gave 78 of
+    86 four times and 80 of 86 once, with the two extra kills passing three of three when
+    run alone: a single failing run is not a measurement on a loaded machine. Each caught
+    mutant records the first failing line of its run.
+  - **Comparability.** A ratio belongs to one operator catalog (`operator_id`) and is
+    compared only with a ratio of the same id. It is neither an upper nor a lower bound of
+    anything: equivalent mutants that survive lower it, and hangs, a port collision or
+    load-induced failures counted as caught raise it, which is why timeouts, port refusals
+    and unconfirmed mutants are separate counts. A file with no sign of being loaded by
+    the tests is reported as such (`loaded_by_tests: false`), because all its sites survive;
+    the signs are the baseline run's coverage record and a confirmed, non-timeout caught
+    mutant of the file, so false is a lower bound of what ran (a server the tests stop with a
+    signal writes no coverage) and true is a sign, not a proof. The saved deliveries keep
+    the page's JavaScript in an HTML file or in a string of `server.js`, which no operator
+    reaches; the block names the HTML files with inline scripts and their line counts
+    (`uncovered`) beside the lines of JavaScript it mutated, and a layout that moves page
+    code into a `.js` file changes the ratio for a reason that is not quality. A delivery in
+    a language with no operator catalog reports `observed: false`, never 0.
+  - **Held-out acceptance** (Checkers only; the Battleship set passed 5 of 5 deliveries and
+    separated nothing) is written by hand from the case's prompt, lives only in
+    `cases.json` and `checks/`, and runs inside the harness process, so no check text or id
+    reaches a harness argv, a prompt or a file under `work/`. A model on the same machine
+    reads argv: the r3 Checkers model printed the Grok harness's argv with `pgrep` (events
+    550 and 570). `held_out_seen` counts the host events that name a held-out script, the
+    checks folder, `shiploop_e2e/cases.json` or `E2E_CHECKS`, and is null, never 0, where
+    the events cannot be read. A count of 0 says no event names them, not that the model
+    never read the script: the harness prints the repository path of `checks/` in its own
+    command line and resume prompt. Each check is calibrated against a hermetic reference
+    server with one defect switch before it is admitted.
+  - **Hosts.** Attribution (`hosts_used`, `mixed_host`) is `runrecord.hosts_used` and
+    `runrecord.mixed_host` of the run's launch records, never `--host` and never a second
+    computation: r2-battleship-grok-none was started by Grok and finished by Claude. A run
+    with no launch records has `hosts_used: null` and says why.
+  - **Claude memory.** The writes a Claude session made under `~/.claude/projects/*/memory`
+    are computed from the run's events (a `Write`, `Edit` or `MultiEdit` call), so a
+    regrade reproduces them from the run record and not from a profile the owner can prune.
+    The list covers Claude's tool calls only: a run that other hosts also worked on says so
+    in `notes`. Nothing is deleted and no environment variable changes a host: a run's
+    behaviour is unchanged.
+
+  Non-regression: `quality` is an optional key of result.json and is in no baseline row;
+  `scan_baseline`, `stage_diff_lines` and every verdict ignore it; no host argv, environment
+  or profile changes. Tool knowledge (the operators, how a test runner reports its count,
+  which files a run loaded, the port-refusing preload) sits in one catalog keyed by
+  extension (S-8, S-12), product knowledge in `cases.json` and `checks/`, and the engine's
+  one test-count reader is reused, not copied. Dispositions of the design audit of
+  2026-10-09: not built are the port lease and port serialisation (an owner decision), the
+  record of busy declared ports and the overlap record (group G4's environment record is
+  their home), `CLAUDE_CODE_DISABLE_AUTO_MEMORY` (a behaviour change of every Claude run: an
+  owner decision) and the argv exec scrub (classed document-only by the round-3 synthesis;
+  a named case carries no check text in its argv, and a custom `--prompt` and `--check` run
+  still does, as do Claude's and Codex's prompts, which stay on their hosts' argv because
+  standard input stays closed, S-14; abbreviated options such as `--chec` would also have
+  bypassed a scrub); the name-pattern kill count belongs to the fidelity record; the UI
+  observation waits until a browser can be clicked through a debugging connection; the
+  Battleship acceptance set is dropped. Basis: the prototype ratios (r3 Battleship 0.56
+  against 0.74 to 0.82 for the other Battleship deliveries, Checkers 0.81 to 0.91) were one
+  sweep each by other code with the same operators, two of them (v1230, r2-battleship-grok-none,
+  a mixed-host run) never recomputed here, and are read as "r3 is the lowest of the
+  Battleship deliveries compared, consistent with the hand finding, not separable from
+  run-to-run spread", never as a ranking.
 - Start from an empty directory, or for a follow-on case, from a clean copy of
   an earlier run's checkout. The harness leaves no files of its own behind.
 - Case products are disposable probes. The repository a run builds (and any

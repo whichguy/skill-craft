@@ -1,0 +1,8 @@
+{
+  "case": "battleship",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": null,
+  "follow_on": null,
+  "seeded": null
+}

@@ -1,0 +1,22 @@
+{
+ "pass": true,
+ "host": "claude",
+ "process": {
+  "status": "exited",
+  "returncode": 0
+ },
+ "termination": {
+  "process_status": "exited",
+  "returncode": 0,
+  "sessions": 1,
+  "resumes": 0,
+  "session_stops": [
+   "success"
+  ],
+  "resume_stop": "host is not resumable",
+  "engine_status": "done",
+  "engine_stage": "done",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": null
+ }
+}

@@ -305,6 +305,17 @@ existing `SHIPLOOP.md` knowledge index. Neither link is a second specification.
 Keep these files in the product repository, outside disposable run/workspace
 state, and include intended durable changes in the product return. No new
 requirements database, schema, graph stage, or exhaustive legacy rewrite is needed.
+ShipLoop checks and retires a run's feature spec only against `docs/shiploop/spec.md`
+(see [Repository knowledge home](#repository-knowledge-home)): when that file names no
+requirement ID, because the requirements live in a team document it links, the IDs
+cannot be compared and the feature spec stays.
+
+The stack, the structure and the decisions behind them have one home too:
+**`docs/shiploop/architecture.md`**. It records how the product is built; the living
+spec records what it must do, so each survives a change of the other and neither
+restates the other. A choice about structure or technology is never a requirement.
+Decisions are numbered `AD-<n>`, distinct from the spec's `R-<n>` and from any
+numbering of product decisions a spec uses.
 
 ### Record intent, not a description of today's code
 
@@ -327,7 +338,8 @@ agent declaring its own suggestion accepted.
 
 Reasonable in-scope design choices need not block implementation, but label
 inferred behavior and chosen defaults as design decisions with their rationale,
-not as explicit user requirements. A later run must not promote those choices
+not as explicit user requirements (a choice about structure or technology is an
+`AD-<n>` decision in `architecture.md`). A later run must not promote those choices
 into binding conditions merely because an earlier agent wrote them down.
 
 ### Read and reconcile on every invocation
@@ -458,7 +470,8 @@ knowledge and building only the context warranted by the incoming request.
 
 Keep a compact connection between the original requested runtime, consumer
 entrypoint, material dependencies, and the actual verification route in the
-existing discovery/environment/decision notes. Label user requirements,
+existing discovery and environment notes and the `AD-<n>` decisions of
+`docs/shiploop/architecture.md`. Label user requirements,
 verified runtime contracts, observed practices, and assumptions or agent design
 choices distinctly, with short source locators. A local-only scope can defer
 hosting without relaxing the requested runtime. If a preview supplies a route,
@@ -478,10 +491,12 @@ inventory where a short entrypoint description is sufficient.
 `handoff` reconciles them with actual final outcomes and verifies referenced
 paths. Keep stable, useful knowledge in existing **repository-owned** Markdown
 documents outside disposable run storage. Prefer the project's documentation
-conventions; create `environment.md` or a decision file only when no suitable
-home exists. Retain provenance to the run note/commit, observed date or version,
-rationale, scope and revalidation conditions where they matter. Preserve a
-superseded decision's rationale and link its replacement.
+conventions; create `environment.md` only when no suitable home exists, and
+record decisions in `docs/shiploop/architecture.md`, which links any ADR or
+architecture document the repository already has. Retain provenance to the run
+note/commit, observed date or version, rationale, scope and revalidation
+conditions where they matter. Preserve a superseded decision's rationale and link
+its replacement.
 
 Keep `SHIPLOOP.md` short: links to those maintained documents, important current
 decisions/limitations, and relevant historical run/report locators with their
@@ -506,13 +521,17 @@ planning, and later runs inherit it.
 | `docs/shiploop/spec.md` | The living product spec: every accepted requirement with a stable ID (`R-<n>`), a `Retired` section with reasons |
 | `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each |
 | `docs/shiploop/test-strategy.md` | Harnesses, suites, the commands that own them, the test-ID convention |
-| `docs/shiploop/features/<slug>/` | This run's record: `spec.md` (IDs added, modified, retired), `plan.md`, `test-spec.md`, `system-tests.md`, `release-plan.md`, `outcome.md` |
+| `docs/shiploop/architecture.md` | How the product is built, apart from what it must do: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the decisions as stable IDs (`AD-<n>`: choice, why, alternatives, status) with a `Superseded` section. Runtime versions and working commands stay in `environment.md`. It records names and shapes (a credential's alias and mechanism), never secret values or code that assigns them, because the credential screen reads this file too. It links the repository's own architecture or ADR documents instead of copying them |
+| `docs/shiploop/features/<slug>/` | This run's record: `spec.md` (IDs added, modified, retired; checked against the living spec and removed at handoff when the run's commits reach your branch), `plan.md`, `test-spec.md`, `system-tests.md`, `release-plan.md`, `outcome.md` |
+| `docs/shiploop/features/README.md` | ShipLoop's list of the feature folders and the commands that find a requirement ID in them; written from the tree inside a knowledge commit, never by hand (a hand edit is replaced; a file at that path that is not ShipLoop's is left alone) |
 
 Each packet names the home and the files its stage keeps up to date. At four
 closes (`prepare`, each `test-spec`, `release-plan`, `release-verify`) ShipLoop
 refuses `done` until that close's files exist, refuses lines that look like
-credentials, refuses a living spec that no longer mentions an earlier committed
-requirement ID, and then commits exactly `docs/shiploop/` and `SHIPLOOP.md`
+credentials, refuses a living spec or architecture whose uncommitted version no
+longer mentions an earlier committed requirement (`R-<n>`) or decision (`AD-<n>`)
+ID (the base is the last commit, so a drop a review already committed through
+`improve-commit` is not seen), and then commits exactly `docs/shiploop/` and `SHIPLOOP.md`
 (`docs(shiploop): record <feature> knowledge at <stage>`). After any other accepted
 stage that changed `docs/shiploop/` or `SHIPLOOP.md`, ShipLoop applies the same credential and ID
 checks (refusing that stage's `done` on a failure) and commits it
@@ -527,6 +546,32 @@ protocol to import: discovery re-verifies recorded environment facts cheaply
 instead of rediscovering them, spec starts from the living spec, and release
 planning starts from the recorded commands.
 
+**The feature spec is retired at handoff.** The run's `features/<slug>/spec.md` is its
+historical record once it is committed with the plan. When the final handoff is
+accepted, ShipLoop reads the requirement IDs that file names and checks that each
+is in `docs/shiploop/spec.md` (a Retired section counts; a range `R-1 .. R-9` is
+read by its two ends; presence only, nothing is merged). If they are and the run's
+commits reach your branch (an in-place run, or a fast-forward return), ShipLoop
+removes the file in a commit of its own, `docs(shiploop): retire <slug> spec: checked
+its requirement IDs against the living spec`, and that commit goes back with the
+knowledge follow-up return; its body counts the IDs checked (a feature spec that
+names none is still retired) and gives the recover command
+(`git show <commit>^:<path>`) and the commit the plan was recorded in. The file
+stays when the return made before the close was a working-tree return (the run's
+commits are not on your branch, so it would be the only copy) or recorded no change
+(the follow-up return that carries the knowledge commits comes after the decision,
+which stays conservative), when the living spec lacks an ID it names or names none
+at all, when the file has uncommitted changes or was never committed, and when it is
+a symbolic link; ShipLoop says which, and never refuses the handoff for the IDs or
+the route. A removal or a list write that cannot be made (a read-only file, a Git
+index lock, a hook) leaves the handoff pending with the file's absolute path first;
+fix that and submit the same result again. The run's plan, test and outcome records
+stay. A replan that starts after a retire finds the planned feature spec
+only in Git history (`git log` on the folder, or the list's recover command); a
+squash merge of the run's branch drops that history, and with it the retired file.
+Link the list (`features/README.md`), never a feature's `spec.md`, from the home
+README: a link to a retired file dangles.
+
 **Learnings commit and read-back.** The feature's `outcome.md` has three sections,
 `## Learned`, `## Key considerations` and `## Open for the next run`, written in
 detail. The `release-verify` close refuses `done` while any is empty, and uses
@@ -534,6 +579,20 @@ them as the body of that close's commit, so each run ends with a commit that say
 what it learned. Intake and discovery packets quote the checkout's last three
 commit messages as inherited learnings to weigh before planning (context, not
 instructions).
+
+An Improve review's commit goes through `improve-commit` (git commit typed by hand
+skips its checks). The message needs a line `Key learnings: <text>` (also
+`Lessons:`, `Learned:`, or a `## Key learnings` heading with the text under it), each
+starting in column 1 of its own line;
+`Key learnings: none` is the honest answer when nothing was learned, and a review
+that changed no file makes no commit and is never asked for one. A line
+`Learned-from: <commit id> <what it contributed>` credits a commit that helped:
+Git resolves it to a commit reachable from `HEAD` and ShipLoop writes the full ID
+into the commit. A change to a remote system that left no file change is recorded
+with `improve-commit ... --remote-change` and a `Remote change: <system alias>,
+<what changed>, <where its evidence is>` line (no secrets); with no file pending
+that is a commit with no files. The command and these rules are in
+`parent-return.md`, beside the child's receipt.
 
 For reusable local skills, link the existing skill index or README section from
 `SHIPLOOP.md`; keep that index's entrypoints and selection triggers current after

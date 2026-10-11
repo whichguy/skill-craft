@@ -1,0 +1,24 @@
+{
+ "pass": false,
+ "host": "grok",
+ "process": {
+  "status": "exited",
+  "returncode": 0
+ },
+ "termination": {
+  "process_status": "exited",
+  "returncode": 0,
+  "sessions": 3,
+  "resumes": 2,
+  "session_stops": [
+   "cancelled",
+   "cancelled",
+   "end_turn"
+  ],
+  "resume_stop": "ShipLoop run is blocked",
+  "engine_status": "blocked",
+  "engine_stage": "system-test",
+  "engine_unaccepted_stage": null,
+  "engine_status_reason": "access: node restart-check.mjs exited 0: an id from a stopped server.js is 404 after a new process starts. node browser.mjs exited 1. Chrome lists the game URL but the document stays about:blank, and "
+ }
+}

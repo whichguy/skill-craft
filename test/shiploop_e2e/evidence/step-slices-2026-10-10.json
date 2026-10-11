@@ -1,0 +1,1518 @@
+{
+ "about": "Four live step slices (slice.py), output under the session scratchpad; compact export of slice-result.json and packet-report.json.",
+ "runs": {
+  "node-fix-bug": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "seconds": 202.5,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "delegation": "inline",
+   "plugin_version": "1.26.1",
+   "shiploop_version": "0.58.0",
+   "local_head": "fe16931f3465c9a83b90f92cb6a08ef096361cef",
+   "totals": {
+    "packets": 23,
+    "emissions": 26,
+    "chars_written": 1061085,
+    "est_tokens_written": 265271,
+    "reached_model": {
+     "printed_chars": 59919,
+     "read_tool_chars": 29608,
+     "read_tool_packets": 1,
+     "shell_chars": 4899
+    },
+    "next_calls": 1,
+    "shiploop_failures": 2,
+    "model_glue": 0,
+    "turns": 62,
+    "cost_usd": null,
+    "cost_unmeasured": "no session reported a cost (a session the slice stop ends never writes its result event)"
+   },
+   "revise_loops": 0,
+   "test_red_before_green": true,
+   "queue_growth": 0,
+   "assembled_uncommitted": [
+    "src/paginate.js",
+    "test/paginate.test.js"
+   ],
+   "stages": [
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 39.3,
+     "turns": 14,
+     "tool_calls": 8,
+     "context_peak": 94896
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 25.0,
+     "turns": 5,
+     "tool_calls": 3,
+     "context_peak": 101464
+    },
+    {
+     "stage": "baseline",
+     "outcome": "done",
+     "seconds": 8.0,
+     "turns": 3,
+     "tool_calls": 1,
+     "context_peak": 105298
+    },
+    {
+     "stage": "test-author",
+     "outcome": "done",
+     "seconds": 6.0,
+     "turns": 3,
+     "tool_calls": 2,
+     "context_peak": 106922
+    },
+    {
+     "stage": "test-red",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 108652
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 6.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 110286
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 8.0,
+     "turns": 4,
+     "tool_calls": 2,
+     "context_peak": 112525
+    },
+    {
+     "stage": "test-green",
+     "outcome": "done",
+     "seconds": 20.0,
+     "turns": 6,
+     "tool_calls": 4,
+     "context_peak": 118890
+    },
+    {
+     "stage": "test-refine",
+     "outcome": "done",
+     "seconds": 7.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 120081
+    },
+    {
+     "stage": "regression",
+     "outcome": "done",
+     "seconds": 15.0,
+     "turns": 4,
+     "tool_calls": 2,
+     "context_peak": 123081
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 8.0,
+     "turns": 3,
+     "tool_calls": 2,
+     "context_peak": 124713
+    },
+    {
+     "stage": "skill-assess",
+     "outcome": "done",
+     "seconds": 8.0,
+     "turns": 2,
+     "tool_calls": 2,
+     "context_peak": 126286
+    },
+    {
+     "stage": "skill-validate",
+     "outcome": "done",
+     "seconds": 4.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 127222
+    },
+    {
+     "stage": "static-checks",
+     "outcome": "done",
+     "seconds": 10.0,
+     "turns": 3,
+     "tool_calls": 2,
+     "context_peak": 129489
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 6.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 130584
+    },
+    {
+     "stage": "integrate",
+     "outcome": "done",
+     "seconds": 4.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 132019
+    },
+    {
+     "stage": "integration-verify",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 133069
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 16.0,
+     "turns": 6,
+     "tool_calls": 3,
+     "context_peak": 136859
+    },
+    {
+     "stage": "system-test-author",
+     "outcome": null,
+     "seconds": 1.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "context_peak": null
+    }
+   ],
+   "packets": [
+    {
+     "stage": "intake",
+     "kind": "producer",
+     "chars": 31435,
+     "emissions": 1,
+     "repeated_share": 0.0,
+     "skill_references": 12
+    },
+    {
+     "stage": "step-plan",
+     "kind": "producer",
+     "chars": 57556,
+     "emissions": 1,
+     "repeated_share": 0.416,
+     "skill_references": 19
+    },
+    {
+     "stage": "step-plan",
+     "kind": "improve",
+     "chars": 55847,
+     "emissions": 2,
+     "repeated_share": 0.443,
+     "skill_references": 22
+    },
+    {
+     "stage": "test-spec",
+     "kind": "producer",
+     "chars": 38390,
+     "emissions": 1,
+     "repeated_share": 0.772,
+     "skill_references": 12
+    },
+    {
+     "stage": "test-spec",
+     "kind": "improve",
+     "chars": 50738,
+     "emissions": 2,
+     "repeated_share": 0.806,
+     "skill_references": 15
+    },
+    {
+     "stage": "baseline",
+     "kind": "producer",
+     "chars": 34179,
+     "emissions": 1,
+     "repeated_share": 0.807,
+     "skill_references": 12
+    },
+    {
+     "stage": "test-author",
+     "kind": "producer",
+     "chars": 41092,
+     "emissions": 1,
+     "repeated_share": 0.75,
+     "skill_references": 13
+    },
+    {
+     "stage": "test-red",
+     "kind": "producer",
+     "chars": 39438,
+     "emissions": 1,
+     "repeated_share": 0.83,
+     "skill_references": 12
+    },
+    {
+     "stage": "implement",
+     "kind": "producer",
+     "chars": 43898,
+     "emissions": 1,
+     "repeated_share": 0.773,
+     "skill_references": 15
+    },
+    {
+     "stage": "implement",
+     "kind": "producer",
+     "chars": 43040,
+     "emissions": 1,
+     "repeated_share": 0.917,
+     "skill_references": 15
+    },
+    {
+     "stage": "test-green",
+     "kind": "producer",
+     "chars": 41577,
+     "emissions": 1,
+     "repeated_share": 0.777,
+     "skill_references": 14
+    },
+    {
+     "stage": "test-refine",
+     "kind": "producer",
+     "chars": 42392,
+     "emissions": 1,
+     "repeated_share": 0.839,
+     "skill_references": 12
+    },
+    {
+     "stage": "regression",
+     "kind": "producer",
+     "chars": 44675,
+     "emissions": 1,
+     "repeated_share": 0.836,
+     "skill_references": 14
+    },
+    {
+     "stage": "document",
+     "kind": "producer",
+     "chars": 38985,
+     "emissions": 1,
+     "repeated_share": 0.82,
+     "skill_references": 14
+    },
+    {
+     "stage": "skill-assess",
+     "kind": "producer",
+     "chars": 33967,
+     "emissions": 1,
+     "repeated_share": 0.856,
+     "skill_references": 12
+    },
+    {
+     "stage": "skill-validate",
+     "kind": "producer",
+     "chars": 33035,
+     "emissions": 1,
+     "repeated_share": 0.867,
+     "skill_references": 12
+    },
+    {
+     "stage": "static-checks",
+     "kind": "producer",
+     "chars": 45618,
+     "emissions": 1,
+     "repeated_share": 0.768,
+     "skill_references": 14
+    },
+    {
+     "stage": "verify",
+     "kind": "producer",
+     "chars": 45464,
+     "emissions": 1,
+     "repeated_share": 0.799,
+     "skill_references": 15
+    },
+    {
+     "stage": "integrate",
+     "kind": "producer",
+     "chars": 38165,
+     "emissions": 1,
+     "repeated_share": 0.86,
+     "skill_references": 12
+    },
+    {
+     "stage": "integration-verify",
+     "kind": "producer",
+     "chars": 40385,
+     "emissions": 1,
+     "repeated_share": 0.897,
+     "skill_references": 12
+    },
+    {
+     "stage": "carry-forward",
+     "kind": "producer",
+     "chars": 41728,
+     "emissions": 1,
+     "repeated_share": 0.802,
+     "skill_references": 17
+    },
+    {
+     "stage": "carry-forward",
+     "kind": "improve",
+     "chars": 56728,
+     "emissions": 2,
+     "repeated_share": 0.814,
+     "skill_references": 20
+    },
+    {
+     "stage": "system-test-author",
+     "kind": "producer",
+     "chars": 39966,
+     "emissions": 1,
+     "repeated_share": 0.704,
+     "skill_references": 13
+    }
+   ]
+  },
+  "node-add-function": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "seconds": 228.5,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "delegation": "inline",
+   "plugin_version": "1.26.1",
+   "shiploop_version": "0.58.0",
+   "local_head": "fe16931f3465c9a83b90f92cb6a08ef096361cef",
+   "totals": {
+    "packets": 23,
+    "emissions": 26,
+    "chars_written": 1074395,
+    "est_tokens_written": 268598,
+    "reached_model": {
+     "printed_chars": 59382,
+     "read_tool_chars": 35726,
+     "read_tool_packets": 3,
+     "shell_chars": 2274
+    },
+    "next_calls": 1,
+    "shiploop_failures": 0,
+    "model_glue": 0,
+    "turns": 74,
+    "cost_usd": null,
+    "cost_unmeasured": "no session reported a cost (a session the slice stop ends never writes its result event)"
+   },
+   "revise_loops": 0,
+   "test_red_before_green": true,
+   "queue_growth": 0,
+   "assembled_uncommitted": [
+    "src/strings.js",
+    "test/strings.test.js"
+   ],
+   "stages": [
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 43.6,
+     "turns": 15,
+     "tool_calls": 10,
+     "context_peak": 104766
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 35.0,
+     "turns": 10,
+     "tool_calls": 5,
+     "context_peak": 112844
+    },
+    {
+     "stage": "baseline",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 114952
+    },
+    {
+     "stage": "test-author",
+     "outcome": "done",
+     "seconds": 7.0,
+     "turns": 1,
+     "tool_calls": 0,
+     "context_peak": 116985
+    },
+    {
+     "stage": "test-red",
+     "outcome": "done",
+     "seconds": 8.0,
+     "turns": 4,
+     "tool_calls": 2,
+     "context_peak": 118896
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 6.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 120958
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 9.0,
+     "turns": 4,
+     "tool_calls": 2,
+     "context_peak": 123384
+    },
+    {
+     "stage": "test-green",
+     "outcome": "done",
+     "seconds": 23.0,
+     "turns": 8,
+     "tool_calls": 6,
+     "context_peak": 130661
+    },
+    {
+     "stage": "test-refine",
+     "outcome": "done",
+     "seconds": 7.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 131823
+    },
+    {
+     "stage": "regression",
+     "outcome": "done",
+     "seconds": 10.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 133400
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 135402
+    },
+    {
+     "stage": "skill-assess",
+     "outcome": "done",
+     "seconds": 8.0,
+     "turns": 3,
+     "tool_calls": 2,
+     "context_peak": 137044
+    },
+    {
+     "stage": "skill-validate",
+     "outcome": "done",
+     "seconds": 4.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 138100
+    },
+    {
+     "stage": "static-checks",
+     "outcome": "done",
+     "seconds": 19.0,
+     "turns": 7,
+     "tool_calls": 4,
+     "context_peak": 141683
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 6.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 142996
+    },
+    {
+     "stage": "integrate",
+     "outcome": "done",
+     "seconds": 4.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 144498
+    },
+    {
+     "stage": "integration-verify",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 145636
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 22.0,
+     "turns": 8,
+     "tool_calls": 4,
+     "context_peak": 150792
+    },
+    {
+     "stage": "system-test-author",
+     "outcome": null,
+     "seconds": 1.6,
+     "turns": 0,
+     "tool_calls": 0,
+     "context_peak": null
+    }
+   ],
+   "packets": [
+    {
+     "stage": "intake",
+     "kind": "producer",
+     "chars": 31806,
+     "emissions": 1,
+     "repeated_share": 0.0,
+     "skill_references": 12
+    },
+    {
+     "stage": "step-plan",
+     "kind": "producer",
+     "chars": 58096,
+     "emissions": 1,
+     "repeated_share": 0.417,
+     "skill_references": 19
+    },
+    {
+     "stage": "step-plan",
+     "kind": "improve",
+     "chars": 56445,
+     "emissions": 2,
+     "repeated_share": 0.447,
+     "skill_references": 22
+    },
+    {
+     "stage": "test-spec",
+     "kind": "producer",
+     "chars": 38822,
+     "emissions": 1,
+     "repeated_share": 0.773,
+     "skill_references": 12
+    },
+    {
+     "stage": "test-spec",
+     "kind": "improve",
+     "chars": 51597,
+     "emissions": 2,
+     "repeated_share": 0.801,
+     "skill_references": 15
+    },
+    {
+     "stage": "baseline",
+     "kind": "producer",
+     "chars": 35414,
+     "emissions": 1,
+     "repeated_share": 0.789,
+     "skill_references": 12
+    },
+    {
+     "stage": "test-author",
+     "kind": "producer",
+     "chars": 42045,
+     "emissions": 1,
+     "repeated_share": 0.753,
+     "skill_references": 13
+    },
+    {
+     "stage": "test-red",
+     "kind": "producer",
+     "chars": 39788,
+     "emissions": 1,
+     "repeated_share": 0.832,
+     "skill_references": 12
+    },
+    {
+     "stage": "implement",
+     "kind": "producer",
+     "chars": 44318,
+     "emissions": 1,
+     "repeated_share": 0.775,
+     "skill_references": 15
+    },
+    {
+     "stage": "implement",
+     "kind": "producer",
+     "chars": 43620,
+     "emissions": 1,
+     "repeated_share": 0.914,
+     "skill_references": 15
+    },
+    {
+     "stage": "test-green",
+     "kind": "producer",
+     "chars": 42072,
+     "emissions": 1,
+     "repeated_share": 0.777,
+     "skill_references": 14
+    },
+    {
+     "stage": "test-refine",
+     "kind": "producer",
+     "chars": 42840,
+     "emissions": 1,
+     "repeated_share": 0.839,
+     "skill_references": 12
+    },
+    {
+     "stage": "regression",
+     "kind": "producer",
+     "chars": 45066,
+     "emissions": 1,
+     "repeated_share": 0.837,
+     "skill_references": 14
+    },
+    {
+     "stage": "document",
+     "kind": "producer",
+     "chars": 39402,
+     "emissions": 1,
+     "repeated_share": 0.821,
+     "skill_references": 14
+    },
+    {
+     "stage": "skill-assess",
+     "kind": "producer",
+     "chars": 34390,
+     "emissions": 1,
+     "repeated_share": 0.856,
+     "skill_references": 12
+    },
+    {
+     "stage": "skill-validate",
+     "kind": "producer",
+     "chars": 33405,
+     "emissions": 1,
+     "repeated_share": 0.869,
+     "skill_references": 12
+    },
+    {
+     "stage": "static-checks",
+     "kind": "producer",
+     "chars": 46005,
+     "emissions": 1,
+     "repeated_share": 0.77,
+     "skill_references": 14
+    },
+    {
+     "stage": "verify",
+     "kind": "producer",
+     "chars": 45907,
+     "emissions": 1,
+     "repeated_share": 0.8,
+     "skill_references": 15
+    },
+    {
+     "stage": "integrate",
+     "kind": "producer",
+     "chars": 38508,
+     "emissions": 1,
+     "repeated_share": 0.863,
+     "skill_references": 12
+    },
+    {
+     "stage": "integration-verify",
+     "kind": "producer",
+     "chars": 40772,
+     "emissions": 1,
+     "repeated_share": 0.898,
+     "skill_references": 12
+    },
+    {
+     "stage": "carry-forward",
+     "kind": "producer",
+     "chars": 42235,
+     "emissions": 1,
+     "repeated_share": 0.803,
+     "skill_references": 17
+    },
+    {
+     "stage": "carry-forward",
+     "kind": "improve",
+     "chars": 57164,
+     "emissions": 2,
+     "repeated_share": 0.815,
+     "skill_references": 20
+    },
+    {
+     "stage": "system-test-author",
+     "kind": "producer",
+     "chars": 40298,
+     "emissions": 1,
+     "repeated_share": 0.707,
+     "skill_references": 13
+    }
+   ]
+  },
+  "node-add-route": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "seconds": 216.5,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "delegation": "inline",
+   "plugin_version": "1.26.1",
+   "shiploop_version": "0.58.0",
+   "local_head": "fe16931f3465c9a83b90f92cb6a08ef096361cef",
+   "totals": {
+    "packets": 23,
+    "emissions": 26,
+    "chars_written": 1059956,
+    "est_tokens_written": 264989,
+    "reached_model": {
+     "printed_chars": 40502,
+     "read_tool_chars": 36685,
+     "read_tool_packets": 2,
+     "shell_chars": 12277
+    },
+    "next_calls": 2,
+    "shiploop_failures": 3,
+    "model_glue": 0,
+    "turns": 69,
+    "cost_usd": null,
+    "cost_unmeasured": "no session reported a cost (a session the slice stop ends never writes its result event)"
+   },
+   "revise_loops": 0,
+   "test_red_before_green": true,
+   "queue_growth": 0,
+   "assembled_uncommitted": [
+    "src/server.js",
+    "test/server.test.js"
+   ],
+   "stages": [
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 49.6,
+     "turns": 18,
+     "tool_calls": 11,
+     "context_peak": 98394
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 38.0,
+     "turns": 10,
+     "tool_calls": 6,
+     "context_peak": 106694
+    },
+    {
+     "stage": "baseline",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 108062
+    },
+    {
+     "stage": "test-author",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 109412
+    },
+    {
+     "stage": "test-red",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 110592
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 8.0,
+     "turns": 3,
+     "tool_calls": 2,
+     "context_peak": 112468
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 113495
+    },
+    {
+     "stage": "test-green",
+     "outcome": "done",
+     "seconds": 21.0,
+     "turns": 8,
+     "tool_calls": 5,
+     "context_peak": 118025
+    },
+    {
+     "stage": "test-refine",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 119017
+    },
+    {
+     "stage": "regression",
+     "outcome": "done",
+     "seconds": 8.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 120097
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 8.0,
+     "turns": 3,
+     "tool_calls": 2,
+     "context_peak": 121910
+    },
+    {
+     "stage": "skill-assess",
+     "outcome": "done",
+     "seconds": 4.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 122896
+    },
+    {
+     "stage": "skill-validate",
+     "outcome": "done",
+     "seconds": 4.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "context_peak": null
+    },
+    {
+     "stage": "static-checks",
+     "outcome": "done",
+     "seconds": 16.0,
+     "turns": 5,
+     "tool_calls": 4,
+     "context_peak": 126195
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 6.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 126764
+    },
+    {
+     "stage": "integrate",
+     "outcome": "done",
+     "seconds": 7.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 127369
+    },
+    {
+     "stage": "integration-verify",
+     "outcome": "done",
+     "seconds": 6.0,
+     "turns": 2,
+     "tool_calls": 2,
+     "context_peak": 129118
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 13.0,
+     "turns": 5,
+     "tool_calls": 3,
+     "context_peak": 131050
+    },
+    {
+     "stage": "system-test-author",
+     "outcome": null,
+     "seconds": 2.3,
+     "turns": 0,
+     "tool_calls": 0,
+     "context_peak": null
+    }
+   ],
+   "packets": [
+    {
+     "stage": "intake",
+     "kind": "producer",
+     "chars": 31493,
+     "emissions": 1,
+     "repeated_share": 0.0,
+     "skill_references": 12
+    },
+    {
+     "stage": "step-plan",
+     "kind": "producer",
+     "chars": 57620,
+     "emissions": 1,
+     "repeated_share": 0.416,
+     "skill_references": 19
+    },
+    {
+     "stage": "step-plan",
+     "kind": "improve",
+     "chars": 55843,
+     "emissions": 2,
+     "repeated_share": 0.444,
+     "skill_references": 22
+    },
+    {
+     "stage": "test-spec",
+     "kind": "producer",
+     "chars": 38358,
+     "emissions": 1,
+     "repeated_share": 0.773,
+     "skill_references": 12
+    },
+    {
+     "stage": "test-spec",
+     "kind": "improve",
+     "chars": 50872,
+     "emissions": 2,
+     "repeated_share": 0.804,
+     "skill_references": 15
+    },
+    {
+     "stage": "baseline",
+     "kind": "producer",
+     "chars": 34348,
+     "emissions": 1,
+     "repeated_share": 0.804,
+     "skill_references": 12
+    },
+    {
+     "stage": "test-author",
+     "kind": "producer",
+     "chars": 41233,
+     "emissions": 1,
+     "repeated_share": 0.748,
+     "skill_references": 13
+    },
+    {
+     "stage": "test-red",
+     "kind": "producer",
+     "chars": 39422,
+     "emissions": 1,
+     "repeated_share": 0.831,
+     "skill_references": 12
+    },
+    {
+     "stage": "implement",
+     "kind": "producer",
+     "chars": 43815,
+     "emissions": 1,
+     "repeated_share": 0.775,
+     "skill_references": 15
+    },
+    {
+     "stage": "implement",
+     "kind": "producer",
+     "chars": 43020,
+     "emissions": 1,
+     "repeated_share": 0.918,
+     "skill_references": 15
+    },
+    {
+     "stage": "test-green",
+     "kind": "producer",
+     "chars": 41534,
+     "emissions": 1,
+     "repeated_share": 0.778,
+     "skill_references": 14
+    },
+    {
+     "stage": "test-refine",
+     "kind": "producer",
+     "chars": 42359,
+     "emissions": 1,
+     "repeated_share": 0.839,
+     "skill_references": 12
+    },
+    {
+     "stage": "regression",
+     "kind": "producer",
+     "chars": 44666,
+     "emissions": 1,
+     "repeated_share": 0.836,
+     "skill_references": 14
+    },
+    {
+     "stage": "document",
+     "kind": "producer",
+     "chars": 38886,
+     "emissions": 1,
+     "repeated_share": 0.823,
+     "skill_references": 14
+    },
+    {
+     "stage": "skill-assess",
+     "kind": "producer",
+     "chars": 33949,
+     "emissions": 1,
+     "repeated_share": 0.857,
+     "skill_references": 12
+    },
+    {
+     "stage": "skill-validate",
+     "kind": "producer",
+     "chars": 32968,
+     "emissions": 1,
+     "repeated_share": 0.869,
+     "skill_references": 12
+    },
+    {
+     "stage": "static-checks",
+     "kind": "producer",
+     "chars": 45571,
+     "emissions": 1,
+     "repeated_share": 0.769,
+     "skill_references": 14
+    },
+    {
+     "stage": "verify",
+     "kind": "producer",
+     "chars": 45407,
+     "emissions": 1,
+     "repeated_share": 0.8,
+     "skill_references": 15
+    },
+    {
+     "stage": "integrate",
+     "kind": "producer",
+     "chars": 37981,
+     "emissions": 1,
+     "repeated_share": 0.865,
+     "skill_references": 12
+    },
+    {
+     "stage": "integration-verify",
+     "kind": "producer",
+     "chars": 40362,
+     "emissions": 1,
+     "repeated_share": 0.897,
+     "skill_references": 12
+    },
+    {
+     "stage": "carry-forward",
+     "kind": "producer",
+     "chars": 41727,
+     "emissions": 1,
+     "repeated_share": 0.803,
+     "skill_references": 17
+    },
+    {
+     "stage": "carry-forward",
+     "kind": "improve",
+     "chars": 56380,
+     "emissions": 2,
+     "repeated_share": 0.819,
+     "skill_references": 20
+    },
+    {
+     "stage": "system-test-author",
+     "kind": "producer",
+     "chars": 39693,
+     "emissions": 1,
+     "repeated_share": 0.711,
+     "skill_references": 13
+    }
+   ]
+  },
+  "node-rename": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "seconds": 210.5,
+   "host": "claude",
+   "model": "claude-sonnet-5-5",
+   "delegation": "inline",
+   "plugin_version": "1.26.1",
+   "shiploop_version": "0.58.0",
+   "local_head": "fe16931f3465c9a83b90f92cb6a08ef096361cef",
+   "totals": {
+    "packets": 22,
+    "emissions": 25,
+    "chars_written": 1012019,
+    "est_tokens_written": 253004,
+    "reached_model": {
+     "printed_chars": 55892,
+     "read_tool_chars": 29366,
+     "read_tool_packets": 1,
+     "shell_chars": 14535
+    },
+    "next_calls": 1,
+    "shiploop_failures": 3,
+    "model_glue": 3,
+    "turns": 62,
+    "cost_usd": null,
+    "cost_unmeasured": "no session reported a cost (a session the slice stop ends never writes its result event)"
+   },
+   "revise_loops": 0,
+   "test_red_before_green": true,
+   "queue_growth": 0,
+   "assembled_uncommitted": [
+    "src/server.js",
+    "src/users.js",
+    "test/users.test.js"
+   ],
+   "stages": [
+    {
+     "stage": "step-plan",
+     "outcome": "done",
+     "seconds": 50.6,
+     "turns": 15,
+     "tool_calls": 10,
+     "context_peak": 96014
+    },
+    {
+     "stage": "test-spec",
+     "outcome": "done",
+     "seconds": 26.0,
+     "turns": 8,
+     "tool_calls": 4,
+     "context_peak": 104894
+    },
+    {
+     "stage": "baseline",
+     "outcome": "done",
+     "seconds": 7.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 106589
+    },
+    {
+     "stage": "test-author",
+     "outcome": "done",
+     "seconds": 6.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 108218
+    },
+    {
+     "stage": "test-red",
+     "outcome": "done",
+     "seconds": 4.0,
+     "turns": 0,
+     "tool_calls": 0,
+     "context_peak": null
+    },
+    {
+     "stage": "implement",
+     "outcome": "done",
+     "seconds": 6.0,
+     "turns": 3,
+     "tool_calls": 2,
+     "context_peak": 111007
+    },
+    {
+     "stage": "test-green",
+     "outcome": "done",
+     "seconds": 16.0,
+     "turns": 4,
+     "tool_calls": 3,
+     "context_peak": 116861
+    },
+    {
+     "stage": "test-refine",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 2,
+     "tool_calls": 1,
+     "context_peak": 118464
+    },
+    {
+     "stage": "regression",
+     "outcome": "done",
+     "seconds": 19.0,
+     "turns": 6,
+     "tool_calls": 3,
+     "context_peak": 123467
+    },
+    {
+     "stage": "document",
+     "outcome": "done",
+     "seconds": 4.0,
+     "turns": 1,
+     "tool_calls": 0,
+     "context_peak": 124868
+    },
+    {
+     "stage": "skill-assess",
+     "outcome": "done",
+     "seconds": 4.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 124868
+    },
+    {
+     "stage": "skill-validate",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 2,
+     "tool_calls": 2,
+     "context_peak": 127217
+    },
+    {
+     "stage": "static-checks",
+     "outcome": "done",
+     "seconds": 16.0,
+     "turns": 6,
+     "tool_calls": 3,
+     "context_peak": 130993
+    },
+    {
+     "stage": "verify",
+     "outcome": "done",
+     "seconds": 6.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 132449
+    },
+    {
+     "stage": "integrate",
+     "outcome": "done",
+     "seconds": 4.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 133768
+    },
+    {
+     "stage": "integration-verify",
+     "outcome": "done",
+     "seconds": 5.0,
+     "turns": 1,
+     "tool_calls": 1,
+     "context_peak": 135033
+    },
+    {
+     "stage": "carry-forward",
+     "outcome": "done",
+     "seconds": 26.0,
+     "turns": 7,
+     "tool_calls": 4,
+     "context_peak": 140484
+    },
+    {
+     "stage": "system-test-author",
+     "outcome": null,
+     "seconds": 0.4,
+     "turns": 0,
+     "tool_calls": 0,
+     "context_peak": null
+    }
+   ],
+   "packets": [
+    {
+     "stage": "intake",
+     "kind": "producer",
+     "chars": 31285,
+     "emissions": 1,
+     "repeated_share": 0.0,
+     "skill_references": 12
+    },
+    {
+     "stage": "step-plan",
+     "kind": "producer",
+     "chars": 57362,
+     "emissions": 1,
+     "repeated_share": 0.415,
+     "skill_references": 19
+    },
+    {
+     "stage": "step-plan",
+     "kind": "improve",
+     "chars": 55609,
+     "emissions": 2,
+     "repeated_share": 0.441,
+     "skill_references": 22
+    },
+    {
+     "stage": "test-spec",
+     "kind": "producer",
+     "chars": 38225,
+     "emissions": 1,
+     "repeated_share": 0.771,
+     "skill_references": 12
+    },
+    {
+     "stage": "test-spec",
+     "kind": "improve",
+     "chars": 50503,
+     "emissions": 2,
+     "repeated_share": 0.806,
+     "skill_references": 15
+    },
+    {
+     "stage": "baseline",
+     "kind": "producer",
+     "chars": 33966,
+     "emissions": 1,
+     "repeated_share": 0.808,
+     "skill_references": 12
+    },
+    {
+     "stage": "test-author",
+     "kind": "producer",
+     "chars": 40992,
+     "emissions": 1,
+     "repeated_share": 0.748,
+     "skill_references": 13
+    },
+    {
+     "stage": "test-red",
+     "kind": "producer",
+     "chars": 39133,
+     "emissions": 1,
+     "repeated_share": 0.833,
+     "skill_references": 12
+    },
+    {
+     "stage": "implement",
+     "kind": "producer",
+     "chars": 43585,
+     "emissions": 1,
+     "repeated_share": 0.775,
+     "skill_references": 15
+    },
+    {
+     "stage": "test-green",
+     "kind": "producer",
+     "chars": 41347,
+     "emissions": 1,
+     "repeated_share": 0.773,
+     "skill_references": 14
+    },
+    {
+     "stage": "test-refine",
+     "kind": "producer",
+     "chars": 42144,
+     "emissions": 1,
+     "repeated_share": 0.837,
+     "skill_references": 12
+    },
+    {
+     "stage": "regression",
+     "kind": "producer",
+     "chars": 44419,
+     "emissions": 1,
+     "repeated_share": 0.837,
+     "skill_references": 14
+    },
+    {
+     "stage": "document",
+     "kind": "producer",
+     "chars": 38666,
+     "emissions": 1,
+     "repeated_share": 0.823,
+     "skill_references": 14
+    },
+    {
+     "stage": "skill-assess",
+     "kind": "producer",
+     "chars": 33730,
+     "emissions": 1,
+     "repeated_share": 0.857,
+     "skill_references": 12
+    },
+    {
+     "stage": "skill-validate",
+     "kind": "producer",
+     "chars": 32787,
+     "emissions": 1,
+     "repeated_share": 0.869,
+     "skill_references": 12
+    },
+    {
+     "stage": "static-checks",
+     "kind": "producer",
+     "chars": 45637,
+     "emissions": 1,
+     "repeated_share": 0.765,
+     "skill_references": 14
+    },
+    {
+     "stage": "verify",
+     "kind": "producer",
+     "chars": 45262,
+     "emissions": 1,
+     "repeated_share": 0.8,
+     "skill_references": 15
+    },
+    {
+     "stage": "integrate",
+     "kind": "producer",
+     "chars": 37898,
+     "emissions": 1,
+     "repeated_share": 0.863,
+     "skill_references": 12
+    },
+    {
+     "stage": "integration-verify",
+     "kind": "producer",
+     "chars": 40198,
+     "emissions": 1,
+     "repeated_share": 0.896,
+     "skill_references": 12
+    },
+    {
+     "stage": "carry-forward",
+     "kind": "producer",
+     "chars": 41598,
+     "emissions": 1,
+     "repeated_share": 0.801,
+     "skill_references": 17
+    },
+    {
+     "stage": "carry-forward",
+     "kind": "improve",
+     "chars": 56239,
+     "emissions": 2,
+     "repeated_share": 0.818,
+     "skill_references": 20
+    },
+    {
+     "stage": "system-test-author",
+     "kind": "producer",
+     "chars": 39549,
+     "emissions": 1,
+     "repeated_share": 0.708,
+     "skill_references": 13
+    }
+   ]
+  }
+ }
+}

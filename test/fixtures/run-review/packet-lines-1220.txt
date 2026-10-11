@@ -1,0 +1,11 @@
+ShipLoop navigator | implement | revision 37
+Goal: Make the planned change.
+Done when (confirm each before calling done; keep going until all hold):
+Considerations for this stage:
+Result template:
+Allowed outcomes: done | repeat | blocked | revise (the item's step plan or test spec is wrong or unachievable: it goes back to step-plan with this result as evidence; 1 of 2 left for this item).
+blocked: {"outcome": "blocked", "blocked_by": "user | access | external", "summary": "<what stopped the work>"}; a problem this run can fix itself is repaired in this stage, not blocked. Only when nothing can proceed without a person, add "awaiting": {"kind": "present", "steps": ["<what the person does>"], "report": "<what they report back>", "no_default": "<why nothing else can proceed>"} or {"kind": "answer", "question": "<the question>", "no_default": "<why nothing else can proceed>"} (blocked_by user or access)
+Step S1 (1 of 3), the only work for this packet: Write game.js: createGame(rng), fire(game,row,col), createStore(max) with cap, fleet placement; pure, injectable RNG; no I/O.
+Results this stage builds on (open each one whose content is not already in your context; report a conflict with them instead of silently choosing):
+Current stage guidance:
+Improve: This result advances directly; no Improve child runs for this stage. If work cannot continue, submit outcome 'blocked' with a truthful summary; when the run stops blocked, the next packet prints its Resume command.

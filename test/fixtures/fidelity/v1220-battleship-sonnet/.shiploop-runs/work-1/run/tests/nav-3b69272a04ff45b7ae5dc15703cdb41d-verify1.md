@@ -1,0 +1,59 @@
+# ShipLoop test-loop verification
+
+```shiploop-state
+{
+  "action": "nav-3b69272a04ff45b7ae5dc15703cdb41d",
+  "created_at": "2026-10-06T15:15:04Z",
+  "disposition": "passed",
+  "passed": true,
+  "runs": [
+    {
+      "command": "node --test test/game.test.js",
+      "counts": null,
+      "criteria": [
+        "C1"
+      ],
+      "exit": 0,
+      "ids": [
+        "TC-1",
+        "TC-2",
+        "TC-3",
+        "TC-4",
+        "TC-5",
+        "TC-6",
+        "TC-7"
+      ],
+      "ids_missing": [],
+      "min_tests": 7,
+      "seconds": 0.134,
+      "status": "passed",
+      "suite": "focused"
+    },
+    {
+      "command": "node --test test/server.test.js",
+      "counts": null,
+      "criteria": [
+        "C2",
+        "C3",
+        "C4"
+      ],
+      "exit": 0,
+      "ids": [
+        "TC-8",
+        "TC-9",
+        "TC-10",
+        "TC-11",
+        "TC-12"
+      ],
+      "ids_missing": [],
+      "min_tests": 5,
+      "seconds": 0.292,
+      "status": "passed",
+      "suite": "focused"
+    }
+  ],
+  "schema": "shiploop-test-loop/v1",
+  "stage": "test-green",
+  "work_item": "W1"
+}
+```

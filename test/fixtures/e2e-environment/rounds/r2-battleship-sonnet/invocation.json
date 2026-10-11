@@ -1,0 +1,11 @@
+{
+ "case": "battleship",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": null,
+ "versions": {
+  "source": "checkout",
+  "plugin_version": "1.25.0",
+  "shiploop_version": "0.57.0"
+ }
+}

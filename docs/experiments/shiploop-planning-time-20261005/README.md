@@ -11,4 +11,10 @@ minutes"). Evidence here:
 | `grok-medium-improve-children.json` | Improve passes and minutes per planning stage in the Grok probe, and the four-commit churn chain in its spec review |
 | `run-doc-luna-xhigh-v1210.json`, `run-doc-grok-medium-v1210.json` | the two runs as Run Review documents (exporter 0.1.0 on copies of the run directories), as written to the draft Run Review page |
 
+**Superseded 2026-10-08: lever L11 of `ledger-account-final.json`** ("about 100 model-written check scripts, 73.8 min, 35 to
+55 savable"). Its raw per-response analyses were not kept and it could not be re-derived. The re-derivation for the Luna
+xhigh run (22 pure document checks, 8.9 min of a 375 min window, an upper bound) is in
+`docs/experiments/docheck-20261008/evidence.json`; it agrees with `docs/pending-work-plan-2026-10-06.md` (13 of 162
+scripts, 7.5 min). The account's other levers are unchanged.
+
 Labels in the account: [M] measured from a file, [I] inferred. Statuses are in test/shiploop_e2e/LEARNINGS.md ("Planning time").

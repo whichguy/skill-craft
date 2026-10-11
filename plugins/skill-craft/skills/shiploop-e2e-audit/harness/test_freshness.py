@@ -23,6 +23,9 @@ import freshness  # noqa: E402
 
 class FreshnessTests(unittest.TestCase):
     VERSIONS = {"shiploop": "0.18.1", "improve": "0.2.0-rc.2"}
+    # skill-craft ships every skill in ONE plugin: its version is the bundle's, not any skill's.
+    PLUGIN = "skill-craft"
+    PLUGIN_VERSION = "1.3.0"
 
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-e2e-freshness-test-")
@@ -42,14 +45,14 @@ class FreshnessTests(unittest.TestCase):
             "GIT_AUTHOR_NAME": "Fixture", "GIT_AUTHOR_EMAIL": "fixture@example.test",
             "GIT_COMMITTER_NAME": "Fixture", "GIT_COMMITTER_EMAIL": "fixture@example.test",
         })
-        # One repository holds skills/, the released plugins/ and the catalog,
-        # as skill-craft does; release.py writes all three in one commit.
+        # One repository holds skills/, the one released plugin plugins/skill-craft and the
+        # catalog, as skill-craft does; release.py writes all three in one commit.
         self._init(self.source)
         self._write_source_package()
         self._write_catalog()
         self.published_sha = self._commit(self.source, "release")
-        shutil.copytree(self.source / "plugins" / "shiploop" / "skills" / "shiploop", self.selected)
-        shutil.copytree(self.source / "plugins" / "improve" / "skills" / "improve", self.selected_improve)
+        shutil.copytree(self.source / "plugins" / self.PLUGIN / "skills" / "shiploop", self.selected)
+        shutil.copytree(self.source / "plugins" / self.PLUGIN / "skills" / "improve", self.selected_improve)
         self.source_authority = freshness.Authority(str(self.source), "refs/heads/main")
         source_patch = patch.object(freshness, "SOURCE_AUTHORITY", self.source_authority)
         source_patch.start()
@@ -85,38 +88,37 @@ class FreshnessTests(unittest.TestCase):
         self._write_file(root / "references" / "guide.md", "fixture guidance\n")
 
     def _sync_generated(self, name: str) -> None:
-        generated = self.source / "plugins" / name / "skills" / name
+        generated = self.source / "plugins" / self.PLUGIN / "skills" / name
         if generated.exists():
             shutil.rmtree(generated)
         shutil.copytree(self.source / "skills" / name, generated, copy_function=shutil.copy2)
 
-    def _write_source_package(self, versions: dict[str, str] | None = None) -> None:
+    def _write_source_package(self, versions: dict[str, str] | None = None, *, plugin_version: str | None = None,
+                              plugin_name: str | None = None) -> None:
         for name, version in (versions or self.VERSIONS).items():
             self._write_skill(self.source / "skills" / name, name, version)
             self._sync_generated(name)
-            self._write_file(
-                self.source / "plugins" / name / ".claude-plugin" / "plugin.json",
-                json.dumps({"name": name, "version": version}, indent=2) + "\n",
-            )
-            self._write_file(self.source / "plugins" / name / "README.md", "published wrapper\n")
+        self._write_file(
+            self.source / "plugins" / self.PLUGIN / ".claude-plugin" / "plugin.json",
+            json.dumps({"name": plugin_name or self.PLUGIN, "version": plugin_version or self.PLUGIN_VERSION}, indent=2) + "\n",
+        )
+        self._write_file(self.source / "plugins" / self.PLUGIN / "README.md", "published bundle\n")
 
     def _write_catalog(
-        self, *, versions: dict[str, str] | None = None, duplicate: str | None = None,
-        omit: str | None = None, malformed: bool = False, sources: dict[str, object] | None = None,
+        self, *, plugin_version: str | None = None, duplicate: bool = False, omit: bool = False,
+        malformed: bool = False, source: object | None = None, rows: list[dict[str, object]] | None = None,
     ) -> None:
         target = self.source / ".claude-plugin" / "marketplace.json"
         target.parent.mkdir(parents=True, exist_ok=True)
         if malformed:
             target.write_text("{not json}\n", encoding="utf-8")
             return
-        plugins = []
-        for name, version in (versions or self.VERSIONS).items():
-            if name == omit:
-                continue
-            source = (sources or {}).get(name, "./plugins/" + name)
-            entry = {"name": name, "version": version, "source": source}
+        plugins: list[dict[str, object]] = list(rows or [])
+        if not omit and rows is None:
+            entry = {"name": self.PLUGIN, "version": plugin_version or self.PLUGIN_VERSION,
+                     "source": source if source is not None else "./plugins/" + self.PLUGIN}
             plugins.append(entry)
-            if name == duplicate:
+            if duplicate:
                 plugins.append(dict(entry))
         target.write_text(json.dumps({"name": "fixture", "plugins": plugins}, indent=2) + "\n", encoding="utf-8")
 
@@ -150,7 +152,8 @@ class FreshnessTests(unittest.TestCase):
             self.assertEqual(version, skill["published"]["version"])
             self.assertEqual(self.published_sha, skill["published"]["head"])
             self.assertEqual(self.published_sha, skill["published"]["pin"]["sha"])
-            self.assertEqual("./plugins/" + name, skill["published"]["catalog"]["source_path"])
+            self.assertEqual("./plugins/skill-craft", skill["published"]["catalog"]["source_path"])
+            self.assertEqual(self.PLUGIN_VERSION, skill["published"]["catalog"]["version"])  # the bundle's, not the skill's
             self.assertEqual(str(self.source), skill["published"]["authority"]["url"])
         self.assertEqual(0, receipt["model_calls"])
 
@@ -192,9 +195,9 @@ class FreshnessTests(unittest.TestCase):
 
     def test_new_release_leaves_the_previous_installation_stale(self) -> None:
         released = dict(self.VERSIONS, shiploop="0.18.2")
-        self._write_source_package(released)
-        self._write_catalog(versions=released)
-        self._commit(self.source, "release: shiploop 0.18.2")
+        self._write_source_package(released, plugin_version="1.3.1")
+        self._write_catalog(plugin_version="1.3.1")
+        self._commit(self.source, "release: skill-craft 1.3.1, shiploop 0.18.2")
 
         receipt = self.inspect()
 
@@ -204,13 +207,23 @@ class FreshnessTests(unittest.TestCase):
         self.assertEqual("0.18.2", receipt["skills"]["shiploop"]["published"]["version"])
 
     def test_catalog_version_that_disagrees_with_the_package_fails_closed(self) -> None:
-        self._replace_catalog(versions=dict(self.VERSIONS, shiploop="0.18.0"))
+        self._replace_catalog(plugin_version="1.2.9")
 
         receipt = self.inspect()
 
         self.assertFalse(receipt["ready"])
         self.assertEqual("freshness-unverified", receipt["status"])
         self.assertEqual("catalog-version-does-not-match-published-package", receipt["reason"])
+
+    def test_a_skill_version_that_disagrees_between_source_and_the_released_copy_is_inconsistent(self) -> None:
+        self._write_skill(self.source / "skills" / "shiploop", "shiploop", "0.18.9")
+        self._commit(self.source, "source skill moved without a release")
+
+        receipt = self.inspect()
+
+        self.assertFalse(receipt["ready"])
+        self.assertEqual("unpublished-source", receipt["status"])
+        self.assertEqual("source-package-version-is-inconsistent", receipt["reason"])
 
     def test_source_and_generated_mismatch_is_unpublished(self) -> None:
         self._write_file(self.source / "skills" / "shiploop" / "references" / "guide.md", "canonical changed only\n")
@@ -253,7 +266,7 @@ class FreshnessTests(unittest.TestCase):
         improve = receipt["skills"]["improve"]
         self.assertEqual("0.2.0-rc.1", improve["selected"]["version"])
         self.assertEqual("0.2.0-rc.2", improve["source"]["version"])
-        self.assertEqual("0.2.0-rc.2", improve["published"]["catalog"]["version"])
+        self.assertEqual(self.PLUGIN_VERSION, improve["published"]["catalog"]["version"])  # the catalog row is the bundle's
         self.assertEqual(self.published_sha, improve["published"]["pin"]["sha"])
 
     def test_selected_improve_obsolete_extra_file_is_stale(self) -> None:
@@ -276,7 +289,7 @@ class FreshnessTests(unittest.TestCase):
         self.assertEqual("improve-selected-package-does-not-match-published-package", receipt["reason"])
 
     def test_duplicate_or_malformed_catalog_fails_closed(self) -> None:
-        self._replace_catalog(duplicate="shiploop")
+        self._replace_catalog(duplicate=True)
         duplicate = self.inspect()
         self.assertFalse(duplicate["ready"])
         self.assertEqual("freshness-unverified", duplicate["status"])
@@ -288,28 +301,52 @@ class FreshnessTests(unittest.TestCase):
         self.assertEqual("freshness-unverified", malformed["status"])
         self.assertEqual("catalog-is-invalid", malformed["reason"])
 
-    def test_missing_or_duplicate_improve_catalog_entry_fails_closed(self) -> None:
-        self._replace_catalog(duplicate="improve")
-        duplicate = self.inspect()
-        self.assertFalse(duplicate["ready"])
-        self.assertEqual("freshness-unverified", duplicate["status"])
-        self.assertEqual("catalog-improve-entry-is-missing-or-duplicate", duplicate["reason"])
-
-        self._replace_catalog(omit="improve")
+    def test_a_catalog_without_the_bundle_entry_fails_closed(self) -> None:
+        self._replace_catalog(omit=True)
         missing = self.inspect()
         self.assertFalse(missing["ready"])
         self.assertEqual("freshness-unverified", missing["status"])
-        self.assertEqual("catalog-improve-entry-is-missing-or-duplicate", missing["reason"])
+        self.assertEqual("catalog-shiploop-entry-is-missing-or-duplicate", missing["reason"])
+
+    def test_the_old_one_plugin_per_skill_layout_is_refused(self) -> None:
+        # One supported version: a catalog with a row per skill and no skill-craft row is not read.
+        self._replace_catalog(rows=[
+            {"name": "shiploop", "version": "0.18.1", "source": "./plugins/shiploop"},
+            {"name": "improve", "version": "0.2.0-rc.2", "source": "./plugins/improve"},
+        ])
+        catalog = self.inspect()
+        self.assertFalse(catalog["ready"])
+        self.assertEqual("catalog-shiploop-entry-is-missing-or-duplicate", catalog["reason"])
+
+        # And a repository whose released package sits at plugins/<leaf> has no plugins/skill-craft.
+        shutil.rmtree(self.source / "plugins" / self.PLUGIN)
+        self._write_skill(self.source / "plugins" / "shiploop" / "skills" / "shiploop", "shiploop", "0.18.1")
+        self._write_catalog()
+        self._commit(self.source, "old layout")
+        tree = self.inspect()
+        self.assertFalse(tree["ready"])
+        self.assertEqual("freshness-unverified", tree["status"])
+        self.assertEqual("required-package-tree-is-missing", tree["reason"])
+
+    def test_a_plugin_manifest_that_names_another_plugin_is_refused(self) -> None:
+        self._write_source_package(plugin_name="shiploop")
+        self._commit(self.source, "plugin manifest names a skill")
+
+        receipt = self.inspect()
+
+        self.assertFalse(receipt["ready"])
+        self.assertEqual("freshness-unverified", receipt["status"])
+        self.assertEqual("source-plugin-metadata-is-invalid", receipt["reason"])
 
     def test_external_or_wrong_path_catalog_source_is_invalid(self) -> None:
         git_subdir = {
             "source": "git-subdir", "url": str(self.source),
-            "path": "plugins/shiploop", "sha": self.published_sha,
+            "path": "plugins/skill-craft", "sha": self.published_sha,
         }
         for label, source in (("git-subdir", git_subdir), ("wrong-path", "./plugins/improve"),
-                              ("no-dot-prefix", "plugins/shiploop")):
+                              ("per-skill-path", "./plugins/shiploop"), ("no-dot-prefix", "plugins/skill-craft")):
             with self.subTest(label):
-                self._replace_catalog(sources={"shiploop": source})
+                self._replace_catalog(source=source)
                 receipt = self.inspect()
                 self.assertFalse(receipt["ready"])
                 self.assertEqual("freshness-unverified", receipt["status"])

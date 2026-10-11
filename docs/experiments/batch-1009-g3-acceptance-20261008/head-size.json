@@ -1,0 +1,106 @@
+{
+ "what": "Batch 1009 group G3 (acceptance): head-size effect and test record of K1, W1 (a, b, d, e), I2 and U1. Compact export of the working evidence; the audited design and its audit are exported beside it as docs/experiments/batch-1009-g3-acceptance-20261008/design-audit.json (from the session scratchpad file items2/G3-acceptance.json).",
+ "method": "shiploop graph-dry-run --scenario all --format json for --delegation inline and ask-agent (574 packets); the offset of the status block END (shiploop_navigator.STATUS_END) in each packet is what test/shiploop-status-display.test.py bounds by 8000. Base = a pristine clone at 847fa64e, change = the worktree's skills/ at U1, both at equal-length paths (/private/tmp/g9a/p0 and p1), because the packet prints script paths.",
+ "window": 8000,
+ "head_end_delta_by_kind_stage_base_to_u1": {
+  "improve:carry-forward": [
+   320,
+   320
+  ],
+  "improve:plan": [
+   404,
+   404
+  ],
+  "improve:release-plan": [
+   360,
+   360
+  ],
+  "improve:spec": [
+   439,
+   439
+  ],
+  "improve:step-plan": [
+   587,
+   587
+  ],
+  "improve:system-test-author": [
+   264,
+   264
+  ],
+  "improve:test-spec": [
+   341,
+   341
+  ],
+  "improve:test-strategy": [
+   385,
+   385
+  ],
+  "producer:discovery": [
+   57,
+   57
+  ],
+  "producer:intake": [
+   0,
+   6
+  ],
+  "producer:product-acceptance": [
+   465,
+   465
+  ],
+  "producer:research": [
+   48,
+   48
+  ]
+ },
+ "attribution": {
+  "K1": "none (the file list sits after the status block)",
+  "W1": "producer:discovery +57, producer:research +48, producer:intake +0..+6",
+  "I2": "the improve:* rows, +264 (system-test-author) to +587 (step-plan)",
+  "U1": "producer:product-acceptance +465"
+ },
+ "product_acceptance_end": {
+  "base": [
+   5004,
+   5022
+  ],
+  "u1": [
+   5469,
+   5487
+  ]
+ },
+ "largest_improve_end": {
+  "base": [
+   4043,
+   "ask-agent|two-work-items|35|improve:test-spec"
+  ],
+  "u1": [
+   4566,
+   "ask-agent|two-work-items|33|improve:step-plan"
+  ]
+ },
+ "heaviest_packet_equal_length_path": {
+  "base": [
+   7928,
+   "ask-agent|revise|20|producer:step-plan"
+  ],
+  "u1": [
+   7928,
+   "ask-agent|revise|20|producer:step-plan"
+  ]
+ },
+ "heaviest_packets_in_the_worktree_path_u1": [
+  [
+   7971,
+   "ask-agent|revise|20|producer:step-plan"
+  ],
+  [
+   7875,
+   "ask-agent|two-work-items|32|producer:step-plan"
+  ],
+  [
+   7830,
+   "ask-agent|revise|12|producer:step-plan"
+  ]
+ ],
+ "reading": "the step-plan producer in the revise scenario stays the heaviest packet and is unchanged (7971 of 8000 at the worktree path, 7928 at the equal-length path); the next heaviest stage maximum is producer:test-author at 6918; product-acceptance ends at 5487 and the largest Improve parent at 4566, so every addition sits in a stage far below the window."
+}

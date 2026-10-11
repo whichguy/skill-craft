@@ -1502,3 +1502,733 @@ read `open` there until the Run Review session refreshes them. (c) The amendment
 
 **Owner decisions.** (1) When to cut the release that carries the four notes. (2) Whether to apply the defaults upgrade to the live
 page after the template republish (re-read its expectations first).
+
+
+## 2026-10-07: R20a, the stage card: a derived catalog, the exit-check rule, the packet checklist, and the card and list on step 1 (local, unpublished)
+
+Status: firm for the definitions, the survey counts, the sizes and the tests below; interim for what a reader of the card should
+conclude from the two packet findings (they are the E2E session's to act on). Local commits `d4b848dc` (exporter, contract,
+catalog, fixtures, change note `changes/shiploop-run-review/stage-catalog-and-card-fields.md`) and `9b5e8af6` (template, tests,
+SCHEMA.md card section, change note `stage-card-and-list.md`) and this entry, on branch `rr20-ccaebb` in
+`.claude/worktrees/rr20-ccaebb`, base `origin/main` ee6712a5 (skill-craft 1.22.0 with the S-6 tenet; shiploop-run-review 0.1.1).
+No push, no `scripts/release.py`, no E2E run launched or resumed, no Artifact or ArtifactData call, nothing written under
+`/Users/dadleet/e2e-runs` (every export went to the session scratchpad with `--out`), the canonical checkout untouched. The
+template changed, so the page needs one republish, and the page database needs `config/stages` (`export.py --defaults --live`) and
+each run's re-export (`runs` documents with the new row fields; the packets) before a card shows more than sizes. (The two commits
+were first made with a reserved `recordAudit` hook for an observed read-back; the E2E session then dropped its record audit, so
+the hook was removed before anything was pushed and the commits rebuilt without it.) Related:
+`219c1de6` (R18, the `planning_review` option the rule reads), `81e0502f` (the Specify amendment that names the modes),
+`d48a0630`, `ee6712a5` (the tenet, SPEC S-6).
+
+**The owner's request** (B11 of `docs/shiploop-batch-1007-plan-2026-10-07.md`, relayed by the E2E session): for each stage visit
+show (a) what the stage was, its purpose in one line and the kind of exit check; (b) the packet sent; (c) the output written back:
+summary, result file and size, which later stage or script reads it, time, refusals and revise count; plus a read-back state per
+record (the page can show only the declared readers: the engine records no observed reads). The aim is to step through a run and see SENT, DONE, WRITTEN for every stage at a glance, and, by the main tenet (SPEC S-6:
+context is cleared between any two stages, each packet restates how its stage operates and how it is checked), to see whether each
+packet carried what its stage needed. Four refinements arrived mid-task and are built: one alias table only, resolved once; the
+checklist named with the E2E session's packet-completeness vocabulary (purpose, operates, checked, produces, recovery) plus where;
+no observed read-back and no hook for one; and a derived display name for a stage plus a `Checked by:` rule for the `checked` item.
+
+**What was built.**
+- **The catalog** `defaults/stages.json`, written by `export.py --stages` from the sibling skill's `shiploop_stage_spec.py` (loaded
+  in place, no copy), never by hand; `config/stages` in the database is its replica, written by `--defaults`. Command, not an import at
+  export time: the exporter and the page never depend on the engine's version at run time, so an export of an old run directory
+  still renders, and a test (`StageCatalogTests`) fails when the committed file differs from what the table yields. The catalog is
+  the table below.
+- **The exit-check rule** (`exit_check`, `effective_exit_check`; SCHEMA.md "Stage catalog"): `script-run` when `complete_runs` is
+  non-empty, else `review loop` when `improve` is set, else `model judgement`; under a recorded `planning_review none` the five
+  `planningChoice` stages are `model judgement`. Pinned over every engine stage and compared with the engine's own
+  `reviewed_stages` for both registered modes. No row has both a script run and an Improve rule, and a test says so, so the stated
+  precedence is not an untested guess. `carry-forward` is `review loop` for its `last-item` rule (the card says an earlier item's
+  advances directly).
+- **One alias table**, `STAGE_ALIASES` (`select-work`, `get-next-work-item`), mirrored once in the page and kept equal by a test;
+  resolved only where the phase table and the catalog are looked up, in both directions (a table that lists the new name gives the
+  old one the same phase; a catalog naming either is found under either). The engine rename is not on main; the catalog is derived
+  from whatever the table says at the base (`select-work`), and regenerating after the rename changes one name and the drift test
+  goes green. The phase-table test now compares through the alias, so it holds before and after.
+- **Row fields** (all optional, small): `summary` and `summaryTruncated`, `resultFile` (true or false), `carried`, `packetImprove`.
+  The `carried` table is `CARRIED` in `export.py`: per label, any of its rules (a rule is a set of groups of alternative patterns).
+  `checked` has two rules: the Done-when list with the Improve line, or alone a line starting `Checked by:`, which the E2E batch's
+  producer packets will print (no packet on disk has it, nothing depends on it; tests cover both rules and a mid-line mention).
+- **The page**: the tap-a-column detail is the stage card (three labelled blocks, Previous and Next unchanged), plus a "Stage cards"
+  list under the picture (one row per column, so a tap selects the same visit), with a packet head (the first 12 non-empty lines
+  of the packet document, loaded on demand by the same single `get` and cache as the Packet box). A stage is named by one derived
+  rule (`stageLabel`: hyphens to spaces, first letter upper-cased, `get-next-work-item` reads "Get next work item"; the raw name is
+  the tooltip and, when it differs, secondary text). The readers are the stage table's declared readers, worded "declared readers
+  N" or "no declared reader" in the list and "Read by (declared by the stage spec)" on the card, never "read by 0".
+
+**The engine rename, as a one-table change.** In the Run Review half the old name is written, outside tests, fixtures and history, in
+exactly these places (all counted at `9b5e8af6`): `scripts/export.py` (the `PHASES` entry, `STAGE_ALIASES`, two comments),
+`template/index.html` (the `STAGE_FLOW` entry, its `STAGE_ALIASES`, one comment), `SCHEMA.md` (two sentences of prose), and
+`defaults/stages.json` (one entry, generated). The rename does not need any of them but the last: with the alias table both names
+resolve to one phase and one catalog entry, so the whole finished branch (341 tests) passes after the engine row is renamed once
+`export.py --stages` has rewritten `defaults/stages.json`; before that exactly the four tests that compare with the committed
+catalog fail (checked on a scratch copy with only `shiploop_stage_spec.py` renamed). Optional tidy in the later commit: make the new
+name the first member of both alias groups and rename the `PHASES` and `STAGE_FLOW` entries together (the phase-table test compares
+through `stage_names(...)[0]`, so the entry and the group's first member must move in the same commit). Elsewhere the old name
+appears as history: 43 mentions in `test/shiploop-run-review.test.py` (24 at the base; 19 in the new tests, which deliberately use both
+names), one each in `test/fixtures/run-review/state-none.md` and `state-stage.md`, seven committed evidence files and the page
+snapshot, `luna1.review.json`, and this journal. None of those needs to change: the alias resolves them.
+
+**The catalog** (generated; `Readers` is the inverse of the engine's `reads`, `this item` marks `item:` reads; "none" means no
+stage declares reading it, scripts still read some of these results).
+
+| Stage | Purpose (the row's goal) | Exit check | Declared readers |
+| --- | --- | --- | --- |
+| `intake` | confirm the request, boundaries and open questions | model judgement | discovery, research, spec, plan, product-acceptance, handoff |
+| `discovery` | inspect the current repository, environment and baseline tests | model judgement | research, spec, plan |
+| `research` | resolve the unknowns that matter with evidence | model judgement | spec, test-strategy, plan |
+| `spec` | define required behavior and acceptance criteria | review loop (always; model judgement under none) | test-strategy, plan, select-work, step-plan, test-spec, implement, test-refine, document, verify, integration-verify, carry-forward, system-test-author, system-test, product-acceptance, release-plan, release-verify, handoff |
+| `test-strategy` | map requirements to the checks that will prove them | review loop (always; model judgement under none) | plan, prepare, step-plan, test-spec, baseline, test-author, regression, verify, system-test-author |
+| `plan` | build the dependency plan and the work-item queue | review loop (always; model judgement under none) | prepare, select-work, step-plan, test-spec, implement, document, skill-assess, integrate, carry-forward, system-test-author, release-plan, handoff |
+| `prepare` | ready the development and test environment | model judgement | step-plan |
+| `select-work` | confirm this work item is still the right next item | model judgement | none |
+| `step-plan` | plan this item's concrete changes and checks | review loop (always; model judgement under none) | test-spec, baseline, test-author, implement, document, skill-assess, static-checks, verify, integrate (this item) |
+| `test-spec` | specify the tests this item needs before code changes | review loop (always; model judgement under none) | baseline, test-author, test-red, implement, test-green, test-refine, verify (this item) |
+| `baseline` | record the relevant checks before any change | model judgement | regression (this item) |
+| `test-author` | write the tests the item's test spec calls for | script-run (test-probe) | test-red (this item) |
+| `test-red` | run the new tests and confirm they fail for the right reason | script-run (test-red) | none |
+| `implement` | make the planned change | script-run (lint-gate) | test-green, test-refine, document, static-checks, verify (this item) |
+| `test-green` | run the focused tests and confirm they pass | script-run (lint-gate, test-loop) | verify (this item) |
+| `test-refine` | tighten the tests against the actual implementation | script-run (test-rerun) | none |
+| `regression` | rerun the retained suites for regressions | script-run (lint-gate, test-loop) | verify (this item) |
+| `document` | update the documentation this change affects | model judgement | none |
+| `skill-assess` | decide whether a reusable skill or helper change is warranted | model judgement | skill-validate (this item) |
+| `skill-validate` | validate any skill or helper change against real inputs | model judgement | none |
+| `static-checks` | run formatting, lint, type and build checks | script-run (quality-terminal, test-rerun) | verify (this item) |
+| `verify` | verify the item against its acceptance criteria | script-run (test-rerun) | integrate (this item) |
+| `integrate` | integrate the candidate into the working branch | model judgement | integration-verify (this item) |
+| `integration-verify` | verify the integrated result and shared interfaces | script-run (test-rerun) | carry-forward (this item) |
+| `carry-forward` | record lessons and revise the remaining queue | review loop (last-item) | none |
+| `system-test-author` | prepare end-to-end and system tests | review loop (always) | system-test |
+| `system-test` | run end-to-end and system tests on the real candidate | script-run (test-rerun) | product-acceptance, release-plan |
+| `product-acceptance` | assess the product against the original outcome | model judgement | handoff |
+| `release-plan` | plan the release, rollback and checks | review loop (always) | release-check, release, release-verify, operations |
+| `release-check` | confirm release readiness without releasing | model judgement | release |
+| `release` | perform the planned release | model judgement | release-verify |
+| `release-verify` | verify the release where consumers use it | script-run (test-rerun) | operations, handoff |
+| `operations` | confirm monitoring, recovery and support readiness | model judgement | handoff |
+| `handoff` | write the final handoff with status and evidence | model judgement | none |
+
+Classes: 11 `script-run`, 8 `review loop`, 15 `model judgement`. Seven stages have no declared reader (`select-work`, `test-red`,
+`test-refine`, `document`, `skill-validate`, `carry-forward`, `handoff`): the card says "no stage declares reading it", which is the
+stage table's statement, not an observation (the engine records no observed reads).
+
+**The packet survey** (question: which lines does a packet carry, in every engine era I can read, and do they differ?). Cases:
+every packet set under `/Users/dadleet/e2e-runs/*/*/.shiploop-runs/*/run/packets` (read only), 15 run directories, 493 files, ShipLoop
+1.16.1, 1.18.0, 1.19.0, 1.20.0, 1.21.0 and 1.22.0 (and a 1.22.0 development audit run). Method: `export.carried_markers` over each
+file, `IMPROVE_PACKET` first; no model, no network. Result:
+
+| Run directory | Files | Improve child's | Producer, all seven | Producer, all but inputs (intake) | Other shape |
+| --- | --- | --- | --- | --- | --- |
+| `20261003/battleship-luna` | 7 | 3 | 2 | 1 | 1 |
+| `20261003/hello` | 36 | 8 | 26 | 1 | 1 |
+| `20261003/seat-reservations` | 37 | 8 | 27 | 1 | 1 |
+| `20261003/v1161-battleship-luna` (the Luna 1.16.1 run, `luna1`) | 40 | 9 | 29 | 1 | 1 |
+| `20261003/v1161-hello` | 36 | 8 | 26 | 1 | 1 |
+| `20261004/v1180-hello-sonnet` | 35 | 8 | 25 | 1 | 1 |
+| `20261004/v1190-hello-sonnet-2` (`hello-1190b`) | 48 | 11 | 35 | 1 | 1 |
+| `20261004/v1190-hello-sonnet` | 35 | 8 | 25 | 1 | 1 |
+| `20261004/v1200-battleship-luna` | 4 | 0 | 3 | 1 | 0 |
+| `20261004/v1200-hello-sonnet` | 36 | 8 | 26 | 1 | 1 |
+| `20261005/v1210-battleship-grok-medium` | 12 | 5 | 6 | 1 | 0 |
+| `20261005/v1210-battleship-luna-xhigh` | 24 | 7 | 16 | 1 | 0 |
+| `20261006/gas-battleship-audit` | 43 | 8 | 34 | 1 | 0 |
+| `20261006/v1220-battleship-grok-medium-none` | 53 | 3 | 48 | 1 | 1 |
+| `20261006/v1220-battleship-sonnet` (`battleship-1220`) | 47 | 10 | 35 | 1 | 1 |
+| total | 493 | 104 | 363 | 15 | 11 |
+
+- *Firm.* Every packet of an accepted producer visit carried all seven labels in every era, `inputs` aside on `intake` (it reads
+  nothing). The "other shape" file of a run is the packet of the action after the last accepted visit (the final `done` state or the
+  state a blocked run stopped in), which belongs to no visit. The one wording that differs by era is the blocked_by sentence: `A
+  blocked result adds blocked_by: ...` through ShipLoop 1.21.0, the `blocked: {"outcome": "blocked", "blocked_by": ...}` shape line
+  from 1.22.0 (`e07e44d1`, 2026-10-04); the sentence that a problem the run can fix itself is repaired in the stage is in both.
+  `Goal:` and `Done when (` exist in every era, so the "stage's step line" alternative for `purpose` is only the implement packet's
+  `Step S1 (1 of 3)` line, which both eras that have implement packets print.
+- *Firm, and the finding that matters.* A packet file is rewritten at every printing of its action, so a visit that started an
+  Improve child keeps only the child's last packet: 104 of 493 files (21%), 10 of 46 visits of the 1.22.0 Sonnet run (spec,
+  test-strategy, plan, step-plan twice, test-spec twice, system-test-author, release-plan, carry-forward) and 9 of 39 of the Luna 1.16.1
+  run. They are the reviewed planning stages, which is where the tenet matters most, and no export can say whether their producer
+  packet carried what the stage needed. The exporter marks such a file `packetImprove` (its first lines are "Current action: Improve
+  the completed ..."), reads no label from it and says so on the card; it also labels the file's size as the Improve child's.
+  Recommendation to the E2E session: keep one packet file per printing, or at least the producer's first printing.
+- *Firm.* No packet on disk has a `Checked by:` line (the E2E batch branch will print one); the `checked` item is found by the old
+  pair of markers in all 378 producer packets, and by the new line when a later engine prints it.
+- *Firm.* Per-visit refusals are not recorded: `metrics.json` `shiploop_failures` entries carry `verb`, `exit` and `line`, no action
+  id (Luna 13 entries, the 1.22.0 Grok none run 2, the 1.22.0 Sonnet run measures none and says so). The card prints "not recorded per
+  visit" and the run-level figure labelled as such; nothing is attributed to a visit.
+
+**What the page showed** (a local `python3 -m http.server` on 127.0.0.1 over a copy of the template with a viewport meta (the host
+adds one to an artifact) and a fake `window.claude.use("db")` over the committed snapshot, the defaults and the real re-exports of
+`luna1`, `hello-1190b` and the 1.22.0 run (key `battleship-1220`, order 15), packet documents served by `get` on demand; the tab and the
+server are closed). At 375 px in the light and the dark scheme, `scrollWidth` 375: the Stage cards list reads each visit as a row
+(number and name, outcome chip, exit-check chip, the purpose in muted text, then minutes, sent, written and read-by as separate
+spans); the card of a `step-plan` visit (an Improve child's packet) shows the exit check "review loop", "Packet file kept (the Improve
+child's) 52 KB" with the note and no checklist, "Revises of this item 1", "Improve 1 pass, 0.02 min"; the card of an `implement` visit
+shows seven ticks, then after "Show the packet head" the first 12 lines (for an inline run most of them are the delegation preamble:
+see the decision below), and with one label forced false in the page a red cross with the glyph; `intake`'s `inputs` shows a muted
+dash (not applicable); the old hello 1.16.1 row of the snapshot shows its packet size, "not recorded in this export" and a result
+file, with no zero. A second look after the display-name rule: "System test author" with its raw name `system-test-author` beside it in the list and in
+the card title (the raw name stays in one piece on a narrow screen). The render changed four things: the minutes moved into the figures
+line (they wrapped alone); the host's long refusal reason (repeated on every card) became "the reason is on the Refusals card";
+"read by 0" became "no declared reader" (a bare zero would read as an observed count); and the raw name no longer breaks at a hyphen.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: 341 OK (278 at the base; 300 after `d4b848dc`: `StageCatalogTests` 8,
+`StageAliasTests` 2, `CardRowFieldsTests` 12; 341 after `9b5e8af6`: `StageCatalogPageTests` 5, `StageCardLogicTests` 15,
+`StageLabelTests` 3, `StageCardListTests` 4, `StageCardPageTests` 9, `PacketHeadTests` 5). Fail-first, against a `git archive` of
+ee6712a5 outside the repository with only the test file and the three fixtures copied in: 70 fail, 61 of the 63 new tests and
+nine existing tests that pin what changed (the phase-table test, the defaults and upgrade tests, the usage message, one stage-row
+equality, and three page assertions that now read the label); the two new tests that pass are labelled guards (the committed
+evidence still validates without any card field; the page has one packet fetch path). Against the tree of `d4b848dc` 41 page
+tests fail: 38 of the 41 new page tests and the three changed page assertions (the three new ones that pass there are the fetch-path
+guard, the keys-pinned-to-the-exporter check and the skipped-group guard). 27 deliberate defects, each on a copy and all caught:
+precedence swapped; Improve packets read as producer; `carried` read from the cut document; the mode ignored in the exporter and in
+the page; the alias dropped from either lookup; the summary uncut or set as markup; `resultFile` always true; the catalog edited by
+hand; readers keeping the `item:` prefix; refusals or a missing size printed as zero; the head loaded without a tap; the `inputs`
+cross on `intake`; the checklist shown for an Improve packet; the `Checked by:` rule removed or matched mid-line; the label not
+upper-cased or keeping its hyphens; the card title raw; the raw name shown for every stage; a zero reader count worded as a count;
+the list row without its tooltip. Also green: `node test/skill-frontmatter.test.js` (22 skills), `test/test-groups.test.py` (21),
+`test/marketplace-package.test.py` (29), `scripts/check-release-boundary.py --base origin/main` (both change notes accepted).
+`test/shiploop-e2e.test.py` was not run: nothing under `test/shiploop_e2e` changed.
+
+**Sizes.** The template grows from 127,259 to 148,794 bytes (+21,535). The committed evidence files are NOT re-exported (the
+instruction was to do so only if the new fields are small): re-exporting the five would take them from 60,562 to 137,091 bytes
+(+76,529; each stays under the 200,000-byte limit), summaries being 52,575 of the 77,057 bytes of new field text (68%), `carried`
+17,115 (22%), `resultFile` 3,724, `summaryTruncated` 2,675 and `packetImprove` 968. The exports for the page's draft database are in the
+session scratchpad: `luna1` 35,889 bytes with 39 packet documents, `hello-1190b` 34,645 with 47, `battleship-1220` 29,258 with 46
+(`export.py --check` passes on each; byte-identical on a second run). Every run document of the five old files differs from a fresh
+export only by the new fields and the R18 `planningReview: not recorded`, and the page reads the old files unchanged.
+
+**Limits, documented not guarded.**
+- The head is the literal first 12 non-empty lines of the packet file. For an inline run the file starts with a seven-line delegation
+  preamble, so the head ends at the progress line and does not reach `Goal:`; the ticks say the goal is there. Starting the head at the
+  `ShipLoop navigator |` line (the part the engine prints) would show Goal, Done when and the callback in the same twelve lines: a
+  one-line change in `packetHeadLines`, not made because the instruction said first twelve lines.
+- The checklist reads wording, so a packet that restated an item in other words reads as a cross; it says what the text lacks, not what
+  the model needed. The patterns were checked on 493 files of six releases, not against a future wording.
+- `exitCheck` classes the stage by the row's fields and the mode, not by what the visit did: a `carry-forward` visit that is not the
+  last item is `review loop` in the catalog with its `last-item` note, and the visit's own `improve` figures show whether a child ran.
+- The declared readers are the stage table's, not observed, and the engine records no observed reads; the card never says "read".
+  The stage table declares stage readers only (ShipLoop's scripts read results too), and a later record register may change what
+  the card should say about them.
+- A skipped visit has a card (no packet, no checklist) and a seeded one says it was not run; a collapsed run of skipped visits keeps the
+  old lines.
+
+**Owner decisions.** (1) Re-export the five committed evidence files (+76.5 KB, mostly summaries), or keep them as history and let the
+page read them without the fields (chosen here: kept). (2) Start the packet head at the progress line instead of the first line.
+(3) Ask the E2E session to keep one packet file per printing so the producer packet of every reviewed stage can be read (104 of 493 files
+are an Improve child's today). (4) Republish the template, then upload `config/stages` and the three scratch exports (never over the
+hand-built `luna1-plan` and `luna1-step-plan` backchain documents). (5) The later rename commit: regenerate `defaults/stages.json`;
+flipping the alias order and the two phase-table entries is optional.
+
+
+## 2026-10-07: R21, the rename half, two packet files per visit, the packet head and the real new layout (local, unpublished)
+
+Status: firm for the definitions, the merged-tree results, the real-layout check, the sizes and the tests below. Local commits on
+`rr20-ccaebb` on top of the R20a commits: `38e72e66` (the rename half, **atomic with the engine's `bf958708`**), `97dc44ef` (the exporter
+reads two packet files per visit, SCHEMA.md, change note `improve-packet-document.md`), `5cd2477d` (the page, change note
+`stage-card-improve-packet-and-head.md`) and this entry. No push, no `scripts/release.py`, no E2E run launched or resumed, no
+Artifact or ArtifactData call, nothing written under `/Users/dadleet/e2e-runs`; the canonical checkout and `batch1007-68672e` were only
+read (`git show`, no checkout). One throwaway worktree and branch (`rr21-merge-919215`) held the merge test and are removed. The
+E2E branch's commits read: `bf958708` (stage `select-work` is now `get-next-work-item`, a run saved under the old name is refused),
+`3e715dce` (record register), `bc1d6452` (an Improve child's packet gets its own file) on top of `44427a98` (every packet says how its
+result is checked: a `Checked by:` line). Related: `d4b848dc`, `9b5e8af6`, `bde62009` (R20a), `ee6712a5`.
+
+**(a) The rename half.** In the throwaway merge of `rr20-ccaebb` with `batch1007-68672e` (no conflicts: the E2E branch touches nothing
+under `skills/shiploop-run-review`), the unchanged suite failed exactly four tests, all comparing the committed catalog with the engine's
+table (`StageCatalogTests`: the drift test, the stages-command test, the defaults-document test and the upgrade-note test). Changes, one commit:
+`defaults/stages.json` regenerated with `export.py --stages` (one line differs); `PHASES` and the page's `STAGE_FLOW` list the new name;
+`STAGE_ALIASES` is `(("get-next-work-item", "select-work"),)` in both, the engine's name first and canonical, with a comment saying the old
+name is history of ShipLoop 1.22.0 and earlier; SCHEMA.md says so; the test file's current-run fixtures use the new name (`IDS`, `ACCEPTS`,
+the plan rows, the card and list fixtures, the skipped and seeded tests, the planning-review accepts), the old name stays where a test is
+about old evidence (the alias tests of both sides, a label test, a list-row test and a card test of each name) and one new assertion pins that
+it is in no `PHASES` entry; the two genuine 1.22.0 state fixtures take the engine's current stage name in their one history row, since
+ShipLoop now refuses the old one. Results: on the merged tree 341 tests OK; on `rr20-ccaebb` alone exactly the four catalog tests are red
+(341 run, 4 failures), by design, against the old engine. The commit was made on the merge branch and cherry-picked onto `rr20-ccaebb`
+(it applies cleanly to both). **Where the old name is left** at `5cd2477d`, outside history: `scripts/export.py` 2 (a comment and the alias
+table), `template/index.html` 2 (the same), `SCHEMA.md` 2 (the alias paragraph), `test/shiploop-run-review.test.py` 18 (all of them
+alias or old-evidence tests; 43 before), the two fixtures and `defaults/stages.json` 0. History untouched and still rendering through the alias:
+the five committed run exports, the page snapshot, `luna1.review.json`, the journal and the change notes.
+*Found on the merged tree (not ours):* `scripts/check-release-boundary.py --base origin/main` fails there because `bf958708` changes
+`skills/shiploop-e2e-audit/harness/behavior_capture.py` and `dag_replay.py` with no `changes/shiploop-e2e-audit/*.md` note and no
+`No-Change-Note:` trailer; the E2E session must add one before merging. `rr20-ccaebb` alone passes the check.
+
+**(b) Two packet files per visit.** After `bc1d6452` `packet_path` writes an Improve child's printings to `packets/<action>-improve.md` and
+leaves the producer packet in `packets/<action>.md`. The exporter now tells a visit's layout by its own files. *New layout:* a `-improve.md`
+beside the producer file. The producer file is the packet that was sent, so `carried` is read from it with no Improve test (a producer
+file that merely mentions the Improve line stays a producer's), the row gets `improvePacketBytes` and, when readable, `improvePacketDoc`
+true, and a second packets document `<runKey>--<action>-improve` is written with `kind` `improve` (the producer's document has no kind).
+*Old layout* (ShipLoop 1.22.0 and earlier): no `-improve.md`; a visit whose one file is the child's keeps `packetImprove` and no checklist,
+documented as old-layout history; one run may hold both layouts, visit by visit. An unreadable Improve file keeps its size, writes no
+document and is counted; an Improve file with no producer file is not a skipped visit. `facts.md` counts both.
+*Real-layout check, no model:* the harness's seed pattern (the navigator walking the graph on synthetic results, with `navigator.emit`
+printing each packet), run on the merged tree's engine in a scratch directory, wrote 7 visits up to the first inner stage and an
+`-improve.md` for each of the three reviewed ones (spec, test-strategy, plan); exported, those three visits have `improvePacketDoc`, all
+seven checklist labels found (`inputs` aside on intake) and no `packetImprove`; the documents are 10 (7 producer, 3 improve; producer
+packets 26.4 to 52.2 KB, Improve files 19.6 to 24.1 KB because only the first printing was made: the file is overwritten at each printing, so
+a real run keeps the last, and the old layout's last printings were 44.8 to 55.5 KB in the 1.22.0 run). The same seed on the old engine
+(this branch alone) leaves one file per visit and reads `packetImprove` on those three. `ImprovePacketLayoutTests.test_the_checkouts_own_
+navigator_writes_the_layout_the_exporter_reads_for_every_reviewed_stage` runs that seed in a temporary directory and asserts whichever
+layout the checkout's engine writes, so it is green on both trees; it fails on the merged tree before this change. **No real run of the new
+layout exists yet, and none is committed:** the five committed exports are runs of ShipLoop 1.16.1 to 1.19.0, the 1.22.0 run and the others
+re-exported for the draft page are old layout, and the synthetic run's export (`export/synthetic-new-layout`, order 99) is for looking at the
+card, not for the live page. The upload cost of a reviewed visit rises by the Improve document (about 45 to 55 KB of packet text each in a
+real run, within the 150,000-byte cut); the packets still go in `ArtifactData` batches of at most 50 documents and 1 MiB.
+
+**(c) The packet head** starts at the first line beginning `ShipLoop navigator |` (the engine's own printed head, after the inline run's
+delegation preamble) and takes 12 non-empty lines from there, so Goal, Done when, Checked by and the callback show; with no such line it
+falls back to the first 12 non-empty lines; a mention of the phrase mid-line does not count; the caption says which start it used.
+**(d)** SCHEMA.md points to the E2E session's record register of 2026-10-07 as the place where record kinds are classified and says the
+contract does not copy its classes (the register is prose, a hand copy would drift); the card's "declared by the stage spec" is unchanged.
+**(e)** The scratch exports were refreshed from the merged tree into
+`/private/tmp/claude-501/-Users-dadleet-src-skill-craft/8ee9a7a0-b6e5-4ea7-af94-1c3edde60d84/scratchpad/rr21/export/<key>/` (`luna1`, `hello-1161`,
+`hello-1180`, `hello-1190a`, `hello-1190b`, `battleship-1220`, and `synthetic-new-layout`) with `defaults/` holding `config/stages` (34 entries,
+`get-next-work-item`); a second export of each from the merged tree is byte-identical to the branch's, `export.py --check` passes, and the old
+runs still carry `select-work` rows that resolve through the alias.
+
+**What the card shows for a new-layout visit** (seen in a local server over the template at 375 px, light and dark, `scrollWidth` 375; no
+Artifact call; tab and server closed): "Packet size 51 KB" (the producer's), "Improve child's packet file 23.6 KB", seven ticks from the
+producer packet, the head opening at "ShipLoop navigator | plan | revision 7" with the callback line, the Packet box, and a second closed
+"Improve child's packet" box that, opened, did one read of its own document and showed its size and digest. A 1.22.0 `spec` visit (old layout)
+still says its packet file is the Improve child's and has one box.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: **363 OK on the merged tree** (278 at the R20a base `ee6712a5`, 341 after the rename
+commit, 353 after the exporter commit with `ImprovePacketLayoutTests` 12, 363 after the page commit with `ImprovePacketCardTests` 7 and
+`PacketHeadStartTests` 3); on `rr20-ccaebb` alone the same 363 run with exactly the four catalog tests red. Also green on the merged tree:
+`node test/skill-frontmatter.test.js` (22), `test/test-groups.test.py` (21), `test/marketplace-package.test.py` (29); on `rr20-ccaebb`
+`scripts/check-release-boundary.py --base origin/main` passes (the three change notes accepted). Fail-first, against a `git archive` of the
+tip before each commit with only the test file copied in: the exporter commit, 9 of its 12 new tests fail on `38e72e66` and 10 of 12 on the
+merged starting tree (the real-engine test fails there as it should), the three that pass on `38e72e66` are labelled (two guards, and the
+real-engine test, a guard of the old layout on the old engine) plus the one facts assertion that pins the changed line; the page commit, 8 of
+its 10 new tests fail, the two that pass are labelled guards (one fetch path; one box without the second document). 10 deliberate defects,
+each on a copy of the merged tree, all caught: the old-layout test applied to a new-layout producer file; the Improve document never written
+or without `kind`; an Improve-only visit read as skipped; the Improve size not recorded; `improvePacketId` ignoring the flag; the head
+ignoring the navigator line or matching it mid-line; the Improve box loading without a tap or shown without a second document.
+
+**Sizes.** The template 148,794 to 150,592 bytes (R20a: 127,259). The committed evidence files are unchanged.
+
+**Owner decisions.** (1) The committed-evidence question is unchanged by R21: the five exports are old layout and old name (history, rendered
+through the alias and the old-layout mark); re-exporting them only adds the R20a fields (+76.5 KB, mostly summaries), so keep them until a
+real new-layout run exists and commit that one. (2) The E2E session needs a `changes/shiploop-e2e-audit` note (or a trailer) for `bf958708`
+before its branch passes the release-boundary check. (3) Upload: `config/stages` first (the new name), then each run's `runs` document; never
+the synthetic run to the live page; the Improve packet documents add one document per reviewed visit of any new-layout run.
+
+## 2026-10-09: R22c, the findings layer for the runs of 2026-10-07 and 2026-10-08 (local, unpublished)
+
+Status: firm for every status, number and commit below (each checked against git log of origin/main, the release commits, the
+committed analyses or the run folders through a committed extract); interim where a line says `Inferred:`. Local commits on branch
+`rr22c-eed87d` (worktree `.claude/worktrees/rr22c-eed87d`, from origin/main `1854938b`, rebased onto `923a3bd6` before the first commit):
+`04874306` (findings and options), `c258c19d` (stale Luna statements), `078ea087` (expectation-change options) and this entry with the
+two run reviews. No push, no `scripts/release.py`, no E2E run, no Artifact or ArtifactData call, nothing written under
+`/Users/dadleet/e2e-runs`; the exporter, SCHEMA.md, SKILL.md and the template are untouched (R22a/R22b own them in another worktree).
+Every commit passes `scripts/check-release-boundary.py --base origin/main` with a `No-Change-Note` trailer (no skill file changed).
+
+**Sources.** The synthesis objects only (never the lens `reports`): `docs/experiments/batch-1009-round1-analysis-20261008/analysis.json`
+(round 1 candidates), `batch-1010-round2-round3-analysis-20261008/round2-analysis.json` (batch-3 scorecard, cost finding, candidates,
+round-1 status) and `round3-analysis.json` (batch-4 scorecard, loop-done check, R3-1 to R3-11, remaining known limits);
+`test/shiploop_e2e/LEARNINGS.md` 'Round 1', 'Rounds 2 and 3' and 'Correction of 2026-10-09' (`923a3bd6`). The run folders were read
+through `docs/experiments/run-review-r22c-20261009/collect.py`, which writes `figures.json` (planning blocks, graph-check receipts, skipped
+skill visits, narrative counts, r2's host split, r3's open visit, a replay of the credential screen on the submitted lines, and a read-only
+re-collect of the Luna run); the tests read that file, never the run folders. Page keys are the folder names.
+
+**What the bundles hold now.** `general.review.json`: findings o45 to o80 (36: 19 open, 13 fixed, 4 accepted; of the open, 5 broken,
+13 bent, 1 not rated on purpose, o68), options a27 to a91 (65: fix-shiploop 26, accept 20, gather-evidence 7, fix-harness 6,
+change-expectation 6; open 43, done 20, built 2; 17 recommended, at most one per finding), 10 figures. `r3-battleship-sonnet.review.json`
+and `r3-battleship-grok-none.review.json`: one review each (a five-line arc; basis lines for P1, P2, P3, P4, P5 and B2, and P1, P2, P4,
+P5, P6 and B2, each citing the run's record or an open finding). Derived chips: Sonnet P1, P2, P4 hold, P3 and B2 bent, P5 broken; Grok
+P1, P2, P4 hold, B2 bent, P5 and P6 broken; the rest not examined (no Backchain loop ran, so B1, B3 to B5 have no basis). Every
+bundle passes `export.py --check` with exit 0; the only warning in any new document is o68 (the owner's choice, never exercised).
+`luna1.review.json`: o34 and o40 fixed, a21 and a17 done, a23 built, o41 and a09 marked, each with a dated mark after the old text.
+
+**Statuses verified, and where they differ from the brief.** Fixed since 1.23.0 and verified in a later round (each a done option with the
+commit): A2 (`62b6ac89`, `6049ae17`, 1.26.0), A3 with N1 (`1b9918ab`, `bd3785cb`; `4fc3b3b8`), A5 (`53ab8b78`; its refusal never fired),
+A6 (`f1329599`, `ab01b29a`; the launch refusal never fired), H1 (`c7a8187d` to `4e656d23`), R1 (`e39160ae`, `3bac0b19`, `55bee172`),
+R2 (`8eb93c21`), U1 (`b3a8e3f1`), S1 (`84d4d9da`), K1 (`3a7bc9f4`), B1a (`0d7a35dd`), W1 (`2b2f4513`), I2 (`1f5006e7`), BC1's packet
+text (`4c2a8a98`, `cc705b9d`). Built but never exercised live, so their findings stay open: A1 (`178b514c`), F1 (`e4435c85`). Open on
+origin/main: R3-1 to R3-5 (the stage-spec and navigator strings are unchanged since `200c32ce`). Luna review: a21's Done when was checked
+today (13 failures, 0 generic tails, 13 own lines on a re-collect with this checkout's harness), so a21 is done, not built; a17 is done
+(1.21.0, and the one-pass loop was seen live on Luna xhigh 1.21.0), the brief said shipped; a09's live republish is **unknown** (journal
+entries R16 to R21 each leave the template republish to the owner, and this increment made no Artifact call).
+
+**Where the evidence disagreed with a stated claim.** (1) X1: the audit inferred that CSS hex colours trip the credential screen. The replay
+says no: r3's refused line carries 7 hex colours and is flagged only for "Signature: the grid reads as an instrument" (`_KEY_VALUE_SECRET`
+matches "Signature: the"); without the label it passes, and r2's flagged line has no hex colour. Inferred: the label comes from the Grok
+host's frontend-design guidance that r2's spec cites. (2) "35 minutes of Chrome debugging inside implement" (LEARNINGS 'Rounds 2 and 3' and
+the round evidence) is the resumed session's length (2114.2 s); the open implement visit is 27.1 min (1626.6 s, 104 turns) and browser work
+began 490 s into the session, when that visit opened. (3) The round evidence's `planning_minutes` is a second definition: for round 1 it is
+the harness's stage seconds from intake to prepare (1,308 s for Grok, 268 s for Sonnet Battleship); metrics.json's planning window runs to the
+first accepted test-spec on the engine clock (Grok 23.3, 15.7, 23.2 min; Sonnet 4.8 to 7.0). Filed as o70 for the E2E session. (4) The brief's
+Sonnet 4.9 for r3 Battleship is 291 s; the harness prints 4.8, and so does the bundle. (5) r2-battleship-grok-none is mixed host (the E2E
+session's correction, `923a3bd6`): Grok accepted visits 1 to 31 (9 to 31 with no harness after the first harness ended at 855 s), Claude
+Sonnet 5.5 accepted 32 to 52 from 01:06:43Z, 32.2 minutes after the harness ended; its planning window (visits 1 to 10) is Grok's on the
+engine clock, its tokens and cost are not.
+
+**The three LEARNINGS corrections and the page's own claims.** A grep of every committed review bundle, the page snapshot, the template,
+the defaults, SKILL.md, SCHEMA.md, the advice rubric and this journal for "asleep", "caffeinate", "SIGTERM", "pkill", "plugin-dir",
+"about:blank", "Chrome" and "display" found none of the three corrected claims (every "display" is CSS or a display name). So no page claim
+needed a superseded finding; the corrections appear as engine or harness findings: the SIGTERM cause in o47, the resume line without
+`--plugin-dir` in o74 (unfixed on origin/main: `resume_command` adds it only when the command line gave one), and the withdrawn
+explanation is stated nowhere (a test holds it so, on its precise phrases). The Chrome findings say "Grok host".
+
+**Not included, on purpose.** What the synthesizer dropped (round-1 X1 as stated, B7, B8, R3-11); round-1 P1, D1, D2, R3 and S2 (did not
+recur or are folded into a later candidate); the document-only R3-8, R3-9, R3-10, B3, B6, B10, L1 and U2, except where they explain a kept
+finding. v1230-battleship-sonnet has no review (the E2E session regraded it; it appears only in figures.json).
+
+**Not verified.** That r3-checkers-sonnet's release-verify default-port answer came from another listener (the round-3 analysis infers it;
+o47 says so); the source of the 'Signature:' label (inferred); whether the live page shows the v2 exports (a09); the cause of the Grok host's
+Chrome failure (unproven; o71's first option is the probe that would settle it).
+
+**Tests.** `test/shiploop-run-review.test.py`: 375 tests OK (363 at `923a3bd6`). New, in one block after the bundle classes,
+`RoundRunFindingsTests` (12): every bundle passes `--check` and warns only on o68; ids unique across bundles and continuous from o45 and
+a27; every `runs` key is a run folder and every criterion a default key (or a key the option proposes); fixed findings cite their commit
+in a done option and every done or built option has a ref; no bundle states the withdrawn explanation and the Chrome findings name the
+Grok host; the figures equal the analyses' and the extract's numbers; the credential finding names the trigger the screen's replay shows;
+a prompt for two new options (and each live option alone, and the first two page changes) stays within the size contract and names no
+unticked option; the stale Luna statements carry their marks and evidence; the phase changes keep the current text and the owner's
+sentence; the new criteria validate as expectations documents in the SPEC's words for clauses no criterion carries; the two reviews ground
+every basis line and derive the chips above. Changed, to follow the data: three `GeneralReviewBundleTests` assertions (the bundle is no
+longer two documents) and the `LunaReviewTests` warning list (o34 no longer open). Fail first: on a `git archive` of `923a3bd6` with only
+the test file and the extract copied in, all 12 new tests fail (10 failures and 4 errors across 12 tests and 2 subtests: the new bundles
+and marks are absent there).
+
+**Open for the owner.** Tick or drop: a87 (phase-2, keeping "there is no limit to this"), a88 (phase-4), a89 to a91 (P7 for S-14, which
+shares its key with the Luna review's open S-14 option: tick one; P8 for S-15; P9 for S-3), and a65 (a SPEC carve-out for the refused-run
+cap, only if the cap stays). The E2E session's items: a75 and a77 (resume host and plugin directory), a68 (one planning figure per run),
+the X1 decision (a79 recommended), and the round-3 text batch (a27, a29, a31, a34, a37). Publishing needs the R22a/R22b exporter first.
+
+
+## 2026-10-09: R22a, how a run ended: stopped, blocked, left behind, hosts, and the stale statements (local, unpublished)
+
+Status: firm for the definitions, the real-data results, the sizes and the tests below. Local commit on `rr22-940ad8` in
+`.claude/worktrees/rr22-940ad8`, base `origin/main` `1854938b` (skill-craft 1.26.0, shiploop-run-review 0.1.2; the shiploop-run-review
+change note `changes/shiploop-run-review/run-ending-hosts-blocked-left-behind.md`). R22b follows as its own commit. No push, no
+`scripts/release.py`, no E2E run launched or resumed, no Artifact or ArtifactData call, nothing written under `/Users/dadleet/e2e-runs`;
+the canonical checkout and every other worktree were not touched, no process was signalled, and no test imports or calls
+`test/shiploop_e2e/listeners.py`, `lsof` or the reaper (the exporter only reads `left_behind` from result.json). Related: `f1329599`
+(the harness reaps listeners and records `left_behind`), `3b2c42b2` and `dc1edbbb` (a signal ends the hosts and is recorded as a requested
+stop), `2b2b4d18` (the operator contract names them), `200c32ce` (1.26.0), R21 `38e72e66`, `97dc44ef`, `5cd2477d`.
+
+**The audit, re-verified against the real files** (11 runs, ShipLoop 0.54.0 to 0.58.0). Confirmed: r3 Grok is state `active`, `process.status`
+`stopped`, `termination.resume_stop` "stopped by .../stop", unaccepted stage `implement`, an `incomplete` metrics row of 1626.6 s, 104 turns
+and 128 tool calls and its packet file on disk (`wallMin` 36.5 omits those 27.1 minutes); r2 Grok has three invocation files (the original,
+a Claude resume and a Grok resume) and its visits 10 to 31 read `calls 0` while visits 1 to 9 carry Grok peaks beside Claude's 1,000,000
+window; r1 Grok and v1230 Grok are blocked with `blocked_by` and `awaiting` on the last result and `status_reason` in state.md; r3 Grok
+reaped node `:64332` (the worktree) and headless Chrome `:64335` (the work folder), r3 Sonnet reaped node `:3471` and `:3000`; r1 Grok, v1230
+Grok and r3 Grok have `worktree_checks` 4/4 against `checks` 0/4; every producer packet of all 11 runs carries a `Checked by:` line (the
+one file per finished run without it is the `done` state's). One correction to the brief: `awaiting`, `blocked_by` and `headline` are not in
+result.json; they are in the last visit's result record (`results/<action>.md`), and the reason is state.md's `status_reason`.
+
+**What was built.**
+- *Stopped (gaps 1 and 2).* `status` takes the value `stopped` when the engine's status is `active` and result.json's
+  `termination.process_status` (else `process.status`) is `stopped`, `timeout`, `failed` or `exited`: the engine cannot say its host went away,
+  the harness can. A regrade (`not observed`) never makes a run stopped; blocked, paused and done keep the engine's word; no result.json reads
+  `active` as before. The current phase's state is `stopped` (`derive_phases` pins it apart from `running` and `blocked`); the header time
+  reads "stopped after 36 min, then 27 min of unaccepted work". `ending` (SCHEMA.md "How the run ended") holds `by` (the harness's own
+  words, the stop file's absolute path replaced by its name), `stage`, `unacceptedMin` and `unacceptedTurns` from the `incomplete` row (absent,
+  never 0, when the row has no timing), the packet issued for that stage (`action`, `packetBytes`, and a `packets` document), this
+  invocation's `sessions` and `resumes`, and `earlier` terminations. It is written only when there is something to say (stopped, an unaccepted
+  stage, a resume, an earlier termination), so a one-session run has none. The page: a "How it ended" card under the header, a hatched
+  chevron "stopped by the harness" (the blocked one now reads "blocked here"; the key under the chevrons says both), and a hatched
+  `U` column at the end of the picture outside the visits and the scale, with its own detail, packet head and a row at the end of the stage
+  cards.
+- *Hosts (3, 4).* `hosts` lists every distinct host, model and effort from `invocation.json` and each `invocation-resume-<host>-<time>.json`
+  (ordered by that time). With more than one, `calls`, `contextPeak`, `contextWindow`, `compactions` and every visit's `context` are absent,
+  each with the reason "2 hosts ran this (...): the harness mixes their events in one figure, so it is not a measure". A visit whose row
+  counts no model call has no `context` (a peak beside "0 calls" was another host's); the page's `contextOf` applies the same rule, so an
+  export already in the database stops printing "0 calls" too. The page shows a chip "resumed on <model>".
+- *Blocked, left behind, unreturned product (5, 6, 7).* `blocked` {by, reason, headline, question, options, noDefault}; `leftBehind` {observed,
+  reason?, reaped[], survived[]} with entries {command, ports, where, endedBy}, no pid, argument list or absolute path, `where` read from the
+  path's components (worktree, work, other); `verdicts.worktreeChecks`. The card words the pair: "passes its checks in the worktree; the copy
+  in the work folder fails them because nothing was returned there". Only a boolean was exported, not N/N [superseded 2026-10-09: R22d exports `{passed, total}`] (the count is in result.json).
+- *Stale statements (10, 11, 12, 17, 21).* The refusals note and the run-detail heading say "refusal lines or failed ShipLoop commands" (the
+  harness reads refusal LINES; r3 Sonnet's one failure has the verb `unknown` and exit null); SCHEMA's refusals/glue row no longer says a
+  Claude host cannot measure them (refusals 1 to 5 and glue 0 to 2 on the seven Sonnet runs; glue is a lower bound where a model wraps
+  ShipLoop); `stages[].context` says every Claude visit has one and a Grok run never does [SUPERSEDED 2026-10-09 by R23c: harness group G2 (6a5dc5cb)
+  made a Grok stage row carry {calls, peak}; the page now follows the rows, never the host]; `NO_VISIT_CONTEXT` is a reason per host
+  (`no_visit_context`) [SUPERSEDED the same way: removed, no shim]; the `Checked by:` statements (SCHEMA checklist section, the `CARRIED` comment) say the 11 runs carry it; the default
+  run name carries the case ("claude claude-sonnet-5-5, battleship, release 1.24.0"; the key rules are unchanged; a Grok run's case is
+  `custom`); `test/fixtures/run-review/state-stage.md` resolves the Improve card as the current engine does and the test asserts both modes.
+- *The legend* lists only the kinds the picture draws (`legendKinds`: done, rev, blk, skip, seed, na, tail, imp, and ctx, warn, tri only with a
+  band, a column at 90% or more, a measured compaction).
+
+**Defects the render found** (a local server over the template, a fake database holding the 11 scratch exports, 375 px): (1) the legend's
+`hidden` entries stayed visible because `.sqleg span{display:inline-flex}` beat the hidden attribute; (2) the card's two-column facts grid kept
+two columns on a phone, squeezing the value into a 90 px strip; (3) a blocked run's options ran together as one paragraph. Each has a test
+(`EndingCardStyleTests` reads the stylesheet, since node has no layout; it can only pin that the rule exists). Seen after the fixes: r3 Grok
+(stopped), r1 Grok (blocked), r2 Grok (two hosts), r3 Sonnet (done with two listeners reaped); the final light, dark, 375 px and desktop pass
+over all four is in the R22b entry.
+
+**Real data (scratch only, `scratchpad/rr22/export/<key>/`).** All 11 runs export with exit 0, pass `--check`, and a second export into the
+same folder is byte-identical; `review-export.json` 13.4 to 36.9 KB (the audit's exports were 12.7 to 38.1 KB). r3 Grok: status `stopped`,
+Build `stopped`, `ending` {by "stopped by the stop file", stage implement, 27.1 min, 104 turns, the packet document}, two listeners ended,
+`worktreeChecks` true; r1 Grok and v1230 Grok: `blocked` with the question and two options; r2 Grok: two hosts, no mixed figure, no visit
+context; r3 Sonnet: done, two reaped listeners, no `ending`.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: **409 OK** (363 at the base). 46 new tests in eight classes (`RunEndingExportTests`,
+`RunHostsExportTests`, `RunBlockedAndLeftBehindExportTests`, `RunEndingContractTests`, `EndingCardLogicTests`, `EndingCardPageTests`,
+`EndingCardStyleTests`, `TailColumnTests`) and four changed existing ones (the pinned refusals text, the Improve-card assertion over both
+modes, the fixture). Fail-first, against a `git archive` of `1854938b` with only the test file copied in: **all 46 new test methods fail
+or error** on it (52 failing or erroring cases counting subtests); one of them (`only a run whose engine reads active ...`) first passed
+there because its cases are guards, so it now begins with the positive case. Also green: `node test/skill-frontmatter.test.js` (22),
+`test/test-groups.test.py` (21), `test/marketplace-package.test.py` (29).
+
+**Sizes.** Template 150,592 to 160,905 bytes.
+
+**Declined or left.** No rename, removal, new collection or id bump was needed; the schema id stays `run-review-export/v2`. Not done: an N/N
+for the worktree checks (a boolean was asked for), the `blocked` object for a paused or halted run (its `status_reason` is only used for
+`blocked`), and the header's "1 refusals" plural (cosmetic, a test pins the text).
+
+
+## 2026-10-09: R22b, script checks, unverified outcomes, tool use, the planning window and graph-check Backchain (local, unpublished)
+
+Status: firm for the definitions, the real-data results, the sizes, the tests and the render below. Local commit on `rr22-940ad8` after
+R22a `7ff90399` (change note `changes/shiploop-run-review/script-checks-unverified-tool-use-planning.md`); same boundaries as R22a (no push,
+no `scripts/release.py`, no E2E run, no Artifact or ArtifactData call, nothing written under `/Users/dadleet/e2e-runs`, no process signalled,
+`listeners.py` never imported). Related: R12 (`_model_measures` and the unmeasured rules this follows), R16 (`find_backchain_loops`, which
+required an `until-loop-receipt.json`), R20a (the stage card these lines join), and the harness's `verifications`, `ToolLog.tool_use` and
+`planning_window` in `test/shiploop_e2e/metrics.py`.
+
+**The audit, re-verified.** `accepted_ran` lives in `run/tests/<action>-verifyN.md` `runs[]` and the exporter never read it; a record is
+`{action, stage, disposition, passed, expect?, runs[{status, exit, counts{ran, failed}, accepted_ran?, ids_missing}], observed?}`, and one
+action can have several records (r2 Checkers: 13 records on 11 visits, the test-author visit has three, two refused for ids-missing, 11
+passed). The harness's `script_verifications.red` counts the records in which a command ran red; a test-red record passes because red is what
+it accepts. release-verify's `observed` is `{where, copy, tree, head, kind, source, plan, receipt, ahead}` (r3 Sonnet: `returned-result`, tree
+`5f846af6...`, while the result's summary says "not a clean consumer-check copy"). `unverified` is `[{outcome, reason, check, owner,
+due_stage}]` on `product-acceptance` (r3 and r2 Battleship Sonnet one item each; `[]` on r2 Checkers, r3 Checkers and r2 Grok; no key on
+`handoff` in any run). `tool_use` exists only for a Claude run (None on every Grok run, so also on the two-host r2 Grok run), with
+`scratch_scripts[{path, bytes, wraps_shiploop, runs}]` and `packets{on_disk{files, bytes}, printed{replies, chars}, read{read_tool[{packet,
+whole, chars}], shell{calls, chars}}}`. The `planning` block is on 10 of the 11 runs (the 1.22.0 Grok run has none), its `tokens` is
+`{output, reasoning, clock, source}` on Grok and `{unmeasured}` on Claude. Backchain: `run/backchain/<action>/` with only `check-*.json` and
+`candidate-*.json` and no `until-loop-receipt.json` on r1 Grok, r1 Sonnet, r2 Checkers (two receipts, the invalid one seven seconds before the ok one by
+file time, so the last is ok as the audit reads it; the exporter takes the newest by `(mtime, name)`, as `_last_check` always did) and the 1.22.0
+Grok run.
+*Correction to my own first reading:* the audit's two tolerances hold, with one precision: the block's per-stage seconds equal the exporter's
+`min` within 3 s (a tenth of a minute is 6 s of rounding), and the Improve seconds differ from `improve.min` by at most 1.2 s **per child**
+(0.0 to 1.2 on the 10 runs; the total over five children is up to 3.9 s).
+
+**Field shapes** (all optional, nothing renamed or removed, schema id unchanged):
+
+| Field | Shape |
+| --- | --- |
+| `stages[].verify` | `{records, passed, red?, couldNotRun?, runs?[{status, ran?, failed?, acceptedRan?}], observed?{where?, tree12?}}`; `runs` of the last record, `red` and `passed` over all |
+| `stages[].unverified` | `[{outcome?, reason?, check?, owner?, dueStage?}]`, texts cut at 300 characters with an ellipsis; `[]` is "none listed", no key claims nothing |
+| `toolUse` | `{wrappers?[{name, runs}], packets?{files?, bytes?, printed?, printedChars?, readWhole?, readPartial?, shellReads?, shellChars?}}`; absent with `unmeasured.toolUse` where the harness has no record |
+| `planning` | `{closed?, through?, windowMin?, hostWindowMin?, improveMin?, children?, outputTokens?, reasoningPct?}` read from the block; reasons `unmeasured.planning`, `planningHostWindow`, `planningImprove`, `planningTokens` |
+| backchain `graphCheckOnly` | `true` on the document of a stage that ran only `backchain-check`; no segments, fact "graph check only: N checks, last ok (complete)", `candidateMatch` as for a loop |
+
+`readPartial` is one more than the audit named (the packets Read by offset); everything else is as proposed. The page: "Checked by the script"
+in the Done block, "Left unverified (owner, due stage)" in the Written block on the visits whose result has the list, "planning X min, closed
+at <stage>" on the Elapsed card, the packet-use line on the Context card (also when the context is not measured), a "Model glue" row that reads
+"2 commands + 41 runs of 3 wrapper scripts (...): a lower bound" and a "Planning window" row in the run detail, a graph-check card with a sentence
+saying no Until Loop ran, "plan: graph check only" in the lane, and the Backchain card counting a graph check apart from a loop.
+
+**Real data (scratch only).** All 11 runs export with exit 0, pass `--check` and re-export byte-identically; `review-export.json` 13.9 to 39.5
+KB (R22a: 13.4 to 36.9). Script checks: 2 to 19 records a run (r3 Grok stopped after 2), r2 Checkers 13/11. Unverified: r3 and r2 Battleship
+Sonnet one item each. Wrappers: r3 Sonnet `done.py` 30, `istart.sh` 7, `ifinish.sh` 4 (glue 2); r1 Sonnet `sub.sh` 30, `istart.sh` 7; r1 Checkers
+`sub.sh` 29, `ih.sh` 10. Planning: 23.3, 15.7 and 23.2 min on the three Grok Battleship runs (r1, r2, r3) and 4.8 to 7.0 on the Sonnet runs, all closed at
+test-spec (a Grok window is roughly three to four times a Sonnet one; none crosses the owner's 30-minute rule). Graph checks: four runs.
+
+**What the four rendered runs show now** (a local server over the template with a fake database holding the 11 scratch exports; 375 px and a
+1024 px pane, light and dark each; `scrollWidth` equals the viewport at 375). r3 Sonnet (done): "How it ended: done" with the two node listeners
+the harness ended, Elapsed note "planning 4.8 min, closed at test-spec", the Context card with its packet line, a Backchain card that says none, and
+on the product-acceptance card the unverified browser check with its owner and due stage. r3 Grok (stopped): the card first (stopped by the stop
+file, Implement 27.1 min and 104 turns never accepted, the earlier SIGTERM at Test author, two listeners, the unreturned product passes in the
+worktree), the Build chevron hatched "stopped by the harness", a hatched `U` column that opens a detail with a packet head read from the packets
+document, a legend of two entries. r1 Grok (blocked): the question, the two options one per line, why no default, 2 sessions and 1 resume, "blocked
+here" on System test. r2 Grok (two hosts): the chip "resumed on claude-sonnet-5-5", the Context card "not measured" with the two-host reason, no
+visit context. **Defects found in this pass:** (1) the unverified item read "... was done Check: Open ..." as one run-on; it is now "Reason: ...
+Check: ..." with full stops; (2) the first draft printed "47 printed replys" (the plural helper adds an s; the test caught it); (3) not fixed, noted:
+the Context card grows tall with the packet line on a phone (it sits beside the Refusals card, which stretches), and `kbText` prints "1760.4 KB"
+where "1.7 MB" would read better; the header still says "1 refusals".
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: **433 OK** (409 after R22a, 363 at the base). 24 new tests in five classes
+(`VerifyAndUnverifiedExportTests`, `ToolUseAndPlanningExportTests`, `GraphCheckOnlyBackchainTests`, `ChecksPlanningPageLogicTests`,
+`ChecksPlanningPageTests`) and four changed ones, each deliberate: `make_run`'s fixture now carries `tool_use: None` and a planning block as a
+current harness writes them, the two tests that pinned the exact `unmeasured` set add the `toolUse` reason, and the R16 test that said a folder with
+only check receipts is no loop now says it is a graph check. Fail-first, against a `git archive` of `7ff90399` with only the test file copied in:
+**all 24 new test methods fail or error** on it, and so do the three changed ones (26 failing in the run that also holds them); one (the planning block's
+seconds against the stage minutes) first passed there because it only restated existing behaviour, so it now also asserts the run carries the
+`planning` object. **20 deliberate defects** on a scratch copy (red counted from passed runs, the stop path kept, only `stopped` ending a run, argv
+leaked, two hosts keeping calls, zero-call context kept, the planning window rounded to whole minutes, a legend listing everything, the tail setting
+the scale, an empty unverified list saying nothing, glue without its lower bound, the oldest receipt named, a loop folder read as a graph check,
+the reason not cut, a regrade stopped, the first record's runs, "0 calls" back on the page, a missing chevron label, the tail drawing a band
+dash, and `where` taking the farthest component): 18 caught first; the two survivors (`where` precedence, the tail's not-measured dash) got an
+assertion each (`_where` now takes the component nearest the process, and a test says so), then 20 of 20. Also green:
+`node test/skill-frontmatter.test.js` (22), `test/test-groups.test.py` (21), `test/marketplace-package.test.py` (29),
+`scripts/check-release-boundary.py --base origin/main` (OK).
+
+**Sizes.** Template 150,592 (base) to 160,905 (R22a) to 167,327 bytes. Export sizes above. `MAX_COMPACT_BYTES` (200,000) is not near.
+
+**Open questions for the owner.** (1) Should a Grok run's case read `custom` in the picker, or should the harness record the prompt's case? Two
+Grok Battleship runs of different prompts would collide in the picker (the keys differ by date). (2) `stopped` includes `exited` with the engine
+still active (a spent resume budget): is that the label you want, or `ended`? (3) The unaccepted tail's packet is exported as a `packets` document
+like any visit's (47 KB on r3 Grok); say if you would rather not upload it. (4) The N/N for the worktree checks was left out (a boolean was
+asked for); the count is one line to add. (5) Items 18, 19, 20, 22 and 23 of the audit were not part of this brief and were not touched.
+
+
+## 2026-10-09: R22d, counts in the right number, megabyte sizes, and the worktree checks as N/N (local, unpublished)
+
+Status: firm. One local commit on `rr22c-eed87d` on top of `b3140b16` (the integrated R22a, R22b and the findings layer, base `origin/main`
+`923a3bd6`); change note `changes/shiploop-run-review/plurals-megabytes-worktree-counts.md`. Same boundaries as R22a and R22b: no push, no
+`scripts/release.py`, no Artifact or ArtifactData call, nothing exported to the draft page, no process signalled, no e2e-runs write, hermetic
+fixtures. The coordinator's answers to the R22b open questions: the worktree checks are exported as counts (done here), `stopped` stays the
+status label (the ending block already says by what), and the unaccepted tail's packet document stays. The case-`custom` question was not
+answered and is still open.
+
+**(1) Plurals.** The header read "1 refusals" because `headerFacts` printed the number and the plural noun without asking the number. One
+pure helper in the logic block now owns it: `plural(n, word, irregular?)` (the page already had `plural(n, word)`; it gains the third argument for
+"1 child, 2 children" and "1 printed reply, 3 printed replies"). Every counted noun the page printed another way now goes through it: the header
+line ("1 refusal", "0 refusals", "13 refusals"; glue is a mass noun and stays "1 glue"), the prompt's run facts ("1 visit", "1 Improve pass", "1
+refusal"), the Refusals card note and the run-detail heading ("refusal line or failed ShipLoop command" for one: `refusalNote`), the planning
+text ("over 1 child"), the packet-use line ("1 printed reply") and the where strip ("1 of 1 visit"). `passes`/`pass` and `children` had the
+same bug in the exporter's `imp` header text ("1 children, 1 review passes"): `_count(n, word, irregular?)` fixes it there ("1 child, 1 review
+pass"), and the facts lines ("1 accepted action", "1 record names an action that is no visit"). The card label "Refusals" names the measure, like
+"Visits", and stays. Not changed: exports already in the database and the committed evidence files keep their stored `imp` text ("1 children"),
+which the page prints as it is (it is data; a re-export gives the new text).
+
+**(2) Sizes.** `kbText` prints bytes, KB, and from 1000 KB up MB with one decimal ("1.7 MB", not "1760.4 KB"; 999.9 KB is the last KB, 1023999
+bytes already reads "1 MB"). Pinned at 0, 814, 1023, 1024, 1536, 47475, 55492, 1023897, 1023999, 1048576, 1802659, 5 MiB and 50 MiB bytes.
+
+**(3) Worktree checks.** `verdicts.worktreeChecks` is `{passed, total}` (the harness's `shiploop.worktree_checks`, counted: r3 Grok, r1 Grok and
+the 1.22.0 Grok run each 4/4); `passed` equal to `total` is the old boolean's true, so one shape carries both. `verdicts` is no longer a map of
+booleans only (SCHEMA.md, validator kind `verdicts`): a boolean in that place is refused, and the page reads only the count shape (`worktreeOf`),
+so an R22a-shaped boolean invents no verdict. The page says "passes 4/4 checks in the worktree; the copy in the work folder fails them because
+nothing was returned there" (or "... and the copy in the work folder fails its checks too" when fewer pass), a chip "worktree checks 4/4" green only
+when all pass, and the facts line "Checks in the worktree (product not returned): 4/4 pass". The R22a entry's sentence that only a boolean was
+exported is marked superseded in place.
+
+**Tests.** `python3 -B test/shiploop-run-review.test.py`: **458 OK** (445 at `b3140b16`). 13 new tests in three classes
+(`CountsInTheRightNumberTests` 6, `MegabyteSizeTests` 2, `WorktreeChecksCountTests` 5) and nine changed existing ones (the `imp` strings, the
+worktree verdict tests and fixtures, the ending-card texts, the packet-use size, the orphan-record fact, the contract test). Fail-first, against a
+`git archive` of `b3140b16` with only the test file copied in: all 13 new tests fail on it and so do the nine changed ones (22 failing). Nine
+deliberate defects on a scratch copy (the irregular plural ignored, the header printing the plural for one, the MB threshold at 1024 KB, a count
+accepting passed over total, the chip green for any count, the refusal note never singular, the count always `total`, `imp` printing "1 children",
+the prompt facts "1 visits"): 9 of 9 caught. Real data (scratch only, `scratchpad/rr22/export-d/`): all 11 runs export with exit 0, pass `--check`
+and re-export byte-identically; `imp` reads "0 children" and "2 children, 4 review passes" and so on.
+
+## 2026-10-09: R23, the export and page read what harness batch 1011 records (local, unpublished)
+
+**Question.** E2E's batch 1011 (origin/main `5e22fd10`, 104 commits, test/ and docs/ only) added records the exporter did not read: outcome
+class, build identity, environment and overlap, product at the stop, quality, the fidelity block, fresh starts with their re-grounding cost, and
+per-visit context for Grok. What does a reader of a run need from them, and what stays out? Rules in force: additive optional fields only (old
+exports still render and validate), a measure not reported is unknown and never zero, generic text, KISS, fail-first script-run tests.
+
+**Base and method.** R22 (`49209d1f`, 7 commits) merged onto `5e22fd10` with no conflict (merge `75fa4436`; Run Review suite 458 OK, the same
+as before the merge). Fixture `d45dea14`: `docs/experiments/run-review-r23-20261009/{collect.py,figures.json}` reuses E2E's read-only
+`generate.py saved_records()` over the seven saved runs of 2026-10-07/08 (no process started, nothing written to the run folders) and adds
+E2E's full-length examples for the keys no saved run has; its hand-off table cuts every example at about 100 characters, which hid the inner
+shapes. Three slices were built in parallel worktrees by three agents and integrated by merge: A `rr23a-3c735b`, B `rr23b-3c2f77`, C
+`rr23c-cc04a4`. (The worktrees were first created from the canonical checkout's stale `main`, not the R23 base; each agent fast-forwarded its
+own branch to `d45dea14` before starting and lost nothing.)
+
+**Facts from E2E's answers (2026-10-09), now relied on.** `outcome_class` is the closed list PASS, FAILED, BLOCKED, STOPPED plus null (a record,
+never a verdict; not in the baseline row). An Improve packet has five labels, goal, done_when, checked_by, output, recovery; engines before
+skill-craft 1.25.0 wrote only the last three, so goal and done_when 0 of 8 on a 1.24.0 run is by design. A Grok stage row carries
+`{calls, peak, peakPct: null}` from G2 (6a5dc5cb); a row with no events has no `context`. `result.json` is written twice when a quality phase
+applies, so an absent `quality` is "not applicable or not yet", never zero.
+
+**R23a (`055bb43b`, `1c59773b`): outcome, build, environment, product at the stop.** Over the seven saved runs: 4 PASS, 2 BLOCKED (v1230 Grok and
+r1 Grok), 1 STOPPED (r3 Grok). Host build is null on the four runs a Grok launch started and `2.1.294` on the three Sonnet runs. All seven were
+only regraded, so `environment.start` and `.end` are unobserved on all seven (the page says so). Every run has an observed overlap with one or two
+siblings: 12 entries, 548.2 to 1249.8 s of shared time; r1 Sonnet's sibling began 0.4 s earlier, which would print `-0.0` (clamped). The harness
+keeps an `identity_unmeasured` note even for hashes a regrade recomputed, so a reason is copied only for a field that is null. The STOPPED run's
+basis embeds the stop file's absolute path, exported as "the stop file". Kept beyond the proposal: `engineStatus`/`engineStage` on
+`productAtStop` (a partial product must not read as a finished one) and browser `targets` (a browser that cannot load a page is the cause of the
+"access" blocked runs). Dropped: cpus, loadavg, the end record, `hosts_used`/`environments`/`mixed_host` (the `hosts` list already comes from the
+launch records), binary paths, `overlap.span`. No saved run has an observed start or a `product_at_stop`; those shapes come from E2E's examples.
+
+**R23b (`fa7bc132`, `6f782896`, `164b2a6a`): the fidelity reading and the Improve packets, scored by the exporter.** On r1 Sonnet the block reads
+script 15, loop 7, file 1, note 12, sentence 0, skipped 2, unclassified 0 over 37 accepted stages; 10 verify records over 29 command runs and 6
+distinct commands, 2 of them red; 23 rows carry a test count and none ran zero tests; 1 script-owned edit (`sed -i` on `return-plan.md`), 0 kills
+by name, 1 git command by the model; 5 refusals, 1 repeated (release 2, release-plan 2, intake 1). The run's own `refusals` stays the one count
+(`metrics.shiploop_failures`, 5, agreeing with the block); the block's detail is dropped with a reason if the two ever disagree. The Improve
+table is scored from the packet files by the exporter, with each marker phrase pinned to `shiploop_navigator.py` by a test, and NOT read from
+`fidelity.improve_packets` (E2E marked that copy temporary and asked the Run Review side to adopt it). By hand, read-only, on the saved runs: r1
+Sonnet (1.24.0) read 8, goal 0, done_when 0, checked_by 8, output 8, recovery 8; r3 Sonnet (1.26.0) 8 of 8 on all five; both equal E2E's
+examples. The page prints the counts beside the run's release and never as a defect flag. E2E's "63 files, 35 with all five, 28 without" is over
+its whole saved set; the seven runs in `figures.json` hold 31 files, 19 with all five (1.25.0 and later) and 12 without (1.22.0 and 1.24.0);
+SCHEMA.md cites the 31. `stages[].evidenceClass` kept (the only place the page shows what evidenced a stage next to the exit check the catalog
+declares). Dropped: `tool_calls_seen`, `end_state` (status/ending/blocked already say it), per-record refs, `by_suite`, event numbers.
+
+**R23c (`6ca53ab9`, `ac0f342f`): fresh starts, delivered quality, and a visit's context follows the data.** The seven saved runs hold 13 fresh
+starts, all Grok compactions (v1230 6, five measured; r1 Grok 4, three; r2 Grok 1, none, the mixed-host window "may span two sessions"; r3 Grok
+2, one). The nine measured windows took 1 to 54 tool calls (median 20) and 8.9 to 465.1 s (median 122); the first grounding was a packet read 7
+times and another ShipLoop command twice. One failed ShipLoop command was counted, in v1230's carry-forward (a loop contract 234 bytes over its
+budget). Failures and rewrites are lower bounds by the harness's own words, kept verbatim as `bound` and `scope` and printed beside the numbers.
+The three Claude runs record `[]` plus a note that compactions are not detected on that host, so `[]` means unknown there: the exporter writes no
+list and `unmeasured.freshStarts` holds the note. Quality: the r3 Checkers block is 21,100 bytes and exports as 1,322: mutation ratio 0.907
+under operator js-1 (78 killed, 8 survived, of 86 sites; one killed mutant was a timeout and two were killed with a fixed port refused, which the
+harness says raise the ratio, so the page prints both beside it); held-out checks 5 of 6 pass (`off-board-keeps-turn` failed); the model made
+two writes to its own memory. The ratio is comparable only within one operator. Visit context: on disk r2 Grok has 33 of 52 rows reading
+`{calls: 0, peak: null}` and r1 Grok has none, so the reason is now read from the rows (`unmeasured.visitContext` also when only some visits lack
+a context); `NO_VISIT_CONTEXT_GROK` and `no_visit_context` are removed (no shim); the R22 sentence that said otherwise is marked superseded in
+place above.
+
+**Integration (`ae9d616c`, `8046f586`, `02a6c393`).** The only conflicts were three slices adding next to the same lines. Two needed more than
+keeping both sides: the stage-item field dict closes on both sides of the conflict, and `renderFreshStarts` and `renderFidelity` shared one
+closing brace in the common text, which left the first without its own (90 page tests failed with "Unexpected end of input" until restored).
+The test file's three classes were aligned by git on their shared `KEY`/`setUp` body, so A+C's side was kept and B's `R23b` block (all prefixed)
+was appended whole from its branch. One bound moved: `facts.md` of the default fixture is 26 lines (fresh starts, fidelity and Improve packets
+add one line each saying what the run does not carry), so the digest guard is 30, not 25. `figures.json` of R22c and R23 now select the Run
+Review suite in `test/suite_catalog.py` (`suite_catalog.targeted` checked).
+
+**Tests.** Run Review suite **572 OK** (458 at the R22 tip; +36 A, +50 C, +28 B). Each slice ran its new tests red first for the right reason
+(A: 18 of 20 export tests and 12 of 12 page tests; B: 4 failures and 12 errors, then 11 of 11 page tests; C: five groups red); A's mutation
+check on the real files caught 24 of 24 deliberate defects. The four committed review bundles `--check` ok with the same warning counts
+(0, 1, 5, 0, 0 with the sample). `check-release-boundary.py --base origin/main` OK. `test-groups` 27 and `marketplace-package` OK; E2E suites
+that call the exporter: quality 128 OK, e2e 404 OK, fidelity 142 with **one red by design**: E2E's tripwire
+`ImprovePacketsTest.test_the_exporter_scores_producer_packets_only_so_the_five_questions_of_an_improve_packet_are_read_here` fails as soon as
+the exporter carries the Improve markers, and tells the E2E owner to delete the harness's temporary `IMPROVE_QUESTIONS`/`OLD_LAYOUT_MARKER`/
+`improve_packets` and its replay tests. That deletion has to land before or with this branch.
+
+**Status.** Findings: firm for the counts above (each is read from `figures.json`, which is read from the saved runs by E2E's read-only code);
+exploratory for how a reader uses the new cards (nobody has looked at them yet). Not built: R23g (a `cells` collection from
+`run.py --baseline-report --json` for a compare view; a data-structure change, the owner's and E2E's call); marking the fresh-start visit in
+the SVG picture. Not checked: a phone-width render (no agent could start a browser). Open for the first real post-merge run: `sessions.jsonl`
+runs (kind first/fresh/continued, reasons) and a `quality` block of a run made after the merge; this entry's fresh-start figures are all Grok
+compactions of regraded runs.
+
+**Follow-up, same day: the page was looked at (draft v10, `96bf74b4`).** Real post-merge runs exist now (E2E, 5e22fd10, Claude Sonnet,
+hello with `--planning-review none`): `s6-after-spec` (stopped after spec with a cleared context, resumed in a fresh session; a real
+`sessions.jsonl`) and `s6-inside-implement` (an unstopped full run). Both export with the integrated exporter and are in the draft with their
+packets (3 run documents, 74 packet documents; a third run, `r3-checkers-quality-preview`, is the saved Checkers run with the quality block
+E2E committed for that exact run overlaid, labelled as a preview in its name). On `s6-after-spec` the page shows: outcome PASS and the build
+line (plugin a03059c9db03, prompt d2d7e2dabeeb, host build 2.1.295); evidence script 13, loop 2, file 18, note 2 over 35 accepted stages; 11
+verify records, 25 command runs, 2 red; 5 refusals, 0 repeated (release-verify 2, system-test-author 2, test-green 1); Improve packets 3 of 3
+on all five labels at 1.26.0; and one fresh start, a new host session in test-strategy, re-grounded in 6 calls and 21 s with `shiploop next`,
+with the harness's lower-bound notes beside it and "compactions not detected on this host" marking the list as not complete. The page was
+rendered through a static local page with a stub for the page's database (`window.claude.use("db")`), in the built-in browser, at desktop
+width and at 375 px: no horizontal overflow on any new card. One defect found only by looking: the `file` class of the evidence bar was filled
+with the page's own tint and the bar has no track, so the second-largest class read as a gap; it now has a fill of its own (pinned by a test,
+red then green). Still not seen: a run that did not pass with a real `product_at_stop` (no real run has one yet), and dark mode.
+
+**Second follow-up, 2026-10-10: reading the whole page, one place per figure, what was delivered, and links (`2a603293`, `06dbd479`, `2cde45c9`, `5618977a`).**
+Owner asked for the draft to be read as one report, clear and not duplicative, then for insight into what a run delivered (what was
+built, tested and documented, whether a skill was chosen or produced, what kind of release, whether it was merged back to the original
+branch) and for links wherever a reference can be one.
+*One place per figure.* Measured on the rendered page for s6-after-spec: refusals appeared in the header line, a KPI card, the Fidelity
+card and the run detail; compactions three times with the same harness sentence; elapsed and context peak on a card and in the detail;
+the Improve packet counts and the packet reads as extra lines inside two KPI cards. Now each is on one card; the Fidelity, Fresh starts
+and Quality cards are one group after the stage cards. Step 1 for that run went 16,580 to 16,267 characters (the gain is not length).
+Refusal lines carried the run's absolute folder; `failure_line` keeps `<run>/.shiploop-runs/...`. Findings and options (80 and 91): every
+option links to a finding; 13 findings have no option, 10 closed and 3 open (o16, o23, o30) that say "no option yet" in their advice; the
+overlaps are themes recorded at different times, left as they are because ticks are keyed by option id.
+*What was delivered (D).* The answer is in three records beside the run directory: workspace.md (source branch and head, run branch,
+status), return-plan.md (each path, change, disposition) and return-receipt.md (kind, status, heads). Over the 14 runs in the draft: 9
+returned by fast-forward-merge; 1 (v1230-battleship-sonnet) return-planned, not returned; 3 Grok runs (r1 blocked, r3 stopped, v1230
+blocked) never returned (workspace status prepared, no plan, no receipt), so the card says "Not merged back: the product is on branch X;
+main was not changed" and its file lists "not measured". Kept files for the returned Checkers run: source 3, tests 4 (two under system/,
+two under test/), docs 1, ShipLoop records 10, skills 0; the hello run: 1/1/0/10/0. Tests: the widest command of the release-verify
+visit, never a sum (a regression visit lists 21+11+32 for a 32-test suite). Both returned runs were returned twice, so "before" is the
+workspace's source_head, not the receipt's source_before. r3 Grok's last counted run is "17 ran, 15 failed, at test-red": the card says
+the new tests are meant to fail there. A run with no return plan says so in one row, not five.
+*Links (E).* `config/page.repoUrl` (https only; `--check` refuses anything else; `--defaults --live` adds it to a live page without
+overwriting the owner's). `linkParts` links, over the committed general, luna1 and r3 review files: 143 ids (83 findings, 60 options),
+338 repo paths, 220 commits (83 distinct), 178 spec clauses. Words that look like hex (`defaced`, `decade`, 1234567) stay text; 11 ids
+that exist only in another bundle stay text in that bundle (they link on the live page, where all are loaded). Run-local paths are not
+links: they are files on the machine that ran the case. The step-4 prompt stays plain text (pinned). Links to documents that exist only
+on unpushed branches (for example docs/experiments/run-review-r22c-20261009/) will 404 until the push.
+*Tests.* Run Review suite 620 OK. Slices D (24 tests) and E (19) ran red first; the two follow-ups on the card were pinned and the red-run
+note was written after its fix. Draft v12 carries all of it; the page was read in the built-in browser through a stub database at desktop
+width and at 375 px (first pass; the later cards were read as text and by screenshot at desktop width only).
+

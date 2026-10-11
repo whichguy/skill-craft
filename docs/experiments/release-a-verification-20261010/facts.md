@@ -1,0 +1,39 @@
+# Run Review facts: claude-claude-sonnet-5-5-1.26.1-checkers-20261010
+
+- Run: ShipLoop status done; 37 accepted actions (35 work, 2 skipped, 0 seeded); 12.5 min from start to the last accept
+- Driver: claude claude-sonnet-5-5; case checkers; skill-craft 1.26.1, ShipLoop 0.58.0
+- Verdicts: invoked pass, plugin pass, process pass, shiploop pass, committed pass, checks pass
+- Slowest stages (min, accept to accept): spec 1.6, implement 1.1 (4x), test-author 1.1, test-strategy 0.9, carry-forward 0.8
+- Phases: Understand done, Specify done, Plan done, Build done, Prove done, Integrate done, System test done, Release done
+- Improve: 8 children, 16 review passes; most passes in one child: 3; 2.63 min bind to receipt
+- Model calls (main thread only): calls 103; context peak 246,993; window 1,000,000; compactions not measured (only Grok's events carry this signal (an auto_compact_completed event); this host's do not, so a count of 0 is a missing signal and not a measurement)
+- ShipLoop command failures: 2 (unknown 2)
+- Model glue: 0 commands
+- Planning documents: 10 files, 15.6 KB in work; largest docs/shiploop/test-strategy.md 4.2 KB
+- Packets 1355.7 KB, results 40.2 KB over 37 accepted actions
+- Work items: 1; 1 step plans; 1 passes through the steps loop (0 revises); 4 done implement visits; steps planned 4, executed 4
+- Packet documents: 43 written, 1757.6 KB of packet files, 0 truncated; 0 packet files unreadable (no document written); 8 of the documents are an Improve child's packet
+- Packet text carried (producer packets read 35; 8 visits have a separate Improve packet file; 0 visits (old layout) keep only an Improve child's packet, not read): where 35, purpose 35, operates 35, checked 35, produces 35, recovery 35, inputs 34
+- Planning review option (state.md): stage
+- Backchain passes option (state.md): one
+- Backchain loops: none found under scratch/ or backchain/
+- Run directory: .shiploop-runs/work-20261010-181600-737311/run
+- Left behind: none
+- Script checks (tests/<action>-verifyN.md): 11 records on 11 visits, 11 passed, 2 ran red
+- Unverified outcomes: product-acceptance 1
+- Tool use: wrapper scripts cs.sh 28, ifinish.sh 7, istart.sh 7; packets files 52, bytes 2,023,124, printed 38, printed chars 68,729, read whole 2, read in part 0, shell reads 22, shell chars 50,946
+- Planning window: 5.1 min on the engine clock, 5.2 min on the host's, closed at test-spec, Improve 1.9 min over 5 children
+- Outcome: PASS, every verdict passed
+- Build: plugin 54a954c85133, prompt e4da54c7f03d, host build 2.1.296
+- Environment: tools node v25.9.0, python3 Python 3.14.7, git git version 2.54.0 (Apple Git-157); browser Google Chrome 154.0.8037.99 (file page title seen in 0.79 s; http page title seen in 0.43 s); no sibling run overlapped (host events of the sibling folders only); the shared seconds are neither an upper nor a lower bound
+- Delivered: merged back into main (fast-forward-merge, f5316d123459 to bd578f4e6149) from shiploop/run-d641edabdd890671
+- Delivered files (kept in the return plan): source 4, tests 3, docs 1, knowledge 10, skills 0
+- Delivered tests: 22 ran, 0 failed (release-verify, returned-result)
+- Delivered skill: not measured (no accepted skill-assess or skill-validate visit with a summary)
+- Delivered release: plan: No deployment target: delivery is the guarded return of the run branch to the original checkout; no remote write authority needed. Rollback is git reset to baseline f5316d1 in the original checkout. Post-release checks run node --test and the system tests in a clean copy of the…; done: No external deploy exists; the release is the guarded workspace return. Verified receipt: fast-forward-merge of the original branch to shiploop/run-d641edabdd890671 (17 product/doc paths kept; runtime metadata excluded). Correction to release-check: test/system.test.js was still…
+- Fresh starts: not measured (compactions not detected on this host: only Grok's events carry this signal (an auto_compact_completed event); this host's do not, so a count of 0 is a missing signal and not a measurement)
+- Fidelity, exit evidence of 37 accepted stages: script 15, loop 7, file 10, note 2, sentence 1, skipped 2, unclassified 0; declared script-run checks with no script record: none
+- Fidelity, validation: 11 records, 33 command runs, 5 distinct commands; 11 passed, 2 ran red, 0 could not run, 0 unreadable; 0 of 27 rows with a test count ran no test; 0 focused or regression rows with no test count
+- Fidelity, edits (a list to confirm, no hit is not proof): 0 script-owned edits, 0 kills by process name, 0 commands that ran git add or commit
+- Fidelity, refusals (a list to confirm, no repeat flagged is not proof): 2 in all, 1 repeated, 0 with no stage; by stage step-plan 2
+- Improve packets (skill-craft 1.26.1, ShipLoop 0.58.0; read 8; skill-craft 1.25.0 added Goal and Done when, so an earlier release has none): goal 8, done when 8, checked by 8, output 8, recovery 8

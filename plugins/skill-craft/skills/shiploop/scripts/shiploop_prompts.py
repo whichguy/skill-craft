@@ -79,7 +79,7 @@ INLINE_STAGE_CONTEXT = """\
 Continue in this context and execute the prompt.
 
 Delegation: inline. Execute this INNER stage in this conversation, including the
-select-work stage that opens each work item. Do not clear, pause for a clear, or
+get-next-work-item stage that opens each work item. Do not clear, pause for a clear, or
 hand it to Ask Agent or a native worker: no packet, script or hook output can
 clear a host conversation, and the host's own compaction manages its context.
 This conversation is the only writer and alone submits ShipLoop callbacks. After
@@ -124,7 +124,7 @@ STAGES = PRELUDE + INNER + OUTER
 STAGE_PURPOSE = {name: row.goal for name, row in stage_spec.STAGE_SPEC.items()}
 
 INNER_GROUPS = (
-    ("Plan", ("select-work", "step-plan")),
+    ("Plan", ("get-next-work-item", "step-plan")),
     ("Tests first", ("test-spec", "baseline", "test-author", "test-red")),
     ("Build", ("implement", "test-green", "test-refine")),
     ("Check", ("regression", "document", "skill-assess", "skill-validate",
@@ -214,7 +214,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
         ("Workspace and return guidance", "workspace-lifecycle.md#entry-identity-and-storage"),
     ),
-    "select-work": (
+    "get-next-work-item": (
         ("Cold-start evidence guidance", "execution-planning.md#cold-start-evidence"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
     ),
@@ -720,11 +720,11 @@ Do:
 1. Read the bound Until Loop card in full once per context and follow it. Start
    the run with the printed command. Do not edit, retype or extend the contract.
 2. Execute each returned iteration exactly as its work says, then call its done
-   command. Save every returned packet from stdout to the printed latest-packet
-   path, so a reset can recover the run through its next_argv. Continue until
-   the runtime returns complete or stopped.
-3. Save the terminal packet, byte for byte from stdout, to the printed terminal
-   path and list that path in evidence_refs.
+   command. The runtime writes every packet it returns to the printed receipt,
+   so after a reset its next_argv resumes the run; do not write or edit the
+   receipt. Continue until the runtime returns complete or stopped.
+3. List the printed receipt path in evidence_refs: its last packet is the
+   terminal one, written by the runtime.
 Report: done when the loop completed; revise when it stopped blocked because a
 failure is unachievable as planned (the item goes back to its step plan, with the
 failing command as evidence); blocked, with blocked_by, only when the user, an access grant or
@@ -755,6 +755,44 @@ reason. For consequential UI choices, include
 the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
 compatibility check; reuse accepted choices for unaffected scope and the existing
 design/test facilities."""
+
+# The conditions the Improve child applies to a planning result (PLANNING_REVIEW_FOCUS, further down).  The spec and
+# test-strategy duties restate the ones that apply to them, so a producer reads how its result is reviewed (SPEC S-6)
+# in its own packet.  One source: the child's list is the producers' list plus the condition on steps, which a spec or
+# test strategy does not hold.
+_REVIEW_FOCUS_ITEMS = (
+    "a step, example or expected result that cannot be replayed exactly: name the\n"
+    "  concrete inputs, values, identifiers and sample interactions",
+    "an expected result or check that a weaker stand-in would pass: a hardcoded\n"
+    "  value, a missing assertion, a title-only test, or an absent required name",
+    "a documented command that does not run what it claims on the target runtime:\n"
+    "  run it once and record the exit code and the cases it executes",
+    "a required requirement, test ID or case dropped or weakened compared with the\n"
+    "  prior accepted version",
+    "a claim about what the runtime, platform or a library can do that a decision\n"
+    "  depends on, with no primary-documentation source or probe result: check it,\n"
+    "  and correct the plan where it is wrong",
+)
+_REVIEW_FOCUS_STEPS = "a missing prerequisite, wrong order or unowned verification in the steps"
+
+
+def _focus_list(items: tuple) -> str:
+    return "".join("- " + item + (";" if index < len(items) - 1 else ".") + "\n" for index, item in enumerate(items))
+
+
+REVIEW_FOCUS_CONDITIONS = _focus_list(_REVIEW_FOCUS_ITEMS + (_REVIEW_FOCUS_STEPS,))
+_PRODUCER_FOCUS_CONDITIONS = _focus_list(_REVIEW_FOCUS_ITEMS)
+
+# The producers whose duty carries REVIEW_FOCUS_CONDITIONS; the navigator's Improve line says so for exactly these.
+REVIEW_FOCUS_DUTY_STAGES = ("spec", "test-strategy")
+_REVIEW_FOCUS_LEAD = ("Planning review focus (the Improve child applies these conditions to this result; meet them "
+                      "before you submit):\n")
+_REVIEW_FOCUS_LEAD_NONE = "Planning review focus (meet these conditions before you submit):\n"
+
+# How ShipLoop matches a listed test ID against the runner's output (``shiploop_test_counts.named``).  One sentence,
+# restated by every duty and packet line that says a listed ID must be shown, so the rule is worded once.
+ID_WORD_RULE = ("A listed ID counts only as its own word in a test's printed name (for example, a test titled `TC-4a` "
+                "does not show `TC-4`: title it `TC-4 (a)`).")
 
 DUTIES = {
     "intake": """\
@@ -918,6 +956,7 @@ For selected service boundaries, specify current authority, freshness versus
 revocation, incremental state preservation, async completion/recovery, and owned
 event coverage. Use Service discovery guidance to make these contracts verifiable;
 mark inapplicable concerns briefly instead of adding services to fill a template.
+""" + _REVIEW_FOCUS_LEAD + _PRODUCER_FOCUS_CONDITIONS + """\
 """,
     "test-strategy": """\
 Create a risk-based test and verification strategy from the specification before
@@ -971,6 +1010,25 @@ Use Service discovery guidance for affected cache authorization/invalidation,
 remote reconciliation, async recovery and observability checks. Map each relevant
 contract to independent outcomes and its real observation boundary; fixture
 results do not prove live permissions, event delivery or operator log access.
+Settle these now, so later stages do not guess. For each command, say which test
+ids it may print. A host-dependent case (it needs a host browser, a device, an
+account or a service) names its tool and is probed now by doing the case's first
+step, not its version. If the product does not exist yet, probe against a stand-in,
+not the product's own address (a request to it fails whatever the tool can do): for
+a browser, write a one-line page in this run's scratch directory, open it by
+`file:` URL or from a throwaway static server you stop afterwards, and read its
+title back with the tool as the case will use it; for an account or a service, make
+a harmless read the tool can make today. A probe that fails is an access gap to
+record now, in the strategy, with the requirement it leaves unobserved. The case
+stays out of the project's default test command: give it its own opt-in command or
+flag, so a plain run of the default test command passes without the host tool.
+""" + ID_WORD_RULE + """ Declare each id as the tests will be titled.
+When the request names a page or screen people use, the strategy holds either a case
+that drives it through its user interface (for example in a browser or on a device),
+with the tool named and probed as above, or the outcome recorded as unverified with
+its owner and due stage (handoff, or the stage whose external effect it gates); an
+HTTP response alone is neither.
+""" + _REVIEW_FOCUS_LEAD + _PRODUCER_FOCUS_CONDITIONS + """\
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -988,6 +1046,9 @@ State and data assessment. Map each applicable obligation to its responsible wor
 item, prerequisites, observing test and relevant release/recovery conditions, or
 retain a reasoned exclusion or unresolved need. Preserve the mapping in existing
 plan notes, item context and evidence_refs; a completed template is not proof.
+For each work item, state the module format its files use (for example CommonJS or ESM,
+with or without a package.json) and the loadable seam its tests import, so a test
+can load before the implementation exists.
 """ + DESIGN_BASIS_DUTY + "\n\n" + """After creating the initial steps, submit this producer result to its mandatory
 actual Improve handoff. The plan remains a draft until
 that loop completes; dependent work waits. Link the created plan and any execution
@@ -1070,6 +1131,11 @@ Return the complete ordered `work_items` array using only `id`, `title` and opti
 `context`, and link the plan note in `evidence_refs`. Cover every approved outcome,
 including required independent work with no downstream consumer. A plan note
 alone does not populate the execution queue. A small change may use one item.
+Record the load-bearing assumptions in the result's `assumptions` list, starting from
+the discovery and research decision notes. Each takes exactly the fields printed in the
+template for its disposition (evidenced: `evidence`; probed: `check`, `evidence`; open:
+`check`, `consumer`, `reason`): ShipLoop refuses any extra key, and `consumer` must be
+the id of a work item in this plan's `work_items`.
 """,
     "prepare": """\
 Prepare or verify the approved development/test environment and prerequisites.
@@ -1086,8 +1152,10 @@ the initial baseline, prepare only the approved prerequisite, retain the origina
 observation, then rerun the original initial check against unchanged product and
 tests before dependent feature edits. Do not replace it with an easier route or
 describe the blocked baseline as passed.
+Record readiness, or the justified N/A, in environment.md, and cite in `evidence_refs`
+the runner output that shows each planned check starts.
 """,
-    "select-work": """\
+    "get-next-work-item": """\
 Revalidate the current script-selected work item in queue order. Confirm its
 dependencies, scope, owner, relevant lessons, expected outcomes, and prerequisites
 are current. The script does not choose among dependency-ready items. If this
@@ -1128,19 +1196,20 @@ planning never starts the dispatcher or expands this item's scope.
 List the item's completion criteria in `criteria` (`[{"id": "C1", "text": "..."}]`)
 and name, in each test command's `criteria`, the criteria that command confirms.
 Every criterion needs a command: a passing test ShipLoop runs is the only
-confirmation. For content that has no test runner, such as a README that must
-document a flag, add a `check` command (suite `check`, judged by its exit code),
-for example `grep -q -- '--greeting' README.md`.
+confirmation. For content that has no test runner (for example a document a
+criterion requires), add a `check` command (suite `check`, judged by its exit code),
+for example a search for the required terms in that file.
 Record the item's test command list in the result's `test_commands`:
-`[{"command": "<shell command>", "suite": "focused" | "regression", "ids": ["TC-9", ...]}]`.
+`[{"command": "<shell command>", "suite": "focused" | "regression" | "check", "ids": ["TC-9", ...]}]`.
 Focused commands exercise this item's tests; regression commands run the retained
-suites. test-red, test-green and regression use these exact commands, and ShipLoop
+suites; a `check` command is judged by its exit code, and a check row carries no ids or min_tests. test-red, test-green and regression use these exact commands, and ShipLoop
 runs them itself before accepting each stage, so each must be runnable from the
 repository root. ShipLoop reads the runner's summary and refuses a run that
 executed no test, because a filter that matches nothing exits 0 in most runners.
-Give each focused command the `ids` of the test-spec cases it must run, and a
-runner flag that prints test names (for example Jest `--verbose`, pytest `-v`),
-so the output shows them; add `min_tests` when a command must run at least that
+Give each focused command the `ids` you will title the cases with (the TC-n ids from the test strategy), and a
+runner flag that prints test names (for example Jest `--verbose`, pytest `-v`, `node --test` with its default
+spec or the tap reporter, never dot or junit),
+so the output shows them. """ + ID_WORD_RULE + """ Declare the ids as the tests will be titled. Add `min_tests` when a command must run at least that
 many. An empty list needs `test_commands_na` with the reason.
 Record the files this item will change in `paths` (repository-relative files or
 globs). ShipLoop classifies them with its package catalog: when the item records
@@ -1158,8 +1227,11 @@ the two-people test: two people running it separately would be forced to agree.
 State whether the condition must be exercised or whether inspection is
 sufficient. Give content criteria (docs, changelogs, test coverage) a
 command-checkable confirmation, such as a search for required terms, so they are
-re-observed rather than recalled. Mark a criterion that no available check can
-confirm as `Confirm by: unconfirmable here — <what would confirm it>` rather
+re-observed rather than recalled. A `criteria` entry needs a command that
+confirms it (above), so a condition no command can confirm is not listed there:
+record it as an open item in this result's summary (who does what, and what they
+report back). Elsewhere (a plan note, a graph step's done item) mark such a
+criterion as `Confirm by: unconfirmable here — <what would confirm it>` rather
 than dropping it.
 When the item adds or moves code or stored data, reopen the plan's Namespace
 and data map and the current tree of each environment it touches. Name each
@@ -1182,6 +1254,19 @@ defaults. Record the selection or no-fit rationale in the linked plan/evidence
 note; retain the entrypoint, effective inputs/default sources, product contract,
 validation locators and revalidation condition in ordinary evidence_refs. Keep
 later decision changes in these notes, not edits to the script-owned work queue.
+If, after reopening that index, no repo-local skill is selected, created or changed
+for this item, record `skill_na` (the no-fit reason, naming the index you inspected)
+and list no skill file in `paths`: ShipLoop then records skill-assess and
+skill-validate as not applicable to this item without issuing them, which also
+waives their late helper, MCP and library reuse assessment. Omit `skill_na` when the
+item selects, uses, creates or changes a skill.
+Improve reviews `skill_na` with the rest of this result.
+ShipLoop refuses `skill_na` in two places. At this step plan, beside a skill file in
+`paths` (a SKILL.md, a skills/ or agents/ tree, AGENTS.md, CLAUDE.md, GEMINI.md,
+.mcp.json or a host agent-config directory): resubmit the step plan without
+`skill_na`. At `document`, when the item's real diff touches a skill file (AGENTS.md,
+CLAUDE.md, GEMINI.md and .mcp.json edits there are fine): report revise, then
+resubmit the step plan without `skill_na`. Both skill stages then run.
 Label every pinned value that exists so a check can replay an exact path (fixed
 dice, seed data, a sample click) as a source-check fixture, and name the runtime
 control separately (for example, two die values the player can change, with the
@@ -1240,6 +1325,8 @@ that its page loads. Link later-phase procedures without claiming they ran here.
 For each new or changed public entry point, specify one rejection case per
 constraint it checks (missing, wrong type or shape, out of range), asserting the
 error type, the named argument and unchanged state.
+Title each case with the ids in the step plan's `test_commands`, and write one entry per case
+in test-spec.md: id, setup, action, independent oracle, RED, GREEN.
 Specify setup, test/assertions, and teardown together, or state why a stateless
 case needs no setup or teardown. Reuse fixture code without assuming mutable
 state is shareable. Share expensive setup only with demonstrated noninterference;
@@ -1281,7 +1368,9 @@ Authoring is complete only when selected clauses have executable check bindings
 or justified reproducible manual procedures at their required surfaces. Keep
 unavailable execution prerequisites and later-phase observations pending.
 On done, ShipLoop runs the item's focused commands once and refuses unless a test
-ran (a counted test with every listed ID shown, or a failing test). Tests that
+ran (a counted pass that shows every listed ID, or a failing test that shows every listed ID). """ + ID_WORD_RULE + """ The number
+of tests that run here is the least any later run of the command may run for this item, until test-refine reconciles any
+removed case. Tests that
 load something this item creates need it loadable now: create the smallest
 loadable placeholder at a path the step plan's `paths` names, or load it inside
 the test so a missing file fails that test and not the run.
@@ -1469,11 +1558,11 @@ Do:
 1. Read the bound Until Loop card in full once per context and follow it. Start
    the run with the printed command. Do not edit, retype or extend the contract.
 2. Execute each returned iteration exactly as its work says, then call its done
-   command. Save every returned packet from stdout to the printed latest-packet
-   path, so a reset can recover the run through its next_argv. Continue until
-   the runtime returns complete or stopped.
-3. Save the terminal packet, byte for byte from stdout, to the printed terminal
-   path and list that path in evidence_refs.
+   command. The runtime writes every packet it returns to the printed receipt,
+   so after a reset its next_argv resumes the run; do not write or edit the
+   receipt. Continue until the runtime returns complete or stopped.
+3. List the printed receipt path in evidence_refs: its last packet is the
+   terminal one, written by the runtime.
 Report: done when the loop completed; revise when it stopped blocked because a
 finding shows the item's goal is wrong as planned, naming it (the item goes back
 to its step plan);
@@ -1524,7 +1613,7 @@ user work and keep run-time state, raw logs, credentials, and generated artifact
 out of product commits and returns.  Do not infer a merge, commit, push, or
 deployment from a plan or command attempt.  If implement used a bound chain,
 confirm its finish commit is an ancestor of the execution checkout HEAD and
-record it; otherwise assemble or commit this item's candidate in the execution
+record it; otherwise confirm this item's candidate is assembled in the execution
 checkout under workspace and repository policy, or record a justified no-op.
 The original branch is returned only at the final workspace return.
 """,
@@ -1570,9 +1659,22 @@ new observations do not silently replace approved intent or old evidence.
 Record the system tests in `system_commands` (same shape as a step plan's
 test_commands; suite `focused`, `regression` or `check`). A command that is not a
 test runner (a shell pipeline, a grep, a curl probe) is suite `check`, judged by its
-exit code; `focused` and `regression` are for runners whose output ShipLoop can
-count. ShipLoop runs every one itself when system-test reports done and refuses
-unless each passes. When no system test applies, give an empty list with
+exit code, and a check row carries no ids or min_tests; `focused` and `regression` are
+for runners whose output ShipLoop can count. Mark a row `"host_dependent": true` when its cases need a host tool (a
+browser, a device, an account, a service): ShipLoop then also runs the project's
+regression commands at system-test and refuses if any of that row's `ids` appears
+in their output, because the default suite must pass without the host tool.
+ShipLoop runs every one itself when system-test reports done and refuses
+unless each passes. Run each system command once while authoring: a command that
+cannot pass here is changed to observe the same requirement another way. A case
+that cannot run here (for example a browser or an account this host cannot reach)
+is unachievable: leave its command out of `system_commands`,
+because ShipLoop runs every recorded one and refuses unless each passes, and
+record it as an open item in this result's summary: case ID, the requirement it
+leaves unverified, who does what, what they report, and the stage it is due at
+(handoff, or the stage whose external effect it gates). Then continue with every
+case that can run, and report blocked only when nothing else can proceed. A
+command recorded as not run is not an end state. When no system test applies, give an empty list with
 `system_commands_na` and the reason.
 Reopen the Run-wide test strategy source. From accepted history, select the
 latest done test-decision record for every relevant completed item: step-plan,
@@ -1618,9 +1720,17 @@ check relevant repeatability; never blindly replay an uncertain external effect.
 Verify execution location, remote framework availability and deployed/test revision
 identity. A local pass cannot replace a blocked/unrun required remote check or
 establish a combined full-suite pass; preserve its assigned owner and boundary.
+Carry in the open items system-test-author recorded: run any this stage can now and
+report each such case in the summary, where it is not recorded evidence (ShipLoop's
+rerun covers only the recorded system commands). Leave the rest listed with the due
+stage they name.
+A recorded system command that fails here is not an open item: ShipLoop refuses done
+while it fails, so fix the candidate, or report replan for missing product work or
+blocked when nothing else can proceed.
 A required case that only a person can run (for example, in a signed-in browser),
-for which the discovery and test-strategy records show this host has no route, does
-not make this result blocked. Record it as an open item in the result: case ID, who
+for which the discovery and test-strategy records show this host has no route, and
+whose command system-test-author left out of `system_commands`, does not make this
+result blocked. Record it as an open item in the result: case ID, who
 does what, what they report, owner (a person), due stage (handoff, or the stage
 whose external effect it gates). Submit done once every other due check and
 ShipLoop's rerun pass; the handoff reports it unverified, never as a pass. Report
@@ -1641,14 +1751,30 @@ consumer boundary.
 Reconcile new and preserved behavior against the selected prior baseline and
 incoming spec. Check durable knowledge and remaining gaps; a recovered description
 or planned check alone does not establish product acceptance.
+Every request outcome ends in one of three states: observed by an executed check;
+observed another way (the first method could not, so the method changed and the new
+check ran and passed); or unachievable here or not yet due, listed in `unverified`
+with its reason, owner and due stage while the run continues. A list entry is the
+outcome, the named reason, what its owner does and reports to settle it, the owner,
+and the later stage that reports it (handoff, or the stage whose external effect it
+gates). Carry in the open items an earlier stage recorded (system-test-author, system-test). Before
+listing an outcome, try another way to observe it. An outcome stated only in the
+summary has no end state; an empty list says every request outcome was observed.
 """,
     "release-plan": """\
 Record the post-release consumer checks as commands in `consumer_checks` (same
-shape; a `check` command is judged by its exit code). ShipLoop runs every one
-itself when release-verify reports done and refuses unless each passes. A check
-only a person can make is recorded in the plan as an open item for that person
-(who, where, what to report), not as a command; when no command applies, give an
-empty list with `consumer_checks_na` and the reason.
+shape; a `check` command is judged by its exit code, and a check row carries no ids or
+min_tests). ShipLoop runs every one
+itself when release-verify reports done and refuses unless each passes. In an
+isolated run that has a completed return it runs them in a clean copy of the
+returned result (no Git history, nothing the return plan excluded, no ignored or
+unmanaged file); with none recorded yet it runs them in the work area and says so.
+Write paths relative to the directory the command starts in (the copy or the work
+area), put what a fresh consumer needs (an install, a build) into the check itself,
+and never write into the user's checkout by absolute path. A check only a person
+can make is recorded in the plan as an open item for that person (who, where, what
+to report), not as a command; when no command applies, give an empty list with
+`consumer_checks_na` and the reason.
 Create an authorized release/recovery plan: target and candidate identity,
 permission, prerequisites, user impact, rollback, monitoring, pre/post-release
 checks, and stop conditions. List every operation the user-visible outcome needs as
@@ -1686,6 +1812,10 @@ child is active. Use an authorized delivery route from the execution checkout if
 If source return itself is required before consumer checks can run, record the
 ordering conflict for reconciliation and retain an incomplete disposition; never
 claim earlier checks observed a future return-triggered effect.
+In an isolated run, write the rollback for the source return the packet states
+(its return route and rollback recipes come from workspace.md): that route's SHAs and
+branch names as plain `git` commands, never this run's absolute paths, and never a
+rollback for another route.
 """,
     "release-check": """\
 Verify final release-candidate readiness without performing the release.  Check
@@ -1698,6 +1828,11 @@ Run the dry-run form of the planned deploy (for example `sf project deploy valid
 and each post-release confirm command once, against current target state, and
 record both outputs. A confirm command whose output cannot tell the result present
 from absent is fixed here, before the real deploy, not discovered after it.
+In an isolated run, run the packet's plan-return and review-return commands now as a
+dry run of the return (plan-return may commit leftover product files to the run
+branch; the decisions you record are kept for the plan made at release), compare the
+expected return review-return reports with the rollback in release-plan.md, and
+correct that file when they differ; after any such correction run plan-return again.
 """,
     "release": """\
 Perform the planned release only when the exact target, operation, authority, and
@@ -1721,6 +1856,11 @@ operation receipt, and real consumer behavior.  A blocked or unknown post-releas
 check remains incomplete; preserve prior receipts and do not re-release blindly.
 For local-only work, verify the current local candidate and consumer behavior;
 external activation N/A does not make these checks N/A.
+In an isolated run this stage cannot return, so a defect the checks find in the
+delivered result is fixed through replan (one corrective work item), after which
+release returns it again. Anything you run yourself inside the user's checkout must
+leave it exactly as the return left it; a file written there makes the return
+receipt stale and blocks handoff.
 For a browser surface, identify the usable consumer entry after authentication,
 account/target, visible feature and actual action/outcome for each required clause.
 Retain non-secret routing state; require app chrome/branding only when specified.
@@ -1750,6 +1890,9 @@ failure as an incident. Preserve required audit failure and recovery policy.
 Prepare an honest final handoff with source, test, integration, release, consumer,
 and operational status; evidence locators; limits; blockers; follow-up work; and
 revalidation needs.  List each open item as unverified, with who reports what.
+Report where release-verify's consumer checks ran (or that none did), from the packet's
+"Consumer checks (release-verify)" line; checks that ran in the work area did not
+observe the user's checkout, so list that as a limit.
 Reconcile durable project documentation and product-return receipts where
 applicable.  Do not transform an intent, stale green result, or conversational
 summary into completion evidence.
@@ -1772,7 +1915,7 @@ IMPROVE_SCOPES = {
     "test-strategy": "independent test/risk strategy and required test boundaries",
     "plan": "the newly created steps and dependency graph, readiness/done conditions, and correction routes",
     "prepare": "environment readiness evidence or its justified N/A disposition",
-    "select-work": "the ready-item selection and prerequisite assessment",
+    "get-next-work-item": "the ready-item selection and prerequisite assessment",
     "step-plan": "the newly created bounded steps and any parallel or serial execution graph, conventions, checks, and diagnostic obligations",
     "test-spec": "test-first cases, independent oracles, and RED/GREEN definitions",
     "baseline": "baseline commands, observations, initial-baseline applicability, and pre-existing failure classification",
@@ -1888,6 +2031,15 @@ def backchain_skills_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
+def installed_improve_card() -> Path:
+    """The Improve card installed beside ShipLoop in this plugin install, by file location (never a name or PATH search).
+
+    The same skills directory as the Backchain and Until Loop resources.  Whether it is usable is
+    ``shiploop_standalone_improve.resolve_skill``'s decision, not this function's.
+    """
+    return backchain_skills_root() / "improve" / "SKILL.md"
+
+
 def resolved_backchain_resources() -> tuple[tuple[str, str], ...]:
     """Resolve the fixed Backchain/Until Loop resources from this plugin install."""
     skills_root = backchain_skills_root()
@@ -1993,7 +2145,7 @@ substitutes. A forbidden revision, nonterminal child or unresolved finding stays
 incomplete and is not submitted as a completed parent action.
 """
 _BACKCHAIN_IMPROVE_OWNER = """\
-Improve is an independent broader review. It reads Backchain findings and the
+Improve is a broader review than Backchain's diagnostic. It reads Backchain findings and the
 returned candidate as ordinary inputs; it does not request or count Backchain
 passes, and creates no `active_backchain` child, nested Until Loop, retry
 dispatcher or new callback. For a dependency diagnostic use a one-pass Backchain
@@ -2033,6 +2185,19 @@ binding marker in the child request.
 """
 
 
+# Printed with the one-pass gate only: its "Write the child's start contract ... verbatim" reads as an order, and the
+# `converge` gate text has no such sentence.  Says what the script enforces (nothing refuses a plan without the child)
+# and what it cannot see; the dependency audit is the planning guide's duty either way.
+_BACKCHAIN_PLAN_CHOICE = """\
+The `plan`/`draft` request is your choice: nothing refuses a plan without it, and ShipLoop
+cannot see whether the child ran. The planning guide's dependency audit is not optional on
+either route. Say in this result's `summary` which route you took and why. The start
+contract below applies only if you request the child. The printed `backchain-check` reads
+a candidate graph in Backchain's plan schema (Backchain SKILL.md, "Plan document shape"),
+not a prose plan.
+"""
+
+
 def _one_pass(backchain_passes: str) -> bool:
     """Whether a Backchain child's gate text is the one-pass text (every mode but `converge`).
 
@@ -2065,7 +2230,8 @@ Through `source-aware-native`, the current stage host may
 request exactly one action `{action}` / stage `{operation}` within the packet's
 scope. Backchain invokes the selected actual Until Loop for its dependency-specific
 review/fix/check cycle using `Backchain standalone Until Loop binding: <binding-id>`.
-""" + (_BACKCHAIN_PLAN_GATE_ONE if _one_pass(backchain_passes) else _BACKCHAIN_PLAN_GATE_CONVERGE) + """\
+""" + (_BACKCHAIN_PLAN_CHOICE + _BACKCHAIN_PLAN_GATE_ONE if _one_pass(backchain_passes)
+       else _BACKCHAIN_PLAN_GATE_CONVERGE) + """\
 Backchain returns opaque actual Until Loop terminal evidence only after the child reports
 `complete` and its exact receipt is saved. A nonterminal, unresolved, or incompatible
 child leaves this parent action incomplete and must not be submitted as a completed parent
@@ -2105,6 +2271,15 @@ def _require_planning_review(planning_review: str) -> None:
 # Inline runs replace only the chain-specific paragraphs of these duties; the
 # ask-agent text above stays the single source for the delegated route.
 _INLINE_DUTY_PARAGRAPHS = {
+    "integrate": ("""\
+If implement used a bound chain,
+confirm its finish commit is an ancestor of the execution checkout HEAD and
+record it; otherwise confirm this item's candidate is assembled in the execution
+checkout under workspace and repository policy, or record a justified no-op.
+""", """\
+Confirm this item's candidate is assembled in the execution checkout under
+workspace and repository policy, or record a justified no-op.
+"""),
     "step-plan": ("""\
 Give each change that does not need another its own step with deps [] (for
 example, two modules that do not use each other) and join them in a later step
@@ -2256,6 +2431,8 @@ These restrictions
 belong to that Backchain child, not the separate Improve executor's authority.""", """\
 These restrictions
 belong to that Backchain child."""),
+    ("spec", _REVIEW_FOCUS_LEAD, _REVIEW_FOCUS_LEAD_NONE),
+    ("test-strategy", _REVIEW_FOCUS_LEAD, _REVIEW_FOCUS_LEAD_NONE),
     ("step-plan", """\
 This producer's mandatory
 actual Improve loop must review the created steps and graph before they are used
@@ -2270,6 +2447,8 @@ reviews them in this run."""),
     ("step-plan", """\
 The next review is the packet's automatic Improve handoff immediately after this producer result, before
 implementation.""", "No Improve child reviews this result in this run."),
+    ("step-plan", "Improve reviews `skill_na` with the rest of this result.",
+     "No Improve child reviews `skill_na` in this run."),
 )
 
 
@@ -2396,18 +2575,7 @@ PLANNING_REVIEW_FOCUS = """\
 Planning review focus. This planning result is
 the contract that later stages build on and that no other review sees until the
 end. Look for these conditions and fix them within scope:
-- a step, example or expected result that cannot be replayed exactly: name the
-  concrete inputs, values, identifiers and sample interactions;
-- an expected result or check that a weaker stand-in would pass: a hardcoded
-  value, a missing assertion, a title-only test, or an absent required name;
-- a documented command that does not run what it claims on the target runtime:
-  run it once and record the exit code and the cases it executes;
-- a required requirement, test ID or case dropped or weakened compared with the
-  prior accepted version;
-- a claim about what the runtime, platform or a library can do that a decision
-  depends on, with no primary-documentation source or probe result: check it,
-  and correct the plan where it is wrong;
-- a missing prerequisite, wrong order or unowned verification in the steps.
+""" + REVIEW_FOCUS_CONDITIONS + """\
 Do not reread history or rerun a check already recorded green at this commit
 unless a finding depends on it. A pass that finds none of these is trivial.
 """
@@ -2461,19 +2629,27 @@ structural validation or a Backchain result alone does not complete this handoff
 
     release_guard = ""
     if any(label == "Release operation guidance" for label, _ in STAGE_REFERENCES[stage]):
+        # No Improve child runs at the release stage itself (stage_spec: release has no improve), so every Improve
+        # that reads this guard is stage-scoped: it assesses and records, and never executes or replays a release
+        # effect (SPEC S-3; environment-lifecycle.md#release-operation-ownership).
+        performs = """\
+its authority. A stage-scoped Improve assesses and records its handoff; it does not
+execute or replay a release effect (a deployment, an MCP interaction or any other
+release operation). Those run only at the release stage, with a recorded grant and
+their required checks. Do not repeat unchanged release effects merely to advance the
+review streak. Reconcile uncertain or partial outcomes by reading the recorded
+receipts, without inventing provider guarantees; a retry belongs to the release
+stage, under the release guidance, with the prior operation/receipt identity and the
+provider's supported retry or idempotency procedure.
+"""
         release_guard = """\
 Read and retain Release operation guidance and the current operation/evidence
 locators. Review this stage's plan, readiness checks, or observed outcome within
-its authority. Improve may perform deployments, MCP interactions and other release
-operations already authorized for the current task and stage, with their required
-checks. Do not repeat unchanged release effects merely to advance the review streak.
-Reconcile uncertain or partial outcomes before retrying, without inventing provider guarantees.
-Retry only when the reconciled state warrants it and the operation remains
-authorized under the release guidance; retain the prior operation/receipt identity
-and follow the provider's supported retry or idempotency procedure.
+""" + performs + """\
 Material candidate changes require corrective planning and affected revalidation.
 External release N/A still requires applicable local candidate and consumer checks.
 """
+
     assessment = ""
     if any(label == "State and data assessment" for label, _ in STAGE_REFERENCES[stage]):
         assessment = """\
