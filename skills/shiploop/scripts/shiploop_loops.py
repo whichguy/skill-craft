@@ -518,6 +518,19 @@ def condition_lines(exit_text: str, repeat_text: str) -> list[str]:
             "Repeat condition (otherwise it runs another iteration): " + repeat_text]
 
 
+def argument_ready(root: Path, state: Mapping[str, Any]) -> bool:
+    """Whether ``invoke_lines`` prints the /until-loop argument (and so the numbered exit conditions) for this state."""
+    found = cursor(state)
+    if found is None:
+        return False
+    try:
+        runtime(state)
+        contract(Path(root), state, found[1])
+    except LoopError:
+        return False
+    return True
+
+
 def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
     """Read-only packet lines: the strong /until-loop invoke block for the current inner action ([] outside one)."""
     found = cursor(state)

@@ -1924,7 +1924,6 @@ class WholeWordIdTests(unittest.TestCase):
             root = Path(temp)
             parts = {
                 "step-plan duty": test_loop.guidance.duty("step-plan"),
-                "test duty": test_loop.guidance.duty("test"),
                 # The head carries loop_lines and the full packet's tail rule_lines.
                 "test commands and rules": "\n".join(test_loop.loop_lines(root, state, "W1", "A1", "test")
                                                      + test_loop.rule_lines(state, "W1", "test")),
@@ -1933,6 +1932,8 @@ class WholeWordIdTests(unittest.TestCase):
         for name, text in parts.items():
             with self.subTest(part=name):
                 self.assertEqual(" ".join(text.split()).count(rule), 1)  # each part states it once
+        # The test packet prints the rule once, in its command rules; its duty no longer repeats it (2026-10-11).
+        self.assertNotIn(rule, " ".join(test_loop.guidance.duty("test").split()))
 
 
 class CountFloorTests(unittest.TestCase):

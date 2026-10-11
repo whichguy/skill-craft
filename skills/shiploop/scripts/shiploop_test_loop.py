@@ -336,9 +336,11 @@ def rule_lines(state: Mapping[str, Any], work_item: str, stage: str) -> List[str
 
 def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str, stage: str = "",
                cli: Optional[str] = None) -> List[str]:
-    """The test packet's command list: each recorded command with its IDs and floor, and the red-check command.
+    """What the test packet adds to the /until-loop argument's command list: where the commands run, each floor by
+    the argument's numbering, the red-check command and the refused-run tally.
 
-    The floor shown is what ShipLoop knows when the packet renders: the latest passed base run and any earlier run of
+    The command text, IDs and minimums are printed once, in the argument (``shiploop_loops.command_listing``).  The
+    floor shown is what ShipLoop knows when the packet renders: the latest passed base run and any earlier run of
     this action; before the first base run it says the base run sets it.  ``cli`` is the ShipLoop command prefix the
     navigator prints (for example ``python3 <abs>/shiploop``); without it the red-check line is left out.  The Until
     Loop block is rendered by ``shiploop_loops.invoke_lines``, not here.
@@ -357,10 +359,19 @@ def loop_lines(root: Path, state: Mapping[str, Any], work_item: str, action: str
         return lines
     known = floors(root, state, work_item, action, None)
     based = _latest_base(root, action, passed=True) is not None
-    lines.append("Commands (ShipLoop runs each from " + str(state["repo"]) + " before accepting done; "
-                 + ("floors from the base run" if based else "the base run at done sets each floor") + "):")
-    lines += ["  " + str(number) + ". " + _listing(row, known.get(row["command"]))
-              for number, row in enumerate(commands, 1)]
+    head = ("Where and floors: ShipLoop runs each recorded command in the /until-loop argument above from "
+            + str(state["repo"]) + " before accepting done; ")
+    shown = [(number, row["suite"] in COUNTED_SUITES, known.get(row["command"]))
+             for number, row in enumerate(commands, 1)]
+    if any(floor for _number, _counted, floor in shown):
+        lines.append(head + ("floors from the base run" if based else "floors known so far; the base run at done "
+                             "sets the rest") + ", by the argument's numbering:")
+        lines += ["  " + str(number) + ". " + ("at least " + str(floor) + " tests" if floor
+                                               else "floor set by the base run at done" if counted
+                                               else "no floor (judged by its exit code)")
+                  for number, counted, floor in shown]
+    else:
+        lines.append(head + "the base run at done sets each floor.")
     if cli:
         lines.append("  red-check: " + cli + " red-check --run-dir=" + str(root) + " --action=" + action
                      + " (runs the base check now; it does not count toward the refused runs)")

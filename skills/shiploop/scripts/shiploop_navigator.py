@@ -1412,7 +1412,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
     lines = [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
         *_first_callback_lines(core, root, state),
-        *_goal_lines(state, stage),
+        *_goal_lines(state, stage, root),
         *(_result_contract_lines(root, state, stage, action["id"], _current_work_item(state))
           if not state.get("active_improve") else []),
         "",
@@ -3542,7 +3542,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_first_callback_lines(core, root, state),
-        *_goal_lines(state, stage),
+        *_goal_lines(state, stage, root),
         *(_result_contract_lines(root, state, stage, action["id"], workitem)
           if state["status"] == "active" and not state.get("active_improve") else []),
         *_step_lines(state, stage, workitem),
@@ -4179,7 +4179,12 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
             "ShipLoop does not judge the work, so you confirm each Done-when condition before reporting done.")
 
 
-def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+# An inner stage's done-when: its conditions are the numbered exit conditions of the /until-loop argument.
+DONE_WHEN_LOOP = ("Done when: every exit condition in the /until-loop argument below holds; ShipLoop's gate checks "
+                  "the same list.")
+
+
+def _goal_lines(state: Mapping[str, Any], stage: str, root: Path) -> list[str]:
     """Lead an active packet with the stage's goal and done-when; a producer also gets its checks and considerations."""
     if state["status"] != "active":
         return []
@@ -4191,13 +4196,18 @@ def _goal_lines(state: Mapping[str, Any], stage: str) -> list[str]:
         return ["Reviewing the returned " + stage + " result. Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
                 "Done when (a done result must meet each; correct the result, never the condition):",
                 *("- " + condition for condition in row.done_when)]
-    lines = ["Goal: " + row.goal[0].upper() + row.goal[1:] + ".",
-             "Done when (confirm each before calling done; keep going until all hold):",
-             *("- " + condition for condition in row.done_when),
-             *(["- the summary says which rows are new or changed and which are carried over from the previous "
-                "step plan"]
-               if _sent_back_results(state, stage, _current_work_item(state)) else []),
-             _checked_line(row, state)]
+    sent_back = _sent_back_results(state, stage, _current_work_item(state))
+    revised = "the summary says which rows are new or changed and which are carried over from the previous step plan"
+    if stage in loops.STAGES and loops.argument_ready(root, state):
+        # One home per thing (owner, 2026-10-11): the /until-loop argument after the status block numbers the exit
+        # conditions, so the head points at it instead of listing them a second time.  When the argument cannot be
+        # built (the invoke block says why), the list stays here, so the conditions are still printed once.
+        done = [DONE_WHEN_LOOP, *(["Also: " + revised + "."] if sent_back else [])]
+    else:
+        done = ["Done when (confirm each before calling done; keep going until all hold):",
+                *("- " + condition for condition in row.done_when),
+                *(["- " + revised] if sent_back else [])]
+    lines = ["Goal: " + row.goal[0].upper() + row.goal[1:] + ".", *done, _checked_line(row, state)]
     considerations = [(label, text) for label, text in (
         ("Develop", stage_spec.develop(stage, str(state.get("execution_mode")))), ("Test", row.test),
         ("Deploy", row.deploy), ("Tools", row.tools)) if text]

@@ -505,7 +505,7 @@ class GuidanceTests(unittest.TestCase):
             "test-spec": "every assigned clause",
             "test": "Every case ends as a test the focused command runs and passes",
             "step-plan": "two people running its check would agree",
-            "implement": "run every recorded check command and the printed lint command and record each exit code",
+            "implement": "Each iteration writes first: edit the step's paths",
             "verify": "the item goes back to its step plan rather than to a blind retry",
             "product-acceptance": "pending release verification",
             "release-verify": "usable consumer entry",

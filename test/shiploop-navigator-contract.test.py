@@ -1112,21 +1112,17 @@ class NavigatorContractTests(unittest.TestCase):
             "confirm that the oracle agrees with the task",
         )
         loop = (
-            "Make the planned step's change against its criteria",
             "Existing tests, check scripts, golden or fixture files and thresholds are checks",
             "never download, install or fetch a tool, runtime or dependency",
             "Assess an iteration's exit as satisfied only when a command or file shows each numbered condition "
             "after your last edit.",
-            "change the work, never the check, its expected result or the recorded command",
             "report revise naming the criterion or command and which case holds",
             "for a criterion the plan did not mark `Confirm by: unconfirmable here`",
             f"the same check still fails after {stage_spec.GENUINE_FIX_ATTEMPTS} genuine fix attempts",
             "with the existing behaviour kept at the conflict point",
         )
         parent = (
-            "For each completion criterion, name the passing command or the inspection that confirms it now.",
-            "Stale, skipped or missing evidence, or evidence for another candidate, command, configuration or "
-            "target, is not a confirmation",
+            "Evidence for another candidate, command, configuration or target is not a confirmation either",
             "whose `Confirm by:` needs execution cannot be met here: report revise",
             "the item goes back to its step plan rather than to a blind retry",
         )
@@ -1136,6 +1132,19 @@ class NavigatorContractTests(unittest.TestCase):
                 for phrase in phrases:
                     with self.subTest(delegation=delegation, stage=stage, phrase=phrase):
                         self.assertEqual(text.count(phrase), 1)
+        # What the loop's Work states is stated there once (owner, 2026-10-11), not again in the duty.
+        import shiploop_loops as loops
+        for stage, work, duty in (
+                ("implement", "Make {step_change} on its paths against its criteria",
+                 "Make the planned step's change against its criteria"),
+                ("implement", "change the work, never the check, its expected result or the recorded command",
+                 "change the work, never the check, its expected result or the recorded command"),
+                ("verify", "For each completion criterion, name the passing command or the inspection that confirms "
+                           "it now (stale, skipped or missing evidence is not a confirmation)",
+                 "For each completion criterion, name the passing command")):
+            with self.subTest(work=stage, phrase=work):
+                self.assertIn(work, " ".join(loops.WORK[stage].split()))
+                self.assertNotIn(duty, " ".join(prompts.prompt(stage).split()))
         # The stopping rule is implement's: a stage that runs no check loop does not carry it.
         self.assertNotIn("genuine fix attempts", " ".join(prompts.prompt("document").split()))
 
@@ -1248,8 +1257,10 @@ class NavigatorContractTests(unittest.TestCase):
         # test-author's duties are the test stage's (8-stage inner loop); ShipLoop's own run refuses a listed ID that
         # did not run, which is what "discovery selects the cases" asked the model to check.
         tester = " ".join(prompts.prompt("test").split())
+        import shiploop_loops as loops
+        self.assertIn("titled with its ID as its own word, registered in the focused and regression commands",
+                      " ".join(loops.WORK["test"].split()))  # the loop's Work, its one home
         for duty in (
-            "titled with its case ID, registered in the focused and regression commands",
             "Reuse the existing harness, helpers and fixtures before adding a facility",
             "runs every listed ID",
         ):

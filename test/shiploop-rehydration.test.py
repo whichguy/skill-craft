@@ -169,8 +169,16 @@ class GoalFirstTests(unittest.TestCase):
                 with self.subTest(stage=stage):
                     self.assertTrue(lines[header + 1].startswith("Callback for this stage"))
                     self.assertEqual(lines[header + 2], "Goal: " + row.goal[0].upper() + row.goal[1:] + ".")
-                    for condition in row.done_when:
-                        self.assertIn("- " + condition, packet)
+                    if stage in spec.INNER:
+                        # Each thing once (owner, 2026-10-11): the head points at the /until-loop argument, which
+                        # numbers the conditions; they are not listed a second time.
+                        self.assertEqual(lines[header + 3], nav.DONE_WHEN_LOOP)
+                        for number, condition in enumerate(row.done_when, 1):
+                            self.assertEqual(packet.count(condition), 1, condition)
+                            self.assertIn("    " + str(number) + ". " + condition, packet)
+                    else:
+                        for condition in row.done_when:
+                            self.assertIn("- " + condition, packet)
             action = nav.current_action(state)["id"]
             if step["command"] == "produce":
                 state = nav.apply(state, action, step["result"])

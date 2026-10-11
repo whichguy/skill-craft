@@ -626,15 +626,13 @@ file cold with no run history. Every rule serves that reader.
 # Every INNER stage runs its work as one Until Loop that ShipLoop starts from a contract it wrote
 # (shiploop_loops); the navigator prints the /until-loop block, so a duty names it and never its paths.
 _LOOP_DUTY = """\
-Do this stage's work only inside the /until-loop block below: ShipLoop wrote its
-contract from the run state, the Until Loop runtime counts the iterations and ends
-the loop, and you execute each iteration and report it honestly. Do not edit,
-retype or extend the contract, and never write the receipt; keep the receipt path
-in evidence_refs. Assess an iteration's exit as satisfied only when a command or
-file shows each numbered condition after your last edit. When ShipLoop refuses
-done after the loop completed, fix the cause, start the loop again with the same
-command (the receipt is replaced) and submit again. A user's stop is the packet's
-pause command, never a cancelled loop.
+ShipLoop wrote the /until-loop contract below from the run state, and the Until
+Loop runtime counts the iterations and ends the loop: execute each iteration and
+report it honestly, and do not edit, retype or extend the contract. Assess an
+iteration's exit as satisfied only when a command or file shows each numbered
+condition after your last edit. When ShipLoop refuses done after the loop
+completed, fix the cause, start the loop again with the same command (the receipt
+is replaced) and submit again.
 """
 
 # The step exit criteria's stopping rule; test/shiploop-stage-spec.test.py pins every prose copy to this value.
@@ -1129,10 +1127,6 @@ Record readiness, or the justified N/A, in environment.md, and cite in `evidence
 the runner output that shows each planned check starts.
 """,
     "step-plan": _LOOP_DUTY + """\
-Plan this item: behaviour-sized steps, the criteria each satisfies, the test,
-lint and build commands, the facts the steps build on, and the files it changes.
-Open the result summary with one sentence naming the concrete change and the
-checks that will prove it; the status display shows that sentence.
 ShipLoop issued this packet after checking that the item's prerequisites are
 accepted. Reopen this item's `context` and its section of the feature plan.md, and
 recheck each condition they state before relying on an earlier decision. If the
@@ -1147,10 +1141,8 @@ style, writing a structural choice this item makes that it does not record yet a
 a new AD-<n> under ## Decisions now; environment.md (## Commands, ## Targets and runtimes, ## Skills)
 for the test, lint, type and build commands, adding a newly working command under
 ## Commands; test-strategy.md (## Harnesses and suites, ## ID convention).
-Run the callback with --check-only on your draft result and fix each refusal
-before submitting it.
 Steps: list every implementation step in `steps`, in the order to do them (one is
-fine); ShipLoop issues one implement packet per step in that order. Each step
+fine), each behaviour-sized; ShipLoop issues one implement packet per step in that order. Each step
 declares `deps` (the earlier step IDs it truly needs, or []; list order alone is
 not a dependency), the `criteria` IDs it satisfies (listed IDs only) and the
 `paths` it changes (inside the item's paths); every criterion is satisfied by
@@ -1257,9 +1249,6 @@ The packet's Improve handoff reviews this plan, its steps and any execution grap
 before implement uses them.
 """,
     "test-spec": _LOOP_DUTY + """\
-Specify, before any code changes, the tests this item needs: at least one case
-per completion criterion a test confirms, each with an independent oracle and a
-RED and a GREEN definition.
 Consult and cite: spec.md (## Requirements), where every case cites its criterion
 and R-<n> and takes its oracle from the requirement's text, never from code (check
 a golden, fixture or snapshot oracle against that text first); architecture.md
@@ -1271,9 +1260,8 @@ ids.
 Write one "### <ID>" entry per case in the feature test-spec.md, titled with an
 id a focused command in the step plan's `test_commands` lists, and give every id
 those commands list its own entry: ShipLoop refuses a case ID that no focused
-command lists and a focused command id with no entry. Run the callback with
---check-only on your draft result (the loop's id-match command) and fix each
-refusal; a missing id means the step plan must change: report revise naming it.
+command lists and a focused command id with no entry. A missing id means the
+step plan must change: report revise naming it.
 Each entry holds: criterion and R-<n>; surface (unit, the
 module's public interface, the real boundary, rendered UI) and due phase; setup
 and fixture; action; independent oracle (the expected observation, never only that
@@ -1295,13 +1283,10 @@ the test stage writes and runs these cases after implement. If a criterion canno
 be tested as written, report revise naming it.
 """,
     "validate-existing": _LOOP_DUTY + """\
-Verify that what this item is about to change, or relies on, holds before the
-build. ShipLoop ran each step-plan expectation's check, and each open plan
-assumption this item settles, on the unchanged item base; the results are listed
-below, and this packet exists because at least one did not match its state
-(works: passes; absent: nothing there; broken: fails as the request reports).
-Each iteration takes the first mismatched expectation and, with one small
-discriminating observation, finds whether the fact or the check is wrong, then:
+ShipLoop ran each step-plan expectation's check, and each open plan assumption
+this item settles, on the unchanged item base; the results are listed below, and
+this packet exists because at least one did not match its state.
+Once an iteration has found whether the fact or the check is wrong:
 - the check is wrong and the fact holds: stop and report revise naming the
   expectation and the corrected check, so the step plan records it; never edit or
   weaken a check here;
@@ -1317,7 +1302,7 @@ discriminating observation, finds whether the fact or the check is wrong, then:
   plan reshapes the steps (a needed repair becomes an earlier step of this item);
 - the fix lies outside this run (another system, a person's access): stop and
   report blocked with blocked_by external or access, naming what is needed.
-Then rerun every expectation's check. Never start the item's own change here.
+Never start the item's own change here.
 On re-entry, when the checkout already holds this item's own changes (after a
 revise that followed implement), ShipLoop runs every check in a temporary
 worktree at the item's base, after any preparatory commit, so an edit in the
@@ -1330,9 +1315,7 @@ assumptions, environment.md (## Commands) and architecture.md (## Structure,
 ## Interfaces and boundaries).
 """,
     "implement": _LOOP_DUTY + """\
-Make the planned step's change against its criteria, in the execution checkout.
-Earlier steps are accepted; do not start a later step or do work no criterion
-asks for.
+Earlier steps are accepted; do no work that no criterion asks for.
 Consult and cite: spec (the R-<n> behind each criterion) for the behaviour;
 architecture.md (## Structure, ## Interfaces and boundaries, ## Conventions,
 ## Decisions) for where the code goes and how it reads, recording a departure as a
@@ -1342,23 +1325,17 @@ the accepted plan and only its relevant practice/platform sections, and check
 current code, versions and consumers before reuse or augmentation. Use each of
 the step's skills listed below for its stated purpose (invoke it through your
 host, or read its SKILL.md and follow it).
-Each iteration: write first (edit the step's paths; read history or earlier
-reviews only when a check fails or a concrete question needs one section), then
-run every recorded check command and the printed lint command and record each
-exit code. Apply the planned behaviour and the Code craft rubric below; an edit
+Each iteration writes first: edit the step's paths, and read history or earlier
+reviews only when a check fails or a concrete question needs one section. Apply
+the planned behaviour and the Code craft rubric below; an edit
 alone verifies nothing. Preserve unrelated work: no reformatting or reverting
 outside the step's paths. Existing tests, check scripts, golden or fixture files
-and thresholds are checks: change one only when a criterion says to. When a check
-fails or the lint command reports a new finding on a line you changed, change the
-work, never the check, its expected result or the recorded command. Confirm with
+and thresholds are checks: change one only when a criterion says to. Confirm with
 what is present: never download, install or fetch a tool, runtime or dependency;
-record the best available evidence and what would confirm more. Do not write
-tests: the test stage writes them from the test spec after the last step. A lint
+record the best available evidence and what would confirm more. A lint
 finding that must stay goes in the result's `lint_waivers` as
 `{"id": "<printed ID>", "reason": "<why>"}`.
-In the result, list each behaviour the change added that no test-spec case covers
-(or none), for the test stage, and say for each listed skill whether you used it
-and, if not, why.
+For a listed skill you did not use, the result says why.
 The step is unachievable as planned when (a) a criterion contradicts another
 criterion, the item or a protected file, shown by a check after all compatible
 work is done and with the existing behaviour kept at the conflict point; (b)
@@ -1387,20 +1364,13 @@ unrelated remote fields and existing operational owners. Unresolved cache access
 or async completion semantics require their recorded safe fallback or correction.
 """ + _IMPLEMENT_CHAIN,
     "test": _LOOP_DUTY + """\
-Write every test-spec case as a test and make every recorded command pass: the
-code must behave as the test spec defines.
 Consult and cite: the feature test-spec.md (every case and its oracle); the
 implement results (a behaviour no case covers is a test-spec gap: see below);
 test-strategy.md (## Harnesses and suites,
 ## ID convention, ## Real-boundary checks); environment.md (## Commands);
 architecture.md (## Conventions) for test style and seams; the spec for what each
 behaviour must be.
-Each iteration: write or fix a test for every case not yet covered, titled with
-its case ID, registered in the focused and regression commands, and asserting the
-spec's oracle, never the code's current behaviour. """ + ID_WORD_RULE + """ Run every
-command listed below; for each failure find its cause with one small observation
-(product defect, invalid test, or environment) and fix the product code. Change a
-test, fixture, golden file or threshold only when an independent reason shows the
+Change a test, fixture, golden file or threshold only when an independent reason shows the
 check itself is wrong, and record that reason in the run notes; never weaken,
 delete or skip a test to get green. A repeated unchanged failure is not progress:
 change the approach.
@@ -1459,7 +1429,6 @@ blocked, with blocked_by, only when the user, an access grant or an outside
 dependency must unblock it.
 """,
     "document": _LOOP_DUTY + """\
-Make the documentation this item's change affects say what the change now does.
 ShipLoop issues this stage only when the item's change touches behaviour.
 Consult and cite: the spec (## Requirements) for the R-<n> this item changed and
 its intended behaviour; architecture.md (## Structure, ## Interfaces and
@@ -1467,13 +1436,9 @@ boundaries, ## Decisions) for what is now true, writing a design or service
 decision this item made as an AD-<n> under ## Decisions if implement did not (a
 service choice with its contract, owner and revalidation trigger); environment.md
 (## Commands) for the commands your examples use.
-Each iteration: run each changed public behaviour (from the step plan, the
-implement results and the item's diff) and update the README, API, user, operator,
-design and error documentation from what you observe, including the errors a user
-can see and how to turn on diagnostics; state known limits and caveats; link to
-the authoritative home instead of copying a contract; then reread every document
-you changed and run its commands and examples. Assess the README: change it, or
-record in the run notes why not. Document nothing you did not observe working,
+The changed behaviours come from the step plan, the implement results and the
+item's diff as well as the change inventory, and user and design documentation
+count too. Document nothing you did not observe working,
 and keep public, error and debug behaviour accurate, concise and discoverable.
 Durable facts go in the repository's docs, never only in run notes. When this
 item recovered existing behaviour, use the Current-system baseline guide to keep
@@ -1483,9 +1448,7 @@ Report revise when the plan or a criterion is wrong as observed, naming it;
 blocked only when a behaviour cannot be observed here, naming it.
 """,
     "verify": _LOOP_DUTY + """\
-Accept this item: every completion criterion confirmed by evidence made after the
-last edit, the whole change reviewed, and chained work assembled. This is
-work-item acceptance, not a claim that integration or release has happened. The
+This is work-item acceptance, not a claim that integration or release has happened. The
 test stage wrote the tests and got every command green: confirm and review that
 result, and change a test only to fix a finding.
 Consult and cite: the spec (## Requirements, ## Non-functional requirements) for
@@ -1497,39 +1460,19 @@ test-spec.md for every case.
 On entry ShipLoop linted this item's changes, auto-fixing safe formatting once,
 and wrote the change inventory. Keep or revert each auto-fix the lint record
 names; the lint record supports the review, it does not replace the checks below.
-Each review iteration:
-1. Run every recorded command (listed below) and record each exit code and test
-   count.
-2. For each completion criterion, name the passing command or the inspection that
-   confirms it now. Stale, skipped or missing evidence, or evidence for another
-   candidate, command, configuration or target, is not a confirmation; keep
-   diagnostic scores apart from that decision. A criterion reported `inspected` or
-   `unconfirmable` whose `Confirm by:` needs execution cannot be met here: report
-   revise. Classify every test-spec case (the reconciliation below).
-3. From the change inventory, list every new or changed public entry point
-   (exported function, CLI handler, request or event handler, callback); walk one
-   valid, one boundary and one invalid input to its return value, error or side
-   effect, and write one trace line per path in the run notes. A wrong, unhandled
-   or untested path is a finding (add a test for an untested path, titled as a
-   sub-case `<ID> (<letter>)` of the case it extends); an entry point
-   in the diff but missing from the inventory has not been traced.
-4. Review the whole item's diff against the accepted step plan's steps, paths and
-   justified revisions, its affected consumers, the Code craft rubric below and
-   architecture.md: argument checks and contract docstrings at each entry point,
-   missing error paths, silent failures, comments that restate code or are stale,
-   dead code, user-facing text that is concatenated or bypasses the catalog, names
-   outside the planned namespace or exported wider than needed, stored data off
-   the planned schema, a near-copy of existing logic, a plain interaction where
-   the plan called for a rich one, and a deviation from architecture.md with no
-   new AD-<n>.
+The loop's Work numbers each review iteration's steps; this adds to them:
+1. The recorded commands are the Test rerun list below.
+2. Evidence for another candidate, command, configuration or target is not a
+   confirmation either; keep diagnostic scores apart from that decision. A
+   criterion reported `inspected` or `unconfirmable` whose `Confirm by:` needs
+   execution cannot be met here: report revise. Classify every test-spec case by
+   the reconciliation below.
+3. Title a test added for an untested path as a sub-case `<ID> (<letter>)` of the
+   case it extends; an entry point in the diff but missing from the inventory has
+   not been traced.
+4. Review against the step plan's justified revisions and the change's affected
+   consumers too.
 5. """ + _VERIFY_ASSEMBLY + """\
-6. Classify. Material: wrong behaviour on a traced path; a missing or wrong
-   argument check, contract, error path or test; a failing command; a misleading
-   comment; logic that should have been composed. Trivial: wording, ordering, a
-   sharper name. Do not reopen a finding an earlier iteration fixed unless its
-   code changed again.
-7. Fix every finding within scope by changing the work, never a check or its
-   expected result; if anything changed, rerun step 1 and record the results.
 Reconcile tests, documentation, error behaviour, diagnostics, dependencies and
 known limitations. Use Service discovery guidance for the item's selected service
 and observability contracts: verify the due outcomes, including safe fallback and
@@ -1554,49 +1497,31 @@ blocked, with blocked_by, only when the user, an access grant or an outside
 dependency must unblock it.
 """,
     "carry-forward": _LOOP_DUTY + """\
-Record what this item taught in the knowledge home, revise the remaining queue,
-and decide whether a repeated procedure deserves a local skill.
 Consult and cite: spec.md (## Requirements, Retired) for the R-<n> this item
 served; architecture.md (## Decisions, ## Superseded) for the AD-<n> it added or
 changed; environment.md (## Commands, ## Skills); test-strategy.md (## Harnesses
 and suites); the feature plan.md (## Open) and state.md work_items.
-Knowledge: update the knowledge home in place. environment.md ## Commands: every
-command that worked. architecture.md ## Decisions: each AD-<n> this item added; a
-superseded one moves to ## Superseded, never deleted. test-strategy.md
-## Harnesses and suites: suites, harness and case locators, fixture lifecycle
-decisions, the focused, smoke and full-suite commands, and pending real-boundary
-or full-suite checks with their owner, beside the originating strategy locator.
-spec.md: each R-<n> this item satisfied, with its test IDs; keep every unaffected
-clause and record an open gap under its R-<n>. The feature plan.md ## Open: open
-risks, unresolved dependencies, system-test obligations and release
-prerequisites, each with its owner. Keep completed evidence apart from future
-plans and never rewrite it; do not silently expand scope or turn a tentative idea
-into adopted policy. Carry the selected prior baseline, incoming delta and updated
-knowledge locators forward, preserving historical snapshots. Durable knowledge
-goes in the knowledge home, never only in run notes.
-Queue: read the full ordered queue (every pending title and context in state.md
-work_items) before revising it, and preserve every still-required pending outcome,
-including unrelated work with no consumer. Map every observation that affects
-later work to an owner: a defect in completed work, or a completed prerequisite
-that new evidence invalidates, becomes a corrective item with revalidation ahead
-of its consumers; a needed research or preparation prerequisite becomes its own
-item ahead of every consumer; anything else goes in plan.md ## Open. Explain each
-removal, merge or supersession in plan.md. `work_items`, when present, replaces
+Knowledge, beyond the loop's Work: test-strategy.md ## Harnesses and suites also
+records harness and case locators, fixture lifecycle decisions and pending
+full-suite checks, beside the originating strategy locator; the feature plan.md
+## Open also records unresolved dependencies. Keep completed evidence apart from
+future plans and never rewrite it; do not silently expand scope or turn a
+tentative idea into adopted policy. Carry the selected prior baseline, incoming
+delta and updated knowledge locators forward, preserving historical snapshots.
+Queue: read it before revising it, and keep unrelated pending work with no
+consumer. A completed prerequisite that new evidence invalidates is handled like a
+defect in completed work: a corrective item, with revalidation, ahead of its
+consumers; an observation no item owns goes in plan.md ## Open; explain a
+supersession in plan.md as you do a removal or merge. `work_items`, when present, replaces
 the whole future queue: rows `{"id", "title", "context"}` in prerequisite order,
 repeating no completed or current ID. A finding incompatible with the approved
 work (a changed requirement, permission or invocation contract) is not a queue
 edit: stop the loop and report blocked.
-Skill decision: read the repository's skill index (or README and AGENTS.md skill
-links; a missing index is not a blocker) and the skills your host offers, then
-record `skill` with decision none, reuse, update or create, its reason, what you
-inspected and its evidence. Prefer unchanged reuse. Create or update only when the
-same procedure ran in two or more steps or items of this run, or a pending item or
-R-<n> says it will recur, and no existing skill covers it. Keep it in the
-repository (environment.md ## Skills names the directory); never install it
-globally, add a dependency or publish it. Link it from the index and SHIPLOOP.md,
-run it once on this run's real procedure (an update also on a retained older use)
-and write that output to the trial note, saying whether a fresh reader tried it or
-"cold-context reuse untested"; presence or installation is not proof it runs.
+Skill decision: record `skill` with decision none, reuse, update or create, its
+reason, what you inspected and its evidence. Prefer unchanged reuse. Link a
+created or updated skill from SHIPLOOP.md as well as the index; an update's trial
+also runs a retained older use; the trial note says whether a fresh reader tried
+it or "cold-context reuse untested"; presence or installation is not proof it runs.
 Keep task-specific values in evidence and revalidate earlier skill selections for
 each new task.
 When accepted, ShipLoop commits docs/shiploop/ and SHIPLOOP.md and, for a created

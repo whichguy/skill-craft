@@ -68,6 +68,29 @@ class StepPacketTests(unittest.TestCase):
                     with self.subTest(case=name, packet=key):
                         self.assertIn(command, text)
 
+    def test_each_exit_condition_and_recorded_command_appears_once(self) -> None:
+        """Each thing once (owner, 2026-10-11): the /until-loop argument is the one home of the exit conditions and the
+        test stage's command list, so no inner producer packet repeats either.
+
+        A condition is counted as its text; a recorded command as its listing ("[<suite>] <command>"), because the
+        bare command text can sit inside a rule (the count rule names "node --test" as a runner example).
+        """
+        for name, found in self.found.items():
+            listing = "[focused] " + CASES[name]["checks"][0]
+            for key, text in found.items():
+                if key.endswith("-improve"):
+                    continue
+                stage = key.split("-", 1)[1]
+                # The synthetic step plan has no steps, so implement's argument cannot be built: its invoke block says
+                # why and the head keeps the itemised list, still once.
+                argument = "\nArgument:\n" in text
+                with self.subTest(case=name, packet=key):
+                    self.assertEqual(navigator.DONE_WHEN_LOOP in text, argument)
+                    for number, condition in enumerate(stage_spec.stage(stage).done_when, 1):
+                        self.assertEqual(text.count(condition), 1, condition)
+                        self.assertIn(("    " + str(number) + ". " if argument else "- ") + condition + "\n", text)
+                    self.assertEqual(text.count(listing), 1 if stage in ("test", "verify") else 0)
+
     def test_the_printed_head_fits_the_host_output_limit(self) -> None:
         case = CASES["node-fix-bug"]
         with tempfile.TemporaryDirectory(prefix="shiploop-step-head-") as temp:
