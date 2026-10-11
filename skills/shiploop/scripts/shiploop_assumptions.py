@@ -174,8 +174,9 @@ def open_items(state: Mapping[str, Any]) -> List[OpenItem]:
 
     Current means ``planning_revision.current_actions``.  The plan's rows (consumer: a work item) stay open, as the
     ledger never updates a disposition.  A later stage's row is settled once a done result of its consumer stage (for
-    carry-forward, the same item's) is current and was accepted after the row's result, unless that result lists the
-    row's ID again as open.  A consumer with no assumptions field settles by its done result.
+    carry-forward, the same item's) is current and was accepted after the row's result; a row that result carries
+    forward (the same ID, open again) is its own row from then on.  A consumer with no assumptions field settles by its
+    done result.
     """
     current = planning_revision.current_actions(state)
     accepted = state.get("accepted") or {}
@@ -204,9 +205,7 @@ def _settled(row: Mapping[str, Any], produced: int, workitem: Any, current: Mapp
     consumer = row.get("consumer")
     key = (workitem, "carry-forward") if consumer == "carry-forward" else (None, consumer)
     action = current.get(key)
-    if action is None or order.get(action, -1) <= produced:
-        return False
-    result = accepted.get(action)
-    again = [entry for entry in (result.get("assumptions") or () if isinstance(result, Mapping) else ())
-             if isinstance(entry, Mapping) and entry.get("disposition") == "open" and entry.get("id") == row.get("id")]
-    return not again
+    # The consumer's later done result settles the row.  A row it carries forward (the same ID, open again) is that
+    # result's own open row, listed from there with its new consumer; keeping this one would list the item twice and
+    # leave it open after its new consumer had finished.
+    return action is not None and order.get(action, -1) > produced

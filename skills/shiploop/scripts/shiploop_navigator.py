@@ -1979,6 +1979,16 @@ def _item_title(state: Mapping[str, Any], work_item: str) -> str:
 _PENDING = "; handoff remains pending. Fix that, then submit the same handoff result again."
 
 
+def _lessons_open_items(state: Mapping[str, Any]) -> list:
+    """The open items the release-verify lessons commit lists for the next run (contract 2.5, X15).
+
+    The plan's rows are left out: their consumer is a work item, and the ledger never marks them settled, so every
+    one would read as left open although its item finished.  What an item could not prove reaches a later stage's
+    open items, which are listed.
+    """
+    return [item for item in assumptions.open_items(state) if item.stage != "plan"]
+
+
 def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: Path | None = None,
                      *, terminal: bool = False) -> None:
     """Commit knowledge after an accepted close, including terminal preflight.
@@ -2007,9 +2017,8 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     if not stages:
         return
     try:
-        # At release-verify the lessons commit lists the open items nobody settled (contract 2.5, X15).
         committed = knowledge.commit(after, stages[-1],
-                                     assumptions.open_items(after) if stages[-1] == "release-verify" else ())
+                                     _lessons_open_items(after) if stages[-1] == "release-verify" else ())
     except RuntimeError as exc:
         if terminal:
             raise NavigatorError("ShipLoop knowledge: " + str(exc) + _PENDING) from exc
