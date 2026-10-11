@@ -249,16 +249,19 @@ runtimes`, `Commands`, `Skills`, `Access and accounts`, `Platform facts`; archit
 `Stack`, `Structure`, `Conventions`, `Interfaces and boundaries`, `Decisions`,
 `Superseded`; test strategy `Harnesses and suites`, `Commands`, `ID convention`,
 `Real-boundary checks`). At each knowledge close ShipLoop prints a counted notice,
-one `ShipLoop knowledge notice: ` line per section a file that exists lacks or
-leaves empty, and accepts the close: a count, not a refusal, because the saved homes
-lack nearly every heading and a refusal would fire at nearly every first close. The
-lines are on the stdout of the call that accepted the close, also when the script
-records another stage after it (test-spec, then validate-existing).
-Turning the notice into a refusal waits for the first live pair, which measures
-whether packets that quote the headings get them written: the notice lines per
-close, no threshold, counted by occurrence (`grep -o 'ShipLoop knowledge notice: '
-events.jsonl | wc -l`, and per event line for a close), because the host events
-log a call's whole stdout as one line and `grep -c` would count a close as one.
+one `ShipLoop knowledge notice: ` line per file that exists and lacks a section or
+leaves one empty (four at most), naming every such heading, and accepts the close: a
+count, not a refusal, because the saved homes lack nearly every heading and a refusal
+would fire at nearly every first close. The lines are on the stdout of the call that
+accepted the close, also when the script records another stage after it (test-spec,
+then validate-existing). Turning the notice into a refusal waits for the first live
+pair, which measures whether packets that quote the headings get them written: the
+notice per close, no threshold, counted by occurrence because the host events log a
+call's whole stdout as one line and `grep -c` would count a close as one. A line
+counts a file: `grep -o 'ShipLoop knowledge notice: ' events.jsonl | wc -l` counts
+files, and the headings are the quoted names before each line's first semicolon
+(`grep -o 'ShipLoop knowledge notice: [^;]*' events.jsonl | grep -o "'[^']*'" | wc -l`);
+per event line for a close.
 
 **S-12 One implementation of each mechanism.** A mechanism (committing, loop
 contracts and starts, receipts, identity, privacy screens) has one code path
