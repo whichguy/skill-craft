@@ -537,13 +537,14 @@ class ClassifyTest(GitCase):
         feature = "docs/shiploop/features/build-a-small-single-player-battleship-450445"
         self.write(feature + "/spec.md", "Adds: R-1.\n")
         self.git("add", "-A")
-        self.git("commit", "-qm", "docs(shiploop): record build-a-small-single-player-battleship-450445 knowledge after spec")
+        self.git("-c", "user.name=ShipLoop", "-c", "user.email=shiploop@example.invalid", "commit", "-qm",
+                 "docs(shiploop): record build-a-small-single-player-battleship-450445 knowledge after spec")
         before, _ = self.counted()
         (self.work / feature / "spec.md").unlink()
         self.git("add", "-A")
         subject = ("docs(shiploop): retire build-a-small-single-player-battleship-450445 spec: checked its requirement IDs "
                    "against the living spec")
-        self.git("commit", "-qm", subject)
+        self.git("-c", "user.name=ShipLoop", "-c", "user.email=shiploop@example.invalid", "commit", "-qm", subject)
         retired = self.git("rev-parse", "HEAD").strip()
         found, _ = self.historied()
         row = next(row for row in found["commits"] if row["id"] == retired)
