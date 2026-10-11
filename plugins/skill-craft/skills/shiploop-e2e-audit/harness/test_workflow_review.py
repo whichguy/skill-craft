@@ -220,9 +220,11 @@ class WorkflowReviewTests(unittest.TestCase):
         return self.assess()
 
     def test_the_inventory_follows_the_recorded_planning_review(self):
-        """Engine-built states: a none run's three children are comparable; a state is read against its own mode."""
+        """Engine-built states: a none run's four children are comparable; a state is read against its own mode."""
         built = {mode: self.engine_state(mode) for mode in ("stage", "none")}
-        for mode, children in (("stage", 8), ("none", 3)):
+        # stage: seven planning stages, the one implement step and the last carry-forward; none: the implement step
+        # (reviewed under either option), the last carry-forward, system-test-author and release-plan.
+        for mode, children in (("stage", 9), ("none", 4)):
             with self.subTest(mode=mode):
                 self.assertEqual(len(built[mode]["improve_results"]), children)
                 assessment = self.use_state(built[mode])

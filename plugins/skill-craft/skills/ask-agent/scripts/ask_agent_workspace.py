@@ -49,6 +49,7 @@ MANAGED_WORKTREE_CAPABILITIES = (
     "ignored-output-report",
 )
 VERSION = 1
+ROOT_CONTROL_FILES = frozenset({".gitignore", ".claspignore"})
 # Derived evidence (contribution patch, inspection and delivery records) is
 # stored per fingerprint and reused.  It lives one level below the stable
 # `inspections/` and `delivery-evidence/` roots, in a directory named for the
@@ -763,8 +764,26 @@ def _entry_at(root: Path, relative: str, *, label: str) -> dict[str, Any]:
     raise AssertionError("unreachable")
 
 
-def _untracked_manifest(repo: Path) -> list[dict[str, Any]]:
-    paths = _split_nul_paths(_git(repo, "ls-files", "--others", "--exclude-standard", "-z").stdout, label="untracked path")
+def _untracked_manifest(
+    repo: Path,
+    *,
+    index_entries: Sequence[Mapping[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    paths = set(_split_nul_paths(
+        _git(repo, "ls-files", "--others", "--exclude-standard", "-z").stdout,
+        label="untracked path",
+    ))
+    indexed = {entry["path"] for entry in (index_entries if index_entries is not None else _index_entries(repo))}
+    for relative in ROOT_CONTROL_FILES:
+        if relative in indexed:
+            continue
+        try:
+            (repo / relative).lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            _fail(f"cannot inspect root control file {relative}: {exc}")
+        paths.add(relative)
     return [_entry_at(repo, path, label="untracked input") for path in sorted(paths)]
 
 
@@ -803,7 +822,7 @@ def _ignored_paths(repo: Path) -> list[str]:
         if collapsed and collapsed[-1].endswith("/") and entry.startswith(collapsed[-1]):
             continue
         collapsed.append(entry)
-    return collapsed
+    return [path for path in collapsed if path not in ROOT_CONTROL_FILES]
 
 
 def _ignored_added_paths(worktree: Path, changes: Sequence[Mapping[str, Any]]) -> list[str]:
@@ -825,7 +844,7 @@ def _ignored_added_paths(worktree: Path, changes: Sequence[Mapping[str, Any]]) -
         detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
         _fail("could not classify ignored worker paths" + (f": {detail[-1]}" if detail else ""))
     matched = {os.fsdecode(item.removeprefix(b"./")) for item in result.stdout.split(b"\0") if item}
-    return [path for path in candidates if path in matched]
+    return [path for path in candidates if path in matched and path not in ROOT_CONTROL_FILES]
 
 
 def _copy_entry(source_root: Path, entry: Mapping[str, Any], target_root: Path, *, label: str) -> None:
@@ -943,7 +962,7 @@ def _capture_source(source: Path) -> SourceCapture:
     entries = _index_entries(source)
     _refuse_submodules(source, entries)
     tracked_files = _tracked_worktree_manifest(source)
-    untracked = _untracked_manifest(source)
+    untracked = _untracked_manifest(source, index_entries=entries)
     _refuse_filter_ambiguity(source, [entry["path"] for entry in entries] + [entry["path"] for entry in untracked])
     return SourceCapture(
         head=_head(source),
@@ -1076,7 +1095,8 @@ def _verify_child_capture(worktree: Path, capture: SourceCapture, branch: str) -
         _fail("worker worktree HEAD does not match captured source HEAD")
     if _branch(worktree) != branch:
         _fail("worker worktree branch does not match its owned branch")
-    if _index_entries(worktree) != capture.index_entries:
+    child_index_entries = _index_entries(worktree)
+    if child_index_entries != capture.index_entries:
         _fail("worker worktree index entries differ from captured source index")
     staged = _patch_diff(worktree, "--cached", "HEAD")
     if staged != capture.staged_patch:
@@ -1084,7 +1104,7 @@ def _verify_child_capture(worktree: Path, capture: SourceCapture, branch: str) -
     unstaged = _patch_diff(worktree)
     if unstaged != capture.unstaged_patch:
         _fail("worker worktree unstaged binary diff differs from captured source")
-    child_untracked = _untracked_manifest(worktree)
+    child_untracked = _untracked_manifest(worktree, index_entries=child_index_entries)
     if child_untracked != capture.untracked:
         _fail("worker worktree untracked inputs differ from captured source")
     expected_files = sorted(capture.tracked_files + capture.untracked, key=lambda item: item["path"])
@@ -1094,6 +1114,279 @@ def _verify_child_capture(worktree: Path, capture: SourceCapture, branch: str) -
     if _git_visible_entries(state["files"], honor_exec=honor_exec) != expected_visible:
         _fail("worker working-file bytes or Git-tracked modes differ from captured source")
     return state
+
+
+def _tree_entries(repo: Path, treeish: str) -> dict[str, dict[str, str]]:
+    raw = _git(repo, "ls-tree", "-r", "-z", treeish).stdout
+    if raw and not raw.endswith(b"\0"):
+        _fail("Git returned malformed private snapshot tree entries")
+    result: dict[str, dict[str, str]] = {}
+    for row in raw.split(b"\0"):
+        if not row:
+            continue
+        try:
+            header, encoded_path = row.split(b"\t", 1)
+            mode, kind, object_id = header.split(b" ")
+            path = _safe_rel(os.fsdecode(encoded_path), label="private snapshot path")
+        except (ValueError, UnicodeError) as exc:
+            _fail(f"Git returned malformed private snapshot tree entry: {exc}")
+        if path in result:
+            _fail(f"private snapshot contains a duplicate path: {path}")
+        result[path] = {
+            "mode": mode.decode("ascii", "strict"),
+            "type": kind.decode("ascii", "strict"),
+            "object": object_id.decode("ascii", "strict"),
+        }
+    return result
+
+
+def _index_entries_from_tree(entries: Mapping[str, Mapping[str, str]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "path": path,
+            "entries": [{"mode": entry["mode"], "object": entry["object"], "stage": 0}],
+        }
+        for path, entry in sorted(entries.items())
+    ]
+
+
+def _batch_blobs(repo: Path, object_ids: Sequence[str]) -> list[bytes]:
+    """Read blob objects in one Git process and reject malformed responses."""
+    if not object_ids:
+        return []
+    result = _git(
+        repo,
+        "cat-file", "--batch",
+        input_bytes=b"".join(os.fsencode(object_id) + b"\n" for object_id in object_ids),
+        check=False,
+    )
+    if result.returncode:
+        detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
+        _fail("could not verify private snapshot blobs" + (f": {detail[-1]}" if detail else ""))
+    output = result.stdout
+    offset = 0
+    blobs: list[bytes] = []
+    for expected_id in object_ids:
+        header_end = output.find(b"\n", offset)
+        if header_end < 0:
+            _fail("Git returned a truncated private snapshot blob batch")
+        header = output[offset:header_end].split()
+        if len(header) != 3 or header[0].decode("ascii", "replace") != expected_id or header[1] != b"blob":
+            _fail("Git returned an invalid private snapshot blob header")
+        try:
+            size = int(header[2])
+        except ValueError:
+            _fail("Git returned an invalid private snapshot blob size")
+        if size < 0:
+            _fail("Git returned a negative private snapshot blob size")
+        start = header_end + 1
+        end = start + size
+        if end >= len(output) or output[end:end + 1] != b"\n":
+            _fail("Git returned a truncated private snapshot blob body")
+        blobs.append(output[start:end])
+        offset = end + 1
+    if offset != len(output):
+        _fail("Git returned unexpected trailing private snapshot blob data")
+    return blobs
+
+
+def _refuse_private_snapshot_conversions(repo: Path, files: Sequence[Mapping[str, Any]]) -> None:
+    """Fail before staging when Git attributes would convert captured bytes."""
+    regular = [item["path"] for item in files if item.get("type") == "file"]
+    for attribute, description in (
+        ("filter", "filter"),
+        ("working-tree-encoding", "working-tree-encoding"),
+        ("ident", "ident expansion"),
+    ):
+        converted = _paths_with_attribute(repo, regular, attribute)
+        if converted:
+            _fail(
+                f"private snapshot cannot preserve Git {description} conversions at "
+                + ", ".join(sorted(converted))
+            )
+
+    line_converted = set(_line_ending_converted_paths(repo, regular))
+    autocrlf_result = _git(repo, "config", "--get", "core.autocrlf", check=False)
+    autocrlf = autocrlf_result.stdout.decode("ascii", "replace").strip().lower() if autocrlf_result.returncode == 0 else ""
+    autocrlf_converts = autocrlf in {"true", "input"}
+    for item in files:
+        if item.get("type") != "file":
+            continue
+        path = str(item["path"])
+        if path in line_converted or autocrlf_converts:
+            raw = repo.joinpath(*PurePosixPath(path).parts).read_bytes()
+            if b"\r\n" in raw:
+                _fail(
+                    "private snapshot cannot preserve captured CRLF bytes when Git line-ending "
+                    f"conversion is enabled at {path}"
+                )
+
+
+def _private_snapshot(
+    source: Path,
+    worktree: Path,
+    attempt: Path,
+    source_head: str,
+    branch: str,
+    source_state: Mapping[str, Any],
+    source_dirty: bool,
+    known_snapshot: dict[str, str | None],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Create an opt-in baseline commit from exact captured worker files.
+
+    A temporary index starts at the captured source HEAD and receives only
+    explicitly captured paths.  The synthetic commit is made with commit-tree
+    (no user hooks), then the owned ref and child index move without checking
+    out files, preserving the captured working bytes.
+    """
+    index_file = attempt / "private-snapshot.index"
+    hooks_dir = attempt / "private-snapshot-hooks"
+    if os.path.lexists(index_file):
+        _fail("private snapshot temporary index path already exists")
+    if os.path.lexists(hooks_dir):
+        _fail("private snapshot hook directory path already exists")
+    extra = {"GIT_INDEX_FILE": os.fspath(index_file)}
+    try:
+        head_entries = _tree_entries(worktree, source_head)
+        paths = set(head_entries)
+        # The temporary index represents the captured working files, not the
+        # caller's staged-only layer. In particular, a staged addition that
+        # was subsequently deleted from the working tree must not be passed
+        # as a pathspec to `git add`.
+        paths.update(item["path"] for item in source_state["files"])
+        source_dirty = source_dirty or (
+            source_state["index_entries"] != _index_entries_from_tree(head_entries)
+        )
+        _refuse_private_snapshot_conversions(worktree, source_state["files"])
+        _git(worktree, "read-tree", source_head, extra_environment=extra)
+        if paths:
+            add = _git(
+                worktree,
+                "--literal-pathspecs", "add", "--all", "--force",
+                "--pathspec-from-file=-", "--pathspec-file-nul",
+                input_bytes=b"".join(os.fsencode(path) + b"\0" for path in sorted(paths)),
+                check=False,
+                extra_environment=extra,
+            )
+            if add.returncode:
+                detail = add.stderr.decode("utf-8", "replace").strip().splitlines()
+                _fail("could not stage captured files into private snapshot" + (f": {detail[-1]}" if detail else ""))
+
+        tree_result = _git(worktree, "write-tree", extra_environment=extra)
+        tree = tree_result.stdout.decode("ascii", "strict").strip()
+        if not GIT_SHA_RE.fullmatch(tree):
+            _fail("Git returned an invalid private snapshot tree SHA")
+        entries = _tree_entries(worktree, tree)
+        expected_files = {item["path"]: item for item in source_state["files"]}
+        if set(entries) != set(expected_files):
+            missing = sorted(set(expected_files) - set(entries))
+            extra_paths = sorted(set(entries) - set(expected_files))
+            details = []
+            if missing:
+                details.append("missing " + ", ".join(missing))
+            if extra_paths:
+                details.append("unexpected " + ", ".join(extra_paths))
+            _fail("private snapshot paths do not match captured working files: " + "; ".join(details))
+
+        verification_rows: list[tuple[str, Mapping[str, Any], str]] = []
+        honor_exec = _honors_exec_bit(worktree)
+        for path, captured in expected_files.items():
+            tree_entry = entries[path]
+            if captured["type"] == "symlink":
+                expected_mode = "120000"
+            elif (
+                not honor_exec
+                and path in head_entries
+                and head_entries[path]["mode"] in {"100644", "100755"}
+            ):
+                # Match the source repository's own mode projection. Git with
+                # core.fileMode=false does not treat chmod-only differences
+                # on tracked files as a captured tree change.
+                expected_mode = head_entries[path]["mode"]
+            else:
+                expected_mode = "100755" if int(captured["mode"]) & 0o100 else "100644"
+            if tree_entry["type"] != "blob" or tree_entry["mode"] != expected_mode:
+                _fail(f"private snapshot does not preserve the captured file type or Git mode at {path}")
+            verification_rows.append((path, captured, tree_entry["object"]))
+        observed_blobs = _batch_blobs(worktree, [row[2] for row in verification_rows])
+        for (path, captured, _object_id), observed in zip(verification_rows, observed_blobs):
+            if captured["type"] == "file":
+                expected = worktree.joinpath(*PurePosixPath(path).parts).read_bytes()
+            else:
+                expected = os.fsencode(os.readlink(worktree.joinpath(*PurePosixPath(path).parts)))
+            if observed != expected:
+                _fail(
+                    "Git content conversion cannot preserve the captured working bytes at "
+                    f"{path}; private snapshot mode refuses converted content"
+                )
+
+        source_tree = _git_text(worktree, "rev-parse", f"{source_head}^{{tree}}")
+        created = tree != source_tree
+        snapshot_head = source_head
+        if created:
+            hooks_dir.mkdir(mode=0o700)
+            identity = {
+                "GIT_AUTHOR_NAME": "Ask Agent Workspace",
+                "GIT_AUTHOR_EMAIL": "ask-agent@invalid",
+                "GIT_COMMITTER_NAME": "Ask Agent Workspace",
+                "GIT_COMMITTER_EMAIL": "ask-agent@invalid",
+            }
+            commit_result = _git(
+                worktree,
+                "-c", f"core.hooksPath={hooks_dir}",
+                "-c", "commit.gpgsign=false",
+                "commit-tree", tree, "-p", source_head,
+                "-m", "Ask Agent private working tree snapshot",
+                extra_environment=identity,
+            )
+            snapshot_head = commit_result.stdout.decode("ascii", "strict").strip()
+            if not GIT_SHA_RE.fullmatch(snapshot_head):
+                _fail("Git returned an invalid private snapshot commit SHA")
+            parents = _git_text(worktree, "show", "-s", "--format=%P", snapshot_head).split()
+            recorded_tree = _git_text(worktree, "rev-parse", f"{snapshot_head}^{{tree}}")
+            if parents != [source_head] or recorded_tree != tree:
+                _fail("private snapshot commit does not match its captured parent and tree")
+            # Cleanup may remove this owned branch only while it still points
+            # to its original base or this exact synthetic snapshot.
+            known_snapshot["head"] = snapshot_head
+            moved = _git(
+                source,
+                "-c", f"core.hooksPath={hooks_dir}",
+                "update-ref", f"refs/heads/{branch}", snapshot_head, source_head,
+                check=False,
+            )
+            if moved.returncode:
+                detail = moved.stderr.decode("utf-8", "replace").strip().splitlines()
+                _fail("could not move the owned branch to its private snapshot" + (f": {detail[-1]}" if detail else ""))
+
+        _git(worktree, "read-tree", snapshot_head, extra_environment={"GIT_INDEX_FILE": os.fspath(_git_path(worktree, "index"))})
+        state = _worker_state(worktree)
+        if (
+            state["head"] != snapshot_head
+            or state["branch"] != branch
+            or state["files"] != source_state["files"]
+            or state["cached_patch_sha256"] != _sha256(b"")
+            or state["unstaged_patch_sha256"] != _sha256(b"")
+        ):
+            _fail("private snapshot did not leave the worker at a clean index without rewriting captured files")
+        snapshot = {
+            "mode": "private-commit",
+            "commit": snapshot_head,
+            "tree": tree,
+            "created": created,
+            "source_dirty": source_dirty,
+        }
+        return state, snapshot
+    finally:
+        for path in (index_file, Path(os.fspath(index_file) + ".lock")):
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
+        try:
+            hooks_dir.rmdir()
+        except OSError:
+            pass
 
 
 def _label_fragment(label: str | None) -> str:
@@ -1168,16 +1461,27 @@ def _baseline_paths(attempt: Path) -> dict[str, Path]:
 
 
 def _base_output(record: Mapping[str, Any], status: str) -> dict[str, Any]:
-    return {
+    result = {
         "status": status,
         "receipt": record["receipt_path"],
         "worktree": record["worktree"],
         "branch": record["branch"],
         "baseline": record["baseline_path"],
     }
+    snapshot = record["baseline_data"].get("snapshot")
+    if isinstance(snapshot, dict):
+        result["commit_base"] = snapshot["commit"]
+        result["snapshot"] = dict(snapshot)
+    return result
 
 
-def _new_prepare(source_argument: Path, store_argument: Path | None, label: str | None) -> dict[str, Any]:
+def _new_prepare(
+    source_argument: Path,
+    store_argument: Path | None,
+    label: str | None,
+    *,
+    commit_snapshot: bool = False,
+) -> dict[str, Any]:
     source = _repo_root(source_argument)
     common = _common_dir(source)
     store = _resolve_store(source, common, store_argument)
@@ -1187,6 +1491,7 @@ def _new_prepare(source_argument: Path, store_argument: Path | None, label: str 
     worktree = attempt / "worktree"
     branch = f"ask-agent/{_label_fragment(label)}-{attempt_id[:12]}"
     add_attempted = False
+    known_snapshot: dict[str, str | None] = {"head": None}
     receipt_started = receipt_written = False
     try:
         with _attempt_lock(attempt):
@@ -1216,10 +1521,40 @@ def _new_prepare(source_argument: Path, store_argument: Path | None, label: str 
                 _git(worktree, "apply", "--binary", "--whitespace=nowarn", input_bytes=capture_before.unstaged_patch)
             for entry in capture_before.untracked:
                 _copy_entry(source, entry, worktree, label="untracked input")
+            if commit_snapshot:
+                # Check conversion policy before fidelity verification. A
+                # worktree checkout under autocrlf/text attributes may already
+                # have changed captured bytes; report that unsupported
+                # conversion specifically instead of obscuring it as a generic
+                # source/worker mismatch.
+                _refuse_private_snapshot_conversions(
+                    worktree,
+                    capture_before.tracked_files + capture_before.untracked,
+                )
             state = _verify_child_capture(worktree, capture_before, branch)
             capture_after = _capture_source(source)
             if capture_after.comparable() != capture_before.comparable():
                 _fail("source changed during capture; prepare again once writers are quiescent")
+            source_worker_state = state
+            snapshot: dict[str, Any] | None = None
+            if commit_snapshot:
+                state, snapshot = _private_snapshot(
+                    source,
+                    worktree,
+                    attempt,
+                    capture_before.head,
+                    branch,
+                    source_worker_state,
+                    source_dirty=bool(
+                        capture_before.staged_patch
+                        or capture_before.unstaged_patch
+                        or capture_before.untracked
+                    ),
+                    known_snapshot=known_snapshot,
+                )
+                capture_after_snapshot = _capture_source(source)
+                if capture_after_snapshot.comparable() != capture_before.comparable():
+                    _fail("source changed during private snapshot creation; prepare again once writers are quiescent")
             baseline_files = _owned_directory(attempt, "baseline-files", label="baseline file store")
             _copy_tree_entries(worktree, state["files"], baseline_files, label="baseline file")
             baseline = {
@@ -1248,6 +1583,10 @@ def _new_prepare(source_argument: Path, store_argument: Path | None, label: str 
                 "baseline_files": os.fspath(baseline_files),
                 "quiescence": "caller asserted writers quiescent; observable source drift was checked before and after capture",
             }
+            if snapshot is not None:
+                baseline["source_worker_state"] = source_worker_state
+                baseline["source_worker_state_fingerprint"] = _state_fingerprint(source_worker_state)
+                baseline["snapshot"] = snapshot
             _write_new_json(paths["baseline"], baseline)
             baseline_sha = _sha256_file(paths["baseline"])
             receipt = {
@@ -1290,7 +1629,13 @@ def _new_prepare(source_argument: Path, store_argument: Path | None, label: str 
                 pass
         if add_attempted:
             try:
-                cleanup = _discard_failed_preparation(source, attempt / "worktree", branch, capture_before.head)
+                cleanup = _discard_failed_preparation(
+                    source,
+                    attempt / "worktree",
+                    branch,
+                    capture_before.head,
+                    known_snapshot_head=known_snapshot["head"],
+                )
             except Exception as cleanup_error:  # never mask the original failure
                 cleanup = f"cleanup failed ({cleanup_error}); worktree and branch may remain"
         detail = str(exc)
@@ -1304,13 +1649,21 @@ def _new_prepare(source_argument: Path, store_argument: Path | None, label: str 
         raise WorkspaceError(message) from exc
 
 
-def _discard_failed_preparation(source: Path, worktree: Path, branch: str, head: str) -> str:
+def _discard_failed_preparation(
+    source: Path,
+    worktree: Path,
+    branch: str,
+    head: str,
+    *,
+    known_snapshot_head: str | None = None,
+) -> str:
     """Remove the worktree/branch this prepare just created; no worker has run in them.
 
     Without a receipt, `close` cannot manage them, so leaving them registered
     only accumulates orphaned worktrees and `ask-agent/*` branches in the
     caller's repository.  The branch is deleted only while it still points at
-    the captured source HEAD, i.e. it holds no commits of its own.
+    the captured source HEAD or the exact private snapshot created by this
+    prepare attempt.
     """
     notes: list[str] = []
     if _registered_path_present(source, worktree, minimum_timeout=CLEANUP_GIT_TIMEOUT_SECONDS):
@@ -1352,7 +1705,7 @@ def _discard_failed_preparation(source: Path, worktree: Path, branch: str, head:
                minimum_timeout=CLEANUP_GIT_TIMEOUT_SECONDS)
     if tip.returncode:
         notes.append("no branch was created")
-    elif tip.stdout.decode("ascii", "replace").strip() != head:
+    elif tip.stdout.decode("ascii", "replace").strip() not in {head, known_snapshot_head}:
         notes.append(f"retained branch {branch} because it moved")
     else:
         deleted = _git(source, "branch", "-D", "--", branch, check=False,
@@ -1406,7 +1759,11 @@ def _load_receipt(path: Path) -> dict[str, Any]:
         _fail("workspace baseline has an unsupported schema")
     if baseline.get("attempt_id") != attempt_id:
         _fail("workspace baseline belongs to a different attempt")
-    if baseline.get("source", {}).get("root") != source["root"] or baseline.get("source", {}).get("common_dir") != source["common_dir"]:
+    if (
+        baseline.get("source", {}).get("root") != source["root"]
+        or baseline.get("source", {}).get("common_dir") != source["common_dir"]
+        or baseline.get("source", {}).get("head") != source["head"]
+    ):
         _fail("workspace baseline source identity does not match receipt")
     files_root = baseline.get("baseline_files")
     if not isinstance(files_root, str) or Path(files_root) != attempt / "baseline-files":
@@ -1416,6 +1773,54 @@ def _load_receipt(path: Path) -> dict[str, Any]:
         _fail("workspace baseline lacks a worker-state record")
     if _state_fingerprint(baseline["worker_state"]) != baseline["worker_state_fingerprint"]:
         _fail("workspace baseline worker-state record is corrupt")
+    snapshot = baseline.get("snapshot")
+    if snapshot is not None:
+        if (
+            not isinstance(snapshot, dict)
+            or set(snapshot) != {"mode", "commit", "tree", "created", "source_dirty"}
+            or snapshot.get("mode") != "private-commit"
+            or not isinstance(snapshot.get("commit"), str)
+            or not GIT_SHA_RE.fullmatch(snapshot["commit"])
+            or not isinstance(snapshot.get("tree"), str)
+            or not GIT_SHA_RE.fullmatch(snapshot["tree"])
+            or not isinstance(snapshot.get("created"), bool)
+            or not isinstance(snapshot.get("source_dirty"), bool)
+        ):
+            _fail("workspace baseline has invalid private snapshot metadata")
+        source_worker_state = baseline.get("source_worker_state")
+        source_worker_fingerprint = baseline.get("source_worker_state_fingerprint")
+        if not isinstance(source_worker_state, dict) or not isinstance(source_worker_fingerprint, str):
+            _fail("workspace baseline lacks its pre-snapshot worker state")
+        if _state_fingerprint(source_worker_state) != source_worker_fingerprint:
+            _fail("workspace baseline pre-snapshot worker state is corrupt")
+        capture = baseline.get("source_capture")
+        if not isinstance(capture, dict):
+            _fail("workspace baseline lacks a source capture for private snapshot mode")
+        captured_dirty = (
+            capture.get("staged_patch_sha256") != _sha256(b"")
+            or capture.get("unstaged_patch_sha256") != _sha256(b"")
+            or capture.get("untracked") != []
+        )
+        if captured_dirty and not snapshot["source_dirty"]:
+            _fail("workspace baseline private snapshot dirty marker differs from captured source evidence")
+        worker_state = baseline["worker_state"]
+        if (
+            source_worker_state.get("head") != source["head"]
+            or source_worker_state.get("branch") != branch
+            or source_worker_state.get("files") != worker_state.get("files")
+            or source_worker_state.get("cached_patch_sha256") != capture.get("staged_patch_sha256")
+            or source_worker_state.get("unstaged_patch_sha256") != capture.get("unstaged_patch_sha256")
+        ):
+            _fail("workspace baseline pre-snapshot state differs from its captured source")
+        if (
+            worker_state.get("head") != snapshot["commit"]
+            or worker_state.get("branch") != branch
+            or worker_state.get("cached_patch_sha256") != _sha256(b"")
+            or worker_state.get("unstaged_patch_sha256") != _sha256(b"")
+        ):
+            _fail("workspace baseline private snapshot is not the clean worker-state base")
+        if snapshot["created"] == (snapshot["commit"] == source["head"]):
+            _fail("workspace baseline private snapshot creation flag is inconsistent")
     result = dict(raw)
     result.update({
         "receipt_path": os.fspath(receipt_path),
@@ -1427,6 +1832,39 @@ def _load_receipt(path: Path) -> dict[str, Any]:
     return result
 
 
+def _validate_snapshot_record(record: Mapping[str, Any], source: Path) -> None:
+    snapshot = record["baseline_data"].get("snapshot")
+    if not isinstance(snapshot, Mapping):
+        return
+    commit = str(snapshot["commit"])
+    tree = _git_text(source, "rev-parse", f"{commit}^{{tree}}")
+    if tree != snapshot["tree"]:
+        _fail("private snapshot tree no longer matches the immutable baseline")
+    source_head = str(record["source"]["head"])
+    source_tree = _git_text(source, "rev-parse", f"{source_head}^{{tree}}")
+    if snapshot["created"] != (tree != source_tree):
+        _fail("private snapshot creation flag does not match its captured tree")
+    capture = record["baseline_data"].get("source_capture")
+    if isinstance(capture, Mapping):
+        captured_dirty = (
+            capture.get("staged_patch_sha256") != _sha256(b"")
+            or capture.get("unstaged_patch_sha256") != _sha256(b"")
+            or capture.get("untracked") != []
+        )
+        index_entries = capture.get("index_entries")
+        if not isinstance(index_entries, list):
+            _fail("workspace baseline private snapshot lacks captured source index entries")
+        index_dirty = index_entries != _index_entries_from_tree(_tree_entries(source, source_head))
+        if snapshot["source_dirty"] != (captured_dirty or index_dirty):
+            _fail("private snapshot dirty marker does not match captured patches, files, or index entries")
+    if snapshot["created"]:
+        parents = _git_text(source, "show", "-s", "--format=%P", commit).split()
+        if parents != [source_head]:
+            _fail("private snapshot commit is not a single child of the captured source HEAD")
+    elif commit != source_head:
+        _fail("clean private snapshot must use the captured source HEAD")
+
+
 def _validate_binding(record: Mapping[str, Any], *, require_worktree: bool = True) -> tuple[Path, Path | None]:
     """Validate canonical paths, repository identity, and Git registration."""
     source = _repo_root(Path(record["source"]["root"]))
@@ -1435,6 +1873,7 @@ def _validate_binding(record: Mapping[str, Any], *, require_worktree: bool = Tru
     common = _common_dir(source)
     if os.fspath(common) != record["source"]["common_dir"]:
         _fail("source Git common directory no longer matches receipt")
+    _validate_snapshot_record(record, source)
     if require_worktree:
         worker = _repo_root(Path(record["worktree"]))
         if os.fspath(worker) != record["worktree"] or worker == source:
@@ -1641,9 +2080,9 @@ def _delivery_proof(
     """Return optional mode-specific delivery evidence for a returned workspace.
 
     A patch is safe with an inherited dirty snapshot because it is generated
-    against the captured worker baseline.  Commit handoff is intentionally
-    narrower: its base must be a clean captured source HEAD, so a broad staging
-    command cannot fold inherited caller work into a cherry-pick range.
+    against the captured worker baseline.  Legacy commit handoff remains
+    limited to a clean source; opt-in private snapshots allow the worker range
+    to begin after the captured working files have been sealed at S.
     """
     if delivery_mode is None:
         if commit_base is not None or commits:
@@ -1736,13 +2175,17 @@ def _delivery_proof(
 
     if delivery_mode != "commits":  # argparse constrains this; retain import safety.
         _fail("delivery mode must be patch, commits, or report-only")
-    if not _clean_inherited_snapshot(record):
+    snapshot = record["baseline_data"].get("snapshot")
+    if snapshot is None and not _clean_inherited_snapshot(record):
         _fail(
             "commit delivery requires a clean inherited snapshot; retain this workspace "
             "and use delivery mode patch for caller staged, unstaged, or untracked inputs"
         )
     base = _exact_commit(worktree, commit_base, label="commit delivery base")
-    if base != source_head:
+    expected_base = snapshot["commit"] if isinstance(snapshot, Mapping) else source_head
+    if base != expected_base:
+        if isinstance(snapshot, Mapping):
+            _fail("commit delivery base must equal the prepared private snapshot")
         _fail("commit delivery base must equal the prepared source HEAD")
     if not commits:
         _fail("commit delivery requires at least one explicit --commit SHA")
@@ -1828,6 +2271,8 @@ def _delivery_proof(
         "per_commit_paths": per_commit_paths,
         "residual_paths": residual_paths,
     }
+    if isinstance(snapshot, Mapping) and snapshot["source_dirty"]:
+        delivery["contribution_patch"] = contribution_patch
     evidence = dict(common)
     evidence.update(delivery)
     return delivery, _write_delivery_evidence(record, fingerprint, evidence)
@@ -1956,8 +2401,11 @@ def prepare(
     label: str | None = None,
     receipt: Path | None = None,
     writers_quiescent: bool = False,
+    commit_snapshot: bool = False,
 ) -> dict[str, Any]:
     """Create a fresh workspace or validate/reuse one exact pre-dispatch attempt."""
+    if type(commit_snapshot) is not bool:
+        _fail("prepare commit_snapshot selection must be a boolean")
     if not writers_quiescent:
         _fail("prepare requires the explicit --writers-quiescent assertion")
     _require_no_git_context_environment_overrides("prepare")
@@ -1965,6 +2413,8 @@ def prepare(
         if label is not None or store is not None:
             _fail("prepare --receipt cannot select a new label or store")
         record = _load_receipt(receipt)
+        if commit_snapshot and not isinstance(record["baseline_data"].get("snapshot"), Mapping):
+            _fail("prepare --commit-snapshot cannot upgrade an existing legacy receipt; start a new preparation")
         if source is not None and _repo_root(source) != _repo_root(Path(record["source"]["root"])):
             _fail("prepare --source does not match the receipt source")
         source_root, _ = _validate_binding(record)
@@ -1978,7 +2428,7 @@ def prepare(
         return result
     if source is None:
         _fail("prepare requires --source or --receipt")
-    return _new_prepare(source, store, label)
+    return _new_prepare(source, store, label, commit_snapshot=commit_snapshot)
 
 
 def inspect(
@@ -2472,6 +2922,7 @@ def _parser() -> argparse.ArgumentParser:
     prepare_parser.add_argument("--label")
     prepare_parser.add_argument("--receipt")
     prepare_parser.add_argument("--writers-quiescent", action="store_true")
+    prepare_parser.add_argument("--commit-snapshot", action="store_true")
     inspect_parser = commands.add_parser("inspect")
     inspect_parser.add_argument("--receipt", required=True)
     inspect_parser.add_argument("--phase", required=True, choices=("prepared", "returned"))
@@ -2522,6 +2973,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 label=parsed.label,
                 receipt=Path(parsed.receipt) if parsed.receipt else None,
                 writers_quiescent=parsed.writers_quiescent,
+                commit_snapshot=parsed.commit_snapshot,
             )
         elif parsed.command == "inspect":
             result = inspect(

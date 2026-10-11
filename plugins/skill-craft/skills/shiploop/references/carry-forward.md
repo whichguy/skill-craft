@@ -1,20 +1,22 @@
 # Carry-forward checkpoint
 
-`carry-forward` is the last INNER stage of each work item, after
-`integration-verify`. It records what the item learned and revises the future
-work queue before the script selects the next item's `get-next-work-item`, or returns
-ownership to `system-test-author` after the final item. It uses the normal
-producer result and callback; there is no separate ledger or command.
+`carry-forward` is the last INNER stage of each work item, after `verify` (whose
+acceptance commits the item). Like every inner stage, its work runs inside one
+Until Loop invoked by name, with a ShipLoop-written contract. It records what the
+item learned, decides on a reusable skill and revises the future work queue
+before the script selects the next item's `step-plan`, or returns ownership to
+`system-test-author` after the final item. It uses the normal producer result
+and callback; there is no separate ledger or command.
 
 ```mermaid
 flowchart TD
-    V[Integration verified] --> C[carry-forward result]
+    V[Item verified and committed] --> C[carry-forward result with skill decision]
     C --> Q{Future queue}
     Q -->|omitted| K[Every future item kept]
     Q -->|work_items supplied| R[Entire future queue replaced]
     K --> N{Items left?}
     R --> N
-    N -->|yes| S[Next item's get-next-work-item]
+    N -->|yes| S[Next item's step-plan]
     N -->|no| I[End-of-work Improve child, then system-test-author]
 ```
 
@@ -44,6 +46,21 @@ knowledge (see
 and preserve concrete revalidation conditions; do not silently expand scope or
 turn tentative ideas into adopted policy.
 
+## Decide on a reusable skill
+
+A done result records
+`"skill": {"decision": "none" | "reuse" | "update" | "create", "reason": "...", "path": "<SKILL.md>", "evidence": ["..."], "index": ["..."]}`.
+Read the skill index (or the README/AGENTS.md skill links; a missing index is not
+a blocker) and the skills the host offers. Create or update a skill only when
+the same procedure ran in two or more steps or items of this run, or a pending
+item or `R-<n>` says it will recur, and no existing skill covers it. Keep it in
+the repository (`environment.md` `## Skills` names the directory), never install
+it globally, add a dependency or publish it; link it from the index and run it
+once on this run's real procedure. For `update` and `create`, ShipLoop refuses a
+`path` that is not an existing `SKILL.md` with `name` and `description`
+frontmatter, or empty `evidence`, and on accept commits the skill's directory
+and the listed `index` files as their own commit.
+
 <a id="mandatory-post-inner-mapping"></a>
 
 ## Map observations to the future queue
@@ -53,8 +70,8 @@ future queue:
 
 - **Current item.** A defect found in the item just completed is corrective
   work: add a corrective item ahead of its consumers, or report `blocked` when
-  it cannot wait. `repeat` only retries this carry-forward; it does not reopen
-  an earlier stage.
+  it cannot wait. The stage's Until Loop repeats only this carry-forward's work;
+  it does not reopen an earlier stage.
 - **Future items.** Revise the queue so each affected future item carries the
   compact decision/convention locator, rationale and revalidation condition in
   its existing `context`, with supporting sources in `evidence_refs`. A needed

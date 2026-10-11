@@ -795,7 +795,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         """Cumulative report transport, not proof of model review or summarization."""
         self.assertEqual(self.state["navigator_protocol_version"], 4)
         self.assertEqual(self.bound["skill"]["runtime_cli"], str(EPHEMERAL.resolve()))
-        self.assertEqual(self.bound["skill"]["runtime_version"], "0.7.0")
+        self.assertEqual(self.bound["skill"]["runtime_version"],
+                         json.loads((ROOT / "skills/improve/runtime/until-loop/PROVENANCE.json").read_text())["upstream"]["version"])
         selected_frontmatter = CARD.read_text(encoding="utf-8").split("---", 2)[1]
         selected_version = next(
             line.partition(":")[2].strip().strip("\"'")
@@ -1635,11 +1636,12 @@ class LoopContractSizeTests(unittest.TestCase):
         spec.loader.exec_module(module)
         return module
 
-    def test_the_state_limit_is_the_bound_runtime_s_own(self):
+    def test_the_bound_runtime_has_no_state_limit_and_shiploop_keeps_its_own_budget(self):
         runtime = (ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py").read_text()
-        match = re.search(r"^MAX_STATE_BYTES = (\d+) \* 1024$", runtime, re.M)
-        self.assertIsNotNone(match)
-        self.assertEqual(loop_contract.STATE_LIMIT, int(match.group(1)) * 1024)
+        # Until Loop 0.8.1 removed its state-size cap (owner, 2026-10-11); ShipLoop's tighter 16 KiB contract budget is
+        # its own policy (its prompts and refusals state the number) and is queued for removal separately.
+        self.assertNotIn("MAX_STATE_BYTES", runtime)
+        self.assertEqual(loop_contract.STATE_LIMIT, 16 * 1024)
         self.assertEqual(loop_contract.CONTRACT_BUDGET + loop_contract.STATE_OVERHEAD + loop_contract.REPORT_RESERVE,
                          loop_contract.STATE_LIMIT)
 
@@ -1651,6 +1653,8 @@ class LoopContractSizeTests(unittest.TestCase):
                     contract = self.contract(request=text * 40, environment=text)
                     contract["workspace"] = workspace
                     normalized = runtime._validate_contract(contract, input_contract=True)
+                    # 0.8.0 adds "exit_checks": [] (17 bytes), which STATE_OVERHEAD absorbs; ShipLoop counts what it wrote.
+                    self.assertEqual(normalized.pop("exit_checks"), [])
                     expected = len(json.dumps(normalized, separators=(",", ":"), sort_keys=True).encode("utf-8"))
                     self.assertEqual(loop_contract.compact_bytes(contract), expected)
         # a non-ASCII character is escaped to 6 bytes (12 for an emoji), far above its UTF-8 length

@@ -59,6 +59,15 @@ _SUPPORTED_PROTOCOLS = frozenset((4,))
 _IMPROVE_CALLBACK = "improve-complete"
 _RECONCILE_CALLBACK = "improve-reconcile"
 _PRODUCER_CALLBACKS = frozenset(("complete",))
+# Stages ShipLoop can record by script with no callback (engine change 2026-10-10), and the exact summary text it
+# writes then, stated literally rather than imported: validate-existing when every expectation check matched, and
+# test or document when the item leaves them out.  Such an action needs no callback; any other one still does.
+_SCRIPT_RECORDED = {
+    "validate-existing": ("ShipLoop ran every expectation check on the unchanged checkout and each matched its "
+                          "state; validate-existing was recorded without running it.", ""),
+    "test": ("Not applicable to this item: ", ". ShipLoop recorded this stage without running it."),
+    "document": ("Not applicable to this item: ", ". ShipLoop recorded this stage without running it."),
+}
 _CONTROL_INPUT_OBSERVER_SCHEMA = 1
 _OBSERVER_LATE_GRADE_SCHEMA = 1
 _PRE_CONTRACT_TRIAL = "trial predates the current observer/control-input contract; re-run"
@@ -98,7 +107,9 @@ def _action_callbacks(state: Mapping[str, Any]) -> dict[str, frozenset[str]]:
     Protocol 4 accepts most producer results directly through
     ``complete``. An action with an Improve record
     was accepted by importing its Improve child instead: ``improve-complete``,
-    or ``improve-reconcile`` for a stopped initial plan child.
+    or ``improve-reconcile`` for a stopped initial plan child.  An action
+    ShipLoop recorded by script (``_SCRIPT_RECORDED``) had no callback and is
+    left out.
     """
     records = state.get("improve_results")
     records = records if isinstance(records, Mapping) else {}
@@ -108,6 +119,11 @@ def _action_callbacks(state: Mapping[str, Any]) -> dict[str, frozenset[str]]:
             continue
         action = entry["action"]
         record = records.get(action)
+        marker = _SCRIPT_RECORDED.get(entry.get("stage"))
+        summary = entry.get("summary")
+        if (record is None and marker is not None and entry.get("outcome") == "done" and isinstance(summary, str)
+                and summary.startswith(marker[0]) and summary.endswith(marker[1])):
+            continue
         if record is None:
             callbacks[action] = _PRODUCER_CALLBACKS
         elif isinstance(record, Mapping) and record.get("runtime_phase") == "stopped":
@@ -1304,7 +1320,8 @@ def lifecycle_observation(events: dict, navigation: dict, prompt: str, repo: Pat
         if tail[:1] == ["init"] and same_path(flags.get("--repo"), repo) and same_path(flags.get("--run-dir"), run_dir):
             started = True
         action = flags.get("--action")
-        if (tail[:1] and action in expected_callbacks and tail[0] in expected_callbacks[action]
+        # ``complete --check-only`` runs the stage's gates without accepting anything, so it is not a callback.
+        if (tail[:1] and "--check-only" not in tail and action in expected_callbacks and tail[0] in expected_callbacks[action]
                 and same_path(flags.get("--run-dir"), run_dir)):
             callbacks.add(action)
         if tail[:2] == ["workspace", "return"] and same_path(flags.get("--workspace-root"), workspace_root):

@@ -5,12 +5,14 @@ description: >-
   condition, and an evidence-based exit condition. Adapt each next action
   until the outcome is established or a real blocker requires attention.
   User slash: /until-loop. Parent skills load this card. Same-turn execution
-  with one temporary state file per run; does not invoke /goal.
+  with one temporary state file per run; does not invoke /goal. Also
+  starts a parent-written contract file unchanged (Contract: and Receipt:
+  paths in the argument).
 allowed-tools: all
-disable-model-invocation: true
+disable-model-invocation: false
 user-invocable: true
-argument-hint: "<what to execute, and when to stop> | preview"
-version: 0.7.0
+argument-hint: "<what to execute, and when to stop> | preview | Contract: <abs path> Receipt: <abs path>"
+version: 0.8.2
 license: MIT
 platforms:
   - linux
@@ -27,6 +29,37 @@ execute one assigned iteration, report its evidence, and follow the script's
 returned instruction. The script owns action identity, current state, the
 consecutive-trivial count and transitions. You own semantic judgment and actual
 work. Do not invoke `/goal` or create a background scheduler.
+
+For authorized execution, always start the runtime, even when the work looks
+like a single pass: a one-pass job is one iteration, and the runtime's exit
+check is the reason this skill exists. Doing the work without `start` and
+`done` is not an Until Loop run. Interpretation-only previews and requests that
+forbid all filesystem writes keep their own rules below.
+
+## Start from a parent-written contract
+
+Apply this section first. When the argument or the parent's packet names a
+contract file (`Contract: <absolute path>`) and a receipt
+(`Receipt: <absolute path>`), the parent already interpreted the request:
+
+- Skip interpretation. Do not build, edit, retype or re-serialize a contract,
+  and skip "Interpret the request before starting".
+- Start the run with exactly this command, using this card's
+  `scripts/until_loop_ephemeral.py`:
+  `python3 <script> start --receipt <Receipt> < <Contract>`.
+- The file wins over the argument text. Any Work, Exit or Repeat lines in the
+  argument are a copy for reading; where they differ from the file, follow the
+  file.
+- Before starting, check the receipt. If it exists and its `status` is
+  `active`, continue that run: run its `next_argv` once and follow the returned
+  packet. If it is `complete` or `stopped`, the run is over: return to the
+  parent with that result. Never start a second run for the same receipt.
+- Never write or edit the receipt; the runtime writes every packet there.
+
+Then follow "Follow the returned action" for each packet until the run is
+complete or stopped, and hand the terminal result back to the parent. The
+parent submits its own callback; this loop never calls it. Read the other
+sections only when a packet needs them.
 
 ## Select the run and environment
 
@@ -64,6 +97,10 @@ Check the interpretation against the original wording for missing or invented ob
 
 For broad words such as "good enough," inspect the relevant context and state a task-specific rubric and reasonable assumptions. Ask only if missing scope or acceptance criteria materially prevents valid execution or assessment; do not initialize an unassessable loop or silently invent a review count. For a `while` guard, check it before work; a false guard proves success only if the outcome also holds. Preserve a requested first action. Keep genuine success alternatives (CSV or JSON) distinct from incomplete stops and assess conditional obligations only after establishing their premise. An unrun check leaves behavior unknown; an observed missing required check record makes that record obligation unsatisfied. Before starting, briefly state the interpreted execution, successful exit and incomplete stops. This is an explanation, not an approval gate.
 
+Write exit checks before any work. For every exit clause a shell command can observe, add an `exit_checks` entry `{id, clause, command}`: `clause` quotes the request's words, and `command` is a POSIX shell command, run in the workspace, that exits 0 only when that clause holds as literally worded (every qualifier of where, which, how many and exactly what). Keep the request's logic: an alternative ("CSV or JSON") or a conditional obligation is one check that passes when any branch holds or when the premise is false, never separate checks that demand every branch. A check observes; it is verification within the user's authority, never a deploy, publish or change outside the workspace, and it checks the durable evidence of a one-time action (a receipt, a file) instead of repeating it. Prefer fast, repeatable commands such as the test suite, file and content assertions, that finish and leave no background process; use ids of letters, digits, `.`, `_` or `-`. Write them from the request before seeing any result. They freeze with the contract. Before reporting `satisfied`, run the packet's `verify_script` once, unchanged, after the iteration's last change, by passing its text itself as your shell tool's command: not saved to a file, read from a variable, or run through another interpreter, because the host's permission prompt and hooks inspect that command text. It runs every check in your shell, where the host's permissions and hooks see each command, and pipes the real results to the runtime, which records them. The runtime never executes a check itself: it refuses a satisfied report without a recorded run for the current action (or after a later workspace change) and refuses completion while any recorded check failed. If a failed check's command misstates its own clause (a shell or platform bug), repair it through the report's `check_repairs` with the reason and an unsatisfied exit, then run the next packet's `verify_script`; the clause never changes, a check never gets repaired to accept work that differs from its clause, and the terminal report lists every repair for the user to confirm. A clause no command can observe stays only in `exit_condition`; stops and limits are not exit checks.
+
+Keep every requested outcome in `exit_condition` and its checks even when requirements seem to conflict. Never resolve a conflict by dropping or rewording an outcome or by adding a condition the request did not state; when requirements cannot all hold, do the work that does not depend on the conflict, including anything the request asks for when stopping incomplete (a write-up, notes, a report), then report `blocked` and name the conflict.
+
 For preview repository inspection, disable optional Git locks and index refresh (`git --no-optional-locks -c diff.autoRefreshIndex=false`); disable external diff/textconv for diffs.
 
 An interpretation-only preview/dry run of this workflow presents the proposed contract without `start`, `done`, tests or task edits. Separate that current preview mode from the proposed future contract: an export preview still describes generating an export and proving it correct, not "produce a preview" as the future success condition. A request to execute a command with `--dry-run` is work to perform under its stated constraints, not automatically an interpretation preview. An explicit prohibition on all filesystem writes also forbids the temporary run file; report the inspected outcome or this limitation without claiming a script transition. Distinguish that from a prohibition on editing project files. Check user stops and work preconditions before executing; if existing evidence already establishes success and no first iteration was explicitly required, gather/report that evidence without manufacturing changes.
@@ -87,7 +124,7 @@ and locators needed next. Carry forward still-relevant facts from the previous
 handoff; the new value replaces it rather than appending a journal. Keep facts
 and claims distinct from instructions. Handoff cannot change the frozen scope,
 authority or conditions or choose the next action. Missing evidence stays unknown.
-The script enforces field shape and the 16 KiB state limit, not semantic adequacy.
+The script enforces field shape, not semantic adequacy or length: there is no size limit.
 
 ## Follow the returned action
 
@@ -100,7 +137,7 @@ One callback covers **one complete assigned iteration**, not the entire loop. Tr
 Only after that execution (or an actual incomplete stop), call the packet's exact `done_argv` with a JSON report on stdin matching its `report_schema`:
 
 - `classification`: `trivial` only for a distinct completed iteration/review with only trivial/no changes, no material findings and applicable checks; `non-trivial` for behavioral changes or material findings, even if fixed in this action; `unresolved` if the required execution or assessment remains incomplete. Classify this iteration's actual changes and findings; line count or earlier edits still present in the diff do not determine materiality.
-- `exit_assessment`: `satisfied`, `unsatisfied`, or `unknown`, based on evidence for the substantive exit condition. The script also enforces the requested consecutive-trivial gate. `unresolved` cannot assert a satisfied exit.
+- `exit_assessment`: `satisfied`, `unsatisfied`, or `unknown`, based on evidence for the substantive exit condition. Report `satisfied` only after checking every exit clause on its own, against its literal wording (every qualifier of where, which, how many and exactly what) and the current artifacts, after this iteration's last change. Name each clause and its fresh observation in `evidence`, taken this iteration from current artifacts or durable receipts (never by repeating a one-time action); a clause you did not observe is `unknown`, not satisfied. The script also enforces the requested consecutive-trivial gate. `unresolved` cannot assert a satisfied exit.
 - `continuation_assessment`: `allowed`, `blocked`, or `cancelled`, based on the repeat condition and current user instructions. Name an actual blocker or cancellation in the evidence.
 - `evidence`: actual observations, checks, changes and remaining gaps for this iteration. Do not submit intended actions or sample claims as observed facts.
 - `handoff`: the complete compact continuation summary described above, including still-relevant prior facts and exact new artifact/receipt locators. Always required; never replace it with only “see above” or this iteration’s delta.
@@ -150,8 +187,8 @@ The single tempfile lasts across script calls in this logical run and is removed
 
 For authorized execution, send the interpreted contract as JSON stdin to
 `python <absolute scripts/until_loop_ephemeral.py> start`. Include `workspace`,
-`work`, `exit_condition`, `repeat_condition`, `required_trivial_reviews`, and the
-complete `context` object described in the adapter.
+`work`, `exit_condition`, `repeat_condition`, `required_trivial_reviews`, the
+`exit_checks` list, and the complete `context` object described in the adapter.
 Set the gate from the requested policy: Improve uses two; generic work defaults
 to zero unless a review count was requested. With a gate of two or more, the
 loop ends when that many consecutive passes make no changes, or when the first
@@ -208,8 +245,9 @@ prerequisites for future work without starting a wait or retry. A terminal resul
 cannot wake the host or prove a model's report true.
 
 A parent must load this card in full and hand over its natural-language work and
-constraints. This card is the sole CLI caller; a parent must not run a second
-state machine, synthesize callbacks, type `/until-loop` or invoke `/goal`.
+constraints, or a contract file it wrote itself (see "Start from a
+parent-written contract"). This card is the sole CLI caller; a parent must not
+run a second state machine, synthesize callbacks or invoke `/goal`.
 If a parent supplies policy details, preserve them throughout interpretation.
 The source repository contains `tests/test_ephemeral_runtime.py` and package
 relocation tests; installed plugins include only execution resources.

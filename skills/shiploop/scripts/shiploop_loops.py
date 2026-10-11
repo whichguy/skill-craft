@@ -524,11 +524,11 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
 
 
 # --------------------------------------------------------------------------- the terminal check
-# Every key the bound runtime puts in a packet (Until Loop 0.7.0).
+# Every key the bound runtime puts in a packet (Until Loop 0.8.0: exit checks and their recorded verify runs).
 _PACKET_KEYS = frozenset({
     "status", "state_file", "workspace", "work", "conditions", "progress", "context",
     "status_semantics", "last_report", "instruction", "next_argv", "done_argv", "report_schema",
-    "receipt",
+    "receipt", "exit_checks", "last_check_results", "check_repairs", "verify_script",
 })
 _PROGRESS_KEYS = (frozenset({"action_number", "trivial_streak", "required_trivial_reviews"}),
                   frozenset({"action_number", "trivial_streak", "required_trivial_reviews",

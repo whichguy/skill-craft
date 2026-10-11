@@ -106,9 +106,9 @@ still contain usable durable document links and enough rationale to stand alone.
 
 ## Inner assembly and final return
 
-The INNER `integrate` action combines the item's step and worker changes
-**inside the execution checkout**. It does not merge into the original branch
-after each item. All remaining items, system tests, outer Improve reviews and
+Each item's step and worker changes are combined **inside the execution
+checkout**, and ShipLoop commits the item there when its `verify` is accepted. It
+does not merge into the original branch after each item. All remaining items, system tests, outer Improve reviews and
 authorized release work use the same assembled candidate. Recheck any integration-affected
 behavior.
 
@@ -194,7 +194,7 @@ where they run depends on the run:
   directory and the workspace root as Git's ceiling, so a parent repository is not
   found. The copy is made fresh on each attempt and kept after a refusal so you can
   reproduce there. A receipt or manifest ShipLoop cannot read is not "no return":
-  the attempt is `could-not-run`, which does not count toward the 7 refused runs.
+  the attempt is `could-not-run`, which does not count toward the 11 refused runs.
 - **No completed return yet**: the checks run in the work area, and the packet, the
   test record (`observed`) and the handoff say that they did not observe the user's
   checkout. The run is not refused: `workspace return` is allowed only at `release`
@@ -202,7 +202,7 @@ where they run depends on the run:
 - **An in-place run** has no workspace: the checks run in the checkout, as before.
 
 The user's checkout is not used because ShipLoop runs these commands unprompted, up
-to seven times, and any file one of them writes there (a cache, a log, a build
+to eleven times, and any file one of them writes there (a cache, a log, a build
 directory) makes the strict clean-status receipt non-current. ShipLoop then refuses
 the source as drifted, no ShipLoop route clears it, and this card forbids deleting
 the user's files to force it. The work area is the run's own to clean.
@@ -241,17 +241,27 @@ source state the previous receipt recorded, not from the preparation baseline:
   the follow-up is an ordinary first return.
 - ShipLoop makes one follow-up itself: when its own knowledge commit (for
   example at release-verify) lands after a verified return and everything
-  changed since that return is `docs/shiploop/` or `SHIPLOOP.md`, it returns that
+  changed since that return is `docs/shiploop/` (or nothing: the release-verify
+  lessons commit is empty when the home did not change), it returns that
   commit by the same route, keeping the earlier reviewed dispositions. Anything
   else changed, or a moved source, leaves the follow-up to you: handoff asks for
   it with the commands.
 
 Before saving final handoff completion, ShipLoop commits any remaining knowledge
 and retries an applicable knowledge-only follow-up return, then checks the current
-receipt. A failed commit or return leaves handoff pending. Retrying after the
-commit already succeeded still checks the return; it does not repeat product
-execution or create another knowledge commit. In-place runs use the same pending
+receipt. A knowledge commit that cannot be made, or a follow-up return that fails
+after a commit made at this handoff, leaves handoff pending with the reason. Retrying
+after the commit already succeeded still checks the return; it does not repeat product
+execution or create another knowledge commit, and a follow-up return that fails on that
+retry is a note on stderr: the check that follows refuses a return that is not current
+and prints the commands. In-place runs use the same pending
 handoff recovery for the commit, without a workspace return.
+
+A working-tree return applies files, not commits, so the release-verify lessons
+commit never reaches your branch by that route. The completion report then prints
+the commit's exact message (subject and body) and asks you to commit the returned
+files with it, or to make an empty commit with it when there are none, so the next
+run's intake quotes the lessons.
 
 The new receipt keeps the previous one as `previous_receipt`. If the source
 already holds exactly the result the follow-up would produce (the fix was copied
@@ -287,7 +297,7 @@ the execution worktree is removed.
   and keeps the later history, but it also undoes what those later commits changed,
   and it discards uncommitted edits. To keep their changes, reverse only the run's
   files with the working-tree recipe below. `git revert <source_head>..HEAD` is not a
-  recipe: it stops on an integrate merge commit in the run's history.
+  recipe: it stops on a chain integration merge commit in the run's history.
 - **Working-tree return** (a dirty start, or a clean start whose plan excluded a
   committed path), or only the run's files after a fast-forward:
   `git diff --binary <baseline_commit> <run branch> -- <kept paths>`

@@ -203,7 +203,7 @@ mean a new product. Preserve platform conventions on web/native/mobile clients.
 At the first consequential UI decision, discover, read and apply suitable design
 guidance available through the current host's capability/skill discovery (such
 as frontend-design). Record its actual identity/version or content digest and
-applicable decisions. Do not wait until post-implementation skill assessment.
+applicable decisions. Do not wait until the `carry-forward` skill decision.
 An absent optional skill uses repository guidance and this section as fallback;
 do not install a skill, hard-code host paths or claim unexecuted skill use.
 
@@ -467,7 +467,7 @@ Carry this model through the existing stages:
 | `test-strategy`, `plan` | Map the behavior/test/documentation outputs and dependencies into ordered work items. Put contract, environment and deployment prerequisites before their consumers. Keep product behavior order distinct from the work queue. |
 | `step-plan`, `test-spec` | Select the item's slice, cases and expected transitions/effects before code. |
 | `implement` | Implement the active slice, cases, and enduring product diagrams/ledger where needed; compare with the accepted spec, not an improvised model. |
-| `test-green`, `regression`, `verify` | Run lint and all required checks, compare expected transitions/effects with observations. Do not silently adjust expectations to match failures. |
+| `test`, `verify` | Run lint and all required checks, compare expected transitions/effects with observations. Do not silently adjust expectations to match failures. |
 | `carry-forward` | Distill new observations with source, scope, revalidation guidance and impact. Revise only future work within the accepted spec; incompatible contracts pause. |
 | `product-acceptance` | Reconcile end-to-end flows and state interactions across items with whole-product evidence; corrective work returns through `replan` and new work items. |
 | `handoff` | Link the behavior model and case evidence, naming scope/exclusions and unresolved limitations honestly. Generic harness proposals stay separate. |

@@ -95,10 +95,12 @@ def check_submitted(stage: str, result: Any) -> None:
 
 
 def open_assumptions(state: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    """The plan's assumptions whose recorded disposition is ``open``; the ledger never updates a disposition."""
-    action = planning_revision.current_actions(state).get((None, "plan"))
-    plan = state.get("accepted", {}).get(action, {}) if action else {}
-    return [row for row in plan.get("assumptions") or () if isinstance(row, Mapping) and row.get("disposition") == "open"]
+    """The plan's assumptions whose recorded disposition is ``open``; the ledger never updates a disposition.
+
+    A view of ``shiploop_assumptions.open_items``, the one reader of open rows (consumer contract X10).
+    """
+    import shiploop_assumptions as assumptions
+    return [item.row for item in assumptions.open_items(state) if item.stage == "plan"]
 
 
 def accepted_list(state: Mapping[str, Any]) -> tuple[str | None, list[Mapping[str, str]] | None]:
@@ -124,7 +126,7 @@ def html_section(state: Mapping[str, Any]) -> list[str]:
                 "same as none.</p>")
     elif not entries:
         note = ("<p>none listed: product-acceptance recorded no request outcome as unverified. Open items "
-                "another stage recorded are in that stage's own result.</p>")
+                "another stage recorded are listed under Open items.</p>")
     else:
         heads = ("Outcome", "Reason", "Check", "Owner", "Due stage")
         rows = ["<tr>" + "".join("<td>" + html.escape(str(row.get(name, ""))) + "</td>" for name in FIELDS) + "</tr>"

@@ -5,21 +5,22 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import shiploop_loops as stage_loops
 import shiploop_navigator as navigator
 
 # Independently declared expected paths: do not derive these from routing code.
 BEFORE3 = 'intake discovery research spec test-strategy plan prepare'.split()
-WORK3 = ('get-next-work-item step-plan test-spec baseline test-author test-red implement test-green '
-         'test-refine regression document skill-assess skill-validate static-checks verify '
-         'integrate integration-verify carry-forward').split()
+WORK3 = ('step-plan test-spec validate-existing implement test document verify '
+         'carry-forward').split()
 AFTER3 = ('system-test-author system-test product-acceptance release-plan release-check '
           'release release-verify operations handoff').split()
 # Stages whose result starts an Improve child, besides the last carry-forward, for each
-# planning_review option.  Declared independently of the navigator's tables.
+# planning_review option.  Declared independently of the navigator's tables.  implement's
+# per-step Improve runs in every mode (planning_review none does not skip it).
 REVIEWED3 = {
-    'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec',
+    'stage': {'spec', 'test-strategy', 'plan', 'step-plan', 'test-spec', 'implement',
               'system-test-author', 'release-plan'},
-    'none': {'system-test-author', 'release-plan'},
+    'none': {'implement', 'system-test-author', 'release-plan'},
 }
 SCOPE = 'SIMULATION ONLY: actual navigator routes and packets; no project work, checks, commits, or delivery performed.'
 CORE = SimpleNamespace(PACKAGE_ROOT=Path(__file__).resolve().parents[1],
@@ -44,7 +45,8 @@ def _improve_receipt(stage):
 def activity(planning_review='stage', *, two=False):
     """Explicit producer/Improve declarations for the navigator graph.
 
-    Improve follows only the planning stages the option reviews and the last item's carry-forward.
+    Improve follows only the planning stages the option reviews, each implement step and the last
+    item's carry-forward.
     """
     path = BEFORE3 + WORK3 * (2 if two else 1) + AFTER3
     last_carry = len(path) - 1 - path[::-1].index('carry-forward')
@@ -56,6 +58,8 @@ def activity(planning_review='stage', *, two=False):
             producer['test_commands'] = [
                 {'command': 'python3 -m unittest discover -s tests', 'suite': 'focused'},
             ]
+            # One synthetic step, so implement's packet names it as a run's does.
+            producer['steps'] = [{'id': 'S1', 'task': 'Synthetic step; no work executed.', 'deps': []}]
         if stage == 'plan' and two:
             producer['work_items'] = [
                 {'id': 'W1', 'title': 'First fixture'},
@@ -90,9 +94,9 @@ def scenarios(planning_review='stage'):
         {'at': repeat_at, 'command': 'produce', 'expect': repeat_at,
          'result': {'outcome': 'done', 'summary': 'Synthetic second attempt.'}},
     ])
-    paused = _insert_before(activity(planning_review), 'test-author', 'produce', [
-        {'at': 'test-author', 'command': 'pause', 'expect': 'test-author', 'status': 'paused'},
-        {'at': 'test-author', 'command': 'resume', 'expect': 'test-author'},
+    paused = _insert_before(activity(planning_review), 'test', 'produce', [
+        {'at': 'test', 'command': 'pause', 'expect': 'test', 'status': 'paused'},
+        {'at': 'test', 'command': 'resume', 'expect': 'test'},
     ])
     # implement finds the step plan unachievable: the item goes back to
     # step-plan and walks its planning and test stages again.
@@ -159,8 +163,9 @@ def run_scenario(name, scenario, *, delegation=navigator.DEFAULT_DELEGATION,
         state = navigator.new_state(
             '/simulation-only/repo',
             'Inspect the SDLC graph with synthetic declarations.',
-            # What `init` records (the card installed beside ShipLoop), so a bind packet prints an absolute value.
-            improve_skill='/simulation-only/improve/SKILL.md', delegation=delegation, backchain_passes=backchain_passes,
+            # What `init` records: the improve card installed beside ShipLoop.  The real bundled card, so every inner
+            # packet resolves its Until Loop runtime and shows the INVOKE /until-loop block, as a run's packet does.
+            improve_skill=str(stage_loops.BUNDLED_IMPROVE_CARD), delegation=delegation, backchain_passes=backchain_passes,
             planning_review=planning_review,
         )
         for index, step in enumerate(rows, 1):
