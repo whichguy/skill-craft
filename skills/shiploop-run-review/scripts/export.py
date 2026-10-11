@@ -2670,7 +2670,8 @@ IMPROVE_CARRIED = (
     ("doneWhen", "the 'Done when (' list the review holds the result to (skill-craft 1.25.0 on)", r"^Done when \("),
     ("checkedBy", "the 'Checked by:' line that names the improve-complete callback", r"^Checked by:"),
     ("output", "the opening file's heading line, or the 'Then run:' improve-start line", r"^(?:The opening file holds exactly these headings|Then run: )"),
-    ("recovery", "the 'Recovery command:' line", r"^Recovery command:"),
+    ("recovery", "the Recovery command line ('Recovery command:' up to skill-craft 1.27.0, then 'Recovery command (')",
+     r"^Recovery command[:(]|^Recovery command \("),
 )
 IMPROVE_CARRIED_RX = tuple((key, re.compile(rx, re.M)) for key, _, rx in IMPROVE_CARRIED)
 
