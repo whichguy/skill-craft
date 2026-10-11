@@ -54,7 +54,7 @@ def _need(condition: bool, message: str) -> None:
 # --------------------------------------------------------------------------- the loops table
 # Work and repeat texts come from the reviewed drafts' contracts (docs/experiments/inner-loop-redesign-20261010/
 # drafts.json) with the coverage fixes; the exit condition is the row's done_when, numbered.  Tokens in braces are
-# filled from state by ``_fill`` (run directory, action, repository, feature directory, implement step); nothing else
+# filled from state by ``_fill`` (run directory, action, repository, implement step); nothing else
 # varies, so a contract rebuilt at complete equals the one written at entry.
 
 _NEVER_CANCEL = "Never stop cancelled: a user's stop is the ShipLoop packet's pause command."
@@ -62,11 +62,12 @@ _NO_LIMIT = "there is no iteration limit."
 
 WORK: Mapping[str, str] = {
     "step-plan": (
-        "Draft or revise this action's result at {run}/inbox/{action}.md and this item's section of "
-        "{feature}/plan.md from the knowledge-home headings the ShipLoop packet names; then run the `complete "
+        "Draft or revise this action's result at {run}/inbox/{action}.md from the knowledge files the ShipLoop "
+        "packet quotes; then run the `complete "
         "--check-only` command printed in the packet {run}/packets/{action}.md on the draft and fix each refusal."),
     "test-spec": (
-        "Write or fix one entry in {feature}/test-spec.md per case for this item's criteria: criterion and R-<n>, "
+        "Write or fix one test_cases row in {run}/inbox/{action}.md per case for this item's criteria: criterion "
+        "and R-<n>, "
         "surface and due phase, setup, action, independent oracle, RED, GREEN, teardown (or stateless) and its "
         "command row; then run the complete command with --check-only printed in the packet {run}/packets/{action}.md (it checks the ids) and fix any "
         "mismatch."),
@@ -83,7 +84,7 @@ WORK: Mapping[str, str] = {
         "finding on a changed line find its cause and change the work, never the check, its expected result or "
         "the recorded command. Write no tests and start no later step."),
     "test": (
-        "Write or fix tests for every case in {feature}/test-spec.md not yet covered (titled with its ID as its "
+        "Write or fix tests for every test case quoted in the packet not yet covered (titled with its ID as its "
         "own word, registered in the focused and regression commands, asserting the spec's oracle, never the "
         "code's behaviour); run every recorded command, the red-check command and the lint command printed in the "
         "packet {run}/packets/{action}.md; for each failure find its cause with one small observation (product "
@@ -120,15 +121,15 @@ WORK: Mapping[str, str] = {
         "rerun step 1 and record the results."),
     "carry-forward": (
         "Update the knowledge home in place: {repo}/docs/shiploop/environment.md ## Commands (every command that "
-        "worked), architecture.md ## Decisions (each AD-<n> this item added; a superseded one moves to "
-        "## Superseded, never deleted), test-strategy.md ## Harnesses and suites (suites, focused/smoke/full "
-        "commands, pending real-boundary checks with owner), spec.md (each R-<n> this item satisfied, with its "
-        "test IDs; keep unaffected clauses; an open gap under its R-<n>). Put open risks, system-test obligations "
-        "and release prerequisites, each with an owner, in {feature}/plan.md ## Open. Read {run}/state.md "
+        "worked) and ## Harnesses and suites (suites, focused/smoke/full commands), architecture.md ## Decisions "
+        "(each AD-<n> this item added; a superseded one moves to ## Superseded, never deleted) and ## Real-boundary "
+        "checks (pending ones with owner), spec.md (each R-<n> this item satisfied, with its test IDs; keep "
+        "unaffected clauses; an open gap under its R-<n>). Record open risks, system-test obligations and release "
+        "prerequisites, each with an owner, as open items in this result's assumptions. Read {run}/state.md "
         "work_items (every pending title and context); map every observation that affects later work to an "
         "owner: a defect in completed work becomes a corrective item ahead of its consumers, a needed research or "
         "preparation prerequisite becomes its own item ahead of every consumer; explain each removal or merge in "
-        "{feature}/plan.md. Skill decision: read the skill index (or README/AGENTS.md skill links; a missing index "
+        "this result's summary. Skill decision: read the skill index (or README/AGENTS.md skill links; a missing index "
         "is not a blocker) and the skills your host offers; choose none, reuse, update or create. Create or update "
         "only when the same procedure ran in two or more steps or items of this run, or a pending item or R-<n> "
         "says it will recur, and no existing skill covers it; keep it in the repository (environment.md ## Skills "
@@ -296,12 +297,12 @@ def command_listing(commands: Sequence[Mapping[str, Any]]) -> str:
 COMMANDS_HEAD = "Recorded commands (ShipLoop runs each before it accepts done; the packet shows each floor):"
 
 
-def _build(root: Path, stage: str, action_id: str, *, repo: str, feature: str, item: str, title: str,
+def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, title: str,
            plan_action: Optional[str], step: Optional[Mapping[str, Any]] = None,
            commands: Sequence[Mapping[str, Any]] = ()) -> dict[str, Any]:
     """One stage's contract from plain values; ``contract`` supplies them from state, ``command_list_problem`` from
     a submitted command list with the longest values a run may have."""
-    values = {"run": str(root), "action": action_id, "repo": repo, "feature": feature}
+    values = {"run": str(root), "action": action_id, "repo": repo}
     scope = (f"Workspace {repo}. Work item {item}: only the paths its accepted step plan declares, plus "
              "docs/shiploop/ where this stage writes it. Preserve every other change.")
     if stage == "implement":
@@ -382,10 +383,7 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
         import shiploop_test_loop as test_loop
 
         commands = test_loop.stage_commands(state, stage, item)[0]
-    # ``feature`` fills the {feature} token the inner-loop session's WORK texts still use; removed after the renderer
-    # swap (consumer contract 4c), with the token.
-    return _build(root, stage, action_id, repo=repo, feature=str(Path(repo) / knowledge_home.feature_dir(state)),
-                  item=item, title=_work_title(state, item), plan_action=plan_action,
+    return _build(root, stage, action_id, repo=repo, item=item, title=_work_title(state, item), plan_action=plan_action,
                   step=_implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands)
 
 
@@ -434,15 +432,13 @@ def command_list_problem(root: Optional[Path], state: Optional[Mapping[str, Any]
             item = items[index].get("id")
     if root is not None and state is not None and item:
         repo = str(state["repo"])
-        values = {"root": Path(root), "repo": repo, "feature": str(Path(repo) / knowledge_home.feature_dir(state)),
-                  "item": str(item), "title": _work_title(state, str(item))}
+        values = {"root": Path(root), "repo": repo, "item": str(item), "title": _work_title(state, str(item))}
     else:
-        values = {"root": Path(_PATH_STANDIN), "repo": _PATH_STANDIN, "feature": _PATH_STANDIN, "item": "W" * 64,
-                  "title": "t" * 200}
+        values = {"root": Path(_PATH_STANDIN), "repo": _PATH_STANDIN, "item": "W" * 64, "title": "t" * 200}
 
     def build(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-        return _build(values["root"], "test", _ACTION_STANDIN, repo=values["repo"], feature=values["feature"],
-                      item=values["item"], title=values["title"], plan_action=_ACTION_STANDIN, commands=rows)
+        return _build(values["root"], "test", _ACTION_STANDIN, repo=values["repo"], item=values["item"],
+                      title=values["title"], plan_action=_ACTION_STANDIN, commands=rows)
 
     try:
         full = loop_contract.compact_bytes(build([dict(row) for row in commands]))

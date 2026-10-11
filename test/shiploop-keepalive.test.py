@@ -155,7 +155,7 @@ class RepeatPacketTests(KeepaliveTestCase):
         for line in lines[callback + 2:contract]:
             self.assertTrue(line.startswith(("Done when", "Checked by: ", "Considerations for this stage:", "- ",
                                              # the References block (owner, 2026-10-11), one item per line
-                                             nav.REFERENCES_HEAD, "HOME = ", "FEATURE = ", "RUN = ", "WORKTREE = ",
+                                             nav.REFERENCES_HEAD, "HOME = ", "RUN = ", "WORKTREE = ",
                                              "Read at this stage", "Results this stage builds on")), line)
         self.assertEqual(lines[contract + 1], "# ShipLoop navigator result")
         outcomes = next(i for i, line in enumerate(lines) if line.startswith("Allowed outcomes: "))
