@@ -5053,6 +5053,8 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
         *_consumer_lines(root, state, stage),
         *(label + ": " + str(reference_dir / reference) for label, reference in guidance.STAGE_REFERENCES.get(stage, ())),
         *_run_rules(core, root, state, named),
+        *(["Backchain planning guide: " + str(reference_dir / "backchain-planning.md") + "#navigator-planning"]
+          if stage in guidance.BACKCHAIN_STAGES else []),
         *_queue_lines(root, state, stage),
     ]
     prefix = [guidance.inner_context(route, improve=True).rstrip(), ""] if stage in stage_spec.INNER else []
