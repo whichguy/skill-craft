@@ -746,6 +746,14 @@ def main(core, argv=None):
                 planning_review=args.planning_review or navigator.DEFAULT_PLANNING_REVIEW,
             )
             navigator.save(root, state)
+            # The run baseline (consumer contract, owner decision D3): what the execution checkout held before any
+            # commit of this run, so later packets can quote the spec and architecture diff since then.  A note, never
+            # a refusal.
+            import shiploop_knowledge_home as knowledge_home
+            problem = knowledge_home.record_baseline(root, state)
+            if problem:
+                print("ShipLoop knowledge: the run baseline was not recorded (" + problem + "); packets print the "
+                      "spec diff as not recorded.", file=sys.stderr)
             navigator.emit(core, root, state)
             progress_ready = True
             return 0

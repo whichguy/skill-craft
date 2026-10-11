@@ -125,6 +125,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-backchain-check.test.py",
     "test/shiploop-improve-changes.test.py",
     "test/shiploop-knowledge.test.py",
+    "test/shiploop-handoff.test.py",
     "test/shiploop-assumptions.test.py",
     "test/experiments/shiploop_delivery/fake_deployment.test.py",
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py",
