@@ -354,7 +354,8 @@ platform facts), `test-strategy.md`, `architecture.md` (stack, structure, conven
 interfaces and numbered `AD-<n>` decisions), and this run's `features/<slug>/` record.
 At `prepare`, each `test-spec`, `release-plan` and `release-verify`, ShipLoop
 refuses `done` until that close's files exist, screens them for credentials,
-refuses a living spec or architecture that drops an earlier committed ID, and commits exactly
+refuses a living spec or architecture whose uncommitted version drops an earlier committed
+ID (an edit a review already committed through `improve-commit` is not seen), and commits exactly
 `docs/shiploop/`. After any other accepted stage that changed `docs/shiploop/`,
 ShipLoop runs the same credential and ID checks and commits it too, so never
 commit it yourself. The `release-verify` commit's message is the feature

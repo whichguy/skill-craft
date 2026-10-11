@@ -523,9 +523,10 @@ planning, and later runs inherit it.
 Each packet names the home and the files its stage keeps up to date. At four
 closes (`prepare`, each `test-spec`, `release-plan`, `release-verify`) ShipLoop
 refuses `done` until that close's files exist, refuses lines that look like
-credentials, refuses a living spec or architecture that no longer mentions an
-earlier committed requirement (`R-<n>`) or decision (`AD-<n>`) ID, and then
-commits exactly `docs/shiploop/` and `SHIPLOOP.md`
+credentials, refuses a living spec or architecture whose uncommitted version no
+longer mentions an earlier committed requirement (`R-<n>`) or decision (`AD-<n>`)
+ID (the base is the last commit, so a drop a review already committed through
+`improve-commit` is not seen), and then commits exactly `docs/shiploop/` and `SHIPLOOP.md`
 (`docs(shiploop): record <feature> knowledge at <stage>`). After any other accepted
 stage that changed `docs/shiploop/` or `SHIPLOOP.md`, ShipLoop applies the same credential and ID
 checks (refusing that stage's `done` on a failure) and commits it
