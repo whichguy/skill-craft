@@ -5051,10 +5051,11 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
           if workitem is not None else []),
         *_test_context_lines(state, root),
         *_consumer_lines(root, state, stage),
-        *(label + ": " + str(reference_dir / reference) for label, reference in guidance.STAGE_REFERENCES.get(stage, ())),
+        # An Improve review never mentions Backchain (owner, 2026-10-11), so its guides are left out here.
+        *(label + ": " + str(reference_dir / reference) for label, reference in guidance.STAGE_REFERENCES.get(stage, ())
+          if "backchain" not in (label + reference).lower()
+          and not (route == guidance.INLINE and label == "Parallel-chain guide")),
         *_run_rules(core, root, state, named),
-        *(["Backchain planning guide: " + str(reference_dir / "backchain-planning.md") + "#navigator-planning"]
-          if stage in guidance.BACKCHAIN_STAGES else []),
         *_queue_lines(root, state, stage),
     ]
     prefix = [guidance.inner_context(route, improve=True).rstrip(), ""] if stage in stage_spec.INNER else []

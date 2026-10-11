@@ -2308,7 +2308,7 @@ def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
 
 def _improve_prompt(stage: str) -> str:
     _require_stage(stage)
-    backchain = _backchain_guidance(stage, improve_owner=True) if stage in BACKCHAIN_STAGES else ""
+    backchain = ""  # an Improve review never mentions Backchain (owner, 2026-10-11)
     coding_review = ""
     if stage in {"step-plan", "implement", "verify"}:
         coding_review = """\
@@ -2330,7 +2330,7 @@ child's existing contract and review notes. Check direct dependencies, missing
 suppliers, ready/done criteria, independent paths, joins, resource exclusions,
 and integration/verification ownership. Recheck affected relationships after
 material repairs. Keep the plan pending until this actual Improve loop completes;
-structural validation or a Backchain result alone does not complete this handoff.
+structural validation alone does not complete this handoff.
 """
 
     release_guard = ""
