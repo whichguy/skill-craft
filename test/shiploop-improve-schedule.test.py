@@ -264,7 +264,8 @@ class ImproveScheduleTests(unittest.TestCase):
         packet = nav.render(None, run, waiting)
         lead = after_header(packet)
         # The packet is two instructions (2026-10-11 re-cut): an unbound child prints the bind command, then `next`.
-        self.assertTrue(lead.startswith("Next command (bind the Improve skill's SKILL.md"), lead)
+        self.assertTrue(lead.startswith("No Improve card is recorded for this run. Next command (bind the Improve "
+                        "skill's SKILL.md"), lead)
         self.assertIn("Then run the recovery command for the Improve instruction: "
                       + nav._callback(None, run, "next"), packet.splitlines())
         # Batch 1009 B1a: no card is recorded in this state, so the packet prints a marked blank, never a
@@ -667,8 +668,8 @@ class InstalledCardCliTests(CliRunCase):
     @staticmethod
     def printed_bind(head):
         """The bind command a head leads with, as the shell words it prints."""
-        lead = next(line for line in head.splitlines() if line.startswith("Next command (bind the Improve skill's SKILL.md"))
-        return lead, shlex.split(lead.split("recorded card): ", 1)[1])
+        lead = next(line for line in head.splitlines() if line.startswith("No Improve card is recorded for this run. Next command (bind the Improve skill's SKILL.md"))
+        return lead, shlex.split(lead.split("SKILL.md): ", 1)[1])
 
     def test_a_stage_run_started_without_a_card_records_the_installed_one_and_binds_it_at_the_transition(self):
         """ShipLoop binds the recorded card itself (re-cut 2026-10-11, item 3): no bind command is printed at all."""
@@ -736,14 +737,12 @@ class NoInstalledCardCliTests(CliRunCase):
         for text in (head, full):
             self.assertNotIn("/absolute/path/to", text)
         # The head leads with the one command; the sentence that says why its value is blank is in the full packet.
-        # LOST OBLIGATION (re-cut 2026-10-11): an unbound child writes no handoff file, and the two-instruction packet
-        # no longer says where ShipLoop looked for the card; these two pins are left as they were and fail until the
-        # source states it again.
+        # The re-cut round 2 packet says both in its one command line: no card is recorded, and where ShipLoop looks.
         self.assertIn("No Improve card is recorded for this run.", full)
         self.assertIn(str(self.skills / "improve" / "SKILL.md"), full)
-        lead = next(line for line in head.splitlines() if line.startswith("Next command (bind the Improve skill's SKILL.md"))
+        lead = next(line for line in head.splitlines() if line.startswith("No Improve card is recorded for this run. Next command (bind the Improve skill's SKILL.md"))
         # The marked blank is one quoted argument that the bind refuses honestly, rather than a wrong path it runs.
-        refused = self.run_argv(shlex.split(lead.split("recorded card): ", 1)[1]), status=2)
+        refused = self.run_argv(shlex.split(lead.split("SKILL.md): ", 1)[1]), status=2)
         self.assertIn("skill card path must be absolute", refused.stdout + refused.stderr)
         # Selecting the real card, as the packet says to, binds it.
         action = self.saved(run)["action"]["id"]

@@ -231,11 +231,10 @@ class InteractionGuidanceTests(unittest.TestCase):
         producer_flat = " ".join(producer.split())
         for cue in (
             "interaction design guide's matching subsections",
-            "incoming and outgoing events, connection lifecycle",
-            "give the baseline and delta",
-            "the actors, events, connections and state owner",
-            "the planned recovery checks",
-            "the design guidance identity and version or digest (or the named fallback)",
+            "give baseline and delta",
+            "actors, events, connections and state owner",
+            "planned recovery checks",
+            "design guidance identity and version or digest (or named fallback)",
             "evidence_refs",
         ):
             with self.subTest(prompt="producer", cue=cue):
@@ -248,20 +247,20 @@ class InteractionGuidanceTests(unittest.TestCase):
         required_cues = (
             "write a Design basis in `summary`",
             (
-                "For UI, give the component, interaction and skin premises, the selected design guidance "
-                "locator with its identity, version or digest (or the named fallback)"
+                "UI: component, interaction and skin premises, the design guidance locator with identity, "
+                "version or digest (or the named fallback)"
             ),
             "evidence_refs",
         )
         # step-plan's duty (item 7, 2026-10-11 dedupe) states the Design basis paragraph in its own words.
         step_plan_cues = (
             "a Design basis paragraph",
-            "Recheck the Interaction design guide's matching subsections",
-            "Give the baseline and delta;",
-            "the actors, events, connections and state owner;",
-            "the planned recovery checks;",
-            "the design guidance identity and version or digest (or the named fallback)",
-            "the locators of its sources and checks",
+            "rechecking the Interaction design guide's matching subsections",
+            "Give baseline and delta;",
+            "actors, events, connections and state owner;",
+            "planned recovery checks;",
+            "design guidance identity and version or digest (or named fallback)",
+            "locators of sources and checks",
             "evidence_refs",
         )
         for stage, cues in (("plan", required_cues), ("step-plan", step_plan_cues)):

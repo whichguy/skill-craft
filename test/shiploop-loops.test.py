@@ -201,12 +201,12 @@ class InvokeLinesTests(Synthetic):
         how = next(line for line in lines if line.startswith("How to invoke:"))
         self.assertIn("Skill tool with skill until-loop", how)
         self.assertIn(loops.runtime(state)["runtime_card"], how)
-        self.assertTrue(how.endswith("the contract file wins over the argument text): " + start), how)
-        self.assertFalse([line for line in lines if line.startswith("Start (")])
-        self.assertEqual(lines[-1], " ".join(loops.LOOP_RULE.split()) + " " + loops.RECEIPT_RULE
-                         + " Keep the receipt in evidence_refs, as the template does.")
+        self.assertIn('section "Start from a parent-written contract"', how)
+        # Round 2: the card holds the start command and the receipt rules; the packet prints neither.
+        self.assertFalse([line for line in lines if start in line or line.startswith("Start (")])
+        self.assertFalse([line for line in lines if loops.RECEIPT_RULE in line])
+        self.assertEqual(lines[-1], " ".join(loops.LOOP_RULE.split()))
         self.assertEqual(lines.index(how), len(lines) - 2)
-        self.assertEqual(sum(loops.RECEIPT_RULE in line for line in lines), 1)
         self.assertIn("Never write or edit the receipt", loops.RECEIPT_RULE)
         self.assertNotIn(loops.RESUME_LINE, lines)
 
@@ -310,9 +310,11 @@ class NavigatorLoopTests(fx.RunDriver):
 
     def run_loop(self, reports: list, *, contract_edit=None) -> dict:
         """Start the packet's printed command, submit ``reports`` in order; the runtime writes the receipt."""
-        marker = "the contract file wins over the argument text): "
-        how = next(line for line in self.packet().splitlines() if line.startswith("How to invoke:"))
-        words = shlex.split(how[how.index(marker) + len(marker):])
+        # The packet prints no start command (re-cut round 2); the card holds it, so build it as the card says.
+        lines = self.packet().splitlines()
+        self.assertTrue(any(line.startswith("How to invoke:") for line in lines))
+        contract_file = next(l for l in lines if l.strip().startswith("Contract: ")).strip()[len("Contract: "):]
+        words = shlex.split(loops.start_command(loops.runtime(self.state()), self.receipt(), Path(contract_file)))
         self.assertEqual(words[-2], "<")
         contract = json.loads(Path(words[-1]).read_text())
         if contract_edit is not None:

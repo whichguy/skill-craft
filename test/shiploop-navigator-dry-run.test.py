@@ -124,8 +124,7 @@ class NavigatorDryRunTests(unittest.TestCase):
                     prompt = event['prompt']
                     if prompt.splitlines()[0].endswith('| Improve'):
                         # The Improve packet is two instructions (re-cut, 2026-10-11) and carries no policy
-                        # locators; those reach the Improve child only through the handoff file (REPORTED: it
-                        # holds none either).
+                        # locators; those reach the Improve child through the handoff file.
                         # (The pure navigator does not bind at the transition, so the dry run prints the bind step.)
                         self.assertTrue('improve-bind' in prompt or 'improve-complete' in prompt, prompt)
                         continue
@@ -149,7 +148,7 @@ class NavigatorDryRunTests(unittest.TestCase):
                     self.assertEqual(prompt.count('Environment discovery requirement: '), 0)
                     self.assertEqual(prompt.count('One investigation allowance spans'), 0)
                     if discovery:
-                        self.assertIn('investigation allowance', ' '.join(prompt.split()))
+                        self.assertIn('allowance', ' '.join(prompt.split()))
                     for line in discovery_lines:
                         self.assertEqual(prompt.count(line), int(discovery), line)
         # The selection is live: the packets of these scenarios print some policy locators.
@@ -755,7 +754,7 @@ class BindCommandTests(unittest.TestCase):
         packet = navigator.render(driver.CORE, driver.RUN, waiting)
         self.assertNotIn('/absolute/path/to', packet)
         self.assertIn(navigator.IMPROVE_CARD_BLANK, packet)
-        self.assertIn('ShipLoop found no usable recorded card', packet)
+        self.assertIn('No Improve card is recorded for this run.', packet)
         self.assertIn(str(guidance.installed_improve_card()), packet)
 
 if __name__ == '__main__':

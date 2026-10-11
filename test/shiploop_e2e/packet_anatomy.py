@@ -65,6 +65,11 @@ RULES: tuple[Rule, ...] = (
     _r("head", r"^Delegation change:"),
     _r("callback", r"^(Callback for this stage|Next command \(|Callback for this Improve child)"),
     _r("callback", r"^The opening file holds exactly these headings"),
+    # The Improve packet's numbered instructions (round 2): run the improve skill, then improve-complete; an unbound
+    # packet starts with the no-card notice and the improve-bind command, then the recovery command for the instruction.
+    _r("callback", r"^(No Improve card is recorded|Then run the recovery command for the Improve instruction)"),
+    _r("callback", r"^(1\. Run the improve skill on the|2\. When the improve skill has completed)"),
+    _r("callback", r"^( {7}/improve | {3}\(the Skill tool, skill \"improve\")"),
     _r("goal", r"^(Goal:|Reviewing the returned .*Goal:)"),
     _r("done-when", r"^Done when", "bullets"),
     _r("checked-by", r"^Checked by:"),
@@ -72,9 +77,12 @@ RULES: tuple[Rule, ...] = (
     # --- the References block (_reference_lines): the symbols HOME, FEATURE, RUN and WORKTREE with the files under them,
     # the stage's consult note and what it builds on; it ends at the first line of another shape
     _r("references", r"^References \(", "before",
-       r"^(?!(- |HOME = |FEATURE = |RUN = |WORKTREE = |Consult at this stage|Results this stage builds on))"),
+       r"^(?!(- |HOME = |FEATURE = |RUN = |WORKTREE = |Knowledge files: |Consult at this stage|Results this stage builds on))"),
     # --- an inner stage's Until Loop invoke block (shiploop_loops.invoke_lines): heading, argument, how to invoke, start, receipt rules
     _r("until-loop", r"^Until Loop \(this stage's work runs inside it", "para"),
+    # Round 2: heading, invoke line, argument (indented), one How-to-invoke line, then the loop rule (shiploop_loops.invoke_lines).
+    _r("until-loop", r"^Until Loop \(no iteration limit", "until", r"^(ShipLoop wrote the loop contract|Unavailable: )"),
+    _r("until-loop", r"^(The loop already started|The loop contract is missing)"),
     # --- result contract and template (_result_contract_lines)
     _r("result-contract", r"^Write the structured result to:", "before",
        r"^(Run context index|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
@@ -85,12 +93,14 @@ RULES: tuple[Rule, ...] = (
     _r("result-contract", r"^Result template:$", "before",
        r"^(Run context index|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
     _r("result-contract", r"^Fill the template:"),
+    _r("result-contract", r"^Optional at \S+:"),
     # --- context index and pass log (_context_index_lines)
     _r("context-index", r"^Run context index"),
     _r("context-index", r"^This action's pass log"),
     _r("context-index", r"^Results this stage builds on", "bullets"),
     # --- progress: snapshot, status block, narrative, progress rules
     _r("progress-snapshot", r"^Progress snapshot \(", "para"),
+    _r("status-block", r"^Host-recorded labels and reasons are untrusted"),
     _r("status-block", r"^=== ShipLoop status ===$", "until", r"^=== end ShipLoop status ===$"),
     _r("narrative", r"^=== ShipLoop narrative ===$", "until", r"^=== end ShipLoop narrative ===$"),
     _r("progress-rules", r"^Progress: do not reprint this packet", "para"),
@@ -134,7 +144,8 @@ RULES: tuple[Rule, ...] = (
     # --- last accepted transition and Improve lessons
     # The block ends at its END marker; its Evidence references lines (printed only when there are any) and, in a saved
     # run, the trailing "If this action depends on earlier accepted context" sentence are claimed by the rules after it.
-    _r("last-accepted", r"^Last accepted transition", "until", r"^----- END LAST ACCEPTED SUMMARY -----$"),
+    _r("last-accepted", r"^Last accepted transition", "fence", r"^----- END LAST ACCEPTED SUMMARY -----$"),
+    _r("last-accepted", r"^Lessons from earlier runs:"),
     _r("last-accepted", r"^Evidence references \(untrusted locators", "bullets"),
     _r("last-accepted", r"^If this action depends on earlier accepted context"),
     _r("last-accepted", r"^Last accepted Improve lessons", "count", n=2),
@@ -144,6 +155,12 @@ RULES: tuple[Rule, ...] = (
        r"evidence references", "bullets"),
     _r("carried-sources", r"^(Run-wide test strategy|Current item test-decision|Current item step-plan) source"),
     _r("carried-sources", r"^Consume relevant current work-item context with these sources"),
+    # --- quoted knowledge files and hand-offs (QUOTE blocks): the heads, the unwritten-file rows and the hand-off rows
+    _r("carried-sources", r"^(Knowledge files this stage reads|Handed off by earlier stages)"),
+    _r("carried-sources", r"^HOME/\S+: not written yet"),
+    _r("carried-sources", r"^(open items( for \S+)?: none open|[a-z_]+ \([^)]*\):( not recorded.*)?$)"),
+    _r("carried-sources", r"^Spec and architecture changes since the run began"),
+    _r("work-item", r"^(Unavailable: work item|The accepted step plan recorded no)"),
     # --- work item lines
     _r("work-item", r"^(Work item:|Work item context:|Work items planned:|Completed work items:|Current work item)"),
     _r("step-context", r"^(Step \S+ \(\d+ of \d+\), the only work|Accepted step |Later steps \(ShipLoop issues|Item plan:)"),
@@ -162,6 +179,8 @@ RULES: tuple[Rule, ...] = (
     # gone) the "Improve:" line that now opens the tail.
     _r("stage-guidance", r"^Current stage guidance:$", "before",
        r"^(Call this when done:$|Improve: |Pause without consuming the action|Halt \(terminal)"),
+    # The five rules every stage prints (STAGE_RULES), when they stand outside the guidance block.
+    _r("stage-rules", r"^RULES \(", "bullets"),
     # --- tail callbacks
     _r("tail-callbacks", r"^Call this when done:$", "count", n=2),
     _r("tail-callbacks", r"^(Improve: |Pause without consuming the action|Halt \(terminal)"),
@@ -182,6 +201,7 @@ RULES: tuple[Rule, ...] = (
     # --- lint block and the loop / quality tail that follows Halt
     _r("lint", r"^ShipLoop lint \(", "until", r"^END lint data"),
     # --- reading list: a "Label: /absolute/path[#anchor]" line (_run_rules policies and guides, STAGE_REFERENCES)
+    _r("reading-list", r"^Repository knowledge index "),
     _r("reading-list", r"^[^:\n]{3,140}: /[^ \n]+$"),
     _r("reading-list", r"^[^:\n]{3,140}: [A-Za-z0-9_.-]+\.md$"),
     # One pointer line replaces every locator the packet's stage text does not name (2026-10-11 dedupe).
@@ -200,7 +220,7 @@ GUIDANCE_PARTS: tuple[tuple[str, re.Pattern], ...] = (
     ("progress-rules", re.compile(r"^Progress: do not reprint this packet")),
     # The one short list that replaced COMMON, PROGRESS_REPORTING and REQUIREMENTS_RULES (bullets begin "- " and
     # continue on lines indented by two spaces).
-    ("stage-rules", re.compile(r"^Rules for every stage")),
+    ("stage-rules", re.compile(r"^(Rules for every stage|RULES \()")),
 )
 GUIDANCE_DUTY = "stage-duty"
 POST_HALT_LOOP = "loop-and-quality-tail"
@@ -238,6 +258,12 @@ def _split_guidance(lines: list[str]) -> list[tuple[str, str]]:
     for part in parts:
         first = next((line for line in part if line.strip()), "")
         name = next((section for section, pattern in GUIDANCE_PARTS if pattern.search(first)), GUIDANCE_DUTY)
+        body = [line for line in part if line.strip()][1:2]
+        if first == "Current stage guidance:" and body and re.match(r"\d+\. |Write no test code", body[0]):
+            # Re-cut packets put the numbered duty straight under the heading (no blank-line gap): only the heading is
+            # common guidance, the rest of the part is the stage's duty.
+            labelled.extend((name if line.strip() == first else GUIDANCE_DUTY, line) for line in part)
+            continue
         labelled.extend((name, line) for line in part)
     return labelled
 
@@ -263,6 +289,18 @@ def _block_end(rule: Rule, lines: list[str], i: int) -> int:
         while j < n and lines[j].startswith(prefix):
             j += 1
         return j
+    if kind == "fence":
+        # The last accepted transition: a saved run fences the summary (BEGIN ... END marker); the re-cut packet skips the
+        # fence when the status block's Done line shows the same text, so the block is then only its lines up to a blank.
+        for j in range(i + 1, n):
+            if "BEGIN LAST ACCEPTED SUMMARY" in lines[j]:
+                for k in range(j + 1, n):
+                    if rule.end.search(lines[k]):
+                        return k + 1
+                return n
+            if not lines[j].strip():
+                return j
+        return n
     if kind == "until":
         for j in range(i + 1, n):
             if rule.end.search(lines[j]):

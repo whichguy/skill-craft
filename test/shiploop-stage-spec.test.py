@@ -42,17 +42,19 @@ class StageTableTest(unittest.TestCase):
         for name, row in spec.STAGE_SPEC.items():
             with self.subTest(stage=name):
                 self.assertTrue(row.goal.strip())
-                # A goal is one action sentence that also says where its output goes (packet re-cut R1), so it is
-                # longer than the old 80-character label; nothing downstream truncates it (the status block's Next
-                # line and the review lead print it whole), so the bound only keeps it to one sentence.
-                self.assertLessEqual(len(row.goal), 400)
+                # A goal is one action sentence that also says where its output goes (packet re-cut R1, tightened in
+                # round 2 to about 140 characters), so it is longer than the old 80-character label.  Nothing
+                # downstream truncates it: the status block's Next line and the narrative show the short goal.
+                self.assertLessEqual(len(row.goal), 160)
+                self.assertTrue(row.short_goal.strip())
+                self.assertLessEqual(len(row.short_goal), 60)
                 self.assertTrue(row.goal.rstrip().endswith("."))
                 self.assertTrue(row.done_when)
                 self.assertTrue(all(item.strip() for item in row.done_when))
                 # An Improve contract's exit joins the entries with "; " (loop_contract.stage_exit), so an entry that
                 # holds a "; " of its own would read there as two conditions.
                 self.assertTrue(all(";" not in item for item in row.done_when))
-                self.assertEqual(prompts.STAGE_PURPOSE[name], row.goal)
+                self.assertEqual(prompts.STAGE_PURPOSE[name], row.short_goal)
 
     def test_improve_rules(self) -> None:
         self.assertEqual(prompts.PLANNING_REVIEW_STAGES, frozenset({
@@ -92,9 +94,9 @@ class StageTableTest(unittest.TestCase):
             "spec", "step-plan", "carry-forward", "product-acceptance"}))
         self.assertEqual(prompts.RECONCILIATION_STAGES, frozenset({
             "verify", "system-test", "product-acceptance", "release-verify", "handoff"}))
-        # Code craft goes where code or tests are written or reviewed, not to
-        # the planning stages step-plan and test-spec.
-        self.assertEqual(prompts.IMPLEMENTATION_STAGES, frozenset({"implement", "test", "document", "verify"}))
+        # The Code craft block prints where product code is written: implement only (owner, 2026-10-11).  test,
+        # document and verify cite the rules they apply in their own duties.
+        self.assertEqual(prompts.IMPLEMENTATION_STAGES, frozenset({"implement"}))
         # step-plan's duty carries its own design-basis point (2026-10-11 dedupe), so it left this block.
         self.assertEqual(spec.with_block("interaction-design"),
                          frozenset({"discovery", "research", "spec", "plan"}))

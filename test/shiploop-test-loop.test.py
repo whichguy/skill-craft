@@ -277,7 +277,6 @@ class TestLoopTests(unittest.TestCase):
 
     # Packet re-cut (2026-10-11): how to invoke and the start command are one line; the command ends it.
     START = "How to invoke: "
-    START_AFTER = "the contract file wins over the argument text): "
 
     def terminal(self) -> Path:
         return loops.receipt_path(self.run_dir, self.action())
@@ -287,8 +286,12 @@ class TestLoopTests(unittest.TestCase):
 
         A callable entry runs between reports (the host's fix).  The runtime writes every packet to the receipt.
         """
-        start = next(line for line in self.packet().splitlines() if line.startswith(self.START))
-        words = shlex.split(start[start.index(self.START_AFTER) + len(self.START_AFTER):])
+        # The packet prints no start command (re-cut round 2): the card holds it, so build it as the card says.
+        lines = self.packet().splitlines()
+        self.assertTrue(any(line.startswith(self.START) for line in lines))
+        contract_line = next(line for line in lines if line.strip().startswith("Contract: ")).strip()[len("Contract: "):]
+        receipt_line = next(line for line in lines if line.strip().startswith("Receipt: ")).strip()[len("Receipt: "):]
+        words = shlex.split(loops.start_command(loops.runtime(self.state()), Path(receipt_line), Path(contract_line)))
         self.assertEqual(words[-2], "<")
         contract = json.loads(Path(words[-1]).read_text())
         if contract_edit is not None:
@@ -572,14 +575,14 @@ class TestLoopTests(unittest.TestCase):
         self.start()
         self.drive_to("system-test-author")
         duty = " ".join(self.packet().split())
-        self.assertIn("record it as an open item in this result's `assumptions`", duty)
+        self.assertIn("Record it as an open item in `assumptions`", duty)
         self.assertNotIn("blocked, blocked_by access", duty)
         self.complete(dict(DONE, system_commands=[COMMANDS[1]], summary=(
             "Open item TC-16 (needs a browser this host cannot reach): requirement R-4 stays unverified; a person "
             "runs the check by hand and reports what it shows; due handoff.")))
         self.drive_to("system-test")
         self.assertEqual(self.state()["status"], "active")
-        self.assertIn("Carry in the open items system-test-author recorded", " ".join(self.packet().split()))
+        self.assertIn("Run any open item system-test-author recorded", " ".join(self.packet().split()))
 
     def test_the_document_packet_prints_the_declared_paths_and_the_commit_rule(self):
         self.start()
@@ -647,7 +650,7 @@ class TestLoopTests(unittest.TestCase):
         (self.repo / "page.txt").unlink()  # the route fails at run time
         packet = " ".join(self.packet().split())
         self.assertNotIn("the route fails when the case is run", packet)
-        self.assertIn("A recorded system command that fails here is not an open item", packet)
+        self.assertIn("A recorded system command that fails here is no open item", packet)
         self.assert_refused(dict(DONE, summary=("Open item ST-1: the page never loads in this host; R-1 unverified; "
                                                 "a person opens it and reports it renders; due handoff.")),
                             r"test -f page\.txt")
@@ -845,7 +848,7 @@ class TestLoopTests(unittest.TestCase):
         self.drive_to("system-test")
         action = self.action()
         # The rendered packet names the route the result below takes.
-        self.assertIn("does not make this result blocked", " ".join(self.packet().split()))
+        self.assertIn("does not block this result", " ".join(self.packet().split()))
         open_item = ("Open item SYS-RENDER-1 (required, person only; this host has no route): owner a person, "
                      "due handoff. Open the page in a signed-in browser, take one turn, report what shows. "
                      "Unverified.")
@@ -1117,10 +1120,10 @@ class TestLoopTests(unittest.TestCase):
     def test_the_base_rules_and_the_duty_sentences_name_no_technology(self):
         """S-8: the engine's prose speaks of a file or module and a test, never of a runner, a language or a product."""
         texts = [test_loop.BASE_RULE, test_loop.FLOOR_RULE, test_loop.RATCHET_RULE]
-        for stage, first, last in (("test", "A new test that passes on the item's base without this change",
-                                    "<why it passes without this change>"),
-                                   ("test-spec", "RED (how it fails on the item's base",
-                                    "records it in red_na")):
+        for stage, first, last in (("test", "`red_na`: each new test passing on the item base without this change",
+                                    "is refused)"),
+                                   ("test-spec", "RED: how it fails on the item's base",
+                                    "if it already passes.")):
             duty = " ".join(prompts.duty(stage).split())
             self.assertIn(first, duty)
             texts.append(duty[duty.index(first):duty.index(last) + len(last)])
@@ -1333,7 +1336,7 @@ class TestLoopTests(unittest.TestCase):
         The base run still accepts that, and the mutation check refuses the test that asserts nothing."""
         self.calc_item(self.EMPTY_TEST)
         action = self.action()
-        self.assertIn("mutates a sample of this item's changed product lines", " ".join(self.packet().split()))
+        self.assertIn("mutates a sample of the changed product lines", " ".join(self.packet().split()))
         self.assert_refused(self.loop_done(), r"(?s)ShipLoop mutation check: test is not done.*"
                                               r"- calc.py:2: ' \+ ' -> ' - '.*the test spec's oracle states")
         base = store.read_record(self.run_dir / test_loop.base_path(action, 1))
@@ -1423,7 +1426,7 @@ class TestLoopTests(unittest.TestCase):
 
     def assert_loop_contract_in_head(self, head: str, stage: str, receipt: Path) -> None:
         self.assertEqual(self.template_of(head)["evidence_refs"], [str(receipt)])  # prefilled: nothing to look up
-        self.assertIn("its path must be in evidence_refs",
+        self.assertIn("receipt (in evidence_refs)",
                       next(row for row in head.splitlines() if row.startswith("Checked by: ")))
         lines = head.splitlines()
         for condition in loops.exit_condition(stage).splitlines():  # the contract's words, not a paraphrase
@@ -1431,7 +1434,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn("    " + loops.REPEAT[stage], lines)
         self.assertIn(loops.INVOKE_LINE, lines)
         self.assertIn("    Receipt: " + str(receipt), lines)
-        self.assertIn(loops.RECEIPT_REF_LINE, lines)
+        self.assertNotIn(loops.RECEIPT_REF_LINE, lines)  # the prefilled template and the Checked-by line carry it
 
     def test_a_loop_head_prefills_the_receipt_prints_the_exit_and_accepts_its_template(self):
         self.start()
@@ -1452,7 +1455,11 @@ class TestLoopTests(unittest.TestCase):
                 (self.repo / "retained.txt").write_text("retained\n")
                 self.run_loop([TRIVIAL])
                 # The printed template, headline and summary written and the evidence_refs left as printed.
-                self.complete(dict(self.template_of(head), headline="The loop ran clean.", summary="Every command passed."))
+                # Re-cut: the template carries an example open item; "fill the template" means replacing it ([] = none).
+                filled = dict(self.template_of(head), headline="The loop ran clean.", summary="Every command passed.")
+                if "assumptions" in filled:
+                    filled["assumptions"] = []
+                self.complete(filled)
                 self.assertNotEqual(nav.current_stage(self.settle()), stage)
 
     def test_a_blocked_result_before_the_loop_ran_may_keep_the_prefilled_receipt_and_done_may_not(self):
@@ -1472,10 +1479,12 @@ class TestLoopTests(unittest.TestCase):
                               summary="The runner the loop needs is not installed in this environment.")
                 # done without the receipt is still refused, by the loop's own check.
                 self.assert_refused(filled, "terminal|receipt|loop")
-                self.complete(dict(filled, outcome="blocked", blocked_by="access"))
+                self.complete(dict({k: v for k, v in filled.items() if k != "assumptions"},  # hand-off keys are done-only
+                                   outcome="blocked", blocked_by="access"))
                 self.assertEqual(self.state()["status"], "blocked")
                 self.assertEqual(nav.current_stage(self.state()), stage)
-                self.assertIn("keep it when you report done", head)  # the head's line matches the gate
+                # the template carries the receipt (kept when you report done) and the Checked-by line names the gate
+                self.assertIn("receipt (in evidence_refs)", head)
 
     def test_a_loop_stage_without_a_resolvable_runtime_accepts_its_template_as_blocked(self):
         """No runtime, no loop: the packet names blocked, and the printed template submitted as blocked (its
@@ -1589,7 +1598,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn('"retired_tests": [{"id": "<test name>"', tail)
         self.assertIn("already passes without this change", tail)
         self.assertIn("each key once", tail)
-        self.assertIn("replace every placeholder", tail)
+        self.assertIn("every placeholder", tail)
 
     def test_a_mismatched_expectation_issues_validate_existing_with_its_check_results(self):
         """validate-existing replaced baseline: ShipLoop runs every expectation's check on the unchanged checkout and
@@ -1794,8 +1803,8 @@ class WorktreeItemCommitTests(unittest.TestCase):
         self.assertEqual(self.state()["execution_mode"], "navigator-worktree")
         (self.repo / "server.log").write_text("listening 3000\n")
         packet = self.packet()
-        develop = next(line for line in packet.splitlines() if line.startswith("- Develop: "))
-        self.assertIn(stage_spec.RETURN_LEFTOVERS, develop)
+        # The "Considerations" list (with its Develop line) is gone from packets; the rule prints once, in the packet.
+        self.assertEqual(" ".join(packet.split()).count(" ".join(stage_spec.RETURN_LEFTOVERS.split())), 1)
         self.assertIn(stage_spec.RETURN_LEFTOVERS, workspace.route_sentence(self.root))
         output = self.complete(DONE)
         notice = next(line for line in output.splitlines() if line.startswith("Not committed"))
@@ -2110,7 +2119,7 @@ class CountFloorTests(unittest.TestCase):
 
     def test_the_test_duty_says_what_a_drop_below_the_floor_needs(self):
         duty = " ".join(test_loop.guidance.duty("test").split())
-        self.assertIn("A test this item deliberately retires goes in `retired_tests`", duty)
+        self.assertIn("`retired_tests`: each test this item deliberately retires", duty)
         self.assertIn("any other drop below a command's floor is refused", duty)
 
 

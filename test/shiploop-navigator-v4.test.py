@@ -565,8 +565,8 @@ class NavigatorV4Tests(unittest.TestCase):
         # guide and notebook locators are in the plan child's Improve handoff file.
         self.assertNotIn("planning-experiments.md", producer)
         handoff_of = lambda checkpoint: navigator.improve_handoff_text(None, root, checkpoint)  # noqa: E731
-        # P13: every packet names the run's scratch directory and says why /tmp is not used.
-        self.assertIn("Scratch directory (your temporary files; /tmp is shared with other runs): "
+        # P13: every packet names the run's scratch directory and says /tmp is not used.
+        self.assertIn("Scratch directory (your temporary files, not /tmp): "
                       + str(root / "scratch"), producer)
         # The line above defines RUN/scratch; the STAGE_RULES bullet carries the obligation (2026-10-11 dedupe).
         self.assertIn("Temporary files go in RUN/scratch, never /tmp", " ".join(producer.split()))

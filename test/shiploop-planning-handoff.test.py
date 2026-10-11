@@ -78,18 +78,18 @@ class PlanningHandoffTests(unittest.TestCase):
     # Packet re-cut (2026-10-11): _PLANNING_HANDOFF is no longer printed.  Each planning stage's numbered duty registers
     # its produced files and sources in `evidence_refs` in its own words; this is the cue each stage must keep.
     REGISTRATION = {
-        "intake": "Put in `evidence_refs` each source you used.",
-        "discovery": "Put in `evidence_refs` every file this stage wrote and each source used",
-        "research": "Put in `evidence_refs` every file this stage wrote and each source used",
-        "spec": "Put in `evidence_refs` HOME/spec.md, FEATURE/spec.md, and each requirement section and source you used",
-        "test-strategy": "Put in `evidence_refs` HOME/environment.md, HOME/architecture.md, each probe output and each source",
-        "plan": "Put in `evidence_refs` HOME/architecture.md, any execution graph and every source used; an unrecorded "
-                "conversation is not a handoff",
-        "prepare": "Put each output file in `evidence_refs`",
-        "step-plan": "absolute paths of every planning file you wrote, and the requirement sections and test locators "
-                     "you used",
-        "test-spec": "and the requirement sections you used in evidence_refs",
-        "system-test-author": "test-note locators you used in `evidence_refs`",
+        "intake": "`evidence_refs`: each source used.",
+        "discovery": "`evidence_refs`: command, cwd, target, result, coverage limits, output file.",
+        "research": "also every file written and source used",
+        "spec": "`evidence_refs`: HOME/spec.md, FEATURE/spec.md, each requirement section and source used.",
+        "test-strategy": "`evidence_refs`: HOME/environment.md, HOME/architecture.md, each probe output and source used.",
+        "plan": "`evidence_refs`: HOME/architecture.md, any execution graph, every source used. An unrecorded "
+                "conversation is not a handoff.",
+        "prepare": "save the output and list each file in `evidence_refs`",
+        "step-plan": "absolute paths of every planning file written, and the requirement sections and test locators "
+                     "used",
+        "test-spec": "evidence_refs: their locators, the step plan's, the requirement sections used.",
+        "system-test-author": "`evidence_refs`: the action, result and test-note locators used.",
         "release-plan": "Cite HOME/environment.md in `evidence_refs`",
     }
 

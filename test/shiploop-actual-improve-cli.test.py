@@ -779,7 +779,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     self.assertIsNotNone(cold_packet_path, cold)
                     self.assertTrue(
                         cold_packet_path.read_text(encoding="utf-8").startswith(
-                            "Continue in this context and execute the prompt.\n"),
+                            "Continue in this context and execute the prompt. Delegation: inline"),
                         cold,
                     )
                     self.assertNotIn(chain_guide, cold)

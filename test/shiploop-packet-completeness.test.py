@@ -163,7 +163,7 @@ class PacketCompletenessTests(unittest.TestCase):
                 if row.complete_runs:
                     self.assertNotIn("nothing automatic", line)
                 else:
-                    self.assertIn("you confirm each Done-when condition", line)
+                    self.assertIn("It does not judge the work: you confirm each condition.", line)
 
     # Declared here, not read from the navigator: the words a stage's Checked-by line must carry because its gate
     # exists, and the only stages that may carry them.  test/shiploop-callback-contract.test.py pairs each named fault
@@ -196,9 +196,12 @@ class PacketCompletenessTests(unittest.TestCase):
                 self.assertEqual(len(lines), 1)  # one line: shiploop-keepalive requires the head's lines to be one each
                 line = lines[0]
                 self.assertNotIn("nothing automatic", line)
-                self.assertIn("ShipLoop refuses a result with a mechanical fault", line)
-                self.assertIn("refusal does not advance the run", line)
-                self.assertIn("run the same complete command again", line)
+                # Aggressive re-cut: one line, "at done ShipLoop refuses <stage gates>; the usual faults (...)", and the
+                # command that prints every refusal.  (The old "refusal does not advance the run / run the same complete
+                # command again" sentences are gone from the packet; the refusal reply says so.)
+                self.assertIn("at done ShipLoop refuses ", line)
+                self.assertIn("the usual faults (", line)
+                self.assertIn("`complete --check-only` prints every refusal", line)
                 self.assertIn("does not judge the work", line)
                 # Claims no wider than the gates: relative evidence paths are not checked, and the credential screen is
                 # conservative, not a guarantee.
@@ -222,7 +225,8 @@ class PacketCompletenessTests(unittest.TestCase):
             with self.subTest(stage):
                 self.assertEqual(len(lines), 1)
                 self.assertEqual("HOME" in lines[0], stage in closes)
-                self.assertIn("when you report done, ShipLoop", lines[0])
+                self.assertIn("at done ShipLoop ", lines[0])
+                self.assertIn("it also refuses ", lines[0])
 
     def test_release_verify_done_when_names_its_close_file_and_the_lessons_field(self) -> None:
         packet = self.found[("release-verify", "producer")]
@@ -285,7 +289,7 @@ class ObservedHarmPacketTests(unittest.TestCase):
     def test_the_step_plan_declares_ids_it_will_title_and_names_every_suite(self) -> None:
         text = flat(self.found[("step-plan", "producer")])
         # The duty's `test_commands` item (4, 2026-10-10 rewrite) lists one bullet per suite: the focused one carries ids.
-        self.assertIn("focused: this item's cases, with the IDs they will carry", text)
+        self.assertIn("focused: this item's cases with the IDs they carry", text)
         self.assertNotIn("of the test-spec cases", text)
         for suite in test_loop.SUITES:
             self.assertIn("- " + suite + ": ", text)
@@ -296,18 +300,18 @@ class ObservedHarmPacketTests(unittest.TestCase):
         # step plan's focused commands list; the file keeps each case's full entry.
         # Consumer contract 4b and the re-cut: no FEATURE/test-spec.md; one `test_cases` row per ID a focused command
         # lists, with its criterion, requirement, oracle, red and green.
-        self.assertIn("For each ID the step plan's focused commands list, add one `test_cases` row. Use no other ID.", text)
-        self.assertIn("Each `test_cases` row holds `criterion`, `requirement` (R-<n>), `oracle`, `red` and `green`.", text)
-        self.assertIn("setup and fixture; action; teardown", text)
+        self.assertIn("One `test_cases` row per ID the step plan's focused commands list; no other ID.", text)
+        self.assertIn("`criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`.", text)
+        self.assertIn("setup and fixture, action, teardown", text)
         self.assertNotIn("FEATURE/test-spec.md", text)
 
     # row 2: a check row carries no ids or min_tests (shiploop-callback-contract pairs the refusal with its correction).
     def test_the_stages_that_record_commands_say_a_check_row_carries_no_ids_or_min_tests(self) -> None:
         for stage in ("system-test-author", "release-plan"):
             with self.subTest(stage):
-                self.assertRegex(flat(self.found[(stage, "producer")]), r"judged by its exit code(, with| and carries) no `?ids`? or `?min_tests`?")
+                self.assertRegex(flat(self.found[(stage, "producer")]), r"judged by (its )?exit code(, with| and carries|,) no `?ids`? or `?min_tests`?")
         # step-plan's duty (rewritten 2026-10-10, re-cut 2026-10-11) states the same rule in its own words.
-        self.assertIn("judged by exit code, with no `ids` or `min_tests`", flat(self.found[("step-plan", "producer")]))
+        self.assertIn("judged by exit code, no `ids` or `min_tests`", flat(self.found[("step-plan", "producer")]))
 
     def test_a_template_check_row_carries_no_ids_or_min_tests(self) -> None:
         for stage, field in (("step-plan", "test_commands"), ("system-test-author", "system_commands"),
@@ -361,12 +365,12 @@ class ObservedHarmPacketTests(unittest.TestCase):
 
     def test_test_strategy_makes_a_ui_the_request_names_either_a_browser_case_or_a_recorded_unverified_outcome(self) -> None:
         text = flat(self.found[("test-strategy", "producer")])
-        self.assertIn("When the request names a page or screen people use", text)
+        self.assertIn("A request naming a page or screen people use", text)
         # S-8: generic, with the browser as an example (F6 of the 2026-10-10 review).
-        self.assertIn("plan a case that drives it through its user interface (in a browser or on a device), with its "
-                      "browser actions and expected visible outcomes and its tool named and probed", text)
+        self.assertIn("plan a case driving it through its interface (browser or device) with its actions, expected "
+                      "visible outcomes, and tool named and probed", text)
         self.assertNotIn("drives it in a browser", text)
-        self.assertIn("Otherwise record the outcome as unverified with its owner and due stage", text)
+        self.assertIn("Otherwise record the outcome unverified with owner and due stage", text)
 
     # #10 of the 2026-10-10 review: prepare's and test-spec's closes require files earlier stages wrote, so their
     # Checked-by line says what the close requires, not what this stage must have written.
@@ -385,12 +389,12 @@ class ObservedHarmPacketTests(unittest.TestCase):
         text = flat(self.found[("plan", "producer")])
         # Packet re-cut: duty 16 says "exactly the fields the template shows" (the old "ShipLoop refuses any extra key"
         # sentence is gone; "exactly" carries the rule) and an open assumption's consumer is a work item's ID.
-        self.assertIn("Give each exactly the fields the template shows for its disposition", text)
+        self.assertIn("with exactly the template's fields per disposition", text)
         for disposition, fields in assumptions._FIELDS.items():
             names = ", ".join("`" + name + "`" for name in sorted(fields))
             with self.subTest(disposition):
                 self.assertIn(disposition + ": " + names, text)
-        self.assertIn("An open assumption's `consumer` is the ID of the work item in `work_items` that settles it", text)
+        self.assertIn("An open assumption's `consumer` is the `work_items` ID that settles it", text)
 
     # row 11b: a file written before a close names the close that refuses without it, taken from the gate itself.
     def refusals(self) -> dict:
@@ -444,9 +448,9 @@ class ObservedHarmPacketTests(unittest.TestCase):
         # Packet re-cut: duty 6 records readiness (or the justified not-applicable) under named HOME/environment.md
         # sections; duty 3 puts each planned check's runner output in `evidence_refs`.
         self.assertIn("Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands", text)
-        self.assertIn("Record a not-applicable there only when this candidate needs no preparation", text)
-        self.assertIn("Start each planned check's runner, the configured linters and the fixtures, and save the "
-                      "output. Put each output file in `evidence_refs`", text)
+        self.assertIn("Record not-applicable only when this candidate needs no preparation", text)
+        self.assertIn("Start each planned check's runner, the linters and the fixtures; save the output and list "
+                      "each file in `evidence_refs`", text)
 
 
 class KnowledgeGroundingPacketTests(unittest.TestCase):
@@ -457,9 +461,14 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
         cls.found = packets()
 
     def test_plan_step_plan_and_prepare_print_what_architecture_md_holds_verbatim(self) -> None:
-        for stage in ("plan", "step-plan", "prepare"):
+        # Packet re-cut R3: only plan and prepare print the description paragraph; step-plan's duty states what it
+        # writes there (a structural choice as the next AD-<n> under ## Decisions).
+        for stage in ("plan", "prepare"):
             with self.subTest(stage=stage):
                 self.assertIn(knowledge.ARCHITECTURE_HOLDS, flat(self.found[(stage, "producer")]))
+        self.assertNotIn(knowledge.ARCHITECTURE_HOLDS, flat(self.found[("step-plan", "producer")]))
+        self.assertIn("A structural choice HOME/architecture.md lacks: next AD-<n> under ## Decisions",
+                      flat(self.found[("step-plan", "producer")]))
 
     def walk_to(self, repo: Path, run: Path, stage: str) -> str:
         """The cold packet at ``stage`` for a run on ``repo``, walked with synthetic results (no gates)."""
@@ -499,23 +508,25 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
             block = reference_block(packet)
             for name in grounding:
                 with self.subTest(name):
-                    rows = [row for row in block if row.startswith("- " + name + ":")]
+                    rows = [row for row in knowledge_entries(block) if row.startswith(name + ":")]
                     self.assertEqual(len(rows), 1)
                     self.assertNotIn("not written yet", rows[0])
             self.assertNotIn("Ground this stage's decisions", packet)
             (home / "architecture.md").unlink()
             block = reference_block(navigator.render(None, run, store.read_record(run / "state.md")))
-            row = next(row for row in block if row.startswith("- " + navigator.reference_name(knowledge.ARCHITECTURE) + ":"))
+            entries = knowledge_entries(block)
+            row = next(row for row in entries if row.startswith(navigator.reference_name(knowledge.ARCHITECTURE) + ":"))
             self.assertTrue(row.endswith("(not written yet: " + navigator.reference_writer(knowledge.ARCHITECTURE) + ")"), row)
             # test-strategy is its first writer since consumer contract 4b (its real-boundary checks).
             self.assertEqual(navigator.reference_writer(knowledge.ARCHITECTURE), "test-strategy writes it")
-            self.assertEqual([row for row in block if "not written yet" in row and row.startswith(
-                tuple("- " + name + ":" for name in grounding))], [row])
+            self.assertEqual([row for row in entries if "not written yet" in row and row.startswith(
+                tuple(name + ":" for name in grounding))], [row])
 
 
-REFERENCE_DEFINITION = re.compile(r"^(HOME|FEATURE|RUN|WORKTREE) = ")
-REFERENCE_ROW = re.compile(r"^(- |HOME = |FEATURE = |RUN = |WORKTREE = |Read at this stage|Results this stage builds on)")
-NOT_WRITTEN = re.compile(r" \(not written yet: [^)]*\)$")
+# Packet re-cut R3: the block is "HOME = ... · RUN = ...", "WORKTREE = ...", one "Knowledge files: a; b; c" line, a
+# FEATURE line only when feature files apply, then the "Results this stage builds on" rows.  There is no reads pointer.
+REFERENCE_ROW = re.compile(r"^(- |HOME = |FEATURE = |WORKTREE = |Knowledge files: |Results this stage builds on)")
+NOT_WRITTEN = re.compile(r" \(not written yet: [^)]*\)")
 
 
 def reference_block(packet: str) -> list:
@@ -529,9 +540,8 @@ def reference_block(packet: str) -> list:
 
 
 def global_part(block: list) -> list:
-    """The block's global part (the head and the four symbols with their files), "not written yet" markers removed."""
-    end = next((i for i, row in enumerate(block) if row.startswith(("Read at this stage", "Results this stage"))),
-               len(block))
+    """The block's global part (the head, the symbols and the knowledge files), "not written yet" markers removed."""
+    end = next((i for i, row in enumerate(block) if row.startswith("Results this stage")), len(block))
     return [NOT_WRITTEN.sub("", row) for row in block[:end]]
 
 
@@ -546,14 +556,27 @@ def builds_on(block: list) -> list:
     return found
 
 
+def knowledge_entries(block: list) -> list:
+    """The block's knowledge-file entries ("HOME/spec.md: living spec (not written yet: ...)"), from the "Knowledge files"
+    line and, when present, the FEATURE line."""
+    found = []
+    for row in block:
+        if row.startswith("Knowledge files: "):
+            found += row[len("Knowledge files: "):].split("; ")
+        elif row.startswith("FEATURE = "):
+            found += row.split(": ", 1)[1].split("; ")
+    return found
+
+
 def symbol_paths(block: list) -> dict:
-    """{symbol: absolute path} from the block's definition lines (FEATURE is defined under HOME)."""
+    """{symbol: absolute path} from the block's definition lines (FEATURE is defined under HOME, and only when feature
+    files apply)."""
     found = {}
     for row in block:
-        match = REFERENCE_DEFINITION.match(row)
-        if match:
-            found[match.group(1)] = row[len(match.group(0)):].split(": ", 1)[0]
-    found["FEATURE"] = found["FEATURE"].replace("HOME", found["HOME"], 1)
+        for match in re.finditer(r"(?:^| · )(HOME|RUN|WORKTREE) = (\S+)", row):
+            found[match.group(1)] = match.group(2)
+        if row.startswith("FEATURE = "):
+            found["FEATURE"] = row[len("FEATURE = "):].split(": ", 1)[0].replace("HOME", found["HOME"], 1)
     return found
 
 
@@ -639,7 +662,9 @@ class ReferencesBlockTests(unittest.TestCase):
             with self.subTest(run=run, packet=number):
                 self.assertEqual(packet.count(navigator.REFERENCES_HEAD), 1)
                 for symbol in navigator.REFERENCE_SYMBOLS:
-                    self.assertEqual(len(re.findall("(?m)^" + symbol + " = ", packet)), 1, symbol)
+                    count = len(re.findall("(?m)(?:^| · )" + symbol + " = ", packet))
+                    # FEATURE is defined only when feature files apply (none do since the feature folder was removed).
+                    self.assertEqual(count, 0 if symbol == "FEATURE" else 1, symbol)
 
     def test_each_knowledge_file_is_listed_with_its_sections_or_its_writer(self) -> None:
         """The files come from knowledge_home's tables (SECTIONS, FEATURE_LIST, the {feature} entries of STAGE_FILES),
@@ -651,6 +676,7 @@ class ReferencesBlockTests(unittest.TestCase):
         for run, number, packet in self.each():
             block = reference_block(packet)
             block = block[:len(global_part(block))]
+            entries = knowledge_entries(block)
             stage = packet.split("ShipLoop navigator | ", 1)[1].split(" |", 1)[0]
             # Packet re-cut: a HOME file prints its name without its headings (a stage that reads it gets it quoted
             # whole); a FEATURE file prints only when this stage writes it or it exists (nothing exists in these walks).
@@ -658,8 +684,7 @@ class ReferencesBlockTests(unittest.TestCase):
             for name in home + feature:
                 symbol = navigator.reference_name(name)
                 with self.subTest(run=run, packet=number, file=symbol):
-                    rows = [row for row in block if row.startswith("- " + symbol + ":")
-                            or row.startswith("- " + symbol + " (")]
+                    rows = [row for row in entries if row.startswith(symbol + ":") or row.startswith(symbol + " (")]
                     if name in feature and name not in writes:
                         self.assertEqual(rows, [])
                         continue
@@ -701,20 +726,19 @@ class ReferencesBlockTests(unittest.TestCase):
             if run != "dry:halted":  # halted at intake: nothing earlier to build on
                 self.assertTrue(cited, run)
 
-    def test_a_packet_names_its_reads_and_quotes_each_file_whole_after_the_status(self) -> None:
-        """Consumer contract section 5 (D1): the References block names the files ``knowledge.READS`` gives the stage,
-        and the packet quotes each whole after the status block, or marks it not written yet."""
+    def test_a_packet_quotes_each_file_it_reads_whole_after_the_status(self) -> None:
+        """Consumer contract section 5 (D1): the packet quotes each file ``knowledge.READS`` gives the stage whole after
+        the status block, or marks it not written yet.  Packet re-cut R3: the References block carries no reads pointer
+        (the quotes block names the files)."""
         for run, number, packet in self.each():
             stage = packet.split("ShipLoop navigator | ", 1)[1].split(" |", 1)[0]
             names = knowledge.READS.get(stage, ())
             block = reference_block(packet)
             with self.subTest(run=run, packet=number, stage=stage):
-                # Only an active packet quotes the files, so only it names them (a paused or blocked one waits).
+                self.assertFalse([row for row in block if row.startswith("Read at this stage")])
+                # Only an active packet quotes the files (a paused or blocked one waits).
                 active = not re.search(r"^(Paused|Blocked)[,:]", packet, re.M)
-                pointer = navigator.reads_pointer(stage) if active else []
-                self.assertEqual(bool(pointer), bool(names) and active)
-                self.assertEqual(block[len(global_part(block)):len(global_part(block)) + len(pointer)], pointer)
-                if not pointer or "=== end ShipLoop status ===" not in packet:
+                if not names or not active or "=== end ShipLoop status ===" not in packet:
                     continue
                 after = packet.split("=== end ShipLoop status ===", 1)[1]
                 self.assertIn(navigator.READS_HEAD, after)

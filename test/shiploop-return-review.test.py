@@ -676,10 +676,10 @@ class ReturnRouteTests(ReturnReviewCase):
         self.assertNotIn("run the packet's plan-return and review-return commands now", plan)
         # Packet re-cut (2026-10-11): the release-check duty states the dry run in its own words; the leftover-commit
         # note moved to the workspace lifecycle reference (it says plan-return commits leftovers onto the run branch).
-        for part in ("run the packet's plan-return command, then decide every undecided path with its review-return command",
-                     "This is a dry run of the return; the decisions are kept for the return at release",
-                     "Compare the expected return that review-return prints with the procedure in HOME/environment.md",
-                     "run plan-return again"):
+        for part in ("run the packet's plan-return command, then decide every undecided path with review-return",
+                     "a dry run; decisions are kept for the return at release",
+                     "Compare review-return's expected return with the procedure in HOME/environment.md",
+                     "rerun plan-return"):
             self.assertEqual(check.count(part), 1, part)
         lifecycle = " ".join((ROOT / "skills/shiploop/references/workspace-lifecycle.md").read_text(encoding="utf-8").split())
         self.assertIn("onto the run branch", lifecycle)
@@ -704,7 +704,7 @@ class ReturnRouteTests(ReturnReviewCase):
                     # No return block: the WORKTREE reference line names the execution checkout (packet re-cut,
                     # 2026-10-11), then the route and its rollback.
                     self.assertEqual(sum(line.startswith("Execution checkout: ") for line in packet.splitlines()), 0)
-                    self.assertEqual(sum(line.startswith("WORKTREE = ") and "the execution checkout" in line
+                    self.assertEqual(sum(line.startswith("WORKTREE = ") and "all product work" in line
                                          for line in packet.splitlines()), 1)
                     self.assertEqual(packet.count("Return route (from workspace.md)"), 1)
                     self.assertIn("reset --keep " + manifest["source_head"], packet)
@@ -716,7 +716,7 @@ class ReturnRouteTests(ReturnReviewCase):
                     # dedupe); every other worktree packet names the checkout on the WORKTREE reference line only
                     # (packet re-cut, 2026-10-11) and prints no route.
                     self.assertEqual(sum(line.startswith("Execution checkout: ") for line in packet.splitlines()), 0)
-                    self.assertEqual(sum(line.startswith("WORKTREE = ") and "the execution checkout" in line
+                    self.assertEqual(sum(line.startswith("WORKTREE = ") and "all product work" in line
                                          for line in packet.splitlines()), 1)
                     self.assertIn("returned to the original branch only at release or handoff", packet)
                     for absent in ("Return route", "Return plan:", "Rollback of the return", "Workspace authority"):

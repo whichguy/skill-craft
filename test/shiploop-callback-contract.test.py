@@ -35,6 +35,7 @@ import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_loop_contract as loop_contract  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
+import shiploop_reference as reference  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
@@ -323,6 +324,7 @@ class RealCliCase(unittest.TestCase):
         handoff = self.handoff_of(out)
         opening = Path(re.search(r"write the opening file (\S+) with exactly", handoff).group(1))
         start = re.search(r"^Then run: (\S.*improve-start .*)$", handoff, re.M).group(1)
+        start = start.split(" . ShipLoop freezes", 1)[0]  # the command; the sentence after it is prose
         return opening, start
 
     def done_fields(self) -> dict:
@@ -478,9 +480,9 @@ class RefusalRouteTests(RealCliCase):
 
     @staticmethod
     def full_packet(head: str) -> str:
-        """The packet file the head names (the head holds the callback and template; the duty is in the file)."""
-        path = re.search(r"^Full packet: (\S+)$", head, re.M).group(1)
-        return " ".join(Path(path).read_text(encoding="utf-8").split())
+        """The whole packet, whitespace-flattened.  ``emit`` prints it whole up to PRINT_LIMIT (re-cut round 2); only an
+        over-limit packet prints a head with a "Full packet:" pointer."""
+        return " ".join(full_packet_text(head).split())
 
     def test_a_check_row_with_ids_is_refused_with_the_rule_the_packet_prints_and_the_row_without_them_is_accepted(self) -> None:
         # Packet review 2026-10-10, row 2: the refusal came 4+ times because only the template's focused row showed ids.
@@ -506,7 +508,7 @@ class RefusalRouteTests(RealCliCase):
         # Packet review 2026-10-10, row 11a: r2-checkers-sonnet was refused twice for a key the template does not print.
         run, head = self.new_run("plan")
         command, path, action = printed_callback(head)
-        self.assertIn("Give each exactly the fields the template shows for its disposition", self.full_packet(head))
+        self.assertIn("with exactly the template's fields per disposition", self.full_packet(head))
         good = self.fill_done(head)
         row = good["assumptions"][0]
         self.assertEqual(row["disposition"], "evidenced")
@@ -847,7 +849,14 @@ class RefusalRouteTests(RealCliCase):
         command, path, _ = printed_callback(head)
         write_block(path, self.fill_done(head))
         (self.repo_of(run) / ".shiploop-improve").write_text("a file, not a directory\n", encoding="utf-8")
-        _opening, start = self.bound_start(self.accepted(command))
+        out = self.accepted(command)
+        # The packet is the two instructions and still prints; its handoff file cannot be written where the directory
+        # cannot be made (REPORTED: the improve skill then has no handoff to read), so the start command is taken from
+        # the handoff text ShipLoop would write.
+        self.assertIn("/improve " + nav.IMPROVE_ARGUMENT_PREFIX, out)
+        handoff = nav.improve_handoff_text(None, run, self.state(run))
+        start = re.search(r"^Then run: (\S.*improve-start .*)$", handoff, re.M).group(1).split(" . ShipLoop freezes", 1)[0]
+        start = start.replace("python3 shiploop ", f"python3 {CLI} ", 1)  # core=None prints the bare locator
         self.assertIn("write the opening file first", self.refused(start, run))
 
     def test_an_empty_section_is_refused_naming_it_and_the_filled_opening_is_accepted(self) -> None:
@@ -916,7 +925,7 @@ class RefusalRouteTests(RealCliCase):
         self.assertEqual(done_when.count("probing"), 1)  # one entry, stated once
         # The Checked-by line claims no script check of the probe: the model confirms it, and a cited path must exist.
         checked = head.split("Checked by:", 1)[1].split("\n", 1)[0]
-        self.assertIn("you confirm each Done-when condition", checked)
+        self.assertIn("you confirm each condition", checked)
         self.assertNotIn("probe", checked)
         output = self.base / "probe-output.txt"
         write_block(path, {**self.fill_done(head), "evidence_refs": [str(output)]})
@@ -939,7 +948,7 @@ class RefusalRouteTests(RealCliCase):
                                              "check": "test ! -e README.md"}]})
         spec_head = self.accepted(command)
         # test-spec is issued for every item now; a documentation-only item's spec lists no cases.
-        self.assertIn("| test-spec |", spec_head.splitlines()[0])
+        self.assertIn("ShipLoop navigator | test-spec | ", spec_head)
         spec_command, spec_path, _ = printed_callback(spec_head)
         write_block(spec_path, self.fill_done(spec_head))
         refused = self.run_printed(spec_command)
@@ -950,7 +959,7 @@ class RefusalRouteTests(RealCliCase):
                     Path(named).write_text("What this file records.\n", encoding="utf-8")
         implement = self.accepted(spec_command)
         # Every expectation matches, so ShipLoop records validate-existing and issues implement.
-        self.assertIn("| implement |", implement.splitlines()[0])
+        self.assertIn("ShipLoop navigator | implement | ", implement)
         # An inner stage's head points at the /until-loop argument, whose exit conditions are its one Done-when list.
         self.assertIn("Done when: every exit condition in the /until-loop argument below holds", implement)
         done_when = implement.split("Exit when ALL of these hold:", 1)[1].split("Repeat while", 1)[0]
@@ -1074,7 +1083,7 @@ class UnverifiedRouteTests(RealCliCase):
     FIELDS = ("outcome", "reason", "check", "owner", "due_stage")
 
     def full_packet(self, head: str) -> str:
-        return Path(re.search(r"^Full packet: (\S+)$", head, re.M).group(1)).read_text(encoding="utf-8")
+        return full_packet_text(head)
 
     def at(self, stage: str, **accepted: dict) -> tuple[Path, str]:
         """A run positioned at ``stage`` whose earlier stages were accepted with these extra result fields."""
@@ -1113,7 +1122,7 @@ class UnverifiedRouteTests(RealCliCase):
                       " | due: handoff", handoff)
         # The handoff duty (list each open item as unverified, with who reports what) is stated once in the packet,
         # by the stage's duties; the lines that print the list state facts, not a second instruction.
-        self.assertEqual(" ".join(handoff.split()).count("as unverified, with who reports what"), 1)
+        self.assertEqual(" ".join(handoff.split()).count("each with who does what and what they report back"), 1)
 
     def test_the_handoff_tells_none_listed_from_no_list_recorded_and_scopes_both_to_product_acceptance(self) -> None:
         _, head = self.at("handoff", **{"product-acceptance": {"unverified": []}})
@@ -1180,6 +1189,10 @@ class UnverifiedRouteTests(RealCliCase):
 class OutcomeShapeTests(RealCliCase):
     """The head prints the exact fields of every outcome the stage allows, and each printed shape is accepted."""
 
+    @staticmethod
+    def reference_text() -> str:
+        return reference.render(nav.new_state("/simulation-only/repo", "Synthetic."), Path("/simulation-only/run"))
+
     # test-red is folded into test, which has no repeat outcome (its Until Loop repeats the work).
     STAGES = {"intake": ("repeat", "blocked"), "test": ("blocked", "revise"),
               "system-test-author": ("repeat", "blocked", "replan")}
@@ -1200,9 +1213,12 @@ class OutcomeShapeTests(RealCliCase):
                 _, head = self.new_run(stage)
                 self.assertEqual(allowed_outcomes(head), ["done", *others])
                 self.assertEqual(sorted(printed_shapes(head)), sorted(others))
-                self.assertIn('"outcome" and "summary" as top-level fields; do not wrap it in action or result keys',
-                              " ".join(head.split()))
-                self.assertIn(nav.AWAITING_SHAPE, head)
+                # The packet says "outcome" and "summary" are top-level; the no-wrap rule and the awaiting shapes are
+                # reference.md's (re-cut round 2), which the packet points at as reference#blocked.
+                self.assertIn('"outcome" and "summary" top-level', " ".join(head.split()))
+                self.assertIn("reference#blocked", head)
+                self.assertIn("not wrap it in action or result keys", " ".join(self.reference_text().split()))
+                self.assertIn('"kind": "present"', self.reference_text())
 
     def test_each_printed_outcome_shape_is_accepted_through_the_printed_command(self) -> None:
         for stage, others in self.STAGES.items():
@@ -1222,7 +1238,9 @@ class OutcomeShapeTests(RealCliCase):
                 run, head = self.new_run()
                 command, path, _ = printed_callback(head)
                 line = printed_shapes(head)["blocked"]
-                forms = [first_object(text) for text in re.findall(r'\{"kind": [^}]*\}', line)]
+                # The awaiting shapes are no longer printed in the packet (reference#blocked): take them from the source.
+                self.assertIn("reference#blocked", line)
+                forms = [first_object(text) for text in re.findall(r'\{"kind": [^}]*\}', nav.AWAITING_SHAPE)]
                 wait = next(form for form in forms if form["kind"] == kind)
                 wait = {key: ("Why nothing else can proceed." if key == "no_default" else
                               ["The person does the step."] if key == "steps" else
@@ -1259,8 +1277,10 @@ class OutcomeShapeTests(RealCliCase):
 
 
 def full_packet_text(head: str) -> str:
-    """The file a head's "Full packet:" line points at."""
-    line = next(row for row in head.splitlines() if row.startswith("Full packet: "))
+    """The whole packet: what ``emit`` printed, or the file a head's "Full packet:" line points at (over PRINT_LIMIT)."""
+    line = next((row for row in head.splitlines() if row.startswith("Full packet: ")), None)
+    if line is None:
+        return head
     return Path(line.removeprefix("Full packet: ")).read_text(encoding="utf-8")
 
 
@@ -1290,9 +1310,10 @@ class LoopRefusalRouteTests(RealCliCase):
                 write_block(path, block, loop=False)
                 reply = self.refused(command, run)
                 self.assertIn(f"the {stage} loop has not run: no terminal packet exists at", reply)
-                # The command in the reply is the one the full packet prints: one definition, not two.
-                printed = next(row for row in full_packet_text(head).splitlines() if row.startswith("Start ("))
-                self.assertIn("Start it with: " + printed.split("): ", 1)[1] + "  and follow", reply)
+                # The packet no longer prints a start command (re-cut round 2): it names the card section that holds it,
+                # and the refusal reply carries the one command.
+                self.assertIn('section "Start from a parent-written contract"', full_packet_text(head))
+                self.assertIn("Start it with: ", reply)
                 receipt = self.follow_start(reply)
                 write_block(path, {**block, "evidence_refs": [*block["evidence_refs"], str(receipt)]}, loop=False)
                 self.accepted(command)
