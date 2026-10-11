@@ -4807,7 +4807,8 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
     runs = "; then ".join(_check_text(run, row.name) for run in row.complete_runs)
     return ("Checked by: at done ShipLoop " + (runs + "; it also refuses " if runs else "refuses ")
             + "; ".join([*extra, "the usual faults (" + _COMMON_GATES + ")"])
-            + ". It does not judge the work: you confirm each condition. `complete --check-only` prints every refusal.")
+            + ". It does not judge the work: you confirm each condition. A refusal does not advance the run: fix the cause "
+            "and run the same command again; `complete --check-only` prints every refusal first.")
 
 
 # An inner stage's done-when: its conditions are the numbered exit conditions of the /until-loop argument.

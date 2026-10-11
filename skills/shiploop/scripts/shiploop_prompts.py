@@ -859,16 +859,17 @@ DUTIES = {
    independently verifiable clauses; keep bundled behaviours visible under one ID.
 3. Number requirements R-<n> only. A structure or technology choice is an AD-<n> decision in
    HOME/architecture.md ## Decisions, never in HOME/spec.md; a product decision never takes the AD- prefix.
-4. Map every request outcome to at least one criterion (Behavior traceability guidance); keep approved scope. Write
-   each unresolved prerequisite or user decision in FEATURE/spec.md as open.
-5. FEATURE/spec.md lists the IDs this run adds, modifies and retires: each one's request or decision basis, preserved
-   and changed behaviour, source-section locators, evidence limits, and pending implementation and checks.
+4. Map every request outcome to at least one criterion (Behavior traceability guidance); keep approved scope. Mark
+   each unresolved prerequisite or user decision as an open gap under its R-<n> in HOME/spec.md.
+5. In each R-<n> this run adds or changes, state its request or decision basis, preserved and changed behaviour,
+   source-section locators, evidence limits, and pending implementation and checks. ShipLoop derives the added,
+   changed and retired IDs from the spec diff; list none by hand.
 6. Assess non-functional requirements under HOME/spec.md ## Non-functional requirements (Requirements definition
    guide): operating conditions, measurable bound or observable criterion, verification method, justified
    exclusion, or unresolved target. Invent no target. A material requirement conflict goes in `summary` as open and
    keeps dependent work unready.
-7. State and data assessment: in FEATURE/spec.md write the affected resources, target identities, before and after
-   invariants, recovery, applicable checks and unknowns.
+7. State and data assessment: under the R-<n> it affects in HOME/spec.md, write the affected resources, target
+   identities, before and after invariants, recovery, applicable checks and unknowns.
 8. For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness
    versus revocation, incremental state, async completion and recovery, owned event coverage. Mark an inapplicable
    concern in one line; add no service to fill a template.
@@ -880,18 +881,19 @@ DUTIES = {
    Map each to what the runtime offers. Add no identity, sharing or persistence the request does not need; record a
    default for an open choice as an assumption in `summary`. Affected UI: component, interaction and skin premises
    and truthful async feedback as consumer-visible behaviour.
-""" + _duty_focus(10, "HOME/spec.md or FEATURE/spec.md", "spec") + """\
+""" + _duty_focus(10, "HOME/spec.md", "spec") + """\
 11. """ + _BACKCHAIN_ITEM + """
-12. A complete spec establishes criteria, not implementation or test success. `evidence_refs`: HOME/spec.md,
-    FEATURE/spec.md, each requirement section and source used.
+12. A complete spec establishes criteria, not implementation or test success. `evidence_refs`: HOME/spec.md, each
+    requirement section and source used.
 """,
     "test-strategy": """\
-1. Build a risk-based strategy from HOME/spec.md and FEATURE/spec.md before any code. Under HOME/environment.md
+1. Build a risk-based strategy from HOME/spec.md and the spec changes since the run began (quoted below) before any
+   code. Under HOME/environment.md
    ## Harnesses and suites plan, per requirement: layers (unit, integration, system, consumer), negative cases,
    fixtures and data, environment and authorization needs, required surface, due stage, owner, prerequisites; for a
    state or data change, its before and after checks (State and data assessment). Mark every check planned (planned
    is not a pass). Name an expected-RED control where test-first applies.
-2. Plan checks for new and preserved behaviour from FEATURE/spec.md and RUN/notes/current-system-baseline.md. An
+2. Plan checks for new and preserved behaviour from the spec changes since the run began and RUN/notes/current-system-baseline.md. An
    unknown existing behaviour needs discovery before a preservation target; an old pass is not a current pass.
 3. Map each applicable non-functional criterion to a check with its environment and workload prerequisites. Missing
    evidence or access is not N/A.
@@ -936,7 +938,7 @@ DUTIES = {
 """,
     "plan": """\
 1. Reopen the accepted intake, discovery, research, spec and test-strategy results, RUN/notes/{discovery,research,
-   current-system-baseline}.md, FEATURE/spec.md, HOME/environment.md ## Harnesses and suites, HOME/architecture.md
+   current-system-baseline}.md, the spec changes since the run began, HOME/environment.md ## Harnesses and suites, HOME/architecture.md
    and the relevant Git history (Git-history investigation guide). Sort open gaps into researchable unknown
    contracts, owner or access gaps and known setup prerequisites, each with its first affected consumer. With one
    boundary blocked, keep independent research and conditional planning eligible on their own prerequisites.
@@ -961,7 +963,7 @@ DUTIES = {
    locator, readiness gap and owner. Readiness is not test execution.
 6. Include environment preparation and delivery work as items; ask for delivery authority at the first concrete
    boundary that needs it (Delivery authority guidance).
-7. Code or stored data added: write a Namespace and data map in HOME/architecture.md ## Structure with an AD-<n> per
+7. Code or stored data added: write the namespace and data entries in HOME/architecture.md ## Structure with an AD-<n> per
    decision; each item's entries go in its `context`:
    - every execution environment the code runs in or reaches (local checkout, remote runtime behind an MCP server,
      API or CLI, hosted platform, each service);
@@ -1010,12 +1012,12 @@ DUTIES = {
     - test strategy: the ## Harnesses and suites locator and the item's compact test decisions (execution and target
       location, fixture and suite choices, what to recheck);
     - baseline and spec: exact sections, gaps and revalidation conditions of RUN/notes/current-system-baseline.md and
-      FEATURE/spec.md;
+      HOME/spec.md;
     - service decisions: note locators and revalidation conditions;
     - readiness checks of the item's prerequisites.
     A later packet replays no earlier stage's references, so the item carries them. Copy no transcript, invent no
     decision ledger; a context summary is not proof.
-11. Plan the before and after decisions and preservation checks from the baseline and FEATURE/spec.md, and durable
+11. Plan the before and after decisions and preservation checks from the baseline and the spec changes since the run began, and durable
     documentation work for knowledge that exists only in run notes.
 12. Map accepted service choices to the affected schema and config, query and cache, worker and status, business and
     UI, logging, test and operator files, as needed (Service discovery guidance), ordering prerequisites and checks.
@@ -1123,7 +1125,7 @@ Change no product file in this stage.
      conditions;
    - the Coding decision guide's selection: runtime and version, artifact and boundary, links to only the matching
      sections;
-   - code or stored data added or moved: reopen the Namespace and data map in HOME/architecture.md ## Structure and
+   - code or stored data added or moved: reopen the namespace and data entries in HOME/architecture.md ## Structure and
      each touched environment's tree. Per file, module and public symbol: environment, home namespace, visibility,
      collision check (import or load test, deploy validation, or name search). Per stored field, key, table or
      payload: owning environment, migration (unneeded, earlier step, this step, deploy obligation), round-trip
