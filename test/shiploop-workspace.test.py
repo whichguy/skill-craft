@@ -2186,8 +2186,11 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         initial_state_bytes = (run / "state.md").read_bytes()
         with mock.patch.dict(os.environ, self.env, clear=False):
             initial_packet = navigator.render(None, run, initial_state)
-        self.assertIn("Return receipt: " + str(receipt_path), initial_packet)
-        self.assertIn("Current workspace return: not currently verified.", initial_packet)
+        # 2026-10-11 dedupe: the return route and receipt print only at release-plan, release-check, release and
+        # handoff (navigator.RETURN_STAGES); an intake packet names only where product work happens.
+        self.assertNotIn("Return receipt: ", initial_packet)
+        self.assertIn("Execution checkout: " + str(initial_state["repo"]), initial_packet)
+        self.assertIn("The original branch is returned only at release or handoff.", initial_packet)
         self.assertEqual((run / "state.md").read_bytes(), initial_state_bytes)
 
         worktree = root / "worktree"
