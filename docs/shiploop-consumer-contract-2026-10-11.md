@@ -170,8 +170,11 @@ Accepted as known limits:
    - Quotes go in the packet file, not the printed head (S-7). Step 2 found that a fresh session reads the whole packet
      file first.
    - Packets name files by their References symbol (`HOME/spec.md`); refusals name them by absolute path (X6).
-   - An Improve parent or child packet prints the same quotes as its stage's packet (X15): the review judges the same
-     result after a clear.
+   - ~~An Improve parent or child packet prints the same quotes as its stage's packet (X15).~~ Superseded 2026-10-11 by
+     the owner's direction, relayed by the inner-loop session. An Improve packet carries no stage context. It says
+     only: here is the result to improve, run /improve, and run the done command when it finishes. ShipLoop binds its
+     own Improve card and writes the opening file from state: the result, the done-when conditions and the focus
+     items.
 8. **Render reads files only.** `reads_quotes`, `entry_text` and the state readers run no Git, as `grounding()` does
    today. The exceptions, each one Git read:
    - `recent_commits` and `last_lessons` at intake and discovery (`git log`);
