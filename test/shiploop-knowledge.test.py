@@ -265,7 +265,7 @@ class ArchitectureTests(HomeFixture):
         self.assertEqual(knowledge.CLOSES["prepare"][:5],
                          ("README.md", "spec.md", "environment.md", "test-strategy.md", "architecture.md"))
         self.assertEqual(knowledge.STAGE_FILES["plan"][-1], "architecture.md")  # the printed order of the others is kept
-        self.assertEqual(knowledge.STAGE_FILES["step-plan"], ("{feature}/plan.md", "architecture.md"))
+        self.assertEqual(knowledge.STAGE_FILES["step-plan"][:2], ("{feature}/plan.md", "architecture.md"))  # environment.md is appended
         self.assertEqual(knowledge.STAGE_FILES["prepare"], ("environment.md",))  # prepare requires it; plan writes it
 
     def test_a_home_without_an_architecture_is_refused_at_prepare_naming_only_that_file_and_what_it_holds(self) -> None:
@@ -526,7 +526,7 @@ class SectionsTests(HomeFixture):
     def test_the_four_files_have_their_sections_as_constants_in_the_order_a_reader_meets_them(self) -> None:
         self.assertEqual(knowledge.SECTIONS, {
             "spec.md": ("Requirements", "Non-functional requirements", "Retired"),
-            "environment.md": ("Targets and runtimes", "Commands", "Access and accounts", "Platform facts"),
+            "environment.md": ("Targets and runtimes", "Commands", "Skills", "Access and accounts", "Platform facts"),
             "architecture.md": ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Decisions", "Superseded"),
             "test-strategy.md": ("Harnesses and suites", "Commands", "ID convention", "Real-boundary checks"),
         })
@@ -574,24 +574,72 @@ class SectionsTests(HomeFixture):
 
     # The stages that find commands, facts and decisions keep these files up to date (task A2, the 8-stage inner loop).
     WRITERS = {"research": ("environment.md",),
+               "step-plan": ("{feature}/plan.md", "architecture.md", "environment.md"),
                "validate-existing": ("environment.md",),
                "implement": ("environment.md", "architecture.md"),
                "test": ("environment.md",),
                "carry-forward": ("architecture.md", "environment.md")}
 
     def test_the_stages_that_discover_commands_facts_and_decisions_keep_the_files_up_to_date(self) -> None:
+        feature = knowledge.feature_dir(self.state)
         for stage, names in self.WRITERS.items():
             with self.subTest(stage):
                 self.assertEqual(knowledge.STAGE_FILES[stage], names)
-                expected = ("This stage keeps these up to date (create them if missing): "
-                            + ", ".join(str(self.repo / knowledge.HOME / name) for name in names) + ".")
+                paths = [str(self.repo / (name.replace("{feature}", feature) if name.startswith("{feature}")
+                                          else knowledge.HOME + "/" + name)) for name in names]
+                expected = "This stage keeps these up to date (create them if missing): " + ", ".join(paths) + "."
                 self.assertIn(expected, knowledge.stage_lines(self.state, stage))
+
+    def test_step_plan_keeps_the_environment_file_up_to_date_because_its_duty_consults_it_for_commands_and_skills(self) -> None:
+        """Its duty says to consult environment.md and add a newly working command under ## Commands (the inner-loop session)."""
+        self.assertEqual(knowledge.STAGE_FILES["step-plan"][-1], "environment.md")
+        self.assertIn("Skills", knowledge.SECTIONS["environment.md"])
+        environment = str(self.repo / "docs/shiploop/environment.md")
+        lines = knowledge.stage_lines(self.state, "step-plan")
+        self.assertTrue([row for row in lines if "keeps these up to date" in row and environment in row], lines)
+        self.assertIn("ShipLoop refuses release-plan if any of these is missing or empty: " + environment + ".", lines)
+
+    DUTY_FILES = ("spec", "environment", "architecture", "test-strategy")
+
+    @classmethod
+    def named_in_the_scripts(cls) -> dict:
+        """Each living file -> the headings the scripts' packet and loop text name for it (``<file>.md (## A, ## B)`` or ``<file>.md ## A``)."""
+        pattern = re.compile(r"(?<![\w/{}-])(" + "|".join(cls.DUTY_FILES) + r")\.md (?:\(([^)]*)\)|## ([^;:,.()]*))")
+        found = {name + ".md": set() for name in cls.DUTY_FILES}
+        for script in sorted((ROOT / "skills/shiploop/scripts").glob("shiploop_*.py")):
+            if script.name == "shiploop_knowledge_home.py":
+                continue  # the constants themselves
+            flat = " ".join(script.read_text(encoding="utf-8").split())
+            for match in pattern.finditer(flat):
+                if match.group(3) is not None:
+                    items = [match.group(3)]
+                elif "##" in match.group(2):  # a parenthesis with no heading in it is prose about the file
+                    items = match.group(2).split(",")
+                else:
+                    continue
+                for item in items:
+                    item = re.sub(r'^\s*(##\s*)?', "", item).replace('" "', "")  # the source's string joins
+                    found[match.group(1) + ".md"].add(item.strip())
+        return found
+
+    def test_every_heading_a_packet_duty_names_for_a_living_file_is_one_of_its_sections(self) -> None:
+        """The duties name headings in their own words; SECTIONS is the one list, so the two cannot drift apart again.
+
+        A heading a duty names that SECTIONS lacks would be written by a model and never counted by the notice (the
+        environment file's ``## Skills`` was one); a duty is read by prefix, as the notice reads a heading.
+        """
+        named = self.named_in_the_scripts()
+        for name, items in named.items():
+            with self.subTest(file=name):
+                self.assertTrue(items, "no heading found for " + name + ": the scan no longer reads the duties")
+                for item in sorted(items):
+                    self.assertTrue(any(item.startswith(heading) for heading in knowledge.SECTIONS[name]),
+                                    repr(item) + " is named for " + name + " but is not in SECTIONS[" + repr(name) + "]")
 
     def test_verify_reads_the_architecture_and_writes_nothing_and_the_planning_entries_are_unchanged(self) -> None:
         self.assertNotIn("verify", knowledge.STAGE_FILES)
         self.assertFalse([row for row in knowledge.stage_lines(self.state, "verify") if "keeps these up to date" in row])
         self.assertEqual(knowledge.STAGE_FILES["plan"], ("{feature}/plan.md", "README.md", "architecture.md"))
-        self.assertEqual(knowledge.STAGE_FILES["step-plan"], ("{feature}/plan.md", "architecture.md"))
         self.assertEqual(knowledge.STAGE_FILES["prepare"], ("environment.md",))
         self.assertEqual(knowledge.STAGE_FILES["test-spec"], ("{feature}/test-spec.md",))
         self.assertEqual(knowledge.CLOSES["prepare"][:5],
@@ -603,7 +651,7 @@ class SectionsTests(HomeFixture):
         research = knowledge.stage_lines(self.state, "research")
         self.assertIn("ShipLoop refuses prepare if any of these is missing or empty: "
                       + str(self.repo / "docs/shiploop/environment.md") + ".", research)
-        for stage in ("validate-existing", "implement", "test", "carry-forward"):
+        for stage in ("step-plan", "validate-existing", "implement", "test", "carry-forward"):
             with self.subTest(stage):
                 lines = knowledge.stage_lines(self.state, stage)
                 self.assertIn("ShipLoop refuses release-plan if any of these is missing or empty: "
@@ -643,13 +691,14 @@ class SectionNoticeTests(HomeFixture):
     def test_a_missing_section_is_one_line_with_the_prefix_the_absolute_path_the_heading_and_the_fix(self) -> None:
         path = self.put("environment.md", "# Environment\n\n## Commands\n\nnpm test\n\n## Platform facts\n\nNode 22.\n")
         found = self.notices()
+        sections = "environment.md has the sections Targets and runtimes, Commands, Skills, Access and accounts, Platform facts"
         self.assertEqual(found, [
             "ShipLoop knowledge notice: " + str(path) + " has no 'Targets and runtimes' section; add a '## Targets and "
-            "runtimes' section (environment.md has the sections Targets and runtimes, Commands, Access and accounts, Platform "
-            "facts), or write 'none' under it when nothing applies.",
+            "runtimes' section (" + sections + "), or write 'none' under it when nothing applies.",
+            "ShipLoop knowledge notice: " + str(path) + " has no 'Skills' section; add a '## Skills' section (" + sections
+            + "), or write 'none' under it when nothing applies.",
             "ShipLoop knowledge notice: " + str(path) + " has no 'Access and accounts' section; add a '## Access and accounts' "
-            "section (environment.md has the sections Targets and runtimes, Commands, Access and accounts, Platform facts), "
-            "or write 'none' under it when nothing applies."])
+            "section (" + sections + "), or write 'none' under it when nothing applies."])
         for line in found:
             self.assertTrue(line.startswith(knowledge.NOTICE_PREFIX + str(self.repo)), line)  # the absolute file comes first
             self.assertEqual(line.count(knowledge.NOTICE_PREFIX), 1)
@@ -658,7 +707,7 @@ class SectionNoticeTests(HomeFixture):
         path = self.put("environment.md", self.full("environment.md").replace("## Commands\n\nSome text.\n", "## Commands\n\n\n"))
         self.assertEqual(self.notices(), [
             "ShipLoop knowledge notice: " + str(path) + ": 'Commands' is empty; write under it (environment.md has the sections "
-            "Targets and runtimes, Commands, Access and accounts, Platform facts), or write 'none' when nothing applies."])
+            "Targets and runtimes, Commands, Skills, Access and accounts, Platform facts), or write 'none' when nothing applies."])
         # a heading with only blanks after it, at the end of the file, is empty too; a heading no table names is nobody's concern
         self.put("environment.md", self.full("environment.md").replace("## Platform facts\n\nSome text.\n", "## Platform facts\n \t \n")
                  + "\n## Extras\n")
@@ -818,7 +867,8 @@ class SectionNoticeTests(HomeFixture):
         self.assertIn("NOTICE_PREFIX", knowledge.__all__)
         self.assertIn("section_notices", knowledge.__all__)
         self.put("environment.md", "# Environment\n\nNode 22.\n")
-        self.assertEqual(len(re.findall(r"^ShipLoop knowledge notice: ", "\n".join(self.notices()), re.M)), 4)
+        self.assertEqual(len(re.findall(r"^ShipLoop knowledge notice: ", "\n".join(self.notices()), re.M)),
+                         len(knowledge.SECTIONS["environment.md"]))
         self.assertIsNone(re.match(r"^ShipLoop knowledge notice: ", "ShipLoop knowledge: committed the removal of the feature spec"))
 
     def test_the_outcome_section_reader_keeps_its_levels_one_to_three_and_its_flat_bodies(self) -> None:
@@ -856,7 +906,7 @@ class SectionNoticeCloseTests(HomeFixture):
         self.write_bare_home()
         out, err = self.close("prepare")
         lines = knowledge.section_notices(self.state, "prepare")
-        self.assertEqual(len(lines), 17)
+        self.assertEqual(len(lines), sum(len(headings) for headings in knowledge.SECTIONS.values()))
         self.assertEqual(out, "".join(line + "\n" for line in lines))
         self.assertEqual(err, "")
         self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "prepare"))
@@ -866,7 +916,7 @@ class SectionNoticeCloseTests(HomeFixture):
         for stage in knowledge.CLOSES:
             with self.subTest(stage):
                 out, _ = self.close(stage)
-                self.assertEqual(out.count(knowledge.NOTICE_PREFIX), 17)
+                self.assertEqual(out.count(knowledge.NOTICE_PREFIX), sum(len(h) for h in knowledge.SECTIONS.values()))
         for stage in ("implement", "plan", "verify", "carry-forward"):
             with self.subTest(stage):
                 self.assertEqual(self.close(stage), ("", ""))
