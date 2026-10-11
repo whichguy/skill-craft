@@ -97,7 +97,9 @@ class StepPacketTests(unittest.TestCase):
                     for number, condition in enumerate(stage_spec.stage(stage).done_when, 1):
                         self.assertEqual(text.count(condition), 1, condition)
                         self.assertIn(("    " + str(number) + ". " if argument else "- ") + condition + "\n", text)
-                    self.assertEqual(text.count(listing), 1 if stage in ("test", "verify") else 0)
+                    # test and verify list it in their loop; test-spec gets it once, as the step plan's hand-off
+                    # (navigator.CONSUMES, consumer contract section 4).
+                    self.assertEqual(text.count(listing), 1 if stage in ("test", "verify", "test-spec") else 0)
 
     def test_the_printed_head_fits_the_host_output_limit(self) -> None:
         case = CASES["node-fix-bug"]

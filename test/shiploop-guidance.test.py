@@ -162,6 +162,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_context_index as context_index  # noqa: E402
+import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_reference as run_reference  # noqa: E402
@@ -201,6 +202,23 @@ def receipt(stage: str) -> dict[str, object]:
         "lessons": f"Synthetic lesson for {stage}.",
     }
 
+
+
+_REAL_READ_TEXT = Path.read_text
+
+
+def _knowledge_reads_only():
+    """A ``Path.read_text`` that lets a render read only the knowledge home and the run baseline.
+
+    The packet quotes the living files whole (consumer contract D1, knowledge_home.reads_quotes) and names the run's
+    spec-diff baseline; any other read, such as a host evidence locator, is the defect this guard catches.
+    """
+    def read_text(self, *args, **kwargs):
+        text = str(self)
+        if "/docs/shiploop/" in text or text.endswith("/" + knowledge_home.RUN_BASELINE):
+            return _REAL_READ_TEXT(self, *args, **kwargs)
+        raise AssertionError("render read evidence: " + text)
+    return read_text
 
 class GuidanceTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -262,7 +280,7 @@ class GuidanceTests(unittest.TestCase):
     def cold_packet(self, state: dict) -> tuple[dict, str]:
         recovered = self.save_reload(state)
         before = (self.run / "state.md").read_bytes()
-        with patch.object(Path, "read_text", side_effect=AssertionError("render read evidence")):
+        with patch.object(Path, "read_text", new=_knowledge_reads_only()):
             packet = navigator.render(None, self.run, recovered)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
         return recovered, packet
@@ -1204,7 +1222,7 @@ class GuidanceTests(unittest.TestCase):
                     navigator.save(self.run, waiting)
                     pending_before = (self.run / "state.md").read_bytes()
                     pending = store.read_record(self.run / "state.md")
-                    with patch.object(Path, "read_text", side_effect=AssertionError("render read evidence")):
+                    with patch.object(Path, "read_text", new=_knowledge_reads_only()):
                         packet = navigator.render(None, self.run, pending)
                     self.assertEqual((self.run / "state.md").read_bytes(), pending_before)
                     self.assertIn("Current action: Improve the completed test-spec result.", packet)
@@ -1217,7 +1235,7 @@ class GuidanceTests(unittest.TestCase):
                     decision_ref = "unrelated://pending-improve"
                     continue
 
-                with patch.object(Path, "read_text", side_effect=AssertionError("render read evidence")):
+                with patch.object(Path, "read_text", new=_knowledge_reads_only()):
                     packet = navigator.render(None, self.run, recovered)
                 self.assertEqual((self.run / "state.md").read_bytes(), before)
                 assert_test_sources(packet, inner=stage != "system-test-author")
@@ -2466,9 +2484,9 @@ class CaseEndStateTests(unittest.TestCase):
         for clause in (
             "A case that cannot run here (for example a browser or an account this host cannot reach)",
             "leave its command out of `system_commands`",
-            "record it as an open item in this result's summary: case ID, the requirement it leaves unverified, "
-            "who does what, what they report, and the stage it is due at (handoff, or the stage whose external "
-            "effect it gates)",
+            "record it as an open item in this result's `assumptions`: the case ID and the requirement it leaves "
+            "unverified, who does what and what they report (owner), and the stage it is due at as its consumer "
+            "(handoff, or the stage whose external effect it gates)",
             "report blocked only when nothing else can proceed",
         ):
             self.assertIn(clause, duty)

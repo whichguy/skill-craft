@@ -570,7 +570,7 @@ class TestLoopTests(unittest.TestCase):
         self.start()
         self.drive_to("system-test-author")
         duty = " ".join(self.packet().split())
-        self.assertIn("record it as an open item in this result's summary", duty)
+        self.assertIn("record it as an open item in this result's `assumptions`", duty)
         self.assertNotIn("blocked, blocked_by access", duty)
         self.complete(dict(DONE, system_commands=[COMMANDS[1]], summary=(
             "Open item TC-16 (needs a browser this host cannot reach): requirement R-4 stays unverified; a person "

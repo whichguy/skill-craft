@@ -633,8 +633,8 @@ class SectionsTests(HomeFixture):
     @classmethod
     def named_in_the_scripts(cls) -> dict:
         """Each living file -> the headings the scripts' packet and loop text name for it (``<file>.md (## A, ## B)`` or
-        ``<file>.md ## A``, bare or as the packet's ``HOME/<file>.md``), and the headings of each stage's consult note
-        (``navigator._CONSULT``, the duties' former consult lists)."""
+        ``<file>.md ## A``, bare or as the packet's ``HOME/<file>.md``). The consult note it also read is gone: a stage
+        reads whole files now (knowledge.READS, consumer contract D1)."""
         pattern = re.compile(r"(?:(?<=HOME/)|(?<![\w/{}-]))(" + "|".join(cls.DUTY_FILES)
                              + r")\.md (?:\(([^)]*)\)|## ([^;:,.()]*))")
         found = {name + ".md": set() for name in cls.DUTY_FILES}
@@ -652,11 +652,6 @@ class SectionsTests(HomeFixture):
                 for item in items:
                     item = re.sub(r'^\s*(##\s*)?', "", item).replace('" "', "")  # the source's string joins
                     found[match.group(1) + ".md"].add(item.strip())
-        import shiploop_navigator as navigator
-        for rows in navigator._CONSULT.values():
-            for name, heading in rows:
-                if name in found and heading:
-                    found[name].add(heading)
         return found
 
     def test_every_heading_a_packet_duty_names_for_a_living_file_is_one_of_its_sections(self) -> None:
@@ -666,9 +661,11 @@ class SectionsTests(HomeFixture):
         environment file's ``## Skills`` was one); a duty is read by prefix, as the notice reads a heading.
         """
         named = self.named_in_the_scripts()
+        # A stage reads whole files now (knowledge.READS), so a file may have no heading named anywhere; the scan must
+        # still find some, or it no longer reads the duties.
+        self.assertTrue(any(named.values()), "no heading found at all: the scan no longer reads the duties")
         for name, items in named.items():
             with self.subTest(file=name):
-                self.assertTrue(items, "no heading found for " + name + ": the scan no longer reads the duties")
                 for item in sorted(items):
                     self.assertTrue(any(item.startswith(heading) for heading in knowledge.SECTIONS[name]),
                                     repr(item) + " is named for " + name + " but is not in SECTIONS[" + repr(name) + "]")

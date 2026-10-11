@@ -263,8 +263,11 @@ class ObservedHarmPacketTests(unittest.TestCase):
 
     def test_test_spec_titles_each_case_with_the_declared_ids_and_says_where_the_cases_go(self) -> None:
         text = flat(self.found[("test-spec", "producer")])
-        self.assertIn('Write one "### <ID>" entry per case in FEATURE/test-spec.md, titled with an id a focused '
-                      "command in the step plan's `test_commands` lists", text)
+        # Consumer contract 3.3: the cases are the result's test_cases (quoted downstream by value), each id one the
+        # step plan's focused commands list; the file keeps each case's full entry.
+        self.assertIn("Record one case per id in the result's `test_cases`", text)
+        self.assertIn("each id one a focused command in the step plan's `test_commands` lists", text)
+        self.assertIn('Write each case\'s full entry under its "### <ID>" in FEATURE/test-spec.md.', text)
         for part in ("setup and fixture; action; independent oracle", "RED (", "GREEN;"):
             self.assertIn(part, text)
 
@@ -472,7 +475,7 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
 
 
 REFERENCE_DEFINITION = re.compile(r"^(HOME|FEATURE|RUN|WORKTREE) = ")
-REFERENCE_ROW = re.compile(r"^(- |HOME = |FEATURE = |RUN = |WORKTREE = |Consult at this stage|Results this stage builds on)")
+REFERENCE_ROW = re.compile(r"^(- |HOME = |FEATURE = |RUN = |WORKTREE = |Read at this stage|Results this stage builds on)")
 NOT_WRITTEN = re.compile(r" \(not written yet: [^)]*\)$")
 
 
@@ -488,7 +491,7 @@ def reference_block(packet: str) -> list:
 
 def global_part(block: list) -> list:
     """The block's global part (the head and the four symbols with their files), "not written yet" markers removed."""
-    end = next((i for i, row in enumerate(block) if row.startswith(("Consult at this stage", "Results this stage"))),
+    end = next((i for i, row in enumerate(block) if row.startswith(("Read at this stage", "Results this stage"))),
                len(block))
     return [NOT_WRITTEN.sub("", row) for row in block[:end]]
 
@@ -632,25 +635,26 @@ class ReferencesBlockTests(unittest.TestCase):
             if run != "dry:halted":  # halted at intake: nothing earlier to build on
                 self.assertTrue(cited, run)
 
-    def test_an_inner_packet_carries_its_consult_note_and_every_heading_is_a_section(self) -> None:
-        for stage, rows in navigator._CONSULT.items():
-            self.assertIn(stage, stage_spec.INNER)
-            for name, heading in rows:
-                with self.subTest(stage=stage, file=name, heading=heading):
-                    written = {file for files in knowledge.STAGE_FILES.values() for file in files}
-                    self.assertTrue(name in knowledge.SECTIONS or name in written, name)
-                    if heading and name in knowledge.SECTIONS:
-                        self.assertIn(heading, knowledge.SECTIONS[name])
+    def test_a_packet_names_its_reads_and_quotes_each_file_whole_after_the_status(self) -> None:
+        """Consumer contract section 5 (D1): the References block names the files ``knowledge.READS`` gives the stage,
+        and the packet quotes each whole after the status block, or marks it not written yet."""
         for run, number, packet in self.each():
             stage = packet.split("ShipLoop navigator | ", 1)[1].split(" |", 1)[0]
+            names = knowledge.READS.get(stage, ())
             block = reference_block(packet)
             with self.subTest(run=run, packet=number, stage=stage):
-                note = navigator.consult_lines(stage)
-                self.assertEqual(bool(note), stage in navigator._CONSULT)
-                self.assertEqual(block[len(global_part(block)):len(global_part(block)) + len(note)], note)
-                for name, heading in navigator._CONSULT.get(stage, ()):
-                    row = next(row for row in note if row.startswith("- " + navigator.reference_name(name)))
-                    self.assertIn("## " + heading if heading else navigator.reference_name(name), row)
+                # Only an active packet quotes the files, so only it names them (a paused or blocked one waits).
+                active = not re.search(r"^(Paused|Blocked)[,:]", packet, re.M)
+                pointer = navigator.reads_pointer(stage) if active else []
+                self.assertEqual(bool(pointer), bool(names) and active)
+                self.assertEqual(block[len(global_part(block)):len(global_part(block)) + len(pointer)], pointer)
+                if not pointer or "=== end ShipLoop status ===" not in packet:
+                    continue
+                after = packet.split("=== end ShipLoop status ===", 1)[1]
+                self.assertIn(navigator.READS_HEAD, after)
+                for name in names:
+                    self.assertTrue(("HOME/" + name + " (source: HOME/" + name + ", whole file):") in after
+                                    or ("HOME/" + name + ": not written yet") in after, name)
 
 if __name__ == "__main__":
     unittest.main()
