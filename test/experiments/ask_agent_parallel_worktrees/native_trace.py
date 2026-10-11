@@ -1705,6 +1705,10 @@ def _compact_child_invocation(command: str, run: Path, worker: str, phase: str,
         return None
     packet_v4 = expected_binding_sha256 is not None
     if packet_v4 and phase == "finish":
+        # -B already disables bytecode; this one redundant assignment does not
+        # change the pinned packet argv. Other environment prefixes still fail.
+        if command_tokens[:1] == ["PYTHONDONTWRITEBYTECODE=1"]:
+            command_tokens = command_tokens[1:]
         command_prefix, expected_length, expected_script_index = ["python3", "-B"], 13, 2
     else:
         command_prefix = ["PYTHONDONTWRITEBYTECODE=1", "python3", "-B"]

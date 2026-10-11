@@ -1838,11 +1838,19 @@ print(out.read_text())'''
         )
         self.assertEqual(parsed, {"fixture_test": False, "command_argv": argv})
 
-        env_prefix = "PYTHONDONTWRITEBYTECODE=1 " + command
-        self.assertIsNone(native_trace._compact_child_invocation(
-            env_prefix, self.run.resolve(), "1", "finish", cwd, str(binding.resolve()),
-            expected_binding_sha256=digest, launch_cwd_verified=True,
-        ))
+        for env_prefix in ("PYTHONDONTWRITEBYTECODE=1 " + command,
+                           "cd " + shlex.quote(cwd) + " && PYTHONDONTWRITEBYTECODE=1 " + command):
+            self.assertEqual(native_trace._compact_child_invocation(
+                env_prefix, self.run.resolve(), "1", "finish", cwd, str(binding.resolve()),
+                expected_binding_sha256=digest, launch_cwd_verified=True,
+            ), {"fixture_test": False, "command_argv": argv})
+        for prefix in ("PYTHONDONTWRITEBYTECODE=0 ", "PYTHONPATH=/tmp ",
+                       "PYTHONDONTWRITEBYTECODE=1 PYTHONDONTWRITEBYTECODE=1 ",
+                       "env PYTHONDONTWRITEBYTECODE=1 "):
+            self.assertIsNone(native_trace._compact_child_invocation(
+                prefix + command, self.run.resolve(), "1", "finish", cwd, str(binding.resolve()),
+                expected_binding_sha256=digest, launch_cwd_verified=True,
+            ))
         wrong_digest = command.replace(digest, "b" * 64)
         self.assertIsNone(native_trace._compact_child_invocation(
             wrong_digest, self.run.resolve(), "1", "finish", cwd, str(binding.resolve()),
