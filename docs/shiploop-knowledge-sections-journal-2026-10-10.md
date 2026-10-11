@@ -127,6 +127,17 @@ quote `SECTIONS` get the headings written (lines per close fall toward 0 by `rel
 a model writes `none` or invented text under a heading with nothing to say. Turning the notice into a refusal (by name, with the exit
 in the message) is the owner's decision after that; it is not built.
 
+## Open risks
+
+- **Size ahead of the packet.** The notice lines print before the next packet on the `complete` call's stdout. A prose home prints 17
+  lines at a close, 6.9 KB on a short path (longest line 568 characters; about 9 KB at a real checkout path), and the six architecture
+  lines repeat `ARCHITECTURE_HOLDS` (about 2 KB of it). A model that reads the output through `head -N` or `cut` would meet notices
+  before the packet head. Measured as text only; whether it cost a re-orientation is for the first pair (`metrics` re-orientation after a
+  clear). If it does: print `ARCHITECTURE_HOLDS` once (on the first architecture line), or print the notice after the packet head; both
+  are small edits, neither is made on a guess.
+- **Repeats.** An unfixed file prints its lines at each of the four closes; the count per close is the measure, but a model sees the same
+  lines up to four times.
+
 ## Deferred
 
 - The refusal itself (above).
