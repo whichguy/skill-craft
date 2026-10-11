@@ -4,8 +4,9 @@ Step 3 of `docs/shiploop-consumer-contract-plan-2026-10-11.md` (Execute: ask). T
 from in step 4. It has not been built.
 
 **Revision 2 (2026-10-11, after three independent audits).** Section 0A lists every audit correction. Where 0A conflicts
-with sections 1 to 11, 0A wins. The owner approved D1 to D4 as recommended (section 0A.3). Sections 1 to 11 are being rewritten to match; until that
-commit, the body below is the audited draft (revision 1), kept for the audit trail.
+with sections 1 to 11, 0A wins. The owner approved D1 to D4 as recommended (section 0A.3). Sections 1 to 11 now match 0A
+and D1 to D4 (revision 2 body); the audited revision 1 body is in Git history (acf1f026). Section 0 rows that 0A
+superseded are marked, not deleted.
 
 Inputs:
 - the plan (sections 2, 3, 6 and 8);
@@ -36,18 +37,18 @@ Owners:
 
 | # | The plan said | The code or evidence shows | This contract does |
 |---|---|---|---|
-| K1 | Per-run files become state fields, and the next run reads only the living files | Step 1: the cold follow-on opened the earlier run's `test-spec.md` (at test-spec), `system-tests.md` (at system-test-author) and `release-plan.md` (at release-plan) as precedent. Run state is not in the repository. | Each cross-run need gets a home in a living file, written by a named stage and checked by a named gate (section 3.10). Test cases: `environment.md` ID convention and Harnesses and suites, plus the IDs in the test code. System test catalog: `environment.md` Harnesses and suites. Release procedure: a new `environment.md` section, "Release and rollback". |
+| K1 (superseded by X11 and X13) | Per-run files become state fields, and the next run reads only the living files | Step 1: the cold follow-on opened the earlier run's `test-spec.md` (at test-spec), `system-tests.md` (at system-test-author) and `release-plan.md` (at release-plan) as precedent. Run state is not in the repository. | Each cross-run need gets a home in a living file, written by a named stage and checked by a named gate (section 3.10). Test cases: `environment.md` ID convention and Harnesses and suites, plus the IDs in the test code. System test catalog: `environment.md` Harnesses and suites. Release procedure: a new `environment.md` section, "Release and rollback". |
 | K2 | Open items at carry-forward, verify and system-test-author | system-test-author also reads test-spec.md "## Due later" (`DUTIES["test-spec"]`, `DUTIES["system-test-author"]`) | test-spec joins the open-item stages: a due-later case is an open item whose consumer is an outer stage. "## Not tested here" is eliminated, because it can be derived: a criterion with no test case is confirmed by the check command the step plan names for it. |
-| K3 | The plan's spec commit is "recorded in state" | `_STATE_KEYS` and the history rows are exact sets. The plan's knowledge commit happens after the state is saved (`_knowledge_close`). | The script writes the commit to a run-folder record after the plan's knowledge commit. The precedent is `expectations.PREPARATORY_COMMIT`. No state key is added. |
+| K3 (superseded by X9) | The plan's spec commit is "recorded in state" | `_STATE_KEYS` and the history rows are exact sets. The plan's knowledge commit happens after the state is saved (`_knowledge_close`). | The script writes the commit to a run-folder record after the plan's knowledge commit. The precedent is `expectations.PREPARATORY_COMMIT`. No state key is added. |
 | K4 | Lessons ride in the release-verify knowledge commit | `knowledge_home.commit` commits only when the home changed (`_home_changed`). With outcome.md gone, a release-verify that changes nothing would make no commit. | `commit()` makes an empty commit with the lessons body when nothing else is recorded at release-verify (`shiploop_git.commit_paths(..., allow_empty=True)`). |
-| K5 | changed_ids goes "on any result that edited the living spec or the architecture" | spec has `requirement_changes`, and step-plan's new IDs are ones the item follows. Prelude, outer and carry-forward edits already reach their readers through READS sections and Git. | `changed_ids` sits on implement, test, document and verify only. At spec and step-plan the same completeness rule applies to `requirement_changes` and `follows`. The script checks completeness against HEAD (`changed_entries`). |
-| K6 | READS rows as in plan section 3.5 | Step 0: step-plan read test-strategy.md 5 times. `DUTIES["step-plan"]` consults Harnesses and suites and ID convention, `DUTIES["test"]` consults architecture Conventions, and `DUTIES["verify"]` consults Real-boundary checks and Conventions. | Those sections are added to those rows (section 5). |
+| K5 (superseded by X9) | changed_ids goes "on any result that edited the living spec or the architecture" | spec has `requirement_changes`, and step-plan's new IDs are ones the item follows. Prelude, outer and carry-forward edits already reach their readers through READS sections and Git. | `changed_ids` sits on implement, test, document and verify only. At spec and step-plan the same completeness rule applies to `requirement_changes` and `follows`. The script checks completeness against HEAD (`changed_entries`). |
+| K6 (superseded by X12) | READS rows as in plan section 3.5 | Step 0: step-plan read test-strategy.md 5 times. `DUTIES["step-plan"]` consults Harnesses and suites and ID convention, `DUTIES["test"]` consults architecture Conventions, and `DUTIES["verify"]` consults Real-boundary checks and Conventions. | Those sections are added to those rows (section 5). |
 | K7 | "The report: `shiploop_progress_data.py`" | The completion report is `navigator._render_report`. `shiploop_progress_data.build_snapshot` feeds the live progress view. | The report additions go in `_render_report`. The progress view only loses the removed rows. |
 | K8 | READS is the one quoting table | Consumers also need hand-off fields by value, and a test must know which stage quotes which | A second table, `CONSUMES`, sits beside `_RESULT_KEYS` (section 4). |
-| K9 | The gate runs at "that stage's done" | An Improve-reviewed stage is accepted at improve-complete, from a seed or final result (`finish_improve`). `_inner_gates` runs only on complete, so today's test-spec ID check is skipped for a revised final result. | Every hand-off gate runs on both routes, as `_knowledge_gate` does. The completeness checks run on complete only, because on improve-complete the review's edits are already committed through improve-commit. |
-| K10 | Test cases and system rows carry `requirement R-<n>` | Real cases and system tests cover several requirements. `_ids` is the one reader of the ID syntax. | `requirement` is a string that names one or more R-<n>, read by `_ids`. |
+| K9 (in part superseded by X9: the complete-only completeness checks) | The gate runs at "that stage's done" | An Improve-reviewed stage is accepted at improve-complete, from a seed or final result (`finish_improve`). `_inner_gates` runs only on complete, so today's test-spec ID check is skipped for a revised final result. | Every hand-off gate runs on both routes, as `_knowledge_gate` does. The completeness checks run on complete only, because on improve-complete the review's edits are already committed through improve-commit. |
+| K10 (in part superseded by X11: system rows) | Test cases and system rows carry `requirement R-<n>` | Real cases and system tests cover several requirements. `_ids` is the one reader of the ID syntax. | `requirement` is a string that names one or more R-<n>, read by `_ids`. |
 | K11 | plan.md's item sections move into state | The step-plan packet prints the item's `context` through `_required_excerpt`, which cuts it at 1200 characters. It does not print the item's open plan assumptions at all, although `expectations.check_step_plan` refuses until each is cited. | The context prints whole, and step-plan quotes the open plan items that name its work item. |
-| K12 | The open-item consumer is named | The plan's consumer is a work item, which step-plan's `from` rule settles. A second producer of work-item consumers would collide on IDs (A1 from the plan, A1 from verify). | At the four new stages, an open item's consumer is a later outer stage. Work for a later item goes through carry-forward's `work_items`, as today. |
+| K12 (in part superseded by X10: carry-forward is also a consumer) | The open-item consumer is named | The plan's consumer is a work item, which step-plan's `from` rule settles. A second producer of work-item consumers would collide on IDs (A1 from the plan, A1 from verify). | At the four new stages, an open item's consumer is a later outer stage. Work for a later item goes through carry-forward's `work_items`, as today. |
 | K13 | (step 1) Lessons reach the next run | The follow-on's intake saw the learnings commit second in the last-three window, behind the retire commit and ahead of the leftovers commit. One more closing commit would have pushed it out. | The intake quote finds the commit by subject (section 3.9). |
 
 ---
@@ -124,45 +125,58 @@ Accepted as known limits:
 1. **One home.**
    - A hand-off field carries IDs or its own text.
    - Requirement and decision text stays in `spec.md` and `architecture.md` and is quoted from there.
-   - The cross-run part of a run's record lives in a living file (section 3.10). The in-run field and the living section
-     record different facts:
-     - the field is this run's selection (what ShipLoop runs or does now);
-     - the living section is the standing catalog or procedure a later run extends.
+   - The cross-run part of a run's record lives in a living file, kept current by the producing stage's duty text and
+     quoted whole to the next run (section 3.6). No gate checks a heading in it (X11).
+   - The test code is the one home of test IDs and of the requirement-to-test map (X13).
 2. **Shape on load, meaning at the gate.**
    - `_canonical_result` checks a field's shape and the stage and outcome it may sit on, because `validate()`
      re-canonicalises every saved result.
-   - Meaning is checked only at the CLI gates, in one new function, `_handoff_gate`. This matches what
-     `_check_submitted_assumptions` and `_check_submitted_unverified` do today.
+   - Meaning is checked only at the CLI gates, in one new function, `_handoff_gate`. It canonicalises the submitted
+     fields first and then checks meaning on the canonical value (X5; precedent: `_check_submitted_assumptions`). A wrong
+     type is therefore a shape refusal, never a TypeError.
 3. **Both routes.**
-   - `_handoff_gate(root, state, stage, result, command)` runs on `complete` (including `--check-only`) and on
+   - `_handoff_gate(root, state, stage, result, next_step)` runs on `complete` (including `--check-only`) and on
      `improve-complete`. It runs right after `_knowledge_gate`, on the same result those gates check
      (`child["seed_result"] if final_result is None else final_result`).
-   - The completeness checks ("an entry changed but is not listed") run on `complete` only.
+   - Every check runs on both routes. No check is complete-only.
    - The test-spec call moves out of `_inner_gates` into `_handoff_gate`.
-4. **Refusal text.**
-   - Line 1 is the fix, the absolute path of the result file, and the command: "..., then run the same <command> command
-     again."
-   - `<command>` is `complete` or `improve-complete`.
+4. **Refusal text (X3, X4).**
+   - Line 1 is the fix, one absolute path, and `next_step`. The path is the result file when the fix is in the result,
+     or the living file when the fix is there.
    - The result file is `<run>/inbox/<action>.md` on complete, or `<run>/inbox/<action>-final-result.md` on
      improve-complete.
-   - Failing IDs and rows go on line 2 and after, in full. This is `knowledge_home.check`'s line-1 rule: a long list never
-     pushes the fix off line 1.
+   - `dispatch` builds `next_step` and passes it in:
+     - on complete: "then run the same complete command again";
+     - on improve-complete with `--final-result`: "then run the same improve-complete command again";
+     - on improve-complete without it, the fix is worded "write a final result to <path> that <fix>", and `next_step`
+       is "then run improve-complete again with --final-result set to that file". Rerunning the printed command would
+       re-check the seed and refuse again.
+   - On improve-complete, a fix that edits a living file adds "improve-commit it first" (X15), as `knowledge_home.check`
+     does.
+   - Line 2 is the JSON shape and the sentence that names who quotes the field.
+   - Failing IDs and rows go on line 3 and after, in full, so a long list never pushes the fix off line 1.
    - Shape refusals from `_canonical_result` cannot know the route, so their line 1 ends "then run the same command
      again."
+   - Test: with the longest saved inbox path (173 characters), every line 1 is at most 250 characters, the
+     `knowledge_home.check` rule.
 5. **Placeholders.** `_result_template` prints placeholder strings, collected in one constant, `HANDOFF_PLACEHOLDERS`.
    The gate refuses any hand-off string equal to one of them, as headline and unverified placeholders are refused today.
-6. **Done only.** All seven new keys join `_DONE_ONLY_FIELDS`.
+6. **Done only.** The four new keys (`follows`, `not_covered`, `test_cases`, `lessons`) join `_DONE_ONLY_FIELDS`.
 7. **Quotes are never cut.**
-   - No `_bounded_packet_text`, `_required_excerpt` or character cap applies to a READS section, an entry or a hand-off
+   - No `_bounded_packet_text`, `_required_excerpt` or character cap applies to a quoted file, an entry or a hand-off
      value.
    - Each quoted line is printed with the prefix `"  | "`, the prefix today's commit quote uses, so a quoted heading never
      becomes packet structure.
    - Quotes go in the packet file, not the printed head (S-7). Step 2 found that a fresh session reads the whole packet
      file first.
-8. **Render reads files only.**
-   - `section_text`, `entry_text` and the state readers run no Git, as `grounding()` does today.
-   - The one exception is the lessons quote at intake and discovery, which runs one `git log`, as `recent_commits` does
-     today.
+   - Packets name files by their References symbol (`HOME/spec.md`); refusals name them by absolute path (X6).
+   - An Improve parent or child packet prints the same quotes as its stage's packet (X15): the review judges the same
+     result after a clear.
+8. **Render reads files only.** `reads_quotes`, `entry_text` and the state readers run no Git, as `grounding()` does
+   today. The exceptions, each one Git read:
+   - `recent_commits` and `last_lessons` at intake and discovery (`git log`);
+   - `run_changes` in a packet whose `CONSUMES` row names it, and in the report (`git show` of each file at the run
+     baseline).
 
 ---
 
@@ -182,7 +196,7 @@ LIVING = ("spec.md", "environment.md", ARCHITECTURE)
 SECTIONS = {
     "spec.md": ("Requirements", "Non-functional requirements", "Retired"),
     "environment.md": ("Targets and runtimes", "Commands", "Skills", "Harnesses and suites", "ID convention",
-                       "Access and accounts", "Release and rollback", "Platform facts"),
+                       "Access and accounts", "Platform facts"),
     ARCHITECTURE: ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Real-boundary checks",
                    "Decisions", "Superseded"),
 }
@@ -197,13 +211,14 @@ STAGE_FILES = {
     "step-plan": (ARCHITECTURE, "environment.md"), "validate-existing": ("environment.md",),
     "implement": ("environment.md", ARCHITECTURE), "test": ("environment.md",),
     "carry-forward": (ARCHITECTURE, "environment.md"), "system-test-author": ("environment.md",),
-    "release-plan": ("environment.md",), "release-verify": ("environment.md",),
+    "release-plan": ("environment.md",), "release-check": ("environment.md",), "release-verify": ("environment.md",),
 }
 _GROUNDING = (("living spec", "spec.md"), ("environment", "environment.md"), ("architecture", ARCHITECTURE))
-LESSON_LABELS = (("learned", "Learned"), ("considerations", "Key considerations"), ("open_next", "Open for the next run"))
+LESSON_FIELDS = (("learned", "Learned"), ("considerations", "Key considerations"), ("open_next", "Open for the next run"))
+KNOWLEDGE_SUBJECT = re.compile(r"^docs\(shiploop\): record (\S+) knowledge (?:at|after) \S+$")
 LESSONS_SUBJECT = re.compile(r"^docs\(shiploop\): record (\S+) knowledge at release-verify$")
-PLAN_SPEC_RECORD = "plan-spec-commit.txt"   # run-relative
-READS = {...}                               # section 5
+RUN_BASELINE = "run-baseline.txt"        # run-relative
+READS = {...}                            # section 5
 ```
 
 Notes on the tables:
@@ -211,41 +226,35 @@ Notes on the tables:
   commit still happens when it changed the home, with the subject "... after test-spec".
 - **intake leaves `STAGE_FILES`**, because its only file was README.md.
 - **"Real-boundary checks" is a level-2 section** placed after "Interfaces and boundaries", not nested under it.
-- **"Release and rollback" is new (K1).** It holds the standing release procedure: how this product reaches its target,
-  the rollback, and the post-release checks. Its consumer is a later run's release-plan; the producer is release-plan.
-- **The section notice now covers three files** (three lines at most).
+- **"Release and rollback" is not a section (X11).** release-plan's duty asks it to keep the standing procedure in
+  `environment.md`, under whatever heading the run uses (7 of 17 saved homes already say "Delivery"). release-check
+  gains `environment.md` in `STAGE_FILES`, because its duty corrects that procedure when the rollback differs (D2).
+- **"ID convention" holds the scheme and the one command that lists the IDs already taken**, not a high-water mark
+  (X13).
+- **`SECTIONS` feeds only the section notice**, a counted nudge that now covers three files (three lines at most). It
+  never refuses, and no quote depends on a heading (D1).
+- **`LESSON_FIELDS`** is named apart from `shiploop_lessons.LESSON_LABELS`, which means something different (X15).
 
-### 2.2 `section_text(repo, file, heading) -> Optional[str]`
+### 2.2 Whole-file quotes: `reads_quotes(state, stage) -> list[FileQuote]` (D1, X12)
 
-Arguments:
-- `repo` is the execution checkout.
-- `(file, heading)` must be a pair in `SECTIONS`; any other pair raises `ValueError`. That is a programming error, caught
-  by the READS table test, never by a run.
+`FileQuote(name, path, text)` is produced in the `READS` row's order. A stage not in `READS` raises `ValueError`.
+- `path` is absolute, in `state["repo"]`.
+- `text` is the whole file, read as `section_notices` reads it (`utf-8-sig`, `errors="replace"`), never cut.
+- `text` is `None` when the file is absent, blank, non-regular or unreadable.
 
-Reading the file:
-- It reads `repo/HOME/file` as `section_notices` does: `utf-8-sig`, `errors="replace"`.
-- An absent, blank, non-regular or unreadable file returns `None`.
+What the packet prints (the inner-loop session renders it):
+- A block titled "Knowledge this stage reads, quoted whole from the living files:".
+- For each file: `HOME/<name>:`, then each line prefixed `"  | "`. A `None` file prints
+  `HOME/<name>: not written yet (<reference_writer(name)>)`.
+- An empty row prints "Knowledge this stage reads: none quoted; the living files are named above by path."
 
-Matching (the section-notice rule; one span function, `_section_spans(lines, outline, heading)`, is shared with
-`_section_state`):
-- A heading matches when it is a line from `_outline` (one to four `#`, outside fenced code by `_FENCE`) whose title
-  starts with `heading`, in any case.
-- A match's span runs from its heading line to the line before the next heading of the same or a higher level, or to the
-  end of the file.
-- A span that lies inside an earlier matching span is dropped (for example a deeper `### Commands for CI` inside
-  `## Commands`).
-- A span with no non-blank line after its heading is empty.
+How a model spells a heading never matters: a home with `## Targets`, `## Delivery` or no level-2 heading at all is
+quoted the same way.
 
-Return value:
-- `None` when no heading matches.
-- `""` when every matching span is empty.
-- Otherwise, the non-empty spans' lines exactly as in the file, the heading line included, spans separated by one blank
-  line, and trailing blank lines dropped.
-- No cap of any kind.
+### 2.3 Entries: `entry_text(repo, ident) -> Optional[str]`
 
-### 2.3 Entries: `entry_text(repo, ident) -> Optional[str]` and `changed_entries(repo, name) -> list[str]`
-
-One parser, `_entries(text, prefix) -> dict[id, Entry(text: str, retired: bool)]`, serves both.
+One parser, `_entries(text, prefix) -> dict[id, Entry(text: str, retired: bool)]`, serves `entry_text` and
+`run_changes` (section 2.6).
 
 Which file:
 - `ident` must fullmatch `^(R|AD)-\d+$`; anything else raises `ValueError`.
@@ -260,9 +269,9 @@ Which file:
 That is: optional indentation; then optionally a heading mark, a list marker, an ordered marker or a table pipe; then
 optionally one emphasis, code or bracket opener; then X, not followed by a digit (so R-1 is not R-10).
 
-Every shape in the saved specs matches: `- R-1: ...`, `- **R-1** ...`, `| R-1 | ... |`, `### R-1 ...` and `R-1: ...`. A
-mention inside another entry ("except R-9", "verifies R-1") is not a start. The first start for X in the file is its
-entry, and later starts for X are ignored.
+Every shape in the saved specs matches: `- R-1: ...`, `- **R-1** ...`, `| R-1 | ... |`, `### R-1 ...` and `R-1: ...`
+(0 of 153 saved IDs lacked an entry start). A mention inside another entry ("except R-9", "verifies R-1") is not a
+start. The first start for X in the file is its entry, and later starts for X are ignored.
 
 **Span.** How far an entry runs depends on its start line:
 - **Heading form** (the start line is a heading by `_HEADING`): to the line before the next heading of the same or a
@@ -281,42 +290,10 @@ Trailing blank lines are dropped. The text is the span's lines exactly as in the
 
 **Retired.** An entry is retired when a heading enclosing its start line (the chain of headings above it, each of a lower
 level than the one below it) has a title that starts, in any case, with "Retired" (`spec.md`) or "Superseded"
-(`architecture.md`).
+(`architecture.md`). A quoted retired entry prints a marker: "(now under Retired in HOME/spec.md)" or "(now under
+Superseded in HOME/architecture.md)" (X15).
 
-**`changed_entries(repo, name)`** (`name` is `spec.md` or `architecture.md`):
-- Outside a checkout (`(repo / ".git").exists()` is false) it returns `[]` and runs no Git.
-- Otherwise it compares `_entries` of the working file with `_entries` of `_committed(repo, name)`.
-- An ID is changed when:
-  - it has no entry at HEAD, or
-  - its text differs after every run of whitespace is collapsed to one space, or
-  - its retired flag differs.
-- The result is in numeric order.
-- An ID that lost its entry is not listed here: `check()`'s retention loop refuses a drop, as today.
-
-### 2.4 `reads_quotes(state, stage) -> list[ReadQuote]`
-
-A stage not in `READS` raises `ValueError`.
-
-`ReadQuote(file, heading, path, status, text, within)` is produced in the row's order. `path` is absolute, in
-`state["repo"]`. `status` is one of:
-
-| Status | Meaning |
-|---|---|
-| `quoted` | `text` is the section text |
-| `empty` | The heading is there with nothing under it |
-| `no-section` | No heading matches |
-| `no-file` | The file is absent, blank or unreadable |
-| `inside` | Every span of this heading lies inside a span quoted earlier in this row for the same file; `within` names that heading |
-
-What the packet prints (the inner-loop session renders it):
-- A block titled "Knowledge this stage reads, quoted in full from the living files (open a file only for a section not
-  quoted here)".
-- For each quote: `<abs path> ## <heading>:`, then each text line prefixed `"  | "`, or one sentence for the status ("the
-  section is empty", "this file has no '<heading>' section", "the file does not exist yet", "within '<heading>' above").
-- An empty row prints "Knowledge this stage reads: none quoted; the living files are named above by path." This is the
-  plan's deliberate "consult: none".
-
-### 2.5 `run_label(state)` (replaces `feature_dir`)
+### 2.4 `run_label(state)` (replaces `feature_dir`)
 
 `run_label(state)` gives the same string `feature_dir(state).rsplit("/", 1)[-1]` gives today: the first six
 `[a-z0-9]+` words of the request, joined by `-` (or `feature`), cut to 48 characters, then `-` and the last six
@@ -325,9 +302,9 @@ characters of `run_id`.
 It names no folder. `knowledge_subject(state, stage)` uses it, so a new run's subjects have the same shape as old runs'
 (the harness's `counters.KNOWLEDGE_SUBJECT` already matches both).
 
-### 2.6 Lessons: `commit()`, `lessons_body()`, `last_lessons(repo)`
+### 2.5 Lessons: `commit()`, `lessons_body()`, `last_lessons(repo)`
 
-**`lessons_body(lessons)`** builds this text from `LESSON_LABELS`:
+**`lessons_body(lessons, open_rows)`** builds this text from `LESSON_FIELDS`:
 
     Learned
     <learned>
@@ -339,140 +316,109 @@ It names no folder. `knowledge_subject(state, stage)` uses it, so a new run's su
     <open_next>
 
 Each value has its outer whitespace stripped. This is the layout today's `commit()` builds from outcome.md, so old and new
-commits read the same.
+commits read the same. When open items are still open at release-verify (`assumptions.open_items`, section 3.5), the
+script appends a generated block (X15):
+
+    Open items left at release-verify (generated by ShipLoop)
+    - <id> (<producer stage>[ <item>]): <assumption>; check: <check>; consumer: <consumer>[; owner: <owner>]
 
 **`commit(state, stage)` at release-verify:**
 1. The message is `knowledge_subject(state, "release-verify")`, a blank line, and `lessons_body` of the `lessons` in the
-   newest done release-verify result in `state["history"]`.
+   newest done release-verify result in `state["history"]` and the open rows.
 2. The home commit runs as today: `commit_paths(repo, [HOME], message)`.
 3. When it records nothing (the home is unchanged, or every change was skipped by the secret screen), ShipLoop makes
-   `commit_paths(repo, [], message, allow_empty=True)`. The lessons always travel.
+   `commit_paths(repo, [], message, allow_empty=True)`. The lessons always travel (K4).
 4. At every other stage, `commit()` is unchanged, except that `write_feature_list` is gone.
 
-**`last_lessons(repo) -> Optional[Lessons(commit, subject, body)]`:** see section 3.9.
+An isolated run returns that commit to the user's branch through the follow-up return (X1, section 3.4). A working-tree
+return carries no commit, so the handoff packet and the report print the message instead (X2, section 3.4).
 
-### 2.7 The plan's spec commit: `record_plan_spec(root, state)` and `plan_spec(root)`
+**`last_lessons(repo) -> Optional[Lessons(commit, subject, body)]`:** see section 3.4.
 
-**When it is recorded.** `_knowledge_close` calls `record_plan_spec` after its knowledge commit, when the rows this call
-accepted include a done `plan` row and `root` is not `None`. That covers both routes: `_knowledge_close` runs after
-`complete` and after `improve-complete`.
+### 2.6 Run baseline and run changes (D3, X9)
 
-**What it records.** `git log -1 --format=%H -- docs/shiploop/spec.md` in `state["repo"]`. The 40-hex result plus a
-newline is written to `root / PLAN_SPEC_RECORD` with `store.atomic_write_text`, and overwritten on every later accepted
-plan (a replan or reconcile). Nothing is written when the log is empty.
+**The baseline.** At `init` (in `shiploop_protocol`, right after `navigator.save`), `write_run_baseline(root, repo)`
+writes `root / RUN_BASELINE` once, with `store.atomic_write_text`: the 40-hex `git rev-parse HEAD` of the execution
+checkout and a newline, or an empty file when the checkout has no commit or is not a checkout. In an isolated run the
+execution checkout starts at the workspace manifest's `baseline_commit`, so the record holds that commit: one record for
+both modes. Nothing rewrites it. `run_baseline(root) -> Optional[str]` returns the hash, or `None` for an empty file.
 
-**On failure.** One stderr line, "ShipLoop knowledge: the plan's spec commit was not recorded (<reason>)". It never
-refuses; the transition stands.
+**`run_changes(repo, baseline) -> Optional[dict[name, Changes(added, modified, retired)]]`**, for `spec.md` and
+`architecture.md`:
+- Outside a checkout (`(repo / ".git").exists()` is false) it returns `None` and runs no Git.
+- It compares `_entries` of the working file with `_entries` of the file at the baseline
+  (`git show <baseline>:docs/shiploop/<name>`). That side is empty when there is no baseline or the file did not exist
+  then.
+- **added:** an ID with no entry at the baseline.
+- **modified:** an ID whose text differs after every run of whitespace is collapsed to one space, and whose retired flag
+  is unchanged.
+- **retired:** an ID whose retired flag turned on.
+- Each list is in numeric order. An ID that lost its entry is not listed: `check()`'s retention loop refuses a drop, as
+  today.
+- The working file is compared, so a stage sees its own uncommitted edits, and an edit a review committed through
+  improve-commit is listed too. An edit the user left uncommitted in their own checkout before the run counts as this
+  run's.
 
-**Reading it.** `plan_spec(root)` returns the hash when the file holds one, and `None` otherwise.
+There is no model field and no refusal. This replaces the model-typed requirement and changed-ID lists, their
+completeness checks and the plan's spec-commit record (section 3.7).
 
-**Replaces** `spec_pin` and the "Spec: ... @ <sha>" first line of plan.md.
+**What a consumer packet prints** (inner-loop session), where `CONSUMES` names `run_changes`:
+- `Spec and architecture changes since the run began (baseline <12 hex>; git -C <repo> diff <12 hex> -- docs/shiploop/spec.md docs/shiploop/architecture.md shows them in full):`
+- Then, per file and class, each ID with its `entry_text` quoted with `"  | "`, or "none" for an empty class.
+- No baseline: "every entry counts as added: the repository had no commit when the run began".
+- `None` from `run_changes`: "not computed: <repo> is not a Git checkout".
 
 ---
 
 ## 3. The hand-off fields
 
-`_RESULT_KEYS` gains `requirement_changes`, `follows`, `changed_ids`, `not_covered`, `test_cases`, `release` and
-`lessons`. `assumptions` and `system_commands` change. Each field below gives its shape, producer, gate, consumers, and the
-code anchor it replaces or extends.
+`_RESULT_KEYS` gains `follows`, `not_covered`, `test_cases` and `lessons`. `assumptions` is extended. `system_commands`
+is unchanged (X11). Each field below gives its shape, producer, gate, consumers, and the code anchor it replaces or
+extends. The refusal texts follow rule 4: `<result>` is the result file and `<next step>` is `dispatch`'s tail.
 
-### 3.1 `requirement_changes` (spec)
-
-```json
-"requirement_changes": {"added": ["R-9"], "modified": ["R-3"], "retired": ["R-4"]}
-```
-
-**Shape (`_canonical_result`):**
-- Exactly these three keys.
-- Each is a list, possibly empty, of unique strings matching `^R-\d+$`.
-- No ID appears in two lists.
-- Allowed only on a done spec result.
-
-**Gate at spec done** (both routes), checking only what the plan and release-verify packets quote:
-- **Missing.** Line 1: `Add requirement_changes to <result>: {"added": [...], "modified": [...], "retired": [...]} with the R-<n> this run adds, changes and retires (empty lists when none), then run the same <command> command again.` Line 2: `The plan and release-verify packets quote these entries from <abs spec.md>.`
-- **An ID with no entry.** Line 1: `List in requirement_changes only R-<n> that have an entry in <abs spec.md> (a line that starts with the ID): add the entry or drop the ID in <result>, then run the same <command> command again.` Line 2: `No entry: R-12, R-14.`
-- **A retired ID not under Retired.** Line 1: `Move each retired requirement's entry under a 'Retired' heading in <abs spec.md>, or list it as modified in <result>, then run the same <command> command again.` Line 2: `Listed as retired but not under 'Retired': R-4.`
-- **A changed entry not listed** (complete only). Line 1: `Add to requirement_changes in <result> every requirement whose entry this stage changed, then run the same complete command again.` Line 2: `Changed in <abs spec.md> but not listed: R-3, R-7 (new, edited, or moved under 'Retired').`
-
-**Consumers:**
-- The plan packet quotes each list and each ID's `entry_text`, so the plan covers each requirement.
-- The release-verify packet quotes the same, beside the plan's spec commit.
-- The report.
-
-**Replaces:**
-- the feature `spec.md`;
-- `knowledge_home._missing_ids`;
-- the "The feature's spec.md lists the IDs this run adds, modifies and retires" sentence in `stage_lines`.
-
-### 3.2 `follows` (step-plan)
+### 3.1 `follows` (step-plan)
 
 ```json
 "follows": ["R-3", "R-5", "AD-2"]
 ```
 
 **Shape:** a list, possibly empty, of unique strings matching `^(R|AD)-\d+$`. Allowed only on a done step-plan result.
+Choosing what an item follows is a judgement, so the field stays model-written (X9).
 
-**Gate at step-plan done:**
-- **Missing.** Line 1: `Add follows to <result>: the R-<n> this item implements and the AD-<n> it follows ([] only when it serves none), then run the same <command> command again.` Line 2: `The test-spec, implement, test and verify packets of this item quote each entry.`
-- **No entry.** Line 1: `Cite in follows only IDs that have an entry in <abs spec.md> or <abs architecture.md> (a line that starts with the ID): add the entry or drop the ID in <result>, then run the same <command> command again.` Line 2: `No entry: R-12, AD-3.`
-- **A changed entry not followed** (complete only). Line 1: `Add to follows in <result> every requirement and decision this step plan added or changed, then run the same complete command again.` Line 2: `Changed but not followed: AD-5 (<abs architecture.md>).`
+**Gate at step-plan done** (existence only):
+- **Missing.** Line 1: `Add follows to <result> (the R-<n> this item implements and the AD-<n> it follows; [] only when it serves none), <next step>.` Line 2: `Shape: "follows": ["R-3", "AD-2"]. This item's test-spec, implement, test, document and verify packets quote each entry.`
+- **No entry.** Line 1: `In <result>, drop from follows each ID that has no entry, or add its entry to the living file, <next step>.` Line 2: `An entry is a line that starts with the ID, in <abs spec.md> (R-) or <abs architecture.md> (AD-).` Line 3: `No entry: R-12, AD-3.`
 
 **Consumers:**
-- The same item's test-spec, implement, test and verify packets quote each ID and its `entry_text`, read at render, so a
-  later edit shows.
+- The same item's test-spec, implement, test, document and verify packets quote each ID and its `entry_text`, read at
+  render, so a later edit shows.
 - The report.
 
 This is the C3 mechanism. It replaces the prose "cite the ID in the step plan" in `_knowledge_lines` and the unanchored
 "decisions that touch the paths it changes".
 
-### 3.3 `changed_ids` (implement, test, document, verify)
-
-```json
-"changed_ids": ["AD-6", "R-3"]
-```
-
-**Shape:** a list of unique strings matching `^(R|AD)-\d+$`. Allowed on a done result at those four stages. When absent,
-it means `[]`.
-
-**Gate:**
-- **No entry.** Line 1: `List in changed_ids only IDs that have an entry in <abs spec.md> or <abs architecture.md>; drop the others in <result>, then run the same <command> command again.` Line 2: `No entry: ...`
-- **Incomplete** (complete only; `changed_entries` of both files). Line 1: `Add to changed_ids in <result> every requirement and decision entry this stage changed, then run the same complete command again.` Line 2: `Changed but not listed: R-3 (<abs spec.md>), AD-6 (<abs architecture.md>).`
-
-**Consumers:**
-- **document** quotes the entries changed by the item's implement steps and test.
-- **verify** quotes those plus document's.
-- **carry-forward** quotes every changed entry of the item.
-- **release-verify** quotes every `R-` ID changed by any item, so it judges the outcome against requirements changed after
-  planning.
-- The report.
-
-**Replaces** stale summaries after an edit (audit row 3, in part).
-
-### 3.4 `not_covered` (implement, test, verify)
+### 3.2 `not_covered` (implement, optional)
 
 ```json
 "not_covered": [{"behaviour": "the helper rejects an empty board", "reason": "no test case names it; it is internal"}]
 ```
 
-**Shape:** a list, possibly empty, of objects with exactly `behaviour` and `reason`, each non-blank. Allowed on a done
-implement, test or verify result.
+**Shape:** a list, possibly empty, of objects with exactly `behaviour` and `reason`, each non-blank. Allowed only on a
+done implement result, and optional there (X10).
 
-**Gate:**
-- Required on done implement and done verify; optional on test. Placeholders are refused.
-- **Missing.** Line 1: `Add not_covered to <result>: [{"behaviour": "...", "reason": "..."}] for each behaviour <this step added that no test case covers | of this item that still has no covering test after verify>, or [] when none, then run the same <command> command again.`
+**Gate:** shape only, and placeholders are refused.
 
 **Consumers:**
 - **test** quotes every done implement result of the item after its latest accepted step plan. That is all steps, not
   only the last (audit row 6).
-- **verify** quotes those plus the item's test result.
-- **carry-forward** quotes the item's verify result.
-- **system-test-author** quotes every item's current verify result.
 - The report.
 
-**Replaces** the prose and `notes/` carrier of implement's Done-when line "the result lists each behaviour ... (or none)"
-(audit row 2).
+Behaviour still uncovered after verify is an open item (section 3.5), not this field.
 
-### 3.5 `test_cases` (test-spec)
+**Replaces** the prose and `notes/` carrier of implement's Done-when line "the result lists each behaviour ... (or none)"
+(audit row 2). The line becomes "record in not_covered each behaviour this step added that no test case covers".
+
+### 3.3 `test_cases` (test-spec)
 
 ```json
 "test_cases": [{"id": "TC-1", "criterion": "C1", "requirement": "R-3", "oracle": "GET /api/new returns {\"game\": <id>}",
@@ -480,25 +426,28 @@ implement, test or verify result.
 ```
 
 **Shape (`expectations.normalise_test_cases`):**
-- A list of objects with exactly `id`, `criterion`, `requirement`, `oracle`, `red` and `green`.
+- A list of objects with exactly `id`, `criterion`, `requirement`, `oracle`, `red` and `green`. There is no `surface`
+  key (D4): the oracle names the surface, and setup and teardown are stated once per suite in `environment.md`.
 - Strings are non-blank.
 - `id` and `criterion` contain no whitespace (the `test_commands` ids rule); ids are unique.
-- `requirement` names at least one R-<n> by `_ids`.
+- `requirement` names at least one R-<n> by `_ids` (K10).
 - Allowed only on a done test-spec result.
 
 **Gate (`expectations.check_test_cases(root, state, result)` replaces `check_test_spec_ids`):** the same rule, read from
 state and checked against the current item's latest step plan (`test_loop._step_plan`). The case IDs must equal the
-focused IDs in both directions. Cases are now per item, so earlier items' IDs no longer count.
-- **Missing.** Line 1: `Add test_cases to <result>: one {"id", "criterion", "requirement", "oracle", "red", "green"} per ID this item's focused commands list, then run the same <command> command again.` Line 2: `Focused IDs: TC-1, TC-2.`
-- **A case no focused command lists.** Line 1: `Give every case in test_cases an ID this item's focused commands list, or report revise so the step plan lists it, then run the same <command> command again.` Line 2: `Not listed by a focused command of W1: TC-9.`
-- **A focused ID with no case.** Line 1: `Add a case to test_cases in <result> for every ID this item's focused commands list, then run the same <command> command again.` Line 2: `Focused IDs with no case: TC-3.`
-- **An unknown criterion.** Line 1: `Set each case's criterion to a criterion of this item's step plan in <result>, then run the same <command> command again.` Line 2: `TC-2 names C9; the criteria are C1, C2.`
-- **A requirement with no entry.** Line 1: `Set each case's requirement to R-<n> that have an entry in <abs spec.md>, in <result>, then run the same <command> command again.` Line 2: `TC-4 names R-12.`
+focused IDs in both directions. Cases are per item, so earlier items' IDs no longer count. When the item has no focused
+IDs, a missing key or `[]` is accepted (X15).
+- **Missing.** Line 1: `Add test_cases to <result>, one case per ID this item's focused commands list, <next step>.` Line 2: `Shape: {"id", "criterion", "requirement", "oracle", "red", "green"}. Implement, test and verify quote them.` Line 3: `Focused IDs: TC-1, TC-2.`
+- **A case no focused command lists.** Line 1: `Give every case in <result> an ID this item's focused commands list, or report revise so the step plan lists it, <next step>.` Line 2: `Not listed by a focused command of W1: TC-9.`
+- **A focused ID with no case.** Line 1: `Add a case to test_cases in <result> for every ID this item's focused commands list, <next step>.` Line 2: `Focused IDs with no case: TC-3.`
+- **An unknown criterion.** Line 1: `Set each case's criterion in <result> to a criterion of this item's step plan, <next step>.` Line 2: `TC-2 names C9; the criteria are C1, C2.`
+- **A requirement with no entry.** Line 1: `Set each case's requirement in <result> to R-<n> that have an entry in the living spec, <next step>.` Line 2: `Entries are in <abs spec.md>.` Line 3: `TC-4 names R-12.`
 
 **Consumers:**
-- **implement** quotes the item's cases, so it can list `not_covered` against them.
+- **implement** quotes the item's cases.
 - **test** quotes them and writes them.
 - **verify** quotes them and classifies them.
+- **system-test-author** quotes every item's latest cases (X7).
 - The report.
 
 **Replaces:**
@@ -507,97 +456,9 @@ focused IDs in both directions. Cases are now per item, so earlier items' IDs no
 - `loops` resource "this item's test spec";
 - the `_INNER_GATES["test-spec"]` wording.
 
-The cross-run part is in section 3.10.
+The case bodies and sub-cases live in the test code, titled with their IDs (X13, X14).
 
-### 3.6 Open items: `assumptions` extended
-
-**Stages:** `assumptions.STAGES = ("plan", "test-spec", "verify", "carry-forward", "system-test-author")`.
-
-**Shape:** unchanged (`assumptions.canonical`).
-
-**Rules:**
-- At plan, everything is unchanged: the consumer is a work item in the queue.
-- At the four new stages:
-  - the list is required on done, and may be empty;
-  - an open row's consumer must be an outer stage after the producer (`stage_spec.OUTER`, from system-test-author on for
-    inner producers, and after system-test-author for system-test-author itself);
-  - `evidenced` and `probed` rows are accepted by shape and quoted nowhere;
-  - the template prints `"assumptions": []`, and the result-shape block prints the open-row shape:
-    `{"id": "A1", "assumption": "...", "disposition": "open", "check": "...", "reason": "...", "consumer": "<later outer stage>"}`.
-
-**Gate (`_check_submitted_assumptions`, extended; refusal text in the line-1 form):**
-- **Missing at a new stage.** Line 1: `Add assumptions to <result>: the open items this stage leaves, each {"id", "assumption", "disposition": "open", "check", "reason", "consumer"}, or [] when none, then run the same <command> command again.`
-- **Wrong consumer (new stages).** Line 1: `Name a later outer stage as the consumer of each open item in <result>, then run the same <command> command again.` Line 2: `A2 names 'W3'; the later outer stages are system-test-author, system-test, ...`
-- **Wrong consumer (plan).** Line 1: `Name a work item of this plan as the consumer of each open assumption in <result>, then run the same <command> command again.` Line 2: `A3 names 'x'; the work items are W1, W2.`
-
-**One reader.** A new `assumptions.open_items(state) -> list[OpenItem(stage, workitem, action, row)]` collects the open
-rows of every current result at the five stages (`planning_revision.current_actions`). `unverified.open_assumptions` and
-`expectations.open_assumptions` become views of it.
-
-**Consumers:**
-- **step-plan** quotes the plan's open rows that name its work item (K11).
-- Each outer stage quotes the rows whose consumer is that stage.
-- **product-acceptance and handoff** quote every open row, uncut, in place of `_unverified_lines`' plan-only, cut list.
-- **carry-forward** quotes every open row recorded so far.
-- The report.
-
-**Replaces:**
-- plan.md "## Open";
-- test-spec.md "## Due later" (a due-later case is an open item whose consumer is system-test-author, or the stage it is
-  due at);
-- the open items system-test-author records in its summary today.
-
-### 3.7 `system_commands` rows: `purpose` and `requirement`
-
-```json
-{"command": "node --test test/system/", "suite": "focused", "ids": ["ST-1"], "purpose": "a full game over HTTP ends with gameOver", "requirement": "R-3, R-4"}
-```
-
-**Shape:**
-- `test_loop.COMMAND_KEYS` gains `purpose` and `requirement`. When present, `normalise_commands` requires non-blank
-  one-line strings.
-- `_canonical_result` allows these two keys only on `system_commands` rows. A row of `test_commands` or `consumer_checks`
-  that carries them is refused: "Remove purpose and requirement from <field>: they belong to system_commands rows; then
-  run the same command again."
-
-**Gate at system-test-author done (both routes):**
-- **Missing.** Line 1: `Give every system_commands row a "purpose" (what it proves) and a "requirement" (the R-<n> it observes) in <result>, then run the same <command> command again.` Line 2: `Rows without them: 2 (purpose), 3 (requirement).`
-- **No entry.** Line 1: `Set each system_commands row's requirement to R-<n> that have an entry in <abs spec.md>, in <result>, then run the same <command> command again.`
-- **Catalog** (section 3.10): see that section.
-
-**Consumers:**
-- The system-test and product-acceptance packets quote each row: command, suite, ids, purpose and requirement.
-- The report.
-
-**Replaces** the feature `system-tests.md` and the "Catalog shape" table of `references/system-tests.md`.
-
-### 3.8 `release` (release-plan)
-
-```json
-"release": {"steps": ["merge to main", "npm run deploy -- --prod"], "rollback": ["npm run deploy -- --prod --ref <previous>"], "prerequisites": ["deploy grant recorded"]}
-```
-
-**Shape:**
-- Exactly `steps` and `rollback` (non-empty lists of non-blank strings) and `prerequisites` (a list, possibly empty).
-- A run with nothing to release says so as its one step.
-- Allowed only on a done release-plan result.
-
-**Gate at release-plan done (both routes):**
-- **Missing.** Line 1: `Add release to <result>: {"steps": [...], "rollback": [...], "prerequisites": [...]}, with at least one step and one rollback step, then run the same <command> command again.` Line 2: `release-check, release, release-verify and operations quote it.`
-- **Placeholders** are refused.
-- **The standing procedure** (section 3.10): see that section.
-
-**Consumers:**
-- **release-check** quotes the rollback, steps and prerequisites. Its existing comparison is "compare the review-return
-  report with the rollback".
-- **release** quotes the steps, prerequisites and rollback.
-- **release-verify** quotes the steps.
-- **operations** quotes the rollback.
-- The report.
-
-**Replaces** the feature `release-plan.md`.
-
-### 3.9 `lessons` (release-verify), its commit and the next intake
+### 3.4 `lessons` (release-verify), its commit and the next intake
 
 ```json
 "lessons": {"learned": "...", "considerations": "...", "open_next": "..."}
@@ -606,53 +467,134 @@ rows of every current result at the five stages (`planning_revision.current_acti
 **Shape:** exactly these three keys, each a non-blank string (several lines allowed). Allowed only on a done
 release-verify result.
 
-**Gate at release-verify done** (complete; this stage has no Improve child):
-- **Missing, blank or placeholder.** Line 1: `Add lessons to <result>: {"learned": "...", "considerations": "...", "open_next": "..."}, each written in detail ("none" only when true), then run the same complete command again.` Line 2: `ShipLoop writes them into this run's release-verify knowledge commit, which the next run's intake quotes. Blank: considerations.`
+**Gate at release-verify done** (this stage has no Improve child):
+- **Missing, blank or placeholder.** Line 1: `Add lessons to <result>, each field written in detail ("none" only when true), <next step>.` Line 2: `Shape: {"learned": "...", "considerations": "...", "open_next": "..."}. ShipLoop writes them into this run's release-verify knowledge commit, which the next run's intake quotes.` Line 3: `Blank: considerations.`
 - **Credentials.** The submitted file is already screened by `_submitted_result`.
 
-**Commit:** `commit()` writes the lessons as in section 2.6, and always makes the commit (K4).
+**Commit:** `commit()` writes the lessons as in section 2.5, and always makes the commit (K4).
+
+**Return of the commit (X1).** `workspace.follow_up_knowledge_return` today returns `None` when
+`git diff --name-only <candidate head> HEAD` is empty, so an empty lessons commit would leave the receipt stale and
+`protocol.workspace_completion_guard` would refuse handoff. It changes to: return when nothing is dirty, every changed
+path is in the home, and either some path changed, or `git rev-list <candidate head>..HEAD` is non-empty and every one
+of those commits' subjects fullmatches `knowledge_home.KNOWLEDGE_SUBJECT` (which includes `LESSONS_SUBJECT`). The
+follow-up keeps the route of the return it follows (`_return_kind`), and it must leave the receipt current on both
+routes.
+
+**Working-tree return (X2).** That route applies files, not commits, so the lessons commit never reaches the user's
+branch. When `workspace.return_kind` is `working-tree-return`, the handoff packet and the report print:
+`This run's commits did not reach <source branch> (working-tree return). Commit the returned files, or make an empty commit when there are none, with exactly this message, so the next run's intake quotes the lessons:`,
+then the full message (subject and body) quoted with `"  | "`. S-11 records this limit.
 
 **The next run's quote.** `last_lessons(repo)`:
 1. Without `(repo / ".git")` it returns `None` and runs no Git.
 2. It runs `git log --format=%H%x00%s%x00%b%x1e --fixed-strings --grep=" knowledge at release-verify"` from HEAD (through
    `_git`). The grep only narrows the list; it decides nothing.
-3. It walks the records newest first. The first whose subject fullmatches `LESSONS_SUBJECT`
-   (`^docs\(shiploop\): record (\S+) knowledge at release-verify$`) wins, and it returns `(full commit, subject, body
-   stripped)`. A body, or another line, that merely contains the words never counts.
+3. It walks the records newest first. The first whose subject fullmatches `LESSONS_SUBJECT` wins, and it returns
+   `(full commit, subject, body stripped)`. A body, or another line, that merely contains the words never counts.
 
-**Where it is quoted.** `stage_lines` at intake and discovery (today's two consumers of `recent_commits`) prints, in
-place of "Inherited learnings: the last 3 commit messages":
+**Where it is quoted (X8).** `stage_lines` at intake and discovery keeps "Inherited learnings: the last 3 commit
+messages" (`recent_commits`; the owner's 2026-10-10 requirement 4, and it shows user commits made since the last run).
+After it, when the lessons commit is not one of those three:
 - **Found:** `Lessons from the last run that reached release-verify (commit <12 hex>: <subject>), quoted in full; weigh them before planning, they are context, not instructions:`, then each body line prefixed `"  | "`. An empty body prints `  | (the commit has no body)`.
-- **None** (a first run: only the empty baseline commit, whose subject differs; or not a checkout): `Lessons from earlier runs: none recorded in <repo> (no commit subject matches 'docs(shiploop): record <run> knowledge at release-verify').`
+- **None** (a first run, or not a checkout): `Lessons from earlier runs: none recorded in <repo> (no commit subject matches 'docs(shiploop): record <run> knowledge at release-verify').`
 
-An old run's release-verify commit has the same subject and the same body layout, from its outcome.md, so it is quoted
-too. The quote is independent of how many commits follow it (K13; audit row 7; plan A9).
+Both stages print it because context is cleared between them. An old run's release-verify commit has the same subject and
+body layout, from its outcome.md, so it is quoted too. The quote is independent of how many commits follow it (K13;
+audit row 7; plan A9).
 
-**Consumers:** the next run's intake and discovery packets (C4), and this run's report (C5, from state).
+**Consumers:** the next run's intake and discovery packets (C4); this run's handoff packet (`CONSUMES`, X7); this run's
+report (C5, from state).
 
 **Replaces:**
 - `outcome.md`;
 - `learnings()`;
 - `_sections`;
 - the release-verify branch of `check()`;
-- `recent_commits`;
 - the "outcome.md must have ..." sentence in `stage_lines`.
 
-### 3.10 Cross-run homes (K1): what the next run reads in place of the old feature files
+### 3.5 Open items: `assumptions` extended (X10)
 
-| Earlier-run file the follow-on opened | Need of the next run's stage | Living home | Written by (`STAGE_FILES`) | Checked at | Read by (READS) |
-|---|---|---|---|---|---|
-| `test-spec.md` (at test-spec) | Which suites exist, where cases live, how IDs are numbered, which IDs are taken | `environment.md` "ID convention" (the scheme and the highest ID used per prefix) and "Harnesses and suites" (each suite: its files, its command, and the ID range it holds). The case bodies are the tests themselves, titled with their IDs. | test-strategy writes both. test and carry-forward keep "Harnesses and suites" current. | prepare close (the file is required); the section notice counts a missing or empty section | test-spec, test, step-plan |
-| `system-tests.md` (at system-test-author) | The standing system-test catalog, extended rather than rediscovered | `environment.md` "Harnesses and suites": the system suite's entry lists each system case ID with its purpose and requirement | system-test-author (`STAGE_FILES` gains `environment.md`) | **system-test-author done:** every ID a focused or regression `system_commands` row lists appears in the section's text | system-test-author, system-test |
-| `release-plan.md` (at release-plan) | How this product is released and rolled back | `environment.md` "Release and rollback" (new): the standing steps, rollback and post-release checks, without run-specific values | release-plan | **release-plan done:** `section_text(repo, "environment.md", "Release and rollback")` is non-empty | release-plan |
+Open items are the one carrier for "not proven yet" at the new stages. `unverified` at product-acceptance is unchanged.
 
-Refusals for the two new checks:
-- **system-test-author.** Line 1: `List every system case ID in the 'Harnesses and suites' section of <abs environment.md> (the standing catalog the next run extends), then run the same <command> command again.` Line 2: `Not in that section: ST-2, ST-4.`
-- **release-plan.** Line 1: `Write the standing release procedure (steps, rollback, post-release checks) under '## Release and rollback' in <abs environment.md>, then run the same <command> command again.` Line 2: `The next run's release-plan reads it; this run's release field holds this release's own steps.`
+**Stages:** `assumptions.STAGES = ("plan", "test-spec", "verify", "carry-forward", "system-test-author", "system-test",
+"release-plan", "release-verify")`.
 
-The in-run field and the living section are different facts (rule 1). `system_commands` is what ShipLoop runs this time;
-the catalog is every system case the product has. `release` is this release; the section is the procedure. Open question
-Q4 asks whether the owner prefers one home.
+**Shape:** `assumptions.canonical`, plus an optional `owner` (a non-blank string naming a person) on open rows at the
+new stages. The duty names when an owner is needed (system-test, release-plan).
+
+**Rules:**
+- At plan, everything is unchanged: the consumer is a work item in the queue.
+- At the new stages:
+  - the list is required on done, and may be empty;
+  - an open row's consumer is a later outer stage (`stage_spec.OUTER`, after the producer), or `carry-forward` when the
+    producer is test-spec or verify (the same item's carry-forward). Work for a later item goes through
+    carry-forward's `work_items`, as today (K12);
+  - `evidenced` and `probed` rows are accepted by shape and quoted nowhere;
+  - the template prints `"assumptions": []`, and the result-shape block prints the open-row shape:
+    `{"id": "A1", "assumption": "...", "disposition": "open", "check": "...", "reason": "...", "consumer": "<later outer stage or carry-forward>", "owner": "<person, when the duty names one>"}`.
+- verify records behaviour still uncovered after verify as open items.
+- release-plan records each run-specific release prerequisite, and each outcome unverified at release, as an open item
+  whose consumer is release-check or release (D2).
+
+**Settlement** (no new key): a row is open until a done result of its consumer stage is accepted after the producer's
+result (for `carry-forward`, the same item's), unless that result lists the row's ID again as an open row. A consumer
+stage that has no `assumptions` field (product-acceptance, release-check, release, operations, handoff) settles a row by
+its done result; product-acceptance carries an outcome still unproven into its `unverified` field, as today.
+
+**Gate (`_check_submitted_assumptions`, extended; refusal text in the rule 4 form):**
+- **Missing at a new stage.** Line 1: `Add assumptions to <result>: the open items this stage leaves, or [] when none, <next step>.` Line 2: `Shape: {"id", "assumption", "disposition": "open", "check", "reason", "consumer", "owner" (when the duty names one)}.`
+- **Wrong consumer (new stages).** Line 1: `In <result>, name a later outer stage (or carry-forward, from test-spec or verify) as each open item's consumer, <next step>.` Line 2: `A2 names 'W3'; the allowed consumers are carry-forward, system-test-author, system-test, ...`
+- **Wrong consumer (plan).** Line 1: `In <result>, name a work item of this plan as each open assumption's consumer, <next step>.` Line 2: `A3 names 'x'; the work items are W1, W2.`
+
+**One reader.** A new `assumptions.open_items(state) -> list[OpenItem(stage, workitem, action, row)]` collects the rows
+still open, by the settlement rule, from every current result at those stages (`planning_revision.current_actions`).
+`unverified.open_assumptions` and `expectations.open_assumptions` become views of it.
+
+**Consumers:**
+- **step-plan** quotes the plan's open rows that name its work item (K11).
+- Each outer stage, and carry-forward, quotes the rows whose consumer is that stage.
+- **carry-forward** also quotes every open row recorded so far.
+- **product-acceptance and handoff** quote every open row, uncut, in place of `_unverified_lines`' plan-only, cut list.
+- **release-verify's** lessons commit carries the rows still open (section 2.5).
+- The report.
+
+**Replaces:**
+- plan.md "## Open";
+- test-spec.md "## Due later" (a due-later case is an open item whose consumer is system-test-author, or the stage it is
+  due at);
+- the open items system-test-author records in its summary today;
+- release-plan.md's prerequisites and "Unverified at release" line.
+
+### 3.6 Cross-run homes: what the next run reads in place of the old feature files (K1, as revised by X11, X13, X14)
+
+| Earlier-run content | Need of the next run | Living home | Kept by (duty text) | Read by |
+|---|---|---|---|---|
+| `test-spec.md` (opened at test-spec) | Which suites exist, where cases live, how IDs are numbered, which IDs are taken | `environment.md`: each suite with its files and command; the ID scheme and the one command that lists the IDs already taken. The cases and their IDs are the test code (X13). | test-strategy writes it; test and carry-forward keep it current | every stage whose `READS` row has `environment.md` (section 5) |
+| `system-tests.md` (opened at system-test-author) | The standing system-test catalog, extended rather than rediscovered | `environment.md`: each system suite with its files and command, and each case's purpose and requirement | system-test-author (`STAGE_FILES` gains `environment.md`) | system-test-author, system-test, product-acceptance |
+| `release-plan.md` (opened at release-plan) | How this product is released and rolled back | `environment.md`, under whatever heading the run uses: the standing steps, rollback and post-release checks, without run-specific values | release-plan writes it; release-check corrects it | release-plan, release-check, release, operations; in an isolated run also `workspace.rollback_lines` (section 4) |
+| step-plan "Plan note" | Per-item invariants, failure cases and placement | the work item's `context` or the step-plan summary; the "unconfirmable here" mark goes in the criterion text | step-plan | the item's later stages |
+| plan "Namespace and data map" | Cross-item names and stored data | architecture Structure, with an AD-n per decision | plan | every stage whose `READS` row has `architecture.md` |
+| test-strategy.md allocation table | none | eliminated: the item context and `test_cases.requirement` carry it | — | — |
+| spec.md "Satisfied by tests" | none | eliminated: the test code is the one home; carry-forward's "with its test IDs" duty is removed (X13) | — | — |
+
+No gate checks any of these (X11). The section notice counts a missing named section and never refuses. The next run
+gets the files quoted whole, whatever their headings say.
+
+### 3.7 Cut from revision 1
+
+Each item below is removed from the contract and from every section that follows. None is built.
+- `requirement_changes`, `changed_ids`, their refusals and the three completeness checks: replaced by `run_changes`
+  (D3, X9).
+- `PLAN_SPEC_RECORD`, `record_plan_spec` and `plan_spec`: replaced by the run baseline (D3, X9).
+- The `release` field and its gate: replaced by the standing procedure in `environment.md`, quoted whole, plus
+  `rollback_lines`, with run-specific prerequisites as open items (D2).
+- The "Release and rollback" section gate and the system-catalog gate (X11).
+- `purpose` and `requirement` on `system_commands` rows: they live in the catalog only (X11).
+- A `surface` key on `test_cases` (D4).
+- `section_text`, `_section_spans`, the five `ReadQuote` statuses and the `inside` rule: replaced by whole-file quotes
+  (D1, X12).
+- `not_covered` at test and verify (X10).
 
 ---
 
@@ -660,118 +602,116 @@ Q4 asks whether the owner prefers one home.
 
 ```python
 CONSUMES = {
-    "intake": (), "discovery": (), "research": (), "spec": (), "test-strategy": (),
-    "plan": ("requirement_changes",), "prepare": (),
-    "step-plan": ("assumptions",), "test-spec": ("follows",), "validate-existing": (),
-    "implement": ("follows", "test_cases"), "test": ("follows", "test_cases", "not_covered"),
-    "document": ("changed_ids",), "verify": ("follows", "test_cases", "not_covered", "changed_ids"),
-    "carry-forward": ("not_covered", "changed_ids", "assumptions"),
-    "system-test-author": ("not_covered", "assumptions"), "system-test": ("system_commands", "assumptions"),
-    "product-acceptance": ("system_commands", "assumptions"), "release-plan": ("assumptions",),
-    "release-check": ("release", "assumptions"), "release": ("release", "assumptions"),
-    "release-verify": ("requirement_changes", "changed_ids", "plan_spec", "release", "assumptions"),
-    "operations": ("release", "assumptions"), "handoff": ("assumptions",),
+    "intake": (), "discovery": (), "research": (), "spec": (), "test-strategy": ("run_changes",),
+    "plan": ("run_changes",), "prepare": (),
+    "step-plan": ("assumptions",), "test-spec": ("follows", "criteria", "test_commands"), "validate-existing": (),
+    "implement": ("follows", "criteria", "test_cases"), "test": ("follows", "test_cases", "not_covered"),
+    "document": ("follows", "run_changes"), "verify": ("follows", "test_cases", "run_changes"),
+    "carry-forward": ("run_changes", "assumptions"),
+    "system-test-author": ("test_cases", "assumptions"), "system-test": ("system_commands", "assumptions"),
+    "product-acceptance": ("system_commands", "run_changes", "assumptions"),
+    "release-plan": ("system_commands", "assumptions"),
+    "release-check": ("assumptions",), "release": ("assumptions",),
+    "release-verify": ("run_changes", "assumptions"),
+    "operations": ("assumptions",), "handoff": ("lessons", "assumptions"),
 }
 ```
 
-`plan_spec` is the recorded commit (section 2.7), not a result key. Every stage has a row.
+`run_changes` is the script-derived diff (section 2.6), not a result key. Every stage has a row. `CONSUMES` covers the
+new keys plus the existing `criteria`, `test_commands` and `system_commands` that a gate or a duty uses (X7); the other
+existing hand-offs keep today's rendering.
 
 **`handoff_sources(root, state, stage) -> list[Source(key, stage, action, workitem, value)]`** returns, in `CONSUMES`
-order, the values sections 3.1 to 3.9 name for each consumer. The rule per key:
+order, the values sections 2.6 and 3 name for each consumer. The rule per key:
 - "current" means `planning_revision.current_actions`.
 - "the item" means the current work item.
-- `not_covered` and `changed_ids` at the item stages gather every done implement row after the item's latest step plan.
-- `assumptions` uses `assumptions.open_items`, filtered by consumer (section 3.6).
+- `criteria` and `test_commands` come from the item's latest step plan; only focused `test_commands` rows are quoted.
+- `not_covered` gathers every done implement row of the item after its latest step plan.
+- `test_cases` at system-test-author is every item's latest test-spec result.
+- `assumptions` uses `assumptions.open_items`, filtered by consumer (section 3.5).
 
 **Packet content (inner-loop session):**
 - For each source: a label naming the field and its producer (`follows (W1 step-plan)`).
-- For ID values: each ID with its `entry_text`, quoted with `"  | "`. A missing entry prints "no entry in <abs path>".
+- For ID values: each ID with its `entry_text`, quoted with `"  | "`, and the retired marker when it applies. A missing
+  entry prints "no entry in HOME/<file>".
+- For criteria: each criterion's ID and text. For focused test commands: each command with its suite and IDs.
 - For test cases: one block per case (`TC-1 (criterion C1, requirement R-3)`, then oracle, red and green).
-- For release: numbered steps, numbered rollback, then prerequisites.
-- For open items: id, assumption, check, reason, consumer and producer.
-- For `plan_spec`: `The plan was made against docs/shiploop/spec.md at <12 hex>; git -C <repo> diff <12 hex> -- docs/shiploop/spec.md shows what changed since.`
+- For system commands: each row's command, suite and IDs.
+- For open items: id, assumption, check, reason, consumer, owner and producer.
+- For lessons: the three fields, then the generated open-items block.
+- For `run_changes`: as section 2.6.
 - A field the producer has not recorded prints "not recorded by <stage>". It is never silently omitted.
 - No cap on any of it.
 
+**Rollback (D2).** In an isolated run, `_return_route_lines(..., rollback=True)` prints `workspace.rollback_lines` at
+release and operations as well as at release-plan and release-check.
+
+**One table for "builds on" (X15).** Each `CONSUMES` key with one producing stage (`follows`, `criteria`,
+`test_commands`, `test_cases`, `not_covered`, `system_commands`, `lessons`) must name a stage in that stage's
+`stage_spec` `reads`. `assumptions` (gathered from every producer) and `run_changes` (the script) are exempt. Two rows
+gain a stage: system-test-author's `reads` gains `test-spec`, and release-plan's gains `system-test-author`.
+
 ---
 
-## 5. READS: every stage (`knowledge_home.READS`)
+## 5. READS: every stage (`knowledge_home.READS`) (D1)
 
-Each row lists files in the order spec, environment, architecture, and headings in `SECTIONS` order. That order is what
-lets the `inside` rule de-duplicate.
+Each row lists whole files in `LIVING` order. A stage that edits a file and does not read it here (spec, test-strategy,
+carry-forward, release-verify) finds it by path in `grounding()` or `stage_lines`.
 
-| Stage | (file, heading) pairs |
+| Stage | Files quoted whole |
 |---|---|
-| intake | spec Requirements; spec Non-functional requirements; environment Targets and runtimes; architecture Stack |
+| intake | spec, environment, architecture |
 | discovery | none |
 | research | none |
 | spec | none (it edits spec.md) |
-| test-strategy | spec Requirements; spec Non-functional requirements |
-| plan | spec Requirements; spec Non-functional requirements; environment Targets and runtimes; architecture Stack, Structure, Decisions |
-| prepare | environment Commands, Harnesses and suites |
-| step-plan | spec Requirements; spec Non-functional requirements; environment Commands, Skills, Harnesses and suites, ID convention; architecture Structure, Conventions, Interfaces and boundaries, Decisions |
-| test-spec | environment Harnesses and suites, ID convention; architecture Interfaces and boundaries, Real-boundary checks |
-| validate-existing | environment Commands |
-| implement | environment Targets and runtimes, Commands, Skills, Platform facts; architecture Structure, Conventions, Interfaces and boundaries, Decisions |
-| test | environment Commands, Harnesses and suites, ID convention; architecture Conventions, Real-boundary checks |
-| document | environment Commands; architecture Structure, Interfaces and boundaries |
-| verify | environment Commands; architecture Conventions, Interfaces and boundaries, Real-boundary checks, Decisions |
+| test-strategy | spec |
+| plan | spec, environment, architecture |
+| prepare | environment |
+| step-plan | spec, environment, architecture |
+| test-spec | spec, environment, architecture |
+| validate-existing | environment, architecture |
+| implement | environment, architecture |
+| test | environment, architecture |
+| document | environment, architecture |
+| verify | environment, architecture |
 | carry-forward | none (it edits architecture.md and environment.md) |
-| system-test-author | environment Targets and runtimes, Commands, Harnesses and suites; architecture Real-boundary checks |
-| system-test | environment Targets and runtimes, Commands, Harnesses and suites; architecture Real-boundary checks |
-| product-acceptance | none |
-| release-plan | environment Targets and runtimes, Access and accounts, Release and rollback |
-| release-check | environment Targets and runtimes, Access and accounts |
-| release | environment Targets and runtimes, Access and accounts |
+| system-test-author | spec, environment, architecture |
+| system-test | environment, architecture |
+| product-acceptance | spec, environment |
+| release-plan | environment |
+| release-check | environment |
+| release | environment |
 | release-verify | none |
-| operations | none |
+| operations | environment |
 | handoff | none |
 
-In code, with the exact heading strings:
+In code:
 
 ```python
 _S, _E, _A = "spec.md", "environment.md", ARCHITECTURE
 READS = {
-    "intake": ((_S, "Requirements"), (_S, "Non-functional requirements"), (_E, "Targets and runtimes"), (_A, "Stack")),
-    "discovery": (), "research": (), "spec": (),
-    "test-strategy": ((_S, "Requirements"), (_S, "Non-functional requirements")),
-    "plan": ((_S, "Requirements"), (_S, "Non-functional requirements"), (_E, "Targets and runtimes"),
-             (_A, "Stack"), (_A, "Structure"), (_A, "Decisions")),
-    "prepare": ((_E, "Commands"), (_E, "Harnesses and suites")),
-    "step-plan": ((_S, "Requirements"), (_S, "Non-functional requirements"), (_E, "Commands"), (_E, "Skills"),
-                  (_E, "Harnesses and suites"), (_E, "ID convention"), (_A, "Structure"), (_A, "Conventions"),
-                  (_A, "Interfaces and boundaries"), (_A, "Decisions")),
-    "test-spec": ((_E, "Harnesses and suites"), (_E, "ID convention"), (_A, "Interfaces and boundaries"),
-                  (_A, "Real-boundary checks")),
-    "validate-existing": ((_E, "Commands"),),
-    "implement": ((_E, "Targets and runtimes"), (_E, "Commands"), (_E, "Skills"), (_E, "Platform facts"),
-                  (_A, "Structure"), (_A, "Conventions"), (_A, "Interfaces and boundaries"), (_A, "Decisions")),
-    "test": ((_E, "Commands"), (_E, "Harnesses and suites"), (_E, "ID convention"), (_A, "Conventions"),
-             (_A, "Real-boundary checks")),
-    "document": ((_E, "Commands"), (_A, "Structure"), (_A, "Interfaces and boundaries")),
-    "verify": ((_E, "Commands"), (_A, "Conventions"), (_A, "Interfaces and boundaries"), (_A, "Real-boundary checks"),
-               (_A, "Decisions")),
-    "carry-forward": (),
-    "system-test-author": ((_E, "Targets and runtimes"), (_E, "Commands"), (_E, "Harnesses and suites"),
-                           (_A, "Real-boundary checks")),
-    "system-test": ((_E, "Targets and runtimes"), (_E, "Commands"), (_E, "Harnesses and suites"),
-                    (_A, "Real-boundary checks")),
-    "product-acceptance": (),
-    "release-plan": ((_E, "Targets and runtimes"), (_E, "Access and accounts"), (_E, "Release and rollback")),
-    "release-check": ((_E, "Targets and runtimes"), (_E, "Access and accounts")),
-    "release": ((_E, "Targets and runtimes"), (_E, "Access and accounts")),
-    "release-verify": (), "operations": (), "handoff": (),
+    "intake": (_S, _E, _A), "discovery": (), "research": (), "spec": (), "test-strategy": (_S,),
+    "plan": (_S, _E, _A), "prepare": (_E,), "step-plan": (_S, _E, _A), "test-spec": (_S, _E, _A),
+    "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_E, _A),
+    "verify": (_E, _A), "carry-forward": (),
+    "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
+    "release-plan": (_E,), "release-check": (_E,), "release": (_E,), "release-verify": (), "operations": (_E,),
+    "handoff": (),
 }
 ```
 
 How this lines up with the evidence:
 - Step 0 found that no test stage opened the test strategy and that the build phase barely opened `architecture.md`.
-  Here every test stage (test-spec, test, system-test-author, system-test) and the build phase (step-plan, implement,
-  verify) get their `environment.md` and `architecture.md` sections quoted. That is plan A15 and A16.
-- test-strategy writes those sections, so it reads only the spec.
-- Step 1 showed what the next run reads (K1): test-spec, system-test-author and release-plan get Harnesses and suites,
-  ID convention and Release and rollback.
-- Stages that edit a living file read it by path. `grounding()` (inner stages) and `stage_lines` name every file.
+  Here every test stage and the build phase get `environment.md` and `architecture.md` whole, which includes the
+  harness, command, ID and boundary content the owner named (plan A15 and A16).
+- Heading matching quoted most saved homes poorly ("Commands" 8 of 17, "Harnesses and suites" and "ID convention" 0 of
+  17), and the files are small (`spec.md` at most 5.3 KB, `environment.md` 1.8 KB, `architecture.md` 1.9 KB). Whole
+  files make the revision 1 READS gaps moot (X12).
+- Step 1 showed what the next run reads (K1): test-spec, system-test-author and release-plan get `environment.md`,
+  which holds the suites, the catalog and the release procedure.
+- test-spec and system-test-author get `spec.md` because their cases and catalog name requirements; product-acceptance
+  gets it to judge the product against the spec.
+- release-check, release and operations get `environment.md` because the release procedure lives there (D2).
 
 ---
 
@@ -782,18 +722,17 @@ How this lines up with the evidence:
 `_render_report` gains `*_handoff_sections(state, root)` after "Work item progress". All text goes through
 `html.escape`. The sections are:
 
-1. **Planned specification.** "The plan was made against docs/shiploop/spec.md at <hash>", or "not recorded".
-2. **Requirement changes.** The added, modified and retired IDs of the current spec result.
-3. **Work item hand-offs.** One block per item:
+1. **Spec and architecture changes.** `run_changes` from the run baseline: added, modified and retired IDs per file,
+   with the baseline's 12-hex hash.
+2. **Work item hand-offs.** One block per item:
    - `follows`;
    - a test cases table (id, criterion, requirement, oracle, red, green);
-   - `not_covered`, per implement step, test and verify;
-   - `changed_ids`, per stage.
-4. **Open items.** One table from `assumptions.open_items`: producer stage and item, id, assumption, check, reason,
-   consumer.
-5. **System tests.** Command, suite, ids, purpose, requirement.
-6. **Release plan.** Steps, rollback, prerequisites.
-7. **Lessons.** The three labels.
+   - `not_covered`, per implement step.
+3. **Open items.** One table from `assumptions.open_items` (the rows still open): producer stage and item, id,
+   assumption, check, reason, consumer, owner.
+4. **System tests.** Command, suite and ids per `system_commands` row.
+5. **Lessons.** The three labels and the generated open-items block. On a working-tree return, the exact commit message
+   and the instruction to commit it (X2).
 
 When a field is missing:
 - if the producing stage never ran, the section is omitted;
@@ -814,11 +753,20 @@ under Open items".
 
 ## 7. Removal checklist
 
-Find every site with:
+**Merge order (X6).** The inner-loop packet branch `exp/four-part-packet-631117` calls `feature_dir`, `FEATURE_LIST`,
+`_GROUNDING`, `earlier_features`, `spec_pin` and `STAGE_FILES` with README.md. If the removals land first, every `next`
+crashes. Order on `integrate/refs-consumer-contract`:
+1. the packet branch;
+2. 4a;
+3. the renderer swap: `_CONSULT = knowledge.READS`, and `_PRODUCTS`' feature pointers become `handoff_sources`;
+4. the 4b and 4c removals.
 
-    grep -rnE "test-strategy\.md|\{feature\}|feature_dir|FEATURE_LIST|earlier_features|spec_pin|retire\(|retire_subject|is_retire_subject|retired_by|is_retired_spec|learnings\(|LEARNING_SECTIONS|KNOWLEDGE_INDEX|write_feature_list|feature_list|recent_commits|check_test_spec_ids|test-spec\.md|(^|[^/])system-tests\.md|release-plan\.md|outcome\.md|SHIPLOOP\.md|/features/|docs/shiploop/README" skills/shiploop skills/shiploop-run-review skills/shiploop-e2e-audit test
+Find every site with this grep, run on the combined branch, not on main:
 
-The `references/system-tests.md` card path and the host-authored `SHIPLOOP.md` locator lines stay.
+    grep -rnE "test-strategy\.md|\{feature\}|feature_dir|FEATURE_LIST|earlier_features|spec_pin|retire\(|retire_subject|is_retire_subject|retired_by|is_retired_spec|learnings\(|LEARNING_SECTIONS|KNOWLEDGE_INDEX|write_feature_list|feature_list|check_test_spec_ids|test-spec\.md|(^|[^/])system-tests\.md|release-plan\.md|outcome\.md|SHIPLOOP\.md|/features/|docs/shiploop/README|plan note|Namespace and data map|Repository knowledge index|README/index links" skills/shiploop skills/shiploop-run-review skills/shiploop-e2e-audit test
+
+These stay: the `references/system-tests.md` card path, the host-authored `SHIPLOOP.md` locator line, and the
+"Repository knowledge index (host-authored, if present)" locator in `_run_rules`.
 
 ### 7.1 `shiploop_knowledge_home.py` (engine)
 
@@ -827,21 +775,21 @@ The `references/system-tests.md` card path and the host-authored `SHIPLOOP.md` l
 - Remove `FEATURE_LIST`.
 - Apply `LIVING`, `SECTIONS`, `CLOSES`, `STAGE_FILES`, `ARCHITECTURE_HOLDS` and `_GROUNDING`/`GROUNDING_LABELS` as in
   section 2.1.
-- Replace `LEARNING_SECTIONS` with `LESSON_LABELS`.
+- Replace `LEARNING_SECTIONS` with `LESSON_FIELDS`.
 - Remove `_sections` and `learnings`.
-- Replace `recent_commits` with `last_lessons`.
+- Keep `recent_commits`; add `last_lessons`.
 - Replace `feature_dir` with `run_label`, and drop `{feature}` handling in `_expand`.
 - `stage_lines`:
   - line 1 names `spec.md`, `environment.md` and `architecture.md`, not README.md;
   - the earlier-runs sentence names the three files;
-  - the lessons quote replaces the last-three window;
+  - intake and discovery print the last-three window, then the lessons quote (section 3.4);
   - release-verify's line is "The result's lessons hold ...; ShipLoop writes them into this run's release-verify
     knowledge commit, which the next run's intake quotes";
-  - spec's last sentence names `requirement_changes`;
+  - spec's last sentence says the script derives this run's requirement changes from the run baseline;
   - the commit sentences name `HOME/` only.
 - `check()`: stop screening `INDEX`; remove the release-verify learnings branch. `rglob` still screens every `.md` under
   the home, old files included.
-- `commit()`: no `write_feature_list`; lessons body and empty commit as in section 2.6.
+- `commit()`: no `write_feature_list`; lessons body and empty commit as in section 2.5.
 - Remove the feature-list block: `_WRITE_HINT`, `_LIST_MARK`, `_LIST_HEADER`, `_feature_folders`, `feature_list`,
   `_list_problem`, `_list_is_shiploops`, `feature_list_notice`, `write_feature_list`, `earlier_features`.
 - Remove `spec_pin`.
@@ -850,21 +798,26 @@ The `references/system-tests.md` card path and the host-authored `SHIPLOOP.md` l
   `Retired`, `retire`, `_put_back`, `retired_by`, `is_retired_spec`.
 - `in_home`: `path.startswith(HOME + "/")` or `path == HOME`.
 - Update `__all__`.
-- Add `section_text`, `_section_spans`, `entry_text`, `_entries`, `changed_entries`, `READS`, `reads_quotes`,
-  `run_label`, `lessons_body`, `last_lessons`, `LESSONS_SUBJECT`, `record_plan_spec`, `plan_spec`, `PLAN_SPEC_RECORD`.
+- Add `entry_text`, `_entries`, `run_changes`, `run_baseline`, `write_run_baseline`, `RUN_BASELINE`, `READS`,
+  `reads_quotes`, `run_label`, `lessons_body`, `last_lessons`, `KNOWLEDGE_SUBJECT`, `LESSONS_SUBJECT`, `LESSON_FIELDS`.
 
 ### 7.2 `shiploop_navigator.py`
 
 Engine:
+- `STATE_VERSION` 5 to 6 (section 11, Q1).
 - `_RESULT_KEYS`, `_DONE_ONLY_FIELDS` and the `_canonical_result` shapes.
 - `CONSUMES` and `handoff_sources`.
-- `_handoff_gate`, called in both routes after `_knowledge_gate`.
+- `_handoff_gate`, called in both routes after `_knowledge_gate`; it canonicalises first (X5).
+- `dispatch` builds `next_step` and passes it to `_handoff_gate` (X4).
+- `_render_improve`'s outcome list adds revise, at test-spec to verify (X4).
 - `_inner_gates` drops its test-spec branch.
 - `_check_submitted_evidence` drops the `knowledge.is_retired_spec` clause.
 - `_check_submitted_assumptions` extended.
 - `_knowledge_close` drops `feature_list_notice`, `retire`, the retired and kept prints, the feature-spec path and the
-  docstring text about them, and calls `record_plan_spec`.
+  docstring text about them.
 - Remove `_run_commits_reach_branch`.
+- `_return_route_lines` prints the rollback at release and operations too (D2).
+- The handoff packet prints the lessons commit message on a working-tree return (X2).
 - `_result_template` gains the new keys and placeholders.
 - `_INNER_GATES["test-spec"]` and `_stage_gates` get one Checked-by phrase per new gate, each paired with a route test.
 - `_render_report` gains `_handoff_sections`.
@@ -875,21 +828,33 @@ Packet text (inner-loop session):
   - drop the README.md replace, the `earlier_features` clause, "list architecture.md in README.md", "write it from
     plan.md", the plan pin line, the README feature-list line and the handoff retire paragraph;
   - "cite the ID in the step plan" becomes "list it in follows".
-- Print `reads_quotes` and `handoff_sources` in each packet file.
+- The packet branch's symbols (X6):
+  - `_reference_global_lines` drops the FEATURE line and its `feature_dir` call, and reads the public
+    `GROUNDING_LABELS` instead of `_GROUNDING`;
+  - `reference_writer` (the audit's `_writer`) reads the new `STAGE_FILES`;
+  - `_CONSULT = knowledge.READS`, and `consult_lines` prints `reads_quotes`; the test that pins `_CONSULT` headings to
+    `SECTIONS` becomes one that pins its files to `LIVING`;
+  - `_PRODUCTS`' step-plan "plan section" and test-spec "cases" rows become `handoff_sources`;
+  - `_builds_on_lines` stops listing feature files.
+- Print `reads_quotes` and `handoff_sources` in each packet file, and in the Improve parent and child packets (X15).
 - `_unverified_lines` uses `open_items`, uncut.
 - The work item context prints whole (no `_required_excerpt`).
+- The carry-forward line "Explain removals, merges or supersession in the linked plan note" says "in this result's
+  summary" (X14).
 - `_run_rules`' "Repository knowledge index (host-authored, if present)" stays.
 
 ### 7.3 Other scripts
 
+- `shiploop_protocol.py` (engine): `init` calls `write_run_baseline` after `navigator.save`.
 - `shiploop_expectations.py` (engine):
   - remove `KNOWLEDGE_INDEX` (`_knowledge` keeps the home prefix only, so a validate-existing edit of a user's
     SHIPLOOP.md is a stray path);
   - replace `check_test_spec_ids` and `_CASE` with `normalise_test_cases` and `check_test_cases`;
   - `open_assumptions` becomes a view of `assumptions.open_items`.
-- `shiploop_assumptions.py` (engine): `STAGES`, the consumer rule per stage, `open_items`, and line-1 refusals.
+- `shiploop_assumptions.py` (engine): `STAGES`, the consumer rule per stage, the optional `owner`, `open_items` with
+  the settlement rule, and refusals in the rule 4 form.
 - `shiploop_unverified.py` (engine): `open_assumptions` reads `open_items`; the `html_section` wording.
-- `shiploop_test_loop.py` (engine): `COMMAND_KEYS` and `normalise_commands` gain `purpose` and `requirement`.
+- `shiploop_test_loop.py`: unchanged (X11).
 - `shiploop_loops.py`:
   - engine: the `_build` `feature` parameter and the `{feature}` token; the scope strings ("plus {feature}/ and
     docs/shiploop/" becomes "plus docs/shiploop/"); the resources "test strategy", "this run's feature plan" and "this
@@ -898,32 +863,47 @@ Packet text (inner-loop session):
     test-spec, test ("every case in {feature}/test-spec.md" becomes "every test case quoted in the packet") and
     carry-forward (test-strategy.md, spec.md satisfaction lines, `{feature}/plan.md ## Open` becomes open items in
     `assumptions`).
-- `shiploop_stage_spec.py` (packet text, inner-loop session; must land with the engine's gates):
-  - release-verify's second Done-when becomes "environment.md is current and the result's lessons hold what this run
-    learned, the key considerations and what a later run should pick up";
-  - test's first Done-when changes "the test spec" to "every test case";
-  - verify's "later-phase checks are marked pending with their owner" becomes "... as open items with a later outer
-    consumer".
+- `shiploop_stage_spec.py`:
+  - engine: system-test-author's `reads` gains `test-spec`, and release-plan's gains `system-test-author` (section 4);
+  - packet text (inner-loop session; must land with the engine's gates):
+    - release-verify's second Done-when becomes "environment.md is current and the result's lessons hold what this run
+      learned, the key considerations and what a later run should pick up";
+    - test's first Done-when changes "the test spec" to "every test case";
+    - verify's "later-phase checks are marked pending with their owner" becomes "... recorded as open items with a
+      later outer consumer and, where one is known, an owner";
+    - implement's Done-when on uncovered behaviour as in section 3.2.
 - `shiploop_prompts.py` (packet text, inner-loop session):
-  - `DUTIES["step-plan"]`: feature plan.md, test-strategy.md, the plan note under the feature plan.md;
-  - `DUTIES["test-spec"]`: test-strategy.md, `### <ID>` entries in the feature test-spec.md, "## Due later", "## Not
-    tested here";
-  - `DUTIES["test"]`: the feature test-spec.md, test-strategy.md, sub-cases written into test-spec.md;
-  - `DUTIES["verify"]`: test-strategy.md, the feature test-spec.md, "## Due later";
-  - `DUTIES["carry-forward"]`: test-strategy.md, the feature plan.md ## Open, "Link it from the index and SHIPLOOP.md",
-    "commits docs/shiploop/ and SHIPLOOP.md";
+  - `DUTIES["plan"]`: the "Namespace and data map in the plan note" goes to architecture Structure with an AD-n per
+    decision; "Reopen the Repository knowledge index" goes;
+  - `DUTIES["step-plan"]`: feature plan.md, test-strategy.md; the plan note goes to the item's `context` or the
+    step-plan summary, and the "unconfirmable here" mark into the criterion text;
+  - `DUTIES["test-spec"]`: test-strategy.md, `### <ID>` entries in the feature test-spec.md, "## Due later" (now open
+    items), "## Not tested here";
+  - `DUTIES["test"]`: the feature test-spec.md, test-strategy.md; sub-cases live in the test code;
+  - `DUTIES["verify"]`: test-strategy.md, the feature test-spec.md, "## Due later"; sub-cases in the test code; uncovered
+    behaviour as open items;
+  - `DUTIES["carry-forward"]`: test-strategy.md; the spec.md "each R-<n> this item satisfied, with its test IDs" line
+    (X13); "Explain each removal ... in plan.md" goes to the result summary; the feature plan.md ## Open becomes open
+    items; "Link it from the index and SHIPLOOP.md", "commits docs/shiploop/ and SHIPLOOP.md";
   - `DUTIES["system-test-author"]`: "## Due later" in test-spec.md, plan.md "## Open", open items "in this result's
-    summary";
-  - `DUTIES["release-plan"]`: write Release and rollback;
-  - `DUTIES["release-check"]`: "the rollback in release-plan.md";
-  - `DUTIES["test-strategy"]`: the commands home is environment.md ## Commands and Harnesses and suites, and
-    architecture Real-boundary checks.
+    summary"; keep the catalog (suites, files, commands, each case's purpose and requirement) in environment.md;
+  - `DUTIES["system-test"]`: open items in `assumptions`, with an owner;
+  - `DUTIES["release-plan"]`: keep the standing release procedure in environment.md; record run-specific prerequisites
+    and outcomes unverified at release as open items;
+  - `DUTIES["release-check"]`: compare with and correct the procedure in environment.md, not "the rollback in
+    release-plan.md";
+  - `DUTIES["release-verify"]`: open items in `assumptions`;
+  - `DUTIES["operations"]`: "Reopen the Repository knowledge index" goes;
+  - `DUTIES["handoff"]`: "durable README/index links" goes;
+  - `DUTIES["test-strategy"]`: the commands home is environment.md (suites, commands, the ID scheme and the command that
+    lists taken IDs) and architecture Real-boundary checks; no allocation table (X14).
 - `shiploop_progress_data.py` and `shiploop_progress_render.py` (engine): see section 6.2.
 - `shiploop_workspace.py` (engine):
+  - `follow_up_knowledge_return` as in section 3.4 (X1);
   - `in_home` now excludes SHIPLOOP.md, which changes the return plan's "cannot exclude" rule and the follow-up
     knowledge return;
   - change the messages "(docs/shiploop/, SHIPLOOP.md)" to "(docs/shiploop/)";
-  - remove `return_kind` if no caller remains.
+  - `return_kind` stays: the working-tree print reads it (X2).
 - `shiploop_reference.py`: unchanged (the host-authored locator).
 
 ### 7.4 Documentation and reference cards
@@ -932,11 +912,13 @@ Engine:
 - `skills/shiploop/SKILL.md`: the knowledge-home paragraph and the SHIPLOOP.md "keep" line.
 - `skills/shiploop/README.md`: the SHIPLOOP.md-as-product lines.
 - `references/project-knowledge.md`: the home table, the retire and learnings sections, and the SHIPLOOP.md commit lines.
-- `references/workspace-lifecycle.md`: the SHIPLOOP.md return row and the retire paragraph.
+- `references/workspace-lifecycle.md`: the SHIPLOOP.md return row, the retire paragraph, and the working-tree lessons
+  print (X2).
 
 Packet text (inner-loop session): each card changes "write or link SHIPLOOP.md" to "read it if present", and drops the
 removed files:
-- `references/system-tests.md` (the catalog is `system_commands` plus environment.md Harnesses and suites);
+- `references/system-tests.md` (the catalog is `system_commands` plus the catalog in environment.md; its "Catalog
+  shape" table goes);
 - `references/testing-and-documentation.md`;
 - `references/repeatable-test-suites.md`;
 - `references/current-system-baseline.md`;
@@ -959,7 +941,7 @@ The hits for "retire" in `requirements-definition.md`, `behavioral-requirements.
 - `test/shiploop-knowledge.test.py`:
   - `test_feature_directory_and_stage_lines`;
   - `test_release_verify_commits_the_runs_learnings_as_its_message`;
-  - `test_intake_quotes_the_last_three_commit_messages`;
+  - `test_intake_quotes_the_last_three_commit_messages` (it keeps the window and adds the lessons);
   - `test_the_repository_index_is_committed_and_screened_with_the_home`;
   - `test_the_architecture_is_ordered_after_the_other_living_files_and_before_the_feature_files`;
   - `test_the_four_files_have_their_sections_as_constants_in_the_order_a_reader_meets_them`;
@@ -1000,11 +982,11 @@ The hits for "retire" in `requirements-definition.md`, `behavioral-requirements.
     so saved runs keep classifying (plan 4e);
   - update the docstring.
 - `test/shiploop_e2e/packet_anatomy.py`: the knowledge-home regex drops the "outcome.md must have", "Begin .../plan.md"
-  and "README.md link the feature list" alternatives, and adds the lessons, READS and hand-off quote lines.
+  and "README.md link the feature list" alternatives, and adds the lessons, whole-file and hand-off quote lines.
 - `test/shiploop_e2e/review.py`: the follow-on reviewer text "spec, environment and test-strategy notes" becomes "spec,
   environment and architecture".
 - `test/shiploop_e2e/fidelity.py`: grep finds no reader of the removed files. Recheck it after 4c.
-- `test/shiploop_e2e/SPEC.md`: section 9.
+- `test/shiploop_e2e/SPEC.md`: section 10.
 
 **Exporter (E2E fork):**
 - `skills/shiploop-run-review/SCHEMA.md` wording: "(spec, test strategy, plan, ...)" and "planning, outcome and release
@@ -1025,26 +1007,28 @@ A repository with `README.md`, `test-strategy.md`, `features/<slug>/{spec,plan,t
   `GROUNDING_LABELS` names them.
 - **Credential screen:** `check()` still screens every `.md` under the home, old ones included.
 - **SHIPLOOP.md** is a user file: read if present, never committed as knowledge.
-- **Section notices:** an `environment.md` without the new sections gets a counted notice, never a refusal.
-- **Lessons:** the old run's release-verify commit is quoted at intake.
-- **Saved runs:** see open question Q1.
+- **Section notices:** an `environment.md` without the named sections gets a counted notice, never a refusal.
+- **Lessons:** the old run's release-verify commit is quoted at intake and discovery.
+- **Harness facts** that live only in the old `test-strategy.md` are not pointed at (a known limit in 0A.1; step 1
+  showed models open precedent files on their own).
+- **Saved runs:** `STATE_VERSION` 6 refuses a run saved on 5 through `FRESH_RUN_HINT` (Q1).
 
 ---
 
 ## 9. Fail-first tests per slice
 
 Each test is written first and fails on today's code. A new file must be registered in `test/suite_catalog.py`.
+Expected values are literal fixtures or tables written from section 3, never the table under test (X16).
 
-### 4a: hand-off fields, gates, quotes, READS, lessons
+### 4a: hand-off fields, gates, quotes, READS, lessons, returns
 
 **`test/shiploop-knowledge.test.py`**
-- `SectionTextTests`:
-  - `test_the_section_runs_from_its_heading_to_the_next_of_the_same_or_higher_level`
-  - `test_headings_match_like_the_notice_any_case_levels_one_to_four_prefix_outside_fences`
-  - `test_matching_sections_are_joined_and_one_inside_another_is_not_repeated`
-  - `test_none_for_absent_blank_or_unreadable_file_or_no_heading_and_empty_for_an_empty_section`
-  - `test_a_long_section_is_never_cut`
-  - `test_a_pair_not_in_sections_raises`
+- `WholeFileQuoteTests`:
+  - `test_each_read_file_is_quoted_whole_and_uncut_in_row_order`
+  - `test_an_absent_blank_or_unreadable_file_names_its_writer`
+  - `test_heading_variants_cause_no_refusal_and_are_quoted`, with `## Targets`, `## Delivery` and an architecture with
+    no level-2 heading (X16)
+  - `test_a_stage_not_in_reads_raises`
 - `EntryTextTests`:
   - `test_entry_starts_in_list_bold_table_heading_and_paragraph_form`, with the saved specs' shapes
   - `test_a_list_entry_keeps_its_indented_and_lazy_continuations_and_stops_at_the_next_item`
@@ -1053,49 +1037,49 @@ Each test is written first and fails on today's code. A new file must be registe
   - `test_a_mention_inside_another_entry_is_no_entry_and_r_1_is_not_r_10`
   - `test_the_first_entry_wins_and_one_under_retired_or_superseded_is_found_and_flagged`
   - `test_none_for_absent_file_or_entry_and_value_error_for_a_malformed_id`
-- `ChangedEntriesTests`:
-  - `test_new_edited_and_moved_under_retired_are_changed_and_whitespace_alone_is_not`
-  - `test_a_first_run_lists_every_entry`
-  - `test_outside_a_checkout_it_is_empty_and_runs_no_git`
+- `RunChangesTests`:
+  - `test_added_modified_and_moved_under_retired_since_the_baseline_and_whitespace_alone_is_not_modified`
+  - `test_an_edit_committed_through_improve_commit_is_listed` (X9)
+  - `test_no_baseline_lists_every_entry_as_added`
+  - `test_outside_a_checkout_it_is_none_and_runs_no_git`
+  - `test_init_records_the_baseline_once_and_an_isolated_run_records_the_manifests_baseline_commit`
 - `ReadsTableTests`:
   - `test_every_stage_has_a_row` (keys equal `stage_spec.STAGES`)
-  - `test_rows_name_only_living_files_and_headings_in_sections_in_table_order` (A17)
-  - `test_test_stages_and_the_build_phase_quote_their_environment_and_architecture_sections` (A15, A16)
-  - `test_the_next_runs_precedent_sections_are_read_by_test_spec_system_test_author_and_release_plan` (K1)
-  - `test_a_section_inside_an_earlier_quoted_one_is_marked_inside`
+  - `test_rows_name_only_living_files_in_living_order` (A17)
 - `LessonsQuoteTests`:
   - `test_the_newest_release_verify_commit_is_found_by_subject_when_later_commits_follow` (A9)
   - `test_a_body_line_with_the_words_is_not_a_subject_and_an_old_outcome_body_is_quoted`
   - `test_a_first_run_says_none_recorded`
-  - `test_intake_and_discovery_quote_the_whole_body_and_no_other_stage_does`
+  - `test_intake_and_discovery_print_the_last_three_commits_and_the_lessons_once` (X8: the lessons print when outside
+    the window and are not repeated when inside it)
+  - `test_no_other_stage_prints_the_window_or_the_lessons`
 - `ReleaseVerifyCommitTests`:
   - `test_the_lessons_field_is_the_commit_body_under_the_release_verify_subject`
   - `test_an_unchanged_home_still_gets_the_lessons_commit`
-- `PlanSpecTests`:
-  - `test_the_spec_commit_is_recorded_after_the_plans_knowledge_commit_and_on_each_new_plan`
-  - `test_nothing_is_recorded_without_a_committed_living_spec`
+  - `test_open_items_left_at_release_verify_are_appended_to_the_body` (X15)
 
 **`test/shiploop-handoff.test.py`** (new; register it)
 - `HandoffShapeTests`:
   - `test_each_key_is_accepted_only_on_its_stage_and_done`
   - `test_each_key_shape_and_its_refusal`
-  - `test_purpose_and_requirement_only_on_system_commands_rows`
+  - `test_a_wrong_type_at_the_cli_gate_is_a_shape_refusal_not_a_type_error` (X5)
   - `test_a_blocked_or_revise_result_carrying_a_handoff_key_is_refused`
   - `test_a_saved_state_with_every_field_reloads_canonical`
 - `HandoffGateTests`:
-  - `test_spec_requirement_changes_entries_retired_and_completeness`
-  - `test_step_plan_follows_entries_and_changed_entries_followed`
+  - `test_step_plan_follows_is_present_and_every_id_has_an_entry`
   - `test_test_cases_match_focused_ids_both_ways_and_name_real_criteria_and_requirements`
-  - `test_not_covered_required_at_implement_and_verify_optional_at_test`
-  - `test_changed_ids_entries_and_completeness`
-  - `test_system_rows_need_purpose_and_a_requirement_and_their_ids_in_the_catalog`
-  - `test_release_plan_needs_release_and_a_release_and_rollback_section`
+  - `test_test_cases_missing_or_empty_is_accepted_when_the_item_has_no_focused_ids` (X15)
+  - `test_test_cases_are_checked_per_item_on_a_two_item_fixture` (X16)
+  - `test_not_covered_is_optional_and_only_on_implement`
   - `test_release_verify_needs_non_blank_lessons`
-  - `test_open_items_at_the_four_new_stages_name_a_later_outer_stage`
+  - `test_open_items_at_the_new_stages_name_a_later_outer_stage_or_carry_forward_and_may_carry_an_owner` (X10)
   - `test_placeholders_are_refused`
-  - `test_completeness_runs_on_complete_only`
-  - `test_every_refusal_line_one_is_the_fix_the_result_path_and_the_command`, for both routes, and line 1 survives a
-    250-character cut at the longest saved checkout path
+  - `test_every_refusal_line_one_is_the_fix_one_path_and_the_next_step_within_250_characters_at_a_173_character_inbox_path`,
+    for each `next_step` form (X3, X16)
+- `OpenItemTests`:
+  - `test_a_row_is_settled_by_its_consumers_done_result_unless_that_result_lists_it_again` (X10)
+  - `test_system_test_release_plan_and_release_verify_record_open_items`
+  - `test_unverified_and_expectations_open_assumptions_are_views_of_open_items`
 
 **`test/shiploop-callback-contract.test.py`**
 - `HandoffRouteTests(RealCliCase)`:
@@ -1103,26 +1087,47 @@ Each test is written first and fails on today's code. A new file must be registe
     gate fault in section 3, including revise from the test-cases refusal. It covers "a refusal's named exit is accepted
     through the real CLI".
   - `test_a_reviewed_stage_runs_the_handoff_gates_on_improve_complete`
+  - `test_a_seed_refusal_on_improve_complete_is_cleared_by_the_named_final_result` (X4)
+  - `test_a_living_file_fix_on_improve_complete_says_improve_commit_it_first` (X15)
+  - `test_the_improve_packet_lists_revise_from_test_spec_to_verify` (X4)
   - `test_check_only_runs_them_and_accepts_nothing`
 
 **`test/shiploop-packet-completeness.test.py`**
 - `HandoffQuoteTests`:
-  - `test_consumes_names_only_result_keys_or_plan_spec_and_every_stage`
-  - `test_each_consumer_packet_quotes_its_fields`, table-driven over `CONSUMES` on a fixture state with every field
-  - `test_a_quoted_entry_equals_the_living_files_entry` (A7)
+  - `test_consumes_names_only_result_keys_or_run_changes_and_every_stage`
+  - `test_each_consumer_packet_quotes_its_fields`, against an expected table written from section 3, on a fixture state
+    with every field (X16)
+  - `test_each_single_producer_key_names_a_stage_in_the_consumers_reads` (X15)
+  - `test_a_quoted_entry_equals_a_literal_fixture_entry` (A7, X16)
+  - `test_a_quoted_entry_under_retired_or_superseded_is_marked` (X15)
   - `test_implement_test_and_verify_quote_exactly_the_items_follows_entries` (A8)
-  - `test_each_packet_quotes_its_reads_sections_in_full_or_names_why_not` (A15, A16)
-  - `test_a_cleared_implement_test_and_verify_packet_holds_every_input_it_consumes` (main tenet)
+  - `test_each_packet_quotes_its_reads_files_whole` (A15, A16)
+  - `test_a_cleared_test_spec_implement_test_and_verify_packet_holds_every_input_it_consumes` (main tenet, X7)
+  - `test_improve_parent_and_child_packets_print_the_same_quotes` (X15)
   - `test_step_plan_quotes_the_open_plan_items_naming_its_item_and_prints_the_context_whole` (K11)
   - `test_product_acceptance_and_handoff_list_every_open_item_uncut`
+  - `test_release_and_operations_print_the_rollback_lines_in_an_isolated_run` (D2)
   - `test_no_quote_is_cut`
   - `test_the_checked_line_names_each_new_gate`
+
+**`test/shiploop-workspace.test.py`**
+- `test_the_follow_up_returns_commits_that_change_nothing_when_every_subject_is_a_knowledge_subject` (X1), and returns
+  nothing when one subject is not.
+
+**`test/shiploop-full-runtime.test.py`**
+- `test_an_isolated_run_whose_release_verify_changes_no_home_file_returns_the_lessons_commit` (X1): it reaches done with
+  no stale-return refusal, and a fresh intake on the source branch quotes the lessons.
+- `test_a_working_tree_return_reaches_done_and_prints_the_lessons_commit_message_at_handoff_and_in_the_report` (X2)
+
+Revision 1's tests for the cut machinery (section 3.7) are not written: the section-span tests, the changed-entry
+tests, the plan-spec tests, the "inside" test, the two tests that checked `READS` against itself, and the gate tests for
+the removed fields.
 
 ### 4b: living files
 
 **`test/shiploop-knowledge.test.py`**
 - `test_living_files_are_spec_environment_architecture`
-- `test_environment_gains_harnesses_id_convention_release_and_rollback_and_architecture_real_boundary_checks`
+- `test_environment_gains_harnesses_and_id_convention_and_architecture_real_boundary_checks`
 - `test_closes_and_stage_files_name_only_living_files` (A5)
 - `test_grounding_labels_are_spec_environment_architecture`
 - `test_stage_lines_name_the_three_files_and_no_index`
@@ -1145,7 +1150,8 @@ Each test is written first and fails on today's code. A new file must be registe
     `CLOSES`, `STAGE_FILES`, `SECTIONS`, `LIVING` and `GROUNDING_LABELS`.
   - It forbids `docs/shiploop/README.md`, `test-strategy.md`, `docs/shiploop/features`, `{feature}`, `test-spec.md`,
     `(?<![\w/-])plan\.md`, `(?<!references/)system-tests\.md`, `release-plan\.md`, `outcome\.md`, "feature spec",
-    "feature plan", and `SHIPLOOP.md` outside the one host-authored locator line. (A5, A11)
+    "feature plan", "plan note", "Namespace and data map", "README/index links", and `SHIPLOOP.md` and "Repository
+    knowledge index" outside the one host-authored locator line. (A5, A11, X14)
 
 **`test/shiploop-knowledge.test.py`**
 - `OldHomeTests`:
@@ -1165,17 +1171,19 @@ Each test is written first and fails on today's code. A new file must be registe
 
 **`test/shiploop-handoff.test.py`**
 - `ReportTests`:
-  - `test_the_report_shows_spec_commit_requirement_changes_item_handoffs_open_items_system_tests_release_and_lessons` (A12)
+  - `test_the_report_shows_run_changes_item_handoffs_open_items_system_tests_and_lessons` (A12)
   - `test_a_stage_that_ran_without_the_field_says_not_recorded_and_one_that_never_ran_is_omitted`
   - `test_every_value_is_escaped`
 
 ### 4e: harness and others
 
 **`test/shiploop-e2e-commit-counters.test.py`**
-- `test_a_saved_runs_retire_commit_is_still_a_script_commit_by_the_harnesss_own_matcher`
+- `test_a_saved_runs_retire_commit_is_still_a_script_commit_by_the_harnesss_own_matcher`, with the literal saved subject
+  "docs(shiploop): retire build-a-small-single-player-battleship-450445 spec: checked its requirement IDs against the
+  living spec" (X16)
 
 **`test/shiploop-e2e.test.py`**
-- `test_packet_anatomy_classifies_the_lessons_reads_and_handoff_quote_lines`
+- `test_packet_anatomy_classifies_the_lessons_whole_file_and_handoff_quote_lines`
 - `test_the_follow_on_reviewer_names_the_living_files`
 
 ---
@@ -1186,26 +1194,27 @@ Each test is written first and fails on today's code. A new file must be registe
 
 > Hand-offs are quoted, never pointed at (amended 2026-10-11, consumer contract). What a stage consumes reaches it in its
 > packet file. These are: the hand-off fields of earlier results, by value; the requirement and decision entries they cite,
-> in full from the living files; and the living-file sections the stage reads (`knowledge_home.READS`). A path alone
-> fails this clause. `navigator.CONSUMES` and `READS` say which stage quotes what, and no quote is cut by a character
-> cap. Evidence: clears at implement, inside test and at verify on a one-item case. The fresh session read the packet file
-> first, opened no state or result file, and redid nothing (3 of 3).
+> in full from the living files; the spec and architecture changes since the run began, derived by the script; and the
+> living files the stage reads, quoted whole (`knowledge_home.READS`). A path alone fails this clause.
+> `navigator.CONSUMES` and `READS` say which stage quotes what, and no quote is cut by a character cap. Evidence: clears at
+> implement, inside test and at verify on a one-item case. The fresh session read the packet file first, opened no state
+> or result file, and redid nothing (3 of 3).
 
 **S-9.** Append:
 
 > A hand-off field is checked by script at its producer's done only for what its consumer reads. That means the IDs it
-> names have entries, test cases match the item's focused IDs both ways, every requirement or decision entry the stage
-> changed is listed, and required fields are present and not placeholders. These checks prove the link, not the content's
-> truth. The lessons and an open item's text remain the model's judgement.
+> names have entries, test cases match the item's focused IDs both ways, open items name an allowed consumer, and required
+> fields are present and not placeholders. These checks prove the link, not the content's truth. What changed in the spec
+> and architecture is derived by the script from the run baseline, never typed by the model. The lessons and an open
+> item's text remain the model's judgement.
 
 **S-10.** In the 2026-10-05 carve-out:
 - replace "`test-spec`'s ID match (a case ID that no focused command lists is refused)" with "`test-spec`'s test cases
   (each case is listed by the item's focused command, each focused ID has a case, and each names a real criterion and
   requirement)";
-- add "the step plan's `follows` (every cited ID has an entry; every entry the step plan changed is cited) and the spec's
-  `requirement_changes` (every changed requirement entry is listed)" to the gates that stand in for the review loop;
+- add "the step plan's `follows` (every cited ID has an entry)" to the gates that stand in for the review loop;
 - replace "the spec and test strategy are committed to the knowledge home" with "the spec, and the test strategy's
-  sections of environment.md and architecture.md, are committed to the knowledge home".
+  content of environment.md and architecture.md, are committed to the knowledge home".
 
 **S-11.** Replace the clause from "Planning knowledge (living spec, ..." through the sentence that ends "only inside a
 knowledge commit." with:
@@ -1213,20 +1222,22 @@ knowledge commit." with:
 > Planning knowledge is committed to the product's knowledge home, and the product itself ends committed on the source
 > branch, so the next run builds on it instead of rediscovering it. The home holds three living files:
 > - the living spec;
-> - the environment, which includes the harnesses and suites, the test-ID convention, the standing system-test catalog,
+> - the environment, which includes the harnesses and suites, the test-ID scheme, the standing system-test catalog,
 >   and the release and rollback procedure;
 > - the architecture with its numbered decisions and the real-boundary checks.
 >
 > (The spec and architecture sentences and the ID-retention sentences stay as written.)
 >
-> A run's own planning record (its requirement changes, work items, step plans, test cases, system commands, release
-> plan and open items) lives in its run state and its report, not in the repository. The cross-run part of that record is
-> kept in the living files by the stage that produces it and checked at its done: system-test-author's case IDs in the
-> catalog, and release-plan's "Release and rollback" section.
+> A run's own planning record (its work items, step plans, test cases, system commands and open items) lives in its run
+> state and its report, not in the repository. The stage that produces the cross-run part of that record keeps it in the
+> living files by its duty. No gate checks a heading, and the next run gets the files quoted whole. The test code is the
+> one home of test IDs.
 >
-> A run's lessons travel in the body of its release-verify knowledge commit. The next run's intake and discovery quote
-> the newest commit whose subject is `docs(shiploop): record <run> knowledge at release-verify`, found by subject however
-> many commits follow it.
+> A run's lessons travel in the body of its release-verify knowledge commit, made even when the home is unchanged and
+> returned with the run's work. The next run's intake and discovery quote the last three commits and the newest commit
+> whose subject is `docs(shiploop): record <run> knowledge at release-verify`, found by subject however many commits
+> follow it. A working-tree return carries no commits: the handoff packet and the report print the lessons commit
+> message for the user to commit, and until the user does, the next run does not see the lessons.
 >
 > Files an earlier ShipLoop wrote (`test-strategy.md`, `README.md`, `features/`, `SHIPLOOP.md`) are left in place, are
 > never required, written or named, and are still credential-screened when they are under `docs/shiploop/`.
@@ -1242,18 +1253,18 @@ In the "How the harness checks the clauses" table:
 
 ---
 
-## 11. Open questions (with the recommended answer)
+## 11. Resolved questions (0A.2)
 
-| # | Question | Recommendation |
+| # | Question | Answer |
 |---|---|---|
-| Q1 | Bump `STATE_VERSION` from 5 to 6 so runs saved by the old engine are refused? Otherwise they would be half-continued: an old receipt no longer matches the rebuilt loop contract, and fields would be missing. | Yes, with the same release as the inner-loop work. `FRESH_RUN_HINT` already words the refusal. |
-| Q2 | Quote the lessons at discovery as well as intake? The owner's decision names intake; today both stages print the commit window. | Both. Discovery answers intake's open questions, and the quote comes from one home. |
-| Q3 | Add a required `surface` key to `test_cases`? Today's test-spec entries record surface, setup, action and teardown. The approved shape keeps only the oracle. verify's reconciliation and the Real-boundary checks hinge on surface. | Add `surface` (required, non-blank). Leave setup, action and teardown to the oracle's wording. |
-| Q4 | Two places for the system catalog and the release procedure: the run field and the living section (section 3.10). | Keep both. They are different facts: this run's selection versus the standing catalog or procedure. The alternative is to drop `release` and quote "Release and rollback" via READS at release-check, release and operations, carrying run-specific prerequisites as open items. That is simpler but loses this release's own steps from the report. |
-| Q5 | Keep the completeness checks (an entry changed but not listed) for `requirement_changes`, `follows` and `changed_ids`? | Keep. They make the field true for its consumer, and whitespace-only edits do not count. If the audit's false-refusal lens finds them noisy, drop them to existence-only: nothing else depends on them. |
-| Q6 | Restrict open-item consumers at the new stages to later outer stages? | Yes (K12). Work for a later item goes through carry-forward's `work_items`. |
-| Q7 | A release-verify knowledge commit that fails leaves the next stage's commit without the lessons body. That is the same gap as today. | Accept it as a known limit. A commit failure is not a normal run (KISS). |
-| Q8 | The plan's spec commit in a run-folder record rather than a state key? | Yes (K3). There is a precedent, and no state schema change. |
+| Q1 | Bump `STATE_VERSION` so runs saved by the old engine are refused? | Yes: 5 to 6, once, on the integration branch only (0A.2). 5 is unreleased, so this refuses only dev-checkout runs on 5, which would otherwise half-continue. `FRESH_RUN_HINT` words the refusal. |
+| Q2 | Quote the lessons at discovery as well as intake? | Both, beside the kept last-three window (X8, section 3.4). |
+| Q3 | Add a required `surface` key to `test_cases`? | No (D4). The oracle names the surface; setup and teardown are stated once per suite in `environment.md`. |
+| Q4 | Two homes for the release procedure and the system catalog? | One each (D2, X11). The `release` field is dropped: the standing procedure lives in `environment.md`, quoted whole at release-plan, release-check, release and operations, plus `rollback_lines`; run-specific prerequisites are open items. The catalog lives in `environment.md` only; `system_commands` rows keep command, suite and ids. No gate checks either. |
+| Q5 | Keep the completeness checks? | Superseded by X9 (D3): there are no model-typed change lists to check. The script derives the changes from the run baseline (section 2.6). |
+| Q6 | Restrict open-item consumers at the new stages to later outer stages? | Yes, plus carry-forward from test-spec and verify (X10, section 3.5). |
+| Q7 | A failed release-verify knowledge commit leaves the lessons out. | Accepted for a failed commit only. The empty commit is returned by X1, and the working-tree route prints the message (X2). |
+| Q8 | The plan's spec commit in a run-folder record? | Superseded by X9: there is no plan-spec record. One run baseline record, written at `init`, serves every consumer (section 2.6). |
 
 Step 1 note: the follow-on probe passed. Its findings are folded in as K1 and K13. Step 5 reruns the probes on the new
-build and checks that the follow-on reads the new `environment.md` sections instead of the old feature files.
+build and checks that the follow-on reads the new `environment.md` content instead of the old feature files.
