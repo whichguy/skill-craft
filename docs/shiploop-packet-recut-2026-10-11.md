@@ -96,3 +96,44 @@ Draft text (worker B refines it against references/carry-forward.md and testing-
 - The full-tier fixes (8cfae04a, merged with main) push once CI's quick tier passes.
 - The renderer swap (0c5521fe) lands next, after the full tier and one live slice; the E2E session's 4b/4c wait on it.
 - This re-cut builds on the swap.
+
+## Journal
+
+### 2026-10-11: verification of the re-cut (firm)
+
+- **Question.** Does the re-cut packet (aggressive pass, Code craft at implement only, five shared rules, two-line
+  Improve packet) keep the live step slices passing, and what does it save?
+- **Conditions.** Live slices on Claude, model claude-sonnet-5-5, through `test/shiploop_e2e/slice.py`. The four
+  step cases, plus the S-6 clear probe at `implement:inside`. Evidence:
+  [live-slices.json](experiments/packet-recut-20261011/live-slices.json).
+- **Result (node-fix-bug, before vs after).**
+
+  | Measure | Before | After | Change |
+  |---|---|---|---|
+  | Packet characters written | 546k | 212k | −61% |
+  | Packets | 17 | 13 | |
+  | Turns | 81 | 74 | |
+  | Time | 269 s | 234 s | |
+
+  - node-add-function, node-rename and the clear probe passed; the clear probe found no redone work.
+  - Offline, the node-fix-bug packets total about 153k against 276k before the re-cut.
+  - Each Improve packet is about 2k characters, down from 12-17k.
+- **Finding: node-add-route paused (fixed, firm).**
+  - The model fixed its own whitespace slip after the step's Improve child was bound, then reported the one pass
+    trivial.
+  - `improve-complete` refused with "run the loop's next review", but the loop was already complete, and
+    `--restart-stopped` accepted only stopped children. The run had no route forward.
+  - This has existed since 2be7906b; it is not a re-cut regression.
+  - Fixed in 42beb2d5: the restart accepts that case, and the refusal names it. A CLI test runs the named exit.
+  - The rerun (v6) passed in 417 s.
+- **Finding: Improve is mostly scripted (interim).** In every run, the model called the improve skill once or twice.
+  For the later Improve children it called `improve-start` and the runtime directly, from a script it wrote with
+  fixed review text. The two-line packet did not change this. It is open for the owner, and the next batch should
+  measure it.
+- **Tiers.**
+  - The quick tier (`--changed-from origin/main`) passed on 42beb2d5.
+  - The full tier on 8c258649 failed in test-groups only, on the suite counts the new suite changes. That was fixed
+    in 42beb2d5.
+  - The shiploop-quality pins were re-pointed after confirming that each moved obligation is present.
+- **Still open.** Five producer packets exceed PRINT_LIMIT (16k) and print a head plus their file. The Improve
+  handoff file is about 29k.
