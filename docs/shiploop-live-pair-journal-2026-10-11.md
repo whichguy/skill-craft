@@ -45,5 +45,26 @@ Build: `88d412e9` (the 8-stage inner loop, the commit contract, the retire step,
 4. **Retire step again made and returned** (`81ae5b0`).
 5. **Cost of the 8-stage graph on a larger case is not yet visible as a saving**: the stage-level turns grew in the planning and system-test stages (above); the inner-loop session's own slices found the 8 stages "correct but slower than the 17-stage slices". One run each; the same-build spread must be measured (three or more runs of this cell) before reading this as a change.
 
+## Pair on 1ac83089: section notices, the test-stage mutation gate, commit contract (Checkers, then hello)
+
+Build `1ac83089`: A2 (section constants, one-line-per-file counted notice), the inner-loop session's 8-stage loop with the test-stage mutation gate and prompt coherence, the commit contract, the retire step, `architecture.md`. Claude Sonnet 5.5, `--source checkout`; runs `checkers-sections-1ac83089` and `hello-sections-1ac83089` under `/Users/dadleet/e2e-runs/20261010/`; compact extract `docs/experiments/live-runs-20261011/pair-sections-1ac83089.json`. CI on the pushed commit: green.
+
+| | Checkers | hello |
+|---|---|---|
+| Outcome | PASS; held-out 6 of 6; mutation **71 of 82 caught (0.866)** | PASS |
+| Cost, turns, wall | $4.09, 208 turns, 1,277 s | $3.92, 231 turns, 828 s |
+| Previous 8-stage row | $4.27, 215 turns, mutation 71 of 107 (0.664) | $2.69, 148 turns |
+| ShipLoop command failures | 0 | 2, not repeated (improve-complete needs the check output; a result path slip) |
+| Commits | 19: 5 Improve (all with lessons), 14 script, 0 model | 15: 5 Improve (all with lessons), 10 script, 0 model |
+| Citations | 0 of 5 | **1 of 5** (see below) |
+| Section notices | **0** | **0** |
+| Retire commit | made and returned | made and returned |
+
+**Findings (firm for these two runs; no change claim from single runs).**
+1. **Quoting the headings was enough: the counted notice never fired.** In the Checkers run all 21 headings of `spec.md`, `environment.md`, `architecture.md` and `test-strategy.md` were present by the prepare close; in the earlier runs and the saved homes they were a minority (environment "Commands" 1 of 27, test strategy "ID convention" 0 of 27). The measure planned for the counted notice (does quoting `SECTIONS` in the packets make models write the headings) is answered for this case: yes, with no refusal and no notice. Do not turn the notice into a refusal on this evidence; it stays a notice until a run shows a miss.
+2. **The test-stage mutation gate moved the mutation score in Checkers from 0.664 (71 of 107) to 0.866 (71 of 82)** (the inner-loop session's change; the harness's own measure, `js-1`), at about the same cost and turns. One run each; the inner-loop session's cause (the base run passed on load failures alone) explains the direction.
+3. **First live citation.** In the hello run an Improve commit (`9dfc6cc`) carries `Learned-from: fb1d3f5113a7... first fixed the ID rule in plan.md only.`, a full id that git resolves, crediting the step-plan commit that first fixed the rule and drawing the lesson "when a rule is corrected mid-run, grep every knowledge-home file for the old wording". The commit contract's citation requirement works end to end; `cited_earlier_run` stays 0 until a second feature runs on an earlier run's repository.
+4. **hello cost is inside the old range but the turns are not.** $2.69 and $3.92 sit inside the 1.27.0 same-build range ($3.06 to $5.35, n=5); the turns (148 and 231) straddle its 126 to 196. Stage turns that grew in the second run: step-plan 19 to 38, carry-forward 6 to 18 (it rewrote `test-strategy.md` and `architecture.md` to fix a rule it had changed). **Two runs of the 8-stage hello cell do not show a change; run three more on this build before any claim**, because hello cost rising is a standing concern.
+
 ## Next
 Checkers (source=checkout) once A2 is on main and the build includes the packet fix for finding 2, then the counters (`metrics.commits`), kept-notices, `ShipLoop knowledge notice:` lines and the hello and Battleship deltas are read for both runs.

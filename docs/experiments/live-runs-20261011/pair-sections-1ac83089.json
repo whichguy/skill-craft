@@ -1,0 +1,100 @@
+{
+ "checkers-sections-1ac83089": {
+  "build": "checkout 1ac83089 (A2 section constants and counted notice; 8-stage loop; test-stage mutation gate; commit contract; retire; architecture.md)",
+  "host": "claude claude-sonnet-5-5",
+  "outcome": "PASS; held-out 6 of 6; mutation 71 of 82 caught (0.866, js-1)",
+  "turns": 208,
+  "cost_usd": 4.0916,
+  "commits_block": {
+   "improve": {
+    "n": 5,
+    "with_lessons": 5,
+    "cited": 0,
+    "cited_earlier_run": 0
+   },
+   "script": {
+    "n": 14,
+    "with_lessons": 1
+   },
+   "other": {
+    "n": 0,
+    "with_lessons": 0
+   },
+   "counted": 19,
+   "start_head": null
+  },
+  "section_notice_occurrences": 0,
+  "list_left_notices": 0,
+  "retire_commits": 1,
+  "git_log": [
+   "309c95e docs(shiploop): retire build-a-small-two-player-checkers-b182dd spec: checked its requirement IDs against the living spec",
+   "fcf005f chore(shiploop): commit files written after the last work item, before the return",
+   "d9abf28 docs(shiploop): record build-a-small-two-player-checkers-b182dd knowledge at release-verify",
+   "8cc0637 docs(shiploop): record build-a-small-two-player-checkers-b182dd knowledge at release-plan",
+   "00990af Release plan: prefer git revert over a hard reset for rollback",
+   "41a0e72 docs(shiploop): record build-a-small-two-player-checkers-b182dd knowledge after system-test-author",
+   "beba075 docs(shiploop): record build-a-small-two-player-checkers-b182dd knowledge after carry-forward",
+   "bd3648e Expose the game id as both game and id from /api/new",
+   "0253ece feat: W1 Build the Checkers server, rules module, page and tests",
+   "b377636 Answer oversized request bodies with 413 instead of dropping the socket",
+   "d43eaf3 docs(shiploop): record build-a-small-two-player-checkers-b182dd knowledge after validate-existing",
+   "ff0fa1b docs(shiploop): record build-a-small-two-player-checkers-b182dd knowledge after step-plan",
+   "e0a2848 docs(shiploop): record build-a-small-two-player-checkers-b182dd knowledge at prepare",
+   "f24aafc docs(shiploop): record build-a-small-two-player-checkers-b182dd knowledge after plan",
+   "0006076 docs(shiploop): record build-a-small-two-player-checkers-b182dd knowledge after test-strategy",
+   "9fca03d docs(shiploop): record build-a-small-two-player-checkers-b182dd knowledge after spec",
+   "bf6d430 Spec: give the page a board view",
+   "9453a32 Align spec with request: no forced multi-jump chain",
+   "d4ad552 Empty baseline for the first ShipLoop run"
+  ],
+  "seconds": 1277
+ },
+ "hello-sections-1ac83089": {
+  "build": "checkout 1ac83089 (A2 section constants and counted notice; 8-stage loop; test-stage mutation gate; commit contract; retire; architecture.md)",
+  "host": "claude claude-sonnet-5-5",
+  "outcome": "PASS",
+  "turns": 231,
+  "cost_usd": 3.9237,
+  "commits_block": {
+   "improve": {
+    "n": 5,
+    "with_lessons": 5,
+    "cited": 1,
+    "cited_earlier_run": 0
+   },
+   "script": {
+    "n": 10,
+    "with_lessons": 1
+   },
+   "other": {
+    "n": 0,
+    "with_lessons": 0
+   },
+   "counted": 15,
+   "start_head": null
+  },
+  "section_notice_occurrences": 0,
+  "list_left_notices": 0,
+  "retire_commits": 1,
+  "git_log": [
+   "18830aa docs(shiploop): retire create-hello-py-that-prints-exactly-2f3c0e spec: checked its requirement IDs against the living spec",
+   "f83580a docs(shiploop): record create-hello-py-that-prints-exactly-2f3c0e knowledge at release-verify",
+   "3d5be28 docs(shiploop): record create-hello-py-that-prints-exactly-2f3c0e knowledge at release-plan",
+   "3349b64 docs(shiploop): SYS-2 describes a command that targets the checkout it runs in",
+   "a90dcb1 docs(shiploop): record create-hello-py-that-prints-exactly-2f3c0e knowledge after carry-forward",
+   "84de6db docs(shiploop): correct AD-2 wording about the in-process check",
+   "9dfc6cc docs(shiploop): align test-strategy and architecture with the docstring-ID rule",
+   "34baa21 feat: W1 Create hello.py and test_hello.py",
+   "6f1e629 docs(shiploop): W1 test-spec - TC-3 import must not depend on the cwd",
+   "fb1d3f5 docs(shiploop): W1 step plan - tests carry their case ID in a docstring",
+   "0139a21 docs(shiploop): record create-hello-py-that-prints-exactly-2f3c0e knowledge at prepare",
+   "ff2a930 docs(shiploop): record create-hello-py-that-prints-exactly-2f3c0e knowledge after plan",
+   "e4f712d docs(shiploop): record create-hello-py-that-prints-exactly-2f3c0e knowledge after test-strategy",
+   "44c5a9d docs(shiploop): record create-hello-py-that-prints-exactly-2f3c0e knowledge after spec",
+   "8a1e372 Empty baseline for the first ShipLoop run"
+  ],
+  "seconds": 828
+ },
+ "finding_headings": "at the prepare close all 21 headings of the four SECTIONS files were present in the Checkers run's spec.md, environment.md, architecture.md and test-strategy.md, so the counted notice never fired (0 occurrences) in either run; the saved homes before the packets quoted SECTIONS had them in a minority of cases (environment Commands 1 of 27, test-strategy ID convention 0 of 27)",
+ "finding_citation": "hello-sections: the first Learned-from in a live run: improve commit 9dfc6cc cites fb1d3f5113a72e1d676dee5eca2c22588d85c549 (the step-plan commit that first fixed the ID rule), a full id that git resolves; cited 1 of 5 Improve commits, cited_earlier_run 0"
+}
