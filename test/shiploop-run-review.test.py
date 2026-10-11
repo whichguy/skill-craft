@@ -8800,7 +8800,7 @@ class R23bImprovePacketExportTests(unittest.TestCase):
         self.assertEqual(tuple(key for key, _, _ in export.IMPROVE_CARRIED), R23B_IMPROVE_KEYS)
         engine = R23B_NAVIGATOR.read_text(encoding="utf-8")
         for phrase in ("Reviewing the returned ", ". Goal: ", "Done when (a done result must meet each", '"Checked by: the Improve skill',
-                       "The opening file holds exactly these headings", '"Then run: "', '"Recovery command:"'):
+                       "The opening file holds exactly these headings", '"Then run: "', '"Recovery command (it only reads'):
             self.assertIn(phrase, engine, phrase)  # the navigator still prints the line each pattern looks for
 
     def test_a_packet_text_is_scored_label_by_label_on_lines_that_start_with_the_marker(self):

@@ -1259,13 +1259,15 @@ Change no product file in this stage.
 
    Use the Coding decision guide: identify the actual runtime and version, the
    artifact and the boundary, then read and link only the sections that match.
-   - When the item adds or moves code or stored data:
-     - name each file, module and public symbol with its environment, namespace,
-       visibility and collision check;
-     - name each stored field, key or table with its owner, its migration
-       (unneeded, an earlier step, this step, or a deploy obligation) and its
-       round-trip check.
-     The Namespace and Schema guides cover both.
+   - When the item adds or moves code or stored data, reopen the plan's Namespace
+     and data map and the current tree of each environment it touches. Name each
+     file, module and public symbol with its environment, home namespace,
+     visibility and collision check (an import or load test, a deploy validation,
+     or a search for the name), and each stored field, key, table or payload with
+     its owning environment, migration (unneeded, an earlier step, this step, or a
+     deploy obligation) and round-trip check; record a changed placement or schema
+     with its reason (Namespace and placement guidance, Schema and storage
+     guidance).
    - Label each pinned value that a check replays (fixed dice, seed data) as a
      source-check fixture, separate from the runtime control. Confirm that an
      external oracle (a golden file, fixture or snapshot) agrees with the task.
@@ -1279,7 +1281,11 @@ Change no product file in this stage.
      - the planned recovery checks;
      - for UI: the component, interaction and skin premises, the design
        guidance's identity/version or digest (or the named fallback), and the
-       rich interactions planned;
+       rich interactions planned. For a human-facing UI, default to an
+       ambitious, highly interactive design: name the rich interactions planned
+       (direct manipulation, inline editing, live preview, keyboard paths,
+       animated transitions) and any scaled back, with its user, target or
+       accessibility reason;
      - the locators of its sources and checks.
 8. Knowledge.
    - Write a structural choice that HOME/architecture.md does not record yet as
