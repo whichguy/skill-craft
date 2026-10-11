@@ -1,7 +1,11 @@
 # ShipLoop consumer contract (2026-10-11)
 
 Step 3 of `docs/shiploop-consumer-contract-plan-2026-10-11.md` (Execute: ask). This is the contract an implementer builds
-from in step 4. It is written for the step 3 audit and has not been built.
+from in step 4. It has not been built.
+
+**Revision 2 (2026-10-11, after three independent audits).** Section 0A lists every audit correction. Where 0A conflicts
+with sections 1 to 11, 0A wins. Sections 1 to 11 are rewritten to match once the owner answers D1 to D4 (section 0A.3).
+Until then, the body below is the audited draft (revision 1), kept for the audit trail.
 
 Inputs:
 - the plan (sections 2, 3, 6 and 8);
@@ -45,6 +49,71 @@ Owners:
 | K11 | plan.md's item sections move into state | The step-plan packet prints the item's `context` through `_required_excerpt`, which cuts it at 1200 characters. It does not print the item's open plan assumptions at all, although `expectations.check_step_plan` refuses until each is cited. | The context prints whole, and step-plan quotes the open plan items that name its work item. |
 | K12 | The open-item consumer is named | The plan's consumer is a work item, which step-plan's `from` rule settles. A second producer of work-item consumers would collide on IDs (A1 from the plan, A1 from verify). | At the four new stages, an open item's consumer is a later outer stage. Work for a later item goes through carry-forward's `work_items`, as today. |
 | K13 | (step 1) Lessons reach the next run | The follow-on's intake saw the learnings commit second in the last-three window, behind the retire commit and ahead of the leftovers commit. One more closing commit would have pushed it out. | The intake quote finds the commit by subject (section 3.9). |
+
+---
+
+## 0A. Audit corrections (revision 2)
+
+Three read-only audits checked revision 1 against the code, the inner-loop packet branch `exp/four-part-packet-631117`,
+the three cleared slices, and the saved runs (17 knowledge homes and 18 `state.md` files under
+`/Users/dadleet/e2e-runs/20261010` and `20261011`):
+- **routes:** the main tenet and every gate route (1 blocker, 6 majors, 9 minors);
+- **KISS:** overbuilding and false refusals (1 blocker, 7 majors, 8 minors, measured on the saved homes);
+- **consumer fit:** whether each consumer gets what it needs (1 blocker, 7 majors, 6 minors).
+
+Every saved run had one work item, so no audit had multi-item evidence. Status of every finding below: **interim**
+until step 5 reruns the probes on the built contract.
+
+### 0A.1 Adopted: fixes inside the approved decisions
+
+| # | Found by | Finding | Correction |
+|---|---|---|---|
+| X1 | routes B1, consumer fit B1 | **Blocker.** The empty lessons commit (K4) is never returned on an isolated run. `workspace.follow_up_knowledge_return` returns None when `git diff --name-only <head> HEAD` is empty. The receipt is then stale, and `protocol.workspace_completion_guard` refuses handoff. Both step 1 probes would hit this: their release-verify commits touched only `outcome.md` and `features/README.md`, both removed. | `follow_up_knowledge_return` also returns when the diff is empty but `git rev-list <head>..HEAD` is non-empty and every new commit is a ShipLoop knowledge commit (`knowledge_subject` or the lessons subject). Test: an isolated full-runtime run whose release-verify changes no home file reaches done with no stale-return refusal, and a fresh intake on the source branch quotes the lessons. |
+| X2 | routes M6, consumer fit B1 | On a working-tree return no commit reaches the user's branch, so the lessons never reach the next run. | The handoff packet and the report print the lessons body and the exact commit message, and tell the user to commit it. S-11 records this route's limit. |
+| X3 | routes M1, KISS M7 | Refusal line 1 cannot fit its own 250-character test: 20 of 24 drafted texts exceed it at a realistic run path. The full `complete` callback is about 300 characters by itself. | Rule 4 becomes: line 1 carries the fix, one absolute path and the verb ("then run the same complete command again"); line 2 carries the JSON shape and the "consumers quote it" sentence. The test uses the longest saved inbox path (173 characters). |
+| X4 | routes M2 | An improve-complete refusal on the seed result loops. The printed command has no `--final-result`, so rerunning it re-checks the seed. The Improve packet's outcome list also omits `revise`. | `dispatch` passes the next command to `_handoff_gate`. With no final result, line 1 says "write a final result to <path>, then run improve-complete with --final-result=<path>". Add `revise` (test-spec to verify) to the Improve outcome list. Test: a seed refusal whose named exit is accepted through the real CLI. |
+| X5 | routes M3 | `_handoff_gate` would see raw JSON before `_canonical_result`, so a wrong type crashes it with a TypeError instead of refusing. | The gate canonicalises first (precedent: `_check_submitted_assumptions`), then checks meaning. |
+| X6 | routes M4 | The packet branch calls `feature_dir`, `FEATURE_LIST`, `_GROUNDING`, `earlier_features`, `spec_pin` and `STAGE_FILES` with README.md. If the removals land first, every `next` crashes. | Order on `integrate/refs-consumer-contract`: the packet branch, then 4a, then the renderer swap (`_CONSULT = knowledge.READS`; `_PRODUCTS`' feature pointers become hand-off sources), then the 4b/4c removals. Section 7.2 adds `_reference_global_lines`, `_writer`, `_CONSULT`/`consult_lines`, `_PRODUCTS` and `_builds_on_lines`. The section 7 grep runs on the combined branch. Packets name files by symbol; refusals by absolute path. |
+| X7 | routes M5, consumer fit M5 | CONSUMES misses inputs the gates and duties use. | Add: test-spec `criteria`, `test_commands` (focused rows); implement `criteria`; document `follows`; product-acceptance the spec diff (X9) and open items; system-test-author every item's latest `test_cases`; test-strategy and carry-forward the spec diff; handoff `lessons`; release-plan `system_commands`. The cleared-packet test covers test-spec. |
+| X8 | all three | Removing the last-commits window breaks the owner's 2026-10-10 requirement 4 (look back at the last commits on every step), drops the lessons in Improve commits, and hides user commits made since the last run. | Keep `recent_commits`. Add the lessons quote, found by subject, when that commit is not already in the window. Quote at intake and discovery: context is cleared between them, and both print the window today. |
+| X9 | KISS M2, M3; consumer fit M7 | `requirement_changes` and `changed_ids` are model-typed copies of a fact the script computes (`changed_entries`). Saved runs: implement, test, document and verify made 0 edits to `spec.md` or `architecture.md`. Spec reviews added requirements through improve-commit (for example "R-15, R-16"), which the complete-only check never sees. | **Awaits D3.** The script records one run baseline (the workspace manifest's `baseline_commit`, or one run-folder record) and derives added, modified and retired IDs from the diff since it. This replaces both model fields, their refusals, the completeness checks, and `PLAN_SPEC_RECORD`/`record_plan_spec`/`plan_spec`. `follows` stays model-written (choosing what an item follows is a judgement), with an existence check only. |
+| X10 | KISS M5, consumer fit M4 | Three carriers for "not proven yet" (`not_covered`, the new open items, product-acceptance's `unverified`). Open items had missing producers, no settlement and no owner. | Open items are the one carrier for new stages. `not_covered` is optional and implement-only (its consumer is test). verify records uncovered behaviour as open items. Producers add system-test, release-plan and release-verify. Settlement needs no new key: a row is open until its consumer stage's done result, unless that result lists the row's ID again. Open rows at the new stages carry `owner` (a person) where the duty names one. Allowed consumers: a later outer stage, or carry-forward. `unverified` is unchanged. |
+| X11 | KISS B1, M6; consumer fit M1 | **Blocker (KISS).** The "Release and rollback" section gate refuses all 17 saved homes. 7 of 17 already record the procedure under other names ("Delivery", "Release verification"). The notice's own fix ("write 'none'") passes the gate with filler. The system-catalog gate would refuse 14 of 15 runs with system IDs. | Drop both gates. "Release and rollback" stays out of `SECTIONS`. Duty text asks release-plan to keep the standing procedure in `environment.md`, and system-test-author to keep the catalog there; the next run gets the file quoted (X12). Purpose and requirement live in the catalog only; `system_commands` rows keep command, suite and IDs. The release field itself: **D2**. |
+| X12 | KISS M1, consumer fit M6 | Quoting by heading misses most real homes: "Commands" matched 8 of 17, "Harnesses and suites" and "ID convention" 0 of 17. On the current build, `architecture.md` had no level-2 heading at all, and the scoring follow-on wrote "## Targets" after 8 section notices. The files are small: `spec.md` ≤ 5.3 KB, `environment.md` ≤ 1.8 KB, `architecture.md` ≤ 1.9 KB. | **Awaits D1.** `READS = {stage: (files)}`, each file quoted whole and uncut. This removes `section_text`, `_section_spans`, the five-status `ReadQuote` and the `inside` rule, and makes the consumer-fit READS gaps moot. The test stages and the build phase get `environment.md` and `architecture.md` whole, which includes the harness, command, ID and boundary sections the owner named. The section notice stays as the existing counted nudge. |
+| X13 | consumer fit M2 | The requirement-to-test map had three homes (spec.md "Satisfied by tests", the catalog, the test files), and the ID high-water mark goes stale. | The test code is the one home. Remove carry-forward's "with its test IDs" duty. The catalog names suites, files, commands, and the one command that lists the IDs already taken. |
+| X14 | consumer fit M3 | Removed-file content with no named home: the step-plan "Plan note", the plan's "Namespace and data map", the carry-forward "explain removals in plan.md" lines, test-strategy's allocation table, and test sub-cases. | Cross-item namespace and data map: architecture Structure, with an AD-n per decision. Per-item note: the work item's `context` or the step-plan summary, with the duty reworded. The unconfirmable mark: in the criterion text. The allocation table: eliminated (carried by item context and `test_cases.requirement`). Sub-cases: the test code only. Add "plan note", "Namespace and data map", "Repository knowledge index" and "README/index links" to the removal grep and the 4c test. |
+| X15 | KISS m2, m3, m4; routes minors | Small shape and route fixes. | `test_cases` missing or `[]` is accepted when the item has no focused IDs. Rename the contract's `LESSON_LABELS` (it collides with `shiploop_lessons.LESSON_LABELS`). Improve parent and child packets print the same quotes. A quoted entry now under Retired or Superseded prints a marker. On improve-complete, a refusal whose fix is a living-file edit says "improve-commit it first". The script appends open items left at release-verify to the lessons commit body as generated text. A test checks each CONSUMES producer is in that stage's `stage_spec` `reads`. |
+| X16 | KISS tests | Some planned tests cannot fail or are circular. | The packet test uses an expected table written from section 3, not `CONSUMES`. The entry test compares to a literal fixture string. Cut the two READS-against-itself tests. The retire-subject test uses a literal saved subject. Add: heading variants (`## Targets`, `## Delivery`) cause no refusal; a two-item fixture for per-item `test_cases`; the 250-character cut at the 173-character path. |
+
+Accepted as known limits:
+- A failed release-verify commit leaves the lessons out (Q7). Only the failure case; the empty commit is fixed by X1.
+- On an old repository, harness facts that live only in the old `test-strategy.md` are not pointed at. Step 1 showed
+  models open precedent files on their own.
+- `record_plan_spec` (if D3 keeps it) is skipped when the plan's knowledge commit raises.
+- The "Current planning sources" path blocks to `results/*.md` stay for now; step 5 measures whether CONSUMES quoting makes
+  them unused.
+
+### 0A.2 Open questions after the audits
+
+| # | Answer | Basis |
+|---|---|---|
+| Q1 | Bump `STATE_VERSION` 5 to 6, once, on the integration branch only. | All three audits. 5 is unreleased, so this refuses only dev-checkout runs on 5, which would otherwise half-continue. |
+| Q2 | Lessons at intake and discovery, beside the kept window (X8). | All three audits; owner requirement 4. |
+| Q3 | **D4.** | KISS: no required key (no observed reader; filler risk). Consumer fit: add it (test and verify use it). |
+| Q4 | **D2.** | KISS: keep the `release` field with a presence gate (step 0: release, release-check and operations read `release-plan.md` in-run). Consumer fit: drop it (one home: the living procedure, quoted whole, plus the script's `rollback_lines`; release-check cannot correct a release-plan field). |
+| Q5 | Superseded by X9 (D3). | KISS and consumer fit. |
+| Q6 | Yes, plus carry-forward (X10). | All three. |
+| Q7 | Accept for a failed commit only (X1 fixes the normal case). | All three. |
+| Q8 | Superseded by X9 if D3 is adopted; otherwise fine. | All three. |
+
+### 0A.3 Owner decisions (each changes the approved plan's shape)
+
+| # | Decision | Recommendation |
+|---|---|---|
+| D1 | Quote `spec.md`, `environment.md` and `architecture.md` **whole** into each stage that reads them, instead of by section heading (X12). Changes plan section 3.5's table shape, agreed with the inner-loop session. | Yes. Heading matching fails on most real homes, and the files are under 6 KB. |
+| D2 | Keep or drop the `release` field at release-plan (Q4). | Drop. One home: the standing procedure in `environment.md` (quoted whole) plus the script's `rollback_lines`; run-specific prerequisites become open items. |
+| D3 | Replace the model-written `requirement_changes` and `changed_ids` with a script-derived diff from one run baseline (X9). | Yes. Same consumer content, fewer refusals, and it catches review edits the model fields miss. |
+| D4 | Add a required `surface` key to `test_cases` (Q3). | No. The oracle names the surface; setup and teardown stay once per suite in `environment.md`. |
 
 ---
 

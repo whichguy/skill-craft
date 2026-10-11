@@ -63,3 +63,22 @@ Runs:
 - the release steps and rollback in `environment.md`'s targets and access sections, or a named new section.
 
 Each needs a named consumer: the next run's test-spec, system-test-author and release-plan stages. This was sent to the contract writer for step 3.
+
+## Step 3 audit: three independent read-only audits of the contract (done)
+
+Question: does revision 1 of `docs/shiploop-consumer-contract-2026-10-11.md` hold against the code, the inner-loop packet branch, the cleared slices and the saved runs?
+
+Setup:
+- Three Claude Opus 5.5 subagents, each with its own lens: routes (main tenet and gates), KISS (overbuilding and false refusals), and consumer fit.
+- Evidence: 17 saved knowledge homes and 18 `state.md` files under `/Users/dadleet/e2e-runs/20261010` and `20261011`.
+- Reports: `docs/experiments/consumer-contract-audits-20261011/{routes,kiss,consumer-fit}-audit.md`.
+
+Findings (status: interim; every saved run had one work item):
+- **Two blockers.**
+  - The empty lessons commit is never returned on an isolated run (found by two audits independently; both step 1 probes would hit it).
+  - The "Release and rollback" section gate refuses all 17 saved homes.
+- **Heading-based quoting misses most real homes.** For example, "Commands" matched in 8 of 17 homes. The files are small (under 6 KB), so quoting whole files is the recommended fix.
+- **Model-typed change lists duplicate a script fact and miss review edits.** The recommended fix is a script-derived diff from one run baseline.
+- **Removing the last-commits window conflicts with the owner's 2026-10-10 requirement 4.** The window is kept, and the lessons quote is added beside it.
+
+All corrections are in the contract's section 0A. X1 to X16 are adopted. D1 to D4 change the approved shape and await the owner.
