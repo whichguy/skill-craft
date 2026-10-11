@@ -197,7 +197,11 @@ apart: the spec holds what the product must do and survives a change of stack;
 the architecture holds the stack, structure and decisions and survives a change
 of spec. Neither file may lose an ID an earlier committed version had
 (requirement `R-<n>`, decision `AD-<n>`): a requirement or decision that no
-longer holds moves under `Retired` or `Superseded` with its reason.
+longer holds moves under `Retired` or `Superseded` with its reason. ShipLoop
+refuses a drop in an uncommitted version (the stage's own, or a review's before
+it commits through `improve-commit`); a drop a review has already committed is
+not seen, for either file (deferred; trigger in
+docs/shiploop-architecture-file-journal-2026-10-10.md).
 
 **S-12 One implementation of each mechanism.** A mechanism (committing, loop
 contracts and starts, receipts, identity, privacy screens) has one code path
