@@ -1,0 +1,18 @@
+{
+  "work_repositories_with_a_features_folder": 32,
+  "feature_specs": 33,
+  "model_named_folders_not_retired": 0,
+  "judged_by_the_id_check": 33,
+  "not_judged_living_spec_names_no_id": 0,
+  "names_an_id_the_living_spec_lacks": 0,
+  "planned_record_found_by_subject": 33,
+  "planned_record_equals_the_final_feature_spec": 33,
+  "planned_record_also_in_the_path_limited_log": 8,
+  "retired": 33,
+  "kept": [],
+  "retired_commits_that_delete_the_spec_and_add_the_list": 33,
+  "retired_commits_that_delete_the_spec_and_modify_the_list": 0,
+  "retired_with_subject_matcher_and_retired_by_and_planned_line": 33,
+  "a_retry_made_a_second_commit": 0,
+  "list_lines_flagged_by_the_credential_screen": 0
+}

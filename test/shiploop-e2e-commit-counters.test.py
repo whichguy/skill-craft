@@ -529,6 +529,33 @@ class ClassifyTest(GitCase):
         block, _ = self.counted()
         self.assertEqual((block["script"]["n"], block["other"]["n"]), (5, 4))
 
+    def test_the_retire_commit_is_a_script_commit_that_is_not_a_knowledge_record(self):
+        """Owner decision D3 (batch 1012 r): at handoff ShipLoop removes the feature spec in a commit of its own. It is ShipLoop's
+        (script class), made by the real retire step here; it is not one of the knowledge home's record commits, which the
+        regrade quotes a share of, and it holds no lessons."""
+        feature = knowledge_home.feature_dir(self.state)
+        self.write("docs/shiploop/spec.md", "- R-1 one\n")
+        self.write(feature + "/spec.md", "Adds: R-1.\n")
+        self.assertTrue(knowledge_home.commit(self.state, "spec").commit)
+        before, _ = self.counted()
+        retired = knowledge_home.retire(self.state, True)
+        self.assertTrue(retired.commit)
+        found, _ = self.historied()
+        row = next(row for row in found["commits"] if row["id"] == retired.commit)
+        self.assertEqual((row["kind"], row["knowledge"], row["subject"]), ("script", False, knowledge_home.retire_subject(self.state)))
+        after, _ = self.counted()
+        self.assertEqual((after["script"]["n"], after["script"]["with_lessons"]), (before["script"]["n"] + 1, before["script"]["with_lessons"]))
+        self.assertEqual((after["other"]["n"], after["improve"]["n"]), (before["other"]["n"], before["improve"]["n"]))
+
+    def test_a_model_commit_with_a_lookalike_retire_subject_is_not_a_script_commit(self):
+        before, _ = self.counted()
+        for number, subject in enumerate(("docs(shiploop): retire two words spec: checked its requirement IDs against the living spec",
+                                          "docs(shiploop): retire x spec: it is gone",
+                                          "docs: retire x spec: checked its requirement IDs against the living spec")):
+            self.by_the_model(f"look{number}.md", subject + "\n")
+        after, _ = self.counted()
+        self.assertEqual((after["script"]["n"], after["other"]["n"]), (before["script"]["n"], before["other"]["n"] + 3))
+
     def test_a_work_item_commit_whose_reply_was_not_recorded_is_still_the_scripts_by_its_subject(self):
         # The integrate stage's reply can be cut by the model's pipe. state.md names the run's work item ids, and the commit's
         # subject is `feat: <id> <title>`; a model commit that starts the same way but names no work item is not the script's.
@@ -627,6 +654,14 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
             prefixes = counters._item_prefixes(Path(tmp))
         self.assertEqual(prefixes, ("feat: W1 ",))
         self.assertTrue(message.startswith(prefixes), f"counters matches {prefixes} and ShipLoop wrote {message.splitlines()[0]!r}")
+
+    def test_the_retire_subject_is_matched_by_knowledge_homes_own_matcher_not_by_a_copy_of_its_wording(self):
+        counters_source = (ROOT / "test" / "shiploop_e2e" / "counters.py").read_text()
+        self.assertNotIn("checked its requirement IDs against the living spec", counters_source)
+        self.assertNotIn("retire", counters.KNOWLEDGE_SUBJECT.pattern)
+        state = {"repo": ".", "prompt": "Add a thing", "run_id": "nav-abcdef123456"}
+        self.assertTrue(knowledge_home.is_retire_subject(knowledge_home.retire_subject(state)))
+        self.assertIs(counters.knowledge_home, knowledge_home)
 
     def test_the_chain_merge_prefix_is_the_one_the_chain_writes(self):
         self.assertIn(f'_PREPARED_MERGE_PREFIX = "{counters.CHAIN_PREFIX}"',

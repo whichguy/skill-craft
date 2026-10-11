@@ -1763,14 +1763,27 @@ def _item_title(state: Mapping[str, Any], work_item: str) -> str:
     return ""
 
 
+# What the terminal close's refusals end with: the handoff waits, and a reader who lost the context is told the route back.
+_PENDING = "; handoff remains pending. Fix that, then submit the same handoff result again."
+
+
 def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: Path | None = None,
                      *, terminal: bool = False) -> None:
     """Commit knowledge after an accepted close, including terminal preflight.
 
     Normally this runs after the state is saved. A new terminal handoff opts into
-    fail-closed handling before its guard and save. In a worktree run whose work
-    was already returned, that commit is returned too (plan P11); terminal retries
-    also run the follow-up return after an empty commit.
+    fail-closed handling before its guard and save: a knowledge commit that cannot be
+    made, or a follow-up return that fails after a commit made at this handoff, raises
+    NavigatorError ("handoff remains pending"). In a worktree run whose work was already
+    returned, that commit is returned too (plan P11); terminal retries also run the
+    follow-up return after an empty commit, and a failure there no longer raises: it is
+    a note on stderr and the handoff guard that runs next refuses a return that is not
+    current and prints its commands (a raise would replace them with a dead end).
+
+    The terminal close runs in this order: commit the pending knowledge, retire the run's
+    feature spec (``knowledge.retire``: owner decision D3), return what those commits added,
+    then print what happened, so every line is true when it prints.  The guard, which runs
+    after this, is what refuses a handoff whose return is not current.
     """
     rows = after["history"][len(before["history"]):]
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
@@ -1780,29 +1793,69 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
         committed = knowledge.commit(after, stages[-1])
     except RuntimeError as exc:
         if terminal:
-            raise NavigatorError("ShipLoop knowledge: " + str(exc) + "; handoff remains pending.") from exc
+            raise NavigatorError("ShipLoop knowledge: " + str(exc) + _PENDING) from exc
         # The transition stands; the next accepted stage commits the same files.
         print("ShipLoop knowledge: " + str(exc) + "; the next accepted stage commits it.", file=sys.stderr)
         return
     notice = shiploop_git.skipped_notice(committed.skipped)
     if notice:
         print("ShipLoop knowledge: " + notice)
+    if terminal:
+        # Once per run, at its last close: the file is left alone however many knowledge commits came before it.
+        listing = knowledge.feature_list_notice(Path(str(after["repo"])))
+        if listing:
+            print("ShipLoop knowledge: " + listing)
+    retired = knowledge.Retired("", "")
+    if terminal:
+        try:
+            retired = knowledge.retire(after, _run_commits_reach_branch(after, root))
+        except RuntimeError as exc:
+            raise NavigatorError("ShipLoop knowledge: " + str(exc) + _PENDING) from exc
+    returned = False
     if (root is not None and after.get("execution_mode") == "navigator-worktree"
-            and (committed.commit or terminal)):
+            and (committed.commit or retired.commit or terminal)):
         import shiploop_workspace as workspace
         try:
             receipt = workspace.follow_up_knowledge_return(Path(root).parent)
         except workspace.WorkspaceError as exc:
-            if terminal:
+            # A knowledge commit made at this handoff keeps today's fail-closed behaviour.  A retire commit alone (made
+            # now or by an earlier attempt) does not: the guard below refuses a handoff whose return is stale and prints
+            # the commands, which this error would replace with a dead end.
+            if terminal and committed.commit:
                 raise NavigatorError("ShipLoop knowledge: the follow-up return was not made (" + str(exc)
-                                     + "); handoff remains pending.") from exc
-            # The handoff check still requires a current return and prints the commands.
+                                     + ")" + _PENDING) from exc
             print("ShipLoop knowledge: the follow-up return was not made (" + str(exc) + "); "
                   "handoff will ask for it.", file=sys.stderr)
-            return
-        if receipt is not None:
-            print("ShipLoop knowledge: returned the knowledge commit with the earlier work ("
-                  + str(receipt.get("kind")) + ").")
+        else:
+            if receipt is not None:
+                returned = True
+                print("ShipLoop knowledge: returned the knowledge commit with the earlier work ("
+                      + str(receipt.get("kind")) + ").")
+    path = str(Path(str(after["repo"])) / knowledge.feature_dir(after) / "spec.md")
+    if retired.commit:
+        where = ""
+        if after.get("execution_mode") == "navigator-worktree":
+            where = " and returned it" if returned else " on the run branch, not yet on your branch"
+        print("ShipLoop knowledge: committed the removal of the feature spec " + path + " in " + retired.commit[:12]
+              + where + "; its last version is in that commit's parent.")
+    elif retired.kept:
+        print("ShipLoop knowledge: kept the feature spec " + path + ": " + retired.kept + ".")
+
+
+def _run_commits_reach_branch(after: Mapping[str, Any], root: Path | None) -> bool | None:
+    """Whether this run's commits reach the user's branch: True in the user's own checkout and after a fast-forward return,
+    False after a working-tree or no-change return, None while an isolated run has not returned (the route is unknown).
+
+    The route is the newest recorded return's kind, read from the receipt even while the receipt is stale.  It is read before
+    the follow-up return, so a no-change return still answers False although the follow-up then returns the knowledge commits.
+    """
+    if after.get("execution_mode") != "navigator-worktree":
+        return True
+    if root is None:
+        return None
+    import shiploop_workspace as workspace
+    kind = workspace.return_kind(Path(root).parent)
+    return None if kind is None else kind == "fast-forward-merge"
 
 
 def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
@@ -1818,7 +1871,7 @@ def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]
 _EVIDENCE_SUFFIX = re.compile(r"(#.*|::.*|:\d+(?::\d+)?)$")
 
 
-def _check_submitted_evidence(result: Any, own_receipt: Path | None = None) -> None:
+def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, repo: str | Path | None = None) -> None:
     """Refuse a submitted result that cites a local file that does not exist.
 
     Runs at the CLI gates only (history is revalidated on every load, and a
@@ -1830,6 +1883,9 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None) -> N
     ``own_receipt`` is this action's loop receipt, which the result template prefills: a result other than done may
     keep it before the loop wrote it (the loop checks accept blocked without a terminal packet), and done still needs
     it, through the loop's own terminal check.
+
+    ``repo`` is the execution checkout: a feature spec that ShipLoop's own retire removed from it still counts as present,
+    because a retried handoff cites the file the first attempt cited, and "write the file" would invite re-creating it.
     """
     if not isinstance(result, Mapping):
         return
@@ -1841,7 +1897,7 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None) -> N
         if (own_receipt is not None and result.get("outcome") != "done"
                 and str(path) == str(own_receipt)):
             continue
-        if not path.exists():
+        if not path.exists() and not (repo is not None and knowledge.is_retired_spec(Path(repo), path)):
             missing.append(ref)
     _need(not missing, "evidence_refs cite files that do not exist: " + ", ".join(missing[:5])
           + ("" if len(missing) <= 5 else f" (and {len(missing) - 5} more)")
@@ -4977,7 +5033,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     receipt = _derived_improve_receipt(child, args)
                     final_result = receipt.get("final_result")
                     if final_result is not None:
-                        _check_submitted_evidence(final_result)
+                        _check_submitted_evidence(final_result, None, state["repo"])
                     _check_submitted_assumptions(
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -5052,7 +5108,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             except quality.QualityError as exc:
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
-            _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item))
+            _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item),
+                                      state["repo"])
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted)

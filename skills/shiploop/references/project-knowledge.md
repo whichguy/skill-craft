@@ -305,6 +305,10 @@ existing `SHIPLOOP.md` knowledge index. Neither link is a second specification.
 Keep these files in the product repository, outside disposable run/workspace
 state, and include intended durable changes in the product return. No new
 requirements database, schema, graph stage, or exhaustive legacy rewrite is needed.
+ShipLoop checks and retires a run's feature spec only against `docs/shiploop/spec.md`
+(see [Repository knowledge home](#repository-knowledge-home)): when that file names no
+requirement ID, because the requirements live in a team document it links, the IDs
+cannot be compared and the feature spec stays.
 
 The stack, the structure and the decisions behind them have one home too:
 **`docs/shiploop/architecture.md`**. It records how the product is built; the living
@@ -518,7 +522,8 @@ planning, and later runs inherit it.
 | `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each |
 | `docs/shiploop/test-strategy.md` | Harnesses, suites, the commands that own them, the test-ID convention |
 | `docs/shiploop/architecture.md` | How the product is built, apart from what it must do: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the decisions as stable IDs (`AD-<n>`: choice, why, alternatives, status) with a `Superseded` section. Runtime versions and working commands stay in `environment.md`. It records names and shapes (a credential's alias and mechanism), never secret values or code that assigns them, because the credential screen reads this file too. It links the repository's own architecture or ADR documents instead of copying them |
-| `docs/shiploop/features/<slug>/` | This run's record: `spec.md` (IDs added, modified, retired), `plan.md`, `test-spec.md`, `system-tests.md`, `release-plan.md`, `outcome.md` |
+| `docs/shiploop/features/<slug>/` | This run's record: `spec.md` (IDs added, modified, retired; checked against the living spec and removed at handoff when the run's commits reach your branch), `plan.md`, `test-spec.md`, `system-tests.md`, `release-plan.md`, `outcome.md` |
+| `docs/shiploop/features/README.md` | ShipLoop's list of the feature folders and the commands that find a requirement ID in them; written from the tree inside a knowledge commit, never by hand (a hand edit is replaced; a file at that path that is not ShipLoop's is left alone) |
 
 Each packet names the home and the files its stage keeps up to date. At four
 closes (`prepare`, each `test-spec`, `release-plan`, `release-verify`) ShipLoop
@@ -540,6 +545,32 @@ linked, not copied. A later run reads these files as evidence, not as a
 protocol to import: discovery re-verifies recorded environment facts cheaply
 instead of rediscovering them, spec starts from the living spec, and release
 planning starts from the recorded commands.
+
+**The feature spec is retired at handoff.** The run's `features/<slug>/spec.md` is its
+historical record once it is committed with the plan. When the final handoff is
+accepted, ShipLoop reads the requirement IDs that file names and checks that each
+is in `docs/shiploop/spec.md` (a Retired section counts; a range `R-1 .. R-9` is
+read by its two ends; presence only, nothing is merged). If they are and the run's
+commits reach your branch (an in-place run, or a fast-forward return), ShipLoop
+removes the file in a commit of its own, `docs(shiploop): retire <slug> spec: checked
+its requirement IDs against the living spec`, and that commit goes back with the
+knowledge follow-up return; its body counts the IDs checked (a feature spec that
+names none is still retired) and gives the recover command
+(`git show <commit>^:<path>`) and the commit the plan was recorded in. The file
+stays when the return made before the close was a working-tree return (the run's
+commits are not on your branch, so it would be the only copy) or recorded no change
+(the follow-up return that carries the knowledge commits comes after the decision,
+which stays conservative), when the living spec lacks an ID it names or names none
+at all, when the file has uncommitted changes or was never committed, and when it is
+a symbolic link; ShipLoop says which, and never refuses the handoff for the IDs or
+the route. A removal or a list write that cannot be made (a read-only file, a Git
+index lock, a hook) leaves the handoff pending with the file's absolute path first;
+fix that and submit the same result again. The run's plan, test and outcome records
+stay. A replan that starts after a retire finds the planned feature spec
+only in Git history (`git log` on the folder, or the list's recover command); a
+squash merge of the run's branch drops that history, and with it the retired file.
+Link the list (`features/README.md`), never a feature's `spec.md`, from the home
+README: a link to a retired file dangles.
 
 **Learnings commit and read-back.** The feature's `outcome.md` has three sections,
 `## Learned`, `## Key considerations` and `## Open for the next run`, written in

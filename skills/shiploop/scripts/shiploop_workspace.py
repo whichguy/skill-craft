@@ -108,6 +108,7 @@ __all__ = [
     "assert_binding",
     "completed_receipt",
     "returned_before",
+    "return_kind",
     "completed_receipt_snapshot",
     "ROUTE_TEXT",
     "execute_return",
@@ -2147,6 +2148,22 @@ def returned_before(workspace_root: Path) -> bool:
     except WorkspaceError:
         return False
     return bool(receipt) and receipt.get("status") == "returned"
+
+
+def return_kind(workspace_root: Path) -> Optional[str]:
+    """The route of the newest recorded return (fast-forward-merge, working-tree-return, no-change-return); None before one.
+
+    Read-only and lock-free, like ``returned_before``, and a stale receipt still answers: it names the route the work
+    went by.  A follow-up return keeps only a fast-forward and a working-tree route (``_return_kind``); one that follows a
+    no-change return is worked out again, so read the kind before a follow-up if it is the earlier route that matters.  A
+    workspace or receipt that cannot be read is "no return recorded" here.
+    """
+    try:
+        receipt = _receipt(_resolved_directory(Path(workspace_root), label="workspace root"))
+    except WorkspaceError:
+        return None
+    kind = receipt.get("kind") if receipt and receipt.get("status") == "returned" else None
+    return kind if kind in _RETURN_KINDS else None
 
 
 def completed_receipt(workspace_root: Path, repo: Path) -> Optional[Dict[str, Any]]:

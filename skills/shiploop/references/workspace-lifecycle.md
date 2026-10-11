@@ -248,10 +248,24 @@ source state the previous receipt recorded, not from the preparation baseline:
 
 Before saving final handoff completion, ShipLoop commits any remaining knowledge
 and retries an applicable knowledge-only follow-up return, then checks the current
-receipt. A failed commit or return leaves handoff pending. Retrying after the
-commit already succeeded still checks the return; it does not repeat product
-execution or create another knowledge commit. In-place runs use the same pending
+receipt. A knowledge commit that cannot be made, or a follow-up return that fails
+after a commit made at this handoff, leaves handoff pending with the reason. Retrying
+after the commit already succeeded still checks the return; it does not repeat product
+execution or create another knowledge commit, and a follow-up return that fails on that
+retry is a note on stderr: the check that follows refuses a return that is not current
+and prints the commands. In-place runs use the same pending
 handoff recovery for the commit, without a workspace return.
+
+In that order, between the knowledge commit and the follow-up return, ShipLoop also
+retires the run's feature spec when the run's commits reach your branch: an in-place
+run, or a worktree run whose recorded return is a fast-forward. The removal is a
+commit of its own and travels with the follow-up return. After a working-tree or
+no-change return, or before any return, the file is kept (before any return nothing
+is said; the retry after the return decides). The decision reads the route before the
+follow-up, which works a no-change return out again and may then return the file with
+the knowledge commits, so the notice speaks of the earlier return, not of the branch.
+If that follow-up return fails after the retire commit alone, the handoff guard still
+refuses a stale return and prints the commands; a retry makes no second retire commit.
 
 The new receipt keeps the previous one as `previous_receipt`. If the source
 already holds exactly the result the follow-up would produce (the fix was copied

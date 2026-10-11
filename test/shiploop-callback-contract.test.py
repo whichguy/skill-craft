@@ -507,7 +507,10 @@ class RefusalRouteTests(RealCliCase):
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
         self.assertTrue(self.git(repo, "log", "-1", "--format=%s").strip().endswith("knowledge at prepare"))
-        self.assertEqual(self.git(repo, "show", "--name-only", "--format=", "HEAD").split(), ["docs/shiploop/architecture.md"])
+        # The file the refusal named, plus the list of feature folders ShipLoop writes inside any knowledge commit once a feature
+        # folder exists (docs/shiploop/features/README.md): nothing else rides in the commit.
+        self.assertEqual(sorted(self.git(repo, "show", "--name-only", "--format=", "HEAD").split()),
+                         ["docs/shiploop/architecture.md", "docs/shiploop/features/README.md"])
 
     def test_a_dropped_decision_id_is_refused_with_its_exit_on_line_1_and_the_exit_is_accepted(self) -> None:
         # A later run's prepare, on a repository whose home an earlier run committed with two decisions.  Line 1 is the

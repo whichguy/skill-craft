@@ -15,6 +15,11 @@ A later run starts from these files.
     docs/shiploop/architecture.md    stack, structure, conventions, interfaces; stable decision IDs, a Superseded section
     docs/shiploop/features/<slug>/   this run: spec.md (delta), plan.md, test-spec.md,
                                      system-tests.md, release-plan.md, outcome.md
+    docs/shiploop/features/README.md ShipLoop's list of the folders above (FEATURE_LIST)
+
+At handoff the run's feature spec.md is checked against the living spec (every requirement ID it names must be there)
+and, when the run's commits reach the user's branch, removed in a commit of its own (``retire``); the last committed
+version stays in Git, in that commit's parent (a squash merge of the branch drops it).
 """
 
 from __future__ import annotations
@@ -22,7 +27,8 @@ from __future__ import annotations
 import re
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, NamedTuple, Optional, Sequence, Tuple
+from urllib.parse import quote
 
 import shiploop_git as shiploop_git
 import shiploop_privacy as privacy
@@ -38,6 +44,10 @@ ARCHITECTURE = "architecture.md"
 ARCHITECTURE_HOLDS = ("the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), "
                       "conventions, interfaces and boundaries, and a '## Decisions' section of stable IDs AD-<n> (choice, "
                       "why, alternatives, status) with a '## Superseded' section for decisions that no longer hold")
+# ShipLoop's list of the feature folders, written from the tree inside a knowledge commit that is already happening.  It is no
+# close file and no stage writes it (``feature_list``).
+FEATURE_LIST = HOME + "/features/README.md"
+
 LIVING = ("README.md", "spec.md", "environment.md", "test-strategy.md", ARCHITECTURE)
 # The close that commits, and the files it requires (``{feature}`` is this run's feature directory).
 CLOSES: Dict[str, Tuple[str, ...]] = {
@@ -87,6 +97,13 @@ _DECISION_ID = re.compile(r"\b(AD-\d+)\b")
 # own product decisions D-<n>, and neither file's check reads the other's numbering.
 _RETAINED = (("spec.md", _REQUIREMENT_ID, "living spec", "requirement", "Retired"),
              (ARCHITECTURE, _DECISION_ID, "architecture", "decision", "Superseded"))
+
+
+def _ids(text: str) -> List[str]:
+    """The requirement IDs a text names, each once, in numeric order (the one reader of the ID syntax)."""
+    return sorted(set(_REQUIREMENT_ID.findall(text)), key=lambda value: int(value.split("-")[1]))
+
+
 # outcome.md sections that become the release-verify commit body (owner to-do 2026-09-26).
 LEARNING_SECTIONS = ("Learned", "Key considerations", "Open for the next run")
 
@@ -303,13 +320,23 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
     return "\n".join(refusals)
 
 
+def knowledge_subject(state: Mapping[str, Any], stage: str) -> str:
+    """The subject of the commit that records this run's knowledge at (a close) or after (any other) ``stage``."""
+    return ("docs(shiploop): record " + feature_dir(state).rsplit("/", 1)[-1] + " knowledge "
+            + ("at " if stage in CLOSES else "after ") + stage)
+
+
 def commit(state: Mapping[str, Any], stage: str) -> shiploop_git.Committed:
     """Commit exactly the knowledge home after an accepted stage that changed it (every stage, not only closes)."""
     repo = Path(str(state["repo"]))
     if not _home_changed(repo):
         return shiploop_git.Committed("", [], [])
-    message = ("docs(shiploop): record " + feature_dir(state).rsplit("/", 1)[-1] + " knowledge "
-               + ("at " if stage in CLOSES else "after ") + stage)
+    try:
+        write_feature_list(repo)
+    except OSError as exc:
+        # The navigator turns a RuntimeError into its "handoff remains pending" refusal or notice; a raw OSError would escape.
+        raise RuntimeError("cannot write " + str(repo / FEATURE_LIST) + ": " + str(exc) + _WRITE_HINT) from exc
+    message = knowledge_subject(state, stage)
     if stage == "release-verify":
         body = "\n\n".join(name + "\n" + text for name, text in learnings(state).items() if text)
         if body:
@@ -320,11 +347,406 @@ def commit(state: Mapping[str, Any], stage: str) -> shiploop_git.Committed:
         raise RuntimeError(str(exc)) from exc
 
 
+# --- the feature list ---------------------------------------------------------------------------------------------
+
+# The next step a failure to write or remove a knowledge file names, because the reader of a refusal has lost the context.
+_WRITE_HINT = " (check write permission on that file and the folder it is in)"
+
+# The generated list opens with this mark.  A file at FEATURE_LIST that does not is someone else's and is left alone; the
+# header below may change between releases while its first lines stay, so an older generated list is still ShipLoop's.
+_LIST_MARK = "# Features\n\nShipLoop writes this list from the folders beside it"
+_LIST_HEADER = """\
+# Features
+
+ShipLoop writes this list from the folders beside it each time it commits
+knowledge; a hand edit is replaced. One folder is one run.
+
+At handoff ShipLoop checks that the requirement IDs a run's `spec.md` names
+are in the living spec ([../spec.md](../spec.md)), then removes that
+`spec.md` when the run's commits reach the branch; the run's other files
+stay. Git keeps each version committed at a knowledge close; a squash merge
+drops them.
+
+## Find a run
+
+Run these from the repository root. Replace `<ID>` with a requirement ID and
+`<folder>` with a folder name from the list below.
+
+Which features mention a requirement (a range written R-n..R-m is found only
+by its two ends):
+
+```sh
+grep -rlw '<ID>' docs/shiploop/features/
+```
+
+When a requirement was added, changed or retired:
+
+```sh
+git log --format='%h %s' \\
+  -G'(^|[^0-9A-Za-z])<ID>([^0-9]|$)' -- docs/shiploop/
+```
+
+A removed `spec.md`, as last written:
+
+```sh
+F=docs/shiploop/features/<folder>
+R=$(git log --diff-filter=D --format=%H -1 -- $F/spec.md)
+git show "$R^:$F/spec.md"
+```
+
+What a run planned, read from its prepare commit:
+
+```sh
+F=docs/shiploop/features/<folder>
+P=$(git log --format=%H -1 --fixed-strings \\
+  --grep='record <folder> knowledge at prepare')
+git show "$P:$F/plan.md"
+```
+
+## Folders
+"""
+
+
+def _feature_folders(repo: Path) -> List[Path]:
+    root = Path(repo) / HOME / "features"
+    if not root.is_dir() or root.is_symlink():
+        return []
+    return sorted(path for path in root.iterdir() if path.is_dir() and not path.is_symlink())
+
+
+def feature_list(repo: Path) -> str:
+    """The text of FEATURE_LIST for the folders in the tree now; "" while ``features/`` has no folder.
+
+    Derived from the tree alone: no run state, no old file, no commit ID, no time, so it is the same text however often it
+    is written.  One bullet per folder, with one nested bullet per markdown file directly in it.  A folder whose row the
+    credential screen flags is withheld, because a folder name comes from the request's first words.
+    """
+    folders = _feature_folders(repo)
+    if not folders:
+        return ""
+    rows, withheld = [], 0
+    for folder in folders:
+        name = quote(folder.name)
+        row = ["- [" + folder.name + "](" + name + "/)"]
+        row += ["  - [" + file + "](" + name + "/" + quote(file) + ")" for file in sorted(
+            path.name for path in folder.glob("*.md") if path.is_file() and not path.is_symlink())]
+        if any(privacy.sensitive_text(line) for line in row):
+            withheld += 1
+        else:
+            rows += row
+    if withheld:
+        rows += ["- " + str(withheld) + (" folder is" if withheld == 1 else " folders are") + " not listed because "
+                 "the name looks like a", "  credential; see `ls docs/shiploop/features/`."]
+    return _LIST_HEADER + "\n" + "\n".join(rows) + "\n"
+
+
+def _list_problem(repo: Path) -> str:
+    """Why FEATURE_LIST may not be written, "" when it may: absent, empty or ShipLoop's own, and no symbolic link."""
+    path = Path(repo) / FEATURE_LIST
+    if path.is_symlink():
+        return "it is a symbolic link"
+    if not path.exists():
+        return ""
+    if not path.is_file():
+        return "it is not a regular file"
+    text = path.read_text(encoding="utf-8", errors="replace")
+    if text.strip() and not text.startswith(_LIST_MARK):
+        return "it does not begin with ShipLoop's generated header, so it is not ShipLoop's list"
+    return ""
+
+
+def _list_is_shiploops(repo: Path) -> bool:
+    """Whether FEATURE_LIST is there and is ShipLoop's own generated list (a regular file that begins with its mark)."""
+    path = Path(repo) / FEATURE_LIST
+    return (path.is_file() and not path.is_symlink()
+            and path.read_text(encoding="utf-8", errors="replace").startswith(_LIST_MARK))
+
+
+def feature_list_notice(repo: Path) -> str:
+    """The notice for a FEATURE_LIST that ShipLoop leaves alone while there are folders to list; "" otherwise."""
+    problem = _list_problem(repo)
+    if not problem or not _feature_folders(repo):
+        return ""
+    return "left " + str(Path(repo) / FEATURE_LIST) + " as it is (" + problem + "); the list of the feature folders is not written."
+
+
+def write_feature_list(repo: Path) -> None:
+    """Write FEATURE_LIST when the tree has folders to list and the text differs, over nothing that is not ShipLoop's.
+
+    Only a knowledge commit that is happening calls this (and the retire, and a test fixture that stands in for an
+    earlier knowledge commit): the list never makes a commit of its own.
+    """
+    text = feature_list(repo)
+    path = Path(repo) / FEATURE_LIST
+    if text and not _list_problem(repo) and (not path.is_file() or path.read_text(encoding="utf-8", errors="replace") != text):
+        path.write_text(text, encoding="utf-8")
+
+
+def earlier_features(state: Mapping[str, Any]) -> str:
+    """The packet clause that points a stage at the earlier runs' feature folders.
+
+    Two answers: "none yet" while no folder but this run's own exists, and otherwise where to look.  What it says about the
+    list is true in every state: the list's path is promised only when ShipLoop's list is there; a repository that predates
+    the list has none until the first knowledge commit, and a file at that path may be someone else's, so those two name the
+    folders' directory and say which of the two it is.
+    """
+    repo = Path(str(state["repo"]))
+    own = feature_dir(state).rsplit("/", 1)[-1]
+    if not [folder for folder in _feature_folders(repo) if folder.name != own]:
+        return "Earlier features: none yet."
+    listed = repo / FEATURE_LIST
+    if _list_is_shiploops(repo):
+        return ("Earlier features: " + str(listed) + " lists every feature folder and the commands that find a "
+                "requirement ID in them.")
+    return ("Earlier features: the folders in " + str(repo / HOME / "features") + "/ ("
+            + (str(listed) + " is not ShipLoop's list of them" if _list_problem(repo)
+               else "ShipLoop has not written its list of them, " + str(listed) + ", yet") + ").")
+
+
+# --- the living spec's pin ----------------------------------------------------------------------------------------
+
+def spec_pin(state: Mapping[str, Any]) -> Optional[str]:
+    """``docs/shiploop/spec.md @ <12 hex>``: the newest commit that changed the living spec; None while none did.
+
+    It names a version of the spec by reference, so a plan can say which one it implements without a copy.  The value
+    does not move with other commits, so a plan written at one stage and read at another agree.  None outside a
+    checkout too, without running Git (a graph dry run runs no process).
+    """
+    repo = Path(str(state["repo"]))
+    if not (repo / ".git").exists():
+        return None
+    shown = _git(repo, "log", "-1", "--format=%H", "--", HOME + "/spec.md")
+    found = shown.stdout.strip() if shown.returncode == 0 else ""
+    return HOME + "/spec.md @ " + found[:12] if found else None
+
+
+# --- the handoff retire (owner decision D3, plan 0a) ---------------------------------------------------------------
+
+# The retire commit's subject.  It says what the script did, not what it found and not that anything was merged: the script
+# reads requirement IDs and removes a file, and a feature spec that names none still gets the subject (the body counts the IDs,
+# which may be none).  ``{folder}`` is the feature folder's name; the matcher below is cut from the same template.
+_RETIRE_SUBJECT = "docs(shiploop): retire {folder} spec: checked its requirement IDs against the living spec"
+_RETIRE_HEAD, _, _RETIRE_TAIL = _RETIRE_SUBJECT.partition("{folder}")
+
+
+def _retire_subject_for(folder: str) -> str:
+    return _RETIRE_SUBJECT.replace("{folder}", folder)
+
+
+def retire_subject(state: Mapping[str, Any]) -> str:
+    """The subject of the commit that retires this run's feature spec."""
+    return _retire_subject_for(feature_dir(state).rsplit("/", 1)[-1])
+
+
+def is_retire_subject(subject: str) -> bool:
+    """Whether ``subject`` is a retire commit's, for any run: the one matcher for a reader of the log (the harness)."""
+    if not (subject.startswith(_RETIRE_HEAD) and subject.endswith(_RETIRE_TAIL)
+            and len(subject) > len(_RETIRE_HEAD) + len(_RETIRE_TAIL)):
+        return False
+    return re.fullmatch(r"\S+", subject[len(_RETIRE_HEAD):len(subject) - len(_RETIRE_TAIL)]) is not None
+
+
+def _missing_ids(repo: Path, feature: str) -> Optional[List[str]]:
+    """The requirement IDs the feature spec names that the living spec does not; None when that cannot be judged.
+
+    None: the feature spec is not in the tree, or the living spec names no requirement ID at all (the requirements may
+    live in another home, so nothing can be compared and nothing may be removed on the strength of it).  The check is
+    the same for a delta-style spec and a full copy: every ID the file mentions, in any section, must be in the living
+    spec, a Retired section included.  A range written ``R-1 .. R-9`` is read by its two ends.  Presence only: it does not
+    show that the living spec says what the feature spec says.
+    """
+    spec, living = Path(repo) / feature / "spec.md", Path(repo) / HOME / "spec.md"
+    if not spec.is_file():
+        return None
+    have = set(_ids(living.read_text(encoding="utf-8", errors="replace"))) if living.is_file() else set()
+    if not have:
+        return None
+    return [value for value in _ids(spec.read_text(encoding="utf-8", errors="replace")) if value not in have]
+
+
+def _planned_record(repo: Path, state: Mapping[str, Any]) -> str:
+    """The full ID of this run's prepare close commit, which holds the feature spec as planned; "" when none is found.
+
+    Found by its exact subject over the whole log, never by a path: the prepare close usually commits only what changed
+    since the spec stage, and rarely the feature folder (on the 33 saved feature specs a path-limited search found it in 8,
+    the subject in all 33).  The subject carries the feature folder, which ends in the run's suffix, so it names this
+    run alone.  A history rewritten to other subjects, or squashed, leaves none, and nothing is invented.
+    """
+    subject = knowledge_subject(state, "prepare")
+    shown = _git(Path(repo), "log", "--format=%H%x00%s", "--fixed-strings", "--grep=" + subject)
+    for row in shown.stdout.splitlines() if shown.returncode == 0 else ():
+        commit_id, _, found = row.partition("\0")
+        if found == subject:
+            return commit_id
+    return ""
+
+
+def _retire_message(repo: Path, state: Mapping[str, Any], named: Sequence[str]) -> str:
+    """The retire commit's message: what was checked, what was removed, how to get it back, and where it was planned.
+
+    A mechanical commit: it holds no lessons and no ``Learned-from`` line, because neither the planned commit nor the
+    living spec's last commit taught anything to this one.  The planned record is named in prose.
+    """
+    relative = feature_dir(state) + "/spec.md"
+    lines = [retire_subject(state), "",
+             "Requirement IDs checked in " + HOME + "/spec.md: " + (", ".join(named) if named else "none (the feature "
+             "spec names none)") + ".",
+             "Removed " + relative + ". Its last version is in this commit's parent: git show <this commit>^:" + relative]
+    planned = _planned_record(repo, state)
+    if planned:
+        lines.append("Planned at " + planned + " (the prepare close).")
+    return "\n".join(lines) + "\n"
+
+
+# Why the route keeps the file, as the notice prints it.  It speaks of the return made before the close and never of what the
+# branch holds when it prints: the follow-up return, which comes after the retire, may put the knowledge commits on the
+# branch (it works a no-change return out again as a fast-forward), so "the commits do not reach your branch" would be false.
+KEPT_AFTER_ROUTE = ("the return made before this close did not put the run's commits on your branch (it was a "
+                    "working-tree return, or recorded no change)")
+
+
+class Retired(NamedTuple):
+    commit: str  # the retire commit, "" when none was made
+    kept: str    # why a feature spec that is in the tree stays, "" when it was removed or there was nothing to decide
+
+
+def retire(state: Mapping[str, Any], reaches_branch: Optional[bool]) -> Retired:
+    """At the terminal close: remove this run's feature spec once the living spec holds the IDs it names (owner decision D3).
+
+    ``reaches_branch`` is whether the run's commits reach the user's branch: True in a checkout the user works in and after
+    a fast-forward return, False after a working-tree or no-change return (the run's commits are not on the branch, so the
+    file would be the only copy; the knowledge follow-up return that comes after this call may still put them there, which is
+    why the reason speaks of the earlier return, ``KEPT_AFTER_ROUTE``), None while an isolated run has not returned (the
+    route is unknown; the handoff guard asks for the return and the retry decides).  The removal is one commit of its own:
+    the deletion, and FEATURE_LIST rewritten without the removed file (only when ShipLoop owns that file and Git would take
+    it).  A file that is already gone is a retry or an early deletion by the model and is left alone, which is what makes
+    the terminal close safe to repeat.  Handoff is never refused here for the IDs or the route: the file is kept and the
+    reason says which.  A removal or commit that cannot be made raises RuntimeError (the navigator's "handoff remains
+    pending"), after the file, the list and the index are put back.
+    """
+    repo = Path(str(state["repo"]))
+    relative = feature_dir(state) + "/spec.md"
+    spec = repo / relative
+    if reaches_branch is None or not spec.is_file() or _git(repo, "rev-parse", "--is-inside-work-tree").returncode:
+        return Retired("", "")
+    if not reaches_branch:
+        return Retired("", KEPT_AFTER_ROUTE)
+    missing = _missing_ids(repo, feature_dir(state))
+    if missing is None:
+        return Retired("", "the living spec names no requirement ID, so the IDs cannot be checked")
+    if missing:
+        return Retired("", ", ".join(missing) + (" is" if len(missing) == 1 else " are") + " not in the living spec "
+                       + str(repo / HOME / "spec.md"))
+    if spec.is_symlink():
+        # A link's history holds the target path, not the text the message promises in the parent commit, and a failed
+        # attempt could not put the link back as a link.
+        return Retired("", "it is a symbolic link")
+    if _git(repo, "cat-file", "-e", "HEAD:" + relative).returncode:
+        return Retired("", "it was never committed")
+    if _git(repo, "diff", "--quiet", "HEAD", "--", relative).returncode:
+        return Retired("", "it has changes that are not committed")
+    message = _retire_message(repo, state, _ids(spec.read_text(encoding="utf-8", errors="replace")))
+    original, listed = spec.read_bytes(), repo / FEATURE_LIST
+    owned = not _list_problem(repo)
+    list_before = listed.read_bytes() if owned and listed.is_file() else None
+    paths = [relative]
+    try:
+        spec.unlink()
+        write_feature_list(repo)
+        # An explicit path that Git ignores is an error, and a retry would fail the same way: leave an untracked, ignored list out.
+        if owned and listed.is_file() and _git(repo, "check-ignore", "-q", "--", FEATURE_LIST).returncode == 1:
+            paths.append(FEATURE_LIST)
+        done = shiploop_git.commit_paths(repo, paths, message)
+    except (shiploop_git.CommitError, OSError) as exc:
+        _put_back(repo, spec, original, listed if owned else None, list_before, paths)
+        # The first line is what a reader who has lost the context needs: the absolute path, the reason, the likely causes.
+        raise RuntimeError("cannot retire " + str(spec) + ": " + " ".join(str(exc).split())
+                           + (" (check for a Git index lock or a hook that refuses the commit)"
+                              if isinstance(exc, shiploop_git.CommitError) else _WRITE_HINT)) from exc
+    return Retired(done.commit, "")
+
+
+def _put_back(repo: Path, spec: Path, original: bytes, listed: Optional[Path], list_before: Optional[bytes],
+              paths: Sequence[str]) -> None:
+    """Undo a failed retire as far as the file system allows: the feature spec, the list and the index.
+
+    A step that cannot be done is skipped, never raised: the caller is reporting the failure that brought it here, and a
+    second error out of this handler would replace that report.
+    """
+    steps = [lambda: spec.write_bytes(original)]
+    if listed is not None:
+        steps.append((lambda: listed.write_bytes(list_before)) if list_before is not None
+                     else (lambda: listed.unlink(missing_ok=True)))   # the list did not exist before this attempt wrote it
+    for step in steps:
+        try:
+            step()
+        except OSError:
+            pass
+    _git(repo, "reset", "-q", "--", *paths)
+
+
+def retired_by(repo: Path, feature: str) -> str:
+    """The short ID of the commit that removed ``<feature>/spec.md`` when it is ShipLoop's retire commit; "" for any other
+    removal (a model's own deletion), for a spec that was never committed, and outside a checkout.
+
+    ``feature`` is the feature directory as ``feature_dir`` gives it.  One read-only log of the path: call it only when
+    the answer is wanted (the progress view asks at the handoff and after it, not on every snapshot).
+    """
+    shown = _git(Path(repo), "log", "-1", "--diff-filter=D", "--format=%h%x00%s", "--", feature + "/spec.md")
+    short, _, subject = (shown.stdout if shown.returncode == 0 else "").partition("\0")
+    return short.strip() if subject.strip() == _retire_subject_for(feature.rsplit("/", 1)[-1]) else ""
+
+
+def is_retired_spec(repo: Path, path: Path) -> bool:
+    """Whether ``path`` is the feature spec of a run that ShipLoop's own retire commit removed from ``repo``.
+
+    Only the shape ``<repo>/docs/shiploop/features/<folder>/spec.md`` and only a removal by the retire subject count
+    (``retired_by``): a model's own deletion, another file of the folder and a path outside ``repo`` do not.
+    """
+    try:
+        parts = Path(path).relative_to(Path(repo)).parts
+    except ValueError:
+        return False
+    prefix = tuple(HOME.split("/")) + ("features",)
+    if len(parts) != len(prefix) + 2 or parts[:len(prefix)] != prefix or parts[-1] != "spec.md":
+        return False
+    return bool(retired_by(Path(repo), "/".join(parts[:-1])))
+
+
 def in_home(path: str) -> bool:
     """A path ShipLoop commits as knowledge: the home directory or the repository index."""
     return path in KNOWLEDGE or path.startswith(HOME + "/")
 
 
-__all__ = ("ARCHITECTURE", "ARCHITECTURE_HOLDS", "CLOSES", "GROUNDING_LABELS", "HOME", "INDEX", "KNOWLEDGE", "LEARNING_SECTIONS",
-           "check", "commit", "feature_dir", "grounding", "in_home", "learnings", "next_close", "recent_commits",
-           "required_earlier", "stage_lines")
+__all__ = ("ARCHITECTURE",
+           "ARCHITECTURE_HOLDS",
+           "CLOSES",
+           "FEATURE_LIST",
+           "GROUNDING_LABELS",
+           "HOME",
+           "INDEX",
+           "KEPT_AFTER_ROUTE",
+           "KNOWLEDGE",
+           "LEARNING_SECTIONS",
+           "Retired",
+           "check",
+           "commit",
+           "earlier_features",
+           "feature_dir",
+           "feature_list",
+           "feature_list_notice",
+           "grounding",
+           "in_home",
+           "is_retire_subject",
+           "is_retired_spec",
+           "knowledge_subject",
+           "learnings",
+           "next_close",
+           "recent_commits",
+           "required_earlier",
+           "retire",
+           "retire_subject",
+           "retired_by",
+           "spec_pin",
+           "stage_lines",
+           "write_feature_list")

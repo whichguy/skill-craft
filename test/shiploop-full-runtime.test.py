@@ -1000,6 +1000,13 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertIsNotNone(checkpoint)
         self.assertEqual(state["status"], "done")
         self.assertEqual(len(state["history"]), 34)
+        # The run was returned by fast-forward before its handoff, so the terminal close removed the feature spec in a commit of
+        # its own (owner decision D3) and the knowledge follow-up carried that commit to the source branch.
+        feature = knowledge_support.knowledge.feature_dir(state)
+        self.assertEqual(self._git(source, "log", "-1", "--format=%s").stdout.strip(),
+                         knowledge_support.knowledge.retire_subject(state))
+        self.assertFalse((source / feature / "spec.md").exists())
+        self.assertTrue((source / feature / "plan.md").is_file())
         # Only the 7 planning/contract stages and the run's single end-of-work
         # carry-forward review actually bind an Improve child.
         first_pass_checkpoints = [s for s in EXPECTED_STAGES if s in CHECKPOINT_STAGES or s == "carry-forward"]
