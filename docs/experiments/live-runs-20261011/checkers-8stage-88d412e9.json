@@ -1,0 +1,54 @@
+{
+ "run": "checkers-8stage-88d412e9",
+ "build": "checkout 88d412e9 (8-stage inner loop, commit contract, retire step, architecture.md, feature-list wording fix)",
+ "host": "claude claude-sonnet-5-5",
+ "outcome": "PASS (every verdict passed; held-out 6 of 6; mutation 71 of 107 caught, js-1)",
+ "turns": 215,
+ "cost_usd": 4.273,
+ "seconds": 1080,
+ "commits_block": {
+  "improve": {
+   "n": 8,
+   "with_lessons": 8,
+   "cited": 0,
+   "cited_earlier_run": 0
+  },
+  "script": {
+   "n": 12,
+   "with_lessons": 1
+  },
+  "other": {
+   "n": 0,
+   "with_lessons": 0
+  },
+  "counted": 20,
+  "start_head": null
+ },
+ "non_script_commits_in_work_repo": [
+  "e14ebf0 Release plan: rollback as plain git from repo root",
+  "085b529 README: document system test and browser check",
+  "0fe4900 Page: clicking another own piece changes the selection",
+  "19938d3 Test spec: concrete spare pieces avoid clash with TC-7 squares",
+  "0768375 Test spec: spare-piece rule for custom boards",
+  "8e608ff Test spec: split TC-8 so mandatory jump does not mask the king step",
+  "7e25673 Test spec: make TC-3 and TC-6 positions exact",
+  "2f9f704 Spec: add board representation and worked examples E1-E6"
+ ],
+ "knowledge_home_files": [
+  "README.md",
+  "architecture.md",
+  "environment.md",
+  "spec.md",
+  "test-strategy.md",
+  "features/README.md"
+ ],
+ "features_list_written_by_shiploop": true,
+ "retire_commit": "81ae5b0 docs(shiploop): retire <folder> spec: checked its requirement IDs against the living spec",
+ "knowledge_kept_notices": 0,
+ "section_notices": 0,
+ "command_failures": [
+  "assumptions are allowed only on a done plan result (x2, repeated)",
+  "open plan assumptions A3 name W1 as consumer; add an expectation for each with 'from': '<assumption id>' and a check that settles it"
+ ],
+ "stage_turn_deltas_vs_previous_row": "system-test-author 6->26 (0.5->4.3 min), test-spec 5->20, implement 16->30, step-plan 8->16, verify 3->8; only now: test, validate-existing"
+}

@@ -22,5 +22,28 @@ Question: does the build that carries the commit contract, the spec retire step,
 3. **Packets mention the retire and list correctly**, with absolute paths; no prepare refusal; the `ShipLoop knowledge notice:` section notices do not exist yet (A2).
 4. The three command failures belong to the inner-loop session's area (loop contract evidence, result path, test-spec command ids); reported to it.
 
+## Checkers (web service, two-player), 88d412e9
+
+Build: `88d412e9` (the 8-stage inner loop, the commit contract, the retire step, `architecture.md`, and the inner-loop session's three fixes from the hello findings, including the feature-list sentence). Claude Sonnet 5.5, `--source checkout`, output `/Users/dadleet/e2e-runs/20261010/checkers-8stage-88d412e9` (compact extract: `docs/experiments/live-runs-20261011/checkers-8stage-88d412e9.json`).
+
+**Status: firm for this one run; single-run differences from the earlier Checkers row are inside the noise of a same-build cell (a hello cell ranged 1.75x in cost), so no claim of change.**
+
+| Measure | This run |
+|---|---|
+| Outcome | PASS: `shiploop done`, all case checks, held-out 6 of 6, committed; mutation 71 of 107 caught (`js-1`, ratio 0.66, 4 timeouts, 4 port refusals) |
+| Cost, turns, wall | $4.27, 215 turns, 1,080 s (planning window closed at test-spec after 6.3 min); previous row: $3.72, 201 turns |
+| Commits in the product repo | 20: 12 ShipLoop's own (1 with a lessons section: release-verify's `Learned`), **8 Improve commits, all 8 carrying lessons, 0 citing an earlier commit**, 0 model commits (`other` n=0) |
+| Knowledge home at the end | `README.md`, `architecture.md`, `environment.md`, `spec.md`, `test-strategy.md`, `features/README.md` (ShipLoop's generated list), one feature folder without `spec.md` |
+| Kept-notices / section notices | 0 / not built yet |
+| ShipLoop command failures | 3: `assumptions are allowed only on a done plan result` (twice, the only repeat), `open plan assumptions A3 name W1 as consumer; add an expectation ... from ...` |
+| Stage turns vs the previous row | system-test-author 6 to 26 (0.5 to 4.3 min), test-spec 5 to 20, implement 16 to 30, step-plan 8 to 16, verify 3 to 8; stages only in this run: test, validate-existing |
+
+**What it shows against the plan's measures**
+1. **Commit contract: the bypass is gone in this run.** All 8 Improve commits went through `improve-commit` and carry `Key learnings`; the model made no commit of its own. The audit measured 14 of 40 Improve-window commits bypassing the gate on the earlier build, and the saved-run baseline has 74 of 136 Improve commits with a lessons section under the shared reader. By construction a commit that passes the gate has lessons, so the informative number is "no commit around the gate", not "8 of 8 have lessons".
+2. **Citations did not appear: 0 of 8.** `Learned-from:` is optional and the first run on a fresh repository has few earlier commits worth crediting (the Improve card already makes the child read seven messages). The look-back block (deferred in plan v5 until a baseline existed) is the lever; whether it is worth its bytes needs a follow-on run on this repository, where `cited_earlier_run` can be non-zero. **Next measurement proposed, not run:** a second feature on this same repository, then compare `improve.cited` and `cited_earlier_run`.
+3. **The feature-list defect from the hello run did not recur.** With the sentence "ShipLoop writes that feature list at its next knowledge commit; do not create or edit it" the model left the file alone; `features/README.md` is ShipLoop's generated list with the four header commands and was refreshed inside five knowledge commits and the retire commit.
+4. **Retire step again made and returned** (`81ae5b0`).
+5. **Cost of the 8-stage graph on a larger case is not yet visible as a saving**: the stage-level turns grew in the planning and system-test stages (above); the inner-loop session's own slices found the 8 stages "correct but slower than the 17-stage slices". One run each; the same-build spread must be measured (three or more runs of this cell) before reading this as a change.
+
 ## Next
 Checkers (source=checkout) once A2 is on main and the build includes the packet fix for finding 2, then the counters (`metrics.commits`), kept-notices, `ShipLoop knowledge notice:` lines and the hello and Battleship deltas are read for both runs.
