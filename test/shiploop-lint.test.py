@@ -1053,7 +1053,7 @@ class HookTests(Fixture):
         with self.patched_env():
             state = self.enter_verify_with_a_fixable_edit()
             self.assertIn("AUTO-FIX APPLIED", self.entered)
-            self.assertLess(self.entered.index("Call this when done:"),
+            self.assertLess(self.entered.index("Callback for this stage (run once after its work"),
                             self.entered.index("ShipLoop lint (supporting output"))
             self.assertIn("AUTO-FIX APPLIED", nav.render(CORE, self.run_dir, state))
             calls = len(self.logged())

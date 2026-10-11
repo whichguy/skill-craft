@@ -304,7 +304,9 @@ _ROWS = (
         complete_runs=("loop-terminal",),
         improve="always",
         reads=("spec", "test-strategy", "plan", "prepare"),
-        blocks=frozenset({"test-facility", "test-decision", "backchain", "interaction-design"}),        outcomes=("done", "blocked"),
+        # Its duty carries the test-facility, test-decision and design-basis points itself (2026-10-11 dedupe), so
+        # the prompt skips those shared texts here; the blocks stay for the navigator's source lookups.
+        blocks=frozenset({"test-facility", "test-decision", "backchain"}),        outcomes=("done", "blocked"),
     ),
     Stage(
         "test-spec", "inner",

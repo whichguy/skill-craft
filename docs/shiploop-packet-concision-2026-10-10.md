@@ -144,3 +144,62 @@ Verify each step:
     `test/shiploop-stage-spec.test.py` pins every prose copy to them.
 - **Risk in the merged UI/state text.** The merged step-plan UI/state text (design basis plus interaction design)
   keeps every obligation, but it should be rerun against the interaction-state experiment cases before shipping.
+
+## 2026-10-11: within-packet dedupe, shared blocks and step-plan (recommended order item 3)
+
+Status: **interim**. The sizes are measured, and the 30 packet suites are green. No live slice or clear-the-context
+probe has run on it yet.
+
+**Question.** The owner said: "the full packet file looks far too verbose ... consolidate the language and
+deduplicate". They pointed at a live step-plan packet: 53k characters and 701 lines, with paths shortened.
+
+**Where the step-plan characters went.** The measurement is docs/experiments/packet-dedupe-20261011/step-plan-live-before.md.
+
+| Block | Share |
+|---|---|
+| Shared COMMON rules | 32% |
+| Interaction and state lifecycle | 6% |
+| Request plus 15 guide locators plus the workspace return block | 9% |
+| The 17-line locator catalogue and recovery prose | 6% |
+| The 115-line result template | 6.5% |
+| Progress reporting | 5% |
+| Backchain caller text and budget | 4% |
+
+The callback was printed 3 times. The status was printed 3 times: the snapshot, the block and the narrative. The
+step rules were printed 4 times: Checked-by, the exit conditions, the duty and STEP_SIZING.
+
+**Owner decisions (2026-10-11, AskUserQuestion).** The owner approved all four moves out of the packet:
+- the result template to a file. I implemented this as a compaction instead, because the tests and the model parse
+  the template inline;
+- the interaction and state text to a Design basis item plus its guide;
+- the requirements rules to one bullet;
+- the Backchain and workspace text: one optional audit line in inline step-plan, and the return route only at
+  release and handoff.
+
+**Change.** changes/shiploop/packet-dedupe.md lists it in full. A short `STAGE_RULES` list replaces COMMON,
+REQUIREMENTS_RULES and PROGRESS_REPORTING, and their long forms stay in reference.md (#rules, #requirements,
+#progress). Each duplicate was cut to one home.
+
+**Lost obligations found by the pin workers, and restored.** Four workers updated about 430 pinned assertions. Each
+assertion whose obligation was stated nowhere was reported instead of re-pointed. These were found and restored:
+- step-plan item 4: the facility locator is carried into the item context and the Improve child's notes.
+- item 7: the Design basis terms.
+- item 9: "an unrecorded conversation is not a planning handoff" and the sole-directive sentence.
+- item 1: carrying the test decision forward on a revise.
+- The access-discovery rule ("non-mutating probes and sanitized evidence") is now in STAGE_RULES, with the
+  Access-readiness locator at discovery and research.
+- The untrusted notice for host-recorded labels. It came from the removed Progress snapshot and now sits above the
+  status block.
+- TEST_DECISION_HANDOFF named a source block that the dedupe no longer prints. It now names the "builds on" entry.
+
+**Result** (docs/experiments/packet-dedupe-20261011/offline-sizes.json). On the offline node-fix-bug inner loop, inline, the total fell from 431k
+to 270k characters. The step-plan packet fell from 58k to 33k (`packets.py offline_packets`, before ref
+3c812fbd).
+
+**Known limits.**
+- Improve-child prose still says "the packet's Maintained requirements policy" and similar. Those locators are
+  reachable only through the reference.md#policies line.
+- The "*" no-review swap row for COMMON's schedule sentence now affects only reference.md.
+- The test, verify and carry-forward packets (25-28k each) still carry TEST_FACILITY_HANDOFF and
+  TEST_DECISION_HANDOFF, plus a second "fix and resubmit" line. This is the next pass.
+- Not yet run: a live step slice and the S-6 clear-the-context probe. Both should run before a release.

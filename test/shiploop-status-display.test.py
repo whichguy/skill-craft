@@ -280,7 +280,8 @@ class StatusBlockTests(unittest.TestCase):
         self.assertIn(block, packet)
         header = packet.index("ShipLoop navigator | ")
         self.assertLess(header, packet.index(BEGIN))
-        self.assertLess(packet.index("Progress snapshot"), packet.index(BEGIN))
+        # The "Progress snapshot" block is gone (2026-10-11 dedupe): the status block above is its one home here.
+        self.assertNotIn("Progress snapshot", packet)
         self.assertLess(packet.index(END), hook.WINDOW)
         self.assertEqual((root / "status.md").read_text(encoding="utf-8"),
                          "```text\n" + block + "\n```\n")

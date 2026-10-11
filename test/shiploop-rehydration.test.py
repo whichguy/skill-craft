@@ -106,10 +106,13 @@ class PacketTests(unittest.TestCase):
         state = drive_to("implement")
         line = next(line for line in nav.render(dry_run.CORE, dry_run.RUN, state).splitlines()
                     if line.startswith("This action's pass log"))
-        for part in ("optional", "ShipLoop does not create it", "Create it when the pass starts",
-                     "append after each pass what you checked and what is left",
-                     "open it first if it exists", "nothing was logged"):
+        # PASS_LOG_RULE was shortened (2026-10-11 dedupe): "ShipLoop does not create it" and "nothing was logged"
+        # went; the host creates it ("create it and append ...") and opens it first only if it exists.
+        for part in ("optional", "never a completion gate", "create it and append",
+                     "what each pass checked and what is left",
+                     "open it first if it exists"):
             self.assertIn(part, line)
+        self.assertNotIn("ShipLoop creates it", line)
         self.assertNotIn("open it first after a reset)", line)  # the unconditional promise of a file
 
     def test_emit_creates_the_notes_directory_the_packet_names(self) -> None:

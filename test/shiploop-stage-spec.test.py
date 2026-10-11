@@ -91,8 +91,10 @@ class StageTableTest(unittest.TestCase):
         # Code craft goes where code or tests are written or reviewed, not to
         # the planning stages step-plan and test-spec.
         self.assertEqual(prompts.IMPLEMENTATION_STAGES, frozenset({"implement", "test", "document", "verify"}))
+        # step-plan's duty carries its own design-basis point (2026-10-11 dedupe), so it left this block.
         self.assertEqual(spec.with_block("interaction-design"),
-                         frozenset({"discovery", "research", "spec", "plan", "step-plan"}))
+                         frozenset({"discovery", "research", "spec", "plan"}))
+        self.assertNotIn("interaction-design", spec.stage("step-plan").blocks)
         self.assertEqual(spec.with_block("work-items"), frozenset({"plan", "carry-forward"}))
         self.assertEqual(set(prompts.ENVIRONMENT_DISCOVERY_REQUIREMENTS), {"discovery", "research"})
 

@@ -324,9 +324,17 @@ class PacketLineTests(unittest.TestCase):
         for stage in prompts.DUTIES:
             for delegation in prompts.DELEGATIONS:
                 with self.subTest(stage=stage, delegation=delegation):
-                    expected = int(stage in prompts.BACKCHAIN_STAGES)
-                    self.assertEqual(prompts.prompt(stage, delegation=delegation).count(prompts.BACKCHAIN_CHECK),
-                                     expected)
+                    # An inline step-plan builds no execution graph: it carries the one optional audit line
+                    # (STEP_PLAN_BACKCHAIN_INLINE), which names the printed `backchain-check` itself, instead of
+                    # the full BACKCHAIN_CHECK line (2026-10-11 dedupe).
+                    inline_step_plan = stage == "step-plan" and delegation == prompts.INLINE
+                    expected = int(stage in prompts.BACKCHAIN_STAGES and not inline_step_plan)
+                    packet = prompts.prompt(stage, delegation=delegation)
+                    self.assertEqual(packet.count(prompts.BACKCHAIN_CHECK), expected)
+                    if inline_step_plan:
+                        self.assertEqual(packet.count(prompts.STEP_PLAN_BACKCHAIN_INLINE), 1)
+                        self.assertIn("`backchain-check`", prompts.STEP_PLAN_BACKCHAIN_INLINE)
+                        self.assertIn("evidence_refs", prompts.STEP_PLAN_BACKCHAIN_INLINE)
                     self.assertNotIn("backchain-check", prompts.improve_prompt(stage, delegation=delegation))
 
     def test_the_line_size_is_pinned(self):

@@ -17,6 +17,7 @@ import shiploop_navigator_dry_run as driver  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as guidance  # noqa: E402
 import shiploop_protocol as protocol  # noqa: E402
+import shiploop_reference as run_reference  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -96,40 +97,45 @@ class NavigatorDryRunTests(unittest.TestCase):
             f'Recursive discovery policy: {policy}#recursive-discovery-and-experiments',
             f'Navigator adapter: {policy}#navigator-execution-mode-adapter',
         )
+        # 2026-10-11 dedupe: a packet prints a policy locator once, only when its own text names the
+        # label; every policy and guide, and the host-authored lifecycle note, is listed in the run
+        # reference file (#policies), which each packet points at.
+        reference = run_reference.render({}, driver.RUN)
+        policies = {
+            'Access-readiness policy': f'{policy}#early-access-readiness',
+            'Cross-run knowledge policy': str(policy.parent / 'project-knowledge.md'),
+            'Consumer testing guide': str(policy.parent / 'testing-and-documentation.md')
+            + '#lightweight-and-browser-checks',
+            'Worktree and artifact policy': str(policy.parent / 'workspace-lifecycle.md'),
+            'Delivery-authority policy': str(references / 'delivery-authority.md'),
+            'Environment lifecycle policy': str(lifecycle),
+        }
+        lifecycle_note = ('Environment lifecycle note (host-authored, if present): '
+                          + str(driver.RUN / 'notes' / 'environment-lifecycle.md'))
+        self.assertIn(lifecycle_note, reference)
+        for label, target in policies.items():
+            self.assertIn(f'{label}: {target}', reference)
+        printed_somewhere = set()
         for name in ('delivery', 'blocked-resume', 'pause-resume'):
             report = driver.run_scenario(name, driver.scenarios()[name])
             self.assertTrue(report['ok'], report.get('error'))
             for event in report['events']:
                 with self.subTest(scenario=name, stage=event['from'], command=event['command']):
                     prompt = event['prompt']
-                    self.assertEqual(prompt.count(
-                        f'Access-readiness policy: {policy}#early-access-readiness'
-                    ), 1)
-                    self.assertEqual(prompt.count(
-                        'Cross-run knowledge policy: '
-                        + str(policy.parent / 'project-knowledge.md')
-                    ), 1)
+                    self.assertIn('reference.md (#policies', prompt)
                     self.assertIn(
                         'Repository knowledge index (host-authored, if present): ',
                         prompt,
                     )
-                    self.assertEqual(prompt.count(
-                        'Consumer testing guide: '
-                        + str(policy.parent / 'testing-and-documentation.md')
-                        + '#lightweight-and-browser-checks'
-                    ), 1)
-                    self.assertEqual(prompt.count(
-                        'Worktree and artifact policy: '
-                        + str(policy.parent / 'workspace-lifecycle.md')
-                    ), 1)
-                    self.assertEqual(prompt.count(
-                        'Delivery-authority policy: ' + str(references / 'delivery-authority.md')
-                    ), 1)
-                    self.assertEqual(prompt.count(f'Environment lifecycle policy: {lifecycle}'), 1)
-                    self.assertEqual(prompt.count(
-                        'Environment lifecycle note (host-authored, if present): '
-                        + str(driver.RUN / 'notes' / 'environment-lifecycle.md')
-                    ), 1)
+                    for label, target in policies.items():
+                        line = f'{label}: {target}'
+                        printed = prompt.count(line)
+                        self.assertLessEqual(printed, 1, line)
+                        if prompt.count(label) > printed:
+                            self.assertEqual(printed, 1, line)
+                        if printed:
+                            printed_somewhere.add(label)
+                    self.assertEqual(prompt.count('Environment lifecycle note'), 0)
                     # Only the discovery and research producers carry the
                     # environment discovery requirement and its locators.
                     discovery = event['from'] in requirements
@@ -140,6 +146,8 @@ class NavigatorDryRunTests(unittest.TestCase):
                                       + requirements[event['from']], prompt)
                     for line in discovery_lines:
                         self.assertEqual(prompt.count(line), int(discovery), line)
+        # The selection is live: the packets of these scenarios print some policy locators.
+        self.assertTrue(printed_somewhere)
 
     def test_dry_run_simulates_actual_improve_handoffs_without_starting_them(self):
         expected = {'delivery': 33, 'two-work-items': 44, 'blocked-resume': 35,
@@ -414,6 +422,19 @@ class BackchainStageTextTests(unittest.TestCase):
     LOOP_STAGE = "plan"
     AUDIT_STAGES = ("spec", "step-plan", "carry-forward", "product-acceptance")
 
+    @staticmethod
+    def printed_guidance(stage, **modes):
+        """What an inline packet prints for the stage's Backchain call: an inline step-plan builds no execution
+        graph, so it carries one optional audit line instead of the caller guidance (2026-10-11 dedupe)."""
+        if stage == "step-plan":
+            return guidance.STEP_PLAN_BACKCHAIN_INLINE
+        return guidance._backchain_guidance(stage, **modes)
+
+    def assert_prints_guidance(self, packet, stage, **modes):
+        self.assertEqual(packet.count(self.printed_guidance(stage, **modes)), 1)
+        if stage == "step-plan":
+            self.assertNotIn(guidance._backchain_guidance(stage, **modes), packet)
+
     @classmethod
     def setUpClass(cls):
         with tempfile.TemporaryDirectory(prefix="backchain-stage-text-") as temporary:
@@ -428,7 +449,17 @@ class BackchainStageTextTests(unittest.TestCase):
     def test_the_dry_run_packet_carries_exactly_the_stage_guidance(self):
         for stage in (self.LOOP_STAGE, *self.AUDIT_STAGES):
             with self.subTest(stage=stage):
-                self.assertEqual(self.packets[stage].count(guidance._backchain_guidance(stage)), 1)
+                self.assert_prints_guidance(self.packets[stage], stage)
+
+    def test_step_plan_carries_the_full_audit_guidance_only_when_delegated(self):
+        # 2026-10-11 dedupe: an inline step-plan carries the one optional audit line; ask-agent keeps the guidance.
+        full = guidance._backchain_guidance("step-plan")
+        inline = guidance.prompt("step-plan", delegation=guidance.INLINE)
+        delegated = guidance.prompt("step-plan", delegation=guidance.ASK_AGENT)
+        self.assertEqual(inline.count(guidance.STEP_PLAN_BACKCHAIN_INLINE), 1)
+        self.assertNotIn(full, inline)
+        self.assertEqual(delegated.count(full), 1)
+        self.assertNotIn(guidance.STEP_PLAN_BACKCHAIN_INLINE, delegated)
 
     def test_only_the_loop_stage_prints_the_resource_list_and_the_others_print_the_audit_line_and_status(self):
         for stage in (self.LOOP_STAGE, *self.AUDIT_STAGES):
@@ -521,8 +552,7 @@ class BackchainStageTextTests(unittest.TestCase):
                     guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes=mode)), 1)
                 for stage in self.AUDIT_STAGES:
                     self.assertNotIn("required_trivial_reviews", packets[stage])
-                    self.assertEqual(packets[stage].count(
-                        guidance._backchain_guidance(stage, backchain_passes=mode)), 1)
+                    self.assert_prints_guidance(packets[stage], stage, backchain_passes=mode)
 
     POINTER = ("A repair/revise child runs one review/fix/check cycle: put the line `Backchain passes: one` "
                "beside the binding marker in the child request, as Backchain's convergence reference defines it")
@@ -662,8 +692,7 @@ class BackchainStageTextTests(unittest.TestCase):
                 # the sentence is all that differs from mode one
                 self.assertEqual(none.replace(self.NONE_SENTENCE + ".", "A whole `plan`/`draft` is requested only at `plan`."),
                                  one)
-            self.assertEqual(self.packets_in("none")[stage].count(
-                guidance._backchain_guidance(stage, backchain_passes="none")), 1)
+            self.assert_prints_guidance(self.packets_in("none")[stage], stage, backchain_passes="none")
 
 
 class BindCommandTests(unittest.TestCase):

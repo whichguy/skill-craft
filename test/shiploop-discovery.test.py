@@ -104,7 +104,11 @@ class InteractionGuidanceTests(unittest.TestCase):
 
         packet = navigator.render(None, run_root, recovered)
 
-        self.assertIn(self.locator, packet)
+        # A packet prints a policy locator only when its stage text names that guide; every other packet points to
+        # reference.md#policies, which lists the same locator (2026-10-11 dedupe).
+        if self.locator not in packet:
+            self.assertIn("reference.md (#policies", packet)
+            self.assertIn(self.locator, (run_root / "reference.md").read_text(encoding="utf-8"))
         self.assertEqual(recovered, before_state)
         self.assertEqual(dict(navigator.current_action(recovered)), before_action)
         self.assertEqual((run_root / "state.md").read_bytes(), before_bytes)
@@ -211,18 +215,28 @@ class InteractionGuidanceTests(unittest.TestCase):
         """Routing cues name the applicable concerns without testing design quality."""
         producer = navigator_prompts.prompt("step-plan").lower()
         improve = navigator_prompts.improve_prompt("step-plan").lower()
-        for prompt_name, prompt in (("producer", producer), ("improve", improve)):
-            with self.subTest(prompt=prompt_name):
-                for cue in (
-                    "incoming/outgoing events",
-                    "connection lifecycle",
-                    "baseline/delta",
-                    "ui-specific planning",
-                ):
-                    self.assertIn(cue, prompt)
-        for cue in ("design guidance", "fallback", "evidence_refs"):
-            with self.subTest(cue=cue):
-                self.assertIn(cue, producer)
+        # The improve prompt still names the guide's subsections.  The producer's duty (item 7, 2026-10-11 dedupe)
+        # routes to them as "the interaction design guide's matching subsections" and lists the Design basis fields.
+        for cue in (
+            "incoming/outgoing events",
+            "connection lifecycle",
+            "baseline/delta",
+            "ui-specific planning",
+        ):
+            with self.subTest(prompt="improve", cue=cue):
+                self.assertIn(cue, improve)
+        producer_flat = " ".join(producer.split())
+        for cue in (
+            "interaction design guide's matching subsections",
+            "incoming/outgoing events, connection lifecycle",
+            "the baseline and the delta",
+            "the actors, events, connections and state owner",
+            "the planned recovery checks",
+            "the design guidance's identity/version or digest (or the named fallback)",
+            "evidence_refs",
+        ):
+            with self.subTest(prompt="producer", cue=cue):
+                self.assertIn(cue, producer_flat)
 
     def test_v3_planning_stages_keep_design_basis_records_stage_local(self) -> None:
         """Require record-routing cues, not an LLM judgment about their substance."""
@@ -234,10 +248,21 @@ class InteractionGuidanceTests(unittest.TestCase):
             ),
             "evidence_refs",
         )
-        for stage in ("plan", "step-plan"):
+        # step-plan's duty (item 7, 2026-10-11 dedupe) states the Design basis paragraph in its own words.
+        step_plan_cues = (
+            "add a Design basis paragraph",
+            "Recheck the Interaction design guide's matching subsections",
+            "the baseline and the delta;",
+            "the actors, events, connections and state owner;",
+            "the planned recovery checks;",
+            "the design guidance's identity/version or digest (or the named fallback)",
+            "the locators of its sources and checks",
+            "evidence_refs",
+        )
+        for stage, cues in (("plan", required_cues), ("step-plan", step_plan_cues)):
             with self.subTest(stage=stage):
                 prompt = " ".join(navigator_prompts.prompt(stage).split())
-                for cue in required_cues:
+                for cue in cues:
                     self.assertIn(cue, prompt)
         # The plan keeps its design basis as ordinary notes.  step-plan now records expectations, check commands
         # and step skills as result fields of its own (8-stage inner loop, 2026-10-10), so the cue is plan's alone.
