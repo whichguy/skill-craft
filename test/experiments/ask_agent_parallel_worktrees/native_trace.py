@@ -680,7 +680,7 @@ def _probe_command_segment(value: str) -> str | None:
     return None
 
 
-def _explicit_probe_workers(prompt: str) -> tuple[dict[str, str], str | None, bool]:
+def _explicit_probe_workers(prompt: str, *, allow_missing_finish: bool = False) -> tuple[dict[str, str], str | None, bool]:
     """Read worker IDs from typed start/finish probe commands in the prompt."""
     claims: dict[str, list[str]] = {"start": [], "finish": []}
     malformed = False
@@ -718,16 +718,21 @@ def _explicit_probe_workers(prompt: str) -> tuple[dict[str, str], str | None, bo
         return {}, "probe command has missing or duplicate worker/phase flags", True
     if not claims["start"] and not claims["finish"]:
         return {}, "typed prompt has no explicit start/finish probe worker IDs", False
-    if not claims["start"] or not claims["finish"]:
-        return {}, "typed prompt is missing an explicit start or finish probe command", False
-    if len(claims["start"]) != 1 or len(claims["finish"]) != 1:
+    if len(claims["start"]) > 1 or len(claims["finish"]) > 1:
         return {}, "typed prompt has duplicate start or finish probe commands", True
-    return {phase: values[0] for phase, values in claims.items()}, None, False
+    if not claims["start"]:
+        return {}, "typed prompt is missing an explicit start or finish probe command", False
+    if not claims["finish"]:
+        if allow_missing_finish:
+            return {"start": claims["start"][0]}, None, False
+        return {}, "typed prompt is missing an explicit start or finish probe command", False
+    return {"start": claims["start"][0], "finish": claims["finish"][0]}, None, False
 
 
 def _bind_spawn_to_probe(raw_input: dict[str, Any], assignments: list[dict[str, Any]],
                          starts: dict[str, dict[str, Any]], *,
-                         allow_owned_path_omission: bool = False) -> tuple[str | None, str | None, bool]:
+                         allow_owned_path_omission: bool = False,
+                         allow_finish_probe_omission: bool = False) -> tuple[str | None, str | None, bool]:
     """Bind a spawn by its cwd's unique probe root and corroborating task prompt."""
     prompt = raw_input.get("prompt")
     if not isinstance(prompt, str):
@@ -751,7 +756,9 @@ def _bind_spawn_to_probe(raw_input: dict[str, Any], assignments: list[dict[str, 
     owned_path = assignments_for_worker[0].get("path")
     if not isinstance(owned_path, str) or (not allow_owned_path_omission and not _path_named(prompt, owned_path)):
         return None, f"typed prompt does not name the owned path for probe worker {worker}", True
-    probe_workers, error, conflict = _explicit_probe_workers(prompt)
+    probe_workers, error, conflict = _explicit_probe_workers(
+        prompt, allow_missing_finish=allow_finish_probe_omission,
+    )
     if error:
         return None, error, conflict
     if any(value != worker for value in probe_workers.values()):
@@ -936,6 +943,23 @@ def _compact_cli_calls(root_updates: list[dict[str, Any]], script: Path, run: Pa
         if len(run_values) == 1 and Path(run_values[0]).expanduser().resolve() == run.resolve():
             calls.append({"row": row, "tokens": tokens, "args": args})
     return calls
+
+
+def _compact_runtime_argv_matches(actual: Any, expected: Any) -> bool:
+    """Compare a v4 producer argv, resolving only its interpreter argv[0]."""
+    if (not isinstance(actual, list) or not isinstance(expected, list) or not actual
+            or len(actual) != len(expected)
+            or any(type(value) is not str for value in actual + expected)
+            or actual[1:] != expected[1:]):
+        return False
+    try:
+        actual_executable = Path(actual[0])
+        expected_executable = Path(expected[0])
+        if not actual_executable.is_absolute() or not expected_executable.is_absolute():
+            return False
+        return actual_executable.resolve(strict=True) == expected_executable.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return False
 
 
 def _compact_cli_result(call: dict[str, Any], root_updates: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, int | None, str | None]:
@@ -1593,6 +1617,7 @@ def _compact_dispatch_check(run: Path, assignments: list[dict[str, Any]],
         raw = row["update"].get("rawInput")
         worker, issue, conflict = (_bind_spawn_to_probe(
             raw, assignments, starts, allow_owned_path_omission=packet_v4,
+            allow_finish_probe_omission=packet_v4,
         ) if isinstance(raw, dict) else (None, "spawn has no typed arguments", False))
         if issue:
             (errors if conflict else missing).append(f"spawn at line {row['line']}: {issue}")
@@ -1641,7 +1666,7 @@ def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 def _compact_child_invocation(command: str, run: Path, worker: str, phase: str,
                               cwd: str, binding_path: str, *,
                               expected_binding_sha256: str | None = None,
-                              launch_cwd_verified: bool = False) -> dict[str, bool] | None:
+                              launch_cwd_verified: bool = False) -> dict[str, Any] | None:
     try:
         tokens = shlex.split(command)
     except ValueError:
@@ -1679,15 +1704,19 @@ def _compact_child_invocation(command: str, run: Path, worker: str, phase: str,
     else:
         return None
     packet_v4 = expected_binding_sha256 is not None
-    if (len(command_tokens) != (14 if packet_v4 else 12)
-            or command_tokens[:3] != ["PYTHONDONTWRITEBYTECODE=1", "python3", "-B"]):
+    if packet_v4 and phase == "finish":
+        command_prefix, expected_length, expected_script_index = ["python3", "-B"], 13, 2
+    else:
+        command_prefix = ["PYTHONDONTWRITEBYTECODE=1", "python3", "-B"]
+        expected_length, expected_script_index = (14 if packet_v4 else 12), 3
+    if len(command_tokens) != expected_length or command_tokens[:len(command_prefix)] != command_prefix:
         return None
     script_positions = [index for index, token in enumerate(command_tokens)
                         if Path(token).name == "worker_phase.py"]
     if len(script_positions) != 1:
         return None
     script_index = script_positions[0]
-    if script_index != 3:
+    if script_index != expected_script_index:
         return None
     script_path = Path(command_tokens[script_index])
     if not script_path.is_absolute():
@@ -1710,7 +1739,10 @@ def _compact_child_invocation(command: str, run: Path, worker: str, phase: str,
     if (run_value.resolve() != run.resolve()
             or binding_value.resolve() != Path(binding_path).resolve()):
         return None
-    return {"fixture_test": fixture_test}
+    result = {"fixture_test": fixture_test}
+    if packet_v4:
+        result["command_argv"] = command_tokens
+    return result
 
 
 def _compact_wrapper_result(output: Any, *, fixture_test: bool) -> dict[str, Any] | None:
@@ -1932,6 +1964,7 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
         native_result_lines: dict[str, int | None] = {}
         native_call_lines: dict[str, int | None] = {}
         native_result_values: dict[str, dict[str, Any]] = {}
+        packet_finish_command_bound = not packet_v4
         child_updates: list[dict[str, Any]] = []
         if transcript_path is None or not transcript_path.is_file():
             missing.append(f"worker {worker} retained native child transcript is missing")
@@ -1957,6 +1990,19 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                 )
                 if invocation is not None:
                     native_matches.append(item | invocation)
+            if packet_v4 and phase == "finish":
+                start_phase = worker_detail["phases"].get("start", {})
+                start_attempt = attempts_by_phase.get("start")
+                action_packet = start_attempt.get("action_packet") if isinstance(start_attempt, dict) else None
+                packet_finish = action_packet.get("finish_command") if isinstance(action_packet, dict) else None
+                packet_finish_command_bound = (
+                    start_phase.get("production_command_valid") is True
+                    and len(native_matches) == 1
+                    and isinstance(packet_finish, dict)
+                    and packet_finish == {"argv": native_matches[0].get("command_argv"), "cwd": cwd}
+                )
+                if not packet_finish_command_bound:
+                    issues.append(f"worker {worker} native finish command does not match its validated action-packet finish_command")
             native_result_valid = False
             native_result_line = None
             if len(native_matches) == 1:
@@ -1998,6 +2044,7 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                         and result.get("run_id") == manifest.get("run_id")
                         and result.get("worker_id") == worker and result.get("phase") == phase
                         and result.get("root") == cwd
+                        and (not packet_v4 or phase != "finish" or packet_finish_command_bound)
                         and result.get("evidence") == str((run / "operator" / "worker-phases" / f"worker-{worker}-{phase}" / "attempt.json").resolve())
                         and isinstance(result.get("checks"), dict)
                         and all(result["checks"].get(name) is True for name in wrapper_checks)
@@ -2020,10 +2067,7 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                         native_result_valid = (
                             isinstance(result.get("ephemeral_audit"), dict)
                             and result.get("checks", {}).get("ephemeral_findings_only") is True
-                            and not any(key in result for key in (
-                                "returned_inspection", "patch_path", "patch_sha256", "commit_base",
-                                "contribution_commits", "commit_sha", "delivery", "integration_strategy",
-                            ))
+                            and _compact_ephemeral_has_no_delivery_payload(result)
                         )
                     if not native_result_valid:
                         issues.append(f"worker {worker} native {phase} wrapper terminal result is not a successful bound phase")
@@ -2036,7 +2080,9 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                 attempt = None
             if isinstance(attempt, dict):
                 attempts_by_phase[phase] = attempt
-            native_call_lines[phase] = native_matches[0].get("line") if len(native_matches) == 1 else None
+            native_call_lines[phase] = (native_matches[0].get("line") if len(native_matches) == 1
+                                        and (not packet_v4 or phase != "finish" or packet_finish_command_bound)
+                                        else None)
             native_result_lines[phase] = native_result_line
             label = "compact-worker-start" if phase == "start" else "compact-worker-finish"
             calls = [item for item in attempt.get("calls", []) if item.get("label") == label] if attempt else []
@@ -2065,8 +2111,10 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                     inspection = workspace.get("inspection", {}) if isinstance(workspace, dict) else {}
                     if not isinstance(inspection, dict):
                         inspection = {}
+                    argv_matches = (call_record.get("argv") == expected_argv if not packet_v4 else
+                                    _compact_runtime_argv_matches(call_record.get("argv"), expected_argv))
                     common_command_valid = (
-                        not call_path.is_symlink() and call_record.get("argv") == expected_argv
+                        not call_path.is_symlink() and argv_matches
                         and call_record.get("cwd") == cwd and call_record.get("exit_code") == 0
                         and call_record.get("status") == "COMPLETED"
                         and raw_result == result
@@ -2119,7 +2167,6 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                                 "cwd": cwd,
                             }
                             command_valid = (harness_packet == expected_packet
-                                             and result.get("action_packet") == harness_packet
                                              and production_packet.get("task") == binding_value.get("task")
                                              and production_packet.get("finish_command") == expected_production_finish
                                              and isinstance(production_packet.get("instructions"), list)
@@ -2161,13 +2208,23 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                             )
                 except (OSError, KeyError, IndexError, TraceError, TypeError):
                     command_valid = False
-            worker_detail["phases"][phase] = {
-                "native_invocations": len(native_matches), "native_line": native_matches[0]["line"] if len(native_matches) == 1 else None,
-                "native_result_valid": native_result_valid, "native_result_line": native_result_line,
-                "production_command_valid": command_valid,
-                "attempt": _locator(attempt_path) if attempt_path.exists() else None,
-                "command": _locator(call_path) if call_path and call_path.exists() else None,
-            }
+            if phase == "start":
+                worker_detail["phases"][phase] = {
+                    "native_invocations": len(native_matches), "native_line": native_matches[0]["line"] if len(native_matches) == 1 else None,
+                    "native_result_valid": native_result_valid, "native_result_line": native_result_line,
+                    "production_command_valid": command_valid,
+                    "attempt": _locator(attempt_path) if attempt_path.exists() else None,
+                    "command": _locator(call_path) if call_path and call_path.exists() else None,
+                }
+            else:
+                worker_detail["phases"][phase] = {
+                    "native_invocations": len(native_matches), "native_line": native_matches[0]["line"] if len(native_matches) == 1 else None,
+                    "native_result_valid": native_result_valid, "native_result_line": native_result_line,
+                    "production_command_valid": command_valid,
+                    "action_packet_finish_command_bound": packet_finish_command_bound,
+                    "attempt": _locator(attempt_path) if attempt_path.exists() else None,
+                    "command": _locator(call_path) if call_path and call_path.exists() else None,
+                }
             if not native_matches:
                 missing.append(f"worker {worker} native transcript lacks its {phase} compact wrapper invocation")
             elif len(native_matches) != 1:
@@ -2212,7 +2269,6 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                     or delivery.get("commits") != contribution_commits
                     or delivery.get("commit_paths") != [task.get("path")]
                     or not isinstance(returned_inspection, dict)
-                    or returned_inspection.get("commit_paths") != [task.get("path")]
                     or returned_inspection.get("contribution_paths") != [task.get("path")]
                     or delivery.get("per_commit_paths") != [{"commit": commit_sha, "paths": [task.get("path")]}]
                     or delivery.get("residual_paths") != []):
@@ -2243,13 +2299,14 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                 production_result = finish_result.get("compact_worker_result")
                 workspace = production_result.get("workspace_evidence") if isinstance(production_result, dict) else None
                 production_inspection = workspace.get("inspection") if isinstance(workspace, dict) else None
-                if production_inspection != returned_inspection:
+                if not _compact_commit_inspection_matches(
+                        run, production_inspection, returned_inspection, finish_attempt,
+                        snapshot.get("source_dirty") if isinstance(snapshot, dict) else None):
                     helper_proof_errors.append("finish attempt helper inspection differs from production worker-finish evidence")
                 native_finish = native_result_values.get("finish")
                 if (not isinstance(native_finish, dict)
                         or native_finish.get("commit_base") != commit_base
                         or native_finish.get("contribution_commits") != contribution_commits
-                        or native_finish.get("returned_inspection") != returned_inspection
                         or native_finish.get("patch_path") != finish_result.get("patch_path")
                         or native_finish.get("patch_sha256") != finish_result.get("patch_sha256")):
                     helper_proof_errors.append("native finish output differs from the retained worker commit proof")
@@ -2295,14 +2352,12 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                     and isinstance(workspace_evidence.get("fingerprint"), str)
                     and workspace_evidence == production_audit
                 )
-                forbidden = {"returned_inspection", "patch_path", "patch_sha256", "commit_base",
-                             "contribution_commits", "commit_sha", "delivery", "integration_strategy"}
-                if not expected_finish_fields or any(key in finish_attempt for key in forbidden):
+                if not expected_finish_fields or not _compact_ephemeral_has_no_delivery_payload(finish_attempt):
                     issues.append(f"worker {worker} ephemeral finish does not retain findings-only evidence without delivery fields")
                 native_finish = native_result_values.get("finish")
                 if (not isinstance(native_finish, dict)
                         or native_finish.get("ephemeral_audit") != workspace_evidence
-                        or any(key in native_finish for key in forbidden)):
+                        or not _compact_ephemeral_has_no_delivery_payload(native_finish)):
                     issues.append(f"worker {worker} native finish output does not bind findings-only evidence without delivery fields")
     status = "FAIL" if issues else "INCOMPLETE" if missing else "PASS"
     detail = "; ".join(issues or missing) if issues or missing else "each native child invoked both bound compact wrappers and retained the successful production checks"
@@ -2469,7 +2524,7 @@ def _compact_commit_delivery_matches(run: Path, phase_delivery: Any, returned_de
         return False
     phase_patch = phase_delivery.get("contribution_patch")
     returned_patch = returned_delivery.get("contribution_patch")
-    if phase_patch != finish_attempt.get("patch_path"):
+    if finish_attempt.get("patch_path") not in {phase_patch, returned_patch}:
         return False
     phase_file = _compact_regular_file_under(run / "workspace-store", phase_patch)
     returned_file = _compact_regular_file_under(run / "workspace-store", returned_patch)
@@ -2479,6 +2534,35 @@ def _compact_commit_delivery_matches(run: Path, phase_delivery: Any, returned_de
             or returned_file[1] != phase_file[1]):
         return False
     return True
+
+
+def _compact_commit_inspection_matches(run: Path, production_inspection: Any, returned_inspection: Any,
+                                       finish_attempt: Any, source_dirty: Any) -> bool:
+    """Compare stable inspection facts and strictly validate both delivery patch copies."""
+    volatile = {"artifacts", "delivery_evidence", "evidence", "fingerprint", "git_state_changed", "ignored_paths"}
+    if not isinstance(production_inspection, dict) or not isinstance(returned_inspection, dict):
+        return False
+    production_stable = set(production_inspection) - volatile - {"delivery"}
+    returned_stable = set(returned_inspection) - volatile - {"delivery"}
+    if production_stable != returned_stable or any(
+        production_inspection.get(key) != returned_inspection.get(key) for key in production_stable
+    ):
+        return False
+    return _compact_commit_delivery_matches(
+        run, production_inspection.get("delivery"), returned_inspection.get("delivery"),
+        finish_attempt, source_dirty,
+    )
+
+
+def _compact_ephemeral_has_no_delivery_payload(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+    nullable_delivery_fields = {"patch_path", "patch_sha256", "commit_base", "contribution_commits"}
+    forbidden_delivery_fields = {
+        "returned_inspection", "commit_sha", "delivery", "integration_strategy",
+    }
+    return (all(key not in value or value[key] is None for key in nullable_delivery_fields)
+            and not any(key in value for key in forbidden_delivery_fields))
 
 
 def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], root_updates: list[dict[str, Any]],
@@ -2558,6 +2642,8 @@ def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], r
         expected_cwd = (str(Path(manifest["paths"]["caller"]).resolve())
                         if isinstance(manifest.get("paths"), dict)
                         and isinstance(manifest["paths"].get("caller"), str) else None)
+        return_argv_matches = (record.get("argv") == expected_return_argv if not packet_v4 else
+                               _compact_runtime_argv_matches(record.get("argv"), expected_return_argv))
         if (value.get("status") != "PASSED" or value.get("worker_id") != worker
                 or (not legacy_patch and value.get("delivery_mode") != mode)
                 or value.get("evidence_path") != str(record_path.resolve())
@@ -2567,7 +2653,7 @@ def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], r
                 or record.get("worker_id") != worker or record.get("binding_sha256") != binding_sha
                 or (packet_v4 and record.get("run_id") != manifest.get("run_id"))
                 or record.get("evidence_path") != str(record_path.resolve())
-                or (not legacy_patch and (record.get("argv") != expected_return_argv
+                or (not legacy_patch and (not return_argv_matches
                     or record.get("cwd") != expected_cwd
                     or (isinstance(task, dict) and value.get("contribution_paths") != [task.get("path")])))):
             issues.append(f"worker {worker} native verify-return output differs from its bound retained record")
@@ -3541,6 +3627,7 @@ def audit_run(run_path: str | Path, *, session_root: str | Path | None = None) -
             background_values = [raw.get("background")] if raw.get("background") is not None else []
             worker, binding_issue, binding_conflict = _bind_spawn_to_probe(
                 raw, assignments, starts, allow_owned_path_omission=compact_packet_spawn,
+                allow_finish_probe_omission=compact_packet_spawn,
             )
             if binding_issue:
                 (launch_conflicts if binding_conflict else launch_issues).append(
