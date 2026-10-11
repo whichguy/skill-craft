@@ -103,9 +103,10 @@ Exact strings, because the packet owner and a reader of the log meet them:
 3. **The CLI route tests are in a suite of their own, `test/shiploop-retire.test.py`**, registered in `test/suite_catalog.py` and pinned in
    `test-groups` (78 ShipLoop suites, 120 in all). Decision 9 allowed either; `shiploop-return-review` measured 104.6 s in the audit against the
    120 s quick ceiling and five more CLI tests would have pushed it over. **For the merge:** every sibling task that adds a suite conflicts on the
-   `test-groups` pins (77 to 78, 119 to 120 here), so the main session reconciles the pins once; and every pending `changes/shiploop/` note must
-   carry the same bump kind (`changes/README.md` allows one kind per skill): this series says `minor`, so a sibling note saying `patch` or `major` must
-   be reconciled before `scripts/release.py` runs.
+   `test-groups` pins (77 to 78, 119 to 120 here), so the main session reconciles the pins once; and pending `changes/shiploop/` notes must all use
+   `bump:` or all use `version:` (`scripts/release.py` `plan()` refuses a mix of the two); they may differ in LEVEL, and the largest bump wins. This series says
+   `minor`; the eight-stage inner loop's note says `major`, so shiploop will release as a major. (Corrected 2026-10-10 from "the same bump kind", which
+   misread `changes/README.md`: checked against `plan()` and `plan_bundle()`.)
 4. **The list is a nested bullet list**, one bullet per folder and one per markdown file, not one long line per folder: a folder with six files was
    a 400-character row. Every header line is at most 80 characters; the rows depend on the folder name.
 5. **`earlier_features` and `spec_pin` exist but nothing calls them.** They are pure functions for the packet owner, tested, and cost nothing until
