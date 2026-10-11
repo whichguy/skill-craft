@@ -855,6 +855,18 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertIn("update-effect", report)
         self.assertIn("visual-drag", report)
 
+    def test_a_person_only_open_item_does_not_waive_a_contract_system_test_obligation(self) -> None:
+        """a13: the system-test open-item route leaves the contract's fixed obligation phases in force."""
+        state = self.to_outer(self.accepted_contract(self.new_state()))
+        open_item = ("Open item SYS-1: only a person can run it; owner a person, due handoff. "
+                     "Reported unverified.")
+        self.refused_at_apply(state, "pre-update", summary=open_item)
+        state = self.advance(
+            state, "system-test", summary=open_item,
+            delivery_assessment=self.observation(state, "pre-drag"),
+        )
+        self.assertEqual(navigator.current_stage(state), "product-acceptance")
+
     def test_late_negative_release_observations_replace_old_success_without_backtracking(self) -> None:
         state = self.to_release(self.accepted_contract(self.new_state()))
         state = self.advance(
