@@ -622,7 +622,7 @@ class RunVisitsTest(unittest.TestCase):
         self.assertIs(self.row(run, "get-next-work-item")["skipped"], True)
         self.assertNotIn("packetBytes", self.row(run, "get-next-work-item"))
         self.assertEqual(sum("skipped" in r for r in run["stages"]), 1)
-        self.assertIn("7 accepted actions (6 work, 1 skipped, 0 seeded)", "\n".join(facts))
+        self.assertIn("7 accepted actions (6 work, 1 recorded by ShipLoop, 0 seeded)", "\n".join(facts))
 
     def test_no_packets_at_all_marks_nothing_because_absence_then_says_nothing(self):
         out = make_run(self.tmp, loops=False)
@@ -809,7 +809,7 @@ class RunVisitsTest(unittest.TestCase):
         self.assertTrue("skipped" not in first and "skipped" not in second)  # seeded, not engine-skipped
         self.assertEqual((third["min"], "seeded" in third), (20.0, False))  # timed from the seeded visit's own stamp
         text = "\n".join(facts)
-        self.assertIn("7 accepted actions (5 work, 0 skipped, 2 seeded)", text)
+        self.assertIn("7 accepted actions (5 work, 0 recorded by ShipLoop, 2 seeded)", text)
         self.assertNotIn("Stages with no minutes", text)  # null by design, not a missing stamp
         self.assertNotIn("Seeded visits not marked", text)
 
@@ -3783,7 +3783,7 @@ class SequenceModelTests(unittest.TestCase):
         self.assertTrue(all(c["mark"] == "" for c in luna if c["outcome"] == "done"))
 
     def test_the_visits_card_splits_work_from_skipped_and_the_improve_card_counts_passes(self) -> None:
-        self.assertEqual(self.card("hello-1190b", "visits")["text"], "54 (47 work, 7 skipped)")
+        self.assertEqual(self.card("hello-1190b", "visits")["text"], "54 (47 work, 7 recorded by ShipLoop)")
         self.assertEqual(self.card("luna1", "visits")["text"], "39 (39 work)")
         self.assertEqual(self.card("hello-1190b", "improve")["value"], "19 passes")
         luna = self.card("luna1", "improve")
@@ -3865,7 +3865,7 @@ class SequenceModelTests(unittest.TestCase):
         self.assertEqual((work["h"], work["min"], work["share"]), (96, 4, 40))
         self.assertEqual((skipped["kind"], skipped["n"], skipped["label"], skipped["h"], skipped["min"]), ("skipped", 2, "x2", 14, 0))
         self.assertEqual(len(model["columns"]), 4)
-        self.assertEqual(model["cards"][0]["text"], "5 (2 work, 2 skipped, 1 seeded)")
+        self.assertEqual(model["cards"][0]["text"], "5 (2 work, 2 recorded by ShipLoop, 1 seeded)")
 
     def test_the_column_detail_names_the_visit_its_files_improve_context_and_the_findings_at_its_phase(self) -> None:
         findings = [{"id": "o1", "title": "A plan defect", "phase": 2, "run": "luna1", "status": "open"},
@@ -3890,7 +3890,7 @@ class SequenceModelTests(unittest.TestCase):
         self.assertEqual(last["next"], None)
         skipped = run_logic("(function(r){var m=sequenceModel(r,{});return columnDetail(m,29,r,[]);})("
                             + json.dumps(self.runs["hello-1190b"]) + ")")
-        self.assertEqual(skipped["title"], "Visits 30 to 33: 4 skipped")
+        self.assertEqual(skipped["title"], "Visits 30 to 33: 4 recorded by ShipLoop")
         self.assertEqual(dict(skipped["lines"])["Stages"], "test-spec, baseline, test-author, test-red")
         self.assertIn("no packet was issued", dict(skipped["lines"])["Outcome"])
         self.assertEqual(run_logic("columnDetail(sequenceModel({stages:[]}),0,{},[])"), None)
@@ -3904,7 +3904,7 @@ class SequenceModelTests(unittest.TestCase):
         self.assertEqual(luna["head"][-2:], ["Context peak", "Compactions"])
         self.assertEqual(hello["head"], ["#", "Stage", "Outcome", "Minutes", "Improve", "Packet file", "Result file"])
         self.assertEqual(luna["rows"][38], ["39", "system-test", "blocked", "11.2 min", "", "36.5 KB", "5.8 KB", "87.6%", "0"])
-        self.assertEqual(hello["rows"][29], ["30", "test-spec", "done, skipped", "0 min", "", "none issued", "814 B"])
+        self.assertEqual(hello["rows"][29], ["30", "test-spec", "done, recorded by ShipLoop", "0 min", "", "none issued", "814 B"])
         self.assertEqual(hello["rows"][39][3], "under 0.1 min")
         self.assertTrue(all(len(r) == len(luna["head"]) for r in luna["rows"]))
         self.assertTrue(all(len(r) == len(hello["head"]) for r in hello["rows"]))
@@ -4038,7 +4038,7 @@ class SequencePictureTests(unittest.TestCase):
         self.assertEqual(luna[4], "")
         hello = page_probe('[textOf("kpis"),textOf("seqnote"),REG.seqnote.hidden,REG.sqlegband.hidden,walk(REG.seqtable,function(e){return e.tagName==="th";}).length]',
                            setup=with_run("hello-1190b"))
-        self.assertIn("Visits5447 work, 7 skipped", hello[0])
+        self.assertIn("Visits5447 work, 7 recorded by ShipLoop", hello[0])
         self.assertIn("Improve19 passes", hello[0])
         self.assertIn("Refusalsnot measured", hello[0])
         self.assertIn(evidence_run("hello-1190b")["unmeasured"]["shiploop_failures"], hello[0])
@@ -5607,7 +5607,7 @@ class StageCardLogicTests(unittest.TestCase):
 
     def test_a_skipped_and_a_seeded_visit_say_so_and_claim_neither_a_packet_nor_a_reader_list(self):
         skipped, seeded = card(CARD_RUN, 3), card(CARD_RUN, 7)
-        self.assertEqual((skipped["kind"], skipped["outcome"], seeded["kind"], seeded["outcome"]), ("skipped", "skipped", "seeded", "seeded"))
+        self.assertEqual((skipped["kind"], skipped["outcome"], seeded["kind"], seeded["outcome"]), ("skipped", "recorded by ShipLoop", "seeded", "seeded"))
         self.assertIn("No packet was issued", skipped["sent"]["note"])
         self.assertIn("harness recorded this visit itself", seeded["sent"]["note"])
         for c in (skipped, seeded):
@@ -5723,7 +5723,7 @@ class StageLabelTests(unittest.TestCase):
             out = page_probe('var rows=byClass("sclist","sc-row");[rows[2].title,byClass(rows[2],"sc-name")[0].textContent,'
                              'byClass(rows[2],"sc-raw").map(function(x){return x.textContent;}),rows[3].title||"",byClass(rows[3],"sc-name")[0].textContent,'
                              'byClass(rows[4],"sc-raw").length]', setup=card_setup(run))
-            self.assertEqual(out, [stage, label + stage, [stage], "", "x2 skipped", 0], stage)
+            self.assertEqual(out, [stage, label + stage, [stage], "", "x2 recorded by ShipLoop", 0], stage)
 
 
 class StageCardListTests(unittest.TestCase):
@@ -5736,7 +5736,7 @@ class StageCardListTests(unittest.TestCase):
         rows = self.rows()
         self.assertEqual([r["col"] for r in rows], list(range(7)))  # eight visits, two skipped in a row are one column
         self.assertEqual([(r["visit"], r["stage"]) for r in rows],
-                         [("1", "Intake"), ("2", "Spec"), ("3", "Get next work item"), ("4 to 5", "x2 skipped"), ("6", "Implement"),
+                         [("1", "Intake"), ("2", "Spec"), ("3", "Get next work item"), ("4 to 5", "x2 recorded by ShipLoop"), ("6", "Implement"),
                           ("7", "Implement"), ("8", "System test author")])
         self.assertEqual([(r["raw"], r["rawShown"]) for r in rows],
                          [("intake", False), ("spec", False), ("get-next-work-item", True), ("", False), ("implement", False),
@@ -5746,7 +5746,7 @@ class StageCardListTests(unittest.TestCase):
                          ("45.1 KB (the Improve child's)", "1.2 KB", "review loop", "done", "4 min"))
         self.assertEqual(spec["purpose"], "Define required behavior and acceptance criteria")
         self.assertEqual((skipped["outcome"], skipped["check"], skipped["sent"], skipped["written"], skipped["readBy"], skipped["purpose"]),
-                         ("skipped", "", "", "", None, ""))
+                         ("recorded by ShipLoop", "", "", "", None, ""))
         self.assertEqual((revise["outcome"], revise["check"], revise["readBy"], revise["sent"], revise["written"]),
                          ("revise", "script-run", 5, "39.7 KB", "1.3 KB"))
         self.assertEqual(rows[6]["outcome"], "seeded")
@@ -5772,7 +5772,7 @@ class StageCardListTests(unittest.TestCase):
                                       {"stage": "b", "outcome": "done", "min": 1}, {"stage": "skill-validate", "outcome": "done", "skipped": True}]}
         rows = self.rows(run, catalog=False)
         self.assertEqual([(r["visit"], r["stage"], r["outcome"]) for r in rows],
-                         [("1", "A", "done"), ("2", "Skill assess", "skipped"), ("3", "B", "done"), ("4", "Skill validate", "skipped")])
+                         [("1", "A", "done"), ("2", "Skill assess", "recorded by ShipLoop"), ("3", "B", "done"), ("4", "Skill validate", "recorded by ShipLoop")])
 
 
 class StageCardPageTests(unittest.TestCase):
@@ -5796,7 +5796,7 @@ class StageCardPageTests(unittest.TestCase):
 
     def test_previous_and_next_walk_the_visits_and_the_card_follows(self):
         out = page_probe('setCol(2);var go=function(label){byClass("seqdetail","btn").filter(function(b){return b.textContent===label;})[0].onclick();};'
-                         'var a=textOf("seqdetail").indexOf("Visit 3: Get next work item")>=0;go("Next visit");var b=pickedCol,t1=textOf("seqdetail").indexOf("Visits 4 to 5: 2 skipped")>=0;'
+                         'var a=textOf("seqdetail").indexOf("Visit 3: Get next work item")>=0;go("Next visit");var b=pickedCol,t1=textOf("seqdetail").indexOf("Visits 4 to 5: 2 recorded by ShipLoop")>=0;'
                          'go("Next visit");var c=textOf("seqdetail").indexOf("Visit 6: Implement")>=0;go("Previous visit");go("Previous visit");'
                          '[a,b,t1,c,pickedCol,byClass("seqdetail","btn").map(function(x){return x.textContent+":"+x.disabled;}).filter(function(s){return s.indexOf("Show")<0;})]', setup=card_setup())
         self.assertEqual(out[:5], [True, 3, True, True, 2])
@@ -5805,7 +5805,7 @@ class StageCardPageTests(unittest.TestCase):
     def test_a_collapsed_skipped_column_keeps_the_old_lines_and_no_card(self):  # a guard: it passes before this change too
         out = page_probe('setCol(3);[byClass("seqdetail","sc-block").length,textOf("seqdetail")]', setup=card_setup())
         self.assertEqual(out[0], 0)
-        self.assertIn("Visits 4 to 5: 2 skipped", out[1])
+        self.assertIn("Visits 4 to 5: 2 recorded by ShipLoop", out[1])
         self.assertIn("skill-assess, skill-validate", out[1])
 
     def test_the_summary_with_markup_is_text_never_an_element_and_the_cut_is_said(self):
@@ -5828,8 +5828,8 @@ class StageCardPageTests(unittest.TestCase):
         self.assertEqual(out[3], [4, "sc-row sel", "true", "false"])
         self.assertEqual(out[4], 3)
         self.assertTrue(out[5])
-        self.assertIn("x2 skipped", out[6])
-        self.assertIn("skipped", out[6])
+        self.assertIn("x2 recorded by ShipLoop", out[6])
+        self.assertEqual(out[6].count("recorded by ShipLoop"), 2)  # the row's label and its outcome chip
 
     def test_a_row_opens_its_card_in_place_with_a_chevron_and_a_second_tap_closes_it(self):
         """The card a row opens sits directly under that row, inside the list, and the row says it can open and is open
@@ -9112,7 +9112,7 @@ class R23bFidelityPageLogicTests(unittest.TestCase):
         run = r23b_run_doc()
         model = self.model(run)
         rows = dict(model["rows"])
-        self.assertEqual(rows["Exit evidence"], "script 15, loop 7, file 1, note 12, sentence 0, skipped 2, unclassified 0 (37 accepted stages)")
+        self.assertEqual(rows["Exit evidence"], "script 15, loop 7, file 1, note 12, sentence 0, recorded by ShipLoop 2, unclassified 0 (37 accepted stages)")
         self.assertEqual(rows["Declared script checks with no script record"], "none")
         self.assertEqual(rows["Validation"], "10 records, 29 command runs, 6 distinct commands; 10 passed, 2 ran red, 0 could not run, "
                                              "0 unreadable; 0 of 23 rows with a test count ran no test; 0 focused or regression rows with no test count")
@@ -10065,7 +10065,7 @@ class StepSliceTests(unittest.TestCase):
         # the work item is the case's on purpose: its steps loop is the model's and is measured
         self.assertEqual((run["stepsPlanned"], run["stepsExecuted"]), (2, 2))
         text = "\n".join(facts)
-        self.assertIn("- Run: step slice; ShipLoop status active; 16 accepted actions (9 work, 0 skipped, 7 seeded)", text)
+        self.assertIn("- Run: step slice; ShipLoop status active; 16 accepted actions (9 work, 0 recorded by ShipLoop, 7 seeded)", text)
         self.assertIn("- Step slice: work item W1's inner loop; stopped by slice-complete (the slice stop", text)
         self.assertIn(f"not reached: {SLICE_NOT_REACHED}; compared only with other step slices", text)
         self.assertIn("- Phases: Understand seeded by the harness, Specify seeded by the harness, Plan done, Build done, Verify done, "
@@ -10114,6 +10114,55 @@ class StepSliceTests(unittest.TestCase):
         self.assertEqual(run["phases"], ["done"] * 6 + ["none", "none"])
         self.assertIn("- Phases: Understand seeded by the harness, Specify seeded by the harness, Plan done, Build done, Prove done, "
                       "Integrate done, System test not reached (slice), Release not reached (slice)", "\n".join(facts))
+
+    # The engine's own summaries of a visit it recorded with no packet (shiploop_navigator, shiploop_item_scope.NOT_APPLICABLE).
+    EXPECTATIONS_SAID = ("ShipLoop ran every expectation check on the unchanged checkout and each matched its state; "
+                         "validate-existing is recorded done without a packet.")
+    NOT_APPLICABLE_SAID = "Not applicable to this item: it changes no documented surface. ShipLoop recorded this stage without running it."
+
+    def recorded_slice(self, stage: str, said: str) -> tuple[dict, list[str], int]:
+        """An 8-stage slice whose live `stage` visit ShipLoop recorded itself: no packet file, the engine's summary."""
+        out = slice_run(self.fresh())
+        run_dir = run_dir_of(out)
+        state = export._record(run_dir / "state.md")
+        index = len(SM_OUTER) + SM_V5_INNER.index(stage)  # slice_run's visits: the outer stages, then W1's inner loop
+        state["history"][index]["summary"] = said
+        record(run_dir / "state.md", state)
+        (run_dir / "packets" / f"{state['history'][index]['action']}.md").unlink()
+        run, facts = self.build(out)
+        return run, facts, index
+
+    def test_a_visit_shiploop_recorded_because_every_expectation_matched_says_so_on_the_row_and_the_page(self):
+        run, facts, index = self.recorded_slice("validate-existing", self.EXPECTATIONS_SAID)
+        row = run["stages"][index]
+        self.assertEqual((row["stage"], row.get("skipped"), row.get("recorded")),
+                         ("validate-existing", True, "expectations matched"))
+        self.assertEqual([r["stage"] for r in run["stages"] if "recorded" in r], ["validate-existing"])
+        self.assertIn("(8 work, 1 recorded by ShipLoop, 7 seeded)", "\n".join(facts))
+        card = run_logic("stageCard(%s,%d,null)" % (json.dumps(run), index))
+        outcome = dict(card["done"]["lines"])["Outcome"]
+        self.assertEqual(outcome, "recorded by ShipLoop: every expectation check matched its state, no packet was needed")
+        self.assertEqual(card["sent"]["note"], "Recorded by ShipLoop: every expectation check matched its state, no packet was needed.")
+        detail = run_logic("(function(r){var m=sequenceModel(r,{});return columnDetail(m,columnOfVisit(m,%d),r,[]);})(%s)"
+                           % (index, json.dumps(run)))
+        self.assertEqual(dict(detail["lines"])["Outcome"], outcome)
+        self.assertEqual(detail["title"], "Visit %d: validate-existing (recorded by ShipLoop)" % (index + 1))
+
+    def test_a_visit_shiploop_left_out_as_not_applicable_is_recorded_not_applicable(self):
+        run, facts, index = self.recorded_slice("document", self.NOT_APPLICABLE_SAID)
+        row = run["stages"][index]
+        self.assertEqual((row["stage"], row.get("skipped"), row.get("recorded")), ("document", True, "not applicable"))
+        card = run_logic("stageCard(%s,%d,null)" % (json.dumps(run), index))
+        self.assertEqual(dict(card["done"]["lines"])["Outcome"],
+                         "recorded by ShipLoop: not applicable to this item, no packet was issued")
+
+    def test_a_no_packet_visit_with_another_summary_has_no_recorded_reason_and_keeps_the_old_outcome_line(self):
+        run, _, index = self.recorded_slice("document", "document done")
+        row = run["stages"][index]
+        self.assertEqual((row.get("skipped"), "recorded" in row), (True, False))
+        card = run_logic("stageCard(%s,%d,null)" % (json.dumps(run), index))
+        self.assertEqual(dict(card["done"]["lines"])["Outcome"], "skipped: no packet was issued, the engine found it not applicable")
+        self.assertEqual(run_logic("kpiCards(%s,null)[0].note" % json.dumps(run)), "8 work, 1 recorded by ShipLoop, 7 seeded")
 
     def test_a_whole_run_has_no_kind_and_reads_as_before(self):
         run, facts = self.build(make_run(self.tmp, loops=False))

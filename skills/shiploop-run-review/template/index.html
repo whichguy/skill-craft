@@ -346,7 +346,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <p class="sub" id="seqcap" style="margin:2px 0 0"></p>
 <div class="seqscroll" id="seqscroll"></div>
 <p class="msg" id="seqhint" hidden>The picture is wider than the screen: scroll it sideways inside this box.</p>
-<div class="sqleg" id="sqleg"><span id="sql-done"><i class="sw s-done"></i>done</span><span id="sql-rev"><i class="sw s-rev"></i>R revise, P replan</span><span id="sql-blk"><i class="sw s-blk"></i>B blocked</span><span id="sql-skip"><i class="sw s-skip"></i>skipped, no packet issued (xN: N in a row)</span><span id="sql-seed"><i class="sw s-seed"></i>S seeded by the harness, not run</span><span id="sql-na"><i class="sw s-na"></i>n/a, no time recorded</span><span id="sql-tail"><i class="sw s-tail"></i>U unaccepted: the stage the run ended in</span><span id="sql-imp"><b class="sqnum">3</b>Improve passes</span><span id="sqlegband" hidden><span id="sql-ctx"><i class="sw s-ctx"></i>context peak, share of the window</span><span id="sql-warn"><i class="sw s-warn"></i>! 90% or more</span><span id="sql-tri"><b>&#9650;</b>a compaction, a number when more than three</span></span></div>
+<div class="sqleg" id="sqleg"><span id="sql-done"><i class="sw s-done"></i>done</span><span id="sql-rev"><i class="sw s-rev"></i>R revise, P replan</span><span id="sql-blk"><i class="sw s-blk"></i>B blocked</span><span id="sql-skip"><i class="sw s-skip"></i>recorded by ShipLoop, no packet (xN: N in a row)</span><span id="sql-seed"><i class="sw s-seed"></i>S seeded by the harness, not run</span><span id="sql-na"><i class="sw s-na"></i>n/a, no time recorded</span><span id="sql-tail"><i class="sw s-tail"></i>U unaccepted: the stage the run ended in</span><span id="sql-imp"><b class="sqnum">3</b>Improve passes</span><span id="sqlegband" hidden><span id="sql-ctx"><i class="sw s-ctx"></i>context peak, share of the window</span><span id="sql-warn"><i class="sw s-warn"></i>! 90% or more</span><span id="sql-tri"><b>&#9650;</b>a compaction, a number when more than three</span></span></div>
 <p class="legend" id="seqnote"></p>
 </div>
 <div id="seqdetail" aria-live="polite"></div>
@@ -382,7 +382,7 @@ table.cmp .kn{display:block;color:var(--muted);font-size:12px;overflow-wrap:anyw
 <h2 id="h-step-3">3. Findings and options</h2>
 <p class="sub">Each finding says what we expected, what we saw and what Claude advises; under it, the options that would put it right. Tick any mix. Your ticks stay in this browser, and step 4 turns them into one prompt.</p>
 <div class="chips" id="filters" style="margin:0 0 8px"></div>
-<div class="legend" id="wherelegend">Where strip: one cell per visit in order. Outlined cells are the stage the finding belongs to; amber is revise or replan, red blocked, dashed or hatched skipped. A letter under a cell names its outcome.</div>
+<div class="legend" id="wherelegend">Where strip: one cell per visit in order. Outlined cells are the stage the finding belongs to; amber is revise or replan, red blocked, dashed or hatched a visit with no packet (recorded by ShipLoop, or seeded by the harness). A letter under a cell names its outcome.</div>
 <div class="msg" id="notice" role="status"></div>
 <details class="live" id="live" hidden><summary id="livesum"></summary>
 <div class="row" style="margin:6px 0 0"><button class="btn sm primary" id="livecopy" type="button">Copy prompt</button><button class="btn sm" id="liveopen" type="button">Open plan</button><span class="msg" id="livemsg" role="status"></span></div>
@@ -827,7 +827,7 @@ function phaseOfStage(stage,previous,model){
   return previous;
 }
 /* Where a finding sits in a run: one cell per visit in order, coloured by outcome (a letter under each cell that did
-   not finish done), skipped or seeded visits hatched, and the cells of the finding's phase outlined and labelled.
+   not finish done), visits recorded by ShipLoop or seeded hatched, and the cells of the finding's phase outlined and labelled.
    "" when the finding has no phase or the run has no stage rows. Needs no authored data. */
 function whereStrip(run,finding){
   var rows=run&&run.stages;
@@ -841,7 +841,7 @@ function whereStrip(run,finding){
     if(hl)hits.push(i);
     if(out!=="done")counts[out]=(counts[out]||0)+1;
     cells.push('<rect class="ws-cell o-'+out.replace(/[^a-z]/g,"")+(hl?" hl":"")+(skip?" skip":"")+'" x="'+x+'" y="'+top+'" width="'+cw+'" height="'+ch+'" rx="2"><title>'+
-      esc("visit "+(i+1)+": "+r.stage+", "+out+(skip?", skipped":"")+(isCount(r.min)?", "+r.min+" min":""))+'</title></rect>');
+      esc("visit "+(i+1)+": "+r.stage+", "+out+(r.seeded===true?", seeded":(skip?", recorded by ShipLoop":""))+(isCount(r.min)?", "+r.min+" min":""))+'</title></rect>');
     if(skip)cells.push('<path class="ws-hatch" d="M'+x+' '+(top+ch)+'L'+(x+cw)+' '+top+'M'+x+' '+(top+ch/2)+'L'+(x+cw/2)+' '+top+'M'+(x+cw/2)+' '+(top+ch)+'L'+(x+cw)+' '+(top+ch/2)+'"/>');
     if(out!=="done")marks.push('<text class="ws-mark" x="'+(x+cw/2)+'" y="'+(top+ch+13)+'" text-anchor="middle">'+esc(out.charAt(0).toUpperCase())+'</text>');
   });
@@ -1168,7 +1168,7 @@ var EVIDENCE_CLASSES=[
   ["file","file","a file the result cited (not the stage's own, not a note)"],
   ["note","note","notes the model wrote"],
   ["sentence","sentence","the model's own sentence alone (nothing beyond the stage's own files)"],
-  ["skipped","skipped","the engine's not-applicable entry"],
+  ["skipped","recorded by ShipLoop","ShipLoop's own not-applicable entry, no packet"],
   ["unclassified","unclassified","no accepted entry for the visit"]];
 /* The five labels of an Improve child's packet, [key, label]; a test keeps the keys and their order equal to the exporter's IMPROVE_CARRIED. */
 var IMPROVE_CARRIED_LABELS=[["goal","Goal"],["doneWhen","Done when"],["checkedBy","Checked by"],["output","Output"],["recovery","Recovery"]];
@@ -1266,6 +1266,16 @@ function whyNot(run,name){return reasonFor(run,name)||reasonFor(run,REASON_NAME[
 /* How long a span reads: hours from two hours, else minutes. */
 function spanText(m){return m>=120?(Math.round(m/6)/10)+" h":(Math.round(m*10)/10)+" min";}
 function kindOf(r){return r&&r.seeded===true?"seeded":(r&&r.skipped===true?"skipped":"work");}
+/* What a visit ShipLoop recorded with no packet (kind "skipped") says it was, by the export's `recorded` reason; rows of one column
+   share a reason only when every row has it. Without one, the wording of exports before `recorded`. `cap` starts with a capital. */
+var RECORDED_TEXT={"expectations matched":"recorded by ShipLoop: every expectation check matched its state, no packet was needed",
+  "not applicable":"recorded by ShipLoop: not applicable to this item, no packet was issued"};
+function recordedText(rows,cap){
+  var reasons=(rows||[]).map(function(r){return r&&typeof r.recorded==="string"&&RECORDED_TEXT[r.recorded]?r.recorded:"";});
+  var t=reasons.length&&reasons.every(function(x){return x&&x===reasons[0];})?RECORDED_TEXT[reasons[0]]:
+    (reasons.some(Boolean)?"recorded by ShipLoop: no packet was issued":"skipped: no packet was issued, the engine found it not applicable");
+  return cap?t.charAt(0).toUpperCase()+t.slice(1):t;
+}
 /* A visit's minutes for the table and the detail: never "0 min" for a work visit (it was timed to under 0.05) and never
    a number for a visit that was seeded or has no accept time. */
 function visitMinutes(r){
@@ -1300,7 +1310,7 @@ function refusalNote(n){return n===1?"refusal line or failed ShipLoop command":"
 function kpiCards(run,loops){
   var rows=(run&&Array.isArray(run.stages))?run.stages:[],wall=run&&isCount(run.wallMin)&&run.wallMin>0?run.wallMin:0,out=[];
   var skipped=rows.filter(function(r){return kindOf(r)==="skipped";}).length,seeded=rows.filter(function(r){return kindOf(r)==="seeded";}).length;
-  var parts=[(rows.length-skipped-seeded)+" work"];if(skipped)parts.push(skipped+" skipped");if(seeded)parts.push(seeded+" seeded");
+  var parts=[(rows.length-skipped-seeded)+" work"];if(skipped)parts.push(skipped+" recorded by ShipLoop");if(seeded)parts.push(seeded+" seeded");
   var tl=tailOf(run);if(tl)parts.push("1 unaccepted: "+stageLabel(tl.stage));
   out.push(rows.length?kpi("visits","Visits",String(rows.length),parts.join(", "),true):kpi("visits","Visits","0","none accepted yet",true));
   out.push(isCount(run&&run.wallMin)?kpi("elapsed","Elapsed (accept to accept)",spanText(run.wallMin),
@@ -1439,10 +1449,10 @@ function columnDetail(model,k,run,findings,catalog){
     return {title:"Unaccepted: "+stageLabel(c.stage)+" (the run ended here)",lines:lines,findings:tm,prev:k>0?k-1:null,next:null,
       packet:c.tail.packetId?{id:c.tail.packetId}:null,card:null};
   }
-  var title=c.kind==="skipped"?(c.n===1?"Visit "+(c.first+1)+": "+c.stage+" (skipped)":"Visits "+(c.first+1)+" to "+(c.last+1)+": "+c.n+" skipped")
+  var title=c.kind==="skipped"?(c.n===1?"Visit "+(c.first+1)+": "+c.stage+" (recorded by ShipLoop)":"Visits "+(c.first+1)+" to "+(c.last+1)+": "+c.n+" recorded by ShipLoop")
     :"Visit "+(c.first+1)+": "+c.stage;
   if(c.n>1)lines.push(["Stages",c.stages.join(", ")]);
-  lines.push(["Outcome",c.kind==="skipped"?"skipped: no packet was issued, the engine found it not applicable":
+  lines.push(["Outcome",c.kind==="skipped"?recordedText(c.rows):
     (c.kind==="seeded"?"seeded: the harness recorded this visit without running it":c.outcome+(c.mark?" (marked "+c.mark+")":""))]);
   lines.push(["Minutes",(c.kind==="skipped"?(c.min===null?"n/a":c.min+" min"):(c.na?"n/a (no accept time recorded)":visitMinutes(c.rows[0])))+
     (c.share!==null&&c.min>0?", "+pctText(c.share)+" of elapsed":"")]);
@@ -1586,7 +1596,8 @@ function stageCard(run,i,catalog){
     improveBytes:isCount(r.improvePacketBytes)?r.improvePacketBytes:null,improvePacket:improvePacketId(run,r)?{id:improvePacketId(run,r)}:null,
     improveCarried:improveCarriedText(r.improveCarried),
     note:"",carried:null,carriedNote:"",packet:packetId(run,r)?{id:packetId(run,r)}:null};
-  if(kind==="skipped")sent.note="No packet was issued: the engine found this stage not applicable to the item.";
+  if(kind==="skipped")sent.note=typeof r.recorded==="string"&&RECORDED_TEXT[r.recorded]?recordedText([r],true)+".":
+    "No packet was issued: the engine found this stage not applicable to the item.";
   else if(kind==="seeded")sent.note="The harness recorded this visit itself, so no packet was sent for it.";
   else if(r.packetImprove===true)sent.carriedNote="The packet file kept for this visit is the Improve child's: an engine of ShipLoop 1.22.0 or earlier rewrote one file per action, so the producer's own packet is not available and no checklist is shown.";
   else{
@@ -1595,7 +1606,7 @@ function stageCard(run,i,catalog){
   }
   /* done: how the visit went */
   var done=[],mark=kind==="work"&&out!=="done"?(OUTCOME_MARK[out]||out.charAt(0).toUpperCase()):"";
-  done.push(["Outcome",kind==="skipped"?"skipped: no packet was issued, the engine found it not applicable":
+  done.push(["Outcome",kind==="skipped"?recordedText([r]):
     (kind==="seeded"?"seeded: the harness recorded this visit without running it":out+(mark?" (marked "+mark+")":""))]);
   var min=kind==="seeded"?null:(isCount(r.min)?r.min:null);
   done.push(["Minutes",(kind==="skipped"?(min===null?"n/a":min+" min"):(kind==="work"&&min===null?"n/a (no accept time recorded)":visitMinutes(r)))+
@@ -1622,21 +1633,21 @@ function stageCard(run,i,catalog){
   if(kind!=="skipped"&&kind!=="seeded"&&readers!==null)written.push(["Read by (declared by the stage spec)",readersText(readers)]);
   return {visit:i+1,title:"Visit "+(i+1)+": "+stageLabel(r.stage),stage:String(r.stage||""),label:stageLabel(r.stage),rawShown:rawShown(r.stage),kind:kind,purpose:purpose,
     check:check?{kind:check,why:exitCheckWhy(info,run)}:null,
-    outcome:kind==="skipped"?"skipped":kind==="seeded"?"seeded":out,
+    outcome:kind==="skipped"?"recorded by ShipLoop":kind==="seeded"?"seeded":out,
     sent:sent,done:{lines:done},
     written:{summary:summary,truncated:r.summaryTruncated===true,lines:written,readers:readers}};
 }
 /* The list of stage cards: one row per column of the picture, so a tap selects the same visit as a tap on the picture. A run of
-   skipped visits is one row "xN skipped". Sizes and counts print only when the export has them. */
+   visits recorded by ShipLoop is one row "xN recorded by ShipLoop". Sizes and counts print only when the export has them. */
 function cardRows(model,run,catalog){
   var sm=stageModel(run);
   return ((model&&model.columns)||[]).map(function(c,k){
     var r=c.rows[0]||{},many=c.n>1,info=many?null:stageInfo(catalog,c.stage,sm),check=many?"":exitCheckOf(info,run);
     var rd=many||c.kind!=="work"?null:readersOf(catalog,c.stage,sm);
     return {col:k,visit:c.kind==="tail"?"end":many?(c.first+1)+" to "+(c.last+1):String(c.first+1),
-      stage:many?"x"+c.n+" skipped":stageLabel(c.stage),raw:many?"":c.stage,rawShown:many?false:rawShown(c.stage),
+      stage:many?"x"+c.n+" recorded by ShipLoop":stageLabel(c.stage),raw:many?"":c.stage,rawShown:many?false:rawShown(c.stage),
       purpose:info&&typeof info.purpose==="string"?info.purpose.charAt(0).toUpperCase()+info.purpose.slice(1):"",
-      outcome:c.kind==="skipped"?"skipped":c.kind==="seeded"?"seeded":c.outcome,kind:c.kind,check:check,
+      outcome:c.kind==="skipped"?"recorded by ShipLoop":c.kind==="seeded"?"seeded":c.outcome,kind:c.kind,check:check,
       sent:c.packetBytes!==null?kbText(c.packetBytes)+(r.packetImprove===true?" (the Improve child's)":""):"",written:c.resultBytes!==null?kbText(c.resultBytes):"",
       readBy:rd===null?null:rd.length,
       min:c.kind==="tail"?(isCount(c.min)?c.min+" min":"minutes not measured"):many?(c.min===null?"":c.min+" min"):(c.kind==="seeded"?"":(c.na?"n/a":visitMinutes(r)))};
@@ -1708,7 +1719,7 @@ function visitTable(run,model){
   return {head:head,rows:rows.map(function(r,i){
     r=r||{};var im=r.improve,c=r.context;
     var imp=im&&isCount(im.passes)?plural(im.passes,"pass")+(isCount(im.min)?", "+im.min+" min":""):(im&&isCount(im.min)?im.min+" min":"");
-    return [String(i+1),r.stage||"",String(r.outcome||"done")+(r.skipped===true?", skipped":"")+(r.seeded===true?", seeded":""),visitMinutes(r),imp,
+    return [String(i+1),r.stage||"",String(r.outcome||"done")+(r.skipped===true?", recorded by ShipLoop":"")+(r.seeded===true?", seeded":""),visitMinutes(r),imp,
       isCount(r.packetBytes)?kbText(r.packetBytes):(r.skipped===true?"none issued":""),isCount(r.resultBytes)?kbText(r.resultBytes):""]
       .concat(ctx?[c&&isCount(c.peakPct)?pctText(c.peakPct):(c&&isCount(c.peak)?grouped(c.peak)+" tokens":"not measured"),c&&isCount(c.compactions)?String(c.compactions):"not measured"]:[]);
   })};
@@ -1716,7 +1727,7 @@ function visitTable(run,model){
 /* A column's tooltip and spoken name. */
 function columnName(c){
   if(c.kind==="tail")return "unaccepted "+c.stage+", "+(isCount(c.min)?c.min+" min":"minutes not measured")+", the run ended here";
-  if(c.kind==="skipped")return c.n===1?"visit "+(c.first+1)+" "+c.stage+", skipped":"visits "+(c.first+1)+" to "+(c.last+1)+", "+c.n+" skipped";
+  if(c.kind==="skipped")return c.n===1?"visit "+(c.first+1)+" "+c.stage+", recorded by ShipLoop":"visits "+(c.first+1)+" to "+(c.last+1)+", "+c.n+" recorded by ShipLoop";
   return "visit "+(c.first+1)+" "+c.stage+", "+(c.kind==="seeded"?"seeded":c.outcome)+", "+(c.kind==="seeded"?"not timed":(c.na?"n/a":c.min+" min"));
 }
 function outcomeClass(o){var k=String(o).replace(/[^a-z]/g,"");return ["done","revise","replan","blocked"].indexOf(k)>=0?k:"other";}

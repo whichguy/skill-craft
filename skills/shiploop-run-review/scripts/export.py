@@ -271,6 +271,22 @@ IMPROVE_KEYS = ("goal", "doneWhen", "checkedBy", "output", "recovery")
 IMPROVE_CARRIED_FIELDS = {key: (B, True) for key in IMPROVE_KEYS}
 IMPROVE_PACKETS_FIELDS = {"read": (N, True), "carried": (("object", {key: (N, True) for key in IMPROVE_KEYS}), True)}
 FIDELITY_SCHEMA = "shiploop-e2e-fidelity/v1"
+# A visit with no packet among issued packets (`stages[].skipped`) is one ShipLoop recorded itself. Its summary says why, in
+# the engine's own opening words: shiploop_navigator's sentence for a validate-existing whose expectation checks all matched,
+# and shiploop_item_scope.NOT_APPLICABLE for a stage left out of the item. Matched by prefix until the engine writes an
+# explicit marker; any other summary gives no reason (absent, never guessed).
+RECORDED_REASONS = {
+    "ShipLoop ran every expectation check on the unchanged checkout and each matched its state": "expectations matched",
+    "Not applicable": "not applicable",
+}
+
+
+def _recorded_reason(summary: str) -> str | None:
+    """Why ShipLoop recorded a no-packet visit, from the start of its summary; None when the summary does not say."""
+    said = summary.strip()
+    return next((reason for prefix, reason in RECORDED_REASONS.items() if said.startswith(prefix)), None)
+
+
 EVIDENCE_CLASSES = ("script", "loop", "file", "note", "sentence", "skipped", "unclassified")  # the harness's, in its order
 FIDELITY_FIELDS = {
     "evidence": (("object", {**{name: (N, False) for name in EVIDENCE_CLASSES}, "scriptRunWithoutRecord": (("list", S), False)}), False),
@@ -323,6 +339,8 @@ SCHEMA = {
         "stages": (("items", {"stage": (S, True), "outcome": (S, True), "min": (N, False), "turns": (N, False),
                               "packetBytes": (N, False), "resultBytes": (N, False), "action": (S, False),
                               "skipped": (B, False), "seeded": (B, False), "improve": (("map", N), False),
+                              # why ShipLoop recorded a no-packet (skipped) visit, read from the engine's summary (SCHEMA.md).
+                              "recorded": (("enum", tuple(RECORDED_REASONS.values())), False),
                               "context": (("map", N), False),
                               # which work item, steps-loop pass and step a visit belongs to (SCHEMA.md); packetDoc is
                               # true only when a packets/<runKey>--<action> document was written for the visit.
@@ -2826,7 +2844,9 @@ def build_run(out: Path, key: str | None = None, name: str | None = None,
         if action in seeded_ids:
             row["seeded"] = True
         elif issued and isinstance(action, str) and "packetBytes" not in row and "improvePacketBytes" not in row:
-            row["skipped"] = True  # packets were issued, and none for this visit: the engine skipped it
+            row["skipped"] = True  # packets were issued, and none for this visit: ShipLoop recorded it without one
+            if (reason := _recorded_reason(said)) is not None:
+                row["recorded"] = reason
         figures = {k: v for k, v in (children.get(action) or {}).items() if v is not None}
         if figures:
             row["improve"] = figures
@@ -3396,7 +3416,7 @@ def _facts(run, run_dir, out, raw_status, children, failures, knowledge_root, lo
             totals.setdefault(row["stage"], []).append(row["min"])
     untimed = sum(1 for row in stages if row["min"] is None and not row.get("seeded"))  # a seeded visit has no time by design
     seeded, skipped = sum(1 for row in stages if row.get("seeded")), sum(1 for row in stages if row.get("skipped"))
-    kinds = f" ({len(stages) - seeded - skipped} work, {skipped} skipped, {seeded} seeded)" if seeded or skipped else ""
+    kinds = f" ({len(stages) - seeded - skipped} work, {skipped} recorded by ShipLoop, {seeded} seeded)" if seeded or skipped else ""
     most = max((c["passes"] for c in children.values() if c["passes"] is not None), default=0)
     unmeasured = run["unmeasured"]
     slowest = sorted(totals.items(), key=lambda kv: (-sum(kv[1]), kv[0]))[:5]
