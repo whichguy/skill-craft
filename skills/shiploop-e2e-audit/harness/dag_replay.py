@@ -56,9 +56,7 @@ _PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
 _INNER = (
-    "get-next-work-item", "step-plan", "test-spec", "baseline", "test-author", "test-red",
-    "implement", "test-green", "test-refine", "regression", "document", "skill-assess",
-    "skill-validate", "static-checks", "verify", "integrate", "integration-verify",
+    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "verify",
     "carry-forward",
 )
 _OUTER = (
@@ -69,7 +67,9 @@ _OUTER = (
 # of the navigator's own constants, for each run option ``planning_review`` a case
 # declares: the planning/contract producers the option reviews, plus the successful
 # carry-forward that leaves no work item pending, park for Improve. Every other
-# producer result is accepted directly.
+# producer result is accepted directly.  Every accepted (done) implement step also
+# parks for Improve, under either option (owner decision 2026-10-10).
+_STEP_CHECKPOINTS = frozenset(("implement",))
 _PLANNING_CHECKPOINTS = {
     "stage": frozenset((
         "spec", "test-strategy", "plan", "step-plan", "test-spec",
@@ -261,7 +261,7 @@ def _path_steps(stages: tuple[str, ...], *, work_items: list[dict[str, str]] | N
         target = stages[index + 1] if index + 1 < len(stages) else (terminal_target or "done")
         if stage == "carry-forward":
             item_index += 1
-        checkpoint = stage in _PLANNING_CHECKPOINTS[planning_review] or (
+        checkpoint = stage in _PLANNING_CHECKPOINTS[planning_review] or stage in _STEP_CHECKPOINTS or (
             stage == "carry-forward" and item_index >= len(item_ids)
         )
         edge: dict[str, Any] = {"expect": target, "status": "done" if target == "done" else "active"}
@@ -367,15 +367,31 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
         "synthetic-pause-blocked-cold-recovery", paused_steps, {"stage": "test-strategy", "status": "active"}
     )
 
-    repeat_prefix = _path_steps(_PRELUDE + ("get-next-work-item",), terminal_target="step-plan")
+    # A repeat at a checkpoint keeps the stage: the parked repeat and an Improve-returned repeat
+    # both reissue test-strategy, and only a done result advances.  No INNER stage accepts repeat
+    # any more (each runs one Until Loop), so the case runs at a prelude checkpoint that still does.
+    repeat_prefix = _path_steps(("intake", "discovery", "research", "spec"), terminal_target="test-strategy")
     repeat_steps = repeat_prefix + [
-        {"at": "step-plan", "command": "produce", "result": _result("step-plan", outcome="repeat"), "expect": "step-plan", "status": "active"},
-        {"at": "step-plan", "command": "finish-improve", "receipt": _receipt("step-plan"), "final_result": _result("step-plan", outcome="repeat"), "expect": "step-plan", "status": "active"},
-        {"at": "step-plan", "command": "produce", "result": _result("step-plan"), "expect": "step-plan", "status": "active"},
-        {"at": "step-plan", "command": "finish-improve", "receipt": _receipt("step-plan"), "expect": "test-spec", "status": "active"},
+        {"at": "test-strategy", "owner": "root", "command": "produce", "result": _result("test-strategy", outcome="repeat"), "expect": "test-strategy", "status": "active"},
+        {"at": "test-strategy", "command": "finish-improve", "receipt": _receipt("test-strategy"), "final_result": _result("test-strategy", outcome="repeat"), "expect": "test-strategy", "status": "active"},
+        {"at": "test-strategy", "owner": "root", "command": "produce", "result": _result("test-strategy"), "expect": "test-strategy", "status": "active"},
+        {"at": "test-strategy", "command": "finish-improve", "receipt": _receipt("test-strategy"), "expect": "plan", "status": "active"},
     ]
     cases["synthetic-repeat"] = _synthetic_case(
-        "synthetic-repeat", repeat_steps, {"stage": "test-spec", "status": "active", "owner": "W1"}
+        "synthetic-repeat", repeat_steps, {"stage": "plan", "status": "active", "owner": "root"}
+    )
+
+    # The INNER rework route: repeat is refused at an INNER stage, and a revise from test sends
+    # the item back to its step plan, which is reviewed again before test-spec.
+    revise_prefix = _path_steps(_PRELUDE + _INNER[:_INNER.index("test")], terminal_target="test")
+    revise_steps = revise_prefix + [
+        {"at": "test", "command": "produce", "result": _result("test", outcome="repeat"), "expect": "test", "expect_owner": "W1", "status": "active", "expect_error": "repeat is not an outcome at test"},
+        {"at": "test", "command": "produce", "result": _result("test", outcome="revise"), "expect": "step-plan", "expect_owner": "W1", "status": "active"},
+        {"at": "step-plan", "command": "produce", "result": _result("step-plan"), "expect": "step-plan", "status": "active"},
+        {"at": "step-plan", "command": "finish-improve", "receipt": _receipt("step-plan", marker="revised"), "expect": "test-spec", "expect_owner": "W1", "status": "active"},
+    ]
+    cases["synthetic-revise"] = _synthetic_case(
+        "synthetic-revise", revise_steps, {"stage": "test-spec", "status": "active", "owner": "W1"}
     )
 
     corrective_prefix = _path_steps(
@@ -383,7 +399,7 @@ def synthetic_cases() -> dict[str, dict[str, Any]]:
     )
     corrective_steps = corrective_prefix + [
         # system-test is not a checkpoint: its corrective replan applies directly.
-        {"at": "system-test", "owner": "root", "command": "produce", "result": _result("system-test", outcome="replan", work_items=[{"id": "W2", "title": "Corrective synthetic item"}]), "expect": "get-next-work-item", "expect_owner": "W2", "status": "active"},
+        {"at": "system-test", "owner": "root", "command": "produce", "result": _result("system-test", outcome="replan", work_items=[{"id": "W2", "title": "Corrective synthetic item"}]), "expect": "step-plan", "expect_owner": "W2", "status": "active"},
         *_path_steps(_INNER + _OUTER, active_owner="W2"),
     ]
     cases["synthetic-corrective-replan"] = _synthetic_case(
@@ -667,6 +683,8 @@ def _literal_checkpoint(before: Mapping[str, Any], stage: str, result: Any, plan
     """Say whether this producer result must park for Improve, per the literal schedule."""
     if stage in _PLANNING_CHECKPOINTS[planning_review]:
         return True
+    if stage in _STEP_CHECKPOINTS:
+        return isinstance(result, Mapping) and result.get("outcome") == "done"
     if stage != "carry-forward" or not isinstance(result, Mapping) or result.get("outcome") != "done":
         return False
     if "work_items" in result:
