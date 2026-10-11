@@ -158,12 +158,6 @@ class ImproveCliFixture(unittest.TestCase):
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
         if stage in stage_spec.INNER:
-            if stage == "test-spec":
-                spec_file = self.repo / knowledge.feature_dir(store.read_record(self.run / "state.md")) / "test-spec.md"
-                spec_file.parent.mkdir(parents=True, exist_ok=True)
-                if not spec_file.is_file():
-                    spec_file.write_text("# Test spec\n\nNo cases: the step plan records no test command.\n",
-                                         encoding="utf-8")
             self.producer = with_receipt(self.producer, finish_loop(self.run))
             self.parent_evidence_refs = list(self.producer["evidence_refs"])
         self.input = self.run / "inbox" / (self.action + ".md")
@@ -1728,12 +1722,6 @@ class ImproveCommitContractTests(ImproveCliFixture):
             if stage == "step-plan":
                 self.producer.setdefault("follows", [])
         if stage in stage_spec.INNER:
-            if stage == "test-spec":
-                spec_file = self.repo / knowledge.feature_dir(store.read_record(self.run / "state.md")) / "test-spec.md"
-                spec_file.parent.mkdir(parents=True, exist_ok=True)
-                if not spec_file.is_file():
-                    spec_file.write_text("# Test spec\n\nNo cases: the step plan records no test command.\n",
-                                         encoding="utf-8")
             self.producer = with_receipt(self.producer, finish_loop(self.run))
             self.parent_evidence_refs = list(self.producer["evidence_refs"])
         self.input = self.run / "inbox" / (self.action + ".md")

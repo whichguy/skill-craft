@@ -809,12 +809,10 @@ class SectionsTests(HomeFixture):
                "carry-forward": ("architecture.md", "environment.md")}
 
     def test_the_stages_that_discover_commands_facts_and_decisions_keep_the_files_up_to_date(self) -> None:
-        feature = knowledge.feature_dir(self.state)
         for stage, names in self.WRITERS.items():
             with self.subTest(stage):
                 self.assertEqual(knowledge.STAGE_FILES[stage], names)
-                paths = [str(self.repo / (name.replace("{feature}", feature) if name.startswith("{feature}")
-                                          else knowledge.HOME + "/" + name)) for name in names]
+                paths = [str(self.repo / knowledge.HOME / name) for name in names]
                 expected = "This stage keeps these up to date (create them if missing): " + ", ".join(paths) + "."
                 self.assertIn(expected, knowledge.stage_lines(self.state, stage))
 

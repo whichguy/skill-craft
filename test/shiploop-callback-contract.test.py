@@ -68,8 +68,6 @@ STEP_PLAN = {"paths": ["built.txt"], "steps": [{"id": "S1", "task": "Create buil
                                {"command": "true", "suite": "check"}],
              "expectations": [{"id": "E1", "state": "absent", "statement": "built.txt does not exist yet.",
                                "steps": ["S1"], "paths": ["built.txt"], "check": "test ! -e built.txt"}]}
-# The test spec's cases: one '### <ID>' per focused ID, as test-spec's gate requires.
-TEST_SPEC = "# Test spec\n\n### TC-1\n\nbuilt.txt exists after the change.\n"
 SKILL_NONE = {"decision": "none", "reason": "Synthetic fixture: no procedure repeated."}
 # The consumer contract's hand-off fields (2026-10-11): TC-1's case (its requirement R-1 has an entry in the living spec
 # the fixture writes, LIVING_SPEC), the open-item lists, and release-verify's lessons.
@@ -215,9 +213,6 @@ class RealCliCase(unittest.TestCase):
                            "--improve-skill", str(CARD), *(f"--{k}={v}" for k, v in init.items()))
         self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
         state = store.read_record(run / "state.md")
-        spec = repo / knowledge.feature_dir(state) / "test-spec.md"
-        spec.parent.mkdir(parents=True, exist_ok=True)
-        spec.write_text(TEST_SPEC, encoding="utf-8")
         if stage == "intake":
             return run, started.stdout
         while nav.current_stage(state) != stage:
@@ -944,8 +939,6 @@ class RefusalRouteTests(RealCliCase):
         spec_head = self.accepted(command)
         # test-spec is issued for every item now; a documentation-only item's spec lists no cases.
         self.assertIn("| test-spec |", spec_head.splitlines()[0])
-        spec = self.repo_of(run) / knowledge.feature_dir(self.state(run)) / "test-spec.md"
-        spec.write_text("# Test spec\n\nNo cases: the item changes documentation only.\n", encoding="utf-8")
         spec_command, spec_path, _ = printed_callback(spec_head)
         write_block(spec_path, self.fill_done(spec_head))
         refused = self.run_printed(spec_command)
