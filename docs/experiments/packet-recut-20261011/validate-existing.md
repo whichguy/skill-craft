@@ -69,3 +69,36 @@ Drop: Repeatable test-suite guide (not cited).
 
 - Today: duty 2,259 + considerations 288 + Work 434 = 2,981 characters.
 - New: 2,100 characters.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 1,772 -> 1,579 characters (-11%). Goal: 'Resolve each expectation that mismatched on the item base: fix it in WORKTREE or report revise with `failed_expectations`.'; short goal: 'validate the item base'.
+
+Text now in `DUTIES['validate-existing']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. ShipLoop ran each expectation's check, and each open plan assumption this item settles, on the unchanged item
+   base; results are below. For each mismatch read the step plan's steps and paths, and with one small
+   discriminating observation find whether the fact or the check is wrong (Baseline-test guidance, Current-system
+   baseline guide).
+2. Route each mismatch:
+   - check wrong, fact holds: report revise. Never edit or weaken a check here.
+   - `works` expectation broken, fix known and small: fix it in the working tree, touching only that expectation's
+     paths, and commit nothing (ShipLoop commits it on accept as a separate preparatory commit).
+   - environment lacks a tool, service or setting: fix it and record it in HOME/environment.md ## Commands or
+     ## Targets and runtimes.
+   - `absent` finds something, `broken` does not reproduce, or the fix is unknown: report revise with what is true
+     (the step plan reshapes the steps; a needed repair becomes an earlier step).
+   - fix lies outside this run (another system, a person's access): report blocked, blocked_by external or access,
+     naming the need.
+3. Start none of the item's own change.
+4. Revise names each mismatch in `failed_expectations`: `[{"id": "E1", "actual": "<what is true>", "route":
+   "check" | "steps"}]`; `check` when the check is wrong (`actual` gives the corrected check), `steps` when the
+   plan must change.
+
+On re-entry after implement, ShipLoop runs the checks in a temporary worktree at the item base (after any
+preparatory commit); a mismatch there is a revise.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

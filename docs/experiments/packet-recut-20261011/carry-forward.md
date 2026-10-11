@@ -158,3 +158,76 @@ Today's Work restates items 1-3 (about 1,500 characters). Replace it with:
   characters.
 - New: 6,900 characters. It grows because the owner asked for the concrete, deterministic skill procedure
   (item 3 is about 3,900). The Work line drops from 1,535 to about 130.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 6,618 -> 5,897 characters (-11%). Goal: 'Close the item: update the knowledge home; the future queue in `work_items`; the reusable-skill decision in `skill`.'; short goal: "carry this item's learning forward".
+
+Text now in `DUTIES['carry-forward']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. **Knowledge home.** Update in place; keep completed evidence apart from future plans, never rewriting it:
+   - HOME/environment.md ## Commands: every command that worked.
+   - HOME/architecture.md ## Decisions: each AD-<n> this item added; a superseded one moves to ## Superseded, never
+     deleted.
+   - HOME/environment.md ## Harnesses and suites: suites; focused, smoke and full commands; harness and case
+     locators; fixture lifecycle; each test facility's locator, interface, readiness or gap, owner, revalidation
+     condition.
+   - HOME/architecture.md ## Real-boundary checks: each pending full-suite and real-boundary check with its owner.
+   - HOME/spec.md: each R-<n> this item satisfied; an open gap under its R-<n>, an unresolved state or data change
+     included (State and data assessment). Keep unaffected clauses. Test IDs live only in test code: write none here.
+   - Open risks, unresolved dependencies, system-test obligations, release prerequisites and any observation no item
+     owns: open items in `assumptions`, each with owner and, as `consumer`, the later outer stage it is due at.
+   - Carry the prior baseline, incoming delta and updated knowledge locators forward, keeping historical snapshots
+     (Current-system baseline guide); retain the house style (House-style guidance) and the learnings the next run
+     needs (Persistent project-knowledge guidance).
+   - Expand no scope; adopt no tentative idea as policy.
+2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items` with every pending title and context;
+   give every observation that affects later work an owner:
+   - defect in completed work, or a completed prerequisite new evidence invalidates: a corrective item with
+     revalidation, ahead of its consumers;
+   - needed research or preparation prerequisite: its own item ahead of every consumer;
+   - affected future item: its `context` carries decision locator, rationale, revalidation condition (copy no
+     transcript, invent no decision ledger; a context summary is not proof);
+   - finding incompatible with the approved work (changed requirement, permission or invocation contract): stop the
+     loop and report blocked; it is no queue edit.
+   To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "context"}` in prerequisite
+   order, no completed or current ID, keeping unrelated pending work. Explain each removal, merge or supersession in
+   the summary. Omit `work_items` to keep the queue.
+3. **Skill decision**, in `skill`:
+   1. *Inspect* the repository skill index (the directory HOME/environment.md ## Skills names, or README or AGENTS.md
+      skill links; a missing index is no blocker) and your host's skills; list what you inspected in evidence_refs.
+   2. *Decide*, smallest first (Reuse-before-build guidance, Repository-local skill guidance): `none` (no repeated
+      procedure, or a code, test or doc change already captures it); `reuse` (an existing skill covers it unchanged;
+      different parameter values alone need no new skill); `update` (a small compatible extension capturing a
+      demonstrated lesson, keeping supported inputs, defaults and older examples); `create` (no suitable skill, or
+      combining contracts would obscure selection or break a consumer). `update` or `create` only when the same
+      procedure ran in two or more steps or items of this run, or a pending item or R-<n> says it will recur; put
+      those IDs in `skill.evidence`. Capture no transcript or speculative framework.
+   3. *Where:* the repository's skill directory (## Skills, or the existing layout), else `skills/<name>/` in
+      WORKTREE, added under ## Skills. Never edit an installed or shared skill, install globally, add a dependency,
+      connector or privilege, or publish. Derived content keeps source, revision and licence.
+   4. *Write it deterministic.* `skills/<name>/SKILL.md` opens with `name` and `description` frontmatter (when to use
+      it and when not). Body: what it produces and why; each input (type, required, default and its source); exact
+      steps; expected output; failure and recovery; permission boundaries; relative links to the code, tests and
+      HOME/spec.md sections it relies on (link requirements, never copy); what needs revalidation. No credentials,
+      machine-specific paths or IDs, run or worktree paths. Every mechanical sequence is a script
+      `skills/<name>/scripts/<verb>` in a runtime the repository already uses: inputs as arguments, exit 0 on
+      success and non-zero with a named message per failure, printing the output SKILL.md describes; SKILL.md runs
+      it and does not restate its logic. A judgement step stays in SKILL.md as a numbered instruction with its
+      decision rule. Task-specific values stay in evidence.
+   5. *Prove.* Run the skill once on this run's real procedure; write command, exit code and output to
+      RUN/notes/<action>-skill-trial.md (an update also runs one retained older use). The note says whether a fresh
+      reader (given only the index, the skill and a new task) tried it, or "cold-context reuse untested". Presence or
+      installation is not proof it runs.
+   6. *Register:* a line with the skill's path, when to use it and its inputs in HOME/environment.md ## Skills, and a
+      link from the repository skill index; list any index file outside HOME/ in `skill.index`.
+   7. *Record:* `skill` = `{"decision", "reason", "path", "evidence", "index"}` (`path` = the SKILL.md for `update` or
+      `create`; name a reused skill in `reason`); the trial note in evidence_refs. On accept ShipLoop commits the
+      skill directory and the `index` files as their own commit.
+   An earlier selection or passing trial is an input, not authority: revalidate for each new task.
+4. **Commit nothing.** On accept ShipLoop commits HOME/ (and the skill, item 3.7).
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

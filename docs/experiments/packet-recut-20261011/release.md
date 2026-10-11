@@ -61,3 +61,33 @@ Nothing beyond the exit conditions and the shared mechanical checks.
 
 - Today: duty 761 + considerations 73 + OUTER handshake 916 = 1,750 characters.
 - Draft: goal, duty and Checked by 1,986 characters with headings (it adds item 6, the return, which today has no duty text).
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 1,929 -> 1,743 characters (-10%). Goal: "Perform the planned release; record its effect and the artifact's identity in `summary` and `evidence_refs`."; short goal: 'perform the release'.
+
+Text now in `DUTIES['release']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Name the release plan and release-check result you act on: the latest done release-plan and system-test-author
+   records after the last accepted replan (OUTER test-planning handshake), and release-check's result; locators in
+   `evidence_refs`. Recover or report a missing plan (`repeat`, `replan` for missing product work); guess no command.
+2. Confirm the exact target, operation, authority (the recorded grant; Delivery authority mapping) and conditions
+   are current and release-check's dry run passed against this candidate. If code, tests, fixtures, configuration or
+   target changed since, rerun the affected checks first. Anything unmet: release nothing, report `blocked` or
+   `replan` with the reason.
+3. Run the planned release operation once; save the provider's receipt in RUN/notes/<action>-release.md and cite it
+   in `evidence_refs`.
+4. Follow it to a terminal state (accepted or running is not done; Release operation guidance). Check postconditions
+   now and record in `summary`, separately, the operation's effect and the released artifact's identity.
+5. Uncertain outcome (lost reply, timeout, partial receipt): keep every receipt and reconcile with the provider's
+   lookup, retry, parameter-binding and conditional-mutation semantics before any retry. Never replay a merge, push,
+   deployment or promotion only to complete the graph.
+6. Isolated run only: return the candidate (Workspace return guidance): run the packet's plan-return, decide every
+   undecided path with review-return, run the packet's return command; the receipt path goes in `evidence_refs`.
+7. Release not applicable: record the concrete reason and what you assessed in `summary`. Observe no consumer
+   behaviour here; release-verify does.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

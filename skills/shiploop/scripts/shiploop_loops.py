@@ -510,12 +510,11 @@ def invoke_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
         "    " + value["repeat_condition"],  # each repeat text opens with "Repeat while"
         "    Contract: " + str(contract_file),
         "    Receipt: " + str(receipt),
+        # The start command and the receipt rules are the card's ("Start from a parent-written contract"); the packet
+        # keeps the invocation and what is ShipLoop's own (owner-approved aggressive re-cut, 2026-10-11).
         "How to invoke: on Claude Code, the Skill tool with skill until-loop and the argument above; elsewhere, the card "
-        + bound["runtime_card"] + ", section \"Start from a parent-written contract\", which runs (the contract file "
-        "wins over the argument text): " + start_command(bound, receipt, contract_file),
-        # One statement of the loop's rules (packet re-cut, 2026-10-11: the duty, the invoke block and the template
-        # note each said part of it).
-        " ".join(LOOP_RULE.split()) + " " + RECEIPT_RULE + " Keep the receipt in evidence_refs, as the template does.",
+        + bound["runtime_card"] + ", section \"Start from a parent-written contract\".",
+        " ".join(LOOP_RULE.split()),
     ]
     if os.path.lexists(receipt):
         lines.append(RESUME_LINE)

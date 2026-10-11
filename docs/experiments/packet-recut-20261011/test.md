@@ -117,3 +117,53 @@ each test change's independent reason in {run}/notes/{action}.md."
 - Today: duty 3,516 + TEST_FACILITY_HANDOFF 807 + TEST_DECISION_HANDOFF 560 + considerations 740 + Work 556 =
   6,179 characters.
 - New: 4,350 characters.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 3,977 -> 3,725 characters (-7%). Goal: 'Write a test per quoted case, titled with its ID; make every recorded command pass in WORKTREE; fields go in the result.'; short goal: "write and run this item's tests".
+
+Text now in `DUTIES['test']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. **Write the cases.** Each quoted test case becomes a test titled with its ID as its own word, in the suite and
+   command its case names (Repeatable test-suite guide, Target-native test selection), asserting the spec's oracle,
+   never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test facilities); never
+   assume a named skill or MCP is available. Build a missing facility within this item and validate it before the
+   tests that use it; record it in HOME/environment.md ## Harnesses and suites (locator, interface, readiness,
+   owner, revalidation condition). Write no case due at a later stage.
+2. **Test decisions.** Reopen the item's test decision and HOME/environment.md's harness and suite decisions. Record a
+   harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary decision in
+   HOME/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why;
+   locators and the step plan's in evidence_refs. A recorded completion does not prove a harness, fixture or target
+   still works.
+3. **Gaps.** Read the implement results' `not_covered`. A behaviour or rejection case the spec lacks becomes a
+   sub-case of the closest quoted case with its oracle from the spec (Test-case planning guidance), titled
+   `<ID> (<letter>)`; none fits: report revise. Each new or changed public entry point gets rejection cases. Test a
+   new error path or debug output, on and off, with safe diagnostic context.
+4. **Run and fix.** After each change run every recorded command, the red-check command and the lint command. Find
+   each failure's cause with one small observation (product defect, invalid test, environment) and fix the product.
+   Change a test, fixture, golden file or threshold only for an independent reason written in RUN/notes/<action>.md.
+   Never weaken, delete or skip a test to get green. A repeated unchanged failure is not progress: change approach.
+5. **End states.** Each case ends as:
+   - validated: run, and the observation matches the oracle;
+   - validated another way: the first method could not observe it, another ran and passed, still titled with the ID;
+     the summary says what changed and why;
+   - unachievable: a named reason and the requirement left unverified; report revise.
+   A case written but not run has no end state.
+6. **Result fields.** `red_na`: each new test passing on the item base without this change, `[{"id", "reason"}]`.
+   `retired_tests`: each test this item deliberately retires, `[{"id", "reason": "<the R-<n> or AD-<n> that retires
+   it>"}]` (any other drop below a command's floor is refused). `lint_waivers`: `{"id": "<printed ID>", "reason":
+   "<why>"}` per lint finding that must stay.
+7. **Proof limits.** A passing command proves only the cases it runs; a smoke or subset run never stands for a
+   recorded command; a local pass does not replace a required remote or real-boundary check (Real-boundary test
+   guidance). Probes and experiments go in RUN/scratch. Install, download or fetch nothing. Never commit or push.
+8. **Revise** (naming the case or command, why, the requirement left unverified, and every required command that
+   could not run) when: a failure is proven unachievable (contradicts the spec or another requirement, needs an
+   absent tool, access or authority, or would exceed the item); a recorded command is wrong or cannot run here; an
+   existing suite the changed paths now affect must join the regression command; the step plan recorded no test
+   command for code this item changes. Report blocked, with blocked_by, only when the user, an access grant or an
+   outside dependency must unblock it.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

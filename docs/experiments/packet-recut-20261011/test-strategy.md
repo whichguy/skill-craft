@@ -155,3 +155,71 @@ Nothing beyond the exit conditions and the shared mechanical checks.
 - Proposed: 6,994 characters (81%).
 
 Measured on the default render (ask-agent, planning_review stage, backchain_passes one). Today: prompt(stage) without STAGE_RULES, plus the Develop/Test/Deploy/Tools considerations and the stage-specific renderer lines this draft folds or cuts (Planning phase intent, the environment-discovery and investigation-allowance lines, plan's experiments lines). New: sections 1-3 of this file. Exit conditions are excluded from both.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 6,876 -> 5,790 characters (-16%). Goal: 'Map each requirement to the checks that prove it: harnesses and commands in HOME/environment.md, boundaries in HOME/architecture.md.'; short goal: 'plan the test strategy'.
+
+Text now in `DUTIES['test-strategy']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Build a risk-based strategy from HOME/spec.md and FEATURE/spec.md before any code. Under HOME/environment.md
+   ## Harnesses and suites plan, per requirement: layers (unit, integration, system, consumer), negative cases,
+   fixtures and data, environment and authorization needs, required surface, due stage, owner, prerequisites; for a
+   state or data change, its before and after checks (State and data assessment). Mark every check planned (planned
+   is not a pass). Name an expected-RED control where test-first applies.
+2. Plan checks for new and preserved behaviour from FEATURE/spec.md and RUN/notes/current-system-baseline.md. An
+   unknown existing behaviour needs discovery before a preservation target; an old pass is not a current pass.
+3. Map each applicable non-functional criterion to a check with its environment and workload prerequisites. Missing
+   evidence or access is not N/A.
+4. Select or revalidate harnesses and suite entry points (Repeatable test-suite guide); reuse a prior harness only
+   after revalidating fit. Choose target-native tests from the discovered remote code, test assets and deployment
+   gate, or record the exclusion (Target-native test selection). Choose test systems and browser tools by
+   capability, not product name. Under ## Harnesses and suites record each choice's role, fit, availability,
+   prerequisites, setup and isolation, fixture lifecycle, runner and coverage tool, rationale and revalidation
+   condition. Keep inspection separate from retained assertions.
+5. Reuse, configure or extend existing frameworks and helpers before defining the smallest missing facility
+   (Reusable test facilities); never assume a named skill or MCP is available. Record each facility's locator,
+   interface, readiness or gap, owner and revalidation condition under ## Harnesses and suites. A missing facility
+   goes in `summary` as plan's prerequisite work; its owning stage builds and validates it first.
+6. Under HOME/architecture.md ## Real-boundary checks record, per check, where it runs and its target: local, client
+   against a deployed target, or remote-resident. For remote tests: framework, availability, access, deployment
+   prerequisites, and the authorized route to define or register, install and invoke them. A local pass is not a
+   remote pass; do not narrow a behaviour list to a render smoke.
+7. Affected service contracts (Service discovery guidance): map cache authorization and invalidation, remote
+   reconciliation, async recovery and observability to independent outcomes at their real boundary under
+   ## Real-boundary checks. A fixture does not prove live permissions, event delivery or operator log access.
+8. Consume discovery's baseline (Initial repository baseline guide): record its coverage and limits, telling a
+   passing subset from failed, blocked, intermittent, missing-test or expected-RED. In `summary` name each setup,
+   repair or bootstrap prerequisite and the evidence it needs before dependent feature checks.
+9. Write the focused, smoke and full-suite commands under HOME/environment.md ## Commands, each in a fenced code
+   block, never in a Markdown table cell (an escaped `\|` becomes a literal pipe, matches nothing and can exit 0).
+   Per command: inclusion rule, expected cost, environment and fixture prerequisites, the test IDs it may print.
+   A passing command names the IDs or cases it ran. This section owns the suite commands; fix any stale copy. Plan
+   durable regression tests, not one-off probes. Smoke is a bounded subset, never evidence for the full suite.
+10. Under HOME/environment.md ## ID convention declare each ID as tests will be titled. A listed ID counts only as its own word in a test's printed name (for example, a test titled `TC-4a` does not show `TC-4`: title it `TC-4 (a)`).
+11. A case needing a host tool (browser, device, account, service): name it and probe it now by doing the case's
+    first step, not reading a version. Before the product exists, probe a stand-in: a one-line page in RUN/scratch
+    opened by `file:` URL or a throwaway static server you stop, its title read back; for an account or service, a
+    harmless read. Cite the output in `evidence_refs`. Record only a failed probe as an access gap under
+    ## Real-boundary checks with the requirement left unobserved. Give the case its own opt-in command or flag so the
+    default test command passes without the tool.
+12. A request naming a page or screen people use: plan a case driving it through its interface (browser or device)
+    with its actions, expected visible outcomes, and tool named and probed as in item 11 (Consumer testing guide).
+    Otherwise record the outcome unverified with owner and due stage (handoff, or the stage whose external effect it
+    gates). An HTTP response alone is neither.
+13. Before you submit, fix any of these in HOME/environment.md or HOME/architecture.md:
+    - a step, example or expected result that cannot be replayed exactly: name the concrete inputs, values,
+      identifiers and sample interactions;
+    - an expected result or check that a weaker stand-in would pass: a hardcoded value, a missing assertion, a title-
+      only test, or an absent required name;
+    - a documented command that does not run what it claims on the target runtime: run it once and record the exit
+      code and the cases it executes;
+    - a required requirement, test ID or case dropped or weakened compared with the prior accepted version;
+    - a claim about what the runtime, platform or a library can do that a decision depends on, with no primary-
+      documentation source or probe result: check it, and correct the strategy where it is wrong.
+14. `evidence_refs`: HOME/environment.md, HOME/architecture.md, each probe output and source used.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

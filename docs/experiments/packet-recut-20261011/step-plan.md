@@ -207,3 +207,99 @@ section of {feature}/plan.md; then run the `complete --check-only` command print
 - Today: duty 10,385 (ask-agent) + considerations 352 + Work 296 = 11,033 characters.
 - New: 9,900 characters for goal, duty and checked-by (both graph variants included; inline prints about 9,300).
   The step-plan duty carries most of the gate's obligations, so it stays the longest inner duty.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 8,791 -> 8,078 characters (-9%). Goal: "Plan this item's change: `criteria`, `steps`, `test_commands`; `expectations`, `paths`, `follows` in the result."; short goal: "plan this item's steps".
+
+Text now in `DUTIES['step-plan']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+Change no product file in this stage.
+
+1. **Recheck the item.** Reopen its `context` and recheck each condition. If the plan no longer requires it, report
+   blocked (blocked_by user, `awaiting` an answer: drop or keep) citing the superseding result; never skip the item
+   or repair the queue here. Keep the change inside the item: available APIs and other parts of the request do not
+   widen it. A prerequisite outside the item gets its supplier route in the summary and the blocked outcome.
+2. **Test decisions.** Reopen the item's test decision and HOME/environment.md's harness and suite decisions. In the
+   summary say which you retain, refine or supersede and why; locators in evidence_refs. Revalidate harness, suite
+   and browser tools for the changed surfaces (Repeatable test-suite guide); reuse supported choices or record a
+   justified revision. A remote-resident case needs its framework and an authorized setup, invocation, result
+   retrieval and teardown route. Reuse an existing facility before the smallest missing one (Reusable test
+   facilities); record its locator and readiness gap in the summary.
+3. **`criteria`** (`[{"id": "C1", "text": "..."}]`). Each: `<condition>. Confirm by: <command, observation or
+   inspection>; pass when <expected result>`; say whether it must be exercised or inspection suffices, and name the
+   R-<n> served.
+   - A docs or coverage criterion gets a command check (a search for the required terms).
+   - A condition no command can confirm is not a criterion: list it in the summary as an open item (who does what,
+     what they report back) with `Confirm by: unconfirmable here — <what would confirm it>`.
+   - A new or changed public entry point: add a criterion that it checks its arguments and carries a contract
+     docstring (Code craft 2-3), confirmed by its rejection tests and by inspecting the diff.
+4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
+   - Size each as one behaviour-level change a named check proves. Split a step with two separately confirmable
+     behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with
+     "and", or too large for one review. Merge a step no check confirms alone (half a rename, unused scaffolding)
+     into the step it serves. A single bug fix or mechanical rename is one step.
+   - Tests are not a step (the test stage writes them after the last implement step); a step changing only test
+     files is refused unless the whole item is tests.
+   - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
+     `criteria` it satisfies and the `paths` it changes (inside the item's `paths`). Every criterion is satisfied by
+     some step.
+   - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
+     `{"name", "why", "locator"}` for each with a concrete use in the step, else []. Prefer a repository-local skill
+     reused unchanged. `locator`, when given, is an existing SKILL.md or card path.
+5. **`test_commands`** (`[{"command", "suite", "ids", "criteria"}]`), run from the repository root; the test and
+   verify stages run exactly these.
+   - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
+     pytest `-v`, `node --test` default spec or tap reporter; never dot or junit). A listed ID counts only as its own word in a test's printed name (for example, a test titled `TC-4a` does not show `TC-4`: title it `TC-4 (a)`). `min_tests`
+     where a command must run at least that many. ShipLoop refuses a run that executed no test, so check the filter.
+   - regression: the retained suites the changed paths affect.
+   - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, no
+     `ids` or `min_tests`. None: `check_na` with the reason; no command at all: `test_commands_na`.
+   - Every criterion is named in some command's `criteria`, and a command names only listed criteria. A list too
+     large for the loop contract is refused: shorten IDs, drop duplicates or split the item.
+6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
+   "from"}`; ShipLoop runs every check on the unchanged item base at validate-existing.
+   - Every existing path a step changes or relies on is `works` or `broken` (the request says it is broken); every
+     new path is `absent` (its place is free).
+   - `check`: one read-only command from the repository root that exits 0 while the state holds. For `broken`, the
+     reported failure still reproduces: `! npm test -- -t TC-3` or `node cli.js 2>&1 | grep -q 'TypeError'`.
+   - An open plan assumption this item consumes becomes an expectation whose `from` names it.
+7. **`paths`**: every file the item changes (repository-relative files or globs), including the test files the test
+   stage writes. The item commit takes these, the changed documentation and HOME/. No test command and only non-code
+   paths skips the test stage; a diff touching no code or test path skips document.
+8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in HOME/spec.md or HOME/architecture.md.
+9. **Plan record** in the item's `context` or the summary:
+   - outcome and invariants kept; contracts and responsibilities that change;
+   - target files, interfaces and conventions, matched to the house style (House-style guidance);
+   - each step's failure cases and the diagnostics and errors it must produce;
+   - documentation to change; integration impact and release prerequisites; readiness, completion and revalidation
+     conditions;
+   - the Coding decision guide's selection: runtime and version, artifact and boundary, links to only the matching
+     sections;
+   - code or stored data added or moved: reopen the Namespace and data map in HOME/architecture.md ## Structure and
+     each touched environment's tree. Per file, module and public symbol: environment, home namespace, visibility,
+     collision check (import or load test, deploy validation, or name search). Per stored field, key, table or
+     payload: owning environment, migration (unneeded, earlier step, this step, deploy obligation), round-trip
+     check. Reason for a changed placement or schema (Namespace and placement guidance, Schema and storage guidance,
+     State and data assessment);
+   - each pinned value a check replays (fixed dice, seed data), labelled a source-check fixture apart from the runtime
+     control; confirm an external oracle (golden file, fixture, snapshot) agrees with the task;
+   - interactions, UI or service state changing: a Design basis paragraph or exact section links, rechecking the
+     Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
+     plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
+     component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
+     and the rich interactions planned (a human-facing UI defaults to ambitious and highly interactive: direct
+     manipulation, inline editing, live preview, keyboard paths, animated transitions; give the reason for any
+     scaled back); the UI decisions this step owns (UI planning ownership guide); locators of sources and checks.
+   This record is supporting reference; each step's task and criteria stay its only directive.
+10. **Knowledge.** A structural choice HOME/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
+    step. A newly working command: HOME/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
+    in HOME/.
+11. **Execution graph.** Record none: an inline run issues the steps one at a time.
+12. **evidence_refs**: absolute paths of every planning file written, and the requirement sections and test locators
+    used.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids. Defect fix (coordinator): the unconfirmable-condition clause no longer puts `Confirm by: unconfirmable here` in a criterion; it lists an open item in the summary with that marker. UI planning ownership guide cited in the Design basis item and added to STAGE_REFERENCES.

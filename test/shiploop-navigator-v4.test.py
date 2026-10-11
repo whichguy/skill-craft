@@ -561,19 +561,26 @@ class NavigatorV4Tests(unittest.TestCase):
         root = self.run
         producer = navigator.render(None, root, state)
         notebook = self.repo / ".shiploop-improve" / state["run_id"] / "planning-investigation.md"
-        self.assertIn(str(ROOT / "skills" / "shiploop" / "references" / "planning-experiments.md"), producer)
-        self.assertIn(str(notebook), producer)
+        # Packet re-cut (2026-10-11): a producer packet never mentions its Improve child; the planning experiments
+        # guide and notebook locators are in the plan child's Improve handoff file.
+        self.assertNotIn("planning-experiments.md", producer)
+        handoff_of = lambda checkpoint: navigator.improve_handoff_text(None, root, checkpoint)  # noqa: E731
         # P13: every packet names the run's scratch directory and says why /tmp is not used.
         self.assertIn("Scratch directory (your temporary files; /tmp is shared with other runs): "
                       + str(root / "scratch"), producer)
         # The line above defines RUN/scratch; the STAGE_RULES bullet carries the obligation (2026-10-11 dedupe).
-        self.assertIn("Temporary files go in RUN/scratch, not /tmp", " ".join(producer.split()))
+        self.assertIn("Temporary files go in RUN/scratch, never /tmp", " ".join(producer.split()))
 
         waiting, action, _child = self.bound_plan_child(state)
-        improve = navigator.render(None, root, waiting)
+        packet = navigator.render(None, root, waiting)
+        self.assertIn("/improve ShipLoop Improve: " + str(navigator.improve_handoff_path(_child)), packet)
+        self.assertIn("improve-complete", packet)
+        improve = handoff_of(waiting)
+        self.assertIn(str(ROOT / "skills" / "shiploop" / "references" / "planning-experiments.md"), improve)
+        self.assertIn(str(notebook), improve)
         self.assertIn(f"{action}-reconcile.md", improve)
         self.assertIn("collect or confirm the recorded native worker owner", improve)
-        self.assertIn("do not duplicate the full parent packet", improve)
+        self.assertIn("do not duplicate verbose logs", " ".join(improve.split()))  # was "...the full parent packet or..."
         self.assertIn("use the context-first opening as the compact planning summary", improve)
         context_pos = improve.index("Context-first opening: before start, write the opening file")
         invoke_pos = improve.index("Then say 'Run /improve'")
@@ -581,7 +588,7 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("improve-reconcile", improve)
         cancel_rule = ("Freeze in repeat_condition: if a finding invalidates an accepted discovery, "
                        "research, spec or test-strategy premise")
-        inline = navigator.render(None, root, dict(waiting, delegation="inline"))
+        inline = handoff_of(dict(waiting, delegation="inline"))
         # A blocked stop cannot reconcile; the child must report cancelled. On both routes
         # improve-start writes that rule into the contract's repeat condition, which the runtime
         # reprints in every child packet; no packet asks a model to freeze it by hand (551b8b49).
@@ -612,7 +619,8 @@ class NavigatorV4Tests(unittest.TestCase):
 
     def test_cold_v4_initial_plan_packet_declares_bounded_experiment_contract(self) -> None:
         state = self.at_plan()
-        cold, action, binding, packet = self.cold_bound_packet(state, self.run)
+        cold, action, binding, _short = self.cold_bound_packet(state, self.run)
+        packet = navigator.improve_handoff_text(None, self.run, cold)  # the Improve packet is two instructions (re-cut)
         scratch = (
             Path(binding["workspace"]) / ".shiploop-improve" / ".experiments"
             / cold["run_id"] / action
@@ -637,7 +645,11 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("product integration", packet_lower)
         self.assertIn("decisions or decision-relevant evidence", packet_lower)
         self.assertIn("final_result", packet)
-        self.assertIn("complete ordered work_items", packet)
+        # The queue rule is the plan producer's; the Improve handoff says its final_result carries the step result's
+        # fields, work_items included (packet re-cut, 2026-10-11).
+        self.assertIn("complete ordered work_items", navigator.render(None, self.run, state))
+        self.assertIn("final_result", packet)
+        self.assertIn("work_items", packet)
         self.assertEqual(packet.count("Planning experiments guide:"), 1)
         self.assertEqual(packet.count("Planning investigation notebook:"), 1)
         self.assertIn("only this initial plan child may use the printed parent-only improve-reconcile route after worker collection", packet)
@@ -645,7 +657,8 @@ class NavigatorV4Tests(unittest.TestCase):
     def test_planning_scratch_cannot_alias_runtime_action_directory(self) -> None:
         state = self.at_plan()
         state["action"]["id"] = "experiments"
-        cold, action, binding, packet = self.cold_bound_packet(state, self.run)
+        cold, action, binding, _short = self.cold_bound_packet(state, self.run)
+        packet = navigator.improve_handoff_text(None, self.run, cold)
         scratch_line = next(line for line in packet.splitlines()
                             if line.startswith("Planning scratch directory: "))
         scratch = Path(scratch_line.split(": ", 1)[1])
@@ -663,7 +676,8 @@ class NavigatorV4Tests(unittest.TestCase):
             other_v4 = self.complete_synthetic(other_v4)
         other_root = self.temp_root / "v4-spec"
         other_root.mkdir()
-        _other, _action, _binding, other_packet = self.cold_bound_packet(other_v4, other_root)
+        other_cold, _action, _binding, _short = self.cold_bound_packet(other_v4, other_root)
+        other_packet = navigator.improve_handoff_text(None, other_root, other_cold)
 
         self.assertNotIn("Planning experiment objective:", other_packet)
         self.assertNotIn("Planning experiment exit:", other_packet)
@@ -694,7 +708,10 @@ class NavigatorV4Tests(unittest.TestCase):
         )[0]
         for stage in ("research", "spec", "test-strategy"):
             self.assertNotIn(old_sources[(None, stage)], sources)
-            self.assertIn(str(self.run / "results" / (current[(None, stage)] + ".md")), sources)
+            # A source row for an action the builds-on block already lists is not repeated (packet re-cut,
+            # 2026-10-11), so the current result locator is in the packet once, in that block.
+            # (paths under the run directory print with the RUN symbol)
+            self.assertIn("RUN/results/" + current[(None, stage)] + ".md", packet)
         self.assertIn(str(self.run / "improve" / action / "receipt.md"), sources)
 
     def test_archive_reader_rejects_post_open_substitution(self) -> None:

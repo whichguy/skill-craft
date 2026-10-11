@@ -66,3 +66,30 @@ HOME/environment.md, and cite the runner output that shows each planned check st
 - Proposed: 2,065 characters (102%).
 
 Measured on the default render (ask-agent, planning_review stage, backchain_passes one). Today: prompt(stage) without STAGE_RULES, plus the Develop/Test/Deploy/Tools considerations and the stage-specific renderer lines this draft folds or cuts (Planning phase intent, the environment-discovery and investigation-allowance lines, plan's experiments lines). New: sections 1-3 of this file. Exit conditions are excluded from both.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 1,646 -> 1,500 characters (-9%). Goal: 'Ready the development and test environment; record readiness in HOME/environment.md and runner output in `evidence_refs`.'; short goal: 'prepare the environment'.
+
+Text now in `DUTIES['prepare']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Prepare or verify the development and test environments the plan's items and HOME/environment.md name
+   (Environment preparation guidance), using what the repository declares. Install nothing without authority.
+2. Confirm by safe observation: isolation, runtime, configuration and data safety, access, fixture readiness,
+   baseline identity (Workspace and return guidance).
+3. Start each planned check's runner, the linters and the fixtures; save the output and list each file in
+   `evidence_refs`.
+4. Baseline blocked by setup or access (Initial repository baseline guide): prepare only the approved prerequisite,
+   keep the original observation, and rerun the original initial check on the unchanged product and tests before any
+   dependent feature edit. Never replace it with an easier route or call the blocked baseline passed.
+5. Recheck discovery's source-return trigger and the authorized delivery and verification route from the execution
+   checkout before the first dependent work. If the return must precede a consumer check, record the ordering
+   conflict in `summary` as unresolved. Never return early, deploy, or bypass the final-handoff return guard.
+6. Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands: what was prepared, the
+   commands that start each runner, the observations. Record not-applicable only when this candidate needs no
+   preparation, with what you assessed. Missing required access or setup is blocked, not not-applicable.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

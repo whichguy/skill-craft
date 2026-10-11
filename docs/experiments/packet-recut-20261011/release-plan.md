@@ -131,3 +131,60 @@ needs to print for this stage.
 - Today: DUTIES 4,089 + considerations 88 + OUTER test plans 954 + Test facilities 807 + planning hand-off 560 =
   6,498 characters.
 - Proposed duty (the fenced text above): 4,727 characters, with no shared block printed (-27%).
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 4,887 -> 4,552 characters (-7%). Goal: 'Plan the release without performing it: steps and rollback in `summary` and HOME/environment.md, `consumer_checks`, `consumer_entry`.'; short goal: 'plan the release'.
+
+Text now in `DUTIES['release-plan']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Revalidate the integrated test plan for the release target: the latest done system-test-author record after the
+   most recent accepted replan, HOME/environment.md ## Harnesses and suites, the system-test result (OUTER
+   test-planning handshake); pending, repeat and blocked results are not plan authority. Use Target-native test
+   selection for this payload and its deploy or promotion operation, including any revised gate. Reuse applicable
+   tests and facilities (Reusable test facilities); add checks only for changed boundaries or coverage gaps, and
+   record each new facility's locator, interface, readiness or gap, owner and revalidation condition. An unmet
+   earlier deployment or test prerequisite: report replan with corrective work and evidence (ShipLoop reruns the
+   outer stages).
+2. Write the release steps in `summary` and HOME/environment.md (item 8): target and candidate identity, permission,
+   prerequisites, user impact, monitoring, stop conditions. Every operation the user-visible outcome needs is a
+   named step with its exact command and authorization status: the deploy, each access or visibility change (for
+   example assigning a permission set, activating an app or tab), each browser session a consumer check needs with
+   its browser tool. A step no approval covers is a pending approval named now. Keep source return, artifact
+   publication, deployment, promotion and consumer verification as separate steps. Order the remaining schema,
+   data, service and cutover work with its durable execution owner, observations and recovery limits (Release
+   operation guidance, State and data assessment).
+3. Record each step's delivery authority in `summary`. A plan authorizes and performs no external operation; a
+   required target or authority gap is blocked.
+4. Write the rollback procedure in `summary` and HOME/environment.md ## Commands. Isolated run: write it for the
+   source return the packet states (return route and rollback recipes come from workspace.md), as plain `git`
+   commands with that route's SHAs and branch names, never this run's absolute paths, never for another route
+   (Workspace return guidance). Source return happens at release or handoff, not here. Use an authorized delivery
+   route from the execution checkout when available (Environment promotion guidance). If the return must precede
+   the consumer checks, record the ordering conflict and keep the disposition incomplete; never claim an earlier
+   check observed a future return-triggered effect.
+5. Write the release test plan in `summary` and HOME/environment.md ## Harnesses and suites: pre and post check
+   owners, commands or case selectors, independent expected outcomes, prerequisites, execution versus target
+   locations, remote test-definition revision, setup, test and teardown, fixture isolation, sharing and cost,
+   cleanup and stop conditions. State what release-check must establish before release, what release-verify
+   confirms after, and which observations and cleanup each owns. Each post-release confirm command names the output
+   showing the result present and the output showing it absent; release-check runs it once before the real deploy to
+   prove it tells them apart.
+6. Post-release consumer checks go in `consumer_checks`, shaped like test_commands (a `check` row is judged by exit
+   code, no ids or min_tests). ShipLoop runs every one when release-verify reports done and refuses unless each
+   passes: in an isolated run with a completed return, in a clean copy of the returned result (no Git history,
+   nothing the return plan excluded, no ignored or unmanaged file); with none yet, in the work area, and says so.
+   Write paths relative to the starting directory, put what a fresh consumer needs (install, build) in the check,
+   and never write into the user's checkout by absolute path. A check only a person can make is an open item in
+   `assumptions` (who, where, what to report) with release-verify or handoff as `consumer`, not a command. None
+   applies: empty list with `consumer_checks_na` and the reason.
+7. `consumer_entry`: `how` a person reaches the result (App Launcher name and URL path, command, page) and the
+   repository `sources` files that create that entry.
+8. Update HOME/environment.md: target under ## Targets and runtimes; deploy, dry-run, rollback and confirm commands
+   under ## Commands; approvals and accounts under ## Access and accounts.
+9. Cite HOME/environment.md in `evidence_refs`; the decisions and constraints the plan rests on go in `summary`.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids. Restored once: pending, repeat and blocked results are not plan authority (item 1).

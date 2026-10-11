@@ -288,3 +288,145 @@ is requested in this run." `_backchain_guidance` keeps building these variants.
 - Proposed: 14,780 characters (76%).
 
 Measured on the default render (ask-agent, planning_review stage, backchain_passes one). Today: prompt(stage) without STAGE_RULES, plus the Develop/Test/Deploy/Tools considerations and the stage-specific renderer lines this draft folds or cuts (Planning phase intent, the environment-discovery and investigation-allowance lines, plan's experiments lines). New: sections 1-3 of this file. Exit conditions are excluded from both.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 14,498 -> 13,110 characters (-10%). Goal: 'Plan dependencies and the queue: ordered `work_items`, `assumptions`, and structure decisions in HOME/architecture.md.'; short goal: 'plan the work items'.
+
+Text now in `DUTIES['plan']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Reopen the accepted intake, discovery, research, spec and test-strategy results, RUN/notes/{discovery,research,
+   current-system-baseline}.md, FEATURE/spec.md, HOME/environment.md ## Harnesses and suites, HOME/architecture.md
+   and the relevant Git history (Git-history investigation guide). Sort open gaps into researchable unknown
+   contracts, owner or access gaps and known setup prerequisites, each with its first affected consumer. With one
+   boundary blocked, keep independent research and conditional planning eligible on their own prerequisites.
+2. Plan backward from desired outcomes to their producers (Dependency-planning guidance); return `work_items`
+   (item 17). Order readiness, implementation, integration and release so no consumer runs before its
+   prerequisites. Each item's `context` gives ready and done conditions, candidate scope, proving check, authority
+   boundaries, correction route. The plan implies no unrun test and no authorized external operation.
+3. Apply Initial-plan reconciliation to HOME/architecture.md, HOME/spec.md, the non-functional requirements and the
+   State and data assessment: map each applicable obligation and every acceptance criterion to its work item,
+   prerequisites, observing test and release or recovery conditions, or to a reasoned exclusion (`summary`) or open
+   need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof.
+4. Carry the initial baseline's evidence and classification into `evidence_refs` and each affected item's `context`
+   (Initial repository baseline guide). A foundation repair, setup prerequisite or missing-test bootstrap goes in the
+   earliest feasible item before the feature that depends on it; its readiness evidence is the original check's
+   passing rerun or, when none can rerun, a separately recorded passing characterization of unchanged application
+   behaviour. Keep the original no-suite observation. An expected-RED repair may start its own work. A bootstrap
+   makes only the smallest test-only harness, dependency or configuration edits and tests unchanged behaviour;
+   alone it neither makes the repository healthy nor unblocks features. A failure of unknown relatedness stays
+   blocking; waive or absorb no unrelated failure.
+5. Reuse, configure or extend an existing test facility before planning a new one (Reusable test facilities); plan
+   each missing one as its own prerequisite item and record in the consuming item's `context` its definition
+   locator, readiness gap and owner. Readiness is not test execution.
+6. Include environment preparation and delivery work as items; ask for delivery authority at the first concrete
+   boundary that needs it (Delivery authority guidance).
+7. Code or stored data added: write a Namespace and data map in HOME/architecture.md ## Structure with an AD-<n> per
+   decision; each item's entries go in its `context`:
+   - every execution environment the code runs in or reaches (local checkout, remote runtime behind an MCP server,
+     API or CLI, hosted platform, each service);
+   - per environment: current library structure (packages, modules, prefixes, exported surfaces, where similar
+     responsibilities live), name resolution, and what new code imports, is called by or shares names with
+     (Namespace and placement guidance); inspect a remote environment through its interface;
+   - a home namespace and visibility per new responsibility across all items, and how new names, shared ones
+     included, avoid collisions;
+   - data storage per environment (Schema and storage guidance): existing and destination schema, owner and change
+     mechanism; for a new schema its store, keys, field types, constraints, relationships, version, migration and
+     storage policy (authority, retention, sensitive fields, quotas).
+   Plan no empty package or directory for a hypothetical future.
+8. Decide the interaction structure (Interaction design guide); record each decision as an AD-<n> in
+   HOME/architecture.md:
+   - placement: the simplest that meets HOME/spec.md. A single-user game or tool with no shared or lasting state
+     runs entirely in the client. Add server state, identity, a store or live channel only for a requirement that
+     needs it, and use the runtime's native storage, identity, cache, workflow and notification services first;
+   - safeguards at every placement: HOME/spec.md's personal-data handling, a server-side check on every action by a
+     caller the product does not control, validation and abuse limits on anonymous input, a record of every
+     background or async failure that reaches whoever must act;
+   - channels: per hop the lightest that meets the stated freshness (request/response; polling at a stated interval;
+     email or platform notification for changes hours apart; server-sent events, WebSockets or push only when
+     seconds matter). After a push, poll gap or reconnect, read authoritative state back. Cache only derived data,
+     in the runtime's cache, expiring with the allowed staleness. State each channel's and cache's quota cost.
+   Then write a Design basis in `summary`, rechecking the guide rather than copying a prior plan: baseline and delta;
+   state, event and connection agreements with planned recovery checks (including a crash after acknowledgment but
+   before processing); deployment fit; source and check locators. UI: component, interaction and skin premises, the
+   design guidance locator with identity, version or digest (or the named fallback), each async cue with purpose and
+   reduced-motion alternative or an explicit static choice. A human-facing UI defaults to an ambitious, highly
+   interactive design: name the rich interactions planned (direct manipulation, inline editing, live preview,
+   keyboard paths, animated transitions) and any scaled back, with the reason. A consequential UI choice gives the
+   guide's ambition, the reuse, evolve or upgrade decision, effort and benefit, and the compatibility check.
+   Allocate each UI decision to the item that owns it (UI planning ownership guide) and put it, with planned check
+   locators, in that item's `context` and `evidence_refs`. Reuse accepted choices for unaffected scope. Start no
+   nested review.
+9. HOME/architecture.md: each structure or technology decision as AD-<n> (choice, why, alternatives, status) under
+   ## Decisions; a decision that no longer holds under ## Superseded; update ## Stack, ## Structure, ## Conventions
+   and ## Interfaces and boundaries where this plan changes them.
+10. Give each work item a compact `context` a fresh reader can act on, full locators in `evidence_refs`, longer notes
+    in `summary` (Decision carry-forward guidance). Per applicable entry: locator, decision, rationale, scope,
+    revalidation condition:
+    - each convention, canonical test or example, verified skill, MCP or library contract, environment or delivery
+      decision, approved exception;
+    - a selected local skill: the index or selection-note locator and what to revalidate (no fit is a current
+      observation; later items reread the index);
+    - test strategy: the ## Harnesses and suites locator and the item's compact test decisions (execution and target
+      location, fixture and suite choices, what to recheck);
+    - baseline and spec: exact sections, gaps and revalidation conditions of RUN/notes/current-system-baseline.md and
+      FEATURE/spec.md;
+    - service decisions: note locators and revalidation conditions;
+    - readiness checks of the item's prerequisites.
+    A later packet replays no earlier stage's references, so the item carries them. Copy no transcript, invent no
+    decision ledger; a context summary is not proof.
+11. Plan the before and after decisions and preservation checks from the baseline and FEATURE/spec.md, and durable
+    documentation work for knowledge that exists only in run notes.
+12. Map accepted service choices to the affected schema and config, query and cache, worker and status, business and
+    UI, logging, test and operator files, as needed (Service discovery guidance), ordering prerequisites and checks.
+13. Each item's `context` states the module format its files use (CommonJS or ESM, with or without package.json) and
+    the loadable seam its tests import, so a test loads before the implementation exists.
+14. Before fixing item IDs, check the draft once for coherent increments. Split a deliverable with different
+    prerequisites, a useful intermediate contract or artifact, or independent implementation and check; merge
+    fragments sharing prerequisites and an implementation boundary with no checkable state of their own. A small
+    change may be one item; no minimum, quota or scaffolding item. Preservation and negative requirements are checks
+    on the affected item unless they need their own change. Add no item for step planning, validation, build, test,
+    documentation, verification, commit or review (each item already gets them). Keep a cross-item or
+    later-environment check at the boundary where it is due.
+15. Per dependency name the supplier and the concrete output or state the consumer needs. Authoring an artifact
+    differs from applying it in a running environment. A shared topic, list order or shared file is no dependency.
+    Record independent branches and file or resource conflicts in `summary` (an isolated workspace does not make
+    parallel work safe). ShipLoop runs the queue one item at a time, so put each prerequisite before its consumers.
+16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
+    notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
+    open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the `work_items` ID that settles it.
+17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
+    approved outcome, including required independent work with no downstream consumer.
+18. `summary` keeps this pass's key reference statements, decisions, constraints and acceptance context, as
+    supporting references, not a replacement assignment or a restatement of the request; each item's ready and done
+    conditions stay its only execution directive. `evidence_refs`: HOME/architecture.md, any execution graph, every
+    source used. An unrecorded conversation is not a handoff.
+19. Run the dependency audit of the Backchain planning guide on every route. You may also request one Backchain
+    `plan` / `draft` through `source-aware-native`, the only call route. Nothing refuses a plan without it and ShipLoop cannot see whether the child ran, so say in `summary` which route you took and why. If you request it:
+    - every resource in the printed "Selected Backchain and Until Loop resources" block is required. A `MISSING`
+      entry is the blocker to report; never substitute a sibling, cache or other install;
+    - Backchain runs the selected Until Loop with `Backchain standalone Until Loop binding: <binding-id>`. The child
+      is plan-only: it may change the candidate plan and permitted planning companions, and may not commit, push,
+      merge, run the project or broaden scope. Until Loop owns the callback handle, progress, the review gate,
+      recovery and the terminal transition; copy none of it. Write the child's start contract with
+      `required_trivial_reviews: 0` and this exit condition verbatim, appending only case-specific clauses: One
+      complete dependency review/fix/check cycle has run; every finding of that cycle is repaired within the edit
+      bounds; every `Confirm by` clause on a step this cycle may change meets the planning guide's Outcomes rule; the
+      printed `backchain-check` is ok on the final candidate and its receipt is cited; final candidate-specific
+      domain evidence is saved. A pass that completes that cycle reports `exit_assessment: satisfied` even when it
+      repaired the candidate, and no second review runs. Put the line `Backchain passes: one` beside the binding
+      marker in the child request. Keep the contract within the state budget;
+    - record the binding id, candidate and receipt paths in `evidence_refs` and the affected items' `context`;
+    - report done only with the child's exact `complete` receipt saved, with the final candidate's identity and its
+      domain evidence. A nonterminal, unresolved or incompatible child leaves this stage incomplete. The draft is a
+      candidate; ShipLoop owns acceptance.
+    Run the printed `backchain-check` after each candidate revision. It reads a candidate graph in Backchain's plan
+    schema (Backchain SKILL.md, "Plan document shape"), not a prose plan. A failure is a finding; cite its receipt in
+    `evidence_refs`. A structural plan, a planned check or an experiment that merely ran is not execution evidence.
+    Keep material findings visible in `summary`. Carry the selected requirement sections and test locators through
+    the plan and the items' `context`.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids. UI planning ownership guide cited where UI decisions are allocated to items, and added to STAGE_REFERENCES.

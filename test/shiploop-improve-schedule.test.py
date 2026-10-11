@@ -60,6 +60,12 @@ def template(packet):
     return store.loads(packet.split("Result template:\n", 1)[1].split("\nCall this when done:", 1)[0])
 
 
+def full_packet(head):
+    """The complete packet: the file a ``Full packet:`` pointer names, else the head itself (a short packet is whole)."""
+    row = next((r for r in head.splitlines() if r.startswith("Full packet: ")), None)
+    return Path(row.removeprefix("Full packet: ")).read_text(encoding="utf-8") if row else head
+
+
 def after_header(packet):
     """Return the line after the navigator header (the one legal callback slot)."""
     lines = packet.splitlines()
@@ -148,17 +154,26 @@ class ImproveScheduleTests(unittest.TestCase):
             state["active_improve"] = standalone.binding(
                 state, action, "spec", child["seed_result"], standalone.resolve_skill(str(CARD)))
             packet = nav.render(None, run, state)
-        # A bound inline child that has not started leads with improve-start; the
-        # improve-complete callback follows in the body.
-        self.assertIn("improve-start", packet.splitlines()[1])
-        self.assertIn("improve-complete", packet)
-        self.assertIn("Planning review focus", packet)
-        self.assertIn("self-passes by this same executor, not independent reviewers", packet)
-        self.assertNotIn("independent broader review", packet)  # one packet never calls the same review both
-        self.assertIn("Reviewing the returned spec result. Goal:", packet)
-        self.assertIn("- every request outcome maps to at least one acceptance criterion", packet)
-        self.assertNotIn("Capture separate durable review files", packet)
-        text = " ".join(packet.split())
+            handoff = nav.improve_handoff_text(None, run, state)
+            handoff_path = nav.improve_handoff_path(state["active_improve"])
+        # The packet is two instructions (2026-10-11 re-cut): the improve skill on the handoff file, then improve-complete.
+        # Everything else the old packet said is in the handoff file ShipLoop writes for the child.
+        lines = packet.splitlines()
+        self.assertIn("       /improve " + nav.IMPROVE_ARGUMENT_PREFIX + str(handoff_path), lines)
+        self.assertIn("improve-complete", lines[4])
+        self.assertNotIn("improve-start", packet)
+        self.assertNotIn("Planning review focus", packet)
+        self.assertIn("improve-start", handoff)
+        self.assertIn("improve-complete", handoff)
+        self.assertIn("Planning review focus", handoff)
+        self.assertIn("self-passes by this same executor, not independent reviewers", handoff)
+        self.assertNotIn("independent broader review", handoff)  # one text never calls the same review both
+        # LOST OBLIGATION (re-cut 2026-10-11): the goal and done-when list the review judges the result against were
+        # only in the old Improve packet's head; neither the new packet nor the handoff file states them.
+        self.assertIn("Reviewing the returned spec result. Goal:", handoff)
+        self.assertIn("- every request outcome maps to at least one acceptance criterion", handoff)
+        self.assertNotIn("Capture separate durable review files", handoff)
+        text = " ".join(handoff.split())
         # P12: the child writes review-<n>.md per pass; improve-complete picks the passes itself.
         self.assertIn("improve-complete imports the last two passes", text)
         self.assertIn("review-<n>.md", text)
@@ -248,18 +263,23 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIsNone(waiting["active_improve"]["skill"])
         packet = nav.render(None, run, waiting)
         lead = after_header(packet)
-        self.assertTrue(lead.startswith("Next command (bind the selected Improve card"), lead)
-        lines = packet.splitlines()
-        # Batch 1009 B1a: no card is recorded in this state, so the packet prints a marked blank and says where
-        # ShipLoop looks, never a path-shaped template a host could run as if it were real.
+        # The packet is two instructions (2026-10-11 re-cut): an unbound child prints the bind command, then `next`.
+        self.assertTrue(lead.startswith("Next command (bind the Improve skill's SKILL.md"), lead)
+        self.assertIn("Then run the recovery command for the Improve instruction: "
+                      + nav._callback(None, run, "next"), packet.splitlines())
+        # Batch 1009 B1a: no card is recorded in this state, so the packet prints a marked blank, never a
+        # path-shaped template a host could run as if it were real.
         self.assertNotIn("/absolute/path/to", packet)
+        self.assertIn(" improve-bind ", lead)
+        self.assertIn(shlex.quote("--skill-card=" + nav.IMPROVE_CARD_BLANK), lead)
+        # Where ShipLoop looks, and the pause route, moved to the handoff file ShipLoop writes for the child.
+        handoff = nav.improve_handoff_text(None, run, waiting)
+        lines = handoff.splitlines()
         body = lines[next(i for i, line in enumerate(lines) if line.startswith("No Improve card is recorded for this run.")) + 1]
         self.assertIn(" improve-bind ", body)
-        self.assertTrue(lead.endswith(": " + body), (lead, body))
-        self.assertIn(shlex.quote("--skill-card=" + nav.IMPROVE_CARD_BLANK), lead)
-        self.assertIn(str(nav.guidance.installed_improve_card()), packet)
-        # PROGRESS_REPORTING tells the host to run the packet's pause command,
-        # so the unbound packet prints it.
+        self.assertEqual(body, nav._callback(None, run, "improve-bind", action=action,
+                                             **{"skill-card": nav.IMPROVE_CARD_BLANK}))
+        self.assertIn(str(nav.guidance.installed_improve_card()), handoff)
         self.assertIn("Pause parent without losing child: "
                       + nav._callback(None, run, "pause", reason="reason"), lines)
 
@@ -288,17 +308,17 @@ class ImproveScheduleTests(unittest.TestCase):
         waiting = nav.apply(recorded, nav.current_action(recorded)["id"], DONE)
         packet = nav.render(None, run, waiting)
         lead = after_header(packet)
-        self.assertTrue(lead.startswith("Next command (bind the selected Improve card"), lead)
+        self.assertTrue(lead.startswith("Next command (bind the Improve skill's SKILL.md"), lead)
         self.assertIn("--skill-card=" + str(CARD), lead)
-        lines = packet.splitlines()
+        handoff = nav.improve_handoff_text(None, run, waiting)
+        lines = handoff.splitlines()
         said = next(i for i, line in enumerate(lines) if line.startswith("Bind the Improve card recorded for this run"))
         body = lines[said + 1]
         self.assertTrue(lead.endswith(": " + body), (lead, body))
         for origin in ("--improve-skill", "installed beside"):
             self.assertNotIn(origin, lines[said])
-        self.assertNotIn("No Improve card is recorded", packet)
-        self.assertNotIn(nav.IMPROVE_CARD_BLANK, packet)
-
+        self.assertNotIn("No Improve card is recorded", packet + handoff)
+        self.assertNotIn(nav.IMPROVE_CARD_BLANK, packet + handoff)
 
 def render_walk(state, run, *, plan_items=None, limit=300):
     """Drive the pure navigator to done, rendering every packet on the way; return the stages that started a child."""
@@ -428,13 +448,25 @@ class PlanningReviewScheduleTests(unittest.TestCase):
                        "its Improve child evaluates", "mandatory actual Improve handoff",
                        "starts this action's Improve child", "Proposed queue awaiting Improve"):
             self.assertNotIn(absent, packet)
-        self.assertIn("Improve: no Improve child starts after this result in this run (planning_review: none)",
-                      packet)
-        # the same producer packet in stage mode still promises the child and carries the experiment locators
-        staged = nav.render(None, run, advance_to(self.new("stage"), "plan"))
-        for present in ("Planning experiments guide", "Planning investigation notebook",
-                        "its Improve child evaluates", "starts this action's Improve child"):
-            self.assertIn(present, staged)
+        # A producer packet no longer announces its Improve child at all (re-cut 2026-10-11, item 2); the none-mode
+        # sentence is gone with it, and the stage-mode promise below is gone too.
+        self.assertNotIn("Improve: ", packet)
+        # In stage mode the producer packet is just as silent; the experiment locators and the review live in the
+        # child's handoff file, which exists only for the planning_review modes that start a child.
+        staged = advance_to(self.new("stage"), "plan")
+        self.assertNotIn("Planning experiments guide", nav.render(None, run, staged))
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            state = nav.new_state(str(repo), "Schedule fixture.", improve_skill="", planning_review="stage")
+            state = advance_to(state, "plan")
+            action = nav.current_action(state)["id"]
+            state = nav.apply(state, action, DONE)
+            state["active_improve"] = standalone.binding(
+                state, action, "plan", state["active_improve"]["seed_result"], standalone.resolve_skill(str(CARD)))
+            handoff = nav.improve_handoff_text(None, Path(temp).resolve() / "run", state)
+        for present in ("Planning experiments guide", "Planning investigation notebook"):
+            self.assertIn(present, handoff)
 
 
 class CliRunCase(unittest.TestCase):
@@ -635,34 +667,30 @@ class InstalledCardCliTests(CliRunCase):
     @staticmethod
     def printed_bind(head):
         """The bind command a head leads with, as the shell words it prints."""
-        lead = next(line for line in head.splitlines() if line.startswith("Next command (bind the selected Improve card"))
-        return lead, shlex.split(lead.split("details below): ", 1)[1])
+        lead = next(line for line in head.splitlines() if line.startswith("Next command (bind the Improve skill's SKILL.md"))
+        return lead, shlex.split(lead.split("recorded card): ", 1)[1])
 
-    def test_a_stage_run_started_without_a_card_records_the_installed_one_and_prints_a_runnable_bind(self):
+    def test_a_stage_run_started_without_a_card_records_the_installed_one_and_binds_it_at_the_transition(self):
+        """ShipLoop binds the recorded card itself (re-cut 2026-10-11, item 3): no bind command is printed at all."""
         run = self.init()
         self.assertEqual(self.saved(run)["improve_skill"], str(CARD))
         head = self.to_the_bind(run)
-        lead, argv = self.printed_bind(head)
-        self.assertIn("--skill-card=" + str(CARD), argv)
-        full = Path(next(row for row in head.splitlines() if row.startswith("Full packet: "))
-                    .removeprefix("Full packet: ")).read_text(encoding="utf-8")
+        self.assertEqual(self.saved(run)["active_improve"]["skill"]["skill_card"], str(CARD))
+        full = full_packet(head)
         for text in (head, full):
             self.assertNotIn("/absolute/path/to", text)
             self.assertNotIn(nav.IMPROVE_CARD_BLANK, text)
-        # The command exactly as printed binds the card.
-        self.run_argv(argv)
-        self.assertEqual(self.saved(run)["active_improve"]["skill"]["skill_card"], str(CARD))
+            self.assertNotIn("improve-bind", text)
+        self.assertIn("/improve " + nav.IMPROVE_ARGUMENT_PREFIX, full)
 
     def test_an_explicit_improve_skill_wins_over_the_installed_card(self):
-        """GUARD (passes on the unchanged tree): the flag is recorded as given, and the packet binds that card."""
+        """GUARD (passes on the unchanged tree): the flag is recorded as given, and the transition binds that card."""
         elsewhere = self.base / "elsewhere" / "improve"
         shutil.copytree(CARD.parent, elsewhere, symlinks=True)
         run = self.init("--improve-skill", elsewhere / "SKILL.md", name="explicit")
         self.assertEqual(self.saved(run)["improve_skill"], str(elsewhere / "SKILL.md"))
-        _lead, argv = self.printed_bind(self.to_the_bind(run))
-        self.assertIn("--skill-card=" + str(elsewhere / "SKILL.md"), argv)
-        self.assertNotIn("--skill-card=" + str(CARD), argv)
-
+        self.to_the_bind(run)
+        self.assertEqual(self.saved(run)["active_improve"]["skill"]["skill_card"], str(elsewhere / "SKILL.md"))
 
     def test_the_help_does_not_promise_a_default_that_planning_review_none_refuses(self):
         """`--improve-skill` has no default under `none`: the run is refused without it.  A help line that said
@@ -699,8 +727,7 @@ class NoInstalledCardCliTests(CliRunCase):
     def at_the_bind(self, run):
         self.advance_to(run, "spec")
         head = self.complete(run).stdout
-        full = Path(next(row for row in head.splitlines() if row.startswith("Full packet: "))
-                    .removeprefix("Full packet: ")).read_text(encoding="utf-8")
+        full = full_packet(head)
         return head, full
 
     def check_the_honest_blank(self, run):
@@ -709,11 +736,14 @@ class NoInstalledCardCliTests(CliRunCase):
         for text in (head, full):
             self.assertNotIn("/absolute/path/to", text)
         # The head leads with the one command; the sentence that says why its value is blank is in the full packet.
+        # LOST OBLIGATION (re-cut 2026-10-11): an unbound child writes no handoff file, and the two-instruction packet
+        # no longer says where ShipLoop looked for the card; these two pins are left as they were and fail until the
+        # source states it again.
         self.assertIn("No Improve card is recorded for this run.", full)
         self.assertIn(str(self.skills / "improve" / "SKILL.md"), full)
-        lead = next(line for line in head.splitlines() if line.startswith("Next command (bind the selected Improve card"))
+        lead = next(line for line in head.splitlines() if line.startswith("Next command (bind the Improve skill's SKILL.md"))
         # The marked blank is one quoted argument that the bind refuses honestly, rather than a wrong path it runs.
-        refused = self.run_argv(shlex.split(lead.split("details below): ", 1)[1]), status=2)
+        refused = self.run_argv(shlex.split(lead.split("recorded card): ", 1)[1]), status=2)
         self.assertIn("skill card path must be absolute", refused.stdout + refused.stderr)
         # Selecting the real card, as the packet says to, binds it.
         action = self.saved(run)["action"]["id"]

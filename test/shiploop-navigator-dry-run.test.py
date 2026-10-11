@@ -91,9 +91,9 @@ class NavigatorDryRunTests(unittest.TestCase):
         self.assertIn('## Navigator execution mode adapter', policy_text)
         requirements = guidance.ENVIRONMENT_DISCOVERY_REQUIREMENTS
         self.assertEqual(set(requirements), {'discovery', 'research'})
+        # The requirement and the shared allowance are in the discovery and research duties (packet re-cut,
+        # 2026-10-11); a packet keeps only the two locators and no longer prints the requirement line.
         discovery_lines = (
-            'One investigation allowance spans applicable discovery and research review stages; '
-            'a stage boundary does not refill it.',
             f'Recursive discovery policy: {policy}#recursive-discovery-and-experiments',
             f'Navigator adapter: {policy}#navigator-execution-mode-adapter',
         )
@@ -122,6 +122,13 @@ class NavigatorDryRunTests(unittest.TestCase):
             for event in report['events']:
                 with self.subTest(scenario=name, stage=event['from'], command=event['command']):
                     prompt = event['prompt']
+                    if prompt.splitlines()[0].endswith('| Improve'):
+                        # The Improve packet is two instructions (re-cut, 2026-10-11) and carries no policy
+                        # locators; those reach the Improve child only through the handoff file (REPORTED: it
+                        # holds none either).
+                        # (The pure navigator does not bind at the transition, so the dry run prints the bind step.)
+                        self.assertTrue('improve-bind' in prompt or 'improve-complete' in prompt, prompt)
+                        continue
                     self.assertIn('reference.md (#policies', prompt)
                     self.assertIn(
                         'Repository knowledge index (host-authored, if present): ',
@@ -139,11 +146,10 @@ class NavigatorDryRunTests(unittest.TestCase):
                     # Only the discovery and research producers carry the
                     # environment discovery requirement and its locators.
                     discovery = event['from'] in requirements
-                    self.assertEqual(prompt.count('Environment discovery requirement: '),
-                                     int(discovery))
+                    self.assertEqual(prompt.count('Environment discovery requirement: '), 0)
+                    self.assertEqual(prompt.count('One investigation allowance spans'), 0)
                     if discovery:
-                        self.assertIn('Environment discovery requirement: '
-                                      + requirements[event['from']], prompt)
+                        self.assertIn('investigation allowance', ' '.join(prompt.split()))
                     for line in discovery_lines:
                         self.assertEqual(prompt.count(line), int(discovery), line)
         # The selection is live: the packets of these scenarios print some policy locators.
@@ -166,7 +172,10 @@ class NavigatorDryRunTests(unittest.TestCase):
                     self.assertIn('owner', event)
                     self.assertIn('next_owner', event)
                     self.assertIn('completed_instances', event)
-                    self.assertIn('Inspect the SDLC graph', event['prompt'])
+                    if not event['prompt'].splitlines()[0].endswith('| Improve'):
+                        # The Improve packet is two instructions (re-cut, 2026-10-11) and no longer prints the request;
+                        # the request reaches the Improve child through the opening it writes.
+                        self.assertIn('Inspect the SDLC graph', event['prompt'])
                     self.assertIn(event['from'], event['prompt'])
                     self.assertFalse(
                         {'phase', 'subphase', 'counter', 'review_count'} & set(event)
@@ -426,13 +435,19 @@ class BackchainStageTextTests(unittest.TestCase):
     def printed_guidance(stage, **modes):
         """What an inline packet prints for the stage's Backchain call: an inline step-plan or carry-forward builds no
         execution graph, so it carries one optional audit line instead of the caller guidance (2026-10-11 dedupe)."""
+        if stage in guidance.BACKCHAIN_FOLDED_STAGES:
+            # Packet re-cut (2026-10-11): spec and plan fold the Backchain caller guidance into their duty (an
+            # inline run), so the packet prints the duty once and no second copy of the guidance.
+            return " ".join(guidance.duty(stage, delegation=guidance.INLINE, **modes).split())
         if stage in guidance.INLINE_AUDIT_STAGES:
             return guidance.INLINE_BACKCHAIN_AUDIT
         return guidance._backchain_guidance(stage, **modes)
 
     def assert_prints_guidance(self, packet, stage, **modes):
-        self.assertEqual(packet.count(self.printed_guidance(stage, **modes)), 1)
-        if stage in guidance.INLINE_AUDIT_STAGES:
+        folded = stage in guidance.BACKCHAIN_FOLDED_STAGES
+        self.assertEqual((" ".join(packet.split()) if folded else packet).count(self.printed_guidance(stage, **modes)),
+                         1)
+        if folded or stage in guidance.INLINE_AUDIT_STAGES:
             self.assertNotIn(guidance._backchain_guidance(stage, **modes), packet)
 
     @classmethod
@@ -552,8 +567,7 @@ class BackchainStageTextTests(unittest.TestCase):
             packets = {event["from"]: event["prompt"] for event in events if event["command"] == "produce"}
             with self.subTest(mode=mode):
                 self.assertIn(gate, packets[self.LOOP_STAGE])
-                self.assertEqual(packets[self.LOOP_STAGE].count(
-                    guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes=mode)), 1)
+                self.assert_prints_guidance(packets[self.LOOP_STAGE], self.LOOP_STAGE, backchain_passes=mode)
                 for stage in self.AUDIT_STAGES:
                     self.assertNotIn("required_trivial_reviews", packets[stage])
                     self.assert_prints_guidance(packets[stage], stage, backchain_passes=mode)
@@ -577,16 +591,17 @@ class BackchainStageTextTests(unittest.TestCase):
     # Batch 1009 BC1: the one-pass plan packet said "may request" and, a few lines later, "Write the child's start
     # contract ... verbatim", and models read the child as required or optional by chance; both Sonnet round-1 runs
     # skipped it and ran the printed backchain-check on a prose plan.  The packet says what the script enforces.
-    CHOICE = ("The `plan`/`draft` request is your choice",
-              "nothing refuses a plan without it",
+    # Re-pointed at the plan duty's Backchain item (packet re-cut, 2026-10-11), which words the same obligations.
+    CHOICE = ("You may also request one Backchain `plan` / `draft`",
+              "Nothing refuses a plan without it",
               "ShipLoop cannot see whether the child ran",
-              "dependency audit is not optional on either route",
-              "Say in this result's `summary` which route you took and why",
-              "The start contract below applies only if you request the child",
+              "Run the dependency audit of the Backchain planning guide on every route",
+              "say in `summary` which route you took and why",
+              "If you request it:",
               "reads a candidate graph in Backchain's plan schema (Backchain SKILL.md, \"Plan document shape\"), not a prose plan")
 
     def test_the_one_pass_plan_packet_says_the_child_is_a_choice_and_the_audit_is_not(self):
-        flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="one").split())
+        flat = self.printed_guidance(self.LOOP_STAGE, backchain_passes="one")
         packet = " ".join(self.packets[self.LOOP_STAGE].split())
         for phrase in self.CHOICE:
             with self.subTest(phrase=phrase):
@@ -594,6 +609,7 @@ class BackchainStageTextTests(unittest.TestCase):
                 self.assertEqual(packet.count(phrase), 1)  # the dry-run CLI route prints it, once
         # It sits before the gate it qualifies, so a reader meets "optional" before "write the contract verbatim".
         self.assertLess(flat.index(self.CHOICE[0]), flat.index("Write the child's start contract"))
+        self.assertLess(flat.index(self.CHOICE[-2]), flat.index("Write the child's start contract"))
 
     def test_the_choice_is_said_only_where_the_one_pass_gate_is_printed(self):
         """GUARD (passes on the unchanged tree): converge is the owner choosing the heavier route and its gate text has no
@@ -632,23 +648,25 @@ class BackchainStageTextTests(unittest.TestCase):
 
     def test_none_offers_no_whole_plan_or_draft_and_keeps_the_audit_route_and_the_budget_at_plan(self):
         plan = self.packets_in("none")[self.LOOP_STAGE]
-        printed = guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="none")
-        self.assertEqual(plan.count(printed), 1)  # the route: the mode the CLI records reaches the packet
-        flat = " ".join(printed.split())
-        for kept in (self.NONE_SENTENCE, "action `review` / stage `audit`", "read-only, one-pass diagnostic",
-                     "exactly one action `repair` / stage `revise`", self.POINTER, "Until Loop state budget",
-                     "A MISSING loop resource blocks repair/revise; no other install substitutes"):
+        self.assert_prints_guidance(plan, self.LOOP_STAGE, backchain_passes="none")  # the route reaches the packet
+        flat = self.printed_guidance(self.LOOP_STAGE, backchain_passes="none")  # the plan duty, Backchain item folded
+        for kept in (self.NONE_SENTENCE, "Request a Backchain `review` / `audit`", "It is read-only, one pass",
+                     "you may request exactly one `repair` / `revise`",
+                     "put the line `Backchain passes: one` beside the binding marker in the child request",
+                     "a MISSING one blocks it, and no other install substitutes",
+                     "keep its start contract within the state budget"):
             with self.subTest(kept=kept):
                 self.assertIn(kept, flat)
-        for dropped in ("A whole `plan`/`draft` is requested only", "action `plan` / stage `draft`",
+        for dropped in ("A whole `plan`/`draft` is requested only", "You may also request one Backchain",
                         "Backchain standalone Until Loop binding", "required_trivial_reviews",
-                        "`MISSING: ...`", "Record the binding id", "The Until Loop child is plan-only",
-                        "Backchain passes: one.", "Backchain passes: none"):
+                        "A `MISSING` entry is the blocker", "record the binding id", "child is plan-only",
+                        "Backchain passes: none"):
             with self.subTest(dropped=dropped):
                 self.assertNotIn(dropped, flat)
         self.assertEqual(flat.count("`plan`/`draft`"), 1)  # named once: to say it is not requested
         self.assertIn("Backchain graph check: ", plan)  # the record-only check command line stays
-        self.assertIn(guidance.BACKCHAIN_CHECK, plan)  # and the guidance sentence that tells the host to run it
+        self.assertIn("Run the printed `backchain-check` after each candidate revision", flat)  # and the duty line
+        self.assertIn("Until Loop state budget", plan)  # the budget rule stays printed after the duty
         self.assertEqual(plan.count("Backchain planning guide: "), 1)
 
     def test_none_prints_the_audit_resource_and_the_loop_status_not_the_six_file_block_at_plan(self):
@@ -665,7 +683,8 @@ class BackchainStageTextTests(unittest.TestCase):
         for mode in ("one", "converge"):
             plan = self.packets_in(mode)[self.LOOP_STAGE]
             with self.subTest(mode=mode):
-                self.assertIn("action `plan` / stage `draft`", " ".join(plan.split()))
+                self.assertIn("You may also request one Backchain `plan` / `draft` through `source-aware-native`",
+                              " ".join(plan.split()))
                 self.assertNotIn(self.NONE_SENTENCE, " ".join(plan.split()))
                 self.assertIn("Selected Backchain and Until Loop resources", plan)
                 for label in self.LOOP_ONLY_LABELS:
@@ -718,7 +737,9 @@ class BindCommandTests(unittest.TestCase):
                     with self.subTest(delegation=delegation, scenario=name, sequence=event['sequence']):
                         self.assertNotIn('/absolute/path/to', prompt)
                         for line in prompt.splitlines():
-                            for token in shlex.split(line) if '--skill-card=' in line else ():
+                            # The bind line's lead-in holds an apostrophe ("skill's"); parse only the command.
+                            command = line.split('): ', 1)[1] if line.startswith('Next command (') else line
+                            for token in shlex.split(command) if '--skill-card=' in line else ():
                                 if token.startswith('--skill-card='):
                                     seen += 1
                                     self.assertTrue(os.path.isabs(token.split('=', 1)[1]), line)
@@ -734,7 +755,7 @@ class BindCommandTests(unittest.TestCase):
         packet = navigator.render(driver.CORE, driver.RUN, waiting)
         self.assertNotIn('/absolute/path/to', packet)
         self.assertIn(navigator.IMPROVE_CARD_BLANK, packet)
-        self.assertIn('No Improve card is recorded for this run', packet)
+        self.assertIn('ShipLoop found no usable recorded card', packet)
         self.assertIn(str(guidance.installed_improve_card()), packet)
 
 if __name__ == '__main__':

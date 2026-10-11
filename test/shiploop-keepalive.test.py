@@ -137,7 +137,7 @@ class RepeatPacketTests(KeepaliveTestCase):
         self.assertEqual(recovered, self.packet)
         full = _packet_file_text(recovered)
         self.assertIn("Original request (preserve user scope", full)
-        self.assertIn("Recovery command (it only reads the saved state", full)
+        self.assertIn("Recovery command (reprints the current packet from saved state", full)
 
     def test_the_result_contract_is_printed_under_the_callback(self) -> None:
         # Only the short stage-goal block sits between the callback and the

@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 import shiploop_assumptions as assumptions  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
+import shiploop_loop_contract as loop_contract  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
@@ -34,7 +35,10 @@ FOCUS_STAGES = ("spec", "test-strategy")
 
 
 def packets(planning_review: str = "stage", state_out: "dict | None" = None) -> dict:
-    """{(stage, 'producer' | 'improve'): the packet text a cleared model would read}.
+    """{(stage, 'producer' | 'improve' | 'improve-handoff'): the packet text a cleared model would read}.
+
+    The Improve packet is two instructions (packet re-cut R3); the run's recorded card is bound at the transition, as
+    ShipLoop does, and the handoff file the packet names is read back under 'improve-handoff'.
 
     ``state_out``, when given, receives the run's final state, whose ``repo``, ``prompt`` and ``run_id`` name the paths
     the packets print (the repository itself is gone when this returns).
@@ -43,7 +47,8 @@ def packets(planning_review: str = "stage", state_out: "dict | None" = None) -> 
         repo = Path(temp)
         run = repo / "run"
         run.mkdir()
-        state = navigator.new_state(str(repo), "Build a thing.", delegation="inline", planning_review=planning_review)
+        state = navigator.new_state(str(repo), "Build a thing.", delegation="inline", planning_review=planning_review,
+                                    improve_skill=str((ROOT / "skills/improve/SKILL.md").resolve()))
         found = {}
 
         def cold(current):
@@ -63,7 +68,10 @@ def packets(planning_review: str = "stage", state_out: "dict | None" = None) -> 
                 extra["test_commands"] = [{"command": "python3 -m unittest", "suite": "focused"}]
             waiting = navigator.apply(state, action["id"], {"outcome": "done", "summary": "Synthetic", **extra})
             if waiting.get("active_improve") is not None:
+                waiting, _ = navigator._improve_entry(run, waiting)
                 found.setdefault((stage, "improve"), cold(waiting))
+                found.setdefault((stage, "improve-handoff"),
+                                 navigator.improve_handoff_text(None, run, store.read_record(run / "state.md")))
                 waiting = navigator.finish_improve(waiting, action["id"], {"summary": "Synthetic review", "lessons": "x"})
             state = waiting
         if state_out is not None:
@@ -108,26 +116,42 @@ class PacketCompletenessTests(unittest.TestCase):
                 self.assertIn("Recovery", packet)                    # how to recover
 
     def test_an_improve_packet_states_purpose_operation_check_output_and_recovery(self) -> None:
+        """The packet is two instructions (packet re-cut R3); purpose, check, output and recovery ride in the handoff
+        file it names, and the review's yardstick is the stage's Done-when conditions in the frozen exit condition."""
         for (stage, kind), packet in sorted(self.found.items()):
             if kind != "improve":
                 continue
+            handoff = self.found[(stage, "improve-handoff")]
             with self.subTest(stage):
-                self.assertIn("Current action: Improve the completed " + stage + " result.", packet)  # purpose
-                row = stage_spec.stage(stage)                         # what the review judges the result against
-                self.assertIn("Goal: " + row.goal[0].upper() + row.goal[1:] + ".", packet)
+                # How it operates: the improve skill, called with the handoff path; what it produces: improve-complete.
+                self.assertIn("1. Run the improve skill on the " + stage + " result.", packet)
+                self.assertIn("/improve ShipLoop Improve: ", packet)
+                self.assertIn("2. When the improve skill has completed, run: ", packet)
+                self.assertIn(" improve-complete ", packet)
+                self.assertNotIn("Load the actual Improve skill", packet)
+                self.assertNotIn("Current action:", packet)
+                # Purpose, check and recovery: the handoff file.
+                self.assertIn("Current action: Improve the completed " + stage + " result.", handoff)
+                line = next((line for line in handoff.splitlines() if line.startswith("Checked by: ")), "")
+                self.assertIn("improve-complete", line)
+                self.assertIn("Recovery command", handoff)
+                # What the review judges the result against: the stage's Done-when, frozen as the exit condition.
+                row = stage_spec.stage(stage)
                 for condition in row.done_when:
-                    self.assertIn("- " + condition, packet)
-                self.assertIn("Load the actual Improve skill", packet)  # how it operates: the selected skill runs the review
-                line = next((line for line in packet.splitlines() if line.startswith("Checked by: ")), "")
-                self.assertIn("improve-complete", line)               # what it produces and how that is checked
-                self.assertIn("Recovery", packet)
+                    self.assertIn(condition, loop_contract.stage_exit(stage))
 
-    def test_a_reviewed_producer_says_its_done_when_is_what_the_review_checks(self) -> None:
+    def test_a_reviewed_producer_gives_its_done_when_and_announces_no_review(self) -> None:
+        """The old "That review checks the result against the Done-when conditions above." line is gone (packet re-cut
+        R2: no producer packet mentions Improve in advance).  The Done-when conditions stay in the producer packet, and
+        the review reads the same conditions as its frozen exit condition (see the Improve packet test above)."""
         for (stage, kind), packet in sorted(self.found.items()):
-            if kind == "producer" and stage in stage_spec.reviewed_stages("stage") \
-                    and stage not in FOCUS_STAGES:
+            if kind == "producer" and stage in stage_spec.reviewed_stages("stage"):
                 with self.subTest(stage):
-                    self.assertIn("That review checks the result against the Done-when conditions above.", packet)
+                    self.assertNotIn("That review checks the result", packet)
+                    self.assertNotIn("Improve: every ", packet)
+                    flat_packet = " ".join(packet.split())
+                    for condition in stage_spec.stage(stage).done_when:
+                        self.assertIn(" ".join(condition.split()), flat_packet)
 
     def test_a_producer_names_the_script_checks_its_stage_row_declares(self) -> None:
         for (stage, kind), packet in sorted(self.found.items()):
@@ -240,6 +264,9 @@ class ObservedHarmPacketTests(unittest.TestCase):
             text = json.dumps(template_of(packet))
             # An inner stage's template prefills its Until Loop receipt locator: a run file, not product content.
             text = text.replace(str(next(iter(re.findall(r'"([^"]*/loops/[^"]*-terminal\.json)"', text)), "")), "")
+            # The carry-forward template's skill.index placeholder (packet re-cut) says "outside HOME/ and SHIPLOOP.md":
+            # SHIPLOOP.md is ShipLoop's own run file named inside placeholder prose, not a product file.
+            text = text.replace("SHIPLOOP.md", "<run file>")
             with self.subTest(stage):
                 self.assertNotRegex(text, r"(?i)readme")
                 self.assertNotRegex(text, r"[\w-]+\.(md|txt|py|js|json|html)\b")
@@ -258,7 +285,7 @@ class ObservedHarmPacketTests(unittest.TestCase):
     def test_the_step_plan_declares_ids_it_will_title_and_names_every_suite(self) -> None:
         text = flat(self.found[("step-plan", "producer")])
         # The duty's `test_commands` item (4, 2026-10-10 rewrite) lists one bullet per suite: the focused one carries ids.
-        self.assertIn("focused: this item's cases, with the ids they will carry", text)
+        self.assertIn("focused: this item's cases, with the IDs they will carry", text)
         self.assertNotIn("of the test-spec cases", text)
         for suite in test_loop.SUITES:
             self.assertIn("- " + suite + ": ", text)
@@ -267,19 +294,20 @@ class ObservedHarmPacketTests(unittest.TestCase):
         text = flat(self.found[("test-spec", "producer")])
         # Consumer contract 3.3: the cases are the result's test_cases (quoted downstream by value), each id one the
         # step plan's focused commands list; the file keeps each case's full entry.
-        self.assertIn("Record one case per id in the result's `test_cases`", text)
-        self.assertIn("each id one a focused command in the step plan's `test_commands` lists", text)
-        self.assertIn('Write each case\'s full entry under its "### <ID>" in FEATURE/test-spec.md.', text)
-        for part in ("setup and fixture; action; independent oracle", "RED (", "GREEN;"):
-            self.assertIn(part, text)
+        # Consumer contract 4b and the re-cut: no FEATURE/test-spec.md; one `test_cases` row per ID a focused command
+        # lists, with its criterion, requirement, oracle, red and green.
+        self.assertIn("For each ID the step plan's focused commands list, add one `test_cases` row. Use no other ID.", text)
+        self.assertIn("Each `test_cases` row holds `criterion`, `requirement` (R-<n>), `oracle`, `red` and `green`.", text)
+        self.assertIn("setup and fixture; action; teardown", text)
+        self.assertNotIn("FEATURE/test-spec.md", text)
 
     # row 2: a check row carries no ids or min_tests (shiploop-callback-contract pairs the refusal with its correction).
     def test_the_stages_that_record_commands_say_a_check_row_carries_no_ids_or_min_tests(self) -> None:
         for stage in ("system-test-author", "release-plan"):
             with self.subTest(stage):
-                self.assertIn("a check row carries no ids or min_tests", flat(self.found[(stage, "producer")]))
-        # step-plan's duty (rewritten 2026-10-10) states the same rule in its own words.
-        self.assertIn("judged by exit code, with no ids or min_tests", flat(self.found[("step-plan", "producer")]))
+                self.assertRegex(flat(self.found[(stage, "producer")]), r"judged by its exit code(, with| and carries) no `?ids`? or `?min_tests`?")
+        # step-plan's duty (rewritten 2026-10-10, re-cut 2026-10-11) states the same rule in its own words.
+        self.assertIn("judged by exit code, with no `ids` or `min_tests`", flat(self.found[("step-plan", "producer")]))
 
     def test_a_template_check_row_carries_no_ids_or_min_tests(self) -> None:
         for stage, field in (("step-plan", "test_commands"), ("system-test-author", "system_commands"),
@@ -308,15 +336,18 @@ class ObservedHarmPacketTests(unittest.TestCase):
                         self.assertNotIn(bullet[2:].rstrip(".;"), producer)
                     else:
                         self.assertIn(bullet[2:].rstrip(".;"), producer)
-                self.assertIn("That review applies the Planning review focus in this stage's guidance and checks "
-                              "the result against the Done-when conditions above.", producer)
+                # Packet re-cut R2: the duty item states the conditions as the producer's own, and no producer packet
+                # announces the Improve review in advance.
+                self.assertIn("Before you submit, fix any of these in", producer)
+                self.assertNotIn("That review applies", producer)
+                self.assertNotIn("Improve child", producer)
 
     def test_without_an_improve_child_the_focus_is_still_a_checklist_and_no_review_is_promised(self) -> None:
         for stage in FOCUS_STAGES:
             text = flat(self.none[(stage, "producer")])
             with self.subTest(stage):
-                # The lead states the duty only: a packet names Improve only where its stage runs a child (owner rule).
-                self.assertIn("Planning review focus (meet these conditions before you submit):", text)
+                # The duty item states the conditions only: a packet names Improve only where its stage runs a child.
+                self.assertIn("Before you submit, fix any of these in", text)
                 self.assertNotIn("the Improve child applies these conditions", text)
                 self.assertNotIn("That review applies", text)
                 self.assertNotIn((stage, "improve"), self.none)
@@ -332,10 +363,10 @@ class ObservedHarmPacketTests(unittest.TestCase):
         text = flat(self.found[("test-strategy", "producer")])
         self.assertIn("When the request names a page or screen people use", text)
         # S-8: generic, with the browser as an example (F6 of the 2026-10-10 review).
-        self.assertIn("either a case that drives it through its user interface (for example in a browser or on a "
-                      "device), with the tool named and probed", text)
+        self.assertIn("plan a case that drives it through its user interface (in a browser or on a device), with its "
+                      "browser actions and expected visible outcomes and its tool named and probed", text)
         self.assertNotIn("drives it in a browser", text)
-        self.assertIn("or the outcome recorded as unverified with its owner and due stage", text)
+        self.assertIn("Otherwise record the outcome as unverified with its owner and due stage", text)
 
     # #10 of the 2026-10-10 review: prepare's and test-spec's closes require files earlier stages wrote, so their
     # Checked-by line says what the close requires, not what this stage must have written.
@@ -352,13 +383,14 @@ class ObservedHarmPacketTests(unittest.TestCase):
     # row 11a: an assumption takes exactly the printed fields.
     def test_the_plan_says_each_assumption_takes_exactly_the_printed_fields_and_a_plan_consumer(self) -> None:
         text = flat(self.found[("plan", "producer")])
-        self.assertIn("takes exactly the fields printed in the template for its disposition", text)
+        # Packet re-cut: duty 16 says "exactly the fields the template shows" (the old "ShipLoop refuses any extra key"
+        # sentence is gone; "exactly" carries the rule) and an open assumption's consumer is a work item's ID.
+        self.assertIn("Give each exactly the fields the template shows for its disposition", text)
         for disposition, fields in assumptions._FIELDS.items():
             names = ", ".join("`" + name + "`" for name in sorted(fields))
             with self.subTest(disposition):
                 self.assertIn(disposition + ": " + names, text)
-        self.assertIn("ShipLoop refuses any extra key", text)
-        self.assertIn("`consumer` must be the id of a work item in this plan", text)
+        self.assertIn("An open assumption's `consumer` is the ID of the work item in `work_items` that settles it", text)
 
     # row 11b: a file written before a close names the close that refuses without it, taken from the gate itself.
     def refusals(self) -> dict:
@@ -409,8 +441,12 @@ class ObservedHarmPacketTests(unittest.TestCase):
                 self.assertEqual(path in earlier, path != environment)
                 self.assertIn(path, earlier + " " + mine)
         text = flat(self.found[("prepare", "producer")])
-        self.assertIn("Record readiness, or the justified N/A, in HOME/environment.md", text)
-        self.assertIn("cite in `evidence_refs` the runner output that shows each planned check starts", text)
+        # Packet re-cut: duty 6 records readiness (or the justified not-applicable) under named HOME/environment.md
+        # sections; duty 3 puts each planned check's runner output in `evidence_refs`.
+        self.assertIn("Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands", text)
+        self.assertIn("Record a not-applicable there only when this candidate needs no preparation", text)
+        self.assertIn("Start each planned check's runner, the configured linters and the fixtures, and save the "
+                      "output. Put each output file in `evidence_refs`", text)
 
 
 class KnowledgeGroundingPacketTests(unittest.TestCase):
@@ -572,10 +608,31 @@ class ReferencesBlockTests(unittest.TestCase):
         cls.runs = {**{"dry:" + name: found for name, found in dry_run_packets().items()},
                     "offline:node-fix-bug": offline_slice_packets()}
 
+    @staticmethod
+    def is_improve(packet: str) -> bool:
+        """An Improve packet is two instructions (packet re-cut R3): it has no References block; the child reads the
+        handoff file."""
+        return packet.splitlines()[0].endswith("| Improve")
+
     def each(self):
         for run, found in self.runs.items():
             for number, packet in enumerate(found):
-                yield run, number, packet
+                if not self.is_improve(packet):
+                    yield run, number, packet
+
+    def producing(self, found: list) -> list:
+        return [packet for packet in found if not self.is_improve(packet)]
+
+    def test_an_improve_packet_defines_no_reference_symbols(self) -> None:
+        seen = 0
+        for run, found in self.runs.items():
+            for number, packet in enumerate(found):
+                if self.is_improve(packet):
+                    seen += 1
+                    with self.subTest(run=run, packet=number):
+                        self.assertNotIn(navigator.REFERENCES_HEAD, packet)
+                        self.assertNotIn("Run context index", packet)
+        self.assertTrue(seen)
 
     def test_each_symbol_is_defined_exactly_once(self) -> None:
         for run, number, packet in self.each():
@@ -594,14 +651,20 @@ class ReferencesBlockTests(unittest.TestCase):
         for run, number, packet in self.each():
             block = reference_block(packet)
             block = block[:len(global_part(block))]
+            stage = packet.split("ShipLoop navigator | ", 1)[1].split(" |", 1)[0]
+            # Packet re-cut: a HOME file prints its name without its headings (a stage that reads it gets it quoted
+            # whole); a FEATURE file prints only when this stage writes it or it exists (nothing exists in these walks).
+            writes = set(knowledge.STAGE_FILES.get(stage, ())) | set(knowledge.CLOSES.get(stage, ()))
             for name in home + feature:
                 symbol = navigator.reference_name(name)
                 with self.subTest(run=run, packet=number, file=symbol):
                     rows = [row for row in block if row.startswith("- " + symbol + ":")
                             or row.startswith("- " + symbol + " (")]
+                    if name in feature and name not in writes:
+                        self.assertEqual(rows, [])
+                        continue
                     self.assertEqual(len(rows), 1)
-                    for heading in knowledge.SECTIONS.get(name, ()):
-                        self.assertIn("## " + heading, rows[0])
+                    self.assertNotIn("## ", rows[0])
                     writer = next((stage for stage in stage_spec.STAGES if name in knowledge.STAGE_FILES.get(stage, ())),
                                   None)
                     # Nothing exists in these walks, so every file is marked with the stage that writes it.
@@ -617,7 +680,7 @@ class ReferencesBlockTests(unittest.TestCase):
 
     def test_the_global_part_is_identical_in_every_packet_of_a_run(self) -> None:
         for run, found in self.runs.items():
-            parts = {tuple(global_part(reference_block(packet))) for packet in found}
+            parts = {tuple(global_part(reference_block(packet))) for packet in self.producing(found)}
             with self.subTest(run=run):
                 self.assertEqual(len(parts), 1)
 
@@ -626,7 +689,7 @@ class ReferencesBlockTests(unittest.TestCase):
         name a newer artifact in a later packet: after a revise the item's redone step plan is "W1 step-plan result"."""
         for run, found in self.runs.items():
             labels, cited = {}, 0
-            for packet in found:
+            for packet in self.producing(found):
                 rows = builds_on(reference_block(packet))
                 cited += len(rows)
                 self.assertEqual(len({label for label, _ in rows}), len(rows), run)

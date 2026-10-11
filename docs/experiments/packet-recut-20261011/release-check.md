@@ -68,3 +68,34 @@ Nothing beyond the exit conditions and the shared mechanical checks.
 
 - Today: duty 1,211 + considerations 35 + OUTER handshake 916 = 2,162 characters.
 - Draft: goal, duty and Checked by 2,338 characters with headings.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 2,105 -> 1,869 characters (-12%). Goal: 'Confirm the candidate is release-ready without releasing: dry run and confirm commands once, results in `summary` and `evidence_refs`.'; short goal: 'check release readiness'.
+
+Text now in `DUTIES['release-check']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Name the release plan you check: the latest done release-plan and system-test-author records after the last
+   accepted replan (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. Guess no
+   missing plan: recover it, or report `repeat` (`replan` for missing product work).
+2. Against the current target, record in `summary` (evidence in `evidence_refs`): candidate identity and that its
+   evidence is current, the target and prerequisites, required approvals, rollback readiness, the execution owner's
+   readiness, any target concurrency condition (Release operation guidance).
+3. Run the dry-run form of the planned deploy (for example `sf project deploy validate`) once; save the output in
+   RUN/notes/<action>-release-check.md and cite it in `evidence_refs`.
+4. Run each `consumer_checks` post-release confirm command once against the current target; save its "not there yet"
+   output in the same file. A confirm command that cannot tell present from absent is fixed now in
+   HOME/environment.md ## Commands and rerun.
+5. Isolated run only: run the packet's plan-return command, then decide every undecided path with review-return (a
+   dry run; decisions are kept for the return at release). Compare review-return's expected return with the
+   procedure in HOME/environment.md; if they differ, correct the procedure and rerun plan-return.
+6. Keep stale or failed evidence in `evidence_refs` as is; replay or promote nothing for a fresh observation. A
+   material change to code, tests, fixtures, configuration or target invalidates the observations it affects: rerun
+   those through the planned route, reuse the rest only with identity and relevance stated.
+7. External release N/A waives not items 2-4 for the local candidate (Delivery completion guidance); record a
+   justified N/A in `summary` with what you assessed.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

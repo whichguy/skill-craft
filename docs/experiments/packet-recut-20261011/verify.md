@@ -122,3 +122,60 @@ only trivial issues." The material and trivial definitions move to duty item 7, 
 - Today: duty 3,181 + SELECTED_CASE_RECONCILIATION 665 + considerations 358 (plus the commit rule) + Work 2,036 =
   6,240 characters.
 - New: 5,600 characters. The Work line drops from 2,036 to about 170.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 5,139 -> 4,811 characters (-7%). Goal: 'Accept the item: confirm each criterion after the last edit, trace entry points; review the diff; notes in RUN/notes/<action>.md.'; short goal: 'verify and accept this item'.
+
+Text now in `DUTIES['verify']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+This is item acceptance, not a claim that integration or release has happened. Each review iteration does items 1-7
+in order.
+
+1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
+   other-candidate, command, configuration or target evidence confirms nothing; diagnostic scores are apart from
+   this. A criterion reported `inspected` or `unconfirmable` whose `Confirm by:` needs execution: report revise.
+3. **Reconcile cases** (Test-case planning guidance). Classify each test-spec case passed, failed, blocked, not-run
+   or justified N/A, and reconcile each affected requirement clause with its case, required surface and due phase,
+   checked surface, candidate, status and evidence. A pass on another surface only supports; source, HTTP or DOM
+   structure alone cannot close a rendered interaction. A case not yet due keeps its phase, owner and prerequisites;
+   missing evidence for an already-due case stays incomplete. Check for dropped clauses or cases; claim no
+   requirement met while a required observation is unrun.
+4. **Trace.** From RUN/lint/<action>-inventory.md list every new or changed public entry point (exported function,
+   CLI, request or event handler, callback). Walk one valid, one boundary and one invalid input to its return, error
+   or side effect, one trace line per path in RUN/notes/<action>.md. A wrong, unhandled or untested path is a
+   finding; a test added for an untested path is titled `<ID> (<letter>)` under the case it extends. An entry point
+   missing from the inventory is untraced.
+5. **Review** the whole diff against the step plan's steps, paths and justified revisions, affected consumers, Code
+   craft, the Coding decision selection and HOME/architecture.md. Look for: missing argument checks or contract
+   docstrings at an entry point; missing error paths; silent failures; restating or stale comments; dead code; user
+   text concatenated or bypassing the catalog; names outside the planned namespace or exported too wide; stored data
+   off the planned schema; a near-copy of existing logic; a plain interaction where the plan called for a rich one; a
+   deviation from HOME/architecture.md with no new AD-<n>. Reconcile tests, docs, error behaviour, diagnostics,
+   dependencies and limitations. ShipLoop linted and auto-fixed safe formatting on entry: keep or revert each
+   auto-fix the lint record names. The lint record supports this review; it does not replace it.
+6. **Services** (Service discovery guidance): verify the item's service and observability contracts' due outcomes,
+   safe fallback and failure cases. Keep local simulation apart from required remote readback, permission
+   enforcement, completion and event retrieval.
+7. **Classify and fix.** Material: wrong behaviour on a traced path; a missing or wrong argument check, contract,
+   error path or test; a failing command; a misleading comment; logic that should have been composed. Trivial:
+   wording, ordering, a sharper name. Reopen no finding an earlier iteration fixed unless its code changed. Fix
+   every in-scope finding by changing the work, never a check or its expected result (a test only to fix a
+   finding). If anything changed, rerun item 1.
+8. **Assembly.** Confirm the item's candidate is assembled in the execution checkout under workspace and repository
+   policy (Workspace integration guidance). The original branch returns only at the final workspace return.
+9. **Later checks.** Each system, release or real-boundary check the criteria need is an open item in `assumptions`
+   with its consumer (the stage it is due at) and owner; add any missing one. A boundary no local test proves stays
+   pending with its owner in HOME/architecture.md ## Real-boundary checks (Real-boundary test guidance).
+10. **Commit nothing yourself.** Keep run state, raw logs, credentials and generated artifacts out of the product
+    commit. When verify is accepted, ShipLoop commits the item's changed files that the step plan's paths declare, its changed documentation files (for example README.md or files under docs/) and docs/shiploop/. Any other changed file is not part of the item commit: if the product needs one, report revise so the step plan declares it; otherwise delete generated output the product does not need.
+11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
+    any required check not run and why, known limitations.
+12. Criterion or check unachievable as planned: report revise naming it. Report blocked, with blocked_by, only when
+    the user, an access grant or an outside dependency must unblock it.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

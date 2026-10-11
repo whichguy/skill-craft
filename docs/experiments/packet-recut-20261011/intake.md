@@ -68,3 +68,31 @@ Nothing beyond the exit conditions and the shared mechanical checks.
 - Proposed: 2,411 characters (103%).
 
 Measured on the default render (ask-agent, planning_review stage, backchain_passes one). Today: prompt(stage) without STAGE_RULES, plus the Develop/Test/Deploy/Tools considerations and the stage-specific renderer lines this draft folds or cuts (Planning phase intent, the environment-discovery and investigation-allowance lines, plan's experiments lines). New: sections 1-3 of this file. Exit conditions are excluded from both.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 2,011 -> 1,485 characters (-27%). Goal: "Map the request to outcomes, boundaries and open questions in this result's `summary`."; short goal: 'map the request'.
+
+Text now in `DUTIES['intake']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Map each sentence of the request to an outcome, boundary or open question in `summary`. Boundaries: repository and
+   run scope, user constraints, authority limits, consumers and entry points, risks. Mark each fact or assumption.
+2. Each open question: who answers it (discovery or a recorded default), what it blocks, what discovery must
+   establish first.
+3. List discovery's source hints in `summary` (team or workspace, channels, internal sites and docs, private
+   repositories, owners, ambiguous terms). A hint is a lead, not a verified fact. Put a sensitive locator only in an
+   authorized knowledge home. Ask no questionnaire for what evidence can resolve.
+4. Name where the result must become usable; a request that names the target is the grant (Delivery authority
+   guidance).
+5. Say where and when the outcome is visible: an isolated run's source checkout stays at its snapshot until the
+   final return, and an outcome in a deployed target exists only after release.
+6. For an interactive product, list the open interaction and state questions: actors and how the runtime identifies
+   them; shared state across people, devices or sessions; its lifetime and what ends it; what stays hidden from
+   whom; what the runtime already provides. Answer from the request, else record the default and what it rules out.
+7. A request that continues an earlier run follows Prior-run and recovery guidance.
+8. Implement nothing; add no scope. `evidence_refs`: each source used.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

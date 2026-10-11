@@ -42,7 +42,11 @@ class StageTableTest(unittest.TestCase):
         for name, row in spec.STAGE_SPEC.items():
             with self.subTest(stage=name):
                 self.assertTrue(row.goal.strip())
-                self.assertLessEqual(len(row.goal), 80)
+                # A goal is one action sentence that also says where its output goes (packet re-cut R1), so it is
+                # longer than the old 80-character label; nothing downstream truncates it (the status block's Next
+                # line and the review lead print it whole), so the bound only keeps it to one sentence.
+                self.assertLessEqual(len(row.goal), 400)
+                self.assertTrue(row.goal.rstrip().endswith("."))
                 self.assertTrue(row.done_when)
                 self.assertTrue(all(item.strip() for item in row.done_when))
                 # An Improve contract's exit joins the entries with "; " (loop_contract.stage_exit), so an entry that

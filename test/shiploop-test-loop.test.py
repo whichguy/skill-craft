@@ -275,7 +275,9 @@ class TestLoopTests(unittest.TestCase):
 
     # -- the bound Until Loop ------------------------------------------------------
 
-    START = "Start (the card runs exactly this; the contract file wins over the argument text): "
+    # Packet re-cut (2026-10-11): how to invoke and the start command are one line; the command ends it.
+    START = "How to invoke: "
+    START_AFTER = "the contract file wins over the argument text): "
 
     def terminal(self) -> Path:
         return loops.receipt_path(self.run_dir, self.action())
@@ -286,7 +288,7 @@ class TestLoopTests(unittest.TestCase):
         A callable entry runs between reports (the host's fix).  The runtime writes every packet to the receipt.
         """
         start = next(line for line in self.packet().splitlines() if line.startswith(self.START))
-        words = shlex.split(start[len(self.START):])
+        words = shlex.split(start[start.index(self.START_AFTER) + len(self.START_AFTER):])
         self.assertEqual(words[-2], "<")
         contract = json.loads(Path(words[-1]).read_text())
         if contract_edit is not None:

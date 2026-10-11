@@ -133,3 +133,58 @@ of the three needs to print for this stage.
 - Today: DUTIES 3,668 + considerations 846 + OUTER test plans 954 + Test facilities 807 + planning hand-off 560 =
   6,835 characters.
 - Proposed duty (the fenced text above): 4,631 characters, with no shared block printed (-32%).
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 4,722 -> 4,399 characters (-7%). Goal: 'Author the system tests: catalog and integrated plan in `summary`, `system_commands`, unrunnable cases in `assumptions`.'; short goal: 'author the system tests'.
+
+Text now in `DUTIES['system-test-author']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Gather: the test strategy (HOME/environment.md ## Harnesses and suites, HOME/architecture.md ## Real-boundary
+   checks, the test-strategy result), every item's test cases (the `test_cases` hand-off), and the open items quoted
+   below (the system-test obligations). Take the latest done test-decision record for each relevant completed item
+   (step-plan, test-spec or test) from state.md's accepted history with the locators it kept; infer no whole-product
+   coverage from the last transition or item. The current OUTER plans are the latest done records after the most
+   recent accepted replan; pending, repeat and blocked results are not plan authority. `evidence_refs`: the action,
+   result and test-note locators used.
+2. Choose cases: each due-later case from item 1 becomes a system case here or an open item with its due stage
+   (item 7). Add cases for the real integration, consumer, runtime, security, accessibility, migration,
+   compatibility and operational boundaries that apply; reconcile suite membership and prerequisites first. N/A only
+   with the reason; missing access is not N/A.
+3. Write the catalog in `summary`, one row per case in the System-test catalog guidance shape (case ID, phase,
+   requirement, expected outcome, environment and target, prerequisites, executable reference, owner). A post-release
+   case is owned by release-verify and never waived.
+4. Write the tests. Reuse the existing harness, frameworks and helpers (Repeatable test-suite guide, Reusable test
+   facilities); build only the smallest missing facility; never assume a named skill or MCP is available. Record each
+   facility's locator, interface, readiness or gap, owner and revalidation condition in HOME/environment.md
+   ## Harnesses and suites. Add the system cases and retained INNER cases to the repeatable full-suite entry point,
+   keep the smoke selection, and copy no tests into another suite. Each new test file names the requirement or test
+   IDs it covers in its opening lines; shared helpers check their arguments. Check shared setup cost, independent
+   assertions, isolation and failure teardown. If the remote framework requires it, version the remote-resident test
+   definitions and registration with a repeatable authorized install and invocation.
+5. Run each system command once now and confirm its discovery and rerun work. A command that cannot pass here is
+   changed to observe the same requirement another way, saying what and why in `summary`. Every case ends validated,
+   validated another way or unachievable (item 7); a case written but not run has no end state.
+6. `system_commands`: one row per runnable command, shaped like test_commands, suite `focused`, `regression` or
+   `check`. `focused` and `regression` suit runners whose output ShipLoop can count and carry the case `ids`; a
+   non-runner (shell pipeline, grep, curl probe) is `check`, judged by exit code, no ids or min_tests. A row whose
+   cases need a host tool (browser, device, account, service) gets `"host_dependent": true`: ShipLoop then also runs
+   the regression commands at system-test and refuses if any of that row's ids appears in their output, as the
+   default suite must pass without the host tool. No system test applies: empty list with `system_commands_na` and
+   the reason.
+7. A case that cannot run here (a browser or account this host cannot reach) is unachievable. Leave its command out
+   of `system_commands` (ShipLoop reruns every recorded command and refuses unless each passes). Record it as an
+   open item in `assumptions`: `assumption` = case ID and the requirement left unverified; `check` = who does what
+   and reports what; `owner`; `reason` it cannot run here; `consumer` = the due stage (handoff, or the stage whose
+   external effect it gates). Continue with every runnable case. Report blocked only when nothing else can proceed,
+   replan when the plan is wrong.
+8. The integrated test plan goes in `summary` under the catalog and in HOME/environment.md ## Harnesses and suites
+   (OUTER test-planning handshake): candidate and boundaries, selected cases and oracles, commands, lifecycle and
+   sharing decisions, cost, prerequisites, execution owners; which checks run now at system-test and which need the
+   authorized release first. Cite HOME/environment.md in `evidence_refs`; the decisions and constraints the plan
+   rests on go in `summary`.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids. Restored once: pending, repeat and blocked results are not plan authority (item 1).

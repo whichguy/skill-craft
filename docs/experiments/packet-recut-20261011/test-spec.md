@@ -94,3 +94,35 @@ Drop: Repeatable test-suite guide (step-plan placed the harness; this stage cite
 - Today: duty 2,670 + planning hand-off 513 + TEST_FACILITY_HANDOFF 807 + TEST_DECISION_HANDOFF 560 +
   consideration 58 + Work 357 = 4,965 characters.
 - New: 2,700 characters for goal, duty and checked-by.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 2,360 -> 1,773 characters (-25%). Goal: "Specify this item's tests: one `test_cases` row per focused-command ID, with oracle, RED and GREEN. Write no test code."; short goal: "specify this item's tests".
+
+Text now in `DUTIES['test-spec']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+Write no test code in this stage.
+
+1. One `test_cases` row per ID the step plan's focused commands list; no other ID. A criterion that needs an
+   unlisted ID: report revise naming it.
+2. Each row (Test-case planning guidance): `criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`. Put surface
+   (unit, public interface, real boundary, rendered UI; Real-boundary test guidance) and due phase, setup and
+   fixture, action, teardown (or "stateless"), command row, registering suite and smoke membership in those fields
+   or the summary.
+3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
+   observation, never only that a page loads. RED: how it fails on the item's base, or "characterisation" if it
+   already passes.
+4. Cover positive, failure and boundary. Each new or changed public entry point: one rejection case per constraint
+   (missing, wrong type or shape, out of range), asserting the error type, the argument named and unchanged state.
+5. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
+   it uses (Reusable test facilities); for a missing one, the smallest facility the test stage must build.
+6. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
+   `assumption`; `check`; `consumer` = that outer stage; owner). Confirmed only by a check command or inspection: no
+   case; list it with its command in the summary. Untestable as written: report revise naming it.
+7. Summary: which harness and suite decisions in HOME/environment.md this item keeps, refines or supersedes, and
+   why. evidence_refs: their locators, the step plan's, the requirement sections used.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

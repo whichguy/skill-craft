@@ -78,12 +78,8 @@ DELEGATIONS = (INLINE, ASK_AGENT)
 PLANNING_REVIEW_STAGES = stage_spec.with_improve("always")
 
 INLINE_STAGE_CONTEXT = """\
-Continue in this context and execute the prompt.
-
-Delegation: inline. Do this stage in this conversation, and submit its callback
-yourself. Do not clear the context or hand the stage to Ask Agent or a native
-worker; the host's own compaction manages the context. After lost context, run
-the Recovery command and continue from the packet it reprints.
+Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit its callback
+yourself; never clear or hand it off. After lost context, run the Recovery command.
 """
 
 INLINE_IMPROVE_CONTEXT = """\
@@ -120,7 +116,8 @@ STAGES = PRELUDE + INNER + OUTER
 
 # User-facing status display only: one plain purpose per stage and the INNER
 # stages grouped for the item map.  Neither is a prompt, graph, or state.
-STAGE_PURPOSE = {name: row.goal for name, row in stage_spec.STAGE_SPEC.items()}
+# The status and narrative lines show the short goal; the packet's GOAL line prints the full one once (re-cut, 2026-10-11).
+STAGE_PURPOSE = {name: row.short_goal for name, row in stage_spec.STAGE_SPEC.items()}
 
 INNER_GROUPS = (
     ("Plan", ("step-plan", "test-spec")),
@@ -198,6 +195,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
+        ("UI planning ownership guide", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
     ),
     "prepare": (
         ("Environment preparation guidance", "environment-lifecycle.md#plan-preparation-before-its-first-consumer"),
@@ -212,6 +210,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
+        ("UI planning ownership guide", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
     ),
     "test-spec": (
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
@@ -453,29 +452,11 @@ and do not reread history to repeat it.
 # hit; the long texts stay whole in the run reference file (reference#rules, #requirements, #progress), so nothing is
 # lost, and the blocked shapes are printed once, with the stage's outcomes.
 STAGE_RULES = """\
-Rules (long form: reference#rules, #requirements, #progress):
-- Do only this stage, then run the callback and follow the packet it returns. ShipLoop owns the graph and the next
-  step. Preserve unrelated work.
-- Unattended: nothing arrives on standard input. Take the default that best fits the request and the recorded
-  knowledge, and record it in the summary as an assumption with the alternatives and why. Record a step only a person
-  can do (a sign-in, a grant) as an open item: who does what, and what they report back. Then continue. Report
-  blocked only when nothing can proceed without a person. A problem this run can fix, such as a documented command
-  that does not run what it claims, is fixed here and rerun.
-- Base test, build and release claims on what you observed. Recheck notes, Git history and prior results against
-  the repository before relying on them. A missing prerequisite, permission or trustworthy check is unresolved,
-  never N/A. A justified N/A says what you assessed and why it does not apply.
-- Requirements come from HOME/spec.md. Keep unaffected ones. Never relax one to match code or tests. Current
-  explicit user instructions supersede older clauses. Keep each requested runtime and entry point; a local fixture
-  cannot stand in for a target capability. Put the requirement sections and test locators you used in
-  evidence_refs. Report a missing source instead of inventing one.
-- Temporary files go in RUN/scratch, never /tmp. Discover identity or access only with supported non-mutating probes
-  and sanitized evidence. Never read, decode, keep or report local authentication, session or credential-store
-  contents.
-- Run each ShipLoop command in the foreground with unpiped output, and never end the turn while one runs. A
-  `complete` that reruns tests can take minutes. If a keepalive hook refuses to end the turn, run the command it
-  names.
-- Tell the user one line per stage: the item, the stage finished, the stage starting. Paste a ShipLoop narrative as
-  its first line says. A question about the run is not a stop. A request to stop, pause or not implement runs Pause.
+RULES  Do only this stage, then run Done; ShipLoop picks the next. Unattended: take the best default and record it as
+an assumption; a person-only step is an open item; block only when nothing can proceed. Base claims on what you
+ran; recheck old notes. Requirements are HOME/spec.md; never relax one to fit the code. Temp files in RUN/scratch;
+never read credential stores. Run ShipLoop commands in the foreground, unpiped, and never end the turn while one
+runs. One line to the user per stage; a request to stop runs Pause. (Long form: reference#rules.)
 """
 
 # Every INNER stage runs its work as one Until Loop that ShipLoop starts from a contract it wrote (shiploop_loops).  The
@@ -644,49 +625,70 @@ file cold with no run history. Every rule serves that reader.
 """
 
 
+# What a producer packet prints instead of CODE_CRAFT: one line per rule; the full rubric stays in the reference.
+CODE_CRAFT_SHORT = """\
+Code craft (for the next maintainer opening one file cold):
+1. Match the house: its error types, validators, docstring style, logging; add no dependency, option or fallback
+   without a present need; record a justified departure.
+2. Fail at the door: an externally reachable function checks arguments before any effect, rejecting with the house
+   error naming argument, constraint and received value; swallow no error, substitute no success default.
+3. State the contract where it lives: a file opens with its purpose; a public docstring gives purpose, argument
+   constraints, return, errors, side effects; body comments say only why.
+4. Spend tokens on information: no comment restating a name, no banner, change history or dead code.
+5. Small, not thin: KISS and YAGNI never remove an argument check, error path, contract docstring or planned rich UI.
+6. Make failure diagnosable: check a response's contract; keep operation, IDs, expected versus observed; reuse the
+   debug switch; keep secrets out of messages.
+7. Write translatable text: use the message catalog, else whole-sentence messages with named placeholders; locale-aware
+   formatting; stable log text and codes.
+8. Put it where it belongs: the planned namespace, narrowest visibility, no name collisions, no `utils` bucket,
+   planned schema.
+9. Compose before you build: reuse, compose or augment an existing unit (one shared meaning) before new code; a
+   near-copy is a defect; state the choice in one line.
+(Full rubric: reference#code-craft.)
+"""
+
+
 # The step exit criteria's stopping rule; test/shiploop-stage-spec.test.py pins every prose copy to this value.
 _FIX_ATTEMPTS = str(stage_spec.GENUINE_FIX_ATTEMPTS)
 
 # Delegation-specific paragraphs: the ask-agent text is in DUTIES; _INLINE_DUTY_PARAGRAPHS swaps in the inline one.
 _STEP_PLAN_GRAPH = """\
-11. **Execution graph.** Give each change that needs no other its own step with `deps` [] and join them in a later
-    step that needs both, so the parallel chain can run them together (serial only on an explicit user or host
-    limit). For dependency-independent steps, write the graph now, even behind an initial serial prefix: direct
-    dependencies, readiness and completion criteria, shared-resource exclusions and the integration node. Put its
-    path and content digest in the summary and evidence_refs. Use the Parallel-chain guide for late creation or
-    revision; planning never starts the dispatcher.
+11. **Execution graph.** Give each change that needs no other its own step (`deps` []), joined by a later step that
+    needs both, so the parallel chain can run them together (serial only on an explicit user or host limit). For
+    independent steps write the graph now, even behind a serial prefix: direct dependencies, readiness and completion
+    criteria, shared-resource exclusions, integration node. Its path and content digest go in the summary and
+    evidence_refs. Late creation or revision: Parallel-chain guide. Planning never starts the dispatcher.
 """
 _STEP_PLAN_INLINE = """\
 11. **Execution graph.** Record none: an inline run issues the steps one at a time.
 """
 _IMPLEMENT_CHAIN = """\
 7. **Chain.**
-   - If the step plan says no parallel chain, or the item context says its steps write the same tree, use one writer
-     in the execution checkout, bind no chain, and cite that locator in the result.
+   - The step plan says no parallel chain, or the item context says its steps write the same tree: one writer in the
+     execution checkout, no chain bound; cite that locator in the result.
    - Otherwise, for a reviewed graph with safe independent steps, bind the default parallel mode (Parallel-chain
-     guide) when the Plan Dispatcher and Ask-Agent contracts are compatible and native slots are observed free.
-     Capacity is the observed user or host slot limit, not the fallback default. If it cannot start, record the
-     concrete compatibility, capacity, resource, readiness or recovery blocker. Serial mode is only for an explicit
-     user or host limit; it runs one ready step in the main context without agents.
-   - Both modes use external sibling worktrees and one acceptance route: Ask-Agent creates each worker worktree;
-     you verify and adopt it, import its results, check the combination, merge into the invoking branch, accept the
-     step and remove the worktree. Keep conflicts and cleanup blockers; never repeat accepted work because removal
-     failed. Keep the combined status observable. Only accepted steps are done.
-   - On the first frontier and after every callback, refresh at once and start every safe listed candidate up to
-     capacity; a branch may become ready after a serial prefix. Never wait on a reconciliation, preparation,
-     verification or collection while an independent safe worker can start. Defer only a candidate with a recorded
-     blocker.
-   - Finish before this stage's callback: every required step accepted and the combined return verified, or a
-     recorded incomplete blocker.
+     guide) when the Plan Dispatcher and Ask-Agent contracts are compatible and native slots are observed free
+     (capacity is the observed user or host slot limit, not the fallback default). If it cannot start, record the
+     concrete blocker (compatibility, capacity, resource, readiness or recovery). Serial mode only for an explicit
+     user or host limit: one ready step in the main context, no agents.
+   - Both modes use external sibling worktrees and one acceptance route: Ask-Agent creates each worker worktree; you
+     verify and adopt it, import its results, check the combination, merge into the invoking branch, accept the step,
+     remove the worktree. Keep conflicts and cleanup blockers; never repeat accepted work because removal failed.
+     Keep the combined status observable. Only accepted steps are done.
+   - On the first frontier and after every callback, refresh and start every safe listed candidate up to capacity (a
+     branch may become ready after a serial prefix). Never wait on a reconciliation, preparation, verification or
+     collection while an independent safe worker can start; defer only a candidate with a recorded blocker.
+   - Before this stage's callback: every required step accepted and the combined return verified, or a recorded
+     incomplete blocker.
 """
 _IMPLEMENT_INLINE = """\
 7. **Inline.** Do the one step on the packet's Step line in this conversation. Bind no chain and dispatch no worker.
 """
 _VERIFY_ASSEMBLY = """\
-8. **Assembly.** If implement used a bound chain, confirm its finish commit is an ancestor of the execution checkout
-   HEAD and record it, then inspect the combined diff, conflicts and the shared interfaces between steps (Workspace
-   integration guidance). Otherwise confirm the item's candidate is assembled in the execution checkout under
-   workspace and repository policy. The original branch returns only at the final workspace return.
+8. **Assembly.** If implement bound a chain, confirm its finish commit is an ancestor of the execution checkout HEAD,
+   record it, and inspect the combined diff, conflicts and shared interfaces between steps (Workspace integration
+   guidance). Otherwise confirm the candidate is assembled in the execution checkout under workspace and repository
+   policy. The original branch returns only at the final workspace return.
 """
 _VERIFY_ASSEMBLY_INLINE = """\
 8. **Assembly.** Confirm the item's candidate is assembled in the execution checkout under workspace and repository
@@ -747,1054 +749,947 @@ _ITEM_COMMIT = "<<item commit rule>>"
 
 DUTIES = {
     "intake": """\
-1. Map every sentence of the request to an outcome, a boundary or an open question, and list each in `summary`. The
-   boundaries are the repository and run scope, explicit user constraints, authority limits, consumers and entry
-   points, and known risks. Mark each statement as a fact or an assumption.
-2. For each open question, write in `summary` who answers it (discovery, or a recorded default), what it blocks, and
-   what discovery must establish before planning, testing, implementation or release is trusted.
-3. List in `summary` the permitted source hints for discovery: team or workspace, channels, internal sites and docs,
-   private repositories, owners, and ambiguous internal terms. A hint is a lead, not a verified definition or access.
-   Put a sensitive locator only in an authorized knowledge home, never in ordinary or public notes. Ask no
-   questionnaire for a hint that available evidence can resolve.
-4. Name in `summary` where the result must become usable. A request that names the target is the grant (Delivery
-   authority guidance).
-5. Say in `summary` where the outcome will be visible, and when. In an isolated run the source checkout stays at its
-   starting snapshot until the final return. An outcome in a deployed target (an org, a site, a store) exists only
-   after release. A source-level check is not the requested outcome.
-6. For a product people interact with, list in `summary` the open questions of its interaction and state model: the
-   actors and how the runtime identifies them; whether state is shared across people, devices or sessions; how long
-   it lives and what ends it; what must stay hidden from whom; and what the runtime already provides for each. Answer
-   from the request where it says so. Otherwise record the default you take and what it rules out.
-7. If this request continues an earlier run, follow Prior-run and recovery guidance instead of starting new work.
-8. Implement nothing and add no scope. Put in `evidence_refs` each source you used.
+1. Map each sentence of the request to an outcome, boundary or open question in `summary`. Boundaries: repository and
+   run scope, user constraints, authority limits, consumers and entry points, risks. Mark each fact or assumption.
+2. Each open question: who answers it (discovery or a recorded default), what it blocks, what discovery must
+   establish first.
+3. List discovery's source hints in `summary` (team or workspace, channels, internal sites and docs, private
+   repositories, owners, ambiguous terms). A hint is a lead, not a verified fact. Put a sensitive locator only in an
+   authorized knowledge home. Ask no questionnaire for what evidence can resolve.
+4. Name where the result must become usable; a request that names the target is the grant (Delivery authority
+   guidance).
+5. Say where and when the outcome is visible: an isolated run's source checkout stays at its snapshot until the
+   final return, and an outcome in a deployed target exists only after release.
+6. For an interactive product, list the open interaction and state questions: actors and how the runtime identifies
+   them; shared state across people, devices or sessions; its lifetime and what ends it; what stays hidden from
+   whom; what the runtime already provides. Answer from the request, else record the default and what it rules out.
+7. A request that continues an earlier run follows Prior-run and recovery guidance.
+8. Implement nothing; add no scope. `evidence_refs`: each source used.
 """,
     "discovery": """\
-1. Run the initial baseline first (Initial repository baseline guide). Inspect only enough to find the starting
-   directory, its instructions and a safe existing command. Then run the full suite on the unchanged checkout, or the
-   smoke suite when the full one is impractical. Selecting a command or citing an old pass does not count. Record the
-   command, cwd, checked content and target, result, coverage limits and the output file in `evidence_refs`. When no
-   suite exists, record that as missing coverage.
-2. Classify the baseline in `summary`: passed, failed, missing coverage, setup or access block, uncertain, or expected
-   repair RED. Only a pass is healthy. Change no product source, test, dependency definition or configuration to turn
-   it green. A failed baseline lets discovery finish but leaves dependent feature work unready.
-3. Inspect Git and worktree state, instructions, relevant code, tests, docs, consumers and project knowledge. Record in
-   HOME/environment.md, each with its source locator:
-   - ## Targets and runtimes: the development, test, integration and delivery boundaries, and the runtime and
-     dependency versions;
-   - ## Commands: the configured linters, formatters, type checkers and test runners;
-   - ## Platform facts: conventions, canonical code and test examples, MCP and API contracts, reusable libraries, and
-     the house style (House-style guidance).
-   Mark each entry as binding requirement, observed practice or proposal. Install and provision nothing.
-4. Find how a change reaches its consumer (Environment and source-return discovery). Decide whether returning to the
-   source branch triggers CI, a deploy, a publication or another effect, and whether that return must precede a
-   required consumer check. Record the route and its uncertainty in HOME/environment.md ## Targets and runtimes.
-   Inspecting the route does not authorize a return, a deploy or an early handoff (Delivery authority guidance).
-5. Locate existing specs and quality policies, record their scope and status in `summary`, and screen the applicable
-   non-functional requirements (Requirements definition guide).
-6. Check the repository index, README and AGENTS for skill links and plausible skill contracts before proposing an
-   implementation (Repository-local skill guidance). Record fit or no fit under HOME/environment.md ## Skills with its
-   locator. For a selected skill, record its entrypoint, input and default sources, product contract and revalidation
-   condition. Edit no skill package.
-7. After the baseline, check the triggers of Discovery investigation guidance, and again when evidence conflicts or a
-   dependency emerges. When one applies, write the plan and its outcome to RUN/notes/discovery.md: question, evidence
-   route and order, owner, permitted effects, shared time or attempt bound, stop condition. Otherwise inspect
-   directly.
-8. Every environment read follows the Recursive discovery policy. One investigation allowance covers discovery and
-   research together. Reaching it stops exploration, not the run: record the open gaps as assumptions or open items in
-   `summary` and submit.
-9. Resolve internal terms, background, requirements and decisions beyond the checkout with Connected knowledge
-   discovery: find the available MCP readers (for example Slack or Teams, internal sites, design docs, private Git),
-   use scoped search and read, and follow hits to the supporting content. Record terms and conflicting claims with
-   provenance, access and coverage gaps, and safe locators in RUN/notes/discovery.md. Keep private queries and content
-   off public surfaces. A reader is not a product runtime dependency.
-10. Establish the current-system account (Current-system baseline guide). Read README first. Reuse and revalidate an
-    adequate account, or recover one from docs, code, tests and authorized read-only observations. Write it to
-    RUN/notes/current-system-baseline.md with its as-of identity, coverage, conflicts, source locators and intended
-    durable home, and put that path in `evidence_refs`. A repository with no prior ShipLoop knowledge is not a new
-    system. Keep the incoming change separate, and leave consequential gaps unready for dependent work.
-11. For affected local or remote flows, apply Service discovery guidance and record the findings in
-    RUN/notes/discovery.md:
-    - observability: the existing event owners and sinks to reuse;
-    - where service boundaries matter: trace consumer needs through business services to the actual MCP, API and
-      runtime capabilities, identities, schema and state;
-    - cache, invalidation and async questions, without inventing infrastructure;
-    - unproven access or caching: the safe interim policy-enforced read route, or a denial (privileged direct access
-      is not a fallback);
-    - a schema or projection delta: the preserved state and its reconciliation or read-back check;
-    - an async flow: its processor and recovery owner and the boundary between acceptance and completion, or record
-      them as unknown (a status poller alone establishes neither), and gate only that flow;
-    - retained application state: follow the Runtime state placement section.
-    Safe, scoped, authorized reads may resolve a gap. An unavailable or partial observation is not absence. Turn
-    unknown ownership or coverage into a scoped probe and a conditional file or test change, and gate only the work
-    that depends on it.
-12. Establish the current target and effective identity, and use that target for dependent remote reads. Distinguish
-    the discovery operator, the deployed runtime and the end user. Record each unknown role or authority, with the
-    consumer it affects, under HOME/environment.md ## Access and accounts.
-13. Record the existing interaction baseline (Interaction design guide) in RUN/notes/current-system-baseline.md:
-    actors, channels, incoming and outgoing events, connection lifecycle, state ownership, and what the runtime and
-    the project's layers already offer for each. For affected UI, record the available design guidance and its
-    identity, version or digest, or the repository-guidance fallback. No UI does not skip machine interactions.
-14. Answer each open question from intake in `summary` with a source, or keep it as an unknown with an owner.
-15. Before you submit, apply Discovery evidence handoff: list each consequential decision in `evidence_refs` with its
-    exact section locator, then reopen each locator and its observations as a fresh reader would. Put in
-    `evidence_refs` every file this stage wrote and each source used, with scoped prerequisites and due revalidation.
+1. Baseline first (Initial repository baseline guide): find the starting directory, its instructions and a safe
+   command, then run the full suite on the unchanged checkout (the smoke suite if the full one is impractical).
+   Choosing a command or citing an old pass does not count. `evidence_refs`: command, cwd, target, result, coverage
+   limits, output file. No suite: record missing coverage.
+2. Classify the baseline in `summary`: passed, failed, missing coverage, setup or access block, uncertain, or
+   expected repair RED. Only a pass is healthy. Change no product file to turn it green. A failed baseline lets
+   discovery finish and leaves dependent feature work unready.
+3. Inspect Git and worktree state, instructions, code, tests, docs, consumers and project knowledge. Record in
+   HOME/environment.md, each with a source locator and marked binding requirement, observed practice or proposal:
+   - ## Targets and runtimes: development, test, integration and delivery boundaries; runtime and dependency
+     versions;
+   - ## Commands: linters, formatters, type checkers, test runners;
+   - ## Platform facts: conventions, canonical code and test examples, MCP and API contracts, reusable libraries,
+     house style (House-style guidance).
+   Install and provision nothing.
+4. Find how a change reaches its consumer (Environment and source-return discovery): whether the source-branch
+   return triggers CI, a deploy or a publication, and whether it must precede a consumer check. Record route and
+   uncertainty under ## Targets and runtimes. Inspecting a route authorizes no return, deploy or early handoff.
+5. Locate existing specs and quality policies (scope, status in `summary`); screen the applicable non-functional
+   requirements (Requirements definition guide).
+6. Check the repository index, README and AGENTS for skill links before proposing an implementation
+   (Repository-local skill guidance). Record fit or no fit under ## Skills with a locator; for a chosen skill, its
+   entrypoint, inputs and defaults, contract and revalidation condition. Edit no skill package.
+7. After the baseline, and again when evidence conflicts or a dependency emerges, check the Discovery investigation
+   guidance triggers. If one applies, write the plan and outcome to RUN/notes/discovery.md (question, evidence route
+   and order, owner, permitted effects, bound, stop condition); otherwise inspect directly.
+8. Every environment read follows the Recursive discovery policy. One allowance covers discovery and research;
+   reaching it stops exploration, not the run: record open gaps as assumptions or open items in `summary`.
+9. Resolve internal terms and background beyond the checkout with Connected knowledge discovery: find the MCP readers
+   (Slack or Teams, internal sites, design docs, private Git), search, and follow hits to the content. Record terms
+   and conflicting claims with provenance, access and coverage gaps, and safe locators in RUN/notes/discovery.md.
+   Keep private queries and content off public surfaces; a reader is no runtime dependency.
+10. Establish the current-system account (Current-system baseline guide): read README first, reuse and revalidate an
+    adequate account or recover one from docs, code, tests and authorized read-only observation. Write
+    RUN/notes/current-system-baseline.md with as-of identity, coverage, conflicts, locators and durable home; cite it
+    in `evidence_refs`. A repository without ShipLoop knowledge is not a new system. Keep the incoming change
+    separate; consequential gaps leave dependent work unready.
+11. For affected flows apply Service discovery guidance; record in RUN/notes/discovery.md:
+    - observability: event owners and sinks to reuse;
+    - service boundaries: consumer needs traced through business services to the real MCP, API and runtime
+      capabilities, identities, schema and state;
+    - cache, invalidation and async questions, inventing no infrastructure;
+    - unproven access or caching: a safe policy-enforced read route, or a denial (privileged direct access is no
+      fallback);
+    - schema or projection delta: preserved state and its read-back check;
+    - async flow: processor and recovery owner and the acceptance/completion boundary, else unknown (a status poller
+      establishes neither); gate only that flow;
+    - retained application state: the Runtime state placement section.
+    Safe authorized reads may resolve a gap; an unavailable or partial observation is not absence. Turn unknown
+    ownership into a scoped probe and a conditional change, gating only dependent work.
+12. Establish the current target and effective identity; use it for dependent remote reads. Distinguish discovery
+    operator, deployed runtime and end user. Record each unknown role or authority and its consumer under
+    ## Access and accounts.
+13. Record the interaction baseline (Interaction design guide) in RUN/notes/current-system-baseline.md: actors,
+    channels, events, connection lifecycle, state ownership, what the runtime and project layers offer. Affected UI:
+    the design guidance and its identity, version or digest, or the repository fallback. No UI still has machine
+    interactions.
+14. Answer each intake open question in `summary` with a source, or keep it unknown with an owner.
+15. Before submitting, apply Discovery evidence handoff: list each consequential decision in `evidence_refs` with its
+    section locator, and reopen each locator as a fresh reader. Also list every file written and source used, with
+    scoped prerequisites and due revalidation.
 """,
     "research": """\
-1. Start from the open unknowns in the intake and discovery results and RUN/notes/discovery.md. Revise that question
-   frontier with Discovery investigation guidance: check its triggers first, and again when evidence conflicts or a
-   dependency emerges. Write a triggered plan and its outcome to RUN/notes/research.md. Investigate directly only
-   when no trigger applies and direct investigation suffices.
-2. Resolve each consequential unknown with repository, primary-interface or other fit evidence. Record each
-   conclusion in RUN/notes/research.md with its source, uncertainty, affected requirement, consumer, prerequisite,
-   reuse choice and verification need. Leave an unsupported question open there with its owner and the gate it
-   blocks. A recalled fact is not evidence.
-3. Every environment read follows the Recursive discovery policy, with bounded experiments (Bounded research
-   guidance). The investigation allowance is shared with discovery. Reaching it stops exploration, not the run: record
-   the open gaps as assumptions or open items in `summary` and submit.
-4. Confirm access to each delivery target with a safe, non-mutating probe (Access-readiness policy). Record each
-   proven access need under HOME/environment.md ## Access and accounts as an open item: who can grant it and the gate
+1. Start from the open unknowns in the intake and discovery results and RUN/notes/discovery.md. Revise that frontier
+   with Discovery investigation guidance (check its triggers first, and again when evidence conflicts); write a
+   triggered plan and outcome to RUN/notes/research.md. Investigate directly only when no trigger applies.
+2. Resolve each consequential unknown with repository, primary-interface or other fit evidence. In
+   RUN/notes/research.md record the conclusion, source, uncertainty, affected requirement, consumer, prerequisite,
+   reuse choice and verification need; leave an unsupported question open there with owner and the gate it blocks. A
+   recalled fact is not evidence.
+3. Environment reads follow the Recursive discovery policy, with bounded experiments (Bounded research guidance).
+   The allowance is shared with discovery; reaching it stops exploration, not the run: record open gaps as
+   assumptions or open items in `summary`.
+4. Confirm access to each delivery target with a safe non-mutating probe (Access-readiness policy). Record each
+   proven access need under HOME/environment.md ## Access and accounts as an open item: who can grant it, the gate
    it blocks.
-5. For each need, evaluate in order: reuse an existing part unchanged, compose parts, augment one, build new
-   (Reuse-before-build guidance). Record the choice in RUN/notes/research.md; for augment or new, say why the earlier
-   options do not fit. Assess skills, MCP servers, libraries and environment patterns for actual fit and support. A
-   discovered capability is not proof of use or authority to install it.
-6. Resolve internal vocabulary and context gaps with Connected knowledge discovery. Open the supporting content
-   rather than trusting snippets. Record authority, scope and safe source locators in RUN/notes/research.md. Keep
-   evidence readers distinct from runtime dependencies, and keep private context out of public searches.
-7. Research quality-target and feasibility unknowns from existing contracts and evidence. A measured baseline does not
-   choose user policy.
-8. Reopen RUN/notes/current-system-baseline.md and resolve its consequential gaps (Current-system baseline guide).
-   Keep the prior as-of account, and append corrections and new evidence as a dated section. An observation or a
-   synthetic fixture cannot choose approved product intent.
+5. For each need, in order: reuse unchanged, compose, augment, build new (Reuse-before-build guidance). Record the
+   choice in RUN/notes/research.md, and why earlier options fail for augment or new. Assess skills, MCP servers,
+   libraries and patterns for fit; a discovered capability is no authority to install it.
+6. Resolve internal vocabulary gaps with Connected knowledge discovery: open the content, not snippets. Record
+   authority, scope and safe locators in RUN/notes/research.md; evidence readers are not runtime dependencies; keep
+   private context out of public searches.
+7. Research quality-target and feasibility unknowns from existing contracts and evidence; a measured baseline does
+   not choose user policy.
+8. Reopen RUN/notes/current-system-baseline.md and resolve its consequential gaps (Current-system baseline guide):
+   keep the prior as-of account, append corrections as a dated section. An observation or synthetic fixture cannot
+   choose product intent.
 9. For affected service choices, resolve with discriminating evidence (Service discovery guidance): current state,
-   zero-copy and cache tradeoffs, permission-aware invalidation, async recovery and observability gaps. Reuse native
-   facilities. Record each unknown and the work that depends on it in RUN/notes/research.md.
-10. Resolve the open interaction and state questions from intake and discovery (Interaction design guide): actors,
-    channels, events, connection lifecycle and state ownership, and what the runtime and the project's layers offer
-    for each. Record the answers in RUN/notes/research.md and runtime facts under HOME/environment.md ## Platform
-    facts.
-11. List each load-bearing assumption in RUN/notes/research.md ## Assumptions: one whose failure would change a plan
-    decision, a consumer or an acceptance check. Mark each evidenced (its source locator), probed (the read or command
-    and its saved output) or open (the check that would settle it and why it was not run). Plan builds its
-    `assumptions` list from this section.
-12. Before you submit, apply Discovery evidence handoff: list each consequential decision in `evidence_refs` with its
-    exact section locator and reopen it as a fresh reader would. Put in `evidence_refs` every file this stage wrote and
-    each source used.
+   zero-copy and cache tradeoffs, permission-aware invalidation, async recovery, observability. Reuse native
+   facilities. Record each unknown and its dependent work in RUN/notes/research.md.
+10. Resolve the open interaction and state questions (Interaction design guide): actors, channels, events, connection
+    lifecycle, state ownership, runtime and layer offers. Answers in RUN/notes/research.md; runtime facts under
+    HOME/environment.md ## Platform facts.
+11. RUN/notes/research.md ## Assumptions: each load-bearing assumption (its failure would change a plan decision,
+    consumer or acceptance check), marked evidenced (locator), probed (command and saved output) or open (the check
+    that would settle it, why not run). Plan builds its `assumptions` from it.
+12. Before submitting, apply Discovery evidence handoff: list each consequential decision in `evidence_refs` with its
+    section locator, reopen it as a fresh reader; also every file written and source used.
 """,
     "spec": """\
-1. Start from HOME/spec.md (quoted below), the research and discovery results and
-   RUN/notes/current-system-baseline.md (Current-system baseline guide). Keep every R-<n>: change a requirement in
-   place, and move a dropped one under ## Retired with its reason. Keep unaffected requirements as they are.
-2. Write each requirement under HOME/spec.md ## Requirements as R-<n>, with its acceptance criteria inside it
-   (Behavior-model guidance): the behaviour, its boundaries, its error behaviour and the consumer outcome. Give each
-   criterion positive, failure and boundary expectations, the consumer surface where it is observed, and how it will
-   be confirmed. Split independently verifiable clauses. Keep bundled behaviours visible when they share one ID.
-3. Number requirements R-<n> only. A choice of structure or technology is not a requirement: record it as an AD-<n>
-   decision in HOME/architecture.md ## Decisions, never in HOME/spec.md. A product decision in the spec never uses
-   the AD- prefix.
-4. Map every request outcome to at least one criterion (Behavior traceability guidance). Keep approved scope. Write
-   each unresolved prerequisite or user decision in FEATURE/spec.md as open, not hidden in implementation detail.
-5. In FEATURE/spec.md, list the IDs this run adds, modifies and retires. For each, give its request or decision basis,
-   the concrete preserved and changed behaviour, its source-section locators and its evidence limits, and mark the
-   implementation and checks still pending.
+1. Start from HOME/spec.md (quoted below), the research and discovery results and RUN/notes/current-system-baseline.md
+   (Current-system baseline guide). Keep every R-<n>: change one in place, move a dropped one under ## Retired with
+   its reason.
+2. Write each requirement under HOME/spec.md ## Requirements as R-<n> with its acceptance criteria inside
+   (Behavior-model guidance): behaviour, boundaries, error behaviour, consumer outcome. Each criterion: positive,
+   failure and boundary expectations, the consumer surface where it is observed, how it is confirmed. Split
+   independently verifiable clauses; keep bundled behaviours visible under one ID.
+3. Number requirements R-<n> only. A structure or technology choice is an AD-<n> decision in
+   HOME/architecture.md ## Decisions, never in HOME/spec.md; a product decision never takes the AD- prefix.
+4. Map every request outcome to at least one criterion (Behavior traceability guidance); keep approved scope. Write
+   each unresolved prerequisite or user decision in FEATURE/spec.md as open.
+5. FEATURE/spec.md lists the IDs this run adds, modifies and retires: each one's request or decision basis, preserved
+   and changed behaviour, source-section locators, evidence limits, and pending implementation and checks.
 6. Assess non-functional requirements under HOME/spec.md ## Non-functional requirements (Requirements definition
-   guide): operating conditions, measurable bounds or observable criteria, verification method, a justified
-   exclusion, or a target still unresolved. Invent no target. Record a material requirement conflict in `summary` as
-   open; it keeps dependent work unready.
-7. Apply the State and data assessment: write the affected resources, target identities, before and after invariants,
-   recovery, and the applicable checks and unknowns in FEATURE/spec.md.
-8. For each selected service boundary, specify verifiable contracts (Service discovery guidance): current authority,
-   freshness versus revocation, incremental state preservation, async completion and recovery, and owned event
-   coverage. Mark an inapplicable concern in one line. Add no service to fill a template.
-9. Decide the state and information lifecycle (Interaction design guide), in proportion to the request, and write
-   each decision as a requirement in HOME/spec.md. For each piece of state: its owner and where it lives; who may read
-   it (information one user must not see, such as an opponent's hidden game state or another person's record, stays
-   off that user's client; information a lone user could only misuse against themselves may stay there); how
-   simultaneous changes resolve; what ends it (finished, abandoned, expired) and what removes it; the runtime quotas
-   it meets. For personal or secret data: where it is shown, stored and logged, how long it is kept, how it is
-   removed. Map each to what the runtime already offers. Add no identity, sharing or persistence the request does not
-   call for. When the request leaves one open, record your default as an assumption in `summary`. For affected UI,
-   state the component, interaction and skin premises and truthful async feedback as consumer-visible behaviour.
+   guide): operating conditions, measurable bound or observable criterion, verification method, justified
+   exclusion, or unresolved target. Invent no target. A material requirement conflict goes in `summary` as open and
+   keeps dependent work unready.
+7. State and data assessment: in FEATURE/spec.md write the affected resources, target identities, before and after
+   invariants, recovery, applicable checks and unknowns.
+8. For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness
+   versus revocation, incremental state, async completion and recovery, owned event coverage. Mark an inapplicable
+   concern in one line; add no service to fill a template.
+9. Decide the state and information lifecycle (Interaction design guide), in proportion to the request, as
+   requirements in HOME/spec.md. Per piece of state: owner and location; who may read it (information one user must
+   not see, such as an opponent's hidden game state or another person's record, stays off that client; what a lone
+   user could only misuse against themselves may stay); how simultaneous changes resolve; what ends and removes it;
+   the runtime quotas it meets. Personal or secret data: where shown, stored, logged, how long kept, how removed.
+   Map each to what the runtime offers. Add no identity, sharing or persistence the request does not need; record a
+   default for an open choice as an assumption in `summary`. Affected UI: component, interaction and skin premises
+   and truthful async feedback as consumer-visible behaviour.
 """ + _duty_focus(10, "HOME/spec.md or FEATURE/spec.md", "spec") + """\
 11. """ + _BACKCHAIN_ITEM + """
-12. A complete spec establishes criteria, not implementation or test success. Put in `evidence_refs` HOME/spec.md,
-    FEATURE/spec.md, and each requirement section and source you used.
+12. A complete spec establishes criteria, not implementation or test success. `evidence_refs`: HOME/spec.md,
+    FEATURE/spec.md, each requirement section and source used.
 """,
     "test-strategy": """\
 1. Build a risk-based strategy from HOME/spec.md and FEATURE/spec.md before any code. Under HOME/environment.md
-   ## Harnesses and suites, plan for the requirements the layers (unit, integration, system, consumer), negative
-   cases, fixtures and data, environment and authorization needs, required surface, due stage, owner and
-   prerequisites, and for a state or data change its before and after checks (State and data assessment). Mark every
-   check planned; a planned check is not a pass. Name an expected-RED control where test-first work applies.
+   ## Harnesses and suites plan, per requirement: layers (unit, integration, system, consumer), negative cases,
+   fixtures and data, environment and authorization needs, required surface, due stage, owner, prerequisites; for a
+   state or data change, its before and after checks (State and data assessment). Mark every check planned (planned
+   is not a pass). Name an expected-RED control where test-first applies.
 2. Plan checks for new and preserved behaviour from FEATURE/spec.md and RUN/notes/current-system-baseline.md. An
-   unknown existing behaviour needs discovery before you assert a preservation target. An old pass is not a current
-   pass.
-3. Map each applicable new and preserved non-functional criterion to a check with its environment and workload
-   prerequisites. Missing evidence or access is not N/A.
-4. Select or revalidate the harnesses and suite entry points (Repeatable test-suite guide). Reuse a prior run's
-   harness only after revalidating its fit. Choose target-native tests from the discovered remote code, test assets
-   and deployment gate, or record the exclusion with its evidence (Target-native test selection). Choose testing
-   systems and browser tools by capability, not product name (for example an HTTP client such as curl, DevTools
-   inspection, Playwright browser automation; these are examples, not a checklist). Write in
-   HOME/environment.md ## Harnesses and suites each choice's role, fit, availability, prerequisites, setup and
-   isolation, fixture lifecycle, the runner and any coverage or report tool, the selection rationale and its
-   revalidation condition. Separate inspection from retained assertions.
-5. Reuse, configure or extend the existing frameworks and helpers before defining the smallest missing test facility
-   (Reusable test facilities). Read the selected skill and MCP references; never assume a named skill or MCP is
-   available or authorized. Record each facility's definition locator, interface, readiness or gap, owner and
-   revalidation condition under ## Harnesses and suites. Name a missing facility in `summary` as prerequisite work for
-   plan. The stage that owns it builds and validates it before dependent checks. Readiness is not test execution;
-   later tests reopen the recorded definition.
-6. Under HOME/architecture.md ## Real-boundary checks, record for each check where it runs and what it targets: local,
-   client checks against a deployed target, or remote-resident tests. Name the checks that run against the deployed
-   target and how. For remote tests, record the framework, availability, access, deployment prerequisites and the
-   authorized route to define or register, install and invoke them. A local pass is not a remote pass. Keep local
-   support separate from required consumer observations, and do not narrow a behaviour list to a render smoke.
-7. For affected service contracts (Service discovery guidance), map cache authorization and invalidation, remote
-   reconciliation, async recovery and observability to independent outcomes at their real observation boundary under
-   ## Real-boundary checks. A fixture result does not prove live permissions, event delivery or operator log access.
-8. Consume the initial baseline from discovery (Initial repository baseline guide); selecting a suite is not proof.
-   Record its coverage and limits, and distinguish a passing subset from a failed, blocked, intermittent,
-   missing-test or expected-RED observation. Name in `summary` each setup, repair or test-bootstrap prerequisite and
-   the evidence it needs before dependent feature checks.
+   unknown existing behaviour needs discovery before a preservation target; an old pass is not a current pass.
+3. Map each applicable non-functional criterion to a check with its environment and workload prerequisites. Missing
+   evidence or access is not N/A.
+4. Select or revalidate harnesses and suite entry points (Repeatable test-suite guide); reuse a prior harness only
+   after revalidating fit. Choose target-native tests from the discovered remote code, test assets and deployment
+   gate, or record the exclusion (Target-native test selection). Choose test systems and browser tools by
+   capability, not product name. Under ## Harnesses and suites record each choice's role, fit, availability,
+   prerequisites, setup and isolation, fixture lifecycle, runner and coverage tool, rationale and revalidation
+   condition. Keep inspection separate from retained assertions.
+5. Reuse, configure or extend existing frameworks and helpers before defining the smallest missing facility
+   (Reusable test facilities); never assume a named skill or MCP is available. Record each facility's locator,
+   interface, readiness or gap, owner and revalidation condition under ## Harnesses and suites. A missing facility
+   goes in `summary` as plan's prerequisite work; its owning stage builds and validates it first.
+6. Under HOME/architecture.md ## Real-boundary checks record, per check, where it runs and its target: local, client
+   against a deployed target, or remote-resident. For remote tests: framework, availability, access, deployment
+   prerequisites, and the authorized route to define or register, install and invoke them. A local pass is not a
+   remote pass; do not narrow a behaviour list to a render smoke.
+7. Affected service contracts (Service discovery guidance): map cache authorization and invalidation, remote
+   reconciliation, async recovery and observability to independent outcomes at their real boundary under
+   ## Real-boundary checks. A fixture does not prove live permissions, event delivery or operator log access.
+8. Consume discovery's baseline (Initial repository baseline guide): record its coverage and limits, telling a
+   passing subset from failed, blocked, intermittent, missing-test or expected-RED. In `summary` name each setup,
+   repair or bootstrap prerequisite and the evidence it needs before dependent feature checks.
 9. Write the focused, smoke and full-suite commands under HOME/environment.md ## Commands, each in a fenced code
-   block, never in a Markdown
-   table cell (an escaped `\\|` in a cell becomes a literal pipe, matches nothing and can still exit 0). For each,
-   give its inclusion rule, expected cost, environment and fixture prerequisites, and the test IDs it may print. A
-   passing command names the IDs or cases it ran. This section is the one owner of the suite commands: later notes
-   point at it, and a stale copy elsewhere is a defect to fix. Plan durable regression tests, not one-off probes.
-   Smoke is a bounded subset, never evidence for the full suite.
-10. Under HOME/environment.md ## ID convention, declare each ID as the tests will be titled. """ + ID_WORD_RULE + """
-11. For a case that needs a host tool (a browser, a device, an account, a service), name the tool and probe it now by
-    doing the case's first step, not by reading its version. While the product does not exist, probe a stand-in, not
-    the product's address: for a browser, write a one-line page in RUN/scratch, open it by `file:` URL or from a
-    throwaway static server you stop afterwards, and read its title back with the tool as the case will use it; for
-    an account or a service, make a harmless read the tool can make today. Cite the probe output in `evidence_refs`.
-    Record only a failed probe as an access gap under ## Real-boundary checks, with the requirement it leaves
-    unobserved. Give the case its own opt-in command or flag, so the default test command passes without the tool.
-12. When the request names a page or screen people use, plan a case that drives it through its user interface (in a
-    browser or on a device), with its browser actions and expected visible outcomes and its tool named and probed as
-    in item 11 (Consumer testing guide). Otherwise record the outcome as unverified with its owner and due stage
-    (handoff, or the stage whose external effect it gates). An HTTP response alone is neither.
+   block, never in a Markdown table cell (an escaped `\\|` becomes a literal pipe, matches nothing and can exit 0).
+   Per command: inclusion rule, expected cost, environment and fixture prerequisites, the test IDs it may print.
+   A passing command names the IDs or cases it ran. This section owns the suite commands; fix any stale copy. Plan
+   durable regression tests, not one-off probes. Smoke is a bounded subset, never evidence for the full suite.
+10. Under HOME/environment.md ## ID convention declare each ID as tests will be titled. """ + ID_WORD_RULE + """
+11. A case needing a host tool (browser, device, account, service): name it and probe it now by doing the case's
+    first step, not reading a version. Before the product exists, probe a stand-in: a one-line page in RUN/scratch
+    opened by `file:` URL or a throwaway static server you stop, its title read back; for an account or service, a
+    harmless read. Cite the output in `evidence_refs`. Record only a failed probe as an access gap under
+    ## Real-boundary checks with the requirement left unobserved. Give the case its own opt-in command or flag so the
+    default test command passes without the tool.
+12. A request naming a page or screen people use: plan a case driving it through its interface (browser or device)
+    with its actions, expected visible outcomes, and tool named and probed as in item 11 (Consumer testing guide).
+    Otherwise record the outcome unverified with owner and due stage (handoff, or the stage whose external effect it
+    gates). An HTTP response alone is neither.
 """ + _duty_focus(13, "HOME/environment.md or HOME/architecture.md", "strategy") + """\
-14. Put in `evidence_refs` HOME/environment.md, HOME/architecture.md, each probe output and each source you used.
+14. `evidence_refs`: HOME/environment.md, HOME/architecture.md, each probe output and source used.
 """,
     "plan": """\
-1. Reopen the accepted intake, discovery, research, spec and test-strategy results, RUN/notes/discovery.md,
-   RUN/notes/research.md, RUN/notes/current-system-baseline.md, FEATURE/spec.md, HOME/environment.md
-   ## Harnesses and suites, HOME/architecture.md, and the Git history that bears on them (Git-history investigation
-   guide). Sort the
-   open gaps into researchable unknown contracts, owner or access gaps, and known setup prerequisites, and name the
-   first consumer each gap affects. When one boundary is blocked, keep independent research and conditional planning
-   eligible under their own prerequisites.
-2. Plan backward from the desired outcomes to their producers (Dependency-planning guidance) and return the plan as
-   `work_items` (item 17). Order readiness, implementation, integration and release work so no consumer runs before
-   its prerequisites. Give each item, in its `context`, its ready and done conditions, its candidate scope, the check
-   that proves it, its authority boundaries and its correction route. The plan implies no unrun test and no
-   authorized external operation.
+1. Reopen the accepted intake, discovery, research, spec and test-strategy results, RUN/notes/{discovery,research,
+   current-system-baseline}.md, FEATURE/spec.md, HOME/environment.md ## Harnesses and suites, HOME/architecture.md
+   and the relevant Git history (Git-history investigation guide). Sort open gaps into researchable unknown
+   contracts, owner or access gaps and known setup prerequisites, each with its first affected consumer. With one
+   boundary blocked, keep independent research and conditional planning eligible on their own prerequisites.
+2. Plan backward from desired outcomes to their producers (Dependency-planning guidance); return `work_items`
+   (item 17). Order readiness, implementation, integration and release so no consumer runs before its
+   prerequisites. Each item's `context` gives ready and done conditions, candidate scope, proving check, authority
+   boundaries, correction route. The plan implies no unrun test and no authorized external operation.
 3. Apply Initial-plan reconciliation to HOME/architecture.md, HOME/spec.md, the non-functional requirements and the
-   State and data assessment. Map each applicable obligation, and every acceptance criterion, to its work item,
-   prerequisites, observing test and release or recovery conditions, or record a reasoned exclusion or an open need.
-   Write the mapping in each item's `context`, a reasoned exclusion in `summary` and an open need in `assumptions`.
-   A filled template is not proof.
+   State and data assessment: map each applicable obligation and every acceptance criterion to its work item,
+   prerequisites, observing test and release or recovery conditions, or to a reasoned exclusion (`summary`) or open
+   need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof.
 4. Carry the initial baseline's evidence and classification into `evidence_refs` and each affected item's `context`
-   (Initial repository baseline guide). Put a foundation repair, setup prerequisite or missing-test bootstrap in the
-   earliest feasible item before the feature that depends on it. Its readiness evidence is the original check's
-   passing rerun, or, when none can rerun, a separately recorded passing characterization of unchanged application
-   behaviour after the bootstrap. Keep the original no-suite observation. An expected-RED repair may start its own
-   work. A bootstrap may make only the smallest test-only harness, dependency or configuration edits, and it tests
-   unchanged application behaviour. Its completion alone neither makes the repository healthy nor unblocks dependent
-   features without that passing evidence. A failure of unknown relatedness stays blocking. Do not waive or absorb an
-   unrelated failure.
-5. Reuse, configure or extend an existing test facility before planning a new one (Reusable test facilities). Plan
-   each missing facility as its own prerequisite work item, and record in the consuming item's `context` its
-   definition locator, readiness gap and owner. Readiness is not test execution.
-6. Include the environment preparation and delivery work as items. Ask for delivery authority at the first concrete
+   (Initial repository baseline guide). A foundation repair, setup prerequisite or missing-test bootstrap goes in the
+   earliest feasible item before the feature that depends on it; its readiness evidence is the original check's
+   passing rerun or, when none can rerun, a separately recorded passing characterization of unchanged application
+   behaviour. Keep the original no-suite observation. An expected-RED repair may start its own work. A bootstrap
+   makes only the smallest test-only harness, dependency or configuration edits and tests unchanged behaviour;
+   alone it neither makes the repository healthy nor unblocks features. A failure of unknown relatedness stays
+   blocking; waive or absorb no unrelated failure.
+5. Reuse, configure or extend an existing test facility before planning a new one (Reusable test facilities); plan
+   each missing one as its own prerequisite item and record in the consuming item's `context` its definition
+   locator, readiness gap and owner. Readiness is not test execution.
+6. Include environment preparation and delivery work as items; ask for delivery authority at the first concrete
    boundary that needs it (Delivery authority guidance).
-7. When the work adds code or stored data, write a short Namespace and data map in HOME/architecture.md ## Structure,
-   with an AD-<n> per decision, and put each item's entries in its `context`:
-   - list every execution environment the code runs in or reaches: the local checkout, a remote runtime behind an MCP
-     server, API or CLI, a hosted platform, each service of a multi-service system;
-   - for each, map its current library structure (packages, modules, prefixes, exported surfaces, where similar
-     responsibilities live), how it resolves names, and what the new code will import, be called by or share names
-     with (Namespace and placement guidance). Inspect a remote environment through its interface, not the local tree;
-   - decide a home namespace and visibility for each new responsibility across all items, so later items extend the
-     layout, and how new names, including names shared between services, avoid collisions;
-   - decide how each environment stores the data (Schema and storage guidance): the existing and destination schema,
-     their owner and change mechanism, or for a new schema its store, keys, field types, constraints, relationships,
-     version and migration, and its storage policy (authority, retention, sensitive fields, quotas).
+7. Code or stored data added: write a Namespace and data map in HOME/architecture.md ## Structure with an AD-<n> per
+   decision; each item's entries go in its `context`:
+   - every execution environment the code runs in or reaches (local checkout, remote runtime behind an MCP server,
+     API or CLI, hosted platform, each service);
+   - per environment: current library structure (packages, modules, prefixes, exported surfaces, where similar
+     responsibilities live), name resolution, and what new code imports, is called by or shares names with
+     (Namespace and placement guidance); inspect a remote environment through its interface;
+   - a home namespace and visibility per new responsibility across all items, and how new names, shared ones
+     included, avoid collisions;
+   - data storage per environment (Schema and storage guidance): existing and destination schema, owner and change
+     mechanism; for a new schema its store, keys, field types, constraints, relationships, version, migration and
+     storage policy (authority, retention, sensitive fields, quotas).
    Plan no empty package or directory for a hypothetical future.
-8. Decide the interaction structure (Interaction design guide) and record each decision as an AD-<n> in
+8. Decide the interaction structure (Interaction design guide); record each decision as an AD-<n> in
    HOME/architecture.md:
-   - placement: the simplest one that meets the requirements in HOME/spec.md. A single-user game or tool with no
-     shared or lasting state runs entirely in the client. Add server state, identity, a store or a live channel only
-     for a requirement that needs it, and use the runtime's native storage, identity, cache, workflow and
-     notification services before building your own;
-   - safeguards, at every placement: the personal-data handling in HOME/spec.md, a server-side check on every action
-     by a caller the product does not control, validation and abuse limits on anonymous input, and a record of every
-     background or asynchronous failure that reaches whoever must act;
-   - channels: for each hop, the lightest channel that meets the stated freshness: request/response; polling at a
-     stated interval; email or platform notification for changes hours apart; server-sent events, WebSockets or
-     platform push only when seconds matter. After a push, a poll gap or a reconnect, read the authoritative state
-     back. Cache only derived data, in the runtime's cache, with an expiry that matches the allowed staleness. State
-     each channel's and cache's cost against the runtime's quotas.
-   Then write a Design basis in `summary`. Recheck the guide's relevant subsections instead of
-   copying a prior plan. Give the baseline and delta; the state, event and connection agreements and their planned
-   recovery checks (including a crash after acknowledgment but before processing accepted work, where it applies);
-   deployment fit; and source and check locators. For UI, give the component, interaction and skin premises, the
-   selected design guidance locator with its identity, version or digest (or the named fallback), and each meaningful
-   async cue with its purpose and reduced-motion alternative, or an explicit static choice. For a human-facing UI,
-   default to an ambitious, highly interactive design: name the rich interactions planned (direct manipulation,
-   inline editing, live preview, keyboard paths, animated transitions) and any scaled back, with its user, target or
-   accessibility reason. For a consequential UI choice, give the guide's ambition, the reuse, evolve or upgrade
-   decision, rough effort and benefit, and the compatibility check. Reuse accepted choices for unaffected scope and
-   the existing design and test facilities. Put each affected item's locators and short decisions, including planned
-   check locators, in its `context` and in `evidence_refs`. Start no nested review.
-9. In HOME/architecture.md, record each structure or technology decision as AD-<n> (choice, why, alternatives,
-   status) under ## Decisions, move a decision that no longer holds under ## Superseded, and update ## Stack,
-   ## Structure, ## Conventions and ## Interfaces and boundaries where this plan changes them.
-10. Give each work item a compact `context` that a fresh reader can act on, with the full source locators in
-    `evidence_refs` and longer notes in `summary` (Decision carry-forward guidance). For each applicable entry
-    give its locator, decision, rationale, scope and revalidation condition:
+   - placement: the simplest that meets HOME/spec.md. A single-user game or tool with no shared or lasting state
+     runs entirely in the client. Add server state, identity, a store or live channel only for a requirement that
+     needs it, and use the runtime's native storage, identity, cache, workflow and notification services first;
+   - safeguards at every placement: HOME/spec.md's personal-data handling, a server-side check on every action by a
+     caller the product does not control, validation and abuse limits on anonymous input, a record of every
+     background or async failure that reaches whoever must act;
+   - channels: per hop the lightest that meets the stated freshness (request/response; polling at a stated interval;
+     email or platform notification for changes hours apart; server-sent events, WebSockets or push only when
+     seconds matter). After a push, poll gap or reconnect, read authoritative state back. Cache only derived data,
+     in the runtime's cache, expiring with the allowed staleness. State each channel's and cache's quota cost.
+   Then write a Design basis in `summary`, rechecking the guide rather than copying a prior plan: baseline and delta;
+   state, event and connection agreements with planned recovery checks (including a crash after acknowledgment but
+   before processing); deployment fit; source and check locators. UI: component, interaction and skin premises, the
+   design guidance locator with identity, version or digest (or the named fallback), each async cue with purpose and
+   reduced-motion alternative or an explicit static choice. A human-facing UI defaults to an ambitious, highly
+   interactive design: name the rich interactions planned (direct manipulation, inline editing, live preview,
+   keyboard paths, animated transitions) and any scaled back, with the reason. A consequential UI choice gives the
+   guide's ambition, the reuse, evolve or upgrade decision, effort and benefit, and the compatibility check.
+   Allocate each UI decision to the item that owns it (UI planning ownership guide) and put it, with planned check
+   locators, in that item's `context` and `evidence_refs`. Reuse accepted choices for unaffected scope. Start no
+   nested review.
+9. HOME/architecture.md: each structure or technology decision as AD-<n> (choice, why, alternatives, status) under
+   ## Decisions; a decision that no longer holds under ## Superseded; update ## Stack, ## Structure, ## Conventions
+   and ## Interfaces and boundaries where this plan changes them.
+10. Give each work item a compact `context` a fresh reader can act on, full locators in `evidence_refs`, longer notes
+    in `summary` (Decision carry-forward guidance). Per applicable entry: locator, decision, rationale, scope,
+    revalidation condition:
     - each convention, canonical test or example, verified skill, MCP or library contract, environment or delivery
-      decision, and approved exception;
-    - a selected local skill: the repository index or selection-note locator and what to revalidate for this item's
-      inputs. No fit is a current observation; later items reread the index for skills learned during this run;
-    - the test strategy: the HOME/environment.md ## Harnesses and suites locator and the item's compact test
-      decisions (execution and target location, fixture and suite choices, what to recheck);
-    - the baseline and spec: the exact sections, gaps and revalidation conditions of
-      RUN/notes/current-system-baseline.md and FEATURE/spec.md;
-    - the service decisions: the exact current note locators and revalidation conditions;
-    - the readiness checks of the item's prerequisites.
-    A later packet does not replay earlier stages' references, so the item carries them. Copy no source transcript,
-    invent no decision ledger, and do not treat a context summary as proof.
-11. Plan the before and after decisions and the preservation checks from the baseline and FEATURE/spec.md. Plan
-    durable documentation work when recovered knowledge exists only in run notes.
+      decision, approved exception;
+    - a selected local skill: the index or selection-note locator and what to revalidate (no fit is a current
+      observation; later items reread the index);
+    - test strategy: the ## Harnesses and suites locator and the item's compact test decisions (execution and target
+      location, fixture and suite choices, what to recheck);
+    - baseline and spec: exact sections, gaps and revalidation conditions of RUN/notes/current-system-baseline.md and
+      FEATURE/spec.md;
+    - service decisions: note locators and revalidation conditions;
+    - readiness checks of the item's prerequisites.
+    A later packet replays no earlier stage's references, so the item carries them. Copy no transcript, invent no
+    decision ledger; a context summary is not proof.
+11. Plan the before and after decisions and preservation checks from the baseline and FEATURE/spec.md, and durable
+    documentation work for knowledge that exists only in run notes.
 12. Map accepted service choices to the affected schema and config, query and cache, worker and status, business and
-    UI, logging, test and operator files, only as needed (Service discovery guidance), and order their prerequisites
-    and checks.
-13. For each work item, state in its `context` the module format its files use (for example CommonJS or ESM, with or
-    without a package.json) and the loadable seam its tests import, so a test can load before the implementation
-    exists.
-14. Before you fix the item IDs, check the draft once for coherent increments. Split a deliverable that needs
-    different prerequisites, exposes a useful intermediate contract or artifact, or can be implemented and checked on
-    its own. Merge fragments that share prerequisites and an implementation boundary without a useful checkable state
-    of their own. A small change may use one item; there is no minimum count, quota or scaffolding item. Keep
-    preservation and negative requirements as checks on the affected item unless they need their own change. Each
-    item already gets step planning, validation, build, test, documentation, verification and commit: do not add
-    those, or a review, as items. Keep a cross-item or later-environment check at the boundary where it is due.
-15. For each dependency, name the supplier and the concrete output or state the consumer needs. Authoring an artifact
-    differs from applying it in a running environment: a runtime integration check may need both, independent code
-    authoring does not. A shared topic, list order or shared file alone is not a dependency. Record independent
-    branches and file or resource conflicts in `summary`; an isolated workspace alone does not make parallel work
-    safe. ShipLoop runs the queue one item at a time, so put each prerequisite before its consumers.
-16. Return the load-bearing assumptions in `assumptions`, starting from RUN/notes/research.md ## Assumptions and the
-    discovery notes. Give each exactly the fields the template shows for its disposition (evidenced: `evidence`;
-    probed: `check`, `evidence`; open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the ID of
-    the work item in `work_items` that settles it.
-17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`. Cover every approved
-    outcome, including required independent work with no downstream consumer.
-18. Keep in `summary` the key reference statements, decisions, constraints and acceptance context of this pass.
-    Consolidate upstream material for a fresh execution context as supporting references, not as a replacement
-    assignment or a restatement of the request. Each item's ready and done conditions stay its only execution directive.
-    Put in `evidence_refs` HOME/architecture.md, any execution graph and every source used; an unrecorded conversation
-    is not a handoff.
+    UI, logging, test and operator files, as needed (Service discovery guidance), ordering prerequisites and checks.
+13. Each item's `context` states the module format its files use (CommonJS or ESM, with or without package.json) and
+    the loadable seam its tests import, so a test loads before the implementation exists.
+14. Before fixing item IDs, check the draft once for coherent increments. Split a deliverable with different
+    prerequisites, a useful intermediate contract or artifact, or independent implementation and check; merge
+    fragments sharing prerequisites and an implementation boundary with no checkable state of their own. A small
+    change may be one item; no minimum, quota or scaffolding item. Preservation and negative requirements are checks
+    on the affected item unless they need their own change. Add no item for step planning, validation, build, test,
+    documentation, verification, commit or review (each item already gets them). Keep a cross-item or
+    later-environment check at the boundary where it is due.
+15. Per dependency name the supplier and the concrete output or state the consumer needs. Authoring an artifact
+    differs from applying it in a running environment. A shared topic, list order or shared file is no dependency.
+    Record independent branches and file or resource conflicts in `summary` (an isolated workspace does not make
+    parallel work safe). ShipLoop runs the queue one item at a time, so put each prerequisite before its consumers.
+16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
+    notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
+    open: `check`, `consumer`, `reason`). An open assumption's `consumer` is the `work_items` ID that settles it.
+17. Return the complete ordered `work_items`, each with only `id`, `title` and optional `context`, covering every
+    approved outcome, including required independent work with no downstream consumer.
+18. `summary` keeps this pass's key reference statements, decisions, constraints and acceptance context, as
+    supporting references, not a replacement assignment or a restatement of the request; each item's ready and done
+    conditions stay its only execution directive. `evidence_refs`: HOME/architecture.md, any execution graph, every
+    source used. An unrecorded conversation is not a handoff.
 19. """ + _BACKCHAIN_ITEM + """
 """,
     "prepare": """\
-1. Prepare or verify the development and test environments that the plan's work items and HOME/environment.md
-   name (Environment preparation guidance). Use what the repository already declares. Install nothing without authority.
-2. Confirm with safe observations: isolation, runtime, configuration and data safety, access, fixture readiness, and
-   the baseline identity (Workspace and return guidance).
-3. Start each planned check's runner, the configured linters and the fixtures, and save the output. Put each output
-   file in `evidence_refs`.
-4. When setup or access blocked the initial baseline (Initial repository baseline guide), prepare only the approved
-   prerequisite, keep the original observation, and rerun the original initial check against the unchanged product
-   and tests before any dependent feature edit. Never replace it with an easier route or call the blocked baseline
-   passed.
-5. Recheck the source-return trigger that discovery recorded, and the authorized delivery and verification route
-   from the execution checkout, before its first dependent work. When the source return must precede a required
-   consumer check, record the ordering conflict in `summary` as unresolved. Never return early, deploy, or bypass the
-   final-handoff return guard to make local work possible.
-6. Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands: what was prepared, the commands
-   that start each runner, and the observations. Record a not-applicable there only when this candidate needs no
+1. Prepare or verify the development and test environments the plan's items and HOME/environment.md name
+   (Environment preparation guidance), using what the repository declares. Install nothing without authority.
+2. Confirm by safe observation: isolation, runtime, configuration and data safety, access, fixture readiness,
+   baseline identity (Workspace and return guidance).
+3. Start each planned check's runner, the linters and the fixtures; save the output and list each file in
+   `evidence_refs`.
+4. Baseline blocked by setup or access (Initial repository baseline guide): prepare only the approved prerequisite,
+   keep the original observation, and rerun the original initial check on the unchanged product and tests before any
+   dependent feature edit. Never replace it with an easier route or call the blocked baseline passed.
+5. Recheck discovery's source-return trigger and the authorized delivery and verification route from the execution
+   checkout before the first dependent work. If the return must precede a consumer check, record the ordering
+   conflict in `summary` as unresolved. Never return early, deploy, or bypass the final-handoff return guard.
+6. Record readiness under HOME/environment.md ## Targets and runtimes and ## Commands: what was prepared, the
+   commands that start each runner, the observations. Record not-applicable only when this candidate needs no
    preparation, with what you assessed. Missing required access or setup is blocked, not not-applicable.
 """,
     "step-plan": """\
 Change no product file in this stage.
 
-1. **Recheck the item.** Reopen the item's `context`, and recheck each condition it
-   states. If the plan no longer requires the item, report blocked (blocked_by user, `awaiting` an answer: drop or
-   keep the item) and cite the result that superseded it. Never skip the item or repair the queue here.
-   Keep the change inside the item: available APIs and other parts of the request do not widen it. A prerequisite
-   outside the item gets its supplier route in the summary and the blocked outcome.
-2. **Test decisions.** Reopen the item's test decision and the harness and suite decisions in HOME/environment.md. In
-   the summary, say which decisions you retain, refine or supersede and why; put their locators in evidence_refs.
-   Revalidate the harness, suite and browser tools for the changed surfaces (Repeatable test-suite guide), and reuse
-   supported choices or record a justified revision in the summary. A remote-resident case needs its framework and an
-   authorized setup, invocation, result retrieval and teardown route. Reuse an existing test facility before
-   defining the smallest missing one (Reusable test facilities); record its locator and readiness gap in the
-   summary.
-3. **`criteria`** (`[{"id": "C1", "text": "..."}]`). Write each as `<condition>. Confirm by: <command, observation
-   or inspection>; pass when <expected result>`. Say whether it must be exercised or inspection suffices, and name
-   the R-<n> it serves.
-   - A docs or coverage criterion gets a command check, such as a search for the required terms.
-   - A condition no command can confirm is not a confirmable criterion. List it in the summary as an open item (who
-     does what, what they report back) and mark it in the criterion text as `Confirm by: unconfirmable here: <what
-     would confirm it>`.
-   - When the item adds or changes a public entry point, add a criterion that each one checks its arguments and
-     carries a contract docstring (Code craft 2-3), confirmed by its rejection tests and by inspecting the diff.
-4. **`steps`**: every implementation step, in order (one is fine). ShipLoop issues one implement packet per step.
-   - Size each as one behaviour-level change that a named check proves. Split a step that holds two behaviours each
-     confirmable alone, crosses a module or layer boundary (the interface first, then each side), needs "and"
-     between two outcomes, or is too large to review in one pass. Merge a step no check can confirm alone (half a
-     rename, unused scaffolding) into the step it serves. A single bug fix or mechanical rename is one step.
-   - Tests are not a step: the test stage writes them after the last implement step. A step that only changes test
+1. **Recheck the item.** Reopen its `context` and recheck each condition. If the plan no longer requires it, report
+   blocked (blocked_by user, `awaiting` an answer: drop or keep) citing the superseding result; never skip the item
+   or repair the queue here. Keep the change inside the item: available APIs and other parts of the request do not
+   widen it. A prerequisite outside the item gets its supplier route in the summary and the blocked outcome.
+2. **Test decisions.** Reopen the item's test decision and HOME/environment.md's harness and suite decisions. In the
+   summary say which you retain, refine or supersede and why; locators in evidence_refs. Revalidate harness, suite
+   and browser tools for the changed surfaces (Repeatable test-suite guide); reuse supported choices or record a
+   justified revision. A remote-resident case needs its framework and an authorized setup, invocation, result
+   retrieval and teardown route. Reuse an existing facility before the smallest missing one (Reusable test
+   facilities); record its locator and readiness gap in the summary.
+3. **`criteria`** (`[{"id": "C1", "text": "..."}]`). Each: `<condition>. Confirm by: <command, observation or
+   inspection>; pass when <expected result>`; say whether it must be exercised or inspection suffices, and name the
+   R-<n> served.
+   - A docs or coverage criterion gets a command check (a search for the required terms).
+   - A condition no command can confirm is not a criterion: list it in the summary as an open item (who does what,
+     what they report back) with `Confirm by: unconfirmable here — <what would confirm it>`.
+   - A new or changed public entry point: add a criterion that it checks its arguments and carries a contract
+     docstring (Code craft 2-3), confirmed by its rejection tests and by inspecting the diff.
+4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
+   - Size each as one behaviour-level change a named check proves. Split a step with two separately confirmable
+     behaviours, one crossing a module or layer boundary (interface first, then each side), joining two outcomes with
+     "and", or too large for one review. Merge a step no check confirms alone (half a rename, unused scaffolding)
+     into the step it serves. A single bug fix or mechanical rename is one step.
+   - Tests are not a step (the test stage writes them after the last implement step); a step changing only test
      files is refused unless the whole item is tests.
-   - Each step declares `deps` (earlier step IDs it truly needs, or []; list order is not a dependency), the
-     `criteria` it satisfies and the `paths` it changes (inside the item's `paths`). Every criterion is satisfied
-     by some step.
-   - `skills`: reread the host's skills and the repository's skill index now (an earlier item may have added one).
-     List `{"name", "why", "locator"}` for each skill with a concrete use in the step, or []. Prefer a
-     repository-local skill reused unchanged. `locator`, when given, is the path of an existing SKILL.md or card.
-5. **`test_commands`** (`[{"command", "suite", "ids", "criteria"}]`), each run from the repository root. The test
-   and verify stages run exactly these.
-   - focused: this item's cases, with the IDs they will carry and a runner flag that prints test names (Jest
-     `--verbose`, pytest `-v`, `node --test` with its default spec or tap reporter; never dot or junit).
-     """ + ID_WORD_RULE + """ Add `min_tests` where a command must run at least that many. ShipLoop refuses a
-     run that executed no test, so check the filter matches.
+   - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
+     `criteria` it satisfies and the `paths` it changes (inside the item's `paths`). Every criterion is satisfied by
+     some step.
+   - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
+     `{"name", "why", "locator"}` for each with a concrete use in the step, else []. Prefer a repository-local skill
+     reused unchanged. `locator`, when given, is an existing SKILL.md or card path.
+5. **`test_commands`** (`[{"command", "suite", "ids", "criteria"}]`), run from the repository root; the test and
+   verify stages run exactly these.
+   - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
+     pytest `-v`, `node --test` default spec or tap reporter; never dot or junit). """ + ID_WORD_RULE + """ `min_tests`
+     where a command must run at least that many. ShipLoop refuses a run that executed no test, so check the filter.
    - regression: the retained suites the changed paths affect.
-   - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, with
-     no `ids` or `min_tests`. With none, give `check_na` and the reason; with no command at all, `test_commands_na`.
+   - check: the lint, type and build commands HOME/environment.md records for these files, judged by exit code, no
+     `ids` or `min_tests`. None: `check_na` with the reason; no command at all: `test_commands_na`.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria. A list too
-     large for the test loop's contract is refused: shorten IDs, drop duplicates or split the item.
-6. **`expectations`**: each fact the steps build on, as `{"id", "state", "statement", "steps", "paths", "check",
-   "from"}`. ShipLoop runs every check on the unchanged item base at validate-existing.
-   - Every existing path a step changes or relies on gets `works` (it works today) or `broken` (the request says it
-     is broken). Every new path gets `absent` (its place is free).
-   - `check` is one read-only command, run from the repository root, that exits 0 while the state holds. For
-     `broken`, the reported failure still reproduces: `! npm test -- -t TC-3` or `node cli.js 2>&1 | grep -q
-     'TypeError'`.
+     large for the loop contract is refused: shorten IDs, drop duplicates or split the item.
+6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check",
+   "from"}`; ShipLoop runs every check on the unchanged item base at validate-existing.
+   - Every existing path a step changes or relies on is `works` or `broken` (the request says it is broken); every
+     new path is `absent` (its place is free).
+   - `check`: one read-only command from the repository root that exits 0 while the state holds. For `broken`, the
+     reported failure still reproduces: `! npm test -- -t TC-3` or `node cli.js 2>&1 | grep -q 'TypeError'`.
    - An open plan assumption this item consumes becomes an expectation whose `from` names it.
-7. **`paths`**: every file the item will change, as repository-relative files or globs, including the test files
-   the test stage will write. The item commit takes these files, the changed documentation and HOME/. An item with
-   no test command and only non-code paths skips the test stage; one whose diff touches no code or test path skips
-   document.
-8. **`follows`**: each R-<n> and AD-<n> this item follows. Each must exist in HOME/spec.md or HOME/architecture.md.
-9. **Plan record.** In the work item's `context` or this result's summary, record:
-   - the outcome and the invariants kept; the contracts and responsibilities that change;
-   - the target files, interfaces and conventions, matched to the house style (House-style guidance);
+7. **`paths`**: every file the item changes (repository-relative files or globs), including the test files the test
+   stage writes. The item commit takes these, the changed documentation and HOME/. No test command and only non-code
+   paths skips the test stage; a diff touching no code or test path skips document.
+8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in HOME/spec.md or HOME/architecture.md.
+9. **Plan record** in the item's `context` or the summary:
+   - outcome and invariants kept; contracts and responsibilities that change;
+   - target files, interfaces and conventions, matched to the house style (House-style guidance);
    - each step's failure cases and the diagnostics and errors it must produce;
-   - the documentation to change; the integration impact and release prerequisites;
-   - the readiness, completion and revalidation conditions;
-   - the Coding decision guide's selection: the actual runtime and version, artifact and boundary, and links to only
-     the matching sections;
-   - when code or stored data is added or moved: reopen the Namespace and data map in HOME/architecture.md ## Structure
-     and each touched environment's current tree. Name each file, module and public symbol with its environment, home
-     namespace, visibility and collision check (an import or load test, a deploy validation, or a name search). Name
-     each stored field, key, table or payload with its owning environment, migration (unneeded, an earlier step, this
-     step, or a deploy obligation) and round-trip check. Give the reason for a changed placement or schema (Namespace
-     and placement guidance, Schema and storage guidance, State and data assessment);
-   - each pinned value a check replays (fixed dice, seed data), labelled a source-check fixture, separate from the
-     runtime control. Confirm an external oracle (golden file, fixture, snapshot) agrees with the task;
-   - when interactions, UI or service state change: a Design basis paragraph or exact section links. Recheck the
-     Interaction design guide's matching subsections (incoming and outgoing events, connection lifecycle, UI
-     planning) and, for services, the Service discovery guidance; do not copy the prior plan. Give the baseline and
-     delta; the actors, events, connections and state owner; the planned recovery checks; for UI, the component,
-     interaction and skin premises, the design guidance identity and version or digest (or the named fallback), and
-     the rich interactions planned. A human-facing UI defaults to an ambitious, highly interactive design: name the
-     rich interactions (direct manipulation, inline editing, live preview, keyboard paths, animated transitions)
-     and any scaled back, with its user, target or accessibility reason; and the locators of its sources and checks.
-
-   This record gathers upstream material as supporting references. Each step's task and criteria stay its only
-   directive.
-10. **Knowledge.** Write a structural choice HOME/architecture.md lacks as the next AD-<n> under ## Decisions and
-    cite it in the step. Add a newly working command to HOME/environment.md ## Commands. Keep every R-<n> and AD-<n>.
-    Write nothing else in HOME/.
+   - documentation to change; integration impact and release prerequisites; readiness, completion and revalidation
+     conditions;
+   - the Coding decision guide's selection: runtime and version, artifact and boundary, links to only the matching
+     sections;
+   - code or stored data added or moved: reopen the Namespace and data map in HOME/architecture.md ## Structure and
+     each touched environment's tree. Per file, module and public symbol: environment, home namespace, visibility,
+     collision check (import or load test, deploy validation, or name search). Per stored field, key, table or
+     payload: owning environment, migration (unneeded, earlier step, this step, deploy obligation), round-trip
+     check. Reason for a changed placement or schema (Namespace and placement guidance, Schema and storage guidance,
+     State and data assessment);
+   - each pinned value a check replays (fixed dice, seed data), labelled a source-check fixture apart from the runtime
+     control; confirm an external oracle (golden file, fixture, snapshot) agrees with the task;
+   - interactions, UI or service state changing: a Design basis paragraph or exact section links, rechecking the
+     Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
+     plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
+     component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
+     and the rich interactions planned (a human-facing UI defaults to ambitious and highly interactive: direct
+     manipulation, inline editing, live preview, keyboard paths, animated transitions; give the reason for any
+     scaled back); the UI decisions this step owns (UI planning ownership guide); locators of sources and checks.
+   This record is supporting reference; each step's task and criteria stay its only directive.
+10. **Knowledge.** A structural choice HOME/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
+    step. A newly working command: HOME/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
+    in HOME/.
 """ + _STEP_PLAN_GRAPH + """\
-12. **evidence_refs**: absolute paths of every planning file you wrote, and the requirement sections and test
-    locators you used.
+12. **evidence_refs**: absolute paths of every planning file written, and the requirement sections and test locators
+    used.
 """,
     "test-spec": """\
 Write no test code in this stage.
 
-1. **One case per ID.** For each ID the step plan's focused commands list, add one `test_cases` row. Use no
-   other ID. If a criterion needs an ID no focused command lists, report revise naming it.
-2. **Case fields** (Test-case planning guidance). Each `test_cases` row holds `criterion`, `requirement` (R-<n>),
-   `oracle`, `red` and `green`. Put the rest in those fields or in the summary: the surface (unit, public interface,
-   real boundary, rendered UI; Real-boundary test guidance) and due phase; setup and fixture; action; teardown, or
-   "stateless"; the command row that runs it; the suite that registers it, and whether it joins smoke.
-3. **Oracle.** Take it from the requirement's text, never from the code. Check a golden, fixture or snapshot against
-   that text first. The oracle is the expected observation, never only that a page loads. RED is how the case fails
-   on the item's base. A case that already passes there is a characterisation case; say so in RED.
-4. **Coverage.** Cover positive, failure and boundary behaviour. For each new or changed public entry point, add one
-   rejection case per constraint it checks (missing, wrong type or shape, out of range), asserting the error type,
-   the named argument and unchanged state.
-5. **Isolation.** Isolate each test. Share setup only when shown safe, never mutable state. Give each case its
-   failure cleanup. Name the existing harness, helper or fixture each case uses (Reusable test facilities); for a
-   missing one, name the smallest facility the test stage must build.
-6. **Not here.** Keep every assigned clause with its required surface and due phase.
-   - A case due at a later stage (system test, release) goes in `assumptions` as an open item: the case ID,
-     criterion, R-<n> and oracle in `assumption`, its `check`, `consumer` the outer stage it is due at, and its owner.
-   - A criterion confirmed only by a check command or by inspection gets no case. List it in the summary with its
-     confirming command.
-   - A criterion that cannot be tested as written: report revise naming it.
-7. **Test decisions.** In the summary, say which harness and suite decisions in HOME/environment.md this item keeps,
-   refines or supersedes, and why. Put their locators, the step plan's, and the requirement sections you used in
-   evidence_refs.
+1. One `test_cases` row per ID the step plan's focused commands list; no other ID. A criterion that needs an
+   unlisted ID: report revise naming it.
+2. Each row (Test-case planning guidance): `criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`. Put surface
+   (unit, public interface, real boundary, rendered UI; Real-boundary test guidance) and due phase, setup and
+   fixture, action, teardown (or "stateless"), command row, registering suite and smoke membership in those fields
+   or the summary.
+3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
+   observation, never only that a page loads. RED: how it fails on the item's base, or "characterisation" if it
+   already passes.
+4. Cover positive, failure and boundary. Each new or changed public entry point: one rejection case per constraint
+   (missing, wrong type or shape, out of range), asserting the error type, the argument named and unchanged state.
+5. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
+   it uses (Reusable test facilities); for a missing one, the smallest facility the test stage must build.
+6. Due at a later stage (system test, release): an `assumptions` open item (case ID, criterion, R-<n> and oracle in
+   `assumption`; `check`; `consumer` = that outer stage; owner). Confirmed only by a check command or inspection: no
+   case; list it with its command in the summary. Untestable as written: report revise naming it.
+7. Summary: which harness and suite decisions in HOME/environment.md this item keeps, refines or supersedes, and
+   why. evidence_refs: their locators, the step plan's, the requirement sections used.
 """,
     "validate-existing": """\
-1. **Find the cause.** ShipLoop ran each expectation's check, and each open plan assumption this item settles, on the
-   unchanged item base; the results are below. Read the step plan's steps and paths for each mismatched
-   expectation. With one small discriminating observation, find whether the fact or the check is wrong (Baseline-test
-   guidance, Current-system baseline guide).
-2. **Route it:**
-   - The check is wrong and the fact holds: report revise. Never edit or weaken a check here.
-   - A `works` expectation is broken and the fix is known and small: fix it in the working tree, touching only that
-     expectation's paths. Commit nothing; ShipLoop commits it on accept as one preparatory commit, separate from the
-     item's change.
-   - The environment lacks a tool, service or setting: fix the environment and record it in HOME/environment.md
-     ## Commands or ## Targets and runtimes.
-   - An `absent` expectation finds something, a `broken` one does not reproduce, or the fix is not known: report
-     revise with what is true. The step plan reshapes the steps; a needed repair becomes an earlier step.
-   - The fix lies outside this run (another system, a person's access): report blocked, blocked_by external or
-     access, naming what is needed.
-3. **Never start the item's own change here.**
-4. **Revise shape.** Name each mismatch in `failed_expectations`: `[{"id": "E1", "actual": "<what is true>",
-   "route": "check" | "steps"}]`. Route `check` when the check is wrong (`actual` gives the corrected check);
-   `steps` when the plan must change.
+1. ShipLoop ran each expectation's check, and each open plan assumption this item settles, on the unchanged item
+   base; results are below. For each mismatch read the step plan's steps and paths, and with one small
+   discriminating observation find whether the fact or the check is wrong (Baseline-test guidance, Current-system
+   baseline guide).
+2. Route each mismatch:
+   - check wrong, fact holds: report revise. Never edit or weaken a check here.
+   - `works` expectation broken, fix known and small: fix it in the working tree, touching only that expectation's
+     paths, and commit nothing (ShipLoop commits it on accept as a separate preparatory commit).
+   - environment lacks a tool, service or setting: fix it and record it in HOME/environment.md ## Commands or
+     ## Targets and runtimes.
+   - `absent` finds something, `broken` does not reproduce, or the fix is unknown: report revise with what is true
+     (the step plan reshapes the steps; a needed repair becomes an earlier step).
+   - fix lies outside this run (another system, a person's access): report blocked, blocked_by external or access,
+     naming the need.
+3. Start none of the item's own change.
+4. Revise names each mismatch in `failed_expectations`: `[{"id": "E1", "actual": "<what is true>", "route":
+   "check" | "steps"}]`; `check` when the check is wrong (`actual` gives the corrected check), `steps` when the
+   plan must change.
 
 On re-entry after implement, ShipLoop runs the checks in a temporary worktree at the item base (after any
-preparatory commit), so checkout edits cannot change them; a mismatch there is a revise.
+preparatory commit); a mismatch there is a revise.
 """,
     "implement": """\
-1. **Scope.** Do only this step: edit its paths to meet its criteria, and do no work no criterion asks for. Earlier
-   steps are accepted. Write no tests and start no later step. Leave everything outside the step's paths as it is:
-   no reformatting, no reverting. Existing tests, check scripts, golden or fixture files and thresholds are checks;
+1. **Scope.** Do only this step: edit its paths to meet its criteria, nothing no criterion asks for. Earlier steps are
+   accepted. Write no tests, start no later step, and leave everything outside the step's paths as is (no
+   reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
    change one only when a criterion says to.
 2. **Build.** Each iteration edits first. Follow the step plan's Coding decision selection (Coding decision guide),
-   reading only its matching sections, and check the current code, versions and consumers before reusing or
-   augmenting a unit. Read history or earlier reviews only when a check fails or a question needs one section. Apply
-   Code craft and the House-style guidance. Use each listed step skill for its stated purpose (invoke it, or read its
-   SKILL.md and follow it); in the summary, say for each whether you used it, and why not.
-3. **Check.** After each edit, run every recorded check command and `shiploop lint --action`, and write each exit
-   code in RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the
-   command. A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`.
-   Use only what is present: never download, install or fetch a tool, runtime or dependency. Record the best
-   evidence available and what would confirm more.
-4. **Hand off.** List in `not_covered` each behaviour the change added that no test-spec case covers, or leave it
-   empty. Record a departure from HOME/architecture.md as a new AD-<n> under ## Decisions, and a newly working
-   command in HOME/environment.md ## Commands.
-5. **Services.** For a service change, apply the accepted contract and the Service discovery guidance. Revalidate
-   the target state and authority before any effect. Keep unrelated remote fields and existing operational owners.
-   Unresolved cache access or async completion uses its recorded safe fallback or correction.
+   reading only its matching sections; check current code, versions and consumers before reusing or augmenting a
+   unit. Read history or earlier reviews only when a check fails or a question needs one section. Apply Code craft
+   and House-style guidance. Use each listed step skill for its purpose (invoke it, or read its SKILL.md and follow
+   it); the summary says per skill whether you used it, and why not.
+3. **Check.** After each edit run every recorded check command and `shiploop lint --action`; write each exit code in
+   RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the command.
+   A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
+   what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
+   more.
+4. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else empty. Record a
+   departure from HOME/architecture.md as a new AD-<n> under ## Decisions, and a newly working command in
+   HOME/environment.md ## Commands.
+5. **Services.** Apply the accepted contract and Service discovery guidance; revalidate target state and authority
+   before any effect; keep unrelated remote fields and existing operational owners. Unresolved cache access or async
+   completion uses its recorded safe fallback or correction.
 6. **Unachievable as planned.** Stop the loop blocked and report revise, naming the criterion or command and the
    case, when:
-   - a criterion contradicts another criterion, the item or a protected file, shown by a check after all compatible
-     work is done, with the existing behaviour kept at the conflict point;
-   - confirming it needs an absent tool, runtime, access or authority, and the criterion text does not
-     say `Confirm by: unconfirmable here`;
+   - a criterion contradicts another, the item or a protected file, shown by a check after all compatible work is
+     done, with existing behaviour kept at the conflict point;
+   - confirming it needs an absent tool, runtime, access or authority, and the criterion text does not say
+     `Confirm by: unconfirmable here`;
    - satisfying it would exceed the item;
    - the same check still fails after """ + _FIX_ATTEMPTS + """ genuine fix attempts;
-   - the change invalidates a recorded command (a moved module, a new dependency or runtime; see Target-native test
+   - the change invalidates a recorded command (moved module, new dependency or runtime; Target-native test
      selection) or needs a new prerequisite or authority boundary.
-
    Report blocked, with blocked_by, only when the user, an access grant or an outside dependency must resolve it.
 """ + _IMPLEMENT_CHAIN,
     "test": """\
-1. **Write the cases.** Write each test case quoted in the packet as a test titled with its ID as its own word, in
-   the suite and command its case names (Repeatable test-suite guide, Target-native test selection), asserting the
-   spec's oracle, never the code's behaviour. Reuse the existing harness, helpers and fixtures first (Reusable test
-   facilities); never assume a named skill or MCP is available or authorized. Build a missing facility within this
-   item and validate it before the tests that use it. Record each new facility in HOME/environment.md
-   ## Harnesses and suites with its locator, interface, readiness, owner and revalidation condition. Do not write a
-   case due at a later stage.
-2. **Test decisions.** Reopen the item's test decision and the harness and suite decisions in HOME/environment.md.
-   Record a harness or suite decision the implementation changed in HOME/environment.md ## Harnesses and suites, and
-   a real-boundary decision in HOME/architecture.md ## Real-boundary checks. In the summary, say which decisions you
-   retain, refine or supersede and why; put their locators and the step plan's in evidence_refs. A recorded
-   completion does not prove a harness, fixture or target still works.
+1. **Write the cases.** Each quoted test case becomes a test titled with its ID as its own word, in the suite and
+   command its case names (Repeatable test-suite guide, Target-native test selection), asserting the spec's oracle,
+   never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test facilities); never
+   assume a named skill or MCP is available. Build a missing facility within this item and validate it before the
+   tests that use it; record it in HOME/environment.md ## Harnesses and suites (locator, interface, readiness,
+   owner, revalidation condition). Write no case due at a later stage.
+2. **Test decisions.** Reopen the item's test decision and HOME/environment.md's harness and suite decisions. Record a
+   harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary decision in
+   HOME/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why;
+   locators and the step plan's in evidence_refs. A recorded completion does not prove a harness, fixture or target
+   still works.
 3. **Gaps.** Read the implement results' `not_covered`. A behaviour or rejection case the spec lacks becomes a
-   sub-case of the closest quoted test case, with its oracle from the spec (Test-case planning guidance), and its
-   test is titled `<ID> (<letter>)`. When no case fits, report revise. Each new or
-   changed public entry point gets its rejection cases. Test a new error path or debug output, on and off, with safe
-   diagnostic context.
-4. **Run and fix.** After each change, run every recorded command, the red-check command and the lint command. Find
-   each failure's cause with one small observation (product defect, invalid test, environment) and fix the product
-   code. Change a test, fixture, golden file or threshold only for an independent reason, written in
-   RUN/notes/<action>.md. Never weaken, delete or skip a test to get green. A repeated unchanged failure is not
-   progress: change the approach.
-5. **End states.** Each case ends as one of:
+   sub-case of the closest quoted case with its oracle from the spec (Test-case planning guidance), titled
+   `<ID> (<letter>)`; none fits: report revise. Each new or changed public entry point gets rejection cases. Test a
+   new error path or debug output, on and off, with safe diagnostic context.
+4. **Run and fix.** After each change run every recorded command, the red-check command and the lint command. Find
+   each failure's cause with one small observation (product defect, invalid test, environment) and fix the product.
+   Change a test, fixture, golden file or threshold only for an independent reason written in RUN/notes/<action>.md.
+   Never weaken, delete or skip a test to get green. A repeated unchanged failure is not progress: change approach.
+5. **End states.** Each case ends as:
    - validated: run, and the observation matches the oracle;
-   - validated another way: the first method could not observe it, so another method ran and passed, still titled
-     with the ID; the summary says what changed and why;
-   - unachievable: a named reason and the requirement it leaves unverified; report revise.
-
-   A case written but not run is not an end state.
-6. **Result fields.**
-   - `red_na`: each new test that passes on the item base without this change, `[{"id", "reason"}]`.
-   - `retired_tests`: each test this item deliberately retires, `[{"id", "reason": "<the R-<n> or AD-<n> that
-     retires it>"}]`. Any other drop below a command's floor is refused.
-   - `lint_waivers`: each lint finding that must stay, `{"id": "<printed ID>", "reason": "<why>"}`.
-7. **Proof limits.** A passing command proves only the cases it runs. A smoke or subset run never stands for a
-   recorded command. A local pass does not replace a required remote or real-boundary check (Real-boundary test
-   guidance). Keep probes and experiments in RUN/scratch. Never install, download or fetch a tool or dependency.
-   Never commit or push.
-8. **Revise** (name the case or command, why, the requirement it leaves unverified, and every required command that
-   could not run) when:
-   - a failure is proven unachievable: it contradicts the spec or another requirement, needs an absent tool, access
-     or authority, or would exceed the item;
-   - a recorded command is wrong or cannot run here;
-   - an existing suite the changed paths now affect must join the regression command;
-   - the step plan recorded no test command for code this item changes.
-
-   Report blocked, with blocked_by, only when the user, an access grant or an outside dependency must unblock it.
+   - validated another way: the first method could not observe it, another ran and passed, still titled with the ID;
+     the summary says what changed and why;
+   - unachievable: a named reason and the requirement left unverified; report revise.
+   A case written but not run has no end state.
+6. **Result fields.** `red_na`: each new test passing on the item base without this change, `[{"id", "reason"}]`.
+   `retired_tests`: each test this item deliberately retires, `[{"id", "reason": "<the R-<n> or AD-<n> that retires
+   it>"}]` (any other drop below a command's floor is refused). `lint_waivers`: `{"id": "<printed ID>", "reason":
+   "<why>"}` per lint finding that must stay.
+7. **Proof limits.** A passing command proves only the cases it runs; a smoke or subset run never stands for a
+   recorded command; a local pass does not replace a required remote or real-boundary check (Real-boundary test
+   guidance). Probes and experiments go in RUN/scratch. Install, download or fetch nothing. Never commit or push.
+8. **Revise** (naming the case or command, why, the requirement left unverified, and every required command that
+   could not run) when: a failure is proven unachievable (contradicts the spec or another requirement, needs an
+   absent tool, access or authority, or would exceed the item); a recorded command is wrong or cannot run here; an
+   existing suite the changed paths now affect must join the regression command; the step plan recorded no test
+   command for code this item changes. Report blocked, with blocked_by, only when the user, an access grant or an
+   outside dependency must unblock it.
 """,
     "document": """\
-1. **List.** Take the changed public behaviours from the change inventory, the step plan, the implement results and
-   the item's diff.
+1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+   item's diff.
 2. **Observe and write.** Run each changed behaviour, then update the README, API, user, operator, error and design
-   documentation from what you observe: the errors a user can see, how to turn on diagnostics, known limits and
-   caveats. Keep public, error and debug behaviour accurate, concise and discoverable. Link to the authoritative
-   home instead of copying a contract (Documentation guidance). Document nothing you did not observe working. Durable
-   facts go in the repository's docs, never only in run notes.
-3. **Decisions.** Write a design or service decision implement did not record as an AD-<n> under
-   HOME/architecture.md ## Decisions (a service choice with its contract, owner and revalidation trigger).
-4. **Baseline.** When the item recovered existing behaviour, keep recovered observations and accepted deltas apart
-   from the prior as-of baseline (Current-system baseline guide).
-5. **Reread.** Reread every changed document and run its commands and examples. In RUN/notes/<action>.md, record why
-   a behaviour needs no documentation, why the README did not change, or why an example cannot run here.
+   docs from what you observe: visible errors, how to turn on diagnostics, known limits and caveats. Link to the
+   authoritative home rather than copying a contract (Documentation guidance). Document nothing you did not observe
+   working. Durable facts go in the repository's docs, never only in run notes.
+3. **Decisions.** A design or service decision implement did not record: an AD-<n> under HOME/architecture.md
+   ## Decisions (a service choice with contract, owner and revalidation trigger).
+4. **Baseline.** Recovered existing behaviour: keep recovered observations and accepted deltas apart from the prior
+   as-of baseline (Current-system baseline guide).
+5. **Reread** every changed document and run its commands and examples. In RUN/notes/<action>.md record why a
+   behaviour needs no documentation, why the README did not change, or why an example cannot run here.
 6. **Commit nothing yourself.** """ + _ITEM_COMMIT + """
-7. Report revise when the plan or a criterion is wrong as observed, naming it. Report blocked only when a behaviour
-   cannot be observed here, naming it.
+7. Plan or criterion wrong as observed: report revise naming it. Report blocked only when a behaviour cannot be
+   observed here, naming it.
 """,
     "verify": """\
 This is item acceptance, not a claim that integration or release has happened. Each review iteration does items 1-7
 in order.
 
-1. **Run.** Run every recorded command (the Test rerun list) and write each exit code and test count in
-   RUN/notes/<action>.md.
-2. **Confirm.** For each criterion, name the passing command or the inspection that confirms it now. Stale, skipped
-   or missing evidence is not a confirmation, and neither is evidence for another candidate, command, configuration
-   or target. Keep diagnostic scores apart from that decision. A criterion reported `inspected` or `unconfirmable`
-   whose `Confirm by:` needs execution: report revise.
-3. **Reconcile cases** (Test-case planning guidance). Classify every test-spec case passed, failed, blocked,
-   not-run, or justified N/A. Reconcile each affected requirement clause with its case, required surface and due
-   phase, the checked surface, the candidate, status and evidence. A pass on another surface only supports. Source,
-   HTTP, or DOM structure alone cannot close a rendered interaction. A case not yet due keeps its phase, owner and
-   prerequisites; already-due evidence that is missing stays incomplete. Check for dropped clauses or cases. Never
-   claim every requirement met while required observations remain unrun.
-4. **Trace.** From the change inventory RUN/lint/<action>-inventory.md, list every new or changed public entry point
-   (exported function, CLI, request or event handler, callback). Walk one valid, one boundary and one invalid input
-   to its return, error or side effect, and write one trace line per path in RUN/notes/<action>.md. A wrong,
-   unhandled or untested path is a finding. A test added for an untested path is titled `<ID> (<letter>)` under the
-   case it extends. An entry point in the diff but missing from the inventory has not been traced.
-5. **Review.** Review the whole item's diff against the step plan's steps, paths and justified revisions, its
-   affected consumers, Code craft, the step plan's Coding decision selection (Coding decision guide) and
-   HOME/architecture.md. Look for: missing argument checks or contract docstrings at an entry point; missing error
-   paths; silent failures; comments that restate or are stale; dead code; user text that is concatenated or bypasses
-   the catalog; names outside the planned namespace or exported wider than needed; stored data off the planned
-   schema; a near-copy of existing logic; a plain interaction where the plan called for a rich one; a deviation from
-   HOME/architecture.md with no new AD-<n>. Reconcile tests, documentation, error behaviour, diagnostics,
-   dependencies and known limitations. On entry ShipLoop linted and auto-fixed safe formatting once: keep or revert
-   each auto-fix the lint record names. The lint record supports this review; it does not replace it.
-6. **Services.** For the item's selected service and observability contracts (Service discovery guidance), verify
-   the due outcomes, including safe fallback and failure cases. Keep local simulation apart from required remote
-   readback, permission enforcement, completion and event retrieval.
+1. **Run** every recorded command (the Test rerun list); write each exit code and test count in RUN/notes/<action>.md.
+2. **Confirm.** Per criterion name the passing command or inspection that confirms it now. Stale, skipped, missing or
+   other-candidate, command, configuration or target evidence confirms nothing; diagnostic scores are apart from
+   this. A criterion reported `inspected` or `unconfirmable` whose `Confirm by:` needs execution: report revise.
+3. **Reconcile cases** (Test-case planning guidance). Classify each test-spec case passed, failed, blocked, not-run
+   or justified N/A, and reconcile each affected requirement clause with its case, required surface and due phase,
+   checked surface, candidate, status and evidence. A pass on another surface only supports; source, HTTP or DOM
+   structure alone cannot close a rendered interaction. A case not yet due keeps its phase, owner and prerequisites;
+   missing evidence for an already-due case stays incomplete. Check for dropped clauses or cases; claim no
+   requirement met while a required observation is unrun.
+4. **Trace.** From RUN/lint/<action>-inventory.md list every new or changed public entry point (exported function,
+   CLI, request or event handler, callback). Walk one valid, one boundary and one invalid input to its return, error
+   or side effect, one trace line per path in RUN/notes/<action>.md. A wrong, unhandled or untested path is a
+   finding; a test added for an untested path is titled `<ID> (<letter>)` under the case it extends. An entry point
+   missing from the inventory is untraced.
+5. **Review** the whole diff against the step plan's steps, paths and justified revisions, affected consumers, Code
+   craft, the Coding decision selection and HOME/architecture.md. Look for: missing argument checks or contract
+   docstrings at an entry point; missing error paths; silent failures; restating or stale comments; dead code; user
+   text concatenated or bypassing the catalog; names outside the planned namespace or exported too wide; stored data
+   off the planned schema; a near-copy of existing logic; a plain interaction where the plan called for a rich one; a
+   deviation from HOME/architecture.md with no new AD-<n>. Reconcile tests, docs, error behaviour, diagnostics,
+   dependencies and limitations. ShipLoop linted and auto-fixed safe formatting on entry: keep or revert each
+   auto-fix the lint record names. The lint record supports this review; it does not replace it.
+6. **Services** (Service discovery guidance): verify the item's service and observability contracts' due outcomes,
+   safe fallback and failure cases. Keep local simulation apart from required remote readback, permission
+   enforcement, completion and event retrieval.
 7. **Classify and fix.** Material: wrong behaviour on a traced path; a missing or wrong argument check, contract,
    error path or test; a failing command; a misleading comment; logic that should have been composed. Trivial:
-   wording, ordering, a sharper name. Do not reopen a finding an earlier iteration fixed unless its code changed.
-   Fix every finding within scope by changing the work, never a check or its expected result; change a test only
-   to fix a finding. If anything changed, rerun item 1.
+   wording, ordering, a sharper name. Reopen no finding an earlier iteration fixed unless its code changed. Fix
+   every in-scope finding by changing the work, never a check or its expected result (a test only to fix a
+   finding). If anything changed, rerun item 1.
 """ + _VERIFY_ASSEMBLY + """\
 9. **Later checks.** Each system, release or real-boundary check the criteria need is an open item in `assumptions`
-   with its consumer (the stage it is due at) and owner; add any missing one. A boundary a local test cannot prove
-   stays pending with its owner in HOME/architecture.md ## Real-boundary checks (Real-boundary test guidance).
-10. **Commit.** Keep run state, raw logs, credentials and generated artifacts out of the product commit. Commit
-    nothing yourself. """ + _ITEM_COMMIT + """
-11. **Summary.** Give the entry points traced, each trace that found an issue and its fix, each command with its
-    exit code, any required check not run and why, and the known limitations.
-12. Report revise when a criterion or check proves unachievable as planned, naming it. Report blocked, with
-    blocked_by, only when the user, an access grant or an outside dependency must unblock it.
+   with its consumer (the stage it is due at) and owner; add any missing one. A boundary no local test proves stays
+   pending with its owner in HOME/architecture.md ## Real-boundary checks (Real-boundary test guidance).
+10. **Commit nothing yourself.** Keep run state, raw logs, credentials and generated artifacts out of the product
+    commit. """ + _ITEM_COMMIT + """
+11. **Summary:** entry points traced, each trace that found an issue and its fix, each command with its exit code,
+    any required check not run and why, known limitations.
+12. Criterion or check unachievable as planned: report revise naming it. Report blocked, with blocked_by, only when
+    the user, an access grant or an outside dependency must unblock it.
 """,
     "carry-forward": """\
-1. **Knowledge home.** Update in place, and keep completed evidence apart from future plans; never rewrite it:
+1. **Knowledge home.** Update in place; keep completed evidence apart from future plans, never rewriting it:
    - HOME/environment.md ## Commands: every command that worked.
-   - HOME/architecture.md ## Decisions: each AD-<n> this item added. A superseded one moves to ## Superseded; never
-     delete it.
-   - HOME/environment.md ## Harnesses and suites: the suites; focused, smoke and full commands; harness and case
-     locators; fixture lifecycle decisions; each test facility's locator, interface, readiness or gap, owner and
-     revalidation condition.
-   - HOME/architecture.md ## Real-boundary checks: each pending full-suite and real-boundary check, with its owner.
-   - HOME/spec.md: each R-<n> this item satisfied; an open gap under its R-<n>, including an unresolved state or data
-     change (State and data assessment). Keep unaffected clauses. The test code is the one home of test IDs: write
-     none here.
-   - Open risks, unresolved dependencies, system-test obligations and release prerequisites, and any observation no
-     item owns: open items in `assumptions`, each with its owner and as `consumer` the later outer stage it is due at.
-   - Carry the selected prior baseline, incoming delta and updated knowledge locators forward, keeping historical
-     snapshots (Current-system baseline guide). Retain the house style (House-style guidance) and the learnings
-     the next run needs (Persistent project-knowledge guidance).
-   - Do not silently expand scope or turn a tentative idea into adopted policy.
-2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items`, every pending title and context, and
+   - HOME/architecture.md ## Decisions: each AD-<n> this item added; a superseded one moves to ## Superseded, never
+     deleted.
+   - HOME/environment.md ## Harnesses and suites: suites; focused, smoke and full commands; harness and case
+     locators; fixture lifecycle; each test facility's locator, interface, readiness or gap, owner, revalidation
+     condition.
+   - HOME/architecture.md ## Real-boundary checks: each pending full-suite and real-boundary check with its owner.
+   - HOME/spec.md: each R-<n> this item satisfied; an open gap under its R-<n>, an unresolved state or data change
+     included (State and data assessment). Keep unaffected clauses. Test IDs live only in test code: write none here.
+   - Open risks, unresolved dependencies, system-test obligations, release prerequisites and any observation no item
+     owns: open items in `assumptions`, each with owner and, as `consumer`, the later outer stage it is due at.
+   - Carry the prior baseline, incoming delta and updated knowledge locators forward, keeping historical snapshots
+     (Current-system baseline guide); retain the house style (House-style guidance) and the learnings the next run
+     needs (Persistent project-knowledge guidance).
+   - Expand no scope; adopt no tentative idea as policy.
+2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items` with every pending title and context;
    give every observation that affects later work an owner:
-   - A defect in completed work, or a completed prerequisite that new evidence invalidates: a corrective item, with
-     revalidation, ahead of its consumers.
-   - A needed research or preparation prerequisite: its own item ahead of every consumer.
-   - An affected future item: its `context` carries the decision locator, rationale and revalidation condition.
-     Copy no source transcript, invent no decision ledger, and do not treat a context summary as proof.
-   - A finding incompatible with the approved work (a changed requirement, permission or invocation contract): stop
-     the loop and report blocked. It is not a queue edit.
-
-   To change the queue, give `work_items`: the whole future queue, rows `{"id", "title", "context"}` in prerequisite
-   order, with no completed or current ID. Keep unrelated pending work that has no consumer. Explain each removal,
-   merge or supersession in this result's summary. Omit `work_items` to keep the queue as it is.
+   - defect in completed work, or a completed prerequisite new evidence invalidates: a corrective item with
+     revalidation, ahead of its consumers;
+   - needed research or preparation prerequisite: its own item ahead of every consumer;
+   - affected future item: its `context` carries decision locator, rationale, revalidation condition (copy no
+     transcript, invent no decision ledger; a context summary is not proof);
+   - finding incompatible with the approved work (changed requirement, permission or invocation contract): stop the
+     loop and report blocked; it is no queue edit.
+   To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "context"}` in prerequisite
+   order, no completed or current ID, keeping unrelated pending work. Explain each removal, merge or supersession in
+   the summary. Omit `work_items` to keep the queue.
 3. **Skill decision**, in `skill`:
-   1. *Inspect.* Read the repository skill index (the directory HOME/environment.md ## Skills names, or the
-      README or AGENTS.md skill links; a missing index is not a blocker) and the skills your host offers. Put what
-      you inspected in evidence_refs.
-   2. *Decide*, smallest first (Reuse-before-build guidance, Repository-local skill guidance):
-      - `none`: no procedure repeated, or a normal code, test or doc change already captures the learning.
-      - `reuse`: an existing skill covers it unchanged. Different data or parameter values alone do not need
-        another skill.
-      - `update`: a small compatible extension of a repository skill captures a demonstrated lesson. Keep its
-        supported inputs, defaults and older examples.
-      - `create`: no suitable skill exists, or combining contracts would obscure selection or break a consumer.
-
-      Choose `update` or `create` only when the same procedure ran in two or more steps or items of this run, or a
-      pending item or R-<n> says it will recur. Put those step or item IDs, or the R-<n>, in `skill.evidence`.
-      Never capture a transcript of this step or a speculative framework.
-   3. *Where.* Use the repository's skill directory (HOME/environment.md ## Skills, or the existing layout). When
-      there is none, use `skills/<name>/` in WORKTREE and add it under ## Skills. Never edit an installed or shared
-      skill, install globally, add a dependency, connector or privilege, or publish. Derived content keeps its
-      source, revision and licence.
-   4. *Write it deterministic.*
-      - `skills/<name>/SKILL.md` opens with `name` and `description` frontmatter. The description says when to use
-        it and when not to.
-      - The body gives: what it produces and why; each input with its type, whether required, its default and where
-        the default comes from; the exact steps; the expected output; failure and recovery; permission boundaries;
-        relative links to the code, tests and HOME/spec.md sections it relies on (link requirements, never copy
-        them); and what changes require revalidation. No credentials, machine-specific paths or IDs, and no run or
-        worktree paths.
-      - Every mechanical sequence goes in a script beside it, `skills/<name>/scripts/<verb>`, in a runtime the
-        repository already uses. The script takes its inputs as arguments, exits 0 on success and non-zero with a
-        named message on each failure, and prints the output SKILL.md describes. SKILL.md runs the script and does
-        not restate its logic. A step that needs judgement stays in SKILL.md as a numbered instruction with its
-        decision rule.
-      - Task-specific values stay in evidence. The skill keeps the rule and its default.
-   5. *Prove.* Run the skill once on this run's real procedure. Write the command, its exit code and its output to
-      RUN/notes/<action>-skill-trial.md. An update also runs one retained older use. The trial note says whether a
-      fresh reader (given only the index, the skill and a new task) tried it, or says "cold-context reuse
-      untested". Presence or installation is not proof it runs.
-   6. *Register.* Add a line with the skill's path, when to use it and its inputs to HOME/environment.md ## Skills, and
-      link it from the repository skill index. List any index file outside HOME/ in `skill.index`.
-   7. *Record.* `skill` = `{"decision", "reason", "path", "evidence", "index"}`: `path` is the SKILL.md for
-      `update` or `create` (name a reused skill in `reason`). Put the trial note in evidence_refs. On accept,
-      ShipLoop commits the skill directory and the `index` files as their own commit.
-
-   Revalidate an earlier skill selection for each new task: a prior selection or passing trial is an input, not
-   authority.
+   1. *Inspect* the repository skill index (the directory HOME/environment.md ## Skills names, or README or AGENTS.md
+      skill links; a missing index is no blocker) and your host's skills; list what you inspected in evidence_refs.
+   2. *Decide*, smallest first (Reuse-before-build guidance, Repository-local skill guidance): `none` (no repeated
+      procedure, or a code, test or doc change already captures it); `reuse` (an existing skill covers it unchanged;
+      different parameter values alone need no new skill); `update` (a small compatible extension capturing a
+      demonstrated lesson, keeping supported inputs, defaults and older examples); `create` (no suitable skill, or
+      combining contracts would obscure selection or break a consumer). `update` or `create` only when the same
+      procedure ran in two or more steps or items of this run, or a pending item or R-<n> says it will recur; put
+      those IDs in `skill.evidence`. Capture no transcript or speculative framework.
+   3. *Where:* the repository's skill directory (## Skills, or the existing layout), else `skills/<name>/` in
+      WORKTREE, added under ## Skills. Never edit an installed or shared skill, install globally, add a dependency,
+      connector or privilege, or publish. Derived content keeps source, revision and licence.
+   4. *Write it deterministic.* `skills/<name>/SKILL.md` opens with `name` and `description` frontmatter (when to use
+      it and when not). Body: what it produces and why; each input (type, required, default and its source); exact
+      steps; expected output; failure and recovery; permission boundaries; relative links to the code, tests and
+      HOME/spec.md sections it relies on (link requirements, never copy); what needs revalidation. No credentials,
+      machine-specific paths or IDs, run or worktree paths. Every mechanical sequence is a script
+      `skills/<name>/scripts/<verb>` in a runtime the repository already uses: inputs as arguments, exit 0 on
+      success and non-zero with a named message per failure, printing the output SKILL.md describes; SKILL.md runs
+      it and does not restate its logic. A judgement step stays in SKILL.md as a numbered instruction with its
+      decision rule. Task-specific values stay in evidence.
+   5. *Prove.* Run the skill once on this run's real procedure; write command, exit code and output to
+      RUN/notes/<action>-skill-trial.md (an update also runs one retained older use). The note says whether a fresh
+      reader (given only the index, the skill and a new task) tried it, or "cold-context reuse untested". Presence or
+      installation is not proof it runs.
+   6. *Register:* a line with the skill's path, when to use it and its inputs in HOME/environment.md ## Skills, and a
+      link from the repository skill index; list any index file outside HOME/ in `skill.index`.
+   7. *Record:* `skill` = `{"decision", "reason", "path", "evidence", "index"}` (`path` = the SKILL.md for `update` or
+      `create`; name a reused skill in `reason`); the trial note in evidence_refs. On accept ShipLoop commits the
+      skill directory and the `index` files as their own commit.
+   An earlier selection or passing trial is an input, not authority: revalidate for each new task.
 4. **Commit nothing.** On accept ShipLoop commits HOME/ (and the skill, item 3.7).
 """,
     "system-test-author": """\
-1. Gather the sources. Read the run's test strategy (HOME/environment.md ## Harnesses and suites, HOME/architecture.md
-   ## Real-boundary checks and the test-strategy result), every item's test cases (the `test_cases` hand-off), and the
-   open items quoted below, which hold the system-test obligations. Take the latest done test-decision record for every
-   relevant completed item (step-plan, test-spec or test) from state.md's accepted history, with the locators it
-   retained. Do not infer whole-product coverage from the last transition or final item. Put the action, result and
-   test-note locators you used in `evidence_refs`.
-2. Choose the cases. Each due-later case from item 1 becomes a system case here, or an open item with its due stage
+1. Gather: the test strategy (HOME/environment.md ## Harnesses and suites, HOME/architecture.md ## Real-boundary
+   checks, the test-strategy result), every item's test cases (the `test_cases` hand-off), and the open items quoted
+   below (the system-test obligations). Take the latest done test-decision record for each relevant completed item
+   (step-plan, test-spec or test) from state.md's accepted history with the locators it kept; infer no whole-product
+   coverage from the last transition or item. The current OUTER plans are the latest done records after the most
+   recent accepted replan; pending, repeat and blocked results are not plan authority. `evidence_refs`: the action,
+   result and test-note locators used.
+2. Choose cases: each due-later case from item 1 becomes a system case here or an open item with its due stage
    (item 7). Add cases for the real integration, consumer, runtime, security, accessibility, migration,
-   compatibility and operational boundaries that apply. Reconcile suite membership and prerequisites before adding
-   a case. Mark a boundary N/A only with the reason it does not apply; missing access is not N/A.
-3. Write the catalog in `summary`: one row per case in the System-test catalog guidance shape (case ID, phase,
-   requirement, expected outcome, environment and target, prerequisites, executable reference, owner).
-   A post-release case is owned by release-verify; required post-release checks stay assigned to release-verify,
-   never waived.
-4. Write the tests. Reuse the existing harness, frameworks and helpers first (Repeatable test-suite guide, Reusable test
-   facilities), and build only the smallest missing facility. Never assume a named skill or MCP is available or
-   authorized. Record each facility's locator, interface, readiness or gap, owner and revalidation condition in
-   HOME/environment.md ## Harnesses and suites. Add the new system cases and the retained INNER cases to the repeatable
-   full-suite entry point and keep the smoke selection; do not copy tests into another suite. Each new test file names
-   the requirement or test IDs it covers in its opening lines, and shared test helpers check their arguments. Check
-   shared setup cost, independent assertions, isolation and failure teardown. When the remote framework requires it,
-   version the remote-resident test definitions and their registration, with a repeatable authorized install and
-   invocation.
-5. Run each system command once now, and confirm its discovery and rerun work. A command that cannot pass here is
-   changed to observe the same requirement another way; say what changed and why in `summary`. Every case ends
-   validated, validated another way, or unachievable (item 7). A case written but not run is not an end state.
-6. Record `system_commands`, one row per runnable command, shaped like a step plan's test_commands. Each row's
-   suite is `focused`, `regression` or `check`. `focused` and `regression` are for runners whose output ShipLoop
-   can count, and carry the case `ids`. A command that is not a test runner (a shell pipeline, a grep, a curl
-   probe) is suite `check`, judged by its exit code, with no ids or min_tests. Mark a row `"host_dependent": true`
-   when its cases need a host tool (a browser, a device, an account, a service): ShipLoop then also runs the
-   project's regression commands at system-test and refuses if any of that row's ids appears in their output,
-   because the default suite must pass without the host tool. When no system test applies, give an empty list with
-   `system_commands_na` and the reason.
-7. A case that cannot run here (for example a browser or an account this host cannot reach) is unachievable. Leave
-   its command out of `system_commands`, because ShipLoop reruns every recorded command and refuses unless each
-   passes. Record it in `assumptions` as an open item: `assumption` names the case ID and the requirement it leaves
-   unverified; `check` says who does what and what they report; `owner` names that person; `reason` says why it
-   cannot run here; `consumer` is the stage it is due at (handoff, or the stage whose external effect it gates).
-   Continue with every case that can run. Report blocked only when nothing else can proceed, and replan when the
-   plan is wrong.
-8. Write the integrated test plan in `summary` under the catalog and in HOME/environment.md ## Harnesses and suites
-   (OUTER test-planning handshake): the current candidate/boundaries, selected cases and oracles, commands,
-   lifecycle/sharing decisions, cost, prerequisites and execution owners. Say which checks run now at system-test and
-   which need the authorized release first. Cite HOME/environment.md in `evidence_refs`, and put the decisions and
-   constraints the plan rests on in `summary`.
+   compatibility and operational boundaries that apply; reconcile suite membership and prerequisites first. N/A only
+   with the reason; missing access is not N/A.
+3. Write the catalog in `summary`, one row per case in the System-test catalog guidance shape (case ID, phase,
+   requirement, expected outcome, environment and target, prerequisites, executable reference, owner). A post-release
+   case is owned by release-verify and never waived.
+4. Write the tests. Reuse the existing harness, frameworks and helpers (Repeatable test-suite guide, Reusable test
+   facilities); build only the smallest missing facility; never assume a named skill or MCP is available. Record each
+   facility's locator, interface, readiness or gap, owner and revalidation condition in HOME/environment.md
+   ## Harnesses and suites. Add the system cases and retained INNER cases to the repeatable full-suite entry point,
+   keep the smoke selection, and copy no tests into another suite. Each new test file names the requirement or test
+   IDs it covers in its opening lines; shared helpers check their arguments. Check shared setup cost, independent
+   assertions, isolation and failure teardown. If the remote framework requires it, version the remote-resident test
+   definitions and registration with a repeatable authorized install and invocation.
+5. Run each system command once now and confirm its discovery and rerun work. A command that cannot pass here is
+   changed to observe the same requirement another way, saying what and why in `summary`. Every case ends validated,
+   validated another way or unachievable (item 7); a case written but not run has no end state.
+6. `system_commands`: one row per runnable command, shaped like test_commands, suite `focused`, `regression` or
+   `check`. `focused` and `regression` suit runners whose output ShipLoop can count and carry the case `ids`; a
+   non-runner (shell pipeline, grep, curl probe) is `check`, judged by exit code, no ids or min_tests. A row whose
+   cases need a host tool (browser, device, account, service) gets `"host_dependent": true`: ShipLoop then also runs
+   the regression commands at system-test and refuses if any of that row's ids appears in their output, as the
+   default suite must pass without the host tool. No system test applies: empty list with `system_commands_na` and
+   the reason.
+7. A case that cannot run here (a browser or account this host cannot reach) is unachievable. Leave its command out
+   of `system_commands` (ShipLoop reruns every recorded command and refuses unless each passes). Record it as an
+   open item in `assumptions`: `assumption` = case ID and the requirement left unverified; `check` = who does what
+   and reports what; `owner`; `reason` it cannot run here; `consumer` = the due stage (handoff, or the stage whose
+   external effect it gates). Continue with every runnable case. Report blocked only when nothing else can proceed,
+   replan when the plan is wrong.
+8. The integrated test plan goes in `summary` under the catalog and in HOME/environment.md ## Harnesses and suites
+   (OUTER test-planning handshake): candidate and boundaries, selected cases and oracles, commands, lifecycle and
+   sharing decisions, cost, prerequisites, execution owners; which checks run now at system-test and which need the
+   authorized release first. Cite HOME/environment.md in `evidence_refs`; the decisions and constraints the plan
+   rests on go in `summary`.
 """,
     "system-test": """\
 1. Name the plan you run: the latest done system-test-author record after the most recent accepted replan, and its
-   integrated test plan, in that record's summary and HOME/environment.md ## Harnesses and suites (OUTER test-planning
-   handshake). Before execution, acknowledge
-   the applicable integrated test plan and revalidate its candidate, case selection, target and fixture assumptions.
-   Put the plan's locators, and its reuse or the concrete mismatch, in `evidence_refs`. Close a required planning
-   gap with repeat, blocked or replan; never guess a command or drop a required case.
-2. Check before running: prerequisites, fixtures, execution location, target, identity, authorization, remote
-   framework availability, and the deployed or test revision. Do not deploy to unblock a test, and do not use
-   production without authority.
-3. Run the due cases on the actual intended candidate and boundary (System-test placement guidance, Real-boundary
-   test guidance). Do not substitute a planned case or local mock for a required system observation. A local pass
-   cannot replace a blocked/unrun required remote check or establish a combined full-suite pass; keep that check's
-   owner and boundary. When fixtures changed, check repeatability. Never blindly replay an uncertain external
-   effect. Record each command, candidate and target, scope, cleanup outcome and unrun check in `evidence_refs`.
-4. A recorded system command that fails here is not an open item: ShipLoop refuses done while it fails. Fix the
-   candidate, report replan for missing product work, or report blocked when nothing else can proceed.
-5. After a material change to code, tests, fixtures, configuration or target, rerun the observations it affects.
-   Reuse unaffected evidence only with its identity and relevance stated.
-6. Carry in the open items system-test-author recorded: run any this stage can now and report each such case in
-   the summary, where it is not recorded evidence (ShipLoop's rerun covers only the recorded system commands). Leave
-   the rest listed with the due stage they name.
-7. A required case that only a person can run (for example, in a signed-in browser), for which the discovery and
-   test-strategy records show this host has no route, and whose command system-test-author left out of
-   `system_commands`, does not make this result blocked. Record it as an open item in `assumptions`: case ID, who
-   does what, what they report, owner (a person), due stage (handoff, or the stage whose external effect it gates)
-   as its `consumer`. Submit done once every other due check and ShipLoop's rerun pass; the handoff reports it
-   unverified, never as a pass. Report blocked with `awaiting` only when a later stage takes an external,
-   hard-to-reverse effect the case exists to gate, or nothing else can proceed. An enabled delivery contract keeps
-   its own obligation phases.
-8. Classify every selected case in `summary` as passed, failed, blocked, not-run, or justified N/A. Every case ends
-   validated, validated another way (say what changed and why), or unachievable (items 6 and 7); a case written but
-   not run is not an end state. Reconcile each affected requirement clause with its case, its required surface and
-   due phase, the surface you checked, the candidate, the status and the evidence. A pass on another surface only
-   supports. Source, HTTP, or DOM structure alone cannot close a rendered interaction. A case not yet due keeps its
-   phase, owner and prerequisites; missing evidence for a case already due stays incomplete. Check that no clause
-   or case was dropped. Never claim every requirement met while a required observation is unrun.
+   integrated test plan in that summary and HOME/environment.md ## Harnesses and suites (OUTER test-planning
+   handshake). Before running, revalidate its candidate, case selection, target and fixture assumptions. Its
+   locators, and its reuse or the concrete mismatch, go in `evidence_refs`. A required planning gap ends as repeat,
+   blocked or replan; never guess a command or drop a required case.
+2. Before running check prerequisites, fixtures, execution location, target, identity, authorization, remote
+   framework availability, and the deployed or test revision. Deploy not to unblock a test; use production only with
+   authority.
+3. Run the due cases on the intended candidate and boundary (System-test placement guidance, Real-boundary test
+   guidance). Substitute no planned case or local mock for a required system observation. A local pass replaces no
+   blocked or unrun required remote check and establishes no combined full-suite pass; keep that check's owner and
+   boundary. Check repeatability when fixtures changed. Never blindly replay an uncertain external effect.
+   `evidence_refs`: each command, candidate and target, scope, cleanup outcome and unrun check.
+4. A recorded system command that fails here is no open item: ShipLoop refuses done while it fails. Fix the
+   candidate, report replan for missing product work, or blocked when nothing else can proceed.
+5. After a material change to code, tests, fixtures, configuration or target, rerun the affected observations; reuse
+   unaffected evidence only with its identity and relevance stated.
+6. Run any open item system-test-author recorded that this stage can now run, reporting each in the summary (not
+   recorded evidence: ShipLoop's rerun covers only recorded system commands). Leave the rest listed with their due
+   stage.
+7. A required case only a person can run (for example in a signed-in browser), with no route on this host per the
+   discovery and test-strategy records and its command left out of `system_commands`, does not block this result.
+   Record it as an open item in `assumptions`: case ID, who does what, what they report, owner (a person), due stage
+   (handoff, or the stage whose external effect it gates) as `consumer`. Submit done once every other due check and
+   ShipLoop's rerun pass; handoff reports it unverified, never as a pass. Report blocked with `awaiting` only when a
+   later stage takes an external, hard-to-reverse effect the case gates, or nothing else can proceed. An enabled
+   delivery contract keeps its own obligation phases.
+8. `summary` classifies every selected case passed, failed, blocked, not-run or justified N/A. Every case ends
+   validated, validated another way (what changed and why) or unachievable (items 6-7); a case written but not run
+   has no end state. Reconcile each affected requirement clause with its case, required surface and due phase,
+   checked surface, candidate, status and evidence. A pass on another surface only supports; source, HTTP or DOM
+   structure alone cannot close a rendered interaction. A case not yet due keeps its phase, owner and prerequisites;
+   missing evidence for a due case stays incomplete. Check that no clause or case was dropped; claim no requirement
+   met while a required observation is unrun.
 """,
     "product-acceptance": """\
-1. Gather the evidence: the original request and the intake result, the accepted requirements in HOME/spec.md, the spec
-   and architecture changes since the run began, the integrated test plan (the latest done system-test-author record
-   after the most recent accepted replan, and HOME/environment.md ## Harnesses and suites; OUTER test-planning
-   handshake), and the system-test result. Put their locators in `evidence_refs`.
-2. Assess the product against the original outcome, not only the spec: its acceptance criteria, cross-cutting
-   requirements, consumer impact (Consumer delivery guidance), test evidence and known limits. Reconcile new and
-   preserved behaviour against the selected prior baseline and the incoming spec (Current-system baseline guide,
-   Behavior traceability guidance), and check durable knowledge for remaining gaps. A recovered description or a
-   planned check alone does not establish acceptance.
-3. Give every request outcome one of three end states in `summary`: observed by an executed check; observed another
-   way (the first method could not, so the method changed and the new check ran and passed); or unachievable here
-   or not yet due, listed in `unverified` while the run continues. Before listing an outcome, try another way to
-   observe it. Each `unverified` entry gives the `outcome`, the named `reason`, the `check` its owner does and
-   reports to settle it, the `owner`, and the `due_stage` that reports it (handoff, or the stage whose external
-   effect it gates). Carry in the open items an earlier stage recorded (system-test-author, system-test). An
-   outcome stated only in the summary has no end state; an empty list says every request outcome was observed.
-4. Keep verified product criteria apart from pending release verification. A case not yet due stays pending with
-   its owner and prerequisites, so release can proceed. Readiness for release is not a claim that every requested
-   consumer behaviour was observed.
-5. Classify every selected case in `summary` as passed, failed, blocked, not-run, or justified N/A. Reconcile each
-   affected requirement clause with its case, its required surface and due phase, the surface checked, the
-   candidate, the status and the evidence. A pass on another surface only supports. Source, HTTP, or DOM structure
-   alone cannot close a rendered interaction. Missing evidence for a case already due stays incomplete. Check that
-   no clause or case was dropped. Never claim every requirement met while a required observation is unrun.
-6. Route each gap: missing product work, stale evidence, or a failed or missing already-due check goes to replan
-   with one corrective `work_items` entry each. A missing delivery prerequisite is named in `summary` for
-   release-plan; report blocked only when nothing can proceed. Acceptance executes no release and proves no remote
-   consumer boundary.
-7. For a material prerequisite ambiguity, a pending or corrective dependency, or an acceptance gap, request a
-   Backchain `review` / `audit` as the Backchain guidance below says, and cite its receipt in `evidence_refs`.
+1. Gather: the original request and intake result, the accepted requirements in HOME/spec.md, the spec and
+   architecture changes since the run began, the integrated test plan (latest done system-test-author record after
+   the most recent accepted replan, and HOME/environment.md ## Harnesses and suites; OUTER test-planning handshake),
+   and the system-test result. Locators in `evidence_refs`.
+2. Assess the product against the original outcome, not only the spec: acceptance criteria, cross-cutting
+   requirements, consumer impact (Consumer delivery guidance), test evidence, known limits. Reconcile new and
+   preserved behaviour against the prior baseline and incoming spec (Current-system baseline guide, Behavior
+   traceability guidance) and check durable knowledge for gaps. A recovered description or planned check alone does
+   not establish acceptance.
+3. Give every request outcome one end state in `summary`: observed by an executed check; observed another way (the
+   first method could not, the new check ran and passed); or unachievable here or not yet due, listed in
+   `unverified` while the run continues. Try another way to observe it before listing. Each `unverified` entry:
+   `outcome`, named `reason`, the `check` its owner does and reports, the `owner`, the `due_stage` that reports it
+   (handoff, or the stage whose external effect it gates). Carry in the open items earlier stages recorded
+   (system-test-author, system-test). An outcome stated only in the summary has no end state; an empty list says
+   every outcome was observed.
+4. Keep verified product criteria apart from pending release verification: a case not yet due stays pending with
+   owner and prerequisites, so release can proceed. Release readiness is not a claim that every consumer behaviour
+   was observed.
+5. Classify every selected case in `summary` passed, failed, blocked, not-run or justified N/A; reconcile each
+   affected requirement clause with its case, required surface and due phase, checked surface, candidate, status
+   and evidence. A pass on another surface only supports; source, HTTP or DOM structure alone cannot close a
+   rendered interaction. Missing evidence for a due case stays incomplete. Check that no clause or case was
+   dropped; claim no requirement met while a required observation is unrun.
+6. Route each gap: missing product work, stale evidence, or a failed or missing due check goes to replan with one
+   corrective `work_items` entry each. A missing delivery prerequisite is named in `summary` for release-plan; blocked
+   only when nothing can proceed. Acceptance executes no release and proves no remote consumer boundary.
+7. A material prerequisite ambiguity, pending or corrective dependency or acceptance gap: request a Backchain
+   `review` / `audit` as the Backchain guidance below says; cite its receipt in `evidence_refs`.
 """,
     "release-plan": """\
 1. Revalidate the integrated test plan for the release target: the latest done system-test-author record after the
-   most recent accepted replan, HOME/environment.md ## Harnesses and suites and the system-test result (OUTER
-   test-planning handshake).
-   Use Target-native test selection for this actual payload and its deploy or promotion operation, including any
-   revised gate. Reuse applicable tests and facilities (Reusable test facilities); add checks only for changed
-   boundaries or coverage gaps, and record each new facility's locator, interface, readiness or gap, owner and
-   revalidation condition. If an earlier deployment or test prerequisite is still unmet, report replan with
-   corrective work and its evidence; ShipLoop reruns the outer stages.
+   most recent accepted replan, HOME/environment.md ## Harnesses and suites, the system-test result (OUTER
+   test-planning handshake); pending, repeat and blocked results are not plan authority. Use Target-native test
+   selection for this payload and its deploy or promotion operation, including any revised gate. Reuse applicable
+   tests and facilities (Reusable test facilities); add checks only for changed boundaries or coverage gaps, and
+   record each new facility's locator, interface, readiness or gap, owner and revalidation condition. An unmet
+   earlier deployment or test prerequisite: report replan with corrective work and evidence (ShipLoop reruns the
+   outer stages).
 2. Write the release steps in `summary` and HOME/environment.md (item 8): target and candidate identity, permission,
-   prerequisites, user impact, monitoring and stop conditions. List every operation the user-visible outcome needs as a
-   named step with its exact command and its authorization status: the deploy itself, each separate access or visibility
-   change (for example assigning a permission set, activating an app or tab), and each browser session a consumer check
-   needs, with the selected browser tool. A step no existing approval covers is a pending approval named now. Keep
-   source return, artifact publication, deployment, promotion and consumer verification as separate steps. Order the
-   remaining schema, data, service and cutover work and name its durable execution owner, observations and recovery
-   limits (Release operation guidance, State and data assessment).
-3. Record the delivery authority for each step in `summary`. A plan does not authorize or perform an
-   external operation. A required target or authority gap is blocked.
-4. Write the rollback procedure in `summary` and HOME/environment.md ## Commands. In an isolated run, write it for the
-   source return the packet states (its return route and rollback recipes come from workspace.md): that route's SHAs and
-   branch names as plain `git` commands, never this run's absolute paths, and never a rollback for another route
-   (Workspace return guidance). Source return happens at release or handoff, not here. Use an authorized delivery route
-   from the execution checkout if one is available (Environment promotion guidance). If source return must happen before
-   the consumer checks can run, record the ordering conflict and keep the disposition incomplete; never claim an earlier
+   prerequisites, user impact, monitoring, stop conditions. Every operation the user-visible outcome needs is a
+   named step with its exact command and authorization status: the deploy, each access or visibility change (for
+   example assigning a permission set, activating an app or tab), each browser session a consumer check needs with
+   its browser tool. A step no approval covers is a pending approval named now. Keep source return, artifact
+   publication, deployment, promotion and consumer verification as separate steps. Order the remaining schema,
+   data, service and cutover work with its durable execution owner, observations and recovery limits (Release
+   operation guidance, State and data assessment).
+3. Record each step's delivery authority in `summary`. A plan authorizes and performs no external operation; a
+   required target or authority gap is blocked.
+4. Write the rollback procedure in `summary` and HOME/environment.md ## Commands. Isolated run: write it for the
+   source return the packet states (return route and rollback recipes come from workspace.md), as plain `git`
+   commands with that route's SHAs and branch names, never this run's absolute paths, never for another route
+   (Workspace return guidance). Source return happens at release or handoff, not here. Use an authorized delivery
+   route from the execution checkout when available (Environment promotion guidance). If the return must precede
+   the consumer checks, record the ordering conflict and keep the disposition incomplete; never claim an earlier
    check observed a future return-triggered effect.
-5. Write the release test plan in `summary` and HOME/environment.md ## Harnesses and suites: pre/post check owners,
-   commands/case selectors, independent expected outcomes, prerequisites, execution versus target locations, remote
-   test-definition revision where relevant, setup/test/teardown, fixture isolation/sharing and cost, cleanup and stop
-   conditions. Say what release-check must establish before release, what release-verify confirms after it, and which
-   observations and cleanup operations owns. For each post-release confirm command, name the output that shows the
-   result is present and the output that shows it is absent; release-check runs it once before the real deploy to prove
-   it can tell them apart.
-6. Record the post-release consumer checks as commands in `consumer_checks`, shaped like test_commands; a `check`
-   row is judged by its exit code and carries no ids or min_tests. ShipLoop runs every one when release-verify
-   reports done and refuses unless each passes. In an isolated run that has a completed return it runs them in a
-   clean copy of the returned result (no Git history, nothing the return plan excluded, no ignored or unmanaged
-   file); with none recorded yet it runs them in the work area and says so. Write paths relative to the directory
-   the command starts in (the copy or the work area), put what a fresh consumer needs (an install, a build) into
-   the check itself, and never write into the user's checkout by absolute path. A check only a person can make is
-   an open item in `assumptions` for that person (who, where, what to report), with release-verify or handoff as
-   its `consumer`, not a command. When no command applies, give an empty list with `consumer_checks_na` and the
-   reason.
-7. Record in `consumer_entry` how a person reaches the result (`how`: an App Launcher name and URL path, a command,
-   a page) and the repository files that create that entry (`sources`).
-8. Update HOME/environment.md: the target under ## Targets and runtimes, the deploy, dry-run, rollback and confirm
-   commands under ## Commands, and the approvals and accounts the steps need under ## Access and accounts.
-9. Cite HOME/environment.md in `evidence_refs`, and put the decisions and constraints the plan rests on in
-   `summary`.
+5. Write the release test plan in `summary` and HOME/environment.md ## Harnesses and suites: pre and post check
+   owners, commands or case selectors, independent expected outcomes, prerequisites, execution versus target
+   locations, remote test-definition revision, setup, test and teardown, fixture isolation, sharing and cost,
+   cleanup and stop conditions. State what release-check must establish before release, what release-verify
+   confirms after, and which observations and cleanup each owns. Each post-release confirm command names the output
+   showing the result present and the output showing it absent; release-check runs it once before the real deploy to
+   prove it tells them apart.
+6. Post-release consumer checks go in `consumer_checks`, shaped like test_commands (a `check` row is judged by exit
+   code, no ids or min_tests). ShipLoop runs every one when release-verify reports done and refuses unless each
+   passes: in an isolated run with a completed return, in a clean copy of the returned result (no Git history,
+   nothing the return plan excluded, no ignored or unmanaged file); with none yet, in the work area, and says so.
+   Write paths relative to the starting directory, put what a fresh consumer needs (install, build) in the check,
+   and never write into the user's checkout by absolute path. A check only a person can make is an open item in
+   `assumptions` (who, where, what to report) with release-verify or handoff as `consumer`, not a command. None
+   applies: empty list with `consumer_checks_na` and the reason.
+7. `consumer_entry`: `how` a person reaches the result (App Launcher name and URL path, command, page) and the
+   repository `sources` files that create that entry.
+8. Update HOME/environment.md: target under ## Targets and runtimes; deploy, dry-run, rollback and confirm commands
+   under ## Commands; approvals and accounts under ## Access and accounts.
+9. Cite HOME/environment.md in `evidence_refs`; the decisions and constraints the plan rests on go in `summary`.
 """,
     "release-check": """\
 1. Name the release plan you check: the latest done release-plan and system-test-author records after the last
-   accepted replan (OUTER test-planning handshake). Put their action, result and plan locators in `evidence_refs`. A
-   missing plan is not guessed: recover it, or report `repeat` (or `replan` for missing product work).
-2. Check, against the current target, and record each in `summary` with its evidence in `evidence_refs`: the
-   candidate identity, that its evidence is current, the target and its prerequisites, the required approvals,
-   rollback readiness, the execution owner's readiness, and any concurrency condition the target enforces (Release
-   operation guidance).
-3. Run the dry-run form of the planned deploy (for example `sf project deploy validate`) once. Save its output in
-   RUN/notes/<action>-release-check.md and put that path in `evidence_refs`.
-4. Run each post-release confirm command from the release-plan result's `consumer_checks` once against the current
-   target. Save its "not there yet" output in the same file. A confirm command whose output cannot tell the result
-   present from absent is fixed now in HOME/environment.md ## Commands and run again.
-5. Isolated run only: run the packet's plan-return command, then decide every undecided path with its review-return
-   command. This is a dry run of the return; the decisions are kept for the return at release. Compare the expected
-   return that review-return prints with the procedure in HOME/environment.md. When they differ, correct the
-   procedure there and run plan-return again.
-6. Keep stale or failed evidence in `evidence_refs` as it is. Do not replay or promote anything to get a fresh
-   observation. A material change to code, tests, fixtures, configuration or target invalidates the observations it
-   affects: rerun those through the planned route, and reuse the rest only with their identity and relevance stated.
-7. External release N/A does not waive the local candidate checks in items 2 to 4 (Delivery completion guidance).
-   Record a justified N/A in `summary` with what you assessed.
+   accepted replan (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. Guess no
+   missing plan: recover it, or report `repeat` (`replan` for missing product work).
+2. Against the current target, record in `summary` (evidence in `evidence_refs`): candidate identity and that its
+   evidence is current, the target and prerequisites, required approvals, rollback readiness, the execution owner's
+   readiness, any target concurrency condition (Release operation guidance).
+3. Run the dry-run form of the planned deploy (for example `sf project deploy validate`) once; save the output in
+   RUN/notes/<action>-release-check.md and cite it in `evidence_refs`.
+4. Run each `consumer_checks` post-release confirm command once against the current target; save its "not there yet"
+   output in the same file. A confirm command that cannot tell present from absent is fixed now in
+   HOME/environment.md ## Commands and rerun.
+5. Isolated run only: run the packet's plan-return command, then decide every undecided path with review-return (a
+   dry run; decisions are kept for the return at release). Compare review-return's expected return with the
+   procedure in HOME/environment.md; if they differ, correct the procedure and rerun plan-return.
+6. Keep stale or failed evidence in `evidence_refs` as is; replay or promote nothing for a fresh observation. A
+   material change to code, tests, fixtures, configuration or target invalidates the observations it affects: rerun
+   those through the planned route, reuse the rest only with identity and relevance stated.
+7. External release N/A waives not items 2-4 for the local candidate (Delivery completion guidance); record a
+   justified N/A in `summary` with what you assessed.
 """,
     "release": """\
-1. Name the release plan and the release-check result you act on: the latest done release-plan and
-   system-test-author records after the last accepted replan (OUTER test-planning handshake), and release-check's
-   result. Put their locators in `evidence_refs`. A missing plan is recovered or reported (`repeat`, or `replan` for
-   missing product work); never guess a command.
-2. Confirm that the exact target, operation, authority (the recorded grant; Delivery authority mapping) and
-   conditions are still current, and that release-check's dry run passed against this candidate. When code, tests,
-   fixtures, configuration or target changed after release-check, rerun the checks that change affects first. When
-   one does not hold, release nothing and report `blocked` or `replan` with the reason.
-3. Run the planned release operation once. Save the provider's receipt in RUN/notes/<action>-release.md and put the
-   path in `evidence_refs`.
-4. Follow the operation to a terminal state: accepted or running is not done (Release operation guidance). Check
-   its postconditions now, and record in `summary`, separately, the operation's effect and the released artifact's
-   identity.
-5. When the outcome is uncertain (a lost reply, a timeout, a partial receipt), keep every receipt and reconcile with
-   the provider's supported lookup, retry, parameter-binding and conditional-mutation semantics before any retry.
-   Never replay a merge, push, deployment or promotion only to complete the graph.
-6. Isolated run only: return the candidate (Workspace return guidance). Run the packet's plan-return command, decide
-   every undecided path with review-return, then run the packet's return command. Put the return receipt's path in
-   `evidence_refs`.
-7. When the release does not apply, record in `summary` the concrete reason and what you assessed. Do not observe
-   consumer behaviour here: release-verify does that next.
+1. Name the release plan and release-check result you act on: the latest done release-plan and system-test-author
+   records after the last accepted replan (OUTER test-planning handshake), and release-check's result; locators in
+   `evidence_refs`. Recover or report a missing plan (`repeat`, `replan` for missing product work); guess no command.
+2. Confirm the exact target, operation, authority (the recorded grant; Delivery authority mapping) and conditions
+   are current and release-check's dry run passed against this candidate. If code, tests, fixtures, configuration or
+   target changed since, rerun the affected checks first. Anything unmet: release nothing, report `blocked` or
+   `replan` with the reason.
+3. Run the planned release operation once; save the provider's receipt in RUN/notes/<action>-release.md and cite it
+   in `evidence_refs`.
+4. Follow it to a terminal state (accepted or running is not done; Release operation guidance). Check postconditions
+   now and record in `summary`, separately, the operation's effect and the released artifact's identity.
+5. Uncertain outcome (lost reply, timeout, partial receipt): keep every receipt and reconcile with the provider's
+   lookup, retry, parameter-binding and conditional-mutation semantics before any retry. Never replay a merge, push,
+   deployment or promotion only to complete the graph.
+6. Isolated run only: return the candidate (Workspace return guidance): run the packet's plan-return, decide every
+   undecided path with review-return, run the packet's return command; the receipt path goes in `evidence_refs`.
+7. Release not applicable: record the concrete reason and what you assessed in `summary`. Observe no consumer
+   behaviour here; release-verify does.
 """,
     "release-verify": """\
 1. Name the plans you verify against: the latest done release-plan and system-test-author records after the last
-   accepted replan (OUTER test-planning handshake). Put their action, result and plan locators in `evidence_refs`.
-   Recover a missing plan or report it; never guess a command, drop a required case, or deploy to make a check
-   available.
-2. Run each consumer check the release-plan result recorded in `consumer_checks` against the current target (Release
-   operation guidance). Keep source synchronization, artifact identity, operation receipt and real consumer behaviour as
-   four separate facts in `summary` (Consumer delivery evidence guidance). A source or local test pass does not
-   discharge a required deployed interaction you did not observe.
-3. For a browser surface, record for each required clause: the consumer entry reached after authentication, the
-   account or target, the visible feature, and the action with its outcome. Keep non-secret routing state. Require
-   app chrome or branding only when the spec asks for it. An embedded feature can satisfy its accepted boundary.
-4. Classify every selected case in `summary` as passed, failed, blocked, not-run, or justified N/A (Deployment and
-   handoff guidance). Reconcile each affected requirement clause with its case, its required surface and due phase,
-   the surface you checked, the candidate, the status and the evidence. A pass on another surface only supports.
-   Source, HTTP, or DOM structure alone cannot close a rendered interaction. Check that no clause or case was
-   dropped. Never claim every requirement met while a required observation is unrun.
-5. A blocked or unknown check stays incomplete. Keep the earlier receipts and do not release again blindly.
-6. A case that needs a signed-in browser or a person's action this host cannot perform: do not loop on it. Record it
-   in `assumptions` as an open item with the steps written to that person (where to go, such as a menu entry or a
-   URL path, and what to do) and what they report back. Verify every other case. Only when the release cannot be
-   accepted without that observation, report `blocked` with `awaiting` kind `present`; the person's report resumes
-   the run and only the blocked cases are checked again against the same release.
-7. Isolated run: this stage cannot return (Which checkout release-verify observes). Fix a defect the checks find in
-   the delivered result through `replan` with one corrective work item; release then returns the fix. Write nothing
-   inside the user's checkout: a file written there makes the return receipt stale and blocks handoff.
-8. Local-only work: verify the current local candidate and its consumer behaviour. External activation N/A does not
+   accepted replan (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. Recover or
+   report a missing plan; guess no command, drop no required case, deploy to make no check available.
+2. Run each `consumer_checks` command the release-plan result recorded against the current target (Release operation
+   guidance). Keep source synchronization, artifact identity, operation receipt and real consumer behaviour as four
+   separate facts in `summary` (Consumer delivery evidence guidance). A source or local test pass does not discharge
+   a deployed interaction you did not observe.
+3. Browser surface, per required clause record: the consumer entry reached after authentication, the account or
+   target, the visible feature, the action and its outcome. Keep non-secret routing state. Require app chrome or
+   branding only when the spec asks; an embedded feature can satisfy its accepted boundary.
+4. Classify every selected case in `summary` passed, failed, blocked, not-run or justified N/A (Deployment and
+   handoff guidance); reconcile each affected requirement clause with its case, required surface and due phase,
+   checked surface, candidate, status and evidence. A pass on another surface only supports; source, HTTP or DOM
+   structure alone cannot close a rendered interaction. A case not yet due keeps its phase, owner and
+   prerequisites. Check that no clause or case was dropped; claim no requirement met while a required observation
+   is unrun.
+5. A blocked or unknown check stays incomplete. Keep earlier receipts; do not release again blindly.
+6. A case needing a signed-in browser or a person's action this host cannot perform: do not loop on it. Record an
+   open item in `assumptions` with the steps for that person (where to go, such as a menu entry or URL path, what to
+   do) and what they report back; verify every other case. Only when the release cannot be accepted without it,
+   report `blocked` with `awaiting` kind `present`; the person's report resumes the run and only the blocked cases
+   are rechecked against the same release.
+7. Isolated run: this stage cannot return (Which checkout release-verify observes). A defect the checks find in the
+   delivered result goes through `replan` with one corrective work item; release then returns the fix. Write
+   nothing inside the user's checkout (a file there makes the return receipt stale and blocks handoff).
+8. Local-only work: verify the current local candidate and its consumer behaviour; external activation N/A does not
    make these checks N/A.
 9. A material change to code, tests, fixtures, configuration or target invalidates the observations it affects:
-   rerun those, and reuse the rest only with their identity and relevance stated.
-10. Write this run's lessons in the result's `lessons`, each in detail: `learned` (what this run learned),
-    `considerations` (the decisions and risks that matter) and `open_next` (what a later run should pick up).
-    ShipLoop commits them as the run's learnings, which the next run reads at intake.
+   rerun those, reuse the rest only with identity and relevance stated.
+10. `lessons`, each in detail: `learned`, `considerations` (decisions and risks that matter), `open_next` (what a
+    later run should pick up). ShipLoop commits them as the run's learnings, read at intake.
 11. Update HOME/environment.md with what the release showed about targets, commands and access.
 """,
     "operations": """\
-1. Reopen the current observability coverage in HOME/environment.md and HOME/architecture.md. Put the sections you
-   used in `evidence_refs`.
-2. Check each against the running system and record it in `summary`: monitoring, alerting, log and diagnostic
-   access, recovery ownership (who restores and how; the rollback works), support documentation, cleanup, and
-   revalidation needs (Deployment and handoff guidance). A plan or configuration file is not evidence that the
-   service is observed and supported.
+1. Reopen the observability coverage in HOME/environment.md and HOME/architecture.md; cite the sections used in
+   `evidence_refs`.
+2. Check each against the running system and record in `summary`: monitoring, alerting, log and diagnostic access,
+   recovery ownership (who restores and how; the rollback works), support documentation, cleanup, revalidation needs
+   (Deployment and handoff guidance). A plan or configuration file is not evidence the service is observed and
+   supported.
 3. Map each relevant event to its authoritative owner, existing sink and operator retrieval (Service discovery
-   guidance). Include successful and failed logins where the system authenticates. An inaccessible log is an
+   guidance), successful and failed logins included where the system authenticates. An inaccessible log is an
    evidence gap, not proof of no logging.
-4. Close only evidenced gaps this run owns. Do not duplicate provider logs, and do not treat every failure as an
-   incident. Keep the required audit-failure and recovery policy.
-5. Write the current log and audit retrieval and recovery locators, with the date you observed them and the limits
-   still open, to HOME/environment.md (Service handoff guidance).
-6. Record a justified N/A in `summary` only after assessing the actual operational boundary: what you assessed and
-   why it does not apply.
-7. Name the release-plan and system-test-author records you rely on (the latest done after the last accepted
-   replan; OUTER test-planning handshake) with their locators in `evidence_refs`. A material change to code, tests,
-   fixtures, configuration or target invalidates the observations it affects: rerun those, and reuse the rest only
-   with their identity and relevance stated. An obligation already due and still failed, blocked or unrun stays
-   open: name it in `summary` with its owner, and do not repair it with a new positive observation.
+4. Close only evidenced gaps this run owns. Duplicate no provider logs; treat not every failure as an incident; keep
+   the required audit-failure and recovery policy.
+5. Write the current log and audit retrieval and recovery locators, with observation date and open limits, to
+   HOME/environment.md (Service handoff guidance).
+6. A justified N/A in `summary` only after assessing the actual operational boundary: what you assessed, why it does
+   not apply.
+7. Name the release-plan and system-test-author records you rely on (latest done after the last accepted replan;
+   OUTER test-planning handshake) with locators in `evidence_refs`. A material change to code, tests, fixtures,
+   configuration or target invalidates the observations it affects: rerun those, reuse the rest only with identity
+   and relevance stated. An already-due obligation still failed, blocked or unrun stays open, named in `summary`
+   with its owner; repair it with no new positive observation.
 """,
     "handoff": """\
-1. Write the status in `summary`, one line each, with its evidence in `evidence_refs`: source (and its return),
-   tests, integration, release, consumer behaviour, operations (Deployment and handoff guidance). Base each on a
-   current observation; an intent, a stale green result or a conversation summary is not evidence. Name the
-   release-plan and system-test-author records the status rests on (the latest done after the last accepted replan;
-   OUTER test-planning handshake), with their locators in `evidence_refs`.
-2. Classify every selected case as passed, failed, blocked, not-run, or justified N/A, and reconcile each
-   requirement clause with its case, required surface and due phase, the surface checked, the candidate, the status
-   and the evidence. A pass on another surface only supports; Source, HTTP, or DOM structure alone cannot close a
-   rendered interaction. A case not yet due keeps its phase, owner and prerequisites; missing due evidence stays
-   incomplete. Never claim every requirement met while a required observation is unrun.
-3. State where release-verify's consumer checks ran, from the packet's "Consumer checks (release-verify)" line, or
-   that none ran. Checks that ran in the work area did not observe the user's checkout: list
-   that as a limit.
-4. List in `summary` every open item still unverified, from product-acceptance's `unverified` list and every other
-   stage's result, each with who does what and what they report back. Add the follow-up work, the blockers and the
-   revalidation conditions to `summary`.
-5. Isolated run: the handoff needs a current return receipt. When release did not return the candidate, run the
-   packet's plan-return command, decide every undecided path with review-return, then run its return command
-   (Workspace return guidance). Put the receipt's path in `evidence_refs`.
-6. Check from the returned project, without the run directory, that the knowledge survives: verify that durable
-   project documentation links resolve in the returned repository, including HOME/spec.md, HOME/environment.md and
-   HOME/architecture.md; the AD-<n> entries in HOME/architecture.md hold the current service decisions, ownership,
-   unresolved boundaries and revalidation conditions (Service discovery guidance); their source and check locators
-   open for a fresh reader. Keep the prior baseline's as-of account (Current-system baseline guide). Fix a broken
-   link or missing entry in HOME/ now. Work-item context and earlier result references alone are not a durable
-   index.
-7. Read release-verify's `lessons` (quoted in the hand-offs). Carry its open-next items into the follow-up work in
-   `summary`, and report any conflict between them and what you observed.
+1. `summary`, one line each, evidence in `evidence_refs`: source (and its return), tests, integration, release,
+   consumer behaviour, operations (Deployment and handoff guidance). Base each on a current observation; an intent,
+   stale green result or conversation summary is not evidence. Name the release-plan and system-test-author records
+   relied on (latest done after the last accepted replan; OUTER test-planning handshake), locators in
+   `evidence_refs`.
+2. Classify every selected case passed, failed, blocked, not-run or justified N/A; reconcile each requirement clause
+   with its case, required surface and due phase, checked surface, candidate, status and evidence. A pass on
+   another surface only supports; source, HTTP or DOM structure alone cannot close a rendered interaction. A case
+   not yet due keeps its phase, owner and prerequisites; missing due evidence stays incomplete. Claim no
+   requirement met while a required observation is unrun.
+3. State where release-verify's consumer checks ran (the packet's "Consumer checks (release-verify)" line) or that
+   none ran. Checks that ran in the work area did not observe the user's checkout: list that as a limit.
+4. `summary` lists every open item still unverified (product-acceptance's `unverified` list and every other stage's
+   result), each with who does what and what they report back; add follow-up work, blockers and revalidation
+   conditions.
+5. Isolated run: handoff needs a current return receipt. If release did not return the candidate, run the packet's
+   plan-return, decide every undecided path with review-return, run its return command (Workspace return guidance);
+   receipt path in `evidence_refs`.
+6. From the returned project, without the run directory, check the knowledge survives: durable documentation links
+   resolve in the returned repository (HOME/spec.md, HOME/environment.md, HOME/architecture.md); the AD-<n> entries
+   in HOME/architecture.md hold the current service decisions, ownership, unresolved boundaries and revalidation
+   conditions (Service discovery guidance); their source and check locators open for a fresh reader. Keep the prior
+   baseline's as-of account (Current-system baseline guide). Fix a broken link or missing entry in HOME/ now.
+   Work-item context and earlier result references are not a durable index.
+7. Read release-verify's `lessons` (quoted in the hand-offs); carry its open-next items into the follow-up work in
+   `summary` and report any conflict with what you observed.
 """,
 }
 
@@ -2275,8 +2170,6 @@ after planning results (spec, test-strategy, plan, step-plan, test-spec,
 system-test-author, release-plan), after each accepted implement step, and after""",
      "after planning results (" + _NONE_REVIEWED + "),\n"
      "after each accepted implement step, and after"),
-    ("*", "Each reviewed step's task/ready/done criteria remain its sole execution directive.",
-     "Each step's task/ready/done criteria remain its sole execution directive."),
 )
 
 
@@ -2342,7 +2235,7 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
     elif stage in BACKCHAIN_STAGES:
         parts.append(_swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage, planning_review))
     if stage in IMPLEMENTATION_STAGES:
-        parts.append(CODE_CRAFT)
+        parts.append(CODE_CRAFT_SHORT)
     parts.append(STAGE_RULES)
     return "\n\n".join(parts)
 

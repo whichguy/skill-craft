@@ -62,3 +62,30 @@ guidance (never cited by the duty, today or new).
 
 - Today: duty 1,272 + considerations 74 (plus the 330-character commit rule) + Work 521 = 2,197 characters.
 - New: 1,850 characters, the commit rule named rather than counted.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 1,838 -> 1,686 characters (-9%). Goal: 'Update the docs this change affects in WORKTREE from observed behaviour; no-change reasons go to RUN/notes/<action>.md.'; short goal: "document this item's change".
+
+Text now in `DUTIES['document']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. **List** the changed public behaviours from the change inventory, the step plan, the implement results and the
+   item's diff.
+2. **Observe and write.** Run each changed behaviour, then update the README, API, user, operator, error and design
+   docs from what you observe: visible errors, how to turn on diagnostics, known limits and caveats. Link to the
+   authoritative home rather than copying a contract (Documentation guidance). Document nothing you did not observe
+   working. Durable facts go in the repository's docs, never only in run notes.
+3. **Decisions.** A design or service decision implement did not record: an AD-<n> under HOME/architecture.md
+   ## Decisions (a service choice with contract, owner and revalidation trigger).
+4. **Baseline.** Recovered existing behaviour: keep recovered observations and accepted deltas apart from the prior
+   as-of baseline (Current-system baseline guide).
+5. **Reread** every changed document and run its commands and examples. In RUN/notes/<action>.md record why a
+   behaviour needs no documentation, why the README did not change, or why an example cannot run here.
+6. **Commit nothing yourself.** When verify is accepted, ShipLoop commits the item's changed files that the step plan's paths declare, its changed documentation files (for example README.md or files under docs/) and docs/shiploop/. Any other changed file is not part of the item commit: if the product needs one, report revise so the step plan declares it; otherwise delete generated output the product does not need.
+7. Plan or criterion wrong as observed: report revise naming it. Report blocked only when a behaviour cannot be
+   observed here, naming it.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

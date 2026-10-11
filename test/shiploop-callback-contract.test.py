@@ -311,6 +311,20 @@ class RealCliCase(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result.stdout
 
+    @staticmethod
+    def handoff_of(out: str) -> str:
+        """The handoff file an Improve packet's first instruction names (the improve skill reads it)."""
+        named = re.search(r"/improve " + re.escape(nav.IMPROVE_ARGUMENT_PREFIX) + r"(\S+)", out)
+        assert named is not None, out
+        return Path(named.group(1)).read_text(encoding="utf-8")
+
+    def bound_start(self, out: str) -> tuple[Path, str]:
+        """The opening file and the improve-start command the handoff file of a bound Improve child names."""
+        handoff = self.handoff_of(out)
+        opening = Path(re.search(r"write the opening file (\S+) with exactly", handoff).group(1))
+        start = re.search(r"^Then run: (\S.*improve-start .*)$", handoff, re.M).group(1)
+        return opening, start
+
     def done_fields(self) -> dict:
         return {"outcome": "done", "summary": "What this step established.", "headline": "A step was established.",
                 "evidence_refs": [str(self.evidence)]}
@@ -475,7 +489,7 @@ class RefusalRouteTests(RealCliCase):
             with self.subTest(stage):
                 run, head = self.new_run(stage)
                 command, path, action = printed_callback(head)
-                self.assertIn("a check row carries no ids or min_tests", self.full_packet(head))
+                self.assertIn("no ids or min_tests", self.full_packet(head))  # both duties say a check row has none
                 good = self.fill_done(head)
                 write_block(path, {**good, field: [{"command": "true", "suite": "check", "ids": ["TC-1"]}]})
                 first = self.run_printed(command)  # a close asks for its knowledge files before it reads the result
@@ -492,7 +506,7 @@ class RefusalRouteTests(RealCliCase):
         # Packet review 2026-10-10, row 11a: r2-checkers-sonnet was refused twice for a key the template does not print.
         run, head = self.new_run("plan")
         command, path, action = printed_callback(head)
-        self.assertIn("takes exactly the fields printed in the template for its disposition", self.full_packet(head))
+        self.assertIn("Give each exactly the fields the template shows for its disposition", self.full_packet(head))
         good = self.fill_done(head)
         row = good["assumptions"][0]
         self.assertEqual(row["disposition"], "evidenced")
@@ -781,11 +795,7 @@ class RefusalRouteTests(RealCliCase):
         run, head = self.new_run("spec")
         command, path, action = printed_callback(head)
         write_block(path, self.done_fields())
-        bind = next(row for row in self.accepted(command).splitlines() if row.startswith("Next command (bind"))
-        started = self.accepted(bind.split("details below): ", 1)[1])
-        start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
-        opening = Path(re.search(r"opening file (\S+);", start_line).group(1))
-        start = start_line.split("details below): ", 1)[1]
+        opening, start = self.bound_start(self.accepted(command))
         sections = {"Current context and desired improvements": "The user asked for hello.",
                     "Scope": "a.txt", "Authority": "Local edits only.", "Environment": "Python 3."}
 
@@ -815,11 +825,7 @@ class RefusalRouteTests(RealCliCase):
                 run, head = self.new_run(stage)
                 command, path, _ = printed_callback(head)
                 write_block(path, self.fill_done(head))
-                bind = next(row for row in self.accepted(command).splitlines() if row.startswith("Next command (bind"))
-                started = self.accepted(bind.split("details below): ", 1)[1])
-                start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
-                opening = Path(re.search(r"opening file (\S+);", start_line).group(1))
-                start = start_line.split("details below): ", 1)[1]
+                opening, start = self.bound_start(self.accepted(command))
                 self.assertTrue(opening.parent.is_dir(), "the printed opening path's directory exists after bind")
                 self.assertFalse(opening.exists())  # the file is the model's to write
                 self.assertIn("write the opening file first", self.refused(start, run))
@@ -840,21 +846,15 @@ class RefusalRouteTests(RealCliCase):
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
         write_block(path, self.fill_done(head))
-        bind = next(row for row in self.accepted(command).splitlines() if row.startswith("Next command (bind"))
         (self.repo_of(run) / ".shiploop-improve").write_text("a file, not a directory\n", encoding="utf-8")
-        started = self.accepted(bind.split("details below): ", 1)[1])
-        start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
-        self.assertIn("write the opening file first", self.refused(start_line.split("details below): ", 1)[1], run))
+        _opening, start = self.bound_start(self.accepted(command))
+        self.assertIn("write the opening file first", self.refused(start, run))
 
     def test_an_empty_section_is_refused_naming_it_and_the_filled_opening_is_accepted(self) -> None:
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
         write_block(path, self.done_fields())
-        bind = next(row for row in self.accepted(command).splitlines() if row.startswith("Next command (bind"))
-        started = self.accepted(bind.split("details below): ", 1)[1])
-        start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
-        opening = Path(re.search(r"opening file (\S+);", start_line).group(1))
-        start = start_line.split("details below): ", 1)[1]
+        opening, start = self.bound_start(self.accepted(command))
         opening.write_text("## Current context and desired improvements\nHello.\n\n## Scope\na.txt\n\n"
                            "## Authority\nLocal edits only.\n\n## Environment\n...\n", encoding="utf-8")
         reply = self.refused(start, run)
@@ -870,7 +870,8 @@ class RefusalRouteTests(RealCliCase):
         run, head = self.new_run("step-plan")
         command, path, action = printed_callback(head)
         packet = " ".join(full_packet_text(head).split())
-        exit_sentence = re.search(r"[^.]*no command can confirm[^.]*\.", packet)
+        # the duty says it in two sentences (re-cut 2026-10-11): the condition is not a criterion; list it as an open item
+        exit_sentence = re.search(r"[^.]*no command can confirm[^.]*\.[^.]*\.", packet)
         self.assertIsNotNone(exit_sentence, "the step plan packet says what to do with a condition no command can confirm")
         self.assertIn("open item", exit_sentence.group(0))
         good = self.fill_done(head)
@@ -1199,8 +1200,8 @@ class OutcomeShapeTests(RealCliCase):
                 _, head = self.new_run(stage)
                 self.assertEqual(allowed_outcomes(head), ["done", *others])
                 self.assertEqual(sorted(printed_shapes(head)), sorted(others))
-                self.assertIn('"outcome" and "summary" are its top-level fields; do not wrap it in action or result keys',
-                              head)
+                self.assertIn('"outcome" and "summary" as top-level fields; do not wrap it in action or result keys',
+                              " ".join(head.split()))
                 self.assertIn(nav.AWAITING_SHAPE, head)
 
     def test_each_printed_outcome_shape_is_accepted_through_the_printed_command(self) -> None:
@@ -1252,11 +1253,9 @@ class OutcomeShapeTests(RealCliCase):
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
         write_block(path, self.done_fields())
-        bind = next(row for row in self.accepted(command).splitlines() if row.startswith("Next command (bind"))
-        started = self.accepted(bind.split("details below): ", 1)[1]).splitlines()
-        start = next(i for i, row in enumerate(started) if row.startswith("Next command (start"))
+        handoff = self.handoff_of(self.accepted(command))
         for name in nav.OPENING_SECTIONS:
-            self.assertIn(f'"## {name}"', started[start + 1])
+            self.assertIn(f"## {name}\n", handoff)  # the opening template the handoff file prints
 
 
 def full_packet_text(head: str) -> str:
@@ -1575,11 +1574,8 @@ class OpeningAllowanceTests(RealCliCase):
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
         write_block(path, self.done_fields())
-        bind = next(row for row in self.accepted(command).splitlines() if row.startswith("Next command (bind"))
-        started = self.accepted(bind.split("details below): ", 1)[1])
-        start_line = next(row for row in started.splitlines() if row.startswith("Next command (start"))
-        opening = Path(re.search(r"opening file (\S+);", start_line).group(1))
-        return run, opening, start_line.split("details below): ", 1)[1]
+        opening, start = self.bound_start(self.accepted(command))
+        return run, opening, start
 
     def write_sections(self, opening: Path, sizes: tuple[int, int, int, int]) -> None:
         """An opening whose four sections hold plain text of exactly these sizes (one byte per character, no escapes)."""
@@ -1682,10 +1678,10 @@ class EveryStageRouteTests(RealCliCase):
             if routes:
                 taken[stage] = routes
             if stage in CHECKPOINTS:
-                # The accepted result starts an Improve child: its first packet leads with the printed bind command.
-                self.assertIn("Next command (bind the selected Improve card", result.stdout)
-                self.accepted(next(row for row in result.stdout.splitlines()
-                                   if row.startswith("Next command (bind")).split("details below): ", 1)[1])
+                # The accepted result starts an Improve child: ShipLoop binds its recorded card at the transition, so
+                # the first packet is the two instructions with no bind command (re-cut 2026-10-11).
+                self.assertIn("/improve " + nav.IMPROVE_ARGUMENT_PREFIX, result.stdout)
+                self.assertNotIn("improve-bind", result.stdout)
                 state = self.state(run)
                 state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
                 nav.save(run, state)

@@ -52,9 +52,16 @@ def _with_packet_file(stdout: str) -> str:
     no such line, so it passes through unchanged.
     """
     packet_file = _packet_path_from_stdout(stdout)
+    text = stdout
     if packet_file is not None and packet_file.is_file():
-        return stdout + "\n" + packet_file.read_text(encoding="utf-8")
-    return stdout
+        text = stdout + "\n" + packet_file.read_text(encoding="utf-8")
+    # The Improve packet is two instructions (re-cut 2026-10-11); everything else it used to say is in the handoff file
+    # its first instruction names, which the improve skill reads.  A test that asserts "the packet says X" asserts it
+    # over the packet plus that file.
+    named = re.search(r"/improve " + re.escape(navigator.IMPROVE_ARGUMENT_PREFIX) + r"(\S+)", text)
+    if named is not None and Path(named.group(1)).is_file():
+        text += "\n" + Path(named.group(1)).read_text(encoding="utf-8")
+    return text
 
 CARD = ROOT / "skills/improve/SKILL.md"
 EPHEMERAL = ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
@@ -444,8 +451,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 self.assertIn("Run the selected Improve card's ShipLoop whole-skill subcall in this conversation", packet)
                 self.assertIn("Return order:", packet)
                 self.assertIn("keep the frozen launch context unchanged", packet)
-                # improve-start writes the binding line and start inputs; the packet no longer restates them.
-                self.assertNotIn(self.bound["contract_marker"], packet)
+                # improve-start writes the binding line and start inputs; the packet no longer restates them.  The
+                # marker's one remaining home is the handoff file's head, where the improve skill finds it.
+                self.assertEqual(packet.count(self.bound["contract_marker"]), 1)
                 self.assertNotIn("Start inputs owned by ShipLoop", packet)
             else:
                 self.assertIn("Parent assignment preparation:", packet)
@@ -460,8 +468,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             self.assertRegex(packet, r"Size budget: the opening is frozen into the Until Loop's state, which the "
                                      r"runtime caps at 16,384 bytes.*refuses a contract over 9,216 bytes.*"
                                      r"sections about [\d,]+ bytes together")
-            # Neither route asks the model to copy the binding line or state start inputs.
-            self.assertNotIn(self.bound["contract_marker"], packet)
+            # Neither route asks the model to copy the binding line or state start inputs; it appears once, as the
+            # handoff file's first line (the improve skill's subcall trigger).
+            self.assertEqual(packet.count(self.bound["contract_marker"]), 1)
             self.assertNotIn("Start inputs owned by ShipLoop", packet)
             self.assertNotIn("Start the child runtime with --receipt", packet)
             self.assertIn("Selected Improve skill: " + str(CARD.resolve()), packet)
@@ -649,12 +658,14 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
         packet = navigator.render(None, self.run, waiting)
 
+        handoff = navigator.improve_handoff_text(None, self.run, waiting)  # the file the improve skill reads
+
         self.assertIn(user_no_commit, packet)
         self.assertIn(
             "selected Improve card's scoped-commit policy with the task's explicit overrides",
-            packet,
+            handoff,
         )
-        self.assertIn("Selected Improve skill: " + str(CARD.resolve()), packet)
+        self.assertIn("Selected Improve skill: " + str(CARD.resolve()), handoff)
         self.assertIn(
             "user- or repository-authorized no-commit override, including a frozen override",
             CARD.read_text(encoding="utf-8"),
@@ -772,12 +783,13 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                         cold,
                     )
                     self.assertNotIn(chain_guide, cold)
-                    self.assertNotIn("bind this action to the default parallel", cold)
-                    self.assertIn("Delegation is inline: this packet is for the one step named in its Step line.", cold)
+                    self.assertNotIn("bind the default parallel mode", cold)
+                    # The inline "one step per packet" statement is the Step line (re-cut 2026-10-11).
+                    self.assertIn("the only work for this packet:", cold)
                 else:
                     self.assertIn(chain_guide, cold)
-                    self.assertIn("bind this action to the default parallel", cold)
-                    self.assertIn("mode when the selected Plan Dispatcher and Ask-Agent contracts are compatible", cold)
+                    self.assertIn("bind the default parallel mode", cold)
+                    self.assertIn("when the Plan Dispatcher and Ask-Agent contracts are compatible", cold)
 
     def test_default_ephemeral_callbacks_preserve_context_then_import_once(self):
         """Cumulative report transport, not proof of model review or summarization."""
@@ -877,7 +889,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         if not self.inline():
             self.skipTest("the delegated route keeps its manual start instructions")
         packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
-        full = Path(next(line for line in packet.splitlines() if line.startswith("Full packet: "))[13:]).read_text()
+        full = packet  # the packet plus the handoff file it names (invoke appends both)
         # P13: the run's scratch directory exists and takes the reports piped to the runtime, not /tmp.
         scratch = self.run / "scratch"
         self.assertTrue(scratch.is_dir())
@@ -899,8 +911,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             with self.subTest(obligation=name):
                 self.assertIn(text, full)
         for gone in ("Binding inputs: before start", "Start inputs owned by ShipLoop",
-                     "Start the child runtime with --receipt", self.bound["contract_marker"]):
+                     "Start the child runtime with --receipt"):
             self.assertNotIn(gone, full)
+        self.assertEqual(full.count(self.bound["contract_marker"]), 1)  # the handoff file's head, once
         self.assertEqual(full.count("Never write or edit the receipt"), 1)
 
     def test_improve_start_freezes_the_contract_and_starts_the_runtime(self):
@@ -1493,12 +1506,19 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         cold = subprocess.run([sys.executable, "-B", str(CLI), "next", "--run-dir", str(run)], cwd="/",
                               text=True, capture_output=True, timeout=30, env=self.environment)
         self.assertEqual(cold.returncode, 0, cold.stderr)
-        self.assertIn("--skill-card=" + str(selected), cold.stdout)
+        # ShipLoop bound the recorded card itself at the transition (re-cut 2026-10-11): from any directory the cold
+        # packet is the two instructions, with no bind step to run.
+        self.assertNotIn("improve-bind", cold.stdout)
+        self.assertIn("/improve " + navigator.IMPROVE_ARGUMENT_PREFIX, cold.stdout)
+        bound_at_transition = store.read_record(run / "state.md")["active_improve"]["skill"]
+        self.assertEqual(bound_at_transition["skill_card"], str(CARD.resolve()))
+        self.assertEqual(bound_at_transition["runtime_cli"], str(EPHEMERAL.resolve()))
         bound = subprocess.run([sys.executable, "-B", str(CLI), "improve-bind", "--run-dir", str(run),
                                 "--action", action, "--skill-card", state["improve_skill"]], cwd="/",
                                text=True, capture_output=True, timeout=30, env=self.environment)
         self.assertEqual(bound.returncode, 0, bound.stderr)
-        self.assertNotEqual(before, (run / "state.md").read_bytes())
+        # the child is already bound to this card, so binding it by hand again records nothing new
+        self.assertEqual(before, (run / "state.md").read_bytes())
         skill = store.read_record(run / "state.md")["active_improve"]["skill"]
         self.assertEqual(skill["skill_card"], str(CARD.resolve()))
         self.assertEqual(skill["runtime_cli"], str(EPHEMERAL.resolve()))

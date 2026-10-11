@@ -145,3 +145,69 @@ run's added, modified and retired IDs with their basis in FEATURE/spec.md.
 - Proposed: 5,685 characters (57%).
 
 Measured on the default render (ask-agent, planning_review stage, backchain_passes one). Today: prompt(stage) without STAGE_RULES, plus the Develop/Test/Deploy/Tools considerations and the stage-specific renderer lines this draft folds or cuts (Planning phase intent, the environment-discovery and investigation-allowance lines, plan's experiments lines). New: sections 1-3 of this file. Exit conditions are excluded from both.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 5,461 -> 4,978 characters (-9%). Goal: "Define each requirement and its acceptance criteria as R-<n> in HOME/spec.md; this run's ID changes in FEATURE/spec.md."; short goal: 'specify the requirements'.
+
+Text now in `DUTIES['spec']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Start from HOME/spec.md (quoted below), the research and discovery results and RUN/notes/current-system-baseline.md
+   (Current-system baseline guide). Keep every R-<n>: change one in place, move a dropped one under ## Retired with
+   its reason.
+2. Write each requirement under HOME/spec.md ## Requirements as R-<n> with its acceptance criteria inside
+   (Behavior-model guidance): behaviour, boundaries, error behaviour, consumer outcome. Each criterion: positive,
+   failure and boundary expectations, the consumer surface where it is observed, how it is confirmed. Split
+   independently verifiable clauses; keep bundled behaviours visible under one ID.
+3. Number requirements R-<n> only. A structure or technology choice is an AD-<n> decision in
+   HOME/architecture.md ## Decisions, never in HOME/spec.md; a product decision never takes the AD- prefix.
+4. Map every request outcome to at least one criterion (Behavior traceability guidance); keep approved scope. Write
+   each unresolved prerequisite or user decision in FEATURE/spec.md as open.
+5. FEATURE/spec.md lists the IDs this run adds, modifies and retires: each one's request or decision basis, preserved
+   and changed behaviour, source-section locators, evidence limits, and pending implementation and checks.
+6. Assess non-functional requirements under HOME/spec.md ## Non-functional requirements (Requirements definition
+   guide): operating conditions, measurable bound or observable criterion, verification method, justified
+   exclusion, or unresolved target. Invent no target. A material requirement conflict goes in `summary` as open and
+   keeps dependent work unready.
+7. State and data assessment: in FEATURE/spec.md write the affected resources, target identities, before and after
+   invariants, recovery, applicable checks and unknowns.
+8. For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness
+   versus revocation, incremental state, async completion and recovery, owned event coverage. Mark an inapplicable
+   concern in one line; add no service to fill a template.
+9. Decide the state and information lifecycle (Interaction design guide), in proportion to the request, as
+   requirements in HOME/spec.md. Per piece of state: owner and location; who may read it (information one user must
+   not see, such as an opponent's hidden game state or another person's record, stays off that client; what a lone
+   user could only misuse against themselves may stay); how simultaneous changes resolve; what ends and removes it;
+   the runtime quotas it meets. Personal or secret data: where shown, stored, logged, how long kept, how removed.
+   Map each to what the runtime offers. Add no identity, sharing or persistence the request does not need; record a
+   default for an open choice as an assumption in `summary`. Affected UI: component, interaction and skin premises
+   and truthful async feedback as consumer-visible behaviour.
+10. Before you submit, fix any of these in HOME/spec.md or FEATURE/spec.md:
+    - a step, example or expected result that cannot be replayed exactly: name the concrete inputs, values,
+      identifiers and sample interactions;
+    - an expected result or check that a weaker stand-in would pass: a hardcoded value, a missing assertion, a title-
+      only test, or an absent required name;
+    - a documented command that does not run what it claims on the target runtime: run it once and record the exit
+      code and the cases it executes;
+    - a required requirement, test ID or case dropped or weakened compared with the prior accepted version;
+    - a claim about what the runtime, platform or a library can do that a decision depends on, with no primary-
+      documentation source or probe result: check it, and correct the spec where it is wrong.
+11. Request a Backchain `review` / `audit` only for a material prerequisite ambiguity, a pending or corrective
+    dependency, or an acceptance gap (Backchain planning guide). It is read-only, one pass, changes no candidate and
+    completes no parent action. On a material finding you may request exactly one `repair` / `revise` within your
+    edit bounds:
+    - it needs every loop resource on the Loop resources line; a MISSING one blocks it, and no other install
+      substitutes;
+    - put the line `Backchain passes: one` beside the binding marker in the child request;
+    - keep its start contract within the state budget, measured with the printed command;
+    - a forbidden revision, a nonterminal child or an unresolved finding leaves this stage incomplete: do not report
+      done.
+    Run the printed `backchain-check` after each candidate revision; a failure is a finding. Cite its receipt in
+    `evidence_refs`. The only call route is `source-aware-native`.
+12. A complete spec establishes criteria, not implementation or test success. `evidence_refs`: HOME/spec.md,
+    FEATURE/spec.md, each requirement section and source used.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

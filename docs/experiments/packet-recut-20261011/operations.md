@@ -64,3 +64,35 @@ Nothing beyond the exit conditions and the shared mechanical checks.
 
 - Today: duty 750 + considerations 37 + OUTER handshake 916 = 1,703 characters.
 - Draft: goal, duty and Checked by 2,075 characters with headings (item 5 and the open-obligation sentence are new duty text).
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 1,827 -> 1,728 characters (-6%). Goal: 'Confirm the release can be monitored, recovered and supported: evidence in `summary`, locators in HOME/environment.md.'; short goal: 'confirm operational readiness'.
+
+Text now in `DUTIES['operations']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Reopen the observability coverage in HOME/environment.md and HOME/architecture.md; cite the sections used in
+   `evidence_refs`.
+2. Check each against the running system and record in `summary`: monitoring, alerting, log and diagnostic access,
+   recovery ownership (who restores and how; the rollback works), support documentation, cleanup, revalidation needs
+   (Deployment and handoff guidance). A plan or configuration file is not evidence the service is observed and
+   supported.
+3. Map each relevant event to its authoritative owner, existing sink and operator retrieval (Service discovery
+   guidance), successful and failed logins included where the system authenticates. An inaccessible log is an
+   evidence gap, not proof of no logging.
+4. Close only evidenced gaps this run owns. Duplicate no provider logs; treat not every failure as an incident; keep
+   the required audit-failure and recovery policy.
+5. Write the current log and audit retrieval and recovery locators, with observation date and open limits, to
+   HOME/environment.md (Service handoff guidance).
+6. A justified N/A in `summary` only after assessing the actual operational boundary: what you assessed, why it does
+   not apply.
+7. Name the release-plan and system-test-author records you rely on (latest done after the last accepted replan;
+   OUTER test-planning handshake) with locators in `evidence_refs`. A material change to code, tests, fixtures,
+   configuration or target invalidates the observations it affects: rerun those, reuse the rest only with identity
+   and relevance stated. An already-due obligation still failed, blocked or unrun stays open, named in `summary`
+   with its owner; repair it with no new positive observation.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

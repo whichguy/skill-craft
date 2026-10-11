@@ -175,3 +175,76 @@ Nothing beyond the exit conditions and the shared mechanical checks.
 - Proposed: 6,831 characters (62%).
 
 Measured on the default render (ask-agent, planning_review stage, backchain_passes one). Today: prompt(stage) without STAGE_RULES, plus the Develop/Test/Deploy/Tools considerations and the stage-specific renderer lines this draft folds or cuts (Planning phase intent, the environment-discovery and investigation-allowance lines, plan's experiments lines). New: sections 1-3 of this file. Exit conditions are excluded from both.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 6,688 -> 5,600 characters (-17%). Goal: 'Inspect the repository and baseline tests; write the facts to HOME/environment.md and the baseline run to `evidence_refs`.'; short goal: 'discover the repository and baseline'.
+
+Text now in `DUTIES['discovery']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Baseline first (Initial repository baseline guide): find the starting directory, its instructions and a safe
+   command, then run the full suite on the unchanged checkout (the smoke suite if the full one is impractical).
+   Choosing a command or citing an old pass does not count. `evidence_refs`: command, cwd, target, result, coverage
+   limits, output file. No suite: record missing coverage.
+2. Classify the baseline in `summary`: passed, failed, missing coverage, setup or access block, uncertain, or
+   expected repair RED. Only a pass is healthy. Change no product file to turn it green. A failed baseline lets
+   discovery finish and leaves dependent feature work unready.
+3. Inspect Git and worktree state, instructions, code, tests, docs, consumers and project knowledge. Record in
+   HOME/environment.md, each with a source locator and marked binding requirement, observed practice or proposal:
+   - ## Targets and runtimes: development, test, integration and delivery boundaries; runtime and dependency
+     versions;
+   - ## Commands: linters, formatters, type checkers, test runners;
+   - ## Platform facts: conventions, canonical code and test examples, MCP and API contracts, reusable libraries,
+     house style (House-style guidance).
+   Install and provision nothing.
+4. Find how a change reaches its consumer (Environment and source-return discovery): whether the source-branch
+   return triggers CI, a deploy or a publication, and whether it must precede a consumer check. Record route and
+   uncertainty under ## Targets and runtimes. Inspecting a route authorizes no return, deploy or early handoff.
+5. Locate existing specs and quality policies (scope, status in `summary`); screen the applicable non-functional
+   requirements (Requirements definition guide).
+6. Check the repository index, README and AGENTS for skill links before proposing an implementation
+   (Repository-local skill guidance). Record fit or no fit under ## Skills with a locator; for a chosen skill, its
+   entrypoint, inputs and defaults, contract and revalidation condition. Edit no skill package.
+7. After the baseline, and again when evidence conflicts or a dependency emerges, check the Discovery investigation
+   guidance triggers. If one applies, write the plan and outcome to RUN/notes/discovery.md (question, evidence route
+   and order, owner, permitted effects, bound, stop condition); otherwise inspect directly.
+8. Every environment read follows the Recursive discovery policy. One allowance covers discovery and research;
+   reaching it stops exploration, not the run: record open gaps as assumptions or open items in `summary`.
+9. Resolve internal terms and background beyond the checkout with Connected knowledge discovery: find the MCP readers
+   (Slack or Teams, internal sites, design docs, private Git), search, and follow hits to the content. Record terms
+   and conflicting claims with provenance, access and coverage gaps, and safe locators in RUN/notes/discovery.md.
+   Keep private queries and content off public surfaces; a reader is no runtime dependency.
+10. Establish the current-system account (Current-system baseline guide): read README first, reuse and revalidate an
+    adequate account or recover one from docs, code, tests and authorized read-only observation. Write
+    RUN/notes/current-system-baseline.md with as-of identity, coverage, conflicts, locators and durable home; cite it
+    in `evidence_refs`. A repository without ShipLoop knowledge is not a new system. Keep the incoming change
+    separate; consequential gaps leave dependent work unready.
+11. For affected flows apply Service discovery guidance; record in RUN/notes/discovery.md:
+    - observability: event owners and sinks to reuse;
+    - service boundaries: consumer needs traced through business services to the real MCP, API and runtime
+      capabilities, identities, schema and state;
+    - cache, invalidation and async questions, inventing no infrastructure;
+    - unproven access or caching: a safe policy-enforced read route, or a denial (privileged direct access is no
+      fallback);
+    - schema or projection delta: preserved state and its read-back check;
+    - async flow: processor and recovery owner and the acceptance/completion boundary, else unknown (a status poller
+      establishes neither); gate only that flow;
+    - retained application state: the Runtime state placement section.
+    Safe authorized reads may resolve a gap; an unavailable or partial observation is not absence. Turn unknown
+    ownership into a scoped probe and a conditional change, gating only dependent work.
+12. Establish the current target and effective identity; use it for dependent remote reads. Distinguish discovery
+    operator, deployed runtime and end user. Record each unknown role or authority and its consumer under
+    ## Access and accounts.
+13. Record the interaction baseline (Interaction design guide) in RUN/notes/current-system-baseline.md: actors,
+    channels, events, connection lifecycle, state ownership, what the runtime and project layers offer. Affected UI:
+    the design guidance and its identity, version or digest, or the repository fallback. No UI still has machine
+    interactions.
+14. Answer each intake open question in `summary` with a source, or keep it unknown with an owner.
+15. Before submitting, apply Discovery evidence handoff: list each consequential decision in `evidence_refs` with its
+    section locator, and reopen each locator as a fresh reader. Also list every file written and source used, with
+    scoped prerequisites and due revalidation.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

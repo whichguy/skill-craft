@@ -171,7 +171,9 @@ class GoalFirstTests(unittest.TestCase):
                 header = next(i for i, line in enumerate(lines) if line.startswith("ShipLoop navigator |"))
                 with self.subTest(stage=stage):
                     self.assertTrue(lines[header + 1].startswith("Callback for this stage"))
-                    self.assertEqual(lines[header + 2], "Goal: " + row.goal[0].upper() + row.goal[1:] + ".")
+                    # A goal is one action sentence naming its output (packet re-cut, 2026-10-11) and may end in its own period.
+                    self.assertEqual(lines[header + 2], "Goal: " + row.goal[0].upper() + row.goal[1:]
+                                     + ("" if row.goal.endswith(".") else "."))
                     if stage in spec.INNER:
                         # Each thing once (owner, 2026-10-11): the head points at the /until-loop argument, which
                         # numbers the conditions; they are not listed a second time.

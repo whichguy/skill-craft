@@ -107,3 +107,49 @@ Neither needs to print for this stage.
 - Today: DUTIES 2,628 + considerations 876 + OUTER test plans 954 (the variant without Improve is about 910) +
   Selected-case reconciliation 665 = about 5,080 characters.
 - Proposed duty (the fenced text above): 3,608 characters, with no shared block printed (-29%).
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 3,690 -> 3,404 characters (-8%). Goal: 'Run the recorded system tests on the assembled candidate: end states in `summary`, command output in `evidence_refs`.'; short goal: 'run the system tests'.
+
+Text now in `DUTIES['system-test']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Name the plan you run: the latest done system-test-author record after the most recent accepted replan, and its
+   integrated test plan in that summary and HOME/environment.md ## Harnesses and suites (OUTER test-planning
+   handshake). Before running, revalidate its candidate, case selection, target and fixture assumptions. Its
+   locators, and its reuse or the concrete mismatch, go in `evidence_refs`. A required planning gap ends as repeat,
+   blocked or replan; never guess a command or drop a required case.
+2. Before running check prerequisites, fixtures, execution location, target, identity, authorization, remote
+   framework availability, and the deployed or test revision. Deploy not to unblock a test; use production only with
+   authority.
+3. Run the due cases on the intended candidate and boundary (System-test placement guidance, Real-boundary test
+   guidance). Substitute no planned case or local mock for a required system observation. A local pass replaces no
+   blocked or unrun required remote check and establishes no combined full-suite pass; keep that check's owner and
+   boundary. Check repeatability when fixtures changed. Never blindly replay an uncertain external effect.
+   `evidence_refs`: each command, candidate and target, scope, cleanup outcome and unrun check.
+4. A recorded system command that fails here is no open item: ShipLoop refuses done while it fails. Fix the
+   candidate, report replan for missing product work, or blocked when nothing else can proceed.
+5. After a material change to code, tests, fixtures, configuration or target, rerun the affected observations; reuse
+   unaffected evidence only with its identity and relevance stated.
+6. Run any open item system-test-author recorded that this stage can now run, reporting each in the summary (not
+   recorded evidence: ShipLoop's rerun covers only recorded system commands). Leave the rest listed with their due
+   stage.
+7. A required case only a person can run (for example in a signed-in browser), with no route on this host per the
+   discovery and test-strategy records and its command left out of `system_commands`, does not block this result.
+   Record it as an open item in `assumptions`: case ID, who does what, what they report, owner (a person), due stage
+   (handoff, or the stage whose external effect it gates) as `consumer`. Submit done once every other due check and
+   ShipLoop's rerun pass; handoff reports it unverified, never as a pass. Report blocked with `awaiting` only when a
+   later stage takes an external, hard-to-reverse effect the case gates, or nothing else can proceed. An enabled
+   delivery contract keeps its own obligation phases.
+8. `summary` classifies every selected case passed, failed, blocked, not-run or justified N/A. Every case ends
+   validated, validated another way (what changed and why) or unachievable (items 6-7); a case written but not run
+   has no end state. Reconcile each affected requirement clause with its case, required surface and due phase,
+   checked surface, candidate, status and evidence. A pass on another surface only supports; source, HTTP or DOM
+   structure alone cannot close a rendered interaction. A case not yet due keeps its phase, owner and prerequisites;
+   missing evidence for a due case stays incomplete. Check that no clause or case was dropped; claim no requirement
+   met while a required observation is unrun.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

@@ -113,3 +113,50 @@ Nothing beyond the exit conditions and the shared mechanical checks.
 - Proposed: 4,091 characters (56%).
 
 Measured on the default render (ask-agent, planning_review stage, backchain_passes one). Today: prompt(stage) without STAGE_RULES, plus the Develop/Test/Deploy/Tools considerations and the stage-specific renderer lines this draft folds or cuts (Planning phase intent, the environment-discovery and investigation-allowance lines, plan's experiments lines). New: sections 1-3 of this file. Exit conditions are excluded from both.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 3,834 -> 3,291 characters (-15%). Goal: 'Resolve the consequential unknowns with evidence in RUN/notes/research.md; durable facts go to HOME/environment.md.'; short goal: 'research the open unknowns'.
+
+Text now in `DUTIES['research']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Start from the open unknowns in the intake and discovery results and RUN/notes/discovery.md. Revise that frontier
+   with Discovery investigation guidance (check its triggers first, and again when evidence conflicts); write a
+   triggered plan and outcome to RUN/notes/research.md. Investigate directly only when no trigger applies.
+2. Resolve each consequential unknown with repository, primary-interface or other fit evidence. In
+   RUN/notes/research.md record the conclusion, source, uncertainty, affected requirement, consumer, prerequisite,
+   reuse choice and verification need; leave an unsupported question open there with owner and the gate it blocks. A
+   recalled fact is not evidence.
+3. Environment reads follow the Recursive discovery policy, with bounded experiments (Bounded research guidance).
+   The allowance is shared with discovery; reaching it stops exploration, not the run: record open gaps as
+   assumptions or open items in `summary`.
+4. Confirm access to each delivery target with a safe non-mutating probe (Access-readiness policy). Record each
+   proven access need under HOME/environment.md ## Access and accounts as an open item: who can grant it, the gate
+   it blocks.
+5. For each need, in order: reuse unchanged, compose, augment, build new (Reuse-before-build guidance). Record the
+   choice in RUN/notes/research.md, and why earlier options fail for augment or new. Assess skills, MCP servers,
+   libraries and patterns for fit; a discovered capability is no authority to install it.
+6. Resolve internal vocabulary gaps with Connected knowledge discovery: open the content, not snippets. Record
+   authority, scope and safe locators in RUN/notes/research.md; evidence readers are not runtime dependencies; keep
+   private context out of public searches.
+7. Research quality-target and feasibility unknowns from existing contracts and evidence; a measured baseline does
+   not choose user policy.
+8. Reopen RUN/notes/current-system-baseline.md and resolve its consequential gaps (Current-system baseline guide):
+   keep the prior as-of account, append corrections as a dated section. An observation or synthetic fixture cannot
+   choose product intent.
+9. For affected service choices, resolve with discriminating evidence (Service discovery guidance): current state,
+   zero-copy and cache tradeoffs, permission-aware invalidation, async recovery, observability. Reuse native
+   facilities. Record each unknown and its dependent work in RUN/notes/research.md.
+10. Resolve the open interaction and state questions (Interaction design guide): actors, channels, events, connection
+    lifecycle, state ownership, runtime and layer offers. Answers in RUN/notes/research.md; runtime facts under
+    HOME/environment.md ## Platform facts.
+11. RUN/notes/research.md ## Assumptions: each load-bearing assumption (its failure would change a plan decision,
+    consumer or acceptance check), marked evidenced (locator), probed (command and saved output) or open (the check
+    that would settle it, why not run). Plan builds its `assumptions` from it.
+12. Before submitting, apply Discovery evidence handoff: list each consequential decision in `evidence_refs` with its
+    section locator, reopen it as a fresh reader; also every file written and source used.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

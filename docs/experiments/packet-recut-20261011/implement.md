@@ -129,3 +129,47 @@ nothing this duty cites).
 - Today: duty 5,132 (ask-agent; 3,889 inline) + considerations 310 + Work 448 = 5,890 characters (ask-agent).
 - New: 3,200 characters inline (items 1-7); 5,000 ask-agent (items 1-6 and 8). Today's inline equivalent is
   3,889 + 310 + 448 = 4,647.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 3,022 -> 2,893 characters (-5%). Goal: "Make this step's change on its paths in WORKTREE; exit codes go to RUN/notes/<action>.md, uncovered behaviour to `not_covered`."; short goal: 'implement this step'.
+
+Text now in `DUTIES['implement']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. **Scope.** Do only this step: edit its paths to meet its criteria, nothing no criterion asks for. Earlier steps are
+   accepted. Write no tests, start no later step, and leave everything outside the step's paths as is (no
+   reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
+   change one only when a criterion says to.
+2. **Build.** Each iteration edits first. Follow the step plan's Coding decision selection (Coding decision guide),
+   reading only its matching sections; check current code, versions and consumers before reusing or augmenting a
+   unit. Read history or earlier reviews only when a check fails or a question needs one section. Apply Code craft
+   and House-style guidance. Use each listed step skill for its purpose (invoke it, or read its SKILL.md and follow
+   it); the summary says per skill whether you used it, and why not.
+3. **Check.** After each edit run every recorded check command and `shiploop lint --action`; write each exit code in
+   RUN/notes/<action>.md. Fix a failure by changing the work, never the check, its expected result or the command.
+   A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
+   what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
+   more.
+4. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else empty. Record a
+   departure from HOME/architecture.md as a new AD-<n> under ## Decisions, and a newly working command in
+   HOME/environment.md ## Commands.
+5. **Services.** Apply the accepted contract and Service discovery guidance; revalidate target state and authority
+   before any effect; keep unrelated remote fields and existing operational owners. Unresolved cache access or async
+   completion uses its recorded safe fallback or correction.
+6. **Unachievable as planned.** Stop the loop blocked and report revise, naming the criterion or command and the
+   case, when:
+   - a criterion contradicts another, the item or a protected file, shown by a check after all compatible work is
+     done, with existing behaviour kept at the conflict point;
+   - confirming it needs an absent tool, runtime, access or authority, and the criterion text does not say
+     `Confirm by: unconfirmable here`;
+   - satisfying it would exceed the item;
+   - the same check still fails after 7 genuine fix attempts;
+   - the change invalidates a recorded command (moved module, new dependency or runtime; Target-native test
+     selection) or needs a new prerequisite or authority boundary.
+   Report blocked, with blocked_by, only when the user, an access grant or an outside dependency must resolve it.
+7. **Inline.** Do the one step on the packet's Step line in this conversation. Bind no chain and dispatch no worker.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids.

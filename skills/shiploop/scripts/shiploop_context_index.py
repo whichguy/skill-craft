@@ -148,9 +148,7 @@ def pass_log_path(root: Path, action_id: str) -> Path:
 # A packet is written once, when its action starts, and a context lost mid-stage re-reads that file; the
 # context index is regenerated only at save.  Neither can say whether the host has created the log by then,
 # so both carry this one conditional rule and never read the log.
-PASS_LOG_RULE = (
-    "optional, never a completion gate: create it and append what each pass checked and what is left; after a "
-    "reset, open it first if it exists")
+PASS_LOG_RULE = "optional; append what each pass checked and what is left; open it first after a reset"
 
 
 def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:

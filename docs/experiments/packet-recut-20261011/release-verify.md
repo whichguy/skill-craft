@@ -96,3 +96,47 @@ today's packet names the file but not what to add.
 - Today: duty 1,987 + considerations 145 + OUTER handshake 916 + selected-case 665 + knowledge lines about 900 =
   about 4,600 characters.
 - Draft: goal, duty and Checked by 3,943 characters with headings.
+
+
+## Tightened (pass 2)
+
+Duty size (inline): 3,367 -> 3,170 characters (-6%). Goal: 'Observe the released result where consumers use it; outcomes in `summary` and `evidence_refs`, run lessons in `lessons`.'; short goal: 'verify the released result'.
+
+Text now in `DUTIES['release-verify']` (placeholders such as the Backchain item and item commit rule are filled at render):
+
+```
+1. Name the plans you verify against: the latest done release-plan and system-test-author records after the last
+   accepted replan (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. Recover or
+   report a missing plan; guess no command, drop no required case, deploy to make no check available.
+2. Run each `consumer_checks` command the release-plan result recorded against the current target (Release operation
+   guidance). Keep source synchronization, artifact identity, operation receipt and real consumer behaviour as four
+   separate facts in `summary` (Consumer delivery evidence guidance). A source or local test pass does not discharge
+   a deployed interaction you did not observe.
+3. Browser surface, per required clause record: the consumer entry reached after authentication, the account or
+   target, the visible feature, the action and its outcome. Keep non-secret routing state. Require app chrome or
+   branding only when the spec asks; an embedded feature can satisfy its accepted boundary.
+4. Classify every selected case in `summary` passed, failed, blocked, not-run or justified N/A (Deployment and
+   handoff guidance); reconcile each affected requirement clause with its case, required surface and due phase,
+   checked surface, candidate, status and evidence. A pass on another surface only supports; source, HTTP or DOM
+   structure alone cannot close a rendered interaction. A case not yet due keeps its phase, owner and
+   prerequisites. Check that no clause or case was dropped; claim no requirement met while a required observation
+   is unrun.
+5. A blocked or unknown check stays incomplete. Keep earlier receipts; do not release again blindly.
+6. A case needing a signed-in browser or a person's action this host cannot perform: do not loop on it. Record an
+   open item in `assumptions` with the steps for that person (where to go, such as a menu entry or URL path, what to
+   do) and what they report back; verify every other case. Only when the release cannot be accepted without it,
+   report `blocked` with `awaiting` kind `present`; the person's report resumes the run and only the blocked cases
+   are rechecked against the same release.
+7. Isolated run: this stage cannot return (Which checkout release-verify observes). A defect the checks find in the
+   delivered result goes through `replan` with one corrective work item; release then returns the fix. Write
+   nothing inside the user's checkout (a file there makes the return receipt stale and blocks handoff).
+8. Local-only work: verify the current local candidate and its consumer behaviour; external activation N/A does not
+   make these checks N/A.
+9. A material change to code, tests, fixtures, configuration or target invalidates the observations it affects:
+   rerun those, reuse the rest only with identity and relevance stated.
+10. `lessons`, each in detail: `learned`, `considerations` (decisions and risks that matter), `open_next` (what a
+    later run should pick up). ShipLoop commits them as the run's learnings, read at intake.
+11. Update HOME/environment.md with what the release showed about targets, commands and access.
+```
+
+Map: every numbered item and every obligation of the first re-cut is kept, in the same order, so the loop Work lines can still cite "DO 1-n". Cut or merged in this pass: restatements of what the shared layout already says (result shapes, loop mechanics, commands), explanatory "why" clauses, and repeated qualifiers ("a recorded X, not a Y" pairs kept once); lists were joined into one clause where each part kept its destination. Nothing moved to another stage. The text stayed close to its first re-cut size because those duties were already one fact per clause; a further 40% would drop an obligation, which the brief forbids. Restored: a case not yet due keeps its phase, owner and prerequisites (item 4).

@@ -75,22 +75,35 @@ class PlanningHandoffTests(unittest.TestCase):
                     self.assertLessEqual(required, seen[stage],
                                          f"missing: {sorted(required - seen[stage])}")
 
+    # Packet re-cut (2026-10-11): _PLANNING_HANDOFF is no longer printed.  Each planning stage's numbered duty registers
+    # its produced files and sources in `evidence_refs` in its own words; this is the cue each stage must keep.
+    REGISTRATION = {
+        "intake": "Put in `evidence_refs` each source you used.",
+        "discovery": "Put in `evidence_refs` every file this stage wrote and each source used",
+        "research": "Put in `evidence_refs` every file this stage wrote and each source used",
+        "spec": "Put in `evidence_refs` HOME/spec.md, FEATURE/spec.md, and each requirement section and source you used",
+        "test-strategy": "Put in `evidence_refs` HOME/environment.md, HOME/architecture.md, each probe output and each source",
+        "plan": "Put in `evidence_refs` HOME/architecture.md, any execution graph and every source used; an unrecorded "
+                "conversation is not a handoff",
+        "prepare": "Put each output file in `evidence_refs`",
+        "step-plan": "absolute paths of every planning file you wrote, and the requirement sections and test locators "
+                     "you used",
+        "test-spec": "and the requirement sections you used in evidence_refs",
+        "system-test-author": "test-note locators you used in `evidence_refs`",
+        "release-plan": "Cite HOME/environment.md in `evidence_refs`",
+    }
+
     def test_every_planning_stage_registers_its_files_for_the_next_stage(self) -> None:
         planning = set(nav.guidance.PRELUDE) | set(nav.guidance.PLANNING_REVIEW_STAGES)
+        self.assertEqual(planning, set(self.REGISTRATION), "a planning stage has no registration cue")
         for delegation in ("inline", "ask-agent"):
             for stage in sorted(planning):
                 with self.subTest(delegation=delegation, stage=stage):
                     prompt = nav.guidance.prompt(stage, delegation=delegation)
-                    if stage == "step-plan":
-                        # step-plan no longer carries _PLANNING_HANDOFF (2026-10-11 dedupe); its numbered item 9
-                        # states the same registration duty in its own words.
-                        flat = " ".join(prompt.split())
-                        self.assertIn("evidence_refs: give absolute paths for the FEATURE/plan.md section, every "
-                                      "planning file this stage wrote", flat)
-                        self.assertIn("an unrecorded conversation is not a planning handoff", flat)
-                        self.assertNotIn("Register every produced planning file", prompt)
-                        continue
-                    self.assertIn("Register every produced planning file", prompt)
+                    flat = " ".join(prompt.split())
+                    self.assertIn(" ".join(self.REGISTRATION[stage].split()), flat)
+                    # The shared handoff paragraph is gone; the stage's own duty is its single home.
+                    self.assertNotIn("Register every produced planning file", prompt)
 
     def test_the_step_planning_stages_read_the_accepted_spec_and_plan(self) -> None:
         """The stages that turn the plan into steps, tests or release steps list the spec and plan stage results among

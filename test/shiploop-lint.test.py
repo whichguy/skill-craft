@@ -1447,15 +1447,19 @@ class PromptContractTests(unittest.TestCase):
         import shiploop_prompts as guidance
         for stage in loops.STAGES:
             self.assertNotIn("Pass-or-stop loop", guidance.prompt(stage, delegation=guidance.INLINE))
-        for stage in ("implement", "test"):
+        # Packet re-cut (2026-10-11): the loop's Work is "do duty items 1-4 of the packet"; running the checks and the
+        # lint command is stated once, in the stage's own duty item, and the loop's Repeat rule names the lint finding.
+        for stage, run_lint in (("implement", "run every recorded check command and `shiploop lint --action`"),
+                                ("test", "run every recorded command, the red-check command and the lint command")):
             with self.subTest(stage=stage):
-                self.assertIn("the lint command printed in the packet", " ".join(loops.WORK[stage].split()))
-                self.assertIn("`lint_waivers`", guidance.prompt(stage, delegation=guidance.INLINE))
+                work = " ".join(loops.WORK[stage].split())
+                self.assertIn("duty items", work)
+                self.assertIn("{run}/packets/{action}.md", work)
+                packet = " ".join(guidance.prompt(stage, delegation=guidance.INLINE).split())
+                self.assertEqual(packet.count(run_lint), 1)
+                self.assertIn("`lint_waivers`", packet)
+                self.assertIn("lint", " ".join(loops.REPEAT[stage].split()))
         implement = " ".join(guidance.prompt("implement", delegation=guidance.INLINE).split())
-        # Running the checks and the lint command is the loop's Work, stated once there (owner, 2026-10-11).
-        self.assertIn("run every recorded check command and the lint command printed in the packet",
-                      " ".join(loops.WORK["implement"].split()))
-        self.assertNotIn("run every recorded check command", implement)
         self.assertIn("the same check still fails after 7 genuine fix attempts", implement)
 
 
