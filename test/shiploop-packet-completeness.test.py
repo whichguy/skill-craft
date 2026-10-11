@@ -96,7 +96,15 @@ class PacketCompletenessTests(unittest.TestCase):
                 self.assertIn(duty, flat)                             # how the stage operates
                 self.assertIn("Checked by: ", packet)                 # how the result is checked
                 self.assertIn("Result template", packet)             # what it must produce
-                self.assertIn("Write the structured result to: ", packet)
+                # The one callback line names the result file it reads (the "Write the structured result to:" line
+                # and the second "Call this when done:" callback are gone, 2026-10-11 dedupe).
+                callback = next((line for line in packet.splitlines()
+                                 if line.startswith("Callback for this stage (run once after its work, with the result "
+                                                    "written to the file it names): ")), "")
+                self.assertIn(" complete ", callback)
+                self.assertIn(" --result=", callback)
+                self.assertNotIn("Write the structured result to: ", packet)
+                self.assertNotIn("Call this when done:", packet)
                 self.assertIn("Recovery", packet)                    # how to recover
 
     def test_an_improve_packet_states_purpose_operation_check_output_and_recovery(self) -> None:
@@ -241,15 +249,17 @@ class ObservedHarmPacketTests(unittest.TestCase):
         duty = prompts.DUTIES["step-plan"]
         self.assertNotRegex(duty, r"(?i)readme[^/]")  # README/AGENTS links of repository-local skills stay (a path, not a product file)
         self.assertNotIn("--greeting", duty)
-        self.assertIn("check commands are the lint, type and build commands HOME/environment.md records for these files, "
+        self.assertIn("check: the lint, type and build commands HOME/environment.md records for these files, "
                       "judged by exit code", flat(duty))
 
     # row 7: the step plan declares the ids; test-spec titles its cases with them; check is a suite.
     def test_the_step_plan_declares_ids_it_will_title_and_names_every_suite(self) -> None:
         text = flat(self.found[("step-plan", "producer")])
-        self.assertIn("Give each focused command the ids its cases will carry", text)
+        # The duty's `test_commands` item (4, 2026-10-10 rewrite) lists one bullet per suite: the focused one carries ids.
+        self.assertIn("focused: this item's cases, with the ids they will carry", text)
         self.assertNotIn("of the test-spec cases", text)
-        self.assertIn(" | ".join('"' + suite + '"' for suite in test_loop.SUITES), text)
+        for suite in test_loop.SUITES:
+            self.assertIn("- " + suite + ": ", text)
 
     def test_test_spec_titles_each_case_with_the_declared_ids_and_says_where_the_cases_go(self) -> None:
         text = flat(self.found[("test-spec", "producer")])

@@ -80,8 +80,17 @@ class PlanningHandoffTests(unittest.TestCase):
         for delegation in ("inline", "ask-agent"):
             for stage in sorted(planning):
                 with self.subTest(delegation=delegation, stage=stage):
-                    self.assertIn("Register every produced planning file",
-                                  nav.guidance.prompt(stage, delegation=delegation))
+                    prompt = nav.guidance.prompt(stage, delegation=delegation)
+                    if stage == "step-plan":
+                        # step-plan no longer carries _PLANNING_HANDOFF (2026-10-11 dedupe); its numbered item 9
+                        # states the same registration duty in its own words.
+                        flat = " ".join(prompt.split())
+                        self.assertIn("evidence_refs: give absolute paths for the FEATURE/plan.md section, every "
+                                      "planning file this stage wrote", flat)
+                        self.assertIn("an unrecorded conversation is not a planning handoff", flat)
+                        self.assertNotIn("Register every produced planning file", prompt)
+                        continue
+                    self.assertIn("Register every produced planning file", prompt)
 
     def test_the_step_planning_stages_read_the_accepted_spec_and_plan(self) -> None:
         """The stages that turn the plan into steps, tests or release steps list the spec and plan stage results among

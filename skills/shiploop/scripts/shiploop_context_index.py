@@ -149,10 +149,8 @@ def pass_log_path(root: Path, action_id: str) -> Path:
 # context index is regenerated only at save.  Neither can say whether the host has created the log by then,
 # so both carry this one conditional rule and never read the log.
 PASS_LOG_RULE = (
-    "optional, never a completion gate; ShipLoop does not create it. Create it when the pass starts and "
-    "append after each pass what you checked and what is left. After a reset, open it first if it exists; "
-    "if it does not, nothing was logged, and your scratch files and the worktree changes show how far this "
-    "stage got")
+    "optional, never a completion gate: create it and append what each pass checked and what is left; after a "
+    "reset, open it first if it exists")
 
 
 def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:

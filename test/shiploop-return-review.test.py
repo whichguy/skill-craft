@@ -690,8 +690,16 @@ class ReturnRouteTests(ReturnReviewCase):
         for stage in ("intake", "implement", "release-plan", "release-check", "release", "handoff"):
             with self.subTest(stage=stage, start="clean"):
                 packet = self.render(clean_root, stage)
-                self.assertEqual(packet.count("Return route (from workspace.md): this run started from a clean main"), 1)
                 self.assertNotIn("A dirty-source working-tree return is not a Git merge or commit", packet)
+                if stage not in navigator.RETURN_STAGES:
+                    # Only release-plan, release-check, release and handoff print the return block (2026-10-11
+                    # dedupe); every other worktree packet prints one "Execution checkout" line and no route.
+                    self.assertEqual(sum(line.startswith("Execution checkout: ") for line in packet.splitlines()), 1)
+                    self.assertIn("The original branch is returned only at release or handoff.", packet)
+                    for absent in ("Return route", "Return plan:", "Rollback of the return", "Workspace authority"):
+                        self.assertNotIn(absent, packet)
+                    continue
+                self.assertEqual(packet.count("Return route (from workspace.md): this run started from a clean main"), 1)
                 self.assertEqual("Rollback of the return" in packet, stage in ("release-plan", "release-check"))
                 if stage in ("release-plan", "release-check"):
                     self.assertEqual(packet.count("Return route (from workspace.md)"), 1)  # not repeated in the rollback

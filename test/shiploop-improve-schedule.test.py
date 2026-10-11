@@ -105,9 +105,15 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertTrue(lines[0].startswith("ShipLoop navigator | intake"))
         self.assertIn(" complete ", lines[1])
         self.assertIn(nav.current_action(state)["id"], lines[1])
-        # A stage with no Improve child says nothing about Improve (owner rule 2026-10-10), only how to report a stop.
-        self.assertNotIn("advances directly", "\n".join(lines))
-        self.assertIn("If work cannot continue, submit outcome 'blocked'", "\n".join(lines))
+        # A stage with no Improve child says nothing about Improve (owner rule 2026-10-10) and prints an empty line
+        # in the Improve line's place.  How to report a stop has one home, the outcome shapes (2026-10-11 dedupe):
+        # the trailing "If work cannot continue, submit outcome 'blocked'..." sentence is gone from the Improve line.
+        text = "\n".join(lines)
+        self.assertNotIn("advances directly", text)
+        self.assertNotIn("If work cannot continue, submit outcome 'blocked'", text)
+        self.assertFalse([line for line in lines if line.startswith("Improve:")])
+        self.assertIn("Allowed outcomes: done | repeat | blocked.", text)
+        self.assertIn('blocked: {"outcome": "blocked", "blocked_by": "user | access | external"', text)
 
     def test_template_placeholder_is_refused(self):
         state = self.new()
@@ -301,7 +307,8 @@ def render_walk(state, run, *, plan_items=None, limit=300):
         if state["status"] == "done":
             return state, reviewed
         packet = nav.render(None, run, state)
-        assert "Call this when done:" in packet or state["active_improve"] is not None, packet
+        assert "Callback for this stage (run once after its work" in packet or state["active_improve"] is not None, packet
+        assert "Call this when done:" not in packet, packet
         stage, action = nav.current_stage(state), nav.current_action(state)["id"]
         result = dict(DONE, work_items=plan_items) if stage == "plan" and plan_items else DONE
         state = nav.apply(state, action, result)

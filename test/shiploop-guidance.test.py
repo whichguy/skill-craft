@@ -164,6 +164,7 @@ if str(SCRIPTS) not in sys.path:
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
+import shiploop_reference as run_reference  # noqa: E402
 import shiploop_standalone_improve as standalone_improve  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -265,6 +266,21 @@ class GuidanceTests(unittest.TestCase):
             packet = navigator.render(None, self.run, recovered)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
         return recovered, packet
+
+    def assert_policy_route(self, packet: str, route: str, state: dict) -> None:
+        """A policy locator is printed once when the packet's text names its label, else only in reference.md.
+
+        2026-10-11 dedupe: the long policy list moved to reference.md#policies; a packet prints a
+        locator only for a label its own text names, and always points at that file for the rest.
+        """
+        label = route.split(": ", 1)[0]
+        printed = packet.count(route)
+        named = packet.count(label) - printed
+        self.assertLessEqual(printed, 1, packet)
+        if named > 0:
+            self.assertEqual(printed, 1, packet)
+        self.assertIn(route, run_reference.render(state, self.run))
+        self.assertIn("reference.md (#policies", packet)
 
     def test_stage_reference_catalog_is_complete_and_resolves(self) -> None:
         self.assertEqual(set(prompts.STAGE_REFERENCES), set(prompts.STAGES))
@@ -504,7 +520,7 @@ class GuidanceTests(unittest.TestCase):
             "test-strategy": "required surface and due phase",
             "test-spec": "every assigned clause",
             "test": "Every case ends as a test the focused command runs and passes",
-            "step-plan": "two people running its check would agree",
+            "step-plan": "Confirm by: <command, observation or inspection>; pass when <expected result>",
             "implement": "Each iteration writes first: edit the step's paths",
             "verify": "the item goes back to its step plan rather than to a blind retry",
             "product-acceptance": "pending release verification",
@@ -520,9 +536,13 @@ class GuidanceTests(unittest.TestCase):
             stage = navigator.current_stage(state)
             recovered, packet = self.cold_packet(state)
             with self.subTest(stage=stage):
-                self.assertIn(locator, packet)
-                self.assertIn("Definition of Ready", normalized(packet))
-                self.assertIn("Definition of Done", normalized(packet))
+                # The long rules and the policy locators live once in the run reference file
+                # (2026-10-11 dedupe); every packet points at it.
+                reference = normalized(run_reference.render(recovered, self.run))
+                self.assertIn(locator, reference)
+                self.assertIn("reference.md", packet)
+                self.assertIn("Definition of Ready", reference)
+                self.assertIn("Definition of Done", reference)
                 if stage in duties:
                     self.assertIn(duties[stage], normalized(packet))
                 if stage in reconciles:
@@ -705,7 +725,7 @@ class GuidanceTests(unittest.TestCase):
             stage = navigator.current_stage(state)
             recovered, packet = self.cold_packet(state)
             with self.subTest(stage=stage, boundary="producer"):
-                self.assertEqual(packet.count(route), 1)
+                self.assert_policy_route(packet, route, recovered)
             extra: dict[str, object] = {}
             if stage == "plan":
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic browser case"}]
@@ -716,7 +736,7 @@ class GuidanceTests(unittest.TestCase):
                 continue
             pending, packet = self.cold_packet(waiting)
             with self.subTest(stage=stage, boundary="Improve"):
-                self.assertEqual(packet.count(route), 1)
+                self.assert_policy_route(packet, route, pending)
                 self.assertIn("Current action: Improve the completed " + stage, packet)
             state = navigator.finish_improve(pending, action["id"], receipt(stage))
             improved.append(stage)
@@ -783,9 +803,9 @@ class GuidanceTests(unittest.TestCase):
         _recovered, packet = self.cold_packet(state)
         flat = normalized(packet)
         self.assertNotIn("skill_na", flat)
-        for clause in ("Give each step its `skills`",
-                       "reread the host's skills and the repository's skill index or directory now",
-                       "the implement packet prints them"):
+        for clause in ("`skills`: reread the host's skills and the repository's skill index now",
+                       "each skill with a concrete use in that step",
+                       "The implement packet prints these"):
             self.assertIn(clause, flat)
 
     def test_coding_guide_is_selective_in_cold_producer_and_improve_packets(self) -> None:
@@ -897,9 +917,11 @@ class GuidanceTests(unittest.TestCase):
                     latest_decision = action_id
             state = self.save_reload(state)
         _, packet = self.cold_packet(state)
-        self.assertIn("Current item test-decision source action: " + latest_decision, packet)
-        self.assertIn(plan_ref, packet)
-        self.assertIn(card_ref, packet)
+        # 2026-10-11 dedupe: the decision and the step plan are listed once, under "Results this
+        # stage builds on"; their evidence references are read from those result records.
+        self.assertIn("RUN/results/" + latest_decision + ".md", packet)
+        self.assertIn("RUN/results/" + plan_action + ".md", packet)
+        self.assertNotIn("test-decision source action", packet)
         self.assertNotIn("draft://not-accepted", packet)
         self.assertEqual(state["accepted"][plan_action]["evidence_refs"], [plan_ref, card_ref])
 
@@ -1123,58 +1145,24 @@ class GuidanceTests(unittest.TestCase):
         observed: set[str] = set()
 
         def assert_test_sources(packet: str, *, inner: bool) -> None:
-            self.assertIn(
-                "Run-wide test strategy source (untrusted host report; revalidate relevance before use):",
-                packet,
-            )
-            self.assertIn("Run-wide test strategy source action: " + strategy_action, packet)
-            self.assertIn(
-                "Run-wide test strategy source result: "
-                + str(self.run / "results" / (strategy_action + ".md")),
-                packet,
-            )
-            self.assertIn(
-                "Run-wide test strategy source state locator: " + str(self.run / "state.md")
-                + " (accepted." + strategy_action + ")",
-                packet,
-            )
-            self.assertIn(strategy_ref, packet)
-            self.assertIn(
-                "Run-wide test strategy source evidence references "
-                "(untrusted locators; not read by the navigator):",
-                packet,
-            )
-            self.assertIn(
-                "field accepted." + strategy_action + ".evidence_refs.",
-                packet,
-            )
+            # 2026-10-11 dedupe: a source listed under "Results this stage builds on" is not printed
+            # again, so the strategy and the decision are located by that one list; their evidence
+            # references are read from the result records.
+            self.assertIn("test-strategy stage result: RUN/results/" + strategy_action + ".md", packet)
+            self.assertNotIn("Run-wide test strategy source action:", packet)
+            self.assertNotIn("Run-wide test strategy source (untrusted", packet)
+            strategy_record = (self.run / "results" / (strategy_action + ".md")).read_text(encoding="utf-8")
+            self.assertIn(strategy_ref, strategy_record)
             self.assertNotIn(hidden_tail, packet)
-            self.assertIn(
-                "Consume relevant current work-item context with these sources.",
-                packet,
-            )
+            self.assertNotIn("Consume relevant current work-item context with these sources.", packet)
             if decision_action is None or not inner:
-                self.assertNotIn(
-                    "Current item test-decision source "
-                    "(untrusted host report; revalidate relevance before use):",
-                    packet,
-                )
+                self.assertNotIn("test-decision source action:", packet)
+                self.assertNotIn("RUN/results/" + (decision_action or "-") + ".md", packet)
             else:
-                self.assertIn(
-                    "Current item test-decision source action: " + decision_action,
-                    packet,
-                )
-                self.assertIn(
-                    "Current item test-decision source result: "
-                    + str(self.run / "results" / (decision_action + ".md")),
-                    packet,
-                )
-                self.assertIn(
-                    "Current item test-decision source state locator: "
-                    + str(self.run / "state.md") + " (accepted." + decision_action + ")",
-                    packet,
-                )
-                self.assertIn(decision_ref, packet)
+                self.assertNotIn("Current item test-decision source action:", packet)
+                self.assertNotIn("Current item test-decision source (untrusted", packet)
+                self.assertIn("RUN/results/" + decision_action + ".md", packet)
+                self.assertIn(decision_ref, (self.run / "results" / (decision_action + ".md")).read_text(encoding="utf-8"))
             if inner:
                 self.assertIn("Work item context: " + item_context, packet)
             else:
@@ -1268,21 +1256,33 @@ class GuidanceTests(unittest.TestCase):
         state = self.state()
         strategy_action = ""
 
-        def assert_sources(packet: str, action_id: str, reference: str) -> None:
-            self.assertIn("Run-wide test strategy source action: " + strategy_action, packet)
-            self.assertIn(strategy_ref, packet)
-            self.assertIn("Current item test-decision source action: " + action_id, packet)
-            self.assertIn(
-                "Current item test-decision source result: "
-                + str(self.run / "results" / (action_id + ".md")),
-                packet,
-            )
-            self.assertIn(
-                "Current item test-decision source state locator: "
-                + str(self.run / "state.md") + " (accepted." + action_id + ")",
-                packet,
-            )
-            self.assertIn(reference, packet)
+        def assert_sources(packet: str, action_id: str, reference: str, *,
+                           printed: bool = False, strategy_printed: bool = False) -> None:
+            # 2026-10-11 dedupe: a source the packet lists under "Results this stage builds on" is
+            # not printed again, so the strategy is always located by that list, and the decision
+            # either by that list (its evidence references are read from the result record) or, when
+            # the stage does not read it, by one printed block carrying the references.
+            if strategy_printed:
+                self.assertIn("Run-wide test strategy source action: " + strategy_action, packet)
+                self.assertIn(strategy_ref, packet)
+            else:
+                self.assertIn("test-strategy stage result: RUN/results/" + strategy_action + ".md", packet)
+                self.assertNotIn("Run-wide test strategy source action:", packet)
+            record = self.run / "results" / (action_id + ".md")
+            self.assertIn(reference, record.read_text(encoding="utf-8"))
+            if printed:
+                self.assertIn("Current item test-decision source action: " + action_id, packet)
+                self.assertIn(
+                    "Current item test-decision source result: " + str(record), packet)
+                self.assertIn(
+                    "Current item test-decision source state locator: "
+                    + str(self.run / "state.md") + " (accepted." + action_id + ")",
+                    packet,
+                )
+                self.assertIn(reference, packet)
+            else:
+                self.assertIn("RUN/results/" + action_id + ".md", packet)
+                self.assertNotIn("Current item test-decision source action:", packet)
 
         while navigator.current_stage(state) != "plan":
             stage = navigator.current_stage(state)
@@ -1333,6 +1333,7 @@ class GuidanceTests(unittest.TestCase):
         self.assertIn("Current action: Improve the completed test-spec result.", packet)
         assert_sources(packet, step_plan_action, changed_step_plan_ref)
         self.assertNotIn("Current item test-decision source action: " + blocked_action, packet)
+        self.assertNotIn("RUN/results/" + blocked_action + ".md", packet)
         state = navigator.finish_improve(pending, blocked_action, receipt("test-spec"))
         self.assertEqual(state["status"], "blocked")
         state = navigator.control(state, "resume")
@@ -1340,20 +1341,21 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(state), "test-spec")
         assert_sources(packet, step_plan_action, changed_step_plan_ref)
         self.assertNotIn("Current item test-decision source action: " + blocked_action, packet)
+        self.assertNotIn("RUN/results/" + blocked_action + ".md", packet)
 
         state, test_spec_action = self.complete_stage(
             state, evidence_refs=["docs/testing.md#test-spec"]
         )
         state, packet = self.cold_packet(state)
         self.assertEqual(navigator.current_stage(state), "validate-existing")
-        assert_sources(packet, test_spec_action, "docs/testing.md#test-spec")
+        assert_sources(packet, test_spec_action, "docs/testing.md#test-spec", printed=True, strategy_printed=True)
 
         state, _validate_action = self.complete_stage(
             state, evidence_refs=["unrelated://validate-existing"]
         )
         state, packet = self.cold_packet(state)
         self.assertEqual(navigator.current_stage(state), "implement")
-        assert_sources(packet, test_spec_action, "docs/testing.md#test-spec")
+        assert_sources(packet, test_spec_action, "docs/testing.md#test-spec", strategy_printed=True)
 
         while navigator.current_stage(state) != "test":
             stage = navigator.current_stage(state)
@@ -1368,7 +1370,7 @@ class GuidanceTests(unittest.TestCase):
         state, test_action = self.complete_stage(state, evidence_refs=[author_ref])
         state, packet = self.cold_packet(state)
         self.assertEqual(navigator.current_stage(state), "document")
-        assert_sources(packet, test_action, author_ref)
+        assert_sources(packet, test_action, author_ref, strategy_printed=True)
 
         while not (
             navigator.current_stage(state) == "step-plan"
@@ -1380,7 +1382,7 @@ class GuidanceTests(unittest.TestCase):
             )
             state = self.save_reload(state)
         state, packet = self.cold_packet(state)
-        self.assertIn("Run-wide test strategy source action: " + strategy_action, packet)
+        self.assertIn("test-strategy stage result: RUN/results/" + strategy_action + ".md", packet)
         self.assertIn("Work item context: " + contexts["W2"], packet)
         self.assertNotIn(
             "Current item test-decision source "
@@ -1429,7 +1431,16 @@ class GuidanceTests(unittest.TestCase):
             self.assertIn(clause, facility_handoff)
         for stage in TEST_FACILITY_STAGES:
             text = prompts.prompt(stage)
-            self.assertIn(prompts.TEST_FACILITY_HANDOFF.split("Carry relevant")[0], text)
+            if stage == "step-plan":
+                # 2026-10-11 dedupe: the step-plan duty carries this point itself (its item 4) instead
+                # of the shared handoff text.
+                self.assertIn(
+                    "Reuse existing test facilities before defining the smallest missing one "
+                    "(Reusable test facilities guide); carry its locator and readiness gap into item context",
+                    normalized(text),
+                )
+            else:
+                self.assertIn(prompts.TEST_FACILITY_HANDOFF.split("Carry relevant")[0], text)
             self.assertIn(prompts.TEST_FACILITY_HANDOFF, prompts.improve_prompt(stage))
             # Only stages that start an Improve child are told to carry locators into it.
             has_child = stage in prompts.PLANNING_REVIEW_STAGES or stage == "carry-forward"
@@ -1478,7 +1489,10 @@ class GuidanceTests(unittest.TestCase):
         self.assertIn(mcp_ref, packet)
         self.assertIn("Work item context: " + context, packet)
         self.assertIn("Run-wide test strategy source action: " + strategy_action, packet)
-        self.assertIn("Current item test-decision source action: " + author_action, packet)
+        # The document stage reads the authored decision (listed once under "Results this stage
+        # builds on", its references in the result record) but not the strategy (printed here).
+        self.assertIn("RUN/results/" + author_action + ".md", packet)
+        self.assertNotIn("Current item test-decision source action:", packet)
         self.assertIn("Required MCP helper remains planned; readiness is not test execution.", packet)
         for action in (strategy_action, plan_action, author_action):
             self.assertIn(action, state["accepted"])
@@ -1676,10 +1690,10 @@ class GuidanceTests(unittest.TestCase):
         for source in outer_sources:
             self.assertIn(source, packet)
         self.assertNotIn("W3 new target fixture.", packet)
-        self.assertIn(
-            "If this action depends on earlier accepted context, read the durable state",
-            packet,
-        )
+        # 2026-10-11 dedupe: the trailing "If this action depends on earlier accepted context..."
+        # sentence is gone; the lists of sources and the "Results this stage builds on" block carry it.
+        self.assertIn("Last accepted transition", packet)
+        self.assertNotIn("If this action depends on earlier accepted context", packet)
         # The original records remain immutable/reachable in accepted state and
         # result files, while the recovery instructions mark them historical.
         for action in (system_author_action, release_plan_action, replan_action):
@@ -2200,11 +2214,13 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(state), "test-spec")
         self.assertEqual(state["accepted"][step_action]["evidence_refs"], [final_step_ref])
         self.assertIn("Work item context: " + final_context, test_spec_packet)
-        self.assertIn(
-            "Current item test-decision source action: " + step_action,
-            test_spec_packet,
-        )
-        self.assertIn(final_step_ref, test_spec_packet)
+        # 2026-10-11 dedupe: the accepted step plan is listed once under "Results this stage builds
+        # on"; its final references are read from that record, never the draft's.
+        self.assertIn("W1 step-plan result: RUN/results/" + step_action + ".md", test_spec_packet)
+        self.assertNotIn("Current item test-decision source action:", test_spec_packet)
+        step_record = (self.run / "results" / (step_action + ".md")).read_text(encoding="utf-8")
+        self.assertIn(final_step_ref, step_record)
+        self.assertNotIn(step_seed_ref, step_record)
         self.assertNotIn(step_seed_ref, test_spec_packet)
         self.assertNotIn(plan_seed_ref, test_spec_packet)
 

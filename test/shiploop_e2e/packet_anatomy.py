@@ -78,6 +78,13 @@ RULES: tuple[Rule, ...] = (
     # --- result contract and template (_result_contract_lines)
     _r("result-contract", r"^Write the structured result to:", "before",
        r"^(Run context index|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
+    # The 2026-10-11 dedupe dropped that line (the callback line names the result file), so a packet now opens its
+    # contract at "Result template:" (the old rule above still wins on a saved run, which has both).  The compact
+    # template is laid out one top-level key per line and one list element per line (_compact_record), so its rows
+    # (two-space keys, four-space `{"` elements) stay inside this block; "Fill the template" follows the narrative.
+    _r("result-contract", r"^Result template:$", "before",
+       r"^(Run context index|Step \S+ \(\d+ of \d+\)|Progress snapshot|Item plan:|Considerations for this stage)"),
+    _r("result-contract", r"^Fill the template:"),
     # --- context index and pass log (_context_index_lines)
     _r("context-index", r"^Run context index"),
     _r("context-index", r"^This action's pass log"),
@@ -96,6 +103,8 @@ RULES: tuple[Rule, ...] = (
        r"ShipLoop skill card|Run directory locator|Keepalive marker|Owner):"),
     _r("state-locators", r"^Scratch directory \("),
     _r("recovery", r"^Recovery command:$", "count", n=2),
+    # One line since the 2026-10-11 dedupe ("Recovery command (it only reads ...):"), followed by the command line.
+    _r("recovery", r"^Recovery command \(", "count", n=2),
     _r("recovery", r"^(Retain these locators and recovery command|After interruption, check the paths|"
        r"Recovery only reads the saved state|Execute this packet in this conversation|"
        r"Give the executing agent only the current action packet)"),
@@ -123,7 +132,11 @@ RULES: tuple[Rule, ...] = (
     _r("planning-sources", r"^Current accepted root actions below are the planning basis"),
     _r("planning-sources", r"^- \S+: (.*; full summary and evidence_refs|no current accepted result)"),
     # --- last accepted transition and Improve lessons
-    _r("last-accepted", r"^Last accepted transition", "until", r"^If this action depends on earlier accepted context"),
+    # The block ends at its END marker; its Evidence references lines (printed only when there are any) and, in a saved
+    # run, the trailing "If this action depends on earlier accepted context" sentence are claimed by the rules after it.
+    _r("last-accepted", r"^Last accepted transition", "until", r"^----- END LAST ACCEPTED SUMMARY -----$"),
+    _r("last-accepted", r"^Evidence references \(untrusted locators", "bullets"),
+    _r("last-accepted", r"^If this action depends on earlier accepted context"),
     _r("last-accepted", r"^Last accepted Improve lessons", "count", n=2),
     _r("last-accepted", r"^Prior Improve evidence and lessons"),
     # --- carried test sources (_test_context_lines, _step_planning_source_lines)
@@ -145,7 +158,10 @@ RULES: tuple[Rule, ...] = (
     _r("environment-discovery", r"^(Environment discovery requirement|One investigation allowance|"
        r"Recursive discovery policy|Navigator adapter)"),
     # --- the stage guidance block is split by blank-line gaps (see _split_guidance)
-    _r("stage-guidance", r"^Current stage guidance:$", "before", r"^Call this when done:$"),
+    # It ends at the tail callbacks: the old "Call this when done:" line, or (2026-10-11 dedupe, the second callback is
+    # gone) the "Improve:" line that now opens the tail.
+    _r("stage-guidance", r"^Current stage guidance:$", "before",
+       r"^(Call this when done:$|Improve: |Pause without consuming the action|Halt \(terminal)"),
     # --- tail callbacks
     _r("tail-callbacks", r"^Call this when done:$", "count", n=2),
     _r("tail-callbacks", r"^(Improve: |Pause without consuming the action|Halt \(terminal)"),
@@ -168,6 +184,8 @@ RULES: tuple[Rule, ...] = (
     # --- reading list: a "Label: /absolute/path[#anchor]" line (_run_rules policies and guides, STAGE_REFERENCES)
     _r("reading-list", r"^[^:\n]{3,140}: /[^ \n]+$"),
     _r("reading-list", r"^[^:\n]{3,140}: [A-Za-z0-9_.-]+\.md$"),
+    # One pointer line replaces every locator the packet's stage text does not name (2026-10-11 dedupe).
+    _r("reading-list", r"^Every other policy and guide"),
 )
 
 # Parts of the stage-guidance block (guidance.prompt joins its parts with two blank lines): the first line decides.
@@ -180,6 +198,9 @@ GUIDANCE_PARTS: tuple[tuple[str, re.Pattern], ...] = (
     ("guidance-test-facility", re.compile(r"^Use the packet's Reusable test facilities guide")),
     ("code-craft-rubric", re.compile(r"^Code craft\.")),
     ("progress-rules", re.compile(r"^Progress: do not reprint this packet")),
+    # The one short list that replaced COMMON, PROGRESS_REPORTING and REQUIREMENTS_RULES (bullets begin "- " and
+    # continue on lines indented by two spaces).
+    ("stage-rules", re.compile(r"^Rules for every stage")),
 )
 GUIDANCE_DUTY = "stage-duty"
 POST_HALT_LOOP = "loop-and-quality-tail"
@@ -195,7 +216,7 @@ SECTION_ORDER = (
     "recovery", "original-request", "workspace-return", "backchain", "work-queue-rules", "planning-sources", "last-accepted",
     "carried-sources", "work-item", "knowledge-home", "environment-discovery", "guidance-common", GUIDANCE_DUTY,
     "interaction-lifecycle", "work-item-context", "planning-handoff", "guidance-backchain", "guidance-test-facility",
-    "code-craft-rubric", "progress-rules", "tail-callbacks", "lint", POST_HALT_LOOP, "improve-contract", "improve-step-result",
+    "code-craft-rubric", "progress-rules", "stage-rules", "tail-callbacks", "lint", POST_HALT_LOOP, "improve-contract", "improve-step-result",
     "improve-binding", "improve-planning", "improve-review-focus", "improve-ownership", "improve-stage-requirements",
     "improve-return", UNCLASSIFIED,
 )
