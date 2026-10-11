@@ -566,29 +566,44 @@ class RefusalRouteTests(RealCliCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return run, result, action
 
-    def test_a_close_whose_files_have_no_named_sections_is_accepted_and_prints_one_counted_line_per_section(self) -> None:
+    @staticmethod
+    def named_in(line: str) -> list:
+        """The headings a printed notice line names: the quoted words between the prefix and the first semicolon."""
+        return re.findall(r"'([^']+)'", line[len(knowledge.NOTICE_PREFIX):].split(";", 1)[0])
+
+    def test_a_close_whose_files_have_no_named_sections_is_accepted_and_prints_one_counted_line_per_file(self) -> None:
         # The notice is not a refusal: prose files that the refusal asked for are accepted by the same command, and the
         # lines are on stdout, each starting with the fixed prefix, the file's absolute path first.
         run, result, action = self.accept_a_prepare_with_files(sectioned=False)
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
         found = [row for row in result.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX)]
-        self.assertEqual(len(found), sum(len(headings) for headings in knowledge.SECTIONS.values()))
+        self.assertEqual(len(found), len(knowledge.SECTIONS))
         self.assertEqual(found, knowledge.section_notices(self.state(run), "prepare"))
-        self.assertEqual(sorted({row.split(" ")[3] for row in found}),
-                         sorted(str(self.repo_of(run) / knowledge.HOME / name) for name in knowledge.SECTIONS))
+        self.assertEqual([row.split(" ")[3] for row in found],
+                         [str(self.repo_of(run) / knowledge.HOME / name) for name in knowledge.SECTIONS])
+        self.assertEqual([heading for row in found for heading in self.named_in(row)],
+                         [heading for headings in knowledge.SECTIONS.values() for heading in headings])
+        self.assertEqual("".join(row for row in result.stdout.splitlines(True) if row.startswith(knowledge.NOTICE_PREFIX)),
+                         "".join(row + "\n" for row in found))
+        self.assertEqual(result.stdout.count(knowledge.ARCHITECTURE_HOLDS), 1)
         self.assertNotIn(knowledge.NOTICE_PREFIX, result.stderr)
         self.assertTrue(self.git(self.repo_of(run), "log", "-1", "--format=%s").strip().endswith("knowledge at prepare"))
 
-    def test_the_fix_a_notice_names_applied_to_its_file_silences_that_line_and_only_that_line(self) -> None:
-        # The notice is no gate, so the way out is read from the printed line itself: the heading it says to add.
+    def test_the_fix_a_notice_names_applied_to_its_file_silences_that_heading_and_only_that_heading(self) -> None:
+        # The notice is no gate, so the way out is read from the printed line itself: the headings it names, the '## ' it says.
         run, result, action = self.accept_a_prepare_with_files(sectioned=False)
-        line = next(row for row in result.stdout.splitlines() if "environment.md has no 'Commands' section" in row)
+        printed = [row for row in result.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX)]
+        line = next(row for row in printed if " " + str(self.repo_of(run) / knowledge.HOME / "environment.md") + " has " in row)
+        self.assertIn("'Commands'", line.split(";", 1)[0])
+        self.assertIn("add the heading if missing", line)
         file = Path(line.split(" ")[3])
-        heading = re.search(r"add a '(## [^']+)' section", line).group(1)
-        file.write_text(file.read_text(encoding="utf-8") + "\n" + heading + "\n\nnpm test\n", encoding="utf-8")
+        file.write_text(file.read_text(encoding="utf-8") + "\n## Commands\n\nnpm test\n", encoding="utf-8")
         again = knowledge.section_notices(self.state(run), "prepare")
-        self.assertNotIn(line, again)
-        self.assertEqual(again, [row for row in result.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX) and row != line])
+        self.assertEqual(len(again), len(printed))
+        self.assertEqual([row for row in again if row != again[printed.index(line)]], [row for row in printed if row != line])
+        expected = [heading for heading in self.named_in(line) if heading != "Commands"]
+        self.assertEqual(self.named_in(again[printed.index(line)]), expected)
+        self.assertNotIn("'Commands'", again[printed.index(line)].split(";", 1)[0])
 
     def test_a_close_whose_files_have_every_named_section_is_accepted_and_prints_no_notice(self) -> None:
         run, result, action = self.accept_a_prepare_with_files(sectioned=True)
@@ -614,7 +629,7 @@ class RefusalRouteTests(RealCliCase):
         rows = [(row["stage"], row["outcome"]) for row in self.state(run)["history"][before:]]
         self.assertEqual(rows, [("test-spec", "done"), ("validate-existing", "done")], "the route under test")
         found = [row for row in result.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX)]
-        self.assertEqual(len(found), sum(len(headings) for headings in knowledge.SECTIONS.values()))
+        self.assertEqual(len(found), len(knowledge.SECTIONS))
         self.assertEqual(found, knowledge.section_notices(self.state(run), "test-spec"))
 
     def test_a_stage_that_is_no_close_prints_no_notice_although_a_file_lacks_its_sections(self) -> None:

@@ -550,9 +550,10 @@ planning starts from the recorded commands.
 (`knowledge_home.SECTIONS`, the one list; a test pins that every heading a packet duty
 names for these files is in it), and a heading is created when the file lacks it. At
 the same four closes ShipLoop counts the sections a file lacks, as a notice, not a
-refusal: for each of the four files that exists and has text, one line
-`ShipLoop knowledge notice: <absolute file> has no '<heading>' section (this close is accepted); ...`
-(or `has an empty '<heading>' section`) per heading, and the close is accepted either
+refusal: one line per file that exists, has text and has anything to report (four at
+most a close), naming every heading the file lacks or leaves empty:
+`ShipLoop knowledge notice: <absolute file> has no '<heading>', '<heading>' section and an empty '<heading>' section (this close is accepted); for each, write its content under a '## <heading>' (add the heading if missing), or write 'none' there if it does not apply.`
+The architecture file's line ends with what that file holds. The close is accepted either
 way (on the saved homes the headings are nearly absent, so a refusal would fire at
 nearly every first close). The lines print on the stdout of the call that accepted the
 close, even when the script records another stage after it (test-spec, then
@@ -562,12 +563,16 @@ start of its line and outside a code fence, starts with the name, in any case
 heading of the same or a higher level; write `none` under a heading when nothing
 applies. Only that form counts: an indented heading, a heading underlined with `---`
 (setext) and any heading after a code fence that is never closed are not read, so a
-file written that way is told to add the section. Count the lines by occurrence, with
-`grep -o 'ShipLoop knowledge notice: ' <events> | wc -l`, and per close by the
-occurrences in each event: a host that logs a call's whole stdout as one event line
-makes `grep -c` count the notices of a close as one. Whether the notice becomes a
-refusal waits for a live run that shows packets which quote the headings get them
-written.
+file written that way is told to add the section. Count by occurrence, because a host
+that logs a call's whole stdout as one event line makes `grep -c` count the notices of a
+close as one. A line is a file: `grep -o 'ShipLoop knowledge notice: ' events.jsonl | wc -l`
+counts the files reported, and the headings are the quoted names before each line's first
+semicolon: `grep -o 'ShipLoop knowledge notice: [^;]*' events.jsonl | grep -o "'[^']*'" | wc -l`
+(a path with an apostrophe or a semicolon would miscount). Per close, one event line is one
+call: `awk '{n=gsub(/ShipLoop knowledge notice: /,"&")} n{print NR": "n}' events.jsonl` prints
+the files reported in each event, and `sed -n '<N>p' events.jsonl` in front of the heading
+command counts one event's headings. Whether the notice becomes a refusal waits for a live
+run that shows packets which quote the headings get them written.
 
 **The feature spec is retired at handoff.** The run's `features/<slug>/spec.md` is its
 historical record once it is committed with the plan. When the final handoff is

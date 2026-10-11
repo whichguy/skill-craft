@@ -1407,7 +1407,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual([(row["stage"], row["outcome"]) for row in state["history"][before:]],
                          [("test-spec", "done"), ("validate-existing", "done")], "the route under test")
         found = [row for row in imported.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX)]
-        self.assertEqual(len(found), sum(len(headings) for headings in knowledge.SECTIONS.values()))
+        self.assertEqual(len(found), len(knowledge.SECTIONS))  # one line per file
         self.assertEqual(found, knowledge.section_notices(state, "test-spec"))
         self.assertNotIn(knowledge.NOTICE_PREFIX, imported.stderr)
 

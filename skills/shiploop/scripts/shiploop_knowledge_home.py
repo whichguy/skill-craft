@@ -18,8 +18,8 @@ A later run starts from these files.
     docs/shiploop/features/README.md ShipLoop's list of the folders above (FEATURE_LIST)
 
 The four fact files (spec, environment, architecture, test strategy) have named sections (``SECTIONS``).  At the same four
-closes ShipLoop prints one counted notice line per section a file that exists lacks or leaves empty (``section_notices``); it
-is a notice, never a refusal.
+closes ShipLoop prints one counted notice line per file that exists and lacks a section or leaves one empty, naming each
+(``section_notices``); it is a notice, never a refusal.
 
 At handoff the run's feature spec.md is checked against the living spec (every requirement ID it names must be there)
 and, when the run's commits reach the user's branch, removed in a commit of its own (``retire``); the last committed
@@ -353,11 +353,16 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
 # --- the sections check: a counted notice -------------------------------------------------------------------------
 
 # Every notice line starts with this, so a reader or the harness counts them by occurrence (grep -o: the host events log a call's
-# whole stdout as one line).  Distinct from the "ShipLoop knowledge: " lines (a commit, a kept file), which a count of those must
-# not pick up.
+# whole stdout as one line).  A line is one file, so the count is files; the headings are the quoted names before the line's
+# first semicolon (references/project-knowledge.md gives both commands).  Distinct from the "ShipLoop knowledge: " lines (a commit,
+# a kept file), which a count of those must not pick up.
 NOTICE_PREFIX = "ShipLoop knowledge notice: "
 # Said in every line: a model that reads the lines alone, after the close, learns that the close did not fail.
 _ACCEPTED = "(this close is accepted)"
+# The one fix, the same words for a missing heading and an empty one.  'none' under a heading is text, so a heading that
+# legitimately has nothing can clear its own line.
+_FIX = ("for each, write its content under a '## <heading>' (add the heading if missing), "
+        "or write 'none' there if it does not apply.")
 # A fence opens as CommonMark says: up to three spaces, then three or more backticks or tildes; the text after a backtick run holds
 # no backtick (so a line that starts with inline code, ```npm test``` is it, opens nothing).  A line that opens a fence by
 # mistake would hide every later heading.
@@ -402,24 +407,17 @@ def _section_state(lines: Sequence[str], outline: Sequence[Tuple[int, int, str]]
     return "empty" if found else "missing"
 
 
-def _section_hint(name: str, first: bool) -> str:
-    """What a notice says the file holds, in the words of the constants: the table's headings, and for the architecture file
-    ARCHITECTURE_HOLDS once (on the first line printed for it: the lines print as one block, and the repeats would be the same
-    words six times)."""
-    if name == ARCHITECTURE and first:
-        return name + " holds " + ARCHITECTURE_HOLDS
-    return name + " has the sections " + ", ".join(SECTIONS[name])
-
-
 def section_notices(state: Mapping[str, Any], stage: str) -> List[str]:
     """Notice lines for the named sections a living file lacks, at a close; [] at any other stage.
 
     A counted notice, not a refusal: on the saved homes the headings are nearly absent (docs/shiploop-knowledge-sections-journal-
-    2026-10-10.md), so a refusal would fire at nearly every first close until packets quote the headings.  For each file in
-    ``SECTIONS`` that exists and has text, one line per heading that is missing or empty, in the table's order; an absent or
-    blank file gives none (the close's own refusal asks for it).  Every line starts with ``NOTICE_PREFIX``, then the file's
-    absolute path as the next word (the same in a missing and an empty line), then the heading, that the close is accepted, and
-    the fix.  It reads files only and never raises: a file that cannot be read gives no line.
+    2026-10-10.md), so a refusal would fire at nearly every first close until packets quote the headings.  One line per file in
+    ``SECTIONS`` that exists, has text and has anything to report (so four at most), in the table's order; an absent or blank
+    file gives none (the close's own refusal asks for it).  A line is ``NOTICE_PREFIX``, the file's absolute path as the next
+    word, ``has no '<A>', '<B>' section`` for the headings missing and ``an empty '<C>' section`` for those with nothing under
+    them (both joined by ``and``, each list in the table's order), that the close is accepted, and the one fix; the architecture
+    file's line ends with what the file holds (``ARCHITECTURE_HOLDS``), once in the block.  It reads files only and never
+    raises: a file that cannot be read gives no line.
     """
     if stage not in CLOSES:
         return []
@@ -434,17 +432,16 @@ def section_notices(state: Mapping[str, Any], stage: str) -> List[str]:
             lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
         except OSError:
             continue
-        outline, first = _outline(lines), True
-        for heading in headings:
-            found = _section_state(lines, outline, heading)
-            hint = _section_hint(name, first)
-            if found == "missing":
-                notices.append(NOTICE_PREFIX + str(path) + " has no '" + heading + "' section " + _ACCEPTED + "; add a '## "
-                               + heading + "' section (" + hint + "), or write 'none' under it when nothing applies.")
-            elif found == "empty":
-                notices.append(NOTICE_PREFIX + str(path) + " has an empty '" + heading + "' section " + _ACCEPTED
-                               + "; write under it (" + hint + "), or write 'none' when nothing applies.")
-            first = first and found == "present"
+        outline = _outline(lines)
+        found = {heading: _section_state(lines, outline, heading) for heading in headings}
+        said = []
+        for state_name, lead in (("missing", "no "), ("empty", "an empty ")):
+            quoted = ["'" + heading + "'" for heading in headings if found[heading] == state_name]
+            if quoted:
+                said.append(lead + ", ".join(quoted) + " section")
+        if said:
+            notices.append(NOTICE_PREFIX + str(path) + " has " + " and ".join(said) + " " + _ACCEPTED + "; " + _FIX
+                           + (" " + name + " holds " + ARCHITECTURE_HOLDS + "." if name == ARCHITECTURE else ""))
     return notices
 
 

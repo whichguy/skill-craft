@@ -1960,7 +1960,7 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     notice = shiploop_git.skipped_notice(committed.skipped)
     if notice:
         print("ShipLoop knowledge: " + notice)
-    # At a close only: one counted line per named section a living file lacks (never a refusal, never raised).  The close is
+    # At a close only: one counted line per living file that lacks named sections (never a refusal, never raised).  The close is
     # the stage among this call's accepted rows that closes, not the last row: test-spec is followed in the same call by the
     # validate-existing row the script records, and the last row alone would leave that close silent.
     close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])
