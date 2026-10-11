@@ -4,6 +4,38 @@ Written by scripts/release.py.
 
 ## 2026-10-11
 
+### skill-craft 2.2.0
+
+- Skills: improve 0.4.0, shiploop 1.2.0
+
+### improve 0.4.0
+
+- The improve skill accepts `ShipLoop Improve: <handoff path>` as its argument. ShipLoop's Improve packet now only invokes
+  the skill and names the done command (owner, 2026-10-11). The handoff file ShipLoop writes takes the place of the packet
+  in the "ShipLoop whole-skill subcall" section: the binding marker, the result under review, the start, commit and
+  return commands, and the evidence files.
+
+### shiploop 1.2.0
+
+- A completed Improve child that ended on one unchanged trivial pass, with files changed after its bind, now restarts
+  through `improve-start --restart-stopped`. Before this change, `improve-complete` refused it and told the model to "run
+  the loop's next review", but that loop was already complete and `--restart-stopped` refused any child that was not
+  stopped. The run had no route forward and paused (live node-add-route slice, 2026-10-11). The refusal's first line now
+  ends with the restart command. A test runs that command through the real CLI.
+- The ShipLoop packets are re-cut for concision (owner, 2026-10-11); the plan and rubric are in
+  docs/shiploop-packet-recut-2026-10-11.md.
+  - **Duties.** Every stage's goal is one action sentence that says where its output goes, and every duty is a short
+    numbered list.
+  - **Shared rules.** Cut to the five that live runs showed are needed.
+  - **Code craft.** Prints in full at implement only. Each step's Improve review and verify apply it.
+  - **Loop mechanics.** These live on the Until Loop card.
+  - **Printing.** A packet at or under 16k characters prints whole.
+  - **Improve packet.** Two instructions: run the improve skill with the handoff path, then run `improve-complete`.
+    ShipLoop binds the recorded card itself, and everything else goes in the handoff file beside the opening.
+  - **No advance mention.** No producer packet mentions Improve ahead of time, and Improve never mentions Backchain.
+
+  On the live node-fix-bug slice, the packet characters written fell from 546k to 212k.
+
 ### skill-craft 2.1.0
 
 - Skills: ask-agent 0.10.1, in-parallel 0.1.0, plan-dispatcher 0.6.3, shiploop 1.1.0
