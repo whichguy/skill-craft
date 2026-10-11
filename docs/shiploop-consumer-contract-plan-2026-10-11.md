@@ -200,6 +200,14 @@ Each slice is built fail-first, gets two independent reviews and a fix round, an
 
 ## 6. Owner decisions, each anchored where ShipLoop would consume the answer
 
+**Answered 2026-10-11** (recorded in `docs/shiploop-consumer-contract-probes-2026-10-11.md`):
+1. Removals approved.
+2. Test cases are a state field (Option A).
+3. Report only; no plan copy in the repository.
+4. Lessons go in a release-verify field and its commit, and are quoted at the next intake by subject.
+
+The engine work lands with the inner-loop session's packet work on the shared branch `integrate/refs-consumer-contract`, verified once on the combined result.
+
 1. **Approve the contract and the removals (3.2).**
    - Consumed by: steps 4a to 4e as a whole.
    - Reverses three earlier decisions: knowledge retained as files at planning, the feature-spec lifecycle, and the features list.
