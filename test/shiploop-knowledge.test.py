@@ -993,6 +993,11 @@ class FeatureListTests(HomeCase):
         listed.symlink_to(self.repo / "app.py")                                              # a link is not ShipLoop's
         self.assertEqual(knowledge.earlier_features(self.state), foreign)
         listed.unlink()
+        generated = self.repo.parent / "generated-list.md"
+        generated.write_text(knowledge.feature_list(self.repo), encoding="utf-8")            # even a link to a generated list
+        listed.symlink_to(generated)
+        self.assertEqual(knowledge.earlier_features(self.state), foreign)
+        listed.unlink()
         self.assertTrue(knowledge.commit(dict(self.state, run_id="nav-0000000000999999"), "plan").commit)   # the list gets written
         self.assertIn("lists every feature folder", knowledge.earlier_features(self.state))
 

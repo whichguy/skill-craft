@@ -276,6 +276,19 @@ class EvidenceAfterRetireTests(kt.HomeCase):
                 with self.assertRaisesRegex(navigator.NavigatorError, "cite files that do not exist"):
                     self.cite(ref)
 
+    def test_a_removal_that_wears_the_retire_subject_outside_the_features_folder_is_not_tolerated(self) -> None:
+        """The retire subject names a folder, not a place: only a spec under the home's features folder is a feature spec."""
+        elsewhere = self.repo / "docs" / "shiploop" / "elsewhere" / "x-aaaaaa" / "spec.md"     # the same depth, another place
+        self.write("docs/shiploop/elsewhere/x-aaaaaa/spec.md", "x\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "a file in another place")
+        elsewhere.unlink()
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", knowledge.retire_subject(dict(self.state, prompt="x", run_id="nav-0000000000aaaaaa")))
+        self.assertTrue(knowledge.retired_by(self.repo, "docs/shiploop/elsewhere/x-aaaaaa"))   # the log alone would accept it
+        with self.assertRaisesRegex(navigator.NavigatorError, "cite files that do not exist: .*elsewhere/x-aaaaaa/spec.md"):
+            self.cite(str(elsewhere))
+
     def test_without_a_repository_nothing_is_tolerated(self) -> None:
         self.assertTrue(knowledge.retire(self.state, True).commit)
         with self.assertRaisesRegex(navigator.NavigatorError, "cite files that do not exist"):
