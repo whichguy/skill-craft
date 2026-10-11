@@ -382,6 +382,8 @@ def contract(root: Path, state: Mapping[str, Any], action_id: str) -> dict[str, 
         import shiploop_test_loop as test_loop
 
         commands = test_loop.stage_commands(state, stage, item)[0]
+    # ``feature`` fills the {feature} token the inner-loop session's WORK texts still use; removed after the renderer
+    # swap (consumer contract 4c), with the token.
     return _build(root, stage, action_id, repo=repo, feature=str(Path(repo) / knowledge_home.feature_dir(state)),
                   item=item, title=_work_title(state, item), plan_action=plan_action,
                   step=_implement_scope(state, item, action_id) if stage == "implement" else None, commands=commands)

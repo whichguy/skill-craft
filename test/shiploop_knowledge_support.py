@@ -27,18 +27,9 @@ def write(state: Mapping[str, Any]) -> None:
     repo = Path(str(state["repo"]))
     for names in knowledge.CLOSES.values():
         for name in names:
-            path = repo / (name.replace("{feature}", knowledge.feature_dir(state)) if "{feature}" in name
-                           else knowledge.HOME + "/" + name)
+            path = repo / knowledge.HOME / name
             if path.is_file():
                 continue
             path.parent.mkdir(parents=True, exist_ok=True)
-            body = "R-1: Synthetic requirement.\n" if path.name == "spec.md" else "Synthetic knowledge.\n"
-            if "{feature}" not in name and name in knowledge.SECTIONS:
-                body = sections(name)
-            if path.name == "outcome.md":
-                body = "".join("## " + name + "\n\nSynthetic " + name.lower() + ".\n\n"
-                               for name in knowledge.LEARNING_SECTIONS)
+            body = sections(name) if name in knowledge.SECTIONS else "Synthetic knowledge.\n"
             path.write_text("# " + path.stem + "\n\n" + body, encoding="utf-8")
-    # A real run's first knowledge commit (after the spec stage) writes the feature list long before any work item takes its
-    # base snapshot; write it here so a fixture that passes its closes at the item boundary does not see it appear late.
-    knowledge.write_feature_list(repo)

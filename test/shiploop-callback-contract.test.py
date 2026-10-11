@@ -520,8 +520,9 @@ class RefusalRouteTests(RealCliCase):
 
     def test_release_verify_names_its_knowledge_files_before_the_refusal_and_the_named_files_are_accepted(self) -> None:
         # release-verify runs the consumer checks and closes the knowledge home.  Its Checked-by line named only the
-        # run, so outcome.md was met first as a refusal in 4 runs, and its sections as a second one (packet review
-        # 2026-10-10, P-rv-1).  The packet now says it first; writing what it says is accepted in one go.
+        # run, so its files were met first as a refusal in 4 runs (packet review 2026-10-10, P-rv-1).  The packet now says
+        # it first; writing what it says is accepted in one go.  Since consumer contract 4c the close needs environment.md
+        # alone: the lessons are a result field.
         run, head = self.new_run("release-verify")
         command, path, action = printed_callback(head)
         full = full_packet_text(head)
@@ -529,18 +530,17 @@ class RefusalRouteTests(RealCliCase):
         self.assertIn("a HOME file this stage must have written, missing or empty", checked)
         self.assertIn("reruns every recorded test command", checked)  # the run the line used to name alone
         done = full[full.index("Done when"):full.index("Checked by: ")]
-        for word in ("outcome.md", "environment.md"):
+        for word in ("environment.md", "lessons"):
             self.assertIn(word, done)
+        self.assertNotIn("outcome.md", full)
         write_block(path, self.fill_done(head))
         reply = self.refused(command, run)
         named = re.findall(r"^- (/\S+)$", reply, re.M)
-        self.assertEqual(sorted(Path(file).name for file in named), ["environment.md", "outcome.md"])
+        self.assertEqual(sorted(Path(file).name for file in named), ["environment.md"])
         for file in named:
             self.assertIn(Path(file).name, done)  # every file the refusal names was named before it
             Path(file).parent.mkdir(parents=True, exist_ok=True)
-            Path(file).write_text("".join(f"## {section}\n\nDetail of what this run found.\n\n"
-                                          for section in ("Learned", "Key considerations", "Open for the next run"))
-                                  if Path(file).name == "outcome.md" else "What this file records.\n", encoding="utf-8")
+            Path(file).write_text("What this file records.\n", encoding="utf-8")
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
 
@@ -572,10 +572,9 @@ class RefusalRouteTests(RealCliCase):
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
         self.assertTrue(self.git(repo, "log", "-1", "--format=%s").strip().endswith("knowledge at prepare"))
-        # The file the refusal named, plus the list of feature folders ShipLoop writes inside any knowledge commit once a feature
-        # folder exists (docs/shiploop/features/README.md): nothing else rides in the commit.
+        # The file the refusal named: nothing else rides in the commit (no feature list since consumer contract 4c).
         self.assertEqual(sorted(self.git(repo, "show", "--name-only", "--format=", "HEAD").split()),
-                         ["docs/shiploop/architecture.md", "docs/shiploop/features/README.md"])
+                         ["docs/shiploop/architecture.md"])
 
     def accept_a_prepare_with_files(self, sectioned: bool) -> tuple:
         """A run at prepare whose refusal's files are written (with every named section, or as prose), then accepted.
@@ -1629,9 +1628,9 @@ SCRIPT_RECORDED = ("validate-existing", "document")
 # The stages whose minimal done result is refused for work the model has not done yet, and the exits the
 # refusals name: the knowledge files the run keeps in the repository, and the loop that was never started.
 EXPECTED_ROUTES = {
-    # test-spec's knowledge file is its test-spec.md, which every run here writes with its cases (the ID gate needs it).
+    # Only prepare asks for files: since consumer contract 4c the later closes need environment.md alone, which the walk's
+    # earlier stages already wrote (no feature file, no outcome sections).
     "prepare": ["knowledge files"],
-    "release-plan": ["knowledge files"], "release-verify": ["knowledge files", "outcome sections"],
 }
 
 

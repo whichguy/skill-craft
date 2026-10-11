@@ -200,12 +200,14 @@ class PacketCompletenessTests(unittest.TestCase):
                 self.assertEqual("HOME" in lines[0], stage in closes)
                 self.assertIn("when you report done, ShipLoop", lines[0])
 
-    def test_release_verify_done_when_names_the_files_and_sections_its_close_requires(self) -> None:
+    def test_release_verify_done_when_names_its_close_file_and_the_lessons_field(self) -> None:
         packet = self.found[("release-verify", "producer")]
         done = packet[packet.index("Done when"):packet.index("Checked by: ")]
-        for word in ("outcome.md", "environment.md", "## Learned", "## Key considerations",   # README.md is retired (4b)
-                     "## Open for the next run"):
+        for word in ("environment.md", "the result's lessons", "what this run learned", "the key considerations",
+                     "what a later run should pick up"):
             self.assertIn(word, done)
+        for removed in ("outcome.md", "README.md"):
+            self.assertNotIn(removed, done)
 
 
 def flat(text: str) -> str:
@@ -643,7 +645,8 @@ class ReferencesBlockTests(unittest.TestCase):
             for name, heading in rows:
                 with self.subTest(stage=stage, file=name, heading=heading):
                     written = {file for files in knowledge.STAGE_FILES.values() for file in files}
-                    self.assertTrue(name in knowledge.SECTIONS or name in written or name in self.MOVED, name)
+                    self.assertTrue(name in knowledge.SECTIONS or name in written or name in self.MOVED
+                                    or name.startswith("{feature}/"), name)   # a feature row: the swap removes it
                     if heading and name in knowledge.SECTIONS:
                         self.assertIn(heading, knowledge.SECTIONS[name])
                     if heading and name in self.MOVED:

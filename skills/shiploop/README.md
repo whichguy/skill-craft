@@ -383,8 +383,9 @@ index exactly intact. This is explicitly reported as a working-tree return,
 **not a Git merge or commit**. The helper does not silently decide to commit the
 user's earlier edits merely because ShipLoop used them as context.
 
-Durable README/environment/design/decision updates and `SHIPLOOP.md` belong in
-the reviewed product set. Run prompts/results, scratch, raw logs, credentials,
+Durable README/environment/design/decision updates and a host-authored
+`SHIPLOOP.md` belong in the reviewed product set (ShipLoop commits only
+`docs/shiploop/` itself). Run prompts/results, scratch, raw logs, credentials,
 return manifests and the generated HTML achievement report do not. Reports stay
 under external run storage; reusable facts are promoted into project docs. The
 host must judge ambiguous/custom artifacts—the guard cannot infer their meaning.

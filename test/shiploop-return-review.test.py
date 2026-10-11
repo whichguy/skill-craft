@@ -528,7 +528,7 @@ class ReturnRouteTests(ReturnReviewCase):
         self.assertEqual(self.do_return(root).stdout.splitlines()[0], "Verified workspace return: working-tree-return.")
         # A follow-up whose only new path is decided by a rule leaves nothing undecided already at plan-return: it
         # says the route then too, without a review-return call.
-        self.write(worktree, "SHIPLOOP.md", "index\n")
+        self.write(worktree, "docs/shiploop/environment.md", "index\n")   # the home: kept by rule (SHIPLOOP.md is no longer)
         self.commit(worktree, "knowledge after the return")
         replanned = self.plan_return(root).stdout
         self.assertIn("0 undecided", replanned)

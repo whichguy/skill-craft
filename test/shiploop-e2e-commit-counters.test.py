@@ -500,10 +500,11 @@ class ClassifyTest(GitCase):
         self.by_the_model("notes.md", MESSAGES["raw-with-key-learnings"])
         self.by_the_model("check.md", MESSAGES["improve-six-labels"])                # an Improve child that bypassed improve-commit
         self.by_shiploop("late.md", MESSAGES["leftovers"])                           # leftovers, announced by nothing
-        feature = knowledge_home.feature_dir(self.state)
-        self.write(feature + "/outcome.md", "## Learned\n- the first lesson\n\n## Key considerations\n- a decision\n\n"
-                                            "## Open for the next run\n- a follow-up\n")
-        knowledge_home.commit(self.state, "release-verify")                          # the learnings commit, with a body
+        self.write("docs/shiploop/environment.md", "# Environment\n\nnpm test\n")
+        lessons = {"learned": "- the first lesson", "considerations": "- a decision", "open_next": "- a follow-up"}
+        verified = dict(self.state, history=[{"stage": "release-verify", "outcome": "done", "action": "A-rv"}],
+                        accepted={"A-rv": {"outcome": "done", "lessons": lessons}})
+        knowledge_home.commit(verified, "release-verify")                            # the lessons commit, with a body
 
     def test_each_commit_lands_in_the_class_of_who_made_it_and_the_classes_sum_to_the_commits_counted(self):
         block, unmeasured = self.counted()
@@ -529,20 +530,24 @@ class ClassifyTest(GitCase):
         block, _ = self.counted()
         self.assertEqual((block["script"]["n"], block["other"]["n"]), (5, 4))
 
-    def test_the_retire_commit_is_a_script_commit_that_is_not_a_knowledge_record(self):
-        """Owner decision D3 (batch 1012 r): at handoff ShipLoop removes the feature spec in a commit of its own. It is ShipLoop's
-        (script class), made by the real retire step here; it is not one of the knowledge home's record commits, which the
-        regrade quotes a share of, and it holds no lessons."""
-        feature = knowledge_home.feature_dir(self.state)
-        self.write("docs/shiploop/spec.md", "- R-1 one\n")
+    def test_a_saved_runs_retire_commit_is_still_a_script_commit_by_the_harnesss_own_matcher(self):
+        """Consumer contract 4c removed the handoff retire; saved runs still hold its commits, so the harness keeps the
+        matcher (counters.RETIRE_SUBJECT) and classifies them as ShipLoop's, not as a knowledge record (X16: the literal
+        saved subject)."""
+        feature = "docs/shiploop/features/build-a-small-single-player-battleship-450445"
         self.write(feature + "/spec.md", "Adds: R-1.\n")
-        self.assertTrue(knowledge_home.commit(self.state, "spec").commit)
+        self.git("add", "-A")
+        self.git("commit", "-qm", "docs(shiploop): record build-a-small-single-player-battleship-450445 knowledge after spec")
         before, _ = self.counted()
-        retired = knowledge_home.retire(self.state, True)
-        self.assertTrue(retired.commit)
+        (self.work / feature / "spec.md").unlink()
+        self.git("add", "-A")
+        subject = ("docs(shiploop): retire build-a-small-single-player-battleship-450445 spec: checked its requirement IDs "
+                   "against the living spec")
+        self.git("commit", "-qm", subject)
+        retired = self.git("rev-parse", "HEAD").strip()
         found, _ = self.historied()
-        row = next(row for row in found["commits"] if row["id"] == retired.commit)
-        self.assertEqual((row["kind"], row["knowledge"], row["subject"]), ("script", False, knowledge_home.retire_subject(self.state)))
+        row = next(row for row in found["commits"] if row["id"] == retired)
+        self.assertEqual((row["kind"], row["knowledge"], row["subject"]), ("script", False, subject))
         after, _ = self.counted()
         self.assertEqual((after["script"]["n"], after["script"]["with_lessons"]), (before["script"]["n"] + 1, before["script"]["with_lessons"]))
         self.assertEqual((after["other"]["n"], after["improve"]["n"]), (before["other"]["n"], before["improve"]["n"]))
@@ -655,13 +660,15 @@ class ShipLoopOwnedSubjectsTest(unittest.TestCase):
         self.assertEqual(prefixes, ("feat: W1 ",))
         self.assertTrue(message.startswith(prefixes), f"counters matches {prefixes} and ShipLoop wrote {message.splitlines()[0]!r}")
 
-    def test_the_retire_subject_is_matched_by_knowledge_homes_own_matcher_not_by_a_copy_of_its_wording(self):
-        counters_source = (ROOT / "test" / "shiploop_e2e" / "counters.py").read_text()
-        self.assertNotIn("checked its requirement IDs against the living spec", counters_source)
+    def test_the_harness_matches_the_retire_subject_with_its_own_pattern_since_knowledge_home_dropped_it(self):
+        self.assertFalse(hasattr(knowledge_home, "is_retire_subject"))
         self.assertNotIn("retire", counters.KNOWLEDGE_SUBJECT.pattern)
-        state = {"repo": ".", "prompt": "Add a thing", "run_id": "nav-abcdef123456"}
-        self.assertTrue(knowledge_home.is_retire_subject(knowledge_home.retire_subject(state)))
-        self.assertIs(counters.knowledge_home, knowledge_home)
+        self.assertTrue(counters.RETIRE_SUBJECT.fullmatch("docs(shiploop): retire build-a-small-single-player-battleship-450445 "
+                                                          "spec: checked its requirement IDs against the living spec"))
+        for other in ("docs(shiploop): retire two words spec: checked its requirement IDs against the living spec",
+                      "docs(shiploop): retire x spec: it is gone"):
+            self.assertIsNone(counters.RETIRE_SUBJECT.fullmatch(other))
+        self.assertFalse(hasattr(counters, "knowledge_home"))
 
     def test_the_chain_merge_prefix_is_the_one_the_chain_writes(self):
         self.assertIn(f'_PREPARED_MERGE_PREFIX = "{counters.CHAIN_PREFIX}"',

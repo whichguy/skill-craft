@@ -516,8 +516,8 @@ _ROWS = (
         goal="verify the release where consumers use it",
         done_when=(
             "the consumer behaviour is observed where consumers use it",
-            "this run's outcome.md and environment.md are written under docs/shiploop, and outcome.md "
-            "fills its ## Learned, ## Key considerations and ## Open for the next run sections",
+            "environment.md is current and the result's lessons hold what this run learned, the key considerations "
+            "and what a later run should pick up",
         ),
         test="A passing unit suite is not delivery evidence.",
         deploy="Verify the release in the target.",

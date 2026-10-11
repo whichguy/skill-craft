@@ -871,5 +871,90 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
         self.assertEqual(after["accepted"][self.action]["follows"], [])
 
 
+_return_review = _load("shiploop_return_review_for_handoff", "shiploop-return-review.test.py")
+import shiploop_store as store  # noqa: E402
+
+
+class LessonsReturnTests(_return_review.ReturnReviewCase):
+    """The release-verify lessons commit reaches the user's branch on an isolated run (X1), through the real CLI."""
+
+    LIVING = "# Living spec\n\n- R-1 one\n- R-2 two\n"
+
+    def return_all(self, root: Path) -> None:
+        self.plan_return(root)
+        self.review(root, "--keep", *self.dispositions(root))
+        self.do_return(root)
+
+    def complete(self, run: Path, code: int = 0):
+        state = store.read_record(run / "state.md")
+        action = navigator.current_action(state)
+        result = run / "inbox" / f"{action['id']}.md"
+        store.write_record(result, {"outcome": "done", "summary": "Handed off."}, "ShipLoop navigator result")
+        return self.cli("complete", "--run-dir", str(run), "--action", action["id"], "--result", str(result), code=code)
+
+    def test_an_isolated_release_verify_that_changes_no_home_file_returns_its_lessons_commit_and_hands_off(self) -> None:
+        """Consumer contract X1 end to end (moved from the retired shiploop-retire suite): the lessons commit is empty when
+        release-verify changed no home file; the follow-up return still carries it to the source branch, so handoff sees a
+        current receipt and the next run's intake finds the lessons there."""
+        root, worktree = self.start("empty lessons")
+        self.write(worktree, "app.js", "product\n")
+        self.write(worktree, "docs/shiploop/spec.md", self.LIVING)
+        self.commit(worktree, "work item and knowledge")
+        run = self.at(root, "release")
+        self.return_all(root)
+        state = store.read_record(run / "state.md")
+        state = navigator.apply(state, navigator.current_action(state)["id"], {"outcome": "done", "summary": "Released."})
+        lessons = {"learned": "The empty commit still travels.", "considerations": "none", "open_next": "none"}
+        before = state
+        after = navigator.apply(state, navigator.current_action(state)["id"], {
+            "outcome": "done", "summary": "Verified.", "lessons": lessons, "assumptions": []})
+        navigator.save(run, after)
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            navigator._knowledge_close(before, after, run)                 # what dispatch runs after the save
+        self.assertIn("returned the knowledge commit with the earlier work (fast-forward-merge)", printed.getvalue())
+        head = self.git("rev-parse", "HEAD", cwd=worktree).stdout.strip()
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), head)
+        self.assertEqual(self.git("show", "--name-only", "--format=", head).stdout.strip(), "")   # an empty commit
+        found = knowledge.last_lessons(self.repo)
+        self.assertEqual((found.commit, found.body), (head, knowledge.lessons_body(lessons)))
+        navigator.save(run, navigator.apply(after, navigator.current_action(after)["id"],
+                                            {"outcome": "done", "summary": "Operations ready."}))
+        self.assertEqual(navigator.current_stage(store.read_record(run / "state.md")), "handoff")
+        done = self.complete(run)                                          # no stale-return refusal
+        self.assertNotIn("stale", done.stderr)
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done")
+
+    def test_handoff_makes_no_retire_commit_and_leaves_an_old_feature_folder_untouched(self) -> None:
+        """Consumer contract 4c: the retire step is gone.  An earlier version's feature folder in the repository is history:
+        handoff neither removes nor rewrites it, and no commit after the return is ShipLoop's retire."""
+        old = {"docs/shiploop/features/old-run-aaaaaa/spec.md": "Adds: R-1.\n",
+               "docs/shiploop/features/README.md": "# Features\n\nShipLoop writes this list from the folders beside it\n",
+               "docs/shiploop/test-strategy.md": "# Test strategy\n", "docs/shiploop/README.md": "# Home\n"}
+        for relative, text in old.items():
+            path = self.repo / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "an earlier ShipLoop version's home")
+        root, worktree = self.start("no retire")
+        own = "docs/shiploop/features/" + knowledge.run_label(store.read_record(root / "run" / "state.md")) + "/spec.md"
+        self.write(worktree, "app.js", "product\n")
+        self.write(worktree, "docs/shiploop/spec.md", self.LIVING)
+        self.write(worktree, own, "Adds: R-1.\n")       # what an earlier version's retire would have removed at handoff
+        self.commit(worktree, "work item and knowledge")
+        old[own] = "Adds: R-1.\n"
+        run = self.at(root, "handoff")
+        self.return_all(root)
+        self.write(worktree, "docs/shiploop/environment.md", "# Environment\n")   # a knowledge commit at the handoff
+        done = self.complete(run)
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done")
+        self.assertNotIn("feature spec", done.stdout + done.stderr)
+        subjects = self.git("log", "--format=%s").stdout.splitlines()
+        self.assertFalse([subject for subject in subjects if subject.startswith("docs(shiploop): retire ")], subjects)
+        for relative, text in old.items():
+            self.assertEqual((self.repo / relative).read_text(encoding="utf-8"), text)
+
+
 if __name__ == "__main__":
     unittest.main()

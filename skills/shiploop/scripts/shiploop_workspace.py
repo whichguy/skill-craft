@@ -1376,7 +1376,7 @@ def _validate_plan(
             _fail(f"return plan cannot keep a protected runtime path: {path}")
         if knowledge_home.in_home(path) and disposition == "exclude" and not _matches_exclusion(
                 path, manifest["excluded"]):
-            _fail(f"return plan cannot exclude {path}: it is ShipLoop's knowledge (docs/shiploop/, SHIPLOOP.md), "
+            _fail(f"return plan cannot exclude {path}: it is ShipLoop's knowledge (docs/shiploop/), "
                   "which later runs inherit")
         rows.append(dict(item))
     undecided = [row["path"] for row in rows if row["disposition"] == "pending"]
@@ -2019,7 +2019,7 @@ def follow_up_knowledge_return(workspace_root: Path) -> Optional[Dict[str, Any]]
     """Return ShipLoop's own knowledge commit after a verified return, by that return's route (plan P11).
 
     Runs only when a return was recorded and every path changed since its candidate
-    head is ShipLoop knowledge (docs/shiploop/, SHIPLOOP.md) with nothing else dirty
+    head is ShipLoop knowledge (docs/shiploop/) with nothing else dirty
     in the candidate, or, when no path changed, every commit since that head is a
     ShipLoop knowledge commit (the empty release-verify lessons commit); then it plans and executes the follow-up return, whose own
     checks refuse a moved source. Returns the new receipt, or None when it does not
