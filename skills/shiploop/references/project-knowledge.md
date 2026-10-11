@@ -518,10 +518,10 @@ planning, and later runs inherit it.
 | Path | Holds |
 | --- | --- |
 | `docs/shiploop/README.md` | The index: what each file answers, the feature list |
-| `docs/shiploop/spec.md` | The living product spec: every accepted requirement with a stable ID (`R-<n>`), a `Retired` section with reasons |
-| `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each |
-| `docs/shiploop/test-strategy.md` | Harnesses, suites, the commands that own them, the test-ID convention |
-| `docs/shiploop/architecture.md` | How the product is built, apart from what it must do: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the decisions as stable IDs (`AD-<n>`: choice, why, alternatives, status) with a `Superseded` section. Runtime versions and working commands stay in `environment.md`. It records names and shapes (a credential's alias and mechanism), never secret values or code that assigns them, because the credential screen reads this file too. It links the repository's own architecture or ADR documents instead of copying them |
+| `docs/shiploop/spec.md` | The living product spec: every accepted requirement with a stable ID (`R-<n>`) and its acceptance criteria inside it, a `Retired` section with reasons. Sections: `## Requirements`, `## Non-functional requirements`, `## Retired` |
+| `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each. Sections: `## Targets and runtimes`, `## Commands`, `## Access and accounts`, `## Platform facts` |
+| `docs/shiploop/test-strategy.md` | Harnesses, suites, the commands that own them, the test-ID convention. Sections: `## Harnesses and suites`, `## Commands`, `## ID convention`, `## Real-boundary checks` |
+| `docs/shiploop/architecture.md` | How the product is built, apart from what it must do: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the decisions as stable IDs (`AD-<n>`: choice, why, alternatives, status) with a `Superseded` section. Runtime versions and working commands stay in `environment.md`. It records names and shapes (a credential's alias and mechanism), never secret values or code that assigns them, because the credential screen reads this file too. It links the repository's own architecture or ADR documents instead of copying them. Sections: `## Stack`, `## Structure`, `## Conventions`, `## Interfaces and boundaries`, `## Decisions`, `## Superseded` |
 | `docs/shiploop/features/<slug>/` | This run's record: `spec.md` (IDs added, modified, retired; checked against the living spec and removed at handoff when the run's commits reach your branch), `plan.md`, `test-spec.md`, `system-tests.md`, `release-plan.md`, `outcome.md` |
 | `docs/shiploop/features/README.md` | ShipLoop's list of the feature folders and the commands that find a requirement ID in them; written from the tree inside a knowledge commit, never by hand (a hand edit is replaced; a file at that path that is not ShipLoop's is left alone) |
 
@@ -545,6 +545,20 @@ linked, not copied. A later run reads these files as evidence, not as a
 protocol to import: discovery re-verifies recorded environment facts cheaply
 instead of rediscovering them, spec starts from the living spec, and release
 planning starts from the recorded commands.
+
+**Named sections.** The four fact files have the sections in their rows above
+(`knowledge_home.SECTIONS`); a packet quotes them, and a heading is created when the
+file lacks it. At the same four closes ShipLoop counts the sections a file lacks, as a
+notice, not a refusal: for each of the four files that exists and has text, one line
+`ShipLoop knowledge notice: <absolute file> has no '<heading>' section; ...` (or
+`'<heading>' is empty`) per heading, and the close is accepted either way (on the saved
+homes the headings are nearly absent, so a refusal would fire at nearly every first
+close). A section counts when a markdown heading of one to four `#` outside a code
+fence starts with the name, in any case (`## Commands (working)` counts), and a
+non-blank line follows it before the next heading of the same or a higher level; write
+`none` under a heading when nothing applies. One grep for `ShipLoop knowledge notice:`
+counts the lines per close. Whether the notice becomes a refusal waits for a live run
+that shows packets which quote the headings get them written.
 
 **The feature spec is retired at handoff.** The run's `features/<slug>/spec.md` is its
 historical record once it is committed with the plan. When the final handoff is

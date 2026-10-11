@@ -560,6 +560,18 @@ class SectionsTests(HomeFixture):
                 with self.subTest(stage=stage, name=name):
                     self.assertTrue(name in knowledge.LIVING or name.startswith("{feature}/"), name)
 
+    def test_the_reference_table_names_every_section_of_its_file_and_says_the_check_is_a_counted_notice(self) -> None:
+        """Docs follow the constants (S-12): a heading added to SECTIONS must reach the reference's table row."""
+        text = (ROOT / "skills/shiploop/references/project-knowledge.md").read_text(encoding="utf-8")
+        for name, headings in knowledge.SECTIONS.items():
+            row = next(line for line in text.splitlines() if line.startswith("| `docs/shiploop/" + name + "` |"))
+            for heading in headings:
+                with self.subTest(file=name, heading=heading):
+                    self.assertIn("`## " + heading + "`", row)
+        flat = " ".join(text.split())
+        self.assertIn(knowledge.NOTICE_PREFIX.strip(), flat)
+        self.assertIn("a notice, not a refusal", flat)
+
     # The stages that find commands, facts and decisions keep these files up to date (task A2, the 8-stage inner loop).
     WRITERS = {"research": ("environment.md",),
                "validate-existing": ("environment.md",),

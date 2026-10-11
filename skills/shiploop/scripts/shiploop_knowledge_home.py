@@ -17,6 +17,10 @@ A later run starts from these files.
                                      system-tests.md, release-plan.md, outcome.md
     docs/shiploop/features/README.md ShipLoop's list of the folders above (FEATURE_LIST)
 
+The four fact files (spec, environment, architecture, test strategy) have named sections (``SECTIONS``).  At the same four
+closes ShipLoop prints one counted notice line per section a file that exists lacks or leaves empty (``section_notices``); it
+is a notice, never a refusal.
+
 At handoff the run's feature spec.md is checked against the living spec (every requirement ID it names must be there)
 and, when the run's commits reach the user's branch, removed in a commit of its own (``retire``); the last committed
 version stays in Git, in that commit's parent (a squash merge of the branch drops it).
