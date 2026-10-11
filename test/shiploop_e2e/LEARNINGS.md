@@ -2214,3 +2214,38 @@ A repeat of the same probe on the same build passed, and so did the pre-dedupe b
 - the three 2026-10-11 slices `slice-clear-{implement,test-inside,verify}-28191c5b`: unchanged, `[]`.
 
 **Open.** A run whose callback recorded the work and whose test result the model then reran is still redone. No probe has shown that yet.
+
+## The packet re-cut, live: 61% fewer packet characters, an unreachable Improve refusal fixed, and the model cuts what it is printed (2026-10-11, slices on 8c258649 and 42beb2d5) — status: firm for the pass/fail and the counts (n=1 each); interim for the piping and scripted-Improve observations
+
+**Round.** Live slices on Claude (claude-sonnet-5-5) through `slice.py`, run on the re-cut:
+- the four step cases;
+- the S-6 clear probe at `implement:inside`;
+- after the fix, a rerun of node-add-route.
+
+The evidence is in `docs/experiments/packet-recut-20261011/live-slices.json`, and the journal entry is in
+`docs/shiploop-packet-recut-2026-10-11.md`.
+
+**Results.**
+- **Sizes (node-fix-bug).** Packet characters written fell from 546k to 212k, packets from 17 to 13, turns from 81 to
+  74, and time from 269 s to 234 s.
+- **Passes.** node-fix-bug, node-add-function and node-rename passed. The clear probe passed with no redone work.
+- **Failure and fix.** node-add-route paused at implement.
+  - Cause: the model fixed its own slip after the step's Improve child was bound, then reported the one pass
+    unchanged. `improve-complete` refused with "run the loop's next review", but the loop was already complete, and
+    `--restart-stopped` accepted only stopped children.
+  - Fix (42beb2d5): the restart accepts that case, and the refusal names it. A CLI test runs the named exit.
+  - The rerun passed in 417 s.
+
+**Lessons.**
+- **The refusal named a route that did not exist.** This is the same lesson as "test the route, not the wording". It
+  has existed since 2be7906b, and only a live model that edits after the bind reaches it.
+- **The model cuts ShipLoop's output (interim).** In the passing node-add-route rerun, from test-spec on, every
+  ShipLoop call was piped through `head` or `cut`. The model saw as little as 378 of the 28.8k characters of the
+  verify packet. The rule against piping is in every packet. In node-fix-bug the model piped far less, so this
+  varies between runs.
+- **Producer packets still exceed the print limit.** Most of node-add-route's producer packets are 17-29k characters,
+  so ShipLoop printed a head and the file path. Only the Improve packets (2-3k) print whole.
+- **Improve is mostly scripted (interim).** The model invoked the improve skill once or twice per run. It then called
+  `improve-start` and the runtime from its own script, with fixed review text.
+
+**Open.** Fitting producer packets under the limit, piping, and scripted Improve all await an owner decision.
