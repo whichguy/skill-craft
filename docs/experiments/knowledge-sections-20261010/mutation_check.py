@@ -3,6 +3,10 @@
 
 Repeat with:  PYTHONDONTWRITEBYTECODE=1 SHIPLOOP_PROGRESS=off python3 docs/experiments/knowledge-sections-20261010/mutation_check.py
 
+Round 2 (the fix round after review, 2026-10-10): the rows follow the code after the Skills heading, the step-plan entry, the
+close taken from the call's accepted rows, the CommonMark fence opener, the byte order mark and the notice wording.  Round 1's
+record is mutations-round1.json (55 rows; this file's rows replace them).
+
 Each row names a file, the exact text replaced, its replacement and the test selector run.  The file is restored after every row
 (and on any error); the run refuses to start when the source files are not clean in Git.  Writes mutations.json beside this file.
 Every row must turn its selector red.  In the foreground: the SectionsTests / SectionNoticeTests / SectionNoticeCloseTests rows take
@@ -27,16 +31,31 @@ CLI = ["test/shiploop-callback-contract.test.py",
        "RefusalRouteTests.test_a_stage_that_is_no_close_prints_no_notice_although_a_file_lacks_its_sections",
        "RefusalRouteTests.test_the_fix_a_notice_names_applied_to_its_file_silences_that_line_and_only_that_line"]
 PACKET = ["test/shiploop-packet-completeness.test.py"]
+ROUTE_PLAIN = ["test/shiploop-callback-contract.test.py",
+               "RefusalRouteTests.test_the_test_spec_close_prints_its_notice_although_the_script_records_validate_existing_after_it"]
+ROUTE_IMPROVE = ["test/shiploop-actual-improve-cli.test.py", "-k", "test_the_test_spec_close_accepted_at_improve_complete"]
+GUARD = [K, "SectionsTests.test_every_heading_a_packet_duty_names_for_a_living_file_is_one_of_its_sections"]
+PROMPTS = "skills/shiploop/scripts/shiploop_prompts.py"
+LOOPS = "skills/shiploop/scripts/shiploop_loops.py"
 ROWS = [
     # the headings as constants
     (KNOW, '    "spec.md": ("Requirements", "Non-functional requirements", "Retired"),', '    "spec.md": ("Requirements", "Retired"),', TABLES),
-    (KNOW, '("Targets and runtimes", "Commands", "Access and accounts", "Platform facts")', '("Commands", "Targets and runtimes", "Access and accounts", "Platform facts")', TABLES),
+    (KNOW, '("Targets and runtimes", "Commands", "Skills", "Access and accounts", "Platform facts")', '("Commands", "Targets and runtimes", "Skills", "Access and accounts", "Platform facts")', TABLES),
+    (KNOW, '("Targets and runtimes", "Commands", "Skills", "Access and accounts", "Platform facts")', '("Targets and runtimes", "Commands", "Access and accounts", "Platform facts")', TABLES),
+    (KNOW, '("Targets and runtimes", "Commands", "Skills", "Access and accounts", "Platform facts")', '("Targets and runtimes", "Commands", "Access and accounts", "Skills", "Platform facts")', TABLES),
     (KNOW, '("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Decisions", "Superseded")', '("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Decisions")', TABLES),
     (KNOW, '("Harnesses and suites", "Commands", "ID convention", "Real-boundary checks")', '("Harnesses and suites", "Commands", "ID convention", "Real boundary checks")', TABLES),
     (KNOW, '           "SECTIONS",\n', '', TABLES),
     (KNOW, "a '## Decisions' section of stable IDs", "a '## Decision log' section of stable IDs", TABLES),
+    # the duties' headings are pinned to the constants (the guard reads the scripts; a duty naming a heading SECTIONS lacks is red)
+    (PROMPTS, "environment.md (## Commands, ## Targets and runtimes, ## Skills)", "environment.md (## Commands, ## Targets and runtimes, ## Skillz)", GUARD),
+    (LOOPS, "(environment.md ## Skills \"", "(environment.md ## Skillz \"", GUARD),
+    (PROMPTS, "architecture.md (## Decisions, ## Superseded)", "architecture.md (## Decisions, ## Replaced)", GUARD),
     # the writer entries
     (KNOW, '    "research": ("environment.md",),\n', '', TABLES),
+    (KNOW, '    "step-plan": ("{feature}/plan.md", ARCHITECTURE, "environment.md"),', '    "step-plan": ("{feature}/plan.md", ARCHITECTURE),', TABLES),
+    (KNOW, '    "step-plan": ("{feature}/plan.md", ARCHITECTURE, "environment.md"),', '    "step-plan": ("{feature}/plan.md", "environment.md", ARCHITECTURE),', TABLES),
+    (KNOW, '    "step-plan": ("{feature}/plan.md", ARCHITECTURE, "environment.md"),', '    "step-plan": ("{feature}/plan.md", "environment.md"),', TABLES),
     (KNOW, '    "validate-existing": ("environment.md",),\n', '', TABLES),
     (KNOW, '    "implement": ("environment.md", ARCHITECTURE),', '    "implement": ("environment.md",),', TABLES),
     (KNOW, '    "implement": ("environment.md", ARCHITECTURE),', '    "implement": (ARCHITECTURE,),', TABLES),
@@ -49,8 +68,8 @@ ROWS = [
     # the notice: where and when
     (KNOW, "    if stage not in CLOSES:\n        return []\n    repo = Path(str(state[\"repo\"]))\n    notices", "    repo = Path(str(state[\"repo\"]))\n    notices", NOTICE),
     (KNOW, "    if stage not in CLOSES:\n        return []\n    repo = Path(str(state[\"repo\"]))\n    notices", "    if stage not in STAGE_FILES:\n        return []\n    repo = Path(str(state[\"repo\"]))\n    notices", NOTICE),
-    (KNOW, "        if not _filled(path):\n            continue\n        try:\n            lines", "        if not path.is_file():\n            continue\n        try:\n            lines", NOTICE),
-    (KNOW, "        except OSError:\n            continue\n        outline, hint", "        except ValueError:\n            continue\n        outline, hint", NOTICE),
+    (KNOW, "        if not _filled(path):\n            continue\n        try:\n            # utf-8-sig", "        if not path.is_file():\n            continue\n        try:\n            # utf-8-sig", NOTICE),
+    (KNOW, "        except OSError:\n            continue\n        outline, first", "        except ValueError:\n            continue\n        outline, first", NOTICE),
     (KNOW, "    for name, headings in SECTIONS.items():\n        path = repo / HOME / name\n        if not _filled", "    for name, headings in sorted(SECTIONS.items()):\n        path = repo / HOME / name\n        if not _filled", NOTICE),
     # the matching rules
     (KNOW, "if not title.lower().startswith(heading.lower()):", "if not title.startswith(heading):", NOTICE),
@@ -64,30 +83,53 @@ ROWS = [
     (KNOW, '_HEADING = re.compile(r"^(#{1,4})\\s+(.+?)\\s*$")', '_HEADING = re.compile(r"^(#{1,6})\\s+(.+?)\\s*$")', NOTICE),
     (KNOW, '_HEADING = re.compile(r"^(#{1,4})\\s+(.+?)\\s*$")', '_HEADING = re.compile(r"^(#{1,3})\\s+(.+?)\\s*$")', NOTICE),
     (KNOW, '_HEADING = re.compile(r"^(#{1,4})\\s+(.+?)\\s*$")', '_HEADING = re.compile(r"^(#{1,4})\\s*(.+?)\\s*$")', NOTICE),
+    (KNOW, '_HEADING = re.compile(r"^(#{1,4})\\s+(.+?)\\s*$")', '_HEADING = re.compile(r"^ {0,3}(#{1,4})\\s+(.+?)\\s*$")', NOTICE),  # an indented heading counts: the documented limit is pinned
     (KNOW, "        if heading and len(heading.group(1)) <= 3:\n            current", "        if heading:\n            current", NOTICE),
+    # fences: the opener (CommonMark: up to three spaces, no backtick after a backtick run) and the closer
     (KNOW, "        if opening:\n            fence = opening.group(1)\n            continue", "        if False:\n            fence = opening.group(1)\n            continue", NOTICE),
     (KNOW, "            if opening and rest[0] == fence[0] and len(rest) >= len(fence) and rest == rest[0] * len(rest):", "            if opening:", NOTICE),
     (KNOW, "            if opening and rest[0] == fence[0] and len(rest) >= len(fence) and rest == rest[0] * len(rest):", "            if opening and len(rest) >= len(fence) and rest == rest[0] * len(rest):", NOTICE),
-    (KNOW, '_FENCE = re.compile(r"^\\s{0,3}(`{3,}|~{3,})")', '_FENCE = re.compile(r"^\\s{0,3}(`{3,})")', NOTICE),
+    (KNOW, "            if opening and rest[0] == fence[0] and len(rest) >= len(fence) and rest == rest[0] * len(rest):", "            if opening and rest[0] == fence[0] and rest == rest[0] * len(rest):", NOTICE),
+    (KNOW, '_FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")', '_FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$))")', NOTICE),
+    (KNOW, '_FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")', '_FENCE = re.compile(r"^ *(`{3,}(?=[^`]*$)|~{3,})")', NOTICE),
+    (KNOW, '_FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")', '_FENCE = re.compile(r"^\\s{0,3}(`{3,}(?=[^`]*$)|~{3,})")', NOTICE),
+    (KNOW, '_FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")', '_FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")', NOTICE),
+    (KNOW, '_FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")', '_FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,}(?=[^`~]*$))")', NOTICE),  # a tilde fence with a backtick in its text
+    (KNOW, '_FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")', '_FENCE = re.compile(r"^ {0,3}(`{2,}(?=[^`]*$)|~{2,})")', NOTICE),
+    # the byte order mark
+    (KNOW, 'path.read_text(encoding="utf-8-sig", errors="replace").splitlines()', 'path.read_text(encoding="utf-8", errors="replace").splitlines()', NOTICE),
     # the wording a reader greps and acts on
     (KNOW, 'NOTICE_PREFIX = "ShipLoop knowledge notice: "', 'NOTICE_PREFIX = "ShipLoop knowledge: "', NOTICE),
     (KNOW, 'notices.append(NOTICE_PREFIX + str(path) + " has no \'"', 'notices.append(NOTICE_PREFIX + str(path.relative_to(repo)) + " has no \'"', NOTICE),
     (KNOW, 'notices.append(NOTICE_PREFIX + str(path) + " has no \'"', 'notices.append(NOTICE_PREFIX + "has no \'" + heading + "\' in " + str(path) + ", and none \'"', NOTICE),
-    (KNOW, '+ "\' section (" + hint + "), or write \'none\' under it when nothing applies.")', '+ "\' section (" + hint + ").")', NOTICE),
-    (KNOW, '+ "), or write \'none\' when nothing applies.")', '+ ").")', NOTICE),
-    (KNOW, "' is empty; write under it (\"", "' has no text; write under it (\"", NOTICE),
+    (KNOW, 'notices.append(NOTICE_PREFIX + str(path) + " has an empty \'" + heading + "\' section " + _ACCEPTED', 'notices.append(NOTICE_PREFIX + str(path) + ": \'" + heading + "\' is empty " + _ACCEPTED', NOTICE),
+    (KNOW, '" has no \'" + heading + "\' section " + _ACCEPTED + "; add a \'## "', '" has no \'" + heading + "\' section; add a \'## "', NOTICE),
+    (KNOW, '" has an empty \'" + heading + "\' section " + _ACCEPTED', '" has an empty \'" + heading + "\' section"', NOTICE),
+    (KNOW, '_ACCEPTED = "(this close is accepted)"', '_ACCEPTED = "(this close is refused)"', NOTICE),
+    (KNOW, '"\' section (" + hint + "), or write \'none\' under it when nothing applies.")', '"\' section (" + hint + ").")', NOTICE),
+    (KNOW, '+ "; write under it (" + hint + "), or write \'none\' when nothing applies.")', '+ "; write under it (" + hint + ").")', NOTICE),
     (KNOW, 'return name + " holds " + ARCHITECTURE_HOLDS', 'return name + " has the sections " + ", ".join(SECTIONS[name])', NOTICE),
     (KNOW, 'return name + " has the sections " + ", ".join(SECTIONS[name])', 'return name + " holds " + ARCHITECTURE_HOLDS', NOTICE),
-    (KNOW, "    if name == ARCHITECTURE:\n        return", "    if False:\n        return", NOTICE),
+    (KNOW, "    if name == ARCHITECTURE and first:", "    if name == ARCHITECTURE:", NOTICE),
+    (KNOW, "    if name == ARCHITECTURE and first:", "    if first:", NOTICE),
+    (KNOW, "    if name == ARCHITECTURE and first:", "    if False:", NOTICE),
+    (KNOW, '            first = first and found == "present"', '            first = True', NOTICE),
+    (KNOW, '            first = first and found == "present"', '            first = False', NOTICE),
+    (KNOW, "        outline, first = _outline(lines), True", "        outline, first = _outline(lines), False", NOTICE),
     (KNOW, '            if found == "missing":', '            if found != "present":', NOTICE),
-    # the navigator: printed once, on stdout, at the close, after the commit
-    (NAV, "    for line in knowledge.section_notices(after, stages[-1]):\n        print(line)\n", "", CLOSE),
-    (NAV, "    for line in knowledge.section_notices(after, stages[-1]):\n        print(line)\n", "", CLI),
-    (NAV, "    for line in knowledge.section_notices(after, stages[-1]):\n        print(line)\n", "    for line in knowledge.section_notices(after, stages[-1]):\n        print(line, file=sys.stderr)\n", CLOSE),
-    (NAV, "    for line in knowledge.section_notices(after, stages[-1]):\n        print(line)\n", "    for line in knowledge.section_notices(after, stages[0]):\n        print(line)\n", CLOSE),
-    (NAV, "    for line in knowledge.section_notices(after, stages[-1]):\n        print(line)\n", "    for line in knowledge.section_notices(after, 'prepare'):\n        print(line)\n", CLOSE),
-    (NAV, "    for line in knowledge.section_notices(after, stages[-1]):\n        print(line)\n", "    for line in knowledge.section_notices(after, stages[-1])[:1]:\n        print(line)\n", CLOSE),
-    (NAV, "    for line in knowledge.section_notices(after, stages[-1]):\n        print(line)\n", "    for line in knowledge.section_notices(after, stages[-1]):\n        print(line)\n        raise NavigatorError(line)\n", CLI),
+    # the navigator: printed once, on stdout, at the close accepted in this call, after the commit
+    (NAV, "    for line in knowledge.section_notices(after, close):\n        print(line)\n", "", CLOSE),
+    (NAV, "    for line in knowledge.section_notices(after, close):\n        print(line)\n", "", CLI),
+    (NAV, "    for line in knowledge.section_notices(after, close):\n        print(line)\n", "    for line in knowledge.section_notices(after, close):\n        print(line, file=sys.stderr)\n", CLOSE),
+    (NAV, "    for line in knowledge.section_notices(after, close):\n        print(line)\n", "    for line in knowledge.section_notices(after, close)[:1]:\n        print(line)\n", CLOSE),
+    (NAV, "    for line in knowledge.section_notices(after, close):\n        print(line)\n", "    for line in knowledge.section_notices(after, close):\n        print(line)\n        raise NavigatorError(line)\n", CLI),
+    (NAV, "    close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])\n", "    close = stages[-1]\n", CLOSE),
+    (NAV, "    close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])\n", "    close = stages[-1]\n", ROUTE_PLAIN),
+    (NAV, "    close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])\n", "    close = stages[-1]\n", ROUTE_IMPROVE),
+    (NAV, "    close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])\n", "    close = stages[0]\n", CLOSE),
+    (NAV, "    close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])\n", "    close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), 'prepare')\n", CLOSE),
+    (NAV, "    close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])\n", "    close = next((stage for stage in reversed(stages) if stage in knowledge.STAGE_FILES), stages[-1])\n", CLOSE),
+    (NAV, "    stages = [row[\"stage\"] for row in rows if row[\"outcome\"] == \"done\"]", "    stages = [row[\"stage\"] for row in rows]", CLOSE),
     # the steps that come after the commit are untouched by the notice (the retire suite checks the terminal order)
     (KNOW, "    if stage not in CLOSES:\n        return []\n    repo = Path(str(state[\"repo\"]))\n    notices", "    if stage not in CLOSES and stage != \"handoff\":\n        return []\n    repo = Path(str(state[\"repo\"]))\n    notices", CLOSE),
 ]
@@ -130,3 +172,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -28,7 +28,7 @@ import shiploop_knowledge_home as k  # noqa: E402
 
 RUNS = "/Users/dadleet/e2e-runs"
 MISSING = re.compile(r"^" + re.escape(k.NOTICE_PREFIX) + r"(\S+) has no '([^']+)' section")
-EMPTY = re.compile(r"^" + re.escape(k.NOTICE_PREFIX) + r"(\S+): '([^']+)' is empty")
+EMPTY = re.compile(r"^" + re.escape(k.NOTICE_PREFIX) + r"(\S+) has an empty '([^']+)' section")
 
 
 def main(out: str) -> None:

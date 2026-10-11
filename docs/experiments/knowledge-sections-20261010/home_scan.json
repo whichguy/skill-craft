@@ -1,121 +1,149 @@
 {
-  "homes": 29,
+  "homes": 30,
   "homes_with_no_notice": 0,
   "notice_lines_min_median_max": [
-    8,
     9,
-    11
+    10,
+    12
   ],
   "notice_lines_per_home": {
-    "20261003/hello": 9,
-    "20261003/seat-reservations": 9,
-    "20261003/v1161-hello": 9,
-    "20261004/v1180-hello-sonnet": 9,
-    "20261004/v1190-hello-sonnet": 8,
-    "20261004/v1190-hello-sonnet-2": 9,
-    "20261004/v1200-hello-sonnet": 9,
-    "20261006/v1220-battleship-grok-medium-none": 9,
-    "20261006/v1220-battleship-sonnet": 9,
-    "20261007/v1230-battleship-sonnet": 9,
-    "20261008/r1-battleship-sonnet": 11,
-    "20261008/r1-checkers-sonnet": 11,
-    "20261008/r2-battleship-grok-none": 8,
-    "20261008/r2-battleship-sonnet": 10,
-    "20261008/r2-checkers-sonnet": 9,
-    "20261008/r3-battleship-sonnet": 10,
-    "20261008/r3-checkers-sonnet": 10,
-    "20261009/s6-after-spec": 9,
-    "20261009/s6-inside-implement": 9,
-    "20261009/s6-inside-implement-k2": 10,
-    "20261009/s6-inside-implement-mtime": 9,
-    "20261009/s6-inside-implement-write": 9,
-    "20261009/s6-inside-test-strategy": 9,
-    "20261009/s6-inside-test-strategy-2": 9,
-    "20261010/battleship-1": 10,
-    "20261010/checkers-1": 11,
-    "20261010/checkers-1270-sonnet": 11,
-    "20261010/hello-1270-claude-2": 9,
-    "20261010/pc1i-checkers-sonnet": 10
+    "20261003/hello": 10,
+    "20261003/seat-reservations": 10,
+    "20261003/v1161-hello": 10,
+    "20261004/v1180-hello-sonnet": 10,
+    "20261004/v1190-hello-sonnet": 9,
+    "20261004/v1190-hello-sonnet-2": 10,
+    "20261004/v1200-hello-sonnet": 10,
+    "20261006/v1220-battleship-grok-medium-none": 10,
+    "20261006/v1220-battleship-sonnet": 10,
+    "20261007/v1230-battleship-sonnet": 10,
+    "20261008/r1-battleship-sonnet": 12,
+    "20261008/r1-checkers-sonnet": 12,
+    "20261008/r2-battleship-grok-none": 9,
+    "20261008/r2-battleship-sonnet": 11,
+    "20261008/r2-checkers-sonnet": 10,
+    "20261008/r3-battleship-sonnet": 11,
+    "20261008/r3-checkers-sonnet": 11,
+    "20261009/s6-after-spec": 10,
+    "20261009/s6-inside-implement": 10,
+    "20261009/s6-inside-implement-k2": 11,
+    "20261009/s6-inside-implement-mtime": 10,
+    "20261009/s6-inside-implement-write": 10,
+    "20261009/s6-inside-test-strategy": 10,
+    "20261009/s6-inside-test-strategy-2": 10,
+    "20261010/battleship-1": 11,
+    "20261010/checkers-1": 12,
+    "20261010/checkers-1270-sonnet": 12,
+    "20261010/hello-1270-claude-2": 10,
+    "20261010/hello-8stage-13d278dd": 12,
+    "20261010/pc1i-checkers-sonnet": 11
   },
-  "notice_lines_total": 273,
+  "notice_lines_total": 314,
   "table": {
     "architecture.md": {
       "headings": {
         "Conventions": {
-          "either_way_prefix": 0,
+          "either_way_prefix": 1,
           "empty": 0,
           "missing": 0,
-          "present": 0
+          "present": 1
         },
         "Decisions": {
-          "either_way_prefix": 0,
+          "either_way_prefix": 1,
           "empty": 0,
           "missing": 0,
-          "present": 0
+          "present": 1
         },
         "Interfaces and boundaries": {
           "either_way_prefix": 0,
           "empty": 0,
-          "missing": 0,
+          "missing": 1,
           "present": 0
         },
         "Stack": {
-          "either_way_prefix": 0,
+          "either_way_prefix": 1,
           "empty": 0,
           "missing": 0,
-          "present": 0
+          "present": 1
         },
         "Structure": {
           "either_way_prefix": 0,
           "empty": 0,
-          "missing": 0,
+          "missing": 1,
           "present": 0
         },
         "Superseded": {
-          "either_way_prefix": 0,
+          "either_way_prefix": 1,
           "empty": 0,
           "missing": 0,
-          "present": 0
+          "present": 1
         }
       },
-      "headings_the_files_use_most": [],
-      "homes_with_the_file": 0
+      "headings_the_files_use_most": [
+        [
+          "Architecture",
+          1
+        ],
+        [
+          "Stack and structure",
+          1
+        ],
+        [
+          "Conventions",
+          1
+        ],
+        [
+          "Decisions",
+          1
+        ],
+        [
+          "Superseded",
+          1
+        ]
+      ],
+      "homes_with_the_file": 1
     },
     "environment.md": {
       "headings": {
         "Access and accounts": {
           "either_way_prefix": 0,
           "empty": 0,
-          "missing": 29,
+          "missing": 30,
           "present": 0
         },
         "Commands": {
           "either_way_prefix": 0,
           "empty": 0,
-          "missing": 29,
+          "missing": 30,
           "present": 0
         },
         "Platform facts": {
           "either_way_prefix": 1,
           "empty": 0,
-          "missing": 28,
+          "missing": 29,
           "present": 1
+        },
+        "Skills": {
+          "either_way_prefix": 0,
+          "empty": 0,
+          "missing": 30,
+          "present": 0
         },
         "Targets and runtimes": {
           "either_way_prefix": 1,
           "empty": 0,
-          "missing": 29,
+          "missing": 30,
           "present": 0
         }
       },
       "headings_the_files_use_most": [
         [
           "Environment",
-          29
+          30
         ],
         [
           "Delivery",
-          7
+          8
         ],
         [
           "Runtime",
@@ -206,45 +234,45 @@
           1
         ]
       ],
-      "homes_with_the_file": 29
+      "homes_with_the_file": 30
     },
     "spec.md": {
       "headings": {
         "Non-functional requirements": {
-          "either_way_prefix": 11,
+          "either_way_prefix": 12,
           "empty": 0,
-          "missing": 29,
+          "missing": 30,
           "present": 0
         },
         "Requirements": {
-          "either_way_prefix": 19,
+          "either_way_prefix": 20,
           "empty": 0,
           "missing": 10,
-          "present": 19
+          "present": 20
         },
         "Retired": {
-          "either_way_prefix": 24,
+          "either_way_prefix": 25,
           "empty": 0,
           "missing": 5,
-          "present": 24
+          "present": 25
         }
       },
       "headings_the_files_use_most": [
         [
           "Retired",
-          24
+          25
         ],
         [
           "Requirements",
-          19
+          20
         ],
         [
           "Living spec",
-          14
+          15
         ],
         [
           "Non-functional",
-          11
+          12
         ],
         [
           "Battleship living spec",
@@ -331,39 +359,39 @@
           1
         ]
       ],
-      "homes_with_the_file": 29
+      "homes_with_the_file": 30
     },
     "test-strategy.md": {
       "headings": {
         "Commands": {
           "either_way_prefix": 2,
           "empty": 0,
-          "missing": 27,
+          "missing": 28,
           "present": 2
         },
         "Harnesses and suites": {
           "either_way_prefix": 3,
           "empty": 0,
-          "missing": 29,
+          "missing": 30,
           "present": 0
         },
         "ID convention": {
           "either_way_prefix": 0,
           "empty": 0,
-          "missing": 29,
+          "missing": 30,
           "present": 0
         },
         "Real-boundary checks": {
           "either_way_prefix": 0,
           "empty": 0,
-          "missing": 29,
+          "missing": 30,
           "present": 0
         }
       },
       "headings_the_files_use_most": [
         [
           "Test strategy",
-          28
+          29
         ],
         [
           "Harness",
@@ -454,11 +482,15 @@
           1
         ],
         [
+          "Status and learnings (after W1)",
+          1
+        ],
+        [
           "Concrete oracles (replayable positions)",
           1
         ]
       ],
-      "homes_with_the_file": 29
+      "homes_with_the_file": 30
     }
   }
 }
