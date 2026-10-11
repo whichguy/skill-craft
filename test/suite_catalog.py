@@ -185,7 +185,9 @@ _DURATION_SECONDS = {
     # fast-forward, working-tree, before-the-return, guard-refused and drifted-source routes.  A suite of its own so that
     # shiploop-return-review stays at its catalogued seconds under QUICK_MAX_SECONDS.  Local wall seconds, 2026-10-10: 17 tests, 44.3 s,
     # the faster of two serial runs at load average 8 to 10 (the five CLI tests are about 6 s each, the other twelve under 4 s together).
-    "test/shiploop-retire.test.py": 44.3,
+    # After the review fixes of the same day: 26 tests (two more CLI tests, the no-change route and the cited retry, and unit tests of
+    # the evidence check), 61.3 s, the faster of two serial runs (64.1 s) at load average 6 to 9.  Under QUICK_MAX_SECONDS.
+    "test/shiploop-retire.test.py": 61.3,
     "test/shiploop-chain.test.py": 191.262,
     "test/shiploop-chain-async.test.py": 35.083,
     "test/experiments/shiploop_chain/test_trace.py": 0.701,
