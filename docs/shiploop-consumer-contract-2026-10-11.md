@@ -175,7 +175,7 @@ Accepted as known limits:
 8. **Render reads files only.** `reads_quotes`, `entry_text` and the state readers run no Git, as `grounding()` does
    today. The exceptions, each one Git read:
    - `recent_commits` and `last_lessons` at intake and discovery (`git log`);
-   - `run_changes` in a packet whose `CONSUMES` row names it, and in the report (`git show` of each file at the run
+   - `spec_diff` in a packet whose `CONSUMES` row names it, and in the report (one `git diff` from the run
      baseline).
 
 ---
@@ -253,8 +253,8 @@ quoted the same way.
 
 ### 2.3 Entries: `entry_text(repo, ident) -> Optional[str]`
 
-One parser, `_entries(text, prefix) -> dict[id, Entry(text: str, retired: bool)]`, serves `entry_text` and
-`run_changes` (section 2.6).
+One parser, `_entries(text, prefix) -> dict[id, Entry(text: str, retired: bool)]`, serves `entry_text` (quoting the
+entries an item `follows`) and the existence check on `follows`.
 
 Which file:
 - `ident` must fullmatch `^(R|AD)-\d+$`; anything else raises `ValueError`.
@@ -335,7 +335,7 @@ return carries no commit, so the handoff packet and the report print the message
 
 **`last_lessons(repo) -> Optional[Lessons(commit, subject, body)]`:** see section 3.4.
 
-### 2.6 Run baseline and run changes (D3, X9)
+### 2.6 Run baseline and spec diff (D3, X9)
 
 **The baseline.** At `init` (in `shiploop_protocol`, right after `navigator.save`), `write_run_baseline(root, repo)`
 writes `root / RUN_BASELINE` once, with `store.atomic_write_text`: the 40-hex `git rev-parse HEAD` of the execution
@@ -343,30 +343,24 @@ checkout and a newline, or an empty file when the checkout has no commit or is n
 execution checkout starts at the workspace manifest's `baseline_commit`, so the record holds that commit: one record for
 both modes. Nothing rewrites it. `run_baseline(root) -> Optional[str]` returns the hash, or `None` for an empty file.
 
-**`run_changes(repo, baseline) -> Optional[dict[name, Changes(added, modified, retired)]]`**, for `spec.md` and
-`architecture.md`:
-- Outside a checkout (`(repo / ".git").exists()` is false) it returns `None` and runs no Git.
-- It compares `_entries` of the working file with `_entries` of the file at the baseline
-  (`git show <baseline>:docs/shiploop/<name>`). That side is empty when there is no baseline or the file did not exist
-  then.
-- **added:** an ID with no entry at the baseline.
-- **modified:** an ID whose text differs after every run of whitespace is collapsed to one space, and whose retired flag
-  is unchanged.
-- **retired:** an ID whose retired flag turned on.
-- Each list is in numeric order. An ID that lost its entry is not listed: `check()`'s retention loop refuses a drop, as
-  today.
-- The working file is compared, so a stage sees its own uncommitted edits, and an edit a review committed through
-  improve-commit is listed too. An edit the user left uncommitted in their own checkout before the run counts as this
-  run's.
+**`spec_diff(root, state) -> Optional[str]`:**
+- `git diff <baseline> -- docs/shiploop/spec.md docs/shiploop/architecture.md` in the execution checkout, against the
+  working tree, uncut.
+- It returns `""` when nothing changed, and `None` outside a checkout or with no baseline.
+- It compares the working tree, so a stage sees its own uncommitted edits, and an edit a review committed through
+  improve-commit shows too.
+- An edit the user left uncommitted in their own checkout before the run counts as this run's.
 
-There is no model field and no refusal. This replaces the model-typed requirement and changed-ID lists, their
-completeness checks and the plan's spec-commit record (section 3.7).
+There is no model field, no refusal and no ID parser. This replaces the model-typed requirement and changed-ID lists,
+their completeness checks and the plan's spec-commit record (section 3.7). An earlier draft of this revision derived
+added, modified and retired ID lists (`run_changes`). That was superseded on 2026-10-11 by the uncut diff, which is
+simpler, cannot misclassify, and also shows edits outside ID entries, such as non-functional requirements.
 
-**What a consumer packet prints** (inner-loop session), where `CONSUMES` names `run_changes`:
-- `Spec and architecture changes since the run began (baseline <12 hex>; git -C <repo> diff <12 hex> -- docs/shiploop/spec.md docs/shiploop/architecture.md shows them in full):`
-- Then, per file and class, each ID with its `entry_text` quoted with `"  | "`, or "none" for an empty class.
-- No baseline: "every entry counts as added: the repository had no commit when the run began".
-- `None` from `run_changes`: "not computed: <repo> is not a Git checkout".
+**What a consumer packet prints** (inner-loop session), where `CONSUMES` names `spec_diff`:
+- `Spec and architecture changes since the run began (baseline <12 hex>), the uncut diff:`
+- Then each diff line prefixed `"  | "`.
+- `""`: "none since the run began".
+- `None`: "not computed: <repo> is not a Git checkout, or the run has no baseline".
 
 ---
 
@@ -584,7 +578,7 @@ gets the files quoted whole, whatever their headings say.
 ### 3.7 Cut from revision 1
 
 Each item below is removed from the contract and from every section that follows. None is built.
-- `requirement_changes`, `changed_ids`, their refusals and the three completeness checks: replaced by `run_changes`
+- `requirement_changes`, `changed_ids`, their refusals and the three completeness checks: replaced by `spec_diff`
   (D3, X9).
 - `PLAN_SPEC_RECORD`, `record_plan_spec` and `plan_spec`: replaced by the run baseline (D3, X9).
 - The `release` field and its gate: replaced by the standing procedure in `environment.md`, quoted whole, plus
@@ -602,22 +596,22 @@ Each item below is removed from the contract and from every section that follows
 
 ```python
 CONSUMES = {
-    "intake": (), "discovery": (), "research": (), "spec": (), "test-strategy": ("run_changes",),
-    "plan": ("run_changes",), "prepare": (),
+    "intake": (), "discovery": (), "research": (), "spec": (), "test-strategy": ("spec_diff",),
+    "plan": ("spec_diff",), "prepare": (),
     "step-plan": ("assumptions",), "test-spec": ("follows", "criteria", "test_commands"), "validate-existing": (),
     "implement": ("follows", "criteria", "test_cases"), "test": ("follows", "test_cases", "not_covered"),
-    "document": ("follows", "run_changes"), "verify": ("follows", "test_cases", "run_changes"),
-    "carry-forward": ("run_changes", "assumptions"),
+    "document": ("follows", "spec_diff"), "verify": ("follows", "test_cases", "spec_diff"),
+    "carry-forward": ("spec_diff", "assumptions"),
     "system-test-author": ("test_cases", "assumptions"), "system-test": ("system_commands", "assumptions"),
-    "product-acceptance": ("system_commands", "run_changes", "assumptions"),
+    "product-acceptance": ("system_commands", "spec_diff", "assumptions"),
     "release-plan": ("system_commands", "assumptions"),
     "release-check": ("assumptions",), "release": ("assumptions",),
-    "release-verify": ("run_changes", "assumptions"),
+    "release-verify": ("spec_diff", "assumptions"),
     "operations": ("assumptions",), "handoff": ("lessons", "assumptions"),
 }
 ```
 
-`run_changes` is the script-derived diff (section 2.6), not a result key. Every stage has a row. `CONSUMES` covers the
+`spec_diff` is the script-derived diff (section 2.6), not a result key. Every stage has a row. `CONSUMES` covers the
 new keys plus the existing `criteria`, `test_commands` and `system_commands` that a gate or a duty uses (X7); the other
 existing hand-offs keep today's rendering.
 
@@ -639,7 +633,7 @@ order, the values sections 2.6 and 3 name for each consumer. The rule per key:
 - For system commands: each row's command, suite and IDs.
 - For open items: id, assumption, check, reason, consumer, owner and producer.
 - For lessons: the three fields, then the generated open-items block.
-- For `run_changes`: as section 2.6.
+- For `spec_diff`: as section 2.6.
 - A field the producer has not recorded prints "not recorded by <stage>". It is never silently omitted.
 - No cap on any of it.
 
@@ -648,7 +642,7 @@ release and operations as well as at release-plan and release-check.
 
 **One table for "builds on" (X15).** Each `CONSUMES` key with one producing stage (`follows`, `criteria`,
 `test_commands`, `test_cases`, `not_covered`, `system_commands`, `lessons`) must name a stage in that stage's
-`stage_spec` `reads`. `assumptions` (gathered from every producer) and `run_changes` (the script) are exempt. Two rows
+`stage_spec` `reads`. `assumptions` (gathered from every producer) and `spec_diff` (the script) are exempt. Two rows
 gain a stage: system-test-author's `reads` gains `test-spec`, and release-plan's gains `system-test-author`.
 
 ---
@@ -722,8 +716,7 @@ How this lines up with the evidence:
 `_render_report` gains `*_handoff_sections(state, root)` after "Work item progress". All text goes through
 `html.escape`. The sections are:
 
-1. **Spec and architecture changes.** `run_changes` from the run baseline: added, modified and retired IDs per file,
-   with the baseline's 12-hex hash.
+1. **Spec and architecture changes.** `spec_diff` from the run baseline, uncut, with the baseline's 12-hex hash.
 2. **Work item hand-offs.** One block per item:
    - `follows`;
    - a test cases table (id, criterion, requirement, oracle, red, green);
@@ -798,7 +791,7 @@ These stay: the `references/system-tests.md` card path, the host-authored `SHIPL
   `Retired`, `retire`, `_put_back`, `retired_by`, `is_retired_spec`.
 - `in_home`: `path.startswith(HOME + "/")` or `path == HOME`.
 - Update `__all__`.
-- Add `entry_text`, `_entries`, `run_changes`, `run_baseline`, `write_run_baseline`, `RUN_BASELINE`, `READS`,
+- Add `entry_text`, `_entries`, `spec_diff`, `run_baseline`, `write_run_baseline`, `RUN_BASELINE`, `READS`,
   `reads_quotes`, `run_label`, `lessons_body`, `last_lessons`, `KNOWLEDGE_SUBJECT`, `LESSONS_SUBJECT`, `LESSON_FIELDS`.
 
 ### 7.2 `shiploop_navigator.py`
@@ -1094,7 +1087,7 @@ Expected values are literal fixtures or tables written from section 3, never the
 
 **`test/shiploop-packet-completeness.test.py`**
 - `HandoffQuoteTests`:
-  - `test_consumes_names_only_result_keys_or_run_changes_and_every_stage`
+  - `test_consumes_names_only_result_keys_or_spec_diff_and_every_stage`
   - `test_each_consumer_packet_quotes_its_fields`, against an expected table written from section 3, on a fixture state
     with every field (X16)
   - `test_each_single_producer_key_names_a_stage_in_the_consumers_reads` (X15)
@@ -1171,7 +1164,7 @@ the removed fields.
 
 **`test/shiploop-handoff.test.py`**
 - `ReportTests`:
-  - `test_the_report_shows_run_changes_item_handoffs_open_items_system_tests_and_lessons` (A12)
+  - `test_the_report_shows_spec_diff_item_handoffs_open_items_system_tests_and_lessons` (A12)
   - `test_a_stage_that_ran_without_the_field_says_not_recorded_and_one_that_never_ran_is_omitted`
   - `test_every_value_is_escaped`
 
