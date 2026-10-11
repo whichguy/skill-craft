@@ -1261,8 +1261,9 @@ harness and where a real boundary is required, stating which of its decisions th
 item keeps or changes and why; the step plan's criteria and its focused commands'
 ids.
 Write one "### <ID>" entry per case in the feature test-spec.md, titled with an
-id a focused command in the step plan's `test_commands` lists (ShipLoop refuses a
-case ID that no focused command lists): criterion and R-<n>; surface (unit, the
+id a focused command in the step plan's `test_commands` lists. Every id the focused
+commands list needs its own "### <ID>" entry too: ShipLoop refuses a case ID that no
+focused command lists, and a focused command id with no entry: criterion and R-<n>; surface (unit, the
 module's public interface, the real boundary, rendered UI) and due phase; setup
 and fixture; action; independent oracle (the expected observation, never only that
 a page loads); RED (how it fails on the item's base, or characterisation: it

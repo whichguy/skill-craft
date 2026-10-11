@@ -479,5 +479,43 @@ class MissingContractTests(unittest.TestCase):
             self.assertNotIn("The loop contract is missing", (run / "packets" / (action + ".md")).read_text())
 
 
+    def test_check_only_inside_the_loop_accepts_the_prefilled_receipt_before_it_exists(self) -> None:
+        """The live hello run on 13d278dd (2026-10-11) was refused "evidence_refs cite files that do not exist: ...
+        loops/<action>-terminal.json. Write the file" for a --check-only run inside the loop: the receipt is the
+        runtime's, so a check from inside the loop must not ask the model to write it."""
+        with tempfile.TemporaryDirectory(prefix="shiploop-check-only-receipt-") as temp:
+            repo = Path(temp).resolve() / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            run = Path(temp).resolve() / "run"
+            run.mkdir()
+            state = nav.new_state(str(repo), "Build a thing.", delegation="inline")
+            while nav.current_stage(state) != "document":
+                here, action = nav.current_stage(state), nav.current_action(state)["id"]
+                extra = ({"work_items": [{"id": "W1", "title": "one", "context": "c"}]} if here == "plan" else
+                         {"steps": [{"id": "S1", "task": "Make it."}]} if here == "step-plan" else {})
+                state = nav.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
+                if state.get("active_improve") is not None:
+                    state = nav.finish_improve(state, action, {"summary": "Synthetic review"})
+            nav.save(run, state)
+            action = nav.current_action(state)["id"]
+            receipt = loops.receipt_path(run, action)
+            self.assertFalse(receipt.exists())
+            result = run / "inbox" / (action + ".md")
+            result.parent.mkdir(parents=True, exist_ok=True)
+            result.write_text("```shiploop-state\n" + json.dumps({"outcome": "done", "summary": "Docs updated.",
+                              "headline": "Docs updated.", "evidence_refs": [str(receipt)]}) + "\n```\n")
+            cli = [sys.executable, "-B", str(ROOT / "skills/shiploop/scripts/shiploop"), "complete", "--run-dir", str(run),
+                   "--action", action, "--result", str(result)]
+            env = {**__import__("os").environ, "SHIPLOOP_PROGRESS": "off"}
+            checked = subprocess.run(cli + ["--check-only"], capture_output=True, text=True, env=env)
+            self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+            self.assertNotIn("Write the file", checked.stdout + checked.stderr)
+            # The real complete still needs the receipt: the loop's own check refuses, naming the start command.
+            real = subprocess.run(cli, capture_output=True, text=True, env=env)
+            self.assertEqual(real.returncode, 2, real.stdout + real.stderr)
+            self.assertIn("has not run", real.stdout + real.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

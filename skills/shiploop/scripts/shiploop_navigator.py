@@ -2036,7 +2036,8 @@ def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]
 _EVIDENCE_SUFFIX = re.compile(r"(#.*|::.*|:\d+(?::\d+)?)$")
 
 
-def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, repo: str | Path | None = None) -> None:
+def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, repo: str | Path | None = None,
+                              *, check_only: bool = False) -> None:
     """Refuse a submitted result that cites a local file that does not exist.
 
     Runs at the CLI gates only (history is revalidated on every load, and a
@@ -2046,8 +2047,9 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, repo
     own test-run record.
 
     ``own_receipt`` is this action's loop receipt, which the result template prefills: a result other than done may
-    keep it before the loop wrote it (the loop checks accept blocked without a terminal packet), and done still needs
-    it, through the loop's own terminal check.
+    keep it before the loop wrote it (the loop checks accept blocked without a terminal packet), and so may a
+    ``--check-only`` run made from inside the still-running loop; done still needs it, through the loop's own terminal
+    check.  The live hello run on 13d278dd (2026-10-11) was told "Write the file" for it, an invitation to forge it.
 
     ``repo`` is the execution checkout: a feature spec that ShipLoop's own retire removed from it still counts as present,
     because a retried handoff cites the file the first attempt cited, and "write the file" would invite re-creating it.
@@ -2059,7 +2061,9 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, repo
         if not isinstance(ref, str) or not ref.startswith("/"):
             continue
         path = Path(_EVIDENCE_SUFFIX.sub("", ref))
-        if (own_receipt is not None and result.get("outcome") != "done"
+        # The prefilled receipt is the runtime's to write, never the model's: before the loop ends (any outcome but
+        # done, or a --check-only run from inside the loop) it may not exist yet.
+        if (own_receipt is not None and (result.get("outcome") != "done" or check_only)
                 and str(path) == str(own_receipt)):
             continue
         if not path.exists() and not (repo is not None and knowledge.is_retired_spec(Path(repo), path)):
@@ -4083,7 +4087,8 @@ def _knowledge_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     if stage in [name for name, files in knowledge.STAGE_FILES.items() if "README.md" in files]:
         lines.append("In " + str(repo / knowledge.HOME / "README.md") + " link the feature list, "
                      + str(repo / knowledge.FEATURE_LIST) + ", not a feature's spec.md: ShipLoop removes that file at "
-                     "handoff, so a link to it would dangle.")
+                     "handoff, so a link to it would dangle. ShipLoop writes that feature list at its next knowledge "
+                     "commit; do not create or edit it.")
     if stage == "handoff":
         lines.append("At this handoff ShipLoop checks that every requirement ID in " + folder + "/spec.md is in "
                      + str(repo / knowledge.HOME / "spec.md") + " and, when this run's commits reach your branch (an "
@@ -5499,7 +5504,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
             _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item),
-                                      state["repo"])
+                                      state["repo"], check_only=check_only)
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted, root=root, state=state)
