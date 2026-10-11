@@ -1,0 +1,33 @@
+{
+ "case": "node-fix-bug",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "delegation": "inline",
+ "tool": "test/shiploop_e2e/slice.py",
+ "before": {
+  "ref": "8848cc65",
+  "pass": true,
+  "turns": 78,
+  "model_calls": 46,
+  "packets": 23,
+  "packet_chars_written": 1145258,
+  "seconds": 228
+ },
+ "after": {
+  "ref": "348b5932",
+  "pass": true,
+  "turns": 73,
+  "model_calls": 41,
+  "packets": 20,
+  "packet_chars_written": 637196,
+  "seconds": 223
+ },
+ "verdicts_after": {
+  "process": true,
+  "inner_loop": true,
+  "no_overshoot": true,
+  "assembled": true,
+  "checks": true
+ },
+ "n": "1 each"
+}

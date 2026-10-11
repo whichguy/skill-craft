@@ -147,8 +147,8 @@ Verify each step:
 
 ## 2026-10-11: within-packet dedupe, shared blocks and step-plan (recommended order item 3)
 
-Status: **interim**. The sizes are measured, and the 30 packet suites are green. No live slice or clear-the-context
-probe has run on it yet.
+Status: **interim**. The sizes are measured, the 30 packet suites are green, and one live slice passes. The
+clear-the-context probe has not run yet.
 
 **Question.** The owner said: "the full packet file looks far too verbose ... consolidate the language and
 deduplicate". They pointed at a live step-plan packet: 53k characters and 701 lines, with paths shortened.
@@ -202,4 +202,16 @@ to 270k characters. The step-plan packet fell from 58k to 33k (`packets.py offli
 - The "*" no-review swap row for COMMON's schedule sentence now affects only reference.md.
 - The test, verify and carry-forward packets (25-28k each) still carry TEST_FACILITY_HANDOFF and
   TEST_DECISION_HANDOFF, plus a second "fix and resubmit" line. This is the next pass.
-- Not yet run: a live step slice and the S-6 clear-the-context probe. Both should run before a release.
+- **Live step slice, run after the commit** (docs/experiments/packet-dedupe-20261011/live-slice.json; n=1 each, so a
+  trend, not proof). Claude Sonnet 5.5, inline, on node-fix-bug:
+
+  | | 8848cc65 | 348b5932 |
+  |---|---|---|
+  | Result | PASS | PASS |
+  | Turns | 78 | 73 |
+  | Model calls | 46 | 41 |
+  | Packet characters written | 1.15M | 0.64M (-44%) |
+  | Wall time | 228 s | 223 s |
+
+  Every verdict passes.
+- Not yet run: the S-6 clear-the-context probe. It should run before a release.
