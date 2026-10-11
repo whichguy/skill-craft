@@ -181,6 +181,32 @@ Measured per step, without thresholds: printed-head bytes, calls to re-orient af
 | R2 | Removal of the feature `spec.md`, the progress-view fix and `features/README.md` | **Owner decision (this is D3, narrowed)**; only after R1 has been seen in use |
 | M | Maintainer release preflight | Me, with any release |
 
+## 0e. What was built (2026-10-10) and what is left
+
+**Status: on `origin/main`, each part independently reviewed twice (code lens and main-tenet lens), then fixed, then verified; evidence is in the journals named below.** The plan of action v5 was approved ("implement, merge to main"); decisions D3, D4, D5 and D7 were taken as recommended; D8 was answered by a non-destructive snapshot of the checkout's uncommitted work (local branch `snapshot/d8-uncommitted-20261010`, not pushed).
+
+| Part | Where | Journal and evidence |
+|---|---|---|
+| Release preflight (`scripts/release.py`: a ShipLoop release needs a `LEARNINGS.md` commit or a `No-E2E-Round:` trailer) | `scripts/release.py`, `test/release-preflight.test.py` | `docs/shiploop-release-preflight-journal-2026-10-10.md` |
+| Contract-headroom and look-back spike | read-only | `docs/shiploop-contract-headroom-spike-2026-10-10.md`: the commit rule costs 874 to 950 bytes in the frozen Improve contract (not the plan's 350), so the contract carries a 204-byte pointer and `parent-return.md` holds the command and rules |
+| Harness counters `metrics.packets` and `metrics.commits`, baseline regrade of 39 saved runs, then switched to the one shared lessons reader | `test/shiploop_e2e/counters.py` | `docs/shiploop-commit-baseline-journal-2026-10-10.md`, `docs/experiments/commit-baseline-20261010/` |
+| Commit contract, engine side: `shiploop_lessons.py` (the one reader of the message grammar), `improve-commit` needs a Key learnings line (`none` accepted), validates `Learned-from` through git, `--remote-change` empty commit, refusals with the fix and the command on line 1, contract pointer and `parent-return.md` | `skills/shiploop/scripts/shiploop_lessons.py`, `shiploop_git.py`, `shiploop_navigator.py` (`_improve_commit` and neighbours), `shiploop_improve_changes.py`, the Improve card | `docs/shiploop-commit-contract-journal-2026-10-10.md`, `docs/experiments/commit-contract-design-20261010/` |
+| Spec retire step (feature spec checked against the living spec and removed in its own commit when the run's commits reach the branch), tree-derived `docs/shiploop/features/README.md`, `spec_pin()` | `shiploop_knowledge_home.py`, `shiploop_navigator.py` (`_knowledge_close`), `shiploop_workspace.py` (`return_kind`), progress view | `docs/shiploop-spec-retire-journal-2026-10-10.md`, `docs/experiments/spec-retire-20261010/` |
+| `docs/shiploop/architecture.md` in the knowledge home (`AD-<n>` decisions, retention check, required at the prepare close) and `knowledge_home.grounding()` | `shiploop_knowledge_home.py` | `docs/shiploop-architecture-file-journal-2026-10-10.md`, `docs/experiments/architecture-file-20261010/` |
+
+**Decisions made while building, each with its evidence in the journals.**
+- The retire step does not refuse a handoff for requirement IDs (0 of 32 saved specs would be refused, and a presence-only check cannot prove a merge); it keeps the file with one notice instead. The commit subject says "retire ... checked its requirement IDs", not "merge".
+- Decision IDs are `AD-<n>`, not `D-<n>`: models already number product decisions `D-1..D-6` inside `spec.md`.
+- Section-heading checks (spec, environment, architecture, test strategy) are a counted notice first, not a refusal: on 27 saved homes the proposed headings are nearly absent (environment "Commands" 1 of 27; test strategy "ID convention" 0 of 27).
+- Cut, with triggers in the journals: the `improve-complete` notice, `Result (<stage>)` blocks in knowledge commits, the integrate `Learned:` harvest, the pin notice, the second `Learned-from` on the retire commit, an Improve bind-tree baseline for retention.
+
+**Open.**
+- **A2** (`SECTIONS` constants, writer entries, section-heading notice): waits for the inner-loop session's 8-stage graph on main; writers are keyed on its stage names.
+- **Packet text** (the plan pin line, the handoff retire sentence, the architecture duty sentences, a "Lessons:" label for script-built commit bodies): owned by the `inner-loop` session. Exact lines are in the journals under "Lines for the packet owner".
+- **HOLD: do not release `shiploop` until the plan and step-plan duty sentence for `architecture.md` has landed.** Until then `prepare` refuses a repository whose home has no `architecture.md` and no packet says what it holds. Release 1.27.0 (cut by the E2E fork on 2026-10-10) predates this: it ships the commit contract but not the architecture file.
+- **Measured by the first live pair after the packet text lands, no thresholds:** `metrics.commits` (lessons, citations), refusals by first line, kept-notices, credential refusals naming `architecture.md`, the hello and Battleship deltas in plan wall time and prepare refusals.
+- Worktrees `b1012{h,s,m,b,i,r,a,c}-1bbefb` and branches `batch1012*-1bbefb` are merged; removal needs the owner's OK.
+
 ## 1. What you asked for
 
 | # | Requirement | Answer |
