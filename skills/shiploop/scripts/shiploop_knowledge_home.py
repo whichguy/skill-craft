@@ -232,7 +232,8 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
 
     A close requires its files; any other stage is checked only when it changed the home,
     because ShipLoop commits the home after every accepted stage that changed it.  ``command`` is the callback the
-    refusal tells the model to run again (``complete``, or ``improve-complete`` for a reviewed result).
+    refusal tells the model to run again (``complete``, or ``improve-complete`` for a reviewed result).  A drop is seen
+    only in an edit still uncommitted: an edit a review already committed through ``improve-commit`` is the baseline.
     """
     repo = Path(str(state["repo"]))
     if _git(repo, "rev-parse", "--is-inside-work-tree").returncode != 0:
@@ -270,16 +271,26 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
     # A plain mention anywhere in the file keeps an ID (a heading, a table row, a line under Retired or Superseded); nothing
     # is dropped from a file HEAD does not hold yet.  Line 1 is the fix, the absolute path and the command, with no ID
     # list, so a long list can never cut the fix off a model that reads the first 250 characters; the IDs follow, in full.
+    # The baseline is HEAD, so an edit already committed (a review's, through improve-commit) is not seen: only one still
+    # uncommitted, which is why the knowledge gate runs before the commit gate on the improve-complete route.
     refusals = []
     for name, ids, what, kind, section in _RETAINED:
         path = repo / HOME / name
         now = set(ids.findall(path.read_text(encoding="utf-8", errors="replace"))) if path.is_file() else set()
         dropped = sorted(set(ids.findall(_committed(repo, name))) - now, key=lambda value: int(value.split("-")[1]))
         if dropped:
-            refusals.append("Restore the lost " + dropped[0].split("-")[0] + "-<n> in " + str(path) + " or move it under '"
-                            + section + "', then run the same " + command + " command again.\n"
-                            "The " + what + " no longer mentions " + ", ".join(dropped) + ". Keep every earlier " + kind
-                            + " ID: modify it in place, or move it under a '" + section + "' heading with the reason.")
+            prefix = dropped[0].split("-")[0]
+            if command == "complete":
+                first = ("Restore the lost " + prefix + "-<n> in " + str(path) + " or move it under '" + section
+                         + "', then run the same complete command again.")
+            else:
+                # The route's real sequence: the fix is the review's uncommitted edit, so improve-commit comes before the
+                # import (else the commit gate is the next refusal).  Shorter, so `cut -c1-250` keeps all three steps at
+                # the longest saved checkout path (137 characters); the 'Superseded' exit is on line 2.
+                first = ("Restore " + prefix + "-<n> in " + str(path) + "; if the review changed it, improve-commit it; "
+                         "then run " + command + ".")
+            refusals.append(first + "\nThe " + what + " no longer mentions " + ", ".join(dropped) + ". Keep every earlier "
+                            + kind + " ID: modify it in place, or move it under a '" + section + "' heading with the reason.")
     return "\n".join(refusals)
 
 

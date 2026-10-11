@@ -1321,53 +1321,82 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(navigator.current_stage(resumed), "test-spec")
         self.assertNotIn("skill_na", resumed["accepted"][self.action])
 
-    def test_a_reviewed_step_plan_that_drops_a_decision_id_is_refused_at_improve_complete_and_the_named_exit_is_accepted(self):
-        """The review may rewrite docs/shiploop/architecture.md; the gate that checks the producer result checks that too.
+    ARCHITECTURE = "# Architecture\n\nNode 22.\n\n### AD-1 In-memory board\n### AD-2 One module per concern\n"
 
-        The knowledge gate runs before the gate for the review's uncommitted edits, so the named exit takes two steps: the
-        knowledge refusal (fix the file, run improve-complete again), then the commit refusal that names improve-commit.
-        """
-        if not self.inline():
-            self.skipTest("improve-commit is the inline route")
-        git = lambda *a: subprocess.run(["git", "-C", str(self.repo), "-c", "user.name=T", "-c", "user.email=t@example.invalid", *a],
-                                        check=True, capture_output=True, text=True, env=self.environment).stdout
+    def commit_architecture(self) -> Path:
+        """docs/shiploop/architecture.md with two decisions, committed in the product repository as an earlier run's home."""
         architecture = self.repo / "docs/shiploop/architecture.md"
         architecture.parent.mkdir(parents=True)
-        architecture.write_text("# Architecture\n\nNode 22.\n\n### AD-1 In-memory board\n### AD-2 One module per concern\n",
-                                encoding="utf-8")
-        git("init", "-q")
-        git("add", "-A")
-        git("commit", "-qm", "an earlier run's home")
-        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
-        self.finish_ephemeral()
-        architecture.write_text("# Architecture\n\nNode 22.\n\n### AD-1 In-memory board\n", encoding="utf-8")  # the review's edit
+        architecture.write_text(self.ARCHITECTURE, encoding="utf-8")
+        self.home_git("init", "-q")
+        self.home_git("add", "-A")
+        self.home_git("commit", "-qm", "an earlier run's home")
+        return architecture
+
+    def home_git(self, *argv) -> str:
+        return subprocess.run(["git", "-C", str(self.repo), "-c", "user.name=T", "-c", "user.email=t@example.invalid", *argv],
+                              check=True, capture_output=True, text=True, env=self.environment).stdout
+
+    def refused_import(self) -> list:
+        """improve-complete refused (exit 2): its stderr lines, with the receipt files of the review written first."""
         completion, _receipt = self.completion_receipt()
         before = (self.run / "state.md").read_bytes()
         refused = self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
-        lines = refused.stderr.splitlines()
-        self.assertTrue(lines[0].startswith("ShipLoop navigator: Restore the lost AD-<n> in " + str(architecture) + " or move it under '"),
-                        lines[0])
-        self.assertIn("then run the same improve-complete command again.", lines[0][:250])  # the route's own verb
-        self.assertNotIn("AD-2", lines[0])
-        self.assertIn("The architecture no longer mentions AD-2.", lines[1])
-        self.assertEqual(before, (self.run / "state.md").read_bytes())
-        # The named exit, read from the refusal: the heading it names, with the ID under it.
-        heading = re.search(r"move it under '([^']+)'", lines[0]).group(1)
-        architecture.write_text(architecture.read_text(encoding="utf-8") + "\n## " + heading + "\n\nAD-2: split by layer instead.\n",
-                                encoding="utf-8")
-        completion, _receipt = self.completion_receipt()
-        again = self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion, status=2)
-        self.assertIn("Commit this review's changes first", again.stderr)  # the fix is the review's uncommitted edit
-        self.assertIn("improve-commit", again.stderr.splitlines()[0])
-        message = bridge.receipt_path(self.bound).with_name("commit-message.md")
-        message.parent.mkdir(parents=True, exist_ok=True)
-        message.write_text("docs: keep the module decision\n\nKey learnings: a replaced decision moves under its heading.\n",
-                           encoding="utf-8")
-        self.invoke(CLI, "improve-commit", "--run-dir", self.run, "--action", self.action, "--message", message)
+        self.assertEqual(before, (self.run / "state.md").read_bytes())  # a refusal changes nothing
+        return refused.stderr.splitlines()
+
+    def commit_the_review(self, message: str) -> None:
+        """improve-commit, as a refusal's line 1 names it: write the message where ShipLoop prints it, then run the command."""
+        path = bridge.receipt_path(self.bound).with_name("commit-message.md")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(message, encoding="utf-8")
+        self.invoke(CLI, "improve-commit", "--run-dir", self.run, "--action", self.action, "--message", path)
+
+    def import_the_review(self) -> None:
         completion, _receipt = self.completion_receipt()
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, *completion)
+
+    def test_a_reviewed_step_plan_that_drops_a_decision_id_is_refused_at_improve_complete_and_the_named_sequence_is_accepted(self):
+        """The review may rewrite docs/shiploop/architecture.md; the gate that checks the producer result checks that too.
+
+        The knowledge gate runs before the gate for the review's uncommitted edits, so the fix the parent writes is that
+        edit.  Line 1 names the whole sequence (fix, improve-commit, improve-complete), and each step is accepted: the
+        commit refusal is not met on the way.
+        """
+        if not self.inline():
+            self.skipTest("improve-commit is the inline route")
+        architecture = self.commit_architecture()
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        architecture.write_text("# Architecture\n\nNode 22.\n\n### AD-1 In-memory board\n", encoding="utf-8")  # the review's edit
+        lines = self.refused_import()
+        # the template, not a column: where the cut falls depends on the length of this machine's temporary directory
+        self.assertEqual(lines[0].replace(str(architecture), "<file>"),
+                         "ShipLoop navigator: Restore AD-<n> in <file>; if the review changed it, improve-commit it; "
+                         "then run improve-complete.")
+        self.assertNotIn("AD-2", lines[0])
+        self.assertIn("The architecture no longer mentions AD-2.", lines[1])
+        # The named exit, read from the refusal (line 2 carries the heading): the heading it names, with the ID under it.
+        heading = re.search(r"move it under a '([^']+)' heading", lines[1]).group(1)
+        architecture.write_text(architecture.read_text(encoding="utf-8") + "\n## " + heading + "\n\nAD-2: split by layer instead.\n",
+                                encoding="utf-8")
+        self.commit_the_review("docs: keep the module decision\n\nKey learnings: a replaced decision moves under its heading.\n")
+        self.import_the_review()  # the import that line 1 names; no commit refusal in between
         self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
-        self.assertIn("AD-2: split by layer instead.", git("show", "HEAD:docs/shiploop/architecture.md"))
+        self.assertIn("AD-2: split by layer instead.", self.home_git("show", "HEAD:docs/shiploop/architecture.md"))
+
+    def test_a_review_that_restores_the_dropped_decision_exactly_has_nothing_to_commit_and_the_import_is_accepted(self):
+        """"If the review changed it": a file back as it was at the bind has no edit of the review's left to commit."""
+        architecture = self.commit_architecture()
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        architecture.write_text("# Architecture\n\nNode 22.\n\n### AD-1 In-memory board\n", encoding="utf-8")  # the review's edit
+        lines = self.refused_import()
+        self.assertIn("if the review changed it, improve-commit it; then run improve-complete.", lines[0])
+        architecture.write_text(self.ARCHITECTURE, encoding="utf-8")  # the edit undone: no improve-commit
+        self.import_the_review()
+        self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
+        self.assertEqual(self.home_git("status", "--porcelain", "--", "docs"), "")
 
     def test_a_wrong_result_path_is_refused_with_the_expected_path(self):
         """Batch 1.12.1: Luna passed the worktree as --result; the refusal now names the path to use."""

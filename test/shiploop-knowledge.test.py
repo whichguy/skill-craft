@@ -124,6 +124,8 @@ class KnowledgeTests(HomeFixture):
         self.assertIn(absolute[0], lines[0][:250])
         self.assertNotIn(" docs/shiploop/", lines[0])  # no relative path that could be written from the wrong directory
         self.assertEqual(re.findall(r"^- (/\S+)$", refusal, re.M), absolute)
+        # a first prepare asks for every file at once, the architecture among them: its one hint line is printed once, here too
+        self.assertEqual(re.findall(r"^(\S+) holds ", refusal, re.M), ["architecture.md"])
         self.assertIn("keeps this run's planning knowledge in the repository", refusal)
         self.assertTrue(refusal.endswith("See the packet's knowledge-home lines for what each file holds."))
 
@@ -312,30 +314,51 @@ class ArchitectureTests(HomeFixture):
                 self.assertNotIn("AD-2", first)  # a long list can never push the fix out of the first line
                 self.assertEqual(second, "The architecture no longer mentions AD-2, AD-3. Keep every earlier decision ID: "
                                  "modify it in place, or move it under a 'Superseded' heading with the reason.")
-        # the improve-complete gate asks for its own command
-        self.assertIn("then run the same improve-complete command again.",
-                      knowledge.check(self.state, "step-plan", command="improve-complete").split("\n")[0])
+        # The improve-complete route has its own sequence: a review's edit is committed with improve-commit before the import,
+        # and line 2 (the IDs and the 'Superseded' reason) is the complete route's.
+        first, second = knowledge.check(self.state, "step-plan", command="improve-complete").split("\n")
+        self.assertEqual(first, "Restore AD-<n> in " + str(path)
+                         + "; if the review changed it, improve-commit it; then run improve-complete.")
+        self.assertNotIn("AD-2", first)
+        self.assertIn("The architecture no longer mentions AD-2, AD-3. Keep every earlier decision ID: modify it in place, "
+                      "or move it under a 'Superseded' heading with the reason.", second)
 
-    def test_a_cut_of_line_1_at_250_characters_keeps_the_fix_the_file_and_the_command(self) -> None:
-        """A model reads a refusal through `cut -c1-250`.  The checkout of a real run sits in a nested worktree: its
-        architecture.md path is about 120 characters, and the CLI prefixes line 1 with 'ShipLoop navigator: '."""
-        pad = max(1, 120 - len(str(self.repo.parent)) - len("/" + self.ARCH) - 1)
-        deeper = self.repo.parent / ("w" * pad)  # the file's path is 120 characters where the temporary directory allows
-        self.repo.rename(deeper)
-        state = dict(self.state, repo=str(deeper))
-        support.write(state)
-        path = deeper / self.ARCH
-        path.write_text("".join("AD-" + str(n) + " choice\n" for n in range(1, 13)))  # twelve decisions to lose
-        self.assertTrue(knowledge.commit(state, "prepare").commit)
+    # architecture.md sits 125 to 137 characters from the root in the saved E2E execution checkouts (the six
+    # /Users/dadleet/e2e-runs/<date>/<case>/.shiploop-runs/<run>/worktree paths of 2026-10-1x), and the CLI prefixes line 1.
+    REAL_WIDTHS = range(125, 138)
+    PREFIX = "ShipLoop navigator: "
+
+    def at_width(self, line: str, path: Path, width: int) -> tuple[str, str]:
+        """(the CLI's line 1, the path it shows): the real path swapped for a synthetic one of exactly ``width`` characters.
+
+        The cut a model reads through depends on the length of the path, which is the machine's (a temporary directory under
+        a long ``TMPDIR`` made the earlier version of this test fail); the template around the path is the product's.
+        """
+        self.assertEqual(line.count(str(path)), 1)
+        tail = "/" + self.ARCH
+        synthetic = "/" + "w" * (width - len(tail) - 1) + tail
+        self.assertEqual(len(synthetic), width)
+        return self.PREFIX + line.replace(str(path), synthetic), synthetic
+
+    def test_a_cut_of_line_1_at_250_characters_keeps_the_fix_the_file_and_the_commands_at_every_real_checkout_width(self) -> None:
+        """A model reads a refusal through `cut -c1-250`: what survives is the fix, the whole path and the route's commands."""
+        path = self.commit_home("".join("AD-" + str(n) + " choice\n" for n in range(1, 13)))  # twelve decisions to lose
         path.write_text("# Architecture\n")
         for command in ("complete", "improve-complete"):
-            with self.subTest(command):
-                line = "ShipLoop navigator: " + knowledge.check(state, "step-plan", command=command).splitlines()[0]
-                kept = line[:250]
-                self.assertIn(str(path), kept)
-                self.assertIn(" or move it under 'Superseded', then run the same " + command + " command again.", kept)
-                self.assertNotIn("AD-12", kept)  # the IDs are on line 2, in full
-        self.assertIn("AD-12.", knowledge.check(state, "step-plan").splitlines()[1])  # every ID, no cap
+            line_1 = knowledge.check(self.state, "step-plan", command=command).splitlines()[0]
+            for width in self.REAL_WIDTHS:
+                with self.subTest(command=command, width=width):
+                    line, shown = self.at_width(line_1, path, width)
+                    kept = line[:250]
+                    if command == "complete":
+                        wanted = ("Restore the lost AD-<n> in " + shown
+                                  + " or move it under 'Superseded', then run the same complete command")
+                    else:
+                        wanted = ("Restore AD-<n> in " + shown + "; if the review changed it, improve-commit it; "
+                                  "then run improve-complete.")
+                    self.assertIn(wanted, kept)
+                    self.assertNotIn("AD-12", kept)  # the IDs are on line 2, in full
+        self.assertIn("AD-12.", knowledge.check(self.state, "step-plan").splitlines()[1])  # every ID, no cap
 
     def test_the_spec_refusal_has_the_same_shape_and_still_names_what_it_lost(self) -> None:
         support.write(self.state)
@@ -348,6 +371,11 @@ class ArchitectureTests(HomeFixture):
                          "then run the same complete command again.")
         self.assertEqual(second, "The living spec no longer mentions R-2. Keep every earlier requirement ID: modify it in "
                          "place, or move it under a 'Retired' heading with the reason.")
+        # the route's own sequence is the spec's too (one template for both files)
+        again, rest = knowledge.check(self.state, "release-plan", command="improve-complete").split("\n")
+        self.assertEqual(again, "Restore R-<n> in " + str(spec)
+                         + "; if the review changed it, improve-commit it; then run improve-complete.")
+        self.assertEqual(rest, second)
 
     def test_the_id_prefix_the_wording_names_is_the_prefix_the_check_keeps(self) -> None:
         """ARCHITECTURE_HOLDS tells the model to number decisions AD-<n>; the check must keep exactly those."""
@@ -355,6 +383,14 @@ class ArchitectureTests(HomeFixture):
         path = self.commit_home("# Architecture\n\n" + prefix + "-1 one\n" + prefix + "-2 two\n")
         path.write_text("# Architecture\n\n" + prefix + "-1 one\n")
         self.assertIn("no longer mentions " + prefix + "-2.", knowledge.check(self.state, "step-plan"))
+
+    def test_a_dropped_id_that_is_staged_but_not_committed_is_still_a_drop(self) -> None:
+        """The baseline is what HEAD holds: ``git add`` of the lost version must not move it (the index would)."""
+        path = self.commit_home()
+        path.write_text(self.DECISIONS.replace("### AD-3 JSON errors", "### JSON errors"))
+        git(self.repo, "add", self.ARCH)
+        self.assertEqual(git(self.repo, "diff", "--cached", "--name-only").split(), [self.ARCH])
+        self.assertIn("The architecture no longer mentions AD-3.", knowledge.check(self.state, "step-plan"))
 
     def test_a_decision_moved_under_superseded_or_named_anywhere_in_the_file_is_kept(self) -> None:
         path = self.commit_home()

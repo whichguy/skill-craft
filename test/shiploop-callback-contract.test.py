@@ -527,9 +527,11 @@ class RefusalRouteTests(RealCliCase):
         architecture.write_text("# Architecture\n\nAD-1 In-memory board.\n", encoding="utf-8")  # this run's version loses AD-2
         reply = self.refused(command, run)
         first = reply.splitlines()[0]
-        self.assertTrue(first.startswith("ShipLoop navigator: Restore the lost AD-<n> in " + str(architecture) + " or move it under '"),
-                        first)
-        self.assertIn("then run the same complete command again.", first[:250])  # what `cut -c1-250` of the line keeps
+        # The template, not a column: where `cut -c1-250` falls depends on how long this machine's temporary directory is
+        # (the knowledge suite tests the cut at the lengths of the real checkouts).
+        self.assertEqual(first.replace(str(architecture), "<file>"),
+                         "ShipLoop navigator: Restore the lost AD-<n> in <file> or move it under 'Superseded', "
+                         "then run the same complete command again.")
         self.assertNotIn("AD-2", first)
         self.assertIn("The architecture no longer mentions AD-2.", reply.splitlines()[1])
         heading = re.search(r"move it under '([^']+)'", first).group(1)
