@@ -496,8 +496,11 @@ Each work item runs 8 stages in 5 phases (`INNER` in
 - `step-plan` records the item's `steps`, `paths`, `criteria`, test commands
   (with at least one check command, or `check_na`), `expectations` and each
   step's helper `skills` ([test loop](#test-loop), [expectations](#expectations-and-validate-existing)).
-- `test-spec` writes one case per criterion before any code changes; ShipLoop
-  refuses a case ID that no focused command lists.
+- `test-spec` writes one `### <ID>` case per criterion a test confirms, before any
+  code changes; ShipLoop refuses a case ID that no focused command lists, and a
+  focused ID with no case. Cases due at a later stage go under `## Due later` (read
+  by verify and `system-test-author`); criteria confirmed only by a check command or
+  inspection go under `## Not tested here`.
 - `validate-existing` confirms the expectations on the unchanged checkout.
 - `implement` makes one step per action. The lint gate runs on every step and an
   Improve child reviews every accepted step. Tests are written later, at `test`.
@@ -575,24 +578,25 @@ and on accept commits the skill's directory. When to create or update a skill:
 
 `step-plan` records the work item's test command list in its result:
 `"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression" | "check", "ids": ["TC-9"], "min_tests": 1}]`
-(`ids` and `min_tests` optional, and never on a `check` row).
-It also records `"paths"`: the repository-relative files or globs the item will
-change, and `"steps": [{"id": "S1", "task": "...", "deps": []}]`: every implementation step in
-the order to do them (one step is fine). Declare each step's actual prerequisites
-as earlier step IDs in `deps`; use `[]` for independent steps. Order alone does
-not imply dependency. Older plans without `deps` remain valid and display
-dependencies as unknown. ShipLoop refuses a done `step-plan`
-without any of these; an empty command list needs
+(`ids` and `min_tests` optional, and never on a `check` row). It also records
+`"paths"` (the repository-relative files or globs the item will change) and
+`"steps": [{"id": "S1", "task": "...", "deps": []}]`: every implementation step in
+order, each step's actual prerequisites as earlier step IDs in `deps` (`[]` for
+an independent step; order alone does not imply dependency). ShipLoop refuses a
+done `step-plan` without any of these; an empty command list needs
 `test_commands_na` with the reason, and a list with no `check` row (lint, type or
 build) needs `check_na`.
 
-The `test` stage follows `implement`. Inside its [Until Loop](#stage-until-loops)
-it writes a test for every test-spec case (the case ID as its own word in the
-test's name), runs every recorded command, the `red-check` command and the lint
-command, and fixes the product code (a test only for an independent reason it
-records) until all pass. On `done`, after the lint gate, ShipLoop runs two things
-itself (`scripts/shiploop_test_loop.py`), each with `/bin/sh -c` from the
-repository (at most 10 minutes per command, 30 per run):
+The `test` stage follows `implement`. Tests are written after the build phase
+and must assert the behaviour the test spec's oracle states; ShipLoop mutates a
+sample of the item's changed product lines and refuses tests that catch none of
+them. Inside its [Until Loop](#stage-until-loops) the stage writes a test for every
+test-spec case (the case ID as its own word in the test's name), runs every
+recorded command, the `red-check` command and the lint command, and fixes the
+product code (a test only for an independent reason it records) until all pass.
+On `done`, after the lint gate, ShipLoop runs two things itself
+(`scripts/shiploop_test_loop.py`), each with `/bin/sh -c` from the repository
+(at most 10 minutes per command, 30 per run):
 
 1. **Base run** (`base_check`): every focused and regression command in a
    temporary detached worktree at the item's base (after any preparatory fix),
@@ -600,8 +604,7 @@ repository (at most 10 minutes per command, 30 per run):
    command lists) must not pass there: it must fail, or be missing because a
    file this item adds cannot be loaded. A characterisation test that already
    passes goes in the result's `red_na: [{"id", "reason"}]`, which may name only
-   an ID a focused command lists. The run records each command's base count
-   (`tests/<action>-base<N>.md`).
+   an ID a focused command lists (`tests/<action>-base<N>.md`).
 2. **Candidate run** (`loop_run`): every recorded command (focused, regression,
    check) in the checkout. Each must exit 0, show every listed ID and run at
    least its floor (`tests/<action>-verify<N>.md`). The refusal prints each
@@ -611,8 +614,8 @@ A focused or regression command's **floor** is the larger of its base count and
 the most any earlier ShipLoop run of this action ran, less each test the
 result's `retired_tests: [{"id", "reason"}]` names that the base run showed. A
 test removed or newly skipped to pass is refused; a test this item deliberately
-retires is declared in `retired_tests` (it must print its name on the base, and
-no focused command may still list it).
+retires is declared in `retired_tests`. A command passes only when it exits 0
+**and ran tests** that ShipLoop can count and that show every listed ID.
 
 `shiploop red-check --run-dir <run> --action <test action> [--result <draft>]`
 runs the base check without completing, so the loop sees what the gate will
@@ -620,81 +623,22 @@ refuse. A draft result's `red_na` and `retired_tests` apply. It never gates and
 never counts toward the refused runs: exit 0 when no new test ID passes on the
 base, 1 when one does or a test did not run, 3 when the check cannot run.
 
-A command passes only when it exits 0 **and ran tests**. ShipLoop reads the
-runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet, `node --test` with the spec or tap
-reporter, not dot or junit) and
-refuses a run of zero tests (`no-tests`), fewer than `min_tests`
-(`too-few-tests`), or one whose output does not show each listed ID on a line
-that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). An ID counts only as its own
-word in a test's printed name: `TC-4a` does not show `TC-4`. When a missing ID is printed at the start of a longer token that continues it with a
-new kind of character (`TC-4a`, `TC-4_a`; not `TC-40`, which is another ID, nor a longer token that is itself a listed ID and so shows that ID), the refusal says so and quotes the line (`ids_inside` in the record);
-an ID that no line holds that way keeps the select-and-print remedy. A focused command whose count ShipLoop
-cannot read passes only with `ids` that all appear; a regression command without
-`ids` or `min_tests` may pass uncounted.
+`verify` reruns every recorded command on `done` and may not run fewer tests
+than ShipLoop already accepted for the item; the outer `system-test` and
+`release-verify` rerun their own recorded commands. Each action allows 11
+refused runs (at `test`, base and candidate runs share one tally); after that
+ShipLoop no longer accepts `done`, so a failing command takes the stage's own
+remedy — back to the step plan with `revise` at an INNER stage, or corrective
+work items with `replan` at `system-test` and `release-verify` — instead of an
+endless retry. A run that times out, cannot start or is skipped on budget
+refuses the stage but does not spend one of the 11.
 
-`min_tests` is the step plan's first guess, so ShipLoop also holds each command to what it has already accepted. After the
-`test` stage, `verify` may not run fewer tests than the most any run of the same command that ShipLoop accepted for the item ran
-since the item's latest step plan (`too-few-tests`, with the earlier number as `accepted_ran` in the record). A test that must go
-because the plan changed is a plan change: report `revise` with the reason, and the redone step plan starts the count again.
-Every inner stage's `revise` needs its stopped Until Loop receipt; `test` also accepts `revise` once its runs used the 11 refused
-runs or its latest attempt could not run. Known limits: the outer `system-test` and `release-verify` and the end-of-work review
-rerun commands another stage recorded and have no `revise` to lower a floor, so they are not held to one; a run whose count
-ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not recognise) passes with no floor to hold it
-to; a command whose test count varies by design (generated cases, a last-failed or changed-only selection, a host-dependent skip)
-needs a fixed count to be held to a floor; and the base run sees only tracked files and the dependency directories it links in
-(`node_modules`, `.venv`, `venv`), and a command that names the checkout by an absolute path runs there, not on the base.
-A system command row marked `"host_dependent": true` (its cases need a host tool: a browser, a device,
-an account, a service) is also checked for drift at `system-test`: ShipLoop runs the accepted
-regression commands and refuses when any of that row's `ids` is shown, run or failed, in their
-output, because the project's default suite must pass without the host tool.
-
-**Stages not applicable to an item.** When the accepted step plan records no
-test command (`test_commands_na`) and every declared path is documentation,
-configuration or navigation metadata in the package catalog
-(`references/path-classes.json`; a path no rule matches counts as code), ShipLoop
-records `test` as not applicable to that item instead of issuing it: it keeps a
-history row and a result file. `implement`'s `done` is then refused if the item's
-real diff touches code or any path outside `paths`, so the step plan is revised
-and the stage runs. `document` is recorded as not applicable when the item's
-real diff since its base touches no code or test path (or no file). Anything
-short of that proof issues the stage.
-
-`verify` reruns the test commands too: on `done` ShipLoop runs every recorded
-command and refuses unless each passes. The outer `system-test` and
-`release-verify` rerun their own recorded commands the same way, from
-`system-test-author` and `release-plan`. There is no test loop at those stages;
-the packet lists the commands. At
-`release-verify` of an isolated run the commands run in a clean copy of the result
-the workspace return delivered (made fresh from the return receipt into
-`consumer-check` under the workspace root, never in your checkout); with no
-completed return yet they run in the work area, and the test record (`observed`)
-and the handoff say so.
-Each action allows 11 refused runs (at `test`, base and candidate runs share
-one tally); after that ShipLoop no longer accepts `done`,
-so a failing command takes the stage's own remedy — back to the step plan with
-`revise` at an INNER stage, or corrective work items with `replan` at
-`system-test` and `release-verify` — instead of an endless retry.
-
-A command that times out, cannot start, or is skipped because the invocation's
-budget ran out reached no verdict about the product. It still refuses the stage,
-because nothing is accepted on unrun tests, but the attempt is recorded
-`could-not-run` and does not spend one of the 11. A timeout is not a diagnosis:
-it can mean a deadlock, a broken test, a suite too slow for the budget, or an
-external dependency. Because those attempts never reach the 11, the routes out
-are explicit: a hang in this item's own code, test or fixture is yours to fix
-here and is not a blocker; if the recorded command is itself wrong or too slow
-to fit the run's budget (a skipped command is that case: the same ones are
-skipped every time), report the stage's remedy instead of retrying it, and
-ShipLoop accepts it on its own record of the attempt without a new loop packet;
-report `blocked` only for what the user, an access grant or an outside
-dependency must supply.
-
-A done `release-plan` records `consumer_entry`: how a person reaches the result
-and the repository files that create that entry. ShipLoop refuses the release plan
-without one or when those files do not exist, so a component with no navigation
-entry is caught before release rather than at `release-verify`. `release-check`
-runs the dry-run deploy and each post-release confirm command once, recording
-their "not there yet" output before the real deploy.
+`test` is recorded as not applicable when the item has no test command and
+touches only documentation or configuration paths, and `document` when the
+item's real diff touches no code or test path. How a run is read (runners, IDs,
+skips), the floors' known limits, these not-applicable rules, the outer reruns
+and runs that reach no verdict:
+[how ShipLoop runs the recorded commands](references/testing-and-documentation.md#how-shiploop-runs-the-recorded-commands).
 
 These are commands the step plan recorded; ShipLoop runs them outside the host's
 permission prompts, and ShipLoop's checks at `complete` and the step plan's Improve
@@ -712,9 +656,11 @@ flag. A condition no command can confirm is not a criterion: the step plan recor
 as an open item in its summary. `verify` reruns every recorded command.
 `system-test-author` records `system_commands` and `release-plan` records
 `consumer_checks`; ShipLoop runs them when `system-test` and `release-verify` report
-done and refuses unless each passes (`release-verify` runs them in a copy of the
-returned result when a return is recorded, else in the work area, and its record says
-which). An empty list needs its `_na` reason. The run records under `tests/` are the
+done and refuses unless each passes. At `release-verify` of an isolated run they
+run in a clean copy of the result the workspace return delivered (made fresh from the
+return receipt into `consumer-check` under the workspace root, never in your
+checkout); with no completed return yet they run in the work area, and the test
+record (`observed`) and the handoff say so. An empty list needs its `_na` reason. The run records under `tests/` are the
 evidence; a result's summary is not.
 
 A request outcome no executed check observed is neither confirmed nor hidden: a
@@ -726,16 +672,17 @@ due stage and the whole list at `handoff` and in the report.
 
 ### Tests pass or the step stops
 
-Every inner stage's [Until Loop](#stage-until-loops) carries the same rule in
-its repeat condition: run the checks; when one fails, diagnose it, fix the
+Each inner stage's [Until Loop](#stage-until-loops) prints its own repeat
+condition (`REPEAT` in `scripts/shiploop_loops.py`). At `implement` and `test`
+it is the same rule: run the checks; when one fails, diagnose it, fix the
 product code and rerun; change a check only for an independent reason that the
 check itself is wrong. Only a final full pass after the last edit counts. The
-step ends on exactly one of: every check passes (`done`); a check proven
-unachievable (`revise`); or the same check still failing after 7 genuine fix
-attempts (`revise`). A check that needs a tool, access or authority that is
-absent ends `blocked` with `blocked_by`. The loop judges its own iterations;
-ShipLoop's gates at `complete` (lint, the test runs, the expectation checks)
-are the script-enforced part.
+stage ends on exactly one of: every check passes (`done`); a check proven
+unachievable (`revise`); or, at `implement`, the same check still failing after
+7 genuine fix attempts (`revise`). A check that needs a tool, access or
+authority that is absent ends `blocked` with `blocked_by`. The loop judges its
+own iterations; ShipLoop's gates at `complete` (lint, the test runs, the
+expectation checks) are the script-enforced part.
 
 ### Revise: back to the step plan
 

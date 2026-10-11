@@ -123,7 +123,8 @@ reviews; `--backchain-passes none` offers no whole loop at `plan`. The host
 model writes this contract (open item a02), so S-4, S-5, S-12 and S-10's
 frozen contract the script writes stay unmet for this loop, as they already
 were; a future script-written or script-checked contract must accept a gate-0
-complete packet whose last report is non-trivial. Quality and test loops are
+complete packet whose last report is non-trivial. The inner stages' Until Loops
+(amended 2026-10-11: before the 8-stage inner loop, the quality and test loops) are
 not covered, nor are Improve loops except as the next carve-out says; their
 no-cap rule stands. Basis: in the Luna max
 battleship run (skill-craft 1.16.1) the two Backchain loops took 213 of 647.5
@@ -137,14 +138,15 @@ planning takes no more than 30 minutes, decided after the evaluation of the
 skill-craft 1.21.0 battleship runs on Luna xhigh and Grok medium, not a clause
 this serves; it relaxes S-9, S-10 and the rule that a step iterates until a
 check confirms each exit criterion, for the Improve review of planning results,
-and says so). The run option `planning_review` (state option `planning_review`,
+and says so). (amended 2026-10-11: the 8-stage inner loop.) The run option `planning_review` (state option `planning_review`,
 recorded in `state.md` at `init` or `workspace start`, never changed afterwards;
 a saved run without it is refused) selects which of the five planning results
 `spec`, `test-strategy`, `plan`, `step-plan` and `test-spec` start an Improve
 child. `--planning-review stage` starts one after each of the five, as before.
 `--planning-review none` starts none. The Improve children after
 `system-test-author` and `release-plan` and the last `carry-forward` start in
-every mode; the quality and test loops and the Backchain child are not covered
+every mode, and so does the review after each accepted `implement` step (owner
+decision 2026-10-10); every inner stage's Until Loop and the Backchain child are not covered
 and their rules stand. The option's default is a separate owner decision: until
 a later dated SPEC commit states it, the code default is `stage`. Every Improve
 child that starts is unchanged (a contract the script writes, the same
@@ -154,12 +156,11 @@ loop. What stands in for the loop is what S-9 can name: ShipLoop's gates at
 `complete` (cited files exist; the plan's assumption list; the step plan's
 commands, criteria, paths and dependency order; the knowledge home's required
 files, credential screen and requirement-ID and decision-ID retention); the structural,
-record-only `backchain-check`; at `test-author`, a run of the focused commands
-that must run a test (a counted test and every listed ID shown on exit 0, a
-failing test on a non-zero exit), so a command whose tests cannot load is refused where it
-can be fixed (a command that also runs a failing test and has a module that cannot load, with no ID listed
-for that module, is still accepted: a count cannot tell); and then the `test-red`, `test-green`, `regression` and
-system-test gates, which ShipLoop runs and records. No script-run check at
+record-only `backchain-check`; `test-spec`'s ID match (a case ID that no focused command lists is refused);
+`validate-existing`'s expectation checks; the `test` stage's base run (no new test ID passes without the change,
+unless `red_na` names it) and candidate run (every command passes, every listed ID ran, the count holds the
+floor), and, coming, its mutation check; `verify`'s rerun; and the system-test gates, which ShipLoop runs and
+records. No script-run check at
 planning, in any mode, covers whether the spec's criteria are complete and
 verifiable, whether the test strategy maps every criterion to a check, or
 whether a test spec's oracles are independent. Under `none` those rest on the
@@ -173,9 +174,9 @@ not a script-run check. In `none` the plan child's stopped-child reconciliation
 plan's assumption list is still checked at `complete`); the spec and test
 strategy are committed to the knowledge home when each is accepted and no
 Improve child reviews them afterwards, so later runs inherit them unreviewed;
-and the first Improve child of a run is the last item's `carry-forward`, so a `none` run names its Improve
-card at `init` or `workspace start` (`--improve-skill`, resolved there; refused without it), because the
-first item's quality and test loops read the card and no earlier child binds it. Basis: in the Luna xhigh run the
+and the first Improve child of a run is the first `implement` step's review, so a `none` run names its Improve
+card at `init` or `workspace start` (`--improve-skill`, resolved there; refused without it), because every
+inner stage's Until Loop reads the card from `step-plan` on and no earlier child binds it. Basis: in the Luna xhigh run the
 planning window was 375.9 minutes, 203.4 (54%) in five Improve children (22
 passes), and in the Grok medium run 72.7 minutes, 42.4 (58%) in five children
 (26 passes); the Luna reviews made five warranted fixes and did not raise the
@@ -188,19 +189,19 @@ against 0 of 15 without it (Sonnet, three trials per cell). No run without the
 planning reviews exists, so the rate of defects that escape without them is
 unknown. Record: docs/shiploop-planning-review-plan-2026-10-05.md.
 
-**S-10 carve-out, owner decision 2026-10-10.**
+**S-10 carve-out, owner decision 2026-10-10.** (amended 2026-10-11: the 8-stage inner loop.)
 - **Anchor.** The owner's ruling that the caps should be "much higher, more like 7 and 11". It is not a clause this
   serves. It bounds a stage's acceptance gate, not a loop, and says so.
 - **Three limits, each a constant that a test pins against every prose copy**
   (`test/shiploop-stage-spec.test.py`):
-  1. **Refused runs.** At a stage whose `complete` reruns the recorded commands (the test loop stages and
-     `static-checks`), ShipLoop accepts `done` only after its own run of every listed command passes. After
+  1. **Refused runs.** At a stage whose `complete` reruns the recorded commands (the test stage and
+     `verify`), ShipLoop accepts `done` only after its own run of every listed command passes. After
      `shiploop_test_loop.MAX_REFUSED_RUNS` (11) refused runs for one action, `done` is no longer accepted, and the
      stage's remedy outcome is: `revise` back to the step plan, or `blocked` where the stage allows only that. A
      run that could not run (a timeout, a command that cannot start, or one skipped on budget) never counts
      toward the 11.
-  2. **Genuine fix attempts.** In the step exit criteria the model applies (the test-loop duty and the chain
-     step contract), the same check still failing after `shiploop_stage_spec.GENUINE_FIX_ATTEMPTS` (7) genuine fix
+  2. **Genuine fix attempts.** In the step exit criteria the model applies (the implement duty, implement's
+     loop contract and the chain step contract), the same check still failing after `shiploop_stage_spec.GENUINE_FIX_ATTEMPTS` (7) genuine fix
      attempts ends the stage as `revise`. No script counts these attempts; it is the model's stopping rule, as
      the step exit criteria were before.
   3. **Keepalive release.** The keepalive hook lets one session's turn end after
@@ -210,8 +211,8 @@ unknown. Record: docs/shiploop-planning-review-plan-2026-10-05.md.
   contract, its counted iterations and its stated exit and repeat conditions, with no iteration limit. An
   iteration that keeps making progress is never cut short. The caps bound only how often a stage may submit a
   candidate that ShipLoop's own rerun rejects, so a check that cannot pass as planned returns to the step plan
-  instead of being resubmitted indefinitely. The quality and Improve loops, and the Backchain child, are
-  unchanged.
+  instead of being resubmitted indefinitely. Every inner stage's Until Loop, the Improve loops and the
+  Backchain child are unchanged.
 - **Basis.** Until 2026-10-10 the refused-run cap was 7, the fix-attempt cap 3 and the continuation release 14. The
   2026-10-10 packet-concision review flagged them as possibly conflicting with this clause, and the owner chose
   to keep them as gate bounds at the higher values. Record: docs/shiploop-packet-concision-2026-10-10.md
@@ -378,7 +379,7 @@ on quickly before the breadth of everything is checked.
 | S-6 | runs survive compaction and session resumes without losing their place; `sessions.jsonl` (added 2026-10-09: every host launch and every session end, written by the harness) and `fresh_starts` in metrics.json: for every fresh session and every compaction, what the model did from the fresh start to the next accepted action (tool calls, seconds, its first grounding call, whether the recovery command was repeated as told, ShipLoop failures, files written again). Recorded beside the verdicts and never scored; see "A fresh context is recorded, not scored" |
 | S-7 | truncated outputs, peak context, compactions, packet head size; per-stage `context` (model calls, peak, share of the window; a stage with no events carries none, and a Grok `usage` event is a model call like a Claude message) and, for Claude, `tool_use.packets` (packet bytes on disk, printed heads and Reads, whole or ranged) |
 | S-7 (as a record), S-6 | `packets` in metrics.json only (added 2026-10-10; not in `result.json` or a baseline row): one entry per file in the run's `packets/` folder, `{action, stage, file_bytes, head_bytes}`. `action` is the file's name without `.md` (the second packet a bound Improve child gets for one action is its own entry, `<action>-improve`), `stage` the stage of the first `ShipLoop navigator |` line anywhere in the file (it is line 1 in some packets and sits below a delegation preamble in others), `file_bytes` its size on disk, `head_bytes` the bytes of the head ShipLoop first printed for it, as the host recorded the reply (Claude, Grok and Codex alike: the result of a call that does not name a packet file; the head runs from its `ShipLoop navigator |` line to its own closing line, with its `Full packet:` line naming the file and its callback and keepalive lines unshortened, and neither the command's own output before it nor what follows it, such as the host's `Shell cwd was reset` note or output the model chained, is the head). `head_bytes` is null where no reply of the run shows that head whole: a reply the model's pipe or script cut, the host cut, or that holds a pointer and a prefix leaves it null, never the cut size, and the one reason is in `packets_unmeasured`; the whole block is null where the run has no packets folder. A record, never a verdict or a threshold: it lets a change to what packets print be shown to have changed it, while S-6's clear-the-context probe, not these bytes, decides whether a shorter packet is allowed |
-| S-9, S-10 | `script_verifications` (ShipLoop's own verify records, with the count that ran red, which a test-red record or a probe passes by design), Improve children; a zero-test pass fails |
+| S-9, S-10 | `script_verifications` (ShipLoop's own verify records, with the count that ran red, which the test stage's base run passes by design; amended 2026-10-11, was a test-red record or a probe), Improve children; a zero-test pass fails |
 | S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner's 30-minute planning rule is read from it, and it is the one place these figures are computed |
 | S-12 | `claude_code_version` in metrics.json and result.json (added 2026-10-08): the host CLI build the sessions ran on, so two runs of one prompt on different builds (the Sonnet pair of 2026-10-06 and 2026-10-07 ran on 2.1.291 and 2.1.292) are not read as a controlled comparison. Null where the host's events do not carry it |
 | S-12, "Concurrency must not change a verdict" | `environment` in result.json, and `environment` in every launch record (`invocation*.json`) (added 2026-10-09): the node, python3 and git versions on the harness's PATH (the first line of `--version`, read by `hosts.probe_version`, the one reader of a `--version` that the host build uses too), the CPU count and load at the start of each launch and at the end of the run, whether the host ran under a display hold (`keep_awake`, the one place that decides it), `hosts_used` and `mixed_host` (unknown, with the reason, when a launch record cannot be read) and one `environments` entry per launch read through `runrecord.launches` (host, model, effort, the `host_build` the launch record carries or null with `identity_unmeasured.host_build`, and the start record that launch kept or null with `environment_reason`), the browser capability record of a declared need (below), and `overlap`: the sibling output folders whose host events overlap this run's (first to last event of `timeline.jsonl`), with case, hosts and overlapped seconds, read at the end of the run. A record beside the verdicts: it never changes `pass`, the exit code or a baseline rule, and a field nothing measured is null with its reason, never 0 or a pass |

@@ -91,6 +91,96 @@ not prevent declaring the boundary complete. For an enabled delivery contract,
 preserve its fixed obligation phases and correction rules; this guidance does not
 move them.
 
+## How ShipLoop runs the recorded commands
+
+The card's [test loop](../SKILL.md#test-loop) says what ShipLoop runs at `test`
+and `verify`. This section holds the detailed rules: how a run is read, the
+floors and their known limits, stages recorded as not applicable, the outer
+reruns and runs that reached no verdict.
+
+### Reading a run
+
+A command passes only when it exits 0 **and ran tests**. ShipLoop reads the
+runner's summary (Jest, Vitest, pytest, unittest, Mocha, cargo, go, dotnet, `node --test` with the spec or tap
+reporter, not dot or junit) and
+refuses a run of zero tests (`no-tests`), fewer than `min_tests`
+(`too-few-tests`), or one whose output does not show each listed ID on a line
+that is not a skip line, a skip being the runner's own marker and never a word in a test title (`ids-missing`). An ID counts only as its own
+word in a test's printed name: `TC-4a` does not show `TC-4`. When a missing ID is printed at the start of a longer token that continues it with a
+new kind of character (`TC-4a`, `TC-4_a`; not `TC-40`, which is another ID, nor a longer token that is itself a listed ID and so shows that ID), the refusal says so and quotes the line (`ids_inside` in the record);
+an ID that no line holds that way keeps the select-and-print remedy. A focused command whose count ShipLoop
+cannot read passes only with `ids` that all appear; a regression command without
+`ids` or `min_tests` may pass uncounted.
+
+### Floors and their known limits
+
+`min_tests` is the step plan's first guess, so ShipLoop also holds each command to what it has already accepted. After the
+`test` stage, `verify` may not run fewer tests than the most any run of the same command that ShipLoop accepted for the item ran
+since the item's latest step plan (`too-few-tests`, with the earlier number as `accepted_ran` in the record). A test that must go
+because the plan changed is a plan change: report `revise` with the reason, and the redone step plan starts the count again.
+Every inner stage's `revise` needs its stopped Until Loop receipt; `test` also accepts `revise` once its runs used the 11 refused
+runs or its latest attempt could not run. Known limits: the outer `system-test` and `release-verify` and the end-of-work review
+rerun commands another stage recorded and have no `revise` to lower a floor, so they are not held to one; a run whose count
+ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not recognise) passes with no floor to hold it
+to; a command whose test count varies by design (generated cases, a last-failed or changed-only selection, a host-dependent skip)
+needs a fixed count to be held to a floor; and the base run sees only tracked files and the dependency directories it links in
+(`node_modules`, `.venv`, `venv`), and a command that names the checkout by an absolute path runs there, not on the base.
+A system command row marked `"host_dependent": true` (its cases need a host tool: a browser, a device,
+an account, a service) is also checked for drift at `system-test`: ShipLoop runs the accepted
+regression commands and refuses when any of that row's `ids` is shown, run or failed, in their
+output, because the project's default suite must pass without the host tool.
+
+### Stages not applicable to an item
+
+When the accepted step plan records no
+test command (`test_commands_na`) and every declared path is documentation,
+configuration or navigation metadata in the package catalog
+(`references/path-classes.json`; a path no rule matches counts as code), ShipLoop
+records `test` as not applicable to that item instead of issuing it: it keeps a
+history row and a result file. `implement`'s `done` is then refused if the item's
+real diff touches code or any path outside `paths`, so the step plan is revised
+and the stage runs. `document` is recorded as not applicable when the item's
+real diff since its base touches no code or test path (or no file). Anything
+short of that proof issues the stage.
+
+### Reruns after the test stage
+
+`verify` reruns the test commands too: on `done` ShipLoop runs every recorded
+command and refuses unless each passes. The outer `system-test` and
+`release-verify` rerun their own recorded commands the same way, from
+`system-test-author` and `release-plan`. There is no test loop at those stages;
+the packet lists the commands. At
+`release-verify` of an isolated run the commands run in a clean copy of the result
+the workspace return delivered (made fresh from the return receipt into
+`consumer-check` under the workspace root, never in your checkout); with no
+completed return yet they run in the work area, and the test record (`observed`)
+and the handoff say so.
+
+### Runs that reached no verdict
+
+A command that times out, cannot start, or is skipped because the invocation's
+budget ran out reached no verdict about the product. It still refuses the stage,
+because nothing is accepted on unrun tests, but the attempt is recorded
+`could-not-run` and does not spend one of the 11. A timeout is not a diagnosis:
+it can mean a deadlock, a broken test, a suite too slow for the budget, or an
+external dependency. Because those attempts never reach the 11, the routes out
+are explicit: a hang in this item's own code, test or fixture is yours to fix
+here and is not a blocker; if the recorded command is itself wrong or too slow
+to fit the run's budget (a skipped command is that case: the same ones are
+skipped every time), report the stage's remedy instead of retrying it, and
+ShipLoop accepts it on its own record of the attempt without a new loop packet;
+report `blocked` only for what the user, an access grant or an outside
+dependency must supply.
+
+### Release entry and release-check
+
+A done `release-plan` records `consumer_entry`: how a person reaches the result
+and the repository files that create that entry. ShipLoop refuses the release plan
+without one or when those files do not exist, so a component with no navigation
+entry is caught before release rather than at `release-verify`. `release-check`
+runs the dry-run deploy and each post-release confirm command once, recording
+their "not there yet" output before the real deploy.
+
 ## Test cases
 
 Use the selected [maintained product requirements](project-knowledge.md#maintained-product-requirements),

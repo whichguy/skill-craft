@@ -68,7 +68,7 @@ WORK: Mapping[str, str] = {
     "test-spec": (
         "Write or fix one entry in {feature}/test-spec.md per case for this item's criteria: criterion and R-<n>, "
         "surface and due phase, setup, action, independent oracle, RED, GREEN, teardown (or stateless) and its "
-        "command row; then run the id-match command printed in the packet {run}/packets/{action}.md and fix any "
+        "command row; then run the complete command with --check-only printed in the packet {run}/packets/{action}.md (it checks the ids) and fix any "
         "mismatch."),
     "validate-existing": (
         "Take the first expectation whose check does not match its state (works: passes; absent: nothing there; "
@@ -141,7 +141,7 @@ REPEAT: Mapping[str, str] = {
         "Repeat while a check-only refusal remains or an exit condition above does not hold; " + _NO_LIMIT
         + " Stop blocked only when the plan no longer requires the item. " + _NEVER_CANCEL),
     "test-spec": (
-        "Repeat while a criterion has no entry, an entry lacks a field, or the id-match command fails; " + _NO_LIMIT
+        "Repeat while a criterion has no entry, an entry lacks a field, or the complete command with --check-only refuses an id; " + _NO_LIMIT
         + " Stop blocked when a criterion cannot be tested as written (the stage then reports revise). "
         + _NEVER_CANCEL),
     "validate-existing": (

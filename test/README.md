@@ -155,6 +155,13 @@ setup is not shared across cases whose mutations could interfere. Pure convergen
 predicates belong in the cheap contract suite. The audit found fixture coupling,
 not accidental nested execution of whole suites; assertions were retained.
 
+Every inner ShipLoop stage's `complete` checks an Until Loop receipt against the
+contract rebuilt from run state (the 8-stage inner loop, 2026-10-10). A test that
+drives an inner stage through the CLI finishes that stage's loop with
+`test/shiploop_loop_support.finish_loop`, which runs the bundled runtime from
+ShipLoop's own contract file; never write a receipt by hand. The loop contracts
+and receipt checks themselves are covered by `test/shiploop-loops.test.py`.
+
 ## Qualify the current Dispatcher
 
 The default hermetic suites intentionally use recorded compatibility fixtures.
