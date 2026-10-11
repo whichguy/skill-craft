@@ -1,0 +1,484 @@
+{
+ "families": [
+  "feature spec.md",
+  "feature plan.md",
+  "feature test-spec.md",
+  "feature system-tests.md",
+  "feature release-plan.md",
+  "feature outcome.md",
+  "features/README.md",
+  "spec.md",
+  "environment.md",
+  "architecture.md",
+  "test-strategy.md",
+  "home README.md",
+  "SHIPLOOP.md",
+  "home dir",
+  "run state.md",
+  "run results/*.md",
+  "run packets/*.md",
+  "run context-index.md",
+  "run reference.md",
+  "run notes/",
+  "progress/report html"
+ ],
+ "runs": [
+  {
+   "host": "claude",
+   "reads": {
+    "feature spec.md": {
+     "spec": 1
+    },
+    "feature test-spec.md": {
+     "test-spec": 1
+    },
+    "home README.md": {
+     "spec": 2
+    },
+    "home dir": {
+     "carry-forward": 1,
+     "prepare": 1,
+     "release-plan": 1,
+     "test-spec": 1
+    },
+    "run packets/*.md": {
+     "carry-forward": 2,
+     "handoff": 1,
+     "implement": 4,
+     "integrate": 1,
+     "integration-verify": 1,
+     "operations": 1,
+     "plan": 1,
+     "prepare": 1,
+     "product-acceptance": 2,
+     "release": 1,
+     "release-check": 1,
+     "release-plan": 1,
+     "release-verify": 1,
+     "research": 1,
+     "spec": 4,
+     "static-checks": 1,
+     "step-plan": 1,
+     "system-test-author": 1,
+     "test-author": 1,
+     "test-green": 1,
+     "test-red": 1,
+     "test-refine": 1,
+     "test-spec": 1,
+     "test-strategy": 1
+    },
+    "spec.md": {
+     "carry-forward": 1,
+     "plan": 2,
+     "spec": 3,
+     "test-strategy": 1
+    },
+    "test-strategy.md": {
+     "plan": 1,
+     "step-plan": 1,
+     "test-strategy": 2
+    }
+   },
+   "run": "checkers-1270-sonnet",
+   "tool_calls": 99,
+   "writes": {
+    "environment.md": {
+     "carry-forward": 1,
+     "prepare": 1,
+     "release-plan": 1,
+     "release-verify": 1
+    },
+    "feature outcome.md": {
+     "release-verify": 1
+    },
+    "feature plan.md": {
+     "prepare": 1
+    },
+    "feature release-plan.md": {
+     "release-plan": 1
+    },
+    "feature system-tests.md": {
+     "release-plan": 1
+    },
+    "feature test-spec.md": {
+     "test-spec": 1
+    },
+    "home README.md": {
+     "release-verify": 1,
+     "spec": 1
+    },
+    "spec.md": {
+     "spec": 1
+    },
+    "test-strategy.md": {
+     "test-strategy": 1
+    }
+   }
+  },
+  {
+   "host": "claude",
+   "reads": {
+    "feature spec.md": {
+     "spec": 1
+    },
+    "home README.md": {
+     "spec": 1
+    },
+    "home dir": {
+     "spec": 1,
+     "test-strategy": 1
+    },
+    "run packets/*.md": {
+     "intake": 2,
+     "plan": 2,
+     "spec": 4,
+     "test-strategy": 2
+    },
+    "spec.md": {
+     "spec": 4,
+     "test-strategy": 1
+    },
+    "test-strategy.md": {
+     "test-strategy": 4
+    }
+   },
+   "run": "battleship-1270-sonnet",
+   "tool_calls": 32,
+   "writes": {
+    "test-strategy.md": {
+     "test-strategy": 2
+    }
+   }
+  },
+  {
+   "host": "claude",
+   "reads": {},
+   "run": "hello-1270-claude",
+   "tool_calls": 1,
+   "writes": {}
+  },
+  {
+   "host": "claude",
+   "reads": {
+    "feature plan.md": {
+     "plan": 1
+    },
+    "feature release-plan.md": {
+     "release-plan": 1
+    },
+    "feature spec.md": {
+     "spec": 1
+    },
+    "feature system-tests.md": {
+     "system-test-author": 2
+    },
+    "feature test-spec.md": {
+     "test-spec": 1
+    },
+    "home README.md": {
+     "spec": 1
+    },
+    "home dir": {
+     "carry-forward": 1,
+     "document": 1
+    },
+    "run context-index.md": {
+     "intake": 1
+    },
+    "run packets/*.md": {
+     "intake": 1,
+     "release": 1
+    },
+    "spec.md": {
+     "spec": 2
+    },
+    "test-strategy.md": {
+     "plan": 1,
+     "step-plan": 2,
+     "test-strategy": 1
+    }
+   },
+   "run": "hello-1270-claude-2",
+   "tool_calls": 72,
+   "writes": {
+    "environment.md": {
+     "carry-forward": 1,
+     "prepare": 1,
+     "release-plan": 1
+    },
+    "home README.md": {
+     "plan": 1,
+     "spec": 1
+    },
+    "spec.md": {
+     "spec": 1
+    },
+    "test-strategy.md": {
+     "test-strategy": 1
+    }
+   }
+  },
+  {
+   "host": "claude",
+   "reads": {
+    "feature plan.md": {
+     "plan": 2,
+     "step-plan": 1
+    },
+    "feature release-plan.md": {
+     "release-plan": 1
+    },
+    "feature spec.md": {
+     "spec": 1
+    },
+    "feature test-spec.md": {
+     "test-author": 1,
+     "test-spec": 2
+    },
+    "home README.md": {
+     "plan": 1,
+     "spec": 1
+    },
+    "home dir": {
+     "carry-forward": 2,
+     "document": 1,
+     "release": 1,
+     "release-plan": 1,
+     "release-verify": 1,
+     "step-plan": 1
+    },
+    "run packets/*.md": {
+     "intake": 1,
+     "spec": 1
+    },
+    "spec.md": {
+     "plan": 1,
+     "spec": 2,
+     "step-plan": 1
+    },
+    "test-strategy.md": {
+     "plan": 1,
+     "step-plan": 1,
+     "test-strategy": 2
+    }
+   },
+   "run": "hello-rel1270-ref-r1",
+   "tool_calls": 111,
+   "writes": {
+    "environment.md": {
+     "prepare": 1,
+     "release-plan": 1,
+     "release-verify": 1
+    },
+    "feature spec.md": {
+     "spec": 1
+    },
+    "home README.md": {
+     "carry-forward": 1,
+     "plan": 1,
+     "prepare": 1,
+     "release-plan": 1,
+     "release-verify": 1,
+     "spec": 1,
+     "test-spec": 1
+    },
+    "spec.md": {
+     "spec": 1
+    },
+    "test-strategy.md": {
+     "test-strategy": 2
+    }
+   }
+  },
+  {
+   "host": "claude",
+   "reads": {
+    "environment.md": {
+     "release-plan": 3,
+     "release-verify": 1
+    },
+    "feature outcome.md": {
+     "handoff": 1
+    },
+    "feature plan.md": {
+     "implement": 1,
+     "plan": 5,
+     "step-plan": 2
+    },
+    "feature release-plan.md": {
+     "release-plan": 2
+    },
+    "feature test-spec.md": {
+     "test-spec": 2
+    },
+    "home README.md": {
+     "carry-forward": 2,
+     "plan": 2,
+     "release-verify": 1
+    },
+    "home dir": {
+     "carry-forward": 3,
+     "integrate": 1,
+     "plan": 2,
+     "release-plan": 3,
+     "spec": 1,
+     "test-strategy": 1
+    },
+    "progress/report html": {
+     "done": 1
+    },
+    "run packets/*.md": {
+     "intake": 1,
+     "spec": 3
+    },
+    "spec.md": {
+     "carry-forward": 3,
+     "document": 1,
+     "spec": 6,
+     "step-plan": 1,
+     "test-strategy": 1
+    },
+    "test-strategy.md": {
+     "carry-forward": 3,
+     "document": 1,
+     "step-plan": 1,
+     "test-strategy": 4
+    }
+   },
+   "run": "hello-rel1270-ref-r2",
+   "tool_calls": 171,
+   "writes": {
+    "environment.md": {
+     "prepare": 1
+    },
+    "home README.md": {
+     "carry-forward": 1,
+     "plan": 1,
+     "spec": 1,
+     "step-plan": 1
+    },
+    "spec.md": {
+     "spec": 1
+    },
+    "test-strategy.md": {
+     "test-strategy": 1
+    }
+   }
+  },
+  {
+   "host": "claude",
+   "reads": {
+    "environment.md": {
+     "carry-forward": 2,
+     "operations": 1
+    },
+    "feature outcome.md": {
+     "handoff": 1
+    },
+    "feature plan.md": {
+     "carry-forward": 1,
+     "get-next-work-item": 1,
+     "plan": 2,
+     "step-plan": 1
+    },
+    "feature release-plan.md": {
+     "release-plan": 1
+    },
+    "feature system-tests.md": {
+     "system-test-author": 3
+    },
+    "feature test-spec.md": {
+     "carry-forward": 1,
+     "test-spec": 3
+    },
+    "home README.md": {
+     "carry-forward": 3,
+     "plan": 1,
+     "release-verify": 1,
+     "spec": 1
+    },
+    "home dir": {
+     "carry-forward": 7,
+     "handoff": 1,
+     "integrate": 1,
+     "release": 1,
+     "release-plan": 1,
+     "release-verify": 1,
+     "spec": 1,
+     "step-plan": 1,
+     "test-strategy": 1
+    },
+    "run context-index.md": {
+     "intake": 1
+    },
+    "run packets/*.md": {
+     "baseline": 1,
+     "carry-forward": 1,
+     "document": 1,
+     "done": 1,
+     "handoff": 1,
+     "implement": 2,
+     "intake": 1,
+     "integrate": 1,
+     "integration-verify": 1,
+     "operations": 1,
+     "plan": 1,
+     "product-acceptance": 1,
+     "regression": 1,
+     "release": 2,
+     "release-check": 1,
+     "release-plan": 1,
+     "release-verify": 1,
+     "spec": 2,
+     "static-checks": 1,
+     "step-plan": 1,
+     "system-test": 1,
+     "system-test-author": 1,
+     "test-author": 1,
+     "test-green": 1,
+     "test-red": 1,
+     "test-refine": 1,
+     "test-spec": 1,
+     "verify": 1
+    },
+    "spec.md": {
+     "plan": 1,
+     "release-verify": 1,
+     "spec": 3,
+     "test-strategy": 2
+    },
+    "test-strategy.md": {
+     "carry-forward": 1,
+     "plan": 1,
+     "test-strategy": 7
+    }
+   },
+   "run": "hello-rel1270-ref-r3",
+   "tool_calls": 134,
+   "writes": {
+    "environment.md": {
+     "carry-forward": 1,
+     "document": 1,
+     "prepare": 1,
+     "release-plan": 1
+    },
+    "feature plan.md": {
+     "step-plan": 1
+    },
+    "feature test-spec.md": {
+     "test-spec": 1
+    },
+    "home README.md": {
+     "plan": 1,
+     "spec": 1
+    },
+    "spec.md": {
+     "spec": 1
+    },
+    "test-strategy.md": {
+     "test-strategy": 3
+    }
+   }
+  }
+ ]
+}
