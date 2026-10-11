@@ -14,7 +14,9 @@ Same work, by operation (read-only orientation never counts: `next`, `status`, r
 - write: the same path with the same content (a Write or Edit tool call, a `cat >`/`cat >>` heredoc, `sed -i`);
 - callback: the same ShipLoop verb (`complete`, `improve-*`) for the same action;
 - commit: a `git commit` with no write between the two;
-- test run: the same test command with no write between the two (a rerun after a code change is legitimate).
+- test run: the same test command with no write between the two (a rerun after a code change is legitimate), and only
+  when a ShipLoop callback recorded the work after the earlier run and before the stop.  A result that only the cleared
+  context saw is unknown to the fresh session, so rerunning that test is verification, not redone work.
 
 Claude's stream gives calls and results; other hosts' translated streams are coarser, so their `:inside` stops are
 recorded but not gated (see the plan's open unknowns).
@@ -167,6 +169,7 @@ def redone(events_path: Path, clear_line: int) -> list[dict]:
     calls, _ = stream(events_path)
     timeline = [(c["line"], c["answered"], op) for c in calls for op in operations(c)]
     writes = [line for line, _, op in timeline if op["kind"] == "write"]
+    callbacks = [line for line, answered, op in timeline if op["kind"] == "callback" and answered]
     before = [(line, op) for line, answered, op in timeline if line < clear_line and answered]
     found = []
     for line, _, op in timeline:
@@ -178,6 +181,10 @@ def redone(events_path: Path, clear_line: int) -> list[dict]:
             # A write in the same call as the rerun counts (a call that edits and then tests reruns legitimately).
             if op["kind"] in ("commit", "test") and any(earlier < w <= line for w in writes):
                 break  # a change came between them: a legitimate rerun
+            # A result only the cleared context saw is not known to the fresh session: rerunning that test is how it
+            # learns where it stands.  It is redone only when a ShipLoop callback recorded the work before the clear.
+            if op["kind"] == "test" and not any(earlier < c < clear_line for c in callbacks):
+                break
             found.append({"kind": op["kind"], "key": list(op["key"]), "line": line, "earlier_line": earlier})
             break
     return found

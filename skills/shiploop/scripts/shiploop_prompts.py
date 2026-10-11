@@ -510,9 +510,11 @@ to stop or pause runs Pause. Long form: reference#progress.
 """
 
 
-# An inline step-plan builds no execution graph, so it carries one optional audit line instead of the Backchain caller
-# guidance (owner, 2026-10-11); the guide and the audit resource are printed with the packet's locators.
-STEP_PLAN_BACKCHAIN_INLINE = """\
+# An inline step-plan or carry-forward builds no execution graph, so it carries one optional audit line instead of the
+# Backchain caller guidance and its contract budget (owner, 2026-10-11); the guide and the audit resource are printed
+# with the packet's locators.
+INLINE_AUDIT_STAGES = ("step-plan", "carry-forward")
+INLINE_BACKCHAIN_AUDIT = """\
 Optional: for a material prerequisite ambiguity or acceptance gap, request one
 read-only Backchain review/audit (Backchain planning guide), then run the printed
 `backchain-check` on your candidate and cite its receipt in evidence_refs.
@@ -592,18 +594,15 @@ transcripts, invent a decision ledger, or treat a context summary as proof.
 
 
 SELECTED_CASE_RECONCILIATION = """\
-Selected-case reconciliation: in the existing plan/results, classify every
-selected case as passed, failed, blocked, not-run, or justified N/A, preserving
-required gaps. Source, HTTP, or DOM structure alone cannot close a selected
-rendered interaction; retain the observed rendered action/outcome or leave it
-incomplete.
-Reconcile each affected requirement clause with its case or existing verification
-record, required surface and due phase, actual checked surface, current candidate,
-status and evidence. A pass at a different surface is supporting evidence, not
-closure. Preserve cases not yet due with their phase, owner and prerequisites;
-they need not pass early, but missing already-due evidence remains incomplete.
-Check the original selected inventory for dropped clauses/cases; do not claim
-all requirements met while required observations remain unrun.
+Selected-case reconciliation: classify every selected case as passed, failed,
+blocked, not-run, or justified N/A, and reconcile each affected requirement clause
+with its case, its required surface and due phase, the checked surface, the
+candidate, status and evidence. A pass on a different surface is supporting evidence, not closure;
+Source, HTTP, or DOM structure alone cannot close a rendered interaction. A case
+not yet due keeps its phase, owner and prerequisites; already-due evidence that
+is missing stays incomplete. Check the selected inventory for dropped clauses or
+cases, and never claim every requirement met while required observations remain
+unrun.
 """
 
 
@@ -1817,49 +1816,41 @@ IMPLEMENTATION_STAGES = stage_spec.with_block("code-craft")
 BACKCHAIN_STAGES = stage_spec.with_block("backchain")
 TEST_DECISION_STAGES = stage_spec.with_block("test-decision")
 TEST_FACILITY_HANDOFF = """\
-Use the packet's Reusable test facilities guide. Read applicable selected skill
-and MCP capability references; reuse, configure or extend existing frameworks,
-helpers and supported facilities before defining the smallest missing facility.
-Retain its definition locator, supported interface, readiness evidence or gap,
-owner/prerequisites and revalidation conditions in ordinary evidence_refs and
+Test facilities (Reusable test facilities guide): read the selected skill and MCP
+capability references, and reuse, configure or extend the existing frameworks and
+helpers before defining the smallest missing facility; never assume a named skill
+or MCP is available or authorized. Record its definition locator, interface,
+readiness or gap, owner and revalidation condition in evidence_refs and the
 repository test documentation. Carry relevant locators into item context and the
-Improve child's context/notes. Planning names missing prerequisite work; the owning
-authoring/configuration work implements and validates it before dependent checks,
-within the assigned scope and expected check state. Discovery or readiness is not
-test execution. Reopen the durable definition for later tests instead of inventing
-another facility or assuming a named skill/MCP is available or authorized.
+Improve child's context/notes. Planning names missing prerequisite work; the
+stage that owns it builds and validates it before dependent checks, within the
+assigned scope and expected check state. Discovery or readiness is not test
+execution; a later test reopens the recorded definition instead of inventing
+another facility.
 """
 TEST_DECISION_HANDOFF = """\
 Reopen the current item's test decision and the run's test strategy (each listed
 under "Results this stage builds on", or printed as a source block when not),
-alongside the initial item context. Keep applicable
-prior decision locators and any justified revision in this result's ordinary
-evidence_refs and durable test notes, so later stages can recover their basis.
-Retain the accepted step-plan note/result locator and applicable coding-guidance
-sections even when this later test decision becomes the packet's latest source.
-State which decisions are retained, refined or superseded and why; replacing the
-test strategy does not silently replace unrelated engineering decisions.
-Missing decisions require scoped reassessment; recorded completion is not proof
-that a selected harness, fixture or target remains usable.
+alongside the item context. Keep the prior decision locators and any justified
+revision in evidence_refs and the test notes, together with the step-plan's
+locator and the coding-guidance sections it used; say which decisions are
+retained, refined or superseded and why. A missing decision is reassessed within
+this stage; a recorded completion does not prove a harness, fixture or target
+still works.
 """
 OUTER_TEST_HANDOFF = """\
-Use the packet's OUTER test-planning handshake guide. Recover the latest done
-system-test-author and release-plan records from root-owned accepted history
-after the most recent accepted replan, when those producers have completed.
-Earlier OUTER records are historical inputs to revalidate, not current plan or
-pass authority; pending, repeat, and blocked results are not plan authority.
-Review a pending producer proposal separately during its Improve handoff.
-Read the selected results and relevant evidence_refs; retain their action/result
-and durable plan locators in this result and the Improve child's context/notes.
-At system-test-author or release-plan, create/reconcile the plan owned by that
-stage; do not require a future producer's plan. At consumers, acknowledge which
-plan applies and revalidate it for the current candidate and boundary before
-relying on its tests. Recover a missing plan or use the supported incomplete or
-correction outcome; never guess commands, erase required coverage, or deploy to
-make a check available. A plan is not execution evidence. Material changes to
-code, tests, fixtures, configuration or target invalidate affected observations;
-retain prior receipts, identify and rerun affected checks through the authorized
-route. Reuse unaffected evidence only with its identity and relevance established.
+OUTER test plans (OUTER test-planning handshake guide): the current plans are the
+latest done system-test-author and release-plan records after the most recent
+accepted replan; earlier records are history to revalidate, and pending, repeat,
+and blocked results are not plan authority. Retain their action, result and plan locators in this result and the Improve child's context/notes.
+The stage that owns a plan creates or reconciles it; a later stage names the plan
+it relies on and revalidates it for the current candidate and boundary. Recover a
+missing plan or report the incomplete or corrective outcome; never guess
+commands, drop required coverage, or deploy to make a check available. A plan is
+not execution evidence: a material change to code, tests, fixtures,
+configuration or target invalidates the affected observations, which are rerun
+through the authorized route; unaffected evidence is reused only with its
+identity and relevance shown.
 """
 BACKCHAIN_NATIVE_CALLS = {
     "plan": ("plan", "draft"),
@@ -2300,8 +2291,8 @@ def prompt(stage: str, *, delegation: str = ASK_AGENT,
     if stage in OUTER:
         parts.append(OUTER_TEST_HANDOFF if improves else OUTER_TEST_HANDOFF.replace(
             "in this result and the Improve child's context/notes.", "in this result."))
-    if stage == "step-plan" and delegation == INLINE:
-        parts.append(STEP_PLAN_BACKCHAIN_INLINE)
+    if stage in INLINE_AUDIT_STAGES and delegation == INLINE:
+        parts.append(INLINE_BACKCHAIN_AUDIT)
     elif stage in BACKCHAIN_STAGES:
         parts.append(_swapped(_backchain_guidance(stage, backchain_passes=backchain_passes), stage, planning_review))
     if stage in RECONCILIATION_STAGES:

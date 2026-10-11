@@ -1,0 +1,91 @@
+{
+ "about": "Verification of the packet dedupe (348b5932 + fac85d6a, merged with origin/main as fbabc74f): four live step slices and three clear-the-context probes, Claude Sonnet 5.5, inline, n=1 each. Baseline: test/shiploop_e2e/evidence/step-slices-8stage-2026-10-10.json (13d278dd).",
+ "commit": "fbabc74f",
+ "slices": {
+  "node-fix-bug": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "turns": 75,
+   "model_calls": 43,
+   "seconds": 224,
+   "packet_chars_written": 731708
+  },
+  "node-add-function": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "turns": 78,
+   "model_calls": 44,
+   "seconds": 239,
+   "packet_chars_written": 744137
+  },
+  "node-add-route": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "turns": 83,
+   "model_calls": 49,
+   "seconds": 233,
+   "packet_chars_written": 733172
+  },
+  "node-rename": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "turns": 85,
+   "model_calls": 49,
+   "seconds": 237,
+   "packet_chars_written": 537551
+  }
+ },
+ "probes": {
+  "clear-implement": {
+   "build": "fbabc74f",
+   "at": "implement:inside",
+   "pass": false,
+   "redone": [
+    {
+     "kind": "test",
+     "key": [
+      "npm test 2"
+     ],
+     "line": 129,
+     "earlier_line": 111
+    }
+   ]
+  },
+  "clear-new2": {
+   "build": "fbabc74f",
+   "at": "implement:inside",
+   "pass": true,
+   "redone": []
+  },
+  "clear-old": {
+   "build": "3c812fbd",
+   "at": "implement:inside",
+   "pass": true,
+   "redone": []
+  }
+ }
+}

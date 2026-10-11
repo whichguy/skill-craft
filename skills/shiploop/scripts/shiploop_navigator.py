@@ -1326,6 +1326,16 @@ def _named_text(state: Mapping[str, Any], stage: str | None, route: str) -> str:
                            planning_review=recorded_planning_review(state))
 
 
+def _named_policy_text(state: Mapping[str, Any], stage: str | None, route: str, stage_text: str) -> str:
+    """The text whose policy names get locators: the stage text, plus the Improve prompt while a child is active.
+
+    The Improve handoff names "the packet's Maintained requirements policy" and others, which the stage text may not.
+    """
+    if stage is None or not state.get("active_improve"):
+        return stage_text
+    return stage_text + "\n" + guidance.improve_prompt(stage, delegation=route)
+
+
 def _run_rules(core: Any, root: Path, state: Mapping[str, Any], named: str = "") -> list[str]:
     """The run-level block: locators, the policies this packet's text names, recovery, the delegation rule, the request.
 
@@ -3853,7 +3863,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         *_unverified_lines(state, stage),
     ]
     stage_text = _named_text(state, stage, route)  # rendered once: the run rules read it, the producer prints it
-    lines += _run_rules(core, root, state, stage_text)
+    lines += _run_rules(core, root, state, _named_policy_text(state, stage, route, stage_text))
     lines.extend(
         label + ": " + str(reference_dir / reference)
         for label, reference in guidance.STAGE_REFERENCES.get(stage, ())

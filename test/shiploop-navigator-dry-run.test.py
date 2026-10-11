@@ -424,15 +424,15 @@ class BackchainStageTextTests(unittest.TestCase):
 
     @staticmethod
     def printed_guidance(stage, **modes):
-        """What an inline packet prints for the stage's Backchain call: an inline step-plan builds no execution
-        graph, so it carries one optional audit line instead of the caller guidance (2026-10-11 dedupe)."""
-        if stage == "step-plan":
-            return guidance.STEP_PLAN_BACKCHAIN_INLINE
+        """What an inline packet prints for the stage's Backchain call: an inline step-plan or carry-forward builds no
+        execution graph, so it carries one optional audit line instead of the caller guidance (2026-10-11 dedupe)."""
+        if stage in guidance.INLINE_AUDIT_STAGES:
+            return guidance.INLINE_BACKCHAIN_AUDIT
         return guidance._backchain_guidance(stage, **modes)
 
     def assert_prints_guidance(self, packet, stage, **modes):
         self.assertEqual(packet.count(self.printed_guidance(stage, **modes)), 1)
-        if stage == "step-plan":
+        if stage in guidance.INLINE_AUDIT_STAGES:
             self.assertNotIn(guidance._backchain_guidance(stage, **modes), packet)
 
     @classmethod
@@ -452,14 +452,18 @@ class BackchainStageTextTests(unittest.TestCase):
                 self.assert_prints_guidance(self.packets[stage], stage)
 
     def test_step_plan_carries_the_full_audit_guidance_only_when_delegated(self):
-        # 2026-10-11 dedupe: an inline step-plan carries the one optional audit line; ask-agent keeps the guidance.
-        full = guidance._backchain_guidance("step-plan")
-        inline = guidance.prompt("step-plan", delegation=guidance.INLINE)
-        delegated = guidance.prompt("step-plan", delegation=guidance.ASK_AGENT)
-        self.assertEqual(inline.count(guidance.STEP_PLAN_BACKCHAIN_INLINE), 1)
-        self.assertNotIn(full, inline)
-        self.assertEqual(delegated.count(full), 1)
-        self.assertNotIn(guidance.STEP_PLAN_BACKCHAIN_INLINE, delegated)
+        # 2026-10-11 dedupe: an inline step-plan or carry-forward carries the one optional audit line; ask-agent keeps
+        # the guidance.
+        self.assertEqual(guidance.INLINE_AUDIT_STAGES, ("step-plan", "carry-forward"))
+        for stage in guidance.INLINE_AUDIT_STAGES:
+            with self.subTest(stage=stage):
+                full = guidance._backchain_guidance(stage)
+                inline = guidance.prompt(stage, delegation=guidance.INLINE)
+                delegated = guidance.prompt(stage, delegation=guidance.ASK_AGENT)
+                self.assertEqual(inline.count(guidance.INLINE_BACKCHAIN_AUDIT), 1)
+                self.assertNotIn(full, inline)
+                self.assertEqual(delegated.count(full), 1)
+                self.assertNotIn(guidance.INLINE_BACKCHAIN_AUDIT, delegated)
 
     def test_only_the_loop_stage_prints_the_resource_list_and_the_others_print_the_audit_line_and_status(self):
         for stage in (self.LOOP_STAGE, *self.AUDIT_STAGES):
