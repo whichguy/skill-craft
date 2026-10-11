@@ -726,7 +726,8 @@ def _explicit_probe_workers(prompt: str) -> tuple[dict[str, str], str | None, bo
 
 
 def _bind_spawn_to_probe(raw_input: dict[str, Any], assignments: list[dict[str, Any]],
-                         starts: dict[str, dict[str, Any]]) -> tuple[str | None, str | None, bool]:
+                         starts: dict[str, dict[str, Any]], *,
+                         allow_owned_path_omission: bool = False) -> tuple[str | None, str | None, bool]:
     """Bind a spawn by its cwd's unique probe root and corroborating task prompt."""
     prompt = raw_input.get("prompt")
     if not isinstance(prompt, str):
@@ -748,7 +749,7 @@ def _bind_spawn_to_probe(raw_input: dict[str, Any], assignments: list[dict[str, 
     if len(assignments_for_worker) != 1:
         return None, f"probe root worker {worker} has no unique manifest assignment", True
     owned_path = assignments_for_worker[0].get("path")
-    if not isinstance(owned_path, str) or not _path_named(prompt, owned_path):
+    if not isinstance(owned_path, str) or (not allow_owned_path_omission and not _path_named(prompt, owned_path)):
         return None, f"typed prompt does not name the owned path for probe worker {worker}", True
     probe_workers, error, conflict = _explicit_probe_workers(prompt)
     if error:
@@ -977,6 +978,125 @@ def _compact_cli_result(call: dict[str, Any], root_updates: list[dict[str, Any]]
     if not isinstance(value, dict):
         return None, terminal["line"], "command stdout JSON is not an object"
     return value, terminal["line"], None
+
+
+def _compact_v4_prepare_summary_errors(run: Path, manifest: dict[str, Any], treatment: dict[str, Any],
+                                       setup: dict[str, Any], value: dict[str, Any],
+                                       call: dict[str, Any]) -> tuple[list[str], str | None]:
+    """Validate the small prepare stdout against its exact retained setup bytes and producer."""
+    errors: list[str] = []
+    expected_keys = {"schema", "status", "run_id", "treatment", "delivery_mode", "setup_path",
+                     "setup_sha256", "dispatch_index_path", "runtime_python_executable"}
+    setup_path = run / "operator" / "setup-result.json"
+    script_path = run / "operator" / "operations.py"
+    runtime = None
+    if set(value) != expected_keys:
+        errors.append("compact v4 prepare summary has missing or unexpected fields")
+    try:
+        if setup_path.is_symlink() or script_path.is_symlink():
+            raise OSError("setup or producer script is symlinked")
+        setup_bytes = setup_path.read_bytes()
+        script_bytes = script_path.read_bytes()
+        actual_setup = json.loads(setup_bytes.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        errors.append(f"compact v4 setup or producer script is unavailable: {type(exc).__name__}: {exc}")
+        return errors, None
+    setup_sha = hashlib.sha256(setup_bytes).hexdigest()
+    expected_setup_path = str(setup_path.resolve())
+    expected_index_path = str((run / "operator" / "compact-dispatch" / "index.json").resolve())
+    if (value.get("schema") != "ask-agent.compact-prepare-summary/v1"
+            or value.get("status") != "PREPARED"
+            or value.get("run_id") != manifest.get("run_id")
+            or value.get("treatment") != "compact"
+            or value.get("delivery_mode") != treatment.get("delivery_mode")
+            or value.get("setup_path") != expected_setup_path
+            or value.get("setup_sha256") != setup_sha
+            or value.get("dispatch_index_path") != expected_index_path):
+        errors.append("typed compact v4 prepare summary does not bind the run, treatment, setup bytes, and dispatch path")
+    if (actual_setup.get("status") != "PREPARED"
+            or actual_setup.get("run_id") != manifest.get("run_id")
+            or actual_setup.get("treatment") != "compact"
+            or actual_setup.get("delivery_mode") != treatment.get("delivery_mode")
+            or actual_setup.get("compact_startup_contract") != "action-packet/v1"
+            or actual_setup.get("operations_script_sha256") != hashlib.sha256(script_bytes).hexdigest()):
+        errors.append("retained setup does not bind the v4 run and exact producer script")
+    runtime_value = actual_setup.get("runtime_python_executable")
+    if (not isinstance(runtime_value, str) or not Path(runtime_value).is_absolute()
+            or value.get("runtime_python_executable") != runtime_value):
+        errors.append("prepare summary runtime interpreter differs from the retained producer record")
+    else:
+        runtime_path = Path(runtime_value)
+        runtime = str(runtime_path.resolve())
+        if runtime != runtime_value or not runtime_path.is_file() or not os.access(runtime_path, os.X_OK):
+            errors.append("retained producer interpreter is not a canonical absolute path")
+            runtime = None
+    tokens = call.get("tokens") if isinstance(call, dict) else None
+    script_positions = ([index for index, token in enumerate(tokens)
+                         if isinstance(token, str) and Path(token).is_absolute()
+                         and Path(token).resolve() == script_path.resolve()]
+                        if isinstance(tokens, list) else [])
+    prefix = tokens[:script_positions[0]] if isinstance(tokens, list) and len(script_positions) == 1 else []
+    interpreter_ok = False
+    if prefix == ["python3", "-B"]:
+        # The producer's untruncated output reports sys.executable from this exact python3 script invocation.
+        interpreter_ok = runtime is not None
+    elif len(prefix) == 2 and prefix[1] == "-B" and isinstance(prefix[0], str) and Path(prefix[0]).is_absolute():
+        interpreter_ok = runtime is not None and str(Path(prefix[0]).resolve()) == runtime
+    if (not interpreter_ok or len(script_positions) != 1
+            or call.get("args") != ["prepare-batch", "--run", str(run.resolve()), "--compact"]):
+        errors.append("typed prepare invocation is not the exact frozen-script python3 producer command")
+        runtime = None
+    return errors, runtime
+
+
+def _compact_v4_dispatch_summary_errors(run: Path, manifest: dict[str, Any], setup_sha: str,
+                                        expected_ids: list[str], value: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    expected_keys = {"schema", "status", "run_id", "worker_ids", "setup_path", "setup_sha256",
+                     "index_path", "index_sha256"}
+    index_path = run / "operator" / "compact-dispatch" / "index.json"
+    setup_path = run / "operator" / "setup-result.json"
+    if set(value) != expected_keys:
+        errors.append("compact v4 dispatch summary has missing or unexpected fields")
+    try:
+        if index_path.is_symlink() or setup_path.is_symlink():
+            raise OSError("setup or dispatch index is symlinked")
+        index_bytes = index_path.read_bytes()
+    except OSError as exc:
+        return [f"compact v4 dispatch index is unavailable: {type(exc).__name__}: {exc}"]
+    if (value.get("schema") != "ask-agent.compact-dispatch-summary/v1"
+            or value.get("status") != "PREPARED"
+            or value.get("run_id") != manifest.get("run_id")
+            or value.get("worker_ids") != expected_ids
+            or value.get("setup_path") != str(setup_path.resolve())
+            or value.get("setup_sha256") != setup_sha
+            or value.get("index_path") != str(index_path.resolve())
+            or value.get("index_sha256") != hashlib.sha256(index_bytes).hexdigest()):
+        errors.append("typed compact v4 dispatch summary does not bind the exact setup and index bytes")
+    return errors
+
+
+def _compact_v4_binding_matches(binding: Any, task: dict[str, Any], setup_worker: dict[str, Any],
+                                delivery_mode: str) -> bool:
+    bound_task = binding.get("task") if isinstance(binding, dict) else None
+    workspace = binding.get("workspace") if isinstance(binding, dict) else None
+    if not isinstance(bound_task, dict) or not isinstance(workspace, dict):
+        return False
+    worker = str(task.get("worker_id"))
+    write_set = (sorted([task.get("path"), ".experiment-local/owner.txt"])
+                 if delivery_mode == "ephemeral" else [task.get("path")])
+    expected_mode = "ephemeral" if delivery_mode == "ephemeral" else "edit"
+    expected_result = (
+        f"src/step_{int(worker)}.py defines transform(x)=({int(worker)}+1)*x+{int(worker)}*{int(worker)} "
+        "for every integer."
+    ) if worker.isdigit() else None
+    expected_task_delivery = None if delivery_mode == "ephemeral" else delivery_mode
+    return (bound_task.get("objective") == task.get("assignment")
+            and bound_task.get("expected_result") == expected_result
+            and bound_task.get("write_set") == write_set
+            and bound_task.get("mode") == expected_mode
+            and bound_task.get("delivery_mode") == expected_task_delivery
+            and workspace.get("root") == setup_worker.get("worktree"))
 
 
 def _fixture_verification_output_mode(treatment: dict[str, Any]) -> tuple[str, str]:
@@ -1321,13 +1441,29 @@ def _compact_dispatch_check(run: Path, assignments: list[dict[str, Any]],
         errors.append("treatment and setup records must both identify compact mode")
     if packet_v4 and setup.get("compact_startup_contract") != "action-packet/v1":
         errors.append("compact v4 setup does not identify the action-packet startup contract")
+    setup_sha = None
+    if setup_path.is_symlink():
+        errors.append("compact setup result is symlinked")
+    else:
+        try:
+            setup_sha = hashlib.sha256(setup_path.read_bytes()).hexdigest()
+        except OSError as exc:
+            errors.append(f"compact setup bytes are unavailable: {type(exc).__name__}: {exc}")
+    if index_path.is_symlink():
+        errors.append("compact dispatch index is symlinked")
     if index.get("schema") != "ask-agent.compact-dispatch/v1" or index.get("run_id") != manifest.get("run_id"):
         errors.append("compact dispatch index schema or run id does not bind to this manifest")
     rows = index.get("assignments")
     if not isinstance(rows, list) or [row.get("worker_id") for row in rows if isinstance(row, dict)] != expected_ids:
         errors.append("compact assignment index IDs or order differ from the manifest")
         rows = rows if isinstance(rows, list) else []
-    setup_workers = {item.get("worker_id"): item for item in setup.get("workers", []) if isinstance(item, dict)}
+    setup_worker_rows = setup.get("workers", [])
+    setup_workers = {item.get("worker_id"): item for item in setup_worker_rows if isinstance(item, dict)}
+    if [item.get("worker_id") for item in setup_worker_rows if isinstance(item, dict)] != expected_ids:
+        errors.append("compact setup worker IDs or order differ from the manifest")
+    manifest_tasks = {str(item.get("worker_id")): item for item in manifest.get("task_assignments", [])
+                      if isinstance(item, dict)}
+    delivery_mode = manifest.get("delivery_mode", "patch")
     assignments_by_id: dict[str, dict[str, Any]] = {}
     for row in rows:
         if not isinstance(row, dict):
@@ -1351,17 +1487,22 @@ def _compact_dispatch_check(run: Path, assignments: list[dict[str, Any]],
         worker_setup = setup_workers.get(worker)
         if packet_v4 and worker_setup is not None:
             binding_path = Path(str(worker_setup.get("compact_binding_path", "")))
+            expected_binding_path = run / "operator" / "compact-bindings" / f"worker-{worker}.json"
             try:
                 binding_bytes = binding_path.read_bytes()
                 binding_value = json.loads(binding_bytes.decode("utf-8"))
+                if not isinstance(binding_value, dict):
+                    raise ValueError("compact binding must be a JSON object")
                 packet_hash = hashlib.sha256(binding_bytes).hexdigest()
                 canonical = hashlib.sha256(json.dumps(
                     {key:value for key,value in binding_value.items() if key!="binding_sha256"},
                     sort_keys=True,separators=(",",":"),ensure_ascii=True).encode("utf-8")).hexdigest()
                 prepare_path = Path(str(worker_setup.get("compact_prepare_result_path", "")))
+                expected_prepare_path = run / "operator" / "compact-prepare" / f"worker-{worker}.result.json"
                 prepare_result = _read_json(prepare_path, f"worker {worker} compact prepare result")
                 packet = prepare_result.get("packet")
-                if (binding_path.is_symlink() or prepare_path.is_symlink()
+                if (binding_path.is_symlink() or binding_path.resolve() != expected_binding_path.resolve()
+                        or prepare_path.is_symlink() or prepare_path.resolve() != expected_prepare_path.resolve()
                         or packet_hash != worker_setup.get("compact_packet_sha256")
                         or canonical != worker_setup.get("compact_binding_sha256")
                         or binding_value.get("binding_sha256") != canonical
@@ -1369,6 +1510,9 @@ def _compact_dispatch_check(run: Path, assignments: list[dict[str, Any]],
                         or packet.get("binding_sha256") != canonical
                         or packet.get("path") != str(binding_path.resolve())):
                     errors.append(f"worker {worker} exact binding packet or digest differs from setup")
+                if not _compact_v4_binding_matches(
+                        binding_value, manifest_tasks.get(worker, {}), worker_setup, delivery_mode):
+                    errors.append(f"worker {worker} action packet task or workspace does not match its manifest assignment")
             except (OSError, UnicodeDecodeError, json.JSONDecodeError, TraceError) as exc:
                 errors.append(f"worker {worker} exact binding packet is unavailable: {exc}")
         if (not isinstance(args, dict) or set(args) != {"description", "prompt", "cwd", "background"}
@@ -1392,12 +1536,20 @@ def _compact_dispatch_check(run: Path, assignments: list[dict[str, Any]],
 
     compact_builds = [call for call in _compact_cli_calls(root_updates, briefs_script, run, "--compact")
                       if "--emit-worker" not in call["args"]]
+    validated_runtime = None
     if len(compact_builds) != 1:
         missing.append(f"one briefs.py --compact call (found {len(compact_builds)})")
     else:
         value, _, error = _compact_cli_result(compact_builds[0], root_updates)
         if error:
             missing.append(f"compact assignment builder result: {error}")
+        elif packet_v4:
+            if setup_sha is None:
+                errors.append("compact v4 dispatch summary cannot bind unavailable setup bytes")
+            else:
+                errors.extend(_compact_v4_dispatch_summary_errors(
+                    run, manifest, setup_sha, expected_ids, value,
+                ))
         elif (value.get("status") != "PREPARED" or value.get("worker_ids") != expected_ids
               or Path(str(value.get("index_path", ""))).resolve() != index_path.resolve()):
             errors.append("typed compact assignment builder result differs from the retained index")
@@ -1409,6 +1561,13 @@ def _compact_dispatch_check(run: Path, assignments: list[dict[str, Any]],
         value, _, error = _compact_cli_result(preparation_calls[0], root_updates)
         if error:
             missing.append(f"compact setup command result: {error}")
+        elif packet_v4:
+            prepare_errors, validated_runtime = _compact_v4_prepare_summary_errors(
+                run, manifest, treatment, setup, value, preparation_calls[0],
+            )
+            errors.extend(prepare_errors)
+            if prepare_errors:
+                validated_runtime = None
         elif value.get("status") != "PREPARED" or value.get("treatment") != "compact":
             errors.append("typed compact setup command result does not report prepared compact setup")
 
@@ -1432,7 +1591,9 @@ def _compact_dispatch_check(run: Path, assignments: list[dict[str, Any]],
     seen: set[str] = set()
     for row in spawn_calls:
         raw = row["update"].get("rawInput")
-        worker, issue, conflict = _bind_spawn_to_probe(raw, assignments, starts) if isinstance(raw, dict) else (None, "spawn has no typed arguments", False)
+        worker, issue, conflict = (_bind_spawn_to_probe(
+            raw, assignments, starts, allow_owned_path_omission=packet_v4,
+        ) if isinstance(raw, dict) else (None, "spawn has no typed arguments", False))
         if issue:
             (errors if conflict else missing).append(f"spawn at line {row['line']}: {issue}")
             continue
@@ -1458,6 +1619,7 @@ def _compact_dispatch_check(run: Path, assignments: list[dict[str, Any]],
                 "index": _locator(index_path), "index_sha256": hashlib.sha256(index_path.read_bytes()).hexdigest()
                 if index_path.is_file() else None,
                 "emitted_worker_ids": sorted(emitted), "worker_matches": matches,
+                "runtime_python_executable": validated_runtime,
             }
 
 
@@ -1732,7 +1894,8 @@ def _compact_ephemeral_no_commit_check(child_calls: list[dict[str, Any]], worker
 
 def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], launches: list[dict[str, Any]],
                                 child_transcripts: dict[str, dict[str, Any]], updates_path: Path, *,
-                                native_cwd_probe_passed: bool = False, delivery_mode: str = "patch"
+                                native_cwd_probe_passed: bool = False, delivery_mode: str = "patch",
+                                runtime_python_executable: str | None = None,
                                 ) -> dict[str, Any]:
     setup_path = run / "operator" / "setup-result.json"
     issues: list[str] = []
@@ -1885,7 +2048,11 @@ def _compact_worker_phase_check(run: Path, assignments: list[dict[str, Any]], la
                     call_record = _read_json(call_path, f"worker {worker} {phase} production command")
                     result = call_record.get("json")
                     task_script = Path(manifest["paths"]["package"]).resolve() / "scripts" / "ask_agent_task.py"
-                    expected_argv = [sys.executable, "-B", str(task_script.resolve()),
+                    producer_python = runtime_python_executable if packet_v4 else sys.executable
+                    if packet_v4 and not isinstance(producer_python, str):
+                        issues.append(f"worker {worker} v4 phase lacks the validated setup producer interpreter")
+                        producer_python = ""
+                    expected_argv = [producer_python, "-B", str(task_script.resolve()),
                                      "worker-start" if phase == "start" else "worker-finish",
                                      "--binding", str(Path(binding_path).resolve())]
                     if packet_v4:
@@ -2265,9 +2432,59 @@ def _ephemeral_finding_valid(run: Path, task: dict[str, Any], setup_worker: dict
     return True, ""
 
 
+def _compact_regular_file_under(root: Path, value: Any) -> tuple[Path, bytes] | None:
+    if not isinstance(value, str) or not Path(value).is_absolute() or root.is_symlink():
+        return None
+    root = root.resolve()
+    path = Path(value)
+    try:
+        relative = path.relative_to(root)
+        if ".." in relative.parts:
+            return None
+        cursor = root
+        for part in relative.parts:
+            cursor = cursor / part
+            if cursor.is_symlink():
+                return None
+        resolved = path.resolve(strict=True)
+        if not resolved.is_relative_to(root) or not resolved.is_file():
+            return None
+        return resolved, resolved.read_bytes()
+    except (OSError, ValueError):
+        return None
+
+
+def _compact_commit_delivery_matches(run: Path, phase_delivery: Any, returned_delivery: Any,
+                                     finish_attempt: Any, source_dirty: Any) -> bool:
+    fields = ("mode", "base", "commits", "commit_paths", "per_commit_paths", "residual_paths")
+    if (not isinstance(phase_delivery, dict) or not isinstance(returned_delivery, dict)
+            or set(phase_delivery) - set(fields) - {"contribution_patch"}
+            or set(returned_delivery) - set(fields) - {"contribution_patch"}
+            or not set(fields) <= set(phase_delivery) or not set(fields) <= set(returned_delivery)
+            or any(phase_delivery.get(field) != returned_delivery.get(field) for field in fields)):
+        return False
+    if source_dirty is False:
+        return "contribution_patch" not in phase_delivery and "contribution_patch" not in returned_delivery
+    if source_dirty is not True or not isinstance(finish_attempt, dict):
+        return False
+    phase_patch = phase_delivery.get("contribution_patch")
+    returned_patch = returned_delivery.get("contribution_patch")
+    if phase_patch != finish_attempt.get("patch_path"):
+        return False
+    phase_file = _compact_regular_file_under(run / "workspace-store", phase_patch)
+    returned_file = _compact_regular_file_under(run / "workspace-store", returned_patch)
+    expected_sha = finish_attempt.get("patch_sha256")
+    if (phase_file is None or returned_file is None or not isinstance(expected_sha, str)
+            or hashlib.sha256(phase_file[1]).hexdigest() != expected_sha
+            or returned_file[1] != phase_file[1]):
+        return False
+    return True
+
+
 def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], root_updates: list[dict[str, Any]],
                                  collect_calls: list[dict[str, Any]], updates_path: Path, *,
-                                 delivery_mode: str = "patch", launches: list[dict[str, Any]] | None = None
+                                 delivery_mode: str = "patch", launches: list[dict[str, Any]] | None = None,
+                                 runtime_python_executable: str | None = None,
                                  ) -> dict[str, Any]:
     script = run / "operator" / "operations.py"
     issues: list[str] = []
@@ -2329,7 +2546,11 @@ def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], r
         binding_path = setup_worker.get("compact_binding_path") if isinstance(setup_worker, dict) else None
         task_script = (Path(package_path).resolve() / "scripts" / "ask_agent_task.py"
                        if isinstance(package_path, str) else None)
-        expected_return_argv = ([sys.executable, "-B", str(task_script), "verify-return", "--binding",
+        producer_python = runtime_python_executable if packet_v4 else sys.executable
+        if packet_v4 and not isinstance(producer_python, str):
+            issues.append(f"worker {worker} v4 return lacks the validated setup producer interpreter")
+            producer_python = ""
+        expected_return_argv = ([producer_python, "-B", str(task_script), "verify-return", "--binding",
                                  str(Path(binding_path).resolve())]
                                 if task_script is not None and isinstance(binding_path, str) else None)
         if packet_v4 and expected_return_argv is not None:
@@ -2450,7 +2671,9 @@ def _compact_parent_return_check(run: Path, assignments: list[dict[str, Any]], r
                     or re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", commits[0]) is None
                     or delivery.get("commit_paths") != [task.get("path") if isinstance(task, dict) else None]
                     or delivery.get("residual_paths") != []
-                    or phase_delivery != delivery
+                    or (phase_delivery != delivery if not packet_v4 else not _compact_commit_delivery_matches(
+                        run, phase_delivery, delivery, phase, source_dirty,
+                    ))
                     or not isinstance(strategy, dict)
                     or strategy.get("strategy") != expected_strategy
                     or strategy.get("source_dirty") is not source_dirty
@@ -3291,6 +3514,22 @@ def audit_run(run_path: str | Path, *, session_root: str | Path | None = None) -
         launches: list[dict[str, Any]] = []
         launch_issues: list[str] = []
         launch_conflicts: list[str] = []
+        treatment_path = operator / "treatment.json"
+        treatment_record = None
+        treatment_read_error = None
+        if treatment_path.is_file():
+            try:
+                treatment_record = _read_json(treatment_path, "treatment record")
+            except (OSError, TraceError) as exc:
+                treatment_read_error = exc
+        compact_packet_spawn = False
+        if isinstance(treatment_record, dict) and treatment_record.get("treatment") == "compact" \
+                and treatment_record.get("version") == 4:
+            try:
+                setup_record = _read_json(operator / "setup-result.json", "compact setup")
+                compact_packet_spawn = setup_record.get("compact_startup_contract") == "action-packet/v1"
+            except (OSError, TraceError):
+                pass
         for row in spawn_calls:
             update = row["update"]
             raw = update.get("rawInput")
@@ -3300,7 +3539,9 @@ def audit_run(run_path: str | Path, *, session_root: str | Path | None = None) -
                 continue
             cwd_values = [raw.get("cwd")] if raw.get("cwd") is not None else []
             background_values = [raw.get("background")] if raw.get("background") is not None else []
-            worker, binding_issue, binding_conflict = _bind_spawn_to_probe(raw, assignments, starts)
+            worker, binding_issue, binding_conflict = _bind_spawn_to_probe(
+                raw, assignments, starts, allow_owned_path_omission=compact_packet_spawn,
+            )
             if binding_issue:
                 (launch_conflicts if binding_conflict else launch_issues).append(
                     f"spawn call at line {row['line']}: {binding_issue}"
@@ -3338,14 +3579,6 @@ def audit_run(run_path: str | Path, *, session_root: str | Path | None = None) -
         child_transcript_check, child_transcripts = _retain_child_transcripts(run, launches, root_dir)
         checks["child_transcript_retention"] = child_transcript_check
         evidence["native_evidence_retention"]["children"] = child_transcripts
-        treatment_path = operator / "treatment.json"
-        treatment_record = None
-        treatment_read_error = None
-        if treatment_path.is_file():
-            try:
-                treatment_record = _read_json(treatment_path, "treatment record")
-            except (OSError, TraceError) as exc:
-                treatment_read_error = exc
         compact_v4_treatment_check = _compact_v4_treatment_metadata_check(
             run, manifest, treatment_record,
         )
@@ -3380,6 +3613,7 @@ def audit_run(run_path: str | Path, *, session_root: str | Path | None = None) -
                 checks["compact_parent_return_order"] = _compact_parent_return_check(
                     run, assignments, root_updates, collect_calls, updates_path,
                     delivery_mode=effective_delivery_mode, launches=launches,
+                    runtime_python_executable=compact_dispatch_evidence.get("runtime_python_executable"),
                 )
                 if treatment_record.get("version") == 4:
                     checks["compact_parent_result"] = _compact_parent_result_check(
@@ -3457,6 +3691,7 @@ def audit_run(run_path: str | Path, *, session_root: str | Path | None = None) -
                 native_cwd_probe_passed=checks["cwd_probe_binding"]["status"] == "PASS",
                 delivery_mode=effective_delivery_mode if isinstance(treatment_record, dict)
                 and treatment_record.get("treatment") == "compact" else "patch",
+                runtime_python_executable=evidence.get("compact_dispatch", {}).get("runtime_python_executable"),
             )
 
         collections: dict[str, list[dict[str, Any]]] = {child: [] for child in by_child}
