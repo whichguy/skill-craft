@@ -49,6 +49,16 @@ ARCHITECTURE_HOLDS = ("the stack (language, frameworks, dependencies and why), t
 FEATURE_LIST = HOME + "/features/README.md"
 
 LIVING = ("README.md", "spec.md", "environment.md", "test-strategy.md", ARCHITECTURE)
+# The named sections of the four living files that hold the product's facts, as the headings a packet quotes and the section
+# notice (``section_notices``) looks for.  A heading is the text after the ``#`` marks; a spec's acceptance criteria stay inside
+# each requirement, with no heading of their own.  ARCHITECTURE_HOLDS above says what the architecture file holds in prose; a
+# test pins that every heading it names is here.
+SECTIONS: Dict[str, Tuple[str, ...]] = {
+    "spec.md": ("Requirements", "Non-functional requirements", "Retired"),
+    "environment.md": ("Targets and runtimes", "Commands", "Access and accounts", "Platform facts"),
+    ARCHITECTURE: ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Decisions", "Superseded"),
+    "test-strategy.md": ("Harnesses and suites", "Commands", "ID convention", "Real-boundary checks"),
+}
 # The close that commits, and the files it requires (``{feature}`` is this run's feature directory).
 CLOSES: Dict[str, Tuple[str, ...]] = {
     "prepare": ("README.md", "spec.md", "environment.md", "test-strategy.md", ARCHITECTURE,
@@ -60,15 +70,24 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
 }
 # What each stage writes or updates.  A close's other required files (above) were written by earlier stages
 # (``required_earlier``); its packet lists them apart, with the refusal they carry.
+# A stage that finds a command, a platform fact or a decision keeps the file it belongs in: research, validate-existing,
+# implement and test find commands and facts (environment.md); implement may add a decision (an AD-<n> for a deviation);
+# carry-forward records the run's decisions and what they superseded.  verify reads the architecture and writes nothing, so
+# it has no entry.  A key that is no stage of the graph is a stale entry: a test pins every key to ``stage_spec.STAGES``.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "intake": ("README.md",),
     "discovery": ("environment.md",),
+    "research": ("environment.md",),
     "spec": ("spec.md", "{feature}/spec.md"),
     "test-strategy": ("test-strategy.md",),
     "plan": ("{feature}/plan.md", "README.md", ARCHITECTURE),
     "prepare": ("environment.md",),
     "step-plan": ("{feature}/plan.md", ARCHITECTURE),
     "test-spec": ("{feature}/test-spec.md",),
+    "validate-existing": ("environment.md",),
+    "implement": ("environment.md", ARCHITECTURE),
+    "test": ("environment.md",),
+    "carry-forward": (ARCHITECTURE, "environment.md"),
     "system-test-author": ("{feature}/system-tests.md",),
     "release-plan": ("{feature}/release-plan.md", "environment.md"),
     "release-verify": ("{feature}/outcome.md", "environment.md", "README.md"),
@@ -729,6 +748,7 @@ __all__ = ("ARCHITECTURE",
            "KNOWLEDGE",
            "LEARNING_SECTIONS",
            "Retired",
+           "SECTIONS",
            "check",
            "commit",
            "earlier_features",

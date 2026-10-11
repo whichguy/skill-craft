@@ -440,7 +440,12 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
                              re.findall(r"(/\S+?\.md)", lines[0]))
             (home / "architecture.md").unlink()
             packet = navigator.render(None, run, store.read_record(run / "state.md"))
-            self.assertNotIn(str(home / "architecture.md"), packet)
+            # implement keeps architecture.md up to date since task A2 ("create them if missing"), so the file's path is in
+            # the packet's writer line; the grounding line is what must leave out a file that is not there.
+            lines = [line for line in packet.splitlines() if line.startswith("Ground this stage's decisions")]
+            self.assertEqual(len(lines), 1)
+            self.assertNotIn(str(home / "architecture.md"), lines[0])
+            self.assertIn(str(home / "environment.md"), lines[0])
 
 
 if __name__ == "__main__":

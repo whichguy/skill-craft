@@ -25,6 +25,7 @@ import shiploop_git  # noqa: E402
 import shiploop_lessons as commit_lessons  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_knowledge_support as support  # noqa: E402
+import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
 
 
@@ -253,7 +254,8 @@ class ArchitectureTests(HomeFixture):
         self.assertIn(absolute, step_plan[0])
         prepare = [row for row in knowledge.stage_lines(self.state, "prepare") if row.startswith("Written by earlier stages")]
         self.assertIn(absolute, prepare[0])
-        for stage in ("intake", "discovery", "spec", "test-strategy", "implement"):
+        # implement keeps it up to date since task A2 (a deviation recorded as an AD-<n>); verify reads it and writes nothing
+        for stage in ("intake", "discovery", "spec", "test-strategy", "verify"):
             with self.subTest(stage):
                 self.assertNotIn(absolute, "\n".join(knowledge.stage_lines(self.state, stage)))
 
@@ -514,6 +516,85 @@ class ArchitectureTests(HomeFixture):
                     continue  # its outcome.md sections are the writer's job, checked by the release-verify test above
                 self.assertEqual(knowledge.check(self.state, close), "")
         self.assertTrue((self.repo / self.ARCH).is_file())
+
+
+class SectionsTests(HomeFixture):
+    """The named sections of the four living files, and the stages that keep those files up to date (batch 1012 task A2)."""
+
+    def test_the_four_files_have_their_sections_as_constants_in_the_order_a_reader_meets_them(self) -> None:
+        self.assertEqual(knowledge.SECTIONS, {
+            "spec.md": ("Requirements", "Non-functional requirements", "Retired"),
+            "environment.md": ("Targets and runtimes", "Commands", "Access and accounts", "Platform facts"),
+            "architecture.md": ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Decisions", "Superseded"),
+            "test-strategy.md": ("Harnesses and suites", "Commands", "ID convention", "Real-boundary checks"),
+        })
+        self.assertIn("SECTIONS", knowledge.__all__)
+
+    def test_the_sections_are_plain_words_of_the_living_files_with_no_marker_or_repeat(self) -> None:
+        for name, headings in knowledge.SECTIONS.items():
+            with self.subTest(name):
+                self.assertIn(name, knowledge.LIVING)
+                self.assertEqual(len(set(headings)), len(headings))
+                for heading in headings:
+                    self.assertEqual(heading, heading.strip())
+                    self.assertFalse(heading.startswith("#"), heading)  # a packet adds the '## ' it quotes
+
+    def test_the_architecture_wording_and_its_sections_are_one_list(self) -> None:
+        holds, sections = knowledge.ARCHITECTURE_HOLDS, knowledge.SECTIONS[knowledge.ARCHITECTURE]
+        for quoted in re.findall(r"'## ([^']+)'", holds):  # a heading the wording names is a section
+            self.assertIn(quoted, sections)
+        self.assertEqual(re.findall(r"'## ([^']+)'", holds), ["Decisions", "Superseded"])
+        for heading in sections:  # and every section is a thing the wording says the file holds
+            self.assertIn(heading.lower(), holds.lower())
+
+    def test_every_stage_files_key_is_a_real_stage_and_every_name_a_living_or_feature_file(self) -> None:
+        """A future change to the graph cannot leave a writer entry on a stage that no longer exists."""
+        for stage in knowledge.STAGE_FILES:
+            self.assertIn(stage, stage_spec.STAGES)
+        for stage in knowledge.CLOSES:
+            self.assertIn(stage, stage_spec.STAGES)
+        for stage, names in knowledge.STAGE_FILES.items():
+            for name in names:
+                with self.subTest(stage=stage, name=name):
+                    self.assertTrue(name in knowledge.LIVING or name.startswith("{feature}/"), name)
+
+    # The stages that find commands, facts and decisions keep these files up to date (task A2, the 8-stage inner loop).
+    WRITERS = {"research": ("environment.md",),
+               "validate-existing": ("environment.md",),
+               "implement": ("environment.md", "architecture.md"),
+               "test": ("environment.md",),
+               "carry-forward": ("architecture.md", "environment.md")}
+
+    def test_the_stages_that_discover_commands_facts_and_decisions_keep_the_files_up_to_date(self) -> None:
+        for stage, names in self.WRITERS.items():
+            with self.subTest(stage):
+                self.assertEqual(knowledge.STAGE_FILES[stage], names)
+                expected = ("This stage keeps these up to date (create them if missing): "
+                            + ", ".join(str(self.repo / knowledge.HOME / name) for name in names) + ".")
+                self.assertIn(expected, knowledge.stage_lines(self.state, stage))
+
+    def test_verify_reads_the_architecture_and_writes_nothing_and_the_planning_entries_are_unchanged(self) -> None:
+        self.assertNotIn("verify", knowledge.STAGE_FILES)
+        self.assertFalse([row for row in knowledge.stage_lines(self.state, "verify") if "keeps these up to date" in row])
+        self.assertEqual(knowledge.STAGE_FILES["plan"], ("{feature}/plan.md", "README.md", "architecture.md"))
+        self.assertEqual(knowledge.STAGE_FILES["step-plan"], ("{feature}/plan.md", "architecture.md"))
+        self.assertEqual(knowledge.STAGE_FILES["prepare"], ("environment.md",))
+        self.assertEqual(knowledge.STAGE_FILES["test-spec"], ("{feature}/test-spec.md",))
+        self.assertEqual(knowledge.CLOSES["prepare"][:5],
+                         ("README.md", "spec.md", "environment.md", "test-strategy.md", "architecture.md"))
+
+    def test_a_writer_before_a_close_that_requires_its_file_names_that_close_and_one_after_every_close_names_none(self) -> None:
+        # research feeds the prepare close; the inner stages feed the release-plan close (environment.md); architecture.md is
+        # required only at prepare, which is behind every inner stage, so implement and carry-forward promise no close for it.
+        research = knowledge.stage_lines(self.state, "research")
+        self.assertIn("ShipLoop refuses prepare if any of these is missing or empty: "
+                      + str(self.repo / "docs/shiploop/environment.md") + ".", research)
+        for stage in ("validate-existing", "implement", "test", "carry-forward"):
+            with self.subTest(stage):
+                lines = knowledge.stage_lines(self.state, stage)
+                self.assertIn("ShipLoop refuses release-plan if any of these is missing or empty: "
+                              + str(self.repo / "docs/shiploop/environment.md") + ".", lines)
+                self.assertFalse([row for row in lines if "ShipLoop refuses prepare" in row])
 
 
 class GroundingTests(HomeFixture):
