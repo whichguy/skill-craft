@@ -1394,18 +1394,15 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
         self.assertIn("AD-2: split by layer instead.", self.home_git("show", "HEAD:docs/shiploop/architecture.md"))
 
-    def test_the_test_spec_close_accepted_at_improve_complete_prints_its_section_notices_after_the_script_records_validate_existing(self):
-        """The import that accepts test-spec also records validate-existing; the close's counted notice is still printed.
-
-        A home whose living files are prose (no named section) is accepted, and the lines are on the import's stdout.
-        """
+    def test_test_spec_accepted_at_improve_complete_with_validate_existing_after_it_is_no_close_and_prints_no_notice(self):
+        """The import that accepts test-spec also records validate-existing.  test-spec is no close since consumer contract
+        4b (its cases are in state): a home whose living files are prose is accepted, nothing is required of the feature
+        folder, and no section notice prints (the notice belongs to the three closes)."""
         home = self.repo / "docs/shiploop"
         home.mkdir(parents=True, exist_ok=True)
         for name in knowledge.SECTIONS:
             (home / name).write_text("# " + name + "\n\nProse with no named sections.\n", encoding="utf-8")
         self._start_parent_at_stage("test-spec", [str(self.product_contract)])
-        feature = self.repo / knowledge.feature_dir(store.read_record(self.run / "state.md"))
-        (feature / "plan.md").write_text("# Plan\n\nOne step.\n", encoding="utf-8")
         before = len(store.read_record(self.run / "state.md")["history"])
         self.finish_ephemeral()
         completion, _receipt = self.completion_receipt()
@@ -1413,10 +1410,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         state = store.read_record(self.run / "state.md")
         self.assertEqual([(row["stage"], row["outcome"]) for row in state["history"][before:]],
                          [("test-spec", "done"), ("validate-existing", "done")], "the route under test")
-        found = [row for row in imported.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX)]
-        self.assertEqual(len(found), len(knowledge.SECTIONS))  # one line per file
-        self.assertEqual(found, knowledge.section_notices(state, "test-spec"))
-        self.assertNotIn(knowledge.NOTICE_PREFIX, imported.stderr)
+        self.assertNotIn("test-spec", knowledge.CLOSES)
+        self.assertNotIn(knowledge.NOTICE_PREFIX, imported.stdout + imported.stderr)
 
     def test_a_review_that_restores_the_dropped_decision_exactly_has_nothing_to_commit_and_the_import_is_accepted(self):
         """"If the review changed it": a file back as it was at the bind has no edit of the review's left to commit."""

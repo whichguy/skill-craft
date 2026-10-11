@@ -82,7 +82,7 @@ class KnowledgeTests(HomeFixture):
         self.assertEqual(knowledge.feature_dir(self.state),
                          "docs/shiploop/features/add-a-fleet-command-tab-to-abcdef")
         lines = "\n".join(knowledge.stage_lines(self.state, "spec"))
-        self.assertIn(str(self.repo / "docs/shiploop/README.md"), lines)
+        self.assertNotIn("README.md", lines)
         self.assertIn(str(self.repo / "docs/shiploop/spec.md"), lines)
         self.assertIn("ShipLoop refuses a spec that loses an earlier ID", lines)
         self.assertNotIn("On done ShipLoop checks", lines)
@@ -91,15 +91,14 @@ class KnowledgeTests(HomeFixture):
     def test_a_file_written_before_a_close_names_the_next_close_that_requires_it(self) -> None:
         self.assertEqual(knowledge.next_close("plan", "{feature}/plan.md"), "prepare")
         self.assertEqual(knowledge.next_close("discovery", "environment.md"), "prepare")
-        self.assertEqual(knowledge.next_close("step-plan", "{feature}/plan.md"), "test-spec")  # prepare is behind it
+        self.assertIsNone(knowledge.next_close("step-plan", "{feature}/plan.md"))  # prepare is behind it; test-spec is no close
         self.assertEqual(knowledge.next_close("system-test-author", "{feature}/system-tests.md"), "release-plan")
         self.assertIsNone(knowledge.next_close("plan", "{feature}/outcome.md.nope"))
         self.assertEqual(knowledge.required_earlier("prepare"),
-                         ("README.md", "spec.md", "test-strategy.md", "architecture.md", "{feature}/spec.md",
-                          "{feature}/plan.md"))
+                         ("spec.md", "architecture.md", "{feature}/spec.md", "{feature}/plan.md"))
         lines = "\n".join(knowledge.stage_lines(self.state, "prepare"))
         self.assertIn("Written by earlier stages; ShipLoop refuses prepare if any is missing or empty: "
-                      + str(self.repo / "docs/shiploop/README.md"), lines)
+                      + str(self.repo / "docs/shiploop/spec.md"), lines)
         self.assertIn("This stage keeps these up to date (create them if missing): "
                       + str(self.repo / "docs/shiploop/environment.md") + ".", lines)
 
@@ -137,9 +136,8 @@ class KnowledgeTests(HomeFixture):
         refusal = knowledge.check(self.state, "prepare")
         lines = refusal.splitlines()
         feature = knowledge.feature_dir(self.state)
-        names = [knowledge.HOME + "/README.md", knowledge.HOME + "/spec.md", knowledge.HOME + "/environment.md",
-                 knowledge.HOME + "/test-strategy.md", knowledge.HOME + "/architecture.md", feature + "/spec.md",
-                 feature + "/plan.md"]
+        names = [knowledge.HOME + "/spec.md", knowledge.HOME + "/environment.md", knowledge.HOME + "/architecture.md",
+                 feature + "/spec.md", feature + "/plan.md"]
         absolute = [str(self.repo / name) for name in names]
         self.assertEqual(lines[0], "Before prepare is done, write: " + ", ".join(absolute))
         self.assertIn(absolute[0], lines[0][:250])
@@ -273,14 +271,14 @@ class ArchitectureTests(HomeFixture):
         self.assertIn(absolute, step_plan[0])
         prepare = [row for row in knowledge.stage_lines(self.state, "prepare") if row.startswith("Written by earlier stages")]
         self.assertIn(absolute, prepare[0])
-        # implement keeps it up to date since task A2 (a deviation recorded as an AD-<n>); verify reads it and writes nothing
-        for stage in ("intake", "discovery", "spec", "test-strategy", "verify"):
+        # implement keeps it up to date since task A2 (a deviation recorded as an AD-<n>), test-strategy since consumer
+        # contract 4b (the real-boundary checks); verify reads it and writes nothing.  Line 1 names every living file.
+        for stage in ("intake", "discovery", "spec", "verify"):
             with self.subTest(stage):
-                self.assertNotIn(absolute, "\n".join(knowledge.stage_lines(self.state, stage)))
+                self.assertNotIn(absolute, "\n".join(knowledge.stage_lines(self.state, stage)[2:]))
 
     def test_the_architecture_is_ordered_after_the_other_living_files_and_before_the_feature_files(self) -> None:
-        self.assertEqual(knowledge.CLOSES["prepare"][:5],
-                         ("README.md", "spec.md", "environment.md", "test-strategy.md", "architecture.md"))
+        self.assertEqual(knowledge.CLOSES["prepare"][:3], ("spec.md", "environment.md", "architecture.md"))
         self.assertEqual(knowledge.STAGE_FILES["plan"][-1], "architecture.md")  # the printed order of the others is kept
         self.assertEqual(knowledge.STAGE_FILES["step-plan"][:2], ("{feature}/plan.md", "architecture.md"))  # environment.md is appended
         self.assertEqual(knowledge.STAGE_FILES["prepare"], ("environment.md",))  # prepare requires it; plan writes it
@@ -537,15 +535,79 @@ class ArchitectureTests(HomeFixture):
         self.assertTrue((self.repo / self.ARCH).is_file())
 
 
-class SectionsTests(HomeFixture):
-    """The named sections of the four living files, and the stages that keep those files up to date (batch 1012 task A2)."""
+class LivingFilesTests(HomeFixture):
+    """Consumer contract slice 4b (docs/shiploop-consumer-contract-2026-10-11.md 2.1): three living files.
 
-    def test_the_four_files_have_their_sections_as_constants_in_the_order_a_reader_meets_them(self) -> None:
+    test-strategy.md's content moved into environment.md (harnesses and suites, the ID convention) and architecture.md (the
+    real-boundary checks); README.md was an index with no reader of its own.  Expected values are literal, from 2.1.
+    """
+
+    S, E, A = "spec.md", "environment.md", "architecture.md"
+
+    def test_living_files_are_spec_environment_architecture(self) -> None:
+        self.assertEqual(knowledge.LIVING, ("spec.md", "environment.md", "architecture.md"))
+
+    def test_environment_gains_harnesses_and_id_convention_and_architecture_real_boundary_checks(self) -> None:
         self.assertEqual(knowledge.SECTIONS, {
             "spec.md": ("Requirements", "Non-functional requirements", "Retired"),
-            "environment.md": ("Targets and runtimes", "Commands", "Skills", "Access and accounts", "Platform facts"),
-            "architecture.md": ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Decisions", "Superseded"),
-            "test-strategy.md": ("Harnesses and suites", "Commands", "ID convention", "Real-boundary checks"),
+            "environment.md": ("Targets and runtimes", "Commands", "Skills", "Harnesses and suites", "ID convention",
+                               "Access and accounts", "Platform facts"),
+            "architecture.md": ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Real-boundary checks",
+                                "Decisions", "Superseded"),
+        })
+        # No "Release and rollback" section (X11): the procedure lives in environment.md under the run's own heading.
+        self.assertNotIn("Release and rollback", knowledge.SECTIONS["environment.md"])
+
+    def test_closes_and_stage_files_are_the_contract_tables_on_the_living_files(self) -> None:
+        S, E, A = self.S, self.E, self.A
+        living = {name: names for name, names in knowledge.CLOSES.items()}
+        self.assertEqual({stage: tuple(n for n in names if not n.startswith("{feature}/")) for stage, names in living.items()},
+                         {"prepare": (S, E, A), "release-plan": (E,), "release-verify": (E,)})
+        self.assertNotIn("test-spec", knowledge.CLOSES)        # its cases are in state (test_cases)
+        self.assertEqual({stage: tuple(n for n in names if not n.startswith("{feature}/"))
+                          for stage, names in knowledge.STAGE_FILES.items()}, {
+            "discovery": (E,), "research": (E,), "spec": (S,), "test-strategy": (E, A), "plan": (A,), "prepare": (E,),
+            "step-plan": (A, E), "test-spec": (), "validate-existing": (E,), "implement": (E, A), "test": (E,),
+            "carry-forward": (A, E), "system-test-author": (E,), "release-plan": (E,), "release-check": (E,),
+            "release-verify": (E,)})
+        self.assertNotIn("intake", knowledge.STAGE_FILES)      # its only file was README.md
+        for table in (knowledge.CLOSES, knowledge.STAGE_FILES):
+            for stage, names in table.items():
+                for name in names:
+                    with self.subTest(stage=stage, name=name):
+                        self.assertNotIn(name, ("README.md", "test-strategy.md"))
+
+    def test_architecture_holds_names_real_boundary_checks(self) -> None:
+        self.assertIn("the real-boundary checks a local test cannot prove (each with its owner)", knowledge.ARCHITECTURE_HOLDS)
+
+    def test_stage_lines_name_the_three_living_files_and_not_the_readme(self) -> None:
+        for stage in stage_spec.STAGES:
+            with self.subTest(stage):
+                lines = knowledge.stage_lines(self.state, stage)
+                self.assertNotIn("README.md", "\n".join(lines))
+                self.assertNotIn("test-strategy.md", "\n".join(lines))
+                for name in ("spec.md", "environment.md", "architecture.md"):
+                    self.assertIn(str(self.repo / knowledge.HOME / name), lines[1])
+
+    def test_the_test_strategy_lines_point_at_the_new_sections(self) -> None:
+        lines = "\n".join(knowledge.stage_lines(self.state, "test-strategy"))
+        environment, architecture = (str(self.repo / knowledge.HOME / name) for name in (self.E, self.A))
+        self.assertIn("keeps these up to date (create them if missing): " + environment + ", " + architecture + ".", lines)
+        for heading in ("'## Harnesses and suites'", "'## ID convention'", "'## Real-boundary checks'"):
+            self.assertIn(heading, lines)
+        self.assertIn("the one command that lists the IDs already taken", lines)
+
+
+class SectionsTests(HomeFixture):
+    """The named sections of the three living files, and the stages that keep those files up to date (batch 1012 task A2)."""
+
+    def test_the_three_files_have_their_sections_as_constants_in_the_order_a_reader_meets_them(self) -> None:
+        self.assertEqual(knowledge.SECTIONS, {
+            "spec.md": ("Requirements", "Non-functional requirements", "Retired"),
+            "environment.md": ("Targets and runtimes", "Commands", "Skills", "Harnesses and suites", "ID convention",
+                               "Access and accounts", "Platform facts"),
+            "architecture.md": ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Real-boundary checks",
+                                "Decisions", "Superseded"),
         })
         self.assertIn("SECTIONS", knowledge.__all__)
 
@@ -629,6 +691,9 @@ class SectionsTests(HomeFixture):
         self.assertIn("ShipLoop refuses release-plan if any of these is missing or empty: " + environment + ".", lines)
 
     DUTY_FILES = ("spec", "environment", "architecture", "test-strategy")
+    # Until the inner-loop session rewords the duties and the renderer swap replaces _CONSULT (consumer contract X6), they
+    # still name test-strategy.md headings; 4b moved that content, so each must be a section of the file it moved to.
+    MOVED = {"test-strategy.md": ("environment.md", "architecture.md")}
 
     @classmethod
     def named_in_the_scripts(cls) -> dict:
@@ -670,17 +735,17 @@ class SectionsTests(HomeFixture):
             with self.subTest(file=name):
                 self.assertTrue(items, "no heading found for " + name + ": the scan no longer reads the duties")
                 for item in sorted(items):
-                    self.assertTrue(any(item.startswith(heading) for heading in knowledge.SECTIONS[name]),
+                    sections = [heading for moved in self.MOVED.get(name, (name,)) for heading in knowledge.SECTIONS[moved]]
+                    self.assertTrue(any(item.startswith(heading) for heading in sections),
                                     repr(item) + " is named for " + name + " but is not in SECTIONS[" + repr(name) + "]")
 
     def test_verify_reads_the_architecture_and_writes_nothing_and_the_planning_entries_are_unchanged(self) -> None:
         self.assertNotIn("verify", knowledge.STAGE_FILES)
         self.assertFalse([row for row in knowledge.stage_lines(self.state, "verify") if "keeps these up to date" in row])
-        self.assertEqual(knowledge.STAGE_FILES["plan"], ("{feature}/plan.md", "README.md", "architecture.md"))
+        self.assertEqual(knowledge.STAGE_FILES["plan"], ("{feature}/plan.md", "architecture.md"))
         self.assertEqual(knowledge.STAGE_FILES["prepare"], ("environment.md",))
         self.assertEqual(knowledge.STAGE_FILES["test-spec"], ("{feature}/test-spec.md",))
-        self.assertEqual(knowledge.CLOSES["prepare"][:5],
-                         ("README.md", "spec.md", "environment.md", "test-strategy.md", "architecture.md"))
+        self.assertEqual(knowledge.CLOSES["prepare"][:3], ("spec.md", "environment.md", "architecture.md"))
 
     def test_a_writer_before_a_close_that_requires_its_file_names_that_close_and_one_after_every_close_names_none(self) -> None:
         # research feeds the prepare close; the inner stages feed the release-plan close (environment.md); architecture.md is
@@ -735,12 +800,13 @@ class SectionNoticeTests(HomeFixture):
     def test_a_file_that_lacks_sections_is_one_line_that_names_them_all_and_the_fix(self) -> None:
         path = self.put("environment.md", "# Environment\n\n## Commands\n\nnpm test\n\n## Platform facts\n\nNode 22.\n")
         self.assertEqual(self.notices(), [
-            "ShipLoop knowledge notice: " + str(path) + " has no 'Targets and runtimes', 'Skills', 'Access and accounts' section "
-            "(this close is accepted); " + self.FIX])
+            "ShipLoop knowledge notice: " + str(path) + " has no 'Targets and runtimes', 'Skills', 'Harnesses and suites', "
+            "'ID convention', 'Access and accounts' section (this close is accepted); " + self.FIX])
         line = self.notices()[0]
         self.assertTrue(line.startswith(knowledge.NOTICE_PREFIX + str(self.repo)), line)  # the absolute file comes first
         self.assertEqual(line.count(knowledge.NOTICE_PREFIX), 1)
-        self.assertEqual(self.said(), [("environment.md", ["Targets and runtimes", "Skills", "Access and accounts"], [])])
+        self.assertEqual(self.said(), [("environment.md", ["Targets and runtimes", "Skills", "Harnesses and suites",
+                                                           "ID convention", "Access and accounts"], [])])
 
     def test_one_section_lacking_is_still_one_line_and_every_heading_is_quoted_as_the_table_has_it(self) -> None:
         path = self.put("environment.md", self.full("environment.md").replace("## Commands\n\nSome text.\n\n", ""))
@@ -788,8 +854,8 @@ class SectionNoticeTests(HomeFixture):
         self.put_full_home()
         self.assertEqual(self.notices(), [])
         self.put("spec.md", self.full("spec.md").replace("## Retired\n\nSome text.\n", ""))
-        self.put("test-strategy.md", self.full("test-strategy.md").replace("## Commands\n\nSome text.\n\n", "## Commands\n\n"))
-        self.assertEqual(self.said(), [("spec.md", ["Retired"], []), ("test-strategy.md", [], ["Commands"])])
+        self.put("environment.md", self.full("environment.md").replace("## Commands\n\nSome text.\n\n", "## Commands\n\n"))
+        self.assertEqual(self.said(), [("spec.md", ["Retired"], []), ("environment.md", [], ["Commands"])])
 
     def test_a_heading_matches_in_any_case_at_levels_one_to_four_with_words_after_it(self) -> None:
         for title in ("commands", "COMMANDS", "Commands (working)", "Commands: how to run it", "Commands ##", "Commands\t"):
@@ -809,7 +875,7 @@ class SectionNoticeTests(HomeFixture):
     def test_starts_with_is_a_plain_prefix_so_a_longer_word_still_counts(self) -> None:
         # The rule is "the text starts with the heading", case-insensitive: a plural and a longer word both count.  A prefix can
         # hide a missing section (Structured data for Structure); it cannot raise a notice for a section that is there.
-        self.put("test-strategy.md", self.full("test-strategy.md").replace("## ID convention", "## ID conventions"))
+        self.put("environment.md", self.full("environment.md").replace("## ID convention", "## ID conventions"))
         self.assertEqual(self.notices(), [])
         self.put("architecture.md", self.full("architecture.md").replace("## Structure", "## Structured data"))
         self.assertEqual(self.notices(), [])
@@ -954,10 +1020,13 @@ class SectionNoticeTests(HomeFixture):
         self.assertEqual(self.said(), expected)
         self.assertEqual([read_notice(line)[0] for line in self.notices()],
                          [str(self.repo / self.HOME / name) for name in knowledge.SECTIONS])
-        # the headings of one file do not satisfy another: "Commands" is in two files, and each is read for itself
-        self.put("test-strategy.md", self.full("environment.md"))
-        strategy = [row for row in self.said() if row[0] == "test-strategy.md"]
-        self.assertEqual(strategy, [("test-strategy.md", ["Harnesses and suites", "ID convention", "Real-boundary checks"], [])])
+        # the headings of one file do not satisfy another: each file is read for itself
+        self.put("architecture.md", self.full("environment.md"))
+        found = [row for row in self.said() if row[0] == "architecture.md"]
+        self.assertEqual(found, [("architecture.md", list(knowledge.SECTIONS["architecture.md"]), [])])
+        # an old repository's test-strategy.md is no living file: it gets no line, whatever it lacks
+        self.put("test-strategy.md", "# test strategy\n\nProse.\n")
+        self.assertNotIn("test-strategy.md", [row[0] for row in self.said()])
 
     def test_the_path_is_the_same_token_in_every_variant_of_the_line(self) -> None:
         """A reader or the harness that takes the token after the prefix as the file gets the path, not 'path:'."""
@@ -985,10 +1054,10 @@ class SectionNoticeTests(HomeFixture):
         (line,) = self.notices()
         self.assertEqual(self.said(), [("architecture.md", ["Structure"], [])])
         self.assertTrue(line.endswith(" architecture.md holds " + knowledge.ARCHITECTURE_HOLDS + "."), line)
-        for name in ("spec.md", "environment.md", "test-strategy.md"):
+        for name in ("spec.md", "environment.md"):
             self.put(name, "# " + name + "\n\nProse.\n")
         block = self.notices()
-        self.assertEqual(len(block), 4)
+        self.assertEqual(len(block), 3)
         self.assertEqual("\n".join(block).count(knowledge.ARCHITECTURE_HOLDS), 1)
         for other in block:
             if "/architecture.md " not in other:
@@ -997,7 +1066,7 @@ class SectionNoticeTests(HomeFixture):
         # a complete architecture file adds neither the line nor the wording
         self.put("architecture.md", self.full("architecture.md"))
         self.assertNotIn(knowledge.ARCHITECTURE_HOLDS, "\n".join(self.notices()))
-        self.assertEqual(len(self.notices()), 3)
+        self.assertEqual(len(self.notices()), 2)
 
     def test_the_documented_commands_count_files_and_headings_in_an_events_log_and_a_single_close(self) -> None:
         """The commands the reference gives: lines are counted by occurrence (a host logs a call's stdout as one event line)."""
@@ -1008,9 +1077,8 @@ class SectionNoticeTests(HomeFixture):
                  .replace("## Commands\n\nSome text.\n", "## Commands\n\n"))
         self.put("architecture.md", self.full("architecture.md"))
         self.put("spec.md", self.full("spec.md"))
-        self.put("test-strategy.md", self.full("test-strategy.md"))
-        test_spec = self.notices("test-spec")
-        self.assertEqual(len(prepare), 4)
+        test_spec = self.notices("release-plan")
+        self.assertEqual(len(prepare), 3)
         self.assertEqual(len(test_spec), 1)
 
         def event(output: str) -> str:  # the shape a host logs a call's stdout in: one JSON line, newlines escaped
@@ -1027,9 +1095,9 @@ class SectionNoticeTests(HomeFixture):
             self.assertEqual(done.returncode, 0, done.stderr)
             return done.stdout.strip()
 
-        self.assertEqual(run(COUNT_FILES), "5")  # files that had something to report: 4 at the first close, 1 at the second
+        self.assertEqual(run(COUNT_FILES), "4")  # files that had something to report: 3 at the first close, 1 at the second
         self.assertEqual(run(COUNT_HEADINGS), str(sum(len(h) for h in knowledge.SECTIONS.values()) + 2))
-        self.assertEqual(run(COUNT_PER_EVENT).splitlines(), ["1: 4", "3: 1"])  # one count per event line that has a notice
+        self.assertEqual(run(COUNT_PER_EVENT).splitlines(), ["1: 3", "3: 1"])  # one count per event line that has a notice
         self.assertEqual(run("grep -c 'ShipLoop knowledge notice: ' events.jsonl"), "2")  # grep -c counts event lines: wrong here
         self.assertEqual(run("sed -n 3p events.jsonl | grep -o 'ShipLoop knowledge notice: [^;]*' | grep -o \"'[^']*'\" | wc -l"), "2")
         # the sibling lines of a knowledge commit do not match the prefix
@@ -1110,7 +1178,8 @@ class SectionNoticeCloseTests(HomeFixture):
         """
         self.write_bare_home()
         total = len(knowledge.SECTIONS)
-        for rows, expected in ((["test-spec", "validate-existing"], total), (["step-plan", "prepare"], total),
+        for rows, expected in ((["release-plan", "release-check"], total), (["step-plan", "prepare"], total),
+                               (["test-spec", "validate-existing"], 0),   # test-spec is no close since consumer contract 4b
                                (["prepare", "step-plan"], total), (["release-verify"], total),
                                (["validate-existing", "implement"], 0), (["implement", "test"], 0), (["handoff"], 0)):
             with self.subTest(rows=rows):
@@ -1122,7 +1191,7 @@ class SectionNoticeCloseTests(HomeFixture):
 
     def test_a_row_that_did_not_finish_is_no_accepted_close(self) -> None:
         self.write_bare_home()
-        after = dict(self.state, history=[{"stage": "test-spec", "outcome": "done"}, {"stage": "prepare", "outcome": "blocked"}])
+        after = dict(self.state, history=[{"stage": "release-plan", "outcome": "done"}, {"stage": "prepare", "outcome": "blocked"}])
         out = io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
             navigator._knowledge_close({"history": []}, after, Path("/ws/run"))
@@ -1165,12 +1234,11 @@ class GroundingTests(HomeFixture):
         feature = knowledge.feature_dir(self.state)
         return {"living spec": self.repo / "docs/shiploop/spec.md", "feature spec": self.repo / feature / "spec.md",
                 "environment": self.repo / "docs/shiploop/environment.md",
-                "architecture": self.repo / "docs/shiploop/architecture.md",
-                "test strategy": self.repo / "docs/shiploop/test-strategy.md"}
+                "architecture": self.repo / "docs/shiploop/architecture.md"}
 
     def test_the_labels_their_order_and_the_absolute_paths_in_the_execution_checkout(self) -> None:
         expected = self.write_all()
-        self.assertEqual(knowledge.GROUNDING_LABELS, ("living spec", "feature spec", "environment", "architecture", "test strategy"))
+        self.assertEqual(knowledge.GROUNDING_LABELS, ("living spec", "feature spec", "environment", "architecture"))
         found = knowledge.grounding(self.state)
         self.assertEqual([label for label, _ in found], list(knowledge.GROUNDING_LABELS))
         self.assertEqual(dict(found), expected)
@@ -1181,8 +1249,7 @@ class GroundingTests(HomeFixture):
     def test_a_missing_empty_or_blank_file_is_absent_and_the_rest_keep_their_order(self) -> None:
         expected = self.write_all()
         expected["environment"].unlink()
-        expected["feature spec"].write_text("")
-        expected["test strategy"].write_text(" \n\t\n")
+        expected["feature spec"].write_text(" \n\t\n")
         self.assertEqual([label for label, _ in knowledge.grounding(self.state)], ["living spec", "architecture"])
         expected["architecture"].unlink()
         self.assertEqual(knowledge.grounding(self.state), [("living spec", expected["living spec"])])

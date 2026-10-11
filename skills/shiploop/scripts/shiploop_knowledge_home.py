@@ -46,47 +46,55 @@ KNOWLEDGE = (HOME, INDEX)
 # change of stack).  ARCHITECTURE_HOLDS is the one wording of what it holds; the missing-file refusal prints it.
 ARCHITECTURE = "architecture.md"
 ARCHITECTURE_HOLDS = ("the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), "
-                      "conventions, interfaces and boundaries, and a '## Decisions' section of stable IDs AD-<n> (choice, "
-                      "why, alternatives, status) with a '## Superseded' section for decisions that no longer hold")
+                      "conventions, interfaces and boundaries, the real-boundary checks a local test cannot prove (each "
+                      "with its owner), and a '## Decisions' section of stable IDs AD-<n> (choice, why, alternatives, "
+                      "status) with a '## Superseded' section for decisions that no longer hold")
 # ShipLoop's list of the feature folders, written from the tree inside a knowledge commit that is already happening.  It is no
 # close file and no stage writes it (``feature_list``).
 FEATURE_LIST = HOME + "/features/README.md"
 
-LIVING = ("README.md", "spec.md", "environment.md", "test-strategy.md", ARCHITECTURE)
-# The named sections of the four living files that hold the product's facts, as the headings a packet quotes and the section
-# notice (``section_notices``) looks for.  A heading is the text after the ``#`` marks; a spec's acceptance criteria stay inside
-# each requirement, with no heading of their own.  ARCHITECTURE_HOLDS above says what the architecture file holds in prose; a
-# test pins that every heading it names is here, and another that every heading a packet duty or loop text names for one of
-# these files is here too.  ``Skills`` is the repository's local skill directory: step-plan's per-step skills and
-# carry-forward's skill decision read it.
+# The living files (consumer contract 2.1): the product's contract, where and how it runs and is tested, and how it is built.
+# test-strategy.md's content lives in environment.md (harnesses and suites, the ID convention) and architecture.md (the
+# real-boundary checks); README.md was an index nothing read.  An old repository's copies are left in place, unnamed.
+LIVING = ("spec.md", "environment.md", ARCHITECTURE)
+# The named sections of the living files, as the headings the section notice (``section_notices``) looks for: a counted nudge,
+# never a refusal, and no quote depends on one (packets quote whole files, ``READS``).  A heading is the text after the ``#``
+# marks; a spec's acceptance criteria stay inside each requirement, with no heading of their own.  ARCHITECTURE_HOLDS above
+# says what the architecture file holds in prose; a test pins that every heading it names is here.  ``Skills`` is the
+# repository's local skill directory; ``Harnesses and suites`` holds each suite with its files and command, and the system-test
+# catalog; ``ID convention`` holds the ID scheme and the one command that lists the IDs already taken (the test code is the one
+# home of the IDs themselves).  There is no release section: release-plan keeps the standing procedure in environment.md under
+# the run's own heading (X11).
 SECTIONS: Dict[str, Tuple[str, ...]] = {
     "spec.md": ("Requirements", "Non-functional requirements", "Retired"),
-    "environment.md": ("Targets and runtimes", "Commands", "Skills", "Access and accounts", "Platform facts"),
-    ARCHITECTURE: ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Decisions", "Superseded"),
-    "test-strategy.md": ("Harnesses and suites", "Commands", "ID convention", "Real-boundary checks"),
+    "environment.md": ("Targets and runtimes", "Commands", "Skills", "Harnesses and suites", "ID convention",
+                       "Access and accounts", "Platform facts"),
+    ARCHITECTURE: ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Real-boundary checks", "Decisions",
+                   "Superseded"),
 }
-# The close that commits, and the files it requires (``{feature}`` is this run's feature directory).
+# The close that commits, and the files it requires (``{feature}`` is this run's feature directory).  test-spec is no close:
+# its cases are in state (``test_cases``); its knowledge commit still happens when it changed the home.
 CLOSES: Dict[str, Tuple[str, ...]] = {
-    "prepare": ("README.md", "spec.md", "environment.md", "test-strategy.md", ARCHITECTURE,
-                "{feature}/spec.md", "{feature}/plan.md"),
-    "test-spec": ("{feature}/plan.md", "{feature}/test-spec.md"),
+    "prepare": ("spec.md", "environment.md", ARCHITECTURE, "{feature}/spec.md", "{feature}/plan.md"),
     "release-plan": ("{feature}/system-tests.md", "{feature}/release-plan.md", "environment.md"),
     # Before the workspace return: a commit at handoff would miss the return and stale its receipt.
-    "release-verify": ("{feature}/outcome.md", "environment.md", "README.md"),
+    "release-verify": ("{feature}/outcome.md", "environment.md"),
 }
 # What each stage writes or updates.  A close's other required files (above) were written by earlier stages
 # (``required_earlier``); its packet lists them apart, with the refusal they carry.
 # A stage that finds a command, a platform fact or a decision keeps the file it belongs in: research, step-plan,
-# validate-existing, implement and test find commands and facts (environment.md); step-plan and implement may add a
-# decision (an AD-<n> for a deviation); carry-forward records the run's decisions and what they superseded.  verify reads the
-# architecture and writes nothing, so it has no entry.  A key that is no stage of the graph is a stale entry: a test pins every key to ``stage_spec.STAGES``.
+# validate-existing, implement and test find commands and facts (environment.md); test-strategy records the harnesses, suites,
+# ID convention (environment.md) and real-boundary checks (architecture.md); step-plan and implement may add a decision (an
+# AD-<n> for a deviation); carry-forward records the run's decisions and what they superseded; system-test-author keeps the
+# system-test catalog and release-plan the standing release procedure in environment.md, which release-check corrects when the
+# rollback differs (D2).  verify reads the architecture and writes nothing, so it has no entry.  A key that is no stage of the
+# graph is a stale entry: a test pins every key to ``stage_spec.STAGES``.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
-    "intake": ("README.md",),
     "discovery": ("environment.md",),
     "research": ("environment.md",),
     "spec": ("spec.md", "{feature}/spec.md"),
-    "test-strategy": ("test-strategy.md",),
-    "plan": ("{feature}/plan.md", "README.md", ARCHITECTURE),
+    "test-strategy": ("environment.md", ARCHITECTURE),
+    "plan": ("{feature}/plan.md", ARCHITECTURE),
     "prepare": ("environment.md",),
     "step-plan": ("{feature}/plan.md", ARCHITECTURE, "environment.md"),
     "test-spec": ("{feature}/test-spec.md",),
@@ -94,11 +102,11 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "implement": ("environment.md", ARCHITECTURE),
     "test": ("environment.md",),
     "carry-forward": (ARCHITECTURE, "environment.md"),
-    "system-test-author": ("{feature}/system-tests.md",),
+    "system-test-author": ("{feature}/system-tests.md", "environment.md"),
     "release-plan": ("{feature}/release-plan.md", "environment.md"),
-    "release-verify": ("{feature}/outcome.md", "environment.md", "README.md"),
+    "release-check": ("environment.md",),
+    "release-verify": ("{feature}/outcome.md", "environment.md"),
 }
-
 
 # What each stage's packet quotes from the living files (consumer contract 0A, owner decision D1, 2026-10-11): whole files,
 # never a section, because heading matching missed most real homes and the files are small.  Every stage has a row; an empty
@@ -236,7 +244,7 @@ def _filled(path: Path) -> bool:
 # What an inner stage reads before it decides, in this order: the contract, then what this run changes of it, then where
 # and how it runs, how it is built, how it is tested.  The labels are the packet's words for the files.
 _GROUNDING = (("living spec", "spec.md"), ("feature spec", "{feature}/spec.md"), ("environment", "environment.md"),
-              ("architecture", ARCHITECTURE), ("test strategy", "test-strategy.md"))
+              ("architecture", ARCHITECTURE))
 GROUNDING_LABELS = tuple(label for label, _ in _GROUNDING)
 
 
@@ -255,9 +263,9 @@ def grounding(state: Mapping[str, Any]) -> List[Tuple[str, Path]]:
 def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     """Packet lines: where the knowledge home is and what this stage keeps up to date there."""
     repo = Path(str(state["repo"]))
-    lines = ["", "Repository knowledge home (committed, inherited by later runs): " + str(repo / HOME)
-             + "/README.md. Earlier runs' spec, environment and features are there; open a file when this "
-             "stage needs it."]
+    lines = ["", "Repository knowledge home (committed, inherited by later runs): " + str(repo / HOME) + "/: "
+             + ", ".join(str(repo / HOME / name) for name in LIVING) + ". Earlier runs' spec, environment and features "
+             "are there; open a file when this stage needs it."]
     written, earlier = STAGE_FILES.get(stage, ()), required_earlier(stage)
     if written:
         lines.append("This stage keeps these up to date (create them if missing): "
@@ -280,6 +288,12 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
             for entry in commits:
                 lines += ["  | " + line for line in entry.splitlines()] + ["  |"]
         lines += lessons_lines(repo, commits)
+    if stage == "test-strategy":
+        lines.append("Record each harness and suite (its files and its command) under '## Harnesses and suites' and the "
+                     "ID convention (the scheme and the one command that lists the IDs already taken) under "
+                     "'## ID convention' in " + str(repo / HOME / "environment.md") + ", and each real-boundary check a "
+                     "local test cannot prove, with its owner, under '## Real-boundary checks' in "
+                     + str(repo / HOME / ARCHITECTURE) + ".")
     if stage == "release-verify":
         lines.append("outcome.md must have '## Learned', '## Key considerations' and '## Open for the next run' "
                      "sections written in detail: what this run learned, the decisions and risks that matter, and "

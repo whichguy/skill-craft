@@ -1373,6 +1373,10 @@ def _run_rules(core: Any, root: Path, state: Mapping[str, Any], named: str = "")
 PACKET_DIR = "packets"
 # The stages whose packets print the workspace return route (plan-return, review-return, the rollback route).
 RETURN_STAGES = ("release-plan", "release-check", "release", "handoff")
+# The stages whose isolated-run packets print the rollback of the return (consumer contract D2): the standing release
+# procedure lives in environment.md, and the script's rollback lines reach every stage that releases or runs the product.
+# operations is no return stage, so it prints the route and the rollback after its one execution-checkout line.
+ROLLBACK_STAGES = ("release-plan", "release-check", "release", "operations")
 
 
 def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
@@ -1997,10 +2001,10 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     then print what happened, so every line is true when it prints.  The guard, which runs
     after this, is what refuses a handoff whose return is not current.
 
-    A close (prepare, test-spec, release-plan, release-verify) also prints the section notices
+    A close (prepare, release-plan, release-verify) also prints the section notices
     (``knowledge.section_notices``) right after its commit: a count, never a refusal, and none at
     the terminal handoff, which is no close.  A close accepted in this call prints them even when
-    the script records another stage after it (test-spec, then validate-existing).
+    the script records another stage after it.
     """
     rows = after["history"][len(before["history"]):]
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
@@ -2020,8 +2024,8 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     if notice:
         print("ShipLoop knowledge: " + notice)
     # At a close only: one counted line per living file that lacks named sections (never a refusal, never raised).  The close is
-    # the stage among this call's accepted rows that closes, not the last row: test-spec is followed in the same call by the
-    # validate-existing row the script records, and the last row alone would leave that close silent.
+    # the stage among this call's accepted rows that closes, not the last row: a stage the script records after the close in
+    # the same call would otherwise leave that close silent.
     close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])
     for line in knowledge.section_notices(after, close):
         print(line)
@@ -3547,8 +3551,9 @@ def _workspace_return_packet_lines(root: Path, state: Mapping[str, Any]) -> list
 def _return_route_lines(workspace_root: Path, *, rollback: bool) -> list[str]:
     """How this run's return will go, derived from workspace.md (S-5: the script says what a model would guess).
 
-    Release planning and release checking add the rollback, because the plan written there is durable knowledge that
-    later runs inherit.  An unreadable workspace.md is reported as unknown: never guessed, never left out.
+    The release stages and operations (``ROLLBACK_STAGES``) add the rollback: the standing procedure in environment.md is
+    durable knowledge later runs inherit, and the run-specific undo is this script's (consumer contract D2).  An unreadable
+    workspace.md is reported as unknown: never guessed, never left out.
     """
     try:
         import shiploop_workspace as workspace
@@ -3875,6 +3880,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         lines.append("Execution checkout: " + state["repo"]
                      + " (isolated worktree; all product work happens here; a working directory, never a --result "
                      "value). The original branch is returned only at release or handoff.")
+        if stage in ROLLBACK_STAGES:
+            lines.extend(_return_route_lines(root.parent, rollback=True))
     elif state["execution_mode"] == "navigator-worktree":
         workspace_root = root.parent
         lines.extend([
@@ -3892,7 +3899,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
                         "--workspace-root", str(workspace_root)]),
             "Record each undecided path with " + review_return_command(core, workspace_root) + ". "
             + REVIEW_RETURN_RULE,
-            *_return_route_lines(workspace_root, rollback=stage in ("release-plan", "release-check")),
+            *_return_route_lines(workspace_root, rollback=stage in ROLLBACK_STAGES),
             "Handoff completion requires a current script-verified return receipt. "
             "No automatic push, cleanup, or publication is implied.",
         ])
@@ -4704,7 +4711,7 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
         gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
                      "or a due_stage that is not a later stage")
     if stage in knowledge.CLOSES:
-        # A close that also requires files earlier stages wrote (prepare, test-spec, release-plan) did not write them all.
+        # A close that also requires files earlier stages wrote (prepare, release-plan) did not write them all.
         gates.append("a HOME file this stage's close requires, missing or empty" if knowledge.required_earlier(stage)
                      else "a HOME file this stage must have written, missing or empty")
     return gates

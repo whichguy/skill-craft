@@ -203,7 +203,7 @@ class PacketCompletenessTests(unittest.TestCase):
     def test_release_verify_done_when_names_the_files_and_sections_its_close_requires(self) -> None:
         packet = self.found[("release-verify", "producer")]
         done = packet[packet.index("Done when"):packet.index("Checked by: ")]
-        for word in ("outcome.md", "environment.md", "README.md", "## Learned", "## Key considerations",
+        for word in ("outcome.md", "environment.md", "## Learned", "## Key considerations",   # README.md is retired (4b)
                      "## Open for the next run"):
             self.assertIn(word, done)
 
@@ -466,7 +466,8 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
             block = reference_block(navigator.render(None, run, store.read_record(run / "state.md")))
             row = next(row for row in block if row.startswith("- " + navigator.reference_name(knowledge.ARCHITECTURE) + ":"))
             self.assertTrue(row.endswith("(not written yet: " + navigator.reference_writer(knowledge.ARCHITECTURE) + ")"), row)
-            self.assertEqual(navigator.reference_writer(knowledge.ARCHITECTURE), "plan writes it")
+            # test-strategy is its first writer since consumer contract 4b (its real-boundary checks).
+            self.assertEqual(navigator.reference_writer(knowledge.ARCHITECTURE), "test-strategy writes it")
             self.assertEqual([row for row in block if "not written yet" in row and row.startswith(
                 tuple("- " + name + ":" for name in grounding))], [row])
 
@@ -632,15 +633,21 @@ class ReferencesBlockTests(unittest.TestCase):
             if run != "dry:halted":  # halted at intake: nothing earlier to build on
                 self.assertTrue(cited, run)
 
+    # Until the inner-loop renderer swap replaces _CONSULT with knowledge.READS (consumer contract X6), its test-strategy.md
+    # rows name headings whose content moved in 4b: each must be a section of the file it moved to.
+    MOVED = {"test-strategy.md": ("environment.md", knowledge.ARCHITECTURE)}
+
     def test_an_inner_packet_carries_its_consult_note_and_every_heading_is_a_section(self) -> None:
         for stage, rows in navigator._CONSULT.items():
             self.assertIn(stage, stage_spec.INNER)
             for name, heading in rows:
                 with self.subTest(stage=stage, file=name, heading=heading):
                     written = {file for files in knowledge.STAGE_FILES.values() for file in files}
-                    self.assertTrue(name in knowledge.SECTIONS or name in written, name)
+                    self.assertTrue(name in knowledge.SECTIONS or name in written or name in self.MOVED, name)
                     if heading and name in knowledge.SECTIONS:
                         self.assertIn(heading, knowledge.SECTIONS[name])
+                    if heading and name in self.MOVED:
+                        self.assertTrue(any(heading in knowledge.SECTIONS[moved] for moved in self.MOVED[name]), heading)
         for run, number, packet in self.each():
             stage = packet.split("ShipLoop navigator | ", 1)[1].split(" |", 1)[0]
             block = reference_block(packet)

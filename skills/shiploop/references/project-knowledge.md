@@ -517,16 +517,17 @@ planning, and later runs inherit it.
 
 | Path | Holds |
 | --- | --- |
-| `docs/shiploop/README.md` | The index: what each file answers, the feature list |
 | `docs/shiploop/spec.md` | The living product spec: every accepted requirement with a stable ID (`R-<n>`) and its acceptance criteria inside it, a `Retired` section with reasons. Sections: `## Requirements`, `## Non-functional requirements`, `## Retired` |
-| `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each. Sections: `## Targets and runtimes`, `## Commands`, `## Skills` (the repository's local skill directory), `## Access and accounts`, `## Platform facts` |
-| `docs/shiploop/test-strategy.md` | Harnesses, suites, the commands that own them, the test-ID convention. Sections: `## Harnesses and suites`, `## Commands`, `## ID convention`, `## Real-boundary checks` |
-| `docs/shiploop/architecture.md` | How the product is built, apart from what it must do: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the decisions as stable IDs (`AD-<n>`: choice, why, alternatives, status) with a `Superseded` section. Runtime versions and working commands stay in `environment.md`. It records names and shapes (a credential's alias and mechanism), never secret values or code that assigns them, because the credential screen reads this file too. It links the repository's own architecture or ADR documents instead of copying them. Sections: `## Stack`, `## Structure`, `## Conventions`, `## Interfaces and boundaries`, `## Decisions`, `## Superseded` |
+| `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each; each harness and suite with its files and command, and the system-test catalog; the test-ID scheme and the one command that lists the IDs already taken (the test code is the one home of the IDs); the standing release and rollback procedure, under the heading the run uses. Sections: `## Targets and runtimes`, `## Commands`, `## Skills` (the repository's local skill directory), `## Harnesses and suites`, `## ID convention`, `## Access and accounts`, `## Platform facts` |
+| `docs/shiploop/architecture.md` | How the product is built, apart from what it must do: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the real-boundary checks a local test cannot prove (each with its owner), and the decisions as stable IDs (`AD-<n>`: choice, why, alternatives, status) with a `Superseded` section. Runtime versions and working commands stay in `environment.md`. It records names and shapes (a credential's alias and mechanism), never secret values or code that assigns them, because the credential screen reads this file too. It links the repository's own architecture or ADR documents instead of copying them. Sections: `## Stack`, `## Structure`, `## Conventions`, `## Interfaces and boundaries`, `## Real-boundary checks`, `## Decisions`, `## Superseded` |
 | `docs/shiploop/features/<slug>/` | This run's record: `spec.md` (IDs added, modified, retired; checked against the living spec and removed at handoff when the run's commits reach your branch), `plan.md`, `test-spec.md`, `system-tests.md`, `release-plan.md`, `outcome.md` |
 | `docs/shiploop/features/README.md` | ShipLoop's list of the feature folders and the commands that find a requirement ID in them; written from the tree inside a knowledge commit, never by hand (a hand edit is replaced; a file at that path that is not ShipLoop's is left alone) |
 
-Each packet names the home and the files its stage keeps up to date. At four
-closes (`prepare`, each `test-spec`, `release-plan`, `release-verify`) ShipLoop
+The living files are `spec.md`, `environment.md` and `architecture.md` (consumer
+contract, 2026-10-11): an older home's `README.md` and `test-strategy.md` are left in
+place, and nothing requires, writes or names them; the credential screen still reads
+them. Each packet names the home and the files its stage keeps up to date. At three
+closes (`prepare`, `release-plan`, `release-verify`) ShipLoop
 refuses `done` until that close's files exist, refuses lines that look like
 credentials, refuses a living spec or architecture whose uncommitted version no
 longer mentions an earlier committed requirement (`R-<n>`) or decision (`AD-<n>`)
@@ -546,18 +547,17 @@ protocol to import: discovery re-verifies recorded environment facts cheaply
 instead of rediscovering them, spec starts from the living spec, and release
 planning starts from the recorded commands.
 
-**Named sections.** The four fact files have the sections in their rows above
+**Named sections.** The three living files have the sections in their rows above
 (`knowledge_home.SECTIONS`, the one list; a test pins that every heading a packet duty
 names for these files is in it), and a heading is created when the file lacks it. At
-the same four closes ShipLoop counts the sections a file lacks, as a notice, not a
-refusal: one line per file that exists, has text and has anything to report (four at
+the same three closes ShipLoop counts the sections a file lacks, as a notice, not a
+refusal: one line per file that exists, has text and has anything to report (three at
 most a close), naming every heading the file lacks or leaves empty:
 `ShipLoop knowledge notice: <absolute file> has no '<heading>', '<heading>' section and an empty '<heading>' section (this close is accepted); for each, write its content under a '## <heading>' (add the heading if missing), or write 'none' there if it does not apply.`
 The architecture file's line ends with what that file holds. The close is accepted either
 way (on the saved homes the headings are nearly absent, so a refusal would fire at
 nearly every first close). The lines print on the stdout of the call that accepted the
-close, even when the script records another stage after it (test-spec, then
-validate-existing). A section counts when a markdown heading of one to four `#`, at the
+close, even when the script records another stage after it. A section counts when a markdown heading of one to four `#`, at the
 start of its line and outside a code fence, starts with the name, in any case
 (`## Commands (working)` counts), and a non-blank line follows it before the next
 heading of the same or a higher level; write `none` under a heading when nothing
