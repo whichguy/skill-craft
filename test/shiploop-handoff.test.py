@@ -191,6 +191,8 @@ class EntryTests(RepoCase):
         self.home("architecture.md", "## Decisions\n\n- AD-1: Plain modules.\n\n## Superseded\n\n- AD-2: Classes.\n")
         self.assertEqual(knowledge.entry_text(self.repo, "AD-1"), "- AD-1: Plain modules.")
         self.assertTrue(knowledge.entries(self.repo, "architecture.md")["AD-2"].retired)
+        self.home("architecture.md", "## Decisions\n\n- AD-1: Plain modules.\n\n## Superseded decisions\n\n- AD-2: Classes.\n")
+        self.assertTrue(knowledge.entries(self.repo, "architecture.md")["AD-2"].retired)   # the title starts with it
         self.assertIsNone(knowledge.entry_text(self.repo, "R-1"))      # spec.md absent
         for bad in ("R1", "D-1", "R-1a", " R-1"):
             with self.assertRaises(ValueError):
@@ -529,6 +531,11 @@ class HandoffGateTests(GateCase):
         self.assertIn(str(self.repo / knowledge.HOME / "spec.md"), message.splitlines()[1])
         self.assertEqual(message.splitlines()[-1], "No entry: R-9, AD-2.")
 
+    def test_a_wrong_type_is_a_refusal_with_its_route_not_a_crash(self) -> None:
+        state = item_state(self.repo, "W1", [], "step-plan")
+        message = self.refusal(state, "step-plan", {"outcome": "done", "summary": "s", "follows": "R-1"})
+        self.assertIn("follows", message.splitlines()[0])
+
     def test_test_cases_match_this_items_focused_ids_both_ways_with_real_criteria_and_requirements(self) -> None:
         state = two_items(self.repo)
         done = {"outcome": "done", "summary": "s", "assumptions": []}
@@ -762,10 +769,21 @@ class ConsumesTests(RepoCase):
             self.assertEqual(ids(found), everything, stage)
         self.assertEqual([item.row for item in assumptions.open_items(state) if item.stage == "plan"],
                          unverified.open_assumptions(state))
-        # system-test settles B1 by its done result unless it lists B1 again as open
-        relisted = row("st1", "system-test", None, {"assumptions": [open_row("B1", "release-verify")]})
+        # system-test settles B1 by its done result; a B1 it carries forward is its own open row, listed once
+        relisted = row("st1", "system-test", None, {"assumptions": [open_row("B1", "release-plan")]})
         again = dict(state, history=state["history"] + [relisted[0]], accepted=dict(state["accepted"], st1=relisted[1]))
-        self.assertIn(("test-spec", "W1", "B1"), [(i.stage, i.workitem, i.row["id"]) for i in assumptions.open_items(again)])
+        found = [(i.stage, i.workitem, i.row["id"], i.row["consumer"]) for i in assumptions.open_items(again)]
+        self.assertNotIn(("test-spec", "W1", "B1", "system-test"), found)
+        self.assertEqual([entry for entry in found if entry[2] == "B1"], [("system-test", None, "B1", "release-plan")])
+        settles = row("rp1", "release-plan", None, {"assumptions": []})
+        carried = dict(again, history=again["history"] + [settles[0]], accepted=dict(again["accepted"], rp1=settles[1]))
+        self.assertNotIn("B1", [i.row["id"] for i in assumptions.open_items(carried)])
+        # a consumer result accepted before the row was produced does not settle it
+        early = row("st0", "system-test", None, {"assumptions": []})
+        late = row("ts8", "test-spec", "W2", {"test_cases": [], "assumptions": [open_row("E1", "system-test")]})
+        order = dict(state, history=state["history"] + [early[0], late[0]],
+                     accepted=dict(state["accepted"], st0=early[1], ts8=late[1]))
+        self.assertIn("E1", [i.row["id"] for i in assumptions.open_items(order)])
         settled = row("st1", "system-test", None, {"assumptions": []})
         done = dict(state, history=state["history"] + [settled[0]], accepted=dict(state["accepted"], st1=settled[1]))
         self.assertNotIn(("test-spec", "W1", "B1"), [(i.stage, i.workitem, i.row["id"]) for i in assumptions.open_items(done)])
@@ -775,6 +793,17 @@ class ConsumesTests(RepoCase):
         later = dict(state, history=state["history"] + [product[0], accepted[0]],
                      accepted=dict(state["accepted"], ts9=product[1], pa1=accepted[1]))
         self.assertNotIn("D1", [i.row["id"] for i in assumptions.open_items(later)])
+
+    def test_not_covered_comes_only_from_implement_steps_after_the_items_latest_step_plan(self) -> None:
+        rows = [row("sp1", "step-plan", "W1", {"follows": [], "criteria": [{"id": "C1", "text": "one"}],
+                                               "test_commands": [{"command": "t", "suite": "focused", "ids": ["TC-1"]}]}),
+                row("im1", "implement", "W1", {"not_covered": [{"behaviour": "old", "reason": "before the replan"}]}),
+                row("sp2", "step-plan", "W1", {"follows": [], "criteria": [{"id": "C1", "text": "one"}],
+                                               "test_commands": [{"command": "t", "suite": "focused", "ids": ["TC-1"]}]}),
+                row("im2", "implement", "W1", {"not_covered": []})]
+        state = item_state(self.repo, "W1", rows, "test")
+        found = self.source(navigator.handoff_sources(self.root, state, "test"), "not_covered")
+        self.assertEqual([(entry.action, entry.value) for entry in found], [("im2", [])])
 
     def test_the_spec_diff_source_is_the_uncut_diff_since_the_run_baseline(self) -> None:
         state = self.fixture("document")
@@ -788,6 +817,11 @@ class ConsumesTests(RepoCase):
     def test_an_unknown_stage_raises(self) -> None:
         with self.assertRaises(ValueError):
             navigator.handoff_sources(self.root, self.state, "select-work")
+
+    def test_the_lessons_commit_lists_later_stages_open_items_but_not_the_plans(self) -> None:
+        state = self.fixture("release-verify")
+        self.assertEqual([(item.stage, item.row["id"]) for item in navigator._lessons_open_items(state)],
+                         [("test-spec", "B1"), ("test-spec", "C1"), ("test-spec", "C2")])
 
 
 # ------------------------------------------------------------------------------- the real CLI: refusal exits (routes)
