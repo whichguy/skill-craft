@@ -1,8 +1,6 @@
 # The architecture file in the knowledge home: journal (2026-10-10, batch 1012 task A)
 
-> **HOLD: do not release `shiploop` until the packet owner's plan and step-plan duty sentence (L2 below) has landed.** Landing on
-> `main` is not a release. The pending note `changes/shiploop/architecture-file.md` opens with the same line; delete it there when the
-> sentence has landed. The guard is prose only (decided in the batch brief): `scripts/release.py` consumes the note on any run.
+> **Release prerequisite satisfied:** commit `8932b849926e349078a1b58438ac18dca2bd22ea` added the L2 architecture duty for both plan and step-plan in `shiploop_navigator._knowledge_lines`, used by the packet renderer. The stale HOLD line has therefore been removed from the pending note. The original hold and offline findings below are retained as historical evidence; clearing it does not establish live-model behavior or timing.
 > **Fix round (2026-10-10, review of `1aa4f14c`):** the series changed after two independent reviews; see "Fix round" below. Findings
 > and their dispositions are in `docs/experiments/architecture-file-20261010/review-findings.json`.
 
@@ -13,9 +11,9 @@ owner (the session on branch `exp/four-part-packet-631117`) and was not edited; 
 owner". The design and its two audits are kept whole in
 `docs/experiments/commit-spec-design-20261010/architecture-design-and-audits.json`; where `task-a.md` overrode them, the table below says so.
 
-## Do not release until the packet owner's sentence has landed
+## Original release prerequisite (satisfied by 8932b849)
 
-This series lands on the batch branch and then on `main`. **Landing is not a release. Do not release `shiploop` until the plan and
+The original condition for this series was: **Landing is not a release. Do not release `shiploop` until the plan and
 step-plan duty sentence (L2 below) has landed.** Without it, the plan packet only lists `architecture.md` among the files it keeps up to
 date, the model is never told what it holds or to number decisions `AD-<n>`, and `prepare` refuses runs whose plan wrote nothing for it
 (or writes a stub). The release also needs the E2E round the release preflight demands (`AGENTS.md`); this task ran no live round, only the
