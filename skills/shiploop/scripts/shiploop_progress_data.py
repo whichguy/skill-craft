@@ -750,13 +750,9 @@ def build_snapshot(root: Path) -> dict[str, Any]:
     doc_identity: list[dict[str, str]] = []
 
     repo = Path(os.path.abspath(os.fspath(state["repo"])))
-    feature = knowledge_home.feature_dir(state)
+    # The living spec; the run's other records are result fields (consumer contract 6.2), shown by the report.
     fixed_docs = (
-        ("living-spec", "Living specification", "docs/shiploop/spec.md"),
-        ("feature-spec", "Feature specification draft", f"{feature}/spec.md"),
-        ("feature-plan", "Feature plan draft", f"{feature}/plan.md"),
-        ("feature-test-spec", "Feature test specification draft", f"{feature}/test-spec.md"),
-        ("test-strategy", "Test strategy", "docs/shiploop/test-strategy.md"),
+        ("living-spec", "Living specification", knowledge_home.HOME + "/spec.md"),
     )
     candidates: list[tuple[str, str, Path, str, Mapping[str, Any] | None,
                            Mapping[str, Any] | None, str | None]] = []
@@ -824,18 +820,6 @@ def build_snapshot(root: Path) -> dict[str, Any]:
         if len(docs) >= _MAX_DOCUMENTS:
             warnings.append("Additional document candidates were omitted at the 12-document bound.")
             break
-        if (doc_id == "feature-spec" and (stage == "handoff" or state["status"] == "done")
-                and not (base / relative).exists() and (retired := knowledge_home.retired_by(base, feature))):
-            # ShipLoop checked this spec's requirement IDs against the living spec and removed it at the handoff: not a missing
-            # document.  Git is asked only here: the script retires at the terminal close, and the observer builds a
-            # snapshot every two seconds.
-            path = base / relative
-            docs.append({"id": doc_id, "title": "Feature specification (retired)", "path": str(path), "uri": _uri(path),
-                         "content": "", "summary": f"Retired at handoff by commit {retired}: its requirement IDs were "
-                                                   "checked against docs/shiploop/spec.md.",
-                         "sha256": None, "observed_at": observed_at, "status": "retired"})
-            doc_identity.append({"id": doc_id, "path": str(path), "status": "retired", "error": None})
-            continue
         document, identity = _read_document(base=base, relative=relative, doc_id=doc_id, title=title,
                                             observed_at=observed_at, warnings=warnings, mtimes=mtimes,
                                             expected_record=expected, public_record=public_record,

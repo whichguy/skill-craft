@@ -68,8 +68,6 @@ STEP_PLAN = {"paths": ["built.txt"], "steps": [{"id": "S1", "task": "Create buil
                                {"command": "true", "suite": "check"}],
              "expectations": [{"id": "E1", "state": "absent", "statement": "built.txt does not exist yet.",
                                "steps": ["S1"], "paths": ["built.txt"], "check": "test ! -e built.txt"}]}
-# The test spec's cases: one '### <ID>' per focused ID, as test-spec's gate requires.
-TEST_SPEC = "# Test spec\n\n### TC-1\n\nbuilt.txt exists after the change.\n"
 SKILL_NONE = {"decision": "none", "reason": "Synthetic fixture: no procedure repeated."}
 # The consumer contract's hand-off fields (2026-10-11): TC-1's case (its requirement R-1 has an entry in the living spec
 # the fixture writes, LIVING_SPEC), the open-item lists, and release-verify's lessons.
@@ -215,9 +213,6 @@ class RealCliCase(unittest.TestCase):
                            "--improve-skill", str(CARD), *(f"--{k}={v}" for k, v in init.items()))
         self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
         state = store.read_record(run / "state.md")
-        spec = repo / knowledge.feature_dir(state) / "test-spec.md"
-        spec.parent.mkdir(parents=True, exist_ok=True)
-        spec.write_text(TEST_SPEC, encoding="utf-8")
         if stage == "intake":
             return run, started.stdout
         while nav.current_stage(state) != stage:
@@ -459,7 +454,7 @@ class RefusalRouteTests(RealCliCase):
             self.accepted(command)
             self.assertEqual(self.recorded(run, action)["unverified"], [UNVERIFIED_ENTRY])
         with self.subTest("the docs/shiploop files a close requires"):
-            run, head = self.new_run("test-spec")
+            run, head = self.new_run("prepare")   # test-spec is no close since consumer contract 4b
             command, path, action = printed_callback(head)
             write_block(path, self.fill_done(head))
             reply = self.refused(command, run)
@@ -520,8 +515,9 @@ class RefusalRouteTests(RealCliCase):
 
     def test_release_verify_names_its_knowledge_files_before_the_refusal_and_the_named_files_are_accepted(self) -> None:
         # release-verify runs the consumer checks and closes the knowledge home.  Its Checked-by line named only the
-        # run, so outcome.md was met first as a refusal in 4 runs, and its sections as a second one (packet review
-        # 2026-10-10, P-rv-1).  The packet now says it first; writing what it says is accepted in one go.
+        # run, so its files were met first as a refusal in 4 runs (packet review 2026-10-10, P-rv-1).  The packet now says
+        # it first; writing what it says is accepted in one go.  Since consumer contract 4c the close needs environment.md
+        # alone: the lessons are a result field.
         run, head = self.new_run("release-verify")
         command, path, action = printed_callback(head)
         full = full_packet_text(head)
@@ -529,18 +525,17 @@ class RefusalRouteTests(RealCliCase):
         self.assertIn("a HOME file this stage must have written, missing or empty", checked)
         self.assertIn("reruns every recorded test command", checked)  # the run the line used to name alone
         done = full[full.index("Done when"):full.index("Checked by: ")]
-        for word in ("outcome.md", "environment.md", "README.md"):
+        for word in ("environment.md", "lessons"):
             self.assertIn(word, done)
+        self.assertNotIn("outcome.md", full)
         write_block(path, self.fill_done(head))
         reply = self.refused(command, run)
         named = re.findall(r"^- (/\S+)$", reply, re.M)
-        self.assertEqual(sorted(Path(file).name for file in named), ["README.md", "environment.md", "outcome.md"])
+        self.assertEqual(sorted(Path(file).name for file in named), ["environment.md"])
         for file in named:
             self.assertIn(Path(file).name, done)  # every file the refusal names was named before it
             Path(file).parent.mkdir(parents=True, exist_ok=True)
-            Path(file).write_text("".join(f"## {section}\n\nDetail of what this run found.\n\n"
-                                          for section in ("Learned", "Key considerations", "Open for the next run"))
-                                  if Path(file).name == "outcome.md" else "What this file records.\n", encoding="utf-8")
+            Path(file).write_text("What this file records.\n", encoding="utf-8")
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
 
@@ -572,10 +567,9 @@ class RefusalRouteTests(RealCliCase):
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
         self.assertTrue(self.git(repo, "log", "-1", "--format=%s").strip().endswith("knowledge at prepare"))
-        # The file the refusal named, plus the list of feature folders ShipLoop writes inside any knowledge commit once a feature
-        # folder exists (docs/shiploop/features/README.md): nothing else rides in the commit.
+        # The file the refusal named: nothing else rides in the commit (no feature list since consumer contract 4c).
         self.assertEqual(sorted(self.git(repo, "show", "--name-only", "--format=", "HEAD").split()),
-                         ["docs/shiploop/architecture.md", "docs/shiploop/features/README.md"])
+                         ["docs/shiploop/architecture.md"])
 
     def accept_a_prepare_with_files(self, sectioned: bool) -> tuple:
         """A run at prepare whose refusal's files are written (with every named section, or as prose), then accepted.
@@ -640,15 +634,14 @@ class RefusalRouteTests(RealCliCase):
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
         self.assertNotIn(knowledge.NOTICE_PREFIX, result.stdout + result.stderr)
 
-    def test_the_test_spec_close_prints_its_notice_although_the_script_records_validate_existing_after_it(self) -> None:
+    def test_test_spec_with_validate_existing_recorded_after_it_is_no_close_and_prints_no_notice(self) -> None:
         # The common route: test-spec is accepted and, in the same call, the script records validate-existing (every
-        # expectation matches), so the new history rows end with a stage that is no close.  The count must still be there.
+        # expectation matches).  test-spec is no close since consumer contract 4b (its cases are in state): it requires no
+        # feature file, and a home of prose files prints no section notice.
         run, head = self.new_run("test-spec", **{"planning-review": "none"})
         command, path, action = printed_callback(head)
         repo, state = self.repo_of(run), self.state(run)
         home = repo / knowledge.HOME
-        (repo / knowledge.feature_dir(state)).mkdir(parents=True, exist_ok=True)
-        (repo / knowledge.feature_dir(state) / "plan.md").write_text("The plan.\n", encoding="utf-8")
         for name in knowledge.SECTIONS:
             (home / name).parent.mkdir(parents=True, exist_ok=True)
             (home / name).write_text("What this file records.\n", encoding="utf-8")
@@ -658,9 +651,7 @@ class RefusalRouteTests(RealCliCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         rows = [(row["stage"], row["outcome"]) for row in self.state(run)["history"][before:]]
         self.assertEqual(rows, [("test-spec", "done"), ("validate-existing", "done")], "the route under test")
-        found = [row for row in result.stdout.splitlines() if row.startswith(knowledge.NOTICE_PREFIX)]
-        self.assertEqual(len(found), len(knowledge.SECTIONS))
-        self.assertEqual(found, knowledge.section_notices(self.state(run), "test-spec"))
+        self.assertNotIn(knowledge.NOTICE_PREFIX, result.stdout + result.stderr)
 
     def test_a_stage_that_is_no_close_prints_no_notice_although_a_file_lacks_its_sections(self) -> None:
         run, head = self.new_run("intake")
@@ -948,8 +939,6 @@ class RefusalRouteTests(RealCliCase):
         spec_head = self.accepted(command)
         # test-spec is issued for every item now; a documentation-only item's spec lists no cases.
         self.assertIn("| test-spec |", spec_head.splitlines()[0])
-        spec = self.repo_of(run) / knowledge.feature_dir(self.state(run)) / "test-spec.md"
-        spec.write_text("# Test spec\n\nNo cases: the item changes documentation only.\n", encoding="utf-8")
         spec_command, spec_path, _ = printed_callback(spec_head)
         write_block(spec_path, self.fill_done(spec_head))
         refused = self.run_printed(spec_command)
@@ -1632,9 +1621,9 @@ SCRIPT_RECORDED = ("validate-existing", "document")
 # The stages whose minimal done result is refused for work the model has not done yet, and the exits the
 # refusals name: the knowledge files the run keeps in the repository, and the loop that was never started.
 EXPECTED_ROUTES = {
-    # test-spec's knowledge file is its test-spec.md, which every run here writes with its cases (the ID gate needs it).
+    # Only prepare asks for files: since consumer contract 4c the later closes need environment.md alone, which the walk's
+    # earlier stages already wrote (no feature file, no outcome sections).
     "prepare": ["knowledge files"],
-    "release-plan": ["knowledge files"], "release-verify": ["knowledge files", "outcome sections"],
 }
 
 

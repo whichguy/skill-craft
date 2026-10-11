@@ -241,7 +241,8 @@ source state the previous receipt recorded, not from the preparation baseline:
   the follow-up is an ordinary first return.
 - ShipLoop makes one follow-up itself: when its own knowledge commit (for
   example at release-verify) lands after a verified return and everything
-  changed since that return is `docs/shiploop/` or `SHIPLOOP.md`, it returns that
+  changed since that return is `docs/shiploop/` (or nothing: the release-verify
+  lessons commit is empty when the home did not change), it returns that
   commit by the same route, keeping the earlier reviewed dispositions. Anything
   else changed, or a moved source, leaves the follow-up to you: handoff asks for
   it with the commands.
@@ -256,16 +257,11 @@ retry is a note on stderr: the check that follows refuses a return that is not c
 and prints the commands. In-place runs use the same pending
 handoff recovery for the commit, without a workspace return.
 
-In that order, between the knowledge commit and the follow-up return, ShipLoop also
-retires the run's feature spec when the run's commits reach your branch: an in-place
-run, or a worktree run whose recorded return is a fast-forward. The removal is a
-commit of its own and travels with the follow-up return. After a working-tree or
-no-change return, or before any return, the file is kept (before any return nothing
-is said; the retry after the return decides). The decision reads the route before the
-follow-up, which works a no-change return out again and may then return the file with
-the knowledge commits, so the notice speaks of the earlier return, not of the branch.
-If that follow-up return fails after the retire commit alone, the handoff guard still
-refuses a stale return and prints the commands; a retry makes no second retire commit.
+A working-tree return applies files, not commits, so the release-verify lessons
+commit never reaches your branch by that route. The completion report then prints
+the commit's exact message (subject and body) and asks you to commit the returned
+files with it, or to make an empty commit with it when there are none, so the next
+run's intake quotes the lessons.
 
 The new receipt keeps the previous one as `previous_receipt`. If the source
 already holds exactly the result the follow-up would produce (the fix was copied

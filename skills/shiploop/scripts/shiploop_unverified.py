@@ -126,7 +126,7 @@ def html_section(state: Mapping[str, Any]) -> list[str]:
                 "same as none.</p>")
     elif not entries:
         note = ("<p>none listed: product-acceptance recorded no request outcome as unverified. Open items "
-                "another stage recorded are in that stage's own result.</p>")
+                "another stage recorded are listed under Open items.</p>")
     else:
         heads = ("Outcome", "Reason", "Check", "Owner", "Due stage")
         rows = ["<tr>" + "".join("<td>" + html.escape(str(row.get(name, ""))) + "</td>" for name in FIELDS) + "</tr>"

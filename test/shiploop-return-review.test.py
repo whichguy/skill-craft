@@ -528,7 +528,7 @@ class ReturnRouteTests(ReturnReviewCase):
         self.assertEqual(self.do_return(root).stdout.splitlines()[0], "Verified workspace return: working-tree-return.")
         # A follow-up whose only new path is decided by a rule leaves nothing undecided already at plan-return: it
         # says the route then too, without a review-return call.
-        self.write(worktree, "SHIPLOOP.md", "index\n")
+        self.write(worktree, "docs/shiploop/environment.md", "index\n")   # the home: kept by rule (SHIPLOOP.md is no longer)
         self.commit(worktree, "knowledge after the return")
         replanned = self.plan_return(root).stdout
         self.assertIn("0 undecided", replanned)
@@ -681,16 +681,29 @@ class ReturnRouteTests(ReturnReviewCase):
             self.assertEqual(check.count(part), 1, part)
         self.assertNotIn("write the rollback for the source return the packet states", check)
 
-    def test_worktree_packets_state_the_run_route_from_workspace_md_and_only_release_plan_and_check_carry_the_rollback(self) -> None:
+    def test_worktree_packets_state_the_run_route_from_workspace_md_and_the_release_stages_and_operations_carry_the_rollback(self) -> None:
+        """Consumer contract D2: the standing release procedure lives in environment.md, and in an isolated run the script's
+        rollback lines reach every stage that releases or runs the product: release-plan, release-check, release and
+        operations (the handoff prints the route only)."""
         clean_root, _ = self.start("packet clean")
         (self.repo / "existing.txt").write_text("edited by the user\n", encoding="utf-8")
         dirty_root, _ = self.start("packet dirty")
         self.git("checkout", "-q", "--", "existing.txt")
         manifest = store.read_record(clean_root / "workspace.md")
-        for stage in ("intake", "implement", "release-plan", "release-check", "release", "handoff"):
+        rollback_stages = ("release-plan", "release-check", "release", "operations")
+        for stage in ("intake", "implement", "release-plan", "release-check", "release", "operations", "handoff"):
             with self.subTest(stage=stage, start="clean"):
                 packet = self.render(clean_root, stage)
                 self.assertNotIn("A dirty-source working-tree return is not a Git merge or commit", packet)
+                self.assertEqual("Rollback of the return" in packet, stage in rollback_stages)
+                if stage == "operations":
+                    # No return block: one "Execution checkout" line, then the route and its rollback.
+                    self.assertEqual(sum(line.startswith("Execution checkout: ") for line in packet.splitlines()), 1)
+                    self.assertEqual(packet.count("Return route (from workspace.md)"), 1)
+                    self.assertIn("reset --keep " + manifest["source_head"], packet)
+                    for absent in ("Return plan:", "Workspace authority"):
+                        self.assertNotIn(absent, packet)
+                    continue
                 if stage not in navigator.RETURN_STAGES:
                     # Only release-plan, release-check, release and handoff print the return block (2026-10-11
                     # dedupe); every other worktree packet prints one "Execution checkout" line and no route.
@@ -700,8 +713,7 @@ class ReturnRouteTests(ReturnReviewCase):
                         self.assertNotIn(absent, packet)
                     continue
                 self.assertEqual(packet.count("Return route (from workspace.md): this run started from a clean main"), 1)
-                self.assertEqual("Rollback of the return" in packet, stage in ("release-plan", "release-check"))
-                if stage in ("release-plan", "release-check"):
+                if stage in rollback_stages:
                     self.assertEqual(packet.count("Return route (from workspace.md)"), 1)  # not repeated in the rollback
                     self.assertIn("reset --keep " + manifest["source_head"], packet)
                     self.assertIn("apply -R", packet)

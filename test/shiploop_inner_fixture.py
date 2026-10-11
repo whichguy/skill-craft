@@ -2,7 +2,7 @@
 
 The quality, lint and test-loop suites walk a run through ``complete`` with synthetic results.  Since 2026-10-10 every
 inner stage's ``complete`` checks the stage's Until Loop receipt and the stage's own gates (step-plan expectations and
-step skills, test-spec ids, carry-forward's skill decision).  ``fill`` adds the fields a correct model would write and
+step skills, test-spec cases, carry-forward's skill decision).  ``fill`` adds the fields a correct model would write and
 leaves every field the caller set alone; ``loop`` runs the stage's loop through the real runtime
 (``shiploop_loop_support.finish_loop``), so no receipt is ever written by hand.
 """
@@ -78,23 +78,6 @@ def expectations_for(repo: Path, steps: list[Mapping[str, Any]], run_dir: Option
     return rows
 
 
-def _focused_ids(result: Mapping[str, Any]) -> list[str]:
-    return [ident for row in result.get("test_commands") or () if isinstance(row, Mapping)
-            and row.get("suite") == "focused" for ident in row.get("ids") or ()]
-
-
-def write_test_spec(state: Mapping[str, Any], ids: list[str]) -> Path:
-    """The run's test spec with one ``### <ID>`` case per focused id (appended when the file exists)."""
-    path = Path(str(state["repo"])) / knowledge.feature_dir(state) / "test-spec.md"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    text = path.read_text(encoding="utf-8") if path.is_file() else "# Test spec\n\n"
-    for ident in ids:
-        if "### " + ident + "\n" not in text:
-            text += "### " + ident + "\n\nSynthetic case.\n\n"
-    path.write_text(text, encoding="utf-8")
-    return path
-
-
 def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
          run_dir: Optional[Path] = None) -> dict[str, Any]:
     """``result`` with the fields a done result at ``stage`` needs; the caller's own fields win."""
@@ -123,8 +106,8 @@ def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
         if "expectations" not in result:
             result["expectations"] = expectations_for(repo, result["steps"], run_dir, _current_item(state))
     elif stage == "test-spec":
+        # The cases live in the result (consumer contract 3.3); no gate reads a test-spec file.
         _action, plan = test_loop._step_plan(state, _current_item(state))
-        write_test_spec(state, _focused_ids(plan))
         result.setdefault("test_cases", test_cases_for(plan))
     elif stage == "carry-forward":
         result.setdefault("skill", dict(SKILL_NONE))
@@ -259,4 +242,4 @@ class RunDriver(unittest.TestCase):
 
 
 __all__ = ("CORE", "DONE", "IMPROVE_CARD", "LESSONS", "test_cases_for", "RunDriver", "SKILL_NONE", "expectations_for", "fill", "git", "loop",
-           "prepare", "write_test_spec")
+           "prepare")

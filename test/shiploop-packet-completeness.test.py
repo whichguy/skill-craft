@@ -200,12 +200,14 @@ class PacketCompletenessTests(unittest.TestCase):
                 self.assertEqual("HOME" in lines[0], stage in closes)
                 self.assertIn("when you report done, ShipLoop", lines[0])
 
-    def test_release_verify_done_when_names_the_files_and_sections_its_close_requires(self) -> None:
+    def test_release_verify_done_when_names_its_close_file_and_the_lessons_field(self) -> None:
         packet = self.found[("release-verify", "producer")]
         done = packet[packet.index("Done when"):packet.index("Checked by: ")]
-        for word in ("outcome.md", "environment.md", "README.md", "## Learned", "## Key considerations",
-                     "## Open for the next run"):
+        for word in ("environment.md", "the result's lessons", "what this run learned", "the key considerations",
+                     "what a later run should pick up"):
             self.assertIn(word, done)
+        for removed in ("outcome.md", "README.md"):
+            self.assertNotIn(removed, done)
 
 
 def flat(text: str) -> str:
@@ -469,7 +471,8 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
             block = reference_block(navigator.render(None, run, store.read_record(run / "state.md")))
             row = next(row for row in block if row.startswith("- " + navigator.reference_name(knowledge.ARCHITECTURE) + ":"))
             self.assertTrue(row.endswith("(not written yet: " + navigator.reference_writer(knowledge.ARCHITECTURE) + ")"), row)
-            self.assertEqual(navigator.reference_writer(knowledge.ARCHITECTURE), "plan writes it")
+            # test-strategy is its first writer since consumer contract 4b (its real-boundary checks).
+            self.assertEqual(navigator.reference_writer(knowledge.ARCHITECTURE), "test-strategy writes it")
             self.assertEqual([row for row in block if "not written yet" in row and row.startswith(
                 tuple("- " + name + ":" for name in grounding))], [row])
 

@@ -1373,6 +1373,10 @@ def _run_rules(core: Any, root: Path, state: Mapping[str, Any], named: str = "")
 PACKET_DIR = "packets"
 # The stages whose packets print the workspace return route (plan-return, review-return, the rollback route).
 RETURN_STAGES = ("release-plan", "release-check", "release", "handoff")
+# The stages whose isolated-run packets print the rollback of the return (consumer contract D2): the standing release
+# procedure lives in environment.md, and the script's rollback lines reach every stage that releases or runs the product.
+# operations is no return stage, so it prints the route and the rollback after its one execution-checkout line.
+ROLLBACK_STAGES = ("release-plan", "release-check", "release", "operations")
 
 
 def packet_path(root: Path, state: Mapping[str, Any]) -> Path:
@@ -2003,15 +2007,14 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     a note on stderr and the handoff guard that runs next refuses a return that is not
     current and prints its commands (a raise would replace them with a dead end).
 
-    The terminal close runs in this order: commit the pending knowledge, retire the run's
-    feature spec (``knowledge.retire``: owner decision D3), return what those commits added,
-    then print what happened, so every line is true when it prints.  The guard, which runs
+    The terminal close commits the pending knowledge, then returns what that commit added,
+    then prints what happened, so every line is true when it prints.  The guard, which runs
     after this, is what refuses a handoff whose return is not current.
 
-    A close (prepare, test-spec, release-plan, release-verify) also prints the section notices
+    A close (prepare, release-plan, release-verify) also prints the section notices
     (``knowledge.section_notices``) right after its commit: a count, never a refusal, and none at
     the terminal handoff, which is no close.  A close accepted in this call prints them even when
-    the script records another stage after it (test-spec, then validate-existing).
+    the script records another stage after it.
     """
     rows = after["history"][len(before["history"]):]
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
@@ -2030,32 +2033,20 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     if notice:
         print("ShipLoop knowledge: " + notice)
     # At a close only: one counted line per living file that lacks named sections (never a refusal, never raised).  The close is
-    # the stage among this call's accepted rows that closes, not the last row: test-spec is followed in the same call by the
-    # validate-existing row the script records, and the last row alone would leave that close silent.
+    # the stage among this call's accepted rows that closes, not the last row: a stage the script records after the close in
+    # the same call would otherwise leave that close silent.
     close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])
     for line in knowledge.section_notices(after, close):
         print(line)
-    if terminal:
-        # Once per run, at its last close: the file is left alone however many knowledge commits came before it.
-        listing = knowledge.feature_list_notice(Path(str(after["repo"])))
-        if listing:
-            print("ShipLoop knowledge: " + listing)
-    retired = knowledge.Retired("", "")
-    if terminal:
-        try:
-            retired = knowledge.retire(after, _run_commits_reach_branch(after, root))
-        except RuntimeError as exc:
-            raise NavigatorError("ShipLoop knowledge: " + str(exc) + _PENDING) from exc
-    returned = False
     if (root is not None and after.get("execution_mode") == "navigator-worktree"
-            and (committed.commit or retired.commit or terminal)):
+            and (committed.commit or terminal)):
         import shiploop_workspace as workspace
         try:
             receipt = workspace.follow_up_knowledge_return(Path(root).parent)
         except workspace.WorkspaceError as exc:
-            # A knowledge commit made at this handoff keeps today's fail-closed behaviour.  A retire commit alone (made
-            # now or by an earlier attempt) does not: the guard below refuses a handoff whose return is stale and prints
-            # the commands, which this error would replace with a dead end.
+            # A knowledge commit made at this handoff keeps today's fail-closed behaviour.  Otherwise the guard below
+            # refuses a handoff whose return is stale and prints the commands, which this error would replace with a
+            # dead end.
             if terminal and committed.commit:
                 raise NavigatorError("ShipLoop knowledge: the follow-up return was not made (" + str(exc)
                                      + ")" + _PENDING) from exc
@@ -2063,34 +2054,8 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
                   "handoff will ask for it.", file=sys.stderr)
         else:
             if receipt is not None:
-                returned = True
                 print("ShipLoop knowledge: returned the knowledge commit with the earlier work ("
                       + str(receipt.get("kind")) + ").")
-    path = str(Path(str(after["repo"])) / knowledge.feature_dir(after) / "spec.md")
-    if retired.commit:
-        where = ""
-        if after.get("execution_mode") == "navigator-worktree":
-            where = " and returned it" if returned else " on the run branch, not yet on your branch"
-        print("ShipLoop knowledge: committed the removal of the feature spec " + path + " in " + retired.commit[:12]
-              + where + "; its last version is in that commit's parent.")
-    elif retired.kept:
-        print("ShipLoop knowledge: kept the feature spec " + path + ": " + retired.kept + ".")
-
-
-def _run_commits_reach_branch(after: Mapping[str, Any], root: Path | None) -> bool | None:
-    """Whether this run's commits reach the user's branch: True in the user's own checkout and after a fast-forward return,
-    False after a working-tree or no-change return, None while an isolated run has not returned (the route is unknown).
-
-    The route is the newest recorded return's kind, read from the receipt even while the receipt is stale.  It is read before
-    the follow-up return, so a no-change return still answers False although the follow-up then returns the knowledge commits.
-    """
-    if after.get("execution_mode") != "navigator-worktree":
-        return True
-    if root is None:
-        return None
-    import shiploop_workspace as workspace
-    kind = workspace.return_kind(Path(root).parent)
-    return None if kind is None else kind == "fast-forward-merge"
 
 
 def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
@@ -2106,8 +2071,7 @@ def _is_new_terminal_handoff(before: Mapping[str, Any], after: Mapping[str, Any]
 _EVIDENCE_SUFFIX = re.compile(r"(#.*|::.*|:\d+(?::\d+)?)$")
 
 
-def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, repo: str | Path | None = None,
-                              *, check_only: bool = False) -> None:
+def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, *, check_only: bool = False) -> None:
     """Refuse a submitted result that cites a local file that does not exist.
 
     Runs at the CLI gates only (history is revalidated on every load, and a
@@ -2120,9 +2084,6 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, repo
     keep it before the loop wrote it (the loop checks accept blocked without a terminal packet), and so may a
     ``--check-only`` run made from inside the still-running loop; done still needs it, through the loop's own terminal
     check.  The live hello run on 13d278dd (2026-10-11) was told "Write the file" for it, an invitation to forge it.
-
-    ``repo`` is the execution checkout: a feature spec that ShipLoop's own retire removed from it still counts as present,
-    because a retried handoff cites the file the first attempt cited, and "write the file" would invite re-creating it.
     """
     if not isinstance(result, Mapping):
         return
@@ -2136,7 +2097,7 @@ def _check_submitted_evidence(result: Any, own_receipt: Path | None = None, repo
         if (own_receipt is not None and (result.get("outcome") != "done" or check_only)
                 and str(path) == str(own_receipt)):
             continue
-        if not path.exists() and not (repo is not None and knowledge.is_retired_spec(Path(repo), path)):
+        if not path.exists():
             missing.append(ref)
     _need(not missing, "evidence_refs cite files that do not exist: " + ", ".join(missing[:5])
           + ("" if len(missing) <= 5 else f" (and {len(missing) - 5} more)")
@@ -3566,8 +3527,9 @@ def _workspace_return_packet_lines(root: Path, state: Mapping[str, Any]) -> list
 def _return_route_lines(workspace_root: Path, *, rollback: bool) -> list[str]:
     """How this run's return will go, derived from workspace.md (S-5: the script says what a model would guess).
 
-    Release planning and release checking add the rollback, because the plan written there is durable knowledge that
-    later runs inherit.  An unreadable workspace.md is reported as unknown: never guessed, never left out.
+    The release stages and operations (``ROLLBACK_STAGES``) add the rollback: the standing procedure in environment.md is
+    durable knowledge later runs inherit, and the run-specific undo is this script's (consumer contract D2).  An unreadable
+    workspace.md is reported as unknown: never guessed, never left out.
     """
     try:
         import shiploop_workspace as workspace
@@ -3895,6 +3857,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         lines.append("Execution checkout: " + state["repo"]
                      + " (isolated worktree; all product work happens here; a working directory, never a --result "
                      "value). The original branch is returned only at release or handoff.")
+        if stage in ROLLBACK_STAGES:
+            lines.extend(_return_route_lines(root.parent, rollback=True))
     elif state["execution_mode"] == "navigator-worktree":
         workspace_root = root.parent
         lines.extend([
@@ -3912,7 +3876,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
                         "--workspace-root", str(workspace_root)]),
             "Record each undecided path with " + review_return_command(core, workspace_root) + ". "
             + REVIEW_RETURN_RULE,
-            *_return_route_lines(workspace_root, rollback=stage in ("release-plan", "release-check")),
+            *_return_route_lines(workspace_root, rollback=stage in ROLLBACK_STAGES),
             "Handoff completion requires a current script-verified return receipt. "
             "No automatic push, cleanup, or publication is implied.",
         ])
@@ -4770,7 +4734,7 @@ def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[s
             "by name (alias, mechanism): no secret values and no code that assigns them, because the credential "
             "screen reads this file. "
             + ("Record each structural choice this plan makes (module format, namespace and data map, storage, "
-               "dependencies, seams) as the next unused AD-<n>, and list architecture.md in HOME/README.md."
+               "dependencies, seams) as the next unused AD-<n>."
                if stage == "plan" else
                "If this item makes a structural decision (a new module, dependency, interface, storage or "
                "convention), add it as the next unused AD-<n> and cite the ID in the step plan."))
@@ -4782,18 +4746,6 @@ def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[s
         if pin is not None:
             lines.append("Begin " + folder + "/plan.md with this exact first line, which names the living-spec "
                          "version this plan implements: Spec: " + pin)
-    if stage in [name for name, files in knowledge.STAGE_FILES.items() if "README.md" in files]:
-        lines.append("In HOME/README.md link the feature list, HOME/features/README.md, not a feature's spec.md: "
-                     "ShipLoop removes that file at "
-                     "handoff, so a link to it would dangle. ShipLoop writes that feature list at its next knowledge "
-                     "commit; do not create or edit it.")
-    if stage == "handoff":
-        lines.append("At this handoff ShipLoop checks that every requirement ID in " + folder + "/spec.md is in "
-                     "HOME/spec.md and, when this run's commits reach your branch (an "
-                     "in-place run, or a fast-forward return), removes that feature spec in a commit of its own; it "
-                     "stays after a working-tree return or a return that recorded no change, and the handoff is never "
-                     "refused for the IDs or the route. A removal that cannot be written or committed does leave the "
-                     "handoff pending, with the file's absolute path and the next step in the refusal.")
     # A quoted commit message ("  | ...", the inherited learnings) is the commit's own text: it is not rewritten.  The
     # home's repository-relative name ("docs/shiploop/") is HOME too.
     return [line if line.startswith("  |") else symbolic(line, root, state).replace(knowledge.HOME + "/", "HOME/")
@@ -4825,7 +4777,7 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
         gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
                      "or a due_stage that is not a later stage")
     if stage in knowledge.CLOSES:
-        # A close that also requires files earlier stages wrote (prepare, test-spec, release-plan) did not write them all.
+        # A close that also requires files earlier stages wrote (prepare, release-plan) did not write them all.
         gates.append("a HOME file this stage's close requires, missing or empty" if knowledge.required_earlier(stage)
                      else "a HOME file this stage must have written, missing or empty")
     return gates
@@ -5422,6 +5374,153 @@ def _leftovers_section(found: dict[str, Any] | None) -> list[str]:
     ]
 
 
+# --- the report's hand-off sections (consumer contract 6.1) ------------------------------------------------------------
+
+_NOT_RECORDED = "not recorded"   # the producing stage ran without the field: not the same as none
+
+
+def _e(value: Any) -> str:
+    return html.escape(str(value))
+
+
+def _cells(values: Any) -> str:
+    return "<tr>" + "".join("<td>" + _e(value) + "</td>" for value in values) + "</tr>"
+
+
+def _table(heads: tuple[str, ...], rows: list[str]) -> list[str]:
+    return ["<table><thead><tr>" + "".join("<th>" + _e(head) + "</th>" for head in heads) + "</tr></thead><tbody>",
+            *rows, "</tbody></table>"]
+
+
+def _spec_diff_section(state: Mapping[str, Any], root: Path | None) -> list[str]:
+    if root is None:
+        return []
+    found = knowledge.spec_diff(root, state)
+    try:
+        baseline = (Path(root) / knowledge.RUN_BASELINE).read_text(encoding="utf-8").strip()
+    except OSError:
+        baseline = ""
+    lines = ["<h2>Spec and architecture changes</h2>"]
+    if found is None:
+        lines.append("<p>not computed: " + _e(state["repo"]) + " is not a Git checkout, or the run has no baseline.</p>")
+    elif not found:
+        lines.append("<p>none since the run began (baseline " + _e(baseline[:12]) + ").</p>")
+    else:
+        lines += ["<p>The uncut diff of docs/shiploop/spec.md and architecture.md since the run began (baseline "
+                  + _e(baseline[:12]) + "):</p>", "<pre>" + _e(found) + "</pre>"]
+    return lines
+
+
+def _item_handoff_lines(state: Mapping[str, Any], current: Mapping[Any, str], item: Mapping[str, Any]) -> list[str]:
+    """One work item's hand-offs; [] when its step plan never ran."""
+    ident = str(item.get("id"))
+    plan_action, plan = test_loop._step_plan(state, ident)
+    if not plan_action:
+        return []
+    accepted = state["accepted"]
+    follows = plan.get("follows")
+    lines = ["<h3>" + _e(ident + " " + str(item.get("title") or "")) + "</h3>",
+             "<p>Follows: " + (_NOT_RECORDED if follows is None else _e(", ".join(follows) or "none")) + "</p>"]
+    spec_action = current.get((ident, "test-spec"))
+    if spec_action:
+        cases = accepted[spec_action].get("test_cases")
+        if cases is None:
+            lines.append("<p>Test cases: " + _NOT_RECORDED + "</p>")
+        elif not cases:
+            lines.append("<p>Test cases: none</p>")
+        else:
+            lines += _table(("ID", "Criterion", "Requirement", "Oracle", "Red", "Green"),
+                            [_cells(case.get(key, "") for key in ("id", "criterion", "requirement", "oracle", "red",
+                                                                    "green")) for case in cases])
+    for label, action in _item_actions(state, ident, "implement", current):
+        rows = accepted[action].get("not_covered")
+        if rows is None:
+            text = _NOT_RECORDED
+        elif not rows:
+            text = "none"
+        else:
+            text = "; ".join(str(row.get("behaviour", "")) + " (" + str(row.get("reason", "")) + ")" for row in rows)
+        lines.append("<p>Not covered by a test case (" + _e(label) + "): " + _e(text) + "</p>")
+    return lines
+
+
+def _lessons_message(state: Mapping[str, Any], lessons: Mapping[str, Any]) -> str:
+    """The release-verify lessons commit's exact message: the commit's own when the checkout has it, else rebuilt."""
+    subject = knowledge.knowledge_subject(state, "release-verify")
+    found = knowledge.last_lessons(Path(str(state["repo"])))
+    if found is not None and found.subject == subject:
+        return found.subject + ("\n\n" + found.body if found.body else "")
+    return subject + "\n\n" + knowledge.lessons_body(lessons, _lessons_open_items(state))
+
+
+def _working_tree_branch(state: Mapping[str, Any], root: Path | None) -> str | None:
+    """The source branch when this isolated run's newest return was a working-tree return, else None."""
+    if root is None or state.get("execution_mode") != "navigator-worktree":
+        return None
+    try:
+        import shiploop_workspace as workspace
+    except ImportError:  # pragma: no cover - supports package-style local imports.
+        from . import shiploop_workspace as workspace  # type: ignore
+    if workspace.return_kind(Path(root).parent) != "working-tree-return":
+        return None
+    try:
+        return str(store.read_record(Path(root).parent / "workspace.md").get("source_branch") or "your branch")
+    except (OSError, ValueError):
+        return "your branch"
+
+
+def _handoff_sections(state: Mapping[str, Any], root: Path | None) -> list[str]:
+    """The report's record of what each stage handed to the next (consumer contract 6.1), every value escaped.
+
+    A section whose producing stage never ran is omitted; one whose stage ran without the field says "not recorded",
+    which is not the same as none (the ``unverified.html_section`` convention).
+    """
+    current = planning_revision.current_actions(state)
+    accepted = state["accepted"]
+    lines = _spec_diff_section(state, root)
+    items = [line for item in state.get("work_items") or () for line in _item_handoff_lines(state, current, item)]
+    if items:
+        lines += ["<h2>Work item hand-offs</h2>", *items]
+    if any(stage in assumptions.STAGES for _item, stage in current):
+        still = assumptions.open_items(state)
+        lines.append("<h2>Open items</h2>")
+        if not still:
+            lines.append("<p>None open.</p>")
+        else:
+            lines += _table(("Recorded by", "ID", "Assumption", "Check", "Reason", "Consumer", "Owner"), [
+                _cells((found.stage + (" " + str(found.workitem) if found.workitem else ""),
+                        *(found.row.get(key, "") for key in ("id", "assumption", "check", "reason", "consumer", "owner"))))
+                for found in still])
+    system_action = current.get((None, RECORDED_COMMANDS["system_commands"]))
+    if system_action:
+        rows = accepted[system_action].get("system_commands")
+        lines.append("<h2>System tests</h2>")
+        if rows is None:
+            lines.append("<p>System tests: " + _NOT_RECORDED + "</p>")
+        elif not rows:
+            lines.append("<p>System tests: none</p>")
+        else:
+            lines += _table(("Command", "Suite", "IDs"), [_cells((row.get("command", ""), row.get("suite", ""),
+                                                                   ", ".join(row.get("ids") or ()))) for row in rows])
+    verify_action = current.get((None, "release-verify"))
+    if verify_action:
+        lessons = accepted[verify_action].get("lessons")
+        lines.append("<h2>Lessons</h2>")
+        if lessons is None:
+            lines.append("<p>Lessons: " + _NOT_RECORDED + "</p>")
+        else:
+            message = _lessons_message(state, lessons)
+            branch = _working_tree_branch(state, root)
+            if branch is not None:
+                lines.append("<p>" + _e("This run's commits did not reach " + branch + " (working-tree return). Commit "
+                                        "the returned files, or make an empty commit when there are none, with exactly "
+                                        "this message, so the next run's intake quotes the lessons:") + "</p>")
+            else:
+                lines.append("<p>The release-verify knowledge commit's message, which the next run's intake quotes:</p>")
+            lines.append("<pre>" + _e(message) + "</pre>")
+    return lines
+
+
 def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
     """Derive a small escaped report with a live worktree-return projection."""
     validate(state)
@@ -5498,7 +5597,8 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
         ]
     delivery_section = consumer_delivery.html_section(state)
     leftover_section = _leftovers_section(_leftovers(root, state))
-    report_tail = ["</tbody></table>", *progress_section, *unverified.html_section(state), *workspace_section,
+    report_tail = ["</tbody></table>", *progress_section, *_handoff_sections(state, root), *unverified.html_section(state),
+                   *workspace_section,
                    *leftover_section, delivery_section, "</body></html>"]
     return "\n".join(
         [
@@ -6147,7 +6247,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     receipt = _derived_improve_receipt(child, args)
                     final_result = receipt.get("final_result")
                     if final_result is not None:
-                        _check_submitted_evidence(final_result, None, state["repo"])
+                        _check_submitted_evidence(final_result, None)
                     _check_submitted_assumptions(
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -6236,7 +6336,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
             _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item),
-                                      state["repo"], check_only=check_only)
+                                      check_only=check_only)
             _check_submitted_assumptions(state, current_stage(state), submitted)
             _check_submitted_unverified(current_stage(state), submitted)
             _check_submitted_test_commands(current_stage(state), submitted, root=root, state=state)
