@@ -39,3 +39,5 @@ language and deduplicate").
   - Inline carry-forward carries the one optional Backchain audit line instead of the caller guidance and its
     contract budget.
   - An Improve child's packet prints the locators of the policies its review text names.
+- **Restored after main CI.** Step-plan item 7 again tells the model to reopen the plan's Namespace and data map
+  (with the collision check), and to give a human-facing UI an ambitious, highly interactive design by default.
