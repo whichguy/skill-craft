@@ -66,5 +66,18 @@ Build `1ac83089`: A2 (section constants, one-line-per-file counted notice), the 
 3. **First live citation.** In the hello run an Improve commit (`9dfc6cc`) carries `Learned-from: fb1d3f5113a7... first fixed the ID rule in plan.md only.`, a full id that git resolves, crediting the step-plan commit that first fixed the rule and drawing the lesson "when a rule is corrected mid-run, grep every knowledge-home file for the old wording". The commit contract's citation requirement works end to end; `cited_earlier_run` stays 0 until a second feature runs on an earlier run's repository.
 4. **hello cost is inside the old range but the turns are not.** $2.69 and $3.92 sit inside the 1.27.0 same-build range ($3.06 to $5.35, n=5); the turns (148 and 231) straddle its 126 to 196. Stage turns that grew in the second run: step-plan 19 to 38, carry-forward 6 to 18 (it rewrote `test-strategy.md` and `architecture.md` to fix a rule it had changed). **Two runs of the 8-stage hello cell do not show a change; run three more on this build before any claim**, because hello cost rising is a standing concern.
 
+## hello, same-day spread: released 1.27.0 against the new build (n=5 each)
+
+Question: the owner tracks hello cost, and the first runs of the new build looked heavier than the first (148-turn) one. Method: after the pair, three more hello runs on the new build (`1ac83089`) and three on the released 1.27.0 plugin tree (a worktree at `6f86c8cf`, `--plugin-dir`), all started together on the same machine the same evening; with the fork's two earlier 1.27.0 marketplace rows that is n=5 for each. Evidence: `docs/experiments/live-runs-20261011/hello-spread-1270-vs-8stage.json`.
+
+| | cost (sorted) | median | turns (sorted) | median |
+|---|---|---|---|---|
+| New build, n=5 (`13d278dd` once, `1ac83089` four times) | $2.04, 2.69, 3.64, 3.92, 4.24 | **$3.64** | 121, 148, 190, 215, 231 | **190** |
+| Released 1.27.0, n=5 (3 today + the fork's 2) | $2.01, 3.62, 3.62, 4.54, 6.47 | **$3.62** | 117, 149, 195, 243, 315 | **195** |
+
+**Status: firm for this sample (both builds, 10 runs, all PASS); no change in hello cost or turns is shown, and a rise is not supported.** The medians agree (cost $3.64 against $3.62, turns 190 against 195); the spread inside one build ($2.01 to $6.47, 117 to 315 turns) is larger than any difference between the builds. Minutes are not compared: 6 of 8 recorded rows overlapped another run (the runs were started together). The baseline file lumps the released-tree rows into the `checkout | stage` cell with the new build's rows (`--plugin-dir` implies checkout), so `--baseline-report` shows 8 rows; the split above is by plugin tree.
+
+Two side findings from the released-tree runs: the 1.27.0 commit contract already makes Improve commits cite earlier ones when there are many iterations (one run: 12 Improve commits, 10 with `Learned-from`; another 5 with 2), so citations are not rare once a run has several reviews; `cited_earlier_run` stays 0 everywhere because no run builds on an earlier run's repository.
+
 ## Next
 Checkers (source=checkout) once A2 is on main and the build includes the packet fix for finding 2, then the counters (`metrics.commits`), kept-notices, `ShipLoop knowledge notice:` lines and the hello and Battleship deltas are read for both runs.

@@ -1,0 +1,257 @@
+{
+ "question": "does the 8-stage + commit contract + architecture + retire build cost more than the released 1.27.0 on hello?",
+ "method": "hello, claude-sonnet-5-5, source checkout, planning_review stage; three 1.27.0 runs on the released plugin tree (worktree at 6f86c8cf, --plugin-dir) run concurrently with the same day's runs of the new build; plus the fork's two earlier marketplace 1.27.0 rows (baselines.jsonl: cost 2.013 and 3.6242, turns 117 and 149)",
+ "new_build_rows": [
+  {
+   "run": "hello-8stage-13d278dd",
+   "turns": 148,
+   "cost": 2.693,
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 12,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 12,
+    "start_head": null
+   },
+   "failures": null,
+   "wall": null
+  },
+  {
+   "run": "hello-sections-1ac83089",
+   "turns": 231,
+   "cost": 3.924,
+   "commits": {
+    "improve": {
+     "n": 5,
+     "with_lessons": 5,
+     "cited": 1,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 15,
+    "start_head": null
+   },
+   "failures": null,
+   "wall": null
+  },
+  {
+   "run": "hello-sections-r2-1ac83089",
+   "turns": 215,
+   "cost": 4.241,
+   "commits": {
+    "improve": {
+     "n": 4,
+     "with_lessons": 4,
+     "cited": 2,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 14,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 18,
+    "start_head": null
+   },
+   "failures": null,
+   "wall": null
+  },
+  {
+   "run": "hello-sections-r3-1ac83089",
+   "turns": 190,
+   "cost": 3.64,
+   "commits": {
+    "improve": {
+     "n": 1,
+     "with_lessons": 1,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 13,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 14,
+    "start_head": null
+   },
+   "failures": null,
+   "wall": null
+  },
+  {
+   "run": "hello-sections-r4-1ac83089",
+   "turns": 121,
+   "cost": 2.04,
+   "commits": {
+    "improve": {
+     "n": 0,
+     "with_lessons": 0,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 12,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 12,
+    "start_head": null
+   },
+   "failures": null,
+   "wall": null
+  }
+ ],
+ "released_1270_rows_today": [
+  {
+   "run": "hello-rel1270-ref-r1",
+   "turns": 195,
+   "cost": 3.618,
+   "commits": {
+    "improve": {
+     "n": 2,
+     "with_lessons": 2,
+     "cited": 0,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 9,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 11,
+    "start_head": null
+   },
+   "failures": null,
+   "wall": null
+  },
+  {
+   "run": "hello-rel1270-ref-r2",
+   "turns": 315,
+   "cost": 6.465,
+   "commits": {
+    "improve": {
+     "n": 12,
+     "with_lessons": 12,
+     "cited": 10,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 22,
+    "start_head": null
+   },
+   "failures": null,
+   "wall": null
+  },
+  {
+   "run": "hello-rel1270-ref-r3",
+   "turns": 243,
+   "cost": 4.543,
+   "commits": {
+    "improve": {
+     "n": 5,
+     "with_lessons": 5,
+     "cited": 2,
+     "cited_earlier_run": 0
+    },
+    "script": {
+     "n": 10,
+     "with_lessons": 1
+    },
+    "other": {
+     "n": 0,
+     "with_lessons": 0
+    },
+    "counted": 15,
+    "start_head": null
+   },
+   "failures": null,
+   "wall": null
+  }
+ ],
+ "released_1270_fork_rows": [
+  {
+   "cost": 2.013,
+   "turns": 117
+  },
+  {
+   "cost": 3.6242,
+   "turns": 149
+  }
+ ],
+ "summary": {
+  "new_build_n5": {
+   "cost_sorted": [
+    2.04,
+    2.693,
+    3.64,
+    3.924,
+    4.241
+   ],
+   "cost_median": 3.64,
+   "turns_sorted": [
+    121,
+    148,
+    190,
+    215,
+    231
+   ],
+   "turns_median": 190
+  },
+  "released_1270_n5": {
+   "cost_sorted": [
+    2.013,
+    3.618,
+    3.624,
+    4.543,
+    6.465
+   ],
+   "cost_median": 3.624,
+   "turns_sorted": [
+    117,
+    149,
+    195,
+    243,
+    315
+   ],
+   "turns_median": 195
+  }
+ },
+ "caveat": "6 of 8 recorded rows overlapped another run's span (three runs were started together), so minutes are not comparable; cost and turns are model-driven and are read; every run passed"
+}
