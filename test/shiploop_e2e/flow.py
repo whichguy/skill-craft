@@ -202,8 +202,9 @@ def build(out: Path) -> dict:
     claude = (out / "events.jsonl").is_file() and '"tool_use"' in (out / "events.jsonl").read_text()[:2_000_000]
     try:
         pending = str(navigator.current_action(state)["id"]) if state.get("status") == "active" else None
+        pending_stage = navigator.current_stage(state) if pending else None
     except Exception:  # noqa: BLE001 - a record, never a refusal
-        pending = None
+        pending, pending_stage = None, None
     # Events before the first head belong to the first live action: accepted already, or the one the run is at.
     first_live = next((a for a in order if not seeded(a)), pending)
     if claude:
@@ -222,7 +223,9 @@ def build(out: Path) -> dict:
         stage = h.get("stage")
         if stage is None:
             found = HEAD.search(texts.get(action, "") or texts.get(action + "-improve", ""))
-            stage = found.group("stage") if found else "?"
+            # The ledger's current action has no history row and may have no packet yet: a slice stop that lands between
+            # the host saving the state and its `next` writing the packet.  The ledger still names its stage.
+            stage = found.group("stage") if found else pending_stage if action == pending and pending_stage else "?"
         phases = []
         for key, kind in ((action, "producer"), (action + "-improve", "improve")):
             mine = [i for i in items if i["action"] == action and i["improve"] == (kind == "improve")]

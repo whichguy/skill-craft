@@ -79,7 +79,9 @@ FAKE_HOST = textwrap.dedent('''
                 state = nav.finish_improve(state, outer, {"summary": "Fake review", "lessons": "x"})
             extra_outer -= 1
         nav.save(run_dir, state)
-        time.sleep(0.02)
+        # late-packet: wait past a poll before the next `next` writes the outer stage's packet, so the slice stop lands
+        # between the saved state and its packet (the race a loaded machine hits now and then).
+        time.sleep(2.5 if mode == "late-packet" and nav.current_stage(state) in spec.OUTER else 0.02)
     time.sleep(120)  # a model would go on to the next packet; only the slice stop ends this
 ''')
 
@@ -432,6 +434,17 @@ class FlowTests(SliceCase):
         self.assertTrue(page.startswith("<!doctype html>"))
         self.assertEqual(page.count("</script>"), 2)  # the data block and the viewer's own script, nothing from the data
         self.assertFalse(flow.bundle(self.out / "a.html", [found], standalone=False).read_text().startswith("<!doctype"))
+
+    def test_the_stop_action_is_named_by_the_ledger_when_the_slice_stopped_before_its_packet(self):
+        """A slice stop between the host's save and its next `next` leaves the stop action with no packet; the flow
+        names its stage from the ledger's current action, not '?'."""
+        seeded = self.seed()
+        self.fake(seeded, "late-packet")
+        state = step_slice.read_state(Path(seeded["run_dir"]))
+        stop = step_slice.navigator.current_action(state)["id"]
+        self.assertFalse((Path(seeded["run_dir"]) / "packets" / (stop + ".md")).exists())  # the race this pins
+        found = flow.write(self.out)
+        self.assertEqual((found["actions"][-1]["action"], found["actions"][-1]["stage"]), (stop, "system-test-author"))
 
 
 if __name__ == "__main__":
