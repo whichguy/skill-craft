@@ -280,8 +280,10 @@ expect_fail() {
 # Backchain and Plan Dispatcher are both bundled skills in the one plugin.
 [[ -d "$BASE/skills/backchain" ]] || fail "$BASE/skills/backchain missing"
 [[ -d "$BASE/skills/plan-dispatcher" ]] || fail "$BASE/skills/plan-dispatcher missing"
-[[ "$(ls "$BASE/agents")" == $'backchain.md\nshiploop.md\nskill-interop.md' ]] \
-  || fail "$BASE/agents is not exactly the three carded skills"
+source_agent_cards="$(printf '%s\n' agents/*.md | sed 's|^agents/||' | LC_ALL=C sort)"
+bundle_agent_cards="$(printf '%s\n' "$BASE"/agents/* | sed "s|^$BASE/agents/||" | LC_ALL=C sort)"
+[[ "$bundle_agent_cards" == "$source_agent_cards" ]] \
+  || fail "$BASE/agents does not match source card inventory (source: [$source_agent_cards]; bundle: [$bundle_agent_cards])"
 
 mkdir -p "$BASE/skills/stale-skill"
 printf 'stale\n' > "$BASE/skills/stale-skill/SKILL.md"

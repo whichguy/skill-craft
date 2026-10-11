@@ -93,8 +93,8 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 82)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 42)
-        self.assertEqual(len(suite_catalog.SUITES), 126)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 50)
+        self.assertEqual(len(suite_catalog.SUITES), 134)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -131,6 +131,15 @@ class TestGroupTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             suite_catalog.select(("experiments",))
 
+    def test_in_parallel_group_and_historical_alias_select_the_same_suites(self) -> None:
+        selected = suite_catalog.select(("in-parallel",))
+        self.assertEqual({suite.id for suite in selected}, {
+            "agent-harness", "agent-harness-delivery", "agent-harness-boundaries",
+            "agent-harness-audit", "plan-dispatcher-harness", "in-parallel-composition", "in-parallel-queue", "in-parallel-queue-audit",
+        })
+        self.assertEqual(suite_catalog.select(("agent-harness",)), selected)
+        self.assertEqual(suite_catalog.select(("in-parallel", "agent-harness")), selected)
+
     def test_quick_is_a_light_baseline_plus_the_suites_matching_changed_files(self) -> None:
         baseline = {suite.id for suite in suite_catalog.quick()}
         self.assertEqual(baseline, {suite.id for suite in suite_catalog.select(("quick",))})
@@ -144,6 +153,16 @@ class TestGroupTests(unittest.TestCase):
             "install.sh": {"install-targets", "install-arbitrary-skill", "install-status-uninstall"},
             "test/shiploop-lint.test.py": {"shiploop-lint"},
             "docs/notes.md": set(),
+            "skills/in-parallel/scripts/harness.py": {
+                "agent-harness", "agent-harness-delivery", "agent-harness-boundaries",
+                "agent-harness-audit", "plan-dispatcher-harness", "in-parallel-composition", "in-parallel-queue", "in-parallel-queue-audit",
+                "marketplace-package",
+            },
+            "agents/in-parallel.md": {
+                "agent-harness", "agent-harness-delivery", "agent-harness-boundaries",
+                "agent-harness-audit", "plan-dispatcher-harness", "in-parallel-composition", "in-parallel-queue", "in-parallel-queue-audit",
+                "marketplace-package",
+            },
             "skills/shiploop/SKILL.md": {"shiploop-guidance", "shiploop-reference-routing",
                                          "shiploop-delegation", "shiploop-package-integrity",
                                          "shiploop-packet-completeness", "shiploop-step-packets",

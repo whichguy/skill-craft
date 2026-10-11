@@ -15,6 +15,8 @@ import tempfile
 import unittest
 from typing import Any
 
+from git_fixture import isolate_git_environment
+
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "test/experiments/ask_agent_managed_workspaces/managed_workspaces.py"
@@ -39,6 +41,7 @@ class ManagedWorkspaceEvidenceV2Tests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory(prefix="ask-agent-managed-harness-")
         self.root = Path(self.tmp.name)
+        isolate_git_environment(self, self.root / "test-home")
         self.operator = self.root / "operator"
         self.caller = self.root / "caller"
         self.store = self.root / "workspace-store"

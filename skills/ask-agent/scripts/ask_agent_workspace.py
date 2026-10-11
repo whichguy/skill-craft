@@ -50,6 +50,7 @@ MANAGED_WORKTREE_CAPABILITIES = (
 )
 VERSION = 1
 ROOT_CONTROL_FILES = frozenset({".gitignore", ".claspignore"})
+GIT_PATH_SEPARATOR = "/"
 # Derived evidence (contribution patch, inspection and delivery records) is
 # stored per fingerprint and reused.  It lives one level below the stable
 # `inspections/` and `delivery-evidence/` roots, in a directory named for the
@@ -292,10 +293,17 @@ def _safe_rel(value: str, *, label: str) -> str:
         _fail(f"{label} must be a nonempty relative path")
     if "\\" in value or "\r" in value or "\n" in value:
         _fail(f"unsafe {label}: {value!r}")
-    path = PurePosixPath(value)
-    if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+    # Keep one trailing slash as a directory marker, then check raw segments
+    # before PurePosixPath folds ./ or repeated /.
+    # A colon is legal in a POSIX Git filename (for example, C:notes).
+    raw_path = value.removesuffix(GIT_PATH_SEPARATOR)
+    raw_parts = raw_path.split(GIT_PATH_SEPARATOR)
+    if any(part in {"", ".", ".."} for part in raw_parts):
         _fail(f"unsafe {label}: {value!r}")
-    if any(part in PROTECTED_PARTS for part in path.parts):
+    path = PurePosixPath(raw_path)
+    if path.is_absolute():
+        _fail(f"unsafe {label}: {value!r}")
+    if any(part in PROTECTED_PARTS for part in raw_parts):
         _fail(f"unsafe {label}: protected Git/runtime path")
     return path.as_posix()
 
@@ -2848,8 +2856,9 @@ def _dirty_entries(repo: Path) -> list[dict[str, Any]]:
 
 def _in_write_set(path: str, write_set: Sequence[str]) -> bool:
     for pattern in write_set:
-        prefix = pattern.rstrip("/")
-        if path == prefix or path.startswith(prefix + "/") or fnmatch.fnmatchcase(path, pattern):
+        prefix = pattern.rstrip(GIT_PATH_SEPARATOR)
+        if (path == prefix or path.startswith(prefix + GIT_PATH_SEPARATOR)
+                or fnmatch.fnmatchcase(path, pattern)):
             return True
     return False
 

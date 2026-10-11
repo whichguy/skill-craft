@@ -376,6 +376,13 @@ _CORE_SUITES = (
     _suite("ask-agent-parallel", "core", "test/ask-agent-parallel.test.py", "python3", "test/ask-agent-parallel.test.py", groups=("ask-agent",)),
     _suite("ask-agent-current-workspace", "core", "test/ask-agent-current-workspace.test.py", "python3", "test/ask-agent-current-workspace.test.py", groups=("ask-agent",)),
     _suite("ask-agent-task", "core", "test/ask-agent-task.test.py", "python3", "test/ask-agent-task.test.py", groups=("ask-agent",)),
+    _suite("in-parallel-queue-audit", "core", "test/experiments/in_parallel_queue/test_experiment.py", "python3", "-B", "test/experiments/in_parallel_queue/test_experiment.py", groups=("agent-harness", "in-parallel")),
+    _suite("in-parallel-queue", "core", "test/in-parallel-queue.test.py", "python3", "-B", "test/in-parallel-queue.test.py", groups=("agent-harness", "in-parallel")),
+    _suite("in-parallel-composition", "core", "test/in-parallel-composition.test.py", "python3", "-B", "test/in-parallel-composition.test.py", groups=("agent-harness", "in-parallel")),
+    _suite("agent-harness", "core", "test/agent-harness.test.py", "python3", "-B", "test/agent-harness.test.py", groups=("agent-harness", "in-parallel")),
+    _suite("agent-harness-delivery", "core", "test/agent-harness-delivery.test.py", "python3", "-B", "test/agent-harness-delivery.test.py", groups=("agent-harness", "in-parallel")),
+    _suite("agent-harness-boundaries", "core", "test/agent-harness-boundaries.test.py", "python3", "-B", "test/agent-harness-boundaries.test.py", groups=("agent-harness", "in-parallel")),
+    _suite("agent-harness-audit", "core", "test/experiments/agent_harness/test_audit.py", "python3", "-B", "test/experiments/agent_harness/test_audit.py", groups=("agent-harness", "in-parallel")),
     _suite("skill-interop-hygiene", "core", "test/skill-interop-hygiene.test.sh", "bash", "test/skill-interop-hygiene.test.sh"),
     _suite("sync-plugin-views", "core", "test/sync-plugin-views.test.sh", "bash", "test/sync-plugin-views.test.sh"),
     _suite("release-flow", "core", "test/release-flow.test.sh", "bash", "test/release-flow.test.sh"),
@@ -400,6 +407,7 @@ _CORE_SUITES = (
     _suite("rubric-eval", "core", "test/rubric-eval.test.py", "python3", "test/rubric-eval.test.py"),
     _suite("dual-body-guard", "core", "test/dual-body-guard.test.sh", "bash", "test/dual-body-guard.test.sh"),
     _suite("plan-dispatcher-state", "core", "test/plan-dispatcher-state.test.js", "node", "test/plan-dispatcher-state.test.js"),
+    _suite("plan-dispatcher-harness", "core", "test/plan-dispatcher-harness.test.js", "node", "--test", "test/plan-dispatcher-harness.test.js", groups=("agent-harness", "in-parallel")),
     _suite("plan-dispatcher-cli", "core", "test/plan-dispatcher-cli.test.js", "node", "test/plan-dispatcher-cli.test.js"),
     _suite("plan-dispatcher-progress", "core", "test/plan-dispatcher-progress.test.js", "node", "test/plan-dispatcher-progress.test.js"),
     _suite("plan-dispatcher-planning-context", "core", "test/plan-dispatcher-planning-context.test.js", "node", "test/plan-dispatcher-planning-context.test.js"),
@@ -457,6 +465,8 @@ GROUPS = (
     "shiploop-2",
     "shiploop-3",
     "ask-agent",
+    "agent-harness",
+    "in-parallel",
     "shiploop-composition",
     "e2e-apparatus",
 )
@@ -542,12 +552,18 @@ _PATH_SUITE_IDS = {
 _E2E_FAMILY_IDS = tuple(suite.id for suite in SHIPLOOP_SUITES
                         if suite.id == "shiploop-e2e" or suite.id.startswith("shiploop-e2e-"))
 
+# The public skill composes the existing adapter suites without renaming persisted schemas.
+_IN_PARALLEL_IDS = tuple(suite.id for suite in SUITES if "in-parallel" in suite.groups)
+
 # Directories whose files have names too common to select by (run.py, hosts.py), and the leaf whose
 # ShipLoop-family suite its name does not select (the leaf-name rule skips that family).  A new leaf's
 # package build is its release gate, so the Run Review leaf also selects marketplace-package.  Each family
 # suite reads the harness's modules (run.py, metrics.py) itself, so an edit of one runs them all: about 182 s
 # of the quick tier on 2026-10-09 (shiploop-e2e 100, -environment 65, -fidelity 9, -reorientation 7.7, -runrecord 0.2).
 _PREFIX_SUITE_IDS = {
+    "skills/in-parallel/": (*_IN_PARALLEL_IDS, "marketplace-package"),
+    "test/experiments/in_parallel_queue/": ("in-parallel-queue-audit",),
+    "agents/in-parallel.md": (*_IN_PARALLEL_IDS, "marketplace-package"),
     "test/shiploop_e2e/": _E2E_FAMILY_IDS,
     # The committed output of `run.py --baseline-report` and the script that cut its fixtures: the baseline suite pins both.
     "docs/experiments/baseline-spread-20261009/": ("shiploop-e2e-baseline",),

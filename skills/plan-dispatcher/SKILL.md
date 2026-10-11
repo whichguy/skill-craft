@@ -34,7 +34,8 @@ explicitly serial caller may instead execute one task in its current main contex
 through the durable `main-context` identity described below; the caller enforces
 capacity one. If neither path is available, report that boundary; do not
 substitute a model subprocess.
-Every Ask-Agent delegation selects a compatible package before execution. Bind
+Without the exact compact profile marker, every Ask-Agent delegation selects a
+compatible package before execution. Bind
 its selected absolute `SKILL.md` and helper, run `capabilities --skill-card ABS`,
 and accept only its declared `shiploop-chain-ask-agent-managed-worktree/v1`
 schema with the full current capability set: `helper-managed-worktree`,
@@ -49,16 +50,38 @@ managed workspace preparation. The dispatcher is Ask-Agent's parent for Git
 preparation, integration ordering and acceptance; it may delegate integration
 execution.
 
+The exact graph marker `source.agent_harness` equal to
+`{"schema":"agent-harness/v1","ask_agent_interface":"compact"}` selects the
+compact standalone Ask-Agent task interface for this new Dispatcher run. The
+coordinator owns the run from `init`; the plan initiator is not a second owner.
+This profile does not take over ShipLoop callbacks or reuse an existing
+ShipLoop run. For each claim, prepare one compact task packet with the selected
+Ask-Agent task package,
+retain its path and both hashes, and use the emitted prompt and workspace
+unchanged. The worker runs the packet-pinned `worker-start` and `worker-finish`
+commands. After native collection, the coordinator runs the retained
+`verify-return` command, then writes and publishes the Dispatcher report. Do not
+repeat task preparation, run the legacy capability/workspace-helper preparation
+path, or ask the worker to publish the Dispatcher report. Dispatcher actions,
+ownership, verification, settlement, and dependency release remain authoritative.
+Graphs without the exact marker keep the full-capability path described above.
+For read-only assignments, start with `context.read_only: true` and
+`context.write_scope: []`; otherwise omit `read_only` and provide a nonempty
+write scope. Active attempts may share a workspace only when both explicitly
+declare read-only and their canonical workspace paths are identical. Resource
+collisions remain reserved.
+
 Every run-scoped helper response includes an `instruction`. A `next` response's
 `actions` are the graph-navigation authority. For dispatcher-scoped responses,
 the dispatcher executes that prompt and the returned exact `next_argv`; do not
 derive successors, recovery work, or a parallel schedule from the graph or this
-document. The task-facing `report` response instead ends the bounded task phase:
-the task returns it, including its `next_argv`, to the dispatcher, which then
-uses that argv for the next phase. This skill explains the response fields and
-fallbacks, but it is not another scheduler.
+document. In the default profile, the task-facing `report` response ends the
+bounded task phase: the task returns it, including its `next_argv`, to the
+dispatcher. In the exact compact profile, the coordinator publishes the report
+after native collection and follows that response's `next_argv`. This skill
+explains the response fields and fallbacks, but it is not another scheduler.
 
-For a fresh native `launch`, the parent assembles the complete returned worker
+For a fresh native `launch` in the default profile, the parent assembles the complete returned worker
 packet unchanged beside a compact **Current learnings** block with a Markdown
 heading and short labeled bullets from the current conversation. State explicitly
 when no learnings are relevant. Keep essential
@@ -175,7 +198,8 @@ selected package for recovery.
    carries its exact `call`: fill only its placeholders and run it as given
    (protocol "Exact calls"); pass `capacity` at init to have the script cap
    in-flight work.
-3. Prepare a separate workspace per concurrent worker and an immutable readiness
+3. For the exact compact marker, follow the compact task-packet and return flow
+   above. Otherwise, prepare a separate workspace per concurrent worker and an immutable readiness
    artifact describing the facts actually checked. Before allocating the workspace
    or integrating a target, run this dispatcher's `check-context` for the exact
    step or attempt. For every Git task, including an explicitly serial
