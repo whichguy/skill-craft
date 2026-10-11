@@ -243,6 +243,18 @@ living spec lacks an ID it names or names no ID at all, when the file was never
 committed or has changes that are not committed, and when it is a symbolic
 link. `docs/shiploop/features/README.md` lists the feature folders; ShipLoop
 writes it from the tree, only inside a knowledge commit.
+The four fact files have named sections (`knowledge_home.SECTIONS`: spec
+`Requirements`, `Non-functional requirements`, `Retired`; environment `Targets and
+runtimes`, `Commands`, `Access and accounts`, `Platform facts`; architecture
+`Stack`, `Structure`, `Conventions`, `Interfaces and boundaries`, `Decisions`,
+`Superseded`; test strategy `Harnesses and suites`, `Commands`, `ID convention`,
+`Real-boundary checks`). At each knowledge close ShipLoop prints a counted notice,
+one `ShipLoop knowledge notice: ` line per section a file that exists lacks or
+leaves empty, and accepts the close: a count, not a refusal, because the saved homes
+lack nearly every heading and a refusal would fire at nearly every first close.
+Turning the notice into a refusal waits for the first live pair, which measures
+whether packets that quote the headings get them written (the notice lines per
+close, no threshold).
 
 **S-12 One implementation of each mechanism.** A mechanism (committing, loop
 contracts and starts, receipts, identity, privacy screens) has one code path
