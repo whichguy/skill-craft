@@ -547,18 +547,27 @@ instead of rediscovering them, spec starts from the living spec, and release
 planning starts from the recorded commands.
 
 **Named sections.** The four fact files have the sections in their rows above
-(`knowledge_home.SECTIONS`); a packet quotes them, and a heading is created when the
-file lacks it. At the same four closes ShipLoop counts the sections a file lacks, as a
-notice, not a refusal: for each of the four files that exists and has text, one line
-`ShipLoop knowledge notice: <absolute file> has no '<heading>' section; ...` (or
-`'<heading>' is empty`) per heading, and the close is accepted either way (on the saved
-homes the headings are nearly absent, so a refusal would fire at nearly every first
-close). A section counts when a markdown heading of one to four `#` outside a code
-fence starts with the name, in any case (`## Commands (working)` counts), and a
-non-blank line follows it before the next heading of the same or a higher level; write
-`none` under a heading when nothing applies. One grep for `ShipLoop knowledge notice:`
-counts the lines per close. Whether the notice becomes a refusal waits for a live run
-that shows packets which quote the headings get them written.
+(`knowledge_home.SECTIONS`, the one list; a test pins that every heading a packet duty
+names for these files is in it), and a heading is created when the file lacks it. At
+the same four closes ShipLoop counts the sections a file lacks, as a notice, not a
+refusal: for each of the four files that exists and has text, one line
+`ShipLoop knowledge notice: <absolute file> has no '<heading>' section (this close is accepted); ...`
+(or `has an empty '<heading>' section`) per heading, and the close is accepted either
+way (on the saved homes the headings are nearly absent, so a refusal would fire at
+nearly every first close). The lines print on the stdout of the call that accepted the
+close, even when the script records another stage after it (test-spec, then
+validate-existing). A section counts when a markdown heading of one to four `#`, at the
+start of its line and outside a code fence, starts with the name, in any case
+(`## Commands (working)` counts), and a non-blank line follows it before the next
+heading of the same or a higher level; write `none` under a heading when nothing
+applies. Only that form counts: an indented heading, a heading underlined with `---`
+(setext) and any heading after a code fence that is never closed are not read, so a
+file written that way is told to add the section. Count the lines by occurrence, with
+`grep -o 'ShipLoop knowledge notice: ' <events> | wc -l`, and per close by the
+occurrences in each event: a host that logs a call's whole stdout as one event line
+makes `grep -c` count the notices of a close as one. Whether the notice becomes a
+refusal waits for a live run that shows packets which quote the headings get them
+written.
 
 **The feature spec is retired at handoff.** The run's `features/<slug>/spec.md` is its
 historical record once it is committed with the plan. When the final handoff is

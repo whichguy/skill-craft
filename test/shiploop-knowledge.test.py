@@ -571,6 +571,14 @@ class SectionsTests(HomeFixture):
         flat = " ".join(text.split())
         self.assertIn(knowledge.NOTICE_PREFIX.strip(), flat)
         self.assertIn("a notice, not a refusal", flat)
+        # the contract the notice keeps: counted by occurrence (a host logs a call's stdout as one event line), and the limits of
+        # what it reads, so a file written another way knows why it is told to add a section
+        self.assertIn("grep -o 'ShipLoop knowledge notice: '", flat)
+        self.assertIn("`grep -c` count the notices of a close as one", flat)
+        for limit in ("an indented heading", "(setext)", "code fence that is never closed", "even when the script records another stage"):
+            self.assertIn(limit, flat)
+        self.assertNotIn("a packet quotes them", flat)  # the code does not: a packet duty names headings, a test pins them to SECTIONS
+        self.assertNotIn("One grep for", flat)
 
     # The stages that find commands, facts and decisions keep these files up to date (task A2, the 8-stage inner loop).
     WRITERS = {"research": ("environment.md",),
