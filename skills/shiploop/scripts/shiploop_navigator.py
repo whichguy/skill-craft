@@ -1772,9 +1772,13 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     """Commit knowledge after an accepted close, including terminal preflight.
 
     Normally this runs after the state is saved. A new terminal handoff opts into
-    fail-closed handling before its guard and save. In a worktree run whose work
-    was already returned, that commit is returned too (plan P11); terminal retries
-    also run the follow-up return after an empty commit.
+    fail-closed handling before its guard and save: a knowledge commit that cannot be
+    made, or a follow-up return that fails after a commit made at this handoff, raises
+    NavigatorError ("handoff remains pending"). In a worktree run whose work was already
+    returned, that commit is returned too (plan P11); terminal retries also run the
+    follow-up return after an empty commit, and a failure there no longer raises: it is
+    a note on stderr and the handoff guard that runs next refuses a return that is not
+    current and prints its commands (a raise would replace them with a dead end).
 
     The terminal close runs in this order: commit the pending knowledge, retire the run's
     feature spec (``knowledge.retire``: owner decision D3), return what those commits added,

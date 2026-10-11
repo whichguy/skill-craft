@@ -248,9 +248,12 @@ source state the previous receipt recorded, not from the preparation baseline:
 
 Before saving final handoff completion, ShipLoop commits any remaining knowledge
 and retries an applicable knowledge-only follow-up return, then checks the current
-receipt. A failed commit or return leaves handoff pending. Retrying after the
-commit already succeeded still checks the return; it does not repeat product
-execution or create another knowledge commit. In-place runs use the same pending
+receipt. A knowledge commit that cannot be made, or a follow-up return that fails
+after a commit made at this handoff, leaves handoff pending with the reason. Retrying
+after the commit already succeeded still checks the return; it does not repeat product
+execution or create another knowledge commit, and a follow-up return that fails on that
+retry is a note on stderr: the check that follows refuses a return that is not current
+and prints the commands. In-place runs use the same pending
 handoff recovery for the commit, without a workspace return.
 
 In that order, between the knowledge commit and the follow-up return, ShipLoop also
