@@ -117,6 +117,11 @@ In ShipLoop's source (`skills/shiploop/scripts/`), where each change lands, so e
 
 The test strategy no longer has its own file. Every test stage reads it from named sections of `environment.md` and `architecture.md`, and the build phase reads both files. The script quotes the named sections into the packet, so a cleared stage has them without opening a file. Other sections stay available by path through `grounding()`.
 
+Agreed with the packet owner (the inner-loop session, 2026-10-11):
+- **Shape:** `READS` is `{stage: ((file, heading), ...)}`, with headings spelled exactly as in `SECTIONS`. Every inner stage has a row, even an empty one, so a packet prints "consult: none" deliberately and never by omission.
+- **The renderer:** its References block is generated from knowledge_home's tables (`SECTIONS`, `grounding()`, `STAGE_FILES`, `READS`), so removing a file is a table change.
+- **Quote length:** no cap on quote length. A fixed character cap would cut the text a stage needs, and the owner's rules forbid invented thresholds and trimming guidance. Quoted text stays small by choosing what is quoted: the entries a step plan `follows` (one requirement or decision each) and the few sections `READS` names. The harness's `metrics.packets` measures packet bytes per stage; if a stage's packet grows too far, the fix is a narrower `READS` row, not a truncated quote.
+
 | Stage | Reads (file, section) | Writes |
 |---|---|---|
 | test-strategy | spec.md (Requirements, Non-functional requirements) | environment.md (Harnesses and suites, Commands, ID convention); architecture.md (Real-boundary checks) |
