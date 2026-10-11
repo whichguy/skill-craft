@@ -258,10 +258,19 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
     for path in screened:
         for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
             if privacy.sensitive_text(line):
-                leaks.append(str(path.relative_to(repo)) + ":" + str(number))
+                leaks.append(str(path) + ":" + str(number))
     if leaks:
-        return ("These knowledge lines look like credentials; record alias names, never tokens, passwords or "
-                "session URLs: " + ", ".join(leaks[:10]))
+        # Line 1 is for a model that reads only it: where (absolute: the shell's directory is the original checkout), what to
+        # write instead, and the command.  Every place follows, one per line, never the text.  Line 2 keeps the words the
+        # refusal has always had, so refusals can still be counted by them.
+        return ("Reword " + leaks[0] + " to name an alias, not a value or an assignment; then run the same " + command
+                + " command again.\n"
+                "These knowledge lines look like credentials; name where each secret is kept (an alias, or the mechanism "
+                "that supplies it, such as the name of an environment variable), never its value or code that assigns it. "
+                "The lines:\n" + "\n".join("- " + place for place in leaks)
+                + ("\nA file this review changed and left uncommitted needs improve-commit before improve-complete; "
+                   "improve-complete prints the exact improve-commit command when one is owed."
+                   if command == "improve-complete" else ""))
     if stage == "release-verify":
         empty = [name for name, body in learnings(state).items() if not body]
         if empty:

@@ -541,6 +541,35 @@ class RefusalRouteTests(RealCliCase):
         self.assertEqual(self.recorded(run, action)["outcome"], "done")
         self.assertIn("## " + heading, self.git(repo, "show", "HEAD:docs/shiploop/architecture.md"))
 
+    def test_an_architecture_line_that_looks_like_a_credential_is_refused_with_its_place_and_the_fix_and_the_reworded_line_is_accepted(self) -> None:
+        # architecture.md records auth shapes, and the screen reads every home file: the refusal must be one a cleared-context
+        # model can act on from its first line (absolute place, the fix, the command), and echo no value.
+        run, head = self.new_run("prepare")
+        command, path, action = printed_callback(head)
+        repo = self.repo_of(run)
+        write_block(path, self.fill_done(head))
+        for named in re.findall(r"^- (/\S+)$", self.refused(command, run), re.M):
+            Path(named).parent.mkdir(parents=True, exist_ok=True)
+            Path(named).write_text("What this file records.\n", encoding="utf-8")
+        architecture = repo / "docs/shiploop/architecture.md"
+        architecture.write_text("# Architecture\n\nPassword: bcrypt, cost 12\nSECRET_KEY = os.environ['SECRET_KEY']\n", encoding="utf-8")
+        reply = self.refused(command, run)
+        lines = reply.splitlines()
+        self.assertEqual(lines[0].replace(str(architecture), "<file>"),
+                         "ShipLoop navigator: Reword <file>:3 to name an alias, not a value or an assignment; "
+                         "then run the same complete command again.")
+        self.assertIn("look like credentials", reply)
+        self.assertEqual(re.findall(r"^- (/\S+:\d+)$", reply, re.M), [str(architecture) + ":3", str(architecture) + ":4"])
+        self.assertNotIn("bcrypt", reply)  # places, never the text
+        # the fix the line names, applied at the place it names: the first location, then the rest of the list
+        for place in re.findall(r"^- (/\S+):(\d+)$", reply, re.M):
+            where, number = place[0], int(place[1])
+            rows = Path(where).read_text(encoding="utf-8").splitlines()
+            rows[number - 1] = "Credentials are read from the environment by name (an alias), never written here."
+            Path(where).write_text("\n".join(rows) + "\n", encoding="utf-8")
+        self.accepted(command)  # the same printed command
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+
     def test_a_blocked_result_with_done_fields_is_refused_once_with_every_field_named(self) -> None:
         run, head = self.new_run("plan")
         command, path, _ = printed_callback(head)

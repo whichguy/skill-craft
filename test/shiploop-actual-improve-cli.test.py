@@ -1398,6 +1398,29 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
         self.assertEqual(self.home_git("status", "--porcelain", "--", "docs"), "")
 
+    def test_a_reviewed_step_plan_whose_architecture_looks_like_a_credential_is_refused_with_the_fix_and_the_route_commands(self):
+        """The credential screen reads architecture.md too; the refusal is absolute, names the route's commands, echoes no value."""
+        if not self.inline():
+            self.skipTest("improve-commit is the inline route")
+        architecture = self.commit_architecture()
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        architecture.write_text(self.ARCHITECTURE + "\nPassword: bcrypt, cost 12\ntoken = get_token()\n", encoding="utf-8")
+        lines = self.refused_import()
+        self.assertEqual(lines[0].replace(str(architecture), "<file>"),
+                         "ShipLoop navigator: Reword <file>:8 to name an alias, not a value or an assignment; "
+                         "then run the same improve-complete command again.")
+        self.assertIn("- " + str(architecture) + ":9", lines)  # every flagged line, absolute, one per line
+        self.assertTrue(any("improve-commit" in line and "improve-complete" in line for line in lines[1:]), lines)
+        for value in ("bcrypt", "get_token"):
+            self.assertNotIn(value, "\n".join(lines))  # locations only, never the text
+        architecture.write_text(self.ARCHITECTURE + "\nPasswords are hashed with bcrypt (cost 12).\nThe session token is read from the "
+                                "environment variable SESSION_TOKEN.\n", encoding="utf-8")
+        self.commit_the_review("docs: describe the credential handling by name\n\nKey learnings: the architecture names a "
+                               "mechanism, not a value.\n")
+        self.import_the_review()
+        self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
+
     def test_a_wrong_result_path_is_refused_with_the_expected_path(self):
         """Batch 1.12.1: Luna passed the worktree as --result; the refusal now names the path to use."""
         import types
