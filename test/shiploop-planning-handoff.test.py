@@ -81,7 +81,7 @@ class PlanningHandoffTests(unittest.TestCase):
         "intake": "`evidence_refs`: each source used.",
         "discovery": "`evidence_refs`: command, cwd, target, result, coverage limits, output file.",
         "research": "also every file written and source used",
-        "spec": "`evidence_refs`: HOME/spec.md, FEATURE/spec.md, each requirement section and source used.",
+        "spec": "`evidence_refs`: HOME/spec.md, each requirement section and source used.",
         "test-strategy": "`evidence_refs`: HOME/environment.md, HOME/architecture.md, each probe output and source used.",
         "plan": "`evidence_refs`: HOME/architecture.md, any execution graph, every source used. An unrecorded "
                 "conversation is not a handoff.",

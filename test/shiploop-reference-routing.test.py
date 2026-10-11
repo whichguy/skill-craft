@@ -217,6 +217,8 @@ class ReferenceRoutingTests(unittest.TestCase):
                     bound = dict(state, active_improve=standalone.binding(
                         state, action, child["stage"], child["seed_result"], selected))
                     packets.append(navigator.render(None, run, bound))
+                    # The Improve packet is two instructions; its locators live in the handoff the skill reads.
+                    packets.append(navigator.improve_handoff_text(None, run, bound))
                     state = navigator.finish_improve(
                         state, action, {"summary": "Synthetic receipt; no review claim."})
                 packets.append(navigator.render(None, run, state))
@@ -230,7 +232,6 @@ class ReferenceRoutingTests(unittest.TestCase):
                     self.assertTrue((reference_dir / relative).is_file(), relative)
         # Locators hard-coded outside the stage catalog are part of the walk.
         for expected in (
-            ("navigator.md", "sdlc-responsibilities"),
             ("research-loop.md", "early-access-readiness"),
             ("research-loop.md", "recursive-discovery-and-experiments"),
             ("research-loop.md", "navigator-execution-mode-adapter"),

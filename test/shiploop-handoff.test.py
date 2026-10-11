@@ -588,10 +588,13 @@ class HandoffGateTests(GateCase):
         self.assertIn(navigator.FOLLOWS_PLACEHOLDER, navigator._result_template(bare, "step-plan"))
         self.assertIn('"open_next": "<what a later run should pick up, or none>"',
                       navigator._result_template(bare, "release-verify"))
-        for stage in ("test-spec", "implement", "verify", "carry-forward"):   # inner loop stages: a blocked copy stays valid
+        # The aggressive re-cut (2026-10-11) puts each required hand-off key in the template itself; the fill line says a
+        # blocked or other outcome drops them. implement's optional not_covered stays out.
+        for stage in ("test-spec", "implement", "verify", "carry-forward"):
             printed = navigator._result_template(bare, stage)
             for key in ("test_cases", "not_covered", "assumptions", "lessons", "follows"):
-                self.assertNotIn('"' + key + '"', printed, stage)
+                self.assertEqual('"' + key + '"' in printed, key in navigator._required_handoff_keys(stage),
+                                 (stage, key))
         state = two_items(self.repo)
         oracle = next(v for v in navigator.HANDOFF_PLACEHOLDERS if "observes" in v)
         message = self.refusal(state, "test-spec", {"outcome": "done", "summary": "s", "assumptions": [],

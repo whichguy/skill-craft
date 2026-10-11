@@ -1963,7 +1963,7 @@ class GuidanceTests(unittest.TestCase):
         import shiploop_stage_spec as spec
         self.assertIsNone(spec.stage("release").improve)  # the premise: release starts no Improve child
         planning = normalized(prompts.improve_prompt("plan"))
-        self.assertIn("These restrictions belong to that Backchain child", planning)
+        self.assertNotRegex(planning, r"[Bb]ackchain")  # an Improve review never mentions Backchain (owner, 2026-10-11)
         discovery = normalized(prompts.improve_prompt("discovery"))
         self.assertIn("may not edit product source", discovery)
 

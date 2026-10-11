@@ -4195,7 +4195,12 @@ def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
         action_id = current_action(state)["id"]
         line += (" · this action's pass log (" + context_index.PASS_LOG_RULE + "): "
                  + str(context_index.pass_log_path(root, action_id)))
-    return [line]
+    lines = [line]
+    if state["status"] == "active":
+        # The progress view stays (owner, 2026-10-10); with the packet printed whole it is named here, once.
+        lines.append(f"Progress view: [HTML file](<{quote(str(root / 'progress.html'), safe='/ ')}>) — use this file to "
+                     "track changes during this ShipLoop run.")
+    return lines
 
 
 # Pauses for context housekeeping stop the run for nothing: no host clears from
