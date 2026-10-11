@@ -296,10 +296,25 @@ class ClearMetricTests(unittest.TestCase):
         found = self.redone([heredoc], [heredoc])
         self.assertEqual([f["kind"] for f in found], ["write"])  # the repeated write fails the gate; its test follows a write
 
+    RECORD = {"call": "python3 /p/scripts/shiploop complete --run-dir=/r --action=nav-" + "b" * 32 + " --result=/r/x.md",
+              "result": "ShipLoop navigator | test | revision 5"}
+
     def test_a_test_rerun_after_a_change_is_legitimate_and_without_one_is_redone(self):
         test = {"call": "npm test 2>&1 | tail -3", "result": "pass 9"}
-        self.assertEqual(self.redone([test], [self.WRITE, test]), [])
-        self.assertEqual([f["kind"] for f in self.redone([test], [test])], ["test"])
+        self.assertEqual(self.redone([test, self.RECORD], [self.WRITE, test]), [])
+        self.assertEqual([f["kind"] for f in self.redone([test, self.RECORD], [test])], ["test"])
+
+    def test_a_rerun_of_a_test_whose_result_shiploop_never_recorded_is_verification(self):
+        # The 2026-10-11 probe (node-fix-bug, implement:inside, build fbabc74f): one call edited and tested, the kill
+        # landed before any callback recorded that result, and the fresh session reran the test to see where it stood.
+        # It cannot know a result that only the cleared context saw.
+        edit_and_test = {"call": "sed -i '' 's|a|b|' src/paginate.js && npm test 2>&1 | grep -E 'pass|fail'",
+                         "result": "pass 9"}
+        rerun = {"call": "git diff; node --check src/paginate.js; npm test 2>&1 | grep -E 'pass|fail'",
+                 "result": "pass 9"}
+        self.assertEqual(self.redone([edit_and_test], [rerun]), [])
+        self.assertEqual(self.redone([{"call": "npm test", "result": "pass 9"}], [{"call": "npm test", "result": "ok"}]),
+                         [])
 
     def test_a_script_write_or_a_same_call_write_makes_the_rerun_legitimate(self):
         test = {"call": "npm test 2>&1 | tail -3", "result": "pass 9"}

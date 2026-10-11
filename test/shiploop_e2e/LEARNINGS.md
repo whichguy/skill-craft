@@ -2196,3 +2196,21 @@ What it showed:
 Method: fail-first (21 failures and 2 errors across the three notice classes, 3 route tests, 1 improve-complete route test, each "the behaviour is absent"), the mutation record, the quick tier one suite at a time on two streams (the footprint record `footprint.json`), and `check-release-boundary`.
 
 Open: the first live pair counts files and headings per close with the four commands in the journal's "Measure"; whether the notice becomes a refusal is the owner's decision after it. If a model still re-orients on the block, print it after the packet head (not done on a guess).
+
+## S-6: a rerun of a test whose result ShipLoop never recorded is verification, not redone work (2026-10-11, harness `clear.py`) — status: firm for the replays; interim for the rule (one failing probe)
+
+**The failing probe.** The inner-loop session's clear-the-context probe failed once on build fbabc74f (node-fix-bug, `--clear-at implement:inside`):
+- The model edited `src/paginate.js` and ran `npm test` in one Bash call (events line 111, answered at 112).
+- The kill landed at line 113, before any callback recorded that result.
+- After the clear, the fresh session ran `git diff; node --check ...; npm test` to see where it stood (line 129).
+- `clear.redone` counted that call as a repeated test.
+
+A repeat of the same probe on the same build passed, and so did the pre-dedupe build 3c812fbd. The evidence is preserved under this session's scratchpad (`s6-probe/clear-implement`, `clear-new2`), because the original lived in another session's scratchpad.
+
+**The lesson.** A result that only the cleared context saw does not exist for the fresh session. Rerunning that test is the only way to learn it, so S-6 cannot call it redone. A test rerun now counts only when an answered ShipLoop callback came after the earlier run and before the stop, which is when the work was on record, with no write between the two runs (the existing rule).
+
+**Check.** Two new cases in `ClearMetricTests`: the probe's shape, and a plain rerun with nothing recorded. The existing "without a change is redone" case now records a callback first. All 26 slice tests pass. Replays:
+- the failing probe and its passing repeat: `[]`;
+- the three 2026-10-11 slices `slice-clear-{implement,test-inside,verify}-28191c5b`: unchanged, `[]`.
+
+**Open.** A run whose callback recorded the work and whose test result the model then reran is still redone. No probe has shown that yet.
