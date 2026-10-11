@@ -26,3 +26,24 @@ Fail-first record (batch 1012 task R). Each new test was written and run before 
      test_ids_the_living_spec_lacks_keep_the_file_with_one_notice_and_never_refuse_the_handoff
      test_the_removal_is_not_reported_returned_when_the_follow_up_returned_nothing
      test_the_run_commits_reach_the_branch_by_mode_and_by_the_recorded_return
+
+Fix round (2026-10-10, after the two independent reviews of the series; the head the reviews read was 4bdd5ef9). Each new or changed test was run before its code.
+
+8. Kept notice after a no-change return (test/shiploop-retire.test.py, RetireThroughTheCli.test_a_no_change_return_keeps_the_feature_spec_and_the_notice_stays_true_after_the_follow_up_returned_it, new):
+   with the reason constant set to the old sentence it failed on assertNotIn("do not reach your branch", stdout): the line followed
+   "returned the knowledge commit with the earlier work (fast-forward-merge)". The two TerminalCloseTests/RetireTests assertions on the
+   reason were changed first and failed with 'no attribute KEPT_AFTER_ROUTE'.
+9. An unwritable list or retire file (shiploop-knowledge FeatureListTests/RetireTests, shiploop-retire TerminalCloseTests, 5 tests): the list write
+   escaped as PermissionError out of knowledge.commit and out of the retire's failure handler; the two failure-message tests failed on
+   'cannot remove docs/...' (relative path first) and on the missing index-lock text; the symbolic-link spec was retired
+   (Retired(commit=..., kept='') != Retired('', 'it is a symbolic link')); the terminal refusal lacked the next step.
+   RetireTests.test_a_failed_commit_removes_a_list_that_the_attempt_wrote_when_none_existed_before passed on the old code (it pins a branch
+   the earlier mutant masked); it is red under the mutant "a list written by the failed attempt is left behind" (mutation record).
+10. earlier_features (FeatureListTests): one test, red on the old sentence in the absent, foreign, empty and symbolic-link states.
+11. The list notice once (TerminalCloseTests): red, the notice printed at each of three knowledge commits.
+12. The subject, the header and the never-committed reason (shiploop-knowledge): subject, header and reason assertions red on the old text; the
+    new subject test (a feature spec that names no ID) red on the old subject; _unmerged renamed _missing_ids (7 tests errored on the new name first).
+13. A retried handoff citing the retired spec: the CLI test exits 2 ("evidence_refs cite files that do not exist") on the old check;
+    the four EvidenceAfterRetireTests errored with 'takes from 1 to 2 positional arguments but 3 were given' on the old signature.
+14. test/shiploop-workspace.test.py::test_return_kind_answers_only_for_a_receipt_that_is_returned_and_names_a_known_route passes on the
+    code (it pins an existing guard). With the status guard dropped by hand it fails ("'fast-forward-merge' is not None"); in the mutation record.

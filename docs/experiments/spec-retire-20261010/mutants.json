@@ -76,16 +76,16 @@
   "suite": "shiploop-knowledge",
   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
   "name": "list written before the unchanged test",
-  "old": "    if not _home_changed(repo):\n        return shiploop_git.Committed(\"\", [], [])\n    write_feature_list(repo)\n    message = knowledge_subject(state, stage)",
-  "new": "    write_feature_list(repo)\n    if not _home_changed(repo):\n        return shiploop_git.Committed(\"\", [], [])\n    message = knowledge_subject(state, stage)"
+  "old": "    if not _home_changed(repo):\n        return shiploop_git.Committed(\"\", [], [])\n    try:\n        write_feature_list(repo)",
+  "new": "    write_feature_list(repo)\n    if not _home_changed(repo):\n        return shiploop_git.Committed(\"\", [], [])\n    try:\n        pass"
  },
  {
   "label": "step2 feature list",
   "suite": "shiploop-knowledge",
   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
   "name": "list not written by a knowledge commit",
-  "old": "    write_feature_list(repo)\n    message = knowledge_subject(state, stage)",
-  "new": "    message = knowledge_subject(state, stage)"
+  "old": "    try:\n        write_feature_list(repo)\n    except OSError as exc:",
+  "new": "    try:\n        pass\n    except OSError as exc:"
  },
  {
   "label": "step2 feature list",
@@ -102,14 +102,6 @@
   "name": "foreign file overwritten",
   "old": "    if text.strip() and not text.startswith(_LIST_MARK):\n        return \"it does not begin with ShipLoop's generated header, so it is not ShipLoop's list\"\n",
   "new": ""
- },
- {
-  "label": "step2 feature list",
-  "suite": "shiploop-knowledge",
-  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
-  "name": "header says unconditional removal",
-  "old": "`spec.md` when the run's commits reach the branch; the run's other files\\nstay.",
-  "new": "`spec.md`; the run's other files\\nstay."
  },
  {
   "label": "step2 feature list",
@@ -200,7 +192,7 @@
   "new": "path.name for path in folder.glob(\"*\") if path.is_file() and not path.is_symlink())]"
  },
  {
-  "label": "step2 feature list (header pattern corrected)",
+  "label": "step2 feature list",
   "suite": "shiploop-knowledge",
   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
   "name": "header says unconditional removal",
@@ -209,7 +201,7 @@
  },
  {
   "label": "step2 feature list (fixture line; also run in shiploop-quality)",
-  "suite": "shiploop-knowledge",
+  "suite": "shiploop-quality",
   "file": "test/shiploop_knowledge_support.py",
   "name": "fixture does not write the list",
   "old": "    knowledge.write_feature_list(repo)\n",
@@ -340,7 +332,7 @@
   "suite": "shiploop-knowledge",
   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
   "name": "the route is not consulted",
-  "old": "    if not reaches_branch:\n        return Retired(\"\", \"the run's commits do not reach your branch (a working-tree or no-change return)\")\n",
+  "old": "    if not reaches_branch:\n        return Retired(\"\", KEPT_AFTER_ROUTE)\n",
   "new": ""
  },
  {
@@ -372,7 +364,7 @@
   "suite": "shiploop-knowledge",
   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
   "name": "uncommitted changes are not checked",
-  "old": "    if _git(repo, \"cat-file\", \"-e\", \"HEAD:\" + relative).returncode or _git(repo, \"diff\", \"--quiet\", \"HEAD\", \"--\",\n                                                                           relative).returncode:\n        return Retired(\"\", \"it has changes that are not committed\")\n",
+  "old": "    if _git(repo, \"diff\", \"--quiet\", \"HEAD\", \"--\", relative).returncode:\n        return Retired(\"\", \"it has changes that are not committed\")\n",
   "new": ""
  },
  {
@@ -380,16 +372,16 @@
   "suite": "shiploop-knowledge",
   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
   "name": "the spec is not put back after a failure",
-  "old": "        spec.write_bytes(original)\n        if owned and list_before is not None:",
-  "new": "        if owned and list_before is not None:"
+  "old": "    steps = [lambda: spec.write_bytes(original)]\n",
+  "new": "    steps = []\n"
  },
  {
   "label": "step3 retire",
   "suite": "shiploop-knowledge",
   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
   "name": "the list is not put back after a failure",
-  "old": "        if owned and list_before is not None:\n            listed.write_bytes(list_before)\n        elif owned:\n            listed.unlink(missing_ok=True)   # the list did not exist before this attempt wrote it\n",
-  "new": ""
+  "old": "        steps.append((lambda: listed.write_bytes(list_before)) if list_before is not None\n                     else (lambda: listed.unlink(missing_ok=True)))   # the list did not exist before this attempt wrote it\n",
+  "new": "        pass\n"
  },
  {
   "label": "step3 retire",
@@ -398,14 +390,6 @@
   "name": "an OSError is not caught",
   "old": "    except (shiploop_git.CommitError, OSError) as exc:",
   "new": "    except shiploop_git.CommitError as exc:"
- },
- {
-  "label": "step3 retire",
-  "suite": "shiploop-knowledge",
-  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
-  "name": "the index is not reset after a failure",
-  "old": "        _git(repo, \"reset\", \"-q\", \"--\", *paths)\n        raise RuntimeError(",
-  "new": "        raise RuntimeError("
  },
  {
   "label": "step3 retire",
@@ -448,12 +432,12 @@
   "new": ":\n        return Retired(\"\", \"\")"
  },
  {
-  "label": "step3 retire (rerun after the test was strengthened)",
+  "label": "step3 retire",
   "suite": "shiploop-knowledge",
   "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
   "name": "the index is not reset after a failure",
-  "old": "        _git(repo, \"reset\", \"-q\", \"--\", *paths)\n        raise RuntimeError(",
-  "new": "        raise RuntimeError("
+  "old": "    _git(repo, \"reset\", \"-q\", \"--\", *paths)\n",
+  "new": ""
  },
  {
   "label": "step4 progress row",
@@ -534,5 +518,213 @@
   "name": "the matcher is a copy of the wording",
   "old": "knowledge or knowledge_home.is_retire_subject(subject)",
   "new": "knowledge or bool(re.match(r\"^docs\\(shiploop\\): retire \\S+ spec: its requirement IDs are in the living spec$\", subject))"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "the kept reason claims the commits do not reach the branch",
+  "old": "the return made before this close did not put the run's commits on your branch (it was a \"\n                    \"working-tree return, or recorded no change)",
+  "new": "the run's commits do not reach your branch (a working-tree or no-change return)\"\n                    \""
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "an unwritable list escapes commit() as an OSError",
+  "old": "    except OSError as exc:\n        # The navigator turns a RuntimeError into its \"handoff remains pending\" refusal or notice; a raw OSError would escape.\n        raise RuntimeError(",
+  "new": "    except ZeroDivisionError as exc:\n        # The navigator turns a RuntimeError into its \"handoff remains pending\" refusal or notice; a raw OSError would escape.\n        raise RuntimeError("
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "the list write failure names the relative path",
+  "old": "raise RuntimeError(\"cannot write \" + str(repo / FEATURE_LIST) + \": \"",
+  "new": "raise RuntimeError(\"cannot write \" + FEATURE_LIST + \": \""
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "the restore after a failed retire raises over the real error",
+  "old": "        except OSError:\n            pass\n    _git(repo,",
+  "new": "        except ZeroDivisionError:\n            pass\n    _git(repo,"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "the list is not restored to its earlier bytes",
+  "old": "steps.append((lambda: listed.write_bytes(list_before)) if list_before is not None",
+  "new": "steps.append((lambda: None) if list_before is not None"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "a list written by the failed attempt is left behind",
+  "old": "else (lambda: listed.unlink(missing_ok=True)))",
+  "new": "else (lambda: None))"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "a symbolic-link feature spec is retired",
+  "old": "    if spec.is_symlink():\n",
+  "new": "    if False:\n"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "the retire failure names the relative path",
+  "old": "raise RuntimeError(\"cannot retire \" + str(spec) + \": \"",
+  "new": "raise RuntimeError(\"cannot retire \" + relative + \": \""
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "the retire failure drops the likely causes of a Git failure",
+  "old": "\" (check for a Git index lock or a hook that refuses the commit)\"",
+  "new": "\"\""
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "the retire failure keeps the git stderr on several lines",
+  "old": "\" \".join(str(exc).split())",
+  "new": "str(exc)"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "a spec that was never committed is called uncommitted changes",
+  "old": "return Retired(\"\", \"it was never committed\")",
+  "new": "return Retired(\"\", \"it has changes that are not committed\")"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "the never-committed test is dropped",
+  "old": "    if _git(repo, \"cat-file\", \"-e\", \"HEAD:\" + relative).returncode:\n        return Retired(\"\", \"it was never committed\")\n",
+  "new": ""
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "earlier_features names the list in every state",
+  "old": "    if _list_is_shiploops(repo):\n        return (\"Earlier features: \"",
+  "new": "    if True:\n        return (\"Earlier features: \""
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "earlier_features calls an absent list foreign",
+  "old": "(str(listed) + \" is not ShipLoop's list of them\" if _list_problem(repo)",
+  "new": "(str(listed) + \" is not ShipLoop's list of them\" if not _list_problem(repo)"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "a symbolic link counts as ShipLoop's list",
+  "old": "    return (path.is_file() and not path.is_symlink()\n            and path.read_text",
+  "new": "    return (path.is_file()\n            and path.read_text"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "the list header says Git keeps every version",
+  "old": "Git keeps each version committed at a knowledge close; a squash merge\ndrops them.",
+  "new": "Git keeps every version; a squash merge\ndrops them."
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-knowledge",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "the retire subject claims the result again",
+  "old": "retire {folder} spec: checked its requirement IDs against the living spec",
+  "new": "retire {folder} spec: its requirement IDs are in the living spec"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-retire",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "every removed file counts as a retired spec",
+  "old": "    return bool(retired_by(Path(repo), \"/\".join(parts[:-1])))",
+  "new": "    return True"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-retire",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "a file other than spec.md counts as a retired spec",
+  "old": "or parts[-1] != \"spec.md\":",
+  "new": "or False:"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-retire",
+  "file": "skills/shiploop/scripts/shiploop_knowledge_home.py",
+  "name": "a path outside the folder shape counts as a retired spec",
+  "old": "parts[:len(prefix)] != prefix or",
+  "new": "False or"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-retire",
+  "file": "skills/shiploop/scripts/shiploop_navigator.py",
+  "name": "the evidence check is not given the repository",
+  "old": "            _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item),\n                                      state[\"repo\"])",
+  "new": "            _check_submitted_evidence(submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item))"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-retire",
+  "file": "skills/shiploop/scripts/shiploop_navigator.py",
+  "name": "the terminal refusal drops the next step",
+  "old": "_PENDING = \"; handoff remains pending. Fix that, then submit the same handoff result again.\"",
+  "new": "_PENDING = \"; handoff remains pending.\""
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-retire",
+  "file": "skills/shiploop/scripts/shiploop_navigator.py",
+  "name": "the list notice prints at every knowledge commit",
+  "old": "    if terminal:\n        # Once per run, at its last close:",
+  "new": "    if True:\n        # Once per run, at its last close:"
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-workspace",
+  "file": "skills/shiploop/scripts/shiploop_workspace.py",
+  "name": "return_kind ignores the receipt status",
+  "old": "kind = receipt.get(\"kind\") if receipt and receipt.get(\"status\") == \"returned\" else None\n    return kind if kind in _RETURN_KINDS else None",
+  "new": "kind = receipt.get(\"kind\") if receipt else None\n    return kind if kind in _RETURN_KINDS else None",
+  "args": [
+   "-k",
+   "return_kind"
+  ]
+ },
+ {
+  "label": "fix round: review findings",
+  "suite": "shiploop-workspace",
+  "file": "skills/shiploop/scripts/shiploop_workspace.py",
+  "name": "return_kind accepts an unknown route",
+  "old": "    kind = receipt.get(\"kind\") if receipt and receipt.get(\"status\") == \"returned\" else None\n    return kind if kind in _RETURN_KINDS else None",
+  "new": "    kind = receipt.get(\"kind\") if receipt and receipt.get(\"status\") == \"returned\" else None\n    return kind",
+  "args": [
+   "-k",
+   "return_kind"
+  ]
  }
 ]
