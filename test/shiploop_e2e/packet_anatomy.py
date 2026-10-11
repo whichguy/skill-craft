@@ -69,6 +69,10 @@ RULES: tuple[Rule, ...] = (
     _r("done-when", r"^Done when", "bullets"),
     _r("checked-by", r"^Checked by:"),
     _r("considerations", r"^Considerations for this stage:", "bullets"),
+    # --- the References block (_reference_lines): the symbols HOME, FEATURE, RUN and WORKTREE with the files under them,
+    # the stage's consult note and what it builds on; it ends at the first line of another shape
+    _r("references", r"^References \(", "before",
+       r"^(?!(- |HOME = |FEATURE = |RUN = |WORKTREE = |Consult at this stage|Results this stage builds on))"),
     # --- an inner stage's Until Loop invoke block (shiploop_loops.invoke_lines): heading, argument, how to invoke, start, receipt rules
     _r("until-loop", r"^Until Loop \(this stage's work runs inside it", "para"),
     # --- result contract and template (_result_contract_lines)
@@ -132,11 +136,11 @@ RULES: tuple[Rule, ...] = (
     _r("step-context", r"^(Step \S+ \(\d+ of \d+\), the only work|Accepted step |Later steps \(ShipLoop issues|Item plan:)"),
     # --- repository knowledge home (knowledge.stage_lines)
     _r("knowledge-home", r"^Inherited learnings:", "indent"),
-    _r("knowledge-home", r"^(Repository knowledge home|This stage keeps these up to date|If this stage changes docs/shiploop|"
+    _r("knowledge-home", r"^(Repository knowledge home|This stage keeps these up to date|If this stage changes (HOME/|docs/shiploop)|"
        r"On done ShipLoop checks these files|outcome\.md must have|spec\.md is the living spec|"
-       r"Written by earlier stages|ShipLoop refuses [a-z-]+ if any|architecture\.md is how the product is built|"
-       r"If architecture\.md is missing|Begin .*/plan\.md with this exact first line|In .*/README\.md link the feature list|"
-       r"At this handoff ShipLoop checks|Ground this stage's decisions in these files)"),
+       r"Written by earlier stages|ShipLoop refuses [a-z-]+ if any|(HOME/)?architecture\.md is how the product is built|"
+       r"If (HOME/)?architecture\.md is missing|Begin .*/plan\.md with this exact first line|In .*/README\.md link the feature list|"
+       r"At this handoff ShipLoop checks)"),
     # --- environment discovery
     _r("environment-discovery", r"^(Environment discovery requirement|One investigation allowance|"
        r"Recursive discovery policy|Navigator adapter)"),
@@ -185,7 +189,8 @@ ID = re.compile(r"nav-[0-9a-f]{32}")
 REV = re.compile(r"\b(revision|rev=)\s?\d+")
 
 SECTION_ORDER = (
-    PREAMBLE, "head", "callback", "goal", "done-when", "checked-by", "considerations", "until-loop", "result-contract", "step-context",
+    PREAMBLE, "head", "callback", "goal", "done-when", "checked-by", "considerations", "references", "until-loop", "result-contract",
+    "step-context",
     "context-index", "progress-snapshot", "status-block", "narrative", "unverified-and-deltas", "state-locators", "reading-list",
     "recovery", "original-request", "workspace-return", "backchain", "work-queue-rules", "planning-sources", "last-accepted",
     "carried-sources", "work-item", "knowledge-home", "environment-discovery", "guidance-common", GUIDANCE_DUTY,

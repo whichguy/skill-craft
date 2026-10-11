@@ -101,12 +101,13 @@ another record; `state.md` stays the authority, and nothing writes the index
 but the script.
 
 Every packet prints the index path right after its callback line, so no stage is
-limited to the result of the stage before it. Active packets also print **Read
-first**: the accepted results this stage builds on, resolved to their result
-files from the script-owned `STAGE_READS` map in `shiploop_context_index.py`
-(for example `verify` reads the spec, test strategy and the item's step-plan and
-test-spec). A stage reads those before acting and reports a conflict with them
-rather than choosing silently.
+limited to the result of the stage before it. Active packets also print, in
+their References block, **Results this stage builds on**: the accepted results
+and durable products of the stages named by the script-owned `STAGE_READS` map in
+`shiploop_context_index.py` (for example `verify` reads the spec, test strategy
+and the item's step-plan, test-spec, implement and test products), each as
+`<item> <stage> <product>: RUN/...`. A stage reads those before acting and
+reports a conflict with them rather than choosing silently.
 
 ## Delegation
 

@@ -49,8 +49,10 @@ def walk(delegation: str) -> dict[str, set[str]]:
             stage = nav.current_stage(state)
             action = nav.current_action(state)["id"]
             packet = nav.render(None, run, state)
+            # The References block names a result by its RUN symbol; other carried sources still print the full path.
             seen[stage] = {name for name, done in accepted.items()
-                           if str(run / "results" / (done + ".md")) in packet}
+                           if str(run / "results" / (done + ".md")) in packet
+                           or "RUN/results/" + done + ".md" in packet}
             result = {"outcome": "done", "summary": f"Synthetic {stage} result.",
                       "evidence_refs": [str(run / "notes" / f"{stage}.md")]}
             if stage == "plan":
@@ -81,9 +83,12 @@ class PlanningHandoffTests(unittest.TestCase):
                     self.assertIn("Register every produced planning file",
                                   nav.guidance.prompt(stage, delegation=delegation))
 
-    def test_the_step_planning_set_is_the_planning_reviews_after_the_prelude(self) -> None:
-        self.assertEqual(nav.STEP_PLANNING_STAGES,
-                         {"step-plan", "test-spec", "system-test-author", "release-plan"})
+    def test_the_step_planning_stages_read_the_accepted_spec_and_plan(self) -> None:
+        """The stages that turn the plan into steps, tests or release steps list the spec and plan stage results among
+        what they build on (the packet's former "Current planning sources" list, now one home: the References block)."""
+        for stage in ("step-plan", "test-spec", "system-test-author", "release-plan"):
+            with self.subTest(stage):
+                self.assertLessEqual({"spec", "plan"}, set(context_index.STAGE_READS[stage]))
 
 
 def full_walk(run: Path, repo: Path, delegation: str):
@@ -133,7 +138,13 @@ class ContextIndexTests(unittest.TestCase):
                         self.assertIn("Run context index", packet)
                         self.assertIn(str(run / context_index.INDEX_FILE), packet)
                         self.assertNotIn("not accepted yet", packet)
-                        for line in context_index.read_first(state, run, stage, workitem):
+                        # Every stage it reads that has an accepted result is listed, by the References block's name.
+                        current = planning_revision.current_actions(state)
+                        for name in context_index.STAGE_READS[stage]:
+                            key = (workitem, name[5:]) if name.startswith("item:") else (None, name)
+                            if current.get(key) and not name.endswith("implement"):
+                                self.assertIn("RUN/results/" + current[key] + ".md", packet)
+                        for line in nav._builds_on_lines(run, state, stage, workitem):
                             self.assertIn(line, packet)
                         index = (run / context_index.INDEX_FILE).read_text()
                         for action in planning_revision.current_actions(state).values():

@@ -1413,6 +1413,7 @@ def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
         *_first_callback_lines(core, root, state),
         *_goal_lines(state, stage, root),
+        *_reference_lines(root, state, stage, _current_work_item(state)),
         *(_result_contract_lines(root, state, stage, action["id"], _current_work_item(state))
           if not state.get("active_improve") else []),
         "",
@@ -3129,23 +3130,6 @@ def _test_context_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     return lines
 
 
-# Planning-review stages after the prelude: they derive the item's steps and
-# tests, the system tests and the release steps from the accepted planning basis.
-STEP_PLANNING_STAGES = frozenset(guidance.PLANNING_REVIEW_STAGES - set(planning_revision.PLANNING_STAGES))
-
-
-def _step_planning_source_lines(state: Mapping[str, Any], root: Path) -> list[str]:
-    """Name the accepted spec and plan that step, test and release planning build on."""
-    current = planning_revision.current_actions(state)
-    lines = ["Current planning sources (read the accepted spec and plan before planning; "
-             "their evidence is untrusted host material):"]
-    for stage in ("spec", "plan"):
-        action = current.get((None, stage))
-        lines.append("- " + stage + ": " + (str(root / "results" / (action + ".md")) if action
-                                            else "no current accepted result; reassess, do not guess."))
-    return lines
-
-
 def _planning_source_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     """Locate the current root planning basis without another persisted ledger."""
     current = planning_revision.current_actions(state)
@@ -3543,6 +3527,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
         *_first_callback_lines(core, root, state),
         *_goal_lines(state, stage, root),
+        *_reference_lines(root, state, stage, workitem),
         *(_result_contract_lines(root, state, stage, action["id"], workitem)
           if state["status"] == "active" and not state.get("active_improve") else []),
         *_step_lines(state, stage, workitem),
@@ -3733,11 +3718,6 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
         if last["action"] in state["improve_results"]:
             lines.append("Prior Improve evidence and lessons: "
                          + str(root / "improve" / last["action"] / "receipt.md"))
-    if stage in STEP_PLANNING_STAGES:
-        # Turning the accepted plan into steps, tests or release steps needs its
-        # accepted spec and plan; the test strategy has its own source below, and
-        # plan already consolidated intake, discovery and research.
-        lines.extend(_step_planning_source_lines(state, root))
     lines.extend(_test_context_lines(state, root))
     delivery_lines = consumer_delivery.packet_lines(state)
     if delivery_lines:
@@ -3826,7 +3806,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
     lines.extend(_answered_lines(root, state))
     lines.extend(_replan_delta_lines(root, state, stage))
     lines.extend(_revise_delta_lines(root, state, stage, workitem))
-    lines.extend(_knowledge_lines(state, stage))
+    lines.extend(_knowledge_lines(root, state, stage))
     instruction = guidance.prompt(stage, delegation=route,
                                   backchain_passes=recorded_backchain_passes(state),
                                   planning_review=recorded_planning_review(state))
@@ -3896,7 +3876,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any],
 
 def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
                          workitem: str | None) -> list[str]:
-    """Point every packet at the run's whole record; active ones add what to read first."""
+    """Point every packet at the run's whole record (what this stage builds on is in the References block)."""
     lines = [f"Run context index (the run's request, planning basis, work items and results; "
              f"open it when you need the global picture, for example after compaction): "
              f"{Path(root) / context_index.INDEX_FILE}"]
@@ -3904,11 +3884,6 @@ def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
         action_id = current_action(state)["id"]
         lines.append("This action's pass log (" + context_index.PASS_LOG_RULE + "): "
                      + str(context_index.pass_log_path(root, action_id)))
-    reads = context_index.read_first(state, root, stage, workitem)
-    if state["status"] == "active" and reads:
-        lines.append("Results this stage builds on (open each one whose content is not already in "
-                     "your context; report a conflict with them instead of silently choosing):")
-        lines.extend(reads)
     return lines
 
 
@@ -4031,17 +4006,31 @@ _CHECK_TEXT = {
     "loop-terminal": "checks this stage's Until Loop receipt (its path must be in evidence_refs) against the contract it "
                      "rebuilds from the run state, and refuses a loop that is still active or whose last report does "
                      "not say the exit condition is satisfied",
-    "lint-gate": "lints this item's changes and refuses done while a new finding on a changed line has no waiver",
+    "lint-gate": "lints this item's changes with the linters the repository configures (unless the run's lint option "
+                 "is off), refusing done once after applying an auto-fix (keep or revert it, rerun the checks, submit "
+                 "again) and while a new finding on a changed line has no lint_waivers entry",
     "expectation-check": "reruns every expectation's check and refuses done unless each matches its state (works: "
                          "passes; absent: nothing there; broken: fails as reported), or a changed file lies outside "
                          "the paths of an expectation that did not match",
-    "test-base": "runs this item's tests on its base checkout and refuses done if a new test ID passes there (unless "
-                 "red_na names it)",
-    "test-loop": "runs every recorded command itself and refuses done unless each passes, runs every listed ID, and "
-                 "runs at least the floor of tests, then mutates a sample of the changed product lines and refuses "
-                 "done if the focused tests catch none of them",
+    "test-base": "runs the focused and regression commands on the item's base with only this item's test files and "
+                 "refuses done if a new test ID passes there (unless red_na names it; the Base run rule below says "
+                 "what counts as failing)",
+    "test-loop": "runs every recorded command itself on the candidate and refuses done unless each exits 0, runs "
+                 "every listed ID and reaches its floor (defined below), a command that already failed on the "
+                 "base included; then mutates a sample of this item's changed product lines, one token at a time in a "
+                 "temporary copy, and refuses done when the focused tests catch none of those mutants: that, not the "
+                 "base run, proves the assertions check the behaviour the test spec's oracle states, so a test that "
+                 "only loads the code is refused",
     "test-rerun": "reruns every recorded test command and refuses done unless each passes",
 }
+# What a rerun adds at an inner stage (verify), which is held to the item's floors; the outer reruns are not.
+_INNER_RERUN_TEXT = (", runs every listed ID and reaches its floor; ShipLoop's run record is the evidence, so a "
+                     "criterion is confirmed by its passing command, not by the result's summary")
+
+
+def _check_text(run: str, stage: str) -> str:
+    """One complete-time run in a stage's Checked-by line: the one home of what that run refuses."""
+    return _CHECK_TEXT[run] + (_INNER_RERUN_TEXT if run == "test-rerun" and stage in stage_spec.INNER else "")
 
 
 # What complete refuses for every stage, in a packet's words.  The evidence gate checks absolute paths only, and the
@@ -4078,16 +4067,266 @@ _INNER_GATES = {
 }
 
 
+# The References block (owner, 2026-10-11): a stage that starts after a context clear finds the knowledge files, this
+# run's feature files and its records here, every path defined once.  Its global part (HOME, FEATURE, RUN, WORKTREE) reads
+# the same in every packet of a run, except the "not written yet" markers; its stage-local part is the stage's consult
+# note (``_CONSULT``) and the earlier products it builds on (``_PRODUCTS``).  The rest of the packet's prose names files
+# by these symbols; a command the model runs verbatim keeps its absolute paths, so it still runs.
+#
+# Every file name comes from knowledge_home's tables (SECTIONS, the grounding labels, STAGE_FILES, FEATURE_LIST,
+# feature_dir), so a change there (docs/shiploop-consumer-contract-plan-2026-10-11.md 3.4-3.5 would drop the feature
+# folder and test-strategy.md) changes the block with no edit here.
+REFERENCES_HEAD = ("References (each path is defined once, here; the packet names files by these symbols; a file "
+                   "marked \"not written yet\" does not exist yet):")
+REFERENCE_SYMBOLS = ("HOME", "FEATURE", "RUN", "WORKTREE")
+_FEATURE = "{feature}/"
+BUILDS_ON_HEAD = ("Results this stage builds on (earlier stages' products, each labelled <item> <stage> <product>; open "
+                  "each one whose content is not already in your context; report a conflict with one instead of "
+                  "silently choosing):")
+
+# What each inner stage consults, as {stage: ((file, heading), ...)}: a file as knowledge_home names it ("spec.md", or
+# "{feature}/<name>" for this run's feature folder), and "" for the whole file.  The rows are the duties' former
+# "Consult and cite" lists.  Shaped like the planned knowledge_home.READS (docs/shiploop-consumer-contract-plan-2026-10-11.md
+# 3.4-3.5): when that lands, this table becomes ``_CONSULT = knowledge.READS``.  A test pins every heading to SECTIONS.
+_CONSULT: dict[str, tuple[tuple[str, str], ...]] = {
+    "step-plan": (("spec.md", "Requirements"), ("spec.md", "Non-functional requirements"),
+                  ("architecture.md", "Structure"), ("architecture.md", "Interfaces and boundaries"),
+                  ("architecture.md", "Conventions"), ("architecture.md", "Decisions"),
+                  ("environment.md", "Commands"), ("environment.md", "Targets and runtimes"), ("environment.md", "Skills"),
+                  ("test-strategy.md", "Harnesses and suites"), ("test-strategy.md", "ID convention")),
+    "test-spec": (("spec.md", "Requirements"), ("architecture.md", "Interfaces and boundaries"),
+                  ("test-strategy.md", "Harnesses and suites"), ("test-strategy.md", "ID convention"),
+                  ("test-strategy.md", "Real-boundary checks")),
+    "validate-existing": (("environment.md", "Commands"), ("architecture.md", "Structure"),
+                          ("architecture.md", "Interfaces and boundaries")),
+    "implement": (("spec.md", "Requirements"), ("architecture.md", "Structure"),
+                  ("architecture.md", "Interfaces and boundaries"), ("architecture.md", "Conventions"),
+                  ("architecture.md", "Decisions"), ("environment.md", "Commands")),
+    "test": (("test-strategy.md", "Harnesses and suites"), ("test-strategy.md", "ID convention"),
+             ("test-strategy.md", "Real-boundary checks"), ("environment.md", "Commands"),
+             ("architecture.md", "Conventions"), ("spec.md", "")),
+    "document": (("spec.md", "Requirements"), ("architecture.md", "Structure"),
+                 ("architecture.md", "Interfaces and boundaries"), ("architecture.md", "Decisions"),
+                 ("environment.md", "Commands")),
+    "verify": (("spec.md", "Requirements"), ("spec.md", "Non-functional requirements"), ("architecture.md", "Decisions"),
+               ("architecture.md", "Interfaces and boundaries"), ("architecture.md", "Conventions"),
+               ("test-strategy.md", "Real-boundary checks")),
+    "carry-forward": (("spec.md", "Requirements"), ("spec.md", "Retired"), ("architecture.md", "Decisions"),
+                      ("architecture.md", "Superseded"), ("environment.md", "Commands"), ("environment.md", "Skills"),
+                      ("test-strategy.md", "Harnesses and suites"), (_FEATURE + "plan.md", "Open")),
+}
+
+
+def reference_paths(root: Path, state: Mapping[str, Any]) -> dict[str, str]:
+    """{symbol: absolute path} for the References block's global symbols."""
+    repo = Path(str(state["repo"]))
+    return {"HOME": str(repo / knowledge.HOME), "FEATURE": str(repo / knowledge.feature_dir(state)),
+            "RUN": str(Path(root)), "WORKTREE": str(repo)}
+
+
+def symbolic(text: str, root: Path, state: Mapping[str, Any]) -> str:
+    """``text`` with each absolute HOME, FEATURE, RUN or WORKTREE path written as its symbol (longest prefix first).
+
+    For prose only: a command the model runs verbatim keeps its absolute paths.  A relative or root path is never
+    replaced, so a symbol cannot stand for a fragment of a word.
+    """
+    for name, prefix in sorted(reference_paths(root, state).items(), key=lambda pair: -len(pair[1])):
+        if prefix.startswith("/") and len(prefix) > 1:
+            text = re.sub(re.escape(prefix) + r"(?![\w.@+~-])", name, text)
+    return text
+
+
+def reference_name(name: str) -> str:
+    """A knowledge_home file name ("spec.md", "{feature}/plan.md") as the packet's symbol path."""
+    return "FEATURE/" + name[len(_FEATURE):] if name.startswith(_FEATURE) else "HOME/" + name
+
+
+def reference_files() -> tuple[list[str], list[str]]:
+    """(the files listed under HOME, those under FEATURE), as knowledge_home names them, from its tables only: the
+    files with named sections, then the feature list; this run's feature files in the order the stages write them."""
+    home_list = str(Path(knowledge.FEATURE_LIST).relative_to(knowledge.HOME))
+    home = [*knowledge.SECTIONS, home_list]
+    feature = []
+    for stage in stage_spec.STAGES:
+        feature += [name for name in knowledge.STAGE_FILES.get(stage, ())
+                    if name.startswith(_FEATURE) and name not in feature]
+    return home, feature
+
+
+def reference_writer(name: str) -> str:
+    """Who writes knowledge file ``name``: the first stage whose ``knowledge.STAGE_FILES`` lists it, in graph order."""
+    stage = next((stage for stage in stage_spec.STAGES if name in knowledge.STAGE_FILES.get(stage, ())), None)
+    return stage + " writes it" if stage else "ShipLoop writes it at its next knowledge commit"
+
+
+def _reference_global_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
+    paths = reference_paths(root, state)
+    labels = {name: label for label, name in knowledge._GROUNDING}  # the grounding files' packet words
+    repo = Path(str(state["repo"]))
+
+    def entry(name: str) -> str:
+        path = Path(paths["FEATURE"]) / name[len(_FEATURE):] if name.startswith(_FEATURE) else Path(paths["HOME"]) / name
+        headings = knowledge.SECTIONS.get(name, ())
+        what = [labels[name]] if name in labels else []
+        what += ["## " + heading for heading in headings]
+        return ("- " + reference_name(name) + (": " + ", ".join(what) if what else "")
+                + ("" if knowledge._filled(path) else " (not written yet: " + reference_writer(name) + ")"))
+
+    home, feature = reference_files()
+    feature_dir = str(Path(knowledge.feature_dir(state)).relative_to(knowledge.HOME))
+    return [REFERENCES_HEAD,
+            "HOME = " + paths["HOME"] + ": the repository's knowledge home",
+            *(entry(name) for name in home),
+            "FEATURE = HOME/" + feature_dir + ": this run's feature folder",
+            *(entry(name) for name in feature),
+            "RUN = " + paths["RUN"] + ": this run's records (state.md, results/, loops/, tests/, expectations/)",
+            "WORKTREE = " + str(repo) + ": the execution checkout, where product work happens"]
+
+
+def consult_lines(stage: str) -> list[str]:
+    """The stage's consult note, printed from ``_CONSULT`` only: one line per file, its headings in table order."""
+    files: dict[str, list[str]] = {}
+    for name, heading in _CONSULT.get(stage, ()):
+        files.setdefault(name, [])
+        if heading:
+            files[name].append("## " + heading)
+    if not files:
+        return []
+    return ["Consult at this stage (cite the headings you use and each R-<n> or AD-<n> you follow):",
+            *("- " + reference_name(name) + (" " + ", ".join(headings) if headings else "")
+              for name, headings in files.items())]
+
+
+def _latest_record(root: Path, relative: Any, action: str) -> str | None:
+    """The run-relative path of an action's highest-numbered record (``relative(action, n)``), or None."""
+    found, number = None, 1
+    while (Path(root) / relative(action, number)).is_file():
+        found, number = relative(action, number), number + 1
+    return found
+
+
+def _run_file(relative: str) -> Any:
+    """A product locator for a run-relative file: ``RUN/<file>`` when it exists, else nothing."""
+    return lambda root, state, item, action: "RUN/" + relative.format(action=action) \
+        if (Path(root) / relative.format(action=action)).is_file() else None
+
+
+def _run_latest(relative: Any) -> Any:
+    """A product locator for an action's numbered records: the latest one, when any exists."""
+    def locate(root: Path, state: Mapping[str, Any], item: str, action: str) -> str | None:
+        found = _latest_record(root, relative, action)
+        return "RUN/" + found if found else None
+    return locate
+
+
+def _preparatory(root: Path, state: Mapping[str, Any], item: str, action: str) -> str | None:
+    commit = preparatory_base(root, item)
+    return "commit " + commit[:12] + " in WORKTREE" if commit else None
+
+
+def _improve_receipt(root: Path, state: Mapping[str, Any], item: str, action: str) -> str | None:
+    return "RUN/improve/" + action + "/receipt.md" if action in state.get("improve_results", {}) else None
+
+
+# The durable products each stage leaves for later ones, beside its accepted result ("<item> <stage> result",
+# RUN/results/<action>.md, always listed): {stage: ((product, locator, what it is for), ...)}.  A locator takes
+# (run directory, state, item, action) and returns the product's symbolic path, or None when it is not there (it is
+# then left out).  Moving a product (a file becoming a state.md result field) is one row here.  ``_PER_STEP`` stages
+# list their products once per accepted step.
+_PRODUCTS: dict[str, tuple[tuple[str, Any, str], ...]] = {
+    "step-plan": (("plan section", lambda root, state, item, action: "FEATURE/plan.md, " + item + "'s section",
+                   "the plan note: invariants, failure cases, readiness and completion conditions"),),
+    "test-spec": (("cases", lambda root, state, item, action: "FEATURE/test-spec.md, " + item + "'s cases",
+                   "every case with its oracle"),),
+    "validate-existing": (("check record", _run_file(expectations.record_path("{action}")),
+                           "each expectation's check and whether it matched"),
+                          ("preparatory commit", _preparatory, "the fix the test stage's base run starts from")),
+    "implement": (("lint gate", _run_latest(lambda a, n: "lint/" + a + ".gate" + str(n) + ".md"),
+                   "the step's lint findings and waivers"),
+                  ("Improve review", _improve_receipt, "the review's findings, edits and lessons")),
+    "test": (("base run", _run_latest(test_loop.base_path), "each command's count on the item's base"),
+             ("candidate run", _run_latest(test_loop.verify_path), "each command's result and count"),
+             ("mutation run", _run_latest(test_loop.mutation_path), "the mutants and which tests caught them"),
+             ("loop receipt", _run_file(loops.terminal_path("{action}")), "")),
+    "verify": (("change inventory", _run_file(lint.inventory_path("{action}")), "the files the item changed"),
+               ("rerun record", _run_latest(test_loop.verify_path), "each recorded command's rerun"),
+               ("item commit", lambda root, state, item, action: "the WORKTREE commit whose subject starts 'feat: "
+                + item + " '", "the item's committed change")),
+}
+# What a stage's accepted result is for, when the stage names it.
+_RESULT_USE = {"step-plan": "the steps, criteria, test commands, expectations and paths",
+               "implement": "what the step changed and its evidence"}
+_PER_STEP = frozenset(stage for stage in stage_spec.INNER if stage_spec.stage(stage).improve == "step")
+
+
+def _product(label: str, path: str, use: str) -> str:
+    return "- " + label + ": " + path + (" (" + use + ")" if use else "")
+
+
+def _item_actions(state: Mapping[str, Any], item: str, stage: str, current: Mapping[Any, str]) -> list[tuple[str, str]]:
+    """``[(label, action)]``: the item's current action of ``stage``, or, for a per-step stage, each accepted step's."""
+    if stage not in _PER_STEP:
+        action = current.get((item, stage))
+        return [(item + " " + stage, action)] if action else []
+    plan_action, plan = test_loop._step_plan(state, item)
+    steps = list(plan.get("steps") or ()) if plan_action else []
+    history = list(state.get("history", ()))
+    start = max((i for i, row in enumerate(history) if row.get("action") == plan_action), default=-1)
+    done = [row["action"] for row in history[start + 1:]
+            if row.get("stage") == stage and row.get("workitem") == item and row.get("outcome") == "done"]
+    return [(item + " " + stage + " " + str(steps[number]["id"] if number < len(steps) else "step " + str(number + 1)),
+             action) for number, action in enumerate(done)]
+
+
+def _builds_on_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+    """What earlier stages produced that this stage reads (``stage_spec`` reads, ``_PRODUCTS``), under one naming scheme."""
+    if state["status"] != "active":
+        return []
+    current = planning_revision.current_actions(state)
+    lines: list[str] = []
+    for name in stage_spec.stage(stage).reads:
+        if not name.startswith("item:"):
+            if current.get((None, name)):
+                # "<stage> stage result", so a planning result is never confused with the living HOME files.
+                lines.append(_product(name + " stage result", "RUN/results/" + current[(None, name)] + ".md", ""))
+            continue
+        if workitem is None:
+            continue
+        read = name[5:]
+        for label, action in _item_actions(state, workitem, read, current):
+            lines.append(_product(label + " result", "RUN/results/" + action + ".md", _RESULT_USE.get(read, "")))
+            for product, locate, use in _PRODUCTS.get(read, ()):
+                path = locate(root, state, workitem, action)
+                if path:
+                    lines.append(_product(label + " " + product, path, use))
+    return [BUILDS_ON_HEAD, *lines] if lines else []
+
+
+def _reference_lines(root: Path, state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+    """The packet's References block: the global symbols, then this stage's consult note and what it builds on.
+
+    Every packet a model acts on carries it (producer, Improve parent, paused, blocked, awaiting); a done or halted
+    run's packet is a report with nothing left to do, and prints none.
+    """
+    if state["status"] in ("done", "halted"):
+        return []
+    return _reference_global_lines(root, state) + consult_lines(stage) + _builds_on_lines(root, state, stage, workitem)
+
+
 # The knowledge home's packet lines (the E2E session's architecture and spec-retire builds, 2026-10-10: "Lines for the
 # packet owner" in docs/shiploop-architecture-file-journal-2026-10-10.md (L1, L2, L5/L6) and
 # docs/shiploop-spec-retire-journal-2026-10-10.md (a-d)), around ``knowledge_home.stage_lines``.
 _EARLIER_FEATURE_STAGES = ("intake", "discovery", "research", "spec", "plan")
 
 
-def _knowledge_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
+    """The knowledge home's lines for this stage, with paths written as the References block's symbols.
+
+    The grounding line they used to end with (the knowledge files that exist, inner stages only) is the References block
+    now: every file listed in every packet, a missing one marked with its writer, and the stage's consult note.
+    """
     lines = list(knowledge.stage_lines(state, stage))
-    repo = Path(str(state["repo"]))
-    folder = str(repo / knowledge.feature_dir(state))
+    folder = "FEATURE"
     if len(lines) > 1:
         lines[1] = lines[1].replace("Earlier runs' spec, environment and features are there",
                                     "Earlier runs' spec, environment, architecture and features are there")
@@ -4095,19 +4334,19 @@ def _knowledge_lines(state: Mapping[str, Any], stage: str) -> list[str]:
             lines[1] += " " + knowledge.earlier_features(state)
     if stage in ("plan", "step-plan"):
         lines.append(
-            "architecture.md is how the product is built, apart from what it must do (that is spec.md): it holds "
+            "HOME/architecture.md is how the product is built, apart from what it must do (that is HOME/spec.md): it holds "
             + knowledge.ARCHITECTURE_HOLDS + ". Start from the committed file and keep every decision ID (AD-<n>): "
             "change a decision in place, or move one that no longer holds under '## Superseded' with the reason and "
             "its replacement's ID. ShipLoop refuses a version that loses an earlier ID. Describe credential handling "
             "by name (alias, mechanism): no secret values and no code that assigns them, because the credential "
             "screen reads this file. "
             + ("Record each structural choice this plan makes (module format, namespace and data map, storage, "
-               "dependencies, seams) as the next unused AD-<n>, and list architecture.md in README.md."
+               "dependencies, seams) as the next unused AD-<n>, and list architecture.md in HOME/README.md."
                if stage == "plan" else
                "If this item makes a structural decision (a new module, dependency, interface, storage or "
                "convention), add it as the next unused AD-<n> and cite the ID in the step plan."))
     if stage == "prepare":
-        lines.append("If architecture.md is missing, write it from plan.md and the plan's structural choices: it holds "
+        lines.append("If HOME/architecture.md is missing, write it from FEATURE/plan.md and the plan's structural choices: it holds "
                      + knowledge.ARCHITECTURE_HOLDS + ".")
     if stage == "plan":
         pin = knowledge.spec_pin(state)
@@ -4115,24 +4354,21 @@ def _knowledge_lines(state: Mapping[str, Any], stage: str) -> list[str]:
             lines.append("Begin " + folder + "/plan.md with this exact first line, which names the living-spec "
                          "version this plan implements: Spec: " + pin)
     if stage in [name for name, files in knowledge.STAGE_FILES.items() if "README.md" in files]:
-        lines.append("In " + str(repo / knowledge.HOME / "README.md") + " link the feature list, "
-                     + str(repo / knowledge.FEATURE_LIST) + ", not a feature's spec.md: ShipLoop removes that file at "
+        lines.append("In HOME/README.md link the feature list, HOME/features/README.md, not a feature's spec.md: "
+                     "ShipLoop removes that file at "
                      "handoff, so a link to it would dangle. ShipLoop writes that feature list at its next knowledge "
                      "commit; do not create or edit it.")
     if stage == "handoff":
         lines.append("At this handoff ShipLoop checks that every requirement ID in " + folder + "/spec.md is in "
-                     + str(repo / knowledge.HOME / "spec.md") + " and, when this run's commits reach your branch (an "
+                     "HOME/spec.md and, when this run's commits reach your branch (an "
                      "in-place run, or a fast-forward return), removes that feature spec in a commit of its own; it "
                      "stays after a working-tree return or a return that recorded no change, and the handoff is never "
                      "refused for the IDs or the route. A removal that cannot be written or committed does leave the "
                      "handoff pending, with the file's absolute path and the next step in the refusal.")
-    if stage in stage_spec.INNER:
-        files = knowledge.grounding(state)
-        if files:
-            lines.append("Ground this stage's decisions in these files (open each one this stage needs; cite the "
-                         "requirement or decision ID you follow): "
-                         + "; ".join(label + " " + str(path) for label, path in files) + ".")
-    return lines
+    # A quoted commit message ("  | ...", the inherited learnings) is the commit's own text: it is not rewritten.  The
+    # home's repository-relative name ("docs/shiploop/") is HOME too.
+    return [line if line.startswith("  |") else symbolic(line, root, state).replace(knowledge.HOME + "/", "HOME/")
+            for line in lines]
 
 
 def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
@@ -4143,15 +4379,15 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     gates.extend(_RECORDED_GATES[field] for field, owner in RECORDED_COMMANDS.items() if owner == stage)
     gates.extend(_INNER_GATES.get(stage, ()))
     if stage in ("spec", "plan", "step-plan"):
-        gates.append("a change to docs/shiploop/ that loses an earlier requirement (R-<n>) or decision (AD-<n>) ID, "
+        gates.append("a change to HOME/ that loses an earlier requirement (R-<n>) or decision (AD-<n>) ID, "
                      "or that looks like a credential")
     if stage in unverified.STAGES:
         gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
                      "or a due_stage that is not a later stage")
     if stage in knowledge.CLOSES:
         # A close that also requires files earlier stages wrote (prepare, test-spec, release-plan) did not write them all.
-        gates.append("a docs/shiploop file this stage's close requires, missing or empty" if knowledge.required_earlier(stage)
-                     else "a docs/shiploop file this stage must have written, missing or empty")
+        gates.append("a HOME file this stage's close requires, missing or empty" if knowledge.required_earlier(stage)
+                     else "a HOME file this stage must have written, missing or empty")
     return gates
 
 
@@ -4171,7 +4407,7 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
         # A stage that both runs a script check and closes the knowledge home (release-verify) keeps both: the gates
         # beyond the run are refused too, and a line that named only the run left them to the refusal.
         return ("Checked by: when you report done, ShipLoop " + "; then ".join(
-            _CHECK_TEXT[run] for run in row.complete_runs)
+            _check_text(run, row.name) for run in row.complete_runs)
             + "; it also refuses " + "; ".join([_COMMON_GATES, *extra]) + ".")
     return ("Checked by: when you report done, ShipLoop refuses a result with a mechanical fault: " + _COMMON_GATES
             + ("; at this stage also " + "; ".join(extra) if extra else "")

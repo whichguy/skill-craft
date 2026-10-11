@@ -1260,12 +1260,10 @@ class NavigatorContractTests(unittest.TestCase):
         import shiploop_loops as loops
         self.assertIn("titled with its ID as its own word, registered in the focused and regression commands",
                       " ".join(loops.WORK["test"].split()))  # the loop's Work, its one home
-        for duty in (
-            "Reuse the existing harness, helpers and fixtures before adding a facility",
-            "runs every listed ID",
-        ):
-            with self.subTest(stage="test", duty=duty):
-                self.assertIn(duty, tester)
+        self.assertIn("Reuse the existing harness, helpers and fixtures before adding a facility", tester)
+        # What ShipLoop's run refuses is the Checked-by line's, its one home (owner, 2026-10-11), not the duty's.
+        self.assertIn("runs every listed ID", navigator._check_text("test-loop", "test"))
+        self.assertNotIn("runs every listed ID", tester)
 
         state = self.state()
         while navigator.current_stage(state) != "test-spec":

@@ -496,7 +496,7 @@ class RefusalRouteTests(RealCliCase):
         command, path, action = printed_callback(head)
         full = full_packet_text(head)
         checked = next(row for row in full.splitlines() if row.startswith("Checked by: "))
-        self.assertIn("a docs/shiploop file this stage must have written, missing or empty", checked)
+        self.assertIn("a HOME file this stage must have written, missing or empty", checked)
         self.assertIn("reruns every recorded test command", checked)  # the run the line used to name alone
         done = full[full.index("Done when"):full.index("Checked by: ")]
         for word in ("outcome.md", "environment.md", "README.md"):

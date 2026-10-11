@@ -1096,7 +1096,7 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(recovered["work_items"][0]["context"], context)
         self.assertEqual(recovered["accepted"][plan_action]["evidence_refs"], [plan_evidence])
         self.assertIn("Work item context: " + context, packet)
-        self.assertIn("Reopen this item's `context` and its section of the feature plan.md", normalized(packet))
+        self.assertIn("Reopen this item's `context` and its section of FEATURE/plan.md", normalized(packet))
         for label, locator in prompts.STAGE_REFERENCES["step-plan"]:
             self.assertIn(label + ": " + str(REFERENCES / locator), packet)
 

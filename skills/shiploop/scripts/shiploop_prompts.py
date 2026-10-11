@@ -906,7 +906,7 @@ positive, failure, and boundary expectations before coding.  Preserve approved
 scope and mark unresolved prerequisites or user decisions explicitly rather than
 hiding them in implementation detail.
 Number requirements R-<n> only. A choice about structure or technology is not a
-requirement: it belongs in architecture.md as an AD-<n> decision, never in spec.md,
+requirement: it belongs in HOME/architecture.md as an AD-<n> decision, never in HOME/spec.md,
 and a product decision a spec numbers must not use the AD- prefix.
 Reconcile the delta with maintained product requirements: preserve, add, modify,
 or retire affected conditions with their request/decision basis. Retain accepted
@@ -1123,24 +1123,19 @@ the initial baseline, prepare only the approved prerequisite, retain the origina
 observation, then rerun the original initial check against unchanged product and
 tests before dependent feature edits. Do not replace it with an easier route or
 describe the blocked baseline as passed.
-Record readiness, or the justified N/A, in environment.md, and cite in `evidence_refs`
+Record readiness, or the justified N/A, in HOME/environment.md, and cite in `evidence_refs`
 the runner output that shows each planned check starts.
 """,
     "step-plan": _LOOP_DUTY + """\
 ShipLoop issued this packet after checking that the item's prerequisites are
-accepted. Reopen this item's `context` and its section of the feature plan.md, and
+accepted. Reopen this item's `context` and its section of FEATURE/plan.md, and
 recheck each condition they state before relying on an earlier decision. If the
 plan no longer requires this item, report blocked with blocked_by user and an
 `awaiting` answer (drop or keep the item), citing the plan section that superseded
 it; never skip the item or repair the queue here.
-Consult these knowledge-home files and cite the headings you used: spec.md
-(## Requirements, ## Non-functional requirements) for the R-<n> this item serves,
-each criterion tracing to one; architecture.md (## Structure, ## Interfaces and
-boundaries, ## Conventions, ## Decisions) for where the change goes and the house
-style, writing a structural choice this item makes that it does not record yet as
-a new AD-<n> under ## Decisions now; environment.md (## Commands, ## Targets and runtimes, ## Skills)
-for the test, lint, type and build commands, adding a newly working command under
-## Commands; test-strategy.md (## Harnesses and suites, ## ID convention).
+Trace each criterion to the R-<n> it serves. Write a structural choice this item
+makes that HOME/architecture.md does not record yet as a new AD-<n> under
+## Decisions now, and add a newly working command to HOME/environment.md ## Commands.
 Steps: list every implementation step in `steps`, in the order to do them (one is
 fine), each behaviour-sized; ShipLoop issues one implement packet per step in that order. Each step
 declares `deps` (the earlier step IDs it truly needs, or []; list order alone is
@@ -1171,7 +1166,7 @@ Test commands: record them in `test_commands`:
 `[{"command": "<shell command>", "suite": "focused" | "regression" | "check", "ids": ["TC-9", ...], "criteria": ["C1", ...]}]`.
 Focused commands run this item's cases; regression commands run the retained
 suites the changed paths affect; check commands are the lint, type and build
-commands environment.md records for these files, judged by exit code, with no ids
+commands HOME/environment.md records for these files, judged by exit code, with no ids
 or min_tests. With no lint, type or build command for these files, give
 `check_na` with the reason; with no command at all, `test_commands_na`. Every
 criterion is named in some command's `criteria`, and a command names only listed
@@ -1200,11 +1195,11 @@ check. ShipLoop runs every check on the unchanged item base at validate-existing
 after test-spec and before implement.
 Paths: record every file this item will change in `paths` (repository-relative
 files or globs), including the test files the test stage will write. The item
-commit takes these, changed documentation and docs/shiploop/. An item
+commit takes these, changed documentation and HOME/. An item
 with no test command and only non-code paths skips the test stage (implement is
 then refused for a code, test or undeclared path), and one whose real diff touches
 no code or test path skips document.
-Plan note: under this item's heading in the feature plan.md, record the outcome,
+Plan note: under this item's heading in FEATURE/plan.md, record the outcome,
 invariants kept, contracts and responsibilities changed, each step's failure cases
 and the diagnostics and errors it must produce, the documentation to change,
 integration impact and release prerequisites, and the readiness, completion and
@@ -1232,8 +1227,8 @@ For affected service work, reopen the indexed current contract and item-specific
 sections from Service discovery guidance, and reconcile changed remote/local
 state, authority, cache invalidation, async recovery and owned logging; a
 superseded note or earlier probe cannot replace current evidence.
-Reopen the packet's Current planning sources (accepted spec and plan), its test
-strategy source and this item's prior-baseline and incoming-spec sections, and
+Reopen the spec and plan stage results the packet lists, its test strategy
+source and this item's prior-baseline and incoming-spec sections, and
 surface a missing consequential source before dependent implementation.
 Keep the interaction delta within the selected work item; available APIs and
 other features in the original request do not expand it. An unresolved
@@ -1249,15 +1244,12 @@ The packet's Improve handoff reviews this plan, its steps and any execution grap
 before implement uses them.
 """,
     "test-spec": _LOOP_DUTY + """\
-Consult and cite: spec.md (## Requirements), where every case cites its criterion
-and R-<n> and takes its oracle from the requirement's text, never from code (check
-a golden, fixture or snapshot oracle against that text first); architecture.md
-(## Interfaces and boundaries) for the surface each case tests at; test-strategy.md
-(## Harnesses and suites, ## ID convention, ## Real-boundary checks) for IDs,
-harness and where a real boundary is required, stating which of its decisions this
-item keeps or changes and why; the step plan's criteria and its focused commands'
+Every case cites its criterion and R-<n> and takes its oracle from the
+requirement's text, never from code (check a golden, fixture or snapshot oracle
+against that text first); state which HOME/test-strategy.md decisions this item
+keeps or changes and why. Read the step plan's criteria and its focused commands'
 ids.
-Write one "### <ID>" entry per case in the feature test-spec.md, titled with an
+Write one "### <ID>" entry per case in FEATURE/test-spec.md, titled with an
 id a focused command in the step plan's `test_commands` lists, and give every id
 those commands list its own entry: ShipLoop refuses a case ID that no focused
 command lists and a focused command id with no entry. A missing id means the
@@ -1295,7 +1287,7 @@ Once an iteration has found whether the fact or the check is wrong:
   ShipLoop commits it on accept as one preparatory commit, which is not the
   item's change;
 - the environment lacks something (a tool, service or setting): fix the
-  environment and record it in environment.md (## Commands, ## Targets and
+  environment and record it in HOME/environment.md (## Commands, ## Targets and
   runtimes);
 - an absent expectation finds something there, a broken one does not reproduce,
   or the fix is not known: stop and report revise with what is true, so the step
@@ -1310,17 +1302,14 @@ checkout cannot change a result there and a mismatch is a revise.
 A revise names each mismatched expectation in `failed_expectations`
 (`[{"id": "E1", "actual": "<what is true>", "route": "steps"}]`): route "check" when
 the check is wrong (actual gives the corrected check), "steps" when the plan must change.
-Consult: the step plan (the steps and paths each expectation covers), the plan's
-assumptions, environment.md (## Commands) and architecture.md (## Structure,
-## Interfaces and boundaries).
+Read the step plan (the steps and paths each expectation covers) and the plan's
+assumptions.
 """,
     "implement": _LOOP_DUTY + """\
 Earlier steps are accepted; do no work that no criterion asks for.
-Consult and cite: spec (the R-<n> behind each criterion) for the behaviour;
-architecture.md (## Structure, ## Interfaces and boundaries, ## Conventions,
-## Decisions) for where the code goes and how it reads, recording a departure as a
-new AD-<n> under ## Decisions before you finish; environment.md (## Commands),
-recording a newly working command there. Use the Coding decision guide to reopen
+Record a departure from HOME/architecture.md as a new AD-<n> under ## Decisions
+before you finish, and a newly working command in HOME/environment.md ## Commands.
+Use the Coding decision guide to reopen
 the accepted plan and only its relevant practice/platform sections, and check
 current code, versions and consumers before reuse or augmentation. Use each of
 the step's skills listed below for its stated purpose (invoke it through your
@@ -1349,14 +1338,8 @@ loop blocked and report revise naming the criterion or command and which case
 holds, so the step plan is corrected rather than blindly retried. Report blocked,
 with blocked_by, only when the user, an access grant or an outside dependency
 must resolve it.
-On done ShipLoop lints every file this item changed with the linters the
-repository configures (unless the run's lint option is off): it refuses done once
-after applying an auto-fix (keep or revert it, rerun the checks, submit again) and
-while a new finding on a changed line has no `lint_waivers` entry. For an item
-with no test command it also refuses a change that touches a code or test path or
-a path the step plan did not declare.
 After ShipLoop accepts the step, its Improve child reviews the step's diff
-against its task and criteria, the Code craft rubric and architecture.md, and
+against its task and criteria, the Code craft rubric and HOME/architecture.md, and
 commits warranted edits; the next step starts from that result.
 For service changes, apply the accepted current contract and relevant Service
 discovery guidance. Revalidate target state and authority before effects; preserve
@@ -1364,21 +1347,17 @@ unrelated remote fields and existing operational owners. Unresolved cache access
 or async completion semantics require their recorded safe fallback or correction.
 """ + _IMPLEMENT_CHAIN,
     "test": _LOOP_DUTY + """\
-Consult and cite: the feature test-spec.md (every case and its oracle); the
-implement results (a behaviour no case covers is a test-spec gap: see below);
-test-strategy.md (## Harnesses and suites,
-## ID convention, ## Real-boundary checks); environment.md (## Commands);
-architecture.md (## Conventions) for test style and seams; the spec for what each
-behaviour must be.
+Read the implement results: a behaviour no case covers is a test-spec gap (see
+below).
 Change a test, fixture, golden file or threshold only when an independent reason shows the
 check itself is wrong, and record that reason in the run notes; never weaken,
 delete or skip a test to get green. A repeated unchanged failure is not progress:
 change the approach.
 Reuse the existing harness, helpers and fixtures before adding a facility, and
-record a new one in test-strategy.md (## Harnesses and suites), as you do a test
+record a new one in HOME/test-strategy.md (## Harnesses and suites), as you do a test
 decision the implementation changed (harness, boundary, suite). Each new or
 changed public entry point gets its rejection cases. A test-spec gap (a rejection
-case or an implemented behaviour the spec lacks) goes into test-spec.md as a
+case or an implemented behaviour the spec lacks) goes into FEATURE/test-spec.md as a
 sub-case of the closest "### <ID>" entry, with its oracle from the spec, and its
 test is titled `<ID> (<letter>)` so a listed ID covers it; a new "### <ID>"
 entry needs a focused command to list it, so when no entry fits, report revise. Test a
@@ -1394,31 +1373,16 @@ Every case ends as a test the focused command runs and passes (when the first
 method cannot observe the oracle, a test by another method, still titled with its
 ID, and the result says what changed and why), or unachievable (a named reason
 and the requirement it leaves unverified: report revise so the step plan reroutes
-it); a case written but not run is not an end state. A case in test-spec.md's
+it); a case written but not run is not an end state. A case in FEATURE/test-spec.md's
 "## Due later" list is not written here; it stays there for system-test-author.
 A new test that passes on the item's base without this change is a
 characterisation test: name it in `red_na` (`[{"id": "<test ID>", "reason": "<why it passes without this change>"}]`).
 A test this item deliberately retires goes in `retired_tests`
 (`[{"id": "<test ID>", "reason": "<the requirement or AD-<n> that retires it>"}]`);
 any other drop below a command's floor is refused.
-On done ShipLoop lints this item's changes first (refusing done once after an
-auto-fix: keep or revert it, rerun, submit again; and while a new finding on a
-changed line has no `lint_waivers` entry); then runs the focused and regression
-commands on the item's base with only this item's test files, refusing when a new test ID passes
-there and `red_na` does not name it (a test that fails to load a file this item
-adds counts as failing, because on new code nothing can run on the base); then
-runs every command on the candidate, refusing unless
-each exits 0, runs every listed ID and reaches its floor (the larger of the base
-run's count and the most an earlier run of this action counted); then mutates a
-sample of this item's changed product lines, one token at a time in a temporary
-copy, and refuses done when the focused tests catch none of those mutants: that,
-not the base run, proves your assertions check the behaviour the test spec's
-oracle states, so a test that only loads the code is refused. A command that
-already failed on the base must still pass here. After a refusal, fix the cause,
-start the loop again and submit again. A run that times out or cannot start
-refuses without counting; after 11 counted refusals, base, candidate and mutation
-runs together,
-done is no longer accepted: report revise.
+A lint finding that must stay goes in the result's `lint_waivers` as
+`{"id": "<printed ID>", "reason": "<why>"}`. After a refusal at done (Checked by
+above), fix the cause, start the loop again and submit again.
 Report revise when a failure is proven unachievable (it contradicts the
 specification or another requirement, needs a tool, access or authority that is
 absent, or would exceed the item) or a recorded command is wrong or cannot run
@@ -1430,12 +1394,9 @@ dependency must unblock it.
 """,
     "document": _LOOP_DUTY + """\
 ShipLoop issues this stage only when the item's change touches behaviour.
-Consult and cite: the spec (## Requirements) for the R-<n> this item changed and
-its intended behaviour; architecture.md (## Structure, ## Interfaces and
-boundaries, ## Decisions) for what is now true, writing a design or service
-decision this item made as an AD-<n> under ## Decisions if implement did not (a
-service choice with its contract, owner and revalidation trigger); environment.md
-(## Commands) for the commands your examples use.
+Write a design or service decision this item made as an AD-<n> under
+HOME/architecture.md ## Decisions if implement did not (a service choice with its
+contract, owner and revalidation trigger).
 The changed behaviours come from the step plan, the implement results and the
 item's diff as well as the change inventory, and user and design documentation
 count too. Document nothing you did not observe working,
@@ -1450,13 +1411,8 @@ blocked only when a behaviour cannot be observed here, naming it.
     "verify": _LOOP_DUTY + """\
 This is work-item acceptance, not a claim that integration or release has happened. The
 test stage wrote the tests and got every command green: confirm and review that
-result, and change a test only to fix a finding.
-Consult and cite: the spec (## Requirements, ## Non-functional requirements) for
-every R-<n> this item serves and its criteria; architecture.md (## Decisions,
-## Interfaces and boundaries, ## Conventions), which the change follows or
-extends with a new AD-<n>; test-strategy.md (## Real-boundary checks), where a
-boundary a local test cannot prove stays pending with its owner; the feature
-test-spec.md for every case.
+result, and change a test only to fix a finding. A boundary a local test cannot
+prove stays pending with its owner (HOME/test-strategy.md ## Real-boundary checks).
 On entry ShipLoop linted this item's changes, auto-fixing safe formatting once,
 and wrote the change inventory. Keep or revert each auto-fix the lint record
 names; the lint record supports the review, it does not replace the checks below.
@@ -1479,31 +1435,21 @@ and observability contracts: verify the due outcomes, including safe fallback an
 failure cases, and separate local simulation from required remote readback,
 permission enforcement, completion and event retrieval. Confirm every later-phase
 check the criteria need (system, release, real boundary) is listed under the
-feature test-spec.md's "## Due later" with its owner and due stage, adding any
+FEATURE/test-spec.md's "## Due later" with its owner and due stage, adding any
 missing one; system-test-author picks them up from there. Keep run state, raw logs, credentials and generated artifacts
 out of the product commit.
 Summarize the entry points traced, each trace that found an issue and its fix,
 each command with its exit code, any required check not run and why, and the
 known limitations.
-On done ShipLoop lints again (refusing a new unwaived finding on a changed line),
-then reruns every recorded command and refuses done unless each passes, runs every
-listed ID and reaches its floor; the record it writes is the evidence, so a
-criterion is confirmed by its passing command, not by this result's summary.
-After 11 refused runs done is no longer accepted: report revise. When verify is
-accepted, ShipLoop commits the item.
 Report revise when a criterion or check proves unachievable as planned, naming
 it; the item goes back to its step plan rather than to a blind retry. Report
 blocked, with blocked_by, only when the user, an access grant or an outside
 dependency must unblock it.
 """,
     "carry-forward": _LOOP_DUTY + """\
-Consult and cite: spec.md (## Requirements, Retired) for the R-<n> this item
-served; architecture.md (## Decisions, ## Superseded) for the AD-<n> it added or
-changed; environment.md (## Commands, ## Skills); test-strategy.md (## Harnesses
-and suites); the feature plan.md (## Open) and state.md work_items.
-Knowledge, beyond the loop's Work: test-strategy.md ## Harnesses and suites also
+Read RUN/state.md work_items. Knowledge, beyond the loop's Work: HOME/test-strategy.md ## Harnesses and suites also
 records harness and case locators, fixture lifecycle decisions and pending
-full-suite checks, beside the originating strategy locator; the feature plan.md
+full-suite checks, beside the originating strategy locator; FEATURE/plan.md
 ## Open also records unresolved dependencies. Keep completed evidence apart from
 future plans and never rewrite it; do not silently expand scope or turn a
 tentative idea into adopted policy. Carry the selected prior baseline, incoming
@@ -1511,8 +1457,8 @@ delta and updated knowledge locators forward, preserving historical snapshots.
 Queue: read it before revising it, and keep unrelated pending work with no
 consumer. A completed prerequisite that new evidence invalidates is handled like a
 defect in completed work: a corrective item, with revalidation, ahead of its
-consumers; an observation no item owns goes in plan.md ## Open; explain a
-supersession in plan.md as you do a removal or merge. `work_items`, when present, replaces
+consumers; an observation no item owns goes in FEATURE/plan.md ## Open; explain a
+supersession there as you do a removal or merge. `work_items`, when present, replaces
 the whole future queue: rows `{"id", "title", "context"}` in prerequisite order,
 repeating no completed or current ID. A finding incompatible with the approved
 work (a changed requirement, permission or invocation contract) is not a queue
@@ -1524,7 +1470,7 @@ also runs a retained older use; the trial note says whether a fresh reader tried
 it or "cold-context reuse untested"; presence or installation is not proof it runs.
 Keep task-specific values in evidence and revalidate earlier skill selections for
 each new task.
-When accepted, ShipLoop commits docs/shiploop/ and SHIPLOOP.md and, for a created
+When accepted, ShipLoop commits HOME/ and SHIPLOOP.md and, for a created
 or updated skill, its directory and index; commit nothing yourself. When this
 result leaves no work item pending, an Improve child reviews every executed item's
 change (the end-of-work review); it commits its own edits, and if it changed
@@ -1555,8 +1501,8 @@ command recorded as not run is not an end state. When no system test applies, gi
 Reopen the Run-wide test strategy source. From accepted history, select the
 latest done test-decision record for every relevant completed item: step-plan,
 test-spec or test, with its retained prior locators. Read every entry under
-"## Due later" in this run's feature test-spec.md and the system-test obligations
-in its plan.md "## Open": each becomes a system case here, or an open item with
+"## Due later" in FEATURE/test-spec.md and the system-test obligations in
+FEATURE/plan.md "## Open": each becomes a system case here, or an open item with
 its due stage.
 Keep selected action/result and durable test-note locators in evidence_refs.
 Do not infer whole-product coverage from the last transition or final item.
@@ -2364,7 +2310,7 @@ the step began) and fix, within those paths, any of these:
   any effect, swallows an error or returns a success default (Code craft 2);
 - a public function without its contract docstring, a comment that restates
   code, or dead code (rules 3-4);
-- code placed outside architecture.md's ## Structure or ## Conventions, or a
+- code placed outside HOME/architecture.md's ## Structure or ## Conventions, or a
   departure with no new AD-<n> under ## Decisions; a name that collides or is
   exported wider than needed (rule 8);
 - a near-copy of existing logic, a new unit where an existing one could be

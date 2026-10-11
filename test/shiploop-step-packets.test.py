@@ -7,7 +7,7 @@ as its test command). Every inner-loop stage, and every Improve packet the item'
 - naming the case's work item;
 - with each skill reference it names present on disk;
 - with the printed head inside the host's shell-output limit.
-From test-red on, each packet that runs the item's tests must also name the recorded test command.
+Each packet that runs the item's tests (test, verify) must also name the recorded test command.
 
 Run `python3 test/shiploop_e2e/packets.py --offline <case>` to see sizes, sections and the cross-packet overlap.
 """
@@ -31,8 +31,9 @@ import shiploop_store as store  # noqa: E402
 
 CASES = {name: case for name, case in json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text()).items()
          if not name.startswith("_")}
-# The stages whose packets carry the item's recorded test commands to run them.
-RUNS_THE_TESTS = ("test-red", "test-green", "regression")
+# The stages whose packets carry the item's recorded test commands to run them: the test stage (its /until-loop
+# argument) and verify (its Test rerun list).  Declared here; a test below pins them to the stage table's runs.
+RUNS_THE_TESTS = ("test", "verify")
 
 
 class StepPacketTests(unittest.TestCase):
@@ -63,10 +64,17 @@ class StepPacketTests(unittest.TestCase):
     def test_stages_that_run_the_tests_name_the_recorded_command(self) -> None:
         for name, found in self.found.items():
             command = CASES[name]["checks"][0]
+            checked = set()
             for key, text in found.items():
                 if key.split("-", 1)[1] in RUNS_THE_TESTS:
+                    checked.add(key.split("-", 1)[1])
                     with self.subTest(case=name, packet=key):
                         self.assertIn(command, text)
+            self.assertEqual(checked, set(RUNS_THE_TESTS), name)  # a renamed stage cannot leave this checking nothing
+
+    def test_the_stages_that_run_the_tests_are_the_inner_stages_that_run_them_at_done(self) -> None:
+        runs = set(stage_spec.with_complete_run("test-loop")) | set(stage_spec.with_complete_run("test-rerun"))
+        self.assertEqual(set(RUNS_THE_TESTS), runs & set(stage_spec.INNER))
 
     def test_each_exit_condition_and_recorded_command_appears_once(self) -> None:
         """Each thing once (owner, 2026-10-11): the /until-loop argument is the one home of the exit conditions and the

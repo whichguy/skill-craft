@@ -36,6 +36,7 @@ import shiploop_quality as quality  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
+import shiploop_status_hook as status_hook  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
 
@@ -1324,7 +1325,7 @@ class TestLoopTests(unittest.TestCase):
         The base run still accepts that, and the mutation check refuses the test that asserts nothing."""
         self.calc_item(self.EMPTY_TEST)
         action = self.action()
-        self.assertIn("mutates a sample of the changed product lines", " ".join(self.packet().split()))
+        self.assertIn("mutates a sample of this item's changed product lines", " ".join(self.packet().split()))
         self.assert_refused(self.loop_done(), r"(?s)ShipLoop mutation check: test is not done.*"
                                               r"- calc.py:2: ' \+ ' -> ' - '.*the test spec's oracle states")
         base = store.read_record(self.run_dir / test_loop.base_path(action, 1))
@@ -1435,7 +1436,8 @@ class TestLoopTests(unittest.TestCase):
                 self.assertEqual(full.count("\n" + self.START), 1)  # in the head, not repeated at the tail
                 self.assertLess(full.index("\n" + self.START), full.index("Current stage guidance:"))
                 self.assertGreater(full.index("\n" + self.START), full.index(nav.STATUS_END))
-                self.assertLess(head.index(nav.STATUS_END), 8000)  # a status hook reads only the first 8000 bytes
+                # a status hook reads only the first WINDOW bytes (16,000; 8000 before 2026-10-10)
+                self.assertLess(head.index(nav.STATUS_END), status_hook.WINDOW)
                 if stage == "verify":
                     self.assertGreater(full.index("Change inventory for"), full.index("\n" + self.START))
                 (self.repo / "fixed.txt").write_text("fixed\n")
