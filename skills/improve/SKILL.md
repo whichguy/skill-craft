@@ -89,7 +89,10 @@ rather than silently changing runtimes.
 
 ## ShipLoop whole-skill subcall
 
-When a ShipLoop packet names a selected actual Improve card and prints a
+When this skill is invoked with the argument `ShipLoop Improve: <handoff path>`,
+read that handoff file: ShipLoop wrote it for one child, and it plays the role of
+"the ShipLoop packet" in this section. When it (or a ShipLoop packet) names a
+selected actual Improve card and prints a
 `ShipLoop standalone Improve binding: <binding-id>` marker, this is a
 **standalone whole-skill subcall**. Read and run this card's standalone owner
 binding with this card's bound Until Loop runtime. Preserve the exact binding

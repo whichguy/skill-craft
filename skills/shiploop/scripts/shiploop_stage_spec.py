@@ -123,8 +123,9 @@ def case_end_states(row: "Stage") -> str:
     stage sends it back to the step plan with revise.  Blocked and replan are named only where the row accepts them.
     """
     if row.phase == "outer":
-        routes = ["record it as an open item in the summary with its due stage and continue, provided its command is "
-                  "not one ShipLoop reruns, since every rerun command must pass"]
+        routes = ["record it as an open item in the result's `assumptions`, with the stage it is due at as its "
+                  "consumer, and continue, provided its command is not one ShipLoop reruns, since every rerun command "
+                  "must pass"]
     elif "revise" in row.outcomes:
         routes = ["report revise so the step plan reroutes the case"]
     else:
@@ -174,7 +175,8 @@ _ROWS = (
     # ------------------------------------------------------------------ prelude
     Stage(
         "intake", "prelude",
-        goal="confirm the request, boundaries and open questions",
+        goal=("Map the request to outcomes, boundaries and open questions, and write them in this result's "
+               "`summary`."),
         done_when=(
             "every sentence of the request maps to an outcome, a boundary or an open question",
             "each open question names who answers it (discovery, or a recorded default) and what it blocks",
@@ -184,7 +186,9 @@ _ROWS = (
     ),
     Stage(
         "discovery", "prelude",
-        goal="inspect the current repository, environment and baseline tests",
+        goal=("Inspect the repository, its environment and its baseline tests, and record the facts in "
+              "HOME/environment.md, the current-system account in RUN/notes/current-system-baseline.md, and the "
+              "baseline run in `evidence_refs`."),
         done_when=(
             "the existing suite (full, or smoke if full is impractical) ran on the unchanged checkout, "
             "with command, exit code and output recorded, or none exists and that is recorded as missing coverage",
@@ -200,7 +204,8 @@ _ROWS = (
     ),
     Stage(
         "research", "prelude",
-        goal="resolve the unknowns that matter with evidence",
+        goal=("Resolve the consequential unknowns with evidence: write each conclusion and the load-bearing "
+              "assumption list to RUN/notes/research.md, and durable facts and access needs to HOME/environment.md."),
         done_when=(
             "every consequential unknown is resolved with evidence, or recorded with an owner and the gate it blocks",
             "each proven access need is recorded as an open item with who can grant it and the gate it blocks",
@@ -213,7 +218,8 @@ _ROWS = (
     ),
     Stage(
         "spec", "prelude",
-        goal="define required behavior and acceptance criteria",
+        goal=("Define the required behaviour and its acceptance criteria: write each requirement as R-<n> in "
+              "HOME/spec.md, and this run's added, modified and retired IDs with their basis in FEATURE/spec.md."),
         done_when=(
             "every request outcome maps to at least one acceptance criterion",
             "each criterion is independently verifiable and says how it will be confirmed",
@@ -229,7 +235,8 @@ _ROWS = (
     ),
     Stage(
         "test-strategy", "prelude",
-        goal="map requirements to the checks that will prove them",
+        goal=("Map every requirement to the checks that will prove it: write the harnesses, suite commands and ID "
+              "convention to HOME/environment.md and the real-boundary checks to HOME/architecture.md."),
         done_when=(
             "every criterion maps to a check, its surface and the stage it is due",
             "the test harness is selected or revalidated, with setup and isolation stated",
@@ -247,7 +254,8 @@ _ROWS = (
     ),
     Stage(
         "plan", "prelude",
-        goal="build the dependency plan and the work-item queue",
+        goal=("Build the dependency plan and the work-item queue: return the ordered queue in `work_items` and the "
+              "load-bearing assumptions in `assumptions`, and write structure decisions to HOME/architecture.md."),
         done_when=(
             "every criterion is owned by a work item",
             "work items are in dependency order with readiness and completion conditions",
@@ -262,7 +270,9 @@ _ROWS = (
     ),
     Stage(
         "prepare", "prelude",
-        goal="ready the development and test environment",
+        goal=("Ready the development and test environment the plan named: record its readiness, or a justified "
+              "not-applicable, in HOME/environment.md, and cite the runner output that shows each planned check "
+              "starts in `evidence_refs`."),
         done_when=(
             "each planned check's runner starts in the prepared environment",
             "readiness is recorded, or a justified not-applicable",
@@ -281,7 +291,8 @@ _ROWS = (
     # seventeen stages this replaces: docs/experiments/inner-loop-redesign-20261010/.
     Stage(
         "step-plan", "inner",
-        goal="plan this item's concrete changes, checks and the facts they build on",
+        goal=("Plan this item's change: record `criteria`, `steps`, `test_commands`, `expectations`, `paths` and "
+              "`follows` in the result, with the item's plan record in its `context` or the summary."),
         done_when=(
             "the result opens with one sentence naming the change and the checks that prove it",
             "steps lists every implementation step in the order to do them",
@@ -310,7 +321,8 @@ _ROWS = (
     ),
     Stage(
         "test-spec", "inner",
-        goal="specify the tests this item needs before code changes",
+        goal=("Specify this item's tests: record one case per focused-command ID in `test_cases`, each with its "
+              "oracle, RED and GREEN. Write no test code."),
         done_when=(
             "every completion criterion has at least one test case, or a justified not-applicable",
             "each case has an independent oracle, a RED and a GREEN definition, and an ID a focused command lists",
@@ -324,7 +336,9 @@ _ROWS = (
     ),
     Stage(
         "validate-existing", "inner",
-        goal="verify that what this item is about to change works before changing it",
+        goal=("Resolve each expectation that did not match on the item base: fix the environment or a known small "
+              "defect in WORKTREE, or report revise with `failed_expectations` naming each mismatch and what is "
+              "true."),
         done_when=(
             "every works expectation passes its check on the current checkout",
             "every absent expectation finds nothing at its place",
@@ -343,7 +357,9 @@ _ROWS = (
     ),
     Stage(
         "implement", "inner",
-        goal="make the planned step's change",
+        goal=("Make this step's change on its paths in WORKTREE, record each check's exit code in "
+              "RUN/notes/<action>.md, and list in the result the behaviours no test case covers (`not_covered`) and "
+              "each step skill's use (summary)."),
         done_when=(
             "only the step's paths changed since the step began, and no later step's work is in them",
             "after the last edit, every recorded check command exited 0",
@@ -365,7 +381,9 @@ _ROWS = (
     ),
     Stage(
         "test", "inner",
-        goal="write the specified tests and make every recorded command pass",
+        goal=("Write a test for every test case quoted in the packet, titled with its ID, and make every recorded "
+              "command pass in WORKTREE; record `red_na`, `retired_tests` and `lint_waivers` in the result and each "
+              "test change's reason in RUN/notes/<action>.md."),
         done_when=(
             "every case in the test spec is a test the focused command runs, with its ID in the name",
             "no new test ID passes on the item's base checkout, unless red_na names it",
@@ -386,7 +404,8 @@ _ROWS = (
     ),
     Stage(
         "document", "inner",
-        goal="update the documentation this change affects",
+        goal=("Update the documentation this item's change affects in WORKTREE (README, API, operator, error and "
+              "design docs) from observed behaviour, and record each no-change reason in RUN/notes/<action>.md."),
         done_when=(
             "each changed public behaviour is documented where users and maintainers look",
             "each changed document was reread after the last edit",
@@ -400,7 +419,10 @@ _ROWS = (
     ),
     Stage(
         "verify", "inner",
-        goal="verify the item against its acceptance criteria and review the change",
+        goal=("Accept the item: confirm each criterion with a command run after the last edit, trace every changed "
+              "public entry point and review the item's diff, writing exit codes and traces in RUN/notes/<action>.md "
+              "and each open later-phase check in `assumptions`. This is item acceptance, not a claim that "
+              "integration or release has happened."),
         done_when=(
             "every completion criterion is confirmed on the current candidate, with evidence made after the last edit",
             "every recorded command exits 0 on the candidate after the last edit",
@@ -422,7 +444,9 @@ _ROWS = (
     ),
     Stage(
         "carry-forward", "inner",
-        goal="record lessons, revise the remaining queue and decide on a reusable skill",
+        goal=("Close the item: update the knowledge home in place, write the future queue in `work_items` when it "
+              "changes, and record the reusable-skill decision in `skill`, creating or updating a repository skill "
+              "under item 3's rule."),
         done_when=(
             "every still-required future item is in the queue, in prerequisite order",
             "learnings and durable knowledge are recorded in the knowledge home, not in run notes",
@@ -442,7 +466,9 @@ _ROWS = (
     # ------------------------------------------------------------------ outer
     Stage(
         "system-test-author", "outer",
-        goal="prepare end-to-end and system tests",
+        goal=("Author the whole-product system tests: write one catalog row per case and the integrated test plan in "
+              "`summary` (the plan also in HOME/environment.md), record each runnable case's command in "
+              "`system_commands`, and record each case that cannot run here as an open item in `assumptions`."),
         done_when=("every system-level criterion has a system test, or a planned check with its due stage",),
         test="Author end-to-end and system tests against real boundaries, and run each once while authoring.",
         cases=True,
@@ -455,7 +481,9 @@ _ROWS = (
     ),
     Stage(
         "system-test", "outer",
-        goal="run end-to-end and system tests on the real candidate",
+        goal=("Run the system tests system-test-author recorded on the assembled candidate: record each selected "
+              "case's end state in `summary`, each command's output in `evidence_refs`, and each case left for a "
+              "later stage as an open item in `assumptions`."),
         done_when=("every due system test ran on the real candidate, with its output recorded",),
         test="Run system tests on the assembled candidate; a local pass does not replace a required deployed check.",
         cases=True,
@@ -466,7 +494,9 @@ _ROWS = (
     ),
     Stage(
         "product-acceptance", "outer",
-        goal="assess the product against the original outcome",
+        goal=("Assess the assembled product against the original request: give each request outcome its end state in "
+              "`summary`, list each outcome no executed check observed in `unverified`, and route missing product "
+              "work as replan `work_items`."),
         done_when=(
             "every request outcome was observed by an executed check, or is listed in unverified with its reason, "
             "owner and due stage",
@@ -478,7 +508,9 @@ _ROWS = (
     ),
     Stage(
         "release-plan", "outer",
-        goal="plan the release, rollback and checks",
+        goal=("Plan the release without performing it: write its steps, authority, rollback and checks in `summary` "
+              "and HOME/environment.md, record the post-release checks in `consumer_checks` and the consumer entry "
+              "in `consumer_entry`."),
         done_when=(
             "release, rollback and post-release verification steps are planned",
             "delivery authority is recorded before the plan is accepted",
@@ -493,7 +525,9 @@ _ROWS = (
     ),
     Stage(
         "release-check", "outer",
-        goal="confirm release readiness without releasing",
+        goal=("Confirm the release candidate is ready without releasing it: run the planned deploy's dry run and "
+              "each post-release confirm command once, and record every readiness check with its output in this "
+              "result's `summary` and `evidence_refs`."),
         done_when=(
             "each release precondition is observed",
             "each post-release confirm command ran once and recorded its not-there-yet output",
@@ -503,7 +537,9 @@ _ROWS = (
     ),
     Stage(
         "release", "outer",
-        goal="perform the planned release",
+        goal=("Perform the release the release-plan result and HOME/environment.md planned, and record its effect "
+              "and the released artifact's identity (or a justified not-applicable) in this result's `summary` and "
+              "`evidence_refs`."),
         done_when=(
             "the planned release ran with a recorded grant, or a justified not-applicable",
             "the released identity is recorded",
@@ -513,7 +549,8 @@ _ROWS = (
     ),
     Stage(
         "release-verify", "outer",
-        goal="verify the release where consumers use it",
+        goal=("Observe the released result where consumers use it, record each consumer check's outcome in this "
+              "result's `summary` and `evidence_refs`, and write this run's lessons in the result's `lessons`."),
         done_when=(
             "the consumer behaviour is observed where consumers use it",
             "this run's outcome.md, environment.md and README.md are written under docs/shiploop, and outcome.md "
@@ -528,14 +565,18 @@ _ROWS = (
     ),
     Stage(
         "operations", "outer",
-        goal="confirm monitoring, recovery and support readiness",
+        goal=("Confirm the released result can be monitored, recovered and supported: record each readiness check "
+              "with its evidence (or a justified N/A) in this result's `summary` and `evidence_refs`, and write the "
+              "current log, audit and recovery locators to HOME/environment.md."),
         done_when=("monitoring, recovery and support readiness are confirmed, or justified not-applicable",),
         deploy="Confirm monitoring and rollback work.",
         reads=("release-plan", "release-verify"),
     ),
     Stage(
         "handoff", "outer",
-        goal="write the final handoff with status and evidence",
+        goal=("Write the final handoff in this result's `summary`: the source, test, integration, release, consumer "
+              "and operational status, each with its evidence locator in `evidence_refs`, and every limit and open "
+              "item with who reports what."),
         done_when=(
             "the handoff states source, test, release and consumer status with evidence",
             "the workspace return is verified (worktree runs)",
