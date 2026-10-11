@@ -348,5 +348,528 @@ class LessonsTests(RepoCase):
             self.assertFalse(any(line.startswith("Lessons from") for line in knowledge.stage_lines(self.state, stage)))
 
 
+# ---------------------------------------------------------------------------------- hand-off fields: shapes (3, 0A)
+
+import importlib.util  # noqa: E402
+import types  # noqa: E402
+
+import shiploop_assumptions as assumptions  # noqa: E402
+import shiploop_store as store  # noqa: E402
+import shiploop_unverified as unverified  # noqa: E402
+
+CASE = {"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "GET /api/new returns a game id",
+        "red": "fails on the base: the route does not exist", "green": "200 with a game id"}
+GOOD = {"follows": ("step-plan", ["R-1", "AD-2"]), "test_cases": ("test-spec", [CASE]),
+        "lessons": ("release-verify", LESSONS),
+        "not_covered": ("implement", [{"behaviour": "the helper rejects an empty board", "reason": "internal only"}])}
+
+
+def canonical(value: dict, stage: str) -> dict:
+    return navigator._canonical_result(value, stage=stage)
+
+
+class HandoffShapeTests(unittest.TestCase):
+    def refused(self, value: dict, stage: str) -> str:
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            canonical(value, stage)
+        return str(caught.exception)
+
+    def test_the_state_version_is_six_and_a_version_five_run_is_refused_with_the_fresh_run_hint(self) -> None:
+        self.assertEqual(navigator.STATE_VERSION, 6)
+        state = navigator.new_state("/tmp/repo", "add hello")
+        state["version"] = 5
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            navigator.validate(state)
+        self.assertIn(navigator.FRESH_RUN_HINT, str(caught.exception))
+
+    def test_each_key_is_accepted_only_on_a_done_result_of_its_stage(self) -> None:
+        for key, (stage, value) in GOOD.items():
+            with self.subTest(key):
+                done = canonical({"outcome": "done", "summary": "s", key: value}, stage)
+                self.assertEqual(done[key], value)
+                self.assertEqual(canonical(done, stage), done)               # a saved state reloads unchanged
+                other = "verify" if stage != "verify" else "test"
+                self.assertIn(key, self.refused({"outcome": "done", "summary": "s", key: value}, other))
+                self.assertIn("belong to a done result",
+                              self.refused({"outcome": "blocked", "summary": "s", "blocked_by": "user", key: value},
+                                           stage))
+        revise = self.refused({"outcome": "revise", "summary": "s", "test_cases": [CASE]}, "test-spec")
+        self.assertIn("test_cases", revise)
+
+    def test_each_key_shape_is_refused_with_the_route_free_ending(self) -> None:
+        bad = [
+            ("follows", "step-plan", "R-1"), ("follows", "step-plan", ["R1"]), ("follows", "step-plan", ["R-1", "R-1"]),
+            ("follows", "step-plan", [3]),
+            ("test_cases", "test-spec", "TC-1"), ("test_cases", "test-spec", [dict(CASE, surface="http")]),
+            ("test_cases", "test-spec", [{k: v for k, v in CASE.items() if k != "red"}]),
+            ("test_cases", "test-spec", [dict(CASE, oracle="  ")]), ("test_cases", "test-spec", [dict(CASE, id="TC 1")]),
+            ("test_cases", "test-spec", [dict(CASE, criterion="C 1")]), ("test_cases", "test-spec", [CASE, CASE]),
+            ("test_cases", "test-spec", [dict(CASE, requirement="the board")]),
+            ("lessons", "release-verify", "learned a lot"),
+            ("lessons", "release-verify", {"learned": "x", "considerations": "y"}),
+            ("lessons", "release-verify", dict(LESSONS, learned=" \n ")),
+            ("lessons", "release-verify", dict(LESSONS, open_next=None)),
+            ("not_covered", "implement", {"behaviour": "b", "reason": "r"}),
+            ("not_covered", "implement", [{"behaviour": "b"}]),
+            ("not_covered", "implement", [{"behaviour": "b", "reason": ""}]),
+        ]
+        for key, stage, value in bad:
+            with self.subTest(key=key, value=value):
+                message = self.refused({"outcome": "done", "summary": "s", key: value}, stage)
+                self.assertIn(key, message.splitlines()[0])
+                self.assertTrue(message.splitlines()[0].endswith("then run the same command again."), message)
+
+    def test_an_empty_follows_or_not_covered_is_a_valid_shape(self) -> None:
+        self.assertEqual(canonical({"outcome": "done", "summary": "s", "follows": []}, "step-plan")["follows"], [])
+        self.assertEqual(canonical({"outcome": "done", "summary": "s", "not_covered": []}, "implement")["not_covered"],
+                         [])
+
+    def test_open_items_are_allowed_at_the_new_stages_and_an_owner_only_there(self) -> None:
+        self.assertEqual(assumptions.STAGES, frozenset(("plan", "test-spec", "verify", "carry-forward",
+                                                        "system-test-author", "system-test", "release-plan",
+                                                        "release-verify")))
+        row = {"id": "A1", "assumption": "The tab renders.", "disposition": "open", "check": "open it",
+               "reason": "no browser", "consumer": "release-verify", "owner": "Pat"}
+        for stage in sorted(assumptions.STAGES - {"plan"}):
+            with self.subTest(stage):
+                done = canonical({"outcome": "done", "summary": "s", "assumptions": [row]}, stage)
+                self.assertEqual(done["assumptions"], [row])
+        self.assertIn("owner", self.refused({"outcome": "done", "summary": "s",
+                                             "assumptions": [dict(row, consumer="W1")]}, "plan"))
+        self.assertIn("owner", self.refused({"outcome": "done", "summary": "s",
+                                             "assumptions": [dict(row, owner=" ")]}, "verify"))
+        self.assertIn("assumptions", self.refused({"outcome": "done", "summary": "s", "assumptions": []}, "test"))
+
+
+# ----------------------------------------------------------------------------------- hand-off gates (_handoff_gate)
+
+def plan_row(action: str, item: str, focused: list, criteria: list) -> tuple:
+    result = {"outcome": "done", "summary": "planned",
+              "criteria": [{"id": c, "text": "criterion " + c} for c in criteria],
+              "test_commands": ([{"command": "node --test", "suite": "focused", "ids": focused, "criteria": criteria}]
+                                if focused else [])}
+    return {"action": action, "stage": "step-plan", "workitem": item, "outcome": "done"}, result
+
+
+def item_state(repo: Path, current: str, rows: list, stage: str) -> dict:
+    """A run with two work items whose cursor is ``current`` at ``stage``; ``rows`` are (history row, result) pairs."""
+    return {"repo": str(repo), "prompt": "Add a Fleet command tab.", "run_id": "nav-0123456789abcdef",
+            "execution_mode": "navigator", "status": "active", "stage": "inner-loop",
+            "work_items": [{"id": "W1", "title": "one"}, {"id": "W2", "title": "two"}],
+            "work_index": 0 if current == "W1" else 1,
+            "inner_loops": {current: {"stage": stage, "action": {"id": "nav-current", "stage": stage}}},
+            "history": [row for row, _ in rows], "accepted": {row["action"]: result for row, result in rows},
+            "revisions": {}}
+
+
+class GateCase(RepoCase):
+    """``_handoff_gate`` on the complete route at a run path whose result file is 173 characters long (X3)."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n- **R-2** Reload keeps it.\n\n## Retired\n\n"
+                             "- R-4: Dropped.\n")
+        self.home("architecture.md", "## Decisions\n\n### AD-1 Plain modules\n\nWhy.\n")
+        self.home("environment.md", "## Targets\n\nnode 22\n\n## Delivery\n\nnpm run deploy\n")  # heading variants
+
+    def path_of(self, length: int, name: str) -> Path:
+        """A result file path of exactly ``length`` characters, under the test's run folder."""
+        stem = self.root / "inbox" / name
+        pad = length - len(str(stem)) - 1
+        self.assertGreater(pad, 0)
+        return self.root / ("r" * pad) / "inbox" / name
+
+    def steps(self) -> list:
+        complete = self.path_of(173, "nav-current.md")
+        final = self.path_of(173, "nav-current-final-result.md")
+        return [("complete", navigator.NextStep(complete, "then run the same complete command again.", False)),
+                ("improve-complete", navigator.NextStep(final, "then run the same improve-complete command again.",
+                                                        False)),
+                ("seed", navigator.NextStep(final, "then run improve-complete again with --final-result set to that "
+                                                   "file.", True))]
+
+    def refusal(self, state: dict, stage: str, result: dict, step=None) -> str:
+        step = step or self.steps()[0][1]
+        with self.assertRaises(navigator.NavigatorError) as caught:
+            navigator._handoff_gate(self.root, state, stage, result, "complete", next_step=step)
+        return str(caught.exception)
+
+    def accepts(self, state: dict, stage: str, result: dict) -> None:
+        navigator._handoff_gate(self.root, state, stage, result, "complete", next_step=self.steps()[0][1])
+
+    def assert_line_one(self, message: str, step) -> None:
+        """Line 1 is the fix, the one absolute path and the next step, inside 250 characters (the cut a model reads)."""
+        first = message.splitlines()[0]
+        if step.seed:
+            self.assertTrue(first.startswith("Write a final result to " + str(step.path) + " that "), first)
+            self.assertTrue(first.endswith(", " + step.tail), first)
+            self.assertIn("then run improve-complete", first[:250])
+        else:
+            self.assertIn(str(step.path), first)
+            self.assertTrue(first.endswith(", " + step.tail), first)
+            self.assertLessEqual(len(first), 250, first)
+
+
+def two_items(repo: Path, stage: str = "test-spec", current: str = "W2") -> dict:
+    rows = [plan_row("sp1", "W1", ["TC-1", "TC-2"], ["C1", "C2"]), plan_row("sp2", "W2", ["TC-3"], ["C3"])]
+    return item_state(repo, current, rows, stage)
+
+
+class HandoffGateTests(GateCase):
+    def test_step_plan_needs_follows_whose_ids_have_entries_in_the_living_files(self) -> None:
+        state = item_state(self.repo, "W1", [], "step-plan")
+        done = {"outcome": "done", "summary": "s"}
+        message = self.refusal(state, "step-plan", done)
+        self.assertTrue(message.startswith("Add follows to "), message)
+        self.assertIn('"follows": ["R-3", "AD-2"]', message.splitlines()[1])
+        self.accepts(state, "step-plan", dict(done, follows=[]))
+        self.accepts(state, "step-plan", dict(done, follows=["R-1", "R-2", "AD-1", "R-4"]))   # retired still has an entry
+        message = self.refusal(state, "step-plan", dict(done, follows=["R-1", "R-9", "AD-2"]))
+        self.assertTrue(message.startswith("Fix the follows IDs in "), message)
+        self.assertIn(str(self.repo / knowledge.HOME / "spec.md"), message.splitlines()[1])
+        self.assertEqual(message.splitlines()[-1], "No entry: R-9, AD-2.")
+
+    def test_test_cases_match_this_items_focused_ids_both_ways_with_real_criteria_and_requirements(self) -> None:
+        state = two_items(self.repo)
+        done = {"outcome": "done", "summary": "s", "assumptions": []}
+        case = dict(CASE, id="TC-3", criterion="C3")
+        self.accepts(state, "test-spec", dict(done, test_cases=[case]))
+        message = self.refusal(state, "test-spec", done)
+        self.assertTrue(message.startswith("Add test_cases to "), message)
+        self.assertEqual(message.splitlines()[-1], "Focused IDs: TC-3.")
+        message = self.refusal(state, "test-spec", dict(done, test_cases=[case, dict(CASE, id="TC-1", criterion="C3")]))
+        self.assertTrue(message.startswith("Fix the case IDs in "), message)        # W1's ID no longer counts
+        self.assertIn("report revise", message)
+        self.assertEqual(message.splitlines()[-1], "Not listed by a focused command of W2: TC-1.")
+        message = self.refusal(state, "test-spec", dict(done, test_cases=[]))
+        self.assertTrue(message.startswith("Add test_cases to "), message)
+        first = item_state(self.repo, "W1", [plan_row("sp1", "W1", ["TC-1", "TC-2"], ["C1", "C2"])], "test-spec")
+        message = self.refusal(first, "test-spec", dict(done, test_cases=[dict(CASE, criterion="C2")]))
+        self.assertTrue(message.startswith("Add the missing cases to "), message)
+        self.assertEqual(message.splitlines()[-1], "Focused IDs with no case: TC-2.")
+        message = self.refusal(state, "test-spec", dict(done, test_cases=[dict(case, criterion="C9")]))
+        self.assertTrue(message.startswith("Fix the case criteria in "), message)
+        self.assertEqual(message.splitlines()[-1], "TC-3 names C9; the criteria are C3.")
+        message = self.refusal(state, "test-spec", dict(done, test_cases=[dict(case, requirement="R-1 and R-12")]))
+        self.assertTrue(message.startswith("Fix case requirements in "), message)
+        self.assertEqual(message.splitlines()[-1], "TC-3 names R-12.")
+
+    def test_an_item_with_no_focused_ids_needs_no_cases(self) -> None:
+        state = item_state(self.repo, "W1", [plan_row("sp1", "W1", [], [])], "test-spec")
+        self.accepts(state, "test-spec", {"outcome": "done", "summary": "s", "assumptions": []})
+        self.accepts(state, "test-spec", {"outcome": "done", "summary": "s", "assumptions": [], "test_cases": []})
+
+    def test_release_verify_needs_lessons_and_no_placeholder_is_accepted(self) -> None:
+        state = item_state(self.repo, "W1", [], "release-verify")
+        done = {"outcome": "done", "summary": "s", "assumptions": []}
+        self.assertTrue(self.refusal(state, "release-verify", done).startswith("Add lessons to "))
+        self.accepts(state, "release-verify", dict(done, lessons=LESSONS))
+        template = navigator.HANDOFF_PLACEHOLDERS
+        placeholder = dict(LESSONS, considerations=next(v for v in template if "risk" in v))
+        message = self.refusal(state, "release-verify", dict(done, lessons=placeholder))
+        self.assertTrue(message.startswith("Replace placeholders in "), message)
+        self.assertEqual(message.splitlines()[-1], "Still a template placeholder: lessons.considerations.")
+
+    def test_every_template_placeholder_is_refused(self) -> None:
+        bare = {"repo": str(self.repo), "work_items": [], "history": [], "accepted": {}}
+        shapes = str(navigator.HANDOFF_SHAPES)
+        for value in navigator.HANDOFF_PLACEHOLDERS:
+            self.assertTrue(value.startswith("<") and value.endswith(">"), value)
+            self.assertIn(value, shapes)                       # every placeholder is one a printed shape carries
+        self.assertIn(navigator.FOLLOWS_PLACEHOLDER, navigator._result_template(bare, "step-plan"))
+        self.assertIn('"open_next": "<what a later run should pick up, or none>"',
+                      navigator._result_template(bare, "release-verify"))
+        for stage in ("test-spec", "implement", "verify", "carry-forward"):   # inner loop stages: a blocked copy stays valid
+            printed = navigator._result_template(bare, stage)
+            for key in ("test_cases", "not_covered", "assumptions", "lessons", "follows"):
+                self.assertNotIn('"' + key + '"', printed, stage)
+        state = two_items(self.repo)
+        oracle = next(v for v in navigator.HANDOFF_PLACEHOLDERS if "observes" in v)
+        message = self.refusal(state, "test-spec", {"outcome": "done", "summary": "s", "assumptions": [],
+                                                    "test_cases": [dict(CASE, id="TC-3", criterion="C3", oracle=oracle)]})
+        self.assertEqual(message.splitlines()[-1], "Still a template placeholder: test_cases[0].oracle.")
+
+    def test_open_items_at_the_new_stages_name_a_later_outer_stage_or_the_items_carry_forward(self) -> None:
+        row = {"id": "A1", "assumption": "The tab renders.", "disposition": "open", "check": "open it",
+               "reason": "no browser", "consumer": "release-verify"}
+        done = {"outcome": "done", "summary": "s"}
+        cases = {"test-spec": dict(done, test_cases=[dict(CASE, id="TC-3", criterion="C3")])}
+        for stage in sorted(assumptions.STAGES - {"plan"}):
+            with self.subTest(stage):
+                state = two_items(self.repo, stage)
+                result = dict(cases.get(stage, done), lessons=LESSONS) if stage == "release-verify" else cases.get(stage, done)
+                message = self.refusal(state, stage, result)
+                self.assertTrue(message.startswith("Add assumptions to "), message)
+                later = [name for name in stage_spec.OUTER if stage_spec.STAGES.index(name) > stage_spec.STAGES.index(stage)]
+                allowed = later + (["carry-forward"] if stage in ("test-spec", "verify") else [])
+                for consumer in allowed:
+                    self.accepts(state, stage, dict(result, assumptions=[dict(row, consumer=consumer)]))
+                for consumer in ("W1", stage, "carry-forward", "intake"):
+                    if consumer in allowed:
+                        continue
+                    message = self.refusal(state, stage, dict(result, assumptions=[dict(row, consumer=consumer)]))
+                    self.assertTrue(message.startswith("Fix the consumers in "), message)
+                    self.assertIn("A1 names '" + consumer + "'; the allowed consumers are " + ", ".join(sorted(allowed, key=stage_spec.STAGES.index)) + ".", message)
+
+    def test_every_refusal_line_one_is_the_fix_the_result_path_and_the_next_step_on_each_route(self) -> None:
+        state = two_items(self.repo)
+        faults = [
+            ("step-plan", item_state(self.repo, "W1", [], "step-plan"), {"outcome": "done", "summary": "s"}),
+            ("step-plan", item_state(self.repo, "W1", [], "step-plan"),
+             {"outcome": "done", "summary": "s", "follows": ["R-77"]}),
+            ("test-spec", state, {"outcome": "done", "summary": "s", "assumptions": []}),
+            ("test-spec", state, {"outcome": "done", "summary": "s", "assumptions": [],
+                                  "test_cases": [dict(CASE, id="TC-9", criterion="C3")]}),
+            ("test-spec", state, {"outcome": "done", "summary": "s", "assumptions": [],
+                                  "test_cases": [dict(CASE, id="TC-3", criterion="C9")]}),
+            ("test-spec", state, {"outcome": "done", "summary": "s", "assumptions": [],
+                                  "test_cases": [dict(CASE, id="TC-3", criterion="C3", requirement="R-12")]}),
+            ("test-spec", state, {"outcome": "done", "summary": "s",
+                                  "test_cases": [dict(CASE, id="TC-3", criterion="C3")]}),
+            ("verify", state, {"outcome": "done", "summary": "s", "assumptions": [
+                {"id": "A1", "assumption": "x", "disposition": "open", "check": "c", "reason": "r", "consumer": "W1"}]}),
+            ("verify", state, {"outcome": "done", "summary": "s", "assumptions": [
+                {"id": "A1", "assumption": "x", "disposition": "evidenced", "evidence": ["/no/such/file"]}]}),
+            ("release-verify", state, {"outcome": "done", "summary": "s", "assumptions": []}),
+            ("release-verify", state, {"outcome": "done", "summary": "s", "assumptions": [],
+                                       "lessons": dict(LESSONS, learned=next(v for v in navigator.HANDOFF_PLACEHOLDERS
+                                                                               if "learned" in v))}),
+        ]
+        for route, step in self.steps():
+            for stage, fault_state, result in faults:
+                with self.subTest(route=route, stage=stage, result=result):
+                    message = self.refusal(fault_state, stage, result, step)
+                    self.assert_line_one(message, step)
+                    self.assertGreaterEqual(len(message.splitlines()), 2, message)
+
+
+# ------------------------------------------------------------------------------------------ CONSUMES and its resolver
+
+EXPECTED_CONSUMES = {
+    "intake": (), "discovery": (), "research": (), "spec": (), "test-strategy": ("spec_diff",),
+    "plan": ("spec_diff",), "prepare": (), "step-plan": ("assumptions",),
+    "test-spec": ("follows", "criteria", "test_commands"), "validate-existing": (),
+    "implement": ("follows", "criteria", "test_cases"), "test": ("follows", "test_cases", "not_covered"),
+    "document": ("follows", "spec_diff"), "verify": ("follows", "test_cases", "spec_diff"),
+    "carry-forward": ("spec_diff", "assumptions"), "system-test-author": ("test_cases", "assumptions"),
+    "system-test": ("system_commands", "assumptions"),
+    "product-acceptance": ("system_commands", "spec_diff", "assumptions"),
+    "release-plan": ("system_commands", "assumptions"), "release-check": ("assumptions",),
+    "release": ("assumptions",), "release-verify": ("spec_diff", "assumptions"), "operations": ("assumptions",),
+    "handoff": ("lessons", "assumptions"),
+}
+# The one stage that records each key with a single producer.  assumptions (every open-item stage) and spec_diff (the
+# script, from the run baseline) have no single producer and are exempt.
+PRODUCER = {"follows": "step-plan", "criteria": "step-plan", "test_commands": "step-plan", "test_cases": "test-spec",
+            "not_covered": "implement", "system_commands": "system-test-author", "lessons": "release-verify"}
+
+
+def open_row(ident: str, consumer: str, **extra) -> dict:
+    return {"id": ident, "assumption": "It holds: " + ident, "disposition": "open", "check": "check " + ident,
+            "reason": "not run", "consumer": consumer, **extra}
+
+
+def row(action: str, stage: str, item, result: dict, outcome: str = "done") -> tuple:
+    return {"action": action, "stage": stage, "workitem": item, "outcome": outcome}, dict(
+        {"outcome": outcome, "summary": action}, **result)
+
+
+class ConsumesTests(RepoCase):
+    def test_every_stage_has_the_row_the_contract_names(self) -> None:
+        self.assertEqual(dict(navigator.CONSUMES), EXPECTED_CONSUMES)
+        self.assertEqual(set(navigator.CONSUMES), set(stage_spec.STAGES))
+        keys = {key for row in EXPECTED_CONSUMES.values() for key in row} - {"spec_diff"}
+        self.assertTrue(keys <= navigator._RESULT_KEYS, keys - navigator._RESULT_KEYS)
+
+    def test_each_single_producer_is_in_the_consuming_stages_reads(self) -> None:
+        for stage, keys in EXPECTED_CONSUMES.items():
+            reads = [name.removeprefix("item:") for name in stage_spec.stage(stage).reads]
+            for key in keys:
+                if key in PRODUCER:
+                    with self.subTest(stage=stage, key=key):
+                        self.assertIn(PRODUCER[key], reads)
+
+    def fixture(self, current_stage: str, current: str = "W2") -> dict:
+        self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n  Ships may not overlap.\n- R-2: Reload.\n")
+        self.home("architecture.md", "## Decisions\n\n- AD-1: Plain modules.\n")
+        case1, case3 = dict(CASE, id="TC-1"), dict(CASE, id="TC-3", criterion="C3")
+        rows = [
+            row("p1", "plan", None, {"work_items": [{"id": "W1", "title": "one"}, {"id": "W2", "title": "two"}],
+                                     "assumptions": [open_row("A1", "W2"), open_row("A9", "W1")]}),
+            row("sp1", "step-plan", "W1", {"follows": ["R-1"], "criteria": [{"id": "C1", "text": "one"}],
+                                           "test_commands": [{"command": "t", "suite": "focused", "ids": ["TC-1"]}]}),
+            row("ts1", "test-spec", "W1", {"test_cases": [case1], "assumptions": [open_row("B1", "system-test")]}),
+            row("im1", "implement", "W1", {"not_covered": []}),
+            row("ve1", "verify", "W1", {"assumptions": [open_row("B2", "carry-forward")]}),
+            row("cf1", "carry-forward", "W1", {"assumptions": []}),
+            row("sp2", "step-plan", "W2", {"follows": ["R-1", "AD-1", "R-7"], "criteria": [{"id": "C3", "text": "c"}],
+                                           "test_commands": [{"command": "t", "suite": "focused", "ids": ["TC-3"]},
+                                                             {"command": "lint", "suite": "check"}]}),
+            row("ts2", "test-spec", "W2", {"test_cases": [case3], "assumptions": [open_row("C1", "carry-forward"),
+                                                                                    open_row("C2", "release-verify")]}),
+            row("im2", "implement", "W2", {"not_covered": [{"behaviour": "b1", "reason": "r1"}]}),
+            row("im3", "implement", "W2", {}),
+        ]
+        state = item_state(self.repo, current, rows, current_stage)
+        return state
+
+    def source(self, sources: list, key: str) -> list:
+        return [found for found in sources if found.key == key]
+
+    def test_item_stages_get_their_items_values_and_not_recorded_is_none(self) -> None:
+        state = self.fixture("test")
+        sources = navigator.handoff_sources(self.root, state, "test")
+        self.assertEqual([found.key for found in sources], ["follows", "test_cases", "not_covered", "not_covered"])
+        follows, = self.source(sources, "follows")
+        self.assertEqual((follows.stage, follows.action, follows.workitem), ("step-plan", "sp2", "W2"))
+        self.assertEqual(follows.value, [("R-1", "- R-1: Place a fleet.\n  Ships may not overlap."),
+                                         ("AD-1", "- AD-1: Plain modules."), ("R-7", None)])
+        cases, = self.source(sources, "test_cases")
+        self.assertEqual((cases.action, cases.value), ("ts2", [dict(CASE, id="TC-3", criterion="C3")]))
+        self.assertEqual([(found.action, found.value) for found in self.source(sources, "not_covered")],
+                         [("im2", [{"behaviour": "b1", "reason": "r1"}]), ("im3", None)])
+        sources = navigator.handoff_sources(self.root, state, "test-spec")
+        self.assertEqual(self.source(sources, "criteria")[0].value, [{"id": "C3", "text": "c"}])
+        self.assertEqual(self.source(sources, "test_commands")[0].value,
+                         [{"command": "t", "suite": "focused", "ids": ["TC-3"]}])     # focused rows only
+        verify = navigator.handoff_sources(self.root, state, "verify")
+        self.assertEqual([found.key for found in verify], ["follows", "test_cases", "spec_diff"])
+        self.assertIsNone(self.source(verify, "spec_diff")[0].value)                     # no baseline recorded
+
+    def test_system_test_author_gets_every_items_latest_cases_and_outer_keys_come_from_their_producer(self) -> None:
+        state = self.fixture("test")
+        sources = navigator.handoff_sources(self.root, state, "system-test-author")
+        self.assertEqual([(found.workitem, found.action, found.value) for found in self.source(sources, "test_cases")],
+                         [("W1", "ts1", [dict(CASE, id="TC-1")]), ("W2", "ts2", [dict(CASE, id="TC-3", criterion="C3")])])
+        system, = self.source(navigator.handoff_sources(self.root, state, "system-test"), "system_commands")
+        self.assertEqual((system.stage, system.action, system.value), ("system-test-author", None, None))
+        lessons, = self.source(navigator.handoff_sources(self.root, state, "handoff"), "lessons")
+        self.assertEqual((lessons.stage, lessons.value), ("release-verify", None))
+
+    def test_open_items_are_filtered_by_consumer_and_settled_by_the_consumers_later_done_result(self) -> None:
+        state = self.fixture("test")
+        ids = lambda found: [(item.stage, item.workitem, item.row["id"]) for item in found.value]  # noqa: E731
+        step_plan = item_state(self.repo, "W2", [], "step-plan")
+        step_plan.update(history=state["history"], accepted=state["accepted"])
+        found, = self.source(navigator.handoff_sources(self.root, step_plan, "step-plan"), "assumptions")
+        self.assertEqual(ids(found), [("plan", None, "A1")])
+        found, = self.source(navigator.handoff_sources(self.root, state, "system-test"), "assumptions")
+        self.assertEqual(ids(found), [("test-spec", "W1", "B1")])
+        everything = [("plan", None, "A1"), ("plan", None, "A9"), ("test-spec", "W1", "B1"), ("test-spec", "W2", "C1"),
+                      ("test-spec", "W2", "C2")]      # B2 is settled by W1's later carry-forward
+        for stage in ("product-acceptance", "handoff", "carry-forward"):
+            found, = self.source(navigator.handoff_sources(self.root, state, stage), "assumptions")
+            self.assertEqual(ids(found), everything, stage)
+        self.assertEqual([item.row for item in assumptions.open_items(state) if item.stage == "plan"],
+                         unverified.open_assumptions(state))
+        # system-test settles B1 by its done result unless it lists B1 again as open
+        relisted = row("st1", "system-test", None, {"assumptions": [open_row("B1", "release-verify")]})
+        again = dict(state, history=state["history"] + [relisted[0]], accepted=dict(state["accepted"], st1=relisted[1]))
+        self.assertIn(("test-spec", "W1", "B1"), [(i.stage, i.workitem, i.row["id"]) for i in assumptions.open_items(again)])
+        settled = row("st1", "system-test", None, {"assumptions": []})
+        done = dict(state, history=state["history"] + [settled[0]], accepted=dict(state["accepted"], st1=settled[1]))
+        self.assertNotIn(("test-spec", "W1", "B1"), [(i.stage, i.workitem, i.row["id"]) for i in assumptions.open_items(done)])
+        # a consumer with no assumptions field (release-verify has one; product-acceptance does not) settles by its done
+        accepted = row("pa1", "product-acceptance", None, {})
+        product = row("ts9", "test-spec", "W2", {"test_cases": [], "assumptions": [open_row("D1", "product-acceptance")]})
+        later = dict(state, history=state["history"] + [product[0], accepted[0]],
+                     accepted=dict(state["accepted"], ts9=product[1], pa1=accepted[1]))
+        self.assertNotIn("D1", [i.row["id"] for i in assumptions.open_items(later)])
+
+    def test_the_spec_diff_source_is_the_uncut_diff_since_the_run_baseline(self) -> None:
+        state = self.fixture("document")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "home")
+        knowledge.record_baseline(self.root, state)
+        self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet on a 10x10 board.\n")
+        found, = self.source(navigator.handoff_sources(self.root, state, "document"), "spec_diff")
+        self.assertIn("+- R-1: Place a fleet on a 10x10 board.", found.value)
+
+    def test_an_unknown_stage_raises(self) -> None:
+        with self.assertRaises(ValueError):
+            navigator.handoff_sources(self.root, self.state, "select-work")
+
+
+# ------------------------------------------------------------------------------- the real CLI: refusal exits (routes)
+
+def _load(name: str, filename: str) -> types.ModuleType:
+    spec = importlib.util.spec_from_file_location(name, ROOT / "test" / filename)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_improve_cli = _load("shiploop_actual_improve_cli_for_handoff", "shiploop-actual-improve-cli.test.py")
+import shiploop_inner_fixture as inner  # noqa: E402
+
+
+class CompleteRouteTests(inner.RunDriver):
+    def test_a_complete_refusals_named_exit_is_accepted_through_the_real_cli(self) -> None:
+        self.start()
+        state = self.drive_to("step-plan")
+        result = inner.prepare(self.run_dir, state, dict(inner.DONE, paths=list(self.PATHS)))
+        result.pop("follows", None)
+        action = nav_action = navigator.current_action(state)["id"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        store.write_record(path, result, "result")
+        argv = [sys.executable, "-B", str(CLI), "complete", "--run-dir", str(self.run_dir), "--action", nav_action,
+                "--result", str(path)]
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
+                   SHIPLOOP_PROGRESS="off", SHIPLOOP_KEEPALIVE="off")
+        refused = subprocess.run(argv, capture_output=True, text=True, env=env)
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        first = refused.stderr.splitlines()[0]
+        self.assertEqual(first, "ShipLoop navigator: Add follows to " + str(path)
+                         + ", then run the same complete command again.")
+        store.write_record(path, dict(result, follows=[]), "result")      # the fix, then the same command
+        accepted = subprocess.run(argv, capture_output=True, text=True, env=env)
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+        self.assertEqual(self.state()["active_improve"]["stage"], "step-plan")
+
+
+class ImproveRouteTests(_improve_cli.ImproveCliFixture):
+    def test_a_seed_refusal_on_improve_complete_names_an_exit_the_real_cli_accepts(self) -> None:
+        run = self.base / "parent-seed"
+        self.invoke(_improve_cli.CLI, "init", "--repo", self.repo, "--run-dir", run, "--prompt",
+                    "Synthetic predecessor navigation for the hand-off route.", "--improve-skill", _improve_cli.CARD)
+        state = store.read_record(run / "state.md")
+        while navigator.current_stage(state) != "step-plan":
+            action = navigator.current_action(state)["id"]
+            setup = {"outcome": "done", "summary": "Synthetic predecessor navigation only."}
+            if navigator.current_stage(state) == "plan":
+                setup["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
+            state = navigator.apply(state, action, setup)
+            if state.get("active_improve") is not None:
+                state = navigator.finish_improve(state, action, {"summary": "Synthetic receipt only."})
+        self.action = navigator.current_action(state)["id"]
+        seed = {"outcome": "done", "summary": "A step plan without follows.", "evidence_refs": [],
+                "test_commands": [], "test_commands_na": "Synthetic fixture; no test commands.", "paths": ["src/**"],
+                "steps": [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"], "criteria": [],
+                           "skills": []}],
+                "expectations": [{"id": "E1", "state": "absent", "statement": "src/ does not exist yet.",
+                                  "steps": ["S1"], "paths": ["src/**"], "check": "test ! -e src"}]}
+        state = navigator.apply(state, self.action, seed)        # the pure graph: the seed skipped complete's gates
+        navigator.save(run, state)
+        self.run, self.state, self.parent_evidence_refs = run, state, []
+        self.bind_current()
+        packet = self.invoke(_improve_cli.CLI, "next", "--run-dir", run).stdout
+        self.assertIn("revise at the INNER stages test-spec to verify", packet)   # X4: revise is a final outcome
+        self.finish_ephemeral()
+        flags, _receipt = self.completion_receipt()
+        refused = self.invoke(_improve_cli.CLI, "improve-complete", "--run-dir", run, "--action", self.action, *flags,
+                              status=2)
+        final = run / "inbox" / (self.action + "-final-result.md")
+        self.assertEqual(refused.stderr.splitlines()[0],
+                         "ShipLoop navigator: Write a final result to " + str(final) + " that adds follows, then run "
+                         "improve-complete again with --final-result set to that file.")
+        store.write_record(final, dict(seed, follows=[]), "final result")
+        self.invoke(_improve_cli.CLI, "improve-complete", "--run-dir", run, "--action", self.action, *flags,
+                    "--final-result", final)
+        after = store.read_record(run / "state.md")
+        self.assertIsNone(after["active_improve"])
+        self.assertEqual(after["accepted"][self.action]["follows"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

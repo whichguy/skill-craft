@@ -88,8 +88,10 @@ PREPARATORY_COMMIT = "expectations/{item}-preparatory-commit.txt"
 PLACES = ("checkout", "base")
 
 _ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
-# A test-spec case heading: '### <ID>' where the ID has a letter and a digit and no spaces (TC-4, R1-T2).
-_CASE = re.compile(r"^###\s+([A-Za-z][A-Za-z0-9_.-]*\d[A-Za-z0-9_.-]*)")
+# A test-spec result's cases (consumer contract 3.3, D4: no surface key; the oracle names it).
+TEST_CASE_KEYS = ("id", "criterion", "requirement", "oracle", "red", "green")
+_TEST_CASE_SHAPE = ('test_cases are [{"id": "TC-1", "criterion": "C1", "requirement": "R-3", "oracle": "<what observes '
+                    'the behaviour>", "red": "<how it fails before the change>", "green": "<what passes after>"}]')
 _SHAPE = ('expectations are [{"id": "E1", "state": "works" | "absent" | "broken", "statement": "<the fact>", '
           '"steps": ["S1"], "paths": ["<repository-relative path or glob>"], "check": "<one read-only shell command '
           'from the repository root that exits 0 when the state holds>", "from": "<open plan assumption id, '
@@ -399,41 +401,91 @@ def _check_check_suite(result: Mapping[str, Any]) -> None:
     _need(not (has_check and "check_na" in result), "test_commands has a check row, so drop check_na")
 
 
-def check_test_spec_ids(root: Path, state: Mapping[str, Any]) -> None:
-    """Refuse test-spec's done when its file and the step plans' focused ids disagree.
+def normalise_test_cases(value: Any) -> List[Dict[str, str]]:
+    """A done test-spec result's ``test_cases``: shape only (the gate, ``check_test_cases``, checks meaning).
 
-    Every ``### <ID>`` case heading in this run's ``<feature>/test-spec.md`` must be listed by a focused command
-    of this run's step plans (the current item's or an earlier item's), and every focused ID of the current item
-    must have a heading.  An ID is a word with a letter and a digit (TC-4, R1-T2).  Raises ExpectationError.
+    Each case has exactly ``TEST_CASE_KEYS``, every value non-blank text; ``id`` and ``criterion`` hold no whitespace;
+    ids are unique; ``requirement`` names at least one R-<n>.  Raises ExpectationError, whose message ends with the
+    route-free next step (a shape refusal cannot know whether complete or improve-complete submitted it).
     """
     import shiploop_knowledge_home as knowledge
-    repo = Path(str(state["repo"]))
-    path = repo / knowledge.feature_dir(state) / "test-spec.md"
-    _need(path.is_file(), "the test spec " + str(path) + " does not exist")
-    text = path.read_text(encoding="utf-8", errors="replace")
-    cases = []
-    for line in text.splitlines():
-        match = _CASE.match(line)
-        if match:
-            cases.append(match.group(1).rstrip(".:,;"))
+    tail = "; then run the same command again."
+    _need(isinstance(value, list), "test_cases must be a list (empty only when the item's focused commands list no "
+          "IDs); " + _TEST_CASE_SHAPE + tail)
+    rows: List[Dict[str, str]] = []
+    for index, entry in enumerate(value):
+        label = "test_cases[" + str(index) + "]"
+        _need(isinstance(entry, Mapping) and set(entry) == set(TEST_CASE_KEYS),
+              label + " needs exactly " + ", ".join(TEST_CASE_KEYS) + "; " + _TEST_CASE_SHAPE + tail)
+        row = {}
+        for key in TEST_CASE_KEYS:
+            _need(isinstance(entry[key], str) and entry[key].strip() and "\0" not in entry[key],
+                  label + "." + key + " must be nonblank text" + tail)
+            row[key] = entry[key].strip()
+        for key in ("id", "criterion"):
+            _need(not any(ch.isspace() for ch in row[key]), label + "." + key + " has no spaces" + tail)
+        _need(knowledge._ids(row["requirement"]), label + ".requirement names no R-<n>: name the requirement it "
+              "proves, such as R-3" + tail)
+        rows.append(row)
+    ids = [row["id"] for row in rows]
+    _need(len(set(ids)) == len(ids), "test_cases ids must be unique" + tail)
+    return rows
+
+
+def check_test_cases(root: Path, state: Mapping[str, Any],
+                     result: Mapping[str, Any]) -> Optional[Tuple[str, str, List[str]]]:
+    """Why a done test-spec result's cases do not fit this item's step plan, or None (contract 3.3; replaces the
+    feature test-spec.md check).
+
+    ``result`` is canonical.  The case IDs must equal the current item's focused command IDs in both directions (an
+    earlier item's IDs no longer count); each case's criterion is a criterion of that step plan; each requirement it
+    names has an entry in the living spec.  A missing key or [] is accepted when the item has no focused IDs.  Returns
+    ``(fix, seed, lines)`` for the navigator's hand-off refusal: ``fix`` holds ``{result}`` where the result file goes,
+    ``seed`` is the same fix for a final result still to be written, ``lines`` follow line 1.
+    """
+    import shiploop_knowledge_home as knowledge
     work_item, _action = _cursor(state)
-    listed: Set[str] = set()
-    current: List[str] = []
-    items = {row.get("workitem") for row in state.get("history", ()) if row.get("stage") == PLAN_STAGE}
-    for item in sorted(str(entry) for entry in items if entry):
-        _action_id, plan = test_loop._step_plan(state, item)
-        for row in plan.get("test_commands") or ():
-            if isinstance(row, Mapping) and row.get("suite") == "focused":
-                listed.update(row.get("ids") or ())
-                if item == work_item:
-                    current.extend(row.get("ids") or ())
-    unlisted = [case for case in cases if case not in listed]
-    _need(not unlisted, "test-spec.md has cases no focused command lists: " + ", ".join(unlisted)
-          + ". Add each ID to the ids of the step plan's focused command (report revise), or retitle the case with "
-          "an ID a command lists.")
-    unspecified = [ident for ident in dict.fromkeys(current) if ident not in cases]
-    _need(not unspecified, "focused command ids with no '### <ID>' entry in " + str(path) + ": "
-          + ", ".join(unspecified))
+    _plan_action, plan = test_loop._step_plan(state, str(work_item)) if work_item else (None, {})
+    focused: List[str] = []
+    for row in plan.get("test_commands") or ():
+        if isinstance(row, Mapping) and row.get("suite") == "focused":
+            focused += [ident for ident in row.get("ids") or () if ident not in focused]
+    cases = list(result.get("test_cases") or ())
+    shape = ('Shape: {"id", "criterion", "requirement", "oracle", "red", "green"}, one per ID this item\'s focused '
+             'commands list. The implement, test, verify and system-test-author packets quote them.')
+    if not cases:
+        if not focused:
+            return None
+        return ("Add test_cases to {result}", "adds test_cases", [shape, "Focused IDs: " + ", ".join(focused) + "."])
+    unlisted = [case["id"] for case in cases if case["id"] not in focused]
+    if unlisted:
+        return ("Fix the case IDs in {result}", "fixes the case IDs",
+                ["Give every case an ID this item's focused commands list, or report revise so the step plan lists it.",
+                 "Not listed by a focused command of " + str(work_item) + ": " + ", ".join(unlisted) + "."])
+    have = {case["id"] for case in cases}
+    missing = [ident for ident in focused if ident not in have]
+    if missing:
+        return ("Add the missing cases to {result}", "adds the cases",
+                ["Add a case to test_cases for every ID this item's focused commands list. " + shape,
+                 "Focused IDs with no case: " + ", ".join(missing) + "."])
+    criteria = [str(row.get("id")) for row in plan.get("criteria") or () if isinstance(row, Mapping)]
+    wrong = [case["id"] + " names " + case["criterion"] for case in cases if case["criterion"] not in criteria]
+    if wrong:
+        return ("Fix the case criteria in {result}", "fixes the criteria",
+                ["Set each case's criterion to a criterion of this item's step plan.",
+                 "; ".join(wrong) + "; the criteria are " + (", ".join(criteria) or "none") + "."])
+    spec = Path(str(state["repo"])) / knowledge.HOME / "spec.md"
+    entries = knowledge.entries(Path(str(state["repo"])), "spec.md")
+    unknown = []
+    for case in cases:
+        absent = [ident for ident in knowledge._ids(case["requirement"]) if ident not in entries]
+        if absent:
+            unknown.append(case["id"] + " names " + ", ".join(absent))
+    if unknown:
+        return ("Fix case requirements in {result}", "fixes requirements",
+                ["Set each case's requirement to R-<n> that have an entry in the living spec, " + str(spec)
+                 + " (a line that starts with the ID).", "; ".join(unknown) + "."])
+    return None
 
 
 # ------------------------------------------------------------------ running checks
@@ -732,6 +784,6 @@ def check_complete(root: Path, state: Mapping[str, Any], result: Mapping[str, An
 
 __all__ = ("CHECK_TIMEOUT_SECONDS", "DONE_WHEN_PREPARATORY", "EXISTING_STATES", "NEW_STATES", "PLACES",
            "PREPARATORY_COMMIT", "ROUTES", "STAGE", "STATES", "ExpectationError", "check_complete",
-           "check_place", "check_preparatory_changes", "check_step_plan", "check_test_spec_ids", "entry", "normalise_expectations", "normalise_failed_expectations",
+           "check_place", "check_preparatory_changes", "check_step_plan", "check_test_cases", "entry", "normalise_expectations", "normalise_failed_expectations", "normalise_test_cases",
            "normalise_skills", "open_assumptions", "preparatory_commit", "read_record", "record_path", "result_lines", "run",
            "write_problem")

@@ -446,5 +446,39 @@ class RetireThroughTheCli(rr.ReturnReviewCase):
         self.assertNotIn("committed the removal", done.stdout)
 
 
+    def test_an_isolated_release_verify_that_changes_no_home_file_returns_its_lessons_commit_and_hands_off(self) -> None:
+        """Consumer contract X1 end to end: the lessons commit is empty when release-verify changed no home file; the
+        follow-up return still carries it to the source branch, so handoff sees a current receipt and the next run's intake
+        finds the lessons there."""
+        root, worktree = self.start("empty lessons")
+        self.write(worktree, "app.js", "product\n")
+        self.write(worktree, "docs/shiploop/spec.md", LIVING)
+        self.commit(worktree, "work item and knowledge")
+        run = self.at(root, "release")
+        self.return_all(root)
+        state = store.read_record(run / "state.md")
+        state = navigator.apply(state, navigator.current_action(state)["id"], {"outcome": "done", "summary": "Released."})
+        lessons = {"learned": "The empty commit still travels.", "considerations": "none", "open_next": "none"}
+        before = state
+        after = navigator.apply(state, navigator.current_action(state)["id"], {
+            "outcome": "done", "summary": "Verified.", "lessons": lessons, "assumptions": []})
+        navigator.save(run, after)
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            navigator._knowledge_close(before, after, run)                 # what dispatch runs after the save
+        self.assertIn("returned the knowledge commit with the earlier work (fast-forward-merge)", printed.getvalue())
+        head = self.git("rev-parse", "HEAD", cwd=worktree).stdout.strip()
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), head)
+        self.assertEqual(self.git("show", "--name-only", "--format=", head).stdout.strip(), "")   # an empty commit
+        found = knowledge.last_lessons(self.repo)
+        self.assertEqual((found.commit, found.body), (head, knowledge.lessons_body(lessons)))
+        navigator.save(run, navigator.apply(after, navigator.current_action(after)["id"],
+                                            {"outcome": "done", "summary": "Operations ready."}))
+        self.assertEqual(navigator.current_stage(store.read_record(run / "state.md")), "handoff")
+        done = self.complete(run)                                          # no stale-return refusal
+        self.assertNotIn("stale", done.stderr)
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -264,7 +264,7 @@ class NavigatorV4Tests(unittest.TestCase):
         ]
         returned_commits: list[str] = []
 
-        def commit(after, stage):
+        def commit(after, stage, open_items=()):
             self.assertEqual(stage, "handoff")
             events.append("commit")
             answer = commit_results.pop(0)
@@ -360,7 +360,7 @@ class NavigatorV4Tests(unittest.TestCase):
             SimpleNamespace(commit="", skipped=[]),
         ]
 
-        def commit(_after, stage):
+        def commit(_after, stage, open_items=()):
             self.assertEqual(stage, "handoff")
             events.append("commit")
             answer = commit_results.pop(0)

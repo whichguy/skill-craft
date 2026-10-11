@@ -193,6 +193,12 @@ class TestLoopTests(unittest.TestCase):
             result = dict(result, assumptions=[])
         if stage == "product-acceptance" and result.get("outcome") == "done" and "unverified" not in result:
             result = dict(result, unverified=[])
+        if result.get("outcome") == "done":
+            # The consumer contract's open items and lessons (2026-10-11): none here unless the test sets them.
+            if stage in inner.assumptions.OPEN_ITEM_STAGES and "assumptions" not in result:
+                result = dict(result, assumptions=[])
+            if stage == "release-verify" and "lessons" not in result:
+                result = dict(result, lessons=dict(inner.LESSONS))
         if loops.cursor(state) is not None:
             if fill:
                 result = inner.fill(state, stage, result, self.run_dir)

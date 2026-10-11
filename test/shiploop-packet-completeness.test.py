@@ -139,7 +139,9 @@ class PacketCompletenessTests(unittest.TestCase):
     # a script check (its loop receipt), so this test no longer reaches step-plan and its rows below are vacuous;
     # skill_na is gone with the skill stages.
     GATE_WORDS = {
-        "assumption": {"plan"},
+        # The plan's assumptions, and the open items of the later stages (consumer contract X10, 2026-10-11).
+        "assumption": {"plan", "test-spec", "verify", "carry-forward", "system-test-author", "system-test",
+                       "release-plan", "release-verify"},
         "criterion": {"step-plan"},
         "deps": {"step-plan"},
         "system_commands": {"system-test-author"},

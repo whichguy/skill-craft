@@ -71,13 +71,25 @@ STEP_PLAN = {"paths": ["built.txt"], "steps": [{"id": "S1", "task": "Create buil
 # The test spec's cases: one '### <ID>' per focused ID, as test-spec's gate requires.
 TEST_SPEC = "# Test spec\n\n### TC-1\n\nbuilt.txt exists after the change.\n"
 SKILL_NONE = {"decision": "none", "reason": "Synthetic fixture: no procedure repeated."}
+# The consumer contract's hand-off fields (2026-10-11): TC-1's case (its requirement R-1 has an entry in the living spec
+# the fixture writes, LIVING_SPEC), the open-item lists, and release-verify's lessons.
+TEST_CASES = [{"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "the focused command lists TC-1 ok",
+               "red": "built.txt is missing on the base", "green": "built.txt exists after the change"}]
+LESSONS = {"learned": "Synthetic fixture: nothing learned.", "considerations": "none", "open_next": "none"}
+LIVING_SPEC = "# Spec\n\n## Requirements\n\n- R-1: built.txt exists.\n"
 RESULTS = {
-    "step-plan": STEP_PLAN,
-    "carry-forward": {"skill": SKILL_NONE},
-    "system-test-author": {"system_commands": [{"command": "true", "suite": "check"}]},
+    "step-plan": dict(STEP_PLAN, follows=[]),
+    "test-spec": {"test_cases": TEST_CASES, "assumptions": []},
+    "verify": {"assumptions": []},
+    "carry-forward": {"skill": SKILL_NONE, "assumptions": []},
+    "system-test-author": {"system_commands": [{"command": "true", "suite": "check"}], "assumptions": []},
+    "system-test": {"assumptions": []},
     "release-plan": {"consumer_checks": [{"command": "true", "suite": "check"}],
-                     "consumer_entry": {"how": "open built.txt", "sources": ["built.txt"]}},
+                     "consumer_entry": {"how": "open built.txt", "sources": ["built.txt"]}, "assumptions": []},
+    "release-verify": {"assumptions": [], "lessons": LESSONS},
 }
+# The hand-off fields an inner loop stage's template leaves to its result-shape block (navigator.HANDOFF_SHAPES).
+HANDOFF_KEYS = ("follows", "test_cases", "not_covered", "assumptions", "lessons")
 
 # Request outcomes no executed check observed, as product-acceptance lists them: one reported at the handoff, one at the
 # stage whose external effect it gates.
@@ -238,7 +250,7 @@ class RealCliCase(unittest.TestCase):
                              "evidence": [str(self.evidence)]}],
             "unverified": [],
             **{key: value for result in RESULTS.values() for key, value in result.items()
-               if key not in ("outcome", "summary")},
+               if key not in ("outcome", "summary", "assumptions")},
         }
 
     def fill_done(self, head: str) -> dict:
@@ -263,6 +275,24 @@ class RealCliCase(unittest.TestCase):
             block["expectations"] = STEP_PLAN["expectations"]
         if "ShipLoop navigator | carry-forward | " in head and "skill" not in block:
             block["skill"] = SKILL_NONE
+        found = re.search(r"ShipLoop navigator \| ([a-z-]+) \| ", head)
+        stage = found.group(1) if found else ""
+        for key, value in RESULTS.get(stage, {}).items():
+            if key in HANDOFF_KEYS and key not in block:
+                block[key] = value
+        if stage == "test-spec":
+            # One case per focused ID of this run's step plan, naming R-1, which the living spec gets as an entry.
+            path = printed_callback(head)[1]
+            state = store.read_record(path.parent.parent / "state.md")
+            _action, plan = test_loop._step_plan(state, state["work_items"][state["work_index"]]["id"])
+            focused = [ident for row in plan.get("test_commands") or () if row.get("suite") == "focused"
+                       for ident in row.get("ids") or ()]
+            block["test_cases"] = [dict(TEST_CASES[0], id=ident) for ident in focused]
+            living = Path(state["repo"]) / knowledge.HOME / "spec.md"
+            if focused and knowledge.entry_text(Path(state["repo"]), "R-1") is None:
+                living.parent.mkdir(parents=True, exist_ok=True)
+                living.write_text((living.read_text(encoding="utf-8") if living.is_file() else "") + LIVING_SPEC,
+                                  encoding="utf-8")
         return block
 
     def state(self, run: Path) -> dict:
@@ -1034,6 +1064,7 @@ class StepSizingRouteTests(RealCliCase):
                 key, "What this field records.")
 
         block = fill(template)
+        block["follows"] = []   # the follows placeholder names IDs; this repository's living spec has none to follow
         # An expectation's placeholders name a real fact: the works one the repository's existing file, the absent
         # one the file the steps add, each with a read-only check of it (ids, states and steps stay as printed).
         for row in block["expectations"]:
@@ -1267,7 +1298,7 @@ class LoopRefusalRouteTests(RealCliCase):
             with self.subTest(stage=stage):
                 run, head = self.new_run(stage, entered=True)
                 command, path, action = printed_callback(head)
-                block = self.done_fields()
+                block = {**self.done_fields(), **({"assumptions": []} if stage == "verify" else {})}
                 write_block(path, block, loop=False)
                 reply = self.refused(command, run)
                 self.assertIn(f"the {stage} loop has not run: no terminal packet exists at", reply)
@@ -1333,7 +1364,7 @@ class UncountedCommandRouteTests(RealCliCase):
         with mock.patch.dict(RESULTS, recorded):
             run, head = self.new_run("system-test")
         callback, path, _ = printed_callback(head)
-        write_block(path, self.done_fields())
+        write_block(path, {**self.done_fields(), "assumptions": []})
         return run, head, callback, path
 
     @staticmethod
@@ -1375,7 +1406,8 @@ class UncountedCommandRouteTests(RealCliCase):
         self.assertIn("could not read how many tests it ran", again)
         self.assertIn(f"Refused runs for this action: 2 of {test_loop.MAX_REFUSED_RUNS}", again)
         # Recording it as a check here is not an exit: system-test reruns what was recorded, so the gate holds.
-        write_block(path, {**self.done_fields(), "system_commands": [{"command": PIPELINE, "suite": "check"}]})
+        write_block(path, {**self.done_fields(), "assumptions": [],
+                           "system_commands": [{"command": PIPELINE, "suite": "check"}]})
         self.assertIn("could not read how many tests it ran", self.refused(callback, run))
 
     def test_a_pipeline_recorded_as_a_check_and_a_counted_focused_command_pass(self) -> None:
@@ -1496,24 +1528,30 @@ class InnerGateRouteTests(RealCliCase):
         self.assertEqual(self.recorded(run, action)["steps"][0]["skills"], [kept])
 
     def test_test_spec_cases_and_focused_ids_must_match_both_ways(self) -> None:
+        """The consumer contract's test_cases gate (3.3; it replaced the feature test-spec.md check): each fault's line 1
+        names the fix, the result file and the same command, and the corrected result is accepted through it."""
         run, head = self.new_run("test-spec")
         command, path, action = printed_callback(head)
-        spec = self.repo_of(run) / knowledge.feature_dir(self.state(run)) / "test-spec.md"
         good = self.fill_done(head)
-        cases = [(TEST_SPEC + "\n### TC-2\n\nA case no command lists.\n",
-                  "test-spec.md has cases no focused command lists: TC-2"),
-                 ("# Test spec\n\nThe cases are still to be written.\n",
-                  "focused command ids with no '### <ID>' entry in " + str(spec) + ": TC-1")]
-        for text, fragment in cases:
-            with self.subTest(fragment):
-                spec.write_text(text, encoding="utf-8")
-                write_block(path, good)
+        case = TEST_CASES[0]
+        faults = [({**good, "test_cases": TEST_CASES + [dict(case, id="TC-2")]}, "Fix the case IDs in ",
+                   "Not listed by a focused command of W1: TC-2."),
+                  ({key: value for key, value in good.items() if key != "test_cases"}, "Add test_cases to ",
+                   "Focused IDs: TC-1."),
+                  ({**good, "test_cases": [dict(case, criterion="C9")]}, "Fix the case criteria in ",
+                   "TC-1 names C9; the criteria are C1."),
+                  ({**good, "test_cases": [dict(case, requirement="R-12")]}, "Fix case requirements in ",
+                   "TC-1 names R-12.")]
+        for block, fix, detail in faults:
+            with self.subTest(fix):
+                write_block(path, block)
                 reply = self.submit_until_gate(command, run)
-                self.assertIn(fragment, reply)
-        spec.write_text(TEST_SPEC, encoding="utf-8")  # one '### TC-1', the focused command's one id
+                self.assertIn("ShipLoop navigator: " + fix + str(path) + ", then run the same complete command again.\n",
+                              reply)
+                self.assertIn(detail, reply)
         write_block(path, good)
         self.accepted(command)
-        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        self.assertEqual(self.recorded(run, action)["test_cases"], TEST_CASES)
 
     def test_carry_forward_needs_a_skill_decision_and_an_update_names_an_existing_skill(self) -> None:
         run, head = self.new_run("carry-forward")

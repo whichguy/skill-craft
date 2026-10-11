@@ -23,7 +23,7 @@ import shlex
 import stat
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
@@ -51,7 +51,8 @@ import shiploop_store as store
 
 
 # 5 since 2026-10-10: the inner loop has eight stages (stage_spec); a version-4 run is refused by retired_run_reason.
-STATE_VERSION = 5
+# 6 since 2026-10-11: consumer contract hand-off fields (follows, test_cases, not_covered, lessons, open items).
+STATE_VERSION = 6
 # Navigator protocol 4 is the only protocol; saved runs from earlier protocols
 # are refused by retired_run_reason.
 PROTOCOL_VERSION = 4
@@ -65,7 +66,24 @@ _RESULT_KEYS = frozenset((
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
     "blocked_by", "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
     "expectations", "check_na", "failed_expectations", "retired_tests", "skill",
+    "follows", "test_cases", "lessons", "not_covered",
 ))
+# What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
+# ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
+# are result fields.  ``handoff_sources`` returns the values; the inner-loop renderer prints them.
+CONSUMES: dict[str, tuple[str, ...]] = {
+    "intake": (), "discovery": (), "research": (), "spec": (), "test-strategy": ("spec_diff",),
+    "plan": ("spec_diff",), "prepare": (), "step-plan": ("assumptions",),
+    "test-spec": ("follows", "criteria", "test_commands"), "validate-existing": (),
+    "implement": ("follows", "criteria", "test_cases"), "test": ("follows", "test_cases", "not_covered"),
+    "document": ("follows", "spec_diff"), "verify": ("follows", "test_cases", "spec_diff"),
+    "carry-forward": ("spec_diff", "assumptions"), "system-test-author": ("test_cases", "assumptions"),
+    "system-test": ("system_commands", "assumptions"),
+    "product-acceptance": ("system_commands", "spec_diff", "assumptions"),
+    "release-plan": ("system_commands", "assumptions"), "release-check": ("assumptions",),
+    "release": ("assumptions",), "release-verify": ("spec_diff", "assumptions"), "operations": ("assumptions",),
+    "handoff": ("lessons", "assumptions"),
+}
 # A bare "carry on" is not an answer to the question a blocked run is waiting on.
 _NOT_AN_ANSWER = frozenset((
     "continue", "go", "go on", "go ahead", "resume", "proceed", "keep going", "carry on",
@@ -89,7 +107,7 @@ AWAITING_SHAPE = (
 _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
-    "red_na", "lint_waivers", "unverified",
+    "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered",
 )
 _STATE_KEYS = frozenset(
     (
@@ -156,7 +174,11 @@ DURABLE_IMPROVE_REASON = ("this run's bound Improve child uses a retired durable
                           "runtime, which ShipLoop no longer supports. " + FRESH_RUN_HINT)
 
 __all__ = [
+    "CONSUMES",
+    "HANDOFF_PLACEHOLDERS",
     "NavigatorError",
+    "Source",
+    "handoff_sources",
     "PROTOCOL_VERSION",
     "STATE_VERSION",
     "apply",
@@ -759,8 +781,9 @@ def _canonical_result(
         result["choices"] = _normalise_choices(value["choices"], stage)
     if "assumptions" in value:
         _need(stage in assumptions.STAGES and outcome == "done",
-              "assumptions are allowed only on a done plan result; at this stage state an assumption (the default "
-              "taken, the alternatives and why) in the summary, and remove the assumptions field")
+              "assumptions are allowed only on a done " + ", ".join(sorted(assumptions.STAGES)) + " result; at this "
+              "stage state an assumption (the default taken, the alternatives and why) in the summary, and remove the "
+              "assumptions field")
         try:
             result["assumptions"] = assumptions.canonical(value["assumptions"], stage)
         except assumptions.AssumptionError as exc:
@@ -783,9 +806,58 @@ def _canonical_result(
             )
         except consumer_delivery.ConsumerDeliveryError as exc:
             raise NavigatorError(str(exc)) from exc
+    _canonical_handoff(value, stage, outcome, result)
     if "blocked_by" in value:
         result["blocked_by"] = value["blocked_by"]
     return result
+
+
+# --- the consumer contract's hand-off fields (docs/shiploop-consumer-contract-2026-10-11.md, section 3) -------------
+
+# Each new key's one producing stage (a done result only: _DONE_ONLY_FIELDS).
+HANDOFF_FIELDS = {"follows": "step-plan", "test_cases": "test-spec", "not_covered": "implement",
+                  "lessons": "release-verify"}
+_ENTRY_ID = re.compile(r"^(R|AD)-\d+$")
+# A shape refusal cannot know the route that submitted it (contract rule 4).
+_SHAPE_TAIL = "; then run the same command again."
+
+
+def _canonical_handoff(value: Mapping[str, Any], stage: str, outcome: str, result: dict[str, Any]) -> None:
+    """Shapes only of the hand-off fields (owner decisions 2026-10-10: meaning is checked at the CLI gates)."""
+    for key, owner in HANDOFF_FIELDS.items():
+        if key in value:
+            _need(stage == owner and outcome == "done", key + " is allowed only on a done " + owner + " result: "
+                  "delete it" + _SHAPE_TAIL)
+    if "follows" in value:
+        follows = value["follows"]
+        _need(isinstance(follows, list) and all(isinstance(ident, str) and _ENTRY_ID.fullmatch(ident) for ident in follows),
+              'follows is a list of the R-<n> and AD-<n> IDs this item follows, such as ["R-3", "AD-2"] ([] when none)'
+              + _SHAPE_TAIL)
+        _need(len(set(follows)) == len(follows), "follows lists an ID twice" + _SHAPE_TAIL)
+        result["follows"] = list(follows)
+    if "test_cases" in value:
+        try:
+            result["test_cases"] = expectations.normalise_test_cases(value["test_cases"])
+        except expectations.ExpectationError as exc:
+            raise NavigatorError(str(exc)) from exc
+    if "lessons" in value:
+        lessons = value["lessons"]
+        names = [key for key, _ in knowledge.LESSON_FIELDS]
+        _need(isinstance(lessons, Mapping) and set(lessons) == set(names),
+              "lessons has exactly " + ", ".join(names) + ': {"learned": "...", "considerations": "...", '
+              '"open_next": "..."}' + _SHAPE_TAIL)
+        for key in names:
+            _need(isinstance(lessons[key], str) and bool(lessons[key].strip()),
+                  "lessons." + key + " must be nonblank text (\"none\" only when true)" + _SHAPE_TAIL)
+        result["lessons"] = {key: lessons[key] for key in names}
+    if "not_covered" in value:
+        rows = value["not_covered"]
+        _need(isinstance(rows, list) and all(
+            isinstance(row, Mapping) and set(row) == {"behaviour", "reason"}
+            and all(isinstance(row[key], str) and row[key].strip() for key in row) for row in rows),
+              'not_covered is [{"behaviour": "<what this step added that no test case covers>", "reason": "<why>"}], '
+              "each nonblank, or []" + _SHAPE_TAIL)
+        result["not_covered"] = [{"behaviour": row["behaviour"], "reason": row["reason"]} for row in rows]
 
 
 def _action_history(state: Mapping[str, Any], action_id: str) -> Mapping[str, Any] | None:
@@ -1961,7 +2033,9 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     if not stages:
         return
     try:
-        committed = knowledge.commit(after, stages[-1])
+        # At release-verify the lessons commit lists the open items nobody settled (contract 2.5, X15).
+        committed = knowledge.commit(after, stages[-1],
+                                     assumptions.open_items(after) if stages[-1] == "release-verify" else ())
     except RuntimeError as exc:
         if terminal:
             raise NavigatorError("ShipLoop knowledge: " + str(exc) + _PENDING) from exc
@@ -2093,7 +2167,8 @@ def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: A
     it, so simulations stay independent of this rule.  Each open assumption
     must name a work item in the submitted queue.
     """
-    if stage not in assumptions.STAGES or not isinstance(result, Mapping):
+    # The open-item stages after the plan are checked by _handoff_gate, in the hand-off refusal form.
+    if stage != "plan" or not isinstance(result, Mapping):
         return
     if result.get("outcome") != "done":
         return
@@ -2117,6 +2192,213 @@ def _check_submitted_unverified(stage: str, result: Any) -> None:
         unverified.check_submitted(stage, result)
     except unverified.UnverifiedError as exc:
         raise NavigatorError(str(exc)) from exc
+
+
+class NextStep(NamedTuple):
+    """Where a hand-off refusal's fix goes and what the model runs next (contract rule 4, X3, X4)."""
+    path: Path    # the result file: <run>/inbox/<action>.md, or <action>-final-result.md on improve-complete
+    tail: str     # "then run the same complete command again.", ...
+    seed: bool    # improve-complete without --final-result: the fix goes into a final result still to be written
+
+
+def _next_step(root: Path, action_id: str, command: str, final_result: Any = None) -> NextStep:
+    """The ``next_step`` dispatch passes to ``_handoff_gate`` for this route."""
+    if command == "complete":
+        return NextStep(_result_input_path(Path(root), action_id), "then run the same complete command again.", False)
+    final = Path(root) / "inbox" / (action_id + "-final-result.md")
+    if final_result is None:
+        # Rerunning the printed improve-complete would re-check the seed and refuse again (routes-audit M2).
+        return NextStep(final, "then run improve-complete again with --final-result set to that file.", True)
+    path = Path(str(final_result)) if isinstance(final_result, (str, Path)) else final
+    return NextStep(path, "then run the same improve-complete command again.", False)
+
+
+class _Fault(NamedTuple):
+    fix: str            # line 1's fix, "{result}" where the result path goes (kept short: line 1 fits 250 characters)
+    seed: str           # the same fix for a final result still to be written ("adds follows")
+    lines: list[str]    # line 2 (the shape, who quotes it), then the failing IDs or rows in full
+
+
+def _handoff_refusal(fault: _Fault, next_step: NextStep) -> str:
+    if next_step.seed:
+        first = "Write a final result to " + str(next_step.path) + " that " + fault.seed + ", " + next_step.tail
+    else:
+        first = fault.fix.format(result=str(next_step.path)) + ", " + next_step.tail
+    return "\n".join([first, *fault.lines])
+
+
+def _placeholders(result: Mapping[str, Any]) -> list[str]:
+    """Where a hand-off field still holds a template placeholder, as ``key[index].field`` locators."""
+    found: list[str] = []
+
+    def walk(value: Any, where: str) -> None:
+        if isinstance(value, str):
+            if value.strip() in HANDOFF_PLACEHOLDERS:
+                found.append(where)
+        elif isinstance(value, Mapping):
+            for key, item in value.items():
+                walk(item, where + "." + str(key))
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                walk(item, where + "[" + str(index) + "]")
+
+    for key in ("follows", "test_cases", "not_covered", "lessons"):
+        if key in result:
+            walk(result[key], key)
+    return found
+
+
+def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
+                   command: str) -> _Fault | None:
+    """The first hand-off fault of a canonical done result, or None (meaning only; the shape was checked already)."""
+    repo = Path(str(state["repo"]))
+    spec, architecture = repo / knowledge.HOME / "spec.md", repo / knowledge.HOME / knowledge.ARCHITECTURE
+    placeholders = _placeholders(result)
+    if placeholders:
+        return _Fault("Replace placeholders in {result}", "has real values",
+                      ["Write the real value in place of each template placeholder (the text in angle brackets), or "
+                       "delete an optional field.", "Still a template placeholder: " + ", ".join(placeholders) + "."])
+    if stage == "step-plan":
+        if "follows" not in result:
+            return _Fault("Add follows to {result}", "adds follows",
+                          ['Shape: "follows": ["R-3", "AD-2"]: the R-<n> this item implements and the AD-<n> it follows; '
+                           "[] only when it serves none. This item's test-spec, implement, test, document and verify "
+                           "packets quote each entry."])
+        known = {**knowledge.entries(repo, "spec.md"), **knowledge.entries(repo, knowledge.ARCHITECTURE)}
+        absent = [ident for ident in result["follows"] if ident not in known]
+        if absent:
+            return _Fault("Fix the follows IDs in {result}", "fixes follows",
+                          ["Cite only IDs with an entry (a line that starts with the ID) in " + str(spec) + " (R-) or "
+                           + str(architecture) + " (AD-): drop each other ID, or add its entry to the living file"
+                           + ("; improve-commit that edit first." if command == "improve-complete" else "."),
+                           "No entry: " + ", ".join(absent) + "."])
+    if stage in assumptions.OPEN_ITEM_STAGES:
+        if "assumptions" not in result:
+            return _Fault("Add assumptions to {result}", "adds assumptions",
+                          ['Shape: the open items this stage leaves, or [] when none; each {"id", "assumption", '
+                           '"disposition": "open", "check", "reason", "consumer", "owner" (a person, when the duty '
+                           "names one)}. Later stages quote each until its consumer settles it."])
+        wrong = assumptions.wrong_consumers(result["assumptions"], stage)
+        if wrong:
+            return _Fault("Fix the consumers in {result}", "fixes consumers",
+                          ["Name a later outer stage (or carry-forward, from test-spec or verify) as each open item's "
+                           "consumer; work for a later item goes in carry-forward's work_items.",
+                           "; ".join(ident + " names '" + consumer + "'" for ident, consumer in wrong)
+                           + "; the allowed consumers are " + ", ".join(assumptions.allowed_consumers(stage)) + "."])
+        try:
+            assumptions.check_files(result["assumptions"])
+        except assumptions.AssumptionError as exc:
+            return _Fault("Fix the evidence in {result}", "fixes evidence",
+                          ["Every local evidence path an assumption cites must exist; a probed one cites its saved output.",
+                           str(exc) + "."])
+    if stage == "test-spec":
+        found = expectations.check_test_cases(root, state, result)
+        if found is not None:
+            return _Fault(*found)
+    if stage == "release-verify" and "lessons" not in result:
+        return _Fault("Add lessons to {result}", "adds lessons",
+                      ['Shape: {"learned": "...", "considerations": "...", "open_next": "..."}, each written in detail '
+                       '("none" only when true). ShipLoop writes them into this run\'s release-verify knowledge commit, '
+                       "which the next run's intake quotes."])
+    return None
+
+
+def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any, command: str, *,
+                  next_step: NextStep) -> None:
+    """Refuse a done result whose hand-off fields its consumers cannot use (consumer contract, slice 4a).
+
+    Runs on complete (``--check-only`` too) and improve-complete, right after ``_knowledge_gate``, on the result those
+    gates check.  It canonicalises first (X5), so a wrong type is the shape refusal ``apply`` would give, never a
+    TypeError.  A refusal's line 1 is the fix, one absolute path (the result file) and ``next_step``; line 2 the shape and
+    who quotes it; the failing IDs follow in full.  Checks: step-plan's follows exist as entries; test-spec's cases
+    match the item's focused IDs both ways, with real criteria and requirements; release-verify has lessons; the
+    open-item stages list their open items with an allowed consumer; no hand-off string is a template placeholder.
+    """
+    if not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    # Only the fields this gate reads: another field's shape fault stays the refusal of the gate that owns it.
+    projected = {key: result[key] for key in ("outcome", "summary", *HANDOFF_FIELDS, "assumptions") if key in result}
+    canonical = _canonical_result(projected, stage=stage, delivery_contract="delivery_contract_version" in state)
+    fault = _handoff_fault(Path(root), state, stage, canonical, command)
+    _need(fault is None, _handoff_refusal(fault, next_step) if fault else "")
+
+
+class Source(NamedTuple):
+    """One value a consumer packet quotes (``handoff_sources``)."""
+    key: str                 # the CONSUMES key
+    stage: str | None        # the producing stage; None for spec_diff (the script) and assumptions (every producer)
+    action: str | None       # the producing result's action; None when nothing was recorded
+    workitem: str | None     # the producing result's work item, or the consuming item for assumptions
+    value: Any               # the value; None means not recorded (the renderer prints "not recorded by <stage>")
+
+
+# Stages whose packet quotes every open item, not only those naming it.
+_EVERY_OPEN_ITEM = ("carry-forward", "product-acceptance", "handoff")
+
+
+def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[Source]:
+    """The values ``stage``'s packet quotes, in ``CONSUMES`` order (contract section 4).
+
+    - follows: the current item's latest step plan, as ``[(id, entry_text or None), ...]`` read at render.
+    - criteria, test_commands (focused rows only): the current item's latest step plan.
+    - test_cases: the current item's current test-spec; at system-test-author one Source per work item.
+    - not_covered: one Source per done implement result of the item after its latest step plan.
+    - system_commands, lessons: the current system-test-author and release-verify results.
+    - assumptions: ``assumptions.open_items``: at step-plan the plan's rows naming the item; at carry-forward,
+      product-acceptance and handoff every open row; at another stage the rows naming that stage as consumer.
+    - spec_diff: ``knowledge_home.spec_diff`` (None without a run baseline or outside a checkout).
+    A key with nothing recorded is a Source whose value is None.  Reads state and files; spec_diff runs one git diff.
+    An unknown stage raises ValueError.
+    """
+    if stage not in CONSUMES:
+        raise ValueError("unknown stage for CONSUMES: " + repr(stage))
+    current = planning_revision.current_actions(state)
+    accepted = state.get("accepted") or {}
+    items = [row.get("id") for row in state.get("work_items") or () if isinstance(row, Mapping)]
+    index = state.get("work_index")
+    item = (items[index] if stage in stage_spec.INNER and isinstance(index, int) and 0 <= index < len(items) else None)
+    repo = Path(str(state["repo"]))
+    sources: list[Source] = []
+    for key in CONSUMES[stage]:
+        if key == "spec_diff":
+            sources.append(Source(key, None, None, None, knowledge.spec_diff(Path(root), state)))
+        elif key == "assumptions":
+            rows = assumptions.open_items(state)
+            if stage == "step-plan":
+                rows = [found for found in rows if found.stage == "plan" and found.row.get("consumer") == item]
+            elif stage not in _EVERY_OPEN_ITEM:
+                rows = [found for found in rows if found.row.get("consumer") == stage]
+            sources.append(Source(key, None, None, item, rows))
+        elif key in ("follows", "criteria", "test_commands"):
+            action, plan = test_loop._step_plan(state, item) if item else (None, {})
+            value = plan.get(key) if action else None
+            if key == "follows" and value is not None:
+                value = [(ident, knowledge.entry_text(repo, ident)) for ident in value]
+            if key == "test_commands" and value is not None:
+                value = [row for row in value if isinstance(row, Mapping) and row.get("suite") == "focused"]
+            sources.append(Source(key, "step-plan", action, item, value))
+        elif key == "test_cases":
+            for owner in (items if stage == "system-test-author" else [item]):
+                action = current.get((owner, "test-spec")) if owner else None
+                found = accepted.get(action) if action else None
+                sources.append(Source(key, "test-spec", action, owner,
+                                      found.get(key) if isinstance(found, Mapping) else None))
+        elif key == "not_covered":
+            plan_action, _plan = test_loop._step_plan(state, item) if item else (None, {})
+            history = list(state.get("history") or ())
+            start = max((at for at, row in enumerate(history) if row.get("action") == plan_action), default=-1)
+            done = [row["action"] for row in history[start + 1:] if plan_action and row.get("stage") == "implement"
+                    and row.get("workitem") == item and row.get("outcome") == "done"]
+            for action in done or [None]:
+                found = accepted.get(action) if action else None
+                sources.append(Source(key, "implement", action, item,
+                                      found.get(key) if isinstance(found, Mapping) else None))
+        else:
+            producer = {"system_commands": "system-test-author", "lessons": "release-verify"}[key]
+            action = current.get((None, producer))
+            found = accepted.get(action) if action else None
+            sources.append(Source(key, producer, action, None, found.get(key) if isinstance(found, Mapping) else None))
+    return sources
 
 
 def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve_record: Any = None) -> dict[str, Any]:
@@ -2651,8 +2933,6 @@ def _inner_gates(root: Path, state: Mapping[str, Any], stage: str, submitted: An
     try:
         if stage == "step-plan" and outcome == "done":
             expectations.check_step_plan(root, state, submitted)
-        elif stage == "test-spec" and outcome == "done":
-            expectations.check_test_spec_ids(root, state)
         elif stage == "validate-existing" and outcome in ("done", "revise"):
             return expectations.check_complete(root, state, submitted,
                                                tag="check-only" if check_only else "complete")
@@ -2949,6 +3229,32 @@ EVIDENCE_PLACEHOLDER = "<absolute path of each file this stage wrote, or of the 
 # The user-facing line the run narrative shows for this step.
 HEADLINE_PLACEHOLDER = "<one line for the user, under 100 characters: what this step established>"
 HEADLINE_LIMIT = 100
+# The template's placeholder text for the hand-off fields (contract rule 5): the gate refuses any hand-off string equal to
+# one of them, as the headline and evidence placeholders are refused.
+FOLLOWS_PLACEHOLDER = "<R-<n> or AD-<n> this item follows>"
+_ORACLE_PLACEHOLDER = "<what observes the behaviour, and where>"
+_RED_PLACEHOLDER = "<how the case fails before the change>"
+_GREEN_PLACEHOLDER = "<what the case shows once the change works>"
+_BEHAVIOUR_PLACEHOLDER = "<behaviour this step added that no test case covers>"
+_REASON_PLACEHOLDER = "<why no test case covers it>"
+_LESSON_PLACEHOLDERS = {"learned": "<what this run learned>",
+                        "considerations": "<the decisions and risks that matter next time>",
+                        "open_next": "<what a later run should pick up, or none>"}
+_CONSUMER_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or verify>"
+HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, _ORACLE_PLACEHOLDER, _RED_PLACEHOLDER, _GREEN_PLACEHOLDER,
+                        _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER, *_LESSON_PLACEHOLDERS.values(), _CONSUMER_PLACEHOLDER)
+# Each hand-off field's shape, with the placeholders, for a packet's result-shape block.  The result template prints a
+# field only where the stage's template already holds done-only fields or the stage runs no Until Loop: a blocked
+# result copied from an inner loop stage's template must stay acceptable (a blocked result carries no done-only field).
+HANDOFF_SHAPES: dict[str, Any] = {
+    "follows": [FOLLOWS_PLACEHOLDER],
+    "test_cases": [{"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": _ORACLE_PLACEHOLDER,
+                    "red": _RED_PLACEHOLDER, "green": _GREEN_PLACEHOLDER}],
+    "not_covered": [{"behaviour": _BEHAVIOUR_PLACEHOLDER, "reason": _REASON_PLACEHOLDER}],
+    "lessons": dict(_LESSON_PLACEHOLDERS),
+    "assumptions": [{"id": "A1", "assumption": "...", "disposition": "open", "check": "...", "reason": "...",
+                     "consumer": _CONSUMER_PLACEHOLDER}],
+}
 
 
 def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None = None) -> str:
@@ -2994,7 +3300,16 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         result["consumer_checks"] = [{"command": "...", "suite": "check"}]
         result["consumer_entry"] = {"how": "<how a person reaches the result>",
                                     "sources": ["<repository-relative file that creates that entry>"]}
-    if stage in assumptions.STAGES:
+    # The hand-off fields (consumer contract): step-plan's template already holds done-only fields, and the OUTER stages
+    # run no Until Loop; test-spec, implement, verify and carry-forward take theirs from HANDOFF_SHAPES in the packet's
+    # result-shape block, so a blocked result copied from their template stays acceptable.
+    if stage == "step-plan":
+        result["follows"] = list(HANDOFF_SHAPES["follows"])
+    if stage == "release-verify":
+        result["lessons"] = dict(HANDOFF_SHAPES["lessons"])
+    if stage in assumptions.OPEN_ITEM_STAGES and stage in stage_spec.OUTER:
+        result["assumptions"] = []
+    if stage == "plan":
         result["assumptions"] = [
             {"id": "A1", "assumption": "...", "disposition": "evidenced",
              "evidence": ["<absolute path or URL>"]},
@@ -4056,8 +4371,8 @@ _INNER_GATES = {
                   "an expectation without a state, a check or a known step, an existing step path with no works or "
                   "broken expectation, or a new step path with no absent one",
                   "a step skill whose locator does not exist"),
-    "test-spec": ("a case ID in the test-spec file that no focused command lists, or a focused command ID with no "
-                  "'### <ID>' entry",),
+    "test-spec": ("test_cases whose IDs differ from this item's focused command IDs (either way), or a case naming a "
+                  "criterion the step plan does not list or a requirement with no entry in HOME/spec.md",),
     "implement": ("for an item whose step plan records no test command and only non-code paths, a change to a code "
                   "or test path or to a path the step plan did not declare",),
     "validate-existing": ("a revise without failed_expectations naming each expectation and what is actually true",),
@@ -4373,9 +4688,20 @@ def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[s
 
 def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     gates = []
-    if stage in assumptions.STAGES:
+    if stage == "plan":
         gates.append("an assumption list that is malformed, cites evidence files that do not exist, or leaves an "
                      "open assumption without a consumer work item in this plan")
+    elif stage in assumptions.OPEN_ITEM_STAGES:
+        gates.append("a missing assumptions list (the open items this stage leaves, or []), an open item whose "
+                     "consumer is not a later outer stage"
+                     + (" or this item's carry-forward" if stage in assumptions.CARRY_FORWARD_PRODUCERS else "")
+                     + ", or evidence files that do not exist")
+    if stage == "step-plan":
+        gates.append("a missing follows list, or a follows ID with no entry in HOME/spec.md or HOME/architecture.md")
+    if stage == "release-verify":
+        gates.append("missing lessons (learned, considerations, open_next)")
+    if stage in HANDOFF_FIELDS.values():
+        gates.append("a hand-off field still holding a template placeholder")
     gates.extend(_RECORDED_GATES[field] for field, owner in RECORDED_COMMANDS.items() if owner == stage)
     gates.extend(_INNER_GATES.get(stage, ()))
     if stage in ("spec", "plan", "step-plan"):
@@ -4920,7 +5246,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "/tmp name can read another run's file.",
         "If Improve changes decisions or decision-relevant evidence needed by a successor, include "
         "final_result: a complete step result with the same fields as the Step result record above "
-        "(outcome done, repeat, blocked or, at OUTER stages, replan; never reconcile), preserving "
+        "(outcome done, repeat, blocked, revise at the INNER stages test-spec to verify, or replan at OUTER stages; "
+        "never reconcile), preserving "
         "authority; with outcome done at plan or carry-forward, list the complete intended queue in "
         "work_items whenever the step result proposed one. When the step result is unchanged, omit "
         "final_result: ShipLoop reuses the result already submitted, so do not restate it. Preserve "
@@ -5723,6 +6050,11 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _check_submitted_awaiting(child["seed_result"] if final_result is None else final_result)
                     _knowledge_gate(state, child["stage"],
                                     child["seed_result"] if final_result is None else final_result, "improve-complete")
+                    _handoff_gate(root, state, child["stage"],
+                                  child["seed_result"] if final_result is None else final_result, "improve-complete",
+                                  next_step=_next_step(root, action_id, "improve-complete",
+                                                       None if final_result is None
+                                                       else getattr(args, "final_result", None)))
                     _improve_change_gate(core, root, state, action_id, child, receipt)
                     record, extra_writes = standalone.complete(child, receipt)
                     record["submission"] = deepcopy(receipt)
@@ -5800,6 +6132,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             _check_submitted_recorded_commands(current_stage(state), submitted)
             _check_submitted_awaiting(submitted)
             _knowledge_gate(state, current_stage(state), submitted)
+            _handoff_gate(root, state, current_stage(state), submitted, "complete",
+                          next_step=_next_step(root, action_id, "complete"))
             preparatory = _inner_gates(root, state, cursor_stage, submitted, check_only=check_only)
             # Lint first, so the tests run on any code the lint gate auto-fixed.
             if cursor_stage in lint.GATE_STAGES:

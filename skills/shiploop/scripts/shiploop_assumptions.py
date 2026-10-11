@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Script-owned checks for the plan's assumption list.
+"""Script-owned checks for the assumption lists: the plan's, and the open items of later stages.
 
 A ``done`` plan result carries ``assumptions``: every load-bearing assumption
 with a disposition.  The model chooses which probes to run; these
 checks make a skipped probe visible instead of silent.  They verify shape,
 links and existence, never whether a list is complete or a locator true.
+
+Open items (consumer contract X10, 2026-10-11): test-spec, verify, carry-forward, system-test-author, system-test,
+release-plan and release-verify record what they leave unproven in the same list.  There an open row's consumer is a
+later OUTER stage, or the same item's carry-forward when the producer is test-spec or verify, and it may name an
+``owner`` (a person).  ``open_items`` is the one reader of the rows still open.
 """
 
 from __future__ import annotations
@@ -12,9 +17,17 @@ from __future__ import annotations
 import re
 import stat
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, List, Mapping, NamedTuple, Tuple
 
-STAGES = frozenset(("plan",))
+import shiploop_planning_revision as planning_revision
+import shiploop_stage_spec as stage_spec
+
+# The plan (whose open rows name a work item) and the open-item stages after it (whose open rows name a stage).
+OPEN_ITEM_STAGES = frozenset(("test-spec", "verify", "carry-forward", "system-test-author", "system-test",
+                              "release-plan", "release-verify"))
+STAGES = frozenset(("plan",)) | OPEN_ITEM_STAGES
+# The producers whose open item may name their own item's carry-forward as its consumer.
+CARRY_FORWARD_PRODUCERS = ("test-spec", "verify")
 DISPOSITIONS = ("evidenced", "probed", "open")
 _ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _URL = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://\S+$")
@@ -67,6 +80,11 @@ def canonical(value: Any, stage: str) -> list[dict[str, Any]]:
               f"{label}.disposition must be one of {', '.join(DISPOSITIONS)}")
         required = _FIELDS[disposition]
         keys = set(entry) - {"id", "assumption", "disposition"}
+        if "owner" in keys:
+            _need(disposition == "open" and stage in OPEN_ITEM_STAGES,
+                  f"{label}: owner is only for an open item at " + ", ".join(sorted(OPEN_ITEM_STAGES))
+                  + "; delete it")
+            keys = keys - {"owner"}
         _need(keys == required,
               f"{label} ({disposition}) needs exactly {', '.join(sorted(required))}; {_SHAPE}")
         row: dict[str, Any] = {
@@ -82,6 +100,8 @@ def canonical(value: Any, stage: str) -> list[dict[str, Any]]:
                 row[key] = [_text(ref, f"{label}.evidence entry") for ref in refs]
             else:
                 row[key] = _text(entry[key], f"{label}.{key}")
+        if "owner" in entry:
+            row["owner"] = _text(entry["owner"], f"{label}.owner (a person)")
         rows.append(row)
     return rows
 
@@ -122,3 +142,71 @@ def check_files(rows: list[Mapping[str, Any]]) -> None:
             _need(local_outputs > 0,
                   f"{label} is probed but cites no captured output; save the probe's output "
                   "to a file and list its absolute path in evidence")
+
+
+def allowed_consumers(stage: str) -> Tuple[str, ...]:
+    """The consumers an open item at an open-item ``stage`` may name, in graph order.
+
+    A later OUTER stage, or ``carry-forward`` (the same item's) when the producer is test-spec or verify.  Work for a
+    later work item goes through carry-forward's work_items, as before (K12).
+    """
+    order = stage_spec.STAGES
+    later = [name for name in stage_spec.OUTER if order.index(name) > order.index(stage)]
+    return tuple((["carry-forward"] if stage in CARRY_FORWARD_PRODUCERS else []) + later)
+
+
+def wrong_consumers(rows: List[Mapping[str, Any]], stage: str) -> List[Tuple[str, str]]:
+    """``(id, consumer)`` of each open row at an open-item ``stage`` whose consumer is not allowed there."""
+    allowed = allowed_consumers(stage)
+    return [(str(row["id"]), str(row["consumer"])) for row in rows
+            if row.get("disposition") == "open" and row.get("consumer") not in allowed]
+
+
+class OpenItem(NamedTuple):
+    stage: str                 # the stage whose result recorded the row
+    workitem: Any              # its work item, or None for a root stage
+    action: str                # the result's action
+    row: Mapping[str, Any]     # the open row, as recorded
+
+
+def open_items(state: Mapping[str, Any]) -> List[OpenItem]:
+    """Every open row still open, from each current result at ``STAGES``, in the order the results were accepted.
+
+    Current means ``planning_revision.current_actions``.  The plan's rows (consumer: a work item) stay open, as the
+    ledger never updates a disposition.  A later stage's row is settled once a done result of its consumer stage (for
+    carry-forward, the same item's) is current and was accepted after the row's result, unless that result lists the
+    row's ID again as open.  A consumer with no assumptions field settles by its done result.
+    """
+    current = planning_revision.current_actions(state)
+    accepted = state.get("accepted") or {}
+    order = {}
+    for index, entry in enumerate(state.get("history") or ()):
+        if isinstance(entry, Mapping) and isinstance(entry.get("action"), str):
+            order[entry["action"]] = index
+    found: List[Tuple[int, int, OpenItem]] = []
+    for (workitem, stage), action in current.items():
+        if stage not in STAGES:
+            continue
+        result = accepted.get(action)
+        if not isinstance(result, Mapping):
+            continue
+        for position, row in enumerate(result.get("assumptions") or ()):
+            if not isinstance(row, Mapping) or row.get("disposition") != "open":
+                continue
+            if stage != "plan" and _settled(row, order.get(action, -1), workitem, current, accepted, order):
+                continue
+            found.append((order.get(action, -1), position, OpenItem(stage, workitem, action, row)))
+    return [item for _, _, item in sorted(found, key=lambda entry: (entry[0], entry[1]))]
+
+
+def _settled(row: Mapping[str, Any], produced: int, workitem: Any, current: Mapping[Tuple[Any, str], str],
+             accepted: Mapping[str, Any], order: Mapping[str, int]) -> bool:
+    consumer = row.get("consumer")
+    key = (workitem, "carry-forward") if consumer == "carry-forward" else (None, consumer)
+    action = current.get(key)
+    if action is None or order.get(action, -1) <= produced:
+        return False
+    result = accepted.get(action)
+    again = [entry for entry in (result.get("assumptions") or () if isinstance(result, Mapping) else ())
+             if isinstance(entry, Mapping) and entry.get("disposition") == "open" and entry.get("id") == row.get("id")]
+    return not again

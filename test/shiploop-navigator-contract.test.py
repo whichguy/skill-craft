@@ -3724,6 +3724,14 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                 self.run_dir, outcome="done" if result.get("outcome") == "done" else "blocked")
             result = self.loop_support.with_receipt(result, receipt)
         self.knowledge_support.write(state)
+        if result.get("outcome") == "done":
+            # The consumer contract's hand-off fields (2026-10-11), when the test did not set them.
+            result = dict(result)
+            if stage == "step-plan":
+                result.setdefault("follows", [])
+            if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test", "release-plan",
+                         "release-verify"):
+                result.setdefault("assumptions", [])
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         path.write_text(store.dumps(result, "result"))

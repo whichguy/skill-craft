@@ -121,6 +121,10 @@ class ContextIndexTests(unittest.TestCase):
                     if name.startswith("item:"):
                         self.assertIn(stage, inner, "only work-item stages read item results")
                         self.assertLess(inner.index(name[5:]), inner.index(stage))
+                    elif (stage, name) == ("system-test-author", "test-spec"):
+                        # The one plain read of an INNER stage (consumer contract, 2026-10-11): every item's latest test
+                        # cases, which handoff_sources resolves per item; no root result is looked up for it.
+                        self.assertLess(stages.index(name), stages.index(stage))
                     else:
                         self.assertNotIn(name, inner)
                         self.assertLess(stages.index(name), stages.index(stage))

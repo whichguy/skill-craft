@@ -771,6 +771,19 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                                                                       "prints a pass on any checkout"}])
         elif stage == "carry-forward":
             result.setdefault("skill", {"decision": "none", "reason": "Synthetic fixture: no procedure repeated."})
+        # The consumer contract's hand-off fields (2026-10-11): what each consumer quotes.
+        if stage == "step-plan":
+            result.setdefault("follows", [])
+        if stage == "test-spec":
+            result.setdefault("test_cases", [{"id": FOCUSED_ID, "criterion": "C1", "requirement": "R-1",
+                                              "oracle": "the focused command", "red": "fails before the change",
+                                              "green": "passes after it"}])
+        if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test", "release-plan",
+                     "release-verify"):
+            result.setdefault("assumptions", [])
+        if stage == "release-verify":
+            result.setdefault("lessons", {"learned": "Synthetic fixture: nothing learned.", "considerations": "none",
+                                          "open_next": "none"})
 
     @staticmethod
     def _with_loop(run: Path, stage: str, result: dict) -> dict:
@@ -1132,11 +1145,13 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 "outcome": "done",
                 "summary": "Synthetic producer callback for system-test; no semantic claim.",
                 "evidence_refs": [f"fixture://producer/system-test/{missing_action}"],
+                "assumptions": [],     # the open-item list (consumer contract X10): the delivery fault is under test
             },
             corrected_result={
                 "outcome": "done",
                 "summary": "Synthetic Improve correction supplies the fresh pre-update observation.",
                 "evidence_refs": ["fixture://delivery/candidate-v3/pre-drag"],
+                "assumptions": [],
                 "delivery_assessment": self._delivery_observation(
                     before_fresh_system_test, "pre-drag", candidate="candidate-v3"
                 ),

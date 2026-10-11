@@ -150,6 +150,13 @@ class ImproveCliFixture(unittest.TestCase):
         Every inner stage's complete checks its loop receipt (owner decision 2026-10-10), so the receipt joins the
         evidence_refs the way the printed template prefills it; parent_evidence_refs follows the submitted list.
         """
+        if self.producer.get("outcome") == "done":
+            # The consumer contract's hand-off fields (2026-10-11), when the test did not set them.
+            if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test",
+                         "release-plan", "release-verify"):
+                self.producer.setdefault("assumptions", [])
+            if stage == "step-plan":
+                self.producer.setdefault("follows", [])
         if stage in stage_spec.INNER:
             if stage == "test-spec":
                 spec_file = self.repo / knowledge.feature_dir(store.read_record(self.run / "state.md")) / "test-spec.md"
@@ -1718,6 +1725,13 @@ class ImproveCommitContractTests(ImproveCliFixture):
         Every inner stage's complete checks its loop receipt (owner decision 2026-10-10), so the receipt joins the
         evidence_refs the way the printed template prefills it; parent_evidence_refs follows the submitted list.
         """
+        if self.producer.get("outcome") == "done":
+            # The consumer contract's hand-off fields (2026-10-11), when the test did not set them.
+            if stage in ("test-spec", "verify", "carry-forward", "system-test-author", "system-test",
+                         "release-plan", "release-verify"):
+                self.producer.setdefault("assumptions", [])
+            if stage == "step-plan":
+                self.producer.setdefault("follows", [])
         if stage in stage_spec.INNER:
             if stage == "test-spec":
                 spec_file = self.repo / knowledge.feature_dir(store.read_record(self.run / "state.md")) / "test-spec.md"

@@ -447,7 +447,8 @@ _ROWS = (
         deploy="Plan which tests run against the deployed target.",
         edits=frozenset({"tests"}),
         improve="always",
-        reads=("spec", "test-strategy", "plan"),
+        # test-spec: every item's latest test cases (consumer contract CONSUMES, 2026-10-11).
+        reads=("spec", "test-strategy", "plan", "test-spec"),
         blocks=frozenset({"test-facility"}),
     ),
     Stage(
@@ -484,7 +485,8 @@ _ROWS = (
         test="Plan the post-release checks.",
         deploy="Plan the release, its rollback and the post-release checks.",
         improve="always",
-        reads=("spec", "plan", "system-test"),
+        # system-test-author: the system commands it recorded (consumer contract CONSUMES, 2026-10-11).
+        reads=("spec", "plan", "system-test-author", "system-test"),
         blocks=frozenset({"test-facility"}),
     ),
     Stage(
