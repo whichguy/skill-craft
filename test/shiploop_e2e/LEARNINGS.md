@@ -2102,3 +2102,47 @@ What this shows.
 
 Not yet seen: a Grok or Codex slice, where the resume path is exercised and packet reads are unmeasured; an Ask-Agent
 slice; and a revise loop back to step-plan in a live run.
+
+## The 8-stage inner loop in four live step slices (2026-10-10, origin/main 13d278dd) — status: interim
+
+Question: does a model carry one work item through the new eight stages (every stage an Until Loop invoked by name), and
+what does it cost against the 17-stage slices of the same day?
+
+Setup: `slice.py`, the four node cases, Claude Sonnet 5.5, inline. The plugin was built from the checkout at 13d278dd.
+Evidence: `test/shiploop_e2e/evidence/step-slices-8stage-2026-10-10.json` against `step-slices-2026-10-10.json`.
+
+| Case | 17 stages (1.26.1) | 8 stages (13d278dd) | All verdicts |
+|---|---|---|---|
+| node-add-function | 229 s, 74 turns | 315 s, 98 turns, 55 tool calls | pass |
+| node-fix-bug | 203 s, 62 turns | 243 s, 71 turns, 40 tool calls | pass |
+| node-add-route | 217 s, 69 turns | 249 s, 82 turns, 48 tool calls | pass |
+| node-rename | 211 s, 62 turns | 215 s, 77 turns, 43 tool calls | pass |
+
+Findings:
+- **Firm (4 of 4): correct end to end.** Each item ran step-plan, test-spec, validate-existing, implement, test, document,
+  verify and carry-forward, every one done on the first submission. Every stage left a contract and a receipt under
+  `loops/`.
+- **Firm (4 of 4): validate-existing ran by script.** ShipLoop ran the expectation checks and recorded the stage with no
+  model turn. In node-fix-bug the "broken" expectation reproduced the reported bug (exit 0 on the failure check), and the
+  "works" expectation confirmed the existing tests.
+- **Interim: slower, not faster.** The time went up 2-38% and the turns 9-24 against the 17-stage slices. Halving the
+  stages did not halve the turns, because each stage now:
+  - starts an Until Loop;
+  - runs `complete --check-only` (4-11 calls per item; the step-plan duty asks for it);
+  - adds `red-check` (0-2) and the base run at test;
+  - adds an Improve child after each implement step.
+
+  n=1 per case on one host; not yet a cost verdict. The next measure is per-stage time from the flow export.
+- **Firm (2 of 4): the INVOKE wording works on the model, but the Skill route does not exist here.** node-add-route and
+  node-rename called the Skill tool with `until-loop` first, then used the card's start command. In skill-craft's bundle
+  the card sits under `improve/runtime/until-loop/`, which is not a registered skill. The Skill route needs the separate
+  until-loop plugin (0.8.0, prepared locally, unpublished).
+- **Firm, fixed: the missing-contract defect.** On 8932b849, 3 of 4 slices stopped at step-plan within 50-80 s ("The
+  loop contract is missing"), because the seed enters step-plan without a transition. e4777c78 writes the contract at
+  emit. Raw output of that failed round was under scratchpad slices8/.
+
+Next:
+- per-stage timing from flow.json;
+- whether `--check-only` and the per-stage loop start can be cheaper for one-pass stages (planning, document,
+  carry-forward) without losing the receipt check;
+- the full hello and Checkers pair (E2E session) on this build.
