@@ -352,8 +352,9 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
 
 # --- the sections check: a counted notice -------------------------------------------------------------------------
 
-# Every notice line starts with this, so a reader or the harness counts them with one grep.  Distinct from the "ShipLoop
-# knowledge: " lines (a commit, a kept file), which a count of those must not pick up.
+# Every notice line starts with this, so a reader or the harness counts them by occurrence (grep -o: the host events log a call's
+# whole stdout as one line).  Distinct from the "ShipLoop knowledge: " lines (a commit, a kept file), which a count of those must
+# not pick up.
 NOTICE_PREFIX = "ShipLoop knowledge notice: "
 # Said in every line: a model that reads the lines alone, after the close, learns that the close did not fail.
 _ACCEPTED = "(this close is accepted)"
