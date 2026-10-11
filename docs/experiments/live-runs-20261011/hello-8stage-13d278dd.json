@@ -1,0 +1,80 @@
+{
+ "run": "hello-8stage-13d278dd",
+ "build": "checkout 13d278dd (skill-craft 1.27.0 tree + commit contract, retire step, architecture.md, 8-stage inner loop)",
+ "host": "claude claude-sonnet-5-5",
+ "outcome": true,
+ "metrics_keys": {
+  "turns": 148,
+  "cost_usd": 2.6928,
+  "wall_seconds": null,
+  "commits": {
+   "improve": {
+    "n": 0,
+    "with_lessons": 0,
+    "cited": 0,
+    "cited_earlier_run": 0
+   },
+   "script": {
+    "n": 12,
+    "with_lessons": 1
+   },
+   "other": {
+    "n": 0,
+    "with_lessons": 0
+   },
+   "counted": 12,
+   "start_head": null
+  },
+  "packets_unmeasured": {
+   "head_bytes": "claude: 47 of 49 packets have no whole print in the recorded replies: a reply is a whole print only from its head's first line to the head's own closing line, with the packet's `Full packet:` line and unshortened callback and keepalive lines; no recorded reply is one for these packets (33 recorded head replies were cut by the model's own pipe or script or by the host, and the rest of the packets are shown by no reply)"
+  }
+ },
+ "commits_block": {
+  "improve": {
+   "n": 0,
+   "with_lessons": 0,
+   "cited": 0,
+   "cited_earlier_run": 0
+  },
+  "script": {
+   "n": 12,
+   "with_lessons": 1
+  },
+  "other": {
+   "n": 0,
+   "with_lessons": 0
+  },
+  "counted": 12,
+  "start_head": null
+ },
+ "packets": {
+  "n": 49,
+  "head_bytes_measured": 2
+ },
+ "work_git_log": [
+  "b719f1c docs(shiploop): retire create-hello-py-that-prints-exactly-211523 spec: checked its requirement IDs against the living spec",
+  "2b46334 docs(shiploop): record create-hello-py-that-prints-exactly-211523 knowledge at release-verify",
+  "c71ffea docs(shiploop): record create-hello-py-that-prints-exactly-211523 knowledge at release-plan",
+  "5fa0c03 docs(shiploop): record create-hello-py-that-prints-exactly-211523 knowledge after system-test-author",
+  "6834a11 docs(shiploop): record create-hello-py-that-prints-exactly-211523 knowledge after carry-forward",
+  "6c54a6f feat: W1 Create hello.py and test_hello.py",
+  "482ef5c docs(shiploop): record create-hello-py-that-prints-exactly-211523 knowledge after validate-existing",
+  "540cae2 docs(shiploop): record create-hello-py-that-prints-exactly-211523 knowledge at prepare",
+  "f950880 docs(shiploop): record create-hello-py-that-prints-exactly-211523 knowledge after plan",
+  "005abdd docs(shiploop): record create-hello-py-that-prints-exactly-211523 knowledge after test-strategy",
+  "1c57117 docs(shiploop): record create-hello-py-that-prints-exactly-211523 knowledge after spec",
+  "f38c785 Empty baseline for the first ShipLoop run"
+ ],
+ "knowledge_home_files": [
+  "README.md",
+  "architecture.md",
+  "environment.md",
+  "features",
+  "spec.md",
+  "test-strategy.md"
+ ],
+ "finding_1": "the model wrote docs/shiploop/features/README.md itself at the spec stage (commit 1c57117 'after spec'); ShipLoop then left it as it is ('does not begin with ShipLoop's generated ...') so the generated list with the four header commands never existed in this run; cause: the intake/plan/release-verify packet line tells the model to 'link the feature list .../features/README.md' and the target did not exist yet",
+ "finding_2": "retire step worked: commit 'docs(shiploop): retire <folder> spec: checked its requirement IDs against the living spec' at the terminal close, returned fast-forward; feature folder holds no spec.md at the end",
+ "finding_3": "architecture.md was written at plan and accepted at prepare; no prepare refusal; no section notices yet (A2 not built)",
+ "finding_4": "3 ShipLoop command failures, none repeated: evidence_refs cite loop files that do not exist; result path must be the current generated path; focused command ids with no '### <ID>' entry in test-spec (inner-loop session's area)"
+}
