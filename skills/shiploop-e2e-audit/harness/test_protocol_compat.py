@@ -227,6 +227,37 @@ class ProtocolCompatibilityTests(unittest.TestCase):
         observed = self.lifecycle(navigation, self.events_for(state))
         self.assertEqual([plan], observed["missing_callback_actions"])
 
+    def test_script_recorded_stages_need_no_callback_and_check_only_is_not_one(self) -> None:
+        state, navigation, _ = self.state_and_navigation(
+            4, ("step-plan", "validate-existing", "implement", "test", "document"), current_stage="inner-loop"
+        )
+        step_plan, validate, implement, test, document = (entry["action"] for entry in state["history"])
+        state["history"][1]["summary"] = (
+            "ShipLoop ran every expectation check on the unchanged checkout and each matched its state; "
+            "validate-existing was recorded without running it. Records: /run/expectations/x.json")
+        for row in state["history"][3:]:
+            row["summary"] = ("Not applicable to this item: the step plan declares only docs paths. "
+                              "ShipLoop recorded this stage without running it.")
+        # validate-existing, test and document were recorded by script: only step-plan and implement need callbacks.
+        events = {"cli_calls": [self.call("start", ["init", "--repo", str(self.repo), "--run-dir", str(self.run_dir)])]
+                  + [self.call(f"cb-{action}", ["complete", "--run-dir", str(self.run_dir), "--action", action])
+                     for action in (step_plan, implement)]}
+        observed = self.lifecycle(navigation, events)
+        self.assertTrue(observed["complete"], observed)
+        self.assertEqual(sorted((step_plan, implement)), sorted(observed["action_callback_commands"]))
+        # The same stage with a model-written summary is still owed its callback.
+        state["history"][3]["summary"] = "Wrote the tests; every command passed."
+        observed = self.lifecycle(navigation, events)
+        self.assertEqual([test], observed["missing_callback_actions"])
+        state["history"][3]["summary"] = state["history"][4]["summary"]
+        # A check-only complete runs the gates without accepting, so it cannot stand in for the callback.
+        check_only = {"cli_calls": events["cli_calls"][:2] + [self.call(
+            "check-only", ["complete", "--run-dir", str(self.run_dir), "--action", implement, "--check-only"])]}
+        observed = self.lifecycle(navigation, check_only)
+        self.assertFalse(observed["complete"])
+        self.assertEqual([implement], observed["missing_callback_actions"])
+        del validate, document
+
     def test_unknown_exit_cannot_support_lifecycle_attribution(self) -> None:
         for protocol, stages in ((4, ("intake",)), (4, ("plan",))):
             state, navigation, _ = self.state_and_navigation(protocol, stages, current_stage="prepare")

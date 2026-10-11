@@ -1370,6 +1370,16 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         store.atomic_write_text(Path(root) / run_reference.REFERENCE_FILE, run_reference.render(state, root, version))
     # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
     (Path(root) / "notes").mkdir(exist_ok=True)
+    # The current inner action's Until Loop contract, when no transition wrote it: a run that reached the stage another
+    # way (a seeded run, a recovery after the file was lost) would otherwise be told to report blocked. The contract is
+    # rebuilt from state, the same text check_terminal compares with, so writing it here never changes the run.
+    cursor = loops.cursor(state) if state["status"] == "active" and not state.get("active_improve") else None
+    if cursor is not None and not (Path(root) / loops.contract_path(cursor[1])).is_file():
+        try:
+            for relative, text in loops.contract_writes(root, state).items():
+                store.atomic_write_text(Path(root) / relative, text)
+        except loops.LoopError:
+            pass  # the packet's invoke block says the contract is unavailable and names the route out
     # Likewise the directory of a bound Improve child's opening file, which the packet tells the parent to write.
     child = state.get("active_improve")
     if state["status"] == "active" and child is not None and child["skill"] is not None:

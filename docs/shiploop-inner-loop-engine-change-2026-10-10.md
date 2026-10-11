@@ -175,3 +175,17 @@ signature. The navigator (`shiploop_navigator.py`), `shiploop_protocol.py` and t
 | L6 | The dry run used a fake Improve card, so its packets never showed the INVOKE block | I6: the dry run uses the bundled card | in progress |
 | L7 | A preparatory fix committed by the model would break ShipLoop's rule that the model commits nothing | ShipLoop commits it on accept; the gate checks only its paths | done |
 | L8 | The test stage's base must include the preparatory commit, or a fixed behaviour looks red for the wrong reason | `base_commit` is the preparatory commit when one exists | done |
+
+- 2026-10-10: merged to main at 8932b849, then e4777c78 (emit writes a missing loop contract) and 13d278dd
+  (shiploop-e2e-audit oracle; main's CI quick job had gone red because that family is outside the ShipLoop suite list).
+  - Lesson: run `bash test/run-all.sh --group quick` before pushing a stage-table change.
+- 2026-10-10: four live step slices on 13d278dd all pass, with validate-existing recorded by script in every case.
+  They are 2-38% slower and use 9-24 more turns than the 17-stage slices. Details: test/shiploop_e2e/LEARNINGS.md and
+  evidence/step-slices-8stage-2026-10-10.json.
+- Open:
+  - a `recorded_by: "script"` marker on script-recorded history rows (harnesses match summary text today);
+  - the Skill-tool route for /until-loop needs the until-loop plugin;
+  - the cost of loop ceremony on one-pass stages;
+  - the four-part packet re-cut (packets still 400k characters per item offline);
+  - the B1/B2 probe fixes;
+  - Run Review's v4 history handling (the fork, branch rr8-2ce5e7).

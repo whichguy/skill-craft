@@ -1,0 +1,280 @@
+{
+ "about": "Four live step slices on the 8-stage inner loop (origin/main 13d278dd), Claude Sonnet 5.5, inline; compact export of slice-result.json, metrics.json and the event stream's tool calls. Outputs were under the session scratchpad slices8b/. Compare: step-slices-2026-10-10.json (the 17-stage loop, 1.26.1).",
+ "commit": "13d278ddac63",
+ "runs": {
+  "node-add-function": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "seconds": 315.0,
+   "turns": 98,
+   "tool_calls": 55,
+   "item_history": [
+    [
+     "step-plan",
+     "done"
+    ],
+    [
+     "test-spec",
+     "done"
+    ],
+    [
+     "validate-existing",
+     "done"
+    ],
+    [
+     "implement",
+     "done"
+    ],
+    [
+     "implement",
+     "done"
+    ],
+    [
+     "test",
+     "done"
+    ],
+    [
+     "document",
+     "done"
+    ],
+    [
+     "verify",
+     "done"
+    ],
+    [
+     "carry-forward",
+     "done"
+    ]
+   ],
+   "validate_existing_by_script": true,
+   "check_only_runs": 11,
+   "red_check_runs": 1,
+   "skill_tool_until_loop_calls": 0,
+   "loops_dir_files": [
+    "nav-2ec0c0ba37b841f8a30bc001749d5b96-contract.json",
+    "nav-2ec0c0ba37b841f8a30bc001749d5b96-terminal.json",
+    "nav-31032610753444f4abc491caf0afbe27-contract.json",
+    "nav-31032610753444f4abc491caf0afbe27-terminal.json",
+    "nav-409da97489ea4e12bb5be5f888e47294-contract.json",
+    "nav-409da97489ea4e12bb5be5f888e47294-terminal.json",
+    "nav-5e6084e14ae74bb7b2e882ae0f3cad18-contract.json",
+    "nav-5e6084e14ae74bb7b2e882ae0f3cad18-terminal.json",
+    "nav-5f6a4444a7e141cb80a2c63a4f6376f4-contract.json",
+    "nav-5f6a4444a7e141cb80a2c63a4f6376f4-terminal.json",
+    "nav-9157ab3e098443d0a3c19399011c9ad9-contract.json",
+    "nav-9157ab3e098443d0a3c19399011c9ad9-terminal.json",
+    "nav-9a316919f1114b40a55ac5d383822892-contract.json",
+    "nav-9a316919f1114b40a55ac5d383822892-terminal.json",
+    "nav-f437f2f0665240c08a33032b33fd5a04-contract.json",
+    "nav-f437f2f0665240c08a33032b33fd5a04-terminal.json"
+   ]
+  },
+  "node-fix-bug": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "seconds": 242.8,
+   "turns": 71,
+   "tool_calls": 40,
+   "item_history": [
+    [
+     "step-plan",
+     "done"
+    ],
+    [
+     "test-spec",
+     "done"
+    ],
+    [
+     "validate-existing",
+     "done"
+    ],
+    [
+     "implement",
+     "done"
+    ],
+    [
+     "test",
+     "done"
+    ],
+    [
+     "document",
+     "done"
+    ],
+    [
+     "verify",
+     "done"
+    ],
+    [
+     "carry-forward",
+     "done"
+    ]
+   ],
+   "validate_existing_by_script": true,
+   "check_only_runs": 8,
+   "red_check_runs": 2,
+   "skill_tool_until_loop_calls": 0,
+   "loops_dir_files": [
+    "nav-237e6ab42b4a4e158a22b3528fd72cc2-contract.json",
+    "nav-237e6ab42b4a4e158a22b3528fd72cc2-terminal.json",
+    "nav-272394e0cd25422ea0e9edddde572af4-contract.json",
+    "nav-272394e0cd25422ea0e9edddde572af4-terminal.json",
+    "nav-542233dc86b8404da3a8643122dee28b-contract.json",
+    "nav-542233dc86b8404da3a8643122dee28b-terminal.json",
+    "nav-6017d7241be74ae6a9002df631e53634-contract.json",
+    "nav-6017d7241be74ae6a9002df631e53634-terminal.json",
+    "nav-75985edbc4ae43648dc16940379489b3-contract.json",
+    "nav-75985edbc4ae43648dc16940379489b3-terminal.json",
+    "nav-dd9bc55ef34c4373b427cb0cbfa4e001-contract.json",
+    "nav-dd9bc55ef34c4373b427cb0cbfa4e001-terminal.json",
+    "nav-e5765daec68944e4b3cf8a4427160f7f-contract.json",
+    "nav-e5765daec68944e4b3cf8a4427160f7f-terminal.json"
+   ]
+  },
+  "node-add-route": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "seconds": 248.8,
+   "turns": 82,
+   "tool_calls": 48,
+   "item_history": [
+    [
+     "step-plan",
+     "done"
+    ],
+    [
+     "test-spec",
+     "done"
+    ],
+    [
+     "validate-existing",
+     "done"
+    ],
+    [
+     "implement",
+     "done"
+    ],
+    [
+     "test",
+     "done"
+    ],
+    [
+     "document",
+     "done"
+    ],
+    [
+     "verify",
+     "done"
+    ],
+    [
+     "carry-forward",
+     "done"
+    ]
+   ],
+   "validate_existing_by_script": true,
+   "check_only_runs": 6,
+   "red_check_runs": 0,
+   "skill_tool_until_loop_calls": 1,
+   "loops_dir_files": [
+    "nav-5a0b6d8f4e4d48a6a8a436e08850fcfe-contract.json",
+    "nav-5a0b6d8f4e4d48a6a8a436e08850fcfe-terminal.json",
+    "nav-5af6afb0848d4ff48c43997c8ee04ba0-contract.json",
+    "nav-5af6afb0848d4ff48c43997c8ee04ba0-terminal.json",
+    "nav-6d31c4aef7564f15b4582e526a4d1f79-contract.json",
+    "nav-6d31c4aef7564f15b4582e526a4d1f79-terminal.json",
+    "nav-b44290bd981d4adf98671d0d3f79e64e-contract.json",
+    "nav-b44290bd981d4adf98671d0d3f79e64e-terminal.json",
+    "nav-bbd256a05b394a72a9e580da822b6cc6-contract.json",
+    "nav-bbd256a05b394a72a9e580da822b6cc6-terminal.json",
+    "nav-c205a30f19d24f07a7f3f6a9434da0cb-contract.json",
+    "nav-c205a30f19d24f07a7f3f6a9434da0cb-terminal.json",
+    "nav-cae28d9ca37e453eb049a51e37a56edd-contract.json",
+    "nav-cae28d9ca37e453eb049a51e37a56edd-terminal.json"
+   ]
+  },
+  "node-rename": {
+   "pass": true,
+   "verdicts": {
+    "process": true,
+    "inner_loop": true,
+    "no_overshoot": true,
+    "assembled": true,
+    "checks": true
+   },
+   "seconds": 214.7,
+   "turns": 77,
+   "tool_calls": 43,
+   "item_history": [
+    [
+     "step-plan",
+     "done"
+    ],
+    [
+     "test-spec",
+     "done"
+    ],
+    [
+     "validate-existing",
+     "done"
+    ],
+    [
+     "implement",
+     "done"
+    ],
+    [
+     "test",
+     "done"
+    ],
+    [
+     "document",
+     "done"
+    ],
+    [
+     "verify",
+     "done"
+    ],
+    [
+     "carry-forward",
+     "done"
+    ]
+   ],
+   "validate_existing_by_script": true,
+   "check_only_runs": 4,
+   "red_check_runs": 0,
+   "skill_tool_until_loop_calls": 1,
+   "loops_dir_files": [
+    "nav-089e2cf551064779b7b522b0f9b4dda6-contract.json",
+    "nav-089e2cf551064779b7b522b0f9b4dda6-terminal.json",
+    "nav-0ae7d15221524775be9f7c1701567de0-contract.json",
+    "nav-0ae7d15221524775be9f7c1701567de0-terminal.json",
+    "nav-0bf503ebad8f42c6bc43fb9ed32f2271-contract.json",
+    "nav-0bf503ebad8f42c6bc43fb9ed32f2271-terminal.json",
+    "nav-5260e10a88804c40adb0940e9be4560d-contract.json",
+    "nav-5260e10a88804c40adb0940e9be4560d-terminal.json",
+    "nav-7af9f174bf9d4799863092528a2e370a-contract.json",
+    "nav-7af9f174bf9d4799863092528a2e370a-terminal.json",
+    "nav-9ac3a37f1375473b8a1c733c303fc45d-contract.json",
+    "nav-9ac3a37f1375473b8a1c733c303fc45d-terminal.json",
+    "nav-bdc6be5516d544d4bbb2fae4870e77f5-contract.json",
+    "nav-bdc6be5516d544d4bbb2fae4870e77f5-terminal.json"
+   ]
+  }
+ }
+}
