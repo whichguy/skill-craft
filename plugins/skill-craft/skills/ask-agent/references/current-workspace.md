@@ -1,11 +1,16 @@
 # Current workspace
 
-`workspace_route: current` runs a fresh native worker in the caller's own
-checkout and branch. There is no helper-prepared worktree, snapshot, receipt,
-patch, commit delivery or close. Use it for work that needs a separate context
-but not a separate copy of the repository: digesting a long log or run state
-into a short summary, answering a question about the code, or a small edit to a
-declared set of files.
+For standalone work, select `workspace: current` (the default) and use compact
+`mode: edit` or `mode: report-only`. The worker runs in the caller's checkout
+and branch. An edit is limited to the declared write set and is not committed
+automatically; report-only work makes no filesystem edits. Use this route when
+the task needs a separate context but not a separate repository copy, such as
+summarizing a long log or making a small, scoped edit.
+
+The lower-level instructions in this reference retain the existing
+`workspace_route: current` and `in-place` contract for legacy and orchestrated
+callers. Compact standalone requests use `workspace` and `mode` as described in
+[Task interface](task-interface.md); do not mix the two request shapes.
 
 ## Selection
 
@@ -53,6 +58,18 @@ never adds such a restriction on its own.
 
 ## Record the baseline and launch
 
+For standalone delegation, use [Task interface](task-interface.md): `prepare`
+captures the baseline and refuses dirty scope overlap for `mode: edit`; its
+assignment includes worker start/finish checks, and `verify-return` obtains the
+parent's fresh returned-state evidence after native collection. Use
+`workspace: current` with `mode: edit` or `mode: report-only`. The compact
+interface accepts exact paths or slash-terminated directory prefixes, not
+globs. It does not commit current-workspace edits. Do not also run the manual
+baseline and worker-check sequence below after successful preparation.
+
+The following lower-level commands describe the underlying helper contract
+for existing callers and diagnostics; they are not a second standalone workflow.
+
 Bind the helper from the selected card as in
 [Workspace operations](workspace-operations.md#bind-and-verify-the-selected-package),
 then from the caller's checkout:
@@ -77,10 +94,10 @@ cd "$ROOT" && python3 "$HELPER" current-state --expect-root "$ROOT"
 and it stops on a failure. Every later shell command begins with
 `cd "$ROOT" &&`, and file tools use absolute paths.
 
-Launch a fresh general-purpose native worker with no inherited history. A
-digest or question runs in the foreground by default, because its result is
-short and the parent needs it next; the user's request to run it in the
-background takes precedence. Host recipes:
+For the legacy direct-helper recipe, launch a fresh general-purpose native
+worker with no inherited history. A digest or question runs in the foreground
+by default because its result is short and the parent needs it next; an
+explicit request to run in the background takes precedence. Host recipes:
 
 | Host | Launch |
 |---|---|
@@ -105,7 +122,8 @@ script can render.
 
 ## Return and acceptance
 
-The worker returns inline:
+For a legacy caller that captured `$BASELINE` directly, the worker returns
+inline:
 
 - Task, and Status: SUCCEEDED, BLOCKED or FAILED
 - `Route: current`, the delivery mode, root, branch, and HEAD before and after
@@ -113,7 +131,9 @@ The worker returns inline:
 - the paths it changed (none for `report-only`)
 - the next action and its owner
 
-The parent then runs:
+The compact parent runs `verify-return` after native collection as described
+in [Task interface](task-interface.md#acceptance). For a lower-level legacy
+caller that captured `$BASELINE` directly, the equivalent helper check is:
 
 ```sh
 python3 "$HELPER" current-state --baseline "$BASELINE" --write-set PATH ...

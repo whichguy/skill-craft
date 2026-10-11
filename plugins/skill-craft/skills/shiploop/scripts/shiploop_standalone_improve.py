@@ -45,6 +45,8 @@ _TERMINAL_PACKET_FIELDS = {
     "status", "state_file", "workspace", "work", "conditions", "progress", "context",
     "status_semantics", "last_report", "instruction", "next_argv",
     "done_argv", "report_schema", "receipt",
+    # Until Loop 0.8.0: exit checks and their recorded verify runs.
+    "exit_checks", "last_check_results", "check_repairs", "verify_script",
 }
 
 __all__ = [

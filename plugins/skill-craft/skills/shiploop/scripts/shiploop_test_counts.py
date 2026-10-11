@@ -246,4 +246,41 @@ def named(output: str, ids: Sequence[str]) -> Dict[str, Any]:
     return {"shown": shown, "missing": missing, "inside": inside}
 
 
-__all__ = ("count", "named")
+# A runner's own mark that one test passed or failed, on the line that names it: spec, TAP, verbose unittest and
+# pytest, go -v, cargo, mocha, jest and vitest, dotnet.  A failure mark wins over a pass mark for the same ID (a failing
+# test is often printed twice: in the run and again in the failure summary).
+_PASS_LINE = re.compile(
+    r"^\s*(?:[\u2713\u2714\u221a]\s|ok \d+\b)|\.\.\.\s*ok\s*$|\bPASSED\b|--- PASS: |^\s*Passed\s")
+_FAIL_LINE = re.compile(
+    r"^\s*(?:[\u2717\u2715\u2716\u00d7]\s|not ok \d+\b|\d+\) |\u25cf |(?:FAIL|ERROR):? )"
+    r"|\.\.\.\s*(?:FAIL|ERROR|FAILED)\s*$|\bFAILED\b|--- FAIL: |^\s*Failed\s")
+# unittest without -v prints ``FAIL: test_x (module.Case.test_x)`` and the docstring (where the ID is) on the next line.
+_FAIL_HEADER = re.compile(r"^(?:FAIL|ERROR): ")
+
+
+def outcomes(output: str, ids: Sequence[str]) -> Dict[str, str]:
+    """Per declared ID, what the output says about that one test: ``failed``, ``passed``, ``shown`` or ``missing``.
+
+    Built on ``named``'s line rule: only a non-skip line holding the ID as its own word counts.  ``failed`` when such a
+    line carries the runner's failure mark (or follows unittest's ``FAIL:``/``ERROR:`` header), else ``passed`` when one
+    carries its pass mark, else ``shown`` (named, but no line says how it ended: a reporter that marks no outcome), and
+    ``missing`` when no line names it (it did not run, or the file holding it failed to load).
+    """
+    lines = [line for line in _plain(output).splitlines() if not _ANNOUNCEMENT.match(line)]
+    result: Dict[str, str] = {}
+    for test_id in ids:
+        pattern = _id_pattern(test_id)
+        hits = [index for index, line in enumerate(lines) if pattern.search(line) and not _SKIP_LINE.search(line)]
+        if not hits:
+            result[test_id] = "missing"
+        elif any(_FAIL_LINE.search(lines[index]) or (index and _FAIL_HEADER.match(lines[index - 1]))
+                 for index in hits):
+            result[test_id] = "failed"
+        elif any(_PASS_LINE.search(lines[index]) for index in hits):
+            result[test_id] = "passed"
+        else:
+            result[test_id] = "shown"
+    return result
+
+
+__all__ = ("count", "named", "outcomes")

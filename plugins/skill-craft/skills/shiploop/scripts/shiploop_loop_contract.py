@@ -30,10 +30,12 @@ def contract(*, workspace: str, work: str, exit_condition: str, repeat_condition
 
 
 # The Until Loop runtime persists its whole state (frozen contract, latest report, progress) in at most
-# STATE_LIMIT bytes (until_loop_ephemeral.MAX_STATE_BYTES; a test pins the two together). A contract that
+# STATE_LIMIT bytes. The runtime itself has no limit since Until Loop 0.8.1; ShipLoop keeps its own 16 KiB budget, a
+# separate policy a test pins and a queued task removes. A contract that
 # fills the file leaves no room for the first review report, which then cannot be saved. So a contract may
 # use only STATE_LIMIT minus two reserves:
-#   STATE_OVERHEAD  the state's own keys, run id, action number, streak, tree id and receipt path (about
+#   STATE_OVERHEAD  the state's own keys, run id, action number, streak, tree id, receipt path and 0.8.0's empty
+#                   exit_checks/check_repairs/verify fields (about
 #                   420 bytes measured with a 250-character path), rounded up for longer paths;
 #   REPORT_RESERVE  the first report (evidence and a compact handoff). Observed sizes, batch 1003: a Luna
 #                   Backchain plan report of 5,335 bytes (rejected for size) and Improve child reports up to

@@ -93,8 +93,8 @@ class TestGroupTests(unittest.TestCase):
 
     def test_audited_catalog_counts_and_fixed_commands(self) -> None:
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 82)  # shiploop-retire removed (consumer contract 4c)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 42)
-        self.assertEqual(len(suite_catalog.SUITES), 126)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 43)  # until-loop-vendor added
+        self.assertEqual(len(suite_catalog.SUITES), 127)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
