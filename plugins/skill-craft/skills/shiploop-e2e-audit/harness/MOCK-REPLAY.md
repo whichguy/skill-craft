@@ -120,7 +120,7 @@ smoke result.
 
 | Existing check | Contract |
 | --- | --- |
-| `python3 -B test/shiploop-full-runtime.test.py` | Full 34-stage route, real child runtime, worktree return, recovery and generated package selection |
+| `python3 -B test/shiploop-full-runtime.test.py` | Full 24-stage route, real child runtime, worktree return, recovery and generated package selection |
 | `check_suite.py --suite mock` | Fast routing, fixed fixture expectations and negative controls |
 | `check_suite.py --suite workflow` | Recorded workflow evidence, protocol 4 checkpoint Improve inventory and campaign qualifications |
 
@@ -130,4 +130,4 @@ owners, action IDs, state hashes and packets. The CLI composition test reports
 failing command outputs in its assertion diagnostics; its internal trace is
 temporary and is removed during cleanup. Capture the unittest stdout/stderr when
 retained diagnostics are needed. These checks do not claim exhaustive branch
-coverage merely because all 34 stages were visited.
+coverage merely because all 24 stages were visited.

@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.59.0
+# ShipLoop navigator 1.0.0
 
 > **Main tenet: context can be cleared or compacted between any two stages, so every packet must stand alone.** A packet states what
 > its stage is for, how the stage operates, how its result will be checked and reviewed, what it must produce, and how to recover. It
@@ -49,7 +49,7 @@ host session after an update so it loads the selected package's current card.
 
 New runs use navigator protocol 4: the script persists and traverses the SDLC
 graph and issues one producer prompt at a time. After a planning result the run's
-`planning_review` option reviews, or the last carry-forward, it parks that parent action
+`planning_review` option reviews, an `implement` step, or the last carry-forward, it parks that parent action
 for the selected actual Improve skill; every other result advances directly. The script owns navigation; the
 model is a library call that performs the current step and runs the printed
 callback. Improve follows the Until Loop runtime bound by
@@ -155,45 +155,71 @@ of the prelude, per-item inner loop and outer loop, with their gates and
 loops.
 
 Planning results (`spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`,
-`system-test-author`, `release-plan`) and the successful `carry-forward` that
-leaves no work item pending follow this sequence; every other producer result is
-accepted on its own checks and the script selects the next producer directly
-(see the skill card's "When Improve runs"). That is the default of the run option
-`--planning-review stage|none`; with `none` the first five of those (`spec` through `test-spec`)
-are accepted on ShipLoop's checks at `complete` too, and only `system-test-author`, `release-plan`
-and the last `carry-forward` follow this sequence. The 34 producers' full flat
-order is: `intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`,
-`prepare`; then, for each ready item, `get-next-work-item`, `step-plan`, `test-spec`,
-`baseline`, `test-author`, `test-red`, `implement`, `test-green`, `test-refine`,
-`regression`, `document`, `skill-assess`, `skill-validate`, `static-checks`,
-`verify`, `integrate`, `integration-verify`, `carry-forward`; then
+`system-test-author`, `release-plan`), every accepted `implement` step and the
+successful `carry-forward` that leaves no work item pending follow this
+sequence; every other producer result is accepted on its own checks and the
+script selects the next producer directly (see the skill card's "When Improve
+runs"). That is the default of the run option `--planning-review stage|none`;
+with `none` the first five of those (`spec` through `test-spec`) are accepted on
+ShipLoop's checks at `complete` too, and only each `implement` step,
+`system-test-author`, `release-plan` and the last `carry-forward` follow this
+sequence. The 24 producers' full flat order is: `intake`, `discovery`,
+`research`, `spec`, `test-strategy`, `plan`, `prepare`; then, for each ready
+item, the 8 inner stages in 5 phases: Plan (`step-plan`, `test-spec`), Validate
+existing (`validate-existing`), Build (`implement` once per step, `test`,
+`document`), Verify (`verify`) and Carry forward (`carry-forward`); then
 `system-test-author`, `system-test`, `product-acceptance`, `release-plan`,
 `release-check`, `release`, `release-verify`, `operations`, and `handoff`.
 
+Every inner stage runs its work inside one Until Loop, invoked by name: the
+packet prints `INVOKE /until-loop NOW` with the contract ShipLoop wrote to
+`loops/<action>-contract.json`, and ShipLoop accepts the result only with a
+terminal receipt that matches the contract rebuilt from state (see "Stage Until
+Loops" in the [skill guide](SKILL.md)). `complete --check-only` runs a stage's
+script gates on a draft result without completing it.
+
+- `step-plan` records the item's steps, paths, criteria, test and check commands
+  and `expectations`: each a works, absent or broken fact with a read-only check
+  command, so the build starts from facts that were checked.
+- `validate-existing` runs those checks on the unchanged checkout. When every
+  check matches, ShipLoop records the stage without a packet. A works
+  expectation found broken with a known small fix is fixed there, and ShipLoop
+  commits that fix on accept as its own preparatory commit.
+- `implement` runs once per step, gated by lint on every step, and an Improve
+  child reviews each accepted step (in both planning review modes).
+- `test` writes the specified tests after the build, each asserting its case's
+  oracle. ShipLoop then runs them on the item's base
+  (no new test ID may pass there unless `red_na` names it; `shiploop red-check`
+  runs this check on demand) and on the candidate, holding each command to its
+  floor (`retired_tests` declares a deliberate removal).
+- `document` is issued only when the item's diff touches a code or test path;
+  `verify` reruns every command and reviews the whole diff, and ShipLoop commits
+  the item when it is accepted.
+- `carry-forward` records a skill decision (`none`, `reuse`, `update` or
+  `create`); ShipLoop commits a created or updated skill.
+
 Preparation, release, and operations still produce a reviewed result when they are
-inapplicable, and so do `skill-assess` and `skill-validate` unless the item's step
-plan records `skill_na` (below); they record a concrete N/A disposition rather
-than disappearing from the graph. `test-red` records an expected failure for the
-specified missing behavior and must not make production edits to turn it green.
-Release and verification never replay an uncertain external operation merely to
-make traversal continue.
+inapplicable; they record a concrete N/A disposition rather than disappearing
+from the graph. `test` and `document` are recorded as not applicable to an item
+only on the script's proof. Release and verification never replay an uncertain
+external operation merely to make traversal continue.
+
+A run saved by the earlier 17-stage inner loop (state version 4) is refused with
+a reason; start the request again in a fresh run directory.
 
 [Reusable product skills](references/testing-and-documentation.md#reusable-product-skills)
 stay in the product repository. `discovery` inspects the local index before
-planning; each `step-plan` rereads it for skills learned by earlier items.
-Prefer unchanged reuse with supported inputs/defaults, then a compatible local
-update, or a separate skill when contracts differ. `skill-assess` decides, for the item's
-declared paths, whether to reuse, update or create a skill and makes the warranted
-skill edits; `skill-validate` checks changed and retained uses. Carry selected-skill
-references into Improve's host-authored contract and maintain the repository index
-at `carry-forward`. This uses ordinary evidence/plan notes and work-item context;
-it adds no global installation or skill-specific runtime schema. Fresh-reader
-reuse remains untested until a reader actually finds and applies the local skill.
-A step plan that finds no repo-local skill to select, create or change records
-`skill_na` with the no-fit reason; ShipLoop then records `skill-assess` and
-`skill-validate` as not applicable to that item, and refuses `skill_na` beside a
-skill file in `paths` or a `document` that touches one (see "Skill stages not
-applicable to an item" in the [skill guide](SKILL.md)).
+planning; each `step-plan` rereads it for skills learned by earlier items and
+lists each step's helper `skills`, which the implement packet prints. Prefer
+unchanged reuse with supported inputs/defaults, then a compatible local update,
+or a separate skill when contracts differ. `carry-forward` decides, with repeat
+evidence, whether to reuse, update or create a skill, makes the warranted skill
+edits, runs a created or updated skill once on the run's real procedure and
+maintains the repository index. Carry selected-skill references into Improve's
+host-authored contract. This uses ordinary evidence/plan notes and work-item
+context; it adds no global installation or skill-specific runtime schema.
+Fresh-reader reuse remains untested until a reader actually finds and applies
+the local skill.
 
 Testing builds a [repeatable repository suite](references/repeatable-test-suites.md).
 Initial planning selects or revalidates the harness and focused/smoke/full commands.
@@ -206,8 +232,8 @@ in-system tests, retain their definitions and authorized setup/invocation/cleanu
 route; unavailable remote checks remain unrun even when local tests pass.
 
 At initialization, `--improve-skill=ABSOLUTE_SELECTED_SKILL_CARD` may bind the
-actual card (`--planning-review none` requires it: no planning child binds the card before the first item's
-quality and test loops read it). If omitted, `init` records the card installed beside ShipLoop when it
+actual card (`--planning-review none` requires it: no planning child binds the card before the first
+`implement` step's Improve child). If omitted, `init` records the card installed beside ShipLoop when it
 validates, and the first checkpoint's packet prints the command `improve-bind --action ... --skill-card ...`
 with that path; where none validates the checkpoint stays pending on a marked blank. The
 packet is authoritative for argument values and recovery. It then supplies one
@@ -222,10 +248,13 @@ the selected Until Loop runtime remains child-execution authority.
 
 ### Current Improve and Until Loop binding
 
-The canonical Improve package bundles Until Loop **0.5.0**, pinned to
-upstream commit `5df2a2feef4d80b93ca3c8a749d7d265c082d376`. Its default child uses
-`scripts/until_loop_ephemeral.py`; the package provenance manifest records the
-copied source hashes. The selected card (the explicit `--improve-skill`, else the card installed
+The canonical Improve package bundles Until Loop **0.7.0**, pinned to
+upstream commit `80e6caca28aaeb9038e7c209809cc2071aab22ac`
+(`skills/improve/runtime/until-loop/PROVENANCE.json`). Its default child uses
+`scripts/until_loop_ephemeral.py`, and its card (`ADAPTER.md`) can be invoked by
+the model and starts a parent-written contract file unchanged, which is how
+every inner stage's loop starts; the provenance manifest records the copied
+source hashes. The selected card (the explicit `--improve-skill`, else the card installed
 beside ShipLoop and recorded at `init`) determines this binding. An
 ambient same-named skill or an older `scripts/until-loop` on `PATH` cannot select
 the child runtime. Changing an external Until Loop installation alone does not
@@ -354,8 +383,9 @@ index exactly intact. This is explicitly reported as a working-tree return,
 **not a Git merge or commit**. The helper does not silently decide to commit the
 user's earlier edits merely because ShipLoop used them as context.
 
-Durable README/environment/design/decision updates and `SHIPLOOP.md` belong in
-the reviewed product set. Run prompts/results, scratch, raw logs, credentials,
+Durable README/environment/design/decision updates and a host-authored
+`SHIPLOOP.md` belong in the reviewed product set (ShipLoop commits only
+`docs/shiploop/` itself). Run prompts/results, scratch, raw logs, credentials,
 return manifests and the generated HTML achievement report do not. Reports stay
 under external run storage; reusable facts are promoted into project docs. The
 host must judge ambiguous/custom artifacts—the guard cannot infer their meaning.
@@ -563,7 +593,7 @@ action. At an Improve checkpoint the script parks that action while its actual
 Improve child runs.
 
 After `carry-forward` is accepted (and, for the last item, its Improve child is
-imported), the script selects the next item's `get-next-work-item`, or returns
+imported), the script selects the next item's `step-plan`, or returns
 ownership to `system-test-author` after the final item. The
 [navigator ownership guide](references/navigator.md#one-shared-inner-graph-and-per-item-records)
 explains the shared cursor boundary. ShipLoop stores the actual child binding
@@ -574,9 +604,9 @@ runtime own child iterations. ShipLoop has no second review counter.
 
 The navigator applies the actual-skill handoff to the planning stages (spec, test
 strategy, plan, step plan, test spec, system-test authoring and release plan; with
-`--planning-review none`, only system-test authoring and release plan) and
-to the last carry-forward, whose review covers all executed steps before OUTER
-work. See the skill card's "When Improve runs" section. The producer callback first saves its attempt. The next
+`--planning-review none`, only system-test authoring and release plan), to each
+accepted implement step, and to the last carry-forward, whose review covers all
+executed steps before OUTER work. See the skill card's "When Improve runs" section. The producer callback first saves its attempt. The next
 packet binds or resumes the selected Improve skill; the graph advances only
 when that skill completes and the bound outcome is imported. Read the actual
 selected skill's instructions for its review, history, evidence and commit

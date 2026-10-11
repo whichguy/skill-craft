@@ -111,7 +111,7 @@ _EXIT_CRITERIA_INSTRUCTION = (
     "a check fails, change the work, not the check, and rerun them all. "
     "(5) Stop on exactly one: every item confirmed or inspected, or reported `unconfirmable` when its "
     "text already says `Confirm by: unconfirmable here`, and none failed → SUCCEEDED; an item "
-    "proven unachievable → BLOCKED; the same check still failing after 3 genuine fix attempts → "
+    "proven unachievable → BLOCKED; the same check still failing after 7 genuine fix attempts → "
     "FAILED. An item is proven unachievable only when (a) it contradicts another item, the task, or a "
     "protected file, shown by a check after all compatible work is done and with the existing "
     "behavior kept at the conflict point; (b) confirming it needs a tool, runtime, access, or "

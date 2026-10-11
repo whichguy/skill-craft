@@ -163,8 +163,8 @@ its existing `context`; preserve detailed evidence in linked repository notes.
 
 The script projects the latest completed root `test-strategy` result as the
 **Run-wide test strategy source** in later packets. During an INNER item, it
-also projects the latest completed `step-plan`, `test-spec`, `test-author`,
-`test-refine` or `regression` result for that item as the **Current item
+also projects the latest completed `step-plan`, `test-spec` or `test` result
+for that item as the **Current item
 test-decision source**. The item's initial `context` remains unchanged; these
 producers retain applicable prior decision locators and revisions through
 ordinary `evidence_refs` and durable test notes. Both sources reach the actual
@@ -175,8 +175,8 @@ proves the strategy is still applicable. Pending, repeated or blocked attempts
 are not promoted to completed sources. Their own result/Improve context
 continues to describe that attempt.
 
-Each INNER plan revalidates the relevant strategy and item context. Authoring,
-refinement and regression use those decisions and retain justified changes in
+Each INNER plan revalidates the relevant strategy and item context. The `test`
+stage's authoring and refinement and `verify`'s rerun use those decisions and retain justified changes in
 ordinary plan/result evidence. Carry the originating strategy locator plus the
 current item-specific decisions into repository test documentation and future
 item context; whole-system testing reconciles that retained coverage. A missing
@@ -194,7 +194,7 @@ and revalidate its assumptions before execution. This is ordinary result and
 
 At `system-test-author`, recover the latest completed test-decision record for
 each relevant completed INNER item from `state.md`'s accepted history, using
-`step-plan`, `test-spec`, `test-author`, `test-refine` or `regression` and the
+`step-plan`, `test-spec` or `test` and the
 prior locators it retained. Read `results/<action>.md` and its relevant test notes.
 Reconcile these with the run-wide strategy and assembled candidate; the last
 transition or final item's decisions cannot stand for all completed items.
@@ -271,7 +271,7 @@ its discovery/environment evidence:
 
 Use the existing [local/remote execution contract](#plan-local-and-remote-execution)
 for commands, definitions, registration, isolation, authority and results; no
-second inventory or row per language is required. At `implement` and `test-refine`,
+second inventory or row per language is required. At `implement` and `test`,
 revalidate affected decisions against actual local and remote code/configuration,
 dependencies and test-definition changes. At `release-plan`, recheck the actual
 target, payload and operation's test gate. Update the existing cases and evidence
@@ -385,7 +385,7 @@ runner does not expand) is fixed in the stage that finds it.
 ## Review test assets through Improve
 
 In the navigator, the selected actual standalone Improve skill reviews each
-planning result the run's `planning_review` option reviews (including `test-spec` under `stage`), and the end-of-work candidate. Within that
+planning result the run's `planning_review` option reviews (including `test-spec` under `stage`), each accepted `implement` step, and the end-of-work candidate. Within that
 candidate scope, its review
 includes local and remote-resident test definitions, execution/target locations,
 platform/library testing-system fit, browser inspection versus retained test
@@ -394,7 +394,20 @@ stable IDs/selectors, suite registration, repeatable-run instructions, and
 outcome reporting. It does not
 invent a parallel Improve algorithm, state machine, or test framework.
 
-An expected RED result during test authoring is useful evidence, not a reason
-to weaken the oracle or make production edits merely to turn it green. Preserve
-the independent oracle and the expected RED evidence until the scoped
-implementation work legitimately satisfies it.
+Tests are written at `test`, after `implement`, and ShipLoop's base run is the
+RED evidence: each new test must fail on the item's base, without the item's
+change (`red_na` names a characterisation test that already passes). A test
+that fails on the candidate is not a reason to weaken the oracle; fix the
+product code, and change a test only for an independent reason you record.
+
+On new code the base run can only see a load failure (the module the item adds
+is missing there), and that counts as RED, so it proves nothing about the
+assertions. After the candidate run passes, ShipLoop's mutation check does: it
+makes a small deterministic sample (at most 8) of one-token mutants of the
+item's changed product lines (comparisons, boolean literals, `+`/`-` between
+operands, integer literals; never test, docs or config files), applies each
+alone in a temporary copy of the candidate and runs the focused commands. A
+mutant is killed when a command fails. ShipLoop refuses done only when mutants
+ran and none was killed (no kill-rate threshold, since equivalent mutants
+survive any suite), and records every mutant in
+`tests/<action>-mutation<N>.md`; a docs-only change records "no mutants".

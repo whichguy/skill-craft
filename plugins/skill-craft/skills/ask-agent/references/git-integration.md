@@ -1,10 +1,11 @@
 # Git integration for delegated work
 
-**Helper-managed route only.** Apply this workspace and removal contract to
-Ask Agent's helper-managed repository delegations, including research and
-review. Apply synchronization and integration to code contributions. Use the
-project's existing integration workflow; these instructions add ownership and
-evidence, not an agent launcher or scheduler.
+This reference distinguishes the compact standalone worktree route from the
+legacy direct-helper workflow. For standalone tasks, follow
+[Task interface](task-interface.md); the section below defines its commit,
+patch and ephemeral integration behavior. The remaining direct-helper
+procedures retain their existing contract for orchestrated callers. Do not
+apply their clean-snapshot commit restriction to compact commit delivery.
 
 The explicit consumer-owned route has `delivery_mode: in-place`, no helper
 receipt, and no patch/commit/report-only transfer. Read
@@ -12,9 +13,71 @@ receipt, and no patch/commit/report-only transfer. Read
 this reference's preparation, delivery enum, or removal procedures to a selected
 consumer candidate.
 
+## Compact standalone worktree delivery
+
+For `workspace: worktree` and `mode: edit`, compact delivery defaults to
+`delivery_mode: commits`; `delivery_mode: patch` is an explicit alternative.
+The helper first prepares and verifies the caller's exact inherited state:
+source `HEAD`, staged binary patch, unstaged binary patch, non-ignored
+untracked inputs, and existing root `.gitignore` and `.claspignore` files even
+when ignored. Absence or deletion of those controls stays absent. Keep these
+layers in the source capture; they are the baseline, not the worker's
+contribution.
+
+Commit delivery prepares base `S` in the child only. If the caller was clean,
+`S` equals the captured source `HEAD`. If dirty source layers change the
+inherited working tree, `S` is a one-parent commit whose tree contains the
+verified inherited files; if the net tree equals `HEAD`, `S` remains the source
+`HEAD` and `snapshot.source_dirty` still records that the source was dirty. The
+helper retains the separate source capture and patches. The snapshot changes
+only the child branch and index and does not rewrite the copied working files.
+Git's [`commit-tree`](https://git-scm.com/docs/git-commit-tree) creates a commit
+from an explicit tree, [`read-tree`](https://git-scm.com/docs/git-read-tree)
+updates the index without updating working files when `-u` is omitted, and
+[`update-ref`](https://git-scm.com/docs/git-update-ref) can move a ref only when
+its expected old value still matches.
+
+The worker receives the explicit header `Git commit — return these changes`.
+It commits only named contribution paths in its worktree and never uses
+`git add -A`. The parent accepts a commit handoff only when inspection proves
+the complete ordered linear range `S..C`, where `C` is the observed worker
+`HEAD`; `S` is never part of the contribution. Any residual staged, unstaged or
+untracked deliverable, out-of-scope commit path, incomplete or nonlinear range,
+or unexpected branch movement fails verification. Retain the worker commits
+until the parent accepts the combined result.
+
+After actual native completion and successful `verify-return`, the parent
+revalidates the target before integration. When the captured source was clean
+and the parent remains clean at the captured `HEAD`, it may cherry-pick the
+entire verified contribution range. When `snapshot.source_dirty` is true,
+apply only the helper-verified contribution patch from `S` to `C`, even when
+`snapshot.created` is false and `S` equals the source `HEAD`. This preserves
+the parent's `HEAD` and index and keeps any private `S` out of parent history.
+Do not cherry-pick a private snapshot or apply a whole-branch diff. The parent
+also receives `integration_strategy` from `verify-return`; treat it as a
+recommendation bound to the captured source and recheck current target state.
+If target state moved or the patch cannot be applied without changing the
+inherited state, retain the worker contribution and report the blocker. Run
+combined checks before final acceptance.
+
+`mode: ephemeral` requires an isolated worktree and a scoped write set. The
+worker may write scratch files within that scope, but `verify-return` returns
+audit metadata and findings only; it returns no delivery, commits, or patch.
+Do not integrate ephemeral files or treat them as code contributions.
+`mode: report-only` permits no filesystem edits. Current-workspace `mode: edit`
+has no automatic commit. In all compact modes, worker and parent scripts check
+filesystem state; they do not launch or collect native agents, integrate work,
+or clean up worktrees. Those decisions remain with the parent.
+
+## Legacy direct-helper and orchestrated workflow
+
+The detailed procedures below describe the existing direct-helper contract for
+orchestrated and legacy callers. They do not define the compact request fields
+or its dirty-parent commit strategy.
+
 ## Agree on the contribution before dispatch
 
-**Helper-managed route only.**
+**Legacy direct-helper route only.**
 
 The parent names the repository and actual worker workspace, the requested
 outcome and write ownership, the starting revision, the intended integration
@@ -30,7 +93,7 @@ already within the assignment.
 
 ## Choose one delivery mode
 
-**Helper-managed route only.** Every fresh helper-managed native worker
+**Legacy direct-helper route only.** Every fresh helper-managed native worker
 assignment declares exactly one delivery mode. This is a task-launch contract,
 not a global system-prompt change. A native return brings back a result message
 and references; it does not transfer worktree files or integrate a change by
@@ -91,7 +154,7 @@ its verified exact range.
 
 ## Reusable fresh-worker launch clause
 
-**Helper-managed route only.** Fill this concise clause into every fresh native
+**Legacy direct-helper route only.** Fill this concise clause into every fresh native
 worker prompt after `prepare`. Use real absolute values and task-specific allowed
 writes; do not leave braces in a dispatched task.
 
@@ -116,7 +179,7 @@ Returning a message does not integrate or transfer files. Leave this worktree in
 
 ## Prepare an isolated copy of the current state
 
-**Helper-managed route only.**
+**Legacy direct-helper route only.**
 
 Call the bundled helper's `prepare` operation as described in
 [Workspace operations](workspace-operations.md). The helper creates a uniquely
@@ -179,7 +242,7 @@ repository policy for commits, merge/rebase/cherry-pick, pushes and publication.
 
 ## Refresh and prepare the worker contribution
 
-**Helper-managed route only.**
+**Legacy direct-helper route only.**
 
 Before handing back isolated code changes, check the latest designated target.
 For an explicitly pinned assignment, report target movement without changing
@@ -211,7 +274,7 @@ needed. A new assignment still follows the skill's fresh-context rule.
 
 ## Return enough state to resume integration
 
-**Helper-managed route only.**
+**Legacy direct-helper route only.**
 
 Put a concise reminder and recommendation in the final native receipt, with the
 detailed state in the report. Use the self-contained
@@ -255,7 +318,7 @@ do not impose a fixed receipt length or require a report when writes are forbidd
 
 ## Accept the combined result
 
-**Helper-managed route only.**
+**Legacy direct-helper route only.**
 
 The parent reads the handoff and verifies the contribution and current target.
 If the target has moved since the worker's check, reassess against its new exact
@@ -280,7 +343,7 @@ outstanding.
 
 ## Parent-owned worktree removal
 
-**Helper-managed route only.**
+**Legacy direct-helper route only.**
 
 The parent decides eligibility; the bundled helper performs approved preservation
 and removal through `close`. Its default without acceptance is retention. See

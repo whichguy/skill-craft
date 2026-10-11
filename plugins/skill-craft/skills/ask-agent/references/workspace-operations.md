@@ -1,13 +1,22 @@
 # Workspace operations
 
-**Helper-managed route only.** Use the packaged Git helper for helper-managed
-repository delegation. It creates and verifies the worktree; native host tools
-still launch and collect the worker. Prerequisites are Git and Python 3. Do not
-install tools during delegation. An explicit prohibition on filesystem writes
-also prohibits workspace setup. In that case do not prepare or dispatch a
-repository worker; explain that the requested isolation requires creating a
-worktree, branch and receipt. An ordinary code-review request permits isolated
-setup and reports while leaving the reviewed inputs unchanged.
+**Legacy helper-managed route only.** Use the packaged Git helper for
+helper-managed repository delegation. It creates and verifies the worktree;
+native host tools still launch and collect the worker. Prerequisites are Git
+and Python 3. Do not install tools during delegation. An explicit prohibition
+on filesystem writes also prohibits workspace setup. In that case, do not
+prepare or dispatch a repository worker; explain that the requested isolation
+requires creating a worktree, branch and receipt. An ordinary code-review
+request permits isolated setup and reports while leaving the reviewed inputs
+unchanged.
+
+Standalone current-workspace tasks and isolated `edit`, `report-only`, and
+`ephemeral` work use [Task interface](task-interface.md) for package binding,
+preparation and filesystem checks. Worktree edits default to commit delivery;
+patch delivery is explicit. The recipes here retain the legacy direct-helper
+contract for orchestrated callers. Do not repeat compact-interface operations
+after successful preparation. Native launch and collection, integration, and
+eligible cleanup remain parent responsibilities.
 
 For a selected consumer-owned workspace, read
 [Consumer-owned workspace](consumer-owned-workspace.md). It never uses this
@@ -54,10 +63,10 @@ For consumer-owned selection, this same `identity --skill-card` output is
 package identity only. It does not create or validate a consumer workspace,
 receipt, delivery mode, or ownership record.
 
-## Machine capability contract
+## Legacy direct-helper capability contract
 
-A machine coordinator that needs to confirm this selected package's managed
-worktree interface may use the same absolute card binding before it records any
+A machine coordinator using the legacy managed-worktree interface may confirm
+that package contract with the same absolute card binding before it records
 workspace state:
 
 ```sh
@@ -83,10 +92,12 @@ with `version` copied from the verified selected card:
 }
 ```
 
-This is a machine declaration of the packaged helper interface. This Markdown
-reference remains the behavioral instruction for preparation, inspection,
-delivery, acceptance, and close. The declaration does not grant retirement,
-new discard authority, integration authority, or any other cleanup policy.
+This declares the packaged direct-helper interface. It is not a claim that the
+compact route is qualified on every host or that a native agent was launched.
+For this legacy interface, this reference remains the behavioral instruction
+for preparation, inspection, delivery, acceptance, and close. The declaration
+does not grant retirement, new discard authority, integration authority, or any
+other cleanup policy.
 
 The paths below are placeholders. Substitute actual receipt values. Keep prompts
 in native launch arguments; the helper's JSON files are Git/acceptance evidence,
@@ -94,7 +105,7 @@ not a prompt transport or another job queue.
 
 ## Prepare before dispatch
 
-**Helper-managed route only.**
+**Legacy helper-managed route only.**
 
 Coordinate active writers of the source checkout for the capture window after a
 successful package identity check. The
@@ -119,6 +130,13 @@ receipt path. Do not launch on a nonzero exit or unsuccessful preparation.
 A same-attempt delivery retry can validate its existing preparation with
 `prepare --receipt /actual/receipt.json --writers-quiescent`. A fresh delegation gets a fresh
 preparation. Do not reuse a workspace by matching its task label.
+
+The compact task interface requests `prepare --commit-snapshot` only for
+`workspace: worktree`, `mode: edit`, and commit delivery. The helper first
+captures and verifies the same source layers described under
+[Snapshot limits](#snapshot-limits), then establishes private base `S` in the
+child worktree. Direct-helper and orchestrated callers keep their declared
+preparation contract.
 
 An orchestrating parent may run identity, preparation and prepared inspection
 before recording its own start/launch grant. Carry that exact receipt and
@@ -147,7 +165,7 @@ worktree project instructions and the host's actual permissions.
 
 ## Check the worker's operation context
 
-**Helper-managed route only.** A consumer-owned worker verifies its explicit
+**Legacy helper-managed route only.** A consumer-owned worker verifies its explicit
 per-operation cwd and Git root against the consumer contract instead; it does
 not call `check-context` with an invented or consumer receipt.
 
@@ -174,22 +192,27 @@ nonzero check stops task writes; do not replace it with a reported path or with
 
 ## Snapshot limits
 
-**Helper-managed route only.**
+**Legacy helper-managed route only.**
 
-Preparation preserves the caller's staged and unstaged layers and non-ignored
-untracked entries. Required ignored/generated inputs need an explicit task
-decision; the helper does not promise installed dependencies or copy them
-silently; `ignored_dependencies_omitted` lists them, collapsing a wholly ignored
+Preparation starts from the current caller checkout's HEAD and applies its
+staged and unstaged binary Git patches separately, preserving both layers.
+It also copies non-ignored untracked entries and always preserves existing
+repository-root `.gitignore` and `.claspignore`, even if ignored/untracked.
+Absent or deleted control files stay absent. Other required ignored/generated
+inputs need an explicit task decision; the helper does not promise installed
+dependencies or copy them silently. `ignored_dependencies_omitted` lists the
+omitted inputs, excluding these two copied control files and collapsing a wholly ignored
 directory to one `dir/` entry. Unsupported state produces a concrete failure,
 not a partial-success workspace. A refusal found while capturing the source
 (the states listed below) happens before any attempt exists. A later failure,
 including a Git timeout, an I/O error, an interrupt, or SIGTERM or SIGHUP,
 stops the running Git command and its children (SIGTERM first, so Git can
 remove its lock files and a half-created worktree, then SIGKILL after a
-two-second grace), removes whatever worktree
-and still-unmoved branch that prepare created (no worker has run there) and
-names the attempt's `failure.json` record in the error. Re-run prepare after
-fixing the cause. Once prepare has written `receipt.json`, the attempt is
+two-second grace). Before a receipt exists, it removes the created worktree and
+deletes the helper-owned branch only if the branch still points to the captured
+source `HEAD` or the exact private snapshot commit `S`; otherwise it retains the
+branch for recovery. It names the attempt's `failure.json` record in the error.
+Re-run prepare after fixing the cause. Once prepare has written `receipt.json`, the attempt is
 prepared: a later failure or handled signal keeps the workspace, and the
 error names the receipt to reuse with `prepare --receipt`. A prepare killed with SIGKILL, for example by a consumer's
 own timeout, cannot clean up: it may leave the attempt's worktree and
@@ -205,14 +228,32 @@ Git content filters. It also refuses returned index-only changes that its
 working-content contribution patch cannot represent; retain those for manual
 review rather than treating an empty patch as no contribution.
 
+For compact commit delivery, `prepare --commit-snapshot` runs only after the
+helper has verified the captured source `HEAD`, staged and unstaged patch
+bytes, untracked inputs, and copied root controls in the child. A clean source
+uses its original `HEAD` as `S`. Dirty source layers that change the inherited
+working tree produce a private one-parent `S`; if the net tree still equals
+`HEAD`, `snapshot.created` is false, `S` remains `HEAD`, and
+`snapshot.source_dirty` records the source state. The helper retains the
+original source capture and patch layers, moves only the child branch and
+index, and verifies the child working files remain byte-identical. The source
+checkout, source index and source history are not changed. This option belongs
+to compact commit delivery; it does not change the legacy direct-helper commit
+rules below.
+
 ## Inspect after the worker returns
 
-**Helper-managed route only.**
+**Legacy helper-managed route only.**
 
 Collect native completion first. `inspect --phase returned` allows legitimate
 worker changes and reports a complete workspace `fingerprint` and the paths
 changed against inherited content. Declare result and disposable scratch paths
 explicitly, for example:
+
+Compact tasks instead use `verify-return` after collecting the actual native
+result. Follow [Task interface](task-interface.md#acceptance) for commit-range,
+dirty-parent patch, and ephemeral audit behavior. The following direct-helper
+commands retain their legacy delivery contract.
 
 ```sh
 python3 "$WORKSPACE_HELPER" inspect \
@@ -226,7 +267,9 @@ branch diff may include the caller's pre-existing edits. Reports/scratch are not
 code contribution. Revalidate after target movement or further worker edits.
 
 New untracked files that the worktree's ignore rules exclude (caches, build
-output, installed dependencies) are not contribution and never enter the patch.
+output, installed dependencies) are not contribution and never enter the patch,
+except repository-root `.gitignore` and `.claspignore`: those remain eligible
+contribution paths even when ignored, unless explicitly classified otherwise.
 When present, the result lists them as `ignored_paths`; they stay covered by the
 fingerprint and are discarded by `close`. Declare one as `--artifact` if it must
 be kept. A worker change to ignore rules is itself a contribution path, so review
@@ -304,7 +347,7 @@ separate parent acceptance and `close` step after reports are consumed.
 
 ## Close after acceptance
 
-**Helper-managed route only.** A consumer-owned workspace stays with its
+**Legacy helper-managed route only.** A consumer-owned workspace stays with its
 consumer; Ask Agent does not call `close` or remove it.
 
 Calling `close --receipt /actual/receipt.json` without acceptance retains work.

@@ -2,6 +2,313 @@
 
 Written by scripts/release.py.
 
+## 2026-10-11
+
+### skill-craft 2.0.0
+
+- Skills: ask-agent 0.10.0, improve 0.3.0, shiploop 1.0.0, shiploop-e2e-audit 0.7.2, shiploop-run-review 0.2.0
+
+### ask-agent 0.10.0
+
+- Make the compact task interface the standalone route for current workspaces and
+  explicitly selected worktrees. Support `mode: edit`, `report-only`, and
+  worktree-only `ephemeral`; worktree edits default to `delivery_mode: commits`,
+  with `patch` as an explicit alternative. Current edits have no automatic commit;
+  report-only makes no filesystem edits; ephemeral work returns findings and audit
+  metadata only, with no commit, patch, or code integration.
+
+  Before commit delivery, copy and verify the caller's exact `HEAD`, staged and
+  unstaged binary patches, nonignored untracked files, and existing root
+  `.gitignore` and `.claspignore` controls. Create base `S` in the child only: use
+  the original `HEAD` for a clean source; dirty layers that change the net tree
+  create a one-parent snapshot. A dirty net-zero source keeps `S` at its original
+  `HEAD` and records `snapshot.source_dirty`. Preserve the source capture and
+  patch layers, and do not rewrite copied worker files while updating the child
+  index. Have the worker commit only scoped contribution paths after `S` and
+  verify the complete ordered `S..C` range, residual paths, scope, and branch
+  position. Exclude `S` from returned commits.
+
+  After native completion, parent verification and target revalidation, allow a
+  clean captured source with an unchanged parent to cherry-pick the complete
+  verified range. For any source with `snapshot.source_dirty: true`, apply only
+  the verified contribution patch and preserve parent `HEAD` and index; never
+  add the private snapshot to parent history. Keep worker and
+  parent scripts limited to filesystem checks: native launch/collection,
+  integration, combined tests, acceptance and cleanup stay parent-owned. Preserve
+  the existing consumer-owned and orchestrated contracts, with separate source,
+  local-pilot and release claims.
+- Add opt-in external task packets and pinned command arguments to the standalone
+  task interface. Keep inline transport compatible. Return the actionable task
+  and mode-specific rules from the existing worker-start check, preserving native
+  parent launch/collection and acceptance, current/worktree selection, inherited
+  state, scoped commits, explicit patch delivery and findings-only ephemeral work.
+  Add packet tamper/path/route regression coverage and harness final-result writing
+  with separate native evidence validation. Smaller launch payloads are measurable
+  locally; elapsed-time improvement still requires matched live qualification.
+
+### improve 0.3.0
+
+- The bundled Until Loop runtime is now upstream 0.8.1 (whichguy/until-loop v0.8.1, 529a42d); its state has no size limit and exit checks have no count cap. Contracts may carry
+  frozen `exit_checks` written from the request before any work; each active packet prints a `verify_script` that the
+  executor runs as its shell command's own text (so permission prompts and hooks see every check) and that pipes the
+  real results into the runtime's `record` step; a satisfied report needs a fresh recorded run and every check
+  passing. Failed checks can be repaired (never their clauses). The runtime's state limit is 64 KiB. Contracts without
+  exit checks behave as before. Evidence: until-loop-lab, 374+ graded runs on Sonnet 5.5, Grok 4.7 and GPT-6.1 Sol.
+- The bundled Until Loop card can now be invoked by the model (`disable-model-invocation: false`) and opens with
+  "Start from a parent-written contract": when the argument or packet names a `Contract:` file and a `Receipt:`, it
+  skips interpretation and runs exactly `python3 <script> start --receipt <Receipt> < <Contract>`; the file wins over
+  the argument text, and an existing active receipt is continued through its `next_argv` instead of starting a second
+  run. The callback adapter reference says the same. The runtime script is unchanged.
+
+### shiploop 1.0.0
+
+- The repository knowledge home gains `docs/shiploop/architecture.md`: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the decisions as stable IDs (`AD-<n>`) with a `Superseded` section. The living spec stays the contract and the architecture stays the build, so each survives a change of the other. Plan and step-plan keep the file up to date and the prepare close refuses done while it is missing or empty, so a repository whose home an earlier version wrote is asked for the file at its next run's prepare; a refused prepare names it and says what it holds. A later architecture.md that no longer mentions an earlier committed decision ID is refused, as a living spec that drops a requirement ID already was, when the drop is in an uncommitted edit (the stage's own, or a review's before it commits through `improve-commit`); an edit a review already committed through `improve-commit` is not seen, for the spec too (deferred). The refusal puts the fix, the absolute path and the route's own commands on its first line, the IDs on the second, and for an `improve-complete` import it names `improve-commit` before `improve-complete`. A line the credential screen flags in any home file is refused the same way, with the absolute place, what to write instead (an alias, never a value or code that assigns one) and the route's command.
+- ShipLoop records the data each stage's consumer reads, so a stage cleared of its context can work from its packet alone
+  (consumer contract, slice 4a).
+
+  - **Whole-file knowledge quotes.** `knowledge_home.READS` names, for every stage, the living files its packet quotes
+    whole (`spec.md`, `environment.md`, `architecture.md`); `reads_quotes(state, stage)` returns each file's absolute path
+    and its whole text, or None when it is absent or blank. A heading spelled any way is quoted the same.
+  - **Entries.** `knowledge_home.entry_text(repo, "R-3")` returns one requirement (from `spec.md`) or decision (`AD-<n>`,
+    from `architecture.md`) as the file holds it, uncut, and `entries()` flags one under Retired or Superseded.
+  - **Run baseline.** `init` records the execution checkout's HEAD in the run folder (`run-baseline.txt`);
+    `spec_diff(root, state)` is the uncut `git diff` of `docs/shiploop/spec.md` and `docs/shiploop/architecture.md` since
+    then.
+  - **Lessons commit.** release-verify's knowledge commit is always made: its body is the result's `lessons` (Learned, Key
+    considerations, Open for the next run) plus the open items still left, and it is an empty commit when the home did not
+    change. The next run's intake and discovery quote it whole, found by its subject however many commits follow, beside
+    the last three commit messages they already quote.
+  - **Hand-off result fields.** step-plan records `follows` (the R-<n> and AD-<n> the item follows; each must have an
+    entry in the living spec or architecture), test-spec records `test_cases` (one `{id, criterion, requirement, oracle,
+    red, green}` per ID this item's focused commands list, both ways, with the step plan's criteria and real
+    requirements; this replaces the check of the feature `test-spec.md` headings), implement may record `not_covered`,
+    and release-verify records `lessons`. A template placeholder left in any of them is refused.
+  - **Open items.** test-spec, verify, carry-forward, system-test-author, system-test, release-plan and release-verify
+    list the open items they leave in `assumptions` (`[]` when none); an open item's consumer is a later outer stage, or
+    the same item's carry-forward from test-spec or verify, and may name an `owner`. A row stays open until its consumer
+    stage's later done result settles it.
+  - **Refusals.** Every hand-off refusal's first line is the fix, the result file's absolute path and the next command;
+    on improve-complete without `--final-result` it says to write a final result to the printed path and pass it. The
+    Improve packet lists `revise` among the final outcomes at test-spec to verify.
+  - **What each packet consumes.** `navigator.CONSUMES` names, for every stage, the hand-off values its packet quotes, and
+    `handoff_sources(root, state, stage)` returns them; system-test-author now reads test-spec and release-plan reads
+    system-test-author in the stage table.
+  - **State version 6.** A run saved by an earlier version is refused with the fresh-run hint.
+- ShipLoop's knowledge home has three living files, and every artifact it keeps has a named reader (consumer contract,
+  slices 4b to 4d).
+
+  - **Three living files.** `docs/shiploop/spec.md`, `environment.md` and `architecture.md`. `environment.md` gains the
+    sections `## Harnesses and suites` (each suite with its files and command, and the system-test catalog) and
+    `## ID convention` (the scheme and the one command that lists the IDs already taken); `architecture.md` gains
+    `## Real-boundary checks` (each check a local test cannot prove, with its owner). test-strategy writes those two files;
+    system-test-author keeps the catalog, and release-check corrects the standing release procedure, in `environment.md`.
+    test-spec is no longer a knowledge close (its cases are in the result), and intake keeps no file.
+  - **`test-strategy.md` and `docs/shiploop/README.md` are retired.** No close requires them and nothing writes or names
+    them; an older repository keeps its copies, which the credential screen still reads.
+  - **Rollback at release and operations.** In an isolated run the release, release-plan, release-check and operations
+    packets print the return's rollback commands.
+  - **The feature folder, the retire and outcome.md are removed.** A run no longer writes or requires
+    `docs/shiploop/features/<run>/` (spec, plan, test spec, system tests, release plan, outcome) or the feature list
+    `features/README.md`: their content is in the stage results the consumers quote, in the living files, or in the
+    release-verify lessons commit. The handoff no longer removes the run's feature spec, and an older version's feature
+    folders are left untouched. release-verify's close needs `environment.md` only: the lessons are the result's field.
+  - **`SHIPLOOP.md` is the host's file.** ShipLoop no longer commits, screens or returns it as knowledge: a return plan
+    reviews it like any product file and may exclude it, and validate-existing treats a change to it as a stray path.
+    Packets still name it as the host-authored index to read if present.
+  - **Progress view.** It lists the living spec and the run's accepted results; the feature drafts, the test strategy and
+    the retired-spec row are gone.
+  - **The completion report shows the hand-offs.** After "Work item progress": the uncut spec and architecture diff since
+    the run began, each work item's `follows`, test cases and `not_covered` per implement step, the open items still open,
+    the system-test commands, and the release-verify lessons commit's exact message. A stage that ran without its field
+    says "not recorded"; one that never ran adds no section. After a working-tree return the report says the lessons
+    commit did not reach the source branch and asks you to commit the returned files (or an empty commit) with exactly
+    that message, so the next run's intake quotes the lessons.
+- The inner loop runs 8 stages in 5 phases instead of 17 stages.
+
+  | Phase | Stages |
+  |---|---|
+  | Plan | step-plan, test-spec |
+  | Validate existing | validate-existing |
+  | Build | implement per step, test, document |
+  | Verify | verify |
+  | Carry forward | carry-forward |
+
+  A run saved by the 17-stage loop (state version 4) is refused, with a reason.
+
+  - **Every inner stage is an Until Loop.**
+    - The packet says `INVOKE /until-loop NOW`, then the work, the exit conditions (the same words as Done when) and
+      the repeat condition.
+    - ShipLoop writes the stage's contract to `loops/<action>-contract.json` and, at complete, checks the receipt
+      `loops/<action>-terminal.json` against the contract rebuilt from state.
+    - `repeat` is no longer an inner outcome.
+  - **step-plan** also records:
+    - check commands (lint, type, build), or `check_na`;
+    - an `expectations` list: works, absent or broken, each with a read-only check command;
+    - per-step helper `skills`, which the implement packet prints.
+  - **validate-existing** replaces baseline.
+    - ShipLoop runs every expectation's check on the unchanged checkout. When all match, the stage is recorded without
+      a packet.
+    - A known small fix to a works expectation found broken is made here. ShipLoop commits it on accept, as its own
+      commit.
+  - **implement** is gated by lint on every step, and an Improve child reviews every accepted step.
+    - The review uses `IMPLEMENT_STEP_REVIEW_FOCUS` with the Code craft rubric.
+    - It runs even under `--planning-review none`.
+  - **test** follows implement. It writes the test spec's cases, runs every recorded command and fixes until all pass.
+    At done, ShipLoop:
+    - runs the item's tests on its base (after any preparatory fix) and refuses a new test ID that passes there,
+      unless `red_na: [{id, reason}]` names it;
+    - runs every command on the candidate, holding the floor (base count and earlier runs);
+    - accepts a deliberate removal declared in `retired_tests`.
+
+    `shiploop red-check` runs the base check without completing.
+  - **document** is recorded as not applicable when the item's diff touches no code or test path.
+  - **verify** takes over:
+    - from static-checks: the change inventory, the first-entry lint auto-fix and the review loop;
+    - from integrate: the item commit.
+  - **carry-forward** records a skill decision: `none | reuse | update | create`.
+    - A created or updated skill must name an existing `SKILL.md` with name and description, and list its repeat
+      evidence.
+    - ShipLoop commits it.
+  - **`complete --check-only`** runs a stage's script gates on a result without completing the action.
+- Test and quality loops now allow 11 refused runs per action (was 7) before `done` is no longer accepted, and a
+  check may fail after 7 genuine fix attempts (was 3) before the stage reports revise. The keepalive's
+  no-progress release follows at 22 continuations (twice the refused-run cap).
+  The fix-attempt rule is now the constant `shiploop_stage_spec.GENUINE_FIX_ATTEMPTS`, and a test pins every prose copy
+  of the three caps to their constants; the static-checks paragraph of SKILL.md now says the 11th refused run.
+- Packets now carry the knowledge home's architecture and spec-retire lines.
+
+  - **Every inner packet** names its grounding files by absolute path: living spec, feature spec, environment,
+    architecture and test strategy (`knowledge_home.grounding`). A missing or blank file is left out, and nothing is
+    printed when there are none.
+  - **plan and step-plan** say what architecture.md holds (`ARCHITECTURE_HOLDS`).
+    - Keep every AD-<n> ID, and move a decision that no longer holds under '## Superseded'.
+    - Name credential handling without secret values.
+    - plan records each structural choice as the next AD-<n>; step-plan adds one for a structural decision and cites
+      it.
+  - **prepare** writes a missing architecture.md from the plan.
+  - **The spec duty** numbers requirements R-<n> only: a structural choice is an AD-<n> in architecture.md.
+  - **spec, plan and step-plan** state that a change to docs/shiploop/ losing an R-<n> or AD-<n> ID is refused.
+  - **The plan packet** asks plan.md to begin with the living-spec pin (`Spec: docs/shiploop/spec.md @ <sha12>`).
+  - **The handoff packet** states when ShipLoop retires the feature spec.
+  - **The stages that write the home's README** link the feature list, not a feature spec.
+  - **The stages from intake through plan** name earlier features.
+- The knowledge home's fact files have named sections, the inner stages that find commands, facts and decisions keep them up to date, and ShipLoop counts the sections a close finds missing.
+
+  - **Sections as constants** (`knowledge_home.SECTIONS`): `spec.md` has Requirements, Non-functional requirements and Retired; `environment.md` has Targets and runtimes, Commands, Skills (the repository's local skill directory), Access and accounts and Platform facts; `architecture.md` has Stack, Structure, Conventions, Interfaces and boundaries, Decisions and Superseded; `test-strategy.md` has Harnesses and suites, Commands, ID convention and Real-boundary checks. They are the one list: a packet is to quote them rather than carry its own, and a test pins that every heading a packet duty names for these files is in `SECTIONS`.
+  - **Writer entries on the 8-stage graph** (`knowledge_home.STAGE_FILES`): research, step-plan, validate-existing, implement and test keep `environment.md` up to date; step-plan and implement also keep `architecture.md` (a deviation recorded as the next `AD-<n>`); carry-forward keeps `architecture.md` and `environment.md`. verify reads the architecture and writes nothing. A test pins every key to a stage of the graph, and another that every heading a packet duty or loop text names for one of the four files is in `SECTIONS`.
+  - **A counted notice, not a refusal** (`knowledge_home.section_notices`): at the closes (prepare, test-spec, release-plan, release-verify), one line per file of the four that exists, has text and has anything to report (four lines at most a close), naming every section that file lacks or leaves empty. Each line starts `ShipLoop knowledge notice: `, names the file by absolute path first, the missing and the empty sections, that the close is accepted, and the one fix; the architecture file's line ends with what that file holds. A line counts a file, so the reference gives two counts by occurrence: files with `grep -o 'ShipLoop knowledge notice: '` and headings from the quoted names before each line's first semicolon. It prints at the close even when the script records another stage after it (test-spec, then validate-existing), it never blocks a close and never raises. A section counts when a markdown heading (`#` to `####` at the start of the line and outside a code fence, any case, trailing words allowed) starts with its name and has at least one non-blank line before the next heading of the same or higher level. Whether to turn the notice into a refusal waits for a live run that shows packets which quote the headings get them written.
+- Packets state each fact once (owner, 2026-10-11: "the full packet file looks far too verbose ... consolidate the
+  language and deduplicate").
+
+  - **Shared rules.** A producer packet no longer prints COMMON, the requirement and reference-handoff rules, or the
+    progress paragraph. One short **Rules for every stage** list replaces them. The long texts stay whole in the run
+    reference file (`reference.md` #rules, #requirements, #progress). Improve, paused and blocked packets print a
+    three-line progress rule instead of the paragraph.
+  - **Removed duplicates.**
+    - The Progress snapshot, which repeated the status block (report.html keeps it).
+    - The second "Call this when done" callback.
+    - The separate result-path line.
+    - The "Owner:" line.
+    - The four recovery prose lines; one Recovery command line remains.
+    - The Improve line's repeated blocked sentence.
+    - Test-source blocks for results that "Results this stage builds on" already lists.
+    - The last transition's "read the durable state" sentence, and its empty evidence list.
+  - **Run locators.** The 15 policy and guide lines print only when the packet's own text names one. Every other
+    locator is reached from reference.md#policies through one line. The state, CLI, scratch, keepalive and SHIPLOOP.md
+    index lines remain.
+  - **Workspace return.** The return route (plan-return, review-return and the rollback route) prints only at
+    release-plan, release-check, release and handoff. Every other worktree packet carries one "Execution checkout"
+    line.
+  - **Result template.** It is the same JSON in the same fence, laid out with one key per line and one list element
+    per line. The step-plan template drops from 115 lines to about 25.
+  - **step-plan.** Its duty is a numbered list, one item per result field plus the plan note, knowledge and evidence.
+    - Step sizing, the test-facility and test-decision handoffs, the planning handoff and the design-basis text are
+      folded into it.
+    - The interaction and state-lifecycle text moves to the Interaction design guide.
+    - An inline step-plan carries one optional Backchain audit line in place of the caller guidance.
+  - **Shorter texts.** The inline preamble, the Until Loop duty paragraph and the pass-log rule are shorter.
+  - **Size.** Measured offline on node-fix-bug, the inner loop drops from 431k to 270k characters, and its step-plan
+    packet from 58k to 33k.
+  - **Second pass.**
+    - Four shared test texts are shorter, and each keeps its obligations: test facilities, test decision, the OUTER test
+      plans and selected-case reconciliation.
+    - Inline carry-forward carries the one optional Backchain audit line instead of the caller guidance and its
+      contract budget.
+    - An Improve child's packet prints the locators of the policies its review text names.
+  - **Restored after main CI.** Step-plan item 7 again tells the model to reopen the plan's Namespace and data map
+    (with the collision check), and to give a human-facing UI an ambitious, highly interactive design by default.
+- An inner-loop stage's packet now states each thing once. Its head keeps the one `Goal:` line, and in place of the itemised done-when list it prints one line: "Done when: every exit condition in the /until-loop argument below holds; ShipLoop's gate checks the same list." The /until-loop argument is the only place that holds the stage's Work, numbered exit conditions, Repeat and (at test) the recorded command list. The loop contract does not change. Three things stay in the head. A step plan sent back keeps its extra condition as an `Also:` line, because that condition is not in the contract. If the argument cannot be built, the itemised list is printed there instead, still once. A parent packet that waits on an Improve child keeps its itemised list, because it has no invoke block. The test stage's lines after the argument no longer list the commands again. They print where the commands run, each command's floor numbered as in the argument, the red-check command and the refused-run tally. The eight inner duties and the shared loop duty lose the sentences that only restated the goal, the loop's Work, its exit conditions or Repeat. Every how-to rule, field shape, routing rule and refusal explanation is kept. In the offline node-fix-bug walk, the inner packets total 396,762 characters, down from 406,119.
+- Every packet a model acts on (producer, Improve parent, paused, blocked or awaiting) now prints a **References** block right after its goal, done-when and Checked-by lines, and each path in it is defined once. The block has a global part that reads the same in every packet of a run. `HOME` is the knowledge home, with each file that has named sections and its headings, plus the feature list. `FEATURE` is this run's feature folder, with the files the stages write there. `RUN` is the run directory and `WORKTREE` is the execution checkout. A file that does not exist yet is still listed, marked "not written yet: <stage> writes it". Every file name comes from knowledge_home's own tables (`SECTIONS`, the grounding labels, `STAGE_FILES`, `FEATURE_LIST`, `feature_dir`). The block has a stage-local part too. An inner stage gets its **consult** note, printed from one navigator table, `_CONSULT`, shaped `{stage: ((file, heading), ...)}` like the planned `knowledge_home.READS`. An active packet also gets **Results this stage builds on**, which lists each earlier stage's accepted result and durable products (`stage_spec` reads plus one `_PRODUCTS` table). Examples are the step plan's plan section, the test spec's cases, validate-existing's check record and preparatory commit, each implement step's lint gate and Improve review, the test stage's base, candidate and mutation runs and loop receipt, and verify's change inventory, rerun record and item commit. Each is labelled `<item> <stage> <product>`, and planning results read "<stage> stage result". Each artifact keeps the same label and symbolic path in every packet. The rest of the packet's prose names files by these symbols: duties, knowledge lines, Checked-by and gate texts. A command the model runs verbatim keeps its absolute paths, and so does the /until-loop argument. This block replaces the knowledge grounding line, the duties' "Consult and cite" lists and step planning's "Current planning sources" list. The test and verify duties no longer restate what ShipLoop checks at done; their Checked-by line is the one place that says it, and it now also states the lint auto-fix refusal, the mutation rule and verify's floor.
+- Each run now keeps a derived `reference.md` beside `context-index.md`: the run-wide rules, the blocked and outcome
+  shapes, recovery, progress reporting, requirement rules, policies and guides, and the workspace return, in labelled
+  sections that packets can cite as `reference#<anchor>`. `next` writes it for a run saved before it existed.
+- At the final handoff ShipLoop checks that every requirement ID the run's feature spec (`docs/shiploop/features/<slug>/spec.md`) names is in the living spec (`docs/shiploop/spec.md`) and, when the run's commits reach your branch (an in-place run, or a fast-forward return), removes that file in a commit of its own, `docs(shiploop): retire <slug> spec: checked its requirement IDs against the living spec`; the commit goes back with the knowledge follow-up return, its message gives the recover command and the commit the plan was recorded in, and the branch's history keeps the last committed version (a squash merge drops it). The file stays after a working-tree return or a return that recorded no change, when the living spec lacks an ID it names or names none, when the file has uncommitted changes or was never committed, and when it is a symbolic link; ShipLoop prints one line saying which, and the handoff is never refused for the IDs or the route (a removal or list write that cannot be made leaves the handoff pending with the file's absolute path and the next step). The run's plan, test and outcome records stay. ShipLoop's knowledge commits now also write `docs/shiploop/features/README.md`, a list of the feature folders with commands that find a requirement ID in them (`grep -rlw`, `git log -G`, `git show` of a removed spec, the prepare commit's plan); it is derived from the tree, never makes a commit of its own, and a file at that path that is not ShipLoop's is left alone with a notice. The progress view shows a retired feature spec as Retired with its commit, not as a missing document. A knowledge follow-up return that fails after the retire commit alone no longer replaces the handoff guard's return commands with a dead end. A retried handoff whose result cites the feature spec that ShipLoop's retire removed is accepted (the evidence check counts that file as present). `workspace.return_kind` reads the route of the recorded return.
+- step-plan now sizes its steps. Each step lists the criteria it satisfies (`criteria`) and the paths it changes
+  (`paths`), and ShipLoop refuses a step plan when:
+  - a step names no paths;
+  - a step names no criteria while the item has criteria;
+  - a step names an unknown criterion;
+  - a step path is not one of the item's paths;
+  - a criterion is served by no step;
+  - a step changes only test files, unless every path of the item is a test file.
+
+  The step-plan packet adds sizing directions. Each step is one behaviour-level change that a named check proves.
+  Split a step that holds two separately confirmable behaviours, crosses a module or layer boundary, needs "and"
+  between two outcomes, or is too large to recheck in one pass. Merge a step no check can confirm on its own into
+  the step it serves. A single fix or mechanical rename is one step. The step-plan done-when line states the rule.
+- Printing a done or halted run's packet no longer starts the progress observer. The observer had written
+  `.progress.lock` and refreshed `context-index.md` in a run folder that a terminal recovery must leave unchanged.
+- The test stage's done gate now runs a mutation check after the candidate run passes (owner decision 2026-10-11:
+  "code tests after the build phase, not just run empty tests"). ShipLoop makes at most 8 deterministic one-token
+  mutants of the item's changed product lines (comparisons, boolean literals, `+`/`-`, integer literals; comments and
+  strings skipped), applies each alone in a temporary worktree of the candidate, runs the focused commands, and refuses
+  done when mutants ran and none was killed. The refusal names each surviving mutant (`file:line`, the change) and counts
+  toward the refused-run cap; `complete --check-only` runs it without counting. Every check writes
+  `tests/<action>-mutation<N>.md` with each mutant and the kill count. The base run still counts a load failure of an
+  added file as RED (on new code nothing can run on the base); the mutation check is what proves the assertions.
+  Evidence: the Checkers run on 88d412e9 had every TC id "missing" on the base (load failure of rules.js) and its
+  mutation score fell 0.86 to 0.66 against the 17-stage run (n=1).
+- ShipLoop accepts terminal packets from the Until Loop 0.8.0 runtime (new keys `exit_checks`, `last_check_results`,
+  `check_repairs`, `verify_script`) in its loop and standalone Improve checks. ShipLoop keeps its own 16 KiB contract
+  budget as a ShipLoop policy; the runtime itself no longer limits state size.
+
+### shiploop-e2e-audit 0.7.2
+
+- The audit harness follows ShipLoop's 8-stage inner loop (step-plan, test-spec, validate-existing, implement, test,
+  document, verify, carry-forward; 24 stages in all). The DAG replay oracle states the new stage lists and edges by
+  hand, parks every accepted implement step for Improve under both planning-review options, and walks 24 stages with
+  33 callbacks (28 in a `none` run, 44 with two work items). The old repeat-at-step-plan scenario became a repeat at the
+  test-strategy checkpoint, and a new revise scenario checks that test refuses repeat and sends the item back to its
+  step plan. Live lifecycle evidence no longer asks for a callback for a stage ShipLoop recorded by script
+  (validate-existing with every expectation matched, a left-out test or document), and `complete --check-only` is not
+  credited as a callback. `red-check` is a recognised ShipLoop verb; the behaviour capture's closed stage list is
+  the new one, and its outcome list accepts `revise`.
+
+### shiploop-run-review 0.2.0
+
+- The stage catalog (`defaults/stages.json`) follows the engine's stage table again: system-test-author now reads test-spec
+  (every item's latest test cases) and release-plan reads system-test-author (the system commands it recorded), the
+  producers of what those stages' packets quote under the consumer contract.
+- Run Review follows ShipLoop's 8-stage inner loop (step-plan, test-spec, validate-existing, implement, test, document,
+  verify, carry-forward). The phases are now Understand, Specify, Plan, Build, Verify, Carry forward, System test and
+  Release; `defaults/stages.json` is regenerated (every inner stage ends on its Until Loop's `loop-terminal`, and the
+  catalog accepts implement's `improve: step`); an 8-stage run's `delivered.skill.assessed` comes from the last carry-forward
+  visit. A saved 17-stage run is read with its own frozen catalog and phases (see the stage-models note).
+- A visit with no packet reads as recorded by ShipLoop, not skipped: the page's legend, visit count, table, card list and the
+  visit's Outcome line say "recorded by ShipLoop", and facts.md counts "N recorded by ShipLoop". The export keeps
+  `stages[].skipped` and adds `stages[].recorded` from the engine's summary: "expectations matched" (an 8-stage
+  validate-existing whose expectation checks all matched) or "not applicable" (a stage left out of the item); older exports
+  without it keep the previous Outcome wording.
+- Run Review counts an Improve packet's recovery label in either of its forms: the "Recovery command:" line printed
+  through skill-craft 1.27.0, or the "Recovery command (...)" line that the packet dedupe prints after it.
+- A run is read with its own stage model: `runs.stageModel` is `v4` for the 17-stage inner loop (every run saved before
+  2026-10-10) or `v5` for the 8-stage one, and the page header says "17-stage run" or "8-stage run". A 17-stage run keeps its
+  own stage catalog, purposes, exit checks, reader counts, phases (Build, Prove, Integrate) and phase 3-5 expectations from the
+  frozen `defaults/stages-v4.json` (written to the page as `config/stages-v4` by `export.py --defaults`), its skill decision
+  from skill-assess and skill-validate, and test-red's "meant to fail" note; every saved run exports as it did before the
+  8-stage change, apart from the new field. A script-run card whose stage also has an Improve child now says so.
+- Run Review reads a step slice (`test/shiploop_e2e/slice.py`, which writes `slice-result.json` instead of `result.json`) as a slice: the run document has `kind: "slice"` and a `slice` record (work item, stop, stage at the stop, the not-reached sentence); a slice that reached its stop is `finished`, a cleared or otherwise ended one `stopped`; its outcome is PASS or FAILED naming the failing verdicts; the stages the harness seeded read seeded, not skipped; system tests and release read "not reached (slice)"; the return, the release, the quality phase and outer-stage refusals are not measured with a reason that names the slice. The page and facts.md say "step slice", and a slice is compared only with other slices. Whole runs export exactly as before.
+
 ## 2026-10-10
 
 ### skill-craft 1.27.0

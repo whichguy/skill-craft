@@ -41,7 +41,7 @@ Classify non-passing observations before any repair:
 | --- | --- |
 | Required behavior already passes | Retain the scope and evidence as a feature prerequisite; continue planning. |
 | Affected foundation fails | Name an earliest scoped repair item and its required passing rerun. Dependent feature items wait for that evidence. Do not repair source or tests during discovery. |
-| The failing behavior is the requested repair | Preserve its expected failure as the repair baseline. The repair's own baseline stage may complete that classification; its later GREEN and regression checks must pass. Do not require the defect to be fixed before its repair can begin. |
+| The failing behavior is the requested repair | Preserve its expected failure as the repair baseline. The repair's own step plan records it as a `broken` expectation, which `validate-existing` confirms; its later test and verify runs must pass. Do not require the defect to be fixed before its repair can begin. |
 | Apparently unrelated existing failure | Retain the failing evidence and an explicit impact/scope disposition. Scoped continuation requires demonstrated separation, a passing check of the feature's actual prerequisites, and applicable authority. Unknown relatedness blocks dependent edits; do not silently waive failures or broaden the request into unrelated cleanup. |
 | Setup/access missing, timeout or uncertain target | Keep the baseline blocked/inconclusive and plan its concrete prerequisite. Existing preparation ownership resolves authorized setup/access, then reruns the original check against unchanged product/tests before dependent feature edits. A source defect requires a repair item, not an environment preparation shortcut. |
 | Existing implementation lacks adequate executable tests | Record no existing executable baseline, not N/A or green. Reuse an adequate established behavior check when available; otherwise name an earliest test-bootstrap item. Under its execution plan and existing authority it may make the smallest justified test/harness, test-only dependency and configuration changes, while testing unchanged application behavior. Keep its post-bootstrap characterization result separate from the original missing-suite observation. Discovery and its review do not author the missing tests. |
@@ -51,9 +51,10 @@ Classify non-passing observations before any repair:
 A completed discovery investigation may record a failed or blocked baseline
 and still proceed to prerequisite planning. Its producer `done` means the
 investigation is complete, not that the repository is healthy. Use the existing
-blocked callback when the current action itself cannot progress. For the
-per-item `baseline`, an explicitly planned repair may retain expected failure,
-and a test-bootstrap item may retain missing coverage, so those producers can
+blocked callback when the current action itself cannot progress. At the
+per-item `validate-existing`, an explicitly planned repair may retain expected
+failure (a `broken` expectation), and a test-bootstrap item may retain missing
+coverage, so those producers can
 reach their own authorized edits. Those dispositions never unblock a dependent
 feature without the required passing rerun. Keep callback formats, phase owners
 and stage order unchanged.
@@ -69,8 +70,9 @@ A new follow-up request needs a fresh initial baseline. Within the same run,
 reuse only evidence whose checked content, command, relevant runtime/config,
 target, fixture assumptions and outcome still apply; do not rerun solely because
 context was cleared. Carry locators through intervening planning results and
-each affected item. The later per-item baseline checks the current item starting
-state, rerunning when those conditions change. The initial baseline remains
+each affected item. The later per-item `validate-existing` checks the current
+item's starting state through its step plan's expectations, rerunning when those
+conditions change. The initial baseline remains
 historical and never substitutes for post-change regression checks. For a
 run that already made edits without initial evidence, perform current checks
 and record the gap; do not replay discovery or invent an
@@ -172,11 +174,14 @@ independent expected outcome rather than blessing a bug. Capture the checked
 revision, target role, fixture and observed failures.
 Distinguish three cases:
 
-1. A required foundation is healthy: cite passing checks before dependent edits.
+1. A required foundation is healthy: record it as a `works` expectation whose
+   check passes before dependent edits.
 2. A required foundation is broken: plan a small repair and its test as an earlier
-   local row or work item; dependent feature work waits for that evidence.
-3. The failing regression is the requested fix: preserve its expected failure,
-   then implement the fix and require it to pass. Do not require the target bug
+   local row or work item; dependent feature work waits for that evidence. A
+   known small fix found at `validate-existing` is made there and committed by
+   ShipLoop as its own preparatory commit.
+3. The failing regression is the requested fix: record it as a `broken`
+   expectation, then implement the fix and require it to pass. Do not require the target bug
    to be fixed before allowing its own repair step.
 
 Unrelated existing failures need an explicit impact/scope decision, not automatic
@@ -306,16 +311,16 @@ of unaided self-verification in evaluated planning tasks; that motivates
 current-code inspection, meaningful checks and retained counterevidence. The host
 remains responsible for evidence quality, test adequacy and truthful reporting.
 
-### Until Loop per step (selective)
+### Until Loop per step
 
-A step's exit-criteria loop normally runs inside its step prompt: confirm each
-criterion by its stated method, rerun every check after the last edit, and stop
-on done, proven unachievable, or the same check failing after 3 genuine fix
-attempts. For a step expected to need many iterations or context resets, or for
-a retried step, that fix-until-confirmed loop may instead run as a bound Until
-Loop child with `work` = the step, `exit_condition` = every criterion confirmed
-by its stated method, `repeat_condition` = the proven-unachievable rule plus a
-no-progress stop, and `required_trivial_reviews` = 0. The contract text itself
-must carry the conflict rule: keep existing behavior at the conflict point; a
-prompt around the contract is not enough. This is not the default: on bounded
-steps it produced the same outcomes at about 1.8× the cost.
+Every `implement` step, like every other inner stage, runs its fix-until-confirmed
+loop inside one bound Until Loop that ShipLoop writes for it
+([stage Until Loops](../SKILL.md#stage-until-loops)): `work` is the step,
+`exit_condition` is the stage's Done-when lines, `repeat_condition` carries the
+proven-unachievable rule and the stop after 7 genuine fix attempts, and
+`required_trivial_reviews` is 0. A criterion that contradicts another criterion,
+the item or a protected file stops the loop, and the stage reports `revise`. Before the owner decision of
+2026-10-10 this loop was selective, because on bounded steps it produced the
+same outcomes at about 1.8× the cost of an in-prompt loop; every inner stage now
+runs one so that each stage's exit and repeat conditions are script-written and
+checked.

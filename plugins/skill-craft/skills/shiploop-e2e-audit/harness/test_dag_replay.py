@@ -89,14 +89,14 @@ class DagReplayTests(unittest.TestCase):
             with self.assertRaisesRegex(dag_replay.DagReplayError, "partial or missing terminal"):
                 session.close()
 
-    def test_full_route_exercises_34_stages_and_42_callback_boundaries(self) -> None:
+    def test_full_route_exercises_24_stages_and_33_callback_boundaries(self) -> None:
         report = self._replay("synthetic-full")
 
         self.assertTrue(report["ok"], report.get("error"))
         self.assertEqual("synthetic-apparatus-passed", report["replay_status"])
-        # 34 producer callbacks plus 8 Improve completions: seven planning
-        # checkpoints and the final carry-forward.
-        self.assertEqual(42, len(report["events"]))
+        # 24 producer callbacks plus 9 Improve completions: seven planning
+        # checkpoints, the one implement step and the final carry-forward.
+        self.assertEqual(33, len(report["events"]))
         self.assertEqual({"W1"}, set(report["final"]["completed_work_items"]))
         self.assertEqual(["intake", "discovery", "research"], [event["from"] for event in report["events"][:3]])
         for producer in report["events"][:3]:
@@ -114,7 +114,7 @@ class DagReplayTests(unittest.TestCase):
         self.assertNotEqual(improve["post_action_id"], improve["submitted_action_id"])
         improved = [event["from"] for event in report["events"] if event["command"] == "finish-improve"]
         self.assertEqual([
-            "spec", "test-strategy", "plan", "step-plan", "test-spec", "carry-forward",
+            "spec", "test-strategy", "plan", "step-plan", "test-spec", "implement", "carry-forward",
             "system-test-author", "release-plan",
         ], improved)
         self.assertEqual(0, report["model_calls"])
@@ -123,31 +123,34 @@ class DagReplayTests(unittest.TestCase):
         self.assertIn("SIMULATION_ONLY", report["mock_transport"]["stderr"])
         self.assertEqual(1, report["mock_transport"]["subprocesses"])
 
-    def test_two_work_items_preserve_queue_identity(self) -> None:
+    def test_two_work_items_preserve_queue_identity_over_32_stages_and_44_callbacks(self) -> None:
         report = self._replay("synthetic-two-work-items")
 
         self.assertTrue(report["ok"], report.get("error"))
-        self.assertEqual(62, len(report["events"]))
+        # 32 producer callbacks plus 12 Improve completions: spec, test-strategy, plan, then step-plan,
+        # test-spec and implement for each item, the last carry-forward, system-test-author and release-plan.
+        self.assertEqual(44, len(report["events"]))
         self.assertEqual(["W1", "W2"], report["final"]["completed_work_items"])
         carry_forward = [event for event in report["events"] if event["from"] == "carry-forward"]
         # Only the carry-forward that leaves no item pending parks for Improve.
         self.assertEqual(["produce", "produce", "finish-improve"], [event["command"] for event in carry_forward])
         handoff = next(
             event for event in report["events"]
-            if event["from"] == "carry-forward" and event["to"] == "get-next-work-item"
+            if event["from"] == "carry-forward" and event["to"] == "step-plan"
         )
         self.assertEqual("W2", handoff["next_owner"])
         self.assertEqual(["W1"], handoff["completed_work_items"])
 
-    def test_a_none_run_replays_with_no_checkpoint_at_the_five_planning_stages(self) -> None:
+    def test_a_none_run_replays_24_stages_and_28_callbacks_with_no_checkpoint_at_the_five_planning_stages(self) -> None:
         report = self._replay("synthetic-none-full")
 
         self.assertTrue(report["ok"], report.get("error"))
-        # 34 producer callbacks plus 3 Improve completions: the last carry-forward, system-test-author, release-plan
-        self.assertEqual(37, len(report["events"]))
+        # 24 producer callbacks plus 4 Improve completions: the implement step (reviewed under either option),
+        # the last carry-forward, system-test-author and release-plan.
+        self.assertEqual(28, len(report["events"]))
         improved = [event["from"] for event in report["events"] if event["command"] == "finish-improve"]
-        self.assertEqual(["carry-forward", "system-test-author", "release-plan"], improved)
-        for stage in ("spec", "test-strategy", "plan"):
+        self.assertEqual(["implement", "carry-forward", "system-test-author", "release-plan"], improved)
+        for stage in ("spec", "test-strategy", "plan", "step-plan", "test-spec"):
             producer = next(event for event in report["events"] if event["from"] == stage)
             with self.subTest(stage=stage):
                 self.assertFalse(producer["active_improve"])
@@ -190,10 +193,11 @@ class DagReplayTests(unittest.TestCase):
                 duplicate = next(event for event in report["events"] if event["command"] == command)
                 self.assertEqual(duplicate["pre_state_sha256"], duplicate["post_state_sha256"])
 
-    def test_pause_blocked_cold_recovery_repeat_and_corrective_replan(self) -> None:
+    def test_pause_blocked_cold_recovery_repeat_revise_and_corrective_replan(self) -> None:
         expectations = {
             "synthetic-pause-blocked-cold-recovery": [],
             "synthetic-repeat": [],
+            "synthetic-revise": [],
             "synthetic-corrective-replan": ["W1", "W2"],
         }
         for name, completed_items in expectations.items():
@@ -212,12 +216,22 @@ class DagReplayTests(unittest.TestCase):
                                and event["expected"]["status"] == "blocked"]
                     self.assertEqual([("discovery", "produce"), ("spec", "finish-improve")], blocked)
                 if name == "synthetic-repeat":
-                    repeated = [event for event in report["events"] if event["from"] == "step-plan"]
-                    self.assertEqual("step-plan", repeated[1]["to"])
+                    repeated = [event for event in report["events"] if event["from"] == "test-strategy"]
+                    # The parked repeat, the Improve-returned repeat and the done producer all stay put.
+                    self.assertEqual(["test-strategy"] * 3, [event["to"] for event in repeated[:3]])
+                    self.assertEqual("plan", repeated[-1]["to"])
+                if name == "synthetic-revise":
+                    at_test = [event for event in report["events"] if event["from"] == "test"]
+                    self.assertIn("repeat is not an outcome at test", at_test[0]["engine_error"])
+                    self.assertEqual(at_test[0]["pre_state_sha256"], at_test[0]["post_state_sha256"])
+                    self.assertEqual(("produce", "step-plan", "W1"),
+                                     (at_test[1]["command"], at_test[1]["to"], at_test[1]["next_owner"]))
+                    self.assertFalse(at_test[1]["active_improve"])
+                    self.assertEqual("test-spec", report["events"][-1]["to"])
                 if name == "synthetic-corrective-replan":
                     replan = next(
                         event for event in report["events"]
-                        if event["from"] == "system-test" and event["to"] == "get-next-work-item"
+                        if event["from"] == "system-test" and event["to"] == "step-plan"
                     )
                     self.assertEqual("W2", replan["next_owner"])
                     self.assertEqual(["W1"], replan["completed_work_items"])
@@ -348,8 +362,18 @@ class DagReplayTests(unittest.TestCase):
         # A checkpoint producer parks its own action.
         check(navigator, state("spec", "a1"), parked("spec", "a1"), "produce", "a1", done)
         # A carry-forward that leaves a later item pending advances directly.
-        check(navigator, state("carry-forward", "a1"), state("get-next-work-item", "a2", work_index=1),
+        check(navigator, state("carry-forward", "a1"), state("step-plan", "a2", work_index=1),
               "produce", "a1", done)
+        # A done implement step parks under either option; a blocked one advances nothing and parks nothing.
+        for mode in ("stage", "none"):
+            check(navigator, state("implement", "a1"), parked("implement", "a1"), "produce", "a1", done,
+                  planning_review=mode)
+            with self.subTest(implement_mode=mode), self.assertRaisesRegex(
+                    dag_replay.DagReplayError, "replaced the parent action"):
+                check(navigator, state("implement", "a1"), state("test", "a2"), "produce", "a1", done,
+                      planning_review=mode)
+        self.assertFalse(dag_replay._literal_checkpoint(
+            state("implement", "a1"), "implement", {"outcome": "blocked", "summary": "Synthetic."}, "stage"))
         failures = (
             # (a) A checkpoint producer that advanced with no child.
             ("replaced the parent action", state("spec", "a1"), state("test-strategy", "a2"), done),
